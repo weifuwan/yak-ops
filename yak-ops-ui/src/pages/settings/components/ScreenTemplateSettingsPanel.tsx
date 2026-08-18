@@ -1,5 +1,6 @@
 import { ScreenRenderer } from '@/components/screen-engine';
 import type { ScreenTemplate } from '@/components/screen-engine';
+import { fetchDigitalScreens } from '@/pages/digital-screen/screen-service';
 import {
   copyManagedScreenTemplate,
   deleteCustomScreenTemplate,
@@ -17,7 +18,6 @@ import type {
 import { Button, Input, Modal, Popconfirm, Select, message } from 'antd';
 import { Copy, Eye, FileJson, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { fetchDigitalScreens } from '@/pages/digital-screen/screen-service';
 
 const statusLabel: Record<ManagedScreenTemplateStatus, string> = {
   draft: '草稿',
@@ -91,9 +91,23 @@ export default function ScreenTemplateSettingsPanel() {
     }
   };
 
-  const openEdit = (record: ManagedScreenTemplate) => {
-    setEditing(record);
-    setEditJson(stringifyScreenTemplate(record.template));
+  const usageCount = async (templateId: string) => {
+    const screens = await fetchDigitalScreens();
+    return screens.filter((screen) => screen.templateId === templateId).length;
+  };
+
+  const openEdit = async (record: ManagedScreenTemplate) => {
+    try {
+      const usage = await usageCount(record.id);
+      if (usage > 0) {
+        message.warning(`当前模板已被 ${usage} 个数字化大屏使用，请先复制模板后再修改`);
+        return;
+      }
+      setEditing(record);
+      setEditJson(stringifyScreenTemplate(record.template));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '检查模板使用情况失败');
+    }
   };
 
   const saveEdit = () => {
@@ -129,8 +143,7 @@ export default function ScreenTemplateSettingsPanel() {
 
   const removeTemplate = async (record: ManagedScreenTemplate) => {
     try {
-      const screens = await fetchDigitalScreens();
-      const usage = screens.filter((screen) => screen.templateId === record.id).length;
+      const usage = await usageCount(record.id);
       if (usage > 0) {
         message.warning(`当前模板已被 ${usage} 个数字化大屏使用，请先处理这些大屏`);
         return;
@@ -257,7 +270,7 @@ export default function ScreenTemplateSettingsPanel() {
                   复制
                 </Button>
                 {record.source === 'custom' ? (
-                  <Button type="text" size="small" icon={<Pencil size={13} />} onClick={() => openEdit(record)}>
+                  <Button type="text" size="small" icon={<Pencil size={13} />} onClick={() => void openEdit(record)}>
                     编辑
                   </Button>
                 ) : null}
