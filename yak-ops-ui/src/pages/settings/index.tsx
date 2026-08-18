@@ -1,20 +1,21 @@
-import { Braces, SlidersHorizontal } from 'lucide-react';
+import { Braces, LayoutTemplate, SlidersHorizontal } from 'lucide-react';
 import { history, useLocation } from '@umijs/max';
 
 import EditorSettingsPanel from './components/EditorSettingsPanel';
 import EnvironmentSettingsPanel from './components/EnvironmentSettingsPanel';
+import ScreenTemplateSettingsPanel from './components/ScreenTemplateSettingsPanel';
 
-type SettingsTab = 'editor' | 'environment';
+type SettingsTab = 'editor' | 'environment' | 'screen-template';
 
 const tabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
   { key: 'editor', label: '编辑器设置', icon: <SlidersHorizontal size={15} strokeWidth={1.8} /> },
   { key: 'environment', label: '环境变量', icon: <Braces size={15} strokeWidth={1.8} /> },
+  { key: 'screen-template', label: '大屏模板', icon: <LayoutTemplate size={15} strokeWidth={1.8} /> },
 ];
 
 const SettingsPage = () => {
   const location = useLocation();
 
-  // Determine active tab from URL hash or default to 'editor'
   const hash = location.hash.replace('#', '');
   const activeTab: SettingsTab = (tabs.some((t) => t.key === hash) ? hash : 'editor') as SettingsTab;
 
@@ -51,9 +52,13 @@ const SettingsPage = () => {
       </aside>
 
       <section className="min-w-0 flex-1 overflow-auto">
-        <div className="mx-auto w-full max-w-[920px] px-10 py-8 xl:px-14">
+        <div className={[
+          'mx-auto w-full px-10 py-8 xl:px-14',
+          activeTab === 'screen-template' ? 'max-w-[1220px]' : 'max-w-[920px]',
+        ].join(' ')}>
           {activeTab === 'editor' && <EditorSettingsPanel />}
           {activeTab === 'environment' && <EnvironmentSettingsPanel />}
+          {activeTab === 'screen-template' && <ScreenTemplateSettingsPanel />}
         </div>
       </section>
     </div>
