@@ -1,6 +1,7 @@
 import { getScreenTemplateById } from '@/components/screen-engine';
 import type {
   CreateDigitalScreenInput,
+  DigitalScreenBindings,
   DigitalScreenInstance,
   UpdateDigitalScreenInput,
 } from './model';
@@ -16,6 +17,11 @@ const createId = () => {
   return `screen-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 };
 
+const normalizeBindings = (value: unknown): DigitalScreenBindings => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as DigitalScreenBindings;
+};
+
 const readScreens = (): DigitalScreenInstance[] => {
   if (typeof window === 'undefined') return [];
   try {
@@ -23,13 +29,19 @@ const readScreens = (): DigitalScreenInstance[] => {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is DigitalScreenInstance => Boolean(
-      item
-      && typeof item === 'object'
-      && typeof (item as DigitalScreenInstance).id === 'string'
-      && typeof (item as DigitalScreenInstance).name === 'string'
-      && typeof (item as DigitalScreenInstance).templateId === 'string',
-    ));
+    return parsed.flatMap((item) => {
+      if (!item || typeof item !== 'object') return [];
+      const candidate = item as Partial<DigitalScreenInstance>;
+      if (
+        typeof candidate.id !== 'string'
+        || typeof candidate.name !== 'string'
+        || typeof candidate.templateId !== 'string'
+      ) return [];
+      return [{
+        ...candidate,
+        bindings: normalizeBindings(candidate.bindings),
+      } as DigitalScreenInstance];
+    });
   } catch {
     return [];
   }
@@ -65,6 +77,7 @@ export const createDigitalScreen = async (input: CreateDigitalScreenInput) => {
     templateId: input.templateId,
     templateVersion: 1,
     status: 'draft',
+    bindings: input.bindings ?? {},
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -85,6 +98,7 @@ export const updateDigitalScreen = async (id: string, input: UpdateDigitalScreen
       description: input.description === undefined
         ? screen.description
         : input.description.trim() || undefined,
+      bindings: input.bindings === undefined ? screen.bindings : input.bindings,
       updatedAt: now(),
     };
     updated = next;
@@ -141,6 +155,7 @@ export const duplicateDigitalScreen = async (id: string) => {
     name: `${source.name} - 副本`,
     description: source.description,
     templateId: source.templateId,
+    bindings: source.bindings,
   });
 };
 
