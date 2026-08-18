@@ -72,6 +72,11 @@ export function ChartDataColumn({
           font-weight: 600 !important;
           color: #344054 !important;
         }
+        .chart-data-column > .min-h-0 > section > div:nth-child(3) span[class*="rounded-[5px]"][class*="border"] {
+          border: 0 !important;
+          background: transparent !important;
+          border-radius: 0 !important;
+        }
       `}</style>
     </section>
   );
