@@ -15,6 +15,11 @@ import type {
 
 type ScreenChartComponent = ScreenLineComponent | ScreenBarComponent | ScreenPieComponent;
 
+interface ComponentInteraction {
+  selected?: boolean;
+  onSelect?: () => void;
+}
+
 const CHART_COLORS = ['#38bdf8', '#22c55e', '#f59e0b', '#a78bfa', '#fb7185', '#2dd4bf'];
 
 const formatValue = (value: string | number) => {
@@ -131,17 +136,24 @@ function ComponentFrame({
   component,
   theme,
   children,
+  selected = false,
+  onSelect,
 }: {
   component: ScreenComponent;
   theme: ScreenTheme;
   children: ReactNode;
-}) {
+} & ComponentInteraction) {
   const style = component.style;
   const transparent = component.type === 'text';
   return (
     <div
       data-screen-component={component.id}
-      className="absolute box-border flex min-h-0 flex-col overflow-hidden"
+      data-screen-selected={selected || undefined}
+      onClick={onSelect}
+      className={[
+        'absolute box-border flex min-h-0 flex-col overflow-hidden transition-[outline,filter] duration-150',
+        onSelect ? 'cursor-pointer hover:brightness-[1.04]' : '',
+      ].join(' ')}
       style={{
         left: component.x,
         top: component.y,
@@ -153,6 +165,8 @@ function ComponentFrame({
         borderRadius: style?.borderRadius ?? (transparent ? 0 : 12),
         boxShadow: style?.shadow,
         color: style?.color ?? theme.textColor,
+        outline: selected ? '3px solid rgba(254, 44, 85, 0.92)' : undefined,
+        outlineOffset: selected ? -3 : undefined,
       }}
     >
       {component.title ? (
@@ -175,14 +189,21 @@ function ComponentFrame({
   );
 }
 
-function MetricComponent({ component, theme }: { component: Extract<ScreenComponent, { type: 'metric' }>; theme: ScreenTheme }) {
+function MetricComponent({
+  component,
+  theme,
+  ...interaction
+}: {
+  component: Extract<ScreenComponent, { type: 'metric' }>;
+  theme: ScreenTheme;
+} & ComponentInteraction) {
   const data = component.data;
   const direction = data?.trendDirection ?? 'flat';
   const trendColor = direction === 'up' ? '#22c55e' : direction === 'down' ? '#f43f5e' : theme.mutedTextColor;
   const trendPrefix = direction === 'up' ? '↑' : direction === 'down' ? '↓' : '→';
 
   return (
-    <ComponentFrame component={component} theme={theme}>
+    <ComponentFrame component={component} theme={theme} {...interaction}>
       <div className="flex h-full min-h-0 flex-col justify-center">
         <div className="flex items-end gap-2">
           <span
@@ -208,10 +229,17 @@ function MetricComponent({ component, theme }: { component: Extract<ScreenCompon
   );
 }
 
-function TableComponent({ component, theme }: { component: ScreenTableComponent; theme: ScreenTheme }) {
+function TableComponent({
+  component,
+  theme,
+  ...interaction
+}: {
+  component: ScreenTableComponent;
+  theme: ScreenTheme;
+} & ComponentInteraction) {
   const data = component.data;
   return (
-    <ComponentFrame component={component} theme={theme}>
+    <ComponentFrame component={component} theme={theme} {...interaction}>
       {!data ? (
         <div className="flex h-full items-center justify-center text-[13px]" style={{ color: theme.mutedTextColor }}>
           暂无预览数据
@@ -262,23 +290,27 @@ function TableComponent({ component, theme }: { component: ScreenTableComponent;
   );
 }
 
-function renderScreenComponent(component: ScreenComponent, theme: ScreenTheme) {
+function renderScreenComponent(
+  component: ScreenComponent,
+  theme: ScreenTheme,
+  interaction: ComponentInteraction,
+) {
   switch (component.type) {
     case 'metric':
-      return <MetricComponent component={component} theme={theme} />;
+      return <MetricComponent component={component} theme={theme} {...interaction} />;
     case 'line':
     case 'bar':
     case 'pie':
       return (
-        <ComponentFrame component={component} theme={theme}>
+        <ComponentFrame component={component} theme={theme} {...interaction}>
           <ScreenChart component={component} theme={theme} />
         </ComponentFrame>
       );
     case 'table':
-      return <TableComponent component={component} theme={theme} />;
+      return <TableComponent component={component} theme={theme} {...interaction} />;
     case 'text':
       return (
-        <ComponentFrame component={component} theme={theme}>
+        <ComponentFrame component={component} theme={theme} {...interaction}>
           <div
             className="flex h-full items-center"
             style={{
@@ -309,21 +341,37 @@ const withRuntimeData = (component: ScreenComponent, overrides?: ScreenDataOverr
   return data ? ({ ...component, data } as ScreenComponent) : component;
 };
 
-function RuntimeScreenComponent({ component, theme }: { component: ScreenComponent; theme: ScreenTheme }) {
-  return renderScreenComponent(component, theme);
+function RuntimeScreenComponent({
+  component,
+  theme,
+  selected,
+  onSelect,
+}: {
+  component: ScreenComponent;
+  theme: ScreenTheme;
+} & ComponentInteraction) {
+  return renderScreenComponent(component, theme, { selected, onSelect });
 }
 
 export interface ScreenRendererProps {
   template: ScreenTemplate;
   data?: ScreenDataOverrides;
   className?: string;
+  selectedComponentId?: string;
+  onComponentClick?: (component: ScreenComponent) => void;
 }
 
 /**
  * Renders the fixed design canvas and scales it to the available width. Layout,
  * visual style and preview data all come from the template document.
  */
-export function ScreenRenderer({ template, data, className = '' }: ScreenRendererProps) {
+export function ScreenRenderer({
+  template,
+  data,
+  className = '',
+  selectedComponentId,
+  onComponentClick,
+}: ScreenRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -360,13 +408,18 @@ export function ScreenRenderer({ template, data, className = '' }: ScreenRendere
           fontFamily: template.theme.fontFamily,
         }}
       >
-        {template.components.map((component) => (
-          <RuntimeScreenComponent
-            key={component.id}
-            component={withRuntimeData(component, data)}
-            theme={template.theme}
-          />
-        ))}
+        {template.components.map((component) => {
+          const runtimeComponent = withRuntimeData(component, data);
+          return (
+            <RuntimeScreenComponent
+              key={component.id}
+              component={runtimeComponent}
+              theme={template.theme}
+              selected={component.id === selectedComponentId}
+              onSelect={onComponentClick ? () => onComponentClick(runtimeComponent) : undefined}
+            />
+          );
+        })}
       </div>
     </div>
   );
