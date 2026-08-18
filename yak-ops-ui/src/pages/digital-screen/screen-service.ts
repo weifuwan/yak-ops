@@ -75,11 +75,11 @@ export const createDigitalScreen = async (input: CreateDigitalScreenInput) => {
 
 export const updateDigitalScreen = async (id: string, input: UpdateDigitalScreenInput) => {
   let updated: DigitalScreenInstance | undefined;
-  const screens = readScreens().map((screen) => {
+  const screens = readScreens().map((screen): DigitalScreenInstance => {
     if (screen.id !== id) return screen;
     const name = input.name === undefined ? screen.name : input.name.trim();
     if (!name) throw new Error('请输入大屏名称');
-    updated = {
+    const next: DigitalScreenInstance = {
       ...screen,
       name,
       description: input.description === undefined
@@ -87,7 +87,8 @@ export const updateDigitalScreen = async (id: string, input: UpdateDigitalScreen
         : input.description.trim() || undefined,
       updatedAt: now(),
     };
-    return updated;
+    updated = next;
+    return next;
   });
 
   if (!updated) throw new Error('数字化大屏不存在或已被删除');
@@ -98,15 +99,16 @@ export const updateDigitalScreen = async (id: string, input: UpdateDigitalScreen
 export const publishDigitalScreen = async (id: string) => {
   let published: DigitalScreenInstance | undefined;
   const timestamp = now();
-  const screens = readScreens().map((screen) => {
+  const screens = readScreens().map((screen): DigitalScreenInstance => {
     if (screen.id !== id) return screen;
-    published = {
+    const next: DigitalScreenInstance = {
       ...screen,
       status: 'published',
       publishedAt: timestamp,
       updatedAt: timestamp,
     };
-    return published;
+    published = next;
+    return next;
   });
 
   if (!published) throw new Error('数字化大屏不存在或已被删除');
@@ -116,15 +118,16 @@ export const publishDigitalScreen = async (id: string) => {
 
 export const unpublishDigitalScreen = async (id: string) => {
   let draft: DigitalScreenInstance | undefined;
-  const screens = readScreens().map((screen) => {
+  const screens = readScreens().map((screen): DigitalScreenInstance => {
     if (screen.id !== id) return screen;
-    draft = {
+    const next: DigitalScreenInstance = {
       ...screen,
       status: 'draft',
       publishedAt: undefined,
       updatedAt: now(),
     };
-    return draft;
+    draft = next;
+    return next;
   });
 
   if (!draft) throw new Error('数字化大屏不存在或已被删除');
