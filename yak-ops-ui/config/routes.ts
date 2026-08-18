@@ -4,6 +4,8 @@ const fullscreenRouteIds = new Set([
   'dashboard-new',
   'dashboard-editor',
   'dashboard-viewer',
+  'digital-screen-editor',
+  'digital-screen-viewer',
   'workflow-definition-editor',
 ]);
 
