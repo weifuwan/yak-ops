@@ -64,8 +64,20 @@ const writeJson = (key: string, value: unknown) => {
 };
 
 const readBuiltinSettings = (): Record<string, BuiltinTemplateSetting> => {
-  const value = readJson<Record<string, BuiltinTemplateSetting>>(BUILTIN_SETTINGS_STORAGE_KEY, {});
-  return value && typeof value === 'object' ? value : {};
+  const values = readJson<Record<string, unknown>>(BUILTIN_SETTINGS_STORAGE_KEY, {});
+  const settings: Record<string, BuiltinTemplateSetting> = {};
+  Object.entries(values || {}).forEach(([id, value]) => {
+    if (!value || typeof value !== 'object') return;
+    const candidate = value as Partial<BuiltinTemplateSetting>;
+    if (candidate.status !== 'published' && candidate.status !== 'offline') return;
+    settings[id] = {
+      status: candidate.status,
+      sort: typeof candidate.sort === 'number' && Number.isFinite(candidate.sort)
+        ? candidate.sort
+        : 1000,
+    };
+  });
+  return settings;
 };
 
 const writeBuiltinSettings = (settings: Record<string, BuiltinTemplateSetting>) => {
@@ -80,7 +92,7 @@ const readCustomTemplates = (): StoredCustomTemplate[] => {
   const values = readJson<unknown>(CUSTOM_STORAGE_KEY, []);
   if (!Array.isArray(values)) return [];
 
-  return values.flatMap((value) => {
+  return values.flatMap((value): StoredCustomTemplate[] => {
     if (!value || typeof value !== 'object') return [];
     const candidate = value as Partial<StoredCustomTemplate>;
     if (!candidate.template || !isStatus(candidate.status)) return [];
@@ -89,12 +101,15 @@ const readCustomTemplates = (): StoredCustomTemplate[] => {
     } catch {
       return [];
     }
+    const timestamp = now();
     return [{
       template: candidate.template,
       status: candidate.status,
-      sort: Number.isFinite(candidate.sort) ? Number(candidate.sort) : 1000,
-      createdAt: candidate.createdAt || now(),
-      updatedAt: candidate.updatedAt || candidate.createdAt || now(),
+      sort: typeof candidate.sort === 'number' && Number.isFinite(candidate.sort)
+        ? candidate.sort
+        : 1000,
+      createdAt: candidate.createdAt || timestamp,
+      updatedAt: candidate.updatedAt || candidate.createdAt || timestamp,
       derivedFrom: candidate.derivedFrom,
     }];
   });
@@ -216,7 +231,7 @@ export const parseAndImportManagedScreenTemplate = (json: string) => {
 export const updateCustomScreenTemplate = (id: string, template: ScreenTemplate) => {
   let updated: StoredCustomTemplate | undefined;
   const nextTemplate = normalizeCustomTemplate(template, id);
-  const customs = readCustomTemplates().map((item) => {
+  const customs = readCustomTemplates().map((item): StoredCustomTemplate => {
     if (item.template.id !== id) return item;
     const next: StoredCustomTemplate = {
       ...item,
@@ -249,7 +264,7 @@ export const setManagedScreenTemplateStatus = (
   }
 
   let found = false;
-  const customs = readCustomTemplates().map((item) => {
+  const customs = readCustomTemplates().map((item): StoredCustomTemplate => {
     if (item.template.id !== id) return item;
     found = true;
     return { ...item, status, updatedAt: now() };
