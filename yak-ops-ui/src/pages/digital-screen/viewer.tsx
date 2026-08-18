@@ -1,5 +1,6 @@
-import { ScreenRenderer, getScreenTemplateById } from '@/components/screen-engine';
 import type { PublishedDataset } from '@/components/analysis/model';
+import { ScreenRenderer } from '@/components/screen-engine';
+import { resolveScreenTemplateById } from '@/services/screen-template-service';
 import { history, useParams } from '@umijs/max';
 import { Button, message } from 'antd';
 import { ArrowLeft, Pencil } from 'lucide-react';
@@ -45,7 +46,7 @@ export default function DigitalScreenViewerPage() {
   }, []);
 
   const template = useMemo(
-    () => (screen ? getScreenTemplateById(screen.templateId) : undefined),
+    () => (screen ? resolveScreenTemplateById(screen.templateId) : undefined),
     [screen],
   );
   const runtime = useScreenRuntimeData(template, screen?.bindings ?? EMPTY_BINDINGS, datasets);
