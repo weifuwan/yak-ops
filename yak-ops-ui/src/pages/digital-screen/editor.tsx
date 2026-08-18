@@ -1,8 +1,6 @@
-import {
-  ScreenRenderer,
-  getScreenTemplateById,
-} from '@/components/screen-engine';
 import type { PublishedDataset } from '@/components/analysis/model';
+import { ScreenRenderer } from '@/components/screen-engine';
+import { resolveScreenTemplateById } from '@/services/screen-template-service';
 import { history, useParams } from '@umijs/max';
 import { Button, Input, message } from 'antd';
 import { ArrowLeft, Database, Eye, Save, Send } from 'lucide-react';
@@ -37,7 +35,7 @@ export default function DigitalScreenEditorPage() {
   const [publishing, setPublishing] = useState(false);
 
   const template = useMemo(
-    () => (screen ? getScreenTemplateById(screen.templateId) : undefined),
+    () => (screen ? resolveScreenTemplateById(screen.templateId) : undefined),
     [screen],
   );
   const selectedComponent = useMemo(
