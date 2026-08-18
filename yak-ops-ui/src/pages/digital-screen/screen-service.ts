@@ -1,4 +1,4 @@
-import { getScreenTemplateById } from '@/components/screen-engine';
+import { resolveScreenTemplateById } from '@/services/screen-template-service';
 import type {
   CreateDigitalScreenInput,
   DigitalScreenBindings,
@@ -67,7 +67,7 @@ export const fetchDigitalScreen = async (id: string) => {
 export const createDigitalScreen = async (input: CreateDigitalScreenInput) => {
   const name = input.name.trim();
   if (!name) throw new Error('请输入大屏名称');
-  if (!getScreenTemplateById(input.templateId)) throw new Error('所选大屏模板不存在');
+  if (!resolveScreenTemplateById(input.templateId)) throw new Error('所选大屏模板不存在');
 
   const timestamp = now();
   const screen: DigitalScreenInstance = {
