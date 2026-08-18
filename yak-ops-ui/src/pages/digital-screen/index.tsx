@@ -1,4 +1,5 @@
-import { ScreenRenderer, getScreenTemplateById } from '@/components/screen-engine';
+import { ScreenRenderer } from '@/components/screen-engine';
+import { resolveScreenTemplateById } from '@/services/screen-template-service';
 import { history } from '@umijs/max';
 import { Button, Input, Popconfirm, message } from 'antd';
 import { Copy, Eye, Monitor, Pencil, Plus, Search, Trash2 } from 'lucide-react';
@@ -40,7 +41,7 @@ export default function DigitalScreenListPage() {
     return screens.filter((screen) => {
       if (status !== 'all' && screen.status !== status) return false;
       if (!value) return true;
-      const template = getScreenTemplateById(screen.templateId);
+      const template = resolveScreenTemplateById(screen.templateId);
       return [screen.name, screen.description, template?.name]
         .some((field) => String(field || '').toLowerCase().includes(value));
     });
@@ -151,7 +152,7 @@ export default function DigitalScreenListPage() {
         ) : (
           <div className="grid grid-cols-1 gap-x-5 gap-y-6 pt-5 xl:grid-cols-2 2xl:grid-cols-3">
             {filteredScreens.map((screen) => {
-              const template = getScreenTemplateById(screen.templateId);
+              const template = resolveScreenTemplateById(screen.templateId);
               return (
                 <article
                   key={screen.id}
