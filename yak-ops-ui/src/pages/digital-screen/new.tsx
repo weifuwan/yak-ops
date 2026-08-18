@@ -1,16 +1,11 @@
-import {
-  ScreenRenderer,
-  builtinScreenTemplates,
-  listScreenTemplateCategories,
-} from '@/components/screen-engine';
+import { ScreenRenderer } from '@/components/screen-engine';
 import type { ScreenTemplate } from '@/components/screen-engine';
+import { listAvailableScreenTemplates } from '@/services/screen-template-service';
 import { history } from '@umijs/max';
 import { Button, Input, Modal, message } from 'antd';
 import { ArrowLeft, Eye, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { createDigitalScreen } from './screen-service';
-
-const categories = ['全部', ...listScreenTemplateCategories()];
 
 export default function DigitalScreenTemplatePage() {
   const [category, setCategory] = useState('全部');
@@ -21,15 +16,17 @@ export default function DigitalScreenTemplatePage() {
   const [description, setDescription] = useState('');
   const [creating, setCreating] = useState(false);
 
+  const availableTemplates = listAvailableScreenTemplates().map((record) => record.template);
+  const categories = ['全部', ...new Set(availableTemplates.map((template) => template.category))];
   const templates = useMemo(() => {
     const value = keyword.trim().toLowerCase();
-    return builtinScreenTemplates.filter((template) => {
+    return availableTemplates.filter((template) => {
       if (category !== '全部' && template.category !== category) return false;
       if (!value) return true;
       return [template.name, template.description, template.category]
         .some((field) => String(field || '').toLowerCase().includes(value));
     });
-  }, [category, keyword]);
+  }, [availableTemplates, category, keyword]);
 
   const openCreate = (template: ScreenTemplate) => {
     setSelectedTemplate(template);
@@ -110,7 +107,7 @@ export default function DigitalScreenTemplatePage() {
 
         {templates.length === 0 ? (
           <div className="flex h-[380px] items-center justify-center text-[13px] text-[#98a2b3]">
-            没有匹配的大屏模板
+            没有可用的大屏模板
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-x-5 gap-y-6 pt-5 xl:grid-cols-2 2xl:grid-cols-3">
