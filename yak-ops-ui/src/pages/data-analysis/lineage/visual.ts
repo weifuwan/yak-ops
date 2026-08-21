@@ -8,62 +8,69 @@ export interface LineageAssetVisual {
   glow: string;
 }
 
+/**
+ * Keep the canvas neutral and use color only as a small semantic cue.
+ * This mirrors metadata tools such as OpenMetadata where service/entity icons
+ * carry most of the color while lineage cards remain white and restrained.
+ */
 export const lineageAssetVisual: Record<LineageAssetType, LineageAssetVisual> = {
   TABLE: {
-    accent: '#2563EB',
-    soft: '#EFF6FF',
-    softStrong: '#DBEAFE',
-    border: '#BFDBFE',
-    glow: 'rgba(37, 99, 235, 0.18)',
+    accent: '#3974D5',
+    soft: '#F8F9FB',
+    softStrong: '#F2F4F7',
+    border: '#D0D5DD',
+    glow: 'transparent',
   },
   COLUMN: {
-    accent: '#0891B2',
-    soft: '#ECFEFF',
-    softStrong: '#CFFAFE',
-    border: '#A5F3FC',
-    glow: 'rgba(8, 145, 178, 0.16)',
+    accent: '#2F7F89',
+    soft: '#F8F9FB',
+    softStrong: '#F2F4F7',
+    border: '#D0D5DD',
+    glow: 'transparent',
   },
   SQL_TASK: {
-    accent: '#7C3AED',
-    soft: '#F5F3FF',
-    softStrong: '#EDE9FE',
-    border: '#DDD6FE',
-    glow: 'rgba(124, 58, 237, 0.18)',
+    accent: '#7057B8',
+    soft: '#F8F9FB',
+    softStrong: '#F2F4F7',
+    border: '#D0D5DD',
+    glow: 'transparent',
   },
   DATASET: {
-    accent: '#FE2C55',
-    soft: '#FFF1F4',
-    softStrong: '#FFE4EA',
-    border: '#FFC2CF',
-    glow: 'rgba(254, 44, 85, 0.18)',
+    accent: '#D84A63',
+    soft: '#F8F9FB',
+    softStrong: '#F2F4F7',
+    border: '#D0D5DD',
+    glow: 'transparent',
   },
   DATASET_FIELD: {
-    accent: '#DB2777',
-    soft: '#FDF2F8',
-    softStrong: '#FCE7F3',
-    border: '#FBCFE8',
-    glow: 'rgba(219, 39, 119, 0.16)',
+    accent: '#9B5F87',
+    soft: '#F8F9FB',
+    softStrong: '#F2F4F7',
+    border: '#D0D5DD',
+    glow: 'transparent',
   },
   CHART: {
-    accent: '#EA580C',
-    soft: '#FFF7ED',
-    softStrong: '#FFEDD5',
-    border: '#FED7AA',
-    glow: 'rgba(234, 88, 12, 0.16)',
+    accent: '#B96A2A',
+    soft: '#F8F9FB',
+    softStrong: '#F2F4F7',
+    border: '#D0D5DD',
+    glow: 'transparent',
   },
   DASHBOARD: {
-    accent: '#059669',
-    soft: '#ECFDF5',
-    softStrong: '#D1FAE5',
-    border: '#A7F3D0',
-    glow: 'rgba(5, 150, 105, 0.17)',
+    accent: '#3C8665',
+    soft: '#F8F9FB',
+    softStrong: '#F2F4F7',
+    border: '#D0D5DD',
+    glow: 'transparent',
   },
 };
 
+// Relations deliberately share one neutral blue-gray so the graph does not
+// turn into a rainbow. Selection is emphasized separately in the page.
 export const lineageRelationColor: Record<LineageRelationType, string> = {
-  READS_FROM: '#4F7FEA',
-  WRITES_TO: '#7C3AED',
-  DERIVES_FROM: '#E44767',
-  CONSUMES: '#E87920',
-  CONTAINS: '#0F9F8F',
+  READS_FROM: '#8BA2BC',
+  WRITES_TO: '#8BA2BC',
+  DERIVES_FROM: '#8BA2BC',
+  CONSUMES: '#8BA2BC',
+  CONTAINS: '#8BA2BC',
 };
