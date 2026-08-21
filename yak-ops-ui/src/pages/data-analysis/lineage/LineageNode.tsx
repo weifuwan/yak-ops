@@ -46,28 +46,22 @@ export default function LineageNode({ data, selected }: NodeProps<LineageNodeDat
   const { asset, root } = data;
   const Icon = iconByType[asset.assetType];
   const visual = lineageAssetVisual[asset.assetType];
-  const emphasized = root || selected;
+  const active = root || selected;
 
   return (
     <div
-      className="group relative flex h-[86px] w-[260px] items-center gap-3.5 overflow-hidden rounded-[12px] border bg-white px-3.5 py-3 transition-[transform,box-shadow,border-color] duration-200"
+      className="relative flex h-[78px] w-[252px] items-center gap-3 border bg-white px-3"
       style={{
-        borderColor: emphasized ? visual.accent : '#E4E8EE',
-        boxShadow: emphasized
-          ? `0 12px 30px -18px ${visual.glow}, 0 4px 12px -8px ${visual.glow}`
-          : '0 4px 14px -12px rgba(15, 23, 42, 0.28)',
+        borderColor: active ? '#4C78C9' : '#D8DDE5',
+        borderRadius: 6,
+        boxShadow: 'none',
       }}
     >
-      <div
-        className="absolute inset-y-0 left-0 w-[4px]"
-        style={{ background: visual.accent }}
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-14 opacity-70"
-        style={{
-          background: `linear-gradient(180deg, ${visual.soft} 0%, rgba(255,255,255,0) 100%)`,
-        }}
-      />
+      {root ? (
+        <div className="absolute -top-[18px] left-0 flex h-[18px] items-center border border-b-0 border-[#4C78C9] bg-white px-2 text-[10px] font-medium text-[#3F6FBF]">
+          中心资产
+        </div>
+      ) : null}
 
       <Handle
         type="target"
@@ -75,58 +69,32 @@ export default function LineageNode({ data, selected }: NodeProps<LineageNodeDat
         style={{
           width: 8,
           height: 8,
-          border: `2px solid ${visual.accent}`,
-          background: '#fff',
           left: -5,
+          border: '1.5px solid #5F88C9',
+          background: '#fff',
         }}
       />
 
-      <div
-        className="relative z-[1] flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] border"
-        style={{
-          color: visual.accent,
-          background: visual.softStrong,
-          borderColor: visual.border,
-        }}
-      >
-        <Icon size={19} strokeWidth={1.8} />
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-[#E4E7EC] bg-[#F8F9FB]">
+        <Icon size={17} strokeWidth={1.7} style={{ color: visual.accent }} />
       </div>
 
-      <div className="relative z-[1] min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span
-            className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[#182230]"
-            title={asset.name}
-          >
-            {asset.name}
-          </span>
-          {root ? (
-            <span
-              className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-              style={{ color: visual.accent, background: visual.softStrong }}
-            >
-              当前
-            </span>
-          ) : null}
+      <div className="min-w-0 flex-1">
+        <div
+          className="truncate text-[13px] font-semibold leading-5 text-[#1F2937]"
+          title={asset.name}
+        >
+          {asset.name}
         </div>
-
-        <div className="mt-1.5 flex min-w-0 items-center gap-1.5">
-          <span
-            className="shrink-0 rounded-[5px] border px-1.5 py-0.5 text-[10px] font-semibold"
-            style={{
-              color: visual.accent,
-              background: visual.soft,
-              borderColor: visual.border,
-            }}
-          >
-            {assetTypeLabel[asset.assetType]}
-          </span>
-          <span
-            className="min-w-0 flex-1 truncate text-[11px] text-[#7A8493]"
-            title={subtitle(asset)}
-          >
-            {subtitle(asset)}
-          </span>
+        <div
+          className="mt-0.5 truncate text-[11px] leading-4 text-[#8A94A3]"
+          title={subtitle(asset)}
+        >
+          {subtitle(asset)}
+        </div>
+        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[#667085]">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: visual.accent }} />
+          <span>{assetTypeLabel[asset.assetType]}</span>
         </div>
       </div>
 
@@ -136,9 +104,9 @@ export default function LineageNode({ data, selected }: NodeProps<LineageNodeDat
         style={{
           width: 8,
           height: 8,
-          border: `2px solid ${visual.accent}`,
-          background: '#fff',
           right: -5,
+          border: '1.5px solid #5F88C9',
+          background: '#fff',
         }}
       />
     </div>
