@@ -1,8 +1,4 @@
-import {
-  BRAND_COLOR,
-  BRAND_COLOR_SOFT,
-  BRAND_THEME,
-} from '@/styles/brand';
+import { BRAND_THEME } from '@/styles/brand';
 import { history } from '@umijs/max';
 import {
   Button,
@@ -19,12 +15,9 @@ import {
   Boxes,
   ChevronRight,
   GitBranch,
-  Layers3,
   LocateFixed,
-  Network,
   RefreshCw,
   Search,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -32,7 +25,6 @@ import ReactFlow, {
   Background,
   Controls,
   MarkerType,
-  MiniMap,
   type Edge,
   type Node,
 } from 'reactflow';
@@ -59,6 +51,7 @@ import { lineageAssetVisual, lineageRelationColor } from './visual';
 const DEFAULT_DEPTH = 3;
 const SEARCH_LIMIT = 30;
 const ALL_TYPES = [...LINEAGE_ASSET_TYPES];
+const SELECTED_EDGE_COLOR = '#3F73C7';
 
 const nodeTypes = { lineage: LineageNode };
 
@@ -128,72 +121,31 @@ const relationPropertyEntries = (relation?: LineageRelation) => Object.entries(r
   .filter(([, value]) => value !== undefined && value !== null)
   .slice(0, 18);
 
-const AssetTypePill = ({
-  type,
-  compact = false,
-}: {
-  type: LineageAssetType;
-  compact?: boolean;
-}) => {
+const AssetTypeLabel = ({ type }: { type: LineageAssetType }) => {
   const visual = lineageAssetVisual[type];
   return (
-    <span
-      className={[
-        'inline-flex shrink-0 items-center rounded-full border font-semibold',
-        compact ? 'gap-1 px-1.5 py-0.5 text-[10px]' : 'gap-1.5 px-2 py-1 text-[11px]',
-      ].join(' ')}
-      style={{
-        color: visual.accent,
-        background: visual.soft,
-        borderColor: visual.border,
-      }}
-    >
-      <span
-        className={compact ? 'h-1.5 w-1.5 rounded-full' : 'h-2 w-2 rounded-full'}
-        style={{ background: visual.accent }}
-      />
+    <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-[#667085]">
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: visual.accent }} />
       {assetTypeLabel[type]}
     </span>
   );
 };
 
 const DetailRow = ({ label, value }: { label: string; value: unknown }) => (
-  <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-3 border-b border-[#F0F2F5] py-2.5 text-[12px] last:border-b-0">
+  <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 border-b border-[#F0F1F3] py-2.5 text-[12px] last:border-b-0">
     <span className="text-[#8A94A3]">{label}</span>
-    <span className="min-w-0 break-all font-medium text-[#3C4655]">
-      {formatValue(value)}
-    </span>
+    <span className="min-w-0 break-all text-[#344054]">{formatValue(value)}</span>
   </div>
 );
 
-const ImpactChip = ({
-  label,
-  value,
-  type,
-}: {
-  label: string;
-  value: number;
-  type?: LineageAssetType;
-}) => {
-  const visual = type ? lineageAssetVisual[type] : undefined;
-  return (
-    <span
-      className="inline-flex h-8 items-center gap-2 rounded-full border px-3 text-[12px]"
-      style={{
-        color: visual?.accent || '#526071',
-        background: visual?.soft || '#F8FAFC',
-        borderColor: visual?.border || '#E2E8F0',
-      }}
-    >
-      <span>{label}</span>
-      <strong className="font-bold text-[#182230]">{value}</strong>
-    </span>
-  );
-};
+const SectionTitle = ({ children }: { children: string }) => (
+  <div className="mb-2 text-[12px] font-semibold text-[#475467]">{children}</div>
+);
 
-const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8A94A3]">
-    {children}
+const ImpactValue = ({ label, value }: { label: string; value: number }) => (
+  <div className="px-3 py-2.5">
+    <div className="text-[11px] text-[#8A94A3]">{label}</div>
+    <div className="mt-0.5 text-[17px] font-semibold text-[#344054]">{value}</div>
   </div>
 );
 
@@ -333,23 +285,24 @@ export default function LineagePage() {
   const flowEdges = useMemo<Edge[]>(() => (
     view?.relations.map((relation) => {
       const selected = selectedRelation?.id === relation.id;
-      const color = lineageRelationColor[relation.relationType];
+      const color = selected
+        ? SELECTED_EDGE_COLOR
+        : lineageRelationColor[relation.relationType];
       return {
         id: relation.id,
         source: relation.sourceAssetId,
         target: relation.targetAssetId,
         type: 'smoothstep',
-        animated: selected,
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          width: selected ? 17 : 14,
-          height: selected ? 17 : 14,
+          width: selected ? 16 : 14,
+          height: selected ? 16 : 14,
           color,
         },
         style: {
           stroke: color,
-          strokeWidth: selected ? 2.4 : 1.5,
-          opacity: selected ? 1 : 0.58,
+          strokeWidth: selected ? 2 : 1.25,
+          opacity: selected ? 1 : 0.9,
         },
         data: { relation },
       };
@@ -367,12 +320,6 @@ export default function LineagePage() {
     ? nodeById.get(selectedRelation.targetAssetId)
     : undefined;
   const selectedBusinessLink = selectedAsset ? businessLink(selectedAsset) : undefined;
-  const selectedAssetVisual = selectedAsset
-    ? lineageAssetVisual[selectedAsset.assetType]
-    : undefined;
-  const selectedRelationColor = selectedRelation
-    ? lineageRelationColor[selectedRelation.relationType]
-    : '#64748B';
   const graphKey = rootAsset
     ? `${rootAsset.id}:${depth}:${direction}:${visibleTypes.join(',')}`
     : 'empty';
@@ -395,47 +342,33 @@ export default function LineagePage() {
 
   return (
     <ConfigProvider theme={BRAND_THEME}>
-      <div className="lineage-page flex h-full min-h-[600px] flex-col overflow-hidden bg-[#F6F8FC] text-[#182230]">
-        <header
-          className="shrink-0 border-b border-[#E7EAF0] bg-white px-5 pb-4 pt-4"
-          style={{
-            backgroundImage: 'linear-gradient(180deg, #FFFFFF 0%, #FBFCFF 100%)',
-          }}
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] text-white shadow-[0_8px_24px_-12px_rgba(254,44,85,.8)]"
-              style={{
-                background: 'linear-gradient(135deg, #FE2C55 0%, #A855F7 100%)',
-              }}
-            >
-              <Network size={20} strokeWidth={1.9} />
-            </div>
+      <div className="lineage-page flex h-full min-h-[600px] flex-col overflow-hidden bg-white text-[#161823]">
+        <header className="shrink-0 border-b border-[#E5E7EB] bg-white">
+          <div className="flex min-h-[52px] items-center gap-3 px-4 py-2.5">
+            <GitBranch size={17} className="shrink-0 text-[#4C78C9]" />
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="m-0 text-[18px] font-bold leading-6 text-[#182230]">
-                  数据血缘
-                </h1>
-                <span className="rounded-full bg-[#F3E8FF] px-2 py-0.5 text-[10px] font-semibold text-[#7C3AED]">
-                  Lineage
-                </span>
-              </div>
-              <div className="mt-0.5 text-[12px] text-[#7A8493]">
-                从数据来源到消费端，追踪资产依赖、变更影响和流转路径
+              <div className="text-[16px] font-semibold leading-5 text-[#161823]">数据血缘</div>
+              <div className="mt-0.5 text-[11px] text-[#8A94A3]">
+                查看资产上下游依赖、流转关系和影响范围
               </div>
             </div>
+
             {rootAsset ? (
-              <div className="ml-auto hidden items-center gap-2 xl:flex">
-                <span className="text-[11px] text-[#8A94A3]">当前中心</span>
-                <AssetTypePill type={rootAsset.assetType} compact />
-                <span className="max-w-[220px] truncate text-[12px] font-semibold text-[#344054]">
+              <div className="ml-auto hidden min-w-0 items-center gap-2 text-[11px] xl:flex">
+                <span className="text-[#98A2B3]">中心</span>
+                <AssetTypeLabel type={rootAsset.assetType} />
+                <span className="max-w-[220px] truncate font-medium text-[#344054]">
                   {rootAsset.name}
                 </span>
+                <span className="mx-1 h-3 w-px bg-[#E4E7EC]" />
+                <span className="text-[#667085]">下游 {impact?.total || 0}</span>
+                <span className="text-[#667085]">图表 {impact?.byType.CHART || 0}</span>
+                <span className="text-[#667085]">仪表盘 {impact?.byType.DASHBOARD || 0}</span>
               </div>
             ) : null}
           </div>
 
-          <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2 rounded-[14px] border border-[#E4E8F0] bg-[#F8FAFD] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,.75)]">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 border-t border-[#F2F4F7] px-4 py-2">
             <Select
               showSearch
               allowClear
@@ -443,9 +376,9 @@ export default function LineagePage() {
               searchValue={searchKeyword}
               filterOption={false}
               loading={searching}
-              placeholder={rootAsset ? `搜索并切换中心资产，当前：${rootAsset.name}` : '搜索名称、表名或 assetKey'}
-              className="w-[390px]"
-              suffixIcon={<Search size={14} className="text-[#8A94A3]" />}
+              placeholder={rootAsset ? `搜索资产，当前：${rootAsset.name}` : '搜索名称、表名或 assetKey'}
+              className="w-[360px]"
+              suffixIcon={<Search size={14} className="text-[#98A2B3]" />}
               onSearch={setSearchKeyword}
               onClear={() => {
                 setSearchKeyword('');
@@ -460,9 +393,9 @@ export default function LineagePage() {
               options={searchResults.map((asset) => ({
                 value: asset.assetKey,
                 label: (
-                  <div className="flex min-w-0 items-center gap-2 py-1">
-                    <AssetTypePill type={asset.assetType} compact />
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#344054]">
+                  <div className="flex min-w-0 items-center gap-2 py-0.5">
+                    <AssetTypeLabel type={asset.assetType} />
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-[#344054]">
                       {asset.name}
                     </span>
                   </div>
@@ -473,7 +406,7 @@ export default function LineagePage() {
 
             <Select
               value={searchType}
-              className="w-[126px]"
+              className="w-[118px]"
               onChange={setSearchType}
               options={[
                 { value: 'ALL', label: '全部类型' },
@@ -484,10 +417,8 @@ export default function LineagePage() {
               ]}
             />
 
-            <div className="mx-1 h-5 w-px bg-[#DDE2EA]" />
-
             <Segmented
-              size="middle"
+              size="small"
               value={direction}
               onChange={(value) => setDirection(value as LineageDirection)}
               options={[
@@ -499,13 +430,36 @@ export default function LineagePage() {
 
             <Select
               value={depth}
-              className="w-[96px]"
+              className="w-[88px]"
               onChange={setDepth}
               options={[1, 2, 3, 4, 5].map((value) => ({
                 value,
                 label: `${value} 跳`,
               }))}
             />
+
+            <Select
+              mode="multiple"
+              value={visibleTypes}
+              className="w-[230px]"
+              maxTagCount={1}
+              maxTagPlaceholder={(omitted) => `+ ${omitted.length}`}
+              placeholder="显示资产类型"
+              onChange={(values) => setVisibleTypes(values as LineageAssetType[])}
+              options={LINEAGE_ASSET_TYPES.map((value) => ({
+                value,
+                label: assetTypeLabel[value],
+              }))}
+            />
+
+            <Button
+              type="text"
+              size="small"
+              disabled={visibleTypes.length === ALL_TYPES.length}
+              onClick={() => setVisibleTypes(ALL_TYPES)}
+            >
+              全部显示
+            </Button>
 
             <Tooltip title="刷新血缘">
               <Button
@@ -517,253 +471,135 @@ export default function LineagePage() {
               />
             </Tooltip>
           </div>
-
-          {rootAsset ? (
-            <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2">
-              <div className="mr-1 flex min-w-0 items-center gap-2 rounded-full border border-[#E4E8F0] bg-white py-1 pl-2 pr-3 shadow-[0_4px_14px_-12px_rgba(15,23,42,.35)]">
-                <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                  style={{
-                    color: lineageAssetVisual[rootAsset.assetType].accent,
-                    background: lineageAssetVisual[rootAsset.assetType].softStrong,
-                  }}
-                >
-                  <LocateFixed size={12} />
-                </span>
-                <span className="shrink-0 text-[11px] text-[#8A94A3]">中心资产</span>
-                <span className="max-w-[220px] truncate text-[12px] font-semibold text-[#344054]">
-                  {rootAsset.name}
-                </span>
-                <ChevronRight size={12} className="shrink-0 text-[#B5BDC8]" />
-                <span className="max-w-[260px] truncate font-mono text-[10px] text-[#98A2B3]">
-                  {rootAsset.assetKey}
-                </span>
-              </div>
-
-              <ImpactChip label="下游" value={impact?.total || 0} />
-              <ImpactChip label="Dataset" value={impact?.byType.DATASET || 0} type="DATASET" />
-              <ImpactChip label="图表" value={impact?.byType.CHART || 0} type="CHART" />
-              <ImpactChip label="仪表盘" value={impact?.byType.DASHBOARD || 0} type="DASHBOARD" />
-            </div>
-          ) : null}
         </header>
 
-        <div className="min-h-0 flex-1 p-3">
-          <div className="flex h-full min-h-0 overflow-hidden rounded-[18px] border border-[#E2E7EF] bg-white shadow-[0_12px_40px_-28px_rgba(15,23,42,.45)]">
-            <main
-              className="relative min-w-0 flex-1 overflow-hidden"
-              style={{
-                background: 'linear-gradient(180deg, #F8FAFF 0%, #F5F7FB 100%)',
-              }}
-            >
-              {rootAsset ? (
-                <>
-                  <div className="absolute left-4 top-4 z-10 flex max-w-[calc(100%-32px)] items-center gap-2 rounded-[12px] border border-[#DDE3EC] bg-white/95 p-2 shadow-[0_10px_28px_-20px_rgba(15,23,42,.45)] backdrop-blur-sm">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[#F3E8FF] text-[#7C3AED]">
-                      <Layers3 size={14} />
+        <div className="flex min-h-0 flex-1 overflow-hidden bg-white">
+          <main className="relative min-w-0 flex-1 bg-white">
+            {!rootAsset ? (
+              <div className="flex h-full min-h-[560px] items-center justify-center px-6">
+                <div className="max-w-[430px] text-center">
+                  <div className="mx-auto flex h-11 w-11 items-center justify-center border border-[#D0D5DD] bg-[#FAFAFB] text-[#667085]">
+                    <Boxes size={20} strokeWidth={1.6} />
+                  </div>
+                  <div className="mt-4 text-[14px] font-semibold text-[#344054]">
+                    选择一个资产开始查看血缘
+                  </div>
+                  <div className="mt-1.5 text-[12px] leading-5 text-[#8A94A3]">
+                    从顶部搜索数据表、SQL 任务、Dataset、图表或仪表盘。
+                  </div>
+                  <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2">
+                    {(['TABLE', 'SQL_TASK', 'DATASET', 'CHART', 'DASHBOARD'] as LineageAssetType[]).map((type) => (
+                      <AssetTypeLabel key={type} type={type} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : loadError && !graph ? (
+              <div className="flex h-full min-h-[560px] items-center justify-center">
+                <Empty description={loadError}>
+                  <Button onClick={refresh}>重新加载</Button>
+                </Empty>
+              </div>
+            ) : (
+              <Spin spinning={loading && !graph} wrapperClassName="lineage-graph-spinner">
+                <div className="h-full min-h-[560px] w-full">
+                  <ReactFlow
+                    key={graphKey}
+                    nodes={flowNodes}
+                    edges={flowEdges}
+                    nodeTypes={nodeTypes}
+                    fitView
+                    fitViewOptions={{ padding: 0.22, minZoom: 0.5, maxZoom: 1.08 }}
+                    minZoom={0.22}
+                    maxZoom={1.6}
+                    nodesDraggable={false}
+                    nodesConnectable={false}
+                    elementsSelectable
+                    proOptions={{ hideAttribution: true }}
+                    onNodeClick={(_, node) => {
+                      setSelectedAsset(node.data.asset);
+                      setSelectedRelation(undefined);
+                    }}
+                    onNodeDoubleClick={(_, node) => selectRoot(node.data.asset)}
+                    onEdgeClick={(_, edge) => {
+                      const relation = view?.relations.find((item) => item.id === edge.id);
+                      if (!relation) return;
+                      setSelectedRelation(relation);
+                      setSelectedAsset(undefined);
+                    }}
+                    onPaneClick={() => {
+                      if (graph) setSelectedAsset(graph.root);
+                      setSelectedRelation(undefined);
+                    }}
+                  >
+                    <Background gap={20} size={1} color="#E5E9EF" />
+                    <Controls showInteractive={false} position="bottom-left" />
+                  </ReactFlow>
+                </div>
+              </Spin>
+            )}
+
+            {loading && graph ? (
+              <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-2 border border-[#E4E7EC] bg-white px-2.5 py-1.5 text-[11px] text-[#667085]">
+                <Spin size="small" />
+                更新中
+              </div>
+            ) : null}
+          </main>
+
+          {rootAsset ? (
+            <aside className="w-[340px] shrink-0 overflow-y-auto border-l border-[#E5E7EB] bg-white">
+              {selectedRelation ? (
+                <div>
+                  <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E5E7EB] bg-white px-4 py-3">
+                    <div>
+                      <div className="text-[13px] font-semibold text-[#344054]">关系详情</div>
+                      <div className="mt-0.5 text-[11px] text-[#98A2B3]">
+                        {relationTypeLabel[selectedRelation.relationType]}
+                      </div>
                     </div>
-                    <span className="shrink-0 text-[11px] font-semibold text-[#667085]">
-                      显示资产
-                    </span>
-                    <Select
-                      mode="multiple"
-                      size="small"
-                      value={visibleTypes}
-                      className="w-[330px]"
-                      maxTagCount="responsive"
-                      onChange={(values) => setVisibleTypes(values as LineageAssetType[])}
-                      options={LINEAGE_ASSET_TYPES.map((value) => ({
-                        value,
-                        label: assetTypeLabel[value],
-                      }))}
-                    />
                     <Button
                       type="text"
                       size="small"
-                      disabled={visibleTypes.length === ALL_TYPES.length}
-                      onClick={() => setVisibleTypes(ALL_TYPES)}
-                    >
-                      全部
-                    </Button>
-                  </div>
-
-                  <div className="absolute right-4 top-4 z-10 hidden items-center gap-2 rounded-full border border-[#E2E7EF] bg-white/90 px-3 py-1.5 text-[11px] text-[#7A8493] shadow-[0_8px_24px_-20px_rgba(15,23,42,.45)] backdrop-blur-sm 2xl:flex">
-                    <Sparkles size={12} className="text-[#7C3AED]" />
-                    单击查看详情 · 双击节点设为中心
-                  </div>
-                </>
-              ) : null}
-
-              {!rootAsset ? (
-                <div className="flex h-full min-h-[560px] items-center justify-center px-6">
-                  <div className="relative w-full max-w-[560px] overflow-hidden rounded-[24px] border border-[#E1E6EF] bg-white px-8 py-10 text-center shadow-[0_28px_70px_-46px_rgba(30,41,59,.55)]">
-                    <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-[#EEF4FF] blur-2xl" />
-                    <div className="pointer-events-none absolute -bottom-20 -right-10 h-44 w-44 rounded-full bg-[#FCE7F3] blur-2xl" />
-                    <div
-                      className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-[18px] text-white shadow-[0_14px_34px_-16px_rgba(124,58,237,.65)]"
-                      style={{
-                        background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 52%, #FE2C55 100%)',
-                      }}
-                    >
-                      <Boxes size={28} strokeWidth={1.65} />
-                    </div>
-                    <div className="relative mt-5 text-[18px] font-bold text-[#182230]">
-                      从一个资产开始探索完整数据链路
-                    </div>
-                    <div className="relative mx-auto mt-2 max-w-[430px] text-[13px] leading-6 text-[#7A8493]">
-                      在顶部搜索数据表、SQL 任务、Dataset、图表或仪表盘，系统会自动展开它的上下游依赖关系。
-                    </div>
-                    <div className="relative mt-5 flex flex-wrap justify-center gap-2">
-                      {(['TABLE', 'SQL_TASK', 'DATASET', 'CHART', 'DASHBOARD'] as LineageAssetType[]).map((type) => (
-                        <AssetTypePill key={type} type={type} />
-                      ))}
-                    </div>
-                    <div className="relative mt-6 inline-flex items-center gap-2 rounded-full bg-[#F8FAFC] px-3 py-1.5 text-[11px] text-[#8A94A3]">
-                      <Search size={12} />
-                      从顶部搜索框定位中心资产
-                    </div>
-                  </div>
-                </div>
-              ) : loadError && !graph ? (
-                <div className="flex h-full min-h-[560px] items-center justify-center px-6">
-                  <div className="rounded-[18px] border border-[#F1D4DA] bg-white p-8 shadow-[0_18px_45px_-36px_rgba(254,44,85,.45)]">
-                    <Empty description={loadError}>
-                      <Button type="primary" onClick={refresh}>重新加载</Button>
-                    </Empty>
-                  </div>
-                </div>
-              ) : (
-                <Spin spinning={loading && !graph} wrapperClassName="lineage-graph-spinner">
-                  <div className="h-full min-h-[560px] w-full">
-                    <ReactFlow
-                      key={graphKey}
-                      nodes={flowNodes}
-                      edges={flowEdges}
-                      nodeTypes={nodeTypes}
-                      fitView
-                      fitViewOptions={{ padding: 0.24, minZoom: 0.5, maxZoom: 1.05 }}
-                      minZoom={0.22}
-                      maxZoom={1.7}
-                      nodesDraggable={false}
-                      nodesConnectable={false}
-                      elementsSelectable
-                      proOptions={{ hideAttribution: true }}
-                      onNodeClick={(_, node) => {
-                        setSelectedAsset(node.data.asset);
+                      icon={<X size={14} />}
+                      onClick={() => {
                         setSelectedRelation(undefined);
-                      }}
-                      onNodeDoubleClick={(_, node) => selectRoot(node.data.asset)}
-                      onEdgeClick={(_, edge) => {
-                        const relation = view?.relations.find((item) => item.id === edge.id);
-                        if (!relation) return;
-                        setSelectedRelation(relation);
-                        setSelectedAsset(undefined);
-                      }}
-                      onPaneClick={() => {
                         if (graph) setSelectedAsset(graph.root);
-                        setSelectedRelation(undefined);
                       }}
-                    >
-                      <Background gap={22} size={1} color="#D9E1EC" />
-                      <Controls showInteractive={false} position="bottom-left" />
-                      <MiniMap
-                        position="bottom-right"
-                        pannable
-                        zoomable
-                        nodeColor={(node) => {
-                          const asset = node.data?.asset as LineageAsset | undefined;
-                          return asset
-                            ? lineageAssetVisual[asset.assetType].accent
-                            : '#94A3B8';
-                        }}
-                        nodeStrokeColor="#FFFFFF"
-                        nodeStrokeWidth={4}
-                        maskColor="rgba(238, 242, 247, 0.72)"
-                      />
-                    </ReactFlow>
-                  </div>
-                </Spin>
-              )}
-
-              {loading && graph ? (
-                <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[#DDE3EC] bg-white/95 px-3 py-1.5 text-[11px] text-[#667085] shadow-[0_10px_30px_-20px_rgba(15,23,42,.5)] backdrop-blur-sm">
-                  <Spin size="small" />
-                  正在更新血缘关系
-                </div>
-              ) : null}
-            </main>
-
-            <aside
-              className="w-[360px] shrink-0 overflow-y-auto border-l border-[#E3E8EF]"
-              style={{
-                background: 'linear-gradient(180deg, #FFFFFF 0%, #FBFCFE 100%)',
-              }}
-            >
-              {selectedRelation ? (
-                <div>
-                  <div className="sticky top-0 z-10 border-b border-[#EDF0F4] bg-white/95 px-4 py-4 backdrop-blur-md">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="flex h-9 w-9 items-center justify-center rounded-[10px] text-white"
-                          style={{ background: selectedRelationColor }}
-                        >
-                          <GitBranch size={16} />
-                        </div>
-                        <div>
-                          <div className="text-[14px] font-bold text-[#182230]">关系详情</div>
-                          <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-[#98A2B3]">
-                            Evidence / Provenance
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<X size={14} />}
-                        onClick={() => {
-                          setSelectedRelation(undefined);
-                          if (graph) setSelectedAsset(graph.root);
-                        }}
-                      />
-                    </div>
+                    />
                   </div>
 
-                  <div className="p-4">
-                    <div
-                      className="mb-4 rounded-[14px] border p-3.5"
-                      style={{
-                        borderColor: `${selectedRelationColor}35`,
-                        background: `${selectedRelationColor}0D`,
-                      }}
-                    >
-                      <div className="truncate text-[12px] font-semibold text-[#344054]">
+                  <div className="px-4 py-4">
+                    <div className="border border-[#E4E7EC] bg-[#FAFAFB] p-3">
+                      <div className="truncate text-[12px] font-medium text-[#344054]">
                         {selectedRelationSource?.name || selectedRelation.sourceAssetId}
                       </div>
-                      <div className="my-2 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: selectedRelationColor }}>
-                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: selectedRelationColor }} />
+                      <div className="my-2 flex items-center gap-1.5 text-[11px] text-[#667085]">
+                        <GitBranch size={11} className="text-[#4C78C9]" />
                         <span>{relationTypeLabel[selectedRelation.relationType]}</span>
                         <ChevronRight size={11} />
                       </div>
-                      <div className="truncate text-[12px] font-semibold text-[#344054]">
+                      <div className="truncate text-[12px] font-medium text-[#344054]">
                         {selectedRelationTarget?.name || selectedRelation.targetAssetId}
                       </div>
                     </div>
 
-                    <SectionTitle>关系信息</SectionTitle>
-                    <div className="rounded-[12px] border border-[#E8ECF2] bg-white px-3">
-                      <DetailRow label="关系类型" value={relationTypeLabel[selectedRelation.relationType]} />
-                      <DetailRow label="证据来源" value={selectedRelation.sourceType} />
-                      <DetailRow label="来源 ID" value={selectedRelation.sourceId} />
-                      <DetailRow label="版本" value={selectedRelation.version} />
-                      <DetailRow label="可信度" value={selectedRelation.confidence} />
-                      <DetailRow label="观测时间" value={formatTime(selectedRelation.observedAt)} />
+                    <div className="mt-5">
+                      <SectionTitle>关系信息</SectionTitle>
+                      <div className="border-y border-[#E5E7EB]">
+                        <DetailRow label="关系类型" value={relationTypeLabel[selectedRelation.relationType]} />
+                        <DetailRow label="证据来源" value={selectedRelation.sourceType} />
+                        <DetailRow label="来源 ID" value={selectedRelation.sourceId} />
+                        <DetailRow label="版本" value={selectedRelation.version} />
+                        <DetailRow label="可信度" value={selectedRelation.confidence} />
+                        <DetailRow label="观测时间" value={formatTime(selectedRelation.observedAt)} />
+                      </div>
                     </div>
 
                     {selectedRelation.expression ? (
                       <div className="mt-5">
                         <SectionTitle>表达式 / SQL</SectionTitle>
-                        <pre className="max-h-[220px] overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-[#E8ECF2] bg-[#F7F9FC] p-3 text-[11px] leading-5 text-[#475467]">
+                        <pre className="max-h-[220px] overflow-auto whitespace-pre-wrap break-words border border-[#E4E7EC] bg-[#F8F9FB] p-3 text-[11px] leading-5 text-[#475467]">
                           {selectedRelation.expression}
                         </pre>
                       </div>
@@ -772,7 +608,7 @@ export default function LineagePage() {
                     {relationPropertyEntries(selectedRelation).length ? (
                       <div className="mt-5">
                         <SectionTitle>关系属性</SectionTitle>
-                        <div className="rounded-[12px] border border-[#E8ECF2] bg-white px-3">
+                        <div className="border-y border-[#E5E7EB]">
                           {relationPropertyEntries(selectedRelation).map(([key, value]) => (
                             <DetailRow key={key} label={key} value={value} />
                           ))}
@@ -783,30 +619,22 @@ export default function LineagePage() {
                 </div>
               ) : selectedAsset ? (
                 <div>
-                  <div
-                    className="sticky top-0 z-10 border-b bg-white/95 px-4 py-4 backdrop-blur-md"
-                    style={{ borderColor: selectedAssetVisual?.border || '#EDF0F4' }}
-                  >
+                  <div className="sticky top-0 z-10 border-b border-[#E5E7EB] bg-white px-4 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="mb-2 flex items-center gap-2">
-                          <AssetTypePill type={selectedAsset.assetType} />
+                        <div className="flex items-center gap-2">
+                          <AssetTypeLabel type={selectedAsset.assetType} />
                           {selectedAsset.id === graph?.root.id ? (
-                            <span
-                              className="rounded-full px-2 py-1 text-[10px] font-semibold"
-                              style={{ background: BRAND_COLOR_SOFT, color: BRAND_COLOR }}
-                            >
-                              当前中心
-                            </span>
+                            <span className="text-[10px] font-medium text-[#4C78C9]">中心资产</span>
                           ) : null}
                         </div>
                         <div
-                          className="truncate text-[16px] font-bold text-[#182230]"
+                          className="mt-1.5 truncate text-[14px] font-semibold text-[#161823]"
                           title={selectedAsset.name}
                         >
                           {selectedAsset.name}
                         </div>
-                        <div className="mt-1 truncate font-mono text-[10px] text-[#98A2B3]">
+                        <div className="mt-0.5 truncate font-mono text-[10px] text-[#98A2B3]">
                           {selectedAsset.assetKey}
                         </div>
                       </div>
@@ -826,24 +654,20 @@ export default function LineagePage() {
 
                     {selectedBusinessLink ? (
                       <Button
-                        className="mt-3 w-full"
+                        type="link"
+                        className="mt-2 h-auto p-0"
                         size="small"
                         icon={<ArrowUpRight size={13} />}
                         onClick={() => history.push(selectedBusinessLink.path)}
-                        style={selectedAssetVisual ? {
-                          color: selectedAssetVisual.accent,
-                          borderColor: selectedAssetVisual.border,
-                          background: selectedAssetVisual.soft,
-                        } : undefined}
                       >
                         {selectedBusinessLink.label}
                       </Button>
                     ) : null}
                   </div>
 
-                  <div className="p-4">
+                  <div className="px-4 py-4">
                     <SectionTitle>资产信息</SectionTitle>
-                    <div className="rounded-[12px] border border-[#E8ECF2] bg-white px-3">
+                    <div className="border-y border-[#E5E7EB]">
                       <DetailRow label="assetKey" value={selectedAsset.assetKey} />
                       <DetailRow label="来源类型" value={selectedAsset.sourceType} />
                       <DetailRow label="来源 ID" value={selectedAsset.sourceId} />
@@ -858,37 +682,13 @@ export default function LineagePage() {
                           <SectionTitle>下游影响</SectionTitle>
                           <span className="mb-2 text-[10px] text-[#98A2B3]">当前 {depth} 跳</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { label: '全部下游', value: impact.total },
-                            { label: 'SQL 任务', value: impact.byType.SQL_TASK, type: 'SQL_TASK' as LineageAssetType },
-                            { label: 'Dataset', value: impact.byType.DATASET, type: 'DATASET' as LineageAssetType },
-                            { label: '图表', value: impact.byType.CHART, type: 'CHART' as LineageAssetType },
-                            { label: '仪表盘', value: impact.byType.DASHBOARD, type: 'DASHBOARD' as LineageAssetType },
-                            { label: '数据表', value: impact.byType.TABLE, type: 'TABLE' as LineageAssetType },
-                          ].map((item) => {
-                            const visual = item.type ? lineageAssetVisual[item.type] : undefined;
-                            return (
-                              <div
-                                key={item.label}
-                                className="rounded-[12px] border px-3 py-2.5"
-                                style={{
-                                  borderColor: visual?.border || '#E3E8EF',
-                                  background: visual?.soft || '#F8FAFC',
-                                }}
-                              >
-                                <div
-                                  className="text-[11px] font-medium"
-                                  style={{ color: visual?.accent || '#7A8493' }}
-                                >
-                                  {item.label}
-                                </div>
-                                <div className="mt-1 text-[20px] font-bold text-[#182230]">
-                                  {item.value}
-                                </div>
-                              </div>
-                            );
-                          })}
+                        <div className="grid grid-cols-3 border border-[#E5E7EB] bg-white">
+                          <ImpactValue label="全部下游" value={impact.total} />
+                          <ImpactValue label="SQL 任务" value={impact.byType.SQL_TASK} />
+                          <ImpactValue label="Dataset" value={impact.byType.DATASET} />
+                          <ImpactValue label="图表" value={impact.byType.CHART} />
+                          <ImpactValue label="仪表盘" value={impact.byType.DASHBOARD} />
+                          <ImpactValue label="数据表" value={impact.byType.TABLE} />
                         </div>
                       </div>
                     ) : null}
@@ -896,7 +696,7 @@ export default function LineagePage() {
                     {assetPropertyEntries(selectedAsset).length ? (
                       <div className="mt-5">
                         <SectionTitle>资产属性</SectionTitle>
-                        <div className="rounded-[12px] border border-[#E8ECF2] bg-white px-3">
+                        <div className="border-y border-[#E5E7EB]">
                           {assetPropertyEntries(selectedAsset).map(([key, value]) => (
                             <DetailRow key={key} label={key} value={value} />
                           ))}
@@ -906,71 +706,75 @@ export default function LineagePage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex h-full min-h-[420px] items-center justify-center px-8 text-center">
-                  <div className="max-w-[250px]">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#EEF2FF] text-[#6366F1]">
-                      <GitBranch size={20} />
-                    </div>
-                    <div className="mt-4 text-[13px] font-semibold text-[#475467]">
-                      选择节点或关系
-                    </div>
-                    <div className="mt-1.5 text-[11px] leading-5 text-[#98A2B3]">
-                      单击节点查看资产信息，单击连线查看关系证据与 SQL 表达式。
-                    </div>
-                  </div>
+                <div className="flex h-full min-h-[420px] items-center justify-center px-8 text-center text-[12px] text-[#8A94A3]">
+                  点击节点查看资产详情，点击连线查看关系证据
                 </div>
               )}
             </aside>
-          </div>
+          ) : null}
         </div>
 
         <style>{`
           .lineage-page .lineage-graph-spinner,
-          .lineage-page .lineage-graph-spinner > .ant-spin-container { height: 100%; }
+          .lineage-page .lineage-graph-spinner > .ant-spin-container {
+            height: 100%;
+          }
+
+          .lineage-page .ant-select-selector,
+          .lineage-page .ant-btn,
+          .lineage-page .ant-segmented {
+            border-radius: 4px !important;
+          }
+          .lineage-page .ant-segmented-item,
+          .lineage-page .ant-segmented-item-label {
+            border-radius: 3px !important;
+          }
+          .lineage-page .ant-segmented {
+            background: #f4f5f7;
+          }
+          .lineage-page .ant-segmented-item-selected {
+            box-shadow: none;
+          }
 
           .lineage-page .react-flow__controls {
             overflow: hidden;
-            border: 1px solid #dce3ec;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.96);
-            box-shadow: 0 10px 28px -20px rgba(15, 23, 42, 0.5);
+            border: 1px solid #d8dde5;
+            border-radius: 4px;
+            box-shadow: none;
           }
           .lineage-page .react-flow__controls-button {
-            width: 30px;
-            height: 30px;
-            border-bottom-color: #edf0f4;
+            width: 28px;
+            height: 28px;
+            border-bottom-color: #eaecf0;
             background: #fff;
             color: #667085;
           }
           .lineage-page .react-flow__controls-button:hover {
-            background: #f7f9fc;
+            background: #f8f9fb;
             color: #344054;
           }
 
-          .lineage-page .react-flow__minimap {
-            overflow: hidden;
-            border: 1px solid #dce3ec;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 12px 30px -22px rgba(15, 23, 42, 0.55);
+          .lineage-page .react-flow__edge {
+            cursor: pointer;
           }
-
-          .lineage-page .react-flow__edge { cursor: pointer; }
-          .lineage-page .react-flow__edge-path { transition: stroke-width .18s ease, opacity .18s ease; }
-          .lineage-page .react-flow__edge:hover .react-flow__edge-path { opacity: 1 !important; stroke-width: 2.1px !important; }
-          .lineage-page .react-flow__node { cursor: pointer; }
+          .lineage-page .react-flow__edge-path {
+            transition: stroke-width .15s ease;
+          }
+          .lineage-page .react-flow__edge:hover .react-flow__edge-path {
+            stroke-width: 1.8px !important;
+          }
+          .lineage-page .react-flow__node {
+            cursor: pointer;
+            box-shadow: none !important;
+          }
           .lineage-page .react-flow__node-lineage:hover > div {
-            transform: translateY(-2px);
-            box-shadow: 0 16px 34px -22px rgba(15, 23, 42, .5) !important;
+            border-color: #8eacd9 !important;
           }
-          .lineage-page .react-flow__pane { cursor: grab; }
-          .lineage-page .react-flow__pane.dragging { cursor: grabbing; }
-
-          .lineage-page .ant-segmented {
-            background: #eef2f7;
+          .lineage-page .react-flow__pane {
+            cursor: grab;
           }
-          .lineage-page .ant-segmented-item-selected {
-            box-shadow: 0 2px 8px -6px rgba(15, 23, 42, .45);
+          .lineage-page .react-flow__pane.dragging {
+            cursor: grabbing;
           }
         `}</style>
       </div>
