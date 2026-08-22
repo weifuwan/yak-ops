@@ -47,6 +47,16 @@ export const realtimeApi = {
     request<ApiResponse<number>>(`${PREFIX}/draft`, { method: 'POST', data: payload }),
   update: (id: number, payload: RealtimeDefinitionPayload) =>
     request<ApiResponse<number>>(`${PREFIX}/${id}`, { method: 'PUT', data: payload }),
+  parseYaml: (yaml: string) =>
+    request<ApiResponse<CdcPipelineSpec>>(`${PREFIX}/yaml/parse`, {
+      method: 'POST',
+      data: { yaml },
+    }),
+  renderYaml: (spec: CdcPipelineSpec) =>
+    request<ApiResponse<{ yaml: string }>>(`${PREFIX}/yaml/render`, {
+      method: 'POST',
+      data: { spec },
+    }),
   action: (id: number, action: 'publish' | 'validate' | 'start' | 'stop' | 'restart' | 'reconcile') =>
     request<ApiResponse<RealtimeDeployment | boolean>>(`${PREFIX}/${id}/${action}`, {
       method: 'POST',
