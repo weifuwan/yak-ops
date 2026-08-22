@@ -24,6 +24,10 @@ public final class RealtimeJobRequests {
       @NotNull Long runtimeEnvironmentId,
       @Valid PipelineSpec spec) {}
 
+  public record YamlRequest(@NotBlank @Size(max = 65_536) String yaml) {}
+
+  public record YamlRenderRequest(@Valid @NotNull PipelineSpec spec) {}
+
   public record PipelineSpec(
       @NotNull Long sourceDataSourceRef,
       @NotNull Long sinkDataSourceRef,
