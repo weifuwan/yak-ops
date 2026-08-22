@@ -32,7 +32,13 @@ export default function RealtimeSyncDetail() {
 
   const editorMode = new URLSearchParams(history.location.search).get('editor');
   if (editorMode === 'yaml') {
-    return <YamlJobEditor job={job} onClose={() => history.push('/sync/realtime')} />;
+    return (
+      <YamlJobEditor
+        job={job}
+        onClose={() => history.push('/sync/realtime')}
+        onSaved={() => history.push('/sync/realtime')}
+      />
+    );
   }
   if (editorMode === 'wizard') {
     return (
