@@ -3,6 +3,8 @@ import type {
   ApiResponse,
   CdcPipelineSpec,
   ComputeEnvironmentOption,
+  DataSourceCatalogColumn,
+  DataSourceCatalogTable,
   DataSourceOption,
   RealtimeDeployment,
   RealtimeEvent,
@@ -15,6 +17,7 @@ import type {
 } from './types';
 
 const PREFIX = '/api/v1/realtime-sync';
+const DATA_SOURCE_PREFIX = '/api/v1/data-source';
 
 export interface RealtimePageQuery {
   pageNo: number;
@@ -68,5 +71,15 @@ export const realtimeApi = {
     }),
   environments: () =>
     request<ApiResponse<ComputeEnvironmentOption[]>>('/api/v1/compute-environments'),
-  dataSources: () => request<ApiResponse<DataSourceOption[]>>('/api/v1/data-source/option'),
+  dataSources: () => request<ApiResponse<DataSourceOption[]>>(`${DATA_SOURCE_PREFIX}/option`),
+  catalogTables: (dataSourceId: number) =>
+    request<ApiResponse<DataSourceCatalogTable[]>>(`${DATA_SOURCE_PREFIX}/catalog/${dataSourceId}/tables`),
+  catalogColumns: (dataSourceId: number, table: DataSourceCatalogTable) =>
+    request<ApiResponse<DataSourceCatalogColumn[]>>(`${DATA_SOURCE_PREFIX}/catalog/${dataSourceId}/columns`, {
+      params: {
+        database: table.database || undefined,
+        schema: table.schema || undefined,
+        table: table.name,
+      },
+    }),
 };
