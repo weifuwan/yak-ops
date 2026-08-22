@@ -2,10 +2,14 @@ import {
   ArrowRightOutlined,
   CheckCircleOutlined,
   DatabaseOutlined,
+  DownOutlined,
   KeyOutlined,
   ReloadOutlined,
   SearchOutlined,
+  SettingOutlined,
+  SyncOutlined,
   TableOutlined,
+  UpOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
 import {
@@ -14,6 +18,7 @@ import {
   ConfigProvider,
   Empty,
   Input,
+  InputNumber,
   message,
   Select,
   Spin,
@@ -31,12 +36,23 @@ import type {
 } from './types';
 
 type PrimaryKeyStatus = 'loading' | 'ready' | 'missing' | 'error';
+type StartupMode = CdcPipelineSpec['startupMode'];
 
 interface SelectedTableState {
   table: DataSourceCatalogTable;
   route: TableRoute;
   status: PrimaryKeyStatus;
   error?: string;
+}
+
+interface AdvancedSettings {
+  schemaEvolution: CdcPipelineSpec['schemaEvolution'];
+  parallelism: number;
+  maxRetries: number;
+  batchSize: number;
+  flushIntervalMs: number;
+  maxBatchBytes: number;
+  statementCacheSize: number;
 }
 
 const DEFAULT_SPEC: CdcPipelineSpec = {
@@ -58,6 +74,25 @@ const DEFAULT_SPEC: CdcPipelineSpec = {
   },
 };
 
+const SYNC_MODES: Array<{
+  value: StartupMode;
+  title: string;
+  description: string;
+  badge?: string;
+}> = [
+  {
+    value: 'initial',
+    title: '初始化并持续同步',
+    description: '先同步当前历史数据，完成后持续读取 Binlog 新增和变更。',
+    badge: '推荐',
+  },
+  {
+    value: 'latest-offset',
+    title: '仅同步新变更',
+    description: '不处理历史数据，从任务启动时的最新 Binlog 位点开始同步。',
+  },
+];
+
 const toOption = (item: DataSourceOption) => ({
   label: `${item.label} (${item.dbType})`,
   value: Number(item.value),
@@ -71,6 +106,19 @@ const initialSelectedTables = (job: RealtimeJob): SelectedTableState[] =>
       route: { ...route, keyColumns: [...route.keyColumns] },
       status: route.keyColumns.length > 0 ? 'ready' : 'missing',
     }));
+
+const initialAdvancedSettings = (job: RealtimeJob): AdvancedSettings => {
+  const spec = job.spec || DEFAULT_SPEC;
+  return {
+    schemaEvolution: spec.schemaEvolution,
+    parallelism: spec.parallelism,
+    maxRetries: spec.sink.maxRetries,
+    batchSize: spec.sink.batchSize,
+    flushIntervalMs: spec.sink.flushIntervalMs,
+    maxBatchBytes: spec.sink.maxBatchBytes,
+    statementCacheSize: spec.sink.statementCacheSize,
+  };
+};
 
 const isPhysicalTable = (table: DataSourceCatalogTable) =>
   !String(table.type || '')
@@ -94,6 +142,9 @@ export default function WizardJobEditor({
   const [selectedTables, setSelectedTables] = useState<SelectedTableState[]>(() =>
     initialSelectedTables(job),
   );
+  const [startupMode, setStartupMode] = useState<StartupMode>(job.spec?.startupMode || 'initial');
+  const [advanced, setAdvanced] = useState<AdvancedSettings>(() => initialAdvancedSettings(job));
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [tableLoading, setTableLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -134,6 +185,9 @@ export default function WizardJobEditor({
   const hasUnsupportedRoutes = Boolean(job.spec?.tables.some((route) => route.matchMode !== 'EXACT'));
   const primaryKeyPending = selectedTables.some((item) => item.status === 'loading');
   const primaryKeyInvalid = selectedTables.some((item) => item.status !== 'ready');
+  const sinkMappingInvalid = selectedTables.some(
+    (item) => !item.route.sinkTable.trim() || /[\r\n]/.test(item.route.sinkTable),
+  );
 
   const loadTables = useCallback(async (dataSourceId: number) => {
     const requestId = ++catalogRequestRef.current;
@@ -259,6 +313,23 @@ export default function WizardJobEditor({
     void resolvePrimaryKey(table, sourceId);
   };
 
+  const updateSinkTable = (sourceTable: string, sinkTable: string) => {
+    setSelectedTables((previous) =>
+      previous.map((selected) =>
+        selected.table.name === sourceTable
+          ? { ...selected, route: { ...selected.route, sinkTable } }
+          : selected,
+      ),
+    );
+  };
+
+  const updateAdvanced = <K extends keyof AdvancedSettings>(
+    key: K,
+    value: AdvancedSettings[K],
+  ) => {
+    setAdvanced((previous) => ({ ...previous, [key]: value }));
+  };
+
   const save = async () => {
     if (!sourceId) {
       message.warning('请选择 Source 数据源');
@@ -289,6 +360,10 @@ export default function WizardJobEditor({
       message.warning(`以下表暂不能保存：${invalidTables.map((item) => item.table.name).join('、')}`);
       return;
     }
+    if (sinkMappingInvalid) {
+      message.warning('目标表名不能为空，也不能包含换行');
+      return;
+    }
 
     const baseSpec = job.spec || DEFAULT_SPEC;
     const spec: CdcPipelineSpec = {
@@ -297,10 +372,23 @@ export default function WizardJobEditor({
       sinkDataSourceRef: sinkId,
       tables: selectedTables.map((item) => ({
         ...item.route,
+        sinkTable: item.route.sinkTable.trim(),
         keyColumns: [...item.route.keyColumns],
       })),
+      startupMode,
+      schemaEvolution: advanced.schemaEvolution,
+      parallelism: advanced.parallelism,
+      checkpointIntervalMs: baseSpec.checkpointIntervalMs || DEFAULT_SPEC.checkpointIntervalMs,
       restart: { ...baseSpec.restart },
-      sink: { ...baseSpec.sink, strictReplaySafety: true },
+      sink: {
+        ...baseSpec.sink,
+        maxRetries: advanced.maxRetries,
+        batchSize: advanced.batchSize,
+        flushIntervalMs: advanced.flushIntervalMs,
+        maxBatchBytes: advanced.maxBatchBytes,
+        statementCacheSize: advanced.statementCacheSize,
+        strictReplaySafety: true,
+      },
     };
 
     setSaving(true);
@@ -323,17 +411,17 @@ export default function WizardJobEditor({
   return (
     <ConfigProvider theme={BRAND_THEME} variant="filled">
       <div className="min-h-[calc(100vh-64px)] bg-[#f7f8fa] text-[#161823]">
-        <div className="mx-auto w-full max-w-[1180px] px-6 pb-24 pt-6">
+        <div className="mx-auto w-full max-w-[1180px] px-6 pb-28 pt-6">
           <header className="mb-5 flex items-start justify-between gap-4 rounded-xl bg-white px-7 py-6">
             <div>
-              <div className="mb-1 text-[12px] font-medium text-[var(--yak-brand-color)]">向导模式 · 流程 2</div>
-              <h1 className="m-0 text-[20px] font-semibold text-[#101828]">配置数据源与同步表</h1>
+              <div className="mb-1 text-[12px] font-medium text-[var(--yak-brand-color)]">向导模式 · 流程 3</div>
+              <h1 className="m-0 text-[20px] font-semibold text-[#101828]">配置实时同步任务</h1>
               <div className="mt-2 text-[13px] text-[#667085]">
                 {job.name} · 运行环境 #{job.runtimeEnvironmentId}
               </div>
             </div>
             <div className="rounded-lg bg-[#f9fafb] px-4 py-2 text-[12px] text-[#667085]">
-              选择表后自动读取主键并生成基础表路由
+              选数据源、选表、确认映射和同步方式即可完成配置
             </div>
           </header>
 
@@ -381,15 +469,15 @@ export default function WizardJobEditor({
             </div>
           </section>
 
-          <section className="rounded-xl bg-white px-7 py-6">
+          <section className="mb-5 rounded-xl bg-white px-7 py-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
                   <TableOutlined className="text-[var(--yak-brand-color)]" />
-                  <h2 className="m-0 text-[16px] font-semibold text-[#101828]">选择同步表</h2>
+                  <h2 className="m-0 text-[16px] font-semibold text-[#101828]">同步表与目标映射</h2>
                 </div>
                 <div className="mt-1 text-[12px] text-[#98a2b3]">
-                  选择 1 张就是单表同步，选择多张就是多表同步；目标表一期默认同名。
+                  选择 1 张就是单表同步，选择多张就是多表同步；目标表默认同名，可按需修改。
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -410,7 +498,7 @@ export default function WizardJobEditor({
                 <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="请先选择 Source 数据源" />
               </div>
             ) : (
-              <div className="grid grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] gap-5 max-lg:grid-cols-1">
+              <div className="grid grid-cols-[minmax(0,1fr)_minmax(420px,1fr)] gap-5 max-lg:grid-cols-1">
                 <div className="overflow-hidden rounded-xl border border-[#e4e7ec]">
                   <div className="border-b border-[#eaecf0] bg-[#fcfcfd] p-4">
                     <Input
@@ -421,7 +509,7 @@ export default function WizardJobEditor({
                       onChange={(event) => setSearch(event.target.value)}
                     />
                   </div>
-                  <div className="max-h-[460px] overflow-y-auto">
+                  <div className="max-h-[480px] overflow-y-auto">
                     {tableLoading ? (
                       <div className="flex min-h-[220px] items-center justify-center">
                         <Spin tip="正在读取 Source Catalog..." />
@@ -454,18 +542,18 @@ export default function WizardJobEditor({
 
                 <div className="overflow-hidden rounded-xl border border-[#e4e7ec]">
                   <div className="border-b border-[#eaecf0] bg-[#fcfcfd] px-4 py-3">
-                    <div className="text-[13px] font-medium text-[#344054]">已选表与主键识别</div>
-                    <div className="mt-0.5 text-[11px] text-[#98a2b3]">保存前所有表都必须识别到主键。</div>
+                    <div className="text-[13px] font-medium text-[#344054]">表映射与主键</div>
+                    <div className="mt-0.5 text-[11px] text-[#98a2b3]">主键自动识别；目标表名可修改。</div>
                   </div>
-                  <div className="max-h-[460px] overflow-y-auto">
+                  <div className="max-h-[480px] overflow-y-auto">
                     {selectedTables.length === 0 ? (
                       <div className="py-12">
                         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="还没有选择数据表" />
                       </div>
                     ) : (
                       selectedTables.map((selected) => (
-                        <div key={selected.table.name} className="border-b border-[#f2f4f7] px-4 py-3 last:border-b-0">
-                          <div className="flex items-start justify-between gap-3">
+                        <div key={selected.table.name} className="border-b border-[#f2f4f7] px-4 py-4 last:border-b-0">
+                          <div className="mb-2 flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="truncate text-[13px] font-medium text-[#344054]">
                                 {selected.table.name}
@@ -508,13 +596,164 @@ export default function WizardJobEditor({
                               </Button>
                             )}
                           </div>
-                          <div className="mt-2 text-[11px] text-[#98a2b3]">
-                            {selected.table.name} → {selected.route.sinkTable || selected.table.name}
+                          <div className="grid grid-cols-[minmax(0,1fr)_24px_minmax(0,1fr)] items-center gap-2">
+                            <Input value={selected.table.name} disabled />
+                            <ArrowRightOutlined className="text-[#98a2b3]" />
+                            <Input
+                              value={selected.route.sinkTable}
+                              status={!selected.route.sinkTable.trim() ? 'error' : undefined}
+                              placeholder="目标表名，例如 public.orders"
+                              onChange={(event) =>
+                                updateSinkTable(selected.table.name, event.target.value)
+                              }
+                            />
                           </div>
                         </div>
                       ))
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section className="mb-5 rounded-xl bg-white px-7 py-6">
+            <div className="mb-5 flex items-center gap-2">
+              <SyncOutlined className="text-[var(--yak-brand-color)]" />
+              <div>
+                <h2 className="m-0 text-[16px] font-semibold text-[#101828]">同步方式</h2>
+                <div className="mt-1 text-[12px] text-[#98a2b3]">选择任务第一次启动时如何读取 Source。</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-1">
+              {SYNC_MODES.map((mode) => {
+                const selected = startupMode === mode.value;
+                return (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    className={[
+                      'relative min-h-[120px] rounded-xl border p-4 text-left transition-all',
+                      selected
+                        ? 'border-[var(--yak-brand-color)] bg-[rgba(254,44,85,0.04)] shadow-[0_0_0_2px_rgba(254,44,85,0.06)]'
+                        : 'border-[#e4e7ec] bg-white hover:border-[#fda29b]',
+                    ].join(' ')}
+                    onClick={() => setStartupMode(mode.value)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[14px] font-semibold text-[#101828]">{mode.title}</div>
+                      {mode.badge && (
+                        <span className="rounded-full bg-[#fff1f0] px-2 py-0.5 text-[10px] font-medium text-[var(--yak-brand-color)]">
+                          {mode.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 text-[12px] leading-5 text-[#667085]">{mode.description}</div>
+                  </button>
+                );
+              })}
+              <div className="relative min-h-[120px] rounded-xl border border-dashed border-[#d0d5dd] bg-[#f9fafb] p-4 opacity-75">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[14px] font-semibold text-[#667085]">仅初始化数据</div>
+                  <Tag>后续</Tag>
+                </div>
+                <div className="mt-2 text-[12px] leading-5 text-[#98a2b3]">
+                  Flink CDC 支持 snapshot，但 Yak 当前需先补齐 FINISHED 正常完成态语义，本流程暂不开放。
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-xl bg-white px-7 py-6">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between border-0 bg-transparent p-0 text-left"
+              onClick={() => setAdvancedOpen((value) => !value)}
+            >
+              <div className="flex items-center gap-2">
+                <SettingOutlined className="text-[var(--yak-brand-color)]" />
+                <div>
+                  <h2 className="m-0 text-[16px] font-semibold text-[#101828]">高级配置</h2>
+                  <div className="mt-1 text-[12px] text-[#98a2b3]">普通场景保持默认值即可。</div>
+                </div>
+              </div>
+              {advancedOpen ? <UpOutlined className="text-[#98a2b3]" /> : <DownOutlined className="text-[#98a2b3]" />}
+            </button>
+
+            {advancedOpen && (
+              <div className="mt-6 border-t border-[#f0f2f5] pt-6">
+                <div className="grid grid-cols-3 gap-x-5 gap-y-4 max-lg:grid-cols-2 max-md:grid-cols-1">
+                  <div>
+                    <div className="mb-2 text-[12px] font-medium text-[#475467]">Schema Evolution</div>
+                    <Select
+                      className="w-full"
+                      value={advanced.schemaEvolution}
+                      options={[
+                        { value: 'EVOLVE', label: '自动同步结构变更（EVOLVE）' },
+                        { value: 'IGNORE', label: '忽略结构变更（IGNORE）' },
+                        { value: 'FAIL', label: '遇到结构变更失败（FAIL）' },
+                      ]}
+                      onChange={(value) => updateAdvanced('schemaEvolution', value)}
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 text-[12px] font-medium text-[#475467]">并行度</div>
+                    <InputNumber
+                      min={1}
+                      max={256}
+                      className="w-full"
+                      value={advanced.parallelism}
+                      onChange={(value) => updateAdvanced('parallelism', Number(value || 1))}
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 text-[12px] font-medium text-[#475467]">Sink Batch Size</div>
+                    <InputNumber
+                      min={1}
+                      className="w-full"
+                      value={advanced.batchSize}
+                      onChange={(value) => updateAdvanced('batchSize', Number(value || 1))}
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 text-[12px] font-medium text-[#475467]">Flush 间隔（ms）</div>
+                    <InputNumber
+                      min={1}
+                      className="w-full"
+                      value={advanced.flushIntervalMs}
+                      onChange={(value) => updateAdvanced('flushIntervalMs', Number(value || 1))}
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 text-[12px] font-medium text-[#475467]">Sink 重试次数</div>
+                    <InputNumber
+                      min={0}
+                      className="w-full"
+                      value={advanced.maxRetries}
+                      onChange={(value) => updateAdvanced('maxRetries', Number(value || 0))}
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 text-[12px] font-medium text-[#475467]">最大批次字节</div>
+                    <InputNumber
+                      min={1}
+                      className="w-full"
+                      value={advanced.maxBatchBytes}
+                      onChange={(value) => updateAdvanced('maxBatchBytes', Number(value || 1))}
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 text-[12px] font-medium text-[#475467]">Statement Cache</div>
+                    <InputNumber
+                      min={1}
+                      className="w-full"
+                      value={advanced.statementCacheSize}
+                      onChange={(value) => updateAdvanced('statementCacheSize', Number(value || 1))}
+                    />
+                  </div>
+                </div>
+                <div className="mt-5 rounded-lg bg-[#f9fafb] px-4 py-3 text-[11px] leading-5 text-[#667085]">
+                  Checkpoint、重启策略继续使用一期稳定默认值；Strict Replay Safety 固定启用。已有任务进入向导时，会保留未在本页编辑的运行参数。
                 </div>
               </div>
             )}
@@ -528,9 +767,11 @@ export default function WizardJobEditor({
                 ? '正在读取主键元数据…'
                 : primaryKeyInvalid && selectedTables.length > 0
                   ? '存在未识别主键的数据表，暂不能保存。'
-                  : selectedTables.length > 0
-                    ? `已准备 ${selectedTables.length} 张表的基础同步路由。`
-                    : '请选择 Source、Sink 和至少一张数据表。'}
+                  : sinkMappingInvalid && selectedTables.length > 0
+                    ? '请完善目标表映射。'
+                    : selectedTables.length > 0
+                      ? `已准备 ${selectedTables.length} 张表 · ${startupMode === 'initial' ? '初始化并持续同步' : '仅同步新变更'}。`
+                      : '请选择 Source、Sink 和至少一张数据表。'}
             </div>
             <div className="flex items-center gap-2">
               <Button disabled={saving} onClick={onClose}>
