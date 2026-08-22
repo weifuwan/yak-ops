@@ -2,6 +2,7 @@ package io.yak.ops.business.sync.realtime.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.business.datasource.config.BusinessDatabaseConfiguration;
+import io.yak.ops.business.sync.realtime.domain.SyncExecutionStateMachine;
 import java.net.http.HttpClient;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -20,6 +21,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Import(BusinessDatabaseConfiguration.class)
 @ConditionalOnProperty(prefix = "yak.sync.realtime", name = "enabled", matchIfMissing = true)
 public class RealtimeSyncConfiguration {
+
+  @Bean
+  SyncExecutionStateMachine syncExecutionStateMachine() {
+    return new SyncExecutionStateMachine();
+  }
 
   @Bean(initMethod = "migrate")
   Flyway realtimeSyncFlyway(@Qualifier("yakBusinessDataSource") DataSource dataSource) {

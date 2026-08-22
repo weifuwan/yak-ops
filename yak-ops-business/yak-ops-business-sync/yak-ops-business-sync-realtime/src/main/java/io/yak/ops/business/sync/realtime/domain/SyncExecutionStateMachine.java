@@ -5,10 +5,8 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
-import org.springframework.stereotype.Component;
 
 /** State machine for one immutable-identity SyncExecution. */
-@Component
 public class SyncExecutionStateMachine {
 
   private final Map<ObservedState, EnumSet<ObservedState>> transitions =
@@ -70,10 +68,10 @@ public class SyncExecutionStateMachine {
     }
   }
 
-  /** Wave-3 keeps the old product policy: editing/publishing still requires a terminal execution. */
+  /** Destructive metadata mutation (currently delete) requires a terminal execution. */
   public void requireDefinitionMutable(SyncExecution latest) {
     if (latest != null && latest.activeOrUncertain()) {
-      throw new IllegalStateException("任务运行态未稳定，只有已停止或明确失败的任务才能编辑、发布或删除");
+      throw new IllegalStateException("任务运行态未稳定，只有已停止或明确失败的任务才能执行该操作");
     }
   }
 

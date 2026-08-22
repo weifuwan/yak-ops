@@ -1,15 +1,8 @@
 # Realtime Sync Domain Design
 
-> 目标：为 Yak Ops 实时同步建立稳定、可演进、可约束 AI 的领域内核。
+> 目标：为 Yak Ops 实时同步建立稳定、可演进、可约束 AI 的领域内核，并用自动化检查抵抗架构漂移。
 
-这组文档描述的是 **Realtime Sync Domain**，不是 Flink CDC 使用手册，也不是前端页面说明。
-
-任何实时同步需求进入代码前，都应先判断它属于：
-
-- Domain：实时同步业务概念与规则；
-- Application：用例编排、发布、启动、停止、重启、版本切换；
-- Infrastructure：Flink、CDC Connector、SSH、REST、YAML 编译、数据库持久化；
-- Interface/UI：Controller、DTO、Wizard、YAML Editor 等交互适配。
+这组文档描述 **Realtime Sync Domain**，不是 Flink CDC 使用手册，也不是前端页面说明。
 
 ## 阶段路线
 
@@ -18,25 +11,25 @@
 | 1 | [领域边界与统一语言](./01-domain-boundary-and-language.md) | 定义实时同步负责什么、绝不负责什么，以及统一术语 |
 | 2 | [核心领域模型 v1](./02-core-domain-model.md) | 确定聚合根、Entity、Value Object 和核心对象关系 |
 | 3 | [领域不变量与生命周期](./03-invariants-and-lifecycle.md) | 固定 Draft / Publish / Execution 不变量、状态机、并发和快照规则 |
-| 4 | [现有代码到领域模型 Mapping](./04-current-code-mapping.md) | 迁移前/迁移中的代码 Mapping、Gap 与施工顺序 |
-| 5 | [AI 领域开发宪法](./05-ai-domain-rules.md) | 把阶段 1～4 转换成 AI 强制执行规则 |
+| 4 | [现有代码到领域模型 Mapping](./04-current-code-mapping.md) | 记录迁移前/迁移中的 Mapping、Gap 与施工顺序 |
+| 5 | [AI 领域开发宪法](./05-ai-domain-rules.md) | 把领域设计转换成 AI 强制执行规则 |
 | 6 | [Stage 6 Migration Completion](./06-stage6-migration-completion.md) | 记录 Wave 0～6 完成后的当前实现事实、兼容边界和剩余 Gap |
-| 7 | 待补充 | 自动化领域护栏扩展 |
+| 7 | [自动化领域护栏](./07-automated-domain-guardrails.md) | 将领域规则转成 Static Guard / Core Smoke / PR Contract，以及可选 private-framework JUnit Hook |
 
-模块级最高优先级硬规则入口：
+模块级最高优先级规则入口：
 
 ```text
 yak-ops-business/yak-ops-business-sync/
 yak-ops-business-sync-realtime/DOMAIN.md
 ```
 
-任何 AI / Codex / 开发者修改 realtime-sync 代码前，都必须先读 `DOMAIN.md`。
+任何 AI / Codex / 开发者修改 realtime-sync 前都应先读 `DOMAIN.md`。
 
 ---
 
 ## 当前领域模型
 
-Realtime Sync Core Domain 使用三个聚合根：
+Realtime Sync 使用三个聚合根：
 
 ```text
 RealtimeSyncTask
@@ -44,7 +37,7 @@ DefinitionVersion
 SyncExecution
 ```
 
-`SyncDefinition` 是唯一配置事实模型：
+唯一配置事实模型：
 
 ```text
 SyncDefinition
@@ -65,25 +58,23 @@ DefinitionVersion (immutable)
 SyncExecution
 ```
 
-核心原则：
+固定原则：
 
 - `Task ≠ Definition ≠ Version ≠ Execution`；
 - Draft 可以在旧 Execution 运行时继续编辑/发布；
-- Start 只读取不可变 Published DefinitionVersion；
+- Start 只读取 immutable Published DefinitionVersion；
 - RestartExecution 固定旧 Execution 的 VersionRef；
-- ApplyPublishedVersion 显式使用命令开始时捕获的 Published Ref；
+- ApplyPublishedVersion 使用命令开始时捕获的 Published Ref；
 - 每次 Start/Restart/Apply 都创建新的 SyncExecution；
 - 单个 Execution 的 `STOPPED / FAILED` 是终态；
 - `UNKNOWN / CONFLICT` 禁止自动创建第二个运行实例；
 - Runtime Environment：Definition 存 Ref，Execution 存 Snapshot；
-- Flink / YAML / SSH / JDBC credentials / adapter-private tuning 不进入 Core Domain；
+- Flink / YAML / SSH / JDBC credential / adapter-private tuning 不进入 Core Domain；
 - 新场景优先扩 Selector / Route / Target / Policy，不优先增加 sceneType/syncType。
 
 ---
 
 ## Stage 6 当前实现事实
-
-Stage 6 已按既定顺序完成：
 
 ```text
 Wave 0  Core VO + compatibility mapper                         ✅
@@ -116,47 +107,92 @@ Runtime state    -> SyncExecution only
 Version identity -> immutable DefinitionVersionId only
 ```
 
-### Task runtime legacy columns
+Task 表的 `desired_state / observed_state / last_error` 即使物理存在，也只是 inert compatibility storage：Application 不写、Runtime command 不读、Read Model 不 fallback。
 
-物理表仍可能存在：
+兼容名如 `job_definition / job_deployment / definition_version / published_version / config_digest / status / latestDeployment / HTTP /restart` 可以暂时存在，但不能反向决定领域语义。
 
-```text
-desired_state
-observed_state
-last_error
-```
+阶段 4 文档中的“当前实现事实”是历史迁移快照；Stage 6 后的当前事实以 [06-stage6-migration-completion.md](./06-stage6-migration-completion.md) 和 `DOMAIN.md` 为准。
 
-但 Wave 6 后它们是 inert compatibility storage：
+---
 
-- Application 不写；
-- Runtime command 不读；
-- Read model 不 fallback；
-- 无 Execution 的 Task 派生为 STOPPED / STOPPED / null。
+## Stage 7 自动化护栏
 
-### Legacy names still physically/API-visible
+Stage 7 已把关键规则转成机器检查。
 
-为了兼容，以下名字可以暂时存在：
+### 强制层 A：Static Domain Contract
 
 ```text
-yak_realtime_job_definition
-yak_realtime_job_deployment
-definition_version
-published_version
-config_digest
-status
-latestDeployment
-HTTP /restart alias
+tools/realtime_domain_guardrails.py
 ```
 
-它们不再决定领域语义。
+检查：
 
-当前 Mapping 以 [Stage 6 Migration Completion](./06-stage6-migration-completion.md) 为准；阶段 4 文档中的“当前实现事实”是当时的**历史迁移快照**，不能覆盖 Stage 6 后的新事实。
+```text
+Core Domain dependency purity
+second Spec / syncType / sceneType anti-pattern
+Task runtime truth 回流
+immutable VersionId identity
+RestartExecution / ApplyPublishedVersion 分离
+Start-by-Published
+Digest semantic aliases
+Realtime PR body contract
+```
+
+本地最快命令：
+
+```bash
+python3 tools/realtime_domain_guardrails.py
+```
+
+### 强制层 B：Framework-free Core Smoke
+
+GitHub Actions 使用 JDK 21、无 Spring/Maven classpath 直接编译 Core Domain，并运行：
+
+```text
+tools/realtime-domain-smoke/RealtimeDomainSmoke.java
+```
+
+覆盖 Definition invariant、semantic digest 和 Execution terminal/active 规则。
+
+### 强制层 C：PR Contract
+
+Realtime PR 必须包含：
+
+```text
+Domain Impact Analysis
+Domain Gap
+Domain Compliance Report
+```
+
+PR description 编辑后也会重新触发检查。
+
+### 条件层：Backend Maven/JUnit Regression Hook
+
+深层 JUnit 依赖私有：
+
+```text
+weifuwan/yak-framework
+```
+
+普通 yak-ops `GITHUB_TOKEN` 无法读取该 sibling private repo。
+
+因此完整 Maven/JUnit 回归只有在仓库配置：
+
+```text
+YAK_FRAMEWORK_TOKEN
+```
+
+并具有 yak-framework read 权限时才执行。
+
+没有 secret 时 workflow 会明确发 Notice 并 skip Maven/JUnit；**绿色 Backend regression hook 不代表 JUnit 已通过**。
+
+详细设计见 [07-automated-domain-guardrails.md](./07-automated-domain-guardrails.md)。
 
 ---
 
 ## 仍然存在的独立 Gap
 
-Stage 6 完成不代表所有技术债清零。以下问题必须单独评审：
+Stage 6/7 完成不代表所有技术债清零：
 
 ```text
 Audit-safe Archive/Tombstone delete
@@ -168,24 +204,25 @@ Compute Environment physical context/package cleanup
 API v2 / physical schema naming cleanup
 ```
 
-这些问题不能以“cleanup”名义偷偷进入普通功能 PR。
+这些问题必须单独做 Domain Impact Analysis，不能以“cleanup”名义混入普通功能 PR，也不能先关闭 guardrail 绕过领域讨论。
 
 ---
 
-## AI 使用顺序
-
-以后修改 realtime-sync：
+## AI / 开发执行顺序
 
 ```text
 1. 读 DOMAIN.md
-2. 做 Domain Impact Analysis
-3. 查 06-stage6-migration-completion.md 当前事实
-4. 需要设计依据时再查 01～05 文档
-5. 对照测试与现有 Adapter
-6. 实现前确认没有 Domain Gap
+2. 输出 Domain Impact Analysis
+3. 查 Stage 6 当前事实
+4. 需要设计依据时查 01～05
+5. 实现代码
+6. 运行 Static Domain Guard
+7. 等待 Mandatory Stage 7 CI
+8. 有 private framework token 的环境再跑完整 Maven/JUnit regression
+9. 输出 Domain Compliance Report
 ```
 
-如果一个新需求无法映射到三个聚合、`SyncDefinition` 子模型、现有生命周期或明确的邻接上下文：
+如果需求无法映射到三个聚合、`SyncDefinition` 子模型、现有生命周期或明确邻接上下文：
 
 ```text
 Domain Gap = yes

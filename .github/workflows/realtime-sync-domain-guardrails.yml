@@ -1,0 +1,134 @@
+name: Realtime Sync Domain Guardrails
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    paths:
+      - 'yak-ops-business/yak-ops-business-sync/yak-ops-business-sync-realtime/**'
+      - 'yak-ops-ui/src/pages/realtime-sync/**'
+      - 'docs/realtime-sync/domain/**'
+      - 'tools/realtime_domain_guardrails.py'
+      - 'tools/realtime-domain-smoke/**'
+      - '.github/PULL_REQUEST_TEMPLATE/realtime-sync-domain.md'
+      - '.github/workflows/realtime-sync-domain-guardrails.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'yak-ops-business/yak-ops-business-sync/yak-ops-business-sync-realtime/**'
+      - 'yak-ops-ui/src/pages/realtime-sync/**'
+      - 'docs/realtime-sync/domain/**'
+      - 'tools/realtime_domain_guardrails.py'
+      - 'tools/realtime-domain-smoke/**'
+      - '.github/PULL_REQUEST_TEMPLATE/realtime-sync-domain.md'
+      - '.github/workflows/realtime-sync-domain-guardrails.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: realtime-sync-domain-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REALTIME_MODULE: ':yak-ops-business-sync-realtime'
+  CORE_DOMAIN: yak-ops-business/yak-ops-business-sync/yak-ops-business-sync-realtime/src/main/java/io/yak/ops/business/sync/realtime/domain
+
+jobs:
+  static-domain-contract:
+    name: Static domain contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout yak-ops
+        uses: actions/checkout@v4
+
+      - name: Run zero-dependency domain guard
+        run: python3 tools/realtime_domain_guardrails.py --event "$GITHUB_EVENT_PATH"
+
+  core-domain-smoke:
+    name: Framework-free core domain smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout yak-ops
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Compile core domain without Spring or Maven classpath
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/realtime-domain-core"
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+
+          javac --release 21 -d "$OUT" \
+            "$CORE_DOMAIN/RealtimeJobState.java" \
+            "$CORE_DOMAIN/SyncDefinition.java" \
+            "$CORE_DOMAIN/RuntimeEnvironmentRef.java" \
+            "$CORE_DOMAIN/DefinitionDigest.java" \
+            "$CORE_DOMAIN/SyncDefinitionDigestCalculator.java" \
+            "$CORE_DOMAIN/DefinitionVersion.java" \
+            "$CORE_DOMAIN/SyncExecution.java" \
+            "$CORE_DOMAIN/SyncExecutionStateMachine.java" \
+            tools/realtime-domain-smoke/RealtimeDomainSmoke.java
+
+          java -cp "$OUT" RealtimeDomainSmoke
+
+  backend-domain-regression:
+    name: Backend regression hook
+    needs:
+      - static-domain-contract
+      - core-domain-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      YAK_FRAMEWORK_TOKEN: ${{ secrets.YAK_FRAMEWORK_TOKEN }}
+    steps:
+      - name: Checkout yak-ops
+        uses: actions/checkout@v4
+
+      - name: Explain private dependency requirement
+        if: env.YAK_FRAMEWORK_TOKEN == ''
+        run: |
+          echo "::notice title=Backend regression not executed::yak-framework is a private repository. Configure repository secret YAK_FRAMEWORK_TOKEN with read access to enable the full Maven/JUnit regression layer. Static Domain Contract and framework-free Core Smoke remain mandatory and already run without this secret."
+
+      - name: Checkout yak-framework SNAPSHOT dependency
+        if: env.YAK_FRAMEWORK_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          repository: weifuwan/yak-framework
+          path: .ci/yak-framework
+          token: ${{ env.YAK_FRAMEWORK_TOKEN }}
+
+      - name: Set up JDK 21 and Maven cache
+        if: env.YAK_FRAMEWORK_TOKEN != ''
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Install yak-framework SNAPSHOT
+        if: env.YAK_FRAMEWORK_TOKEN != ''
+        run: ./mvnw -B -ntp -f .ci/yak-framework/pom.xml -DskipTests install
+
+      - name: Build realtime module dependencies
+        if: env.YAK_FRAMEWORK_TOKEN != ''
+        run: ./mvnw -B -ntp -pl "$REALTIME_MODULE" -am -DskipTests install
+
+      - name: Run targeted realtime domain regression tests
+        if: env.YAK_FRAMEWORK_TOKEN != ''
+        run: >-
+          ./mvnw -B -ntp
+          -pl "$REALTIME_MODULE"
+          -Dtest=RealtimeArchitectureTest,SyncExecutionStateMachineTest,SyncDefinitionDigestCalculatorTest,CdcPipelineSpecCompatibilityMapperTest,DefinitionVersionRepositoryAdapterTest,VersioningRealtimeJobStoreTest,RealtimeJobDaoImplExecutionIsolationTest,RealtimeJobStoreAdapterExecutionProjectionTest,RealtimeExecutionPathTest,RealtimeJobServiceConcurrencyTest,RealtimeJobLifecycleCoordinatorTest,RealtimeWave4DefinitionMutationTest,RealtimeWave5VersionCommandTest,RealtimeWave5VersionCommandRaceTest
+          -Dsurefire.failIfNoSpecifiedTests=false
+          test
