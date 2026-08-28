@@ -1,0 +1,27 @@
+name: Export PR5 source snapshot
+
+on:
+  push:
+    branches:
+      - feat/project-space-pr5
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: yak-ops-pr5-source
+          path: |
+            .
+            !.git/**
+          include-hidden-files: true
+          retention-days: 1
