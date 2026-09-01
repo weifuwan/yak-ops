@@ -10,6 +10,7 @@ import io.yak.ops.business.quality.execution.QualitySqlCompiler.CompiledRule;
 import io.yak.ops.business.quality.gateway.datasource.QualityDataCatalogGateway;
 import io.yak.ops.business.quality.repository.QualityExecutionRepository;
 import io.yak.ops.business.quality.repository.QualityMonitorRepository;
+import io.yak.ops.business.quality.repository.QualityWorkflowExecutionRepository;
 import io.yak.ops.common.enums.quality.QualityEnums.CheckResult;
 import io.yak.ops.common.enums.quality.QualityEnums.RuleFailureAction;
 import java.time.Duration;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class QualityExecutionWorker {
   private final QualityExecutionRepository executionRepository;
+  private final QualityWorkflowExecutionRepository workflowExecutionRepository;
   private final QualityMonitorRepository monitorRepository;
   private final QualitySqlCompiler compiler;
   private final QualityMetricEvaluator evaluator;
@@ -28,12 +30,14 @@ public class QualityExecutionWorker {
 
   public QualityExecutionWorker(
       QualityExecutionRepository executionRepository,
+      QualityWorkflowExecutionRepository workflowExecutionRepository,
       QualityMonitorRepository monitorRepository,
       QualitySqlCompiler compiler,
       QualityMetricEvaluator evaluator,
       QualityDataCatalogGateway catalogGateway,
       QualityAlertRecorder alertRecorder) {
     this.executionRepository = executionRepository;
+    this.workflowExecutionRepository = workflowExecutionRepository;
     this.monitorRepository = monitorRepository;
     this.compiler = compiler;
     this.evaluator = evaluator;
@@ -49,6 +53,7 @@ public class QualityExecutionWorker {
     int errors = 0;
     try {
       for (int index = 0; index < plan.rules().size(); index++) {
+        if (workflowExecutionRepository.isCanceled(plan.executionId())) return;
         RuleSnapshot rule = plan.rules().get(index);
         RuleOutcome outcome = executeRule(plan, rule);
         switch (outcome.result()) {
@@ -57,12 +62,14 @@ public class QualityExecutionWorker {
           case ERROR -> errors++;
           default -> throw new IllegalStateException("不支持的规则执行结果：" + outcome.result());
         }
+        if (workflowExecutionRepository.isCanceled(plan.executionId())) return;
         if (plan.ruleFailureAction() == RuleFailureAction.STOP
             && outcome.result() != CheckResult.PASSED) {
           markRemainingRulesNotRun(plan, index + 1);
           break;
         }
       }
+      if (workflowExecutionRepository.isCanceled(plan.executionId())) return;
       LocalDateTime finishedAt = LocalDateTime.now();
       CheckResult finalResult = errors > 0
           ? CheckResult.ERROR
@@ -74,6 +81,7 @@ public class QualityExecutionWorker {
           plan.monitor().id(), plan.executionNo(), finalResult, finishedAt);
       alertRecorder.recordIfNecessary(plan, finalResult, passed, failed, errors);
     } catch (RuntimeException exception) {
+      if (workflowExecutionRepository.isCanceled(plan.executionId())) return;
       LocalDateTime finishedAt = LocalDateTime.now();
       executionRepository.failExecution(
           plan.executionId(), message(exception), finishedAt,

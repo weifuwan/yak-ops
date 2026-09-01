@@ -37,7 +37,8 @@ class QualityDependencyBoundaryTest {
               "controller",
               Set.of("asset", "config", "domain", "execution", "monitor", "template", "workspace")),
           Map.entry("workspace", Set.of("config", "domain", "monitor", "repository")),
-          Map.entry("monitor", Set.of("config", "domain", "repository", "schedule")),
+          Map.entry("monitor", Set.of("config", "domain", "repository", "schedule", "task")),
+          Map.entry("task", Set.of("config", "domain", "execution", "repository")),
           Map.entry("schedule", Set.of("config", "domain", "execution", "repository")),
           Map.entry("execution", Set.of("alert", "config", "domain", "gateway", "repository")),
           Map.entry("alert", Set.of("config", "domain", "repository")),
@@ -84,6 +85,18 @@ class QualityDependencyBoundaryTest {
         Set.of(
             BASE + ".schedule.QualityScheduleLifecycle",
             BASE + ".schedule.QualityScheduleCalculator"));
+    assertExactCorridor(
+        "monitor",
+        "task",
+        Set.of(BASE + ".task.QualityTaskPublisher"));
+    assertExactCorridor(
+        "task",
+        "execution",
+        Set.of(
+            BASE + ".execution.QualityExecutionManager",
+            BASE + ".execution.QualityExecutionPlanFactory",
+            BASE + ".execution.QualityExecutionReader",
+            BASE + ".execution.QualityExecutionReceipt"));
     assertExactCorridor(
         "schedule",
         "execution",

@@ -55,9 +55,9 @@ public final class QualityEnums {
     }
   }
 
-  public enum ExecutionStatus { WAITING, RUNNING, SUCCESS, FAILED }
+  public enum ExecutionStatus { WAITING, RUNNING, SUCCESS, FAILED, CANCELED }
   public enum CheckResult { PASSED, NOT_PASSED, ERROR, RUNNING, NOT_RUN }
-  public enum TriggerType { MANUAL, SCHEDULE }
+  public enum TriggerType { MANUAL, WORKFLOW, SCHEDULE }
   public enum RunMode { MANUAL, SCHEDULE }
   public enum ScheduleFrequency { DAILY, WEEKLY, CRON }
   public enum ScheduleWeekday { MON, TUE, WED, THU, FRI, SAT, SUN }

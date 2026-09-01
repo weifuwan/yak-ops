@@ -1,5 +1,8 @@
 import type { ApiResponse } from '@/services/http/response';
-import { listTaskCatalogAssets } from '@/services/taskCatalog';
+import {
+  listTaskCatalogAssets,
+  type TaskCatalogAsset,
+} from '@/services/taskCatalog';
 import { request } from '@umijs/max';
 import type {
   WorkflowBackfill,
@@ -172,6 +175,17 @@ const TERMINAL_STATUSES = new Set([
   'TIMED_OUT',
 ]);
 
+const WORKFLOW_DATA_DEVELOPMENT_TYPES = new Set(['SQL', 'SHELL', 'HTTP', 'PYTHON']);
+
+const isWorkflowCatalogAsset = (asset: TaskCatalogAsset) => {
+  const source = (asset.source || '').trim().toUpperCase();
+  const taskType = (asset.taskType || '').trim().toUpperCase();
+  if (source === 'DATA_DEVELOPMENT') return WORKFLOW_DATA_DEVELOPMENT_TYPES.has(taskType);
+  if (source === 'DATA_INTEGRATION') return taskType === 'SYNC';
+  if (source === 'DATA_QUALITY') return taskType === 'QUALITY';
+  return false;
+};
+
 const workflowEventSubscriptions = new Map<string, WorkflowEventSubscription>();
 
 export const isWorkflowTerminal = (status?: string) =>
@@ -180,11 +194,11 @@ export const isWorkflowTerminal = (status?: string) =>
 export const getWorkflowTasks = async () => {
   const [response, assets] = await Promise.all([
     request<ApiResponse<WorkflowTaskDefinition[]>>('/api/v1/tasks'),
-    listTaskCatalogAssets({ source: 'DATA_DEVELOPMENT', status: 'ONLINE' }).catch(() => []),
+    listTaskCatalogAssets({ status: 'ONLINE' }).catch(() => []),
   ]);
   const merged = new Map<string, WorkflowTaskDefinition>();
   (response.data || []).forEach((task) => merged.set(task.id, task));
-  assets.forEach((asset) => merged.set(`task-asset:${asset.id}`, {
+  assets.filter(isWorkflowCatalogAsset).forEach((asset) => merged.set(`task-asset:${asset.id}`, {
     id: `task-asset:${asset.id}`,
     name: asset.name,
     type: asset.taskType,

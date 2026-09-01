@@ -9,6 +9,7 @@ import io.yak.ops.business.quality.domain.QualityDomain.RuleSpec;
 import io.yak.ops.business.quality.repository.QualityExecutionRepository;
 import io.yak.ops.business.quality.repository.QualityMonitorRepository;
 import io.yak.ops.business.quality.schedule.QualityScheduleLifecycle;
+import io.yak.ops.business.quality.task.QualityTaskPublisher;
 import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ public class QualityMonitorManager {
   private final QualityRulePolicy rulePolicy;
   private final QualityMonitorSettingsPolicy settingsPolicy;
   private final QualityScheduleLifecycle scheduleLifecycle;
+  private final QualityTaskPublisher taskPublisher;
 
   public QualityMonitorManager(
       QualityMonitorRepository monitorRepository,
@@ -30,13 +32,15 @@ public class QualityMonitorManager {
       QualityMonitorPolicy monitorPolicy,
       QualityRulePolicy rulePolicy,
       QualityMonitorSettingsPolicy settingsPolicy,
-      QualityScheduleLifecycle scheduleLifecycle) {
+      QualityScheduleLifecycle scheduleLifecycle,
+      QualityTaskPublisher taskPublisher) {
     this.monitorRepository = monitorRepository;
     this.executionRepository = executionRepository;
     this.monitorPolicy = monitorPolicy;
     this.rulePolicy = rulePolicy;
     this.settingsPolicy = settingsPolicy;
     this.scheduleLifecycle = scheduleLifecycle;
+    this.taskPublisher = taskPublisher;
   }
 
   @Transactional(transactionManager = "yakBusinessTransactionManager")
@@ -48,12 +52,15 @@ public class QualityMonitorManager {
     monitorRepository.upsertMonitorSettings(id, settings);
     monitorRepository.replaceRules(id, rules);
     scheduleLifecycle.sync(id);
-    return require(id);
+    Monitor saved = require(id);
+    taskPublisher.sync(saved);
+    return saved;
   }
 
   @Transactional(transactionManager = "yakBusinessTransactionManager")
   public Monitor update(long id, QualityMonitorCommand.Save command) {
     Monitor existing = require(id);
+    monitorRepository.lockMonitor(id);
     monitorPolicy.validateTarget(id, command);
     List<RuleSpec> rules = rulePolicy.normalize(command.rules());
     MonitorSettings currentSettings = monitorRepository.findMonitorSettings(existing.id());
@@ -64,7 +71,9 @@ public class QualityMonitorManager {
     monitorRepository.upsertMonitorSettings(id, settings);
     monitorRepository.replaceRules(id, rules);
     scheduleLifecycle.sync(id);
-    return require(id);
+    Monitor saved = require(id);
+    taskPublisher.sync(saved);
+    return saved;
   }
 
   @Transactional(transactionManager = "yakBusinessTransactionManager")
@@ -77,6 +86,7 @@ public class QualityMonitorManager {
       throw new IllegalArgumentException("质量监控不存在：" + id);
     }
     scheduleLifecycle.remove(id);
+    taskPublisher.offline(id);
     return true;
   }
 
