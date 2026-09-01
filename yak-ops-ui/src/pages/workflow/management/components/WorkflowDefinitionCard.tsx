@@ -18,11 +18,9 @@ import {
 import {
   DEFINITION_STATUS_META,
   WORKFLOW_PAGE_ANIMATION,
-  failureStrategyLabel,
   formatWorkflowDuration,
   formatWorkflowTime,
   getPublishActionLabel,
-  getRuntimeHint,
   isActiveRuntime,
   isRunningRuntime,
   runtimeStatusMeta,
@@ -45,7 +43,7 @@ interface WorkflowDefinitionCardProps {
 }
 
 const actionButtonClassName =
-  '!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/90 !p-0 !text-[#7e838d] !shadow-[0_1px_3px_rgba(31,35,41,0.035)] hover:!text-[#4058c8]';
+  '!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/95 !p-0 !text-[#7e838d] !shadow-[0_1px_3px_rgba(31,35,41,0.035)] hover:!text-[#4058c8]';
 
 const WorkflowDefinitionCard = ({
   record,
@@ -71,6 +69,7 @@ const WorkflowDefinitionCard = ({
     record.nodeCount > 0 &&
     Boolean(record.activeVersionNo) &&
     !activeRuntime;
+  const showDraftChanged = record.draftChanged && record.status !== 'DRAFT';
 
   const renderRuntimeAction = () => {
     const status = record.latestExecutionStatus;
@@ -172,18 +171,18 @@ const WorkflowDefinitionCard = ({
         className="pointer-events-none absolute -right-16 -top-20 z-0 h-48 w-48 rounded-full bg-[#dce7ff]/35 blur-3xl transition-transform duration-300 group-hover:scale-110"
       />
 
-      <div className="relative z-[1] flex min-h-[116px] items-start justify-between gap-4 px-[18px] pb-[17px] pt-[18px]">
-        <div className="flex min-w-0 items-start gap-[13px]">
-          <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[14px] border border-[rgba(31,35,41,0.07)] bg-[linear-gradient(145deg,#ffffff_0%,#f5f7fa_100%)] text-[#566071] shadow-[0_5px_14px_rgba(31,35,41,0.055)] transition-transform duration-[260ms] group-hover:scale-[1.025]">
-            <GitBranch size={27} strokeWidth={1.75} />
+      <div className="relative z-[1] flex min-h-[108px] items-start gap-3 px-4 pb-4 pt-4">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[13px] border border-[rgba(31,35,41,0.07)] bg-[linear-gradient(145deg,#ffffff_0%,#f5f7fa_100%)] text-[#566071] shadow-[0_5px_14px_rgba(31,35,41,0.055)] transition-transform duration-[260ms] group-hover:scale-[1.025]">
+            <GitBranch size={24} strokeWidth={1.75} />
           </div>
 
-          <div className="min-w-0 pt-0.5">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1 pt-0.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               <button
                 type="button"
                 title={record.name}
-                className="m-0 max-w-[280px] cursor-pointer truncate border-0 bg-transparent p-0 text-left text-[15px] font-semibold leading-[22px] text-[#292c35] transition-colors hover:text-[#4058c8]"
+                className="m-0 max-w-[220px] cursor-pointer truncate border-0 bg-transparent p-0 text-left text-[14px] font-semibold leading-[21px] text-[#292c35] transition-colors hover:text-[#4058c8]"
                 onClick={() => onEdit(record)}
               >
                 {record.name || '未命名工作流'}
@@ -199,7 +198,7 @@ const WorkflowDefinitionCard = ({
                 {definitionMeta.label}
               </span>
 
-              {record.draftChanged ? (
+              {showDraftChanged ? (
                 <span className="inline-flex h-5 shrink-0 items-center whitespace-nowrap rounded-full bg-[#fff7e9] px-[7px] text-[10px] font-semibold text-[#b77a22]">
                   有草稿修改
                 </span>
@@ -208,20 +207,21 @@ const WorkflowDefinitionCard = ({
 
             <p
               title={record.description || ''}
-              className="mb-0 mt-2 max-w-[500px] truncate rounded-[7px] bg-[#f7f8fa]/90 px-2 py-1 text-[11px] leading-[18px] text-[#858a94]"
+              className="mb-0 mt-1.5 max-w-full truncate rounded-[7px] bg-[#f7f8fa]/90 px-2 py-1 text-[11px] leading-[18px] text-[#858a94]"
             >
               {record.description || '暂无工作流描述'}
             </p>
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] leading-4 text-[#9a9fa8]">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] leading-4 text-[#9a9fa8]">
               <span>{record.nodeCount} 个节点 · {record.edgeCount} 条依赖</span>
-              <span>超时 {formatWorkflowDuration(record.workflowTimeoutSeconds)}</span>
-              <span>{failureStrategyLabel(record.failureStrategy)}</span>
+              {record.workflowTimeoutSeconds > 0 ? (
+                <span>超时 {formatWorkflowDuration(record.workflowTimeoutSeconds)}</span>
+              ) : null}
             </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 -translate-y-1 gap-1 opacity-0 transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+        <div className="absolute right-3 top-3 z-[3] flex -translate-y-1 gap-1 rounded-[10px] bg-white/90 p-1 opacity-0 shadow-[0_6px_18px_rgba(31,35,41,0.08)] backdrop-blur-sm transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
           {renderRuntimeAction()}
 
           <YakButton
@@ -274,7 +274,7 @@ const WorkflowDefinitionCard = ({
               iconOnly
               title="删除工作流"
               disabled={blocked}
-              className="!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/90 !p-0 !shadow-[0_1px_3px_rgba(31,35,41,0.035)]"
+              className="!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/95 !p-0 !shadow-[0_1px_3px_rgba(31,35,41,0.035)]"
               icon={<Trash2 size={14} strokeWidth={1.9} />}
               onClick={() => onDelete(record)}
             />
@@ -284,7 +284,7 @@ const WorkflowDefinitionCard = ({
 
       <div
         className={[
-          'relative z-[1] grid grid-cols-[1fr_1.1fr_1.15fr] border-t border-[#eef0f3] bg-white/75 px-[18px] py-[14px]',
+          'relative z-[1] grid grid-cols-[1fr_0.9fr_1.05fr] border-t border-[#eef0f3] bg-white/75 px-4 py-3.5',
           isListView
             ? 'items-center border-l border-t-0 max-xl:border-l-0 max-xl:border-t'
             : '',
@@ -292,8 +292,8 @@ const WorkflowDefinitionCard = ({
           .filter(Boolean)
           .join(' ')}
       >
-        <div className="flex min-w-0 flex-col gap-1.5 pr-3">
-          <span className="text-[10px] leading-4 text-[#a0a4ad]">发布状态</span>
+        <div className="flex min-w-0 flex-col gap-1.5 pr-2.5">
+          <span className="text-[10px] leading-4 text-[#a0a4ad]">发布版本</span>
           <strong className="truncate text-[11px] font-semibold leading-[18px] text-[#5c616b]">
             {record.activeVersionNo
               ? `生效 v${record.activeVersionNo}${
@@ -303,33 +303,27 @@ const WorkflowDefinitionCard = ({
                 }`
               : record.latestVersionNo > 0
                 ? `最新 v${record.latestVersionNo}`
-                : '尚未发布版本'}
+                : '尚未发布'}
           </strong>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-1.5 border-l border-[#eff0f2] px-3">
+        <div className="flex min-w-0 flex-col gap-1.5 border-l border-[#eff0f2] px-2.5">
           <span className="text-[10px] leading-4 text-[#a0a4ad]">最近执行</span>
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 items-center">
             <span
               className={[
-                'inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full px-[7px] text-[10px] font-semibold',
+                'inline-flex h-5 max-w-full shrink-0 items-center gap-1.5 truncate rounded-full px-[7px] text-[10px] font-semibold',
                 runtimeMeta.textClassName,
                 runtimeMeta.backgroundClassName,
               ].join(' ')}
             >
-              <span className={['h-1.5 w-1.5 rounded-full', runtimeMeta.dotClassName].join(' ')} />
-              {runtimeMeta.label}
-            </span>
-            <span
-              title={getRuntimeHint(record.latestExecutionStatus, record.status)}
-              className="min-w-0 truncate text-[10px] text-[#989da7]"
-            >
-              {getRuntimeHint(record.latestExecutionStatus, record.status)}
+              <span className={['h-1.5 w-1.5 shrink-0 rounded-full', runtimeMeta.dotClassName].join(' ')} />
+              <span className="truncate">{runtimeMeta.label}</span>
             </span>
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-1.5 border-l border-[#eff0f2] pl-3">
+        <div className="flex min-w-0 flex-col gap-1.5 border-l border-[#eff0f2] pl-2.5">
           <span className="text-[10px] leading-4 text-[#a0a4ad]">最近更新</span>
           <strong className="flex min-w-0 items-center gap-1.5 truncate text-[11px] font-medium leading-[18px] text-[#737882]">
             <Clock3 size={11} strokeWidth={1.8} className="shrink-0 text-[#9ca0a9]" />
