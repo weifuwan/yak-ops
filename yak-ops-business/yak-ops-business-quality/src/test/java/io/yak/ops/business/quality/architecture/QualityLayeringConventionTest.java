@@ -17,6 +17,7 @@ import io.yak.ops.business.quality.repository.QualityExecutionWorkspaceRepositor
 import io.yak.ops.business.quality.repository.QualityMonitorRepository;
 import io.yak.ops.business.quality.repository.QualityOverviewRepository;
 import io.yak.ops.business.quality.repository.QualityTableAssetRepository;
+import io.yak.ops.business.quality.repository.QualityTaskRevisionRepository;
 import io.yak.ops.business.quality.repository.QualityTemplateRepository;
 import io.yak.ops.business.quality.repository.QualityWorkspaceRepository;
 import io.yak.ops.common.bean.po.quality.QualityAlertEventPO;
@@ -27,6 +28,7 @@ import io.yak.ops.common.bean.po.quality.QualityRuleExecutionPO;
 import io.yak.ops.common.bean.po.quality.QualityRulePO;
 import io.yak.ops.common.bean.po.quality.QualityRuleTemplatePO;
 import io.yak.ops.common.bean.po.quality.QualityTableAssetPO;
+import io.yak.ops.common.bean.po.quality.QualityTaskRevisionPO;
 import io.yak.ops.common.bean.po.quality.QualityTemplateFolderPO;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -43,6 +45,7 @@ class QualityLayeringConventionTest {
         QualityTableAssetRepository.class,
         QualityMonitorRepository.class,
         QualityExecutionRepository.class,
+        QualityTaskRevisionRepository.class,
         QualityAlertRepository.class,
         CustomTemplateRepository.class,
         QualityWorkspaceRepository.class,
@@ -103,6 +106,7 @@ class QualityLayeringConventionTest {
     assertTable(QualityMonitorSettingPO.class, "yak_quality_monitor_setting");
     assertTable(QualityAlertEventPO.class, "yak_quality_alert_event");
     assertTable(QualityTemplateFolderPO.class, "yak_quality_template_folder");
+    assertTable(QualityTaskRevisionPO.class, "yak_quality_monitor_revision");
   }
 
   private void assertCleanBoundaries(List<Class<?>> types) {

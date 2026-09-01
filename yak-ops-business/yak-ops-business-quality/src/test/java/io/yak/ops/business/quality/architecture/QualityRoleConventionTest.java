@@ -25,6 +25,10 @@ import io.yak.ops.business.quality.schedule.QualityScheduleEngineBridge;
 import io.yak.ops.business.quality.schedule.QualityScheduleHandler;
 import io.yak.ops.business.quality.schedule.QualityScheduleLifecycle;
 import io.yak.ops.business.quality.schedule.QualityScheduleReconciler;
+import io.yak.ops.business.quality.task.QualityTaskCatalogReconciler;
+import io.yak.ops.business.quality.task.QualityTaskExecutor;
+import io.yak.ops.business.quality.task.QualityTaskPublisher;
+import io.yak.ops.business.quality.task.QualityTaskRevisionProvider;
 import io.yak.ops.business.quality.template.CustomTemplateManager;
 import io.yak.ops.business.quality.template.CustomTemplatePolicy;
 import io.yak.ops.business.quality.template.CustomTemplateReader;
@@ -67,6 +71,10 @@ class QualityRoleConventionTest {
             QualityScheduleHandler.class,
             QualityScheduleLifecycle.class,
             QualityScheduleReconciler.class,
+            QualityTaskPublisher.class,
+            QualityTaskCatalogReconciler.class,
+            QualityTaskRevisionProvider.class,
+            QualityTaskExecutor.class,
             CustomTemplateManager.class,
             CustomTemplateReader.class,
             CustomTemplatePolicy.class,

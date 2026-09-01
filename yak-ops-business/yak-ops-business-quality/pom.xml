@@ -23,11 +23,23 @@
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-spi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-core</artifactId>
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-datasource</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-business-job</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-business-task-catalog</artifactId>
         </dependency>
         <dependency>
             <groupId>io.yak.framework</groupId>

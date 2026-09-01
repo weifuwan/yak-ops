@@ -13,6 +13,7 @@ public class QualityExecutionPO {
   private Long id;
   private Long projectId;
   private String executionNo;
+  private String idempotencyKey;
   private Long monitorId;
   private String monitorName;
   private Long dataSourceId;
