@@ -82,7 +82,7 @@ class WorkflowRuntimeGenericTaskTest {
     WorkflowInstanceVO completed = waitForTerminal(started.id());
     WorkflowInstanceVO.NodeInstanceVO node = completed.nodes().getFirst();
     assertThat(completed.status()).isEqualTo("SUCCESS");
-    assertThat(node.taskType()).isEqualTo("SQL");
+    assertThat(node.type()).isEqualTo("SQL");
     assertThat(node.output()).containsEntry("taskType", "SQL");
     assertThat(node.output()).containsEntry("taskExecutionId", "sql-execution-1");
   }
