@@ -38,9 +38,37 @@ const NODE_ICON_META: Record<string, NodeIconMeta> = {
   },
 };
 
+const DIFY_LLM_CONTAINER_SIZE: Record<NonNullable<WorkflowNodeIconProps['size']>, string> = {
+  xs: 'h-4 w-4 rounded-[5px] shadow-[0_1px_2px_rgba(16,24,40,.05)]',
+  sm: 'h-5 w-5 rounded-md shadow-[0_1px_2px_rgba(16,24,40,.05)]',
+  md: 'h-6 w-6 rounded-lg shadow-[0_4px_8px_-2px_rgba(16,24,40,.10),0_2px_4px_-2px_rgba(16,24,40,.06)]',
+};
+
+const DIFY_LLM_ICON_SIZE: Record<NonNullable<WorkflowNodeIconProps['size']>, string> = {
+  xs: 'h-3 w-3',
+  sm: 'h-3.5 w-3.5',
+  md: 'h-4 w-4',
+};
+
 const WorkflowNodeIcon = ({ taskType, size = 'md' }: WorkflowNodeIconProps) => {
-  const meta = NODE_ICON_META[(taskType || '').toUpperCase()] || DEFAULT_ICON_META;
+  const normalizedTaskType = (taskType || '').toUpperCase();
+  const meta = NODE_ICON_META[normalizedTaskType] || DEFAULT_ICON_META;
   const Icon = meta.icon;
+
+  if (normalizedTaskType === 'SYNC') {
+    return (
+      <span
+        className={[
+          'flex shrink-0 items-center justify-center border-[0.5px] border-white/[0.02]',
+          'bg-[#6172f3] text-white',
+          DIFY_LLM_CONTAINER_SIZE[size],
+        ].join(' ')}
+      >
+        <Icon className={DIFY_LLM_ICON_SIZE[size]} />
+      </span>
+    );
+  }
+
   const compact = size === 'sm';
   const tiny = size === 'xs';
 
