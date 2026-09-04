@@ -8,6 +8,10 @@ import type {
   PaginationInfo,
 } from './types';
 
+interface IntlFormatter {
+  formatMessage: (descriptor: { id: string }) => string;
+}
+
 export const PAGE_DEFAULT_PAGINATION: PaginationInfo = {
   pageNo: 1,
   pageSize: 10,
@@ -39,9 +43,10 @@ export const ENVIRONMENT_OPTIONS: DataSourceOptionItem[] = [
   { label: 'PROD', value: 'PROD' },
 ];
 
-export const dataSourceGroupList: DataSourceGroup[] = [
+export const getDataSourceGroupList = (intl: IntlFormatter): DataSourceGroup[] => [
   {
-    groupName: '关系型数据库',
+    groupKey: 'relational',
+    groupName: intl.formatMessage({ id: 'pages.datasource.group.relational' }),
     datasourceList: [
       {
         onlyDiScript: false,
@@ -76,7 +81,8 @@ export const dataSourceGroupList: DataSourceGroup[] = [
     ],
   },
   {
-    groupName: 'OLAP 数据库',
+    groupKey: 'olap',
+    groupName: intl.formatMessage({ id: 'pages.datasource.group.olap' }),
     datasourceList: [
       {
         onlyDiScript: false,
@@ -95,40 +101,44 @@ interface EnvironmentTagConfig {
   icon: ReactNode;
 }
 
-export const environmentTagConfigMap: Record<string, EnvironmentTagConfig> = {
+export const getEnvironmentTagConfigMap = (
+  intl: IntlFormatter,
+): Record<string, EnvironmentTagConfig> => ({
   PROD: {
-    text: '生产',
+    text: intl.formatMessage({ id: 'pages.datasource.environment.prod' }),
     color: '#ff4d4f',
     backgroundColor: '#fff2f0',
     icon: <ShieldCheck size={12} />,
   },
   TEST: {
-    text: '测试',
+    text: intl.formatMessage({ id: 'pages.datasource.environment.test' }),
     color: '#52c41a',
     backgroundColor: '#f6ffed',
     icon: <FlaskConical size={12} />,
   },
   DEVELOP: {
-    text: '开发',
+    text: intl.formatMessage({ id: 'pages.datasource.environment.develop' }),
     color: '#1677ff',
     backgroundColor: '#e6f4ff',
     icon: <Code2 size={12} />,
   },
+});
+
+export const getDataSourceEnvironmentTabs = (intl: IntlFormatter) => {
+  const environmentTagConfigMap = getEnvironmentTagConfigMap(intl);
+  return [
+    {
+      key: 'all',
+      label: intl.formatMessage({ id: 'pages.datasource.environment.all' }),
+      value: undefined,
+    },
+    ...ENVIRONMENT_OPTIONS.map((item) => ({
+      key: item.value,
+      label: environmentTagConfigMap[item.value]?.text || item.label,
+      value: item.value,
+    })),
+  ];
 };
-
-export const ENVIRONMENT_FILTER_OPTIONS = ENVIRONMENT_OPTIONS.map((item) => ({
-  ...item,
-  label: environmentTagConfigMap[item.value]?.text || item.label,
-}));
-
-export const DATA_SOURCE_ENVIRONMENT_TABS = [
-  { key: 'all', label: '全部', value: undefined },
-  ...ENVIRONMENT_FILTER_OPTIONS.map((item) => ({
-    key: item.value,
-    label: item.label,
-    value: item.value,
-  })),
-];
 
 export const PAGE_ANIMATION = {
   fadeUp: {
