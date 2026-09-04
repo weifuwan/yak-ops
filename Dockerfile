@@ -1,10 +1,15 @@
+# syntax=docker/dockerfile:1
+
+# The Docker images package the release distribution produced by the normal
+# Yak Ops build. CI builds yak-framework, the frontend, and the Maven reactor
+# before invoking these runtime targets.
+
 # =========================
 # Distribution artifact
 # =========================
 FROM scratch AS dist-artifact
 
-COPY yak-ops-dist/target/yak-ops-*.tar.gz \
-     /yak-ops.tar.gz
+COPY yak-ops-dist/target/yak-ops-*.tar.gz /yak-ops.tar.gz
 
 
 # =========================
@@ -16,8 +21,8 @@ ARG VERSION=dev
 ARG VCS_REF=unknown
 ARG BUILD_DATE=unknown
 
-LABEL org.opencontainers.image.title="Yak Ops API" \
-      org.opencontainers.image.description="Yak Ops backend service" \
+LABEL org.opencontainers.image.title="Yak Ops Backend" \
+      org.opencontainers.image.description="Yak Ops Spring Boot backend service" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}" \
@@ -27,20 +32,11 @@ ENV YAK_OPS_HOME=/opt/yak-ops \
     JAVA_OPTS="" \
     APP_OPTS="" \
     SERVER_PORT=9527 \
-    SPRING_PROFILES_ACTIVE=mysql \
-    YAK_OPS_DATABASE_TYPE=mysql \
-    YAK_OPS_DATABASE_HOST=mysql \
-    YAK_OPS_DATABASE_PORT=3306 \
-    YAK_OPS_DATABASE_NAME=yak_ops \
-    SPRING_DATASOURCE_URL="jdbc:mysql://mysql:3306/yak_ops?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true" \
-    SPRING_DATASOURCE_USERNAME=linkup \
-    SPRING_DATASOURCE_PASSWORD=linkup
+    SPRING_PROFILES_ACTIVE=mysql
 
 WORKDIR ${YAK_OPS_HOME}
 
-COPY --from=dist-artifact \
-     /yak-ops.tar.gz \
-     /tmp/yak-ops.tar.gz
+COPY --from=dist-artifact /yak-ops.tar.gz /tmp/yak-ops.tar.gz
 
 RUN set -eux; \
     mkdir -p "${YAK_OPS_HOME}"; \
@@ -50,13 +46,22 @@ RUN set -eux; \
     rm -f /tmp/yak-ops.tar.gz; \
     chmod +x "${YAK_OPS_HOME}"/bin/*.sh; \
     mkdir -p \
+        "${YAK_OPS_HOME}/data" \
         "${YAK_OPS_HOME}/logs" \
         "${YAK_OPS_HOME}/jdbc-drivers"; \
-    test -f "${YAK_OPS_HOME}/libs/yak-ops-api.jar"
+    test -f "${YAK_OPS_HOME}/libs/yak-ops-api.jar"; \
+    test -f "${YAK_OPS_HOME}/conf/application.yml"
 
 EXPOSE 9527
 
-VOLUME ["/opt/yak-ops/logs","/opt/yak-ops/jdbc-drivers"]
+VOLUME ["/opt/yak-ops/data", "/opt/yak-ops/logs", "/opt/yak-ops/jdbc-drivers"]
+
+HEALTHCHECK \
+    --interval=10s \
+    --timeout=5s \
+    --start-period=30s \
+    --retries=12 \
+    CMD bash -c '</dev/tcp/127.0.0.1/9527' || exit 1
 
 ENTRYPOINT ["/opt/yak-ops/bin/run-yak-ops.sh"]
 
@@ -70,16 +75,15 @@ ARG VERSION=dev
 ARG VCS_REF=unknown
 ARG BUILD_DATE=unknown
 
-LABEL org.opencontainers.image.title="Yak Ops" \
-      org.opencontainers.image.description="Yak Ops frontend and reverse proxy" \
+LABEL org.opencontainers.image.title="Yak Ops Frontend" \
+      org.opencontainers.image.description="Yak Ops web UI and reverse proxy" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
-COPY --from=dist-artifact \
-     /yak-ops.tar.gz \
-     /tmp/yak-ops.tar.gz
+COPY --from=dist-artifact /yak-ops.tar.gz /tmp/yak-ops.tar.gz
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 
 RUN set -eux; \
     mkdir -p /tmp/yak-ops; \
@@ -87,14 +91,9 @@ RUN set -eux; \
         --strip-components=1 \
         -C /tmp/yak-ops; \
     test -f /tmp/yak-ops/web/index.html; \
-    test -f /tmp/yak-ops/conf/nginx/default.conf; \
     rm -rf /usr/share/nginx/html/*; \
     cp -r /tmp/yak-ops/web/. /usr/share/nginx/html/; \
-    cp /tmp/yak-ops/conf/nginx/default.conf \
-       /etc/nginx/conf.d/default.conf; \
-    rm -rf \
-        /tmp/yak-ops \
-        /tmp/yak-ops.tar.gz
+    rm -rf /tmp/yak-ops /tmp/yak-ops.tar.gz
 
 EXPOSE 80
 
