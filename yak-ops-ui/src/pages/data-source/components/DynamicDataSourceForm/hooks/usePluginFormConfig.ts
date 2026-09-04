@@ -25,6 +25,10 @@ import {
   pluginConfigStateReducer,
 } from './pluginConfigState';
 
+interface IntlFormatter {
+  formatMessage: (descriptor: { id: string }) => string;
+}
+
 const errorMessage = (error: unknown, fallback: string) =>
   error instanceof Error && error.message ? error.message : fallback;
 
@@ -35,13 +39,14 @@ export function usePluginFormConfig(params: {
   initialConfig?: Record<string, unknown>;
   /** 主编辑器切换数据源类型时需要清空旧配置。 */
   resetOnLoad?: boolean;
-  intl?: unknown;
+  intl: IntlFormatter;
 }) {
   const {
     dbType,
     configForm,
     initialConfig,
     resetOnLoad = false,
+    intl,
   } = params;
   const [state, dispatch] = useReducer(
     pluginConfigStateReducer,
@@ -69,12 +74,16 @@ export function usePluginFormConfig(params: {
       if (data.installRequired) {
         dispatch({
           type: 'INSTALL_REQUIRED',
-          message: data.installHint || '当前数据源插件尚未安装',
+          message:
+            data.installHint ||
+            intl.formatMessage({
+              id: 'pages.datasource.plugin.installRequiredTitle',
+            }),
         });
         return false;
       }
 
-      const sections = normalizeFormSections(data || { formFields: [] });
+      const sections = normalizeFormSections(data || { formFields: [] }, intl);
       const fields = flattenFormSectionFields(sections);
       const defaults = getConfigInitialValues(fields);
 
@@ -100,12 +109,14 @@ export function usePluginFormConfig(params: {
         type: 'LOAD_FAILED',
         message: errorMessage(
           error,
-          '数据源插件配置加载失败，请稍后重试',
+          intl.formatMessage({
+            id: 'pages.datasource.plugin.loadFailedFallback',
+          }),
         ),
       });
       return false;
     }
-  }, [configForm, dbType, initialConfig, resetOnLoad]);
+  }, [configForm, dbType, initialConfig, intl, resetOnLoad]);
 
   const installPlugin = useCallback(async () => {
     if (!dbType || state.status === PLUGIN_CONFIG_STATUS.INSTALLING) {
@@ -126,11 +137,16 @@ export function usePluginFormConfig(params: {
       if (requestSequence !== requestSequenceRef.current) return false;
       dispatch({
         type: 'INSTALL_FAILED',
-        message: errorMessage(error, '数据源插件安装失败，请重试'),
+        message: errorMessage(
+          error,
+          intl.formatMessage({
+            id: 'pages.datasource.plugin.installFailedFallback',
+          }),
+        ),
       });
       return false;
     }
-  }, [dbType, loadFormConfig, state.status]);
+  }, [dbType, intl, loadFormConfig, state.status]);
 
   useEffect(() => {
     void loadFormConfig();
