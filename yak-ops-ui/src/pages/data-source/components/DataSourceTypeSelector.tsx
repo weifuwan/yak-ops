@@ -1,5 +1,6 @@
 import { YakButton } from '@/components/ui';
 import { SearchOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import { Empty, Input, Select } from 'antd';
 import { useMemo, useState } from 'react';
 
@@ -16,22 +17,25 @@ const DataSourceTypeSelector = ({
   dataSourceGroups,
   onSelect,
 }: DataSourceTypeSelectorProps) => {
+  const intl = useIntl();
   const [query, setQuery] = useState('');
-  const [selectedGroupName, setSelectedGroupName] = useState<string | null>(null);
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const keyword = query.trim().toLowerCase();
 
   const flatDataSources = useMemo(
     () =>
-      dataSourceGroups.flatMap((group) =>
-        group.datasourceList.map((item) => ({
+      dataSourceGroups.flatMap((group) => {
+        const groupKey = group.groupKey || group.groupName;
+        return group.datasourceList.map((item) => ({
           ...item,
+          groupKey,
           groupName: group.groupName,
           searchText: [item.dbType, item.connectorType, item.type]
             .filter(Boolean)
             .join(' ')
             .toLowerCase(),
-        })),
-      ),
+        }));
+      }),
     [dataSourceGroups],
   );
 
@@ -39,39 +43,45 @@ const DataSourceTypeSelector = ({
     () =>
       flatDataSources.filter((item) => {
         const matchesGroup =
-          selectedGroupName === null || item.groupName === selectedGroupName;
+          selectedGroupKey === null || item.groupKey === selectedGroupKey;
         const matchesKeyword = !keyword || item.searchText.includes(keyword);
         return matchesGroup && matchesKeyword;
       }),
-    [flatDataSources, keyword, selectedGroupName],
+    [flatDataSources, keyword, selectedGroupKey],
   );
 
   const groupedDataSources = useMemo(
     () =>
       dataSourceGroups
-        .filter(
-          (group) =>
-            selectedGroupName === null || group.groupName === selectedGroupName,
-        )
         .map((group) => ({
+          groupKey: group.groupKey || group.groupName,
           groupName: group.groupName,
           items: filteredDataSources.filter(
-            (item) => item.groupName === group.groupName,
+            (item) => item.groupKey === (group.groupKey || group.groupName),
           ),
         }))
-        .filter((group) => group.items.length > 0),
-    [dataSourceGroups, filteredDataSources, selectedGroupName],
+        .filter(
+          (group) =>
+            (selectedGroupKey === null || group.groupKey === selectedGroupKey) &&
+            group.items.length > 0,
+        ),
+    [dataSourceGroups, filteredDataSources, selectedGroupKey],
   );
 
   const categoryOptions = useMemo(
     () => [
-      { value: 'ALL', label: '全部分类' },
+      {
+        value: 'ALL',
+        label: intl.formatMessage({
+          id: 'pages.datasource.typeSelector.allCategories',
+        }),
+      },
       ...dataSourceGroups.map((group) => ({
-        value: group.groupName,
+        value: group.groupKey || group.groupName,
         label: group.groupName,
       })),
     ],
-    [dataSourceGroups],
+    [dataSourceGroups, intl],
   );
 
   const suggestedDataSources = useMemo(
@@ -96,7 +106,7 @@ const DataSourceTypeSelector = ({
 
   const renderSourceItem = (item: (typeof filteredDataSources)[number]) => (
     <YakButton
-      key={[item.groupName, item.dbType, item.connectorType || item.type || ''].join(
+      key={[item.groupKey, item.dbType, item.connectorType || item.type || ''].join(
         '-',
       )}
       htmlType="button"
@@ -120,7 +130,7 @@ const DataSourceTypeSelector = ({
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0">
         <div className="mb-3 text-sm font-semibold leading-6 text-[#161823]">
-          选择数据源
+          {intl.formatMessage({ id: 'pages.datasource.typeSelector.title' })}
         </div>
 
         <div className="flex gap-2">
@@ -128,7 +138,9 @@ const DataSourceTypeSelector = ({
             allowClear
             variant="filled"
             prefix={<SearchOutlined className="text-[#98A2B3]" />}
-            placeholder="搜索数据源"
+            placeholder={intl.formatMessage({
+              id: 'pages.datasource.typeSelector.searchPlaceholder',
+            })}
             value={query}
             className="!h-9 !min-w-0 !flex-1 !rounded-lg"
             onChange={(event) => setQuery(event.target.value)}
@@ -136,20 +148,22 @@ const DataSourceTypeSelector = ({
 
           <Select
             variant="filled"
-            value={selectedGroupName || 'ALL'}
+            value={selectedGroupKey || 'ALL'}
             options={categoryOptions}
             className="!h-9 !w-[150px] shrink-0"
             popupMatchSelectWidth={false}
             onChange={(value) =>
-              setSelectedGroupName(value === 'ALL' ? null : value)
+              setSelectedGroupKey(value === 'ALL' ? null : value)
             }
           />
         </div>
       </div>
 
-      {!keyword && selectedGroupName === null && suggestedDataSources.length > 0 ? (
+      {!keyword && selectedGroupKey === null && suggestedDataSources.length > 0 ? (
         <section className="mt-4 shrink-0">
-          <div className="mb-2 text-xs font-semibold text-[#161823]">常用</div>
+          <div className="mb-2 text-xs font-semibold text-[#161823]">
+            {intl.formatMessage({ id: 'pages.datasource.typeSelector.common' })}
+          </div>
           <div className="grid grid-cols-3 gap-2">
             {suggestedDataSources.map((item) => (
               <YakButton
@@ -176,7 +190,11 @@ const DataSourceTypeSelector = ({
 
       <section className="mt-5 flex min-h-0 flex-1 flex-col">
         <div className="mb-2 flex shrink-0 items-center justify-between">
-          <span className="text-xs font-semibold text-[#161823]">全部数据源</span>
+          <span className="text-xs font-semibold text-[#161823]">
+            {intl.formatMessage({
+              id: 'pages.datasource.typeSelector.allDataSources',
+            })}
+          </span>
           <span className="text-[11px] text-[#98A2B3]">
             {filteredDataSources.length}
           </span>
@@ -186,14 +204,16 @@ const DataSourceTypeSelector = ({
           <div className="flex min-h-0 flex-1 items-center justify-center px-5 py-8">
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="没有匹配的数据源"
+              description={intl.formatMessage({
+                id: 'pages.datasource.typeSelector.empty',
+              })}
             />
           </div>
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="space-y-4">
               {groupedDataSources.map((group) => (
-                <section key={group.groupName}>
+                <section key={group.groupKey}>
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-[11px] font-medium text-[#667085]">
                       {group.groupName}
