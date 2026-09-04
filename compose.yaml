@@ -3,25 +3,20 @@ services:
     image: mysql:8.0.39
     container_name: yak-ops-mysql
     restart: unless-stopped
-
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-yak_ops_root_password}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-yak_ops}
-      MYSQL_USER: ${MYSQL_USER:-linkup}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me}
+      MYSQL_USER: ${MYSQL_USER:-yak_ops}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-yak_ops_password}
       TZ: Asia/Shanghai
-
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --default-time-zone=+08:00
-
     ports:
       - "${MYSQL_HOST_PORT:-3306}:3306"
-
     volumes:
       - mysql-data:/var/lib/mysql
-
     healthcheck:
       test:
         - CMD-SHELL
@@ -30,105 +25,72 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-
     networks:
       - yak-ops-network
 
-
-  yak-ops-api:
-    image: ${YAK_OPS_API_IMAGE:-yak-ops-api:latest}
-    container_name: yak-ops-api
+  yak-ops-backend:
+    image: ${YAK_OPS_API_IMAGE:-weifuwan/yak-ops-api:0.1.0}
+    container_name: yak-ops-backend
     restart: unless-stopped
-
     build:
       context: .
       dockerfile: Dockerfile
       target: backend-runtime
-
     depends_on:
       mysql:
         condition: service_healthy
-
     environment:
       TZ: Asia/Shanghai
-
       JAVA_OPTS: ${JAVA_OPTS:--Xms512m -Xmx1024m}
-
       APP_OPTS: ${APP_OPTS:-}
-
       SERVER_PORT: 9527
-
       SPRING_PROFILES_ACTIVE: mysql
 
-      YAK_OPS_DATABASE_TYPE: mysql
-      YAK_OPS_DATABASE_HOST: mysql
-      YAK_OPS_DATABASE_PORT: 3306
-      YAK_OPS_DATABASE_NAME: ${MYSQL_DATABASE:-yak_ops}
-
-      # Shared datasource – both yak.security.datasource and yak.database read these.
-      # Override with YAK_SECURITY_DATASOURCE_* or YAK_DATABASE_* to split databases.
+      # Yak Security and Yak Ops business modules share this datasource by
+      # default. The MySQL application user owns MYSQL_DATABASE.
       YAK_DATASOURCE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-yak_ops}?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai"
-      YAK_DATASOURCE_USERNAME: ${MYSQL_ROOT_PASSWORD:+root}
-      YAK_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me}
+      YAK_DATASOURCE_USERNAME: ${MYSQL_USER:-yak_ops}
+      YAK_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-yak_ops_password}
 
-      SPRING_FLYWAY_ENABLED: "true"
+      YAK_SECURITY_BOOTSTRAP_USERNAME: ${YAK_SECURITY_BOOTSTRAP_USERNAME:-root}
+      YAK_SECURITY_BOOTSTRAP_PASSWORD: ${YAK_SECURITY_BOOTSTRAP_PASSWORD:-Root@123456}
 
       YAK_OPS_DATASOURCE_MASTER_KEY: ${YAK_OPS_DATASOURCE_MASTER_KEY:?Please set YAK_OPS_DATASOURCE_MASTER_KEY in .env}
-
+      YAK_RESOURCE_LOCAL_BASE_DIRECTORY: /opt/yak-ops/data/resources
     expose:
       - "9527"
-
     volumes:
+      - yak-ops-data:/opt/yak-ops/data
       - yak-ops-logs:/opt/yak-ops/logs
       - yak-ops-jdbc-drivers:/opt/yak-ops/jdbc-drivers
-
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - 'bash -c "</dev/tcp/127.0.0.1/9527"'
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 30s
-
     networks:
       - yak-ops-network
 
-
-  yak-ops:
-    image: ${YAK_OPS_IMAGE:-yak-ops:latest}
-    container_name: yak-ops
+  yak-ops-frontend:
+    image: ${YAK_OPS_IMAGE:-weifuwan/yak-ops:0.1.0}
+    container_name: yak-ops-frontend
     restart: unless-stopped
-
     build:
       context: .
       dockerfile: Dockerfile
       target: frontend-runtime
-
-    healthcheck:
-      disable: true
-
     depends_on:
-      yak-ops-api:
+      yak-ops-backend:
         condition: service_healthy
-
     ports:
-      - "${YAK_OPS_PORT:-9527}:80"
-
+      - "${YAK_OPS_PORT:-9001}:80"
     networks:
       - yak-ops-network
-
 
 volumes:
   mysql-data:
     name: yak-ops-mysql-data
-
+  yak-ops-data:
+    name: yak-ops-data
   yak-ops-logs:
     name: yak-ops-logs
-
   yak-ops-jdbc-drivers:
     name: yak-ops-jdbc-drivers
-
 
 networks:
   yak-ops-network:
