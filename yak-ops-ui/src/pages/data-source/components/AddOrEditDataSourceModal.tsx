@@ -8,7 +8,7 @@ import { useIntl } from '@umijs/max';
 import { Drawer, Form, message } from 'antd';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
-import { dataSourceGroupList } from '../constants';
+import { getDataSourceGroupList } from '../constants';
 import DatabaseIcons from '../icon/DatabaseIcons';
 import type {
   DataSourceFormValues,
@@ -45,6 +45,7 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
   const isCreateMode = operateType === DataSourceOperateType.Create;
   const isEditMode = operateType === DataSourceOperateType.Edit;
   const busy = testing || submitting;
+  const dataSourceGroups = getDataSourceGroupList(intl);
 
   const resetEditorState = () => {
     setCurrentRecord(undefined);
@@ -138,7 +139,11 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
         }),
       });
 
-      if (connected) message.success('连接测试成功');
+      if (connected) {
+        message.success(
+          intl.formatMessage({ id: 'pages.datasource.test.success' }),
+        );
+      }
     } catch (error) {
       if (error && typeof error === 'object' && 'errorFields' in error) return;
     } finally {
@@ -168,7 +173,13 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
       }
 
       const successCallback = successCallbackRef.current;
-      message.success(isCreateMode ? '数据源创建成功' : '数据源更新成功');
+      message.success(
+        intl.formatMessage({
+          id: isCreateMode
+            ? 'pages.datasource.modal.message.createSuccess'
+            : 'pages.datasource.modal.message.updateSuccess',
+        }),
+      );
       setOpen(false);
       successCallback?.();
     } catch (error) {
@@ -178,27 +189,18 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
     }
   };
 
-  const actionText = isEditMode
-    ? intl.formatMessage({
-        id: 'pages.datasource.modal.title.edit',
-        defaultMessage: '编辑',
-      })
-    : intl.formatMessage({
-        id: 'pages.datasource.modal.title.add',
-        defaultMessage: '新建',
-      });
-
-  const drawerTitle = `${actionText}${intl.formatMessage({
-    id: 'pages.datasource.common.title',
-    defaultMessage: '数据源',
-  })}`;
+  const drawerTitle = intl.formatMessage({
+    id: isEditMode
+      ? 'pages.datasource.modal.drawerTitle.edit'
+      : 'pages.datasource.modal.drawerTitle.add',
+  });
 
   const renderFooter = () => {
     if (!showFormStep) {
       return (
         <div className="flex justify-end">
           <YakButton type="text" disabled={busy} onClick={handleClose}>
-            取消
+            {intl.formatMessage({ id: 'pages.datasource.modal.button.cancel' })}
           </YakButton>
         </div>
       );
@@ -209,11 +211,11 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
         <div>
           {isCreateMode && !hideBackButton ? (
             <YakButton disabled={busy} onClick={handleBackToTypeSelection}>
-              上一步
+              {intl.formatMessage({ id: 'pages.datasource.modal.button.lastStep' })}
             </YakButton>
           ) : (
             <YakButton disabled={busy} onClick={handleClose}>
-              取消
+              {intl.formatMessage({ id: 'pages.datasource.modal.button.cancel' })}
             </YakButton>
           )}
         </div>
@@ -224,7 +226,7 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
             disabled={submitting}
             onClick={() => void handleTestConnection()}
           >
-            连接测试
+            {intl.formatMessage({ id: 'pages.datasource.modal.button.connTest' })}
           </YakButton>
 
           <YakButton
@@ -233,7 +235,11 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
             disabled={testing}
             onClick={() => void handleSubmit()}
           >
-            {isCreateMode ? '创建数据源' : '保存修改'}
+            {intl.formatMessage({
+              id: isCreateMode
+                ? 'pages.datasource.modal.button.create'
+                : 'pages.datasource.modal.button.save',
+            })}
           </YakButton>
         </div>
       </div>
@@ -300,7 +306,7 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
       ) : (
         <div className="datasource-editor-drawer__body h-full min-h-0 px-5 py-4">
           <DataSourceTypeSelector
-            dataSourceGroups={dataSourceGroupList}
+            dataSourceGroups={dataSourceGroups}
             onSelect={handleSelectDbType}
           />
         </div>
