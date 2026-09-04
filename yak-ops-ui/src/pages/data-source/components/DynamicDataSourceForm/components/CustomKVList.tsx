@@ -8,12 +8,19 @@ const CustomKVList = ({ intl, field }: any) => {
   const maxRows = field?.maxRows ?? 50;
 
   const keyRules = (currentIndex: number): Rule[] => [
-    { required: true, message: '请输入参数名' },
+    {
+      required: true,
+      message: intl.formatMessage({
+        id: 'pages.datasource.customKv.keyRequired',
+      }),
+    },
     {
       validator: async (_rule, value) => {
         const normalized = String(value ?? '').trim();
         if (normalized.length > 128) {
-          throw new Error('参数名不能超过 128 个字符');
+          throw new Error(
+            intl.formatMessage({ id: 'pages.datasource.customKv.keyMax' }),
+          );
         }
         if (!normalized) return;
 
@@ -24,7 +31,9 @@ const CustomKVList = ({ intl, field }: any) => {
             String(row?.key ?? '').trim() === normalized,
         );
         if (duplicated) {
-          throw new Error('参数名不能重复');
+          throw new Error(
+            intl.formatMessage({ id: 'pages.datasource.customKv.keyDuplicate' }),
+          );
         }
       },
     },
@@ -34,7 +43,9 @@ const CustomKVList = ({ intl, field }: any) => {
     {
       validator: async (_rule, value) => {
         if (value !== undefined && value !== null && String(value).length > 1024) {
-          throw new Error('参数值不能超过 1024 个字符');
+          throw new Error(
+            intl.formatMessage({ id: 'pages.datasource.customKv.valueMax' }),
+          );
         }
       },
     },
@@ -59,8 +70,12 @@ const CustomKVList = ({ intl, field }: any) => {
           return (
             <div className="overflow-hidden rounded-lg border border-[#e7e9ed] bg-white">
               <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_36px] items-center gap-2 border-b border-[#eef0f3] bg-[#fafbfc] px-3 py-2 text-[11px] font-medium text-[#667085]">
-                <span>参数名</span>
-                <span>参数值</span>
+                <span>
+                  {intl.formatMessage({ id: 'pages.datasource.customKv.key' })}
+                </span>
+                <span>
+                  {intl.formatMessage({ id: 'pages.datasource.customKv.value' })}
+                </span>
                 <span />
               </div>
 
@@ -77,7 +92,12 @@ const CustomKVList = ({ intl, field }: any) => {
                         rules={keyRules(name)}
                         className="!mb-0"
                       >
-                        <Input variant="filled" placeholder="例如：useSSL" />
+                        <Input
+                          variant="filled"
+                          placeholder={intl.formatMessage({
+                            id: 'pages.datasource.customKv.keyPlaceholder',
+                          })}
+                        />
                       </Form.Item>
 
                       <Form.Item
@@ -86,7 +106,12 @@ const CustomKVList = ({ intl, field }: any) => {
                         rules={valueRules}
                         className="!mb-0"
                       >
-                        <Input variant="filled" placeholder="例如：false" />
+                        <Input
+                          variant="filled"
+                          placeholder={intl.formatMessage({
+                            id: 'pages.datasource.customKv.valuePlaceholder',
+                          })}
+                        />
                       </Form.Item>
 
                       <YakButton
@@ -95,7 +120,9 @@ const CustomKVList = ({ intl, field }: any) => {
                         danger
                         iconOnly
                         icon={<DeleteOutlined />}
-                        aria-label="删除扩展参数"
+                        aria-label={intl.formatMessage({
+                          id: 'pages.datasource.customKv.deleteAria',
+                        })}
                         onClick={() => remove(name)}
                       />
                     </div>
@@ -103,7 +130,7 @@ const CustomKVList = ({ intl, field }: any) => {
                 </div>
               ) : (
                 <div className="px-3 py-5 text-center text-xs text-[#98a2b3]">
-                  暂无扩展参数
+                  {intl.formatMessage({ id: 'pages.datasource.customKv.empty' })}
                 </div>
               )}
 
@@ -116,11 +143,11 @@ const CustomKVList = ({ intl, field }: any) => {
                   onClick={() => add({ key: '', value: '' })}
                 >
                   {canAdd
-                    ? intl.formatMessage({
-                        id: 'pages.datasource.form.other.addConnSetting',
-                        defaultMessage: '新增参数',
-                      })
-                    : `最多 ${maxRows} 条`}
+                    ? intl.formatMessage({ id: 'pages.datasource.customKv.add' })
+                    : intl.formatMessage(
+                        { id: 'pages.datasource.customKv.maxRows' },
+                        { maxRows },
+                      )}
                 </YakButton>
               </div>
             </div>
