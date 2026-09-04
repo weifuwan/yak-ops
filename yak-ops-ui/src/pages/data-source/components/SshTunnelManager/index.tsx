@@ -1,7 +1,12 @@
+import { useIntl } from '@umijs/max';
 import { Input, InputNumber, Select, Switch } from 'antd';
 import { KeyRound, Network, ShieldCheck } from 'lucide-react';
 
 import type { SshTunnelConfigValue } from '../../types';
+
+interface IntlFormatter {
+  formatMessage: (descriptor: { id: string }) => string;
+}
 
 const DEFAULT_VALUE: SshTunnelConfigValue = {
   enabled: false,
@@ -23,24 +28,29 @@ export interface SshTunnelManagerProps {
 }
 
 export const getSshTunnelValidationMessage = (
-  value?: SshTunnelConfigValue,
+  value: SshTunnelConfigValue | undefined,
+  intl: IntlFormatter,
 ): string | undefined => {
   if (!value?.enabled) return undefined;
-  if (!value.host?.trim()) return '请输入 SSH 主机地址';
-  if (!value.port || value.port < 1 || value.port > 65535) {
-    return 'SSH 端口必须在 1 到 65535 之间';
+  if (!value.host?.trim()) {
+    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.host' });
   }
-  if (!value.username?.trim()) return '请输入 SSH 用户名';
+  if (!value.port || value.port < 1 || value.port > 65535) {
+    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.port' });
+  }
+  if (!value.username?.trim()) {
+    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.username' });
+  }
 
   const authType = value.authType || 'PASSWORD';
   if (authType === 'PASSWORD' && !value.password) {
-    return '请输入 SSH 密码';
+    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.password' });
   }
   if (authType === 'PRIVATE_KEY' && !value.privateKey?.trim()) {
-    return '请输入 SSH 私钥';
+    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.privateKey' });
   }
   if (value.strictHostKeyChecking && !value.knownHosts?.trim()) {
-    return '开启严格主机校验后，请提供 known_hosts 内容';
+    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.knownHosts' });
   }
   return undefined;
 };
@@ -56,6 +66,7 @@ const SshTunnelManager = ({
   onChange,
   disabled = false,
 }: SshTunnelManagerProps) => {
+  const intl = useIntl();
   const current: SshTunnelConfigValue = {
     ...DEFAULT_VALUE,
     ...(value || {}),
@@ -77,10 +88,10 @@ const SshTunnelManager = ({
           </span>
           <div className="min-w-0">
             <div className="text-[13px] font-medium leading-5 text-[#344054]">
-              启用 SSH 隧道
+              {intl.formatMessage({ id: 'pages.datasource.ssh.enable' })}
             </div>
             <div className="text-[11px] leading-4 text-[#98a2b3]">
-              通过堡垒机或跳板机访问目标数据库
+              {intl.formatMessage({ id: 'pages.datasource.ssh.description' })}
             </div>
           </div>
         </div>
@@ -97,20 +108,22 @@ const SshTunnelManager = ({
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                SSH 主机
+                {intl.formatMessage({ id: 'pages.datasource.ssh.host' })}
               </div>
               <Input
                 variant="filled"
                 value={current.host}
                 disabled={disabled}
-                placeholder="例如 bastion.example.com"
+                placeholder={intl.formatMessage({
+                  id: 'pages.datasource.ssh.hostPlaceholder',
+                })}
                 onChange={(event) => patch({ host: event.target.value })}
               />
             </div>
 
             <div>
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                SSH 端口
+                {intl.formatMessage({ id: 'pages.datasource.ssh.port' })}
               </div>
               <InputNumber
                 variant="filled"
@@ -126,20 +139,22 @@ const SshTunnelManager = ({
 
             <div>
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                SSH 用户名
+                {intl.formatMessage({ id: 'pages.datasource.ssh.username' })}
               </div>
               <Input
                 variant="filled"
                 value={current.username}
                 disabled={disabled}
-                placeholder="请输入 SSH 用户名"
+                placeholder={intl.formatMessage({
+                  id: 'pages.datasource.ssh.usernamePlaceholder',
+                })}
                 onChange={(event) => patch({ username: event.target.value })}
               />
             </div>
 
             <div>
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                认证方式
+                {intl.formatMessage({ id: 'pages.datasource.ssh.authType' })}
               </div>
               <Select
                 variant="filled"
@@ -147,8 +162,18 @@ const SshTunnelManager = ({
                 value={current.authType}
                 disabled={disabled}
                 options={[
-                  { label: '密码认证', value: 'PASSWORD' },
-                  { label: '私钥认证', value: 'PRIVATE_KEY' },
+                  {
+                    label: intl.formatMessage({
+                      id: 'pages.datasource.ssh.passwordAuth',
+                    }),
+                    value: 'PASSWORD',
+                  },
+                  {
+                    label: intl.formatMessage({
+                      id: 'pages.datasource.ssh.privateKeyAuth',
+                    }),
+                    value: 'PRIVATE_KEY',
+                  },
                 ]}
                 onChange={(authType) => patch({ authType })}
               />
@@ -160,27 +185,31 @@ const SshTunnelManager = ({
               <div>
                 <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-[#475467]">
                   <KeyRound size={13} />
-                  SSH 私钥
+                  {intl.formatMessage({ id: 'pages.datasource.ssh.privateKey' })}
                 </div>
                 <Input.TextArea
                   variant="filled"
                   rows={4}
                   value={current.privateKey}
                   disabled={disabled}
-                  placeholder="粘贴 OpenSSH / PEM 私钥内容"
+                  placeholder={intl.formatMessage({
+                    id: 'pages.datasource.ssh.privateKeyPlaceholder',
+                  })}
                   className="font-mono text-xs"
                   onChange={(event) => patch({ privateKey: event.target.value })}
                 />
               </div>
               <div>
                 <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                  私钥口令
+                  {intl.formatMessage({ id: 'pages.datasource.ssh.passphrase' })}
                 </div>
                 <Input.Password
                   variant="filled"
                   value={current.passphrase}
                   disabled={disabled}
-                  placeholder="私钥未加密时可留空"
+                  placeholder={intl.formatMessage({
+                    id: 'pages.datasource.ssh.passphrasePlaceholder',
+                  })}
                   onChange={(event) => patch({ passphrase: event.target.value })}
                 />
               </div>
@@ -188,13 +217,15 @@ const SshTunnelManager = ({
           ) : (
             <div className="mt-3">
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                SSH 密码
+                {intl.formatMessage({ id: 'pages.datasource.ssh.password' })}
               </div>
               <Input.Password
                 variant="filled"
                 value={current.password}
                 disabled={disabled}
-                placeholder="请输入 SSH 密码"
+                placeholder={intl.formatMessage({
+                  id: 'pages.datasource.ssh.passwordPlaceholder',
+                })}
                 onChange={(event) => patch({ password: event.target.value })}
               />
             </div>
@@ -206,10 +237,14 @@ const SshTunnelManager = ({
                 <ShieldCheck size={14} className="text-[#667085]" />
                 <div>
                   <div className="text-xs font-medium text-[#475467]">
-                    严格主机校验
+                    {intl.formatMessage({
+                      id: 'pages.datasource.ssh.strictHostKeyChecking',
+                    })}
                   </div>
                   <div className="text-[11px] leading-4 text-[#98a2b3]">
-                    开启后仅信任提供的 known_hosts 主机密钥
+                    {intl.formatMessage({
+                      id: 'pages.datasource.ssh.strictHostKeyCheckingDescription',
+                    })}
                   </div>
                 </div>
               </div>
@@ -230,7 +265,9 @@ const SshTunnelManager = ({
                   rows={3}
                   value={current.knownHosts}
                   disabled={disabled}
-                  placeholder="粘贴 known_hosts 中对应主机的公钥记录"
+                  placeholder={intl.formatMessage({
+                    id: 'pages.datasource.ssh.knownHostsPlaceholder',
+                  })}
                   className="font-mono text-xs"
                   onChange={(event) => patch({ knownHosts: event.target.value })}
                 />
