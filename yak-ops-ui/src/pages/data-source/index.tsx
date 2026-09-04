@@ -82,36 +82,38 @@ const DataSourcePage = () => {
     if (!permissions.canDelete) return;
 
     confirm({
-      title: intl.formatMessage({
-        id: 'pages.datasource.delete.confirmTitle',
-        defaultMessage: '确认删除该数据源吗？',
-      }),
+      title: intl.formatMessage({ id: 'pages.datasource.delete.confirmTitle' }),
       centered: true,
       content: (
         <span>
-          即将删除数据源
-          <span className="font-semibold text-[#fe2c55]"> [{record.name}]</span>
-          。
+          {intl.formatMessage(
+            { id: 'pages.datasource.delete.content' },
+            { name: record.name || '-' },
+          )}
           <br />
-          删除后无法恢复，请谨慎操作。
+          {intl.formatMessage({ id: 'pages.datasource.delete.warning' })}
         </span>
       ),
-      okText: '删除',
-      cancelText: '取消',
+      okText: intl.formatMessage({ id: 'pages.datasource.delete.okText' }),
+      cancelText: intl.formatMessage({ id: 'pages.datasource.delete.cancelText' }),
       okType: 'primary',
       okButtonProps: { size: 'small', danger: true },
       cancelButtonProps: { size: 'small' },
       maskClosable: true,
       async onOk() {
         if (record.id === undefined || record.id === null) {
-          message.error('数据源 ID 不存在');
+          message.error(
+            intl.formatMessage({ id: 'pages.datasource.delete.idMissing' }),
+          );
           return;
         }
 
         try {
           const deleted = await removeRecord(record.id);
           if (deleted) {
-            message.success('删除成功');
+            message.success(
+              intl.formatMessage({ id: 'pages.datasource.delete.success' }),
+            );
           }
         } catch {
           // The shared request layer owns request error feedback.
@@ -124,7 +126,9 @@ const DataSourcePage = () => {
     try {
       const connected = await testRecord(record);
       if (connected) {
-        message.success('连接测试成功');
+        message.success(
+          intl.formatMessage({ id: 'pages.datasource.test.success' }),
+        );
       }
     } catch {
       // The shared request layer owns request error feedback.
@@ -222,7 +226,10 @@ const DataSourcePage = () => {
                     pageSizeOptions={DATA_SOURCE_PAGE_SIZE_OPTIONS}
                     disabled={loading}
                     showTotal={(total, range) =>
-                      `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
+                      intl.formatMessage(
+                        { id: 'pages.datasource.pagination.total' },
+                        { start: range[0], end: range[1], total },
+                      )
                     }
                     onChange={changePage}
                   />
