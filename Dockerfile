@@ -102,6 +102,6 @@ HEALTHCHECK \
     --timeout=3s \
     --start-period=10s \
     --retries=6 \
-    CMD wget -q -O /dev/null http://127.0.0.1/ || exit 1
+    CMD nginx -t || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
