@@ -4,10 +4,10 @@ services:
     container_name: yak-ops-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-yak_ops_root_password}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-yak_ops}
-      MYSQL_USER: ${MYSQL_USER:-linkup}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me}
+      MYSQL_USER: ${MYSQL_USER:-yak_ops}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-yak_ops_password}
       TZ: Asia/Shanghai
     command:
       - --character-set-server=utf8mb4
@@ -49,8 +49,8 @@ services:
       # Yak Security and Yak Ops business modules share this datasource by
       # default. The MySQL application user owns MYSQL_DATABASE.
       YAK_DATASOURCE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-yak_ops}?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai"
-      YAK_DATASOURCE_USERNAME: ${MYSQL_USER:-linkup}
-      YAK_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-change_me}
+      YAK_DATASOURCE_USERNAME: ${MYSQL_USER:-yak_ops}
+      YAK_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-yak_ops_password}
 
       YAK_SECURITY_BOOTSTRAP_USERNAME: ${YAK_SECURITY_BOOTSTRAP_USERNAME:-root}
       YAK_SECURITY_BOOTSTRAP_PASSWORD: ${YAK_SECURITY_BOOTSTRAP_PASSWORD:-Root@123456}
