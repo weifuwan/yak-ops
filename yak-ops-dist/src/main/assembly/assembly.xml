@@ -16,7 +16,7 @@
             <includes>
                 <include>io.yak.ops:yak-ops-boot</include>
             </includes>
-            <outputFileNameMapping>yak-ops-boot.jar</outputFileNameMapping>
+            <outputFileNameMapping>yak-ops-api.jar</outputFileNameMapping>
         </dependencySet>
     </dependencySets>
 
