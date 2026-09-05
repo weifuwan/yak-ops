@@ -87,7 +87,7 @@ export function usePluginFormConfig(params: {
         (section) => ({
           ...section,
           title:
-            section.key === 'connection' || /^section-\d+$/.test(section.key)
+            section.key === 'connection' || section.title === '连接参数'
               ? intl.formatMessage({
                   id: 'pages.datasource.form.connectionParams',
                 })
