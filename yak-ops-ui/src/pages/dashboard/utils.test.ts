@@ -3,7 +3,7 @@ import type { DashboardSummary } from '@/services/dashboard';
 import {
   countDashboardLifecycles,
   dashboardEditPath,
-  dashboardLifecycleLabel,
+  dashboardLifecycleMessage,
   dashboardOpenPath,
   filterDashboardSummaries,
   getDashboardLifecycle,
@@ -102,9 +102,18 @@ describe('dashboard list utils', () => {
     expect(dashboardEditPath('id/a')).toBe('/dashboard/id%2Fa/edit');
   });
 
-  it('builds lifecycle labels from version semantics', () => {
-    expect(dashboardLifecycleLabel(records[0])).toBe('已发布 V1');
-    expect(dashboardLifecycleLabel(records[1])).toBe('有草稿 V3');
-    expect(dashboardLifecycleLabel(records[2])).toBe('未发布 · 草稿 V1');
+  it('builds locale-neutral lifecycle message descriptors from version semantics', () => {
+    expect(dashboardLifecycleMessage(records[0])).toEqual({
+      id: 'pages.dashboard.list.lifecycle.published',
+      values: { version: 1 },
+    });
+    expect(dashboardLifecycleMessage(records[1])).toEqual({
+      id: 'pages.dashboard.list.lifecycle.draft',
+      values: { version: 3 },
+    });
+    expect(dashboardLifecycleMessage(records[2])).toEqual({
+      id: 'pages.dashboard.list.lifecycle.unpublished',
+      values: { version: 1 },
+    });
   });
 });
