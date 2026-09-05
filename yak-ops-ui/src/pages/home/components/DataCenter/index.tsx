@@ -1,4 +1,5 @@
 import YakTab from '@/components/YakTab';
+import { useIntl } from '@umijs/max';
 import { ChevronRight, CircleHelp } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -17,6 +18,7 @@ import { RecentTasksPanel } from './RecentTasksPanel';
 import { SchedulePanel } from './SchedulePanel';
 
 export default function DataCenter() {
+  const intl = useIntl();
   const {
     activeTab,
     setActiveTab,
@@ -34,7 +36,8 @@ export default function DataCenter() {
   } = useHomeDataCenter();
 
   const fallbackPeriod = useMemo(() => buildPeriod(periodKey), [periodKey]);
-  const periodLabel = PERIOD_OPTIONS.find((item) => item.key === periodKey)!.label;
+  const periodOption = PERIOD_OPTIONS.find((item) => item.key === periodKey)!;
+  const periodLabel = intl.formatMessage({ id: periodOption.messageId });
   const periodStart = overview?.period?.start
     ? formatIsoDate(overview.period.start)
     : formatDate(fallbackPeriod.start);
@@ -47,7 +50,7 @@ export default function DataCenter() {
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <h2 className="shrink-0 text-xl font-semibold tracking-[-0.35px] text-[#252832]">
-            数据中心
+            {intl.formatMessage({ id: 'pages.home.dataCenter.title' })}
           </h2>
           <CircleHelp
             size={14}
@@ -55,7 +58,10 @@ export default function DataCenter() {
             className="shrink-0 text-[#a0a4ac]"
           />
           <span className="ml-0.5 hidden text-[12px] leading-5 text-[#8d929b] sm:inline">
-            统计周期：{periodStart}-{periodEnd}（每天12点更新）
+            {intl.formatMessage(
+              { id: 'pages.home.dataCenter.periodSummary' },
+              { start: periodStart, end: periodEnd },
+            )}
           </span>
         </div>
 
@@ -63,7 +69,7 @@ export default function DataCenter() {
           type="button"
           className="flex items-center gap-0.5 text-[12px] text-[#666b75] transition-colors hover:text-[#252832]"
         >
-          查看更多
+          {intl.formatMessage({ id: 'pages.home.common.viewMore' })}
           <ChevronRight size={14} strokeWidth={1.8} />
         </button>
       </header>
@@ -79,7 +85,10 @@ export default function DataCenter() {
           <YakTab
             activeKey={activeTab}
             onChange={(key) => setActiveTab(key as HomeDataCenterTabKey)}
-            items={OVERVIEW_TABS}
+            items={OVERVIEW_TABS.map((item) => ({
+              key: item.key,
+              label: intl.formatMessage({ id: item.messageId }),
+            }))}
             tabBarExtraContent={
               activeTab !== 'recent' ? (
                 <div className="mb-1.5">
