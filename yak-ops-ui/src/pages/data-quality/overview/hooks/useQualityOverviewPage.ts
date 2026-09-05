@@ -2,6 +2,7 @@ import {
   getQualityOverview,
   type QualityOverviewView,
 } from '@/services/data-quality';
+import { useIntl } from '@umijs/max';
 import { message } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -11,6 +12,10 @@ import {
 } from '../utils';
 
 export const useQualityOverviewPage = () => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+
   const radarRange = useMemo(() => resolvePresetRange('7d'), []);
   const [qualityRange, setQualityRange] = useState<OverviewDateRange>(() =>
     resolvePresetRange('yesterday'),
@@ -41,7 +46,13 @@ export const useQualityOverviewPage = () => {
         setRevision((value) => value + 1);
         return overview;
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '质量总览加载失败');
+        message.error(
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({
+                id: 'pages.dataQuality.overview.loadFailed',
+              }),
+        );
         return undefined;
       } finally {
         if (inFlightRef.current.get(key) === request) {
