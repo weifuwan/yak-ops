@@ -16,11 +16,12 @@ import {
   type RealtimeJobChange,
   type RuntimeCapabilities,
 } from '@/services/realtime-sync';
+import { useIntl } from '@umijs/max';
 import { message } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  REALTIME_OBSERVED_STATE_LABELS,
+  getRealtimeObservedStateLabels,
   REALTIME_SYNC_DEFAULT_PAGINATION,
   REALTIME_SYNC_FALLBACK_POLL_INTERVAL,
   REALTIME_SYNC_INITIAL_FILTERS,
@@ -44,6 +45,9 @@ const sleep = (duration: number) =>
   new Promise((resolve) => window.setTimeout(resolve, duration));
 
 export const useRealtimeSyncPage = () => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const requestSequenceRef = useRef(0);
   const [jobs, setJobs] = useState<RealtimeJob[]>([]);
   const [pagination, setPagination] = useState<RealtimePaginationState>(
@@ -52,9 +56,7 @@ export const useRealtimeSyncPage = () => {
   const [loading, setLoading] = useState(false);
   const [capabilities, setCapabilities] = useState<RuntimeCapabilities>({});
   const [dataSources, setDataSources] = useState<DataSourceOption[]>([]);
-  const [environments, setEnvironments] = useState<ComputeEnvironmentOption[]>(
-    [],
-  );
+  const [environments, setEnvironments] = useState<ComputeEnvironmentOption[]>([]);
   const [filterDraft, setFilterDraft] = useState<RealtimeFilterState>(
     REALTIME_SYNC_INITIAL_FILTERS,
   );
@@ -96,13 +98,11 @@ export const useRealtimeSyncPage = () => {
         message.error(
           error instanceof Error
             ? error.message
-            : '加载实时同步任务失败',
+            : intlRef.current.formatMessage({ id: 'pages.realtimeSync.message.loadFailed' }),
         );
       }
     } finally {
-      if (requestSequence === requestSequenceRef.current) {
-        setLoading(false);
-      }
+      if (requestSequence === requestSequenceRef.current) setLoading(false);
     }
   }, [filters, pagination.current, pagination.pageSize]);
 
@@ -115,20 +115,20 @@ export const useRealtimeSyncPage = () => {
       ]);
 
     setCapabilities(
-      capabilityResult.status === 'fulfilled'
-        ? capabilityResult.value || {}
-        : {},
+      capabilityResult.status === 'fulfilled' ? capabilityResult.value || {} : {},
     );
     setDataSources(
       sourceResult.status === 'fulfilled' ? sourceResult.value || [] : [],
     );
     setEnvironments(
-      environmentResult.status === 'fulfilled'
-        ? environmentResult.value || []
-        : [],
+      environmentResult.status === 'fulfilled' ? environmentResult.value || [] : [],
     );
     if (environmentResult.status === 'rejected') {
-      message.warning('运行环境列表暂不可用，任务状态仍可查看');
+      message.warning(
+        intlRef.current.formatMessage({
+          id: 'pages.realtimeSync.message.environmentUnavailable',
+        }),
+      );
     }
   }, []);
 
@@ -224,32 +224,66 @@ export const useRealtimeSyncPage = () => {
           const state = await waitForStartResult(job.id);
           if (state === 'RUNNING') {
             if (action === 'restart-execution') {
-              message.success('已按当前 DefinitionVersion 重启 SyncExecution');
+              message.success(
+                intlRef.current.formatMessage({
+                  id: 'pages.realtimeSync.message.restartSuccess',
+                }),
+              );
             } else if (action === 'apply-published-version') {
-              message.success('已显式应用新的 Published DefinitionVersion');
+              message.success(
+                intlRef.current.formatMessage({
+                  id: 'pages.realtimeSync.message.applyPublishedSuccess',
+                }),
+              );
             } else {
-              message.success('实时同步任务已启动');
+              message.success(
+                intlRef.current.formatMessage({
+                  id: 'pages.realtimeSync.message.startSuccess',
+                }),
+              );
             }
           } else if (state === 'STARTING') {
-            message.warning('Flink 任务仍在启动，请稍后刷新状态');
-          } else {
             message.warning(
-              `Flink 执行结果：${REALTIME_OBSERVED_STATE_LABELS[state] || state}`,
+              intlRef.current.formatMessage({
+                id: 'pages.realtimeSync.message.starting',
+              }),
+            );
+          } else {
+            const stateLabels = getRealtimeObservedStateLabels(intlRef.current);
+            message.warning(
+              intlRef.current.formatMessage(
+                { id: 'pages.realtimeSync.message.executionResult' },
+                { state: stateLabels[state] || state },
+              ),
             );
           }
         } else if (action === 'publish') {
           message.success(
-            job.desiredState === 'RUNNING'
-              ? '当前草稿已发布，运行中的 SyncExecution 继续使用启动时的 DefinitionVersion'
-              : '当前草稿已发布',
+            intlRef.current.formatMessage({
+              id:
+                job.desiredState === 'RUNNING'
+                  ? 'pages.realtimeSync.message.publishRunning'
+                  : 'pages.realtimeSync.message.publishSuccess',
+            }),
           );
         } else {
-          message.success(action === 'validate' ? 'Flink CDC 校验通过' : '操作成功');
+          message.success(
+            intlRef.current.formatMessage({
+              id:
+                action === 'validate'
+                  ? 'pages.realtimeSync.message.validateSuccess'
+                  : 'pages.realtimeSync.message.actionSuccess',
+            }),
+          );
         }
 
         await loadJobs();
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '操作失败');
+        message.error(
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({ id: 'pages.realtimeSync.message.actionFailed' }),
+        );
       }
     },
     [loadJobs, waitForStartResult],
@@ -265,7 +299,11 @@ export const useRealtimeSyncPage = () => {
       setEvents(nextEvents || []);
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : '加载运行详情失败',
+        error instanceof Error
+          ? error.message
+          : intlRef.current.formatMessage({
+              id: 'pages.realtimeSync.message.detailLoadFailed',
+            }),
       );
     }
   }, []);
@@ -278,7 +316,9 @@ export const useRealtimeSyncPage = () => {
   const deleteTask = useCallback(
     async (job: RealtimeJob) => {
       await deleteRealtimeSyncTask(job.id);
-      message.success('任务已删除');
+      message.success(
+        intlRef.current.formatMessage({ id: 'pages.realtimeSync.message.deleted' }),
+      );
       await loadJobs();
     },
     [loadJobs],
@@ -287,9 +327,13 @@ export const useRealtimeSyncPage = () => {
   const copyTaskId = useCallback(async (value: string | number) => {
     try {
       await copyRealtimeText(value);
-      message.success('任务 ID 已复制');
+      message.success(
+        intlRef.current.formatMessage({ id: 'pages.realtimeSync.message.copySuccess' }),
+      );
     } catch {
-      message.error('复制失败，请手动复制');
+      message.error(
+        intlRef.current.formatMessage({ id: 'pages.realtimeSync.message.copyFailed' }),
+      );
     }
   }, []);
 
@@ -311,7 +355,9 @@ export const useRealtimeSyncPage = () => {
 
   const searchTasks = useCallback(() => {
     if (!isValidRealtimeTaskId(filterDraft.id)) {
-      message.warning('任务 ID 仅支持数字');
+      message.warning(
+        intlRef.current.formatMessage({ id: 'pages.realtimeSync.message.invalidTaskId' }),
+      );
       return false;
     }
     applyFilters({ ...filterDraft });
