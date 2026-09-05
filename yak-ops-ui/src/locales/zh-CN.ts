@@ -1,6 +1,7 @@
 import batchLinkUp from './zh-CN/batch-link-up';
 import component from './zh-CN/component';
 import dashboard from './zh-CN/dashboard';
+import dashboardEditor from './zh-CN/dashboard-editor';
 import dataDevelopment from './zh-CN/data-development';
 import dataDevelopmentEditor from './zh-CN/data-development-editor';
 import dataQuality from './zh-CN/data-quality';
@@ -43,6 +44,7 @@ export default {
   ...workflowInstance,
   ...workflowScheduleHistory,
   ...dashboard,
+  ...dashboardEditor,
   ...globalHeader,
   ...menu,
   ...settingDrawer,
