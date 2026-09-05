@@ -1,3 +1,4 @@
+import batchLinkUp from './zh-CN/batch-link-up';
 import component from './zh-CN/component';
 import dataSource from './zh-CN/data-source';
 import globalHeader from './zh-CN/globalHeader';
@@ -17,6 +18,7 @@ export default {
   'app.welcome.link.block-list': '基于 block 开发，快速构建标准页面',
   ...pages,
   ...dataSource,
+  ...batchLinkUp,
   ...globalHeader,
   ...menu,
   ...settingDrawer,
