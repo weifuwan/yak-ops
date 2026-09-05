@@ -4,6 +4,7 @@ import {
 } from '@/components/EmojiIconPicker';
 import { YakButton } from '@/components/ui';
 import type { WorkflowDefinition } from '@/services/workflow/definitions';
+import { useIntl } from '@umijs/max';
 import { Dropdown, type MenuProps } from 'antd';
 import {
   Clock3,
@@ -18,9 +19,8 @@ import { useState } from 'react';
 
 import {
   DEFINITION_STATUS_META,
-  formatWorkflowDuration,
   formatWorkflowTime,
-  getPublishActionLabel,
+  getPublishActionMessageId,
   isActiveRuntime,
   isRunningRuntime,
   runtimeStatusMeta,
@@ -42,15 +42,8 @@ interface WorkflowDefinitionCardProps {
   onResume: (record: WorkflowDefinition) => void;
 }
 
-/**
- * Hover 后右上角只保留「主操作 + 更多」两个入口。
- *
- * 这样可以避免原来 4~5 个按钮同时出现时过于拥挤，视觉上更接近
- * Dify 卡片的轻量操作区：常用动作直接点击，其余动作收进菜单。
- */
 const compactActionButtonClassName =
   '!h-[32px] !w-[32px] !rounded-[8px] !border-0 !bg-transparent !p-0 !text-[#747985] !shadow-none transition-colors hover:!bg-[#f5f6f8] hover:!text-[#4058c8] disabled:!bg-transparent';
-
 const moreActionButtonClassName =
   '!h-[32px] !w-[32px] !rounded-[8px] !border-0 !bg-[#f5f6f8] !p-0 !text-[#7f8590] !shadow-none transition-colors hover:!bg-[#eef0f3] hover:!text-[#3f4652]';
 
@@ -68,8 +61,8 @@ const WorkflowDefinitionCard = ({
   onPause,
   onResume,
 }: WorkflowDefinitionCardProps) => {
+  const intl = useIntl();
   const [moreOpen, setMoreOpen] = useState(false);
-
   const definitionMeta = DEFINITION_STATUS_META[record.status];
   const runtimeMeta = runtimeStatusMeta(record.latestExecutionStatus);
   const activeRuntime = isActiveRuntime(record.latestExecutionStatus);
@@ -82,25 +75,21 @@ const WorkflowDefinitionCard = ({
     Boolean(record.activeVersionNo) &&
     !activeRuntime;
   const showDraftChanged = record.draftChanged && record.status !== 'DRAFT';
+  const publishActionLabel = intl.formatMessage({
+    id: getPublishActionMessageId(record),
+  });
+  const definitionLabel = intl.formatMessage({ id: definitionMeta.messageId });
+  const runtimeLabel = runtimeMeta.labelId
+    ? intl.formatMessage({ id: runtimeMeta.labelId })
+    : runtimeMeta.rawLabel || '-';
 
   const handlePublishAction = () => {
-    if (record.status === 'ONLINE') {
-      onOffline(record);
-      return;
-    }
-
-    onPublish(record);
+    if (record.status === 'ONLINE') onOffline(record);
+    else onPublish(record);
   };
 
-  /**
-   * 最常用的动作直接露出：
-   * - 运行中：暂停 / 恢复
-   * - 已上线且空闲：运行
-   * - 草稿 / 已下线：发布
-   */
   const renderPrimaryAction = () => {
     const status = record.latestExecutionStatus;
-
     if (status === 'PAUSING' || status === 'RESUMING') {
       return (
         <YakButton
@@ -108,26 +97,24 @@ const WorkflowDefinitionCard = ({
           size="small"
           iconOnly
           disabled
-          title={status === 'PAUSING' ? '最近执行暂停中' : '最近执行恢复中'}
+          title={intl.formatMessage({
+            id:
+              status === 'PAUSING'
+                ? 'pages.workflow.definition.card.pausing'
+                : 'pages.workflow.definition.card.resuming',
+          })}
           className={compactActionButtonClassName}
-          icon={
-            <LoaderCircle
-              size={15}
-              strokeWidth={1.9}
-              className="animate-spin"
-            />
-          }
+          icon={<LoaderCircle size={15} strokeWidth={1.9} className="animate-spin" />}
         />
       );
     }
-
     if (status === 'PAUSED') {
       return (
         <YakButton
           type="text"
           size="small"
           iconOnly
-          title="恢复最近执行"
+          title={intl.formatMessage({ id: 'pages.workflow.definition.card.resume' })}
           loading={busy}
           disabled={blocked}
           className={compactActionButtonClassName}
@@ -136,14 +123,13 @@ const WorkflowDefinitionCard = ({
         />
       );
     }
-
     if (isRunningRuntime(status)) {
       return (
         <YakButton
           type="text"
           size="small"
           iconOnly
-          title="暂停最近执行"
+          title={intl.formatMessage({ id: 'pages.workflow.definition.card.pause' })}
           loading={busy}
           disabled={blocked}
           className={compactActionButtonClassName}
@@ -152,22 +138,25 @@ const WorkflowDefinitionCard = ({
         />
       );
     }
-
     if (record.status === 'ONLINE') {
+      const title = canRun
+        ? intl.formatMessage(
+            { id: 'pages.workflow.definition.card.runVersion' },
+            { version: record.activeVersionNo || 0 },
+          )
+        : intl.formatMessage({
+            id: !record.activeVersionNo
+              ? 'pages.workflow.definition.card.noActiveVersion'
+              : record.nodeCount <= 0
+                ? 'pages.workflow.definition.card.finishNodes'
+                : 'pages.workflow.definition.card.activeExecution',
+          });
       return (
         <YakButton
           type="text"
           size="small"
           iconOnly
-          title={
-            canRun
-              ? `运行已上线 v${record.activeVersionNo}`
-              : !record.activeVersionNo
-                ? '当前没有生效版本'
-                : record.nodeCount <= 0
-                  ? '请先完成节点编排'
-                  : '当前已有活动执行'
-          }
+          title={title}
           loading={busy}
           disabled={!canRun || blocked}
           className={compactActionButtonClassName}
@@ -176,13 +165,12 @@ const WorkflowDefinitionCard = ({
         />
       );
     }
-
     return (
       <YakButton
         type="text"
         size="small"
         iconOnly
-        title={getPublishActionLabel(record)}
+        title={publishActionLabel}
         loading={busy}
         disabled={blocked}
         className={compactActionButtonClassName}
@@ -195,56 +183,32 @@ const WorkflowDefinitionCard = ({
   const menuItems: MenuProps['items'] = [
     {
       key: 'edit',
-      label: '编辑工作流',
+      label: intl.formatMessage({ id: 'pages.workflow.definition.card.edit' }),
       disabled: blocked,
-      style: {
-        height: 36,
-        lineHeight: '36px',
-        paddingInline: 12,
-        borderRadius: 8,
-        fontSize: 13,
-      },
+      style: { height: 36, lineHeight: '36px', paddingInline: 12, borderRadius: 8, fontSize: 13 },
     },
     {
       key: 'schedule',
-      label: '调度配置',
+      label: intl.formatMessage({ id: 'pages.workflow.definition.card.schedule' }),
       disabled: blocked,
-      style: {
-        height: 36,
-        lineHeight: '36px',
-        paddingInline: 12,
-        borderRadius: 8,
-        fontSize: 13,
-      },
+      style: { height: 36, lineHeight: '36px', paddingInline: 12, borderRadius: 8, fontSize: 13 },
     },
     { type: 'divider' },
     {
       key: 'publish',
-      label: getPublishActionLabel(record),
+      label: publishActionLabel,
       disabled: blocked || busy,
-      style: {
-        height: 36,
-        lineHeight: '36px',
-        paddingInline: 12,
-        borderRadius: 8,
-        fontSize: 13,
-      },
+      style: { height: 36, lineHeight: '36px', paddingInline: 12, borderRadius: 8, fontSize: 13 },
     },
     ...(canDelete
       ? [
           { type: 'divider' as const },
           {
             key: 'delete',
-            label: '删除工作流',
+            label: intl.formatMessage({ id: 'pages.workflow.definition.card.delete' }),
             danger: true,
             disabled: blocked,
-            style: {
-              height: 36,
-              lineHeight: '36px',
-              paddingInline: 12,
-              borderRadius: 8,
-              fontSize: 13,
-            },
+            style: { height: 36, lineHeight: '36px', paddingInline: 12, borderRadius: 8, fontSize: 13 },
           },
         ]
       : []),
@@ -252,24 +216,32 @@ const WorkflowDefinitionCard = ({
 
   const handleMenuClick: MenuProps['onClick'] = ({ key, domEvent }) => {
     domEvent.stopPropagation();
-
-    switch (key) {
-      case 'edit':
-        onEdit(record);
-        break;
-      case 'schedule':
-        onSchedule(record);
-        break;
-      case 'publish':
-        handlePublishAction();
-        break;
-      case 'delete':
-        onDelete(record);
-        break;
-      default:
-        break;
-    }
+    if (key === 'edit') onEdit(record);
+    else if (key === 'schedule') onSchedule(record);
+    else if (key === 'publish') handlePublishAction();
+    else if (key === 'delete') onDelete(record);
   };
+
+  const publishedVersionText = record.activeVersionNo
+    ? `${intl.formatMessage(
+        { id: 'pages.workflow.definition.card.activeVersion' },
+        { version: record.activeVersionNo },
+      )}${
+        record.latestVersionNo > record.activeVersionNo
+          ? ` · ${intl.formatMessage(
+              { id: 'pages.workflow.definition.card.latestVersion' },
+              { version: record.latestVersionNo },
+            )}`
+          : ''
+      }`
+    : record.latestVersionNo > 0
+      ? intl.formatMessage(
+          { id: 'pages.workflow.definition.card.latestVersion' },
+          { version: record.latestVersionNo },
+        )
+      : intl.formatMessage({ id: 'pages.workflow.definition.card.neverPublished' });
+
+  const fallbackName = intl.formatMessage({ id: 'pages.workflow.definition.card.defaultName' });
 
   return (
     <div
@@ -281,28 +253,22 @@ const WorkflowDefinitionCard = ({
         isListView
           ? 'grid grid-cols-[minmax(430px,1.5fr)_minmax(430px,1fr)] max-xl:grid-cols-1'
           : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      ].filter(Boolean).join(' ')}
     >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 [background-image:radial-gradient(circle,rgba(94,117,163,0.14)_0.7px,transparent_0.8px)] [background-size:8px_8px] [mask-image:linear-gradient(115deg,#000_0%,rgba(0,0,0,0.18)_40%,transparent_72%)]"
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-20 z-0 h-48 w-48 rounded-full bg-[#dce7ff]/35 blur-3xl transition-transform duration-300 group-hover:scale-110"
-      />
+      <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 [background-image:radial-gradient(circle,rgba(94,117,163,0.14)_0.7px,transparent_0.8px)] [background-size:8px_8px] [mask-image:linear-gradient(115deg,#000_0%,rgba(0,0,0,0.18)_40%,transparent_72%)]" />
+      <span aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 z-0 h-48 w-48 rounded-full bg-[#dce7ff]/35 blur-3xl transition-transform duration-300 group-hover:scale-110" />
 
       <div className="relative z-[1] flex min-h-[108px] items-start gap-3 px-4 pb-4 pt-4">
         <div className="flex min-w-0 flex-1 items-start gap-3 pr-[74px]">
           <EmojiIcon
             value={definitionIcon}
             size={46}
-            title={`${record.name || '工作流'}图标`}
+            title={intl.formatMessage(
+              { id: 'pages.workflow.definition.card.iconTitle' },
+              { name: record.name || fallbackName },
+            )}
             className="border border-[rgba(31,35,41,0.07)] shadow-[0_5px_14px_rgba(31,35,41,0.055)] transition-transform duration-[260ms] group-hover:scale-[1.025]"
           />
-
           <div className="min-w-0 flex-1 pt-0.5">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               <button
@@ -311,9 +277,8 @@ const WorkflowDefinitionCard = ({
                 className="m-0 max-w-[220px] cursor-pointer truncate border-0 bg-transparent p-0 text-left text-[14px] font-semibold leading-[21px] text-[#292c35] transition-colors hover:text-[#4058c8]"
                 onClick={() => onEdit(record)}
               >
-                {record.name || '未命名工作流'}
+                {record.name || intl.formatMessage({ id: 'pages.workflow.definition.card.unnamed' })}
               </button>
-
               <span
                 className={[
                   'inline-flex h-5 shrink-0 items-center whitespace-nowrap rounded-full px-[7px] text-[10px] font-semibold',
@@ -321,41 +286,23 @@ const WorkflowDefinitionCard = ({
                   definitionMeta.backgroundClassName,
                 ].join(' ')}
               >
-                {definitionMeta.label}
+                {definitionLabel}
               </span>
-
               {showDraftChanged ? (
                 <span className="inline-flex h-5 shrink-0 items-center whitespace-nowrap rounded-full bg-[#fff7e9] px-[7px] text-[10px] font-semibold text-[#b77a22]">
-                  有草稿修改
+                  {intl.formatMessage({ id: 'pages.workflow.definition.card.draftChanged' })}
                 </span>
               ) : null}
             </div>
-
             <p
               title={record.description || ''}
               className="mb-0 mt-1.5 max-w-full truncate rounded-[7px] bg-[#f7f8fa]/90 px-2 py-1 text-[11px] leading-[18px] text-[#858a94]"
             >
-              {record.description || '暂无工作流描述'}
+              {record.description || intl.formatMessage({ id: 'pages.workflow.definition.card.noDescription' })}
             </p>
-
-            {/* <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] leading-4 text-[#9a9fa8]">
-              <span>
-                {record.nodeCount} 个节点 · {record.edgeCount} 条依赖
-              </span>
-              {record.workflowTimeoutSeconds > 0 ? (
-                <span>
-                  超时 {formatWorkflowDuration(record.workflowTimeoutSeconds)}
-                </span>
-              ) : null}
-            </div> */}
           </div>
         </div>
 
-        {/*
-         * 参考截图中的 Dify 风格：
-         * Hover 后只出现一个紧凑的白色操作胶囊，主操作直接露出，其他动作放进「...」。
-         * moreOpen 时强制保持可见，避免鼠标移到下拉菜单后操作区突然消失。
-         */}
         <div
           className={[
             'absolute right-3 top-3 z-[3] flex items-center rounded-[11px] border border-[#eceef2] bg-white p-[3px]',
@@ -366,7 +313,6 @@ const WorkflowDefinitionCard = ({
           ].join(' ')}
         >
           {renderPrimaryAction()}
-
           <Dropdown
             trigger={['click']}
             placement="bottomRight"
@@ -389,7 +335,7 @@ const WorkflowDefinitionCard = ({
                 type="text"
                 size="small"
                 iconOnly
-                title="更多操作"
+                title={intl.formatMessage({ id: 'pages.workflow.definition.card.more' })}
                 className={moreActionButtonClassName}
                 icon={<MoreHorizontal size={17} strokeWidth={2} />}
               />
@@ -401,30 +347,21 @@ const WorkflowDefinitionCard = ({
       <div
         className={[
           'relative z-[1] grid grid-cols-[1fr_0.9fr_1.05fr] border-t border-[#eef0f3] bg-white/75 px-4 py-3.5',
-          isListView
-            ? 'items-center border-l border-t-0 max-xl:border-l-0 max-xl:border-t'
-            : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
+          isListView ? 'items-center border-l border-t-0 max-xl:border-l-0 max-xl:border-t' : '',
+        ].filter(Boolean).join(' ')}
       >
         <div className="flex min-w-0 flex-col gap-1.5 pr-2.5">
-          <span className="text-[10px] leading-4 text-[#a0a4ad]">发布版本</span>
+          <span className="text-[10px] leading-4 text-[#a0a4ad]">
+            {intl.formatMessage({ id: 'pages.workflow.definition.card.publishVersion' })}
+          </span>
           <strong className="truncate text-[11px] font-semibold leading-[18px] text-[#5c616b]">
-            {record.activeVersionNo
-              ? `生效 v${record.activeVersionNo}${
-                  record.latestVersionNo > record.activeVersionNo
-                    ? ` · 最新 v${record.latestVersionNo}`
-                    : ''
-                }`
-              : record.latestVersionNo > 0
-                ? `最新 v${record.latestVersionNo}`
-                : '尚未发布'}
+            {publishedVersionText}
           </strong>
         </div>
-
         <div className="flex min-w-0 flex-col gap-1.5 border-l border-[#eff0f2] px-2.5">
-          <span className="text-[10px] leading-4 text-[#a0a4ad]">最近执行</span>
+          <span className="text-[10px] leading-4 text-[#a0a4ad]">
+            {intl.formatMessage({ id: 'pages.workflow.definition.card.latestExecution' })}
+          </span>
           <div className="flex min-w-0 items-center">
             <span
               className={[
@@ -433,26 +370,18 @@ const WorkflowDefinitionCard = ({
                 runtimeMeta.backgroundClassName,
               ].join(' ')}
             >
-              <span
-                className={[
-                  'h-1.5 w-1.5 shrink-0 rounded-full',
-                  runtimeMeta.dotClassName,
-                ].join(' ')}
-              />
-              <span className="truncate">{runtimeMeta.label}</span>
+              <span className={['h-1.5 w-1.5 shrink-0 rounded-full', runtimeMeta.dotClassName].join(' ')} />
+              <span className="truncate">{runtimeLabel}</span>
             </span>
           </div>
         </div>
-
         <div className="flex min-w-0 flex-col gap-1.5 border-l border-[#eff0f2] pl-2.5">
-          <span className="text-[10px] leading-4 text-[#a0a4ad]">最近更新</span>
+          <span className="text-[10px] leading-4 text-[#a0a4ad]">
+            {intl.formatMessage({ id: 'pages.workflow.definition.card.updatedAt' })}
+          </span>
           <strong className="flex min-w-0 items-center gap-1.5 truncate text-[11px] font-medium leading-[18px] text-[#737882]">
-            <Clock3
-              size={11}
-              strokeWidth={1.8}
-              className="shrink-0 text-[#9ca0a9]"
-            />
-            <span className="truncate">{formatWorkflowTime(record.updateTime)}</span>
+            <Clock3 size={11} strokeWidth={1.8} className="shrink-0 text-[#9ca0a9]" />
+            <span className="truncate">{formatWorkflowTime(record.updateTime, intl.locale)}</span>
           </strong>
         </div>
       </div>

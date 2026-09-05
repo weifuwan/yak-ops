@@ -1,12 +1,7 @@
 import type { WorkflowTaskDefinition } from '@/services/workflow';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { Input, Tooltip } from 'antd';
-import {
-  Boxes,
-  ChevronLeft,
-  Database,
-  Search,
-} from 'lucide-react';
+import { Boxes, ChevronLeft, Database, Search } from 'lucide-react';
 import type { DragEvent } from 'react';
 import { useMemo, useState } from 'react';
 import WorkflowNodeIcon from './node/icons/WorkflowNodeIcon';
@@ -20,48 +15,23 @@ interface WorkflowTaskLibraryProps {
 
 type LibraryPanel = 'nodes' | 'resources';
 
-const taskTypeLabel = (taskType?: string) => {
-  if (!taskType || taskType === 'SYNC') return '数据同步';
-  if (taskType === 'SQL') return 'SQL';
-  return taskType;
-};
-
-const RailButton = ({
-  active,
-  label,
-  icon,
-  onClick,
-}: {
-  active?: boolean;
-  label: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-}) => (
-  <Tooltip title={label} placement="right">
-    <button
-      type="button"
-      aria-label={label}
-      className={[
-        'flex h-9 w-9 items-center justify-center rounded-lg border-0 transition-colors',
-        active
-          ? 'bg-[#f2f4f7] text-[#161823]'
-          : 'bg-transparent text-[#98a2b3] hover:bg-[#f7f8fa] hover:text-[#475467]',
-      ].join(' ')}
-      onClick={onClick}
-    >
-      {icon}
-    </button>
-  </Tooltip>
-);
-
 const WorkflowTaskLibrary = ({
   tasks,
   loading,
   locked,
   onDragStart,
 }: WorkflowTaskLibraryProps) => {
+  const intl = useIntl();
   const [activePanel, setActivePanel] = useState<LibraryPanel>('nodes');
   const [keyword, setKeyword] = useState('');
+
+  const taskTypeLabel = (taskType?: string) => {
+    if (!taskType || taskType === 'SYNC') {
+      return intl.formatMessage({ id: 'pages.workflow.editor.taskType.sync' });
+    }
+    if (taskType === 'SQL') return 'SQL';
+    return taskType;
+  };
 
   const filteredTasks = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
@@ -69,15 +39,44 @@ const WorkflowTaskLibrary = ({
     return tasks.filter((task) =>
       task.name.toLowerCase().includes(normalized)
       || taskTypeLabel(task.type).toLowerCase().includes(normalized));
-  }, [keyword, tasks]);
+  }, [intl.locale, keyword, tasks]);
+
+  const railButton = (
+    active: boolean,
+    label: string,
+    icon: React.ReactNode,
+    onClick: () => void,
+  ) => (
+    <Tooltip title={label} placement="right">
+      <button
+        type="button"
+        aria-label={label}
+        className={[
+          'flex h-9 w-9 items-center justify-center rounded-lg border-0 transition-colors',
+          active
+            ? 'bg-[#f2f4f7] text-[#161823]'
+            : 'bg-transparent text-[#98a2b3] hover:bg-[#f7f8fa] hover:text-[#475467]',
+        ].join(' ')}
+        onClick={onClick}
+      >
+        {icon}
+      </button>
+    </Tooltip>
+  );
+
+  const nodesLabel = intl.formatMessage({ id: 'pages.workflow.editor.library.nodes' });
+  const resourcesLabel = intl.formatMessage({ id: 'pages.workflow.editor.library.resources' });
 
   return (
     <aside className="flex w-[280px] shrink-0 border-r border-[#e8eaee] bg-white">
       <div className="flex w-12 shrink-0 flex-col items-center border-r border-[#eef0f2] bg-[#fbfbfc] py-2">
-        <Tooltip title="返回工作流列表" placement="right">
+        <Tooltip
+          title={intl.formatMessage({ id: 'pages.workflow.editor.library.back' })}
+          placement="right"
+        >
           <button
             type="button"
-            aria-label="返回工作流列表"
+            aria-label={intl.formatMessage({ id: 'pages.workflow.editor.library.back' })}
             className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg border-0 bg-transparent text-[#667085] transition-colors hover:bg-[#f2f4f7] hover:text-[#161823]"
             onClick={() => history.push('/workflow/definitions')}
           >
@@ -87,23 +86,23 @@ const WorkflowTaskLibrary = ({
 
         <div className="mb-2 h-px w-6 bg-[#eceef1]" />
 
-        <RailButton
-          active={activePanel === 'nodes'}
-          label="节点"
-          icon={<Boxes size={17} strokeWidth={1.8} />}
-          onClick={() => setActivePanel('nodes')}
-        />
-        <RailButton
-          active={activePanel === 'resources'}
-          label="资源"
-          icon={<Database size={17} strokeWidth={1.8} />}
-          onClick={() => setActivePanel('resources')}
-        />
+        {railButton(
+          activePanel === 'nodes',
+          nodesLabel,
+          <Boxes size={17} strokeWidth={1.8} />,
+          () => setActivePanel('nodes'),
+        )}
+        {railButton(
+          activePanel === 'resources',
+          resourcesLabel,
+          <Database size={17} strokeWidth={1.8} />,
+          () => setActivePanel('resources'),
+        )}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col bg-white">
         <div className="flex h-11 shrink-0 items-center px-4 text-[13px] font-semibold text-[#161823]">
-          {activePanel === 'nodes' ? '节点' : '资源'}
+          {activePanel === 'nodes' ? nodesLabel : resourcesLabel}
         </div>
 
         {activePanel === 'nodes' ? (
@@ -114,7 +113,7 @@ const WorkflowTaskLibrary = ({
                 variant="filled"
                 value={keyword}
                 prefix={<Search size={13} className="text-[#98a2b3]" />}
-                placeholder="搜索节点"
+                placeholder={intl.formatMessage({ id: 'pages.workflow.editor.library.searchNodes' })}
                 className="!h-8 !rounded-lg !text-[12px]"
                 onChange={(event) => setKeyword(event.target.value)}
               />
@@ -122,7 +121,7 @@ const WorkflowTaskLibrary = ({
 
             <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
               <div className="mb-2 px-1 text-[10px] font-medium uppercase tracking-[0.08em] text-[#98a2b3]">
-                任务节点
+                {intl.formatMessage({ id: 'pages.workflow.editor.library.taskNodes' })}
               </div>
 
               {loading ? (
@@ -156,7 +155,7 @@ const WorkflowTaskLibrary = ({
                 </div>
               ) : (
                 <div className="px-3 py-10 text-center text-[11px] text-[#98a2b3]">
-                  暂无匹配节点
+                  {intl.formatMessage({ id: 'pages.workflow.editor.library.noMatchNodes' })}
                 </div>
               )}
             </div>
@@ -164,10 +163,10 @@ const WorkflowTaskLibrary = ({
         ) : (
           <div className="flex min-h-0 flex-1 flex-col px-3 pb-4">
             <div className="rounded-lg bg-[#f7f8fa] px-3 py-3 text-[11px] leading-5 text-[#667085]">
-              资源面板用于集中展示工作流可引用的数据源、文件和运行资源。
+              {intl.formatMessage({ id: 'pages.workflow.editor.library.resourceHint' })}
             </div>
             <div className="flex flex-1 items-center justify-center text-[11px] text-[#b0b4bc]">
-              暂无可用资源
+              {intl.formatMessage({ id: 'pages.workflow.editor.library.noResources' })}
             </div>
           </div>
         )}

@@ -1,10 +1,11 @@
-import YakButton from "@/components/YakButton";
-import type { WorkflowFailureStrategy } from "@/services/workflow";
+import YakButton from '@/components/YakButton';
+import type { WorkflowFailureStrategy } from '@/services/workflow';
 import {
   listWorkflowVersions,
   type WorkflowDefinition,
   type WorkflowVersionSummary,
-} from "@/services/workflow/definitions";
+} from '@/services/workflow/definitions';
+import { useIntl } from '@umijs/max';
 import {
   Button,
   Dropdown,
@@ -15,7 +16,7 @@ import {
   Spin,
   Tooltip,
   message,
-} from "antd";
+} from 'antd';
 import {
   ChevronDown,
   CircleStop,
@@ -25,8 +26,8 @@ import {
   Rocket,
   Save,
   SlidersHorizontal,
-} from "lucide-react";
-import { useMemo, useState } from "react";
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 interface WorkflowToolbarProps {
   definition?: WorkflowDefinition;
@@ -51,18 +52,25 @@ interface WorkflowToolbarProps {
   onOffline: () => void;
 }
 
-const WORKFLOW_FAILURE_OPTIONS = [
-  { value: "CONTINUE_INDEPENDENT_BRANCHES", label: "继续独立分支" },
-  { value: "FAIL_FAST", label: "快速失败" },
-  { value: "TERMINATE_ALL", label: "终止全部分支" },
+const FAILURE_OPTIONS: Array<{ value: WorkflowFailureStrategy; messageId: string }> = [
+  {
+    value: 'CONTINUE_INDEPENDENT_BRANCHES',
+    messageId: 'pages.workflow.editor.toolbar.failure.continue',
+  },
+  { value: 'FAIL_FAST', messageId: 'pages.workflow.editor.toolbar.failure.fast' },
+  {
+    value: 'TERMINATE_ALL',
+    messageId: 'pages.workflow.editor.toolbar.failure.terminate',
+  },
 ];
 
 const formatDateTime = (value?: string) => {
-  if (!value) return "--";
-  return value.replace("T", " ").slice(0, 19);
+  if (!value) return '--';
+  return value.replace('T', ' ').slice(0, 19);
 };
 
 const WorkflowToolbar = (props: WorkflowToolbarProps) => {
+  const intl = useIntl();
   const {
     definition,
     name,
@@ -86,42 +94,57 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
   const [versions, setVersions] = useState<WorkflowVersionSummary[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
 
-  const status = definition?.status || "DRAFT";
+  const status = definition?.status || 'DRAFT';
   const activeVersionNo = definition?.activeVersionNo;
   const draftChanged = definition?.draftChanged ?? true;
   const nextVersionNo = (definition?.latestVersionNo || 0) + 1;
   const hasPublished = Boolean(activeVersionNo);
   const hasRuntimeOverrides =
     workflowTimeoutSeconds > 0 ||
-    failureStrategy !== "CONTINUE_INDEPENDENT_BRANCHES";
-  const canPublish = !hasPublished || draftChanged || status === "OFFLINE";
+    failureStrategy !== 'CONTINUE_INDEPENDENT_BRANCHES';
+  const canPublish = !hasPublished || draftChanged || status === 'OFFLINE';
   const busy = saving || statusAction;
-  const reenable = status === "OFFLINE" && hasPublished && !draftChanged;
+  const reenable = status === 'OFFLINE' && hasPublished && !draftChanged;
   const publishingUpdate = hasPublished && draftChanged;
-  const publishingOfflineUpdate = status === "OFFLINE" && publishingUpdate;
+  const publishingOfflineUpdate = status === 'OFFLINE' && publishingUpdate;
   const targetVersionNo = reenable
     ? activeVersionNo || 1
     : publishingUpdate
-    ? nextVersionNo
-    : 1;
+      ? nextVersionNo
+      : 1;
 
   const lifecycleText = !hasPublished
-    ? "草稿 · 尚未发布"
-    : status === "OFFLINE"
-    ? `已下线 v${activeVersionNo}${draftChanged ? " · 有草稿修改" : ""}`
-    : draftChanged
-    ? `已上线 v${activeVersionNo} · 有草稿修改`
-    : `已上线 v${activeVersionNo}`;
+    ? intl.formatMessage({ id: 'pages.workflow.editor.toolbar.lifecycle.draft' })
+    : status === 'OFFLINE'
+      ? `${intl.formatMessage(
+          { id: 'pages.workflow.editor.toolbar.lifecycle.offline' },
+          { version: activeVersionNo || 0 },
+        )}${
+          draftChanged
+            ? ` · ${intl.formatMessage({ id: 'pages.workflow.editor.toolbar.lifecycle.draftChanged' })}`
+            : ''
+        }`
+      : draftChanged
+        ? `${intl.formatMessage(
+            { id: 'pages.workflow.editor.toolbar.lifecycle.online' },
+            { version: activeVersionNo || 0 },
+          )} · ${intl.formatMessage({ id: 'pages.workflow.editor.toolbar.lifecycle.draftChanged' })}`
+        : intl.formatMessage(
+            { id: 'pages.workflow.editor.toolbar.lifecycle.online' },
+            { version: activeVersionNo || 0 },
+          );
 
-  const publishButtonText = !canPublish
-    ? "已是最新版本"
-    : reenable
-    ? "重新上线"
-    : publishingOfflineUpdate
-    ? "发布更新并上线"
-    : publishingUpdate
-    ? "发布更新"
-    : "发布并上线";
+  const publishButtonText = intl.formatMessage({
+    id: !canPublish
+      ? 'pages.workflow.editor.toolbar.latest'
+      : reenable
+        ? 'pages.workflow.editor.toolbar.reenable'
+        : publishingOfflineUpdate
+          ? 'pages.workflow.editor.toolbar.publishOfflineUpdate'
+          : publishingUpdate
+            ? 'pages.workflow.editor.toolbar.publishUpdate'
+            : 'pages.workflow.editor.toolbar.publish',
+  });
 
   const loadVersions = async () => {
     if (!definition?.id) return;
@@ -130,7 +153,9 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
       setVersions(await listWorkflowVersions(definition.id));
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "版本列表加载失败"
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: 'pages.workflow.editor.toolbar.versionLoadFailed' }),
       );
     } finally {
       setVersionsLoading(false);
@@ -139,46 +164,47 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
 
   const confirmPublish = () => {
     if (!canPublish || testing || busy) return;
-
-    const title = reenable
-      ? `重新上线工作流 v${targetVersionNo}？`
+    const titleId = reenable
+      ? 'pages.workflow.editor.toolbar.reenableTitle'
       : publishingOfflineUpdate
-      ? `发布更新 v${targetVersionNo} 并上线？`
+        ? 'pages.workflow.editor.toolbar.publishOnlineTitle'
+        : publishingUpdate
+          ? 'pages.workflow.editor.toolbar.publishUpdateTitle'
+          : 'pages.workflow.editor.toolbar.publishTitle';
+    const contentId = reenable
+      ? 'pages.workflow.editor.toolbar.reenableContent'
       : publishingUpdate
-      ? `发布更新 v${targetVersionNo}？`
-      : `发布并上线工作流 v${targetVersionNo}？`;
-    const content = reenable
-      ? `将重新启用已发布的 v${targetVersionNo}，不会创建新版本。`
-      : publishingUpdate
-      ? `当前草稿将形成不可变的 v${targetVersionNo} 并成为新的正式运行版本；已有运行实例不会受到影响。`
-      : `当前草稿将形成不可变的 v${targetVersionNo} 并开启正式运行入口；后续草稿修改不会影响该版本。`;
-    const okText = reenable
-      ? "重新上线"
+        ? 'pages.workflow.editor.toolbar.publishUpdateContent'
+        : 'pages.workflow.editor.toolbar.publishContent';
+    const okId = reenable
+      ? 'pages.workflow.editor.toolbar.reenable'
       : publishingOfflineUpdate
-      ? "发布更新并上线"
-      : publishingUpdate
-      ? "发布更新"
-      : "发布并上线";
+        ? 'pages.workflow.editor.toolbar.publishOfflineUpdate'
+        : publishingUpdate
+          ? 'pages.workflow.editor.toolbar.publishUpdate'
+          : 'pages.workflow.editor.toolbar.publish';
 
     Modal.confirm({
       centered: true,
-      title,
-      content,
-      okText,
-      cancelText: "取消",
+      title: intl.formatMessage({ id: titleId }, { version: targetVersionNo }),
+      content: intl.formatMessage({ id: contentId }, { version: targetVersionNo }),
+      okText: intl.formatMessage({ id: okId }),
+      cancelText: intl.formatMessage({ id: 'pages.workflow.editor.common.cancel' }),
       onOk: onOnline,
     });
   };
 
   const confirmOffline = () => {
-    if (testing || busy || status !== "ONLINE" || !hasPublished) return;
+    if (testing || busy || status !== 'ONLINE' || !hasPublished) return;
     Modal.confirm({
       centered: true,
-      title: `下线工作流 v${activeVersionNo}？`,
-      content:
-        "下线后将关闭新的正式运行和调度触发；已经启动的实例继续执行，当前草稿仍可继续编辑和测试。",
-      okText: "下线",
-      cancelText: "取消",
+      title: intl.formatMessage(
+        { id: 'pages.workflow.editor.toolbar.offlineTitle' },
+        { version: activeVersionNo || 0 },
+      ),
+      content: intl.formatMessage({ id: 'pages.workflow.editor.toolbar.offlineContent' }),
+      okText: intl.formatMessage({ id: 'pages.workflow.editor.toolbar.offline' }),
+      cancelText: intl.formatMessage({ id: 'pages.workflow.editor.common.cancel' }),
       okButtonProps: { danger: true },
       onOk: onOffline,
     });
@@ -189,10 +215,15 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
       <div className="w-[320px] overflow-hidden rounded-[10px] border border-[#e4e7ec] bg-white shadow-[0_10px_28px_rgba(22,24,35,.12)]">
         <div className="flex h-11 items-center justify-between border-b border-[#f0f1f3] px-3.5">
           <div className="text-[12px] font-semibold text-[#344054]">
-            发布版本
+            {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.versions' })}
           </div>
           <span className="text-[9px] text-[#98a2b3]">
-            {hasPublished ? `当前 v${activeVersionNo}` : "尚未发布"}
+            {hasPublished
+              ? intl.formatMessage(
+                  { id: 'pages.workflow.editor.toolbar.currentVersion' },
+                  { version: activeVersionNo || 0 },
+                )
+              : intl.formatMessage({ id: 'pages.workflow.editor.toolbar.notPublished' })}
           </span>
         </div>
         <div className="max-h-[360px] overflow-auto p-2.5">
@@ -211,7 +242,7 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
                     <GitCommitHorizontal size={13} />v{version.versionNo}
                     {version.active ? (
                       <span className="rounded-[4px] bg-[#f4f5f6] px-1.5 py-0.5 text-[9px] font-medium text-[#475467]">
-                        当前
+                        {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.current' })}
                       </span>
                     ) : null}
                   </div>
@@ -220,57 +251,67 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
                   </span>
                 </div>
                 <div className="mt-1.5 text-[10px] text-[#667085]">
-                  {version.nodeCount} 节点 · {version.edgeCount} 连线 ·{" "}
-                  {version.taskBindings.length} 个任务版本
+                  {intl.formatMessage(
+                    { id: 'pages.workflow.editor.toolbar.versionSummary' },
+                    {
+                      nodes: version.nodeCount,
+                      edges: version.edgeCount,
+                      tasks: version.taskBindings.length,
+                    },
+                  )}
                 </div>
                 <div className="mt-1 truncate text-[9px] text-[#98a2b3]">
                   {version.taskBindings
                     .map((item) => `${item.taskName} v${item.taskVersion}`)
-                    .join(" · ") || "无任务"}
+                    .join(' · ') ||
+                    intl.formatMessage({ id: 'pages.workflow.editor.toolbar.noTasks' })}
                 </div>
               </div>
             ))
           ) : (
             <div className="flex h-24 items-center justify-center text-[11px] text-[#98a2b3]">
-              暂无发布版本
+              {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.noVersions' })}
             </div>
           )}
         </div>
       </div>
     ),
-    [activeVersionNo, hasPublished, versions, versionsLoading]
+    [activeVersionNo, hasPublished, intl, versions, versionsLoading],
   );
 
   const runtimeSettingsContent = (
     <div className="w-[300px] overflow-hidden rounded-[10px] border border-[#e4e7ec] bg-white shadow-[0_10px_28px_rgba(22,24,35,.12)]">
       <div className="border-b border-[#f0f1f3] px-4 py-3">
-        <div className="text-[12px] font-semibold text-[#344054]">运行设置</div>
+        <div className="text-[12px] font-semibold text-[#344054]">
+          {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.runtimeSettings' })}
+        </div>
         <div className="mt-1 text-[9px] leading-4 text-[#98a2b3]">
-          运行参数会进入草稿、测试运行和后续发布版本。
+          {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.runtimeSettingsHint' })}
         </div>
       </div>
       <div className="space-y-4 p-4">
         <div>
           <div className="mb-1.5 text-[10px] font-medium text-[#667085]">
-            失败策略
+            {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.failureStrategy' })}
           </div>
           <Select
             size="small"
             disabled={locked}
             className="w-full"
             value={failureStrategy}
-            options={WORKFLOW_FAILURE_OPTIONS}
-            onChange={(value) =>
-              onFailureStrategyChange(value as WorkflowFailureStrategy)
-            }
+            options={FAILURE_OPTIONS.map((item) => ({
+              value: item.value,
+              label: intl.formatMessage({ id: item.messageId }),
+            }))}
+            onChange={(value) => onFailureStrategyChange(value as WorkflowFailureStrategy)}
           />
           <div className="mt-1 text-[9px] leading-4 text-[#98a2b3]">
-            默认继续执行与失败节点无依赖的独立分支。
+            {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.failureHint' })}
           </div>
         </div>
         <div>
           <div className="mb-1.5 text-[10px] font-medium text-[#667085]">
-            工作流整体超时
+            {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.workflowTimeout' })}
           </div>
           <InputNumber
             size="small"
@@ -279,12 +320,12 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
             min={0}
             max={7 * 24 * 60 * 60}
             value={workflowTimeoutSeconds}
-            addonAfter="秒"
+            addonAfter={intl.formatMessage({ id: 'pages.workflow.editor.common.seconds' })}
             className="!w-full"
             onChange={(value) => onWorkflowTimeoutChange(Number(value || 0))}
           />
           <div className="mt-1 text-[9px] leading-4 text-[#98a2b3]">
-            0 表示不设置工作流级超时。
+            {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.timeoutHint' })}
           </div>
         </div>
       </div>
@@ -292,30 +333,39 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
   );
 
   const publishMoreItems =
-    status === "ONLINE" && hasPublished
+    status === 'ONLINE' && hasPublished
       ? [
           {
-            key: "offline",
-            label: <span className="text-[#b42318]">下线工作流</span>,
+            key: 'offline',
+            label: (
+              <span className="text-[#b42318]">
+                {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.offline' })}
+              </span>
+            ),
             icon: <CircleStop size={13} className="text-[#b42318]" />,
           },
         ]
       : [];
+
+  const fallbackName = intl.formatMessage({ id: 'pages.workflow.editor.defaultName' });
 
   return (
     <header className="workflow-editor-toolbar flex h-[52px] shrink-0 items-center justify-between border-b border-[#e8eaee] bg-white px-4">
       <div className="min-w-0">
         <div
           className="max-w-[420px] truncate text-[13px] font-semibold leading-5 text-[#161823]"
-          title={name || "未命名工作流"}
+          title={name || fallbackName}
         >
-          {name || "未命名工作流"}
+          {name || fallbackName}
         </div>
         <div className="mt-0.5 flex h-4 items-center gap-2 text-[9px] leading-4 text-[#98a2b3]">
           <span>{lifecycleText}</span>
           <span className="h-1 w-1 rounded-full bg-[#d0d5dd]" />
           <span>
-            {nodesCount} 节点 · {edgesCount} 连线
+            {intl.formatMessage(
+              { id: 'pages.workflow.editor.toolbar.nodesEdges' },
+              { nodes: nodesCount, edges: edgesCount },
+            )}
           </span>
         </div>
       </div>
@@ -329,16 +379,12 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
             placement="bottomRight"
             arrow={false}
             content={runtimeSettingsContent}
-            overlayInnerStyle={{
-              padding: 0,
-              background: "transparent",
-              boxShadow: "none",
-            }}
+            overlayInnerStyle={{ padding: 0, background: 'transparent', boxShadow: 'none' }}
           >
-            <Tooltip title="运行设置">
+            <Tooltip title={intl.formatMessage({ id: 'pages.workflow.editor.toolbar.runtimeSettings' })}>
               <Button
                 type="text"
-                aria-label="运行设置"
+                aria-label={intl.formatMessage({ id: 'pages.workflow.editor.toolbar.runtimeSettings' })}
                 disabled={busy}
                 icon={<SlidersHorizontal size={14} />}
                 className="relative !flex !h-8 !w-8 !min-w-0 !items-center !justify-center !rounded-[7px] !p-0 !text-[#667085] hover:!bg-[#f5f6f7] hover:!text-[#344054]"
@@ -360,16 +406,12 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
             placement="bottomRight"
             arrow={false}
             content={versionContent}
-            overlayInnerStyle={{
-              padding: 0,
-              background: "transparent",
-              boxShadow: "none",
-            }}
+            overlayInnerStyle={{ padding: 0, background: 'transparent', boxShadow: 'none' }}
           >
-            <Tooltip title="发布版本">
+            <Tooltip title={intl.formatMessage({ id: 'pages.workflow.editor.toolbar.versions' })}>
               <Button
                 type="text"
-                aria-label="发布版本"
+                aria-label={intl.formatMessage({ id: 'pages.workflow.editor.toolbar.versions' })}
                 disabled={!definition?.id || busy}
                 icon={<History size={14} />}
                 className="!flex !h-8 !w-8 !min-w-0 !items-center !justify-center !rounded-[7px] !p-0 !text-[#667085] hover:!bg-[#f5f6f7] hover:!text-[#344054]"
@@ -380,7 +422,7 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
 
         <span className="mx-1 h-5 w-px bg-[#eceef1]" />
 
-        <Tooltip title="测试当前草稿；会先保存草稿，不影响已上线版本">
+        <Tooltip title={intl.formatMessage({ id: 'pages.workflow.editor.toolbar.testHint' })}>
           <YakButton
             type="text"
             loading={testing}
@@ -389,7 +431,11 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
             onClick={onTestRun}
             className="bg-[#f5f6f7]"
           >
-            {testing ? "测试运行中" : "测试运行"}
+            {intl.formatMessage({
+              id: testing
+                ? 'pages.workflow.editor.toolbar.testing'
+                : 'pages.workflow.editor.toolbar.test',
+            })}
           </YakButton>
         </Tooltip>
 
@@ -401,12 +447,16 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
           onClick={onSave}
           className="bg-[#f5f6f7]"
         >
-          保存草稿
+          {intl.formatMessage({ id: 'pages.workflow.editor.toolbar.saveDraft' })}
         </YakButton>
 
         <div className="flex items-center">
           <Tooltip
-            title={!canPublish ? "当前草稿与线上版本一致，无需再次发布" : undefined}
+            title={
+              !canPublish
+                ? intl.formatMessage({ id: 'pages.workflow.editor.toolbar.noPublishNeeded' })
+                : undefined
+            }
           >
             <span>
               <Button
@@ -423,19 +473,19 @@ const WorkflowToolbar = (props: WorkflowToolbarProps) => {
 
           {publishMoreItems.length ? (
             <Dropdown
-              trigger={["click"]}
+              trigger={['click']}
               placement="bottomRight"
               menu={{
                 items: publishMoreItems,
                 onClick: ({ key }) => {
-                  if (key === "offline") confirmOffline();
+                  if (key === 'offline') confirmOffline();
                 },
               }}
             >
               <Button
                 type="primary"
                 size="small"
-                aria-label="更多发布操作"
+                aria-label={intl.formatMessage({ id: 'pages.workflow.editor.toolbar.morePublishActions' })}
                 disabled={testing || busy}
                 icon={<ChevronDown size={12} />}
                 className="!-ml-px !h-8 !w-7 !min-w-0 !rounded-[4px] !rounded-r-[7px] !border-l-white/30 !p-0 !shadow-none"

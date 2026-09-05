@@ -6,9 +6,10 @@ import {
   type WorkflowBackfillStatus,
 } from '@/services/workflow/schedules';
 import { ReloadOutlined } from '@ant-design/icons';
-import {  Drawer, Modal, Select, Table, message } from 'antd';
+import { useIntl } from '@umijs/max';
+import { Drawer, Modal, Select, Table, message } from 'antd';
 import { History, ListTree, XCircle } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface BackfillHistoryDrawerProps {
   open: boolean;
@@ -18,24 +19,24 @@ interface BackfillHistoryDrawerProps {
   onOpenTriggers: (backfill: WorkflowBackfill) => void;
 }
 
-const STATUS_LABEL: Record<WorkflowBackfillStatus, string> = {
-  CREATED: '已创建',
-  RUNNING: '运行中',
-  SUCCEEDED: '成功',
-  PARTIAL_SUCCESS: '部分成功',
-  FAILED: '失败',
-  CANCELED: '已取消',
+const STATUS_MESSAGE_IDS: Record<WorkflowBackfillStatus, string> = {
+  CREATED: 'pages.workflow.scheduleHistory.status.created',
+  RUNNING: 'pages.workflow.scheduleHistory.status.running',
+  SUCCEEDED: 'pages.workflow.scheduleHistory.status.succeeded',
+  PARTIAL_SUCCESS: 'pages.workflow.scheduleHistory.status.partialSuccess',
+  FAILED: 'pages.workflow.scheduleHistory.status.failed',
+  CANCELED: 'pages.workflow.scheduleHistory.status.canceled',
 };
 
-const OPERATION_LABEL: Record<string, string> = {
-  BACKFILL: '历史补数',
-  BUSINESS_DATE_RERUN: '实例运维补跑',
+const OPERATION_MESSAGE_IDS: Record<string, string> = {
+  BACKFILL: 'pages.workflow.scheduleHistory.operation.backfill',
+  BUSINESS_DATE_RERUN: 'pages.workflow.scheduleHistory.operation.rerun',
 };
 
-const formatTime = (value?: string) => {
+const formatTime = (value?: string, locale?: string) => {
   if (!value) return '-';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString(locale);
 };
 
 const BackfillHistoryDrawer = ({
@@ -45,6 +46,9 @@ const BackfillHistoryDrawer = ({
   onClose,
   onOpenTriggers,
 }: BackfillHistoryDrawerProps) => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const [records, setRecords] = useState<WorkflowBackfill[]>([]);
   const [status, setStatus] = useState<WorkflowBackfillStatus>();
   const [loading, setLoading] = useState(false);
@@ -55,7 +59,11 @@ const BackfillHistoryDrawer = ({
     try {
       setRecords(await listWorkflowBackfills({ workflowId, scheduleId, status }));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '补数/补跑批次加载失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : intlRef.current.formatMessage({ id: 'pages.workflow.scheduleHistory.loadFailed' }),
+      );
     } finally {
       setLoading(false);
     }
@@ -68,18 +76,22 @@ const BackfillHistoryDrawer = ({
   const cancel = (record: WorkflowBackfill) => {
     Modal.confirm({
       centered: true,
-      title: '确认取消批次吗？',
-      content: '尚未启动的计划会被标记为已跳过；已经运行中的 WorkflowExecution 会继续完成。',
-      okText: '取消批次',
-      cancelText: '关闭',
+      title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.cancelTitle' }),
+      content: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.cancelContent' }),
+      okText: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.cancelBatch' }),
+      cancelText: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.closed' }),
       okYakButtonProps: { danger: true },
       async onOk() {
         try {
           await cancelWorkflowBackfill(record.id);
-          message.success('批次已取消');
+          message.success(intlRef.current.formatMessage({ id: 'pages.workflow.scheduleHistory.canceled' }));
           await load();
         } catch (error) {
-          message.error(error instanceof Error ? error.message : '取消批次失败');
+          message.error(
+            error instanceof Error
+              ? error.message
+              : intlRef.current.formatMessage({ id: 'pages.workflow.scheduleHistory.cancelFailed' }),
+          );
         }
       },
     });
@@ -93,10 +105,11 @@ const BackfillHistoryDrawer = ({
       title={
         <div>
           <div className="flex items-center gap-2 text-[14px] font-semibold text-[#344054]">
-            <History size={15} /> 补数 / 运维补跑记录
+            <History size={15} />
+            {intl.formatMessage({ id: 'pages.workflow.scheduleHistory.title' })}
           </div>
           <div className="mt-0.5 text-[11px] font-normal text-[#98a2b3]">
-            Backfill 与指定 businessDate 重跑共享 Trigger Ledger，但保留独立 operationType 和来源实例血缘
+            {intl.formatMessage({ id: 'pages.workflow.scheduleHistory.subtitle' })}
           </div>
         </div>
       }
@@ -105,11 +118,14 @@ const BackfillHistoryDrawer = ({
         <div className="flex items-center gap-2">
           <Select
             allowClear
-            placeholder="全部状态"
+            placeholder={intl.formatMessage({ id: 'pages.workflow.scheduleHistory.allStatus' })}
             className="w-[130px]"
             value={status}
             onChange={setStatus}
-            options={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+            options={Object.entries(STATUS_MESSAGE_IDS).map(([value, messageId]) => ({
+              value,
+              label: intl.formatMessage({ id: messageId }),
+            }))}
           />
           <YakButton icon={<ReloadOutlined spin={loading} />} onClick={() => void load()} />
         </div>
@@ -122,10 +138,18 @@ const BackfillHistoryDrawer = ({
         loading={loading}
         dataSource={records}
         scroll={{ x: 1710 }}
-        pagination={{ pageSize: 15, showSizeChanger: false, showTotal: (total) => `共 ${total} 个批次` }}
+        pagination={{
+          pageSize: 15,
+          showSizeChanger: false,
+          showTotal: (total) =>
+            intl.formatMessage(
+              { id: 'pages.workflow.scheduleHistory.total' },
+              { count: total },
+            ),
+        }}
         columns={[
           {
-            title: '批次',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.batch' }),
             dataIndex: 'name',
             width: 235,
             fixed: 'left',
@@ -137,32 +161,44 @@ const BackfillHistoryDrawer = ({
             ),
           },
           {
-            title: '类型 / 来源',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.typeSource' }),
             width: 215,
-            render: (_: unknown, record: WorkflowBackfill) => (
-              <div>
-                <div className="text-[12px] font-medium text-[#475467]">
-                  {OPERATION_LABEL[record.operationType] || record.operationType}
+            render: (_: unknown, record: WorkflowBackfill) => {
+              const operationMessageId = OPERATION_MESSAGE_IDS[record.operationType];
+              return (
+                <div>
+                  <div className="text-[12px] font-medium text-[#475467]">
+                    {operationMessageId
+                      ? intl.formatMessage({ id: operationMessageId })
+                      : record.operationType}
+                  </div>
+                  <div
+                    className="mt-1 max-w-[190px] truncate font-mono text-[10px] text-[#98a2b3]"
+                    title={record.sourceExecutionId}
+                  >
+                    {record.sourceExecutionId
+                      ? intl.formatMessage(
+                          { id: 'pages.workflow.scheduleHistory.source' },
+                          { id: record.sourceExecutionId },
+                        )
+                      : intl.formatMessage({ id: 'pages.workflow.scheduleHistory.normalBackfill' })}
+                  </div>
                 </div>
-                <div
-                  className="mt-1 max-w-[190px] truncate font-mono text-[10px] text-[#98a2b3]"
-                  title={record.sourceExecutionId}
-                >
-                  {record.sourceExecutionId ? `source: ${record.sourceExecutionId}` : '普通 Backfill'}
-                </div>
-              </div>
-            ),
+              );
+            },
           },
           {
-            title: '状态',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.status' }),
             dataIndex: 'status',
             width: 100,
             render: (value: WorkflowBackfillStatus) => (
-              <span className="text-[12px] font-medium text-[#475467]">{STATUS_LABEL[value] || value}</span>
+              <span className="text-[12px] font-medium text-[#475467]">
+                {intl.formatMessage({ id: STATUS_MESSAGE_IDS[value] })}
+              </span>
             ),
           },
           {
-            title: '业务日期',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.businessDate' }),
             width: 190,
             render: (_: unknown, record: WorkflowBackfill) => (
               <div className="text-[11px] text-[#667085]">
@@ -171,7 +207,7 @@ const BackfillHistoryDrawer = ({
             ),
           },
           {
-            title: '工作流版本',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.version' }),
             dataIndex: 'workflowVersionNo',
             width: 125,
             render: (value: number, record: WorkflowBackfill) => (
@@ -184,23 +220,41 @@ const BackfillHistoryDrawer = ({
             ),
           },
           {
-            title: '执行策略',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.strategy' }),
             dataIndex: 'executionStrategy',
             width: 115,
             render: (value: string) => <code className="text-[11px] text-[#475467]">{value}</code>,
           },
           {
-            title: '进度',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.progress' }),
             width: 250,
             render: (_: unknown, record: WorkflowBackfill) => (
               <div className="text-[11px] leading-5 text-[#667085]">
-                <div>总数 {record.totalCount} · 等待 {record.waitingCount} · 运行 {record.runningCount}</div>
-                <div>成功 {record.succeededCount} · 失败 {record.failedCount} · 跳过 {record.skippedCount}</div>
+                <div>
+                  {intl.formatMessage(
+                    { id: 'pages.workflow.scheduleHistory.progressLine1' },
+                    {
+                      total: record.totalCount,
+                      waiting: record.waitingCount,
+                      running: record.runningCount,
+                    },
+                  )}
+                </div>
+                <div>
+                  {intl.formatMessage(
+                    { id: 'pages.workflow.scheduleHistory.progressLine2' },
+                    {
+                      success: record.succeededCount,
+                      failed: record.failedCount,
+                      skipped: record.skippedCount,
+                    },
+                  )}
+                </div>
               </div>
             ),
           },
           {
-            title: 'Cron / 时区',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.cronTimezone' }),
             width: 180,
             render: (_: unknown, record: WorkflowBackfill) => (
               <div>
@@ -210,23 +264,36 @@ const BackfillHistoryDrawer = ({
             ),
           },
           {
-            title: '创建时间',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.createdAt' }),
             dataIndex: 'createTime',
             width: 165,
-            render: (value: string) => <span className="text-[11px] text-[#98a2b3]">{formatTime(value)}</span>,
+            render: (value: string) => (
+              <span className="text-[11px] text-[#98a2b3]">{formatTime(value, intl.locale)}</span>
+            ),
           },
           {
-            title: '操作',
+            title: intl.formatMessage({ id: 'pages.workflow.scheduleHistory.actions' }),
             width: 170,
             fixed: 'right',
             render: (_: unknown, record: WorkflowBackfill) => (
               <div className="flex items-center gap-1 whitespace-nowrap">
-                <YakButton type="text" size="small" icon={<ListTree size={13} />} onClick={() => onOpenTriggers(record)}>
-                  明细
+                <YakButton
+                  type="text"
+                  size="small"
+                  icon={<ListTree size={13} />}
+                  onClick={() => onOpenTriggers(record)}
+                >
+                  {intl.formatMessage({ id: 'pages.workflow.scheduleHistory.detail' })}
                 </YakButton>
                 {record.status === 'RUNNING' ? (
-                  <YakButton danger type="text" size="small" icon={<XCircle size={13} />} onClick={() => cancel(record)}>
-                    取消
+                  <YakButton
+                    danger
+                    type="text"
+                    size="small"
+                    icon={<XCircle size={13} />}
+                    onClick={() => cancel(record)}
+                  >
+                    {intl.formatMessage({ id: 'pages.workflow.scheduleHistory.cancel' })}
                   </YakButton>
                 ) : null}
               </div>

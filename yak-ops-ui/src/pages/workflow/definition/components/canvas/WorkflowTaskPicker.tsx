@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Input, Popover } from 'antd';
 import type { PopoverProps } from 'antd';
 import { Search } from 'lucide-react';
@@ -19,10 +20,13 @@ interface WorkflowTaskPickerProps {
   defaultCategory?: WorkflowTaskCategory;
 }
 
-const CATEGORY_META: Array<{ key: WorkflowTaskCategory; label: string }> = [
-  { key: 'sync', label: '数据同步' },
-  { key: 'development', label: '数据开发' },
-  { key: 'quality', label: '数据质量' },
+const CATEGORY_META: Array<{ key: WorkflowTaskCategory; messageId: string }> = [
+  { key: 'sync', messageId: 'pages.workflow.editor.library.category.sync' },
+  {
+    key: 'development',
+    messageId: 'pages.workflow.editor.library.category.development',
+  },
+  { key: 'quality', messageId: 'pages.workflow.editor.library.category.quality' },
 ];
 
 const resolveTaskCategory = (option: WorkflowCanvasTaskOption): WorkflowTaskCategory => {
@@ -67,6 +71,7 @@ const WorkflowTaskPicker = ({
   disabled = false,
   defaultCategory = 'sync',
 }: WorkflowTaskPickerProps) => {
+  const intl = useIntl();
   const [innerOpen, setInnerOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<WorkflowTaskCategory>(defaultCategory);
   const [searchText, setSearchText] = useState(createSearchState);
@@ -89,6 +94,7 @@ const WorkflowTaskPicker = ({
   }, [options]);
 
   const activeMeta = CATEGORY_META.find((item) => item.key === activeCategory) ?? CATEGORY_META[0];
+  const activeLabel = intl.formatMessage({ id: activeMeta.messageId });
   const keyword = searchText[activeCategory].trim().toLowerCase();
   const filteredOptions = groupedOptions[activeCategory].filter((option) =>
     !keyword || option.label.toLowerCase().includes(keyword));
@@ -113,7 +119,7 @@ const WorkflowTaskPicker = ({
               ].join(' ')}
               onClick={() => setActiveCategory(item.key)}
             >
-              {item.label}
+              {intl.formatMessage({ id: item.messageId })}
               {active ? <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#fe2c55]" /> : null}
             </button>
           );
@@ -127,7 +133,10 @@ const WorkflowTaskPicker = ({
           value={searchText[activeCategory]}
           variant="filled"
           prefix={<Search size={14} className="text-[#98a2b3]" />}
-          placeholder={`搜索${activeMeta.label}任务...`}
+          placeholder={intl.formatMessage(
+            { id: 'pages.workflow.editor.library.searchCategory' },
+            { category: activeLabel },
+          )}
           className="h-8 rounded-lg"
           onChange={(event) => {
             const value = event.target.value;
@@ -160,7 +169,12 @@ const WorkflowTaskPicker = ({
             </button>
           )) : (
             <div className="flex h-16 items-center justify-center text-[11px] text-[#98a2b3]">
-              {keyword ? '没有匹配的任务' : `暂无${activeMeta.label}任务`}
+              {keyword
+                ? intl.formatMessage({ id: 'pages.workflow.editor.library.noMatch' })
+                : intl.formatMessage(
+                    { id: 'pages.workflow.editor.library.emptyCategory' },
+                    { category: activeLabel },
+                  )}
             </div>
           )}
         </div>

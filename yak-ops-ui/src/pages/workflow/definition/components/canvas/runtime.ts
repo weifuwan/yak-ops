@@ -58,42 +58,26 @@ export const workflowNodeRuntimeState = (
   };
 };
 
-export const runtimeStatusLabel = (status?: string) => {
-  switch (status) {
-    case 'WAITING':
-      return '等待中';
-    case 'READY':
-      return '就绪';
-    case 'SUBMITTED':
-      return '提交中';
-    case 'RUNNING':
-      return '运行中';
-    case 'PAUSING':
-      return '暂停中';
-    case 'PAUSED':
-      return '已暂停';
-    case 'RESUMING':
-      return '恢复中';
-    case 'SUCCESS':
-      return '成功';
-    case 'SUCCESS_WITH_WARNINGS':
-      return '完成';
-    case 'WARNING':
-      return '告警';
-    case 'FAILED':
-      return '失败';
-    case 'UPSTREAM_FAILED':
-      return '上游失败';
-    case 'TIMED_OUT':
-      return '已超时';
-    case 'CANCELED':
-      return '已取消';
-    case 'SKIPPED':
-      return '已跳过';
-    default:
-      return status || '';
-  }
+const RUNTIME_STATUS_MESSAGE_IDS: Record<string, string> = {
+  WAITING: 'pages.workflow.editor.runtime.waiting',
+  READY: 'pages.workflow.editor.runtime.ready',
+  SUBMITTED: 'pages.workflow.editor.runtime.submitted',
+  RUNNING: 'pages.workflow.editor.runtime.running',
+  PAUSING: 'pages.workflow.editor.runtime.pausing',
+  PAUSED: 'pages.workflow.editor.runtime.paused',
+  RESUMING: 'pages.workflow.editor.runtime.resuming',
+  SUCCESS: 'pages.workflow.editor.runtime.success',
+  SUCCESS_WITH_WARNINGS: 'pages.workflow.editor.runtime.successWithWarnings',
+  WARNING: 'pages.workflow.editor.runtime.successWithWarnings',
+  FAILED: 'pages.workflow.editor.runtime.failed',
+  UPSTREAM_FAILED: 'pages.workflow.editor.runtime.upstreamFailed',
+  TIMED_OUT: 'pages.workflow.editor.runtime.timedOut',
+  CANCELED: 'pages.workflow.editor.runtime.canceled',
+  SKIPPED: 'pages.workflow.editor.runtime.skipped',
 };
+
+export const runtimeStatusMessageId = (status?: string) =>
+  status ? RUNTIME_STATUS_MESSAGE_IDS[status] : undefined;
 
 export const formatRuntimeDuration = (elapsedMillis?: number) => {
   if (elapsedMillis === undefined) return undefined;

@@ -1,4 +1,5 @@
 import YakTab from '@/components/YakTab';
+import { useIntl } from '@umijs/max';
 import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { Copy, Ellipsis, Trash2, X } from 'lucide-react';
@@ -26,11 +27,6 @@ interface WorkflowNodeInspectorProps {
   onDelete: () => void;
   onAppend: (taskId: string) => void;
 }
-
-const INSPECTOR_TABS = [
-  { key: 'settings', label: '属性' },
-  { key: 'lastRun', label: '上次运行' },
-];
 
 const ActionButton = ({
   label,
@@ -63,6 +59,7 @@ const WorkflowNodeInspector = ({
   onDelete,
   onAppend,
 }: WorkflowNodeInspectorProps) => {
+  const intl = useIntl();
   const [activeTab, setActiveTab] = useState<InspectorTab>('settings');
   const { panelWidth, resizing, handleResizePointerDown } = useWorkflowInspectorBehavior();
 
@@ -70,23 +67,28 @@ const WorkflowNodeInspector = ({
     setActiveTab('settings');
   }, [node.id]);
 
+  const duplicateLabel = intl.formatMessage({ id: 'pages.workflow.editor.inspector.duplicate' });
+  const deleteLabel = intl.formatMessage({ id: 'pages.workflow.editor.inspector.deleteNode' });
+  const moreLabel = intl.formatMessage({ id: 'pages.workflow.editor.inspector.more' });
+  const closeLabel = intl.formatMessage({ id: 'pages.workflow.editor.inspector.close' });
+
   const menuItems = useMemo<MenuProps['items']>(() => [
     {
       key: 'duplicate',
       icon: <Copy size={14} />,
-      label: '复制节点',
+      label: duplicateLabel,
       disabled: locked,
       onClick: onDuplicate,
     },
     {
       key: 'delete',
       icon: <Trash2 size={14} />,
-      label: '删除节点',
+      label: deleteLabel,
       danger: true,
       disabled: locked,
       onClick: onDelete,
     },
-  ], [locked, onDelete, onDuplicate]);
+  ], [deleteLabel, duplicateLabel, locked, onDelete, onDuplicate]);
 
   return (
     <aside
@@ -95,7 +97,7 @@ const WorkflowNodeInspector = ({
     >
       <div
         role="separator"
-        aria-label="调整节点面板宽度"
+        aria-label={intl.formatMessage({ id: 'pages.workflow.editor.inspector.resize' })}
         aria-orientation="vertical"
         aria-valuenow={Math.round(panelWidth)}
         className="group/resize absolute left-0 top-0 z-30 flex h-full w-2 cursor-col-resize touch-none items-center justify-start"
@@ -117,22 +119,23 @@ const WorkflowNodeInspector = ({
               {node.data.label}
             </div>
             <div className="mt-0.5 truncate text-[9px] text-[#98a2b3]">
-              {node.data.typeLabel || node.data.taskType || '任务节点'}
+              {node.data.typeLabel || node.data.taskType ||
+                intl.formatMessage({ id: 'pages.workflow.editor.inspector.taskNode' })}
             </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-0.5">
-            <ActionButton label="复制节点" onClick={locked ? undefined : onDuplicate}>
+            <ActionButton label={duplicateLabel} onClick={locked ? undefined : onDuplicate}>
               <Copy size={14} />
             </ActionButton>
             <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
               <span>
-                <ActionButton label="更多操作">
+                <ActionButton label={moreLabel}>
                   <Ellipsis size={15} />
                 </ActionButton>
               </span>
             </Dropdown>
-            <ActionButton label="关闭" onClick={onClose}>
+            <ActionButton label={closeLabel} onClick={onClose}>
               <X size={15} />
             </ActionButton>
           </div>
@@ -141,7 +144,16 @@ const WorkflowNodeInspector = ({
         <div className="px-4">
           <YakTab
             activeKey={activeTab}
-            items={INSPECTOR_TABS}
+            items={[
+              {
+                key: 'settings',
+                label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.settings' }),
+              },
+              {
+                key: 'lastRun',
+                label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.lastRun' }),
+              },
+            ]}
             onChange={(key) => setActiveTab(key as InspectorTab)}
           />
         </div>

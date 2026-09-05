@@ -3,6 +3,7 @@ import type {
   WorkflowInstanceOperations,
   WorkflowNodeInstance,
 } from '@/services/workflow';
+import { useIntl } from '@umijs/max';
 import { useMemo } from 'react';
 
 interface Props {
@@ -18,19 +19,19 @@ const COLUMN_GAP = 66;
 const ROW_GAP = 28;
 const PADDING = 24;
 
-const statusLabel: Record<string, string> = {
-  CREATED: '已创建',
-  WAITING: '等待中',
-  READY: '就绪',
-  SUBMITTED: '已提交',
-  RUNNING: '运行中',
-  SUCCESS: '成功',
-  SUCCESS_WITH_WARNINGS: '成功（告警）',
-  FAILED: '失败',
-  UPSTREAM_FAILED: '上游阻断',
-  SKIPPED: '已跳过',
-  CANCELED: '已取消',
-  PAUSED: '已暂停',
+const STATUS_MESSAGE_IDS: Record<string, string> = {
+  CREATED: 'pages.workflow.instanceDetail.status.created',
+  WAITING: 'pages.workflow.instanceDetail.status.waiting',
+  READY: 'pages.workflow.instanceDetail.status.ready',
+  SUBMITTED: 'pages.workflow.instanceDetail.status.submitted',
+  RUNNING: 'pages.workflow.instanceDetail.status.running',
+  SUCCESS: 'pages.workflow.instanceDetail.status.success',
+  SUCCESS_WITH_WARNINGS: 'pages.workflow.instanceDetail.status.successWarnings',
+  FAILED: 'pages.workflow.instanceDetail.status.failed',
+  UPSTREAM_FAILED: 'pages.workflow.instanceDetail.status.upstreamFailed',
+  SKIPPED: 'pages.workflow.instanceDetail.status.skipped',
+  CANCELED: 'pages.workflow.instanceDetail.status.canceled',
+  PAUSED: 'pages.workflow.instanceDetail.status.paused',
 };
 
 const nodeClassName = (status: string, selected: boolean) => {
@@ -55,32 +56,24 @@ const statusTextClassName = (status: string) => {
   return 'text-[#667085]';
 };
 
-const WorkflowDagView = ({
-  instance,
-  operations,
-  selectedNodeId,
-  onSelectNode,
-}: Props) => {
+const WorkflowDagView = ({ instance, operations, selectedNodeId, onSelectNode }: Props) => {
+  const intl = useIntl();
   const layout = useMemo(() => {
     const nodes = instance.nodes || [];
     const nodeIds = new Set(nodes.map((node) => node.id));
     const edges = (operations?.edges || []).filter(
       (edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target),
     );
-    const predecessors = new Map<string, string[]>();
     const successors = new Map<string, string[]>();
     const indegree = new Map<string, number>();
     nodes.forEach((node) => {
-      predecessors.set(node.id, []);
       successors.set(node.id, []);
       indegree.set(node.id, 0);
     });
     edges.forEach((edge) => {
-      predecessors.get(edge.target)?.push(edge.source);
       successors.get(edge.source)?.push(edge.target);
       indegree.set(edge.target, (indegree.get(edge.target) || 0) + 1);
     });
-
     const queue = nodes
       .filter((node) => (indegree.get(node.id) || 0) === 0)
       .map((node) => node.id);
@@ -97,13 +90,10 @@ const WorkflowDagView = ({
         if (nextDegree === 0) queue.push(next);
       });
     }
-
-    // 防御异常拓扑：未被拓扑排序覆盖的节点放到最后一列，不阻塞运维页面。
     const fallbackLevel = Math.max(0, ...Array.from(level.values())) + 1;
     nodes.forEach((node) => {
       if (!level.has(node.id)) level.set(node.id, fallbackLevel);
     });
-
     const columns = new Map<number, WorkflowNodeInstance[]>();
     nodes.forEach((node) => {
       const value = level.get(node.id) || 0;
@@ -111,7 +101,6 @@ const WorkflowDagView = ({
       column.push(node);
       columns.set(value, column);
     });
-
     const positions = new Map<string, { x: number; y: number }>();
     let maxRows = 1;
     columns.forEach((column, columnIndex) => {
@@ -123,7 +112,6 @@ const WorkflowDagView = ({
         });
       });
     });
-
     const maxLevel = Math.max(0, ...Array.from(level.values()));
     return {
       positions,
@@ -134,7 +122,11 @@ const WorkflowDagView = ({
   }, [instance.nodes, operations?.edges]);
 
   if (!instance.nodes.length) {
-    return <div className="py-10 text-center text-[12px] text-[#98a2b3]">当前实例没有运行节点</div>;
+    return (
+      <div className="py-10 text-center text-[12px] text-[#98a2b3]">
+        {intl.formatMessage({ id: 'pages.workflow.instanceDetail.dagEmpty' })}
+      </div>
+    );
   }
 
   return (
@@ -150,14 +142,7 @@ const WorkflowDagView = ({
           aria-hidden="true"
         >
           <defs>
-            <marker
-              id="workflow-dag-arrow"
-              markerWidth="8"
-              markerHeight="8"
-              refX="7"
-              refY="4"
-              orient="auto"
-            >
+            <marker id="workflow-dag-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
               <path d="M0,0 L8,4 L0,8 z" fill="#c7cdd6" />
             </marker>
           </defs>
@@ -185,27 +170,27 @@ const WorkflowDagView = ({
 
         {instance.nodes.map((node) => {
           const position = layout.positions.get(node.id) || { x: PADDING, y: PADDING };
+          const messageId = STATUS_MESSAGE_IDS[node.status];
+          const statusText = messageId ? intl.formatMessage({ id: messageId }) : node.status;
           return (
             <button
               key={node.id}
               type="button"
               className={nodeClassName(node.status, selectedNodeId === node.id)}
-              style={{
-                left: position.x,
-                top: position.y,
-                width: NODE_WIDTH,
-                height: NODE_HEIGHT,
-              }}
+              style={{ left: position.x, top: position.y, width: NODE_WIDTH, height: NODE_HEIGHT }}
               onClick={() => onSelectNode?.(node.id)}
             >
               <div className="truncate text-[12px] font-medium text-[#344054]" title={node.name}>
                 {node.name || node.id}
               </div>
               <div className="mt-1 flex items-center justify-between gap-2 text-[11px]">
-                <span className={statusTextClassName(node.status)}>
-                  {statusLabel[node.status] || node.status}
+                <span className={statusTextClassName(node.status)}>{statusText}</span>
+                <span className="text-[#98a2b3]">
+                  {intl.formatMessage(
+                    { id: 'pages.workflow.instanceDetail.attemptLabel' },
+                    { count: node.attemptCount },
+                  )}
                 </span>
-                <span className="text-[#98a2b3]">Attempt {node.attemptCount}</span>
               </div>
               <div className="mt-1 truncate font-mono text-[10px] text-[#b0b7c3]" title={node.id}>
                 {node.id}

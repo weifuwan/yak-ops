@@ -13,6 +13,11 @@ import pwa from './en-US/pwa';
 import realtimeSync from './en-US/realtime-sync';
 import settingDrawer from './en-US/settingDrawer';
 import settings from './en-US/settings';
+import workflow from './en-US/workflow';
+import workflowEditor from './en-US/workflow-editor';
+import workflowEditorRuntime from './en-US/workflow-editor-runtime';
+import workflowInstance from './en-US/workflow-instance';
+import workflowScheduleHistory from './en-US/workflow-schedule-history';
 
 export default {
   'navBar.lang': 'Languages',
@@ -38,4 +43,9 @@ export default {
   ...home,
   ...dataDevelopment,
   ...dataDevelopmentEditor,
+  ...workflow,
+  ...workflowEditor,
+  ...workflowEditorRuntime,
+  ...workflowInstance,
+  ...workflowScheduleHistory,
 };

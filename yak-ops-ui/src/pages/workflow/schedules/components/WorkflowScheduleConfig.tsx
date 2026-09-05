@@ -12,7 +12,7 @@ import {
   type WorkflowScheduleMisfireStrategy,
 } from '@/services/workflow/schedules';
 import { BRAND_THEME } from '@/styles/brand';
-import { history, useLocation, useParams } from '@umijs/max';
+import { history, useIntl, useLocation, useParams } from '@umijs/max';
 import {
   ConfigProvider,
   DatePicker,
@@ -34,13 +34,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BackfillDrawer from './BackfillDrawer';
 import BackfillHistoryDrawer from './BackfillHistoryDrawer';
 import TriggerLedgerDrawer from './TriggerLedgerDrawer';
@@ -54,27 +48,25 @@ interface FormValues {
 }
 
 const SECTION_ITEMS = [
-  { key: 'schedule-basic', label: '调度设置' },
-  { key: 'schedule-strategy', label: '运行策略' },
+  { key: 'schedule-basic', messageId: 'pages.workflow.schedule.section.basic' },
+  { key: 'schedule-strategy', messageId: 'pages.workflow.schedule.section.strategy' },
 ] as const;
-
 type SectionKey = (typeof SECTION_ITEMS)[number]['key'];
-
 const LAST_SECTION_KEY = SECTION_ITEMS[SECTION_ITEMS.length - 1].key;
 const SCROLL_BOTTOM_THRESHOLD = 12;
 const SECTION_TOP_OFFSET = 24;
 const LOCATE_LOCK_DURATION = 650;
 
 const CRON_PRESETS = [
-  { label: '每天 02:00', value: '0 0 2 * * ?' },
-  { label: '每小时', value: '0 0 * * * ?' },
-  { label: '每 10 分钟', value: '0 0/10 * * * ?' },
+  { messageId: 'pages.workflow.schedule.preset.daily2', value: '0 0 2 * * ?' },
+  { messageId: 'pages.workflow.schedule.preset.hourly', value: '0 0 * * * ?' },
+  { messageId: 'pages.workflow.schedule.preset.10m', value: '0 0/10 * * * ?' },
 ] as const;
 
-const WORKFLOW_STATUS_LABEL: Record<string, string> = {
-  DRAFT: '草稿',
-  ONLINE: '已上线',
-  OFFLINE: '已下线',
+const WORKFLOW_STATUS_MESSAGE_IDS: Record<string, string> = {
+  DRAFT: 'pages.workflow.status.definition.draft',
+  ONLINE: 'pages.workflow.status.definition.online',
+  OFFLINE: 'pages.workflow.status.definition.offline',
 };
 
 interface SectionNavigatorProps {
@@ -82,62 +74,41 @@ interface SectionNavigatorProps {
   onSelect: (key: SectionKey) => void;
 }
 
-function SectionNavigator({
-  activeKey,
-  onSelect,
-}: SectionNavigatorProps) {
+function SectionNavigator({ activeKey, onSelect }: SectionNavigatorProps) {
+  const intl = useIntl();
   return (
     <nav
-      aria-label="调度配置区块定位"
+      aria-label={intl.formatMessage({ id: 'pages.workflow.schedule.navigatorAria' })}
       className="rounded-xl bg-white px-3 py-4"
     >
       <div className="mb-3 px-2 text-[12px] font-semibold text-[#344054]">
-        快速定位
+        {intl.formatMessage({ id: 'pages.workflow.schedule.navigator' })}
       </div>
-
       <div className="relative">
-        <span
-          aria-hidden
-          className="absolute bottom-4 left-[13px] top-4 w-px bg-[#e4e7ec]"
-        />
-
+        <span aria-hidden className="absolute bottom-4 left-[13px] top-4 w-px bg-[#e4e7ec]" />
         <div className="space-y-1">
           {SECTION_ITEMS.map((item) => {
             const active = activeKey === item.key;
-
             return (
               <button
                 key={item.key}
                 type="button"
                 aria-current={active ? 'location' : undefined}
                 className={[
-                  'group relative flex w-full cursor-pointer items-center gap-3 rounded-lg border-0',
-                  'px-2 py-2 text-left transition-colors',
-                  active
-                    ? 'bg-[rgba(254,44,85,0.08)]'
-                    : 'bg-transparent hover:bg-[#f7f8fa]',
+                  'group relative flex w-full cursor-pointer items-center gap-3 rounded-lg border-0 px-2 py-2 text-left transition-colors',
+                  active ? 'bg-[rgba(254,44,85,0.08)]' : 'bg-transparent hover:bg-[#f7f8fa]',
                 ].join(' ')}
                 onClick={() => onSelect(item.key)}
               >
                 <span
                   aria-hidden
                   className={[
-                    'relative z-10 h-[11px] w-[11px] shrink-0 rounded-full border',
-                    'transition-all duration-200',
+                    'relative z-10 h-[11px] w-[11px] shrink-0 rounded-full border transition-all duration-200',
                     active
-                      ? [
-                          'border-[var(--yak-brand-color)]',
-                          'bg-[var(--yak-brand-color)]',
-                          'shadow-[0_0_0_3px_rgba(254,44,85,0.12)]',
-                        ].join(' ')
-                      : [
-                          'border-[#d0d5dd]',
-                          'bg-[#98a2b3]',
-                          'group-hover:border-[#98a2b3]',
-                        ].join(' '),
+                      ? 'border-[var(--yak-brand-color)] bg-[var(--yak-brand-color)] shadow-[0_0_0_3px_rgba(254,44,85,0.12)]'
+                      : 'border-[#d0d5dd] bg-[#98a2b3] group-hover:border-[#98a2b3]',
                   ].join(' ')}
                 />
-
                 <span
                   className={[
                     'text-[12px] leading-5 transition-colors',
@@ -146,7 +117,7 @@ function SectionNavigator({
                       : 'font-normal text-[#667085] group-hover:text-[#344054]',
                   ].join(' ')}
                 >
-                  {item.label}
+                  {intl.formatMessage({ id: item.messageId })}
                 </span>
               </button>
             );
@@ -157,37 +128,31 @@ function SectionNavigator({
   );
 }
 
-function SectionCard({
-  id,
-  title,
-  children,
-}: {
+function SectionCard({ id, title, children }: {
   id: SectionKey;
   title: string;
   children: React.ReactNode;
 }) {
   return (
     <section id={id} className="rounded-xl bg-white px-6 py-5">
-      <div className="mb-5 text-[14px] font-semibold text-[#161823]">
-        {title}
-      </div>
+      <div className="mb-5 text-[14px] font-semibold text-[#161823]">{title}</div>
       {children}
     </section>
   );
 }
 
-/**
- * Workflow Schedule 后端历史契约仍要求 name。
- * 页面不再暴露“调度名称”概念：编辑时保留旧值，新建时从工作流名称派生稳定内部名。
- */
 function resolveInternalScheduleName(
   workflow: WorkflowDefinition,
-  schedule?: WorkflowSchedule,
+  schedule: WorkflowSchedule | undefined,
+  fallback: string,
 ) {
-  return schedule?.name?.trim() || `${workflow.name} 调度`;
+  return schedule?.name?.trim() || fallback;
 }
 
 export default function WorkflowScheduleConfigPage() {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const location = useLocation();
   const routeParams = useParams<{ id?: string }>();
   const pageRootRef = useRef<HTMLDivElement>(null);
@@ -202,7 +167,6 @@ export default function WorkflowScheduleConfigPage() {
       '',
     [location.search, routeParams.id],
   );
-
   const [workflow, setWorkflow] = useState<WorkflowDefinition>();
   const [schedules, setSchedules] = useState<WorkflowSchedule[]>([]);
   const [loading, setLoading] = useState(false);
@@ -220,7 +184,6 @@ export default function WorkflowScheduleConfigPage() {
       )[0],
     [schedules],
   );
-
   const canEdit = Boolean(
     workflow && workflow.status !== 'ONLINE' && primarySchedule?.status !== 'ONLINE',
   );
@@ -236,7 +199,11 @@ export default function WorkflowScheduleConfigPage() {
       setWorkflow(workflowData);
       setSchedules(scheduleData || []);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '调度配置加载失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : intlRef.current.formatMessage({ id: 'pages.workflow.schedule.loadFailed' }),
+      );
     } finally {
       if (!silent) setLoading(false);
     }
@@ -267,44 +234,31 @@ export default function WorkflowScheduleConfigPage() {
   const updateActiveSection = useCallback(() => {
     const container = pageRootRef.current;
     if (!container || locatingSectionRef.current) return;
-
-    const maxScrollTop = Math.max(
-      0,
-      container.scrollHeight - container.clientHeight,
-    );
-
+    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
     if (maxScrollTop - container.scrollTop <= SCROLL_BOTTOM_THRESHOLD) {
       setActiveSection(LAST_SECTION_KEY);
       return;
     }
-
     const threshold = container.getBoundingClientRect().top + 140;
     let nextActive: SectionKey = SECTION_ITEMS[0].key;
-
     SECTION_ITEMS.forEach((item) => {
       const element = document.getElementById(item.key);
-      if (element && element.getBoundingClientRect().top <= threshold) {
-        nextActive = item.key;
-      }
+      if (element && element.getBoundingClientRect().top <= threshold) nextActive = item.key;
     });
-
     setActiveSection(nextActive);
   }, []);
 
   useEffect(() => {
     const container = pageRootRef.current;
     if (!container || !workflow) return undefined;
-
     let animationFrameId = 0;
     const handleViewportChange = () => {
       window.cancelAnimationFrame(animationFrameId);
       animationFrameId = window.requestAnimationFrame(updateActiveSection);
     };
-
     container.addEventListener('scroll', handleViewportChange, { passive: true });
     window.addEventListener('resize', handleViewportChange);
     updateActiveSection();
-
     return () => {
       window.cancelAnimationFrame(animationFrameId);
       container.removeEventListener('scroll', handleViewportChange);
@@ -323,27 +277,18 @@ export default function WorkflowScheduleConfigPage() {
     const container = pageRootRef.current;
     const element = document.getElementById(key);
     if (!container || !element) return;
-
     if (locateTimerRef.current) window.clearTimeout(locateTimerRef.current);
     locatingSectionRef.current = key;
     setActiveSection(key);
-
-    const maxScrollTop = Math.max(
-      0,
-      container.scrollHeight - container.clientHeight,
-    );
+    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
     const containerRect = container.getBoundingClientRect();
     const elementRect = element.getBoundingClientRect();
     const expectedTop =
-      container.scrollTop +
-      elementRect.top -
-      containerRect.top -
-      SECTION_TOP_OFFSET;
+      container.scrollTop + elementRect.top - containerRect.top - SECTION_TOP_OFFSET;
     const nextScrollTop =
       key === LAST_SECTION_KEY
         ? maxScrollTop
         : Math.min(Math.max(expectedTop, 0), maxScrollTop);
-
     container.scrollTo({ top: nextScrollTop, behavior: 'smooth' });
     locateTimerRef.current = window.setTimeout(() => {
       locatingSectionRef.current = null;
@@ -353,32 +298,37 @@ export default function WorkflowScheduleConfigPage() {
 
   const handleSave = async () => {
     if (!workflow || !canEdit) return;
-
     try {
       const values = await form.validateFields();
       const payload = {
-        name: resolveInternalScheduleName(workflow, primarySchedule),
+        name: resolveInternalScheduleName(
+          workflow,
+          primarySchedule,
+          intl.formatMessage(
+            { id: 'pages.workflow.schedule.internalName' },
+            { name: workflow.name },
+          ),
+        ),
         cronExpression: values.cronExpression.trim(),
         timezone: values.timezone,
         startTime: values.effectiveRange?.[0]?.toISOString(),
         endTime: values.effectiveRange?.[1]?.toISOString(),
         executionStrategy: values.executionStrategy,
         misfireStrategy: values.misfireStrategy,
-        // 高级配置不再对用户开放；编辑已有调度时保留历史 input，避免无意清空。
         input: primarySchedule?.input || {},
       };
-
       setSaving(true);
-      if (primarySchedule) {
-        await updateWorkflowSchedule(primarySchedule.id, payload);
-      } else {
-        await createWorkflowSchedule(workflow.id, payload);
-      }
-      message.success('调度配置已保存，上线工作流后将自动启用');
+      if (primarySchedule) await updateWorkflowSchedule(primarySchedule.id, payload);
+      else await createWorkflowSchedule(workflow.id, payload);
+      message.success(intlRef.current.formatMessage({ id: 'pages.workflow.schedule.saved' }));
       await load(true);
     } catch (error: any) {
       if (error?.errorFields) return;
-      message.error(error instanceof Error ? error.message : '保存调度配置失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : intlRef.current.formatMessage({ id: 'pages.workflow.schedule.saveFailed' }),
+      );
     } finally {
       setSaving(false);
     }
@@ -386,21 +336,24 @@ export default function WorkflowScheduleConfigPage() {
 
   const handleDelete = () => {
     if (!primarySchedule || !canEdit) return;
-
     Modal.confirm({
       centered: true,
-      title: '删除调度配置',
-      content: '删除后不影响工作流和历史运行记录。',
-      okText: '删除',
-      cancelText: '取消',
+      title: intl.formatMessage({ id: 'pages.workflow.schedule.deleteTitle' }),
+      content: intl.formatMessage({ id: 'pages.workflow.schedule.deleteContent' }),
+      okText: intl.formatMessage({ id: 'pages.workflow.common.delete' }),
+      cancelText: intl.formatMessage({ id: 'pages.workflow.common.cancel' }),
       okYakButtonProps: { danger: true },
       async onOk() {
         try {
           await deleteWorkflowSchedule(primarySchedule.id);
-          message.success('调度配置已删除');
+          message.success(intlRef.current.formatMessage({ id: 'pages.workflow.schedule.deleted' }));
           await load(true);
         } catch (error) {
-          message.error(error instanceof Error ? error.message : '删除调度配置失败');
+          message.error(
+            error instanceof Error
+              ? error.message
+              : intlRef.current.formatMessage({ id: 'pages.workflow.schedule.deleteFailed' }),
+          );
         }
       },
     });
@@ -413,7 +366,6 @@ export default function WorkflowScheduleConfigPage() {
   };
 
   if (!workflowId) return null;
-
   if (loading) {
     return (
       <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#f7f8fa]">
@@ -421,26 +373,30 @@ export default function WorkflowScheduleConfigPage() {
       </div>
     );
   }
-
   if (!workflow) {
     return (
       <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[#f7f8fa]">
-        <Empty description="未找到工作流" image={Empty.PRESENTED_IMAGE_SIMPLE}>
+        <Empty
+          description={intl.formatMessage({ id: 'pages.workflow.schedule.notFound' })}
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        >
           <YakButton onClick={() => history.push('/workflow/definitions')}>
-            返回工作流定义
+            {intl.formatMessage({ id: 'pages.workflow.schedule.backDefinitions' })}
           </YakButton>
         </Empty>
       </div>
     );
   }
 
+  const workflowStatusId = WORKFLOW_STATUS_MESSAGE_IDS[workflow.status];
+  const workflowStatusLabel = workflowStatusId
+    ? intl.formatMessage({ id: workflowStatusId })
+    : workflow.status;
+
   return (
     <ConfigProvider theme={BRAND_THEME}>
       <div className="h-[calc(100vh-64px)] overflow-hidden bg-[#f7f8fa] text-[#161823]">
-        <div
-          ref={pageRootRef}
-          className="h-full overflow-y-auto overscroll-contain scroll-smooth"
-        >
+        <div ref={pageRootRef} className="h-full overflow-y-auto overscroll-contain scroll-smooth">
           <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 gap-6 px-6 pb-6 pt-6 max-xl:max-w-[1040px] xl:grid-cols-[minmax(0,1fr)_160px]">
             <div className="min-w-0">
               <main className="space-y-4">
@@ -454,19 +410,16 @@ export default function WorkflowScheduleConfigPage() {
                         className="!h-8 !w-8 !shrink-0 !px-0"
                         onClick={() => history.push('/workflow/definitions')}
                       />
-
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h1 className="m-0 truncate text-[18px] font-semibold leading-8 text-[#161823]">
-                            调度配置
+                            {intl.formatMessage({ id: 'pages.workflow.schedule.title' })}
                           </h1>
                           <span className="rounded-md bg-[#f2f4f7] px-2 py-1 text-[11px] font-medium text-[#667085]">
-                            {WORKFLOW_STATUS_LABEL[workflow.status] || workflow.status}
+                            {workflowStatusLabel}
                           </span>
                         </div>
-                        <div className="truncate text-[12px] text-[#667085]">
-                          {workflow.name}
-                        </div>
+                        <div className="truncate text-[12px] text-[#667085]">{workflow.name}</div>
                       </div>
                     </div>
 
@@ -475,7 +428,7 @@ export default function WorkflowScheduleConfigPage() {
                         <Tooltip
                           title={
                             workflow.status !== 'ONLINE'
-                              ? '工作流上线后才能执行历史补数'
+                              ? intl.formatMessage({ id: 'pages.workflow.schedule.backfillRequiresOnline' })
                               : undefined
                           }
                         >
@@ -486,11 +439,10 @@ export default function WorkflowScheduleConfigPage() {
                               icon={<DatabaseBackup size={14} />}
                               onClick={() => setBackfillOpen(true)}
                             >
-                              补数
+                              {intl.formatMessage({ id: 'pages.workflow.schedule.backfill' })}
                             </YakButton>
                           </span>
                         </Tooltip>
-
                         <YakButton
                           size="small"
                           icon={<ListTree size={14} />}
@@ -499,15 +451,14 @@ export default function WorkflowScheduleConfigPage() {
                             setLedgerOpen(true);
                           }}
                         >
-                          触发记录
+                          {intl.formatMessage({ id: 'pages.workflow.schedule.triggerLedger' })}
                         </YakButton>
-
                         <YakButton
                           size="small"
                           icon={<History size={14} />}
                           onClick={() => setBackfillHistoryOpen(true)}
                         >
-                          补数记录
+                          {intl.formatMessage({ id: 'pages.workflow.schedule.backfillHistory' })}
                         </YakButton>
                       </div>
                     ) : null}
@@ -516,38 +467,40 @@ export default function WorkflowScheduleConfigPage() {
 
                 {schedules.length > 1 ? (
                   <div className="rounded-lg bg-[#fffaeb] px-4 py-2.5 text-[12px] text-[#7a2e0e]">
-                    存在 {schedules.length} 个历史调度，本页编辑主调度。
+                    {intl.formatMessage(
+                      { id: 'pages.workflow.schedule.multipleSchedules' },
+                      { count: schedules.length },
+                    )}
                   </div>
                 ) : null}
-
                 {!canEdit ? (
                   <div className="rounded-lg bg-[#f2f4f7] px-4 py-2.5 text-[12px] text-[#667085]">
-                    当前工作流已启用，请下线后修改调度。
+                    {intl.formatMessage({ id: 'pages.workflow.schedule.readonly' })}
                   </div>
                 ) : null}
 
                 <ConfigProvider variant="filled">
-                  <Form
-                    form={form}
-                    layout="vertical"
-                    requiredMark="optional"
-                    disabled={!canEdit}
-                  >
+                  <Form form={form} layout="vertical" requiredMark="optional" disabled={!canEdit}>
                     <div className="space-y-4">
-                      <SectionCard id="schedule-basic" title="调度设置">
+                      <SectionCard
+                        id="schedule-basic"
+                        title={intl.formatMessage({ id: 'pages.workflow.schedule.section.basic' })}
+                      >
                         <Form.Item
                           name="cronExpression"
-                          label="Cron 表达式"
+                          label={intl.formatMessage({ id: 'pages.workflow.schedule.cron' })}
                           rules={[
-                            { required: true, message: '请输入 Cron 表达式' },
+                            {
+                              required: true,
+                              message: intl.formatMessage({ id: 'pages.workflow.schedule.cronRequired' }),
+                            },
                           ]}
                         >
                           <CronSchedulerInput disabled={!canEdit} />
                         </Form.Item>
-
                         <div className="-mt-3 mb-5 flex flex-wrap items-center gap-1.5">
                           <span className="mr-1 text-[11px] text-[#98a2b3]">
-                            快捷设置
+                            {intl.formatMessage({ id: 'pages.workflow.schedule.quickSet' })}
                           </span>
                           {CRON_PRESETS.map((preset) => (
                             <YakButton
@@ -556,85 +509,62 @@ export default function WorkflowScheduleConfigPage() {
                               type="text"
                               disabled={!canEdit}
                               className="!h-7 !bg-[#f7f8fa] !px-2.5 !text-[11px] !text-[#667085] hover:!bg-[#eef0f3]"
-                              onClick={() =>
-                                form.setFieldValue('cronExpression', preset.value)
-                              }
+                              onClick={() => form.setFieldValue('cronExpression', preset.value)}
                             >
-                              {preset.label}
+                              {intl.formatMessage({ id: preset.messageId })}
                             </YakButton>
                           ))}
                         </div>
-
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                           <Form.Item
                             name="timezone"
-                            label="时区"
+                            label={intl.formatMessage({ id: 'pages.workflow.schedule.timezone' })}
                             rules={[{ required: true }]}
                           >
                             <Select
                               options={[
-                                {
-                                  value: 'Asia/Shanghai',
-                                  label: 'Asia/Shanghai',
-                                },
-                                {
-                                  value: 'Asia/Tokyo',
-                                  label: 'Asia/Tokyo',
-                                },
+                                { value: 'Asia/Shanghai', label: 'Asia/Shanghai' },
+                                { value: 'Asia/Tokyo', label: 'Asia/Tokyo' },
                                 { value: 'UTC', label: 'UTC' },
                               ]}
                             />
                           </Form.Item>
-
                           <Form.Item
                             name="effectiveRange"
-                            label="生效区间（可选）"
+                            label={intl.formatMessage({ id: 'pages.workflow.schedule.effectiveRange' })}
                           >
-                            <DatePicker.RangePicker
-                              showTime
-                              className="w-full"
-                            />
+                            <DatePicker.RangePicker showTime className="w-full" />
                           </Form.Item>
                         </div>
                       </SectionCard>
 
-                      <SectionCard id="schedule-strategy" title="运行策略">
+                      <SectionCard
+                        id="schedule-strategy"
+                        title={intl.formatMessage({ id: 'pages.workflow.schedule.section.strategy' })}
+                      >
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                           <Form.Item
                             name="executionStrategy"
-                            label="实例并发策略"
+                            label={intl.formatMessage({ id: 'pages.workflow.schedule.executionStrategy' })}
                             rules={[{ required: true }]}
                           >
                             <Select
                               options={[
-                                {
-                                  value: 'SERIAL_WAIT',
-                                  label: '等待上一次完成（推荐）',
-                                },
-                                {
-                                  value: 'SERIAL_DISCARD',
-                                  label: '上一次未完成则跳过',
-                                },
-                                {
-                                  value: 'PARALLEL',
-                                  label: '允许并行运行',
-                                },
+                                { value: 'SERIAL_WAIT', label: intl.formatMessage({ id: 'pages.workflow.schedule.execution.serialWait' }) },
+                                { value: 'SERIAL_DISCARD', label: intl.formatMessage({ id: 'pages.workflow.schedule.execution.serialDiscard' }) },
+                                { value: 'PARALLEL', label: intl.formatMessage({ id: 'pages.workflow.schedule.execution.parallel' }) },
                               ]}
                             />
                           </Form.Item>
-
                           <Form.Item
                             name="misfireStrategy"
-                            label="错过调度策略"
+                            label={intl.formatMessage({ id: 'pages.workflow.schedule.misfireStrategy' })}
                             rules={[{ required: true }]}
                           >
                             <Select
                               options={[
-                                {
-                                  value: 'FIRE_ONCE',
-                                  label: '恢复后补跑一次（推荐）',
-                                },
-                                { value: 'SKIP', label: '直接跳过' },
+                                { value: 'FIRE_ONCE', label: intl.formatMessage({ id: 'pages.workflow.schedule.misfire.fireOnce' }) },
+                                { value: 'SKIP', label: intl.formatMessage({ id: 'pages.workflow.schedule.misfire.skip' }) },
                               ]}
                             />
                           </Form.Item>
@@ -661,26 +591,19 @@ export default function WorkflowScheduleConfigPage() {
                       ].join(' ')}
                       onClick={() => void handleSave()}
                     >
-                      保存配置
+                      {intl.formatMessage({ id: 'pages.workflow.schedule.save' })}
                     </YakButton>
-
                     <YakButton
                       disabled={saving}
                       className="!h-9 !min-w-[96px] !rounded-lg !border-0 !bg-[#f2f3f5] !px-5 !font-medium !text-[#344054] hover:!bg-[#e9eaec]"
                       onClick={() => history.push('/workflow/definitions')}
                     >
-                      返回
+                      {intl.formatMessage({ id: 'pages.workflow.common.back' })}
                     </YakButton>
                   </div>
-
                   {primarySchedule && canEdit ? (
-                    <YakButton
-                      danger
-                      type="text"
-                      icon={<Trash2 size={14} />}
-                      onClick={handleDelete}
-                    >
-                      删除调度
+                    <YakButton danger type="text" icon={<Trash2 size={14} />} onClick={handleDelete}>
+                      {intl.formatMessage({ id: 'pages.workflow.schedule.delete' })}
                     </YakButton>
                   ) : null}
                 </div>
@@ -689,10 +612,7 @@ export default function WorkflowScheduleConfigPage() {
 
             <aside className="hidden xl:block">
               <div className="sticky top-6">
-                <SectionNavigator
-                  activeKey={activeSection}
-                  onSelect={handleSectionLocate}
-                />
+                <SectionNavigator activeKey={activeSection} onSelect={handleSectionLocate} />
               </div>
             </aside>
           </div>
