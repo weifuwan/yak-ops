@@ -112,13 +112,17 @@ describe('realtime sync page utilities', () => {
       ),
     ).toEqual({
       disabled: true,
-      tooltip: '请先发布至少一个任务版本',
+      reason: 'NO_PUBLISHED_VERSION',
     });
     expect(
       getRealtimeStartAvailability(
         createJob(),
         createEnvironment({ enabled: false }),
-      ).disabled,
-    ).toBe(true);
+      ),
+    ).toEqual({
+      disabled: true,
+      reason: 'ENVIRONMENT_DISABLED',
+      environmentName: 'default-flink',
+    });
   });
 });
