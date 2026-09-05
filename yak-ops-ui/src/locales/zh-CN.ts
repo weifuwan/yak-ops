@@ -1,5 +1,6 @@
 import batchLinkUp from './zh-CN/batch-link-up';
 import component from './zh-CN/component';
+import dataService from './zh-CN/data-service';
 import dataSource from './zh-CN/data-source';
 import globalHeader from './zh-CN/globalHeader';
 import menu from './zh-CN/menu';
@@ -19,6 +20,7 @@ export default {
   ...pages,
   ...dataSource,
   ...batchLinkUp,
+  ...dataService,
   ...globalHeader,
   ...menu,
   ...settingDrawer,
