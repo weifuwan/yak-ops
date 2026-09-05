@@ -1,3 +1,5 @@
+import YakButton from '@/components/YakButton';
+import { useIntl } from '@umijs/max';
 import { Button, Input, Tooltip } from 'antd';
 import {
   BarChart3,
@@ -14,7 +16,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { DashboardPerformanceModal } from './performance-modal';
-import YakButton from '@/components/YakButton';
 
 export function DashboardToolbar({
   name,
@@ -67,6 +68,7 @@ export function DashboardToolbar({
   onSaveDraft: () => void;
   onPublish: () => void;
 }) {
+  const intl = useIntl();
   const [performanceOpen, setPerformanceOpen] = useState(false);
   const previewAnchorRef = useRef<HTMLDivElement>(null);
   const persisted = /^\d+$/.test(dashboardId);
@@ -74,11 +76,24 @@ export function DashboardToolbar({
   const busy = saving || publishing;
 
   const lifecycleText = (() => {
-    if (!persisted || !currentVersionNo) return '未保存';
-    if (hasPublishedVersion && !hasUnpublishedDraft) return `已发布 V${publishedVersionNo}`;
+    if (!persisted || !currentVersionNo) {
+      return intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.lifecycle.unsaved' });
+    }
+    if (hasPublishedVersion && !hasUnpublishedDraft) {
+      return intl.formatMessage(
+        { id: 'pages.dashboard.editor.toolbar.lifecycle.published' },
+        { version: publishedVersionNo },
+      );
+    }
     return hasPublishedVersion
-      ? `草稿 V${currentVersionNo} · 已发布 V${publishedVersionNo}`
-      : `草稿 V${currentVersionNo} · 未发布`;
+      ? intl.formatMessage(
+        { id: 'pages.dashboard.editor.toolbar.lifecycle.draftPublished' },
+        { draftVersion: currentVersionNo, publishedVersion: publishedVersionNo },
+      )
+      : intl.formatMessage(
+        { id: 'pages.dashboard.editor.toolbar.lifecycle.draftUnpublished' },
+        { version: currentVersionNo },
+      );
   })();
 
   useEffect(() => {
@@ -107,7 +122,7 @@ export function DashboardToolbar({
             icon={<X size={13} />}
             onClick={onPreview}
           >
-            退出预览
+            {intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.exitPreview' })}
           </Button>
         </div>
 
@@ -153,7 +168,7 @@ export function DashboardToolbar({
       <header className="shrink-0 border-b border-[#dce3ea] bg-[#eef3f8]">
         <div className="flex h-10 items-center justify-between border-b border-[#dce4ee] bg-[#eef3f8] px-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <Tooltip title="退出编辑器">
+            <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.exitEditor' })}>
               <Button
                 type="text"
                 className="!flex !h-7 !w-7 !min-w-0 !items-center !justify-center !rounded-[6px] !p-0 !text-[#526075] hover:!bg-[#e1e8f1] hover:!text-[#1f2a44]"
@@ -175,116 +190,126 @@ export function DashboardToolbar({
               {dirty ? (
                 <>
                   <span className="h-1 w-1 rounded-full bg-[#9ca9ba]" />
-                  <span className="text-[#526075]">有未保存修改</span>
+                  <span className="text-[#526075]">
+                    {intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.dirty' })}
+                  </span>
                 </>
               ) : null}
             </div>
           </div>
 
-          {!preview ? (
-            <div className="flex items-center gap-1.5">
-              <Tooltip title={saveDisabled ? '当前没有需要保存到草稿的修改' : '保存草稿 Ctrl/Cmd + S'}>
-                <span>
-                  <YakButton
+          <div className="flex items-center gap-1.5">
+            <Tooltip
+              title={intl.formatMessage({
+                id: saveDisabled
+                  ? 'pages.dashboard.editor.toolbar.noSaveNeeded'
+                  : 'pages.dashboard.editor.toolbar.saveHint',
+              })}
+            >
+              <span>
+                <YakButton
                   size="small"
-                    loading={saving}
-                    style={{background: "white"}}
-                    disabled={saveDisabled || publishing}
-                    icon={<Save size={12} />}
-                    onClick={onSaveDraft}
-                  >
-                    保存草稿
-                  </YakButton>
-                </span>
-              </Tooltip>
-              <Tooltip title={!canPublish ? '当前草稿已经是已发布版本' : undefined}>
-                <span>
-                  <YakButton
-                    size="small"
-                    type="primary"
-                    loading={publishing}
-                    disabled={!canPublish || saving}
-                    icon={<Send size={12} />}
-                    onClick={onPublish}
-                  >
-                    {hasPublishedVersion ? '发布更新' : '发布'}
-                  </YakButton>
-                </span>
-              </Tooltip>
-            </div>
-          ) : null}
+                  loading={saving}
+                  style={{ background: 'white' }}
+                  disabled={saveDisabled || publishing}
+                  icon={<Save size={12} />}
+                  onClick={onSaveDraft}
+                >
+                  {intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.saveDraft' })}
+                </YakButton>
+              </span>
+            </Tooltip>
+            <Tooltip
+              title={!canPublish
+                ? intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.publishedLatest' })
+                : undefined}
+            >
+              <span>
+                <YakButton
+                  size="small"
+                  type="primary"
+                  loading={publishing}
+                  disabled={!canPublish || saving}
+                  icon={<Send size={12} />}
+                  onClick={onPublish}
+                >
+                  {intl.formatMessage({
+                    id: hasPublishedVersion
+                      ? 'pages.dashboard.editor.toolbar.publishUpdate'
+                      : 'pages.dashboard.editor.toolbar.publish',
+                  })}
+                </YakButton>
+              </span>
+            </Tooltip>
+          </div>
         </div>
 
         <div className="flex h-8 items-center justify-between bg-white px-3">
           <div className="flex items-center gap-1">
-            {!preview ? (
-              <>
+            <>
+              <Button
+                type="text"
+                size="small"
+                className="!h-7 !rounded-[5px] !px-2 !text-[12px] !font-medium !text-[var(--yak-brand-color)] hover:!bg-[var(--yak-brand-color-soft)] hover:!text-[var(--yak-brand-color)]"
+                disabled={!canAddChart || busy}
+                icon={<BarChart3 size={13} />}
+                onClick={onAddChart}
+              >
+                {intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.addChart' })}
+              </Button>
+              <div className="mx-1 h-4 w-px bg-[#e1e5ea]" />
+              <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.undo' })}>
                 <Button
                   type="text"
-                  size="small"
-                  className="!h-7 !rounded-[5px] !px-2 !text-[12px] !font-medium !text-[var(--yak-brand-color)] hover:!bg-[var(--yak-brand-color-soft)] hover:!text-[var(--yak-brand-color)]"
-                  disabled={!canAddChart || busy}
-                  icon={<BarChart3 size={13} />}
-                  onClick={onAddChart}
-                >
-                  添加图表
-                </Button>
-                <div className="mx-1 h-4 w-px bg-[#e1e5ea]" />
-                <Tooltip title="撤销 Ctrl/Cmd + Z">
-                  <Button
-                    type="text"
-                    className="!h-7 !w-7 !min-w-0 !rounded-[5px] !p-0 !text-[#667085] hover:!bg-[#f3f5f7] hover:!text-[#161823]"
-                    icon={<Undo2 size={13} />}
-                    disabled={!canUndo || busy}
-                    onClick={onUndo}
-                  />
-                </Tooltip>
-                <Tooltip title="重做 Ctrl/Cmd + Shift + Z">
-                  <Button
-                    type="text"
-                    className="!h-7 !w-7 !min-w-0 !rounded-[5px] !p-0 !text-[#667085] hover:!bg-[#f3f5f7] hover:!text-[#161823]"
-                    icon={<Redo2 size={13} />}
-                    disabled={!canRedo || busy}
-                    onClick={onRedo}
-                  />
-                </Tooltip>
-              </>
-            ) : (
-              <span className="text-[12px] font-medium text-[#161823]">预览模式</span>
-            )}
+                  className="!h-7 !w-7 !min-w-0 !rounded-[5px] !p-0 !text-[#667085] hover:!bg-[#f3f5f7] hover:!text-[#161823]"
+                  icon={<Undo2 size={13} />}
+                  disabled={!canUndo || busy}
+                  onClick={onUndo}
+                />
+              </Tooltip>
+              <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.redo' })}>
+                <Button
+                  type="text"
+                  className="!h-7 !w-7 !min-w-0 !rounded-[5px] !p-0 !text-[#667085] hover:!bg-[#f3f5f7] hover:!text-[#161823]"
+                  icon={<Redo2 size={13} />}
+                  disabled={!canRedo || busy}
+                  onClick={onRedo}
+                />
+              </Tooltip>
+            </>
           </div>
 
           <div className="flex items-center gap-1">
-            {!preview ? (
-              <>
+            <Button
+              type="text"
+              size="small"
+              className="!h-7 !rounded-[5px] !px-2 !text-[12px] !font-medium !text-[#161823] hover:!bg-[#f3f5f7] hover:!text-[#161823]"
+              icon={<Palette size={13} />}
+              onClick={onDashboardStyle}
+            >
+              {intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.style' })}
+            </Button>
+            <Tooltip
+              title={persisted
+                ? undefined
+                : intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.performanceSaveFirst' })}
+            >
+              <span>
                 <Button
                   type="text"
                   size="small"
                   className="!h-7 !rounded-[5px] !px-2 !text-[12px] !font-medium !text-[#161823] hover:!bg-[#f3f5f7] hover:!text-[#161823]"
-                  icon={<Palette size={13} />}
-                  onClick={onDashboardStyle}
+                  icon={<Gauge size={13} />}
+                  disabled={!persisted}
+                  onClick={() => setPerformanceOpen(true)}
                 >
-                  仪表盘样式
+                  {intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.performance' })}
                 </Button>
-                <Tooltip title={persisted ? undefined : '请先保存仪表盘，再查看 Dataset 查询性能'}>
-                  <span>
-                    <Button
-                      type="text"
-                      size="small"
-                      className="!h-7 !rounded-[5px] !px-2 !text-[12px] !font-medium !text-[#161823] hover:!bg-[#f3f5f7] hover:!text-[#161823]"
-                      icon={<Gauge size={13} />}
-                      disabled={!persisted}
-                      onClick={() => setPerformanceOpen(true)}
-                    >
-                      性能分析
-                    </Button>
-                  </span>
-                </Tooltip>
-              </>
-            ) : null}
+              </span>
+            </Tooltip>
 
-            {persisted && currentVersionNo && !preview ? (
-              <Tooltip title="历史版本">
+            {persisted && currentVersionNo ? (
+              <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.history' })}>
                 <Button
                   type="text"
                   className="!flex !h-7 !w-7 !min-w-0 !items-center !justify-center !rounded-[5px] !p-0 !text-[#344054] hover:!bg-[#f3f5f7] hover:!text-[#161823]"
@@ -299,10 +324,10 @@ export function DashboardToolbar({
               size="small"
               className="!h-7 !rounded-[5px] !px-2 !text-[12px] !font-medium !text-[#161823] hover:!bg-[#f3f5f7] hover:!text-[#161823]"
               disabled={busy}
-              icon={preview ? <X size={13} /> : <Eye size={13} />}
+              icon={<Eye size={13} />}
               onClick={onPreview}
             >
-              {preview ? '退出预览' : '预览'}
+              {intl.formatMessage({ id: 'pages.dashboard.editor.toolbar.preview' })}
             </Button>
           </div>
         </div>
