@@ -104,10 +104,23 @@ export const isRealtimeStableRunning = (job: RealtimeJob) =>
 export const isRealtimeReconciliationState = (state: string) =>
   ['UNKNOWN', 'CONFLICT', 'STARTING', 'STOPPING'].includes(state);
 
+export type RealtimeStartUnavailableReason =
+  | 'ENVIRONMENT_DISABLED'
+  | 'NO_PUBLISHED_VERSION'
+  | 'ALREADY_RUNNING'
+  | 'DRAFT_NOT_PUBLISHED';
+
+export interface RealtimeStartAvailability {
+  disabled: boolean;
+  reason?: RealtimeStartUnavailableReason;
+  environmentName?: string;
+  publishedVersion?: number;
+}
+
 export const getRealtimeStartAvailability = (
   job: RealtimeJob,
   environment?: ComputeEnvironmentOption,
-) => {
+): RealtimeStartAvailability => {
   const running = job.desiredState === 'RUNNING';
   const hasPublishedVersion = job.publishedVersion != null;
   const currentDraftIsPublished =
@@ -119,22 +132,24 @@ export const getRealtimeStartAvailability = (
   if (environmentDisabled) {
     return {
       disabled: true,
-      tooltip: `运行环境“${environment?.name}”已停用，请先编辑任务切换环境并重新发布`,
+      reason: 'ENVIRONMENT_DISABLED',
+      environmentName: environment?.name,
     };
   }
   if (!hasPublishedVersion) {
-    return { disabled: true, tooltip: '请先发布至少一个任务版本' };
+    return { disabled: true, reason: 'NO_PUBLISHED_VERSION' };
   }
   if (running) {
-    return { disabled: true, tooltip: '任务已处于运行期望状态' };
+    return { disabled: true, reason: 'ALREADY_RUNNING' };
   }
   if (!currentDraftIsPublished) {
     return {
       disabled: false,
-      tooltip: `当前草稿尚未发布，将启动已发布版本 v${job.publishedVersion}`,
+      reason: 'DRAFT_NOT_PUBLISHED',
+      publishedVersion: job.publishedVersion,
     };
   }
-  return { disabled: false, tooltip: undefined };
+  return { disabled: false };
 };
 
 export const copyRealtimeText = async (value: string | number) => {
