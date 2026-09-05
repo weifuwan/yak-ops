@@ -1,5 +1,6 @@
 import batchLinkUp from './zh-CN/batch-link-up';
 import component from './zh-CN/component';
+import dataDevelopment from './zh-CN/data-development';
 import dataQuality from './zh-CN/data-quality';
 import dataService from './zh-CN/data-service';
 import dataSource from './zh-CN/data-source';
@@ -27,6 +28,7 @@ export default {
   ...realtimeSync,
   ...dataQuality,
   ...home,
+  ...dataDevelopment,
   ...globalHeader,
   ...menu,
   ...settingDrawer,
