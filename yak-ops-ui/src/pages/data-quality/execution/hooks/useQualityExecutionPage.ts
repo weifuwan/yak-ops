@@ -9,10 +9,11 @@ import {
   type RuleScope,
   type TriggerType,
 } from '@/services/data-quality';
+import { useIntl } from '@umijs/max';
 import { message } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ExecutionViewMode } from '../components/ExecutionRecordTable';
 
@@ -42,6 +43,10 @@ const defaultDateRange = (): [Dayjs, Dayjs] => [
 ];
 
 export const useQualityExecutionPage = (dataSourceId?: number) => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+
   const [executionRecords, setExecutionRecords] = useState<
     ExecutionWorkspaceListItem[]
   >([]);
@@ -114,7 +119,11 @@ export const useQualityExecutionPage = (dataSourceId?: number) => {
         }
       } catch (error) {
         message.error(
-          error instanceof Error ? error.message : '运行记录加载失败',
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({
+                id: 'pages.dataQuality.execution.loadFailed',
+              }),
         );
       } finally {
         setLoading(false);
