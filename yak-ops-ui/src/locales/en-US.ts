@@ -15,6 +15,7 @@ import settingDrawer from './en-US/settingDrawer';
 import settings from './en-US/settings';
 import workflow from './en-US/workflow';
 import workflowEditor from './en-US/workflow-editor';
+import workflowEditorRuntime from './en-US/workflow-editor-runtime';
 import workflowInstance from './en-US/workflow-instance';
 import workflowScheduleHistory from './en-US/workflow-schedule-history';
 
@@ -44,6 +45,7 @@ export default {
   ...dataDevelopmentEditor,
   ...workflow,
   ...workflowEditor,
+  ...workflowEditorRuntime,
   ...workflowInstance,
   ...workflowScheduleHistory,
 };
