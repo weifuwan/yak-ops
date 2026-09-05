@@ -1,9 +1,10 @@
 import { YakButton } from '@/components/ui';
 import type { DataSourceRecord } from '@/services/data-source';
+import { useIntl } from '@umijs/max';
 import { motion } from 'framer-motion';
 import { Clock3, Pencil, Trash2, Unplug } from 'lucide-react';
 
-import { environmentTagConfigMap, PAGE_ANIMATION } from '../constants';
+import { getEnvironmentTagConfigMap, PAGE_ANIMATION } from '../constants';
 import DatabaseIcons from '../icon/DatabaseIcons';
 import type { DataSourcePermissions, DataSourceViewMode } from '../types';
 import { dataSourceRecordKey } from '../types';
@@ -30,10 +31,14 @@ const DataSourceCard = ({
   onDelete,
   onTestConnection,
 }: DataSourceCardProps) => {
+  const intl = useIntl();
+  const environmentTagConfigMap = getEnvironmentTagConfigMap(intl);
   const environmentConfig = environmentTagConfigMap[
     record.environment || ''
   ] || {
-    text: record.environmentName || '未分类',
+    text:
+      record.environmentName ||
+      intl.formatMessage({ id: 'pages.datasource.environment.uncategorized' }),
     color: '#667085',
     backgroundColor: '#f2f4f7',
     icon: null,
@@ -79,7 +84,8 @@ const DataSourceCard = ({
                 title={record.name}
                 className="m-0 max-w-[260px] truncate text-[15px] font-semibold leading-[22px] text-[#292c35]"
               >
-                {record.name || '未命名数据源'}
+                {record.name ||
+                  intl.formatMessage({ id: 'pages.datasource.card.unnamed' })}
               </h3>
 
               <span
@@ -90,7 +96,7 @@ const DataSourceCard = ({
                 }}
               >
                 {environmentConfig.icon}
-                {record.environmentName || environmentConfig.text}
+                {environmentConfig.text}
               </span>
             </div>
 
@@ -98,7 +104,8 @@ const DataSourceCard = ({
               title={record.jdbcUrl}
               className="mb-0 mt-2 max-w-[460px] truncate rounded-[7px] bg-[#f7f8fa]/90 px-2 py-1 text-[11px] leading-[18px] text-[#858a94]"
             >
-              {record.jdbcUrl || '暂未配置连接地址'}
+              {record.jdbcUrl ||
+                intl.formatMessage({ id: 'pages.datasource.card.noJdbcUrl' })}
             </p>
           </div>
         </div>
@@ -110,7 +117,9 @@ const DataSourceCard = ({
                 type="text"
                 size="small"
                 iconOnly
-                title="测试连接"
+                title={intl.formatMessage({
+                  id: 'pages.datasource.card.testConnection',
+                })}
                 loading={testingId === currentId}
                 disabled={Boolean(testingId) && testingId !== currentId}
                 className="!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/90 !p-0 !text-[#7e838d] !shadow-[0_1px_3px_rgba(31,35,41,0.035)] hover:!text-[#4058c8]"
@@ -124,7 +133,7 @@ const DataSourceCard = ({
                 type="text"
                 size="small"
                 iconOnly
-                title="编辑数据源"
+                title={intl.formatMessage({ id: 'pages.datasource.card.edit' })}
                 loading={editingId === currentId}
                 disabled={Boolean(editingId) && editingId !== currentId}
                 className="!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/90 !p-0 !text-[#7e838d] !shadow-[0_1px_3px_rgba(31,35,41,0.035)] hover:!text-[#4058c8]"
@@ -139,7 +148,7 @@ const DataSourceCard = ({
                 size="small"
                 danger
                 iconOnly
-                title="删除数据源"
+                title={intl.formatMessage({ id: 'pages.datasource.card.delete' })}
                 className="!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/90 !p-0 !shadow-[0_1px_3px_rgba(31,35,41,0.035)]"
                 icon={<Trash2 size={14} strokeWidth={1.9} />}
                 onClick={() => onDelete(record)}
@@ -160,19 +169,25 @@ const DataSourceCard = ({
           .join(' ')}
       >
         <div className="flex min-w-0 flex-col gap-1.5 pr-3">
-          <span className="text-[10px] leading-4 text-[#a0a4ad]">连接状态</span>
+          <span className="text-[10px] leading-4 text-[#a0a4ad]">
+            {intl.formatMessage({ id: 'pages.datasource.card.connectionStatus' })}
+          </span>
           <DataSourceStatus status={record.connStatus} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5 border-l border-[#eff0f2] px-3">
-          <span className="text-[10px] leading-4 text-[#a0a4ad]">数据源类型</span>
+          <span className="text-[10px] leading-4 text-[#a0a4ad]">
+            {intl.formatMessage({ id: 'pages.datasource.card.type' })}
+          </span>
           <strong className="truncate text-[11px] font-semibold leading-[18px] text-[#5c616b]">
             {String(record.dbType || '-')}
           </strong>
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5 border-l border-[#eff0f2] pl-3">
-          <span className="text-[10px] leading-4 text-[#a0a4ad]">最近更新</span>
+          <span className="text-[10px] leading-4 text-[#a0a4ad]">
+            {intl.formatMessage({ id: 'pages.datasource.card.lastUpdated' })}
+          </span>
           <strong className="flex min-w-0 items-center gap-1.5 truncate text-[11px] font-medium leading-[18px] text-[#737882]">
             <Clock3 size={11} strokeWidth={1.8} className="shrink-0 text-[#9ca0a9]" />
             <span className="truncate">{record.updateTime || '-'}</span>

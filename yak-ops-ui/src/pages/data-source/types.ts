@@ -63,6 +63,7 @@ export interface DataSourceCatalogItem {
 }
 
 export interface DataSourceGroup {
+  groupKey?: string;
   groupName: string;
   datasourceList: DataSourceCatalogItem[];
 }

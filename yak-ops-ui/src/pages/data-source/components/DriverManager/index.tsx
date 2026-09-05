@@ -1,6 +1,7 @@
 import { YakButton } from '@/components/ui';
 import { uploadDataSourceDriver } from '@/services/data-source';
 import { UploadOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import { Input, message, Upload } from 'antd';
 import type { UploadProps } from 'antd';
 import { useMemo, useState } from 'react';
@@ -20,11 +21,15 @@ const DriverManager = ({
   dbType,
   value,
   onChange,
-  placeholder = '请输入驱动包路径，或上传 .jar 文件',
+  placeholder,
   disabled = false,
   maxSizeMB = DEFAULT_MAX_SIZE_MB,
 }: DriverManagerProps) => {
+  const intl = useIntl();
   const [uploading, setUploading] = useState(false);
+  const inputPlaceholder =
+    placeholder ||
+    intl.formatMessage({ id: 'pages.datasource.driver.placeholder' });
 
   const uploadProps = useMemo<UploadProps>(
     () => ({
@@ -34,12 +39,19 @@ const DriverManager = ({
       disabled: disabled || uploading,
       beforeUpload: (file) => {
         if (!file.name.toLowerCase().endsWith('.jar')) {
-          message.error('只允许上传 .jar 驱动包');
+          message.error(
+            intl.formatMessage({ id: 'pages.datasource.driver.jarOnly' }),
+          );
           return Upload.LIST_IGNORE;
         }
 
         if (file.size / 1024 / 1024 > maxSizeMB) {
-          message.error(`驱动包不能超过 ${maxSizeMB}MB`);
+          message.error(
+            intl.formatMessage(
+              { id: 'pages.datasource.driver.maxSize' },
+              { maxSizeMB },
+            ),
+          );
           return Upload.LIST_IGNORE;
         }
 
@@ -53,11 +65,19 @@ const DriverManager = ({
             file as File,
           );
           onChange?.(driverLocation);
-          message.success('驱动包上传成功');
+          message.success(
+            intl.formatMessage({ id: 'pages.datasource.driver.uploadSuccess' }),
+          );
           onSuccess?.({ driverLocation });
         } catch (error) {
           const uploadError =
-            error instanceof Error ? error : new Error('驱动包上传失败');
+            error instanceof Error
+              ? error
+              : new Error(
+                  intl.formatMessage({
+                    id: 'pages.datasource.driver.uploadFailed',
+                  }),
+                );
           message.error(uploadError.message);
           onError?.(uploadError);
         } finally {
@@ -65,7 +85,7 @@ const DriverManager = ({
         }
       },
     }),
-    [dbType, disabled, maxSizeMB, onChange, uploading],
+    [dbType, disabled, intl, maxSizeMB, onChange, uploading],
   );
 
   return (
@@ -76,7 +96,7 @@ const DriverManager = ({
           value={value}
           disabled={disabled}
           allowClear
-          placeholder={placeholder}
+          placeholder={inputPlaceholder}
           onChange={(event) => onChange?.(event.target.value)}
         />
 
@@ -87,13 +107,16 @@ const DriverManager = ({
             loading={uploading}
             disabled={disabled}
           >
-            上传驱动
+            {intl.formatMessage({ id: 'pages.datasource.driver.upload' })}
           </YakButton>
         </Upload>
       </div>
 
       <div className="mt-1.5 text-[11px] leading-4 text-[#98a2b3]">
-        支持 JAR 驱动包，单文件不超过 {maxSizeMB}MB；也可以直接填写已部署的驱动路径。
+        {intl.formatMessage(
+          { id: 'pages.datasource.driver.hint' },
+          { maxSizeMB },
+        )}
       </div>
     </div>
   );

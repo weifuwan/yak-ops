@@ -1,4 +1,5 @@
 import { YakButton } from '@/components/ui';
+import { useIntl } from '@umijs/max';
 
 const DataSourceEmptyIllustration = () => (
   <svg
@@ -113,26 +114,34 @@ const DataSourceEmptyState = ({
   canCreate,
   onReset,
   onCreate,
-}: DataSourceEmptyStateProps) => (
-  <div className="mt-1 flex min-h-[360px] items-center justify-center rounded-[10px] bg-[#fafafa]">
-    <div className="flex w-[340px] -translate-y-1 flex-col items-center">
-      <DataSourceEmptyIllustration />
-      <h3 className="mt-0.5 text-[14px] font-semibold leading-[22px] text-[#1c1f23]">
-        {filtered ? '没有找到符合条件的数据源' : '还没有创建数据源'}
-      </h3>
-      <div className="mt-3.5">
-        {filtered ? (
-          <YakButton size="small" onClick={onReset}>
-            重置筛选
-          </YakButton>
-        ) : canCreate ? (
-          <YakButton type="primary" size="small" onClick={onCreate}>
-            新建数据源
-          </YakButton>
-        ) : null}
+}: DataSourceEmptyStateProps) => {
+  const intl = useIntl();
+
+  return (
+    <div className="mt-1 flex min-h-[360px] items-center justify-center rounded-[10px] bg-[#fafafa]">
+      <div className="flex w-[340px] -translate-y-1 flex-col items-center">
+        <DataSourceEmptyIllustration />
+        <h3 className="mt-0.5 text-[14px] font-semibold leading-[22px] text-[#1c1f23]">
+          {intl.formatMessage({
+            id: filtered
+              ? 'pages.datasource.empty.filtered'
+              : 'pages.datasource.empty.default',
+          })}
+        </h3>
+        <div className="mt-3.5">
+          {filtered ? (
+            <YakButton size="small" onClick={onReset}>
+              {intl.formatMessage({ id: 'pages.datasource.empty.reset' })}
+            </YakButton>
+          ) : canCreate ? (
+            <YakButton type="primary" size="small" onClick={onCreate}>
+              {intl.formatMessage({ id: 'pages.datasource.empty.create' })}
+            </YakButton>
+          ) : null}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default DataSourceEmptyState;

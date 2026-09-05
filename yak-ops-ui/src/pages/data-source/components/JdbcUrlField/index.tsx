@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Form, Input, Tooltip } from 'antd';
 import type { FormInstance } from 'antd';
 import { Link2 } from 'lucide-react';
@@ -42,6 +43,7 @@ const JdbcUrlField = ({
   placeholder,
   disabled = false,
 }: JdbcUrlFieldProps) => {
+  const intl = useIntl();
   const hostPath = useMemo(
     () => toNamePath(linkage?.hostField, 'host'),
     [linkage?.hostField],
@@ -147,17 +149,16 @@ const JdbcUrlField = ({
         onChange={(event) => handleChange(event.target.value)}
         suffix={
           linkage?.template ? (
-            <Tooltip title="Host、Port、Database 与 JDBC URL 已启用双向联动">
+            <Tooltip
+              title={intl.formatMessage({
+                id: 'pages.datasource.jdbc.linkageTooltip',
+              })}
+            >
               <Link2 size={14} className="text-[#98a2b3]" />
             </Tooltip>
           ) : undefined
         }
       />
-      {/* {linkage?.template && (
-        <div className="mt-1 text-[11px] leading-4 text-[#98a2b3]">
-          修改主机、端口或数据库会自动生成 URL；修改可识别的 URL 会同步回填连接参数。
-        </div>
-      )} */}
     </div>
   );
 };
