@@ -1,3 +1,4 @@
+import batchLinkUp from './en-US/batch-link-up';
 import component from './en-US/component';
 import dataSource from './en-US/data-source';
 import globalHeader from './en-US/globalHeader';
@@ -24,4 +25,5 @@ export default {
   ...component,
   ...pages,
   ...dataSource,
+  ...batchLinkUp,
 };
