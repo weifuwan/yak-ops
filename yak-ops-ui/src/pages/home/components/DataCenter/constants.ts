@@ -5,18 +5,18 @@ import type {
 
 export const OVERVIEW_TABS: Array<{
   key: HomeDataCenterTabKey;
-  label: string;
+  messageId: string;
 }> = [
-  { key: 'overview', label: '运行总览' },
-  { key: 'recent', label: '近期任务' },
-  { key: 'schedule', label: '调度数据' },
+  { key: 'overview', messageId: 'pages.home.dataCenter.tab.overview' },
+  { key: 'recent', messageId: 'pages.home.dataCenter.tab.recent' },
+  { key: 'schedule', messageId: 'pages.home.dataCenter.tab.schedule' },
 ];
 
 export const PERIOD_OPTIONS: Array<{
   key: HomeDataCenterPeriodKey;
-  label: string;
+  messageId: string;
 }> = [
-  { key: 'yesterday', label: '昨天' },
-  { key: '7d', label: '近7日' },
-  { key: '30d', label: '近30日' },
+  { key: 'yesterday', messageId: 'pages.home.dataCenter.period.yesterday' },
+  { key: '7d', messageId: 'pages.home.dataCenter.period.7d' },
+  { key: '30d', messageId: 'pages.home.dataCenter.period.30d' },
 ];
