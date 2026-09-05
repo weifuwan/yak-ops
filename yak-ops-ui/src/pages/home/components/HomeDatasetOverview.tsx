@@ -1,4 +1,4 @@
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { Boxes, ChevronRight, Database, Table2 } from 'lucide-react';
 
 import {
@@ -10,27 +10,29 @@ import {
 } from './homeAssetOverviewShared';
 import type { HomeAssetDatasetItem } from './service';
 
-const datasetStatusLabel = (status?: string) => {
-  if (status?.toUpperCase() === 'ONLINE') return '已上线';
-  if (status?.toUpperCase() === 'OFFLINE') return '已下线';
-  return status || '状态未知';
-};
+function datasetStatusLabel(status: string | undefined, formatMessage: (id: string) => string) {
+  const normalized = status?.toUpperCase();
+  if (normalized === 'ONLINE') return formatMessage('pages.home.dataset.status.online');
+  if (normalized === 'OFFLINE') return formatMessage('pages.home.dataset.status.offline');
+  return status || formatMessage('pages.home.dataset.status.unknown');
+}
 
 function AssetOverviewColumn({ state }: { state: HomeAssetOverviewState }) {
+  const intl = useIntl();
   const dataset = state.data?.dataset;
   const metrics = [
     {
-      label: '数据集',
+      label: intl.formatMessage({ id: 'pages.home.dataset.metric.dataset' }),
       value: dataset?.datasetCount,
       icon: <Database size={17} strokeWidth={1.8} />,
     },
     {
-      label: '血缘表',
+      label: intl.formatMessage({ id: 'pages.home.dataset.metric.lineageTable' }),
       value: dataset?.tableAssetCount,
       icon: <Table2 size={17} strokeWidth={1.8} />,
     },
     {
-      label: '血缘字段',
+      label: intl.formatMessage({ id: 'pages.home.dataset.metric.lineageColumn' }),
       value: dataset?.columnAssetCount,
       icon: <Boxes size={17} strokeWidth={1.8} />,
     },
@@ -40,9 +42,11 @@ function AssetOverviewColumn({ state }: { state: HomeAssetOverviewState }) {
     <div className="min-w-0 lg:pr-6">
       <div className="flex items-center gap-3 border-b border-[#eef0f3] pb-3">
         <strong className="text-[13px] font-semibold text-[#343842]">
-          数据概览
+          {intl.formatMessage({ id: 'pages.home.dataset.overview' })}
         </strong>
-        <span className="text-[11px] text-[#9da1a9]">已纳入血缘</span>
+        <span className="text-[11px] text-[#9da1a9]">
+          {intl.formatMessage({ id: 'pages.home.dataset.inLineage' })}
+        </span>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -61,7 +65,7 @@ function AssetOverviewColumn({ state }: { state: HomeAssetOverviewState }) {
                 {item.label}
               </span>
               <strong className="mt-0.5 block text-[22px] font-semibold leading-7 tracking-[-0.6px] text-[#2f333c]">
-                {formatMetric(item.value)}
+                {formatMetric(item.value, intl.locale)}
               </strong>
             </span>
             <ChevronRight
@@ -75,16 +79,22 @@ function AssetOverviewColumn({ state }: { state: HomeAssetOverviewState }) {
 
       <div className="mt-5 rounded-[10px] bg-[#f7f8fa] px-3 py-3">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-[#8e939c]">今日新增</span>
+          <span className="text-[11px] text-[#8e939c]">
+            {intl.formatMessage({ id: 'pages.home.dataset.todayCreated' })}
+          </span>
           <span className="text-[10px] text-[#a0a4ac]">
-            {state.failed ? '加载失败' : '实时统计'}
+            {state.failed
+              ? intl.formatMessage({ id: 'pages.home.common.loadFailed' })
+              : intl.formatMessage({ id: 'pages.home.dataset.realtimeStats' })}
           </span>
         </div>
         <div className="mt-1 flex items-baseline gap-2">
           <strong className="text-[18px] font-semibold text-[#343842]">
-            {formatMetric(dataset?.todayCreatedCount)}
+            {formatMetric(dataset?.todayCreatedCount, intl.locale)}
           </strong>
-          <span className="text-[10px] text-[#a0a4ac]">个数据集</span>
+          <span className="text-[10px] text-[#a0a4ac]">
+            {intl.formatMessage({ id: 'pages.home.dataset.unit' })}
+          </span>
         </div>
       </div>
     </div>
@@ -92,6 +102,7 @@ function AssetOverviewColumn({ state }: { state: HomeAssetOverviewState }) {
 }
 
 function DatasetRow({ item }: { item: HomeAssetDatasetItem }) {
+  const intl = useIntl();
   return (
     <button
       type="button"
@@ -106,25 +117,28 @@ function DatasetRow({ item }: { item: HomeAssetDatasetItem }) {
           {item.name}
         </strong>
         <span className="mt-0.5 block truncate text-[10px] leading-4 text-[#9ca0a8]">
-          {datasetStatusLabel(item.status)} · #{item.id}
+          {datasetStatusLabel(item.status, (id) => intl.formatMessage({ id }))} · #{item.id}
         </span>
       </span>
       <span className="shrink-0 text-[10px] text-[#a0a4ac]">
-        {relativeTime(item.updatedAt)}
+        {relativeTime(item.updatedAt, intl.locale)}
       </span>
     </button>
   );
 }
 
 function RecentDatasetColumn({ state }: { state: HomeAssetOverviewState }) {
+  const intl = useIntl();
   const items = state.data?.dataset?.recentDatasets || [];
   return (
     <div className="min-w-0 border-t border-[#eef0f3] py-5 lg:border-l lg:border-t-0 lg:px-6 lg:py-0">
       <div className="flex items-center gap-3 border-b border-[#eef0f3] pb-3">
         <strong className="text-[13px] font-semibold text-[#343842]">
-          最近更新
+          {intl.formatMessage({ id: 'pages.home.dataset.recentUpdated' })}
         </strong>
-        <span className="text-[11px] text-[#9da1a9]">按更新时间</span>
+        <span className="text-[11px] text-[#9da1a9]">
+          {intl.formatMessage({ id: 'pages.home.dataset.byUpdatedAt' })}
+        </span>
       </div>
 
       {items.length > 0 ? (
@@ -138,7 +152,7 @@ function RecentDatasetColumn({ state }: { state: HomeAssetOverviewState }) {
           loading={state.loading}
           failed={state.failed}
           unavailable={state.data?.dataset?.datasetCount == null}
-          text="暂无数据集"
+          text={intl.formatMessage({ id: 'pages.home.dataset.empty' })}
           icon={Table2}
         />
       )}
@@ -147,14 +161,17 @@ function RecentDatasetColumn({ state }: { state: HomeAssetOverviewState }) {
 }
 
 function OnlineDatasetColumn({ state }: { state: HomeAssetOverviewState }) {
+  const intl = useIntl();
   const items = state.data?.dataset?.onlineDatasets || [];
   return (
     <div className="min-w-0 border-t border-[#eef0f3] pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
       <div className="flex items-center gap-3 border-b border-[#eef0f3] pb-3">
         <strong className="text-[13px] font-semibold text-[#343842]">
-          已上线数据集
+          {intl.formatMessage({ id: 'pages.home.dataset.onlineTitle' })}
         </strong>
-        <span className="text-[11px] text-[#9da1a9]">按更新时间</span>
+        <span className="text-[11px] text-[#9da1a9]">
+          {intl.formatMessage({ id: 'pages.home.dataset.byUpdatedAt' })}
+        </span>
       </div>
 
       {items.length > 0 ? (
@@ -184,7 +201,7 @@ function OnlineDatasetColumn({ state }: { state: HomeAssetOverviewState }) {
                   {item.name}
                 </span>
                 <span className="shrink-0 text-[10px] text-[#999da5]">
-                  {relativeTime(item.updatedAt)}
+                  {relativeTime(item.updatedAt, intl.locale)}
                 </span>
               </button>
             );
@@ -195,7 +212,7 @@ function OnlineDatasetColumn({ state }: { state: HomeAssetOverviewState }) {
           loading={state.loading}
           failed={state.failed}
           unavailable={state.data?.dataset?.datasetCount == null}
-          text="暂无上线数据集"
+          text={intl.formatMessage({ id: 'pages.home.dataset.emptyOnline' })}
           icon={Database}
         />
       )}
@@ -205,7 +222,7 @@ function OnlineDatasetColumn({ state }: { state: HomeAssetOverviewState }) {
         onClick={() => history.push('/data-analysis/data-catalog')}
         className="mx-auto mt-3 flex items-center gap-0.5 border-0 bg-transparent px-3 py-1 text-[11px] text-[#868b94] transition-colors hover:text-[#343842]"
       >
-        查看全部
+        {intl.formatMessage({ id: 'pages.home.common.viewAll' })}
         <ChevronRight size={12} strokeWidth={1.8} />
       </button>
     </div>
@@ -213,10 +230,11 @@ function OnlineDatasetColumn({ state }: { state: HomeAssetOverviewState }) {
 }
 
 export function DatasetOverview({ state }: { state: HomeAssetOverviewState }) {
+  const intl = useIntl();
   return (
     <section className="rounded-[22px] border border-[#f0f1f3] bg-white px-6 pb-6 pt-5">
       <SectionHeader
-        title="数据集"
+        title={intl.formatMessage({ id: 'pages.home.dataset.title' })}
         description=""
         onMore={() => history.push('/data-analysis/data-catalog')}
       />

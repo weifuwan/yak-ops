@@ -1,5 +1,5 @@
 import type { HomeCockpitHeaderStats } from '@/services/home';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { ChevronRight, Database } from 'lucide-react';
 
 interface ProfileStatProps {
@@ -34,6 +34,7 @@ function ProfileStat({ label, value, arrow = false, onClick }: ProfileStatProps)
 }
 
 export function HomeHeader({ stats }: HomeHeaderProps) {
+  const intl = useIntl();
   const dataSourceCount = stats?.dataSourceCount ?? '--';
   const runningCount = stats?.runningCount ?? '--';
 
@@ -51,23 +52,23 @@ export function HomeHeader({ stats }: HomeHeaderProps) {
             </span>
             <span className="mx-3 h-[14px] w-px shrink-0 bg-black/[0.14]" />
             <span className="whitespace-nowrap text-sm font-normal leading-[22px] text-[#777b84]">
-              Data Operations Platform
+              {intl.formatMessage({ id: 'pages.home.header.tagline' })}
             </span>
             <span className="mx-3 h-[14px] w-px shrink-0 bg-black/[0.14]" />
             <span className="whitespace-nowrap text-sm font-normal leading-[22px] text-[#777b84]">
-              让数据接入、开发、编排、质量与消费变得更简单
+              {intl.formatMessage({ id: 'pages.home.header.description' })}
             </span>
           </div>
 
           <div className="mt-2.5 flex items-center gap-[27px]">
             <ProfileStat
-              label="数据源"
+              label={intl.formatMessage({ id: 'pages.home.header.dataSources' })}
               value={dataSourceCount}
               arrow
               onClick={() => history.push('/data-source')}
             />
             <ProfileStat
-              label="运行中"
+              label={intl.formatMessage({ id: 'pages.home.header.running' })}
               value={runningCount}
               arrow
               onClick={() => history.push('/data-development/executions')}

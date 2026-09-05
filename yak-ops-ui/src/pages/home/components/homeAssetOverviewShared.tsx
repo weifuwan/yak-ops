@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronRight } from 'lucide-react';
 
@@ -15,41 +16,66 @@ interface SectionHeaderProps {
   onMore?: () => void;
 }
 
-const COUNT_FORMATTER = new Intl.NumberFormat('zh-CN');
-
-export const formatMetric = (value?: number | null) =>
-  value == null ? '--' : COUNT_FORMATTER.format(value);
+export const formatMetric = (value?: number | null, locale = 'zh-CN') =>
+  value == null ? '--' : new Intl.NumberFormat(locale).format(value);
 
 export const compactName = (value: string) =>
   value.length > 16 ? `${value.slice(0, 13)}...` : value;
 
-export const relativeTime = (value?: string | null) => {
+export const relativeTime = (value?: string | null, locale = 'zh-CN') => {
   if (!value) return '--';
   const timestamp = new Date(value).getTime();
   if (!Number.isFinite(timestamp)) return value;
 
   const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
-  if (minutes < 1) return '刚刚';
-  if (minutes < 60) return `${minutes} 分钟前`;
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  if (minutes < 1) return formatter.format(0, 'minute');
+  if (minutes < 60) return formatter.format(-minutes, 'minute');
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} 小时前`;
+  if (hours < 24) return formatter.format(-hours, 'hour');
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} 天前`;
-  return new Date(timestamp).toLocaleDateString('zh-CN', {
+  if (days < 7) return formatter.format(-days, 'day');
+  return new Date(timestamp).toLocaleDateString(locale, {
     month: '2-digit',
     day: '2-digit',
   });
 };
 
-export const relationTypeLabel = (relationType?: string) => {
-  const labels: Record<string, string> = {
-    READS_FROM: '读取',
-    WRITES_TO: '写入',
-    DERIVES_FROM: '派生',
-    CONSUMES: '消费',
-    CONTAINS: '包含',
+export type HomeLineageRelationKey =
+  | 'reads'
+  | 'writes'
+  | 'derives'
+  | 'consumes'
+  | 'contains'
+  | 'default';
+
+const relationTypeKey = (relationType?: string): HomeLineageRelationKey => {
+  const keys: Record<string, HomeLineageRelationKey> = {
+    READS_FROM: 'reads',
+    WRITES_TO: 'writes',
+    DERIVES_FROM: 'derives',
+    CONSUMES: 'consumes',
+    CONTAINS: 'contains',
   };
-  return labels[relationType?.toUpperCase() || ''] || relationType || '关系';
+  return keys[relationType?.toUpperCase() || ''] || 'default';
+};
+
+const DEFAULT_RELATION_LABELS: Record<HomeLineageRelationKey, string> = {
+  reads: '读取',
+  writes: '写入',
+  derives: '派生',
+  consumes: '消费',
+  contains: '包含',
+  default: '关系',
+};
+
+export const relationTypeLabel = (
+  relationType?: string,
+  resolve?: (key: HomeLineageRelationKey) => string,
+) => {
+  const key = relationTypeKey(relationType);
+  if (key === 'default' && relationType) return relationType;
+  return resolve?.(key) ?? DEFAULT_RELATION_LABELS[key];
 };
 
 export const assetTypeColor = (assetType?: string) => {
@@ -70,6 +96,7 @@ export function SectionHeader({
   description,
   onMore,
 }: SectionHeaderProps) {
+  const intl = useIntl();
   return (
     <header className="flex items-start justify-between gap-4">
       <div className="min-w-0">
@@ -89,7 +116,7 @@ export function SectionHeader({
           onClick={onMore}
           className="mt-0.5 flex shrink-0 items-center gap-0.5 border-0 bg-transparent p-0 text-[12px] text-[#747982] transition-colors hover:text-[#252832]"
         >
-          查看更多
+          {intl.formatMessage({ id: 'pages.home.common.viewMore' })}
           <ChevronRight size={14} strokeWidth={1.8} />
         </button>
       ) : null}
@@ -110,10 +137,17 @@ export function EmptyList({
   text: string;
   icon: LucideIcon;
 }) {
+  const intl = useIntl();
   if (loading || failed || unavailable) {
     return (
       <div className="flex min-h-[214px] items-center justify-center text-[11px] text-[#a0a4ac]">
-        {loading ? '数据加载中...' : failed ? '数据加载失败' : '数据暂不可用'}
+        {intl.formatMessage({
+          id: loading
+            ? 'pages.home.common.loading'
+            : failed
+              ? 'pages.home.common.loadFailed'
+              : 'pages.home.common.unavailable',
+        })}
       </div>
     );
   }

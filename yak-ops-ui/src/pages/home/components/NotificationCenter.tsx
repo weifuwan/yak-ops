@@ -6,7 +6,7 @@ import {
   safeMessageActionPath,
   type SecurityMessage,
 } from '@/services/security/messages';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { Bell, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -60,6 +60,7 @@ function NotificationRow({
 }
 
 export default function NotificationCenter() {
+  const intl = useIntl();
   const { projects, currentProject } = useSecurityProject();
   const [state, setState] = useState<NotificationState>({
     items: [],
@@ -71,8 +72,6 @@ export default function NotificationCenter() {
   useEffect(() => {
     let active = true;
 
-    // SecurityProjectProvider resolves the persisted/default workspace in a layout
-    // effect. Avoid issuing an unscoped request while that selection is pending.
     if (projects.length > 0 && !currentProject) {
       setState({ items: [], unreadTotal: 0, loading: true, failed: false });
       return () => {
@@ -82,10 +81,6 @@ export default function NotificationCenter() {
 
     setState({ items: [], unreadTotal: 0, loading: true, failed: false });
 
-    // Homepage notifications are attention-oriented: only unread messages are shown.
-    // With yak-framework #113, omitting projectId for a user without workspaces is
-    // fail-closed to SYSTEM messages; with an active workspace the backend returns
-    // SYSTEM + that PROJECT.
     pageMessages({
       pageNum: 1,
       pageSize: 3,
@@ -129,7 +124,7 @@ export default function NotificationCenter() {
       <header className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="text-xl font-semibold tracking-[-0.35px] text-[#252832]">
-            通知
+            {intl.formatMessage({ id: 'pages.home.notification.title' })}
           </h2>
           {state.unreadTotal > 0 ? (
             <span className="rounded-full bg-[#fff0f2] px-2 py-0.5 text-[10px] font-medium text-[#e33f5c]">
@@ -143,7 +138,7 @@ export default function NotificationCenter() {
           onClick={() => history.push('/system/messages')}
           className="flex shrink-0 items-center gap-0.5 border-0 bg-transparent p-0 text-[12px] text-[#666b75] transition-colors hover:text-[#252832]"
         >
-          查看更多
+          {intl.formatMessage({ id: 'pages.home.common.viewMore' })}
           <ChevronRight size={14} strokeWidth={1.8} />
         </button>
       </header>
@@ -157,12 +152,16 @@ export default function NotificationCenter() {
           </div>
         ) : state.loading || state.failed ? (
           <div className="flex min-h-[126px] items-center justify-center text-[11px] text-[#9da1a8]">
-            {state.loading ? '通知加载中...' : '通知加载失败'}
+            {intl.formatMessage({
+              id: state.loading
+                ? 'pages.home.notification.loading'
+                : 'pages.home.notification.failed',
+            })}
           </div>
         ) : (
           <HomeEmptyState
             icon={Bell}
-            title="暂无未读通知"
+            title={intl.formatMessage({ id: 'pages.home.notification.empty' })}
             size="small"
             className="min-h-[126px]"
           />

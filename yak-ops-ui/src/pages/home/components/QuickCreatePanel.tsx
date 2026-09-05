@@ -1,4 +1,4 @@
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import {
   ArrowRightLeft,
   Braces,
@@ -12,34 +12,24 @@ type CardTheme = 'offline' | 'realtime' | 'development' | 'workflow';
 
 interface QuickCreateItem {
   key: CardTheme;
-  title: string;
-  description: string;
   icon: ReactNode;
 }
 
 const QUICK_CREATE_ITEMS: QuickCreateItem[] = [
   {
     key: 'offline',
-    title: '离线同步',
-    description: '创建批量与定时离线同步任务',
     icon: <ArrowRightLeft size={18} strokeWidth={2.1} />,
   },
   {
     key: 'realtime',
-    title: '实时同步',
-    description: '创建持续运行的实时同步任务',
     icon: <RadioTower size={18} strokeWidth={2.1} />,
   },
   {
     key: 'development',
-    title: '数据开发',
-    description: '创建 SQL、Shell、Python 等开发节点',
     icon: <Braces size={18} strokeWidth={2.1} />,
   },
   {
     key: 'workflow',
-    title: '工作流',
-    description: '创建并编排任务工作流与调度',
     icon: <Workflow size={18} strokeWidth={2.1} />,
   },
 ];
@@ -94,7 +84,15 @@ function LayeredIcon({ theme, icon }: { theme: CardTheme; icon: ReactNode }) {
 }
 
 function QuickCreateCard({ item }: { item: QuickCreateItem }) {
+  const intl = useIntl();
   const styles = THEME_STYLES[item.key];
+  const title = intl.formatMessage({
+    id: `pages.home.quickCreate.${item.key}.title`,
+  });
+  const description = intl.formatMessage({
+    id: `pages.home.quickCreate.${item.key}.description`,
+  });
+
   return (
     <button
       type="button"
@@ -111,10 +109,10 @@ function QuickCreateCard({ item }: { item: QuickCreateItem }) {
       </div>
       <div className="relative z-[2] ml-2 min-w-0 flex-1">
         <div className="truncate text-[15px] font-semibold leading-[22px] text-[#292c35]">
-          {item.title}
+          {title}
         </div>
         <div className="mt-0.5 flex min-w-0 items-center text-[13px] font-normal leading-5 text-[#9498a1]">
-          <span className="min-w-0 truncate">{item.description}</span>
+          <span className="min-w-0 truncate">{description}</span>
           <ChevronRight
             size={13}
             strokeWidth={1.8}
@@ -127,10 +125,12 @@ function QuickCreateCard({ item }: { item: QuickCreateItem }) {
 }
 
 export function QuickCreatePanel() {
+  const intl = useIntl();
+
   return (
     <section className="rounded-[22px] border border-[#f1f1f1] bg-white/[0.74] px-[22px] pb-6 pt-6 backdrop-blur-[8px]">
       <h2 className="mb-5 text-xl font-semibold leading-7 tracking-[-0.35px] text-[#252832]">
-        快速创建
+        {intl.formatMessage({ id: 'pages.home.quickCreate.title' })}
       </h2>
       <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 min-[1280px]:grid-cols-4">
         {QUICK_CREATE_ITEMS.map((item) => (

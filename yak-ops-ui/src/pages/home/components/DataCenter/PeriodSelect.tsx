@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Check, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -10,6 +11,7 @@ interface PeriodSelectProps {
 }
 
 export function PeriodSelect({ value, onChange }: PeriodSelectProps) {
+  const intl = useIntl();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const current = PERIOD_OPTIONS.find((option) => option.key === value)!;
@@ -40,10 +42,12 @@ export function PeriodSelect({ value, onChange }: PeriodSelectProps) {
           }
         `}
       >
-        <span className="pr-2 text-[#727781]">时间</span>
+        <span className="pr-2 text-[#727781]">
+          {intl.formatMessage({ id: 'pages.home.dataCenter.period.time' })}
+        </span>
         <span className="mr-1.5 h-[12px] w-px bg-[#dcdfe4]" />
         <span className="min-w-[34px] text-left font-medium text-[#4d525c]">
-          {current.label}
+          {intl.formatMessage({ id: current.messageId })}
         </span>
         <ChevronDown
           size={13}
@@ -53,7 +57,7 @@ export function PeriodSelect({ value, onChange }: PeriodSelectProps) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[31px] z-30 w-[116px] overflow-hidden rounded-[8px] border border-[#eceef2] bg-white py-1 shadow-[0_8px_22px_rgba(31,35,41,0.10)]">
+        <div className="absolute right-0 top-[31px] z-30 w-[140px] overflow-hidden rounded-[8px] border border-[#eceef2] bg-white py-1 shadow-[0_8px_22px_rgba(31,35,41,0.10)]">
           {PERIOD_OPTIONS.map((option) => {
             const selected = option.key === value;
             return (
@@ -69,7 +73,7 @@ export function PeriodSelect({ value, onChange }: PeriodSelectProps) {
                 <span className="flex w-5 items-center">
                   {selected && <Check size={14} strokeWidth={2} />}
                 </span>
-                {option.label}
+                {intl.formatMessage({ id: option.messageId })}
               </button>
             );
           })}

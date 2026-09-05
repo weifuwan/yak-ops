@@ -34,6 +34,10 @@ jest.mock('@/services/security/messages', () => ({
 
 jest.mock('@umijs/max', () => ({
   history: { push: mockHistoryPush },
+  useIntl: () => ({
+    locale: 'zh-CN',
+    formatMessage: ({ id }: { id: string }) => id,
+  }),
 }));
 
 describe('home NotificationCenter', () => {
