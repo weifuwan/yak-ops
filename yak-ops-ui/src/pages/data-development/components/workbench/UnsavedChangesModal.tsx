@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Button, Modal } from 'antd';
 import { TriangleAlert } from 'lucide-react';
 
@@ -18,8 +19,9 @@ const UnsavedChangesModal = ({
   onDiscard,
   onCancel,
 }: UnsavedChangesModalProps) => {
+  const intl = useIntl();
   const dirtyCount = dirtyNames.length;
-  const dirtyName = dirtyNames[0] || '当前编辑器';
+  const dirtyName = dirtyNames[0] || intl.formatMessage({ id: 'pages.dataDevelopment.unsaved.current' });
 
   return (
     <Modal
@@ -41,38 +43,54 @@ const UnsavedChangesModal = ({
 
         <div className="min-w-0 flex-1 pt-1">
           <div className="text-[16px] font-medium leading-6 text-[#1f2937]">
-            {dirtyCount <= 1 ? (
-              <>
-                是否要保存对 <span className="font-semibold">{dirtyName}</span>{' '}
-                的更改？
-              </>
-            ) : (
-              <>是否要保存 {dirtyCount} 个已修改编辑器的更改？</>
+            {intl.formatMessage(
+              {
+                id:
+                  dirtyCount <= 1
+                    ? 'pages.dataDevelopment.unsaved.singleTitle'
+                    : 'pages.dataDevelopment.unsaved.multipleTitle',
+              },
+              dirtyCount <= 1 ? { name: dirtyName } : { count: dirtyCount },
             )}
           </div>
 
           <div className="mt-4 text-[13px] leading-5 text-[#475467]">
-            如果不保存，{dirtyCount <= 1 ? '你的更改' : '这些更改'}将丢失。
+            {intl.formatMessage({
+              id:
+                dirtyCount <= 1
+                  ? 'pages.dataDevelopment.unsaved.singleHint'
+                  : 'pages.dataDevelopment.unsaved.multipleHint',
+            })}
           </div>
 
           {dirtyCount > 1 ? (
             <div
               className="mt-2 max-w-[360px] truncate text-[12px] text-[#98a2b3]"
-              title={dirtyNames.join('、')}
+              title={dirtyNames.join(' · ')}
             >
-              {dirtyNames.join('、')}
+              {dirtyNames.join(' · ')}
             </div>
           ) : null}
 
           <div className="mt-6 flex justify-end gap-2">
             <Button type="primary" loading={saving} onClick={() => void onSave()}>
-              {dirtyCount > 1 ? '保存全部' : '保存'}
+              {intl.formatMessage({
+                id:
+                  dirtyCount > 1
+                    ? 'pages.dataDevelopment.unsaved.saveAll'
+                    : 'pages.dataDevelopment.unsaved.save',
+              })}
             </Button>
             <Button disabled={saving} onClick={() => void onDiscard()}>
-              {dirtyCount > 1 ? '全部不保存' : '不保存'}
+              {intl.formatMessage({
+                id:
+                  dirtyCount > 1
+                    ? 'pages.dataDevelopment.unsaved.discardAll'
+                    : 'pages.dataDevelopment.unsaved.discard',
+              })}
             </Button>
             <Button disabled={saving} onClick={onCancel}>
-              取消
+              {intl.formatMessage({ id: 'pages.dataDevelopment.common.cancel' })}
             </Button>
           </div>
         </div>
