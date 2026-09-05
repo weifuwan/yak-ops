@@ -5,9 +5,9 @@ import {
   type ComputeEnvironmentOption,
 } from '@/services/realtime-sync';
 import { CodeOutlined, CompassOutlined } from '@ant-design/icons';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { Drawer, Form, Input, message, Select, Spin } from 'antd';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import type { RealtimeEditorMode } from '../realtimeEditorMode';
 import { preferredRealtimeEnvironmentId } from '../utils';
@@ -18,56 +18,59 @@ interface CreateRealtimeTaskValues {
   runtimeEnvironmentId: number;
 }
 
-const editorModes: Array<{
-  value: RealtimeEditorMode;
-  title: string;
-  description: string;
-  badge?: string;
-  icon: ReactNode;
-}> = [
-  {
-    value: 'wizard',
-    title: '向导模式',
-    description:
-      '通过选择数据源、数据表和同步方式快速创建任务，适合大多数同步场景。',
-    badge: '推荐',
-    icon: <CompassOutlined />,
-  },
-  {
-    value: 'yaml',
-    title: 'YAML 模式',
-    description:
-      '使用 YAML 描述同步任务，为高级配置和复杂同步规则保留完整扩展能力。',
-    icon: <CodeOutlined />,
-  },
-];
-
 interface CreateRealtimeTaskDrawerProps {
   open: boolean;
   onClose: () => void;
 }
 
-const CreateRealtimeTaskDrawer = ({
-  open,
-  onClose,
-}: CreateRealtimeTaskDrawerProps) => {
+const CreateRealtimeTaskDrawer = ({ open, onClose }: CreateRealtimeTaskDrawerProps) => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const [form] = Form.useForm<CreateRealtimeTaskValues>();
-  const [editorMode, setEditorMode] =
-    useState<RealtimeEditorMode>('wizard');
+  const [editorMode, setEditorMode] = useState<RealtimeEditorMode>('wizard');
   const [submitting, setSubmitting] = useState(false);
   const [environmentLoading, setEnvironmentLoading] = useState(false);
-  const [environments, setEnvironments] = useState<ComputeEnvironmentOption[]>(
-    [],
-  );
+  const [environments, setEnvironments] = useState<ComputeEnvironmentOption[]>([]);
+
+  const editorModes: Array<{
+    value: RealtimeEditorMode;
+    title: string;
+    description: string;
+    badge?: string;
+    icon: ReactNode;
+  }> = [
+    {
+      value: 'wizard',
+      title: intl.formatMessage({ id: 'pages.realtimeSync.create.wizard' }),
+      description: intl.formatMessage({ id: 'pages.realtimeSync.create.wizardDescription' }),
+      badge: intl.formatMessage({ id: 'pages.realtimeSync.create.recommended' }),
+      icon: <CompassOutlined />,
+    },
+    {
+      value: 'yaml',
+      title: intl.formatMessage({ id: 'pages.realtimeSync.create.yaml' }),
+      description: intl.formatMessage({ id: 'pages.realtimeSync.create.yamlDescription' }),
+      icon: <CodeOutlined />,
+    },
+  ];
 
   const environmentOptions = useMemo(
     () =>
       environments.map((environment) => ({
         value: environment.id,
         disabled: !environment.enabled,
-        label: `${environment.name}${environment.defaultEnvironment ? ' · 默认' : ''} · Flink ${environment.config.flinkVersion} / CDC ${environment.config.flinkCdcVersion}${environment.enabled ? '' : ' · 已停用'}`,
+        label: `${environment.name}${
+          environment.defaultEnvironment
+            ? ` · ${intl.formatMessage({ id: 'pages.realtimeSync.create.environmentDefault' })}`
+            : ''
+        } · Flink ${environment.config.flinkVersion} / CDC ${environment.config.flinkCdcVersion}${
+          environment.enabled
+            ? ''
+            : ` · ${intl.formatMessage({ id: 'pages.realtimeSync.create.environmentDisabled' })}`
+        }`,
       })),
-    [environments],
+    [environments, intl],
   );
 
   useEffect(() => {
@@ -83,14 +86,16 @@ const CreateRealtimeTaskDrawer = ({
         if (!active) return;
         setEnvironments(rows || []);
         const defaultId = preferredRealtimeEnvironmentId(rows || []);
-        if (defaultId) {
-          form.setFieldValue('runtimeEnvironmentId', defaultId);
-        }
+        if (defaultId) form.setFieldValue('runtimeEnvironmentId', defaultId);
       } catch (error) {
         if (active) {
           setEnvironments([]);
           message.error(
-            error instanceof Error ? error.message : '运行环境加载失败',
+            error instanceof Error
+              ? error.message
+              : intlRef.current.formatMessage({
+                  id: 'pages.realtimeSync.create.environmentLoadFailed',
+                }),
           );
         }
       } finally {
@@ -116,7 +121,9 @@ const CreateRealtimeTaskDrawer = ({
         (item) => item.id === Number(values.runtimeEnvironmentId),
       );
       if (!environment || !environment.enabled) {
-        message.error('请选择已启用的运行环境');
+        message.error(
+          intl.formatMessage({ id: 'pages.realtimeSync.create.enabledEnvironmentRequired' }),
+        );
         return;
       }
 
@@ -127,15 +134,15 @@ const CreateRealtimeTaskDrawer = ({
         runtimeEnvironmentId: Number(values.runtimeEnvironmentId),
       });
 
-      message.success('基础任务已创建，请继续完成同步配置');
+      message.success(intl.formatMessage({ id: 'pages.realtimeSync.create.success' }));
       form.resetFields();
-      history.push(
-        `/sync/realtime/${taskId}/detail?scene=create&editor=${editorMode}`,
-      );
+      history.push(`/sync/realtime/${taskId}/detail?scene=create&editor=${editorMode}`);
     } catch (error) {
       if (error && typeof error === 'object' && 'errorFields' in error) return;
       message.error(
-        error instanceof Error ? error.message : '创建实时同步任务失败',
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: 'pages.realtimeSync.create.failed' }),
       );
     } finally {
       setSubmitting(false);
@@ -144,7 +151,7 @@ const CreateRealtimeTaskDrawer = ({
 
   return (
     <Drawer
-      title="新建实时同步任务"
+      title={intl.formatMessage({ id: 'pages.realtimeSync.create.title' })}
       width={680}
       open={open}
       closable={false}
@@ -154,7 +161,7 @@ const CreateRealtimeTaskDrawer = ({
       extra={
         <div className="flex gap-2">
           <YakButton disabled={submitting} onClick={handleClose}>
-            取消
+            {intl.formatMessage({ id: 'pages.realtimeSync.create.cancel' })}
           </YakButton>
           <YakButton
             type="primary"
@@ -162,7 +169,7 @@ const CreateRealtimeTaskDrawer = ({
             loading={submitting}
             onClick={() => void handleSubmit()}
           >
-            创建并配置
+            {intl.formatMessage({ id: 'pages.realtimeSync.create.submit' })}
           </YakButton>
         </div>
       }
@@ -170,7 +177,7 @@ const CreateRealtimeTaskDrawer = ({
     >
       <Form form={form} layout="vertical" requiredMark="optional">
         <div className="mb-2 text-[14px] font-medium text-[#344054]">
-          创建方式
+          {intl.formatMessage({ id: 'pages.realtimeSync.create.method' })}
         </div>
         <div className="mb-6 grid grid-cols-2 gap-3 max-sm:grid-cols-1">
           {editorModes.map((mode) => {
@@ -217,9 +224,14 @@ const CreateRealtimeTaskDrawer = ({
 
         <Form.Item
           name="runtimeEnvironmentId"
-          label="运行环境"
-          rules={[{ required: true, message: '请选择运行环境' }]}
-          extra="任务会绑定该环境；每次启动都会保存环境快照，后续切换默认环境不会影响已运行任务。"
+          label={intl.formatMessage({ id: 'pages.realtimeSync.create.environment' })}
+          rules={[
+            {
+              required: true,
+              message: intl.formatMessage({ id: 'pages.realtimeSync.create.environmentRequired' }),
+            },
+          ]}
+          extra={intl.formatMessage({ id: 'pages.realtimeSync.create.environmentExtra' })}
         >
           <Select
             showSearch
@@ -227,13 +239,15 @@ const CreateRealtimeTaskDrawer = ({
             variant="filled"
             loading={environmentLoading}
             disabled={environmentLoading}
-            placeholder="请选择 Flink CDC 运行环境"
+            placeholder={intl.formatMessage({
+              id: 'pages.realtimeSync.create.environmentPlaceholder',
+            })}
             options={environmentOptions}
             notFoundContent={
               environmentLoading ? (
                 <Spin size="small" />
               ) : (
-                '请先到 设置 → 计算引擎 创建运行环境'
+                intl.formatMessage({ id: 'pages.realtimeSync.create.environmentNotFound' })
               )
             }
           />
@@ -241,10 +255,16 @@ const CreateRealtimeTaskDrawer = ({
 
         <Form.Item
           name="name"
-          label="任务名称"
+          label={intl.formatMessage({ id: 'pages.realtimeSync.create.name' })}
           rules={[
-            { required: true, message: '请输入任务名称' },
-            { max: 200, message: '任务名称不能超过 200 个字符' },
+            {
+              required: true,
+              message: intl.formatMessage({ id: 'pages.realtimeSync.create.nameRequired' }),
+            },
+            {
+              max: 200,
+              message: intl.formatMessage({ id: 'pages.realtimeSync.create.nameMax' }),
+            },
           ]}
         >
           <Input
@@ -252,28 +272,38 @@ const CreateRealtimeTaskDrawer = ({
             variant="filled"
             maxLength={200}
             showCount
-            placeholder="例如：订单实时同步"
+            placeholder={intl.formatMessage({ id: 'pages.realtimeSync.create.namePlaceholder' })}
           />
         </Form.Item>
 
         <Form.Item
           name="description"
-          label="任务描述（可选）"
-          rules={[{ max: 1000, message: '任务描述不能超过 1000 个字符' }]}
+          label={intl.formatMessage({ id: 'pages.realtimeSync.create.description' })}
+          rules={[
+            {
+              max: 1000,
+              message: intl.formatMessage({ id: 'pages.realtimeSync.create.descriptionMax' }),
+            },
+          ]}
         >
           <Input.TextArea
             variant="filled"
             rows={4}
             maxLength={1000}
             showCount
-            placeholder="请说明业务场景、同步范围和使用目的"
+            placeholder={intl.formatMessage({
+              id: 'pages.realtimeSync.create.descriptionPlaceholder',
+            })}
           />
         </Form.Item>
 
         <div className="rounded-lg bg-[#f9fafb] p-4 text-sm leading-6 text-[#667085]">
-          {editorMode === 'wizard'
-            ? '创建后进入向导配置页。数据源、同步表和同步方式将在后续步骤中完成配置。'
-            : '创建后进入 YAML 配置页。YAML 与任务 Spec 的互转能力将在后续流程中接入。'}
+          {intl.formatMessage({
+            id:
+              editorMode === 'wizard'
+                ? 'pages.realtimeSync.create.wizardHint'
+                : 'pages.realtimeSync.create.yamlHint',
+          })}
         </div>
       </Form>
     </Drawer>

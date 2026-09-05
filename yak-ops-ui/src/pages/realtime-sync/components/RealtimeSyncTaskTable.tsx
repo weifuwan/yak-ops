@@ -6,13 +6,14 @@ import type {
   RealtimeJob,
 } from '@/services/realtime-sync';
 import { CopyOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import { Empty, Table, Tooltip } from 'antd';
 import type { TableColumnsType } from 'antd';
 import { useMemo } from 'react';
 
 import {
-  REALTIME_OBSERVED_STATE_LABELS,
-  REALTIME_RELEASE_STATE_LABELS,
+  getRealtimeObservedStateLabels,
+  getRealtimeReleaseStateLabels,
 } from '../constants';
 import type { RealtimePaginationState } from '../types';
 import RealtimeSyncActionColumn from './RealtimeSyncActionColumn';
@@ -46,10 +47,14 @@ const RealtimeSyncTaskTable = ({
   onDelete,
   onAction,
 }: RealtimeSyncTaskTableProps) => {
+  const intl = useIntl();
+  const observedStateLabels = getRealtimeObservedStateLabels(intl);
+  const releaseStateLabels = getRealtimeReleaseStateLabels(intl);
+
   const columns = useMemo<TableColumnsType<RealtimeJob>>(
     () => [
       {
-        title: '名称 / ID',
+        title: intl.formatMessage({ id: 'pages.realtimeSync.table.nameId' }),
         dataIndex: 'name',
         width: 250,
         render: (value, job) => (
@@ -66,7 +71,11 @@ const RealtimeSyncTaskTable = ({
               <span className="truncate">
                 ID：{job.id} · v{job.definitionVersion}
               </span>
-              <Tooltip title="复制任务 ID">
+              <Tooltip
+                title={intl.formatMessage({
+                  id: 'pages.realtimeSync.table.copyTaskId',
+                })}
+              >
                 <YakButton
                   type="text"
                   size="small"
@@ -84,21 +93,24 @@ const RealtimeSyncTaskTable = ({
         ),
       },
       {
-        title: '数据源同步方案',
+        title: intl.formatMessage({ id: 'pages.realtimeSync.table.syncPlan' }),
         dataIndex: 'syncPlan',
         width: 300,
         render: (_value, job) => {
-          const source = dataSourceMap.get(
-            String(job.spec?.sourceDataSourceRef),
-          );
-          const sink = dataSourceMap.get(
-            String(job.spec?.sinkDataSourceRef),
-          );
+          const source = dataSourceMap.get(String(job.spec?.sourceDataSourceRef));
+          const sink = dataSourceMap.get(String(job.spec?.sinkDataSourceRef));
           const sourceLabel =
             source?.label ||
-            `数据源 #${job.spec?.sourceDataSourceRef || '-'}`;
+            intl.formatMessage(
+              { id: 'pages.realtimeSync.table.dataSourceFallback' },
+              { id: job.spec?.sourceDataSourceRef || '-' },
+            );
           const sinkLabel =
-            sink?.label || `数据源 #${job.spec?.sinkDataSourceRef || '-'}`;
+            sink?.label ||
+            intl.formatMessage(
+              { id: 'pages.realtimeSync.table.dataSourceFallback' },
+              { id: job.spec?.sinkDataSourceRef || '-' },
+            );
 
           return (
             <div className="min-w-0 py-0.5 text-[12px] leading-5 text-[#667085]">
@@ -119,54 +131,66 @@ const RealtimeSyncTaskTable = ({
               </div>
               <div className="mt-0.5 text-[11px] text-[#98a2b3]">
                 {source?.dbType || '-'} → {sink?.dbType || '-'} ·{' '}
-                {job.spec?.tables?.length || 0} 张表
+                {intl.formatMessage(
+                  { id: 'pages.realtimeSync.table.tableCount' },
+                  { count: job.spec?.tables?.length || 0 },
+                )}
               </div>
             </div>
           );
         },
       },
       {
-        title: '发布状态',
+        title: intl.formatMessage({ id: 'pages.realtimeSync.table.releaseState' }),
         dataIndex: 'releaseState',
-        width: 115,
+        width: 120,
         align: 'center',
         render: (value, job) => (
           <div className="flex flex-col items-center gap-1">
             <RealtimeSyncStatusBadge
               state={value}
-              label={REALTIME_RELEASE_STATE_LABELS[value] || value}
+              label={releaseStateLabels[value] || value}
             />
             {job.publishedUpdateAvailable ? (
               <span className="text-[10px] leading-4 text-[#b54708]">
-                有更新可应用
+                {intl.formatMessage({ id: 'pages.realtimeSync.table.updateAvailable' })}
               </span>
             ) : null}
           </div>
         ),
       },
       {
-        title: '运行状态',
+        title: intl.formatMessage({ id: 'pages.realtimeSync.table.observedState' }),
         dataIndex: 'observedState',
-        width: 145,
+        width: 155,
         render: (value, job) => (
           <div className="flex flex-col items-start gap-1">
             <RealtimeSyncStatusBadge
               state={value}
-              label={REALTIME_OBSERVED_STATE_LABELS[value] || value}
+              label={observedStateLabels[value] || value}
             />
             <span className="text-[10px] leading-4 text-[#98a2b3]">
-              期望：{job.desiredState === 'RUNNING' ? '运行' : '停止'}
+              {intl.formatMessage(
+                { id: 'pages.realtimeSync.table.desired' },
+                {
+                  state: intl.formatMessage({
+                    id:
+                      job.desiredState === 'RUNNING'
+                        ? 'pages.realtimeSync.table.desiredRunning'
+                        : 'pages.realtimeSync.table.desiredStopped',
+                  }),
+                },
+              )}
             </span>
           </div>
         ),
       },
       {
-        title: 'Flink 运行时',
+        title: intl.formatMessage({ id: 'pages.realtimeSync.table.runtime' }),
         dataIndex: 'runtime',
-        width: 210,
+        width: 220,
         render: (_value, job) => {
-          const deploymentEnvironment =
-            job.latestDeployment?.runtimeEnvironment;
+          const deploymentEnvironment = job.latestDeployment?.runtimeEnvironment;
           const definitionEnvironment = job.runtimeEnvironmentId
             ? environmentMap.get(job.runtimeEnvironmentId)
             : undefined;
@@ -180,13 +204,17 @@ const RealtimeSyncTaskTable = ({
                 title={environmentName}
               >
                 {environmentName ||
-                  `环境 #${job.runtimeEnvironmentId || '-'}`}
+                  intl.formatMessage(
+                    { id: 'pages.realtimeSync.table.environmentFallback' },
+                    { id: job.runtimeEnvironmentId || '-' },
+                  )}
               </div>
               <div
                 className="truncate text-[11px] text-[#98a2b3]"
                 title={job.latestDeployment?.runtimeRevision}
               >
-                {job.latestDeployment?.runtimeRevision || '尚未部署'}
+                {job.latestDeployment?.runtimeRevision ||
+                  intl.formatMessage({ id: 'pages.realtimeSync.table.notDeployed' })}
               </div>
               {job.latestDeployment?.engineJobId ? (
                 <div className="truncate text-[10px] text-[#b0b7c3]">
@@ -198,7 +226,7 @@ const RealtimeSyncTaskTable = ({
         },
       },
       {
-        title: '更新时间',
+        title: intl.formatMessage({ id: 'pages.realtimeSync.table.updateTime' }),
         dataIndex: 'updateTime',
         width: 170,
         render: (value?: string) => (
@@ -208,10 +236,10 @@ const RealtimeSyncTaskTable = ({
         ),
       },
       {
-        title: '操作',
+        title: intl.formatMessage({ id: 'pages.realtimeSync.table.actions' }),
         key: 'operate',
         fixed: 'right',
-        width: 215,
+        width: 225,
         render: (_value, job) => (
           <RealtimeSyncActionColumn
             job={job}
@@ -227,11 +255,14 @@ const RealtimeSyncTaskTable = ({
     [
       dataSourceMap,
       environmentMap,
+      intl,
+      observedStateLabels,
       onAction,
       onCopyTaskId,
       onDelete,
       onDetail,
       onEdit,
+      releaseStateLabels,
     ],
   );
 
@@ -275,7 +306,7 @@ const RealtimeSyncTaskTable = ({
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   <span className="text-[12px] text-[#98a2b3]">
-                    暂无实时同步任务
+                    {intl.formatMessage({ id: 'pages.realtimeSync.table.empty' })}
                   </span>
                 }
               />

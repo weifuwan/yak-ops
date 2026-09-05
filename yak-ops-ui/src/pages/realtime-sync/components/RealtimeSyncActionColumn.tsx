@@ -5,6 +5,7 @@ import type {
   RealtimeJob,
 } from '@/services/realtime-sync';
 import { MoreOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import { Dropdown, Modal, Tooltip, message } from 'antd';
 import type { MenuProps } from 'antd';
 
@@ -12,6 +13,7 @@ import {
   getRealtimeStartAvailability,
   isRealtimeReconciliationState,
   isRealtimeStableRunning,
+  type RealtimeStartUnavailableReason,
 } from '../utils';
 
 interface RealtimeSyncActionColumnProps {
@@ -31,22 +33,47 @@ const RealtimeSyncActionColumn = ({
   onDelete,
   onAction,
 }: RealtimeSyncActionColumnProps) => {
+  const intl = useIntl();
   const running = job.desiredState === 'RUNNING';
   const stableRunning = isRealtimeStableRunning(job);
   const startAvailability = getRealtimeStartAvailability(job, environment);
 
+  const startTooltip = (() => {
+    const keyMap: Record<RealtimeStartUnavailableReason, string> = {
+      ENVIRONMENT_DISABLED: 'pages.realtimeSync.start.environmentDisabled',
+      NO_PUBLISHED_VERSION: 'pages.realtimeSync.start.noPublishedVersion',
+      ALREADY_RUNNING: 'pages.realtimeSync.start.alreadyRunning',
+      DRAFT_NOT_PUBLISHED: 'pages.realtimeSync.start.draftNotPublished',
+    };
+    if (!startAvailability.reason) return undefined;
+    return intl.formatMessage(
+      { id: keyMap[startAvailability.reason] },
+      {
+        name: startAvailability.environmentName || '-',
+        version: startAvailability.publishedVersion || '-',
+      },
+    );
+  })();
+
   const confirmDelete = () => {
     Modal.confirm({
-      title: '删除实时同步任务',
-      content: `确认删除“${job.name}”？该操作仅允许已停止任务执行。`,
-      okText: '删除',
+      title: intl.formatMessage({ id: 'pages.realtimeSync.action.deleteTitle' }),
+      content: intl.formatMessage(
+        { id: 'pages.realtimeSync.action.deleteConfirm' },
+        { name: job.name },
+      ),
+      okText: intl.formatMessage({ id: 'pages.realtimeSync.action.delete' }),
       okButtonProps: { danger: true },
-      cancelText: '取消',
+      cancelText: intl.formatMessage({ id: 'pages.realtimeSync.action.cancel' }),
       onOk: async () => {
         try {
           await onDelete(job);
         } catch (error) {
-          message.error(error instanceof Error ? error.message : '删除失败');
+          message.error(
+            error instanceof Error
+              ? error.message
+              : intl.formatMessage({ id: 'pages.realtimeSync.action.deleteFailed' }),
+          );
           throw error;
         }
       },
@@ -55,20 +82,27 @@ const RealtimeSyncActionColumn = ({
 
   const buildMoreItems = (): NonNullable<MenuProps['items']> => {
     const items: NonNullable<MenuProps['items']> = [
-      { key: 'detail', label: '查看运行详情' },
+      {
+        key: 'detail',
+        label: intl.formatMessage({ id: 'pages.realtimeSync.action.detail' }),
+      },
       {
         key: 'validate',
-        label: 'Flink CDC 校验',
+        label: intl.formatMessage({ id: 'pages.realtimeSync.action.validate' }),
         disabled: job.releaseState === 'PUBLISHED',
       },
       {
         key: 'publish',
-        label: running ? '发布当前版本（不影响运行）' : '发布当前版本',
+        label: intl.formatMessage({
+          id: running
+            ? 'pages.realtimeSync.action.publishRunning'
+            : 'pages.realtimeSync.action.publish',
+        }),
         disabled: job.releaseState === 'PUBLISHED',
       },
       {
         key: 'restart-execution',
-        label: '重启当前版本',
+        label: intl.formatMessage({ id: 'pages.realtimeSync.action.restart' }),
         disabled: !stableRunning,
       },
     ];
@@ -76,7 +110,7 @@ const RealtimeSyncActionColumn = ({
     if (job.publishedUpdateAvailable) {
       items.push({
         key: 'apply-published-version',
-        label: '应用已发布版本',
+        label: intl.formatMessage({ id: 'pages.realtimeSync.action.applyPublished' }),
         disabled: !stableRunning,
       });
     }
@@ -84,13 +118,17 @@ const RealtimeSyncActionColumn = ({
     items.push(
       {
         key: 'reconcile',
-        label: '立即状态对账',
+        label: intl.formatMessage({ id: 'pages.realtimeSync.action.reconcile' }),
         disabled: !isRealtimeReconciliationState(job.observedState),
       },
       { type: 'divider' },
       {
         key: 'delete',
-        label: <span className="text-[#d92d20]">删除任务</span>,
+        label: (
+          <span className="text-[#d92d20]">
+            {intl.formatMessage({ id: 'pages.realtimeSync.action.deleteTask' })}
+          </span>
+        ),
         disabled: job.desiredState !== 'STOPPED',
       },
     );
@@ -115,7 +153,9 @@ const RealtimeSyncActionColumn = ({
       <Tooltip
         title={
           running
-            ? '运行中编辑只修改草稿，不影响当前 SyncExecution'
+            ? intl.formatMessage({
+                id: 'pages.realtimeSync.action.editRunningTooltip',
+              })
             : undefined
         }
       >
@@ -125,7 +165,7 @@ const RealtimeSyncActionColumn = ({
           className="!h-7 !px-1.5 !text-[12px]"
           onClick={() => onEdit(job)}
         >
-          编辑
+          {intl.formatMessage({ id: 'pages.realtimeSync.action.edit' })}
         </YakButton>
       </Tooltip>
 
@@ -137,10 +177,10 @@ const RealtimeSyncActionColumn = ({
           className="!h-7 !px-1.5 !text-[12px]"
           onClick={() => void onAction(job, 'stop')}
         >
-          停止
+          {intl.formatMessage({ id: 'pages.realtimeSync.action.stop' })}
         </YakButton>
       ) : (
-        <Tooltip title={startAvailability.tooltip}>
+        <Tooltip title={startTooltip}>
           <span>
             <YakButton
               type="text"
@@ -150,7 +190,7 @@ const RealtimeSyncActionColumn = ({
               disabled={startAvailability.disabled}
               onClick={() => void onAction(job, 'start')}
             >
-              启动
+              {intl.formatMessage({ id: 'pages.realtimeSync.action.start' })}
             </YakButton>
           </span>
         </Tooltip>
@@ -164,7 +204,7 @@ const RealtimeSyncActionColumn = ({
           type="text"
           size="small"
           iconOnly
-          aria-label="更多任务操作"
+          aria-label={intl.formatMessage({ id: 'pages.realtimeSync.action.moreAria' })}
           icon={<MoreOutlined />}
           className="!h-7 !w-7 !min-w-0 !p-0 !text-[#667085] hover:!bg-[#f2f4f7]"
         />

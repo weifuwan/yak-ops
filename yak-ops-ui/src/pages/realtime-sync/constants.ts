@@ -5,6 +5,10 @@ import type {
   RealtimePaginationState,
 } from './types';
 
+interface IntlFormatter {
+  formatMessage: (descriptor: { id: string }) => string;
+}
+
 export const REALTIME_SYNC_INITIAL_FILTERS: RealtimeFilterState = {
   stateGroup: 'ALL',
 };
@@ -17,32 +21,54 @@ export const REALTIME_SYNC_DEFAULT_PAGINATION: RealtimePaginationState = {
 
 export const REALTIME_SYNC_PAGE_SIZE_OPTIONS = [10, 20, 50];
 
-export const REALTIME_SYNC_STATUS_TABS = [
-  { label: '全部任务', value: 'ALL' },
-  { label: '运行中', value: 'RUNNING' },
-  { label: '已停止', value: 'STOPPED' },
-  { label: '异常', value: 'ABNORMAL' },
+export const getRealtimeSyncStatusTabs = (intl: IntlFormatter) => [
+  {
+    label: intl.formatMessage({ id: 'pages.realtimeSync.status.all' }),
+    value: 'ALL',
+  },
+  {
+    label: intl.formatMessage({ id: 'pages.realtimeSync.status.running' }),
+    value: 'RUNNING',
+  },
+  {
+    label: intl.formatMessage({ id: 'pages.realtimeSync.status.stopped' }),
+    value: 'STOPPED',
+  },
+  {
+    label: intl.formatMessage({ id: 'pages.realtimeSync.status.abnormal' }),
+    value: 'ABNORMAL',
+  },
 ] as const;
 
-export const REALTIME_SYNC_RELEASE_OPTIONS = [
-  { label: '草稿', value: 'DRAFT' },
-  { label: '已发布', value: 'PUBLISHED' },
+export const getRealtimeSyncReleaseOptions = (intl: IntlFormatter) => [
+  {
+    label: intl.formatMessage({ id: 'pages.realtimeSync.status.draft' }),
+    value: 'DRAFT',
+  },
+  {
+    label: intl.formatMessage({ id: 'pages.realtimeSync.status.published' }),
+    value: 'PUBLISHED',
+  },
 ] as const;
 
-export const REALTIME_OBSERVED_STATE_LABELS: Record<string, string> = {
-  STOPPED: '已停止',
-  STARTING: '启动中',
-  RUNNING: '运行中',
-  STOPPING: '停止中',
-  FAILED: '失败',
-  UNKNOWN: '未知',
-  CONFLICT: '冲突',
-};
+export const getRealtimeObservedStateLabels = (
+  intl: IntlFormatter,
+): Record<string, string> => ({
+  STOPPED: intl.formatMessage({ id: 'pages.realtimeSync.status.stopped' }),
+  STARTING: intl.formatMessage({ id: 'pages.realtimeSync.status.starting' }),
+  RUNNING: intl.formatMessage({ id: 'pages.realtimeSync.status.running' }),
+  STOPPING: intl.formatMessage({ id: 'pages.realtimeSync.status.stopping' }),
+  FAILED: intl.formatMessage({ id: 'pages.realtimeSync.status.failed' }),
+  UNKNOWN: intl.formatMessage({ id: 'pages.realtimeSync.status.unknown' }),
+  CONFLICT: intl.formatMessage({ id: 'pages.realtimeSync.status.conflict' }),
+});
 
-export const REALTIME_RELEASE_STATE_LABELS: Record<string, string> = {
-  DRAFT: '草稿',
-  PUBLISHED: '已发布',
-};
+export const getRealtimeReleaseStateLabels = (
+  intl: IntlFormatter,
+): Record<string, string> => ({
+  DRAFT: intl.formatMessage({ id: 'pages.realtimeSync.status.draft' }),
+  PUBLISHED: intl.formatMessage({ id: 'pages.realtimeSync.status.published' }),
+});
 
 export const REALTIME_SYNC_FALLBACK_POLL_INTERVAL = 5000;
 export const REALTIME_SYNC_START_POLL_INTERVAL = 2000;

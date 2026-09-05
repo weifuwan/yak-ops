@@ -6,6 +6,7 @@ import globalHeader from './en-US/globalHeader';
 import menu from './en-US/menu';
 import pages from './en-US/pages';
 import pwa from './en-US/pwa';
+import realtimeSync from './en-US/realtime-sync';
 import settingDrawer from './en-US/settingDrawer';
 import settings from './en-US/settings';
 
@@ -28,4 +29,5 @@ export default {
   ...dataSource,
   ...batchLinkUp,
   ...dataService,
+  ...realtimeSync,
 };
