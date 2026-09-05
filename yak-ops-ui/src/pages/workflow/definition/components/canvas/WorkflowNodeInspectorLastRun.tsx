@@ -4,44 +4,48 @@ import {
   type WorkflowNodeInstance,
 } from '@/services/workflow';
 import { getWorkflowDefinition } from '@/services/workflow/definitions';
+import { useIntl } from '@umijs/max';
 import { Spin } from 'antd';
 import dayjs from 'dayjs';
 import { CircleAlert, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface WorkflowNodeInspectorLastRunProps {
   definitionId: string;
   nodeId: string;
 }
 
-const STATUS_META: Record<string, { label: string; textClassName: string; dotClassName: string }> = {
+const STATUS_META: Record<
+  string,
+  { messageId: string; textClassName: string; dotClassName: string }
+> = {
   SUCCESS: {
-    label: 'SUCCESS',
+    messageId: 'pages.workflow.editor.runtime.success',
     textClassName: 'text-[#067647]',
     dotClassName: 'bg-[#12b76a]',
   },
   SUCCESS_WITH_WARNINGS: {
-    label: 'SUCCESS WITH WARNINGS',
+    messageId: 'pages.workflow.editor.runtime.successWithWarnings',
     textClassName: 'text-[#b54708]',
     dotClassName: 'bg-[#f79009]',
   },
   RUNNING: {
-    label: 'RUNNING',
+    messageId: 'pages.workflow.editor.runtime.running',
     textClassName: 'text-[#175cd3]',
     dotClassName: 'bg-[#2e90fa]',
   },
   FAILED: {
-    label: 'FAILED',
+    messageId: 'pages.workflow.editor.runtime.failed',
     textClassName: 'text-[#b42318]',
     dotClassName: 'bg-[#f04438]',
   },
   CANCELED: {
-    label: 'CANCELED',
+    messageId: 'pages.workflow.editor.runtime.canceled',
     textClassName: 'text-[#667085]',
     dotClassName: 'bg-[#98a2b3]',
   },
   TIMED_OUT: {
-    label: 'TIMED OUT',
+    messageId: 'pages.workflow.editor.runtime.timedOut',
     textClassName: 'text-[#b42318]',
     dotClassName: 'bg-[#f04438]',
   },
@@ -80,6 +84,9 @@ const WorkflowNodeInspectorLastRun = ({
   definitionId,
   nodeId,
 }: WorkflowNodeInspectorLastRunProps) => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const [loading, setLoading] = useState(false);
   const [instance, setInstance] = useState<WorkflowInstance>();
   const [nodeRun, setNodeRun] = useState<WorkflowNodeInstance>();
@@ -90,9 +97,6 @@ const WorkflowNodeInspectorLastRun = ({
     setLoading(true);
     setLoadError('');
     try {
-      // Runtime 的 WorkflowInstance.definitionId 是每次执行临时注册给 Yak Workflow Engine 的 ID，
-      // 不能与业务 WorkflowDefinition.id 直接比较。业务定义已维护 latestExecutionId，
-      // 因此“上次运行”直接沿稳定的 execution 关联读取最近一次执行。
       const definition = await getWorkflowDefinition(definitionId);
       const latestExecutionId = definition.latestExecutionId;
 
@@ -108,7 +112,11 @@ const WorkflowNodeInspectorLastRun = ({
     } catch (error) {
       setInstance(undefined);
       setNodeRun(undefined);
-      setLoadError(error instanceof Error ? error.message : '上次运行加载失败');
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : intlRef.current.formatMessage({ id: 'pages.workflow.editor.lastRun.loadFailed' }),
+      );
     } finally {
       setLoading(false);
     }
@@ -120,12 +128,19 @@ const WorkflowNodeInspectorLastRun = ({
 
   const statusMeta = useMemo(() => {
     const status = nodeRun?.status || '';
-    return STATUS_META[status] || {
-      label: status || '--',
-      textClassName: 'text-[#667085]',
-      dotClassName: 'bg-[#98a2b3]',
-    };
-  }, [nodeRun?.status]);
+    const meta = STATUS_META[status];
+    return meta
+      ? {
+          label: intl.formatMessage({ id: meta.messageId }),
+          textClassName: meta.textClassName,
+          dotClassName: meta.dotClassName,
+        }
+      : {
+          label: status || '--',
+          textClassName: 'text-[#667085]',
+          dotClassName: 'bg-[#98a2b3]',
+        };
+  }, [intl, nodeRun?.status]);
 
   if (loading) {
     return (
@@ -141,16 +156,18 @@ const WorkflowNodeInspectorLastRun = ({
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5f6f7] text-[#98a2b3]">
           <RefreshCw size={17} />
         </div>
-        <div className="mt-3 text-[13px] font-semibold text-[#344054]">暂无运行记录</div>
+        <div className="mt-3 text-[13px] font-semibold text-[#344054]">
+          {intl.formatMessage({ id: 'pages.workflow.editor.lastRun.empty' })}
+        </div>
         <div className="mt-1 text-[11px] leading-5 text-[rgba(22,24,35,.42)]">
-          {loadError || '运行过工作流后，这里会展示该节点最近一次真实的输入、输出和执行状态。'}
+          {loadError || intl.formatMessage({ id: 'pages.workflow.editor.lastRun.emptyHint' })}
         </div>
         <button
           type="button"
           className="mt-4 rounded-lg border border-[#e4e7ec] bg-white px-3 py-1.5 text-[11px] font-medium text-[#475467] shadow-sm hover:bg-[#f7f7f8]"
           onClick={() => void load()}
         >
-          重新加载
+          {intl.formatMessage({ id: 'pages.workflow.editor.lastRun.reload' })}
         </button>
       </div>
     );
@@ -161,12 +178,14 @@ const WorkflowNodeInspectorLastRun = ({
   return (
     <div className="space-y-5 px-4 pb-6 pt-4">
       <div className="flex items-center justify-between">
-        <div className="text-[12px] font-semibold text-[#344054]">最近一次运行</div>
+        <div className="text-[12px] font-semibold text-[#344054]">
+          {intl.formatMessage({ id: 'pages.workflow.editor.lastRun.latest' })}
+        </div>
         <button
           type="button"
           className="flex h-7 w-7 items-center justify-center rounded-md border-0 bg-transparent text-[#98a2b3] hover:bg-[#f2f4f7] hover:text-[#475467]"
           onClick={() => void load()}
-          aria-label="刷新上次运行"
+          aria-label={intl.formatMessage({ id: 'pages.workflow.editor.lastRun.refreshAria' })}
         >
           <RefreshCw size={14} />
         </button>
@@ -174,14 +193,18 @@ const WorkflowNodeInspectorLastRun = ({
 
       <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-[#e4e7ec] bg-[#fafafa]">
         <div className="px-3 py-2.5">
-          <div className="text-[9px] text-[#98a2b3]">状态</div>
+          <div className="text-[9px] text-[#98a2b3]">
+            {intl.formatMessage({ id: 'pages.workflow.editor.lastRun.status' })}
+          </div>
           <div className={`mt-1 flex items-center gap-1.5 text-[11px] font-semibold ${statusMeta.textClassName}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dotClassName}`} />
             {statusMeta.label}
           </div>
         </div>
         <div className="border-l border-[#e4e7ec] px-3 py-2.5">
-          <div className="text-[9px] text-[#98a2b3]">运行时间</div>
+          <div className="text-[9px] text-[#98a2b3]">
+            {intl.formatMessage({ id: 'pages.workflow.editor.lastRun.elapsed' })}
+          </div>
           <div className="mt-1 text-[11px] font-semibold text-[#475467]">{formatElapsed(nodeRun)}</div>
         </div>
         <div className="border-l border-[#e4e7ec] px-3 py-2.5">
@@ -190,12 +213,14 @@ const WorkflowNodeInspectorLastRun = ({
         </div>
       </div>
 
-      <JsonBlock title="输入" value={nodeRun.input} />
-      <JsonBlock title="输出" value={nodeRun.output} />
+      <JsonBlock title={intl.formatMessage({ id: 'pages.workflow.editor.lastRun.input' })} value={nodeRun.input} />
+      <JsonBlock title={intl.formatMessage({ id: 'pages.workflow.editor.lastRun.output' })} value={nodeRun.output} />
 
       {(nodeRun.errorMessage || nodeRun.failureReason) ? (
         <section>
-          <div className="mb-2 text-[12px] font-semibold text-[#344054]">错误信息</div>
+          <div className="mb-2 text-[12px] font-semibold text-[#344054]">
+            {intl.formatMessage({ id: 'pages.workflow.editor.lastRun.error' })}
+          </div>
           <div className="flex items-start gap-2 rounded-xl border border-[#e4e7ec] bg-[#fafafa] px-3 py-2.5 text-[11px] leading-5 text-[#475467]">
             <CircleAlert size={14} className="mt-0.5 shrink-0 text-[#d92d50]" />
             <span className="min-w-0 break-words">{nodeRun.errorMessage || nodeRun.failureReason}</span>
@@ -204,12 +229,14 @@ const WorkflowNodeInspectorLastRun = ({
       ) : null}
 
       <section className="border-t border-[#f0f1f3] pt-4">
-        <div className="mb-2 text-[12px] font-semibold text-[#344054]">元数据</div>
-        <MetaRow label="节点状态" value={nodeRun.status} />
-        <MetaRow label="工作流状态" value={instance?.status} />
-        <MetaRow label="当前 Attempt" value={nodeRun.currentAttemptNumber || attempt?.attemptNumber} />
-        <MetaRow label="开始时间" value={attempt?.startedAt ? dayjs(attempt.startedAt).format('YYYY-MM-DD HH:mm:ss') : '--'} />
-        <MetaRow label="结束时间" value={attempt?.endedAt ? dayjs(attempt.endedAt).format('YYYY-MM-DD HH:mm:ss') : '--'} />
+        <div className="mb-2 text-[12px] font-semibold text-[#344054]">
+          {intl.formatMessage({ id: 'pages.workflow.editor.lastRun.metadata' })}
+        </div>
+        <MetaRow label={intl.formatMessage({ id: 'pages.workflow.editor.lastRun.nodeStatus' })} value={nodeRun.status} />
+        <MetaRow label={intl.formatMessage({ id: 'pages.workflow.editor.lastRun.workflowStatus' })} value={instance?.status} />
+        <MetaRow label={intl.formatMessage({ id: 'pages.workflow.editor.lastRun.currentAttempt' })} value={nodeRun.currentAttemptNumber || attempt?.attemptNumber} />
+        <MetaRow label={intl.formatMessage({ id: 'pages.workflow.editor.lastRun.startedAt' })} value={attempt?.startedAt ? dayjs(attempt.startedAt).format('YYYY-MM-DD HH:mm:ss') : '--'} />
+        <MetaRow label={intl.formatMessage({ id: 'pages.workflow.editor.lastRun.endedAt' })} value={attempt?.endedAt ? dayjs(attempt.endedAt).format('YYYY-MM-DD HH:mm:ss') : '--'} />
       </section>
     </div>
   );
