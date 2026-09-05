@@ -4,7 +4,7 @@ import {
   type DashboardOverview,
   type DashboardSummary,
 } from '@/services/dashboard';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { Clock3, LayoutDashboard, Monitor } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -25,6 +25,7 @@ interface VisualizationState {
 }
 
 type VisualizationKind = 'dashboard' | 'screen';
+type VisualizationStatus = 'published' | 'draft' | 'changed';
 
 interface VisualizationItem {
   id: string;
@@ -32,8 +33,7 @@ interface VisualizationItem {
   name: string;
   description: string;
   updatedAt?: string;
-  status: 'published' | 'draft' | 'changed';
-  statusLabel: string;
+  status: VisualizationStatus;
   path: string;
 }
 
@@ -58,11 +58,6 @@ const dashboardItem = (value: DashboardSummary): VisualizationItem => {
       : published
         ? 'published'
         : 'draft',
-    statusLabel: hasUnpublishedChanges
-      ? '有未发布更新'
-      : published
-        ? '已发布'
-        : '草稿',
     path:
       published && !hasUnpublishedChanges
         ? `/dashboard/${value.id}`
@@ -70,21 +65,23 @@ const dashboardItem = (value: DashboardSummary): VisualizationItem => {
   };
 };
 
-const screenItem = (value: DigitalScreenInstance): VisualizationItem => ({
+const screenItem = (
+  value: DigitalScreenInstance,
+  fallbackDescription: string,
+): VisualizationItem => ({
   id: value.id,
   kind: 'screen',
   name: value.name,
-  description: value.description || `数字大屏 · ${value.templateId}`,
+  description: value.description || fallbackDescription,
   updatedAt: value.updatedAt || value.publishedAt || value.createdAt,
   status: value.status === 'published' ? 'published' : 'draft',
-  statusLabel: value.status === 'published' ? '已发布' : '草稿',
   path:
     value.status === 'published'
       ? `/digital-screen/${value.id}`
       : `/digital-screen/${value.id}/edit`,
 });
 
-const statusClassName = (status: VisualizationItem['status']) => {
+const statusClassName = (status: VisualizationStatus) => {
   if (status === 'published') return 'bg-[#eef8f2] text-[#43815f]';
   if (status === 'changed') return 'bg-[#fff7e9] text-[#a46d25]';
   return 'bg-[#f3f4f6] text-[#7d828b]';
@@ -156,6 +153,7 @@ function OverviewMetric({
   value?: number;
   route: string;
 }) {
+  const intl = useIntl();
   return (
     <button
       type="button"
@@ -166,7 +164,7 @@ function OverviewMetric({
         {label}
       </div>
       <strong className="mt-1 block truncate text-[24px] font-semibold tracking-[-0.6px] text-[#30343d]">
-        {formatMetric(value)}
+        {formatMetric(value, intl.locale)}
       </strong>
     </button>
   );
@@ -190,6 +188,7 @@ function VisualizationPreview({ kind }: { kind: VisualizationKind }) {
 }
 
 function VisualizationCard({ item }: { item: VisualizationItem }) {
+  const intl = useIntl();
   return (
     <button
       type="button"
@@ -207,15 +206,25 @@ function VisualizationCard({ item }: { item: VisualizationItem }) {
               {item.description}
             </p>
           </div>
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] ${statusClassName(item.status)}`}>
-            {item.statusLabel}
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] ${statusClassName(item.status)}`}
+          >
+            {intl.formatMessage({
+              id: `pages.home.visualization.status.${item.status}`,
+            })}
           </span>
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 text-[10px] text-[#a0a4ac]">
-          <span>{item.kind === 'dashboard' ? '仪表盘' : '数字大屏'}</span>
+          <span>
+            {intl.formatMessage({
+              id: `pages.home.visualization.kind.${item.kind}`,
+            })}
+          </span>
           <span className="flex min-w-0 items-center gap-1">
             <Clock3 size={11} strokeWidth={1.8} />
-            <span className="truncate">{relativeTime(item.updatedAt)}</span>
+            <span className="truncate">
+              {relativeTime(item.updatedAt, intl.locale)}
+            </span>
           </span>
         </div>
       </div>
@@ -224,6 +233,7 @@ function VisualizationCard({ item }: { item: VisualizationItem }) {
 }
 
 export default function HomeVisualizationOverview() {
+  const intl = useIntl();
   const state = useVisualizationOverview();
   const dashboard = state.dashboard;
   const screens = state.screens;
@@ -232,12 +242,20 @@ export default function HomeVisualizationOverview() {
   const recentItems = useMemo(() => {
     const items = [
       ...(dashboard?.recentDashboards || []).map(dashboardItem),
-      ...(screens || []).map(screenItem),
+      ...(screens || []).map((item) =>
+        screenItem(
+          item,
+          intl.formatMessage(
+            { id: 'pages.home.visualization.screenFallback' },
+            { templateId: item.templateId },
+          ),
+        ),
+      ),
     ];
     return items
       .sort((left, right) => timestamp(right.updatedAt) - timestamp(left.updatedAt))
       .slice(0, 4);
-  }, [dashboard, screens]);
+  }, [dashboard, intl.locale, screens]);
 
   const loading = state.dashboardLoading || state.screenLoading;
   const allFailed = state.dashboardFailed && state.screenFailed;
@@ -245,39 +263,48 @@ export default function HomeVisualizationOverview() {
   return (
     <section className="rounded-[22px] border border-[#f0f1f3] bg-white px-6 pb-6 pt-5">
       <SectionHeader
-        title="可视化"
+        title={intl.formatMessage({ id: 'pages.home.visualization.title' })}
         description=""
       />
 
       <div className="mt-5 grid grid-cols-2 divide-x divide-[#eef0f3] lg:grid-cols-4">
         <OverviewMetric
-          label="仪表盘"
+          label={intl.formatMessage({ id: 'pages.home.visualization.metric.dashboard' })}
           value={state.dashboardFailed ? undefined : dashboard?.dashboardCount}
           route="/dashboard"
         />
         <OverviewMetric
-          label="已发布仪表盘"
+          label={intl.formatMessage({
+            id: 'pages.home.visualization.metric.publishedDashboard',
+          })}
           value={state.dashboardFailed ? undefined : dashboard?.publishedDashboardCount}
           route="/dashboard"
         />
         <OverviewMetric
-          label="数字大屏"
+          label={intl.formatMessage({ id: 'pages.home.visualization.metric.screen' })}
           value={state.screenFailed ? undefined : screens?.length}
           route="/digital-screen"
         />
         <OverviewMetric
-          label="已发布大屏"
+          label={intl.formatMessage({
+            id: 'pages.home.visualization.metric.publishedScreen',
+          })}
           value={state.screenFailed ? undefined : publishedScreens}
           route="/digital-screen"
         />
       </div>
 
       <div className="mt-6 flex items-center justify-between border-t border-[#f0f1f3] pt-4">
-        <strong className="text-[12px] font-semibold text-[#444851]">最近更新</strong>
+        <strong className="text-[12px] font-semibold text-[#444851]">
+          {intl.formatMessage({ id: 'pages.home.visualization.recentUpdated' })}
+        </strong>
         <span className="text-[10px] text-[#9ca0a8]">
-          {state.dashboardFailed || state.screenFailed
-            ? '部分数据暂不可用'
-            : '按更新时间排序'}
+          {intl.formatMessage({
+            id:
+              state.dashboardFailed || state.screenFailed
+                ? 'pages.home.visualization.partialUnavailable'
+                : 'pages.home.visualization.sortedByUpdatedAt',
+          })}
         </span>
       </div>
 
@@ -289,12 +316,16 @@ export default function HomeVisualizationOverview() {
         </div>
       ) : loading || allFailed ? (
         <div className="flex min-h-[176px] items-center justify-center text-[11px] text-[#a0a4ac]">
-          {loading ? '可视化数据加载中...' : '可视化数据加载失败'}
+          {intl.formatMessage({
+            id: loading
+              ? 'pages.home.visualization.loading'
+              : 'pages.home.visualization.failed',
+          })}
         </div>
       ) : (
         <HomeEmptyState
           icon={LayoutDashboard}
-          title="暂无仪表盘或数字大屏"
+          title={intl.formatMessage({ id: 'pages.home.visualization.empty' })}
           size="medium"
           className="min-h-[176px]"
         />
