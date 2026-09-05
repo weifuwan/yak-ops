@@ -1,4 +1,5 @@
 import type { DashboardSummary } from '@/services/dashboard';
+import { useIntl } from '@umijs/max';
 
 import DashboardEmptyState from './DashboardEmptyState';
 import DashboardListItem from './DashboardListItem';
@@ -39,10 +40,12 @@ const DashboardListContent = ({
   onDelete,
   onPageChange,
 }: DashboardListContentProps) => {
+  const intl = useIntl();
+
   if (loading && totalDashboards === 0) {
     return (
       <div className="flex min-h-[420px] items-center justify-center text-[13px] text-[#98a2b3]">
-        正在加载仪表盘...
+        {intl.formatMessage({ id: 'pages.dashboard.list.loading' })}
       </div>
     );
   }
