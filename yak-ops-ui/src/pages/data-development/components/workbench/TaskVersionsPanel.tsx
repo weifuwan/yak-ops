@@ -1,7 +1,8 @@
 import { API_SUCCESS_CODE } from '@/services/http/response';
+import { useIntl } from '@umijs/max';
 import { Spin, message } from 'antd';
 import { FileCode2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   getDevelopmentTaskRevision,
@@ -28,19 +29,24 @@ const responseData = <T,>(
   return response.data;
 };
 
-const formatTime = (value?: string) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleString('zh-CN', { hour12: false });
-};
-
 const TaskVersionsPanel = ({ node, refreshKey }: TaskVersionsPanelProps) => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const [versions, setVersions] = useState<DevelopmentTaskRevisionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState<DevelopmentTaskRevision>();
+
+  const text = (id: string, values?: Record<string, string | number>) =>
+    intlRef.current.formatMessage({ id }, values);
+  const formatTime = (value?: string) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? value
+      : date.toLocaleString(intl.locale, { hour12: false });
+  };
 
   useEffect(() => {
     let active = true;
@@ -49,10 +55,21 @@ const TaskVersionsPanel = ({ node, refreshKey }: TaskVersionsPanelProps) => {
     listDevelopmentTaskRevisions(node.id)
       .then((response) => {
         if (!active) return;
-        setVersions(responseData(response, '查询发布版本失败') || []);
+        setVersions(
+          responseData(
+            response,
+            text('pages.dataDevelopment.versions.queryFailed'),
+          ) || [],
+        );
       })
       .catch((error) => {
-        if (active) message.error(error instanceof Error ? error.message : '查询发布版本失败');
+        if (active) {
+          message.error(
+            error instanceof Error
+              ? error.message
+              : text('pages.dataDevelopment.versions.queryFailed'),
+          );
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -69,11 +86,15 @@ const TaskVersionsPanel = ({ node, refreshKey }: TaskVersionsPanelProps) => {
       setDetail(
         responseData(
           await getDevelopmentTaskRevision(node.id, revisionNo),
-          '查询版本详情失败',
+          text('pages.dataDevelopment.versions.detailFailed'),
         ),
       );
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '查询版本详情失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : text('pages.dataDevelopment.versions.detailFailed'),
+      );
     } finally {
       setDetailLoading(false);
     }
@@ -90,8 +111,10 @@ const TaskVersionsPanel = ({ node, refreshKey }: TaskVersionsPanelProps) => {
   if (!versions.length) {
     return (
       <div className="py-8 text-center text-[11px] leading-5 text-[#98a2b3]">
-        暂无已发布版本
-        <div className="mt-1">保存草稿后点击顶部“发布版本”即可生成 v1。</div>
+        {intl.formatMessage({ id: 'pages.dataDevelopment.versions.empty' })}
+        <div className="mt-1">
+          {intl.formatMessage({ id: 'pages.dataDevelopment.versions.emptyHint' })}
+        </div>
       </div>
     );
   }
@@ -112,7 +135,7 @@ const TaskVersionsPanel = ({ node, refreshKey }: TaskVersionsPanelProps) => {
                 <span className="font-medium text-[#344054]">v{version.revisionNo}</span>
                 {index === 0 ? (
                   <span className="rounded bg-[#f2f4f7] px-1.5 py-0.5 text-[10px] text-[#667085]">
-                    最新
+                    {intl.formatMessage({ id: 'pages.dataDevelopment.versions.latest' })}
                   </span>
                 ) : null}
               </div>
@@ -131,13 +154,19 @@ const TaskVersionsPanel = ({ node, refreshKey }: TaskVersionsPanelProps) => {
       ) : detail ? (
         <div className="border-t border-[#eef0f2] pt-3">
           <div className="flex items-center justify-between gap-3">
-            <span className="font-medium text-[#344054]">v{detail.revisionNo} 内容</span>
+            <span className="font-medium text-[#344054]">
+              {intl.formatMessage(
+                { id: 'pages.dataDevelopment.versions.content' },
+                { revision: detail.revisionNo },
+              )}
+            </span>
             <span className="text-[10px] text-[#98a2b3]">
               Draft #{detail.sourceDraftRevision}
             </span>
           </div>
           <pre className="mt-2 max-h-[300px] overflow-auto whitespace-pre-wrap break-words rounded-[3px] bg-[#f8f9fa] p-2.5 font-mono text-[11px] leading-5 text-[#475467]">
-            {detail.definition.content || '(空内容)'}
+            {detail.definition.content ||
+              intl.formatMessage({ id: 'pages.dataDevelopment.common.emptyContent' })}
           </pre>
           <div className="mt-2 break-all font-mono text-[9px] leading-4 text-[#b0b7c3]">
             SHA-256 {detail.checksum}
