@@ -1,11 +1,11 @@
-import { history, useParams } from '@umijs/max';
 import { BRAND_CSS_VARIABLES } from '@/styles/brand';
+import { history, useIntl, useParams } from '@umijs/max';
 import { Button, Modal } from 'antd';
 import { BarChart3 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import ReactGridLayout, { useContainerWidth } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { DashboardChartSheetWorkspace } from './chart-sheet-workspace';
 import { DashboardGlobalFilterBar } from './global-filter-bar';
 import { DashboardThemeDrawer } from './dashboard-theme-drawer';
@@ -36,6 +36,7 @@ const isEditableTarget = (target: EventTarget | null) => {
 };
 
 export default function DashboardEditorPage() {
+  const intl = useIntl();
   const { id } = useParams<{ id?: string }>();
   const dashboardId = id && id !== 'new' ? id : undefined;
   const initialPreview = new URLSearchParams(window.location.search).get('preview') === '1';
@@ -75,9 +76,11 @@ export default function DashboardEditorPage() {
     return [{
       id: widget.id,
       title: widget.title?.trim()
-        || (widget.analysisId ? analysis?.name ?? '历史图表' : '未命名图表'),
+        || (widget.analysisId
+          ? analysis?.name ?? intl.formatMessage({ id: 'pages.dashboard.editor.historicalChart' })
+          : intl.formatMessage({ id: 'pages.dashboard.editor.unnamedChart' })),
     }];
-  }), [designer.analyses, designer.widgets, sheetOrder]);
+  }), [designer.analyses, designer.widgets, intl, sheetOrder]);
   const hasGlobalFilters = designer.dashboard.globalFilters.length > 0;
   const showRuntimeFilterBar = designer.preview && hasGlobalFilters;
   let canvasMinHeight = 'min-h-[calc(100vh-128px)] 2xl:min-h-[calc(100vh-96px)]';
@@ -207,20 +210,37 @@ export default function DashboardEditorPage() {
     if (!designer.canPublish || designer.dashboardSaving || designer.dashboardPublishing) return;
     const firstPublish = !designer.hasPublishedVersion;
     Modal.confirm({
-      title: firstPublish ? '发布仪表盘？' : '发布当前草稿？',
+      title: intl.formatMessage({
+        id: firstPublish
+          ? 'pages.dashboard.editor.publish.firstTitle'
+          : 'pages.dashboard.editor.publish.updateTitle',
+      }),
       content: designer.dirty
-        ? '当前还有未保存修改。系统会先保存为新的草稿版本，再将该版本发布。'
+        ? intl.formatMessage({ id: 'pages.dashboard.editor.publish.unsavedContent' })
         : firstPublish
-          ? `草稿 V${designer.dashboard.currentVersionNo || 1} 将成为首个正式发布版本。`
-          : `草稿 V${designer.dashboard.currentVersionNo} 将替换当前已发布的 V${designer.dashboard.publishedVersionNo}。`,
-      okText: firstPublish ? '发布' : '发布更新',
-      cancelText: '取消',
+          ? intl.formatMessage(
+            { id: 'pages.dashboard.editor.publish.firstContent' },
+            { version: designer.dashboard.currentVersionNo || 1 },
+          )
+          : intl.formatMessage(
+            { id: 'pages.dashboard.editor.publish.updateContent' },
+            {
+              draftVersion: designer.dashboard.currentVersionNo,
+              publishedVersion: designer.dashboard.publishedVersionNo,
+            },
+          ),
+      okText: intl.formatMessage({
+        id: firstPublish
+          ? 'pages.dashboard.editor.publish.firstOk'
+          : 'pages.dashboard.editor.publish.updateOk',
+      }),
+      cancelText: intl.formatMessage({ id: 'pages.dashboard.editor.common.cancel' }),
       onOk: async () => {
         const persistedId = await designer.publish();
         if (!dashboardId && persistedId) history.replace(`/dashboard/${persistedId}/edit`);
       },
     });
-  }, [dashboardId, designer]);
+  }, [dashboardId, designer, intl]);
 
   const leaveDashboard = () => {
     const target = '/dashboard';
@@ -229,10 +249,10 @@ export default function DashboardEditorPage() {
       return;
     }
     Modal.confirm({
-      title: '有未保存修改',
-      content: '当前仪表盘还有未保存到草稿的修改，离开后这些本地修改会丢失。',
-      okText: '放弃修改并离开',
-      cancelText: '继续编辑',
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.leave.title' }),
+      content: intl.formatMessage({ id: 'pages.dashboard.editor.leave.content' }),
+      okText: intl.formatMessage({ id: 'pages.dashboard.editor.leave.ok' }),
+      cancelText: intl.formatMessage({ id: 'pages.dashboard.editor.leave.cancel' }),
       okButtonProps: { danger: true },
       onOk: () => history.push(target),
     });
@@ -249,10 +269,13 @@ export default function DashboardEditorPage() {
       return;
     }
     Modal.confirm({
-      title: `恢复 V${versionNo} 为草稿？`,
-      content: '当前还有未保存到草稿的修改。继续恢复会放弃这些本地修改，并基于历史版本生成一个新的草稿版本。',
-      okText: '放弃修改并恢复',
-      cancelText: '继续编辑',
+      title: intl.formatMessage(
+        { id: 'pages.dashboard.editor.restore.title' },
+        { version: versionNo },
+      ),
+      content: intl.formatMessage({ id: 'pages.dashboard.editor.restore.content' }),
+      okText: intl.formatMessage({ id: 'pages.dashboard.editor.restore.ok' }),
+      cancelText: intl.formatMessage({ id: 'pages.dashboard.editor.leave.cancel' }),
       onOk: restore,
     });
   };
@@ -497,15 +520,21 @@ export default function DashboardEditorPage() {
                         className="mt-3 text-[14px] font-semibold"
                         style={{ color: resolvedTheme.component.textColor }}
                       >
-                        {designer.activeDataset ? '从一个图表开始' : '暂无可用数据集'}
+                        {intl.formatMessage({
+                          id: designer.activeDataset
+                            ? 'pages.dashboard.editor.empty.chartTitle'
+                            : 'pages.dashboard.editor.empty.datasetTitle',
+                        })}
                       </div>
                       <div
                         className="mt-1 text-[11px] leading-5"
                         style={{ color: resolvedTheme.component.mutedTextColor }}
                       >
-                        {designer.activeDataset
-                          ? '添加图表后，进入对应图表 Sheet 完成数据与样式配置。'
-                          : '请先在数据开发发布中心发布并上线 Dataset。'}
+                        {intl.formatMessage({
+                          id: designer.activeDataset
+                            ? 'pages.dashboard.editor.empty.chartDescription'
+                            : 'pages.dashboard.editor.empty.datasetDescription',
+                        })}
                       </div>
                       {designer.activeDataset ? (
                         <Button
@@ -514,7 +543,7 @@ export default function DashboardEditorPage() {
                           icon={<BarChart3 size={13} />}
                           onClick={addChart}
                         >
-                          添加图表
+                          {intl.formatMessage({ id: 'pages.dashboard.editor.empty.addChart' })}
                         </Button>
                       ) : null}
                     </div>

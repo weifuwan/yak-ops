@@ -14,6 +14,7 @@ import type {
   AnalysisEncodingBinding,
   DatasetFieldRole,
 } from '@/components/analysis/model';
+import { useIntl } from '@umijs/max';
 import { Button, Collapse, Select } from 'antd';
 import {
   Calculator,
@@ -180,6 +181,7 @@ export function FineBiChartBuilderPanel({
   updateInlineAnalysis: (patch: Partial<DashboardInlineAnalysisSpec>) => void;
   detachAnalysis: () => void;
 }) {
+  const intl = useIntl();
   if (widget.analysisId) {
     const analysis = analyses.find((item) => item.id === widget.analysisId);
     const dataset = analysis
@@ -191,14 +193,14 @@ export function FineBiChartBuilderPanel({
         <div className="p-3.5">
           <div className="rounded-[7px] bg-[#f6f7f8] p-3">
             <div className="truncate text-[11px] font-semibold text-[#344054]">
-              {analysis?.name ?? '历史图表'}
+              {analysis?.name ?? intl.formatMessage({ id: 'pages.dashboard.editor.historicalChart' })}
             </div>
             <div className="mt-1 truncate text-[9px] text-[#98a2b3]">
-              {dataset?.name ?? '数据来源不可用'}
+              {dataset?.name ?? intl.formatMessage({ id: 'pages.dashboard.editor.builder.dataUnavailable' })}
             </div>
           </div>
           <div className="mt-3 text-[10px] leading-5 text-[#667085]">
-            共享图表为只读状态。复制为当前仪表盘图表后，可继续调整字段与图表类型。
+            {intl.formatMessage({ id: 'pages.dashboard.editor.builder.sharedReadonly' })}
           </div>
           <Button
             block
@@ -207,7 +209,7 @@ export function FineBiChartBuilderPanel({
             disabled={!analysis}
             onClick={detachAnalysis}
           >
-            复制为可编辑图表
+            {intl.formatMessage({ id: 'pages.dashboard.editor.builder.copyEditable' })}
           </Button>
         </div>
       </section>
@@ -301,16 +303,19 @@ export function FineBiChartBuilderPanel({
   return (
     <section className="flex w-[272px] shrink-0 flex-col border-r border-[#e3e6ea] bg-white 2xl:w-[288px]">
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3.5">
-        <div className="text-[11px] font-semibold text-[#161823]">图表类型</div>
+        <div className="text-[11px] font-semibold text-[#161823]">
+          {intl.formatMessage({ id: 'pages.dashboard.editor.builder.chartType' })}
+        </div>
         <div className="mt-2.5 grid grid-cols-5 gap-x-1 gap-y-1.5">
           {(Object.keys(CHART_META) as ChartType[]).map((type) => {
             const active = spec.type === type;
+            const meta = CHART_META[type];
             return (
               <button
                 key={type}
                 type="button"
                 aria-pressed={active}
-                title={`${CHART_META[type].label} · ${CHART_META[type].description}`}
+                title={`${meta.label} · ${meta.description}`}
                 onClick={() => changeType(type)}
                 className={[
                   'group flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-[6px] border px-0.5 py-2.5 transition-[background-color,border-color,transform]',
@@ -328,7 +333,7 @@ export function FineBiChartBuilderPanel({
                     active ? 'font-semibold' : 'font-medium',
                   ].join(' ')}
                 >
-                  {CHART_META[type].label}
+                  {meta.label}
                 </span>
               </button>
             );
@@ -337,7 +342,9 @@ export function FineBiChartBuilderPanel({
 
         {secondaryRules.length ? (
           <div className="mt-4 border-t border-[#eceef1] pt-3.5">
-            <div className="mb-2 text-[10px] font-semibold text-[#667085]">图形属性</div>
+            <div className="mb-2 text-[10px] font-semibold text-[#667085]">
+              {intl.formatMessage({ id: 'pages.dashboard.editor.builder.visualProperties' })}
+            </div>
             <div className="space-y-1.5">
               {secondaryRules.map((rule) => (
                 <SecondaryEncodingSlot
@@ -347,6 +354,12 @@ export function FineBiChartBuilderPanel({
                   roles={rule.roles}
                   bindings={encoding[rule.channel]}
                   options={fieldOptions}
+                  addFieldLabel={intl.formatMessage({ id: 'pages.dashboard.editor.builder.addField' })}
+                  dropFieldLabel={intl.formatMessage({ id: 'pages.dashboard.editor.builder.dropField' })}
+                  removeAria={(field) => intl.formatMessage(
+                    { id: 'pages.dashboard.editor.builder.removeField' },
+                    { field },
+                  )}
                   onChange={(bindings) => changeEncoding({
                     ...encoding,
                     [rule.channel]: bindings,
@@ -373,7 +386,7 @@ export function FineBiChartBuilderPanel({
               label: (
                 <span className="flex items-center gap-1.5 text-[10px] font-medium text-[#667085]">
                   <Calculator size={11} />
-                  分析设置
+                  {intl.formatMessage({ id: 'pages.dashboard.editor.builder.analysisSettings' })}
                 </span>
               ),
               children: (
@@ -389,7 +402,7 @@ export function FineBiChartBuilderPanel({
               label: (
                 <span className="flex items-center gap-1.5 text-[10px] font-medium text-[#667085]">
                   <SlidersHorizontal size={11} />
-                  排序与过滤
+                  {intl.formatMessage({ id: 'pages.dashboard.editor.builder.sortFilter' })}
                 </span>
               ),
               children: (
@@ -423,6 +436,9 @@ function SecondaryEncodingSlot({
   roles,
   bindings,
   options,
+  addFieldLabel,
+  dropFieldLabel,
+  removeAria,
   onChange,
 }: {
   label: string;
@@ -430,6 +446,9 @@ function SecondaryEncodingSlot({
   roles: DatasetFieldRole[];
   bindings: AnalysisEncodingBinding[];
   options: FieldOption[];
+  addFieldLabel: string;
+  dropFieldLabel: string;
+  removeAria: (field: string) => string;
   onChange: (bindings: AnalysisEncodingBinding[]) => void;
 }) {
   const [dragOver, setDragOver] = useState(false);
@@ -496,22 +515,25 @@ function SecondaryEncodingSlot({
     >
       <span className="w-10 shrink-0 text-[9px] text-[#667085]">{label}</span>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 py-1">
-        {activeBindings.map((binding) => (
-          <span
-            key={binding.field}
-            className="flex h-6 max-w-[150px] items-center gap-1 rounded-[4px] bg-white px-1.5 text-[9px] text-[#475467]"
-          >
-            <span className="min-w-0 truncate">{fieldLabel.get(binding.field) ?? binding.field}</span>
-            <button
-              type="button"
-              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] text-[#a0a6af] hover:bg-[#f0f1f3] hover:text-[#667085]"
-              onClick={() => onChange(bindings.filter((item) => item.field !== binding.field))}
-              aria-label={`移除${fieldLabel.get(binding.field) ?? binding.field}`}
+        {activeBindings.map((binding) => {
+          const labelText = fieldLabel.get(binding.field) ?? binding.field;
+          return (
+            <span
+              key={binding.field}
+              className="flex h-6 max-w-[150px] items-center gap-1 rounded-[4px] bg-white px-1.5 text-[9px] text-[#475467]"
             >
-              <X size={8} />
-            </button>
-          </span>
-        ))}
+              <span className="min-w-0 truncate">{labelText}</span>
+              <button
+                type="button"
+                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] text-[#a0a6af] hover:bg-[#f0f1f3] hover:text-[#667085]"
+                onClick={() => onChange(bindings.filter((item) => item.field !== binding.field))}
+                aria-label={removeAria(labelText)}
+              >
+                <X size={8} />
+              </button>
+            </span>
+          );
+        })}
         {(max === 1 || !full) ? (
           <Select
             showSearch
@@ -520,7 +542,7 @@ function SecondaryEncodingSlot({
             value={undefined}
             className="min-w-[106px] flex-1"
             optionFilterProp="label"
-            placeholder={activeBindings.length ? '+ 字段' : '拖入一个字段'}
+            placeholder={activeBindings.length ? addFieldLabel : dropFieldLabel}
             options={available.map((option) => ({ label: option.label, value: option.value }))}
             onChange={(field) => {
               const option = available.find((item) => item.value === field);

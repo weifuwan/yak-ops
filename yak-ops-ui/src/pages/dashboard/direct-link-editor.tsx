@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Button, Select, Tooltip } from 'antd';
 import { Link2, Plus, Trash2 } from 'lucide-react';
 import type {
@@ -33,6 +34,7 @@ export function DashboardDirectCrossFilterEditor({
   analyses: AnalysisAsset[];
   onChange: (behavior: DashboardWidgetBehavior | undefined) => void;
 }) {
+  const intl = useIntl();
   const behavior = spec.dashboardBehavior || {};
   const rules = behavior.crossFilters || [];
   // AnalysisSelection currently emits the primary category dimension. Keep the editor
@@ -59,8 +61,8 @@ export function DashboardDirectCrossFilterEditor({
     return [{
       widget: targetWidget,
       title: targetWidget.analysisId
-        ? targetAnalysis?.name ?? '历史图表'
-        : targetWidget.title?.trim() || '未命名图表',
+        ? targetAnalysis?.name ?? intl.formatMessage({ id: 'pages.dashboard.editor.historicalChart' })
+        : targetWidget.title?.trim() || intl.formatMessage({ id: 'pages.dashboard.editor.unnamedChart' }),
       dataset: targetDataset,
       fields: targetFields,
     }];
@@ -107,10 +109,10 @@ export function DashboardDirectCrossFilterEditor({
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#667085]">
             <Link2 size={12} />
-            直接图表联动
+            {intl.formatMessage({ id: 'pages.dashboard.editor.directLink.title' })}
           </div>
           <div className="mt-1 text-[9px] leading-4 text-[#98a2b3]">
-            点击当前图表分类后，直接把值映射为目标图表的运行时筛选，不需要先创建全局筛选器。
+            {intl.formatMessage({ id: 'pages.dashboard.editor.directLink.hint' })}
           </div>
         </div>
         <Button
@@ -120,17 +122,17 @@ export function DashboardDirectCrossFilterEditor({
           disabled={!sourceOptions.length || !targetOptions.length}
           onClick={addRule}
         >
-          添加
+          {intl.formatMessage({ id: 'pages.dashboard.editor.directLink.add' })}
         </Button>
       </div>
 
       {!sourceOptions.length ? (
         <div className="mt-2 rounded-[6px] bg-[#fafbfc] px-2.5 py-2 text-[10px] text-[#98a2b3]">
-          当前图表没有可点击的主分类维度，暂时不能作为直接联动来源。
+          {intl.formatMessage({ id: 'pages.dashboard.editor.directLink.noSource' })}
         </div>
       ) : !targetOptions.length ? (
         <div className="mt-2 rounded-[6px] bg-[#fafbfc] px-2.5 py-2 text-[10px] text-[#98a2b3]">
-          当前仪表盘没有其他可映射的维度图表。
+          {intl.formatMessage({ id: 'pages.dashboard.editor.directLink.noTarget' })}
         </div>
       ) : rules.length ? (
         <div className="mt-2 space-y-2">
@@ -145,7 +147,9 @@ export function DashboardDirectCrossFilterEditor({
               <div key={rule.id} className="rounded-[7px] border border-[#edf0f3] bg-[#fafbfc] p-2.5">
                 <div className="grid grid-cols-[1fr_28px] items-end gap-2">
                   <div>
-                    <div className="mb-1 text-[9px] text-[#98a2b3]">点击字段</div>
+                    <div className="mb-1 text-[9px] text-[#98a2b3]">
+                      {intl.formatMessage({ id: 'pages.dashboard.editor.directLink.sourceField' })}
+                    </div>
                     <Select
                       size="small"
                       className="w-full"
@@ -154,7 +158,7 @@ export function DashboardDirectCrossFilterEditor({
                       onChange={(sourceField) => updateRule(rule.id, { sourceField })}
                     />
                   </div>
-                  <Tooltip title="删除联动">
+                  <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.directLink.delete' })}>
                     <Button
                       size="small"
                       type="text"
@@ -168,13 +172,19 @@ export function DashboardDirectCrossFilterEditor({
 
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <div>
-                    <div className="mb-1 text-[9px] text-[#98a2b3]">目标图表</div>
+                    <div className="mb-1 text-[9px] text-[#98a2b3]">
+                      {intl.formatMessage({ id: 'pages.dashboard.editor.directLink.targetChart' })}
+                    </div>
                     <Select
                       size="small"
                       className="w-full"
                       status={targetStillAvailable ? undefined : 'error'}
                       value={targetStillAvailable ? rule.targetWidgetId : undefined}
-                      placeholder={targetStillAvailable ? '选择目标图表' : '目标已失效'}
+                      placeholder={intl.formatMessage({
+                        id: targetStillAvailable
+                          ? 'pages.dashboard.editor.directLink.selectTarget'
+                          : 'pages.dashboard.editor.directLink.targetInvalid',
+                      })}
                       options={targetOptions}
                       onChange={(targetWidgetId) => {
                         const nextTarget = targetDescriptors.find((item) => item.widget.id === targetWidgetId);
@@ -187,7 +197,9 @@ export function DashboardDirectCrossFilterEditor({
                     />
                   </div>
                   <div>
-                    <div className="mb-1 text-[9px] text-[#98a2b3]">映射字段</div>
+                    <div className="mb-1 text-[9px] text-[#98a2b3]">
+                      {intl.formatMessage({ id: 'pages.dashboard.editor.directLink.targetField' })}
+                    </div>
                     <Select
                       size="small"
                       className="w-full"
@@ -204,7 +216,7 @@ export function DashboardDirectCrossFilterEditor({
         </div>
       ) : (
         <div className="mt-2 rounded-[6px] bg-[#fafbfc] px-2.5 py-2 text-[10px] leading-4 text-[#98a2b3]">
-          暂无直接联动。添加后，来源和目标可以使用不同 Dataset，只要显式选择对应的目标维度字段即可。
+          {intl.formatMessage({ id: 'pages.dashboard.editor.directLink.empty' })}
         </div>
       )}
     </div>

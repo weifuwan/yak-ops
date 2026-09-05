@@ -1,4 +1,5 @@
 import type { AnalysisSpec } from '@/components/analysis/model';
+import { useIntl } from '@umijs/max';
 import { Select } from 'antd';
 import { Database } from 'lucide-react';
 import { ChartFieldPanel } from './chart-field-panel';
@@ -19,6 +20,8 @@ export function ChartDataColumn({
   onDatasetChange?: (datasetId: string) => void;
   onSpecPatch?: (patch: Partial<AnalysisSpec>) => void;
 }) {
+  const intl = useIntl();
+
   return (
     <section className="chart-data-column flex w-[244px] shrink-0 flex-col border-r border-[#e3e6ea] bg-white">
       <div className="shrink-0 border-b border-[#eceef1] px-3 py-3.5">
@@ -30,16 +33,18 @@ export function ChartDataColumn({
           disabled={!editable}
           optionFilterProp="label"
           className="chart-dataset-select w-full"
-          placeholder="选择数据集"
+          placeholder={intl.formatMessage({ id: 'pages.dashboard.editor.fields.selectDataset' })}
           suffixIcon={<Database size={13} className="text-[#667085]" />}
-          options={datasets.map((item) => ({
-            label: item.name,
-            value: item.id,
-          }))}
+          options={datasets.map((item) => ({ label: item.name, value: item.id }))}
           onChange={onDatasetChange}
         />
         <div className="mt-2 truncate px-0.5 text-[10px] font-medium text-[#7a818c]">
-          {dataset ? `数据目录 · ${dataset.name}` : '当前数据来源不可用，可重新选择'}
+          {dataset
+            ? intl.formatMessage(
+              { id: 'pages.dashboard.editor.fields.catalog' },
+              { name: dataset.name },
+            )
+            : intl.formatMessage({ id: 'pages.dashboard.editor.fields.sourceUnavailable' })}
         </div>
       </div>
 

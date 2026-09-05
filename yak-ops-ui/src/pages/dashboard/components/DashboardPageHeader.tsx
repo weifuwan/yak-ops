@@ -1,4 +1,5 @@
 import { YakButton, YakFilterSwitch } from '@/components/ui';
+import { useIntl } from '@umijs/max';
 import { Input, Select } from 'antd';
 import {
   CalendarDays,
@@ -45,19 +46,23 @@ const DashboardPageHeader = ({
   onRefresh,
   onCreate,
 }: DashboardPageHeaderProps) => {
+  const intl = useIntl();
   const statusCount = (key: DashboardStatusFilter) =>
     key === 'all' ? total : lifecycleCounts[key];
 
   return (
     <header>
       <h1 className="m-0 text-[18px] font-semibold leading-7 text-[#161823]">
-        仪表盘管理
+        {intl.formatMessage({ id: 'pages.dashboard.list.title' })}
       </h1>
 
       <div className="mt-2 flex min-h-[48px] items-center justify-between gap-5 max-xl:flex-col max-xl:items-stretch">
         <div className="flex shrink-0 items-center gap-2">
           <span className="inline-flex h-9 items-center rounded-[8px] bg-[#f0f1f2] px-4 text-[13px] font-medium text-[#161823]">
-            仪表盘 ({total})
+            {intl.formatMessage(
+              { id: 'pages.dashboard.list.tab' },
+              { count: total },
+            )}
           </span>
         </div>
 
@@ -68,7 +73,7 @@ const DashboardPageHeader = ({
               value: item.key,
               label: (
                 <span className="inline-flex items-baseline gap-1">
-                  <span>{item.label}</span>
+                  <span>{intl.formatMessage({ id: item.messageId })}</span>
                   {item.key !== 'all' && statusCount(item.key) > 0 ? (
                     <span className="text-[10px] font-normal text-[#b0b5bd]">
                       {statusCount(item.key)}
@@ -85,7 +90,10 @@ const DashboardPageHeader = ({
             value={timeRange}
             onChange={onTimeRangeChange}
             suffixIcon={<ChevronDown size={14} />}
-            options={DASHBOARD_TIME_RANGE_OPTIONS}
+            options={DASHBOARD_TIME_RANGE_OPTIONS.map((item) => ({
+              value: item.value,
+              label: intl.formatMessage({ id: item.messageId }),
+            }))}
             className="w-[122px]"
             size="middle"
             variant="filled"
@@ -99,7 +107,7 @@ const DashboardPageHeader = ({
             value={keyword}
             onChange={(event) => onKeywordChange(event.target.value)}
             prefix={<Search size={15} className="text-[#8a9099]" />}
-            placeholder="搜索仪表盘"
+            placeholder={intl.formatMessage({ id: 'pages.dashboard.list.search' })}
             className="w-[190px]"
             size="middle"
             variant="filled"
@@ -113,7 +121,7 @@ const DashboardPageHeader = ({
             onClick={onRefresh}
             className="!bg-[#f5f6f7]"
           >
-            刷新
+            {intl.formatMessage({ id: 'pages.dashboard.common.refresh' })}
           </YakButton>
 
           <YakButton
@@ -122,7 +130,7 @@ const DashboardPageHeader = ({
             icon={<Plus size={15} />}
             onClick={onCreate}
           >
-            新建仪表盘
+            {intl.formatMessage({ id: 'pages.dashboard.list.create' })}
           </YakButton>
         </div>
       </div>

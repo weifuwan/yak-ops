@@ -4,6 +4,7 @@ import {
   fetchDashboardQueryPerformance,
   type DashboardQueryPerformance,
 } from '@/services/dashboard';
+import { useIntl } from '@umijs/max';
 import {
   Alert,
   Button,
@@ -18,10 +19,12 @@ import { Download, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { getDashboardPerformanceQuery } from './performance-runtime';
 
-const formatTime = (value?: string) => {
+const formatTime = (value: string | undefined, locale: string) => {
   if (!value) return '-';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN', { hour12: false });
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString(locale, { hour12: false });
 };
 
 const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -42,10 +45,13 @@ export function DashboardPerformanceModal({
   dashboardName: string;
   onClose: () => void;
 }) {
+  const intl = useIntl();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [records, setRecords] = useState<DashboardPerformanceRow[]>([]);
   const [detail, setDetail] = useState<DashboardQueryPerformance>();
+  const fallbackDashboardName = intl.formatMessage({ id: 'pages.dashboard.editor.performance.dashboardFallback' });
+  const resolvedDashboardName = dashboardName || fallbackDashboardName;
 
   const load = useCallback(async () => {
     if (!/^\d+$/.test(dashboardId)) return;
@@ -72,11 +78,15 @@ export function DashboardPerformanceModal({
         return trace ? [{ ...trace, ...execution }] : [];
       }));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '读取性能分析记录失败');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : intl.formatMessage({ id: 'pages.dashboard.editor.performance.loadFailed' }),
+      );
     } finally {
       setLoading(false);
     }
-  }, [dashboardId]);
+  }, [dashboardId, intl]);
 
   useEffect(() => {
     if (open) void load();
@@ -84,11 +94,22 @@ export function DashboardPerformanceModal({
 
   const exportDetails = () => {
     const header = [
-      '一级资源名称', '二级资源名称', '数据集', '查询ID', '数据源等待(ms)', '查询准备阶段(ms)',
-      'SQL执行时间(ms)', '结果处理时间(ms)', '总查询时间(ms)', '返回行数', '查询开始时间', '数据源ID', 'SQL',
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.level1' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.level2' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.dataset' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.queryIdCompact' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.waitMs' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.prepareMs' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.executeMs' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.transferMs' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.totalMs' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.rows' }),
+      intl.formatMessage({ id: 'pages.dashboard.editor.performance.startedAtCompact' }),
+      'Data Source ID',
+      'SQL',
     ];
     const rows = records.map((record) => [
-      dashboardName,
+      resolvedDashboardName,
       record.widgetName,
       record.datasetName || record.datasetId,
       record.queryId,
@@ -98,7 +119,7 @@ export function DashboardPerformanceModal({
       record.transferMillis,
       record.totalMillis,
       record.returnedRows,
-      formatTime(record.startedAt),
+      formatTime(record.startedAt, intl.locale),
       record.dataSourceId ?? '',
       record.sql,
     ]);
@@ -113,12 +134,12 @@ export function DashboardPerformanceModal({
 
   const columns: TableColumnsType<DashboardPerformanceRow> = [
     {
-      title: '一级资源名称',
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.level1' }),
       width: 130,
-      render: () => <span className="text-[#344054]">{dashboardName || '仪表盘'}</span>,
+      render: () => <span className="text-[#344054]">{resolvedDashboardName}</span>,
     },
     {
-      title: '二级资源名称',
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.level2' }),
       dataIndex: 'widgetName',
       width: 180,
       render: (value: string) => (
@@ -128,12 +149,12 @@ export function DashboardPerformanceModal({
       ),
     },
     {
-      title: '数据集',
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.dataset' }),
       width: 150,
       render: (_, record) => record.datasetName || record.datasetId,
     },
     {
-      title: '查询ID',
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.queryIdCompact' }),
       dataIndex: 'queryId',
       width: 150,
       render: (value: string, record) => (
@@ -142,12 +163,32 @@ export function DashboardPerformanceModal({
         </Button>
       ),
     },
-    { title: '查询等待时间 (ms)', dataIndex: 'waitMillis', width: 135, align: 'right' },
-    { title: '查询准备阶段 (ms)', dataIndex: 'prepareMillis', width: 135, align: 'right' },
-    { title: 'SQL执行时间 (ms)', dataIndex: 'executeMillis', width: 125, align: 'right' },
-    { title: '结果处理时间 (ms)', dataIndex: 'transferMillis', width: 130, align: 'right' },
     {
-      title: '总查询时间 (ms)',
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.waitMs' }),
+      dataIndex: 'waitMillis',
+      width: 135,
+      align: 'right',
+    },
+    {
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.prepareMs' }),
+      dataIndex: 'prepareMillis',
+      width: 135,
+      align: 'right',
+    },
+    {
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.executeMs' }),
+      dataIndex: 'executeMillis',
+      width: 125,
+      align: 'right',
+    },
+    {
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.transferMs' }),
+      dataIndex: 'transferMillis',
+      width: 130,
+      align: 'right',
+    },
+    {
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.totalMs' }),
       dataIndex: 'totalMillis',
       width: 125,
       align: 'right',
@@ -157,19 +198,31 @@ export function DashboardPerformanceModal({
         </span>
       ),
     },
-    { title: '返回行数', dataIndex: 'returnedRows', width: 90, align: 'right' },
     {
-      title: '查询开始时间',
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.rows' }),
+      dataIndex: 'returnedRows',
+      width: 90,
+      align: 'right',
+    },
+    {
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.performance.startedAtCompact' }),
       dataIndex: 'startedAt',
       width: 170,
-      render: (value: string) => formatTime(value),
+      render: (value: string) => formatTime(value, intl.locale),
     },
   ];
 
   return (
     <>
       <Modal
-        title={<span className="text-[14px] font-semibold text-[#161823]">{dashboardName || '仪表盘'} · 性能分析</span>}
+        title={(
+          <span className="text-[14px] font-semibold text-[#161823]">
+            {intl.formatMessage(
+              { id: 'pages.dashboard.editor.performance.title' },
+              { name: resolvedDashboardName },
+            )}
+          </span>
+        )}
         width="min(1240px, calc(100vw - 48px))"
         open={open}
         onCancel={onClose}
@@ -179,15 +232,19 @@ export function DashboardPerformanceModal({
       >
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <div className="text-[12px] font-semibold text-[#344054]">核心信息</div>
-            <div className="mt-0.5 text-[10px] text-[#98a2b3]">当前仪表盘每个图表最近一次实际执行的 Dataset SQL 查询</div>
+            <div className="text-[12px] font-semibold text-[#344054]">
+              {intl.formatMessage({ id: 'pages.dashboard.editor.performance.coreInfo' })}
+            </div>
+            <div className="mt-0.5 text-[10px] text-[#98a2b3]">
+              {intl.formatMessage({ id: 'pages.dashboard.editor.performance.hint' })}
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <Button type="text" size="small" icon={<RefreshCw size={12} />} loading={loading} onClick={() => void load()}>
-              刷新
+              {intl.formatMessage({ id: 'pages.dashboard.editor.performance.refresh' })}
             </Button>
             <Button size="small" icon={<Download size={12} />} disabled={!records.length} onClick={exportDetails}>
-              导出详细信息
+              {intl.formatMessage({ id: 'pages.dashboard.editor.performance.export' })}
             </Button>
           </div>
         </div>
@@ -206,7 +263,7 @@ export function DashboardPerformanceModal({
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="当前仪表盘尚未产生可追踪的查询，请等待图表加载完成或刷新后再查看"
+                description={intl.formatMessage({ id: 'pages.dashboard.editor.performance.empty' })}
               />
             ),
           }}
@@ -214,11 +271,15 @@ export function DashboardPerformanceModal({
       </Modal>
 
       <Modal
-        title="查询详情"
+        title={intl.formatMessage({ id: 'pages.dashboard.editor.performance.detailTitle' })}
         width={820}
         open={Boolean(detail)}
         onCancel={() => setDetail(undefined)}
-        footer={<Button onClick={() => setDetail(undefined)}>关闭</Button>}
+        footer={(
+          <Button onClick={() => setDetail(undefined)}>
+            {intl.formatMessage({ id: 'pages.dashboard.editor.performance.close' })}
+          </Button>
+        )}
       >
         {detail ? (
           <div>
@@ -227,24 +288,67 @@ export function DashboardPerformanceModal({
               bordered
               column={3}
               items={[
-                { key: 'queryId', label: '查询 ID', children: detail.queryId, span: 3 },
-                { key: 'dataset', label: '数据集', children: detail.datasetName },
-                { key: 'version', label: '版本', children: `V${detail.datasetVersionNo}` },
-                { key: 'rows', label: '返回行数', children: detail.returnedRows },
-                { key: 'wait', label: '数据源等待', children: `${detail.waitMillis} ms` },
-                { key: 'prepare', label: '准备阶段', children: `${detail.prepareMillis} ms` },
-                { key: 'execute', label: 'SQL 执行', children: `${detail.executeMillis} ms` },
-                { key: 'transfer', label: '结果处理', children: `${detail.transferMillis} ms` },
-                { key: 'total', label: '总耗时', children: `${detail.totalMillis} ms` },
-                { key: 'start', label: '开始时间', children: formatTime(detail.startedAt) },
+                {
+                  key: 'queryId',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.queryId' }),
+                  children: detail.queryId,
+                  span: 3,
+                },
+                {
+                  key: 'dataset',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.dataset' }),
+                  children: detail.datasetName,
+                },
+                {
+                  key: 'version',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.version' }),
+                  children: `V${detail.datasetVersionNo}`,
+                },
+                {
+                  key: 'rows',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.rows' }),
+                  children: detail.returnedRows,
+                },
+                {
+                  key: 'wait',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.wait' }),
+                  children: `${detail.waitMillis} ms`,
+                },
+                {
+                  key: 'prepare',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.prepare' }),
+                  children: `${detail.prepareMillis} ms`,
+                },
+                {
+                  key: 'execute',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.execute' }),
+                  children: `${detail.executeMillis} ms`,
+                },
+                {
+                  key: 'transfer',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.transfer' }),
+                  children: `${detail.transferMillis} ms`,
+                },
+                {
+                  key: 'total',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.total' }),
+                  children: `${detail.totalMillis} ms`,
+                },
+                {
+                  key: 'start',
+                  label: intl.formatMessage({ id: 'pages.dashboard.editor.performance.startedAt' }),
+                  children: formatTime(detail.startedAt, intl.locale),
+                },
               ]}
             />
-            <div className="mt-4 text-[12px] font-semibold text-[#344054]">最终执行 SQL</div>
+            <div className="mt-4 text-[12px] font-semibold text-[#344054]">
+              {intl.formatMessage({ id: 'pages.dashboard.editor.performance.sql' })}
+            </div>
             <pre className="mt-2 max-h-[320px] overflow-auto whitespace-pre-wrap break-all border border-[#e4e7ec] bg-[#f7f8fa] p-3 font-mono text-[11px] leading-5 text-[#344054]">
-              {detail.sql || '-- SQL 不可用'}
+              {detail.sql || intl.formatMessage({ id: 'pages.dashboard.editor.performance.sqlUnavailable' })}
             </pre>
             <div className="mt-2 text-[10px] leading-5 text-[#98a2b3]">
-              SQL 执行时间包含 JDBC 驱动取数；结果处理时间仅统计 Query Runtime 对返回结果的截断与整理。
+              {intl.formatMessage({ id: 'pages.dashboard.editor.performance.sqlHint' })}
             </div>
           </div>
         ) : null}

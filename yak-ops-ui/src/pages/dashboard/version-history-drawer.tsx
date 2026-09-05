@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Button, Drawer, Empty, Spin } from 'antd';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -25,6 +26,7 @@ export function DashboardVersionHistoryDrawer({
   onClose: () => void;
   onRestore: (versionNo: number) => void;
 }) {
+  const intl = useIntl();
   const [selectedVersionNo, setSelectedVersionNo] = useState<number>();
   const [detail, setDetail] = useState<DashboardVersionDetail>();
   const [loading, setLoading] = useState(false);
@@ -63,7 +65,7 @@ export function DashboardVersionHistoryDrawer({
 
   return (
     <Drawer
-      title="历史版本"
+      title={intl.formatMessage({ id: 'pages.dashboard.editor.version.title' })}
       width={680}
       open={open}
       onClose={onClose}
@@ -91,12 +93,12 @@ export function DashboardVersionHistoryDrawer({
                   <div className="flex items-center gap-1">
                     {current ? (
                       <span className="rounded-[3px] bg-[#f2f4f7] px-1.5 py-0.5 text-[9px] text-[#475467]">
-                        当前草稿
+                        {intl.formatMessage({ id: 'pages.dashboard.editor.version.currentDraft' })}
                       </span>
                     ) : null}
                     {published ? (
                       <span className="rounded-[3px] bg-[#ecfdf3] px-1.5 py-0.5 text-[9px] text-[#1d7a4b]">
-                        已发布
+                        {intl.formatMessage({ id: 'pages.dashboard.editor.version.published' })}
                       </span>
                     ) : null}
                   </div>
@@ -120,12 +122,17 @@ export function DashboardVersionHistoryDrawer({
                   <div className="flex items-center gap-2">
                     <span className="text-[15px] font-semibold text-[#161823]">V{selectedVersion.versionNo}</span>
                     {selectedVersion.versionNo === publishedVersionNo ? (
-                      <span className="rounded-[3px] bg-[#ecfdf3] px-2 py-0.5 text-[10px] text-[#1d7a4b]">已发布</span>
+                      <span className="rounded-[3px] bg-[#ecfdf3] px-2 py-0.5 text-[10px] text-[#1d7a4b]">
+                        {intl.formatMessage({ id: 'pages.dashboard.editor.version.published' })}
+                      </span>
                     ) : null}
                   </div>
                   <div className="mt-1 truncate text-[12px] text-[#475467]">{detail.version.name}</div>
                   <div className="mt-1 text-[10px] text-[#98a2b3]">
-                    创建于 {formatTime(detail.version.createTime)}
+                    {intl.formatMessage(
+                      { id: 'pages.dashboard.editor.version.createdAt' },
+                      { time: formatTime(detail.version.createTime) },
+                    )}
                   </div>
                 </div>
 
@@ -135,19 +142,34 @@ export function DashboardVersionHistoryDrawer({
                   disabled={busy || selectedVersion.versionNo === currentVersionNo}
                   onClick={() => onRestore(selectedVersion.versionNo)}
                 >
-                  {selectedVersion.versionNo === currentVersionNo ? '当前草稿' : '恢复为草稿'}
+                  {intl.formatMessage({
+                    id: selectedVersion.versionNo === currentVersionNo
+                      ? 'pages.dashboard.editor.version.currentDraft'
+                      : 'pages.dashboard.editor.version.restoreDraft',
+                  })}
                 </Button>
               </div>
 
               <div className="mt-5 grid grid-cols-4 gap-2">
-                <Metric label="组件" value={detail.widgets.length} />
-                <Metric label="筛选器" value={detail.globalFilters.length} />
-                <Metric label="联动" value={detail.interactions.length} />
+                <Metric
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.version.widgets' })}
+                  value={detail.widgets.length}
+                />
+                <Metric
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.version.filters' })}
+                  value={detail.globalFilters.length}
+                />
+                <Metric
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.version.interactions' })}
+                  value={detail.interactions.length}
+                />
                 <Metric label="Dataset" value={detail.version.activeDatasetId || '-'} />
               </div>
 
               <div className="mt-5">
-                <div className="mb-2 text-[11px] font-medium text-[#667085]">布局快照</div>
+                <div className="mb-2 text-[11px] font-medium text-[#667085]">
+                  {intl.formatMessage({ id: 'pages.dashboard.editor.version.layout' })}
+                </div>
                 <div
                   className="grid h-[190px] overflow-hidden rounded-[7px] border border-[#e5e7eb] bg-[#fafbfc] p-2"
                   style={{
@@ -156,32 +178,41 @@ export function DashboardVersionHistoryDrawer({
                     gap: '2px',
                   }}
                 >
-                  {detail.widgets.map((widget) => (
-                    <div
-                      key={widget.id}
-                      title={widget.title || '图表'}
-                      className="overflow-hidden rounded-[3px] border border-[#dfe3e8] bg-white px-1.5 py-1 text-[9px] text-[#667085] shadow-[0_1px_2px_rgba(16,24,40,.03)]"
-                      style={{
-                        gridColumn: `${widget.x + 1} / span ${widget.w}`,
-                        gridRow: `${widget.y + 1} / span ${Math.max(widget.h, 1)}`,
-                      }}
-                    >
-                      <span className="block truncate">{widget.title || '未命名图表'}</span>
-                    </div>
-                  ))}
+                  {detail.widgets.map((widget) => {
+                    const fallbackTitle = intl.formatMessage({ id: 'pages.dashboard.editor.version.chartFallback' });
+                    const unnamedTitle = intl.formatMessage({ id: 'pages.dashboard.editor.unnamedChart' });
+                    return (
+                      <div
+                        key={widget.id}
+                        title={widget.title || fallbackTitle}
+                        className="overflow-hidden rounded-[3px] border border-[#dfe3e8] bg-white px-1.5 py-1 text-[9px] text-[#667085] shadow-[0_1px_2px_rgba(16,24,40,.03)]"
+                        style={{
+                          gridColumn: `${widget.x + 1} / span ${widget.w}`,
+                          gridRow: `${widget.y + 1} / span ${Math.max(widget.h, 1)}`,
+                        }}
+                      >
+                        <span className="block truncate">{widget.title || unnamedTitle}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="mt-5 border-t border-[#edf0f3] pt-4">
-                <div className="text-[11px] font-medium text-[#667085]">版本说明</div>
+                <div className="text-[11px] font-medium text-[#667085]">
+                  {intl.formatMessage({ id: 'pages.dashboard.editor.version.descriptionTitle' })}
+                </div>
                 <div className="mt-1 text-[11px] leading-5 text-[#98a2b3]">
-                  历史版本只读。恢复时会复制该快照并生成新的草稿版本，不会修改旧版本，也不会改变当前已发布版本。
+                  {intl.formatMessage({ id: 'pages.dashboard.editor.version.description' })}
                 </div>
               </div>
             </>
           ) : (
             <div className="flex h-[360px] items-center justify-center">
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="版本详情加载失败" />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={intl.formatMessage({ id: 'pages.dashboard.editor.version.loadFailed' })}
+              />
             </div>
           )}
         </div>

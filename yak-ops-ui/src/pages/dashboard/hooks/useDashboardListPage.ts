@@ -6,7 +6,7 @@ import {
   toDashboardDocument,
   type DashboardSummary,
 } from '@/services/dashboard';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { message } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -24,6 +24,9 @@ import {
 } from '../utils';
 
 export const useDashboardListPage = () => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const requestSequenceRef = useRef(0);
   const [dashboards, setDashboards] = useState<DashboardSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +58,9 @@ export const useDashboardListPage = () => {
       if (requestSequence !== requestSequenceRef.current) return;
       setDashboards([]);
       message.error(
-        error instanceof Error ? error.message : '加载仪表盘失败',
+        error instanceof Error
+          ? error.message
+          : intlRef.current.formatMessage({ id: 'pages.dashboard.list.loadFailed' }),
       );
     } finally {
       if (requestSequence === requestSequenceRef.current) {
@@ -147,7 +152,9 @@ export const useDashboardListPage = () => {
   const renameDashboard = useCallback(async () => {
     const name = renameValue.trim();
     if (!renameTarget || !name) {
-      message.warning('请输入仪表盘名称');
+      message.warning(
+        intlRef.current.formatMessage({ id: 'pages.dashboard.list.rename.required' }),
+      );
       return;
     }
     if (name === renameTarget.name) {
@@ -161,13 +168,17 @@ export const useDashboardListPage = () => {
       const detail = await getDashboard(renameTarget.id);
       const document = toDashboardDocument(detail);
       await saveDashboardVersion(renameTarget.id, { ...document, name });
-      message.success('名称已保存到新草稿版本');
+      message.success(
+        intlRef.current.formatMessage({ id: 'pages.dashboard.list.rename.success' }),
+      );
       setRenameTarget(undefined);
       setRenameValue('');
       await loadDashboards();
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : '重命名仪表盘失败',
+        error instanceof Error
+          ? error.message
+          : intlRef.current.formatMessage({ id: 'pages.dashboard.list.rename.failed' }),
       );
     } finally {
       setRenaming(false);
@@ -179,11 +190,15 @@ export const useDashboardListPage = () => {
       setDeletingId(dashboard.id);
       try {
         await deleteDashboard(dashboard.id);
-        message.success('仪表盘已删除');
+        message.success(
+          intlRef.current.formatMessage({ id: 'pages.dashboard.list.deleteSuccess' }),
+        );
         await loadDashboards();
       } catch (error) {
         message.error(
-          error instanceof Error ? error.message : '删除仪表盘失败',
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({ id: 'pages.dashboard.list.deleteFailed' }),
         );
         throw error;
       } finally {

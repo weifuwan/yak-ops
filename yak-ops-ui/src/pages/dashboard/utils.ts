@@ -106,15 +106,24 @@ export const dashboardOpenPath = (dashboard: DashboardSummary) =>
 export const dashboardEditPath = (dashboardId: string) =>
   `/dashboard/${encodeURIComponent(dashboardId)}/edit`;
 
-export const dashboardLifecycleLabel = (dashboard: DashboardSummary) => {
+export const dashboardLifecycleMessage = (dashboard: DashboardSummary) => {
   const lifecycle = getDashboardLifecycle(dashboard);
   if (lifecycle.state === 'published') {
-    return `已发布 V${dashboard.publishedVersionNo}`;
+    return {
+      id: 'pages.dashboard.list.lifecycle.published',
+      values: { version: dashboard.publishedVersionNo },
+    };
   }
   if (lifecycle.state === 'draft') {
-    return `有草稿 V${dashboard.currentVersionNo}`;
+    return {
+      id: 'pages.dashboard.list.lifecycle.draft',
+      values: { version: dashboard.currentVersionNo },
+    };
   }
-  return `未发布 · 草稿 V${dashboard.currentVersionNo}`;
+  return {
+    id: 'pages.dashboard.list.lifecycle.unpublished',
+    values: { version: dashboard.currentVersionNo },
+  };
 };
 
 export const dashboardLifecycleClassName = (dashboard: DashboardSummary) => {

@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Button, DatePicker, Input, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import { Plus, RefreshCw, Settings2, SlidersHorizontal } from 'lucide-react';
@@ -11,14 +12,14 @@ import type {
   Scalar,
 } from './model';
 
-const OPERATOR_LABELS: Record<FilterOperator, string> = {
-  eq: '等于',
-  neq: '不等于',
-  contains: '包含',
-  gt: '大于',
-  gte: '大于等于',
-  lt: '小于',
-  lte: '小于等于',
+const OPERATOR_MESSAGE_IDS: Record<FilterOperator, string> = {
+  eq: 'pages.dashboard.editor.operator.eq',
+  neq: 'pages.dashboard.editor.operator.neq',
+  contains: 'pages.dashboard.editor.operator.contains',
+  gt: 'pages.dashboard.editor.operator.gt',
+  gte: 'pages.dashboard.editor.operator.gte',
+  lt: 'pages.dashboard.editor.operator.lt',
+  lte: 'pages.dashboard.editor.operator.lte',
 };
 
 const own = (value: Record<string, Scalar | undefined>, key: string) =>
@@ -45,6 +46,7 @@ export function DashboardGlobalFilterBar({
   onReset: () => void;
   onManage: () => void;
 }) {
+  const intl = useIntl();
   if (!filters.length && !editable) return null;
 
   return (
@@ -60,7 +62,7 @@ export function DashboardGlobalFilterBar({
         style={{ color: 'var(--dashboard-component-text, #475467)' }}
       >
         <SlidersHorizontal size={13} />
-        筛选条件
+        {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.title' })}
         {filters.length ? (
           <span
             className="rounded-full px-1.5 py-px text-[9px] font-normal"
@@ -119,7 +121,7 @@ export function DashboardGlobalFilterBar({
                 className="mr-0.5 text-[9px]"
                 style={{ color: 'var(--dashboard-component-muted, #a0a6af)' }}
               >
-                {OPERATOR_LABELS[filter.operator]}
+                {intl.formatMessage({ id: OPERATOR_MESSAGE_IDS[filter.operator] })}
               </span>
               {dateFilter ? (
                 <DatePicker
@@ -129,7 +131,7 @@ export function DashboardGlobalFilterBar({
                   showTime={dateTime ? { format: 'HH:mm:ss' } : false}
                   format={dateTime ? 'YYYY-MM-DD HH:mm:ss' : 'YYYY-MM-DD'}
                   className="!h-7 w-[158px] text-[10px]"
-                  placeholder="全部"
+                  placeholder={intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.all' })}
                   value={dateValue?.isValid() ? dateValue : null}
                   onChange={(value) => onRuntimeValue(
                     filter.id,
@@ -144,7 +146,7 @@ export function DashboardGlobalFilterBar({
                   size="small"
                   allowClear
                   className="!h-7 w-[116px] text-[10px]"
-                  placeholder="全部"
+                  placeholder={intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.all' })}
                   value={current === undefined || current === null ? '' : String(current)}
                   onChange={(event) => onRuntimeValue(filter.id, event.target.value || undefined)}
                 />
@@ -156,13 +158,13 @@ export function DashboardGlobalFilterBar({
             className="text-[10px]"
             style={{ color: 'var(--dashboard-component-muted, #a0a6af)' }}
           >
-            还没有筛选条件，可在这里添加全局筛选
+            {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.emptyHint' })}
           </span>
         )}
       </div>
 
       {filters.length ? (
-        <Tooltip title="恢复默认筛选">
+        <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.reset' })}>
           <Button
             type="text"
             className="!h-7 !w-7 !min-w-0 !rounded-[6px] !p-0"
@@ -181,7 +183,11 @@ export function DashboardGlobalFilterBar({
           icon={filters.length ? <Settings2 size={12} /> : <Plus size={12} />}
           onClick={onManage}
         >
-          {filters.length ? '管理筛选' : '添加筛选'}
+          {intl.formatMessage({
+            id: filters.length
+              ? 'pages.dashboard.editor.globalFilter.manage'
+              : 'pages.dashboard.editor.globalFilter.add',
+          })}
         </Button>
       ) : null}
     </div>

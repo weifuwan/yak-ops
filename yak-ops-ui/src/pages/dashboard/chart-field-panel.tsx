@@ -11,6 +11,7 @@ import type {
   AnalysisCalculatedField,
   AnalysisSpec,
 } from '@/components/analysis/model';
+import { useIntl } from '@umijs/max';
 import { Button, Input, Popconfirm } from 'antd';
 import {
   Braces,
@@ -28,13 +29,13 @@ import { CalculatedFieldEditor } from './calculated-field-editor';
 import { writeChartFieldDragPayload } from './chart-field-drag';
 import type { DatasetField, PublishedDataset } from './model';
 
-const fieldTypeLabel: Record<DatasetField['dataType'], string> = {
-  string: '文本',
-  number: '数值',
-  date: '日期',
-  datetime: '日期时间',
-  boolean: '布尔',
-  unknown: '未知',
+const FIELD_TYPE_MESSAGE_IDS: Record<DatasetField['dataType'], string> = {
+  string: 'pages.dashboard.editor.fields.type.string',
+  number: 'pages.dashboard.editor.fields.type.number',
+  date: 'pages.dashboard.editor.fields.type.date',
+  datetime: 'pages.dashboard.editor.fields.type.datetime',
+  boolean: 'pages.dashboard.editor.fields.type.boolean',
+  unknown: 'pages.dashboard.editor.fields.type.unknown',
 };
 
 export function ChartFieldPanel({
@@ -48,6 +49,7 @@ export function ChartFieldPanel({
   editable: boolean;
   onSpecPatch?: (patch: Partial<AnalysisSpec>) => void;
 }) {
+  const intl = useIntl();
   const [keyword, setKeyword] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingField, setEditingField] = useState<AnalysisCalculatedField>();
@@ -137,10 +139,14 @@ export function ChartFieldPanel({
     <section className="flex w-[244px] shrink-0 flex-col border-r border-[#e3e6ea] bg-white">
       <div className="flex h-14 shrink-0 items-center border-b border-[#eceef1] px-3.5">
         <div className="min-w-0">
-          <div className="text-[13px] font-semibold text-[#344054]">数据字段</div>
+          <div className="text-[13px] font-semibold text-[#344054]">
+            {intl.formatMessage({ id: 'pages.dashboard.editor.fields.title' })}
+          </div>
           <div className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-[#7a818c]">
             <Database size={10} className="shrink-0" />
-            <span className="truncate">{dataset?.name ?? '数据来源不可用'}</span>
+            <span className="truncate">
+              {dataset?.name ?? intl.formatMessage({ id: 'pages.dashboard.editor.fields.sourceUnavailable' })}
+            </span>
           </div>
         </div>
       </div>
@@ -151,13 +157,17 @@ export function ChartFieldPanel({
           size="small"
           value={keyword}
           prefix={<Search size={13} className="text-[#7a818c]" />}
-          placeholder="搜索字段"
+          placeholder={intl.formatMessage({ id: 'pages.dashboard.editor.fields.search' })}
           className="!h-9 !rounded-[7px] !text-[11px]"
           onChange={(event) => setKeyword(event.target.value)}
         />
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="text-[10px] leading-4 text-[#8b929c]">
-            {editable ? '拖动字段到上方字段槽位' : '复制为可编辑图表后可配置'}
+            {intl.formatMessage({
+              id: editable
+                ? 'pages.dashboard.editor.fields.dragHint'
+                : 'pages.dashboard.editor.fields.copyHint',
+            })}
           </div>
           {editable && dataset && spec && onSpecPatch ? (
             <Button
@@ -170,7 +180,7 @@ export function ChartFieldPanel({
                 setEditorOpen(true);
               }}
             >
-              计算字段
+              {intl.formatMessage({ id: 'pages.dashboard.editor.fields.calculated' })}
             </Button>
           ) : null}
         </div>
@@ -178,18 +188,20 @@ export function ChartFieldPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3.5">
         {!dataset ? (
-          <div className="px-2 py-6 text-center text-[11px] text-[#8b929c]">暂无可用字段</div>
+          <div className="px-2 py-6 text-center text-[11px] text-[#8b929c]">
+            {intl.formatMessage({ id: 'pages.dashboard.editor.fields.empty' })}
+          </div>
         ) : (
           <div className="space-y-4">
             <FieldGroup
-              title="维度"
+              title={intl.formatMessage({ id: 'pages.dashboard.editor.fields.dimension' })}
               role="dimension"
               fields={dimensions}
               encodedFields={encodedFields}
               editable={editable}
             />
             <FieldGroup
-              title="指标"
+              title={intl.formatMessage({ id: 'pages.dashboard.editor.fields.metric' })}
               role="metric"
               fields={metrics}
               encodedFields={encodedFields}
@@ -242,6 +254,7 @@ function FieldGroup({
   encodedFields: Set<string>;
   editable: boolean;
 }) {
+  const intl = useIntl();
   const dimension = role === 'dimension';
 
   return (
@@ -272,7 +285,12 @@ function FieldGroup({
             <div
               key={field.key}
               draggable={editable}
-              title={editable ? `${field.label} · 拖动到上方字段槽位` : field.label}
+              title={editable
+                ? intl.formatMessage(
+                  { id: 'pages.dashboard.editor.fields.dragField' },
+                  { field: field.label },
+                )
+                : field.label}
               className={[
                 'group flex h-9 items-center gap-2 rounded-[6px] px-1.5 text-[11px] transition-colors',
                 editable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
@@ -302,12 +320,16 @@ function FieldGroup({
                 {isDimension ? <Type size={11} /> : <Hash size={11} />}
               </span>
               <span className="min-w-0 flex-1 truncate font-medium">{field.label}</span>
-              <span className="shrink-0 text-[9px] text-[#8e95a0]">{fieldTypeLabel[field.dataType]}</span>
+              <span className="shrink-0 text-[9px] text-[#8e95a0]">
+                {intl.formatMessage({ id: FIELD_TYPE_MESSAGE_IDS[field.dataType] })}
+              </span>
             </div>
           );
         })}
         {!fields.length ? (
-          <div className="px-1.5 py-2.5 text-[10px] text-[#98a2b3]">没有匹配字段</div>
+          <div className="px-1.5 py-2.5 text-[10px] text-[#98a2b3]">
+            {intl.formatMessage({ id: 'pages.dashboard.editor.fields.noMatch' })}
+          </div>
         ) : null}
       </div>
     </div>
@@ -329,6 +351,7 @@ function CalculatedFieldGroup({
   onEdit: (field: AnalysisCalculatedField) => void;
   onDelete: (field: AnalysisCalculatedField) => void;
 }) {
+  const intl = useIntl();
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between px-1.5">
@@ -336,7 +359,9 @@ function CalculatedFieldGroup({
           <span className="flex h-5 w-5 items-center justify-center rounded-[5px] border border-[#fee1c7] bg-[#fff6ed] text-[#f79009]">
             <Braces size={10} />
           </span>
-          <span className="text-[11px] font-semibold text-[#344054]">计算字段</span>
+          <span className="text-[11px] font-semibold text-[#344054]">
+            {intl.formatMessage({ id: 'pages.dashboard.editor.fields.calculated' })}
+          </span>
         </div>
         <span className="rounded-[4px] bg-[#f2f4f7] px-1.5 py-0.5 text-[9px] font-medium tabular-nums text-[#667085]">
           {total}
@@ -368,28 +393,36 @@ function CalculatedFieldGroup({
                 <Braces size={11} />
               </span>
               <span className="min-w-0 flex-1 truncate font-medium">{field.name}</span>
-              <span className="shrink-0 text-[9px] text-[#8e95a0]">计算</span>
+              <span className="shrink-0 text-[9px] text-[#8e95a0]">
+                {intl.formatMessage({ id: 'pages.dashboard.editor.fields.calculatedBadge' })}
+              </span>
               {editable ? (
                 <div className="hidden shrink-0 items-center gap-0.5 group-hover:flex">
                   <button
                     type="button"
                     className="flex h-5 w-5 items-center justify-center rounded-[4px] text-[#8e95a0] hover:bg-[#e9ebef] hover:text-[#475467]"
-                    aria-label={`编辑${field.name}`}
+                    aria-label={intl.formatMessage(
+                      { id: 'pages.dashboard.editor.fields.editCalculatedAria' },
+                      { field: field.name },
+                    )}
                     onClick={() => onEdit(field)}
                   >
                     <Pencil size={9} />
                   </button>
                   <Popconfirm
-                    title="删除计算字段？"
-                    description="已绑定到图表的该字段会同步移除。"
-                    okText="删除"
-                    cancelText="取消"
+                    title={intl.formatMessage({ id: 'pages.dashboard.editor.fields.deleteCalculatedTitle' })}
+                    description={intl.formatMessage({ id: 'pages.dashboard.editor.fields.deleteCalculatedDescription' })}
+                    okText={intl.formatMessage({ id: 'pages.dashboard.editor.common.delete' })}
+                    cancelText={intl.formatMessage({ id: 'pages.dashboard.editor.common.cancel' })}
                     onConfirm={() => onDelete(field)}
                   >
                     <button
                       type="button"
                       className="flex h-5 w-5 items-center justify-center rounded-[4px] text-[#8e95a0] hover:bg-[#e9ebef] hover:text-[#b42318]"
-                      aria-label={`删除${field.name}`}
+                      aria-label={intl.formatMessage(
+                        { id: 'pages.dashboard.editor.fields.deleteCalculatedAria' },
+                        { field: field.name },
+                      )}
                     >
                       <Trash2 size={9} />
                     </button>
@@ -400,7 +433,9 @@ function CalculatedFieldGroup({
           );
         })}
         {!fields.length ? (
-          <div className="px-1.5 py-2.5 text-[10px] text-[#98a2b3]">没有匹配计算字段</div>
+          <div className="px-1.5 py-2.5 text-[10px] text-[#98a2b3]">
+            {intl.formatMessage({ id: 'pages.dashboard.editor.fields.noCalculatedMatch' })}
+          </div>
         ) : null}
       </div>
     </div>

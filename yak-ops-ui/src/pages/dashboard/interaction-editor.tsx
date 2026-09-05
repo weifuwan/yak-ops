@@ -1,4 +1,5 @@
 import type { AnalysisSpec } from '@/components/analysis/model';
+import { useIntl } from '@umijs/max';
 import { Button, Select, Tooltip } from 'antd';
 import { Link2, Plus, Trash2 } from 'lucide-react';
 import type {
@@ -25,9 +26,8 @@ export function DashboardInteractionEditor({
   interactions: DashboardInteraction[];
   onChange: (interactions: DashboardInteraction[]) => void;
 }) {
+  const intl = useIntl();
   const rules = interactions.filter((item) => item.sourceWidgetId === widget.id);
-  // AnalysisSelection currently emits the primary category dimension. Keep configured
-  // interaction sources aligned with the actual runtime event contract.
   const sourceOptions = spec.dimensions.slice(0, 1).map((fieldId) => {
     const field = dataset.fields.find((item) => item.key === fieldId);
     return {
@@ -38,7 +38,10 @@ export function DashboardInteractionEditor({
   const targetOptions = filters
     .filter((filter) => filter.bindings.length > 0)
     .map((filter) => ({
-      label: `${filter.name} · ${filter.bindings.length} 个图表`,
+      label: intl.formatMessage(
+        { id: 'pages.dashboard.editor.interaction.filterTarget' },
+        { name: filter.name, count: filter.bindings.length },
+      ),
       value: filter.id,
     }));
   const nextPair = sourceOptions.flatMap((source) =>
@@ -78,10 +81,10 @@ export function DashboardInteractionEditor({
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#667085]">
             <Link2 size={12} />
-            筛选器联动
+            {intl.formatMessage({ id: 'pages.dashboard.editor.interaction.title' })}
           </div>
           <div className="mt-1 text-[9px] leading-4 text-[#98a2b3]">
-            点击当前图表的主分类值后，写入目标全局筛选器并刷新它绑定的图表。
+            {intl.formatMessage({ id: 'pages.dashboard.editor.interaction.hint' })}
           </div>
         </div>
         <Button
@@ -91,21 +94,21 @@ export function DashboardInteractionEditor({
           disabled={!nextPair}
           onClick={addRule}
         >
-          添加
+          {intl.formatMessage({ id: 'pages.dashboard.editor.interaction.add' })}
         </Button>
       </div>
 
       {!filters.length ? (
         <div className="mt-2 rounded-[5px] bg-[#fafbfc] px-2.5 py-2 text-[10px] text-[#98a2b3]">
-          先创建全局筛选器，再配置筛选器联动。
+          {intl.formatMessage({ id: 'pages.dashboard.editor.interaction.createFilterFirst' })}
         </div>
       ) : !sourceOptions.length ? (
         <div className="mt-2 rounded-[5px] bg-[#fafbfc] px-2.5 py-2 text-[10px] text-[#98a2b3]">
-          当前图表没有可点击的主分类维度，暂时不能作为联动来源。
+          {intl.formatMessage({ id: 'pages.dashboard.editor.interaction.noSourceDimension' })}
         </div>
       ) : !targetOptions.length ? (
         <div className="mt-2 rounded-[5px] bg-[#fafbfc] px-2.5 py-2 text-[10px] text-[#98a2b3]">
-          当前筛选器还没有绑定图表字段，完成字段映射后即可联动。
+          {intl.formatMessage({ id: 'pages.dashboard.editor.interaction.noTargetBinding' })}
         </div>
       ) : rules.length ? (
         <div className="mt-2 space-y-2">
@@ -113,7 +116,9 @@ export function DashboardInteractionEditor({
             <div key={rule.id} className="rounded-[6px] border border-[#edf0f3] bg-[#fafbfc] p-2">
               <div className="grid grid-cols-[1fr_1fr_28px] items-end gap-1.5">
                 <div>
-                  <div className="mb-1 text-[9px] text-[#98a2b3]">点击维度</div>
+                  <div className="mb-1 text-[9px] text-[#98a2b3]">
+                    {intl.formatMessage({ id: 'pages.dashboard.editor.interaction.sourceDimension' })}
+                  </div>
                   <Select
                     size="small"
                     className="w-full"
@@ -123,7 +128,9 @@ export function DashboardInteractionEditor({
                   />
                 </div>
                 <div>
-                  <div className="mb-1 text-[9px] text-[#98a2b3]">更新筛选器</div>
+                  <div className="mb-1 text-[9px] text-[#98a2b3]">
+                    {intl.formatMessage({ id: 'pages.dashboard.editor.interaction.targetFilter' })}
+                  </div>
                   <Select
                     size="small"
                     className="w-full"
@@ -132,7 +139,7 @@ export function DashboardInteractionEditor({
                     onChange={(targetFilterId) => updateRule(rule.id, { targetFilterId })}
                   />
                 </div>
-                <Tooltip title="删除联动">
+                <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.interaction.delete' })}>
                   <Button
                     size="small"
                     type="text"
@@ -148,7 +155,7 @@ export function DashboardInteractionEditor({
         </div>
       ) : (
         <div className="mt-2 rounded-[5px] bg-[#fafbfc] px-2.5 py-2 text-[10px] text-[#98a2b3]">
-          暂无筛选器联动。添加后选择来源维度和目标全局筛选器。
+          {intl.formatMessage({ id: 'pages.dashboard.editor.interaction.empty' })}
         </div>
       )}
     </div>

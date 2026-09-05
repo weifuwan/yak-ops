@@ -1,4 +1,5 @@
 import YakTab from '@/components/YakTab';
+import { useIntl } from '@umijs/max';
 import { Button, Collapse, ColorPicker, Drawer } from 'antd';
 import {
   BarChart3,
@@ -143,10 +144,16 @@ export function DashboardThemeDrawer({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const intl = useIntl();
   const normalized = normalizeDashboardTheme(theme);
   const resolved = resolveDashboardTheme(theme);
   const selectedId = resolved.presetId;
   const customized = hasDashboardThemeOverrides(theme);
+  const presetName = (preset: Pick<ResolvedDashboardTheme, 'presetId' | 'name'>) =>
+    intl.formatMessage({
+      id: `pages.dashboard.editor.theme.preset.${preset.presetId}`,
+      defaultMessage: preset.name,
+    });
 
   const updateCanvas = (patch: DashboardThemeCanvas) => onChange({
     ...normalized,
@@ -193,7 +200,7 @@ export function DashboardThemeDrawer({
                 size={13}
                 className={selected ? 'text-[var(--yak-brand-color)]' : 'text-[#667085]'}
               />
-              <span className="text-[12px] font-medium text-[#344054]">{preset.name}</span>
+              <span className="text-[12px] font-medium text-[#344054]">{presetName(preset)}</span>
             </div>
             {selected ? (
               <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--yak-brand-color)] text-white">
@@ -210,11 +217,13 @@ export function DashboardThemeDrawer({
     <div className="pt-1">
       <div className="mb-3 flex h-9 items-center justify-between bg-[#f7f8fa] px-3">
         <div className="flex items-center gap-2 text-[11px] text-[#667085]">
-          <span>基于</span>
-          <span className="font-medium text-[#344054]">{resolved.name}</span>
+          <span>{intl.formatMessage({ id: 'pages.dashboard.editor.theme.basedOn' })}</span>
+          <span className="font-medium text-[#344054]">
+            {presetName({ presetId: resolved.presetId, name: resolved.name })}
+          </span>
           {customized ? (
             <span className="bg-[var(--yak-brand-color-soft)] px-1.5 py-0.5 text-[9px] text-[var(--yak-brand-color)]">
-              已自定义
+              {intl.formatMessage({ id: 'pages.dashboard.editor.theme.customized' })}
             </span>
           ) : null}
         </div>
@@ -225,7 +234,7 @@ export function DashboardThemeDrawer({
           icon={<RotateCcw size={11} />}
           onClick={() => onChange(themeFromPreset(selectedId))}
         >
-          恢复预设
+          {intl.formatMessage({ id: 'pages.dashboard.editor.theme.restorePreset' })}
         </Button>
       </div>
 
@@ -237,10 +246,14 @@ export function DashboardThemeDrawer({
         items={[
           {
             key: 'canvas',
-            label: <SectionLabel icon={<LayoutDashboard size={13} />}>仪表盘</SectionLabel>,
+            label: (
+              <SectionLabel icon={<LayoutDashboard size={13} />}>
+                {intl.formatMessage({ id: 'pages.dashboard.editor.theme.dashboard' })}
+              </SectionLabel>
+            ),
             children: (
               <ColorSetting
-                label="画布背景"
+                label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.canvasBackground' })}
                 value={resolved.canvas.backgroundColor}
                 onChange={(backgroundColor) => updateCanvas({ backgroundColor })}
               />
@@ -248,26 +261,30 @@ export function DashboardThemeDrawer({
           },
           {
             key: 'component',
-            label: <SectionLabel icon={<Box size={13} />}>组件</SectionLabel>,
+            label: (
+              <SectionLabel icon={<Box size={13} />}>
+                {intl.formatMessage({ id: 'pages.dashboard.editor.theme.component' })}
+              </SectionLabel>
+            ),
             children: (
               <div>
                 <ColorSetting
-                  label="组件背景"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.componentBackground' })}
                   value={resolved.component.backgroundColor}
                   onChange={(backgroundColor) => updateComponent({ backgroundColor })}
                 />
                 <ColorSetting
-                  label="主文字"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.primaryText' })}
                   value={resolved.component.textColor}
                   onChange={(textColor) => updateComponent({ textColor })}
                 />
                 <ColorSetting
-                  label="次文字"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.secondaryText' })}
                   value={resolved.component.mutedTextColor}
                   onChange={(mutedTextColor) => updateComponent({ mutedTextColor })}
                 />
                 <ColorSetting
-                  label="组件边框"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.componentBorder' })}
                   value={resolved.component.borderColor}
                   onChange={(borderColor) => updateComponent({ borderColor })}
                 />
@@ -276,11 +293,17 @@ export function DashboardThemeDrawer({
           },
           {
             key: 'chart',
-            label: <SectionLabel icon={<BarChart3 size={13} />}>图表</SectionLabel>,
+            label: (
+              <SectionLabel icon={<BarChart3 size={13} />}>
+                {intl.formatMessage({ id: 'pages.dashboard.editor.theme.chart' })}
+              </SectionLabel>
+            ),
             children: (
               <div>
                 <div className="flex min-h-10 items-center justify-between gap-4 py-1">
-                  <span className="text-[12px] text-[#344054]">图表色板</span>
+                  <span className="text-[12px] text-[#344054]">
+                    {intl.formatMessage({ id: 'pages.dashboard.editor.theme.palette' })}
+                  </span>
                   <div className="flex items-center gap-1.5">
                     {resolved.chart.palette.slice(0, 6).map((color, index) => (
                       <ColorPicker
@@ -293,17 +316,17 @@ export function DashboardThemeDrawer({
                   </div>
                 </div>
                 <ColorSetting
-                  label="坐标轴"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.axis' })}
                   value={resolved.chart.axisColor}
                   onChange={(axisColor) => updateChart({ axisColor })}
                 />
                 <ColorSetting
-                  label="网格线"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.grid' })}
                   value={resolved.chart.gridColor}
                   onChange={(gridColor) => updateChart({ gridColor })}
                 />
                 <ColorSetting
-                  label="指标值"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.metricValue' })}
                   value={resolved.chart.metricValueColor}
                   onChange={(metricValueColor) => updateChart({ metricValueColor })}
                 />
@@ -312,21 +335,25 @@ export function DashboardThemeDrawer({
           },
           {
             key: 'table',
-            label: <SectionLabel icon={<Table2 size={13} />}>表格</SectionLabel>,
+            label: (
+              <SectionLabel icon={<Table2 size={13} />}>
+                {intl.formatMessage({ id: 'pages.dashboard.editor.theme.table' })}
+              </SectionLabel>
+            ),
             children: (
               <div>
                 <ColorSetting
-                  label="表头背景"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.tableHeader' })}
                   value={resolved.table.headerBackgroundColor}
                   onChange={(headerBackgroundColor) => updateTable({ headerBackgroundColor })}
                 />
                 <ColorSetting
-                  label="斑马行"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.stripedRow' })}
                   value={resolved.table.stripedBackgroundColor}
                   onChange={(stripedBackgroundColor) => updateTable({ stripedBackgroundColor })}
                 />
                 <ColorSetting
-                  label="悬停背景"
+                  label={intl.formatMessage({ id: 'pages.dashboard.editor.theme.hoverBackground' })}
                   value={resolved.table.hoverBackgroundColor}
                   onChange={(hoverBackgroundColor) => updateTable({ hoverBackgroundColor })}
                 />
@@ -340,7 +367,9 @@ export function DashboardThemeDrawer({
 
   return (
     <Drawer
-      title={<span className="text-[14px] font-semibold text-[#161823]">仪表盘样式</span>}
+      title={<span className="text-[14px] font-semibold text-[#161823]">
+        {intl.formatMessage({ id: 'pages.dashboard.editor.theme.title' })}
+      </span>}
       width={420}
       open={open}
       onClose={onCancel}
@@ -353,9 +382,11 @@ export function DashboardThemeDrawer({
       }}
       footer={(
         <div className="flex justify-end gap-2">
-          <Button size="small" className="!h-8 !px-4" onClick={onCancel}>取消</Button>
+          <Button size="small" className="!h-8 !px-4" onClick={onCancel}>
+            {intl.formatMessage({ id: 'pages.dashboard.editor.common.cancel' })}
+          </Button>
           <Button size="small" type="primary" className="!h-8 !px-4 !shadow-none" onClick={onConfirm}>
-            确定
+            {intl.formatMessage({ id: 'pages.dashboard.editor.common.confirm' })}
           </Button>
         </div>
       )}
@@ -364,8 +395,16 @@ export function DashboardThemeDrawer({
         defaultActiveKey={customized ? 'custom' : 'preset'}
         size="small"
         items={[
-          { key: 'preset', label: '预设', children: presetContent },
-          { key: 'custom', label: '自定义', children: customContent },
+          {
+            key: 'preset',
+            label: intl.formatMessage({ id: 'pages.dashboard.editor.theme.preset' }),
+            children: presetContent,
+          },
+          {
+            key: 'custom',
+            label: intl.formatMessage({ id: 'pages.dashboard.editor.theme.custom' }),
+            children: customContent,
+          },
         ]}
       />
 

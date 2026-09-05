@@ -18,8 +18,23 @@ import type {
   AnalysisTopNDirection,
   PublishedDataset,
 } from '@/components/analysis/model';
+import { useIntl } from '@umijs/max';
 import { InputNumber, Select, Switch } from 'antd';
 import { AGGREGATION_OPTIONS } from './helpers';
+
+const QUICK_CALCULATION_MESSAGE_IDS: Record<AnalysisQuickCalculation, string> = {
+  none: 'pages.dashboard.editor.analysis.quick.none',
+  percent_of_total: 'pages.dashboard.editor.analysis.quick.percentOfTotal',
+  running_total: 'pages.dashboard.editor.analysis.quick.runningTotal',
+  rank: 'pages.dashboard.editor.analysis.quick.rank',
+  previous_change: 'pages.dashboard.editor.analysis.quick.previousChange',
+};
+
+const NUMBER_FORMAT_MESSAGE_IDS: Record<AnalysisNumberFormat, string> = {
+  auto: 'pages.dashboard.editor.analysis.number.auto',
+  number: 'pages.dashboard.editor.analysis.number.number',
+  percent: 'pages.dashboard.editor.analysis.number.percent',
+};
 
 export function ChartAnalysisConfig({
   spec,
@@ -30,6 +45,7 @@ export function ChartAnalysisConfig({
   dataset: PublishedDataset;
   onChange: (analysis: AnalysisComputationConfig) => void;
 }) {
+  const intl = useIntl();
   const colorActive = Boolean(
     resolveAnalysisEncoding(spec).color.find((item) => item.role === 'dimension')?.field,
   );
@@ -39,8 +55,19 @@ export function ChartAnalysisConfig({
   const supportsTopN = spec.type !== 'metric' && spec.dimensions.length > 0 && physicalMetrics.length > 0;
   const topNMetricActive = !topN || physicalMetrics.some((metric) => metric.field === topN.metricField);
   const aggregationLabels = Object.fromEntries(
-    AGGREGATION_OPTIONS.map((item) => [item.value, item.label]),
+    AGGREGATION_OPTIONS.map((item) => [
+      item.value,
+      intl.formatMessage({ id: item.messageId }),
+    ]),
   );
+  const quickCalculationOptions = QUICK_CALCULATION_OPTIONS.map((item) => ({
+    value: item.value,
+    label: intl.formatMessage({ id: QUICK_CALCULATION_MESSAGE_IDS[item.value] }),
+  }));
+  const numberFormatOptions = NUMBER_FORMAT_OPTIONS.map((item) => ({
+    value: item.value,
+    label: intl.formatMessage({ id: NUMBER_FORMAT_MESSAGE_IDS[item.value] }),
+  }));
 
   const patchMetric = (field: string, patch: Partial<AnalysisMetricComputation>) => {
     onChange(patchMetricComputation(spec, field, patch));
@@ -68,7 +95,9 @@ export function ChartAnalysisConfig({
   return (
     <div className="space-y-4 pb-1 text-[11px] text-[#475467]">
       <div>
-        <div className="mb-2.5 text-[10px] font-semibold text-[#667085]">指标计算</div>
+        <div className="mb-2.5 text-[10px] font-semibold text-[#667085]">
+          {intl.formatMessage({ id: 'pages.dashboard.editor.analysis.metricCalculation' })}
+        </div>
         <div className="space-y-2.5">
           {spec.metrics.map((metric) => {
             const field = dataset.fields.find((item) => item.key === metric.field);
@@ -83,7 +112,9 @@ export function ChartAnalysisConfig({
                       {calculated?.name ?? field?.label ?? metric.field}
                     </div>
                     <div className="mt-0.5 text-[9px] text-[#98a2b3]">
-                      {calculated ? '计算字段' : aggregationLabels[metric.aggregation] ?? metric.aggregation}
+                      {calculated
+                        ? intl.formatMessage({ id: 'pages.dashboard.editor.analysis.calculatedField' })
+                        : aggregationLabels[metric.aggregation] ?? metric.aggregation}
                     </div>
                   </div>
                   {supportsSequentialCalculation ? (
@@ -91,15 +122,14 @@ export function ChartAnalysisConfig({
                       size="small"
                       className="w-[126px]"
                       value={config.quickCalculation}
-                      options={QUICK_CALCULATION_OPTIONS.map((item) => ({
-                        label: item.label,
-                        value: item.value,
-                      }))}
+                      options={quickCalculationOptions}
                       onChange={(quickCalculation: AnalysisQuickCalculation) =>
                         patchMetric(metric.field, { quickCalculation })}
                     />
                   ) : (
-                    <span className="text-[9px] text-[#98a2b3]">单值指标</span>
+                    <span className="text-[9px] text-[#98a2b3]">
+                      {intl.formatMessage({ id: 'pages.dashboard.editor.analysis.singleValue' })}
+                    </span>
                   )}
                 </div>
 
@@ -107,7 +137,7 @@ export function ChartAnalysisConfig({
                   <Select
                     size="small"
                     value={config.numberFormat}
-                    options={NUMBER_FORMAT_OPTIONS}
+                    options={numberFormatOptions}
                     onChange={(numberFormat: AnalysisNumberFormat) =>
                       patchMetric(metric.field, { numberFormat })}
                   />
@@ -115,8 +145,17 @@ export function ChartAnalysisConfig({
                     size="small"
                     value={stored?.decimalPlaces ?? 'auto'}
                     options={[
-                      { label: '自动', value: 'auto' },
-                      ...([0, 1, 2, 3, 4] as const).map((value) => ({ label: `${value} 位`, value })),
+                      {
+                        label: intl.formatMessage({ id: 'pages.dashboard.editor.analysis.auto' }),
+                        value: 'auto',
+                      },
+                      ...([0, 1, 2, 3, 4] as const).map((value) => ({
+                        label: intl.formatMessage(
+                          { id: 'pages.dashboard.editor.analysis.decimalPlaces' },
+                          { count: value },
+                        ),
+                        value,
+                      })),
                     ]}
                     onChange={(decimalPlaces: 'auto' | 0 | 1 | 2 | 3 | 4) =>
                       patchMetric(metric.field, {
@@ -125,7 +164,9 @@ export function ChartAnalysisConfig({
                   />
                 </div>
                 <label className="mt-2.5 flex items-center justify-between">
-                  <span className="text-[10px] text-[#667085]">千分位</span>
+                  <span className="text-[10px] text-[#667085]">
+                    {intl.formatMessage({ id: 'pages.dashboard.editor.analysis.grouping' })}
+                  </span>
                   <Switch
                     size="small"
                     checked={config.useGrouping}
@@ -142,7 +183,7 @@ export function ChartAnalysisConfig({
           })}
         </div>
         <div className="mt-2 text-[9px] leading-4 text-[#98a2b3]">
-          占比、累计、排名和较上期变化在当前查询结果上计算；计算字段也可继续叠加这些表计算。
+          {intl.formatMessage({ id: 'pages.dashboard.editor.analysis.calculationHint' })}
         </div>
       </div>
 
@@ -151,7 +192,9 @@ export function ChartAnalysisConfig({
           <div className="mb-2.5 flex items-center justify-between">
             <div>
               <div className="text-[10px] font-semibold text-[#667085]">Top / Bottom N</div>
-              <div className="mt-0.5 text-[9px] text-[#98a2b3]">服务端排序仅支持物理聚合指标</div>
+              <div className="mt-0.5 text-[9px] text-[#98a2b3]">
+                {intl.formatMessage({ id: 'pages.dashboard.editor.analysis.topNPhysicalOnly' })}
+              </div>
             </div>
             <Switch
               size="small"
@@ -166,7 +209,7 @@ export function ChartAnalysisConfig({
               <Select
                 size="small"
                 className="w-full"
-                placeholder="选择 Top N 指标"
+                placeholder={intl.formatMessage({ id: 'pages.dashboard.editor.analysis.topNMetricPlaceholder' })}
                 value={topNMetricActive ? topN.metricField : undefined}
                 options={physicalMetrics.map((metric) => ({
                   label: `${dataset.fields.find((item) => item.key === metric.field)?.label ?? metric.field} · ${aggregationLabels[metric.aggregation] ?? metric.aggregation}`,
@@ -197,7 +240,7 @@ export function ChartAnalysisConfig({
               </div>
               {!topNMetricActive ? (
                 <div className="text-[9px] leading-4 text-[#98a2b3]">
-                  原 Top N 指标当前不可用于服务端排序，请重新选择一个物理指标。
+                  {intl.formatMessage({ id: 'pages.dashboard.editor.analysis.topNMetricInvalid' })}
                 </div>
               ) : null}
             </div>
@@ -205,7 +248,7 @@ export function ChartAnalysisConfig({
 
           {colorActive ? (
             <div className="mt-2 rounded-[6px] bg-[#f7f8fa] px-2 py-1.5 text-[9px] leading-4 text-[#98a2b3]">
-              当前使用了颜色分组。为避免服务端截断某个分类的部分系列，Top N 暂不生效；移除颜色字段后会自动恢复。
+              {intl.formatMessage({ id: 'pages.dashboard.editor.analysis.topNColorHint' })}
             </div>
           ) : null}
         </div>

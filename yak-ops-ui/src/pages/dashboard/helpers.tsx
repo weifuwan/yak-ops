@@ -5,6 +5,7 @@ import {
 } from '@/components/analysis/encoding';
 import type { AnalysisSpec } from '@/components/analysis/model';
 import { createAnalysisVisualConfig } from '@/components/analysis/style';
+import { getIntl } from '@umijs/max';
 import { BarChart3, ChartLine, ChartPie, Sigma, Table2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DEFAULT_DASHBOARD } from './defaults';
@@ -23,37 +24,117 @@ export const GRID_COLUMNS = 24;
 export const GRID_ROW_HEIGHT = 28;
 export const FIELD_DRAG_MIME = 'application/x-yak-dashboard-field';
 
-export const CHART_META: Record<ChartType, { label: string; description: string; icon: ReactNode }> = {
-  metric: { label: '指标卡', description: '展示单个核心指标', icon: <Sigma size={15} /> },
-  bar: { label: '柱状图', description: '分类对比与排行', icon: <BarChart3 size={15} /> },
-  stackedBar: { label: '堆叠柱状图', description: '堆叠比较整体与构成', icon: <BarChart3 size={15} /> },
-  line: { label: '折线图', description: '趋势与时间序列', icon: <ChartLine size={15} /> },
-  area: { label: '面积图', description: '趋势变化与区间体量', icon: <ChartLine size={15} /> },
-  pie: { label: '饼图', description: '占比与构成分析', icon: <ChartPie size={15} /> },
-  scatter: { label: '散点图', description: '双指标相关性与离群点', icon: <Sigma size={15} /> },
-  radar: { label: '雷达图', description: '多指标对象对比', icon: <ChartPie size={15} /> },
-  funnel: { label: '漏斗图', description: '阶段转化与逐层收敛', icon: <BarChart3 size={15} /> },
-  treemap: { label: '矩形树图', description: '按面积呈现分类贡献', icon: <Table2 size={15} /> },
-  table: { label: '明细表', description: '多维度数据查看', icon: <Table2 size={15} /> },
+type DashboardLocalizedOption<T> = {
+  messageId: string;
+  value: T;
+  readonly label: string;
 };
 
-export const AGGREGATION_OPTIONS: Array<{ label: string; value: Aggregation }> = [
-  { label: '求和', value: 'SUM' },
-  { label: '平均', value: 'AVG' },
-  { label: '计数', value: 'COUNT' },
-  { label: '去重计数', value: 'COUNT_DISTINCT' },
-  { label: '最大值', value: 'MAX' },
-  { label: '最小值', value: 'MIN' },
+const localizedOption = <T,>(messageId: string, value: T): DashboardLocalizedOption<T> => ({
+  messageId,
+  value,
+  get label() {
+    return getIntl().formatMessage({ id: messageId });
+  },
+});
+
+const chartMeta = (
+  labelId: string,
+  descriptionId: string,
+  icon: ReactNode,
+) => ({
+  labelId,
+  descriptionId,
+  icon,
+  get label() {
+    return getIntl().formatMessage({ id: labelId });
+  },
+  get description() {
+    return getIntl().formatMessage({ id: descriptionId });
+  },
+});
+
+export const CHART_META: Record<ChartType, {
+  labelId: string;
+  descriptionId: string;
+  readonly label: string;
+  readonly description: string;
+  icon: ReactNode;
+}> = {
+  metric: chartMeta(
+    'pages.dashboard.editor.chart.metric',
+    'pages.dashboard.editor.chart.metric.description',
+    <Sigma size={15} />,
+  ),
+  bar: chartMeta(
+    'pages.dashboard.editor.chart.bar',
+    'pages.dashboard.editor.chart.bar.description',
+    <BarChart3 size={15} />,
+  ),
+  stackedBar: chartMeta(
+    'pages.dashboard.editor.chart.stackedBar',
+    'pages.dashboard.editor.chart.stackedBar.description',
+    <BarChart3 size={15} />,
+  ),
+  line: chartMeta(
+    'pages.dashboard.editor.chart.line',
+    'pages.dashboard.editor.chart.line.description',
+    <ChartLine size={15} />,
+  ),
+  area: chartMeta(
+    'pages.dashboard.editor.chart.area',
+    'pages.dashboard.editor.chart.area.description',
+    <ChartLine size={15} />,
+  ),
+  pie: chartMeta(
+    'pages.dashboard.editor.chart.pie',
+    'pages.dashboard.editor.chart.pie.description',
+    <ChartPie size={15} />,
+  ),
+  scatter: chartMeta(
+    'pages.dashboard.editor.chart.scatter',
+    'pages.dashboard.editor.chart.scatter.description',
+    <Sigma size={15} />,
+  ),
+  radar: chartMeta(
+    'pages.dashboard.editor.chart.radar',
+    'pages.dashboard.editor.chart.radar.description',
+    <ChartPie size={15} />,
+  ),
+  funnel: chartMeta(
+    'pages.dashboard.editor.chart.funnel',
+    'pages.dashboard.editor.chart.funnel.description',
+    <BarChart3 size={15} />,
+  ),
+  treemap: chartMeta(
+    'pages.dashboard.editor.chart.treemap',
+    'pages.dashboard.editor.chart.treemap.description',
+    <Table2 size={15} />,
+  ),
+  table: chartMeta(
+    'pages.dashboard.editor.chart.table',
+    'pages.dashboard.editor.chart.table.description',
+    <Table2 size={15} />,
+  ),
+};
+
+export const AGGREGATION_OPTIONS: Array<DashboardLocalizedOption<Aggregation>> = [
+  localizedOption('pages.dashboard.editor.aggregation.sum', 'SUM'),
+  localizedOption('pages.dashboard.editor.aggregation.avg', 'AVG'),
+  localizedOption('pages.dashboard.editor.aggregation.count', 'COUNT'),
+  localizedOption('pages.dashboard.editor.aggregation.countDistinct', 'COUNT_DISTINCT'),
+  localizedOption('pages.dashboard.editor.aggregation.max', 'MAX'),
+  localizedOption('pages.dashboard.editor.aggregation.min', 'MIN'),
 ];
 
-export const FILTER_OPERATOR_OPTIONS: Array<{ label: string; value: FilterOperator }> = [
-  { label: '等于', value: 'eq' },
-  { label: '不等于', value: 'neq' },
-  { label: '包含', value: 'contains' },
-  { label: '大于', value: 'gt' },
-  { label: '大于等于', value: 'gte' },
-  { label: '小于', value: 'lt' },
-  { label: '小于等于', value: 'lte' },
+export const FILTER_OPERATOR_OPTIONS: Array<DashboardLocalizedOption<FilterOperator>> = [
+  localizedOption('pages.dashboard.editor.operator.eq', 'eq'),
+  localizedOption('pages.dashboard.editor.operator.neq', 'neq'),
+  localizedOption('pages.dashboard.editor.operator.contains', 'contains'),
+  localizedOption('pages.dashboard.editor.operator.gt', 'gt'),
+  localizedOption('pages.dashboard.editor.operator.gte', 'gte'),
+  localizedOption('pages.dashboard.editor.operator.lt', 'lt'),
+  localizedOption('pages.dashboard.editor.operator.lte', 'lte'),
 ];
 
 export const cloneDashboard = (dashboard: DashboardDocument): DashboardDocument =>
@@ -75,7 +156,7 @@ const legacyWidgetToCurrent = (value: any): DashboardWidget => {
   };
   return {
     id: value.id,
-    title: value.title || '未命名图表',
+    title: value.title || getIntl().formatMessage({ id: 'pages.dashboard.editor.unnamedChart' }),
     inlineAnalysis,
     x: Number(value.x ?? 0),
     y: Number(value.y ?? 0),
@@ -126,9 +207,6 @@ export const createInlineAnalysis = (type: ChartType, dataset: PublishedDataset)
   const base: AnalysisSpec = {
     type,
     datasetId: dataset.id,
-    // Seed semantic category even for metric cards. `applyAnalysisEncoding` keeps the
-    // metric query dimensionless while preserving a useful category if the user later
-    // switches chart type.
     dimensions: bindings.dimensions,
     metrics: bindings.metrics,
     filters: [],
@@ -137,8 +215,6 @@ export const createInlineAnalysis = (type: ChartType, dataset: PublishedDataset)
     timeoutSeconds: 30,
   };
   const encoded = applyAnalysisEncoding(base, legacyAnalysisEncoding(base));
-  // Advanced charts such as scatter / radar have a larger minimum metric cardinality.
-  // Rebinding seeds only required slots when the Dataset has enough compatible fields.
   return rebindAnalysisEncoding(encoded, dataset);
 };
 
@@ -149,14 +225,21 @@ const widgetShapeFor = (type: ChartType) => {
   return { w: 10, h: 7, minW: 6, minH: 5 };
 };
 
-export const createWidget = (type: ChartType, dataset: PublishedDataset, y: number): DashboardWidget => ({
-  id: `widget-${Date.now()}-${Math.round(Math.random() * 1000)}`,
-  title: `新增${CHART_META[type].label}`,
-  inlineAnalysis: createInlineAnalysis(type, dataset),
-  x: 0,
-  y,
-  ...widgetShapeFor(type),
-});
+export const createWidget = (type: ChartType, dataset: PublishedDataset, y: number): DashboardWidget => {
+  const intl = getIntl();
+  const typeLabel = CHART_META[type].label;
+  return {
+    id: `widget-${Date.now()}-${Math.round(Math.random() * 1000)}`,
+    title: intl.formatMessage(
+      { id: 'pages.dashboard.editor.chart.newTitle' },
+      { type: typeLabel },
+    ),
+    inlineAnalysis: createInlineAnalysis(type, dataset),
+    x: 0,
+    y,
+    ...widgetShapeFor(type),
+  };
+};
 
 const rebindInlineAnalysis = (spec: AnalysisSpec, dataset: PublishedDataset): AnalysisSpec => {
   const sameDataset = spec.datasetId === dataset.id;
