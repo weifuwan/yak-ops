@@ -2,6 +2,7 @@ import batchLinkUp from './en-US/batch-link-up';
 import component from './en-US/component';
 import dashboard from './en-US/dashboard';
 import dashboardEditor from './en-US/dashboard-editor';
+import dashboardEditorAdvanced from './en-US/dashboard-editor-advanced';
 import dashboardEditorChart from './en-US/dashboard-editor-chart';
 import dataDevelopment from './en-US/data-development';
 import dataDevelopmentEditor from './en-US/data-development-editor';
@@ -54,4 +55,5 @@ export default {
   ...dashboard,
   ...dashboardEditor,
   ...dashboardEditorChart,
+  ...dashboardEditorAdvanced,
 };
