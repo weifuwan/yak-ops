@@ -1,8 +1,9 @@
 import { BRAND_CSS_VARIABLES } from '@/styles/brand';
+import { useIntl } from '@umijs/max';
 import { Popover, Spin, message } from 'antd';
 import { ChevronDown, Database, Layers3, Search, Server } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { DevelopmentId } from '../../../types';
 import {
@@ -58,6 +59,7 @@ const ContextPicker = ({
   minWidthClassName = 'min-w-[108px]',
   onSelect,
 }: ContextPickerProps) => {
+  const intl = useIntl();
   const [open, setOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const normalizedKeyword = keyword.trim().toLowerCase();
@@ -81,7 +83,7 @@ const ContextPicker = ({
         <input
           autoFocus
           value={keyword}
-          placeholder="搜索"
+          placeholder={intl.formatMessage({ id: 'pages.dataDevelopment.editor.sqlMetadata.search' })}
           onChange={(event) => setKeyword(event.target.value)}
           className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-[12px] text-[#30323b] outline-none placeholder:text-[#9ca3af]"
         />
@@ -119,7 +121,7 @@ const ContextPicker = ({
           })
         ) : (
           <div className="flex h-10 items-center justify-center text-[11px] text-[#98a2b3]">
-            暂无匹配项
+            {intl.formatMessage({ id: 'pages.dataDevelopment.editor.sqlMetadata.noMatch' })}
           </div>
         )}
       </div>
@@ -143,7 +145,14 @@ const ContextPicker = ({
       <button
         type="button"
         aria-label={ariaLabel}
-        title={disabled ? `${ariaLabel}由数据源管理中的连接配置固定` : undefined}
+        title={
+          disabled
+            ? intl.formatMessage(
+                { id: 'pages.dataDevelopment.editor.sqlMetadata.fixedByConnection' },
+                { label: ariaLabel },
+              )
+            : undefined
+        }
         disabled={disabled}
         className={[
           'flex h-6 max-w-[176px] items-center gap-1.5 rounded-[3px] px-1.5 text-[12px] outline-none transition-colors',
@@ -186,10 +195,15 @@ const ContextPicker = ({
 const SqlMetadataContextToolbar = ({
   nodeId,
 }: SqlMetadataContextToolbarProps) => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const context = useSqlMetadataContext(nodeId);
   const [dataSources, setDataSources] = useState<SqlDataSourceOption[]>([]);
   const [dataSourceLoading, setDataSourceLoading] = useState(false);
   const [bindingLoading, setBindingLoading] = useState(false);
+
+  const text = (id: string) => intlRef.current.formatMessage({ id });
 
   useEffect(() => {
     let active = true;
@@ -199,7 +213,14 @@ const SqlMetadataContextToolbar = ({
         if (active) setDataSources(values || []);
       })
       .catch((error) => {
-        if (active) message.error(errorText(error, '查询数据源失败'));
+        if (active) {
+          message.error(
+            errorText(
+              error,
+              text('pages.dataDevelopment.editor.sqlMetadata.queryDataSourceFailed'),
+            ),
+          );
+        }
       })
       .finally(() => {
         if (active) setDataSourceLoading(false);
@@ -240,7 +261,12 @@ const SqlMetadataContextToolbar = ({
       .catch((error) => {
         if (!active) return;
         selectSqlDatabaseContext(nodeId, undefined);
-        message.error(errorText(error, '读取数据源绑定库信息失败'));
+        message.error(
+          errorText(
+            error,
+            text('pages.dataDevelopment.editor.sqlMetadata.bindingFailed'),
+          ),
+        );
       })
       .finally(() => {
         if (active) setBindingLoading(false);
@@ -274,9 +300,11 @@ const SqlMetadataContextToolbar = ({
   const databasePlaceholder = !context.dataSourceId
     ? '<database>'
     : bindingLoading
-      ? '加载中...'
-      : '默认 Database';
-  const schemaPlaceholder = bindingLoading ? '加载中...' : '默认 Schema';
+      ? intl.formatMessage({ id: 'pages.dataDevelopment.editor.sqlMetadata.loading' })
+      : intl.formatMessage({ id: 'pages.dataDevelopment.editor.sqlMetadata.defaultDatabase' });
+  const schemaPlaceholder = bindingLoading
+    ? intl.formatMessage({ id: 'pages.dataDevelopment.editor.sqlMetadata.loading' })
+    : intl.formatMessage({ id: 'pages.dataDevelopment.editor.sqlMetadata.defaultSchema' });
 
   return (
     <>
@@ -285,7 +313,7 @@ const SqlMetadataContextToolbar = ({
         style={BRAND_CSS_VARIABLES}
       >
         <ContextPicker
-          ariaLabel="选择 SQL 数据源"
+          ariaLabel={intl.formatMessage({ id: 'pages.dataDevelopment.editor.sqlMetadata.selectDataSource' })}
           value={context.dataSourceId}
           displayValue={context.dataSourceName ? `@${context.dataSourceName}` : undefined}
           placeholder="@datasource"
