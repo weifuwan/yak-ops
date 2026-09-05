@@ -1,4 +1,4 @@
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { Button, Drawer, Empty, Segmented, Tooltip } from 'antd';
 import { ArrowUpRight, Expand, Focus, GitBranch, LoaderCircle, RefreshCw, Shrink } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -93,7 +93,12 @@ const InteractiveLineageNode = (props: Parameters<typeof LineageNode>[0]) => {
 const nodeTypes = { lineage: InteractiveLineageNode, columnLineage: ColumnLineageNode };
 const edgeTypes = { interactive: InteractiveEdge };
 const visibleTypes = new Set<LineageAssetType>(['TABLE', 'SQL_TASK']);
-const statusLabel = { SUCCESS: '解析成功', PARTIAL: '部分解析', UNRESOLVED: '字段待解析', FAILED: '解析失败' } as const;
+const statusMessageIds = {
+  SUCCESS: 'pages.dataDevelopment.editor.lineage.status.success',
+  PARTIAL: 'pages.dataDevelopment.editor.lineage.status.partial',
+  UNRESOLVED: 'pages.dataDevelopment.editor.lineage.status.unresolved',
+  FAILED: 'pages.dataDevelopment.editor.lineage.status.failed',
+} as const;
 const statusClassName = {
   SUCCESS: 'bg-[#ecfdf3] text-[#027a48]',
   PARTIAL: 'bg-[#fffaeb] text-[#b54708]',
@@ -126,6 +131,7 @@ export const layoutColumnTables = (mappings: DevelopmentSqlLineageColumnMapping[
 };
 
 export default function SqlLineagePreviewPanel({ nodeId, preview, loading, onRefresh }: Props) {
+  const intl = useIntl();
   const [mode, setMode] = useState<Mode>('table');
   const [fullscreen, setFullscreen] = useState(false);
   const [hoveredAsset, setHoveredAsset] = useState<string>();
@@ -301,14 +307,15 @@ export default function SqlLineagePreviewPanel({ nodeId, preview, loading, onRef
     [activeMappingIds, hoveredAsset, hoveredField, relatedAssets, relatedTableEdges],
   );
 
-  if (loading && !preview)
+  if (loading && !preview) {
     return (
       <div className="flex h-full items-center justify-center bg-[#fbfcfd] text-[12px] text-[#667085]">
         <LoaderCircle size={16} className="mr-2 animate-spin" />
-        正在解析当前 SQL 血缘
+        {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.loading' })}
       </div>
     );
-  if (!preview)
+  }
+  if (!preview) {
     return (
       <div className="flex h-full items-center justify-center bg-[#fbfcfd]">
         <Empty
@@ -319,34 +326,45 @@ export default function SqlLineagePreviewPanel({ nodeId, preview, loading, onRef
           }
           description={
             <>
-              <div className="text-[13px] font-medium">解析当前 SQL 查看血缘</div>
-              <div className="mt-1 text-[11px] text-[#98a2b3]">预览不会保存、发布或写入正式血缘。</div>
+              <div className="text-[13px] font-medium">
+                {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.emptyTitle' })}
+              </div>
+              <div className="mt-1 text-[11px] text-[#98a2b3]">
+                {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.emptyDescription' })}
+              </div>
             </>
           }
         >
           <Button size="small" icon={<RefreshCw size={13} />} onClick={onRefresh}>
-            解析血缘
+            {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.parse' })}
           </Button>
         </Empty>
       </div>
     );
-  if (preview.status === 'FAILED')
+  }
+  if (preview.status === 'FAILED') {
     return (
       <div className="flex h-full items-center justify-center bg-[#fbfcfd]">
         <Empty
           description={
             <>
-              <div className="font-medium text-[#b42318]">SQL 血缘解析失败</div>
-              <div className="text-[11px] text-[#8a8f99]">{preview.parseError || '请检查语法后重试。'}</div>
+              <div className="font-medium text-[#b42318]">
+                {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.failed' })}
+              </div>
+              <div className="text-[11px] text-[#8a8f99]">
+                {preview.parseError ||
+                  intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.checkSyntax' })}
+              </div>
             </>
           }
         >
           <Button size="small" onClick={onRefresh}>
-            再次解析
+            {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.parseAgain' })}
           </Button>
         </Empty>
       </div>
     );
+  }
 
   const isColumn = mode === 'column';
   return (
@@ -357,15 +375,21 @@ export default function SqlLineagePreviewPanel({ nodeId, preview, loading, onRef
     >
       <div className="flex h-11 shrink-0 items-center gap-3 border-b border-[#eef0f2] px-3">
         <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${statusClassName[preview.status]}`}>
-          {statusLabel[preview.status]}
+          {intl.formatMessage({ id: statusMessageIds[preview.status] })}
         </span>
         <Segmented
           size="small"
           value={mode}
           options={[
-            { label: '表级血缘', value: 'table' },
             {
-              label: `字段血缘 ${preview.columnMappingCount}`,
+              label: intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.table' }),
+              value: 'table',
+            },
+            {
+              label: intl.formatMessage(
+                { id: 'pages.dataDevelopment.editor.lineage.column' },
+                { count: preview.columnMappingCount },
+              ),
               value: 'column',
               disabled: preview.columnMappingCount === 0,
             },
@@ -376,30 +400,54 @@ export default function SqlLineagePreviewPanel({ nodeId, preview, loading, onRef
             setHoveredField(undefined);
           }}
         />
-        <Metric label="输入表" value={preview.inputTableCount} />
-        <Metric label="输出表" value={preview.outputTableCount} />
-        <Metric label="未解析" value={preview.unresolvedColumnReferenceCount} />
+        <Metric
+          label={intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.inputTables' })}
+          value={preview.inputTableCount}
+        />
+        <Metric
+          label={intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.outputTables' })}
+          value={preview.outputTableCount}
+        />
+        <Metric
+          label={intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.unresolved' })}
+          value={preview.unresolvedColumnReferenceCount}
+        />
         <span className="min-w-0 flex-1 truncate text-[11px] text-[#b54708]">
-          {preview.columnParseError ? `字段级解析降级：${preview.columnParseError}` : ''}
+          {preview.columnParseError
+            ? intl.formatMessage(
+                { id: 'pages.dataDevelopment.editor.lineage.degraded' },
+                { error: preview.columnParseError },
+              )
+            : ''}
         </span>
-        <Tooltip title="自动布局并聚焦全部链路">
+        <Tooltip title={intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.focusTip' })}>
           <Button
             type="text"
             size="small"
             icon={<Focus size={13} />}
             onClick={() => flow?.fitView({ padding: 0.25, duration: 350 })}
           >
-            聚焦链路
+            {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.focus' })}
           </Button>
         </Tooltip>
         <Button type="text" size="small" loading={loading} icon={<RefreshCw size={13} />} onClick={onRefresh}>
-          再次解析
+          {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.parseAgain' })}
         </Button>
-        <Tooltip title={fullscreen ? '退出全屏（ESC）' : '全屏展示血缘'}>
+        <Tooltip
+          title={intl.formatMessage({
+            id: fullscreen
+              ? 'pages.dataDevelopment.editor.lineage.exitFullscreen'
+              : 'pages.dataDevelopment.editor.lineage.fullscreen',
+          })}
+        >
           <Button
             type="text"
             size="small"
-            aria-label={fullscreen ? '退出全屏' : '全屏展示血缘'}
+            aria-label={intl.formatMessage({
+              id: fullscreen
+                ? 'pages.dataDevelopment.editor.lineage.exitFullscreenAria'
+                : 'pages.dataDevelopment.editor.lineage.fullscreen',
+            })}
             icon={fullscreen ? <Shrink size={13} /> : <Expand size={13} />}
             onClick={() => setFullscreen((value) => !value)}
           />
@@ -412,7 +460,7 @@ export default function SqlLineagePreviewPanel({ nodeId, preview, loading, onRef
             history.push(`/data-analysis/lineage?assetKey=${encodeURIComponent(`sql-task:data-development:${nodeId}`)}`)
           }
         >
-          生产血缘
+          {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.production' })}
         </Button>
       </div>
       <div className="relative min-h-0 flex-1 bg-[#f8fafc]">
@@ -439,11 +487,18 @@ export default function SqlLineagePreviewPanel({ nodeId, preview, loading, onRef
           </ReactFlow>
         </LineageInteractionContext.Provider>
       </div>
-      <Drawer width={430} title="字段血缘详情" open={Boolean(selection)} onClose={() => setSelection(undefined)}>
+      <Drawer
+        width={430}
+        title={intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.fieldDetail' })}
+        open={Boolean(selection)}
+        onClose={() => setSelection(undefined)}
+      >
         {selection ? (
           <div>
             <div className="rounded-lg bg-[#f8fafc] p-3">
-              <div className="text-[11px] text-[#667085]">当前字段</div>
+              <div className="text-[11px] text-[#667085]">
+                {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.currentField' })}
+              </div>
               <div className="mt-1 font-mono text-[13px] font-semibold text-[#1d2939]">
                 {selection.table}.{selection.column}
               </div>
@@ -459,15 +514,21 @@ export default function SqlLineagePreviewPanel({ nodeId, preview, loading, onRef
                   </code>
                   <span className="text-[#98a2b3]">→</span>
                   <code>
-                    {item.targetTable || '目标表'}.{item.targetColumn}
+                    {item.targetTable ||
+                      intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.targetTable' })}.{item.targetColumn}
                   </code>
                 </div>
                 <div className="mt-2 inline-flex rounded bg-[#f4f0ff] px-2 py-1 text-[10px] font-medium text-[#6941c6]">
                   {item.mappingKind}
                 </div>
-                <div className="mt-3 text-[11px] text-[#667085]">转换逻辑</div>
+                <div className="mt-3 text-[11px] text-[#667085]">
+                  {intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.transformLogic' })}
+                </div>
                 <pre className="mt-1 whitespace-pre-wrap rounded bg-[#101828] p-3 text-[11px] leading-5 text-[#eaecf0]">
-                  {item.expression || (item.mappingKind === 'IDENTITY' ? item.sourceColumn : '未返回表达式')}
+                  {item.expression ||
+                    (item.mappingKind === 'IDENTITY'
+                      ? item.sourceColumn
+                      : intl.formatMessage({ id: 'pages.dataDevelopment.editor.lineage.noExpression' }))}
                 </pre>
               </div>
             ))}

@@ -1,4 +1,5 @@
 import { BRAND_CSS_VARIABLES } from '@/styles/brand';
+import { useIntl } from '@umijs/max';
 import { message } from 'antd';
 import { RefreshCw, X } from 'lucide-react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
@@ -34,15 +35,15 @@ const initialWidth = () => {
     : DEFAULT_WIDTH;
 };
 
-const allItems: Array<{
+const panelDefinitions: Array<{
   key: DevelopmentEditorPanelKey;
-  label: string;
+  messageId: string;
   capability: keyof DevelopmentEditorDefinition['capabilities'];
 }> = [
-  { key: 'properties', label: '属性', capability: 'properties' },
-  { key: 'run-config', label: '运行配置', capability: 'runConfig' },
-  { key: 'schedule-config', label: '调度配置', capability: 'scheduleConfig' },
-  { key: 'versions', label: '版本', capability: 'versions' },
+  { key: 'properties', messageId: 'pages.dataDevelopment.right.properties', capability: 'properties' },
+  { key: 'run-config', messageId: 'pages.dataDevelopment.right.runConfig', capability: 'runConfig' },
+  { key: 'schedule-config', messageId: 'pages.dataDevelopment.right.scheduleConfig', capability: 'scheduleConfig' },
+  { key: 'versions', messageId: 'pages.dataDevelopment.right.versions', capability: 'versions' },
 ];
 
 const RightPanel = ({
@@ -51,6 +52,7 @@ const RightPanel = ({
   definition,
   versionsRefreshKey = 0,
 }: RightPanelProps) => {
+  const intl = useIntl();
   const [activeTab, setActiveTab] = useState<DevelopmentEditorPanelKey>();
   const [width, setWidth] = useState(initialWidth);
   const [resizing, setResizing] = useState(false);
@@ -58,20 +60,23 @@ const RightPanel = ({
 
   const items = useMemo(
     () =>
-      allItems.filter((item) => Boolean(definition.capabilities[item.capability])),
-    [definition],
+      panelDefinitions
+        .filter((item) => Boolean(definition.capabilities[item.capability]))
+        .map((item) => ({
+          ...item,
+          label: intl.formatMessage({ id: item.messageId }),
+        })),
+    [definition, intl],
   );
   const activeItem = items.find((item) => item.key === activeTab);
 
   const handleResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!activeTab) return;
     event.preventDefault();
-
     const startX = event.clientX;
     const startWidth = width;
     const previousCursor = document.body.style.cursor;
     const previousUserSelect = document.body.style.userSelect;
-
     setResizing(true);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
@@ -79,7 +84,6 @@ const RightPanel = ({
     const resize = (moveEvent: PointerEvent) => {
       setWidth(clampWidth(startWidth + startX - moveEvent.clientX));
     };
-
     const finish = (upEvent: PointerEvent) => {
       const nextWidth = clampWidth(startWidth + startX - upEvent.clientX);
       setWidth(nextWidth);
@@ -91,7 +95,6 @@ const RightPanel = ({
       window.removeEventListener('pointerup', finish);
       window.removeEventListener('pointercancel', finish);
     };
-
     window.addEventListener('pointermove', resize);
     window.addEventListener('pointerup', finish);
     window.addEventListener('pointercancel', finish);
@@ -110,28 +113,26 @@ const RightPanel = ({
     }
 
     const CustomPanel = definition.panels?.[activeTab];
-    if (CustomPanel) {
-      return <CustomPanel node={node} directory={directory} />;
-    }
+    if (CustomPanel) return <CustomPanel node={node} directory={directory} />;
 
     if (activeTab === 'properties') {
       return (
         <dl className="m-0 grid grid-cols-[88px_minmax(0,1fr)] gap-x-4 gap-y-4 text-[12px] leading-5">
-          <dt className="text-[#667085]">名称：</dt>
+          <dt className="text-[#667085]">{intl.formatMessage({ id: 'pages.dataDevelopment.right.name' })}</dt>
           <dd className="m-0 break-all text-[#344054]">{node.name}</dd>
-          <dt className="text-[#667085]">类型：</dt>
+          <dt className="text-[#667085]">{intl.formatMessage({ id: 'pages.dataDevelopment.right.type' })}</dt>
           <dd className="m-0 text-[#344054]">{definition.label}</dd>
-          <dt className="text-[#667085]">ID：</dt>
-          <dd className="m-0 break-all font-mono text-[11px] text-[#98a2b3]">
-            {node.id}
-          </dd>
-          <dt className="text-[#667085]">所属目录：</dt>
-          <dd className="m-0 break-all text-[#344054]">
-            {directory?.path || '/'}
-          </dd>
-          <dt className="text-[#667085]">配置状态：</dt>
+          <dt className="text-[#667085]">ID:</dt>
+          <dd className="m-0 break-all font-mono text-[11px] text-[#98a2b3]">{node.id}</dd>
+          <dt className="text-[#667085]">{intl.formatMessage({ id: 'pages.dataDevelopment.right.directory' })}</dt>
+          <dd className="m-0 break-all text-[#344054]">{directory?.path || '/'}</dd>
+          <dt className="text-[#667085]">{intl.formatMessage({ id: 'pages.dataDevelopment.right.configStatus' })}</dt>
           <dd className="m-0 text-[#344054]">
-            {node.configured ? '已配置' : '待配置'}
+            {intl.formatMessage({
+              id: node.configured
+                ? 'pages.dataDevelopment.right.configured'
+                : 'pages.dataDevelopment.right.pendingConfig',
+            })}
           </dd>
         </dl>
       );
@@ -140,16 +141,24 @@ const RightPanel = ({
     if (activeTab === 'run-config') {
       return (
         <div className="text-[12px] leading-6 text-[#667085]">
-          <div className="font-medium text-[#344054]">运行配置</div>
-          <div className="mt-2">运行参数和执行环境将在后续阶段接入。</div>
+          <div className="font-medium text-[#344054]">
+            {intl.formatMessage({ id: 'pages.dataDevelopment.right.runConfig' })}
+          </div>
+          <div className="mt-2">
+            {intl.formatMessage({ id: 'pages.dataDevelopment.right.runConfigComing' })}
+          </div>
         </div>
       );
     }
 
     return (
       <div className="text-[12px] leading-6 text-[#667085]">
-        <div className="font-medium text-[#344054]">调度配置</div>
-        <div className="mt-2">调度周期、依赖关系和生效时间将在后续阶段接入。</div>
+        <div className="font-medium text-[#344054]">
+          {intl.formatMessage({ id: 'pages.dataDevelopment.right.scheduleConfig' })}
+        </div>
+        <div className="mt-2">
+          {intl.formatMessage({ id: 'pages.dataDevelopment.right.scheduleConfigComing' })}
+        </div>
       </div>
     );
   };
@@ -166,7 +175,7 @@ const RightPanel = ({
         {activeTab ? (
           <div
             role="separator"
-            aria-label="调整右侧面板宽度"
+            aria-label={intl.formatMessage({ id: 'pages.dataDevelopment.right.resize' })}
             aria-orientation="vertical"
             onPointerDown={handleResizeStart}
             className="group absolute inset-y-0 left-0 z-30 w-3 -translate-x-1/2 cursor-col-resize touch-none"
@@ -178,29 +187,32 @@ const RightPanel = ({
         <div className="h-full overflow-hidden">
           <div className="flex h-full flex-col bg-white" style={{ width }}>
             <div className="flex h-11 shrink-0 items-center justify-between border-b border-[#e5e7eb] px-4">
-              <span className="text-[13px] font-semibold text-[#30323b]">
-                {activeItem?.label}
-              </span>
+              <span className="text-[13px] font-semibold text-[#30323b]">{activeItem?.label}</span>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  title="刷新"
+                  title={intl.formatMessage({ id: 'pages.dataDevelopment.common.refresh' })}
                   onClick={() => {
                     if (activeTab === 'versions') {
                       setManualRefreshKey((current) => current + 1);
                     } else {
-                      message.info(`${activeItem?.label || ''}刷新能力将在后续阶段接入`);
+                      message.info(
+                        intl.formatMessage(
+                          { id: 'pages.dataDevelopment.right.refreshComing' },
+                          { panel: activeItem?.label || '' },
+                        ),
+                      );
                     }
                   }}
                   className="flex h-7 items-center gap-1 rounded-[3px] px-2 text-[11px] text-[#475467] transition-colors hover:bg-[#f5f5f6]"
                 >
                   <RefreshCw size={13} strokeWidth={1.8} />
-                  刷新
+                  {intl.formatMessage({ id: 'pages.dataDevelopment.common.refresh' })}
                 </button>
                 <button
                   type="button"
-                  title="关闭"
-                  aria-label="关闭右侧面板"
+                  title={intl.formatMessage({ id: 'pages.dataDevelopment.tabs.close' })}
+                  aria-label={intl.formatMessage({ id: 'pages.dataDevelopment.right.closePanel' })}
                   onClick={() => setActiveTab(undefined)}
                   className="flex h-7 w-7 items-center justify-center rounded-[3px] text-[#667085] transition-colors hover:bg-[#f5f5f6] hover:text-[#344054]"
                 >
@@ -208,9 +220,7 @@ const RightPanel = ({
                 </button>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
-              {renderContent()}
-            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">{renderContent()}</div>
           </div>
         </div>
       </div>
@@ -223,7 +233,14 @@ const RightPanel = ({
               key={item.key}
               type="button"
               title={item.label}
-              aria-label={`${active ? '收起' : '展开'}${item.label}`}
+              aria-label={intl.formatMessage(
+                {
+                  id: active
+                    ? 'pages.dataDevelopment.right.toggleCollapse'
+                    : 'pages.dataDevelopment.right.toggleExpand',
+                },
+                { panel: item.label },
+              )}
               aria-expanded={active}
               onClick={() => setActiveTab((current) => (current === item.key ? undefined : item.key))}
               className={[

@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Input, Modal, Select, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -32,6 +33,7 @@ const CreateDevelopmentNodeModal = ({
   onCancel,
   onNext,
 }: CreateDevelopmentNodeModalProps) => {
+  const intl = useIntl();
   const [type, setType] = useState<DevelopmentNodeType>(initialType);
   const [directoryId, setDirectoryId] = useState<DevelopmentId>();
   const [name, setName] = useState('');
@@ -42,10 +44,16 @@ const CreateDevelopmentNodeModal = ({
       { label: 'Shell', value: 'SHELL' },
       { label: 'Python', value: 'PYTHON' },
       { label: 'Java', value: 'JAVA' },
-      { label: '数据集', value: 'DATASET' },
-      { label: '数据服务', value: 'DATA_SERVICE' },
+      {
+        label: intl.formatMessage({ id: 'pages.dataDevelopment.workspace.datasetNode' }).replace(/ Node$| 节点$/, ''),
+        value: 'DATASET',
+      },
+      {
+        label: intl.formatMessage({ id: 'pages.dataDevelopment.workspace.dataServiceNode' }).replace(/ Node$| 节点$/, ''),
+        value: 'DATA_SERVICE',
+      },
     ],
-    [],
+    [intl],
   );
 
   const pathOptions = useMemo(
@@ -76,10 +84,10 @@ const CreateDevelopmentNodeModal = ({
   return (
     <Modal
       open={open}
-      title="新建节点"
+      title={intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.title' })}
       width={600}
-      okText="确认"
-      cancelText="取消"
+      okText={intl.formatMessage({ id: 'pages.dataDevelopment.common.confirm' })}
+      cancelText={intl.formatMessage({ id: 'pages.dataDevelopment.common.cancel' })}
       confirmLoading={loading}
       okButtonProps={{ disabled: !normalizedName }}
       destroyOnClose
@@ -91,7 +99,7 @@ const CreateDevelopmentNodeModal = ({
       <div className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-y-3 pt-2">
         <Typography.Text className="text-[13px] text-[#344054]">
           <span className="mr-1 text-[rgba(254,44,85,1)]">*</span>
-          类型：
+          {intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.type' })}
         </Typography.Text>
         <Select
           value={type}
@@ -103,7 +111,7 @@ const CreateDevelopmentNodeModal = ({
 
         <Typography.Text className="text-[13px] text-[#344054]">
           <span className="mr-1 text-[rgba(254,44,85,1)]">*</span>
-          路径：
+          {intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.path' })}
         </Typography.Text>
         <Select
           value={directoryId ?? ROOT_VALUE}
@@ -120,14 +128,14 @@ const CreateDevelopmentNodeModal = ({
 
         <Typography.Text className="text-[13px] text-[#344054]">
           <span className="mr-1 text-[rgba(254,44,85,1)]">*</span>
-          名称：
+          {intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.name' })}
         </Typography.Text>
         <Input
           autoFocus
           value={name}
           maxLength={128}
           disabled={loading}
-          placeholder="名称"
+          placeholder={intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.namePlaceholder' })}
           onChange={(event) => setName(event.target.value)}
           onPressEnter={submit}
         />

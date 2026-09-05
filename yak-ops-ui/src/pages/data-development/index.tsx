@@ -1,4 +1,5 @@
 import { BRAND_THEME } from '@/styles/brand';
+import { useIntl } from '@umijs/max';
 import { ConfigProvider } from 'antd';
 
 import CreateDevelopmentNodeModal from './components/CreateDevelopmentNodeModal';
@@ -11,7 +12,10 @@ import RenameResourceModal from './components/RenameResourceModal';
 import { useDataDevelopmentPage } from './hooks/useDataDevelopmentPage';
 
 export default function DataDevelopmentPage() {
+  const intl = useIntl();
   const page = useDataDevelopmentPage();
+  const directoryLabel = intl.formatMessage({ id: 'pages.dataDevelopment.common.directory' });
+  const nodeLabel = intl.formatMessage({ id: 'pages.dataDevelopment.common.node' });
 
   return (
     <ConfigProvider theme={BRAND_THEME}>
@@ -69,7 +73,7 @@ export default function DataDevelopmentPage() {
         <RenameResourceModal
           open={Boolean(page.renameTarget)}
           resourceLabel={
-            page.renameTarget?.nodeType === 'directory' ? '目录' : '节点'
+            page.renameTarget?.nodeType === 'directory' ? directoryLabel : nodeLabel
           }
           initialName={page.renameTarget?.title || ''}
           loading={page.renameSaving}
@@ -87,7 +91,7 @@ export default function DataDevelopmentPage() {
         <MoveResourceModal
           open={Boolean(page.moveTarget)}
           resourceLabel={
-            page.moveTarget?.nodeType === 'directory' ? '目录' : '节点'
+            page.moveTarget?.nodeType === 'directory' ? directoryLabel : nodeLabel
           }
           resourceName={page.moveTarget?.title || ''}
           directories={page.directories}

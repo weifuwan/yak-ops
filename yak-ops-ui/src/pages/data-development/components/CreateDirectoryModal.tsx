@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Input, Modal, TreeSelect, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -31,6 +32,7 @@ const CreateDirectoryModal = ({
   onCancel,
   onSubmit,
 }: CreateDirectoryModalProps) => {
+  const intl = useIntl();
   const [parentId, setParentId] = useState<DevelopmentId>();
   const [name, setName] = useState('');
 
@@ -38,7 +40,7 @@ const CreateDirectoryModal = ({
     const childrenOf = (parent?: DevelopmentId): DirectoryTreeOption[] =>
       directories
         .filter((directory) => (directory.parentId || undefined) === parent)
-        .sort((left, right) => left.name.localeCompare(right.name, 'zh-CN'))
+        .sort((left, right) => left.name.localeCompare(right.name, intl.locale))
         .map((directory) => ({
           title: directory.name,
           pathLabel: directory.path,
@@ -58,7 +60,7 @@ const CreateDirectoryModal = ({
         children: childrenOf(),
       },
     ];
-  }, [directories]);
+  }, [directories, intl.locale]);
 
   useEffect(() => {
     if (!open) return;
@@ -76,10 +78,10 @@ const CreateDirectoryModal = ({
   return (
     <Modal
       open={open}
-      title="新建目录"
+      title={intl.formatMessage({ id: 'pages.dataDevelopment.modal.directory.title' })}
       width={600}
-      okText="确认"
-      cancelText="取消"
+      okText={intl.formatMessage({ id: 'pages.dataDevelopment.common.confirm' })}
+      cancelText={intl.formatMessage({ id: 'pages.dataDevelopment.common.cancel' })}
       confirmLoading={loading}
       okButtonProps={{ disabled: !normalizedName }}
       destroyOnClose
@@ -91,7 +93,7 @@ const CreateDirectoryModal = ({
       <div className="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-y-3 pt-2">
         <Typography.Text className="text-[13px] text-[#344054]">
           <span className="mr-1 text-[rgba(254,44,85,1)]">*</span>
-          路径：
+          {intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.path' })}
         </Typography.Text>
         <TreeSelect
           value={parentId ?? ROOT_VALUE}
@@ -104,7 +106,7 @@ const CreateDirectoryModal = ({
           popupMatchSelectWidth
           className="w-full"
           disabled={loading}
-          placeholder="请选择父目录"
+          placeholder={intl.formatMessage({ id: 'pages.dataDevelopment.modal.directory.parentPlaceholder' })}
           onChange={(value) => {
             const selected = String(value);
             setParentId(selected === ROOT_VALUE ? undefined : selected);
@@ -113,14 +115,14 @@ const CreateDirectoryModal = ({
 
         <Typography.Text className="text-[13px] text-[#344054]">
           <span className="mr-1 text-[rgba(254,44,85,1)]">*</span>
-          名称：
+          {intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.name' })}
         </Typography.Text>
         <Input
           autoFocus
           value={name}
           maxLength={128}
           disabled={loading}
-          placeholder="名称"
+          placeholder={intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.namePlaceholder' })}
           onChange={(event) => setName(event.target.value)}
           onPressEnter={submit}
         />

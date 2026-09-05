@@ -14,6 +14,7 @@ import {
   type DevelopmentNodeType,
   type DevelopmentResourceNode,
 } from '@/services/data-development';
+import { useIntl } from '@umijs/max';
 import { message } from 'antd';
 import type { Key, PointerEvent as ReactPointerEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -44,6 +45,9 @@ const initialTreeWidth = () => {
 };
 
 export const useDataDevelopmentPage = () => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const requestSequenceRef = useRef(0);
   const [directories, setDirectories] = useState<DevelopmentDirectory[]>([]);
   const [nodes, setNodes] = useState<DevelopmentResourceNode[]>([]);
@@ -67,6 +71,12 @@ export const useDataDevelopmentPage = () => {
   const [moveTarget, setMoveTarget] = useState<DevelopmentTreeNode>();
   const [moveSaving, setMoveSaving] = useState(false);
 
+  const text = useCallback(
+    (id: string, values?: Record<string, string | number>) =>
+      intlRef.current.formatMessage({ id }, values),
+    [],
+  );
+
   const loadTree = useCallback(async () => {
     const requestSequence = requestSequenceRef.current + 1;
     requestSequenceRef.current = requestSequence;
@@ -83,7 +93,9 @@ export const useDataDevelopmentPage = () => {
     } catch (error) {
       if (requestSequence !== requestSequenceRef.current) return;
       message.error(
-        error instanceof Error ? error.message : '查询数据开发树失败',
+        error instanceof Error
+          ? error.message
+          : text('pages.dataDevelopment.workspace.treeLoadFailed'),
       );
       setDirectories([]);
       setNodes([]);
@@ -92,7 +104,7 @@ export const useDataDevelopmentPage = () => {
         setTreeLoading(false);
       }
     }
-  }, []);
+  }, [text]);
 
   useEffect(() => {
     void loadTree();
@@ -195,14 +207,18 @@ export const useDataDevelopmentPage = () => {
         setTreeKeyword('');
         await loadTree();
         setSelectedNodeKey(developmentDirectoryKey(created.id));
-        message.success('目录创建成功');
+        message.success(text('pages.dataDevelopment.workspace.directoryCreated'));
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '新建目录失败');
+        message.error(
+          error instanceof Error
+            ? error.message
+            : text('pages.dataDevelopment.workspace.directoryCreateFailed'),
+        );
       } finally {
         setDirectorySaving(false);
       }
     },
-    [loadTree],
+    [loadTree, text],
   );
 
   const submitNode = useCallback(
@@ -222,26 +238,30 @@ export const useDataDevelopmentPage = () => {
         setTreeKeyword('');
         await loadTree();
         setSelectedNodeKey(developmentNodeKey(created.id));
-        message.success('节点创建成功');
+        message.success(text('pages.dataDevelopment.workspace.nodeCreated'));
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '新建节点失败');
+        message.error(
+          error instanceof Error
+            ? error.message
+            : text('pages.dataDevelopment.workspace.nodeCreateFailed'),
+        );
       } finally {
         setNodeSaving(false);
       }
     },
-    [loadTree],
+    [loadTree, text],
   );
 
   const copyResourceText = useCallback(
-    async (value: string, successText: string) => {
+    async (value: string, successMessageId: string) => {
       try {
         await copyDevelopmentText(value);
-        message.success(successText);
+        message.success(text(successMessageId));
       } catch {
-        message.error('复制失败，请检查浏览器剪贴板权限');
+        message.error(text('pages.dataDevelopment.workspace.copyFailed'));
       }
     },
-    [],
+    [text],
   );
 
   const handleResourceAction = useCallback(
@@ -258,11 +278,17 @@ export const useDataDevelopmentPage = () => {
         return;
       }
       if (action === 'copy-name') {
-        void copyResourceText(resource.title, '名称已复制');
+        void copyResourceText(
+          resource.title,
+          'pages.dataDevelopment.workspace.nameCopied',
+        );
         return;
       }
       if (action === 'copy-path') {
-        void copyResourceText(resource.resourcePath, '路径已复制');
+        void copyResourceText(
+          resource.resourcePath,
+          'pages.dataDevelopment.workspace.pathCopied',
+        );
         return;
       }
       if (action === 'rename') {
@@ -291,14 +317,18 @@ export const useDataDevelopmentPage = () => {
         setRenameTarget(undefined);
         setTreeKeyword('');
         await loadTree();
-        message.success('重命名成功');
+        message.success(text('pages.dataDevelopment.workspace.renamed'));
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '重命名失败');
+        message.error(
+          error instanceof Error
+            ? error.message
+            : text('pages.dataDevelopment.workspace.renameFailed'),
+        );
       } finally {
         setRenameSaving(false);
       }
     },
-    [loadTree, renameTarget],
+    [loadTree, renameTarget, text],
   );
 
   const closeRename = useCallback(() => {
@@ -318,13 +348,17 @@ export const useDataDevelopmentPage = () => {
       setSelectedNodeKey(undefined);
       setTreeKeyword('');
       await loadTree();
-      message.success('删除成功');
+      message.success(text('pages.dataDevelopment.workspace.deleted'));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '删除失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : text('pages.dataDevelopment.workspace.deleteFailed'),
+      );
     } finally {
       setDeleteSaving(false);
     }
-  }, [deleteTarget, loadTree]);
+  }, [deleteTarget, loadTree, text]);
 
   const closeDelete = useCallback(() => {
     if (!deleteSaving) setDeleteTarget(undefined);
@@ -343,14 +377,18 @@ export const useDataDevelopmentPage = () => {
         setMoveTarget(undefined);
         setTreeKeyword('');
         await loadTree();
-        message.success('移动成功');
+        message.success(text('pages.dataDevelopment.workspace.moved'));
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '移动失败');
+        message.error(
+          error instanceof Error
+            ? error.message
+            : text('pages.dataDevelopment.workspace.moveFailed'),
+        );
       } finally {
         setMoveSaving(false);
       }
     },
-    [loadTree, moveTarget],
+    [loadTree, moveTarget, text],
   );
 
   const closeMove = useCallback(() => {

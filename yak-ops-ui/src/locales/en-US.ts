@@ -1,5 +1,7 @@
 import batchLinkUp from './en-US/batch-link-up';
 import component from './en-US/component';
+import dataDevelopment from './en-US/data-development';
+import dataDevelopmentEditor from './en-US/data-development-editor';
 import dataQuality from './en-US/data-quality';
 import dataService from './en-US/data-service';
 import dataSource from './en-US/data-source';
@@ -34,4 +36,6 @@ export default {
   ...realtimeSync,
   ...dataQuality,
   ...home,
+  ...dataDevelopment,
+  ...dataDevelopmentEditor,
 };

@@ -1,4 +1,4 @@
-import { useAccess } from '@umijs/max';
+import { useAccess, useIntl } from '@umijs/max';
 import { Tooltip } from 'antd';
 import { LoaderCircle, Play, Rocket, Save } from 'lucide-react';
 
@@ -36,11 +36,14 @@ const EditorToolbar = ({
   lineageLoading,
 }: EditorToolbarProps) => {
   const access = useAccess();
+  const intl = useIntl();
   const canExecute = access.hasPermission('data-development:execute');
   const canEdit = access.hasPermission('data-development:edit');
   const canPublish = access.hasPermission('data-development:publish');
   const Toolbar = definition.Toolbar;
   const capabilities = definition.capabilities;
+
+  const text = (id: string) => intl.formatMessage({ id });
 
   return (
     <div className="flex h-9 shrink-0 items-center justify-between border-b border-[#e8e9ec] bg-white px-2">
@@ -65,12 +68,18 @@ const EditorToolbar = ({
             <div className="flex h-full items-center gap-0.5">
               {capabilities.run ? (
                 <Tooltip
-                  title={!canExecute ? '无执行权限' : running ? '运行中' : '运行'}
+                  title={
+                    !canExecute
+                      ? text('pages.dataDevelopment.toolbar.noExecutePermission')
+                      : running
+                        ? text('pages.dataDevelopment.toolbar.running')
+                        : text('pages.dataDevelopment.toolbar.run')
+                  }
                   mouseEnterDelay={0.35}
                 >
                   <button
                     type="button"
-                    aria-label="运行"
+                    aria-label={text('pages.dataDevelopment.toolbar.run')}
                     disabled={running || !canExecute}
                     onClick={onRun}
                     className={iconButtonClassName}
@@ -85,12 +94,16 @@ const EditorToolbar = ({
               ) : null}
               {capabilities.save ? (
                 <Tooltip
-                  title={!canEdit ? '无编辑权限' : '保存草稿'}
+                  title={
+                    !canEdit
+                      ? text('pages.dataDevelopment.toolbar.noEditPermission')
+                      : text('pages.dataDevelopment.toolbar.saveDraft')
+                  }
                   mouseEnterDelay={0.35}
                 >
                   <button
                     type="button"
-                    aria-label="保存草稿"
+                    aria-label={text('pages.dataDevelopment.toolbar.saveDraft')}
                     disabled={saving || publishing || running || !canEdit}
                     onClick={onSave}
                     className={iconButtonClassName}
@@ -105,12 +118,16 @@ const EditorToolbar = ({
               ) : null}
               {capabilities.publish ? (
                 <Tooltip
-                  title={!canPublish ? '无发布权限' : '发布版本'}
+                  title={
+                    !canPublish
+                      ? text('pages.dataDevelopment.toolbar.noPublishPermission')
+                      : text('pages.dataDevelopment.toolbar.publish')
+                  }
                   mouseEnterDelay={0.35}
                 >
                   <button
                     type="button"
-                    aria-label="发布版本"
+                    aria-label={text('pages.dataDevelopment.toolbar.publish')}
                     disabled={saving || publishing || running || !canPublish}
                     onClick={onPublish}
                     className={iconButtonClassName}

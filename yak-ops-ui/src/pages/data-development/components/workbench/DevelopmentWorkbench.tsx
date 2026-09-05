@@ -1,5 +1,6 @@
+import { useIntl } from '@umijs/max';
 import { message } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getEditorDefinition } from '../../editors/registry';
 import {
@@ -41,9 +42,7 @@ import EditorHost from './EditorHost';
 import EditorTabs, { type EditorTabAction } from './EditorTabs';
 import EditorToolbar from './EditorToolbar';
 import RightPanel from './RightPanel';
-import RunResultPanel, {
-  type WorkbenchBottomPanelView,
-} from './RunResultPanel';
+import RunResultPanel, { type WorkbenchBottomPanelView } from './RunResultPanel';
 import {
   DataServiceWorkbenchEditor,
   DatasetWorkbenchEditor,
@@ -72,6 +71,15 @@ const DevelopmentWorkbench = ({
   onNodeFocus,
   onNodesChanged,
 }: DevelopmentWorkbenchProps) => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+  const text = useCallback(
+    (id: string, values?: Record<string, string | number>) =>
+      intlRef.current.formatMessage({ id }, values),
+    [],
+  );
+
   const [openNodeIds, setOpenNodeIds] = useState<DevelopmentId[]>([]);
   const [activeNodeId, setActiveNodeId] = useState<DevelopmentId>();
   const [runPanelOpen, setRunPanelOpen] = useState(false);
@@ -120,9 +128,11 @@ const DevelopmentWorkbench = ({
     setResourceDirtyNodeIds((current) => current.filter((nodeId) => nodeMap.has(nodeId)));
     setLineageLoadingNodeIds((current) => current.filter((nodeId) => nodeMap.has(nodeId)));
     setExecutionActionNodeIds((current) => current.filter((nodeId) => nodeMap.has(nodeId)));
-    setExecutionIds((current) => Object.fromEntries(
-      Object.entries(current).filter(([nodeId]) => nodeMap.has(nodeId)),
-    ));
+    setExecutionIds((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([nodeId]) => nodeMap.has(nodeId)),
+      ),
+    );
   }, [nodeMap]);
 
   useEffect(() => {
@@ -134,18 +144,25 @@ const DevelopmentWorkbench = ({
     getDevelopmentTaskDraft(node.id)
       .then((response) => {
         if (!active) return;
-        const draft = responseData(response, '加载任务草稿失败');
+        const draft = responseData(
+          response,
+          text('pages.dataDevelopment.workbench.loadDraftFailed'),
+        );
         hydrateDevelopmentTaskDraft(node, draft);
       })
       .catch((error) => {
         if (!active) return;
-        message.error(error instanceof Error ? error.message : '加载任务草稿失败');
+        message.error(
+          error instanceof Error
+            ? error.message
+            : text('pages.dataDevelopment.workbench.loadDraftFailed'),
+        );
       });
 
     return () => {
       active = false;
     };
-  }, [activeNodeId, nodeMap]);
+  }, [activeNodeId, nodeMap, text]);
 
   useEffect(() => {
     if (!activeNodeId || executionIds[activeNodeId]) return;
@@ -156,7 +173,10 @@ const DevelopmentWorkbench = ({
     getActiveDevelopmentTaskExecution(node.id)
       .then((response) => {
         if (!active) return;
-        const execution = responseData(response, '读取当前运行实例失败');
+        const execution = responseData(
+          response,
+          text('pages.dataDevelopment.workbench.readExecutionFailed'),
+        );
         if (!execution) return;
         setRunResults((current) => ({
           ...current,
@@ -175,7 +195,7 @@ const DevelopmentWorkbench = ({
     return () => {
       active = false;
     };
-  }, [activeNodeId, executionIds, nodeMap]);
+  }, [activeNodeId, executionIds, nodeMap, text]);
 
   useEffect(() => {
     const tracked = Object.entries(executionIds).filter(
@@ -185,32 +205,37 @@ const DevelopmentWorkbench = ({
 
     let disposed = false;
     const refresh = async () => {
-      await Promise.all(tracked.map(async ([nodeId, executionId]) => {
-        try {
-          const detail = responseData(
-            await getDevelopmentTaskExecution(executionId),
-            '刷新运行状态失败',
-          );
-          if (disposed) return;
-          setRunResults((current) => ({
-            ...current,
-            [nodeId]: executionDetailToRunResult(detail),
-          }));
-          if (!isDevelopmentExecutionActive(detail.status)) {
-            setExecutionIds((current) => {
-              if (current[nodeId] !== executionId) return current;
-              const next = { ...current };
-              delete next[nodeId];
-              return next;
-            });
-            if (detail.status === 'FAILED' || detail.status === 'TIMEOUT') {
-              message.error(detail.errorMessage || '任务执行失败');
+      await Promise.all(
+        tracked.map(async ([nodeId, executionId]) => {
+          try {
+            const detail = responseData(
+              await getDevelopmentTaskExecution(executionId),
+              text('pages.dataDevelopment.workbench.refreshExecutionFailed'),
+            );
+            if (disposed) return;
+            setRunResults((current) => ({
+              ...current,
+              [nodeId]: executionDetailToRunResult(detail),
+            }));
+            if (!isDevelopmentExecutionActive(detail.status)) {
+              setExecutionIds((current) => {
+                if (current[nodeId] !== executionId) return current;
+                const next = { ...current };
+                delete next[nodeId];
+                return next;
+              });
+              if (detail.status === 'FAILED' || detail.status === 'TIMEOUT') {
+                message.error(
+                  detail.errorMessage ||
+                    text('pages.dataDevelopment.workbench.executionFailed'),
+                );
+              }
             }
+          } catch {
+            // Retry on next tick; durable execution page remains source of truth.
           }
-        } catch {
-          // The durable execution page remains the source of truth; retry on the next tick.
-        }
-      }));
+        }),
+      );
     };
 
     void refresh();
@@ -219,7 +244,7 @@ const DevelopmentWorkbench = ({
       disposed = true;
       window.clearInterval(timer);
     };
-  }, [executionIds]);
+  }, [executionIds, text]);
 
   const activeResource = activeNodeId ? nodeMap.get(activeNodeId) : undefined;
   const activeTaskNode = activeResource && isDevelopmentTaskNode(activeResource)
@@ -237,22 +262,32 @@ const DevelopmentWorkbench = ({
     ? lineageLoadingNodeIds.includes(activeTaskNode.id)
     : false;
   const openDataServiceNodes = useMemo(
-    () => openNodeIds
-      .map((nodeId) => nodeMap.get(nodeId))
-      .filter((node): node is DevelopmentResourceNode => Boolean(node && node.type === 'DATA_SERVICE')),
+    () =>
+      openNodeIds
+        .map((nodeId) => nodeMap.get(nodeId))
+        .filter(
+          (node): node is DevelopmentResourceNode =>
+            Boolean(node && node.type === 'DATA_SERVICE'),
+        ),
     [nodeMap, openNodeIds],
   );
   const openDatasetNodes = useMemo(
-    () => openNodeIds
-      .map((nodeId) => nodeMap.get(nodeId))
-      .filter((node): node is DevelopmentResourceNode => Boolean(node && node.type === 'DATASET')),
+    () =>
+      openNodeIds
+        .map((nodeId) => nodeMap.get(nodeId))
+        .filter(
+          (node): node is DevelopmentResourceNode =>
+            Boolean(node && node.type === 'DATASET'),
+        ),
     [nodeMap, openNodeIds],
   );
 
   const focusNode = (nodeId: DevelopmentId) => {
     const target = nodeMap.get(nodeId);
     if (!target) return;
-    setOpenNodeIds((current) => current.includes(nodeId) ? current : [...current, nodeId]);
+    setOpenNodeIds((current) =>
+      current.includes(nodeId) ? current : [...current, nodeId],
+    );
     setActiveNodeId(nodeId);
     if (!isDevelopmentTaskNode(target)) setRunPanelOpen(false);
     else if (target.type !== 'SQL') setBottomPanelView('result');
@@ -266,10 +301,14 @@ const DevelopmentWorkbench = ({
     });
   };
 
-  const persistDraft = async (nodeId: DevelopmentId): Promise<DevelopmentTaskDraft> => {
+  const persistDraft = async (
+    nodeId: DevelopmentId,
+  ): Promise<DevelopmentTaskDraft> => {
     const resource = nodeMap.get(nodeId);
     if (!resource || !isDevelopmentTaskNode(resource)) {
-      throw new Error(`当前节点不是可执行任务：${nodeId}`);
+      throw new Error(
+        text('pages.dataDevelopment.workbench.invalidTaskNode', { id: String(nodeId) }),
+      );
     }
 
     const definition = prepareDevelopmentTaskDefinition(resource);
@@ -279,7 +318,7 @@ const DevelopmentWorkbench = ({
         ...definition,
         baseRevision: session?.draftRevision || 0,
       }),
-      '保存草稿失败',
+      text('pages.dataDevelopment.workbench.saveDraftFailed'),
     );
 
     markEditorSessionSaved(nodeId, draft.draftRevision);
@@ -292,9 +331,17 @@ const DevelopmentWorkbench = ({
     setSaving(true);
     try {
       const draft = await persistDraft(activeTaskNode.id);
-      message.success(`草稿已保存 · Draft #${draft.draftRevision}`);
+      message.success(
+        text('pages.dataDevelopment.workbench.draftSaved', {
+          revision: draft.draftRevision,
+        }),
+      );
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '保存草稿失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : text('pages.dataDevelopment.workbench.saveDraftFailed'),
+      );
     } finally {
       setSaving(false);
     }
@@ -324,7 +371,7 @@ const DevelopmentWorkbench = ({
           : { ...definition, content: contentOverride };
       const submission = responseData(
         await runDevelopmentTask(node.id, runDefinition),
-        '提交任务失败',
+        text('pages.dataDevelopment.workbench.submitFailed'),
       );
       setRunResults((current) => ({
         ...current,
@@ -337,14 +384,17 @@ const DevelopmentWorkbench = ({
 
       const detail = responseData(
         await getDevelopmentTaskExecution(submission.id),
-        '读取运行结果失败',
+        text('pages.dataDevelopment.workbench.readResultFailed'),
       );
       setRunResults((current) => ({
         ...current,
         [node.id]: executionDetailToRunResult(detail),
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '运行任务失败';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : text('pages.dataDevelopment.workbench.runFailed');
       setRunResults((current) => ({
         ...current,
         [node.id]: {
@@ -367,7 +417,7 @@ const DevelopmentWorkbench = ({
     try {
       const detail = responseData(
         await cancelDevelopmentTaskExecution(activeRunResult.executionId),
-        '取消任务失败',
+        text('pages.dataDevelopment.workbench.cancelFailed'),
       );
       setRunResults((current) => ({
         ...current,
@@ -380,9 +430,19 @@ const DevelopmentWorkbench = ({
           return next;
         });
       }
-      message.success(detail.status === 'CANCELLED' ? '任务已取消' : '已提交取消请求');
+      message.success(
+        text(
+          detail.status === 'CANCELLED'
+            ? 'pages.dataDevelopment.workbench.cancelled'
+            : 'pages.dataDevelopment.workbench.cancelSubmitted',
+        ),
+      );
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '取消任务失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : text('pages.dataDevelopment.workbench.cancelFailed'),
+      );
     } finally {
       setExecutionActionNodeIds((current) => current.filter((id) => id !== nodeId));
     }
@@ -390,10 +450,12 @@ const DevelopmentWorkbench = ({
 
   const retryActiveExecution = async () => {
     if (
-      !activeTaskNode
-      || !activeRunResult?.executionId
-      || !isDevelopmentExecutionRetryable(activeRunResult.status)
-    ) return;
+      !activeTaskNode ||
+      !activeRunResult?.executionId ||
+      !isDevelopmentExecutionRetryable(activeRunResult.status)
+    ) {
+      return;
+    }
     const nodeId = activeTaskNode.id;
     setExecutionActionNodeIds((current) =>
       current.includes(nodeId) ? current : [...current, nodeId],
@@ -401,7 +463,7 @@ const DevelopmentWorkbench = ({
     try {
       const submission = responseData(
         await retryDevelopmentTaskExecution(activeRunResult.executionId),
-        '重试任务失败',
+        text('pages.dataDevelopment.workbench.retryFailed'),
       );
       setRunResults((current) => ({
         ...current,
@@ -410,9 +472,13 @@ const DevelopmentWorkbench = ({
       if (isDevelopmentExecutionActive(submission.status)) {
         setExecutionIds((current) => ({ ...current, [nodeId]: submission.id }));
       }
-      message.success('任务已重新提交');
+      message.success(text('pages.dataDevelopment.workbench.retried'));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '重试任务失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : text('pages.dataDevelopment.workbench.retryFailed'),
+      );
     } finally {
       setExecutionActionNodeIds((current) => current.filter((id) => id !== nodeId));
     }
@@ -431,18 +497,27 @@ const DevelopmentWorkbench = ({
       const definition = prepareDevelopmentTaskDefinition(node);
       const preview = responseData(
         await previewDevelopmentSqlLineage(node.id, definition),
-        '血缘解析失败',
+        text('pages.dataDevelopment.workbench.lineageFailed'),
       );
       setLineagePreviews((current) => ({ ...current, [node.id]: preview }));
       if (preview.status === 'FAILED') {
-        message.error(preview.parseError || '当前 SQL 血缘解析失败');
+        message.error(
+          preview.parseError ||
+            text('pages.dataDevelopment.workbench.lineageCurrentFailed'),
+        );
       } else if (preview.status === 'PARTIAL' || preview.status === 'UNRESOLVED') {
-        message.warning('血缘解析完成，部分字段暂未能解析');
+        message.warning(text('pages.dataDevelopment.workbench.lineagePartial'));
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '血缘解析失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : text('pages.dataDevelopment.workbench.lineageFailed'),
+      );
     } finally {
-      setLineageLoadingNodeIds((current) => current.filter((nodeId) => nodeId !== node.id));
+      setLineageLoadingNodeIds((current) =>
+        current.filter((nodeId) => nodeId !== node.id),
+      );
     }
   };
 
@@ -457,18 +532,26 @@ const DevelopmentWorkbench = ({
         session = getEditorSession(activeTaskNode.id);
       }
       if (!session?.draftRevision) {
-        throw new Error('发布前请先保存草稿');
+        throw new Error(text('pages.dataDevelopment.workbench.saveBeforePublish'));
       }
 
       const published = responseData(
         await publishDevelopmentTask(activeTaskNode.id, session.draftRevision),
-        '发布任务失败',
+        text('pages.dataDevelopment.workbench.publishFailed'),
       );
       setVersionsRefreshKey((current) => current + 1);
       await onNodesChanged?.();
-      message.success(`已发布 v${published.revisionNo}`);
+      message.success(
+        text('pages.dataDevelopment.workbench.published', {
+          revision: published.revisionNo,
+        }),
+      );
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '发布任务失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : text('pages.dataDevelopment.workbench.publishFailed'),
+      );
     } finally {
       setPublishing(false);
     }
@@ -476,7 +559,6 @@ const DevelopmentWorkbench = ({
 
   const closeNodes = (nodeIds: DevelopmentId[]) => {
     if (!nodeIds.length) return;
-
     const { nextOpenNodeIds, nextActiveNodeId } = closeTabs(
       openNodeIds,
       activeNodeId,
@@ -487,7 +569,6 @@ const DevelopmentWorkbench = ({
     setResourceDirtyNodeIds((current) => current.filter((id) => !closeSet.has(id)));
 
     if (!activeNodeId || nextActiveNodeId === activeNodeId) return;
-
     setActiveNodeId(nextActiveNodeId);
     onNodeFocus(nextActiveNodeId);
     const nextNode = nextActiveNodeId ? nodeMap.get(nextActiveNodeId) : undefined;
@@ -507,18 +588,24 @@ const DevelopmentWorkbench = ({
       .map((nodeId) => nodeMap.get(nodeId))
       .filter((node): node is DevelopmentResourceNode => Boolean(node));
     if (dirtyResourceNodes.length) {
-      const firstName = dirtyResourceNodes[0]?.name || '资源';
+      const firstName =
+        dirtyResourceNodes[0]?.name ||
+        text('pages.dataDevelopment.workbench.resourceFallback');
       message.warning(
         dirtyResourceNodes.length === 1
-          ? `「${firstName}」有未保存修改，请先保存后再关闭`
-          : `有 ${dirtyResourceNodes.length} 个资源编辑器尚未保存，请先保存后再关闭`,
+          ? text('pages.dataDevelopment.workbench.resourceUnsaved', { name: firstName })
+          : text('pages.dataDevelopment.workbench.resourcesUnsaved', {
+              count: dirtyResourceNodes.length,
+            }),
       );
       return;
     }
 
     const dirtyNodeIds = targetNodeIds.filter((nodeId) => {
       const node = nodeMap.get(nodeId);
-      return Boolean(node && isDevelopmentTaskNode(node) && getEditorSession(nodeId)?.dirty);
+      return Boolean(
+        node && isDevelopmentTaskNode(node) && getEditorSession(nodeId)?.dirty,
+      );
     });
 
     if (!dirtyNodeIds.length) {
@@ -526,10 +613,7 @@ const DevelopmentWorkbench = ({
       return;
     }
 
-    setPendingClose({
-      nodeIds: targetNodeIds,
-      dirtyNodeIds,
-    });
+    setPendingClose({ nodeIds: targetNodeIds, dirtyNodeIds });
   };
 
   const resolvePendingClose = async (save: boolean) => {
@@ -539,12 +623,14 @@ const DevelopmentWorkbench = ({
       setCloseSaving(true);
       try {
         for (const nodeId of pendingClose.dirtyNodeIds) {
-          if (getEditorSession(nodeId)?.dirty) {
-            await persistDraft(nodeId);
-          }
+          if (getEditorSession(nodeId)?.dirty) await persistDraft(nodeId);
         }
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '保存草稿失败');
+        message.error(
+          error instanceof Error
+            ? error.message
+            : text('pages.dataDevelopment.workbench.saveDraftFailed'),
+        );
         setCloseSaving(false);
         return;
       }
@@ -552,7 +638,9 @@ const DevelopmentWorkbench = ({
     } else {
       pendingClose.dirtyNodeIds.forEach((nodeId) => {
         const node = nodeMap.get(nodeId);
-        if (node && isDevelopmentTaskNode(node)) restoreDevelopmentTaskOriginal(node);
+        if (node && isDevelopmentTaskNode(node)) {
+          restoreDevelopmentTaskOriginal(node);
+        }
       });
     }
 
@@ -565,27 +653,33 @@ const DevelopmentWorkbench = ({
     requestCloseNodes(tabActionTargets(action, openNodeIds, activeNodeId));
   };
 
-  const pendingDirtyNames = pendingClose?.dirtyNodeIds
-    .map((nodeId) => nodeMap.get(nodeId))
-    .filter((node): node is DevelopmentResourceNode => Boolean(node && isDevelopmentTaskNode(node)))
-    .map((node) => node.name) || [];
+  const pendingDirtyNames =
+    pendingClose?.dirtyNodeIds
+      .map((nodeId) => nodeMap.get(nodeId))
+      .filter(
+        (node): node is DevelopmentResourceNode =>
+          Boolean(node && isDevelopmentTaskNode(node)),
+      )
+      .map((node) => node.name) || [];
 
   if (!openNodeIds.length || !activeResource) {
     return (
       <main className="flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-white">
         <div className="text-center">
           <div className="text-[14px] font-medium text-[#667085]">
-            选择左侧开发节点
+            {intl.formatMessage({ id: 'pages.dataDevelopment.workbench.selectNode' })}
           </div>
           <div className="mt-1 text-[12px] text-[#98a2b3]">
-            SQL、Shell、Dataset 和 Data Service 会在同一个开发工作台中打开
+            {intl.formatMessage({ id: 'pages.dataDevelopment.workbench.selectNodeHint' })}
           </div>
         </div>
       </main>
     );
   }
 
-  const definition = activeTaskNode ? getEditorDefinition(activeTaskNode.type) : undefined;
+  const definition = activeTaskNode
+    ? getEditorDefinition(activeTaskNode.type)
+    : undefined;
 
   return (
     <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
@@ -609,9 +703,11 @@ const DevelopmentWorkbench = ({
               onRun={() => void runActiveTask()}
               onSave={() => void saveActiveDraft()}
               onPublish={() => void publishActiveTask()}
-              onLineage={activeTaskNode.type === 'SQL'
-                ? () => void previewActiveLineage()
-                : undefined}
+              onLineage={
+                activeTaskNode.type === 'SQL'
+                  ? () => void previewActiveLineage()
+                  : undefined
+              }
               running={activeRunning}
               saving={saving}
               publishing={publishing}
@@ -645,13 +741,17 @@ const DevelopmentWorkbench = ({
                 onViewChange={setBottomPanelView}
                 lineagePreview={lineagePreviews[activeTaskNode.id]}
                 lineageLoading={activeLineageLoading}
-                onRefreshLineage={activeTaskNode.type === 'SQL'
-                  ? () => void previewActiveLineage()
-                  : undefined}
+                onRefreshLineage={
+                  activeTaskNode.type === 'SQL'
+                    ? () => void previewActiveLineage()
+                    : undefined
+                }
                 onCancel={activeRunning ? () => void cancelActiveExecution() : undefined}
-                onRetry={isDevelopmentExecutionRetryable(activeRunResult?.status)
-                  ? () => void retryActiveExecution()
-                  : undefined}
+                onRetry={
+                  isDevelopmentExecutionRetryable(activeRunResult?.status)
+                    ? () => void retryActiveExecution()
+                    : undefined
+                }
                 actionLoading={activeExecutionActionLoading}
                 onClose={() => setRunPanelOpen(false)}
               />
@@ -666,7 +766,9 @@ const DevelopmentWorkbench = ({
             active={activeNodeId === dataServiceNode.id}
             onSaved={onNodesChanged}
             onOpenSourceNode={focusNode}
-            onDirtyChange={(dirty) => updateResourceDirty(dataServiceNode.id, dirty)}
+            onDirtyChange={(dirty) =>
+              updateResourceDirty(dataServiceNode.id, dirty)
+            }
           />
         ))}
 

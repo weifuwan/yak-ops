@@ -1,4 +1,4 @@
-import { useAccess } from '@umijs/max';
+import { useAccess, useIntl } from '@umijs/max';
 import { Tooltip, message } from 'antd';
 import {
   GitBranch,
@@ -59,13 +59,15 @@ const SqlToolbar = ({
   lineageLoading,
 }: DevelopmentEditorToolbarContext) => {
   const access = useAccess();
+  const intl = useIntl();
   const canExecute = access.hasPermission('data-development:execute');
   const canEdit = access.hasPermission('data-development:edit');
   const canPublish = access.hasPermission('data-development:publish');
+  const text = (id: string) => intl.formatMessage({ id });
 
-  const execute = (command: SqlEditorCommand, fallback: string) => {
+  const execute = (command: SqlEditorCommand) => {
     if (!executeSqlEditorCommand(node.id, command)) {
-      message.info(fallback);
+      message.info(text('pages.dataDevelopment.toolbar.sqlNotReady'));
     }
   };
 
@@ -73,85 +75,69 @@ const SqlToolbar = ({
     <div className="flex h-full w-full min-w-0 items-center justify-between gap-3">
       <div className="flex shrink-0 items-center gap-0.5">
         <ToolbarButton
-          title={!canExecute ? '无执行权限' : running ? 'SQL 运行中' : '运行当前 SQL'}
+          title={
+            !canExecute
+              ? text('pages.dataDevelopment.toolbar.noExecutePermission')
+              : running
+                ? text('pages.dataDevelopment.toolbar.sqlRunning')
+                : text('pages.dataDevelopment.toolbar.runSql')
+          }
           disabled={running || !canExecute}
           onClick={onRun}
         >
-          {running ? (
-            <LoaderCircle size={15} className="animate-spin" />
-          ) : (
-            <Play size={15} strokeWidth={1.8} />
-          )}
+          {running ? <LoaderCircle size={15} className="animate-spin" /> : <Play size={15} strokeWidth={1.8} />}
         </ToolbarButton>
         <ToolbarDivider />
         <ToolbarButton
-          title={!canEdit ? '无编辑权限' : '保存草稿'}
+          title={!canEdit ? text('pages.dataDevelopment.toolbar.noEditPermission') : text('pages.dataDevelopment.toolbar.saveDraft')}
           disabled={saving || publishing || running || !canEdit}
           onClick={onSave}
         >
-          {saving ? (
-            <LoaderCircle size={15} className="animate-spin" />
-          ) : (
-            <Save size={15} strokeWidth={1.8} />
-          )}
+          {saving ? <LoaderCircle size={15} className="animate-spin" /> : <Save size={15} strokeWidth={1.8} />}
         </ToolbarButton>
         <ToolbarButton
-          title={!canPublish ? '无发布权限' : '发布版本'}
+          title={!canPublish ? text('pages.dataDevelopment.toolbar.noPublishPermission') : text('pages.dataDevelopment.toolbar.publish')}
           disabled={saving || publishing || running || !canPublish}
           onClick={onPublish}
         >
-          {publishing ? (
-            <LoaderCircle size={15} className="animate-spin" />
-          ) : (
-            <Rocket size={15} strokeWidth={1.8} />
-          )}
+          {publishing ? <LoaderCircle size={15} className="animate-spin" /> : <Rocket size={15} strokeWidth={1.8} />}
         </ToolbarButton>
         {onLineage ? (
           <ToolbarButton
-            title={lineageLoading ? '血缘解析中' : '解析当前 SQL 血缘'}
+            title={lineageLoading ? text('pages.dataDevelopment.toolbar.lineageLoading') : text('pages.dataDevelopment.toolbar.lineage')}
             disabled={Boolean(lineageLoading || saving || publishing || running)}
             onClick={onLineage}
           >
-            {lineageLoading ? (
-              <LoaderCircle size={15} className="animate-spin" />
-            ) : (
-              <GitBranch size={15} strokeWidth={1.8} />
-            )}
+            {lineageLoading ? <LoaderCircle size={15} className="animate-spin" /> : <GitBranch size={15} strokeWidth={1.8} />}
           </ToolbarButton>
         ) : null}
         <ToolbarDivider />
         <ToolbarButton
-          title="撤销"
+          title={text('pages.dataDevelopment.toolbar.undo')}
           disabled={running || !canEdit}
-          onClick={() => execute('undo', 'SQL 编辑器尚未就绪')}
+          onClick={() => execute('undo')}
         >
           <Undo2 size={15} strokeWidth={1.8} />
         </ToolbarButton>
         <ToolbarButton
-          title="重做"
+          title={text('pages.dataDevelopment.toolbar.redo')}
           disabled={running || !canEdit}
-          onClick={() => execute('redo', 'SQL 编辑器尚未就绪')}
+          onClick={() => execute('redo')}
         >
           <Redo2 size={15} strokeWidth={1.8} />
         </ToolbarButton>
-        <ToolbarButton
-          title="查找"
-          onClick={() => execute('find', 'SQL 编辑器尚未就绪')}
-        >
+        <ToolbarButton title={text('pages.dataDevelopment.toolbar.find')} onClick={() => execute('find')}>
           <Search size={15} strokeWidth={1.8} />
         </ToolbarButton>
         <ToolbarDivider />
         <ToolbarButton
-          title="格式化 SQL"
+          title={text('pages.dataDevelopment.toolbar.formatSql')}
           disabled={running || !canEdit}
-          onClick={() => execute('format', 'SQL 编辑器尚未就绪')}
+          onClick={() => execute('format')}
         >
           <Wand2 size={15} strokeWidth={1.8} />
         </ToolbarButton>
-        <ToolbarButton
-          title="触发智能提示"
-          onClick={() => execute('suggest', 'SQL 编辑器尚未就绪')}
-        >
+        <ToolbarButton title={text('pages.dataDevelopment.toolbar.suggest')} onClick={() => execute('suggest')}>
           <Sparkles size={15} strokeWidth={1.8} />
         </ToolbarButton>
       </div>
