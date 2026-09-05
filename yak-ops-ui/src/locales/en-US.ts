@@ -4,6 +4,7 @@ import dashboard from './en-US/dashboard';
 import dashboardEditor from './en-US/dashboard-editor';
 import dashboardEditorAdvanced from './en-US/dashboard-editor-advanced';
 import dashboardEditorChart from './en-US/dashboard-editor-chart';
+import dashboardEditorFields from './en-US/dashboard-editor-fields';
 import dataDevelopment from './en-US/data-development';
 import dataDevelopmentEditor from './en-US/data-development-editor';
 import dataQuality from './en-US/data-quality';
@@ -56,4 +57,5 @@ export default {
   ...dashboardEditor,
   ...dashboardEditorChart,
   ...dashboardEditorAdvanced,
+  ...dashboardEditorFields,
 };
