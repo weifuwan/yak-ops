@@ -1,5 +1,6 @@
 import batchLinkUp from './en-US/batch-link-up';
 import component from './en-US/component';
+import dataService from './en-US/data-service';
 import dataSource from './en-US/data-source';
 import globalHeader from './en-US/globalHeader';
 import menu from './en-US/menu';
@@ -26,4 +27,5 @@ export default {
   ...pages,
   ...dataSource,
   ...batchLinkUp,
+  ...dataService,
 };

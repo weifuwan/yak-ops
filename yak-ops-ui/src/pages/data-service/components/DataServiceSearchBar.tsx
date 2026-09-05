@@ -1,8 +1,7 @@
 import { YakButton } from '@/components/ui';
+import { useIntl } from '@umijs/max';
 import { Input } from 'antd';
 import { Search } from 'lucide-react';
-
-import { DATA_SERVICE_SEARCH_PLACEHOLDER } from '../constants';
 
 interface DataServiceSearchBarProps {
   keyword: string;
@@ -19,6 +18,8 @@ const DataServiceSearchBar = ({
   onKeywordChange,
   onSearch,
 }: DataServiceSearchBarProps) => {
+  const intl = useIntl();
+
   if (compact) {
     return (
       <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg bg-[#f6f7f8] p-1.5">
@@ -27,7 +28,9 @@ const DataServiceSearchBar = ({
           variant="borderless"
           value={keyword}
           prefix={<Search size={15} className="text-[#98a2b3]" />}
-          placeholder={DATA_SERVICE_SEARCH_PLACEHOLDER}
+          placeholder={intl.formatMessage({
+            id: 'pages.dataService.search.compactPlaceholder',
+          })}
           className="!h-8 !bg-transparent !px-2"
           onChange={(event) => onKeywordChange(event.target.value)}
           onPressEnter={onSearch}
@@ -38,7 +41,7 @@ const DataServiceSearchBar = ({
           className="!h-8 !px-4"
           onClick={onSearch}
         >
-          搜索
+          {intl.formatMessage({ id: 'pages.dataService.search.button' })}
         </YakButton>
       </div>
     );
@@ -52,7 +55,9 @@ const DataServiceSearchBar = ({
           allowClear
           variant="borderless"
           value={keyword}
-          placeholder="输入 API 名称、描述或 Endpoint"
+          placeholder={intl.formatMessage({
+            id: 'pages.dataService.search.placeholder',
+          })}
           className="!h-11 !bg-white !px-1 !text-[13px]"
           onChange={(event) => onKeywordChange(event.target.value)}
           onPressEnter={onSearch}
@@ -63,11 +68,11 @@ const DataServiceSearchBar = ({
           className="!h-9 !px-5"
           onClick={onSearch}
         >
-          搜索
+          {intl.formatMessage({ id: 'pages.dataService.search.button' })}
         </YakButton>
       </div>
       <div className="px-3 pb-1 pt-1 text-[10px] text-[#a0a6af]">
-        支持 API 名称、Endpoint、描述和数据源
+        {intl.formatMessage({ id: 'pages.dataService.search.supportHint' })}
       </div>
     </div>
   );

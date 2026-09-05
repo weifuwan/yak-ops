@@ -8,7 +8,7 @@ import {
   type DataServiceCallLog,
   type DataSourceOption,
 } from '@/services/data-service';
-import { useAccess } from '@umijs/max';
+import { useAccess, useIntl } from '@umijs/max';
 import { message } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -25,6 +25,10 @@ import {
 
 export const useDataServiceMarketplace = () => {
   const access = useAccess();
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+
   const canObserve = access.hasPermission('data-service:observe');
   const canManage = access.hasPermission('data-service:manage');
   const canDelete = access.hasPermission('data-service:delete');
@@ -62,7 +66,11 @@ export const useDataServiceMarketplace = () => {
     } catch (error) {
       if (requestSequence === requestSequenceRef.current) {
         message.error(
-          error instanceof Error ? error.message : '加载 API 集市失败',
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({
+                id: 'pages.dataService.message.loadFailed',
+              }),
         );
       }
     } finally {
@@ -96,16 +104,11 @@ export const useDataServiceMarketplace = () => {
     [services],
   );
   const hotServices = useMemo(
-    () => canObserve ? selectHotDataServices(services, callsByApiId) : [],
+    () => (canObserve ? selectHotDataServices(services, callsByApiId) : []),
     [callsByApiId, canObserve, services],
   );
   const searchResults = useMemo(
-    () =>
-      filterDataServices(
-        services,
-        submittedKeyword,
-        dataSourceNameMap,
-      ),
+    () => filterDataServices(services, submittedKeyword, dataSourceNameMap),
     [dataSourceNameMap, services, submittedKeyword],
   );
 
@@ -140,7 +143,11 @@ export const useDataServiceMarketplace = () => {
   const deleteService = useCallback(
     async (service: DataServiceApi) => {
       if (!canDelete) {
-        message.warning('无删除数据服务权限');
+        message.warning(
+          intlRef.current.formatMessage({
+            id: 'pages.dataService.message.noDeletePermission',
+          }),
+        );
         return;
       }
       try {
@@ -148,10 +155,20 @@ export const useDataServiceMarketplace = () => {
         setDetailTarget((current) =>
           current?.id === service.id ? undefined : current,
         );
-        message.success('API 已删除');
+        message.success(
+          intlRef.current.formatMessage({
+            id: 'pages.dataService.message.deleted',
+          }),
+        );
         await loadMarketplace();
       } catch (error) {
-        message.error(error instanceof Error ? error.message : '删除失败');
+        message.error(
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({
+                id: 'pages.dataService.message.deleteFailed',
+              }),
+        );
         throw error;
       }
     },
@@ -161,16 +178,30 @@ export const useDataServiceMarketplace = () => {
   const toggleService = useCallback(
     async (service: DataServiceApi, enabled: boolean) => {
       if (!canManage) {
-        message.warning('无管理数据服务权限');
+        message.warning(
+          intlRef.current.formatMessage({
+            id: 'pages.dataService.message.noManagePermission',
+          }),
+        );
         return;
       }
       try {
         await setDataServiceEnabled(service.id, enabled);
-        message.success(enabled ? 'API 已启用' : 'API 已停用');
+        message.success(
+          intlRef.current.formatMessage({
+            id: enabled
+              ? 'pages.dataService.message.enabled'
+              : 'pages.dataService.message.disabled',
+          }),
+        );
         await loadMarketplace();
       } catch (error) {
         message.error(
-          error instanceof Error ? error.message : '状态更新失败',
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({
+                id: 'pages.dataService.message.statusUpdateFailed',
+              }),
         );
       }
     },
@@ -180,9 +211,17 @@ export const useDataServiceMarketplace = () => {
   const copyEndpoint = useCallback(async (endpoint: string) => {
     try {
       await copyDataServiceText(endpoint);
-      message.success('Endpoint 已复制');
+      message.success(
+        intlRef.current.formatMessage({
+          id: 'pages.dataService.message.endpointCopied',
+        }),
+      );
     } catch {
-      message.warning('复制失败，请手动复制');
+      message.warning(
+        intlRef.current.formatMessage({
+          id: 'pages.dataService.message.copyFailed',
+        }),
+      );
     }
   }, []);
 

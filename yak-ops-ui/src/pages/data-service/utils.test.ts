@@ -128,6 +128,7 @@ describe('data service marketplace utilities', () => {
           sourceRevisionNo: 5,
         }),
         '订单库',
+        '冻结来源',
       ),
     ).toEqual({
       primary: 'Data Service · DS R5',
@@ -141,6 +142,7 @@ describe('data service marketplace utilities', () => {
           sourceRevisionNo: 3,
         }),
         '历史库',
+        '冻结来源',
       ),
     ).toEqual({
       primary: 'Legacy · SQL v3',

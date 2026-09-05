@@ -1,5 +1,6 @@
 import { YakButton } from '@/components/ui';
 import type { DataServiceApi } from '@/services/data-service';
+import { useIntl } from '@umijs/max';
 import {
   Dropdown,
   Modal,
@@ -8,13 +9,8 @@ import {
   Tooltip,
   type TableColumnsType,
 } from 'antd';
-import {
-  ArrowLeft,
-  Copy,
-  MoreHorizontal,
-  Trash2,
-} from 'lucide-react';
-import { useMemo } from 'react';
+import { ArrowLeft, Copy, MoreHorizontal, Trash2 } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
 
 import { describeDataServiceSource } from '../utils';
 import DataServiceMethodBadge from './DataServiceMethodBadge';
@@ -55,16 +51,24 @@ const DataServiceSearchResults = ({
   onToggle,
   onDelete,
 }: DataServiceSearchResultsProps) => {
-  const confirmDelete = (service: DataServiceApi) => {
-    Modal.confirm({
-      title: '删除 API',
-      content: `确认删除「${service.name}」？API Key、运行状态和相关文档也会一起移除。`,
-      okText: '删除',
-      okButtonProps: { danger: true },
-      cancelText: '取消',
-      onOk: () => onDelete(service),
-    });
-  };
+  const intl = useIntl();
+
+  const confirmDelete = useCallback(
+    (service: DataServiceApi) => {
+      Modal.confirm({
+        title: intl.formatMessage({ id: 'pages.dataService.delete.title' }),
+        content: intl.formatMessage(
+          { id: 'pages.dataService.delete.confirm' },
+          { name: service.name },
+        ),
+        okText: intl.formatMessage({ id: 'pages.dataService.delete.ok' }),
+        okButtonProps: { danger: true },
+        cancelText: intl.formatMessage({ id: 'pages.dataService.delete.cancel' }),
+        onOk: () => onDelete(service),
+      });
+    },
+    [intl, onDelete],
+  );
 
   const columns = useMemo<TableColumnsType<DataServiceApi>>(
     () => [
@@ -85,7 +89,8 @@ const DataServiceSearchResults = ({
               <DataServiceMethodBadge />
             </div>
             <div className="mt-0.5 line-clamp-1 text-[11px] text-[#98a2b3]">
-              {service.description || '暂无描述'}
+              {service.description ||
+                intl.formatMessage({ id: 'pages.dataService.api.noDescription' })}
             </div>
           </div>
         ),
@@ -99,7 +104,11 @@ const DataServiceSearchResults = ({
             <span className="truncate font-mono text-[11px] text-[#667085]">
               {value}
             </span>
-            <Tooltip title="复制 Endpoint">
+            <Tooltip
+              title={intl.formatMessage({
+                id: 'pages.dataService.table.copyEndpoint',
+              })}
+            >
               <YakButton
                 type="text"
                 size="small"
@@ -113,13 +122,14 @@ const DataServiceSearchResults = ({
         ),
       },
       {
-        title: '来源',
+        title: intl.formatMessage({ id: 'pages.dataService.table.source' }),
         key: 'source',
         width: 210,
         render: (_value, service) => {
           const source = describeDataServiceSource(
             service,
             dataSourceName(service.dataSourceId),
+            intl.formatMessage({ id: 'pages.dataService.source.frozen' }),
           );
           return (
             <div>
@@ -142,7 +152,7 @@ const DataServiceSearchResults = ({
         },
       },
       {
-        title: '近期调用',
+        title: intl.formatMessage({ id: 'pages.dataService.table.recentCalls' }),
         key: 'calls',
         width: 100,
         render: (_value, service) => (
@@ -152,7 +162,7 @@ const DataServiceSearchResults = ({
         ),
       },
       {
-        title: '状态',
+        title: intl.formatMessage({ id: 'pages.dataService.table.status' }),
         dataIndex: 'enabled',
         width: 135,
         render: (enabled: boolean, service) => (
@@ -170,13 +180,17 @@ const DataServiceSearchResults = ({
                   : 'text-[12px] text-[#98a2b3]'
               }
             >
-              {enabled ? '运行中' : '已停用'}
+              {intl.formatMessage({
+                id: enabled
+                  ? 'pages.dataService.api.running'
+                  : 'pages.dataService.api.disabled',
+              })}
             </span>
           </div>
         ),
       },
       {
-        title: '操作',
+        title: intl.formatMessage({ id: 'pages.dataService.table.actions' }),
         key: 'actions',
         width: 120,
         fixed: 'right',
@@ -188,7 +202,7 @@ const DataServiceSearchResults = ({
               className="!h-7 !px-0 !text-[12px] !text-[#475467]"
               onClick={() => onOpen(service)}
             >
-              查看
+              {intl.formatMessage({ id: 'pages.dataService.table.view' })}
             </YakButton>
             {canDelete ? (
               <Dropdown
@@ -199,7 +213,9 @@ const DataServiceSearchResults = ({
                       key: 'delete',
                       danger: true,
                       icon: <Trash2 size={14} />,
-                      label: '删除 API',
+                      label: intl.formatMessage({
+                        id: 'pages.dataService.delete.title',
+                      }),
                     },
                   ],
                   onClick: ({ key }) => {
@@ -224,9 +240,10 @@ const DataServiceSearchResults = ({
       callsByApiId,
       canDelete,
       canManage,
+      confirmDelete,
       dataSourceName,
+      intl,
       onCopyEndpoint,
-      onDelete,
       onOpen,
       onToggle,
     ],
@@ -244,10 +261,13 @@ const DataServiceSearchResults = ({
         />
         <div className="min-w-0">
           <h1 className="m-0 text-[17px] font-semibold text-[#161823]">
-            API 集市
+            {intl.formatMessage({ id: 'pages.dataService.marketplace.title' })}
           </h1>
           <div className="mt-1 truncate text-[12px] text-[#98a2b3]">
-            搜索 “{submittedKeyword}”
+            {intl.formatMessage(
+              { id: 'pages.dataService.search.keyword' },
+              { keyword: submittedKeyword },
+            )}
           </div>
         </div>
       </header>
@@ -263,7 +283,10 @@ const DataServiceSearchResults = ({
           />
         </div>
         <span className="shrink-0 text-[12px] text-[#98a2b3]">
-          共 {records.length} 个结果
+          {intl.formatMessage(
+            { id: 'pages.dataService.search.resultCount' },
+            { count: records.length },
+          )}
         </span>
       </div>
 
@@ -276,7 +299,9 @@ const DataServiceSearchResults = ({
           columns={columns}
           pagination={false}
           scroll={{ x: 1080, y: 'calc(100vh - 235px)' }}
-          locale={{ emptyText: '没有找到匹配的 API' }}
+          locale={{
+            emptyText: intl.formatMessage({ id: 'pages.dataService.search.empty' }),
+          }}
         />
       </div>
     </div>
