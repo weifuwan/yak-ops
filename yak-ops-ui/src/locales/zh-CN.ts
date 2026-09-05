@@ -15,6 +15,7 @@ import settingDrawer from './zh-CN/settingDrawer';
 import settings from './zh-CN/settings';
 import workflow from './zh-CN/workflow';
 import workflowEditor from './zh-CN/workflow-editor';
+import workflowInstance from './zh-CN/workflow-instance';
 
 export default {
   'navBar.lang': '语言',
@@ -35,6 +36,7 @@ export default {
   ...dataDevelopmentEditor,
   ...workflow,
   ...workflowEditor,
+  ...workflowInstance,
   ...globalHeader,
   ...menu,
   ...settingDrawer,
