@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { FunctionSquare, KeyRound, Table2 } from 'lucide-react';
 import { Handle, type NodeProps, Position } from 'reactflow';
 import { useLineageInteraction } from './LineageInteractionContext';
@@ -20,6 +21,7 @@ export interface ColumnLineageNodeData {
 export const columnHandleId = (fieldName: string) => `column:${fieldName}`;
 
 export default function ColumnLineageNode({ data }: NodeProps<ColumnLineageNodeData>) {
+  const intl = useIntl();
   const interaction = useLineageInteraction();
   return (
     <div className="w-[270px] overflow-hidden rounded-[10px] border border-[#dfe3e8] bg-white shadow-[0_3px_10px_rgba(16,24,40,.06)]">
@@ -29,7 +31,12 @@ export default function ColumnLineageNode({ data }: NodeProps<ColumnLineageNodeD
           {data.tableName}
         </span>
         <span className="rounded bg-white px-1.5 py-0.5 text-[9px] text-[#667085] ring-1 ring-[#e4e7ec]">
-          {data.role === 'source' ? '源表' : '目标表'}
+          {intl.formatMessage({
+            id:
+              data.role === 'source'
+                ? 'pages.dataDevelopment.editor.lineage.sourceTable'
+                : 'pages.dataDevelopment.editor.lineage.targetRole',
+          })}
         </span>
       </div>
       <div className="py-1">
