@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Form, Input, Modal, Select } from 'antd';
 
 import CustomTemplateDrawer from '../CustomTemplateDrawer';
@@ -13,6 +14,7 @@ interface TemplateLibraryDialogsProps {
 export default function TemplateLibraryDialogs({
   library,
 }: TemplateLibraryDialogsProps) {
+  const intl = useIntl();
   const {
     folders,
     drawerOpen,
@@ -48,7 +50,12 @@ export default function TemplateLibraryDialogs({
       />
 
       <Modal
-        title={folderDialogMode === 'create' ? '新建模板目录' : '编辑模板目录'}
+        title={intl.formatMessage({
+          id:
+            folderDialogMode === 'create'
+              ? 'pages.dataQuality.template.dialog.createFolder'
+              : 'pages.dataQuality.template.dialog.editFolder',
+        })}
         open={folderDialogOpen}
         confirmLoading={submitting}
         onOk={() => void saveFolder()}
@@ -58,26 +65,39 @@ export default function TemplateLibraryDialogs({
         <Form form={folderForm} layout="vertical" className="pt-3">
           <Form.Item
             name="name"
-            label="目录名称"
+            label={intl.formatMessage({
+              id: 'pages.dataQuality.template.dialog.folderName',
+            })}
             rules={[
               {
                 required: true,
                 whitespace: true,
-                message: '请输入目录名称',
+                message: intl.formatMessage({
+                  id: 'pages.dataQuality.template.dialog.folderNameRequired',
+                }),
               },
             ]}
           >
             <Input
               variant="filled"
               maxLength={100}
-              placeholder="请输入目录名称"
+              placeholder={intl.formatMessage({
+                id: 'pages.dataQuality.template.dialog.folderNamePlaceholder',
+              })}
             />
           </Form.Item>
-          <Form.Item name="parentId" label="上级目录">
+          <Form.Item
+            name="parentId"
+            label={intl.formatMessage({
+              id: 'pages.dataQuality.template.dialog.parentFolder',
+            })}
+          >
             <Select
               allowClear
               variant="filled"
-              placeholder="根目录"
+              placeholder={intl.formatMessage({
+                id: 'pages.dataQuality.template.dialog.root',
+              })}
               options={flattenTemplateFolders(folders)
                 .filter((folder) => folder.id !== editingFolder?.id)
                 .map((folder) => ({
@@ -90,7 +110,9 @@ export default function TemplateLibraryDialogs({
       </Modal>
 
       <Modal
-        title="复制自定义规则模板"
+        title={intl.formatMessage({
+          id: 'pages.dataQuality.template.dialog.copyTitle',
+        })}
         open={Boolean(copyTemplate)}
         confirmLoading={submitting}
         onOk={() => void saveCopy()}
@@ -100,22 +122,33 @@ export default function TemplateLibraryDialogs({
         <Form form={copyForm} layout="vertical" className="pt-3">
           <Form.Item
             name="name"
-            label="模板名称"
+            label={intl.formatMessage({
+              id: 'pages.dataQuality.template.dialog.templateName',
+            })}
             rules={[
               {
                 required: true,
                 whitespace: true,
-                message: '请输入模板名称',
+                message: intl.formatMessage({
+                  id: 'pages.dataQuality.template.dialog.templateNameRequired',
+                }),
               },
             ]}
           >
             <Input variant="filled" maxLength={100} />
           </Form.Item>
-          <Form.Item name="folderId" label="目标文件夹">
+          <Form.Item
+            name="folderId"
+            label={intl.formatMessage({
+              id: 'pages.dataQuality.template.dialog.targetFolder',
+            })}
+          >
             <Select
               allowClear
               variant="filled"
-              placeholder="未分类"
+              placeholder={intl.formatMessage({
+                id: 'pages.dataQuality.template.uncategorized',
+              })}
               options={flattenTemplateFolders(folders).map((folder) => ({
                 value: folder.id,
                 label: `${'　'.repeat(folder.depth)}${folder.name}`,
