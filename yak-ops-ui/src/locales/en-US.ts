@@ -15,6 +15,7 @@ import settingDrawer from './en-US/settingDrawer';
 import settings from './en-US/settings';
 import workflow from './en-US/workflow';
 import workflowEditor from './en-US/workflow-editor';
+import workflowInstance from './en-US/workflow-instance';
 
 export default {
   'navBar.lang': 'Languages',
@@ -42,4 +43,5 @@ export default {
   ...dataDevelopmentEditor,
   ...workflow,
   ...workflowEditor,
+  ...workflowInstance,
 };
