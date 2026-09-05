@@ -67,6 +67,8 @@ export default {
 
   'pages.datasource.modal.title.add': 'New',
   'pages.datasource.modal.title.edit': 'Edit',
+  'pages.datasource.modal.drawerTitle.add': 'New Data Source',
+  'pages.datasource.modal.drawerTitle.edit': 'Edit Data Source',
   'pages.datasource.modal.button.cancel': 'Cancel',
   'pages.datasource.modal.button.lastStep': 'Previous',
   'pages.datasource.modal.button.connTest': 'Test Connection',
