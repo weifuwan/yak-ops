@@ -29,6 +29,11 @@ export default {
   'pages.dashboard.editor.restore.title': 'Restore V{version} as a draft?',
   'pages.dashboard.editor.restore.content': 'There are unsaved local changes. Continuing will discard them and create a new draft from the selected historical version.',
   'pages.dashboard.editor.restore.ok': 'Discard & Restore',
+  'pages.dashboard.editor.empty.chartTitle': 'Start with a chart',
+  'pages.dashboard.editor.empty.datasetTitle': 'No available datasets',
+  'pages.dashboard.editor.empty.chartDescription': 'Add a chart, then open its chart sheet to configure data and appearance.',
+  'pages.dashboard.editor.empty.datasetDescription': 'Publish and bring a Dataset online from the Data Development release center first.',
+  'pages.dashboard.editor.empty.addChart': 'Add Chart',
 
   'pages.dashboard.editor.toolbar.lifecycle.unsaved': 'Unsaved',
   'pages.dashboard.editor.toolbar.lifecycle.published': 'Published V{version}',
