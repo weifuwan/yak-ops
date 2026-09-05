@@ -33,7 +33,7 @@ export const buildQualityDataSourceNodes = (
       return {
         key: qualityDataSourceNodeKey(dataSourceId),
         dataSourceId,
-        dataSourceName: record.name || `数据源 ${dataSourceId}`,
+        dataSourceName: record.name || `#${dataSourceId}`,
         dataSourceType: normalizeQualityDataSourceType(record.dbType),
         environment: record.environmentName || record.environment,
       } satisfies QualityDataSourceNode;
@@ -55,7 +55,7 @@ export const groupQualityDataSourceNodes = (
     .map(([dataSourceType, groupNodes]) => ({
       dataSourceType,
       nodes: [...groupNodes].sort((left, right) =>
-        left.dataSourceName.localeCompare(right.dataSourceName, 'zh-CN'),
+        left.dataSourceName.localeCompare(right.dataSourceName),
       ),
     }));
 };
