@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Button, DatePicker, Drawer, Empty, Input, Select, Switch, Tooltip, message } from 'antd';
 import dayjs from 'dayjs';
 import { CalendarDays, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
@@ -9,25 +10,6 @@ import type {
   FilterOperator,
   PublishedDataset,
 } from './model';
-
-const TEXT_OPERATORS: Array<{ label: string; value: FilterOperator }> = [
-  { label: '等于', value: 'eq' },
-  { label: '不等于', value: 'neq' },
-  { label: '包含', value: 'contains' },
-  { label: '大于', value: 'gt' },
-  { label: '大于等于', value: 'gte' },
-  { label: '小于', value: 'lt' },
-  { label: '小于等于', value: 'lte' },
-];
-
-const DATE_OPERATORS: Array<{ label: string; value: FilterOperator }> = [
-  { label: '等于', value: 'eq' },
-  { label: '不等于', value: 'neq' },
-  { label: '晚于', value: 'gt' },
-  { label: '晚于或等于', value: 'gte' },
-  { label: '早于', value: 'lt' },
-  { label: '早于或等于', value: 'lte' },
-];
 
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.round(Math.random() * 1000)}`;
 
@@ -48,6 +30,24 @@ export function DashboardGlobalFilterConfig({
   onChange: (filters: DashboardGlobalFilter[]) => void;
   onClose: () => void;
 }) {
+  const intl = useIntl();
+  const textOperators: Array<{ label: string; value: FilterOperator }> = [
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.operator.eq' }), value: 'eq' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.operator.neq' }), value: 'neq' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.operator.contains' }), value: 'contains' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.operator.gt' }), value: 'gt' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.operator.gte' }), value: 'gte' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.operator.lt' }), value: 'lt' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.operator.lte' }), value: 'lte' },
+  ];
+  const dateOperators: Array<{ label: string; value: FilterOperator }> = [
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.operator.eq' }), value: 'eq' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.operator.neq' }), value: 'neq' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.after' }), value: 'gt' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.afterOrEqual' }), value: 'gte' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.before' }), value: 'lt' },
+    { label: intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.beforeOrEqual' }), value: 'lte' },
+  ];
   const widgetContext = widgets.map((widget) => ({
     widget,
     dataset: resolveWidgetDataset(widget, datasets, analyses),
@@ -66,7 +66,7 @@ export function DashboardGlobalFilterConfig({
     const field = context?.dataset?.fields[0];
     const filter: DashboardGlobalFilter = {
       id: createId('filter'),
-      name: field?.label || '筛选条件',
+      name: field?.label || intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.defaultName' }),
       operator: 'eq',
       bindings: context && field ? [{ widgetId: context.widget.id, field: field.key }] : [],
     };
@@ -78,12 +78,12 @@ export function DashboardGlobalFilterConfig({
       item.dataset?.fields.some((field) => isDateFieldType(field.dataType)));
     const field = context?.dataset?.fields.find((item) => isDateFieldType(item.dataType));
     if (!context || !field) {
-      message.info('当前仪表盘没有可用于日期筛选的 date / datetime 字段');
+      message.info(intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.noDateField' }));
       return;
     }
     const filter: DashboardGlobalFilter = {
       id: createId('date-filter'),
-      name: field.label || '日期',
+      name: field.label || intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.date' }),
       operator: 'eq',
       bindings: [{ widgetId: context.widget.id, field: field.key }],
     };
@@ -94,9 +94,11 @@ export function DashboardGlobalFilterConfig({
     <Drawer
       title={(
         <div>
-          <div className="text-[13px] font-semibold text-[#344054]">全局筛选</div>
+          <div className="text-[13px] font-semibold text-[#344054]">
+            {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.globalTitle' })}
+          </div>
           <div className="mt-0.5 text-[10px] font-normal text-[#98a2b3]">
-            一个筛选器可以映射到多个图表的不同字段
+            {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.mappingHint' })}
           </div>
         </div>
       )}
@@ -106,10 +108,10 @@ export function DashboardGlobalFilterConfig({
       extra={(
         <div className="flex items-center gap-1.5">
           <Button size="small" icon={<Plus size={12} />} onClick={addTextFilter}>
-            筛选
+            {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.filter' })}
           </Button>
           <Button size="small" icon={<CalendarDays size={12} />} onClick={addDateFilter}>
-            日期
+            {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.date' })}
           </Button>
         </div>
       )}
@@ -120,7 +122,7 @@ export function DashboardGlobalFilterConfig({
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={(
               <div className="text-[11px] text-[#98a2b3]">
-                添加一个全局筛选器，再选择它要作用的图表字段
+                {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.configEmpty' })}
               </div>
             )}
           />
@@ -148,14 +150,22 @@ export function DashboardGlobalFilterConfig({
                     </div>
                     <div className="min-w-0">
                       <div className="truncate text-[11px] font-medium text-[#344054]">
-                        {filter.name || `筛选器 ${index + 1}`}
+                        {filter.name || intl.formatMessage(
+                          { id: 'pages.dashboard.editor.globalFilter.fallbackName' },
+                          { index: index + 1 },
+                        )}
                       </div>
                       <div className="mt-0.5 text-[9px] text-[#98a2b3]">
-                        {dateFilter ? '日期筛选' : '字段筛选'} · 已作用 {filter.bindings.length} 个图表
+                        {intl.formatMessage(
+                          { id: dateFilter
+                            ? 'pages.dashboard.editor.globalFilter.dateSummary'
+                            : 'pages.dashboard.editor.globalFilter.fieldSummary' },
+                          { count: filter.bindings.length },
+                        )}
                       </div>
                     </div>
                   </div>
-                  <Tooltip title="删除筛选器">
+                  <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.delete' })}>
                     <Button
                       size="small"
                       type="text"
@@ -168,7 +178,9 @@ export function DashboardGlobalFilterConfig({
 
                 <div className="mt-3 grid grid-cols-[1fr_132px] gap-2">
                   <div>
-                    <div className="mb-1 text-[10px] text-[#667085]">名称</div>
+                    <div className="mb-1 text-[10px] text-[#667085]">
+                      {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.name' })}
+                    </div>
                     <Input
                       size="small"
                       value={filter.name}
@@ -177,19 +189,23 @@ export function DashboardGlobalFilterConfig({
                     />
                   </div>
                   <div>
-                    <div className="mb-1 text-[10px] text-[#667085]">条件</div>
+                    <div className="mb-1 text-[10px] text-[#667085]">
+                      {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.condition' })}
+                    </div>
                     <Select
                       size="small"
                       className="w-full"
                       value={filter.operator}
-                      options={dateFilter ? DATE_OPERATORS : TEXT_OPERATORS}
+                      options={dateFilter ? dateOperators : textOperators}
                       onChange={(operator) => patchFilter(filter.id, { operator })}
                     />
                   </div>
                 </div>
 
                 <div className="mt-2">
-                  <div className="mb-1 text-[10px] text-[#667085]">默认值</div>
+                  <div className="mb-1 text-[10px] text-[#667085]">
+                    {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.defaultValue' })}
+                  </div>
                   {dateFilter ? (
                     <DatePicker
                       size="small"
@@ -198,7 +214,7 @@ export function DashboardGlobalFilterConfig({
                       format={dateTime ? 'YYYY-MM-DD HH:mm:ss' : 'YYYY-MM-DD'}
                       value={defaultDate?.isValid() ? defaultDate : null}
                       className="w-full"
-                      placeholder="默认不筛选"
+                      placeholder={intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.noDefault' })}
                       onChange={(value) => patchFilter(filter.id, {
                         defaultValue: value
                           ? value.format(dateTime ? 'YYYY-MM-DD HH:mm:ss' : 'YYYY-MM-DD')
@@ -209,7 +225,7 @@ export function DashboardGlobalFilterConfig({
                     <Input
                       size="small"
                       allowClear
-                      placeholder="默认不筛选"
+                      placeholder={intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.noDefault' })}
                       value={filter.defaultValue === undefined || filter.defaultValue === null
                         ? ''
                         : String(filter.defaultValue)}
@@ -222,13 +238,17 @@ export function DashboardGlobalFilterConfig({
 
                 <div className="mt-3 border-t border-[#edf0f3] pt-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[10px] font-medium text-[#667085]">作用图表</span>
-                    <span className="text-[9px] text-[#98a2b3]">每个图表显式映射一个字段</span>
+                    <span className="text-[10px] font-medium text-[#667085]">
+                      {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.targetCharts' })}
+                    </span>
+                    <span className="text-[9px] text-[#98a2b3]">
+                      {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.targetHint' })}
+                    </span>
                   </div>
 
                   {!widgetContext.length ? (
                     <div className="rounded-[5px] bg-[#fafbfc] px-2.5 py-2 text-[10px] text-[#98a2b3]">
-                      先添加图表，再配置筛选字段映射。
+                      {intl.formatMessage({ id: 'pages.dashboard.editor.globalFilter.addChartFirst' })}
                     </div>
                   ) : (
                     <div className="space-y-1.5">
@@ -269,12 +289,18 @@ export function DashboardGlobalFilterConfig({
                               }}
                             />
                             <div className="min-w-0 flex-1 truncate text-[10px] text-[#475467]">
-                              {widget.title || '未命名图表'}
+                              {widget.title || intl.formatMessage({ id: 'pages.dashboard.editor.unnamedChart' })}
                             </div>
                             <Select
                               size="small"
                               className="w-[190px]"
-                              placeholder={fieldOptions.length ? '选择字段' : dateFilter ? '无日期字段' : '无可用字段'}
+                              placeholder={intl.formatMessage({
+                                id: fieldOptions.length
+                                  ? 'pages.dashboard.editor.globalFilter.selectField'
+                                  : dateFilter
+                                    ? 'pages.dashboard.editor.globalFilter.noDateFields'
+                                    : 'pages.dashboard.editor.globalFilter.noFields',
+                              })}
                               disabled={!enabled || !fieldOptions.length}
                               value={binding?.field}
                               options={fieldOptions}
