@@ -15,6 +15,7 @@ import settingDrawer from './zh-CN/settingDrawer';
 import settings from './zh-CN/settings';
 import workflow from './zh-CN/workflow';
 import workflowEditor from './zh-CN/workflow-editor';
+import workflowEditorRuntime from './zh-CN/workflow-editor-runtime';
 import workflowInstance from './zh-CN/workflow-instance';
 import workflowScheduleHistory from './zh-CN/workflow-schedule-history';
 
@@ -37,6 +38,7 @@ export default {
   ...dataDevelopmentEditor,
   ...workflow,
   ...workflowEditor,
+  ...workflowEditorRuntime,
   ...workflowInstance,
   ...workflowScheduleHistory,
   ...globalHeader,
