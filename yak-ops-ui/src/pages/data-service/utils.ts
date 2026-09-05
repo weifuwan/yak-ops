@@ -108,6 +108,7 @@ export interface DataServiceSourcePresentation {
 export const describeDataServiceSource = (
   service: DataServiceApi,
   dataSourceName: string,
+  frozenSourceLabel: string,
 ): DataServiceSourcePresentation => {
   if (service.sourceType === DATA_SERVICE_NODE_SOURCE) {
     return {
@@ -119,7 +120,7 @@ export const describeDataServiceSource = (
   if (service.sourceType === LEGACY_DATA_DEVELOPMENT_RELEASE_SOURCE) {
     return {
       primary: `Legacy · SQL v${service.sourceRevisionNo || '-'}`,
-      secondary: `冻结来源 · ${dataSourceName}`,
+      secondary: `${frozenSourceLabel} · ${dataSourceName}`,
       muted: true,
     };
   }
@@ -139,7 +140,7 @@ export const copyDataServiceText = async (value: string) => {
   }
 
   if (typeof document === 'undefined') {
-    throw new Error('当前环境不支持剪贴板');
+    throw new Error('Clipboard is not supported in the current environment');
   }
 
   const textarea = document.createElement('textarea');
@@ -152,5 +153,5 @@ export const copyDataServiceText = async (value: string) => {
   const copied = document.execCommand('copy');
   document.body.removeChild(textarea);
 
-  if (!copied) throw new Error('复制失败');
+  if (!copied) throw new Error('Copy failed');
 };
