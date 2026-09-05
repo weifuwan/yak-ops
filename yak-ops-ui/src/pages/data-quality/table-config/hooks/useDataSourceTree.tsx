@@ -2,6 +2,7 @@ import {
   listAllDataSources,
   type DataSourceRecord,
 } from '@/services/data-source';
+import { useIntl } from '@umijs/max';
 import { message } from 'antd';
 import {
   useCallback,
@@ -35,6 +36,10 @@ const initialTreeWidth = () => {
 };
 
 export const useDataSourceTree = () => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+
   const requestSequenceRef = useRef(0);
   const dragRef = useRef<{ x: number; width: number }>();
   const [dataSources, setDataSources] = useState<DataSourceRecord[]>([]);
@@ -82,7 +87,11 @@ export const useDataSourceTree = () => {
         setSelectedNodeKey(undefined);
         setDataSourceId(undefined);
         message.error(
-          error instanceof Error ? error.message : '数据源加载失败',
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({
+                id: 'pages.dataQuality.tableConfig.message.sourceLoadFailed',
+              }),
         );
       }
       return undefined;
@@ -119,9 +128,7 @@ export const useDataSourceTree = () => {
         const drag = dragRef.current;
         if (!drag) return;
         setLeftWidth(
-          clampQualitySourceTreeWidth(
-            drag.width + current.clientX - drag.x,
-          ),
+          clampQualitySourceTreeWidth(drag.width + current.clientX - drag.x),
         );
       };
 
