@@ -67,6 +67,8 @@ export default {
 
   'pages.datasource.modal.title.add': '新建',
   'pages.datasource.modal.title.edit': '编辑',
+  'pages.datasource.modal.drawerTitle.add': '新建数据源',
+  'pages.datasource.modal.drawerTitle.edit': '编辑数据源',
   'pages.datasource.modal.button.cancel': '取消',
   'pages.datasource.modal.button.lastStep': '上一步',
   'pages.datasource.modal.button.connTest': '连接测试',
