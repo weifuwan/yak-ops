@@ -13,6 +13,8 @@ import pwa from './zh-CN/pwa';
 import realtimeSync from './zh-CN/realtime-sync';
 import settingDrawer from './zh-CN/settingDrawer';
 import settings from './zh-CN/settings';
+import workflow from './zh-CN/workflow';
+import workflowEditor from './zh-CN/workflow-editor';
 
 export default {
   'navBar.lang': '语言',
@@ -31,6 +33,8 @@ export default {
   ...home,
   ...dataDevelopment,
   ...dataDevelopmentEditor,
+  ...workflow,
+  ...workflowEditor,
   ...globalHeader,
   ...menu,
   ...settingDrawer,
