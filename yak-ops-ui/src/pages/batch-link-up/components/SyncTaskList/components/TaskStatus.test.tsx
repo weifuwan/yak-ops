@@ -2,6 +2,27 @@ import { render, screen } from '@testing-library/react';
 
 import TaskStatus from './TaskStatus';
 
+jest.mock('@umijs/max', () => ({
+  useIntl: () => ({
+    formatMessage: ({ id }: { id: string }) =>
+      ({
+        'pages.batchLinkUp.status.idle': '未运行',
+        'pages.batchLinkUp.status.created': '已创建',
+        'pages.batchLinkUp.status.submitted': '提交中',
+        'pages.batchLinkUp.status.queued': '排队中',
+        'pages.batchLinkUp.status.running': '运行中',
+        'pages.batchLinkUp.status.succeeded': '已完成',
+        'pages.batchLinkUp.status.failed': '失败',
+        'pages.batchLinkUp.status.paused': '已暂停',
+        'pages.batchLinkUp.status.canceled': '已取消',
+        'pages.batchLinkUp.status.lost': '状态丢失',
+        'pages.batchLinkUp.status.copyError': '复制错误',
+        'pages.batchLinkUp.status.copyErrorSuccess': '错误信息已复制',
+        'pages.batchLinkUp.status.copyErrorFailed': '复制失败，请手动复制',
+      } as Record<string, string>)[id] || id,
+  }),
+}));
+
 describe('offline sync TaskStatus', () => {
   it.each([
     ['CREATED', 'pending', '已创建', 'false'],
