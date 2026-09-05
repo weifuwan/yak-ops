@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import WorkflowNodeIcon from './node/icons/WorkflowNodeIcon';
@@ -25,8 +26,13 @@ const WorkflowNextStep = ({
   locked,
   onAppend,
 }: WorkflowNextStepProps) => {
+  const intl = useIntl();
   const canAppend = !locked && appendOptions.length > 0;
-  const addLabel = nextNodes.length ? '添加并行节点' : '选择下一步';
+  const addLabel = intl.formatMessage({
+    id: nextNodes.length
+      ? 'pages.workflow.editor.nextStep.parallel'
+      : 'pages.workflow.editor.nextStep.select',
+  });
 
   return (
     <div className="flex py-1">
@@ -75,7 +81,7 @@ const WorkflowNextStep = ({
 
         {!nextNodes.length && !canAppend ? (
           <div className="flex h-9 items-center rounded-lg border border-dashed border-[#d0d5dd] px-2 text-[11px] text-[#98a2b3]">
-            暂无后续节点
+            {intl.formatMessage({ id: 'pages.workflow.editor.nextStep.empty' })}
           </div>
         ) : null}
       </div>
