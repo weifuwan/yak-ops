@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Input, Modal, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 
@@ -18,6 +19,7 @@ const RenameResourceModal = ({
   onCancel,
   onSubmit,
 }: RenameResourceModalProps) => {
+  const intl = useIntl();
   const [name, setName] = useState(initialName);
 
   useEffect(() => {
@@ -33,10 +35,13 @@ const RenameResourceModal = ({
   return (
     <Modal
       open={open}
-      title={`重命名${resourceLabel}`}
+      title={intl.formatMessage(
+        { id: 'pages.dataDevelopment.modal.rename.title' },
+        { resource: resourceLabel },
+      )}
       width={520}
-      okText="确认"
-      cancelText="取消"
+      okText={intl.formatMessage({ id: 'pages.dataDevelopment.common.confirm' })}
+      cancelText={intl.formatMessage({ id: 'pages.dataDevelopment.common.cancel' })}
       confirmLoading={loading}
       okButtonProps={{ disabled: !normalizedName }}
       destroyOnClose
@@ -47,13 +52,13 @@ const RenameResourceModal = ({
     >
       <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-y-3 pt-2">
         <Typography.Text className="text-[13px] text-[#344054]">
-          名称：
+          {intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.name' })}
         </Typography.Text>
         <Input
           autoFocus
           value={name}
           maxLength={200}
-          placeholder="名称"
+          placeholder={intl.formatMessage({ id: 'pages.dataDevelopment.modal.node.namePlaceholder' })}
           disabled={loading}
           onChange={(event) => setName(event.target.value)}
           onPressEnter={submit}
