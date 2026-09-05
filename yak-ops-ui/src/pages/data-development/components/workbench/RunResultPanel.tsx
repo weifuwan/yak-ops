@@ -1,4 +1,4 @@
-import { useAccess } from '@umijs/max';
+import { useAccess, useIntl } from '@umijs/max';
 import {
   GitBranch,
   LoaderCircle,
@@ -54,17 +54,6 @@ const initialHeight = () => {
     : DEFAULT_HEIGHT;
 };
 
-const statusText = (result?: DevelopmentTaskRunResult) => {
-  if (!result) return undefined;
-  if (result.status === 'PENDING') return '等待中';
-  if (result.status === 'RUNNING') return '运行中';
-  if (result.status === 'SUCCESS') return `完成 · ${result.durationMs} ms`;
-  if (result.status === 'CANCELLED') return '已取消';
-  if (result.status === 'TIMEOUT') return `超时 · ${result.durationMs} ms`;
-  if (result.status === 'FAILED') return `失败 · ${result.durationMs} ms`;
-  return result.status;
-};
-
 const tabClassName = (active: boolean) => [
   'relative flex h-full items-center gap-1.5 px-2 text-[12px] transition-colors',
   active
@@ -92,21 +81,52 @@ const RunResultPanel = ({
   onClose,
 }: RunResultPanelProps) => {
   const access = useAccess();
+  const intl = useIntl();
   const canExecute = access.hasPermission('data-development:execute');
   const [height, setHeight] = useState(initialHeight);
   const [resizing, setResizing] = useState(false);
   const lineageAvailable = node.type === 'SQL' && Boolean(onRefreshLineage);
   const actualView = view === 'lineage' && lineageAvailable ? 'lineage' : 'result';
 
+  const statusText = (value?: DevelopmentTaskRunResult) => {
+    if (!value) return undefined;
+    if (value.status === 'PENDING') {
+      return intl.formatMessage({ id: 'pages.dataDevelopment.result.pending' });
+    }
+    if (value.status === 'RUNNING') {
+      return intl.formatMessage({ id: 'pages.dataDevelopment.result.running' });
+    }
+    if (value.status === 'SUCCESS') {
+      return intl.formatMessage(
+        { id: 'pages.dataDevelopment.result.success' },
+        { duration: value.durationMs },
+      );
+    }
+    if (value.status === 'CANCELLED') {
+      return intl.formatMessage({ id: 'pages.dataDevelopment.result.cancelled' });
+    }
+    if (value.status === 'TIMEOUT') {
+      return intl.formatMessage(
+        { id: 'pages.dataDevelopment.result.timeout' },
+        { duration: value.durationMs },
+      );
+    }
+    if (value.status === 'FAILED') {
+      return intl.formatMessage(
+        { id: 'pages.dataDevelopment.result.failed' },
+        { duration: value.durationMs },
+      );
+    }
+    return value.status;
+  };
+
   const handleResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!open) return;
     event.preventDefault();
-
     const startY = event.clientY;
     const startHeight = height;
     const previousCursor = document.body.style.cursor;
     const previousUserSelect = document.body.style.userSelect;
-
     setResizing(true);
     document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
@@ -114,7 +134,6 @@ const RunResultPanel = ({
     const resize = (moveEvent: PointerEvent) => {
       setHeight(clampHeight(startHeight + startY - moveEvent.clientY));
     };
-
     const finish = (upEvent: PointerEvent) => {
       const nextHeight = clampHeight(startHeight + startY - upEvent.clientY);
       setHeight(nextHeight);
@@ -126,18 +145,13 @@ const RunResultPanel = ({
       window.removeEventListener('pointerup', finish);
       window.removeEventListener('pointercancel', finish);
     };
-
     window.addEventListener('pointermove', resize);
     window.addEventListener('pointerup', finish);
     window.addEventListener('pointercancel', finish);
   };
 
   const Result = definition.RunResult;
-  const executionLabel = result?.executionId
-    ? `Execution #${result.executionId}`
-    : undefined;
-  // Existing editor result renderers only distinguish RUNNING vs terminal states.
-  // Keep PENDING visible in the control-plane header while rendering the body as in-progress.
+  const executionLabel = result?.executionId ? `Execution #${result.executionId}` : undefined;
   const renderedResult = result?.status === 'PENDING'
     ? { ...result, status: 'RUNNING' as const }
     : result;
@@ -154,7 +168,7 @@ const RunResultPanel = ({
         <>
           <div
             role="separator"
-            aria-label="调整底部面板高度"
+            aria-label={intl.formatMessage({ id: 'pages.dataDevelopment.result.resize' })}
             aria-orientation="horizontal"
             onPointerDown={handleResizeStart}
             className="group absolute inset-x-0 top-0 z-40 h-3 -translate-y-1/2 cursor-row-resize touch-none"
@@ -171,7 +185,7 @@ const RunResultPanel = ({
                   onClick={() => onViewChange('result')}
                 >
                   <Table2 size={13} strokeWidth={1.8} />
-                  结果
+                  {intl.formatMessage({ id: 'pages.dataDevelopment.result.result' })}
                 </button>
                 {lineageAvailable ? (
                   <button
@@ -180,12 +194,15 @@ const RunResultPanel = ({
                     onClick={() => onViewChange('lineage')}
                   >
                     <GitBranch size={13} strokeWidth={1.8} />
-                    血缘
+                    {intl.formatMessage({ id: 'pages.dataDevelopment.result.lineage' })}
                   </button>
                 ) : null}
                 <span className="mx-1 h-4 w-px bg-[#e5e7eb]" />
                 <span className="max-w-[240px] truncate text-[11px] text-[#98a2b3]">
-                  当前节点：{node.name}
+                  {intl.formatMessage(
+                    { id: 'pages.dataDevelopment.result.currentNode' },
+                    { name: node.name },
+                  )}
                 </span>
                 {actualView === 'result' && executionLabel ? (
                   <span className="shrink-0 font-mono text-[10px] text-[#98a2b3]">
@@ -204,45 +221,27 @@ const RunResultPanel = ({
                   </span>
                 ) : actualView === 'lineage' ? (
                   <span className="shrink-0 text-[11px] text-[#667085]">
-                    当前 SQL · 预览血缘
+                    {intl.formatMessage({ id: 'pages.dataDevelopment.result.sqlLineage' })}
                   </span>
                 ) : null}
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 {canExecute && actualView === 'result' && result?.executionId && onCancel ? (
-                  <button
-                    type="button"
-                    disabled={actionLoading}
-                    className={actionClassName}
-                    onClick={onCancel}
-                  >
-                    {actionLoading ? (
-                      <LoaderCircle size={12} className="animate-spin" />
-                    ) : (
-                      <Square size={11} strokeWidth={1.8} />
-                    )}
-                    停止
+                  <button type="button" disabled={actionLoading} className={actionClassName} onClick={onCancel}>
+                    {actionLoading ? <LoaderCircle size={12} className="animate-spin" /> : <Square size={11} strokeWidth={1.8} />}
+                    {intl.formatMessage({ id: 'pages.dataDevelopment.result.stop' })}
                   </button>
                 ) : null}
                 {canExecute && actualView === 'result' && onRetry ? (
-                  <button
-                    type="button"
-                    disabled={actionLoading}
-                    className={actionClassName}
-                    onClick={onRetry}
-                  >
-                    {actionLoading ? (
-                      <LoaderCircle size={12} className="animate-spin" />
-                    ) : (
-                      <RotateCcw size={12} strokeWidth={1.8} />
-                    )}
-                    重试
+                  <button type="button" disabled={actionLoading} className={actionClassName} onClick={onRetry}>
+                    {actionLoading ? <LoaderCircle size={12} className="animate-spin" /> : <RotateCcw size={12} strokeWidth={1.8} />}
+                    {intl.formatMessage({ id: 'pages.dataDevelopment.result.retry' })}
                   </button>
                 ) : null}
                 <button
                   type="button"
-                  title="关闭"
-                  aria-label="关闭底部面板"
+                  title={intl.formatMessage({ id: 'pages.dataDevelopment.tabs.close' })}
+                  aria-label={intl.formatMessage({ id: 'pages.dataDevelopment.result.close' })}
                   onClick={onClose}
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] text-[#667085] transition-colors hover:bg-[#f5f5f6] hover:text-[#344054]"
                 >
@@ -260,19 +259,15 @@ const RunResultPanel = ({
                   onRefresh={onRefreshLineage}
                 />
               ) : Result ? (
-                <Result
-                  node={node}
-                  directory={directory}
-                  result={renderedResult}
-                />
+                <Result node={node} directory={directory} result={renderedResult} />
               ) : (
                 <div className="flex h-full items-center justify-center text-center">
                   <div>
                     <div className="text-[13px] font-medium text-[#475467]">
-                      运行结果区域
+                      {intl.formatMessage({ id: 'pages.dataDevelopment.result.area' })}
                     </div>
                     <div className="mt-1 text-[11px] text-[#98a2b3]">
-                      当前节点类型暂未接入执行结果渲染
+                      {intl.formatMessage({ id: 'pages.dataDevelopment.result.unsupported' })}
                     </div>
                   </div>
                 </div>
