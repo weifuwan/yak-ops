@@ -1,6 +1,9 @@
 import { useSecurityProject } from '@/contexts/SecurityProjectContext';
-import { listOfflineSyncTasks, type OfflineJobDefinitionVO } from '@/services/batch-link-up';
-import { history } from '@umijs/max';
+import {
+  listOfflineSyncTasks,
+  type OfflineJobDefinitionVO,
+} from '@/services/batch-link-up';
+import { history, useIntl } from '@umijs/max';
 import { message } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -23,6 +26,10 @@ const currentLocationSearch = () =>
   typeof window === 'undefined' ? '' : window.location.search;
 
 export const useOfflineSyncTasks = () => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+
   const { currentProject } = useSecurityProject();
   const currentProjectId = currentProject?.id;
   const requestSequenceRef = useRef(0);
@@ -90,7 +97,11 @@ export const useOfflineSyncTasks = () => {
         requestProjectId === activeProjectIdRef.current
       ) {
         message.error(
-          error instanceof Error ? error.message : '查询离线同步任务失败',
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({
+                id: 'pages.batchLinkUp.message.queryFailed',
+              }),
         );
       }
     } finally {
@@ -101,7 +112,13 @@ export const useOfflineSyncTasks = () => {
         setLoading(false);
       }
     }
-  }, [currentProjectId, pagination.current, pagination.pageSize, refreshVersion, search]);
+  }, [
+    currentProjectId,
+    pagination.current,
+    pagination.pageSize,
+    refreshVersion,
+    search,
+  ]);
 
   useEffect(() => {
     if (previousProjectIdRef.current === currentProjectId) return;
@@ -195,9 +212,17 @@ export const useOfflineSyncTasks = () => {
   const copyTaskId = useCallback(async (value: string | number) => {
     try {
       await copyTextToClipboard(value);
-      message.success('任务定义 ID 已复制');
+      message.success(
+        intlRef.current.formatMessage({
+          id: 'pages.batchLinkUp.message.copyTaskIdSuccess',
+        }),
+      );
     } catch {
-      message.error('复制失败，请手动复制');
+      message.error(
+        intlRef.current.formatMessage({
+          id: 'pages.batchLinkUp.message.copyFailed',
+        }),
+      );
     }
   }, []);
 
