@@ -57,6 +57,8 @@ const ActionColumn = ({ record, cbk, goDetail }: ActionColumnProps) => {
   const canRun = isOnline && !isActive;
   const canEdit = !isOnline && !isActive;
   const canDelete = !isOnline && !isActive;
+  const t = (id: string, values?: Record<string, string | number>) =>
+    intl.formatMessage({ id }, values);
 
   const stopPropagation = (event: ReactMouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -64,7 +66,7 @@ const ActionColumn = ({ record, cbk, goDetail }: ActionColumnProps) => {
 
   const openExecutionDetail = () => {
     if (record.id === undefined || record.id === null) {
-      message.error('任务定义 ID 不存在');
+      message.error(t('pages.batchLinkUp.action.definitionIdMissing'));
       return;
     }
 
@@ -83,22 +85,30 @@ const ActionColumn = ({ record, cbk, goDetail }: ActionColumnProps) => {
 
   const handleRun = async () => {
     if (!canRun) {
-      message.warning(isOnline ? '任务正在执行中' : '请先上线任务，再执行运行操作');
+      message.warning(
+        t(
+          isOnline
+            ? 'pages.batchLinkUp.action.running'
+            : 'pages.batchLinkUp.action.onlineBeforeRun',
+        ),
+      );
       return;
     }
     if (record.id === undefined || record.id === null) {
-      message.error('任务定义 ID 不存在');
+      message.error(t('pages.batchLinkUp.action.definitionIdMissing'));
       return;
     }
 
     try {
       setRunLoading(true);
       await executeOfflineSyncTask(record.id);
-      message.success('任务已提交运行');
+      message.success(t('pages.batchLinkUp.action.runSubmitted'));
       setRunOpen(false);
       void cbk();
     } catch (error) {
-      message.error(errorMessage(error, '运行失败'));
+      message.error(
+        errorMessage(error, t('pages.batchLinkUp.action.runFailed')),
+      );
     } finally {
       setRunLoading(false);
     }
@@ -106,86 +116,98 @@ const ActionColumn = ({ record, cbk, goDetail }: ActionColumnProps) => {
 
   const handleStop = async () => {
     if (record.instanceId === undefined || record.instanceId === null) {
-      message.error('任务实例 ID 不存在');
+      message.error(t('pages.batchLinkUp.action.instanceIdMissing'));
       return;
     }
 
     try {
       await stopOfflineSyncExecution(record.instanceId);
-      message.success('停止请求已提交');
+      message.success(t('pages.batchLinkUp.action.stopSubmitted'));
       void cbk();
     } catch (error) {
-      message.error(errorMessage(error, '停止失败'));
+      message.error(
+        errorMessage(error, t('pages.batchLinkUp.action.stopFailed')),
+      );
     }
   };
 
   const handleOnline = async () => {
     if (record.id === undefined || record.id === null) {
-      message.error('任务定义 ID 不存在');
+      message.error(t('pages.batchLinkUp.action.definitionIdMissing'));
       return;
     }
 
     try {
       await onlineOfflineSyncTask(record.id);
-      message.success('上线成功');
+      message.success(t('pages.batchLinkUp.action.onlineSuccess'));
       void cbk();
     } catch (error) {
-      message.error(errorMessage(error, '上线失败'));
+      message.error(
+        errorMessage(error, t('pages.batchLinkUp.action.onlineFailed')),
+      );
     }
   };
 
   const handleOffline = async () => {
     if (isActive) {
-      message.warning('任务正在执行中，请先停止任务后再下线');
+      message.warning(t('pages.batchLinkUp.action.stopBeforeOffline'));
       return;
     }
     if (record.id === undefined || record.id === null) {
-      message.error('任务定义 ID 不存在');
+      message.error(t('pages.batchLinkUp.action.definitionIdMissing'));
       return;
     }
 
     try {
       await offlineOfflineSyncTask(record.id);
-      message.success('下线成功');
+      message.success(t('pages.batchLinkUp.action.offlineSuccess'));
       void cbk();
     } catch (error) {
-      message.error(errorMessage(error, '下线失败'));
+      message.error(
+        errorMessage(error, t('pages.batchLinkUp.action.offlineFailed')),
+      );
     }
   };
 
   const showOnlineConfirm = () => {
     confirm({
-      title: '任务上线',
+      title: t('pages.batchLinkUp.action.onlineTitle'),
       centered: true,
-      content: '上线后任务可以被手动运行或调度触发，确认上线吗？',
-      okText: '确认',
-      cancelText: '取消',
+      content: t('pages.batchLinkUp.action.onlineConfirm'),
+      okText: t('pages.batchLinkUp.action.confirm'),
+      cancelText: t('pages.batchLinkUp.action.cancel'),
       onOk: handleOnline,
     });
   };
 
   const showOfflineConfirm = () => {
     if (isActive) {
-      message.warning('任务正在执行中，请先停止任务后再下线');
+      message.warning(t('pages.batchLinkUp.action.stopBeforeOffline'));
       return;
     }
     confirm({
-      title: '任务下线',
+      title: t('pages.batchLinkUp.action.offlineTitle'),
       centered: true,
-      content: '下线后任务将不会再被调度触发，确认下线吗？',
-      okText: '确认',
-      cancelText: '取消',
+      content: t('pages.batchLinkUp.action.offlineConfirm'),
+      okText: t('pages.batchLinkUp.action.confirm'),
+      cancelText: t('pages.batchLinkUp.action.cancel'),
       onOk: handleOffline,
     });
   };
 
   const handleEdit = () => {
     if (!canEdit) {
-      message.warning(isOnline ? '任务已上线，请先下线后再编辑' : '任务正在执行中');
+      message.warning(
+        t(
+          isOnline
+            ? 'pages.batchLinkUp.action.offlineBeforeEdit'
+            : 'pages.batchLinkUp.action.running',
+        ),
+      );
       return;
     }
     if (record.id === undefined || record.id === null) {
-      message.error('任务定义 ID 不存在');
+      message.error(t('pages.batchLinkUp.action.definitionIdMissing'));
       return;
     }
     goDetail(record.id, record);
@@ -193,48 +215,71 @@ const ActionColumn = ({ record, cbk, goDetail }: ActionColumnProps) => {
 
   const handleDeleteTask = () => {
     if (!canDelete) {
-      message.warning(isOnline ? '任务已上线，请先下线后再删除' : '任务正在执行中');
+      message.warning(
+        t(
+          isOnline
+            ? 'pages.batchLinkUp.action.offlineBeforeDelete'
+            : 'pages.batchLinkUp.action.running',
+        ),
+      );
       return;
     }
     if (record.id === undefined || record.id === null) {
-      message.error('任务定义 ID 不存在');
+      message.error(t('pages.batchLinkUp.action.definitionIdMissing'));
       return;
     }
 
     confirm({
-      title: '删除任务',
+      title: t('pages.batchLinkUp.action.deleteTitle'),
       centered: true,
-      content: `确认删除任务 ${record.jobName || '-'} 吗？删除后无法恢复。`,
-      okText: '删除',
-      cancelText: '取消',
+      content: t('pages.batchLinkUp.action.deleteConfirm', {
+        name: record.jobName || '-',
+      }),
+      okText: t('pages.batchLinkUp.action.delete'),
+      cancelText: t('pages.batchLinkUp.action.cancel'),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
           await deleteOfflineSyncTask(record.id as BatchLinkUpId);
-          message.success('删除成功');
+          message.success(t('pages.batchLinkUp.action.deleteSuccess'));
           void cbk();
         } catch (error) {
-          message.error(errorMessage(error, '删除失败'));
+          message.error(
+            errorMessage(error, t('pages.batchLinkUp.action.deleteFailed')),
+          );
         }
       },
     });
   };
 
   const menuItems: MenuProps['items'] = [
-    { key: 'view', icon: <EyeOutlined />, label: '查看详情' },
-    { key: 'edit', icon: <EditOutlined />, label: '编辑配置', disabled: !canEdit },
+    {
+      key: 'view',
+      icon: <EyeOutlined />,
+      label: t('pages.batchLinkUp.action.viewDetail'),
+    },
+    {
+      key: 'edit',
+      icon: <EditOutlined />,
+      label: t('pages.batchLinkUp.action.editConfig'),
+      disabled: !canEdit,
+    },
     { type: 'divider' },
     {
       key: isOnline ? 'offline' : 'online',
       icon: isOnline ? <CloudDownloadOutlined /> : <CloudUploadOutlined />,
-      label: isOnline ? '下线任务' : '上线任务',
+      label: t(
+        isOnline
+          ? 'pages.batchLinkUp.action.offlineTask'
+          : 'pages.batchLinkUp.action.onlineTask',
+      ),
       disabled: isActive,
     },
     { type: 'divider' },
     {
       key: 'delete',
       icon: <DeleteOutlined />,
-      label: '删除任务',
+      label: t('pages.batchLinkUp.action.deleteTitle'),
       danger: true,
       disabled: !canDelete,
     },
@@ -253,16 +298,10 @@ const ActionColumn = ({ record, cbk, goDetail }: ActionColumnProps) => {
     <div className="flex items-center gap-1 whitespace-nowrap">
       {isActive ? (
         <Popconfirm
-          title="停止任务"
-          description="确认停止当前任务吗？"
-          okText={intl.formatMessage({
-            id: 'pages.common.yes',
-            defaultMessage: '确认',
-          })}
-          cancelText={intl.formatMessage({
-            id: 'pages.common.no',
-            defaultMessage: '取消',
-          })}
+          title={t('pages.batchLinkUp.action.stopTitle')}
+          description={t('pages.batchLinkUp.action.stopConfirm')}
+          okText={t('pages.batchLinkUp.action.confirm')}
+          cancelText={t('pages.batchLinkUp.action.cancel')}
           onConfirm={handleStop}
         >
           <YakButton
@@ -273,22 +312,26 @@ const ActionColumn = ({ record, cbk, goDetail }: ActionColumnProps) => {
             className="!h-7 !rounded-md !px-2.5 !text-xs !text-[#667085]"
             onClick={stopPropagation}
           >
-            停止
+            {t('pages.batchLinkUp.action.stop')}
           </YakButton>
         </Popconfirm>
       ) : (
-        <Tooltip title={canRun ? undefined : '请先上线任务'}>
+        <Tooltip
+          title={canRun ? undefined : t('pages.batchLinkUp.action.onlineFirst')}
+        >
           <Popconfirm
-            title="运行任务"
-            description="确认运行当前任务吗？"
+            title={t('pages.batchLinkUp.action.runTitle')}
+            description={t('pages.batchLinkUp.action.runConfirm')}
             open={canRun && runOpen}
-            okText="确认"
-            cancelText="取消"
+            okText={t('pages.batchLinkUp.action.confirm')}
+            cancelText={t('pages.batchLinkUp.action.cancel')}
             okButtonProps={{ loading: runLoading }}
             onConfirm={handleRun}
             onOpenChange={(open) => {
               if (!canRun) {
-                if (open) message.warning('请先上线任务，再执行运行操作');
+                if (open) {
+                  message.warning(t('pages.batchLinkUp.action.onlineBeforeRun'));
+                }
                 return;
               }
               if (!runLoading) setRunOpen(open);
@@ -306,7 +349,7 @@ const ActionColumn = ({ record, cbk, goDetail }: ActionColumnProps) => {
               ].join(' ')}
               onClick={stopPropagation}
             >
-              运行
+              {t('pages.batchLinkUp.action.run')}
             </YakButton>
           </Popconfirm>
         </Tooltip>
@@ -323,7 +366,7 @@ const ActionColumn = ({ record, cbk, goDetail }: ActionColumnProps) => {
           className="!h-7 !rounded-md !px-2 !text-xs !text-[#667085]"
           onClick={stopPropagation}
         >
-          更多
+          {t('pages.batchLinkUp.action.more')}
           <DownOutlined className="text-[9px]" />
         </YakButton>
       </Dropdown>
