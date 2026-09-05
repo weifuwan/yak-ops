@@ -4,6 +4,7 @@ import type {
   AnalysisSelection,
   Scalar,
 } from '@/components/analysis/model';
+import { getIntl } from '@umijs/max';
 import { message } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_DASHBOARD } from './defaults';
@@ -44,6 +45,11 @@ import { fetchDashboardDatasets } from './service';
 
 const HISTORY_LIMIT = 50;
 const HISTORY_MERGE_WINDOW = 500;
+
+const createDefaultDashboard = (): DashboardDocument => ({
+  ...cloneDashboard(DEFAULT_DASHBOARD),
+  name: getIntl().formatMessage({ id: 'pages.dashboard.editor.defaultName' }),
+});
 
 const assetSpec = (analysis: AnalysisAsset): DashboardInlineAnalysisSpec => ({
   type: analysis.type,
@@ -104,7 +110,7 @@ export function useDashboardDesigner(
   initialPreview = false,
   publishedView = false,
 ) {
-  const initialDashboard = useMemo(() => cloneDashboard(DEFAULT_DASHBOARD), []);
+  const initialDashboard = useMemo(createDefaultDashboard, []);
   const [dashboard, setDashboardState] = useState<DashboardDocument>(initialDashboard);
   const dashboardRef = useRef<DashboardDocument>(initialDashboard);
   const savedFingerprintRef = useRef(dashboardFingerprint(initialDashboard));
@@ -250,7 +256,11 @@ export function useDashboardDesigner(
       }
       applyServerDetail(await fetchDashboard(targetDashboardId));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '加载 Dashboard 失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : getIntl().formatMessage({ id: 'pages.dashboard.editor.designer.loadFailed' }),
+      );
     }
   }, [applyServerDetail, publishedView, resetDashboardState]);
 
@@ -265,7 +275,7 @@ export function useDashboardDesigner(
       void openDashboard(dashboardId);
       return;
     }
-    resetDashboardState(cloneDashboard(DEFAULT_DASHBOARD));
+    resetDashboardState(createDefaultDashboard());
     setDashboardVersions([]);
     setRuntimeFilterValues({});
   }, [dashboardId, initialPreview, openDashboard, publishedView, resetDashboardState]);
@@ -510,7 +520,10 @@ export function useDashboardDesigner(
   );
 
   const addWidget = (type: ChartType) => {
-    if (!activeDataset) return void message.info('请先发布一个 ONLINE Dataset');
+    if (!activeDataset) {
+      message.info(getIntl().formatMessage({ id: 'pages.dashboard.editor.designer.datasetRequired' }));
+      return;
+    }
     const next = createWidget(type, activeDataset, maxY());
     commitDashboard(
       (current) => ({ ...current, widgets: [...current.widgets, next] }),
@@ -523,7 +536,10 @@ export function useDashboardDesigner(
     const widget = dashboardRef.current.widgets.find((item) => item.id === id);
     if (!widget?.analysisId) return;
     const analysis = analyses.find((item) => item.id === widget.analysisId);
-    if (!analysis) return void message.warning('引用的 Analysis 已不可用，无法生成独立副本');
+    if (!analysis) {
+      message.warning(getIntl().formatMessage({ id: 'pages.dashboard.editor.designer.analysisUnavailable' }));
+      return;
+    }
     commitDashboard((current) => ({
       ...current,
       widgets: current.widgets.map((item) => item.id === id ? {
@@ -533,7 +549,7 @@ export function useDashboardDesigner(
         inlineAnalysis: assetSpec(analysis),
       } : item),
     }), `widget:${id}:detach`);
-    message.success('已解除 Analysis 引用，当前组件已复制为 Dashboard 本地图表');
+    message.success(getIntl().formatMessage({ id: 'pages.dashboard.editor.designer.analysisDetached' }));
   };
 
   const duplicateWidget = (id: string) => {
@@ -574,7 +590,10 @@ export function useDashboardDesigner(
 
   const changeWidgetDataset = (id: string, datasetId: string) => {
     const widget = dashboardRef.current.widgets.find((item) => item.id === id);
-    if (widget?.analysisId) return void message.info('该组件引用历史共享图表，请先复制为可编辑图表');
+    if (widget?.analysisId) {
+      message.info(getIntl().formatMessage({ id: 'pages.dashboard.editor.designer.sharedChartReadonly' }));
+      return;
+    }
     if (!widget?.inlineAnalysis) return;
     const dataset = findDataset(datasets, datasetId);
     if (!dataset) return;
@@ -596,7 +615,7 @@ export function useDashboardDesigner(
   const persistCurrentDraft = async (): Promise<DashboardServerDetail | undefined> => {
     const currentDashboard = dashboardRef.current;
     if (!currentDashboard.name.trim()) {
-      message.warning('请输入仪表盘名称');
+      message.warning(getIntl().formatMessage({ id: 'pages.dashboard.editor.designer.nameRequired' }));
       return undefined;
     }
     return isPersistedDashboard(currentDashboard.id)
@@ -612,10 +631,17 @@ export function useDashboardDesigner(
       const detail = await persistCurrentDraft();
       if (!detail) return undefined;
       applyServerDetail(detail);
-      message.success(`草稿已保存为 V${detail.dashboard.currentVersionNo}`);
+      message.success(getIntl().formatMessage(
+        { id: 'pages.dashboard.editor.designer.draftSaved' },
+        { version: detail.dashboard.currentVersionNo },
+      ));
       return detail.dashboard.id;
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '保存 Dashboard 草稿失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : getIntl().formatMessage({ id: 'pages.dashboard.editor.designer.saveFailed' }),
+      );
       return undefined;
     } finally {
       setDashboardSaving(false);
@@ -635,10 +661,17 @@ export function useDashboardDesigner(
       }
       const detail = await publishDashboard(dashboardIdToPublish);
       applyServerDetail(detail);
-      message.success(`仪表盘已发布 V${detail.dashboard.publishedVersionNo}`);
+      message.success(getIntl().formatMessage(
+        { id: 'pages.dashboard.editor.designer.published' },
+        { version: detail.dashboard.publishedVersionNo },
+      ));
       return detail.dashboard.id;
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '发布 Dashboard 失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : getIntl().formatMessage({ id: 'pages.dashboard.editor.designer.publishFailed' }),
+      );
       return undefined;
     } finally {
       setDashboardPublishing(false);
@@ -652,9 +685,16 @@ export function useDashboardDesigner(
     try {
       const detail = await restoreDashboardVersion(currentDashboard.id, versionNo);
       applyServerDetail(detail);
-      message.success(`V${versionNo} 已恢复为草稿 V${detail.dashboard.currentVersionNo}`);
+      message.success(getIntl().formatMessage(
+        { id: 'pages.dashboard.editor.designer.restored' },
+        { version: versionNo, draftVersion: detail.dashboard.currentVersionNo },
+      ));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '恢复 DashboardVersion 失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : getIntl().formatMessage({ id: 'pages.dashboard.editor.designer.restoreFailed' }),
+      );
     } finally {
       setDashboardSaving(false);
     }
