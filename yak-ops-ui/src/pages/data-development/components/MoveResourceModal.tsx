@@ -1,4 +1,5 @@
 import { YakButton } from '@/components/ui';
+import { useIntl } from '@umijs/max';
 import { Modal, Tree } from 'antd';
 import { FolderInput } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -14,7 +15,6 @@ interface MoveResourceModalProps {
   resourceLabel: string;
   resourceName: string;
   directories: DevelopmentDirectory[];
-  /** The resource being moved – its own directory (for nodes) or id (for directories) must be excluded. */
   resourceId: DevelopmentId;
   resourceType: 'node' | 'directory';
   loading: boolean;
@@ -22,7 +22,6 @@ interface MoveResourceModalProps {
   onConfirm: (targetDirectoryId: DevelopmentId | null) => void;
 }
 
-/** Collects all descendant directory ids of the given directory. */
 const collectDescendantIds = (
   directories: DevelopmentDirectory[],
   rootId: DevelopmentId,
@@ -51,17 +50,17 @@ const collectDescendantIds = (
 
 const buildDirectoryTreeData = (
   directories: DevelopmentDirectory[],
+  locale: string,
   excludeId?: DevelopmentId,
 ): DevelopmentTreeNode[] => {
   const excludedIds = excludeId ? collectDescendantIds(directories, excludeId) : undefined;
-  const normalizeParentId = (id: DevelopmentId | null | undefined) =>
-    id || undefined;
+  const normalizeParentId = (id: DevelopmentId | null | undefined) => id || undefined;
 
   const childrenOf = (parentId?: DevelopmentId | null): DevelopmentTreeNode[] =>
     directories
       .filter((d) => normalizeParentId(d.parentId) === normalizeParentId(parentId))
       .filter((d) => !excludedIds || !excludedIds.has(d.id))
-      .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+      .sort((a, b) => a.name.localeCompare(b.name, locale))
       .map((d) => ({
         key: `directory:${d.id}`,
         title: d.name,
@@ -85,15 +84,17 @@ const MoveResourceModal = ({
   onCancel,
   onConfirm,
 }: MoveResourceModalProps) => {
+  const intl = useIntl();
   const [selectedKey, setSelectedKey] = useState<DevelopmentId | null>(null);
 
   const treeData = useMemo(
     () =>
       buildDirectoryTreeData(
         directories,
+        intl.locale,
         resourceType === 'directory' ? resourceId : undefined,
       ),
-    [directories, resourceId, resourceType],
+    [directories, intl.locale, resourceId, resourceType],
   );
 
   const handleSelect = (keys: React.Key[]) => {
@@ -109,20 +110,19 @@ const MoveResourceModal = ({
     }
   };
 
-  const handleConfirm = () => {
-    onConfirm(selectedKey);
-  };
-
-  const handleReset = () => {
-    setSelectedKey(null);
-  };
+  const handleReset = () => setSelectedKey(null);
 
   return (
     <Modal
       title={
         <div className="flex items-center gap-2">
           <FolderInput size={16} className="text-[#667085]" />
-          <span>移动{resourceLabel}</span>
+          <span>
+            {intl.formatMessage(
+              { id: 'pages.dataDevelopment.modal.move.title' },
+              { resource: resourceLabel },
+            )}
+          </span>
         </div>
       }
       open={open}
@@ -141,20 +141,19 @@ const MoveResourceModal = ({
               onCancel();
             }}
           >
-            取消
+            {intl.formatMessage({ id: 'pages.dataDevelopment.common.cancel' })}
           </YakButton>
-          <YakButton
-            type="primary"
-            loading={loading}
-            onClick={handleConfirm}
-          >
-            移动到此处
+          <YakButton type="primary" loading={loading} onClick={() => onConfirm(selectedKey)}>
+            {intl.formatMessage({ id: 'pages.dataDevelopment.modal.move.here' })}
           </YakButton>
         </div>
       }
     >
       <div className="mb-3 text-[13px] text-[#344054]">
-        将 <span className="font-medium">{resourceName}</span> 移动到：
+        {intl.formatMessage(
+          { id: 'pages.dataDevelopment.modal.move.description' },
+          { name: resourceName },
+        )}
       </div>
 
       <div className="mb-3">
@@ -168,7 +167,7 @@ const MoveResourceModal = ({
           onClick={() => setSelectedKey(null)}
         >
           <span className="mr-1.5 text-[#98a2b3]">/</span>
-          根目录
+          {intl.formatMessage({ id: 'pages.dataDevelopment.common.root' })}
         </YakButton>
       </div>
 
@@ -185,40 +184,25 @@ const MoveResourceModal = ({
         </div>
       ) : (
         <div className="py-6 text-center text-[12px] text-[#98a2b3]">
-          暂无可选目录
+          {intl.formatMessage({ id: 'pages.dataDevelopment.modal.move.empty' })}
         </div>
       )}
 
       <style>{`
         .move-directory-tree.ant-tree { color: #344054; }
         .move-directory-tree .ant-tree-treenode {
-          box-sizing: border-box;
-          width: 100%;
-          min-height: 30px;
-          padding: 0 6px !important;
-          align-items: center;
-          border-radius: 0;
-          transition: background-color 0.15s ease;
+          box-sizing: border-box; width: 100%; min-height: 30px; padding: 0 6px !important;
+          align-items: center; border-radius: 0; transition: background-color 0.15s ease;
         }
         .move-directory-tree .ant-tree-treenode:hover { background: #f5f5f5; }
         .move-directory-tree .ant-tree-treenode:has(.ant-tree-node-selected) { background: #eff8ff; }
         .move-directory-tree .ant-tree-node-content-wrapper {
-          display: flex;
-          min-width: 0;
-          height: 30px;
-          flex: 1;
-          align-items: center;
-          padding: 0 !important;
-          border-radius: 0 !important;
-          background: transparent !important;
+          display: flex; min-width: 0; height: 30px; flex: 1; align-items: center;
+          padding: 0 !important; border-radius: 0 !important; background: transparent !important;
         }
         .move-directory-tree .ant-tree-title { display: flex; min-width: 0; flex: 1; }
         .move-directory-tree .ant-tree-switcher {
-          width: 18px;
-          min-width: 18px;
-          height: 30px;
-          line-height: 30px;
-          color: #98a2b3;
+          width: 18px; min-width: 18px; height: 30px; line-height: 30px; color: #98a2b3;
         }
       `}</style>
     </Modal>
