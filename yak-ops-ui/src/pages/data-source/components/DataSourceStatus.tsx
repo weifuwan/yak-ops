@@ -74,8 +74,9 @@ const DataSourceStatus = ({ status }: DataSourceStatusProps) => {
           borderRadius: 999,
           paddingInline: 10,
           fontSize: 12,
-          width: '80px',
+          minWidth: '80px',
           lineHeight: '20px',
+          whiteSpace: 'nowrap',
         }}
       >
         {currentConfig.text}
