@@ -149,6 +149,8 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>io.yak.ops.boot.YakOpsApplication</mainClass>
+                    <!-- Use PropertiesLauncher so the distribution can extend its runtime classpath with jdbc-drivers/. -->
+                    <layout>ZIP</layout>
                 </configuration>
             </plugin>
         </plugins>
