@@ -2,7 +2,7 @@ import type { WorkflowNodeInstance } from '@/services/workflow';
 import {
   formatRuntimeDuration,
   isWorkflowNodeActive,
-  runtimeStatusLabel,
+  runtimeStatusMessageId,
   workflowNodeRuntimeState,
 } from './runtime';
 
@@ -69,10 +69,12 @@ describe('workflow runtime canvas mapping', () => {
     expect(isWorkflowNodeActive('UPSTREAM_FAILED')).toBe(false);
   });
 
-  it('provides stable labels for streamed statuses', () => {
-    expect(runtimeStatusLabel('RUNNING')).toBe('运行中');
-    expect(runtimeStatusLabel('SUCCESS')).toBe('成功');
-    expect(runtimeStatusLabel('FAILED')).toBe('失败');
-    expect(runtimeStatusLabel('UPSTREAM_FAILED')).toBe('上游失败');
+  it('maps streamed statuses to stable locale message ids', () => {
+    expect(runtimeStatusMessageId('RUNNING')).toBe('pages.workflow.editor.runtime.running');
+    expect(runtimeStatusMessageId('SUCCESS')).toBe('pages.workflow.editor.runtime.success');
+    expect(runtimeStatusMessageId('FAILED')).toBe('pages.workflow.editor.runtime.failed');
+    expect(runtimeStatusMessageId('UPSTREAM_FAILED')).toBe(
+      'pages.workflow.editor.runtime.upstreamFailed',
+    );
   });
 });
