@@ -4,6 +4,7 @@ import {
   canQueryAnalysis,
 } from '@/components/analysis/AnalysisPreview';
 import { analysisQueryCacheKey } from '@/components/analysis/query-runtime';
+import { useIntl } from '@umijs/max';
 import { Empty } from 'antd';
 import { BarChart3 } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
@@ -53,6 +54,7 @@ export function DashboardChartSheetWorkspace({
   detachAnalysis: () => void;
   onDone: () => void;
 }) {
+  const intl = useIntl();
   const analysis = widget.analysisId
     ? analyses.find((item) => item.id === widget.analysisId)
     : undefined;
@@ -61,9 +63,11 @@ export function DashboardChartSheetWorkspace({
     ? datasets.find((item) => item.id === spec.datasetId)
     : undefined;
   const title = widget.analysisId
-    ? analysis?.name ?? '历史图表'
-    : widget.title?.trim() || '未命名图表';
-  const chartTypeLabel = spec ? CHART_META[spec.type]?.label : undefined;
+    ? analysis?.name ?? intl.formatMessage({ id: 'pages.dashboard.editor.historicalChart' })
+    : widget.title?.trim() || intl.formatMessage({ id: 'pages.dashboard.editor.unnamedChart' });
+  const chartTypeLabel = spec
+    ? intl.formatMessage({ id: CHART_META[spec.type].labelId })
+    : undefined;
   const editable = !widget.analysisId && Boolean(widget.inlineAnalysis);
   const performanceQueryKey = useMemo(() => {
     if (!spec || !dataset || !canQueryAnalysis(spec)) return undefined;
@@ -138,7 +142,11 @@ export function DashboardChartSheetWorkspace({
                   <div className="flex min-h-[500px] items-center justify-center">
                     <Empty
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      description={spec ? '图表数据来源已失效' : '图表配置不可用'}
+                      description={intl.formatMessage({
+                        id: spec
+                          ? 'pages.dashboard.editor.chartWorkspace.dataUnavailable'
+                          : 'pages.dashboard.editor.chartWorkspace.configUnavailable',
+                      })}
                     />
                   </div>
                 )}
