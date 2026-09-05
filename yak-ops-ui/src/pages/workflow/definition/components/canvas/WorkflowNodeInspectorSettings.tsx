@@ -7,28 +7,14 @@ import {
   upgradeWorkflowNodeTaskRevision,
   type WorkflowDefinitionNode,
 } from '@/services/workflow/definitions';
-import { useParams } from '@umijs/max';
+import { useIntl, useParams } from '@umijs/max';
 import { Button, Input, InputNumber, Select, Slider, Switch, Tooltip, message } from 'antd';
 import { ChevronDown, CircleHelp, RefreshCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Node } from 'reactflow';
 import WorkflowNextStep from './WorkflowNextStep';
 import type { WorkflowCanvasTaskOption, WorkflowNodeData } from './types';
 import WorkflowNodeIcon from './node/icons/WorkflowNodeIcon';
-
-const NODE_FAILURE_OPTIONS = [
-  { value: 'FAIL_WORKFLOW', label: '无' },
-  { value: 'BLOCK_BRANCH', label: '停止当前分支' },
-  { value: 'IGNORE_FAILURE', label: '忽略并继续' },
-];
-
-const NODE_TRIGGER_OPTIONS = [
-  { value: 'ALL_SUCCESS', label: '所有前置成功' },
-  { value: 'ALL_DONE', label: '所有前置结束' },
-  { value: 'NONE_FAILED', label: '前置无失败' },
-  { value: 'ONE_SUCCESS', label: '任一前置成功' },
-  { value: 'ALWAYS', label: '始终执行' },
-];
 
 const MAX_RETRY_TIMES = 9;
 const MAX_RETRY_DELAY_SECONDS = 3600;
@@ -69,6 +55,9 @@ const WorkflowNodeInspectorSettings = ({
   onChange,
   onAppend,
 }: WorkflowNodeInspectorSettingsProps) => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
   const { id: workflowId = '' } = useParams<{ id: string }>();
   const [boundNode, setBoundNode] = useState<WorkflowDefinitionNode>();
   const [versionBusy, setVersionBusy] = useState(false);
@@ -81,6 +70,19 @@ const WorkflowNodeInspectorSettings = ({
     || (node.data.executionTimeoutSeconds || 0) > 0
     || (mappingText !== '{}' && mappingText !== '');
 
+  const failureOptions = [
+    { value: 'FAIL_WORKFLOW', label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.failure.none' }) },
+    { value: 'BLOCK_BRANCH', label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.failure.stopBranch' }) },
+    { value: 'IGNORE_FAILURE', label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.failure.ignore' }) },
+  ];
+  const triggerOptions = [
+    { value: 'ALL_SUCCESS', label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.trigger.allSuccess' }) },
+    { value: 'ALL_DONE', label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.trigger.allDone' }) },
+    { value: 'NONE_FAILED', label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.trigger.noneFailed' }) },
+    { value: 'ONE_SUCCESS', label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.trigger.oneSuccess' }) },
+    { value: 'ALWAYS', label: intl.formatMessage({ id: 'pages.workflow.editor.inspector.trigger.always' }) },
+  ];
+
   const refreshVersion = async (showMessage = false) => {
     if (!catalogBound || !workflowId) return;
     setVersionBusy(true);
@@ -89,12 +91,27 @@ const WorkflowNodeInspectorSettings = ({
       const current = definition.nodes.find((item) => item.id === node.id);
       setBoundNode(current);
       if (showMessage) {
-        if (!current?.taskRevisionNo) message.info('请先保存工作流草稿，再检查任务版本');
-        else if (current.taskRevisionUpdateAvailable) message.info(`发现新版本 v${current.latestTaskRevisionNo}`);
-        else message.success('当前已是最新任务版本');
+        if (!current?.taskRevisionNo) {
+          message.info(intlRef.current.formatMessage({ id: 'pages.workflow.editor.inspector.saveDraftFirst' }));
+        } else if (current.taskRevisionUpdateAvailable) {
+          message.info(
+            intlRef.current.formatMessage(
+              { id: 'pages.workflow.editor.inspector.newVersion' },
+              { version: current.latestTaskRevisionNo || 0 },
+            ),
+          );
+        } else {
+          message.success(intlRef.current.formatMessage({ id: 'pages.workflow.editor.inspector.latestTaskVersion' }));
+        }
       }
     } catch (error) {
-      if (showMessage) message.error(error instanceof Error ? error.message : '检查任务版本失败');
+      if (showMessage) {
+        message.error(
+          error instanceof Error
+            ? error.message
+            : intlRef.current.formatMessage({ id: 'pages.workflow.editor.inspector.checkVersionFailed' }),
+        );
+      }
     } finally {
       setVersionBusy(false);
     }
@@ -103,7 +120,6 @@ const WorkflowNodeInspectorSettings = ({
   useEffect(() => {
     setBoundNode(undefined);
     if (catalogBound) void refreshVersion(false);
-    // 节点切换时读取一次服务端固定版本；不会因为 Catalog 发布新版本而自动修改草稿。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogBound, node.id, workflowId]);
 
@@ -114,11 +130,20 @@ const WorkflowNodeInspectorSettings = ({
       const definition = await upgradeWorkflowNodeTaskRevision(workflowId, node.id);
       const current = definition.nodes.find((item) => item.id === node.id);
       setBoundNode(current);
-      message.success(current?.taskRevisionNo
-        ? `已固定到任务 v${current.taskRevisionNo}，重新发布工作流后生效`
-        : '任务版本已升级');
+      message.success(
+        current?.taskRevisionNo
+          ? intlRef.current.formatMessage(
+              { id: 'pages.workflow.editor.inspector.upgradedTo' },
+              { version: current.taskRevisionNo },
+            )
+          : intlRef.current.formatMessage({ id: 'pages.workflow.editor.inspector.upgraded' }),
+      );
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '升级任务版本失败');
+      message.error(
+        error instanceof Error
+          ? error.message
+          : intlRef.current.formatMessage({ id: 'pages.workflow.editor.inspector.upgradeFailed' }),
+      );
     } finally {
       setVersionBusy(false);
     }
@@ -144,10 +169,12 @@ const WorkflowNodeInspectorSettings = ({
           <section className="px-4 py-4">
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <SectionTitle>任务版本</SectionTitle>
-                <div className="text-[10px] text-[rgba(22,24,35,.42)]">工作流固定不可变 Revision，不会自动追随最新版本</div>
+                <SectionTitle>{intl.formatMessage({ id: 'pages.workflow.editor.inspector.taskVersion' })}</SectionTitle>
+                <div className="text-[10px] text-[rgba(22,24,35,.42)]">
+                  {intl.formatMessage({ id: 'pages.workflow.editor.inspector.revisionHint' })}
+                </div>
               </div>
-              <Tooltip title="检查最新版本">
+              <Tooltip title={intl.formatMessage({ id: 'pages.workflow.editor.inspector.checkLatest' })}>
                 <button
                   type="button"
                   disabled={versionBusy}
@@ -161,21 +188,33 @@ const WorkflowNodeInspectorSettings = ({
 
             <div className="rounded-lg border border-[#e4e7ec] bg-[#fafafa] px-3 py-2.5">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[#667085]">当前固定</span>
+                <span className="text-[#667085]">
+                  {intl.formatMessage({ id: 'pages.workflow.editor.inspector.pinned' })}
+                </span>
                 <span className="font-semibold text-[#344054]">
-                  {boundNode?.taskRevisionNo ? `v${boundNode.taskRevisionNo}` : '保存草稿后固定'}
+                  {boundNode?.taskRevisionNo
+                    ? `v${boundNode.taskRevisionNo}`
+                    : intl.formatMessage({ id: 'pages.workflow.editor.inspector.pinnedAfterSave' })}
                 </span>
               </div>
               <div className="mt-2 flex items-center justify-between text-[11px]">
-                <span className="text-[#667085]">资产最新</span>
+                <span className="text-[#667085]">
+                  {intl.formatMessage({ id: 'pages.workflow.editor.inspector.assetLatest' })}
+                </span>
                 <span className={boundNode?.taskRevisionUpdateAvailable ? 'font-semibold text-[#fe2c55]' : 'font-medium text-[#475467]'}>
                   {boundNode?.latestTaskRevisionNo ? `v${boundNode.latestTaskRevisionNo}` : '--'}
                 </span>
               </div>
               {boundNode?.taskAssetStatus ? (
                 <div className="mt-2 flex items-center justify-between text-[11px]">
-                  <span className="text-[#667085]">资产状态</span>
-                  <span className="font-medium text-[#475467]">{boundNode.taskAssetStatus === 'ONLINE' ? '已上线' : boundNode.taskAssetStatus}</span>
+                  <span className="text-[#667085]">
+                    {intl.formatMessage({ id: 'pages.workflow.editor.inspector.assetStatus' })}
+                  </span>
+                  <span className="font-medium text-[#475467]">
+                    {boundNode.taskAssetStatus === 'ONLINE'
+                      ? intl.formatMessage({ id: 'pages.workflow.editor.inspector.online' })
+                      : boundNode.taskAssetStatus}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -189,10 +228,15 @@ const WorkflowNodeInspectorSettings = ({
                 disabled={locked}
                 onClick={() => void handleUpgrade()}
               >
-                升级到 v{boundNode.latestTaskRevisionNo}
+                {intl.formatMessage(
+                  { id: 'pages.workflow.editor.inspector.upgradeTo' },
+                  { version: boundNode.latestTaskRevisionNo || 0 },
+                )}
               </Button>
             ) : boundNode?.taskRevisionNo ? (
-              <div className="mt-2 text-center text-[10px] text-[#98a2b3]">当前固定版本已是最新版本</div>
+              <div className="mt-2 text-center text-[10px] text-[#98a2b3]">
+                {intl.formatMessage({ id: 'pages.workflow.editor.inspector.latestPinned' })}
+              </div>
             ) : null}
           </section>
           <Divider />
@@ -202,8 +246,10 @@ const WorkflowNodeInspectorSettings = ({
       <section className="py-2">
         <div className="flex min-h-12 items-center justify-between px-4 py-2">
           <div className="flex items-center">
-            <div className="text-[12px] font-semibold text-[#344054]">失败时重试</div>
-            <HelpTip title="节点执行失败后自动再次尝试；开启后会在画布节点中实时显示重试次数。" />
+            <div className="text-[12px] font-semibold text-[#344054]">
+              {intl.formatMessage({ id: 'pages.workflow.editor.inspector.retryOnFailure' })}
+            </div>
+            <HelpTip title={intl.formatMessage({ id: 'pages.workflow.editor.inspector.retryHelp' })} />
           </div>
           <Switch size="small" disabled={locked} checked={retryEnabled} onChange={handleRetryEnabledChange} />
         </div>
@@ -211,19 +257,27 @@ const WorkflowNodeInspectorSettings = ({
         {retryEnabled ? (
           <div className="space-y-3 px-4 pb-4 pt-1">
             <div className="flex items-center gap-3">
-              <div className="w-[88px] shrink-0 text-[11px] font-medium text-[#667085]">重试次数</div>
+              <div className="w-[88px] shrink-0 text-[11px] font-medium text-[#667085]">
+                {intl.formatMessage({ id: 'pages.workflow.editor.inspector.retryCount' })}
+              </div>
               <Slider className="m-0 min-w-0 flex-1" min={1} max={MAX_RETRY_TIMES} tooltip={{ open: false }} disabled={locked} value={retryTimes} onChange={(value) => handleRetryTimesChange(value)} />
               <div className="flex w-[82px] shrink-0 items-center gap-1">
                 <InputNumber size="small" controls={false} disabled={locked} min={1} max={MAX_RETRY_TIMES} value={retryTimes} className="!w-[58px]" onChange={handleRetryTimesChange} />
-                <span className="text-[10px] text-[rgba(22,24,35,.42)]">次</span>
+                <span className="text-[10px] text-[rgba(22,24,35,.42)]">
+                  {intl.formatMessage({ id: 'pages.workflow.editor.common.times' })}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-[88px] shrink-0 text-[11px] font-medium text-[#667085]">重试间隔</div>
+              <div className="w-[88px] shrink-0 text-[11px] font-medium text-[#667085]">
+                {intl.formatMessage({ id: 'pages.workflow.editor.inspector.retryDelay' })}
+              </div>
               <Slider className="m-0 min-w-0 flex-1" min={0} max={MAX_RETRY_DELAY_SECONDS} tooltip={{ open: false }} disabled={locked} value={Math.min(node.data.retryDelaySeconds || 0, MAX_RETRY_DELAY_SECONDS)} onChange={(value) => onChange({ retryDelaySeconds: value })} />
               <div className="flex w-[82px] shrink-0 items-center gap-1">
                 <InputNumber size="small" controls={false} disabled={locked} min={0} max={MAX_RETRY_DELAY_SECONDS} value={node.data.retryDelaySeconds} className="!w-[58px]" onChange={(value) => onChange({ retryDelaySeconds: Number(value || 0) })} />
-                <span className="text-[10px] text-[rgba(22,24,35,.42)]">秒</span>
+                <span className="text-[10px] text-[rgba(22,24,35,.42)]">
+                  {intl.formatMessage({ id: 'pages.workflow.editor.common.seconds' })}
+                </span>
               </div>
             </div>
           </div>
@@ -234,10 +288,12 @@ const WorkflowNodeInspectorSettings = ({
 
       <section className="flex min-h-[64px] items-center justify-between gap-4 px-4 py-3">
         <div className="flex items-center">
-          <div className="text-[12px] font-semibold text-[#344054]">异常处理</div>
-          <HelpTip title="节点最终仍然失败时的处理方式。“无”表示按默认方式使工作流失败。" />
+          <div className="text-[12px] font-semibold text-[#344054]">
+            {intl.formatMessage({ id: 'pages.workflow.editor.inspector.exceptionHandling' })}
+          </div>
+          <HelpTip title={intl.formatMessage({ id: 'pages.workflow.editor.inspector.exceptionHelp' })} />
         </div>
-        <Select disabled={locked} size="small" className="w-[142px] shrink-0" value={node.data.failurePolicy} options={NODE_FAILURE_OPTIONS} onChange={(value) => onChange({ failurePolicy: value as WorkflowNodeFailurePolicy })} />
+        <Select disabled={locked} size="small" className="w-[142px] shrink-0" value={node.data.failurePolicy} options={failureOptions} onChange={(value) => onChange({ failurePolicy: value as WorkflowNodeFailurePolicy })} />
       </section>
 
       <Divider />
@@ -245,31 +301,57 @@ const WorkflowNodeInspectorSettings = ({
       <details className="group px-4 py-3" open={hasAdvancedConfig || undefined}>
         <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-0 py-1 text-[12px] font-semibold text-[#344054] [&::-webkit-details-marker]:hidden">
           <div className="flex items-center">
-            高级运行设置
-            {hasAdvancedConfig ? <span className="ml-2 rounded bg-[#fff1f3] px-1.5 py-0.5 text-[9px] font-medium text-[#d92d50]">已配置</span> : null}
+            {intl.formatMessage({ id: 'pages.workflow.editor.inspector.advanced' })}
+            {hasAdvancedConfig ? (
+              <span className="ml-2 rounded bg-[#fff1f3] px-1.5 py-0.5 text-[9px] font-medium text-[#d92d50]">
+                {intl.formatMessage({ id: 'pages.workflow.editor.inspector.configured' })}
+              </span>
+            ) : null}
           </div>
           <ChevronDown size={14} className="text-[#98a2b3] transition-transform group-open:rotate-180" />
         </summary>
         <div className="mt-3 space-y-4 rounded-lg bg-[#fafafa] p-3">
           <div>
-            <div className="mb-1.5 flex items-center text-[11px] font-medium text-[#667085]">触发规则<HelpTip title="多个前置节点汇聚时，决定当前节点何时满足调度条件。" /></div>
-            <Select disabled={locked} size="small" className="w-full" value={node.data.triggerRule} options={NODE_TRIGGER_OPTIONS} onChange={(value) => onChange({ triggerRule: value as WorkflowTriggerRule })} />
+            <div className="mb-1.5 flex items-center text-[11px] font-medium text-[#667085]">
+              {intl.formatMessage({ id: 'pages.workflow.editor.inspector.triggerRule' })}
+              <HelpTip title={intl.formatMessage({ id: 'pages.workflow.editor.inspector.triggerHelp' })} />
+            </div>
+            <Select disabled={locked} size="small" className="w-full" value={node.data.triggerRule} options={triggerOptions} onChange={(value) => onChange({ triggerRule: value as WorkflowTriggerRule })} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <div className="mb-1.5 text-[11px] font-medium text-[#667085]">调度超时</div>
-              <InputNumber size="small" controls={false} disabled={locked} min={0} max={MAX_TIMEOUT_SECONDS} value={node.data.dispatchTimeoutSeconds} className="!w-full" addonAfter="秒" onChange={(value) => onChange({ dispatchTimeoutSeconds: Number(value || 0) })} />
-              <div className="mt-1 text-[9px] text-[#98a2b3]">0 表示不限制等待调度时间</div>
+              <div className="mb-1.5 text-[11px] font-medium text-[#667085]">
+                {intl.formatMessage({ id: 'pages.workflow.editor.inspector.dispatchTimeout' })}
+              </div>
+              <InputNumber size="small" controls={false} disabled={locked} min={0} max={MAX_TIMEOUT_SECONDS} value={node.data.dispatchTimeoutSeconds} className="!w-full" addonAfter={intl.formatMessage({ id: 'pages.workflow.editor.common.seconds' })} onChange={(value) => onChange({ dispatchTimeoutSeconds: Number(value || 0) })} />
+              <div className="mt-1 text-[9px] text-[#98a2b3]">
+                {intl.formatMessage({ id: 'pages.workflow.editor.inspector.dispatchNoLimit' })}
+              </div>
             </div>
             <div>
-              <div className="mb-1.5 text-[11px] font-medium text-[#667085]">执行超时</div>
-              <InputNumber size="small" controls={false} disabled={locked} min={0} max={MAX_TIMEOUT_SECONDS} value={node.data.executionTimeoutSeconds} className="!w-full" addonAfter="秒" onChange={(value) => onChange({ executionTimeoutSeconds: Number(value || 0) })} />
-              <div className="mt-1 text-[9px] text-[#98a2b3]">0 表示不限制节点运行时间</div>
+              <div className="mb-1.5 text-[11px] font-medium text-[#667085]">
+                {intl.formatMessage({ id: 'pages.workflow.editor.inspector.executionTimeout' })}
+              </div>
+              <InputNumber size="small" controls={false} disabled={locked} min={0} max={MAX_TIMEOUT_SECONDS} value={node.data.executionTimeoutSeconds} className="!w-full" addonAfter={intl.formatMessage({ id: 'pages.workflow.editor.common.seconds' })} onChange={(value) => onChange({ executionTimeoutSeconds: Number(value || 0) })} />
+              <div className="mt-1 text-[9px] text-[#98a2b3]">
+                {intl.formatMessage({ id: 'pages.workflow.editor.inspector.executionNoLimit' })}
+              </div>
             </div>
           </div>
           <div>
-            <div className="mb-1.5 flex items-center text-[11px] font-medium text-[#667085]">输入映射<HelpTip title="JSON 对象；将工作流输入或前置节点输出映射为当前节点输入。" /></div>
-            <Input.TextArea disabled={locked} autoSize={{ minRows: 3, maxRows: 8 }} spellCheck={false} value={node.data.inputMappingText} placeholder={'{\n  "requestId": "$workflow.requestId"\n}'} className="font-mono !text-[10px]" onChange={(event) => onChange({ inputMappingText: event.target.value })} />
+            <div className="mb-1.5 flex items-center text-[11px] font-medium text-[#667085]">
+              {intl.formatMessage({ id: 'pages.workflow.editor.inspector.inputMapping' })}
+              <HelpTip title={intl.formatMessage({ id: 'pages.workflow.editor.inspector.inputMappingHelp' })} />
+            </div>
+            <Input.TextArea
+              disabled={locked}
+              autoSize={{ minRows: 3, maxRows: 8 }}
+              spellCheck={false}
+              value={node.data.inputMappingText}
+              placeholder={'{\n  "requestId": "$workflow.requestId"\n}'}
+              className="font-mono !text-[10px]"
+              onChange={(event) => onChange({ inputMappingText: event.target.value })}
+            />
           </div>
         </div>
       </details>
@@ -277,9 +359,17 @@ const WorkflowNodeInspectorSettings = ({
       <Divider />
 
       <section className="px-4 py-4">
-        <SectionTitle>下一步</SectionTitle>
-        <div className="mb-3 text-[10px] leading-4 text-[rgba(22,24,35,.38)]">添加此工作流程中的下一个节点</div>
-        <WorkflowNextStep currentIcon={<WorkflowNodeIcon taskType={node.data.taskType} size="sm" />} nextNodes={nextNodes} appendOptions={appendOptions} locked={locked} onAppend={onAppend} />
+        <SectionTitle>{intl.formatMessage({ id: 'pages.workflow.editor.inspector.nextStep' })}</SectionTitle>
+        <div className="mb-3 text-[10px] leading-4 text-[rgba(22,24,35,.38)]">
+          {intl.formatMessage({ id: 'pages.workflow.editor.inspector.nextStepHint' })}
+        </div>
+        <WorkflowNextStep
+          currentIcon={<WorkflowNodeIcon taskType={node.data.taskType} size="sm" />}
+          nextNodes={nextNodes}
+          appendOptions={appendOptions}
+          locked={locked}
+          onAppend={onAppend}
+        />
       </section>
     </div>
   );
