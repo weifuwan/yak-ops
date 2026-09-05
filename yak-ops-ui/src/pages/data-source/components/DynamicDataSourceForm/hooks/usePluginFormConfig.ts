@@ -83,7 +83,26 @@ export function usePluginFormConfig(params: {
         return false;
       }
 
-      const sections = normalizeFormSections(data || { formFields: [] }, intl);
+      const sections = normalizeFormSections(data || { formFields: [] }).map(
+        (section) => ({
+          ...section,
+          title:
+            section.key === 'connection' || /^section-\d+$/.test(section.key)
+              ? intl.formatMessage({
+                  id: 'pages.datasource.form.connectionParams',
+                })
+              : section.title,
+          fields: section.fields.map((field) => ({
+            ...field,
+            placeholder:
+              field.key === 'properties' && field.type === 'CUSTOM_SELECT'
+                ? intl.formatMessage({
+                    id: 'pages.datasource.form.propertiesPlaceholder',
+                  })
+                : field.placeholder,
+          })),
+        }),
+      );
       const fields = flattenFormSectionFields(sections);
       const defaults = getConfigInitialValues(fields);
 
