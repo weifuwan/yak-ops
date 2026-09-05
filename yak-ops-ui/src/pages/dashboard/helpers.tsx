@@ -24,85 +24,117 @@ export const GRID_COLUMNS = 24;
 export const GRID_ROW_HEIGHT = 28;
 export const FIELD_DRAG_MIME = 'application/x-yak-dashboard-field';
 
+type DashboardLocalizedOption<T> = {
+  messageId: string;
+  value: T;
+  readonly label: string;
+};
+
+const localizedOption = <T,>(messageId: string, value: T): DashboardLocalizedOption<T> => ({
+  messageId,
+  value,
+  get label() {
+    return getIntl().formatMessage({ id: messageId });
+  },
+});
+
+const chartMeta = (
+  labelId: string,
+  descriptionId: string,
+  icon: ReactNode,
+) => ({
+  labelId,
+  descriptionId,
+  icon,
+  get label() {
+    return getIntl().formatMessage({ id: labelId });
+  },
+  get description() {
+    return getIntl().formatMessage({ id: descriptionId });
+  },
+});
+
 export const CHART_META: Record<ChartType, {
   labelId: string;
   descriptionId: string;
+  readonly label: string;
+  readonly description: string;
   icon: ReactNode;
 }> = {
-  metric: {
-    labelId: 'pages.dashboard.editor.chart.metric',
-    descriptionId: 'pages.dashboard.editor.chart.metric.description',
-    icon: <Sigma size={15} />,
-  },
-  bar: {
-    labelId: 'pages.dashboard.editor.chart.bar',
-    descriptionId: 'pages.dashboard.editor.chart.bar.description',
-    icon: <BarChart3 size={15} />,
-  },
-  stackedBar: {
-    labelId: 'pages.dashboard.editor.chart.stackedBar',
-    descriptionId: 'pages.dashboard.editor.chart.stackedBar.description',
-    icon: <BarChart3 size={15} />,
-  },
-  line: {
-    labelId: 'pages.dashboard.editor.chart.line',
-    descriptionId: 'pages.dashboard.editor.chart.line.description',
-    icon: <ChartLine size={15} />,
-  },
-  area: {
-    labelId: 'pages.dashboard.editor.chart.area',
-    descriptionId: 'pages.dashboard.editor.chart.area.description',
-    icon: <ChartLine size={15} />,
-  },
-  pie: {
-    labelId: 'pages.dashboard.editor.chart.pie',
-    descriptionId: 'pages.dashboard.editor.chart.pie.description',
-    icon: <ChartPie size={15} />,
-  },
-  scatter: {
-    labelId: 'pages.dashboard.editor.chart.scatter',
-    descriptionId: 'pages.dashboard.editor.chart.scatter.description',
-    icon: <Sigma size={15} />,
-  },
-  radar: {
-    labelId: 'pages.dashboard.editor.chart.radar',
-    descriptionId: 'pages.dashboard.editor.chart.radar.description',
-    icon: <ChartPie size={15} />,
-  },
-  funnel: {
-    labelId: 'pages.dashboard.editor.chart.funnel',
-    descriptionId: 'pages.dashboard.editor.chart.funnel.description',
-    icon: <BarChart3 size={15} />,
-  },
-  treemap: {
-    labelId: 'pages.dashboard.editor.chart.treemap',
-    descriptionId: 'pages.dashboard.editor.chart.treemap.description',
-    icon: <Table2 size={15} />,
-  },
-  table: {
-    labelId: 'pages.dashboard.editor.chart.table',
-    descriptionId: 'pages.dashboard.editor.chart.table.description',
-    icon: <Table2 size={15} />,
-  },
+  metric: chartMeta(
+    'pages.dashboard.editor.chart.metric',
+    'pages.dashboard.editor.chart.metric.description',
+    <Sigma size={15} />,
+  ),
+  bar: chartMeta(
+    'pages.dashboard.editor.chart.bar',
+    'pages.dashboard.editor.chart.bar.description',
+    <BarChart3 size={15} />,
+  ),
+  stackedBar: chartMeta(
+    'pages.dashboard.editor.chart.stackedBar',
+    'pages.dashboard.editor.chart.stackedBar.description',
+    <BarChart3 size={15} />,
+  ),
+  line: chartMeta(
+    'pages.dashboard.editor.chart.line',
+    'pages.dashboard.editor.chart.line.description',
+    <ChartLine size={15} />,
+  ),
+  area: chartMeta(
+    'pages.dashboard.editor.chart.area',
+    'pages.dashboard.editor.chart.area.description',
+    <ChartLine size={15} />,
+  ),
+  pie: chartMeta(
+    'pages.dashboard.editor.chart.pie',
+    'pages.dashboard.editor.chart.pie.description',
+    <ChartPie size={15} />,
+  ),
+  scatter: chartMeta(
+    'pages.dashboard.editor.chart.scatter',
+    'pages.dashboard.editor.chart.scatter.description',
+    <Sigma size={15} />,
+  ),
+  radar: chartMeta(
+    'pages.dashboard.editor.chart.radar',
+    'pages.dashboard.editor.chart.radar.description',
+    <ChartPie size={15} />,
+  ),
+  funnel: chartMeta(
+    'pages.dashboard.editor.chart.funnel',
+    'pages.dashboard.editor.chart.funnel.description',
+    <BarChart3 size={15} />,
+  ),
+  treemap: chartMeta(
+    'pages.dashboard.editor.chart.treemap',
+    'pages.dashboard.editor.chart.treemap.description',
+    <Table2 size={15} />,
+  ),
+  table: chartMeta(
+    'pages.dashboard.editor.chart.table',
+    'pages.dashboard.editor.chart.table.description',
+    <Table2 size={15} />,
+  ),
 };
 
-export const AGGREGATION_OPTIONS: Array<{ messageId: string; value: Aggregation }> = [
-  { messageId: 'pages.dashboard.editor.aggregation.sum', value: 'SUM' },
-  { messageId: 'pages.dashboard.editor.aggregation.avg', value: 'AVG' },
-  { messageId: 'pages.dashboard.editor.aggregation.count', value: 'COUNT' },
-  { messageId: 'pages.dashboard.editor.aggregation.countDistinct', value: 'COUNT_DISTINCT' },
-  { messageId: 'pages.dashboard.editor.aggregation.max', value: 'MAX' },
-  { messageId: 'pages.dashboard.editor.aggregation.min', value: 'MIN' },
+export const AGGREGATION_OPTIONS: Array<DashboardLocalizedOption<Aggregation>> = [
+  localizedOption('pages.dashboard.editor.aggregation.sum', 'SUM'),
+  localizedOption('pages.dashboard.editor.aggregation.avg', 'AVG'),
+  localizedOption('pages.dashboard.editor.aggregation.count', 'COUNT'),
+  localizedOption('pages.dashboard.editor.aggregation.countDistinct', 'COUNT_DISTINCT'),
+  localizedOption('pages.dashboard.editor.aggregation.max', 'MAX'),
+  localizedOption('pages.dashboard.editor.aggregation.min', 'MIN'),
 ];
 
-export const FILTER_OPERATOR_OPTIONS: Array<{ messageId: string; value: FilterOperator }> = [
-  { messageId: 'pages.dashboard.editor.operator.eq', value: 'eq' },
-  { messageId: 'pages.dashboard.editor.operator.neq', value: 'neq' },
-  { messageId: 'pages.dashboard.editor.operator.contains', value: 'contains' },
-  { messageId: 'pages.dashboard.editor.operator.gt', value: 'gt' },
-  { messageId: 'pages.dashboard.editor.operator.gte', value: 'gte' },
-  { messageId: 'pages.dashboard.editor.operator.lt', value: 'lt' },
-  { messageId: 'pages.dashboard.editor.operator.lte', value: 'lte' },
+export const FILTER_OPERATOR_OPTIONS: Array<DashboardLocalizedOption<FilterOperator>> = [
+  localizedOption('pages.dashboard.editor.operator.eq', 'eq'),
+  localizedOption('pages.dashboard.editor.operator.neq', 'neq'),
+  localizedOption('pages.dashboard.editor.operator.contains', 'contains'),
+  localizedOption('pages.dashboard.editor.operator.gt', 'gt'),
+  localizedOption('pages.dashboard.editor.operator.gte', 'gte'),
+  localizedOption('pages.dashboard.editor.operator.lt', 'lt'),
+  localizedOption('pages.dashboard.editor.operator.lte', 'lte'),
 ];
 
 export const cloneDashboard = (dashboard: DashboardDocument): DashboardDocument =>
@@ -195,7 +227,7 @@ const widgetShapeFor = (type: ChartType) => {
 
 export const createWidget = (type: ChartType, dataset: PublishedDataset, y: number): DashboardWidget => {
   const intl = getIntl();
-  const typeLabel = intl.formatMessage({ id: CHART_META[type].labelId });
+  const typeLabel = CHART_META[type].label;
   return {
     id: `widget-${Date.now()}-${Math.round(Math.random() * 1000)}`,
     title: intl.formatMessage(
