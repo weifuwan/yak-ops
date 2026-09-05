@@ -1,16 +1,12 @@
 import YakButton from '@/components/YakButton';
+import { useIntl } from '@umijs/max';
 import { Input, Select } from 'antd';
 import { Search } from 'lucide-react';
 
+import { formatQualityDimension } from '../../i18n';
 import type { ExecutionAdvancedFilterState } from '../hooks/useQualityExecutionPage';
 
-const DIMENSION_OPTIONS = [
-  '完整性',
-  '唯一性',
-  '有效性',
-  '准确性',
-  '自定义',
-].map((value) => ({ value, label: value }));
+const DIMENSION_VALUES = ['完整性', '唯一性', '有效性', '准确性', '自定义'];
 
 interface ExecutionAdvancedFilterProps {
   value: ExecutionAdvancedFilterState;
@@ -25,18 +21,21 @@ export default function ExecutionAdvancedFilter({
   onApply,
   onReset,
 }: ExecutionAdvancedFilterProps) {
+  const intl = useIntl();
   const patch = (next: Partial<ExecutionAdvancedFilterState>) =>
     onChange({ ...value, ...next });
 
   return (
     <div className="w-[340px]">
       <div className="mb-3 text-[13px] font-semibold text-[#161823]">
-        高级搜索
+        {intl.formatMessage({ id: 'pages.dataQuality.execution.advancedTitle' })}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
-          <div className="mb-1.5 text-xs text-[#667085]">数据对象</div>
+          <div className="mb-1.5 text-xs text-[#667085]">
+            {intl.formatMessage({ id: 'pages.dataQuality.execution.object' })}
+          </div>
           <Input
             allowClear
             variant="filled"
@@ -44,103 +43,198 @@ export default function ExecutionAdvancedFilter({
             onChange={(event) => patch({ objectKeyword: event.target.value })}
             onPressEnter={onApply}
             prefix={<Search size={14} className="text-[#98a2b3]" />}
-            placeholder="搜索表名或数据对象"
+            placeholder={intl.formatMessage({
+              id: 'pages.dataQuality.execution.objectPlaceholder',
+            })}
           />
         </div>
 
         <div>
-          <div className="mb-1.5 text-xs text-[#667085]">运行状态</div>
+          <div className="mb-1.5 text-xs text-[#667085]">
+            {intl.formatMessage({
+              id: 'pages.dataQuality.execution.executionStatus',
+            })}
+          </div>
           <Select
             allowClear
             variant="filled"
             value={value.executionStatus}
-            placeholder="全部状态"
+            placeholder={intl.formatMessage({
+              id: 'pages.dataQuality.execution.allStatus',
+            })}
             className="w-full"
             onChange={(executionStatus) => patch({ executionStatus })}
             options={[
-              { value: 'WAITING', label: '等待中' },
-              { value: 'RUNNING', label: '运行中' },
-              { value: 'SUCCESS', label: '已完成' },
-              { value: 'FAILED', label: '执行失败' },
+              {
+                value: 'WAITING',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.status.waiting',
+                }),
+              },
+              {
+                value: 'RUNNING',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.status.running',
+                }),
+              },
+              {
+                value: 'SUCCESS',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.status.success',
+                }),
+              },
+              {
+                value: 'FAILED',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.status.failed',
+                }),
+              },
             ]}
           />
         </div>
 
         <div>
-          <div className="mb-1.5 text-xs text-[#667085]">质量结果</div>
+          <div className="mb-1.5 text-xs text-[#667085]">
+            {intl.formatMessage({ id: 'pages.dataQuality.execution.checkResult' })}
+          </div>
           <Select
             allowClear
             variant="filled"
             value={value.checkResult}
-            placeholder="全部结果"
+            placeholder={intl.formatMessage({
+              id: 'pages.dataQuality.execution.allResult',
+            })}
             className="w-full"
             onChange={(checkResult) => patch({ checkResult })}
             options={[
-              { value: 'PASSED', label: '通过' },
-              { value: 'NOT_PASSED', label: '未通过' },
-              { value: 'ERROR', label: '异常' },
-              { value: 'RUNNING', label: '运行中' },
+              {
+                value: 'PASSED',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.status.passed',
+                }),
+              },
+              {
+                value: 'NOT_PASSED',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.status.notPassed',
+                }),
+              },
+              {
+                value: 'ERROR',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.status.error',
+                }),
+              },
+              {
+                value: 'RUNNING',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.status.running',
+                }),
+              },
             ]}
           />
         </div>
 
         <div>
-          <div className="mb-1.5 text-xs text-[#667085]">问题情况</div>
+          <div className="mb-1.5 text-xs text-[#667085]">
+            {intl.formatMessage({ id: 'pages.dataQuality.execution.issueState' })}
+          </div>
           <Select
             allowClear
             variant="filled"
             value={value.hasIssues}
-            placeholder="全部"
+            placeholder={intl.formatMessage({ id: 'pages.dataQuality.execution.all' })}
             className="w-full"
             onChange={(hasIssues) => patch({ hasIssues })}
             options={[
-              { value: true, label: '存在问题' },
-              { value: false, label: '无问题' },
+              {
+                value: true,
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.execution.hasIssues',
+                }),
+              },
+              {
+                value: false,
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.execution.noIssues',
+                }),
+              },
             ]}
           />
         </div>
 
         <div>
-          <div className="mb-1.5 text-xs text-[#667085]">质量维度</div>
+          <div className="mb-1.5 text-xs text-[#667085]">
+            {intl.formatMessage({ id: 'pages.dataQuality.execution.dimension' })}
+          </div>
           <Select
             allowClear
             variant="filled"
             value={value.dimension}
-            placeholder="全部维度"
+            placeholder={intl.formatMessage({
+              id: 'pages.dataQuality.execution.allDimensions',
+            })}
             className="w-full"
             onChange={(dimension) => patch({ dimension })}
-            options={DIMENSION_OPTIONS}
+            options={DIMENSION_VALUES.map((dimension) => ({
+              value: dimension,
+              label: formatQualityDimension(intl, dimension),
+            }))}
           />
         </div>
 
         <div>
-          <div className="mb-1.5 text-xs text-[#667085]">关联范围</div>
+          <div className="mb-1.5 text-xs text-[#667085]">
+            {intl.formatMessage({ id: 'pages.dataQuality.execution.scope' })}
+          </div>
           <Select
             allowClear
             variant="filled"
             value={value.scope}
-            placeholder="全部范围"
+            placeholder={intl.formatMessage({
+              id: 'pages.dataQuality.execution.allScopes',
+            })}
             className="w-full"
             onChange={(scope) => patch({ scope })}
             options={[
-              { value: 'TABLE', label: '表级' },
-              { value: 'COLUMN', label: '字段级' },
+              {
+                value: 'TABLE',
+                label: intl.formatMessage({ id: 'pages.dataQuality.common.scope.table' }),
+              },
+              {
+                value: 'COLUMN',
+                label: intl.formatMessage({ id: 'pages.dataQuality.common.scope.column' }),
+              },
             ]}
           />
         </div>
 
         <div className="col-span-2">
-          <div className="mb-1.5 text-xs text-[#667085]">触发方式</div>
+          <div className="mb-1.5 text-xs text-[#667085]">
+            {intl.formatMessage({ id: 'pages.dataQuality.execution.trigger' })}
+          </div>
           <Select
             allowClear
             variant="filled"
             value={value.triggerType}
-            placeholder="全部触发方式"
+            placeholder={intl.formatMessage({
+              id: 'pages.dataQuality.execution.allTriggers',
+            })}
             className="w-full"
             onChange={(triggerType) => patch({ triggerType })}
             options={[
-              { value: 'MANUAL', label: '手动触发' },
-              { value: 'SCHEDULE', label: '调度触发' },
+              {
+                value: 'MANUAL',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.trigger.manual',
+                }),
+              },
+              {
+                value: 'SCHEDULE',
+                label: intl.formatMessage({
+                  id: 'pages.dataQuality.common.trigger.schedule',
+                }),
+              },
             ]}
           />
         </div>
@@ -153,10 +247,10 @@ export default function ExecutionAdvancedFilter({
           className="!text-[#667085]"
           onClick={onReset}
         >
-          重置
+          {intl.formatMessage({ id: 'pages.dataQuality.common.reset' })}
         </YakButton>
         <YakButton size="small" type="primary" onClick={onApply}>
-          应用
+          {intl.formatMessage({ id: 'pages.dataQuality.common.apply' })}
         </YakButton>
       </div>
     </div>
