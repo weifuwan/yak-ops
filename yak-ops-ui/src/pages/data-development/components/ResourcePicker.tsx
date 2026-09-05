@@ -1,4 +1,5 @@
 import YakButton from '@/components/YakButton';
+import { useIntl } from '@umijs/max';
 import { Input, Modal, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Folder, Search } from 'lucide-react';
@@ -19,9 +20,7 @@ export interface ResourcePickerValue {
 
 interface ResourcePickerProps {
   open: boolean;
-  /** 限定可选文件后缀，如 ['.jar']。不传则不过滤。 */
   acceptSuffixes?: string[];
-  /** 当前已选中的资源 ID，用于高亮显示 */
   selectedId?: ResourceId;
   onCancel: () => void;
   onConfirm: (value: ResourcePickerValue) => void;
@@ -37,10 +36,11 @@ const formatFileSize = (size?: number) => {
 export default function ResourcePicker({
   open,
   acceptSuffixes,
-  selectedId,
+  selectedId: _selectedId,
   onCancel,
   onConfirm,
 }: ResourcePickerProps) {
+  const intl = useIntl();
   const [items, setItems] = useState<ResourceItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -52,9 +52,7 @@ export default function ResourcePicker({
     setLoading(true);
     try {
       const res = await fetchResourceList(parentId, kw);
-      if (res.code === 200 && res.data) {
-        setItems(res.data);
-      }
+      if (res.code === 200 && res.data) setItems(res.data);
     } finally {
       setLoading(false);
     }
@@ -66,42 +64,44 @@ export default function ResourcePicker({
     setBreadcrumbs([]);
     setKeyword('');
     setSelectedFile(null);
-    loadList(0);
+    void loadList(0);
   }, [open, loadList]);
 
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      if (item.nodeType === 'DIRECTORY') return true;
-      if (acceptSuffixes && acceptSuffixes.length > 0 && item.suffix) {
-        return acceptSuffixes.includes(`.${item.suffix}`);
-      }
-      return true;
-    });
-  }, [items, acceptSuffixes]);
+  const filteredItems = useMemo(
+    () =>
+      items.filter((item) => {
+        if (item.nodeType === 'DIRECTORY') return true;
+        if (acceptSuffixes && acceptSuffixes.length > 0 && item.suffix) {
+          return acceptSuffixes.includes(`.${item.suffix}`);
+        }
+        return true;
+      }),
+    [acceptSuffixes, items],
+  );
 
   const handleEnterDirectory = (item: ResourceItem) => {
     setCurrentParentId(item.id);
     setBreadcrumbs((prev) => [...prev, { id: item.id, name: item.name }]);
     setKeyword('');
-    loadList(item.id);
+    void loadList(item.id);
   };
 
   const handleBreadcrumbClick = (index: number) => {
+    const parentId = index < 0 ? 0 : breadcrumbs[index].id;
     if (index < 0) {
       setCurrentParentId(0);
       setBreadcrumbs([]);
     } else {
-      const target = breadcrumbs[index];
-      setCurrentParentId(target.id);
+      setCurrentParentId(parentId);
       setBreadcrumbs((prev) => prev.slice(0, index + 1));
     }
     setKeyword('');
-    loadList(breadcrumbs[index]?.id ?? 0);
+    void loadList(parentId);
   };
 
   const handleSearch = (value: string) => {
     setKeyword(value);
-    loadList(currentParentId, value || undefined);
+    void loadList(currentParentId, value || undefined);
   };
 
   const handleConfirm = () => {
@@ -118,7 +118,7 @@ export default function ResourcePicker({
 
   const columns: ColumnsType<ResourceItem> = [
     {
-      title: '名称',
+      title: intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.name' }),
       dataIndex: 'name',
       key: 'name',
       ellipsis: true,
@@ -147,19 +147,15 @@ export default function ResourcePicker({
       },
     },
     {
-      title: '后缀',
+      title: intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.suffix' }),
       dataIndex: 'suffix',
       key: 'suffix',
       width: 80,
       render: (suffix: string | undefined, record) =>
-        record.nodeType === 'FILE' && suffix ? (
-          <Tag className="text-[10px]">{suffix}</Tag>
-        ) : (
-          '—'
-        ),
+        record.nodeType === 'FILE' && suffix ? <Tag className="text-[10px]">{suffix}</Tag> : '—',
     },
     {
-      title: '大小',
+      title: intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.size' }),
       dataIndex: 'fileSize',
       key: 'fileSize',
       width: 90,
@@ -167,7 +163,7 @@ export default function ResourcePicker({
         record.nodeType === 'FILE' ? formatFileSize(size) : '—',
     },
     {
-      title: '版本',
+      title: intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.version' }),
       dataIndex: 'version',
       key: 'version',
       width: 70,
@@ -176,16 +172,13 @@ export default function ResourcePicker({
     },
   ];
 
-  const isFileSelected = (record: ResourceItem) =>
-    record.nodeType === 'FILE' && selectedFile?.id === record.id;
-
   return (
     <Modal
       open={open}
-      title="选择资源文件"
+      title={intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.title' })}
       width={720}
-      okText="确认选择"
-      cancelText="取消"
+      okText={intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.confirm' })}
+      cancelText={intl.formatMessage({ id: 'pages.dataDevelopment.common.cancel' })}
       okButtonProps={{ disabled: !selectedFile }}
       onCancel={onCancel}
       onOk={handleConfirm}
@@ -194,20 +187,22 @@ export default function ResourcePicker({
       <div className="mb-3 flex items-center gap-2">
         <Input
           prefix={<Search size={14} className="text-[#98a2b3]" />}
-          placeholder="搜索文件名"
+          placeholder={intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.search' })}
           allowClear
           value={keyword}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(event) => handleSearch(event.target.value)}
           className="flex-1"
         />
-        {acceptSuffixes && acceptSuffixes.length > 0 && (
+        {acceptSuffixes && acceptSuffixes.length > 0 ? (
           <Typography.Text className="shrink-0 text-[11px] text-[#98a2b3]">
-            类型：{acceptSuffixes.join(' / ')}
+            {intl.formatMessage(
+              { id: 'pages.dataDevelopment.editor.resourcePicker.type' },
+              { types: acceptSuffixes.join(' / ') },
+            )}
           </Typography.Text>
-        )}
+        ) : null}
       </div>
 
-      {/* Breadcrumb */}
       <div className="mb-2 flex items-center gap-1 text-[12px]">
         <YakButton
           type="text"
@@ -216,10 +211,10 @@ export default function ResourcePicker({
           disabled={breadcrumbs.length === 0}
           onClick={() => handleBreadcrumbClick(-1)}
         >
-          根目录
+          {intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.root' })}
         </YakButton>
-        {breadcrumbs.map((bc, index) => (
-          <span key={String(bc.id)} className="flex items-center gap-1">
+        {breadcrumbs.map((breadcrumb, index) => (
+          <span key={String(breadcrumb.id)} className="flex items-center gap-1">
             <span className="text-[#98a2b3]">/</span>
             <YakButton
               type="text"
@@ -228,7 +223,7 @@ export default function ResourcePicker({
               disabled={index === breadcrumbs.length - 1}
               onClick={() => handleBreadcrumbClick(index)}
             >
-              {bc.name}
+              {breadcrumb.name}
             </YakButton>
           </span>
         ))}
@@ -243,21 +238,24 @@ export default function ResourcePicker({
         pagination={false}
         scroll={{ y: 360 }}
         rowClassName={(record) =>
-          isFileSelected(record) ? 'bg-[#eff8ff]' : ''
+          record.nodeType === 'FILE' && selectedFile?.id === record.id
+            ? 'bg-[#eff8ff]'
+            : ''
         }
-        locale={{ emptyText: '当前目录无文件' }}
+        locale={{
+          emptyText: intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.empty' }),
+        }}
       />
 
-      {selectedFile && (
+      {selectedFile ? (
         <div className="mt-3 rounded-md border border-[#e4e7ec] bg-[#f9fafb] px-3 py-2 text-[12px] text-[#475467]">
-          已选择：<span className="font-medium text-[#344054]">{selectedFile.name}</span>
-          {selectedFile.suffix && <span className="ml-2 text-[#98a2b3]">.{selectedFile.suffix}</span>}
+          {intl.formatMessage({ id: 'pages.dataDevelopment.editor.resourcePicker.selected' })}{' '}
+          <span className="font-medium text-[#344054]">{selectedFile.name}</span>
+          {selectedFile.suffix ? <span className="ml-2 text-[#98a2b3]">.{selectedFile.suffix}</span> : null}
           <span className="ml-2 text-[#98a2b3]">{formatFileSize(selectedFile.fileSize)}</span>
-          {selectedFile.version != null && (
-            <span className="ml-2 text-[#98a2b3]">v{selectedFile.version}</span>
-          )}
+          {selectedFile.version != null ? <span className="ml-2 text-[#98a2b3]">v{selectedFile.version}</span> : null}
         </div>
-      )}
+      ) : null}
     </Modal>
   );
 }
