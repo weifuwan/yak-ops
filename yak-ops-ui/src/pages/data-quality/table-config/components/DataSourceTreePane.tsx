@@ -1,7 +1,8 @@
 import YakOpsEmpty from '@/components/YakOpsEmpty';
-import type { DataNode } from 'antd/es/tree';
-import type { TreeProps } from 'antd';
+import { useIntl } from '@umijs/max';
 import { Spin, Tooltip, Tree } from 'antd';
+import type { TreeProps } from 'antd';
+import type { DataNode } from 'antd/es/tree';
 import {
   ChevronDown,
   ChevronLeft,
@@ -43,6 +44,7 @@ const DataSourceTreePane = ({
   onResizeStart,
   onCollapsedChange,
 }: DataSourceTreePaneProps) => {
+  const intl = useIntl();
   const treeData = useMemo<QualityTreeDataNode[]>(
     () =>
       groupQualityDataSourceNodes(sourceNodes).map((group) => ({
@@ -90,8 +92,14 @@ const DataSourceTreePane = ({
         placement="right"
         title={
           source?.environment
-            ? `环境：${source.environment}`
-            : `数据源：${source?.dataSourceName || '-'}`
+            ? intl.formatMessage(
+                { id: 'pages.dataQuality.tableConfig.environmentTooltip' },
+                { environment: source.environment },
+              )
+            : intl.formatMessage(
+                { id: 'pages.dataQuality.tableConfig.dataSourceTooltip' },
+                { name: source?.dataSourceName || '-' },
+              )
         }
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -133,7 +141,7 @@ const DataSourceTreePane = ({
         >
           <div className="flex h-7 shrink-0 items-center px-4">
             <span className="text-[13px] font-semibold text-[#30323b]">
-              数据源
+              {intl.formatMessage({ id: 'pages.dataQuality.tableConfig.dataSources' })}
             </span>
           </div>
 
@@ -155,8 +163,12 @@ const DataSourceTreePane = ({
                   <YakOpsEmpty
                     width={132}
                     height={90}
-                    title="暂无数据源"
-                    description="请先在数据源管理中创建可用数据源"
+                    title={intl.formatMessage({
+                      id: 'pages.dataQuality.tableConfig.emptySource',
+                    })}
+                    description={intl.formatMessage({
+                      id: 'pages.dataQuality.tableConfig.emptySourceDesc',
+                    })}
                   />
                 </div>
               )}
@@ -167,7 +179,9 @@ const DataSourceTreePane = ({
 
       <div
         role="separator"
-        aria-label="调整数据源面板宽度"
+        aria-label={intl.formatMessage({
+          id: 'pages.dataQuality.tableConfig.resizeAria',
+        })}
         aria-orientation="vertical"
         onPointerDown={collapsed ? undefined : onResizeStart}
         className={[
@@ -188,7 +202,11 @@ const DataSourceTreePane = ({
 
         <button
           type="button"
-          aria-label={collapsed ? '展开数据源面板' : '收起数据源面板'}
+          aria-label={intl.formatMessage({
+            id: collapsed
+              ? 'pages.dataQuality.tableConfig.expandAria'
+              : 'pages.dataQuality.tableConfig.collapseAria',
+          })}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onCollapsedChange(!collapsed)}
           className={[
