@@ -40,42 +40,6 @@ import {
 
 const DEFAULT_ENVIRONMENT = 'DEVELOP';
 
-const ENV_OPTIONS = [
-  {
-    value: 'DEVELOP',
-    label: (
-      <div className="flex items-center gap-2">
-        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-50 text-blue-600">
-          <Code2 size={12} />
-        </span>
-        <span className="text-[13px] text-[#344054]">开发环境</span>
-      </div>
-    ),
-  },
-  {
-    value: 'TEST',
-    label: (
-      <div className="flex items-center gap-2">
-        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-50 text-amber-600">
-          <FlaskConical size={12} />
-        </span>
-        <span className="text-[13px] text-[#344054]">测试环境</span>
-      </div>
-    ),
-  },
-  {
-    value: 'PROD',
-    label: (
-      <div className="flex items-center gap-2">
-        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-rose-50 text-rose-600">
-          <ShieldCheck size={12} />
-        </span>
-        <span className="text-[13px] text-[#344054]">生产环境</span>
-      </div>
-    ),
-  },
-];
-
 const sectionTitleClass = 'm-0 text-sm font-semibold leading-6 text-[#161823]';
 const sectionDescriptionClass = 'm-0 text-xs leading-5 text-[#8a8f99]';
 
@@ -121,6 +85,50 @@ const DynamicDataSourceForm = ({
   initialConfig,
 }: DynamicDataSourceFormProps) => {
   const intl = useIntl();
+  const envOptions = [
+    {
+      value: 'DEVELOP',
+      label: (
+        <div className="flex items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-50 text-blue-600">
+            <Code2 size={12} />
+          </span>
+          <span className="text-[13px] text-[#344054]">
+            {intl.formatMessage({
+              id: 'pages.datasource.environment.developFull',
+            })}
+          </span>
+        </div>
+      ),
+    },
+    {
+      value: 'TEST',
+      label: (
+        <div className="flex items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-50 text-amber-600">
+            <FlaskConical size={12} />
+          </span>
+          <span className="text-[13px] text-[#344054]">
+            {intl.formatMessage({ id: 'pages.datasource.environment.testFull' })}
+          </span>
+        </div>
+      ),
+    },
+    {
+      value: 'PROD',
+      label: (
+        <div className="flex items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-rose-50 text-rose-600">
+            <ShieldCheck size={12} />
+          </span>
+          <span className="text-[13px] text-[#344054]">
+            {intl.formatMessage({ id: 'pages.datasource.environment.prodFull' })}
+          </span>
+        </div>
+      ),
+    },
+  ];
+
   const {
     formSections,
     status: pluginStatus,
@@ -132,6 +140,7 @@ const DynamicDataSourceForm = ({
     configForm,
     initialConfig,
     resetOnLoad: true,
+    intl,
   });
 
   useEffect(() => {
@@ -215,7 +224,7 @@ const DynamicDataSourceForm = ({
     if (field.type === 'SSH') {
       rules.push({
         validator: async (_rule, value) => {
-          const validationMessage = getSshTunnelValidationMessage(value);
+          const validationMessage = getSshTunnelValidationMessage(value, intl);
           if (validationMessage) throw new Error(validationMessage);
         },
       });
@@ -352,9 +361,12 @@ const DynamicDataSourceForm = ({
           <div className="flex items-center gap-2 text-sm text-[#667085]">
             <LoadingOutlined />
             <span>
-              {pluginStatus === PLUGIN_CONFIG_STATUS.INSTALLING
-                ? '正在安装数据源插件...'
-                : '正在加载数据源配置...'}
+              {intl.formatMessage({
+                id:
+                  pluginStatus === PLUGIN_CONFIG_STATUS.INSTALLING
+                    ? 'pages.datasource.plugin.installing'
+                    : 'pages.datasource.plugin.loading',
+              })}
             </span>
           </div>
         </div>
@@ -368,15 +380,19 @@ const DynamicDataSourceForm = ({
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="text-[13px] font-medium leading-5 text-[#344054]">
-              {installRequired
-                ? '当前数据源插件尚未安装'
-                : '数据源插件配置加载失败'}
+              {intl.formatMessage({
+                id: installRequired
+                  ? 'pages.datasource.plugin.installRequiredTitle'
+                  : 'pages.datasource.plugin.loadFailedTitle',
+              })}
             </div>
             <div className="mt-1 text-xs leading-5 text-[#98a2b3]">
               {pluginMessage ||
-                (installRequired
-                  ? '安装插件后即可继续配置当前数据源。'
-                  : '请检查服务状态或网络后重新加载。')}
+                intl.formatMessage({
+                  id: installRequired
+                    ? 'pages.datasource.plugin.installRequiredDescription'
+                    : 'pages.datasource.plugin.loadFailedDescription',
+                })}
             </div>
           </div>
           <YakButton
@@ -386,7 +402,13 @@ const DynamicDataSourceForm = ({
             onClick={() => {
               if (installRequired) {
                 void installPlugin().then((installed) => {
-                  if (installed) message.success('插件安装成功');
+                  if (installed) {
+                    message.success(
+                      intl.formatMessage({
+                        id: 'pages.datasource.plugin.installSuccess',
+                      }),
+                    );
+                  }
                 });
                 return;
               }
@@ -394,7 +416,11 @@ const DynamicDataSourceForm = ({
             }}
           >
             <span className="inline-flex items-center gap-1.5">
-              {installRequired ? '安装插件' : '重新加载'}
+              {intl.formatMessage({
+                id: installRequired
+                  ? 'pages.datasource.plugin.install'
+                  : 'pages.datasource.plugin.reload',
+              })}
               <DatabaseIcons dbType={dbType} height="15" width="15" />
             </span>
           </YakButton>
@@ -407,7 +433,9 @@ const DynamicDataSourceForm = ({
     <div className="bg-white">
       <section className="datasource-editor-base-section">
         <div className="mb-3 flex items-end justify-between gap-4">
-          <h3 className={sectionTitleClass}>基础信息</h3>
+          <h3 className={sectionTitleClass}>
+            {intl.formatMessage({ id: 'pages.datasource.form.basicInfo' })}
+          </h3>
           <div className="flex items-center gap-1.5 text-xs text-[#8a8f99]">
             <DatabaseIcons dbType={dbType} width="15" height="15" />
             <span>{dbType}</span>
@@ -418,26 +446,29 @@ const DynamicDataSourceForm = ({
           <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
             <Form.Item
               className="!mb-3"
-              label={intl.formatMessage({
-                id: 'pages.datasource.form.dsName',
-                defaultMessage: '数据源名称',
-              })}
+              label={intl.formatMessage({ id: 'pages.datasource.form.dsName' })}
               name="name"
               rules={[
                 {
                   required: true,
                   message: intl.formatMessage({
                     id: 'pages.datasource.form.dsNameRequired',
-                    defaultMessage: '请输入数据源名称',
                   }),
                 },
-                { max: 128, message: '数据源名称不能超过 128 个字符' },
+                {
+                  max: 128,
+                  message: intl.formatMessage({
+                    id: 'pages.datasource.form.dsNameMax',
+                  }),
+                },
               ]}
             >
               <Input
                 variant="filled"
                 maxLength={128}
-                placeholder="请输入数据源名称"
+                placeholder={intl.formatMessage({
+                  id: 'pages.datasource.form.dsNamePlaceholder',
+                })}
               />
             </Form.Item>
 
@@ -445,22 +476,32 @@ const DynamicDataSourceForm = ({
               className="!mb-3"
               label={
                 <span className="inline-flex items-center">
-                  {intl.formatMessage({
-                    id: 'pages.datasource.form.env',
-                    defaultMessage: '运行环境',
-                  })}
-                  <Tooltip title="数据源所属的部署环境">
+                  {intl.formatMessage({ id: 'pages.datasource.form.env' })}
+                  <Tooltip
+                    title={intl.formatMessage({
+                      id: 'pages.datasource.form.envTooltip',
+                    })}
+                  >
                     <InfoCircleOutlined className="ml-1 text-[#98a2b3]" />
                   </Tooltip>
                 </span>
               }
               name="environment"
-              rules={[{ required: true, message: '请选择数据源环境' }]}
+              rules={[
+                {
+                  required: true,
+                  message: intl.formatMessage({
+                    id: 'pages.datasource.form.envRequired',
+                  }),
+                },
+              ]}
             >
               <Select
                 variant="filled"
-                placeholder="请选择环境"
-                options={ENV_OPTIONS}
+                placeholder={intl.formatMessage({
+                  id: 'pages.datasource.form.envPlaceholder',
+                })}
+                options={envOptions}
               />
             </Form.Item>
           </div>
@@ -469,16 +510,24 @@ const DynamicDataSourceForm = ({
             className="!mb-0"
             label={intl.formatMessage({
               id: 'pages.datasource.form.description',
-              defaultMessage: '备注',
             })}
             name="remark"
-            rules={[{ max: 500, message: '数据源备注不能超过 500 个字符' }]}
+            rules={[
+              {
+                max: 500,
+                message: intl.formatMessage({
+                  id: 'pages.datasource.form.descriptionMax',
+                }),
+              },
+            ]}
           >
             <Input.TextArea
               variant="filled"
               maxLength={500}
               rows={2}
-              placeholder="请输入数据源备注"
+              placeholder={intl.formatMessage({
+                id: 'pages.datasource.form.descriptionPlaceholder',
+              })}
             />
           </Form.Item>
         </Form>
