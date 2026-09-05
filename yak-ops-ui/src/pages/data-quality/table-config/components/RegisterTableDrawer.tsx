@@ -1,5 +1,6 @@
 import { YakButton, YakEmpty } from '@/components/ui';
 import type { TableCandidateView } from '@/services/data-quality';
+import { useIntl } from '@umijs/max';
 import { Drawer, Input, Pagination, Spin, Table, Tag } from 'antd';
 import { Database, Search, X } from 'lucide-react';
 
@@ -23,10 +24,7 @@ interface RegisterTableDrawerProps {
   onCandidateCurrentChange: (current: number) => void;
   onCandidateKeywordChange: (keyword: string) => void;
   onSelect: (record: TableCandidateView, selected: boolean) => void;
-  onSelectAll: (
-    selected: boolean,
-    changedRows: TableCandidateView[],
-  ) => void;
+  onSelectAll: (selected: boolean, changedRows: TableCandidateView[]) => void;
   onClear: () => void;
 }
 
@@ -49,6 +47,7 @@ const RegisterTableDrawer = ({
   onSelectAll,
   onClear,
 }: RegisterTableDrawerProps) => {
+  const intl = useIntl();
   const selectedCount = selectedCandidates.size;
 
   return (
@@ -63,17 +62,18 @@ const RegisterTableDrawer = ({
       onClose={onClose}
       title={
         <div className="min-w-0 text-[18px] font-semibold leading-7 text-[#101828]">
-          注册数据表
+          {intl.formatMessage({ id: 'pages.dataQuality.tableConfig.registerTable' })}
         </div>
       }
       extra={
         <div className="flex shrink-0 items-center gap-2">
           <div className="mr-2 whitespace-nowrap text-[13px] text-[#667085]">
-            已选择
+            {intl.formatMessage({
+              id: 'pages.dataQuality.tableConfig.drawer.selected',
+            })}
             <span className="mx-1 font-semibold text-[#101828]">
               {selectedCount}
             </span>
-            张
           </div>
 
           <YakButton
@@ -81,7 +81,7 @@ const RegisterTableDrawer = ({
             className="!h-9 !rounded-lg !px-4 !font-medium"
             onClick={onClose}
           >
-            取消
+            {intl.formatMessage({ id: 'pages.dataQuality.common.cancel' })}
           </YakButton>
 
           <YakButton
@@ -91,7 +91,9 @@ const RegisterTableDrawer = ({
             className="!h-9 !rounded-lg !px-5 !font-medium"
             onClick={onRegister}
           >
-            注册所选数据表
+            {intl.formatMessage({
+              id: 'pages.dataQuality.tableConfig.drawer.registerSelected',
+            })}
           </YakButton>
         </div>
       }
@@ -110,10 +112,15 @@ const RegisterTableDrawer = ({
         <div className="flex min-w-0 flex-col border-r border-[#e8e9ec] p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-semibold text-[#161823]">
-              可注册的数据表
+              {intl.formatMessage({
+                id: 'pages.dataQuality.tableConfig.drawer.available',
+              })}
             </div>
             <span className="text-xs text-[#8a8f99]">
-              共 {candidateTotal} 张
+              {intl.formatMessage(
+                { id: 'pages.dataQuality.tableConfig.drawer.availableTotal' },
+                { count: candidateTotal },
+              )}
             </span>
           </div>
 
@@ -122,11 +129,11 @@ const RegisterTableDrawer = ({
             variant="filled"
             value={candidateKeyword}
             prefix={<Search size={14} className="text-[#98a2b3]" />}
-            placeholder="搜索表名或描述"
+            placeholder={intl.formatMessage({
+              id: 'pages.dataQuality.tableConfig.drawer.search',
+            })}
             className="mb-3"
-            onChange={(event) =>
-              onCandidateKeywordChange(event.target.value)
-            }
+            onChange={(event) => onCandidateKeywordChange(event.target.value)}
           />
 
           <div className="min-h-0 flex-1 overflow-hidden">
@@ -150,14 +157,20 @@ const RegisterTableDrawer = ({
                   emptyText: (
                     <YakEmpty
                       compact
-                      title="没有可注册的数据表"
-                      description="已注册的数据表不会重复出现在候选列表"
+                      title={intl.formatMessage({
+                        id: 'pages.dataQuality.tableConfig.drawer.empty',
+                      })}
+                      description={intl.formatMessage({
+                        id: 'pages.dataQuality.tableConfig.drawer.emptyDesc',
+                      })}
                     />
                   ),
                 }}
                 columns={[
                   {
-                    title: '表名 / 描述 / 路径',
+                    title: intl.formatMessage({
+                      id: 'pages.dataQuality.tableConfig.column.table',
+                    }),
                     dataIndex: 'tableName',
                     render: (_, record) => (
                       <div className="min-w-0 py-1">
@@ -170,12 +183,10 @@ const RegisterTableDrawer = ({
                           </div>
                         ) : null}
                         <div className="mt-1 truncate text-[11px] text-[#98a2b3]">
-                          路径：
-                          {[
-                            record.databaseName,
-                            record.schemaName,
-                            record.tableName,
-                          ]
+                          {intl.formatMessage({
+                            id: 'pages.dataQuality.tableConfig.drawer.path',
+                          })}{' '}
+                          {[record.databaseName, record.schemaName, record.tableName]
                             .filter(Boolean)
                             .join(' / ')}
                         </div>
@@ -183,7 +194,9 @@ const RegisterTableDrawer = ({
                     ),
                   },
                   {
-                    title: '表类型',
+                    title: intl.formatMessage({
+                      id: 'pages.dataQuality.tableConfig.drawer.tableType',
+                    }),
                     dataIndex: 'tableType',
                     width: 100,
                     render: (value) => (
@@ -214,7 +227,9 @@ const RegisterTableDrawer = ({
         <div className="flex min-w-0 flex-col bg-[#fafafa] p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-semibold text-[#161823]">
-              已选择的数据表
+              {intl.formatMessage({
+                id: 'pages.dataQuality.tableConfig.drawer.selectedTables',
+              })}
             </div>
 
             {selectedCount ? (
@@ -225,7 +240,9 @@ const RegisterTableDrawer = ({
                 className="!px-0"
                 onClick={onClear}
               >
-                清空
+                {intl.formatMessage({
+                  id: 'pages.dataQuality.tableConfig.drawer.clear',
+                })}
               </YakButton>
             ) : null}
           </div>
@@ -248,11 +265,7 @@ const RegisterTableDrawer = ({
                         {record.tableName}
                       </div>
                       <div className="mt-0.5 truncate text-xs text-[#98a2b3]">
-                        {[
-                          record.databaseName,
-                          record.schemaName,
-                          record.tableName,
-                        ]
+                        {[record.databaseName, record.schemaName, record.tableName]
                           .filter(Boolean)
                           .join(' / ')}
                       </div>
@@ -263,7 +276,10 @@ const RegisterTableDrawer = ({
                       size="small"
                       iconOnly
                       disabled={registering}
-                      title={`移除 ${record.tableName}`}
+                      title={intl.formatMessage(
+                        { id: 'pages.dataQuality.tableConfig.drawer.remove' },
+                        { name: record.tableName },
+                      )}
                       icon={<X size={14} />}
                       onClick={() => onSelect(record, false)}
                     />
@@ -272,7 +288,12 @@ const RegisterTableDrawer = ({
               </div>
             ) : (
               <div className="flex h-full items-center justify-center">
-                <YakEmpty compact title="尚未选择数据表" />
+                <YakEmpty
+                  compact
+                  title={intl.formatMessage({
+                    id: 'pages.dataQuality.tableConfig.drawer.noneSelected',
+                  })}
+                />
               </div>
             )}
           </div>

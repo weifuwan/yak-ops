@@ -1,20 +1,21 @@
 import YakButton from '@/components/YakButton';
 import YakOpsEmpty from '@/components/YakOpsEmpty';
-import { Table, Tag } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import dayjs from "dayjs";
-import { useMemo, type MouseEvent } from "react";
+import { useIntl } from '@umijs/max';
+import { Table, Tag } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
+import { useMemo, type MouseEvent } from 'react';
 import {
   CheckResultTag,
   ExecutionStatusTag,
-} from "../../components/QualityStatus";
-import { dataQualityTableClassName } from "../../components/tableStyle";
+} from '../../components/QualityStatus';
+import { formatQualityDimension } from '../../i18n';
 import type {
   ExecutionWorkspaceListItem,
   RuleExecutionWorkspaceListItem,
-} from "../types";
+} from '../types';
 
-export type ExecutionViewMode = "EXECUTION" | "RULE";
+export type ExecutionViewMode = 'EXECUTION' | 'RULE';
 
 interface Props {
   executionRecords: ExecutionWorkspaceListItem[];
@@ -26,16 +27,35 @@ interface Props {
 }
 
 const formatTime = (value?: string) =>
-  value ? dayjs(value).format("YYYY-MM-DD HH:mm:ss") : "--";
-
-const triggerLabel = (value: ExecutionWorkspaceListItem["triggerType"]) =>
-  value === "SCHEDULE" ? "调度触发" : "手动触发";
-
-const scopeLabel = (value: RuleExecutionWorkspaceListItem["scope"]) =>
-  value === "TABLE" ? "表级" : "字段级";
+  value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '--';
 
 const issueCount = (record: ExecutionWorkspaceListItem) =>
   record.failedRules + record.errorRules;
+
+const TABLE_CLASS_NAME = [
+  'compact-sync-task-table',
+  '[&_.ant-table]:!text-[13px]',
+  '[&_.ant-table-container]:!border-[#eaecf0]',
+  '[&_.ant-table-cell]:!align-middle',
+  '[&_.ant-table-thead>tr>th]:!h-10',
+  '[&_.ant-table-thead>tr>th]:!bg-[#f8f9fb]',
+  '[&_.ant-table-thead>tr>th]:!px-4',
+  '[&_.ant-table-thead>tr>th]:!py-2',
+  '[&_.ant-table-thead>tr>th]:!text-[12px]',
+  '[&_.ant-table-thead>tr>th]:!font-medium',
+  '[&_.ant-table-thead>tr>th]:!text-[#667085]',
+  '[&_.ant-table-thead>tr>th]:!border-[#eaecf0]',
+  '[&_.ant-table-tbody>tr>td]:!px-4',
+  '[&_.ant-table-tbody>tr>td]:!py-2.5',
+  '[&_.ant-table-tbody>tr>td]:!border-[#f0f2f5]',
+  '[&_.ant-table-tbody>tr>td]:!text-[#667085]',
+  '[&_.ant-table-tbody>tr:hover>td]:!bg-[#fafbfc]',
+  '[&_.ant-table-cell-fix-right]:!bg-white',
+  '[&_.ant-table-tbody>tr:hover_.ant-table-cell-fix-right]:!bg-[#fafbfc]',
+  '[&_.ant-checkbox-inner]:!h-4',
+  '[&_.ant-checkbox-inner]:!w-4',
+  '[&_.ant-table-placeholder>td]:!h-[240px]',
+].join(' ');
 
 const ExecutionRecordTable = ({
   executionRecords,
@@ -45,12 +65,30 @@ const ExecutionRecordTable = ({
   onOpenExecution,
   onOpenMonitor,
 }: Props) => {
+  const intl = useIntl();
+  const triggerLabel = (value: ExecutionWorkspaceListItem['triggerType']) =>
+    intl.formatMessage({
+      id:
+        value === 'SCHEDULE'
+          ? 'pages.dataQuality.common.trigger.schedule'
+          : 'pages.dataQuality.common.trigger.manual',
+    });
+  const scopeLabel = (value: RuleExecutionWorkspaceListItem['scope']) =>
+    intl.formatMessage({
+      id:
+        value === 'TABLE'
+          ? 'pages.dataQuality.common.scope.table'
+          : 'pages.dataQuality.common.scope.column',
+    });
+
   const executionColumns = useMemo<ColumnsType<ExecutionWorkspaceListItem>>(
     () => [
       {
-        title: "ID / 监控名称",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.execution',
+        }),
         width: 270,
-        fixed: "left",
+        fixed: 'left',
         render: (_, record) => (
           <div className="min-w-0 py-0.5">
             <div className="truncate text-[11px] text-[#98a2b3]">
@@ -71,7 +109,9 @@ const ExecutionRecordTable = ({
         ),
       },
       {
-        title: "数据对象",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.object',
+        }),
         width: 250,
         render: (_, record) => (
           <div className="min-w-0 py-0.5">
@@ -79,25 +119,34 @@ const ExecutionRecordTable = ({
               {record.objectName}
             </div>
             <div className="mt-1 truncate text-[11px] text-[#98a2b3]">
-              数据源：{record.dataSourceName}
+              {intl.formatMessage(
+                { id: 'pages.dataQuality.execution.sourcePrefix' },
+                { name: record.dataSourceName },
+              )}
             </div>
           </div>
         ),
       },
       {
-        title: "校验状态",
-        dataIndex: "executionStatus",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.status',
+        }),
+        dataIndex: 'executionStatus',
         width: 110,
         render: (value) => <ExecutionStatusTag value={value} />,
       },
       {
-        title: "质量结果",
-        dataIndex: "checkResult",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.result',
+        }),
+        dataIndex: 'checkResult',
         width: 110,
         render: (value) => <CheckResultTag value={value} />,
       },
       {
-        title: "问题数量",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.issueCount',
+        }),
         width: 100,
         render: (_, record) =>
           issueCount(record) > 0 ? (
@@ -109,24 +158,48 @@ const ExecutionRecordTable = ({
           ),
       },
       {
-        title: "规则概况",
-        width: 230,
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.ruleSummary',
+        }),
+        width: 260,
         render: (_, record) => (
           <div className="flex items-center gap-3 text-xs">
-            <span className="text-[#667085]">共 {record.totalRules}</span>
-            <span className="text-[#245bdb]">通过 {record.passedRules}</span>
-            <span className="text-[#d92d20]">未通过 {record.failedRules}</span>
-            <span className="text-[#b54708]">异常 {record.errorRules}</span>
+            <span className="text-[#667085]">
+              {intl.formatMessage(
+                { id: 'pages.dataQuality.execution.summary.total' },
+                { count: record.totalRules },
+              )}
+            </span>
+            <span className="text-[#245bdb]">
+              {intl.formatMessage(
+                { id: 'pages.dataQuality.execution.summary.passed' },
+                { count: record.passedRules },
+              )}
+            </span>
+            <span className="text-[#d92d20]">
+              {intl.formatMessage(
+                { id: 'pages.dataQuality.execution.summary.failed' },
+                { count: record.failedRules },
+              )}
+            </span>
+            <span className="text-[#b54708]">
+              {intl.formatMessage(
+                { id: 'pages.dataQuality.execution.summary.error' },
+                { count: record.errorRules },
+              )}
+            </span>
           </div>
         ),
       },
       {
-        title: "触发信息",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.trigger',
+        }),
         width: 200,
         render: (_, record) => (
           <div className="space-y-1 text-xs">
             <div className="text-[#344054]">
-              {triggerLabel(record.triggerType)} · {record.operator || "system"}
+              {triggerLabel(record.triggerType)} · {record.operator || 'system'}
             </div>
             <div className="text-[#98a2b3]">
               {formatTime(record.startedAt || record.queuedAt)}
@@ -135,15 +208,19 @@ const ExecutionRecordTable = ({
         ),
       },
       {
-        title: "结束时间",
-        dataIndex: "finishedAt",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.finishedAt',
+        }),
+        dataIndex: 'finishedAt',
         width: 170,
         render: formatTime,
       },
       {
-        title: "操作",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.actions',
+        }),
         width: 120,
-        fixed: "right",
+        fixed: 'right',
         render: (_, record) => (
           <div className="flex items-center">
             <YakButton
@@ -155,7 +232,7 @@ const ExecutionRecordTable = ({
                 onOpenExecution(record.executionNo);
               }}
             >
-              详情
+              {intl.formatMessage({ id: 'pages.dataQuality.common.details' })}
             </YakButton>
             <YakButton
               type="text"
@@ -166,21 +243,21 @@ const ExecutionRecordTable = ({
                 onOpenMonitor(record.monitorId);
               }}
             >
-              规则
+              {intl.formatMessage({ id: 'pages.dataQuality.common.rules' })}
             </YakButton>
           </div>
         ),
       },
     ],
-    [onOpenExecution, onOpenMonitor]
+    [intl, onOpenExecution, onOpenMonitor],
   );
 
   const ruleColumns = useMemo<ColumnsType<RuleExecutionWorkspaceListItem>>(
     () => [
       {
-        title: "ID / 规则名称",
+        title: intl.formatMessage({ id: 'pages.dataQuality.execution.column.rule' }),
         width: 270,
-        fixed: "left",
+        fixed: 'left',
         render: (_, record) => (
           <div className="min-w-0 py-0.5">
             <div className="truncate text-[11px] text-[#98a2b3]">
@@ -201,34 +278,47 @@ const ExecutionRecordTable = ({
         ),
       },
       {
-        title: "质量维度",
-        dataIndex: "dimension",
-        width: 110,
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.dimension',
+        }),
+        dataIndex: 'dimension',
+        width: 125,
+        render: (value: string) => formatQualityDimension(intl, value),
       },
       {
-        title: "校验状态",
-        dataIndex: "executionStatus",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.status',
+        }),
+        dataIndex: 'executionStatus',
         width: 110,
         render: (value) => <ExecutionStatusTag value={value} />,
       },
       {
-        title: "问题处置",
-        width: 110,
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.issueHandling',
+        }),
+        width: 120,
         render: (_, record) =>
-          ["NOT_PASSED", "ERROR"].includes(record.checkResult) ? (
-            <span className="text-[#d92d20]">存在问题</span>
+          ['NOT_PASSED', 'ERROR'].includes(record.checkResult) ? (
+            <span className="text-[#d92d20]">
+              {intl.formatMessage({ id: 'pages.dataQuality.execution.issueExists' })}
+            </span>
           ) : (
             <span className="text-[#98a2b3]">-</span>
           ),
       },
       {
-        title: "结束时间",
-        dataIndex: "finishedAt",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.finishedAt',
+        }),
+        dataIndex: 'finishedAt',
         width: 170,
         render: formatTime,
       },
       {
-        title: "表名",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.tableName',
+        }),
         width: 180,
         render: (_, record) => (
           <div className="min-w-0">
@@ -240,8 +330,8 @@ const ExecutionRecordTable = ({
         ),
       },
       {
-        title: "关联范围",
-        dataIndex: "scope",
+        title: intl.formatMessage({ id: 'pages.dataQuality.execution.column.scope' }),
+        dataIndex: 'scope',
         width: 110,
         render: (value) => (
           <Tag className="!m-0 !border-0 !bg-[#fff0f3] !text-[#fe2c55]">
@@ -250,37 +340,49 @@ const ExecutionRecordTable = ({
         ),
       },
       {
-        title: "规则模板",
-        dataIndex: "templateCode",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.template',
+        }),
+        dataIndex: 'templateCode',
         width: 170,
       },
       {
-        title: "重要程度",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.importance',
+        }),
         width: 110,
         render: () => <span className="text-[#98a2b3]">--</span>,
       },
       {
-        title: "监控阈值",
-        dataIndex: "expectedValue",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.expected',
+        }),
+        dataIndex: 'expectedValue',
         width: 180,
-        render: (value) => value || "--",
+        render: (value) => value || '--',
       },
       {
-        title: "监控值",
-        dataIndex: "metricValue",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.metric',
+        }),
+        dataIndex: 'metricValue',
         width: 150,
-        render: (value) => value || "--",
+        render: (value) => value || '--',
       },
       {
-        title: "质量结果",
-        dataIndex: "checkResult",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.result',
+        }),
+        dataIndex: 'checkResult',
         width: 110,
         render: (value) => <CheckResultTag value={value} />,
       },
       {
-        title: "操作",
+        title: intl.formatMessage({
+          id: 'pages.dataQuality.execution.column.actions',
+        }),
         width: 120,
-        fixed: "right",
+        fixed: 'right',
         render: (_, record) => (
           <div className="flex items-center">
             <YakButton
@@ -292,7 +394,7 @@ const ExecutionRecordTable = ({
                 onOpenExecution(record.executionNo);
               }}
             >
-              详情
+              {intl.formatMessage({ id: 'pages.dataQuality.common.details' })}
             </YakButton>
             <YakButton
               type="text"
@@ -303,13 +405,13 @@ const ExecutionRecordTable = ({
                 onOpenMonitor(record.monitorId);
               }}
             >
-              规则
+              {intl.formatMessage({ id: 'pages.dataQuality.common.rules' })}
             </YakButton>
           </div>
         ),
       },
     ],
-    [onOpenExecution, onOpenMonitor]
+    [intl, onOpenExecution, onOpenMonitor],
   );
 
   const emptyText = (
@@ -317,16 +419,15 @@ const ExecutionRecordTable = ({
       <YakOpsEmpty
         width={176}
         height={120}
-        title="暂无运行记录"
-        description="当前筛选条件下暂无数据质量运行记录"
+        title={intl.formatMessage({ id: 'pages.dataQuality.execution.empty' })}
+        description={intl.formatMessage({
+          id: 'pages.dataQuality.execution.emptyDesc',
+        })}
       />
     </div>
   );
-  const tableClassName = dataQualityTableClassName(
-    "[&_.ant-table-container]:!rounded-none [&_.ant-table-container]:!border-x-0"
-  );
 
-  if (mode === "RULE") {
+  if (mode === 'RULE') {
     return (
       <Table<RuleExecutionWorkspaceListItem>
         rowKey={(record) => `${record.executionNo}-${record.id}`}
@@ -338,45 +439,10 @@ const ExecutionRecordTable = ({
         dataSource={ruleRecords}
         columns={ruleColumns}
         locale={{ emptyText }}
-        className={[
-          "compact-sync-task-table",
-
-          // 表格整体
-          "[&_.ant-table]:!text-[13px]",
-          "[&_.ant-table-container]:!border-[#eaecf0]",
-          "[&_.ant-table-cell]:!align-middle",
-
-          // 表头
-          "[&_.ant-table-thead>tr>th]:!h-10",
-          "[&_.ant-table-thead>tr>th]:!bg-[#f8f9fb]",
-          "[&_.ant-table-thead>tr>th]:!px-4",
-          "[&_.ant-table-thead>tr>th]:!py-2",
-          "[&_.ant-table-thead>tr>th]:!text-[12px]",
-          "[&_.ant-table-thead>tr>th]:!font-medium",
-          "[&_.ant-table-thead>tr>th]:!text-[#667085]",
-          "[&_.ant-table-thead>tr>th]:!border-[#eaecf0]",
-
-          // 表体
-          "[&_.ant-table-tbody>tr>td]:!px-4",
-          "[&_.ant-table-tbody>tr>td]:!py-2.5",
-          "[&_.ant-table-tbody>tr>td]:!border-[#f0f2f5]",
-          "[&_.ant-table-tbody>tr>td]:!text-[#667085]",
-          "[&_.ant-table-tbody>tr:hover>td]:!bg-[#fafbfc]",
-
-          // 固定操作列
-          "[&_.ant-table-cell-fix-right]:!bg-white",
-          "[&_.ant-table-tbody>tr:hover_.ant-table-cell-fix-right]:!bg-[#fafbfc]",
-
-          // 复选框
-          "[&_.ant-checkbox-inner]:!h-4",
-          "[&_.ant-checkbox-inner]:!w-4",
-
-          // 空状态
-          "[&_.ant-table-placeholder>td]:!h-[240px]",
-        ].join(" ")}
+        className={TABLE_CLASS_NAME}
         onRow={(record) => ({
           onClick: () => onOpenExecution(record.executionNo),
-          className: "cursor-pointer",
+          className: 'cursor-pointer',
         })}
       />
     );
@@ -389,49 +455,14 @@ const ExecutionRecordTable = ({
       bordered
       loading={loading}
       pagination={false}
-      className={[
-        "compact-sync-task-table",
-
-        // 表格整体
-        "[&_.ant-table]:!text-[13px]",
-        "[&_.ant-table-container]:!border-[#eaecf0]",
-        "[&_.ant-table-cell]:!align-middle",
-
-        // 表头
-        "[&_.ant-table-thead>tr>th]:!h-10",
-        "[&_.ant-table-thead>tr>th]:!bg-[#f8f9fb]",
-        "[&_.ant-table-thead>tr>th]:!px-4",
-        "[&_.ant-table-thead>tr>th]:!py-2",
-        "[&_.ant-table-thead>tr>th]:!text-[12px]",
-        "[&_.ant-table-thead>tr>th]:!font-medium",
-        "[&_.ant-table-thead>tr>th]:!text-[#667085]",
-        "[&_.ant-table-thead>tr>th]:!border-[#eaecf0]",
-
-        // 表体
-        "[&_.ant-table-tbody>tr>td]:!px-4",
-        "[&_.ant-table-tbody>tr>td]:!py-2.5",
-        "[&_.ant-table-tbody>tr>td]:!border-[#f0f2f5]",
-        "[&_.ant-table-tbody>tr>td]:!text-[#667085]",
-        "[&_.ant-table-tbody>tr:hover>td]:!bg-[#fafbfc]",
-
-        // 固定操作列
-        "[&_.ant-table-cell-fix-right]:!bg-white",
-        "[&_.ant-table-tbody>tr:hover_.ant-table-cell-fix-right]:!bg-[#fafbfc]",
-
-        // 复选框
-        "[&_.ant-checkbox-inner]:!h-4",
-        "[&_.ant-checkbox-inner]:!w-4",
-
-        // 空状态
-        "[&_.ant-table-placeholder>td]:!h-[240px]",
-      ].join(" ")}
+      className={TABLE_CLASS_NAME}
       scroll={{ x: 1460 }}
       dataSource={executionRecords}
       columns={executionColumns}
       locale={{ emptyText }}
       onRow={(record) => ({
         onClick: () => onOpenExecution(record.executionNo),
-        className: "cursor-pointer",
+        className: 'cursor-pointer',
       })}
     />
   );

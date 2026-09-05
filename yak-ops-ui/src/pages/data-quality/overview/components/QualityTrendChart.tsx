@@ -3,9 +3,11 @@ import type {
   QualityOverviewTrendPoint,
   QualityOverviewView,
 } from '@/services/data-quality';
+import { useIntl } from '@umijs/max';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
 import { useMemo } from 'react';
+import { formatQualityDimension } from '../../i18n';
 import type { OverviewSectionKind } from '../utils';
 import { formatCount } from '../utils';
 
@@ -21,96 +23,149 @@ interface SeriesDefinition {
   value: (point: QualityOverviewTrendPoint) => number;
 }
 
-const seriesFor = (
-  section: OverviewSectionKind,
-  tabKey: string,
-): SeriesDefinition[] => {
-  if (section === 'issue') {
-    return [
-      { label: '未通过规则', color: '#fe2c55', value: (point) => point.failedRuleCount },
-      { label: '异常规则', color: '#f59e0b', value: (point) => point.errorRuleCount },
-    ];
-  }
-  if (tabKey === 'monitor') {
-    return [
-      { label: '活跃监控', color: '#4f7cff', value: (point) => point.activeMonitorCount },
-      { label: '问题执行', color: '#fe2c55', value: (point) => point.issueExecutionCount },
-    ];
-  }
-  if (tabKey === 'rule') {
-    return [
-      { label: '通过规则', color: '#4f7cff', value: (point) => point.passedRuleCount },
-      {
-        label: '问题规则',
-        color: '#fe2c55',
-        value: (point) => point.failedRuleCount + point.errorRuleCount,
-      },
-    ];
-  }
-  return [
-    { label: '执行次数', color: '#4f7cff', value: (point) => point.executionCount },
-    { label: '问题执行', color: '#fe2c55', value: (point) => point.issueExecutionCount },
-  ];
-};
-
-const DimensionBars = ({ overview }: { overview?: QualityOverviewView }) => {
-  const rows = (overview?.dimensions ?? []).filter((item) => item.issues > 0);
-  const max = Math.max(1, ...rows.map((item) => item.issues));
-  if (!rows.length) {
-    return (
-      <div className="flex min-h-[320px] items-center justify-center">
-        <YakOpsEmpty
-          width={180}
-          height={124}
-          title="暂无维度问题分布"
-          description="统计周期内出现质量问题后，这里会展示各质量维度的问题贡献"
-        />
-      </div>
-    );
-  }
-  return (
-    <div className="mx-auto w-full max-w-[920px] space-y-4 px-6 py-8">
-      {rows.map((item) => (
-        <div key={item.dimension} className="grid grid-cols-[90px_minmax(0,1fr)_70px] items-center gap-3">
-          <span className="truncate text-[12px] text-[#667085]">{item.dimension}</span>
-          <div className="h-3 overflow-hidden rounded-full bg-[#f0f2f5]">
-            <div
-              className="h-full rounded-full bg-[#4f7cff] transition-[width] duration-300"
-              style={{ width: `${Math.max(4, (item.issues / max) * 100)}%` }}
-            />
-          </div>
-          <span className="text-right text-[12px] font-medium text-[#30343b]">
-            {formatCount(item.issues)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
 export default function QualityTrendChart({
   overview,
   section,
   tabKey,
 }: QualityTrendChartProps) {
+  const intl = useIntl();
   const trend = overview?.trend ?? [];
-  const series = useMemo(() => seriesFor(section, tabKey), [section, tabKey]);
+  const series = useMemo<SeriesDefinition[]>(() => {
+    if (section === 'issue') {
+      return [
+        {
+          label: intl.formatMessage({
+            id: 'pages.dataQuality.overview.series.failedRules',
+          }),
+          color: '#fe2c55',
+          value: (point) => point.failedRuleCount,
+        },
+        {
+          label: intl.formatMessage({
+            id: 'pages.dataQuality.overview.series.errorRules',
+          }),
+          color: '#f59e0b',
+          value: (point) => point.errorRuleCount,
+        },
+      ];
+    }
+    if (tabKey === 'monitor') {
+      return [
+        {
+          label: intl.formatMessage({
+            id: 'pages.dataQuality.overview.series.activeMonitors',
+          }),
+          color: '#4f7cff',
+          value: (point) => point.activeMonitorCount,
+        },
+        {
+          label: intl.formatMessage({
+            id: 'pages.dataQuality.overview.series.issueExecutions',
+          }),
+          color: '#fe2c55',
+          value: (point) => point.issueExecutionCount,
+        },
+      ];
+    }
+    if (tabKey === 'rule') {
+      return [
+        {
+          label: intl.formatMessage({
+            id: 'pages.dataQuality.overview.series.passedRules',
+          }),
+          color: '#4f7cff',
+          value: (point) => point.passedRuleCount,
+        },
+        {
+          label: intl.formatMessage({
+            id: 'pages.dataQuality.overview.series.issueRules',
+          }),
+          color: '#fe2c55',
+          value: (point) => point.failedRuleCount + point.errorRuleCount,
+        },
+      ];
+    }
+    return [
+      {
+        label: intl.formatMessage({
+          id: 'pages.dataQuality.overview.series.executionCount',
+        }),
+        color: '#4f7cff',
+        value: (point) => point.executionCount,
+      },
+      {
+        label: intl.formatMessage({
+          id: 'pages.dataQuality.overview.series.issueExecutions',
+        }),
+        color: '#fe2c55',
+        value: (point) => point.issueExecutionCount,
+      },
+    ];
+  }, [intl, section, tabKey]);
 
   if (section === 'issue' && tabKey === 'dimension') {
-    return <DimensionBars overview={overview} />;
+    const rows = (overview?.dimensions ?? []).filter((item) => item.issues > 0);
+    const max = Math.max(1, ...rows.map((item) => item.issues));
+    if (!rows.length) {
+      return (
+        <div className="flex min-h-[320px] items-center justify-center">
+          <YakOpsEmpty
+            width={180}
+            height={124}
+            title={intl.formatMessage({
+              id: 'pages.dataQuality.overview.empty.dimensionTitle',
+            })}
+            description={intl.formatMessage({
+              id: 'pages.dataQuality.overview.empty.dimensionDesc',
+            })}
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="mx-auto w-full max-w-[920px] space-y-4 px-6 py-8">
+        {rows.map((item) => (
+          <div
+            key={item.dimension}
+            className="grid grid-cols-[90px_minmax(0,1fr)_70px] items-center gap-3"
+          >
+            <span className="truncate text-[12px] text-[#667085]">
+              {formatQualityDimension(intl, item.dimension)}
+            </span>
+            <div className="h-3 overflow-hidden rounded-full bg-[#f0f2f5]">
+              <div
+                className="h-full rounded-full bg-[#4f7cff] transition-[width] duration-300"
+                style={{ width: `${Math.max(4, (item.issues / max) * 100)}%` }}
+              />
+            </div>
+            <span className="text-right text-[12px] font-medium text-[#30343b]">
+              {formatCount(item.issues)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
   }
 
-  const values = trend.flatMap((point) => series.map((item) => item.value(point)));
+  const values = trend.flatMap((point) =>
+    series.map((item) => item.value(point)),
+  );
   const hasData = values.some((value) => value > 0);
   if (!trend.length || !hasData) {
-    const emptyTitle = section === 'issue' ? '暂无问题趋势数据' : '暂无质量趋势数据';
     return (
       <div className="flex min-h-[320px] items-center justify-center">
         <YakOpsEmpty
           width={180}
           height={124}
-          title={emptyTitle}
-          description="当前统计周期没有可绘制的数据，切换时间范围后可重新查询"
+          title={intl.formatMessage({
+            id:
+              section === 'issue'
+                ? 'pages.dataQuality.overview.empty.issueTrend'
+                : 'pages.dataQuality.overview.empty.qualityTrend',
+          })}
+          description={intl.formatMessage({
+            id: 'pages.dataQuality.overview.empty.trendDesc',
+          })}
         />
       </div>
     );
@@ -146,7 +201,8 @@ export default function QualityTrendChart({
         color: '#30343b',
         fontSize: 12,
       },
-      extraCssText: 'box-shadow:0 6px 18px rgba(16,24,40,.08);border-radius:8px;',
+      extraCssText:
+        'box-shadow:0 6px 18px rgba(16,24,40,.08);border-radius:8px;',
       axisPointer: {
         type: 'line',
         lineStyle: {

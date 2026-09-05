@@ -1,38 +1,62 @@
-import { Tag } from "antd";
-import type { CheckResult, ExecutionStatus } from "../types";
+import { useIntl } from '@umijs/max';
+import { Tag } from 'antd';
+import type { CheckResult, ExecutionStatus } from '../types';
 
-const CHECK_META: Record<CheckResult, { label: string; color?: string }> = {
-  PASSED: { label: "通过", color: "success" },
-  NOT_PASSED: { label: "未通过", color: "error" },
-  ERROR: { label: "异常", color: "error" },
-  RUNNING: { label: "运行中", color: "processing" },
-  NOT_RUN: { label: "未运行" },
+const CHECK_META: Record<CheckResult, { messageId: string; color?: string }> = {
+  PASSED: {
+    messageId: 'pages.dataQuality.common.status.passed',
+    color: 'success',
+  },
+  NOT_PASSED: {
+    messageId: 'pages.dataQuality.common.status.notPassed',
+    color: 'error',
+  },
+  ERROR: {
+    messageId: 'pages.dataQuality.common.status.error',
+    color: 'error',
+  },
+  RUNNING: {
+    messageId: 'pages.dataQuality.common.status.running',
+    color: 'processing',
+  },
+  NOT_RUN: { messageId: 'pages.dataQuality.common.status.notRun' },
 };
 
 const EXECUTION_META: Record<
   ExecutionStatus,
-  { label: string; color?: string }
+  { messageId: string; color?: string }
 > = {
-  WAITING: { label: "等待中" },
-  RUNNING: { label: "运行中", color: "processing" },
-  SUCCESS: { label: "已完成", color: "success" },
-  FAILED: { label: "执行失败", color: "error" },
+  WAITING: { messageId: 'pages.dataQuality.common.status.waiting' },
+  RUNNING: {
+    messageId: 'pages.dataQuality.common.status.running',
+    color: 'processing',
+  },
+  SUCCESS: {
+    messageId: 'pages.dataQuality.common.status.success',
+    color: 'success',
+  },
+  FAILED: {
+    messageId: 'pages.dataQuality.common.status.failed',
+    color: 'error',
+  },
 };
 
 export const CheckResultTag = ({ value }: { value?: CheckResult }) => {
-  const meta = CHECK_META[value ?? "NOT_RUN"];
+  const intl = useIntl();
+  const meta = CHECK_META[value ?? 'NOT_RUN'];
   return (
     <Tag color={meta.color} className="!m-0 !border-0 !text-[11px]">
-      {meta.label}
+      {intl.formatMessage({ id: meta.messageId })}
     </Tag>
   );
 };
 
 export const ExecutionStatusTag = ({ value }: { value: ExecutionStatus }) => {
+  const intl = useIntl();
   const meta = EXECUTION_META[value];
   return (
     <Tag className="!m-0 !border-0 !bg-[#f2f4f7] !text-[11px] !text-[#667085]">
-      {meta.label}
+      {intl.formatMessage({ id: meta.messageId })}
     </Tag>
   );
 };

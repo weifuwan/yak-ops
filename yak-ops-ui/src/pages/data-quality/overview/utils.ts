@@ -4,6 +4,8 @@ import type {
 } from '@/services/data-quality';
 import dayjs, { type Dayjs } from 'dayjs';
 
+import type { DataQualityIntl } from '../i18n';
+
 export type OverviewPeriodKey = 'yesterday' | '7d' | '30d';
 export type OverviewSectionKind = 'quality' | 'issue';
 
@@ -17,6 +19,12 @@ export interface OverviewMetricItem {
   value: string;
   tooltip?: string;
 }
+
+const t = (
+  intl: DataQualityIntl,
+  id: string,
+  values?: Record<string, string | number>,
+) => intl.formatMessage({ id }, values);
 
 export const resolvePresetRange = (
   period: OverviewPeriodKey,
@@ -40,8 +48,14 @@ export const toPickerRange = (range: OverviewDateRange): [Dayjs, Dayjs] => [
 export const formatRangeLabel = (range: OverviewDateRange) =>
   `${dayjs(range.startDate).format('MM.DD')}-${dayjs(range.endDate).format('MM.DD')}`;
 
-export const formatPeriodText = (range: OverviewDateRange) =>
-  `统计周期：${range.startDate} 至 ${range.endDate}`;
+export const formatPeriodText = (
+  range: OverviewDateRange,
+  intl: DataQualityIntl,
+) =>
+  t(intl, 'pages.dataQuality.overview.periodText', {
+    start: range.startDate,
+    end: range.endDate,
+  });
 
 export const formatRate = (value?: number) =>
   value === undefined || value === null ? '--' : `${value.toFixed(1)}%`;
@@ -65,7 +79,8 @@ export const findDimension = (
 export const buildMetrics = (
   section: OverviewSectionKind,
   tabKey: string,
-  overview?: QualityOverviewView,
+  overview: QualityOverviewView | undefined,
+  intl: DataQualityIntl,
 ): OverviewMetricItem[] => {
   const summary = overview?.summary;
   if (section === 'issue') {
@@ -74,41 +89,113 @@ export const buildMetrics = (
       const value = (aliases: string[]) =>
         formatCount(findDimension(dimensions, aliases)?.issues);
       return [
-        { label: '完整性问题', value: value(['完整性']) },
-        { label: '唯一性问题', value: value(['唯一性']) },
-        { label: '有效性问题', value: value(['有效性']) },
-        { label: '准确性问题', value: value(['准确性']) },
-        { label: '时效性问题', value: value(['时效性', '及时性']) },
-        { label: '自定义问题', value: value(['自定义']) },
+        {
+          label: t(
+            intl,
+            'pages.dataQuality.overview.metric.completenessIssues',
+          ),
+          value: value(['完整性']),
+        },
+        {
+          label: t(
+            intl,
+            'pages.dataQuality.overview.metric.uniquenessIssues',
+          ),
+          value: value(['唯一性']),
+        },
+        {
+          label: t(intl, 'pages.dataQuality.overview.metric.validityIssues'),
+          value: value(['有效性']),
+        },
+        {
+          label: t(intl, 'pages.dataQuality.overview.metric.accuracyIssues'),
+          value: value(['准确性']),
+        },
+        {
+          label: t(
+            intl,
+            'pages.dataQuality.overview.metric.timelinessIssues',
+          ),
+          value: value(['时效性', '及时性']),
+        },
+        {
+          label: t(intl, 'pages.dataQuality.overview.metric.customIssues'),
+          value: value(['自定义']),
+        },
       ];
     }
     return [
-      { label: '问题执行', value: formatCount(summary?.issueExecutionCount) },
-      { label: '未通过规则', value: formatCount(summary?.failedRuleCount) },
-      { label: '异常规则', value: formatCount(summary?.errorRuleCount) },
-      { label: '涉及监控', value: formatCount(summary?.affectedMonitorCount) },
-      { label: '涉及数据表', value: formatCount(summary?.affectedTableCount) },
-      { label: '涉及字段', value: formatCount(summary?.affectedColumnCount) },
       {
-        label: '问题率',
-        value: formatRate(summary?.issueRate),
-        tooltip: '未通过规则与异常规则之和 / 已执行规则数',
+        label: t(intl, 'pages.dataQuality.overview.metric.issueExecutions'),
+        value: formatCount(summary?.issueExecutionCount),
       },
-      { label: '问题规则', value: formatCount(summary?.issueRuleCount) },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.failedRules'),
+        value: formatCount(summary?.failedRuleCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.errorRules'),
+        value: formatCount(summary?.errorRuleCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.affectedMonitors'),
+        value: formatCount(summary?.affectedMonitorCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.affectedTables'),
+        value: formatCount(summary?.affectedTableCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.affectedColumns'),
+        value: formatCount(summary?.affectedColumnCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.issueRate'),
+        value: formatRate(summary?.issueRate),
+        tooltip: t(
+          intl,
+          'pages.dataQuality.overview.metric.tooltipIssueRate',
+        ),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.issueRules'),
+        value: formatCount(summary?.issueRuleCount),
+      },
     ];
   }
 
   if (tabKey === 'monitor') {
     return [
-      { label: '活跃监控', value: formatCount(summary?.activeMonitorCount) },
-      { label: '执行次数', value: formatCount(summary?.executionCount) },
-      { label: '问题监控', value: formatCount(summary?.affectedMonitorCount) },
-      { label: '问题执行', value: formatCount(summary?.issueExecutionCount) },
-      { label: '问题数据表', value: formatCount(summary?.affectedTableCount) },
-      { label: '问题字段', value: formatCount(summary?.affectedColumnCount) },
-      { label: '平均耗时', value: formatDuration(summary?.averageDurationMs) },
       {
-        label: '最近运行',
+        label: t(intl, 'pages.dataQuality.overview.metric.activeMonitors'),
+        value: formatCount(summary?.activeMonitorCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.executionCount'),
+        value: formatCount(summary?.executionCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.issueMonitors'),
+        value: formatCount(summary?.affectedMonitorCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.issueExecutions'),
+        value: formatCount(summary?.issueExecutionCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.issueTables'),
+        value: formatCount(summary?.affectedTableCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.issueFields'),
+        value: formatCount(summary?.affectedColumnCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.averageDuration'),
+        value: formatDuration(summary?.averageDurationMs),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.latestRun'),
         value: summary?.latestExecutionAt
           ? dayjs(summary.latestExecutionAt).format('MM-DD HH:mm')
           : '--',
@@ -118,38 +205,86 @@ export const buildMetrics = (
 
   if (tabKey === 'rule') {
     return [
-      { label: '执行规则', value: formatCount(summary?.executedRuleCount) },
-      { label: '通过规则', value: formatCount(summary?.passedRuleCount) },
-      { label: '未通过规则', value: formatCount(summary?.failedRuleCount) },
-      { label: '异常规则', value: formatCount(summary?.errorRuleCount) },
-      { label: '问题规则', value: formatCount(summary?.issueRuleCount) },
       {
-        label: '通过率',
+        label: t(intl, 'pages.dataQuality.overview.metric.executedRules'),
+        value: formatCount(summary?.executedRuleCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.passedRules'),
+        value: formatCount(summary?.passedRuleCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.failedRules'),
+        value: formatCount(summary?.failedRuleCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.errorRules'),
+        value: formatCount(summary?.errorRuleCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.issueRules'),
+        value: formatCount(summary?.issueRuleCount),
+      },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.passRate'),
         value: formatRate(summary?.passRate),
-        tooltip: '通过规则数 / 已执行规则数',
+        tooltip: t(
+          intl,
+          'pages.dataQuality.overview.metric.tooltipPassRate',
+        ),
       },
       {
-        label: '问题率',
+        label: t(intl, 'pages.dataQuality.overview.metric.issueRate'),
         value: formatRate(summary?.issueRate),
-        tooltip: '未通过规则与异常规则之和 / 已执行规则数',
+        tooltip: t(
+          intl,
+          'pages.dataQuality.overview.metric.tooltipIssueRate',
+        ),
       },
-      { label: '活跃监控', value: formatCount(summary?.activeMonitorCount) },
+      {
+        label: t(intl, 'pages.dataQuality.overview.metric.activeMonitors'),
+        value: formatCount(summary?.activeMonitorCount),
+      },
     ];
   }
 
   return [
-    { label: '执行次数', value: formatCount(summary?.executionCount) },
-    { label: '活跃监控', value: formatCount(summary?.activeMonitorCount) },
-    { label: '执行规则', value: formatCount(summary?.executedRuleCount) },
-    { label: '通过规则', value: formatCount(summary?.passedRuleCount) },
-    { label: '未通过规则', value: formatCount(summary?.failedRuleCount) },
-    { label: '异常规则', value: formatCount(summary?.errorRuleCount) },
     {
-      label: '通过率',
-      value: formatRate(summary?.passRate),
-      tooltip: '通过规则数 / 已执行规则数',
+      label: t(intl, 'pages.dataQuality.overview.metric.executionCount'),
+      value: formatCount(summary?.executionCount),
     },
-    { label: '平均耗时', value: formatDuration(summary?.averageDurationMs) },
-    { label: '问题执行', value: formatCount(summary?.issueExecutionCount) },
+    {
+      label: t(intl, 'pages.dataQuality.overview.metric.activeMonitors'),
+      value: formatCount(summary?.activeMonitorCount),
+    },
+    {
+      label: t(intl, 'pages.dataQuality.overview.metric.executedRules'),
+      value: formatCount(summary?.executedRuleCount),
+    },
+    {
+      label: t(intl, 'pages.dataQuality.overview.metric.passedRules'),
+      value: formatCount(summary?.passedRuleCount),
+    },
+    {
+      label: t(intl, 'pages.dataQuality.overview.metric.failedRules'),
+      value: formatCount(summary?.failedRuleCount),
+    },
+    {
+      label: t(intl, 'pages.dataQuality.overview.metric.errorRules'),
+      value: formatCount(summary?.errorRuleCount),
+    },
+    {
+      label: t(intl, 'pages.dataQuality.overview.metric.passRate'),
+      value: formatRate(summary?.passRate),
+      tooltip: t(intl, 'pages.dataQuality.overview.metric.tooltipPassRate'),
+    },
+    {
+      label: t(intl, 'pages.dataQuality.overview.metric.averageDuration'),
+      value: formatDuration(summary?.averageDurationMs),
+    },
+    {
+      label: t(intl, 'pages.dataQuality.overview.metric.issueExecutions'),
+      value: formatCount(summary?.issueExecutionCount),
+    },
   ];
 };

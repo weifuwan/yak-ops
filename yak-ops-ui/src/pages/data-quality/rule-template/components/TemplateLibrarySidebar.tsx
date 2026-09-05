@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Button, Dropdown, Input, Spin } from 'antd';
 import {
   ChevronLeft,
@@ -10,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
+import { formatQualityDimension } from '../../i18n';
 import type { useQualityTemplateLibrary } from '../hooks/useQualityTemplateLibrary';
 
 type TemplateLibraryModel = ReturnType<typeof useQualityTemplateLibrary>;
@@ -21,6 +23,7 @@ interface TemplateLibrarySidebarProps {
 export default function TemplateLibrarySidebar({
   library,
 }: TemplateLibrarySidebarProps) {
+  const intl = useIntl();
   const {
     catalogMeta,
     dimension,
@@ -55,7 +58,7 @@ export default function TemplateLibrarySidebar({
           style={{ width: leftWidth }}
         >
           <div className="mb-2 text-xs font-semibold text-[#161823]">
-            质量维度
+            {intl.formatMessage({ id: 'pages.dataQuality.template.dimensionTitle' })}
           </div>
           <div className="space-y-1">
             {dimensions.map((item) => {
@@ -71,7 +74,9 @@ export default function TemplateLibrarySidebar({
                       : 'bg-transparent text-[#30323b] hover:bg-[#f5f5f6]'
                   }`}
                 >
-                  <span className="truncate">{item.label}</span>
+                  <span className="truncate">
+                    {formatQualityDimension(intl, item.label)}
+                  </span>
                   <span
                     className={`ml-3 min-w-7 rounded-full px-2 text-center text-xs leading-5 ${
                       selected
@@ -89,7 +94,9 @@ export default function TemplateLibrarySidebar({
           <div className="mt-5 border-t border-[#eceef0] pt-4">
             <div className="mb-2 flex items-center justify-between">
               <div className="text-xs font-semibold text-[#161823]">
-                自定义模板类目
+                {intl.formatMessage({
+                  id: 'pages.dataQuality.template.customCategories',
+                })}
               </div>
               <div className="flex items-center gap-0.5">
                 <Button
@@ -114,7 +121,9 @@ export default function TemplateLibrarySidebar({
               value={folderKeyword}
               onChange={(event) => setFolderKeyword(event.target.value)}
               prefix={<Search size={13} className="text-[#98a2b3]" />}
-              placeholder="搜索模板类目"
+              placeholder={intl.formatMessage({
+                id: 'pages.dataQuality.template.searchCategory',
+              })}
               className="mb-2"
             />
             <button
@@ -130,7 +139,9 @@ export default function TemplateLibrarySidebar({
               }`}
             >
               <Folder size={14} />
-              <span className="flex-1">全部</span>
+              <span className="flex-1">
+                {intl.formatMessage({ id: 'pages.dataQuality.template.all' })}
+              </span>
               <span className="text-xs text-[#8a8f99]">
                 {catalogMeta.customTotal}
               </span>
@@ -148,7 +159,11 @@ export default function TemplateLibrarySidebar({
               }`}
             >
               <Folder size={14} />
-              <span className="flex-1">未分类</span>
+              <span className="flex-1">
+                {intl.formatMessage({
+                  id: 'pages.dataQuality.template.uncategorized',
+                })}
+              </span>
             </button>
 
             <Spin spinning={folderLoading} size="small">
@@ -162,13 +177,17 @@ export default function TemplateLibrarySidebar({
                         {
                           key: 'child',
                           icon: <FolderPlus size={14} />,
-                          label: '新建子目录',
+                          label: intl.formatMessage({
+                            id: 'pages.dataQuality.template.newSubfolder',
+                          }),
                           onClick: () => openCreateFolder(folder.id),
                         },
                         {
                           key: 'edit',
                           icon: <Pencil size={14} />,
-                          label: '重命名或移动',
+                          label: intl.formatMessage({
+                            id: 'pages.dataQuality.template.renameMove',
+                          }),
                           onClick: () => openEditFolder(folder),
                         },
                         { type: 'divider' },
@@ -176,7 +195,9 @@ export default function TemplateLibrarySidebar({
                           key: 'delete',
                           danger: true,
                           icon: <Trash2 size={14} />,
-                          label: '删除目录',
+                          label: intl.formatMessage({
+                            id: 'pages.dataQuality.template.deleteFolder',
+                          }),
                           onClick: () => removeFolder(folder),
                         },
                       ],
@@ -208,7 +229,7 @@ export default function TemplateLibrarySidebar({
               </div>
             </Spin>
             <div className="mt-2 text-[11px] leading-5 text-[#98a2b3]">
-              右键目录可新建子目录、重命名、移动或删除。
+              {intl.formatMessage({ id: 'pages.dataQuality.template.folderHint' })}
             </div>
           </div>
         </div>

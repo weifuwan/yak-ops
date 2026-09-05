@@ -1,4 +1,5 @@
 import YakButton from '@/components/YakButton';
+import { useIntl } from '@umijs/max';
 import { DatePicker, Input, Popover, Segmented } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { ListFilter, RefreshCw, Search } from 'lucide-react';
@@ -44,14 +45,25 @@ export default function ExecutionToolbar({
   onReset,
   onRefresh,
 }: ExecutionToolbarProps) {
+  const intl = useIntl();
   return (
     <div className="shrink-0 border-b border-[#eceef0] pb-2">
       <div className="flex min-w-0 flex-nowrap items-center gap-3 overflow-x-auto">
         <Segmented<ExecutionViewMode>
           value={viewMode}
           options={[
-            { label: '规则视角', value: 'RULE' },
-            { label: '监控视角', value: 'EXECUTION' },
+            {
+              label: intl.formatMessage({
+                id: 'pages.dataQuality.execution.view.rule',
+              }),
+              value: 'RULE',
+            },
+            {
+              label: intl.formatMessage({
+                id: 'pages.dataQuality.execution.view.monitor',
+              }),
+              value: 'EXECUTION',
+            },
           ]}
           onChange={onViewModeChange}
           className="shrink-0"
@@ -65,7 +77,9 @@ export default function ExecutionToolbar({
             onChange={(event) => onKeywordDraftChange(event.target.value)}
             onPressEnter={onSearch}
             prefix={<Search size={14} className="text-[#98a2b3]" />}
-            placeholder="搜索规则或监控名称"
+            placeholder={intl.formatMessage({
+              id: 'pages.dataQuality.execution.searchPlaceholder',
+            })}
             className="w-[220px]"
           />
 
@@ -89,7 +103,7 @@ export default function ExecutionToolbar({
             className="!text-[#667085]"
             onClick={onSearch}
           >
-            查询
+            {intl.formatMessage({ id: 'pages.dataQuality.execution.query' })}
           </YakButton>
 
           <Popover
@@ -111,7 +125,7 @@ export default function ExecutionToolbar({
               className="!text-[#667085]"
               icon={<ListFilter size={14} />}
             >
-              高级筛选
+              {intl.formatMessage({ id: 'pages.dataQuality.execution.advanced' })}
               {advancedFilterCount ? ` (${advancedFilterCount})` : ''}
             </YakButton>
           </Popover>
@@ -120,7 +134,9 @@ export default function ExecutionToolbar({
             type="text"
             iconOnly
             className="!text-[#667085]"
-            aria-label="刷新"
+            aria-label={intl.formatMessage({
+              id: 'pages.dataQuality.execution.refreshAria',
+            })}
             icon={<RefreshCw size={14} />}
             onClick={onRefresh}
           />

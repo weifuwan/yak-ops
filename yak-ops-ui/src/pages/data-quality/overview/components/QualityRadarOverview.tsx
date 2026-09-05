@@ -2,10 +2,11 @@ import YakOpsEmpty from '@/components/YakOpsEmpty';
 import { YakButton } from '@/components/ui';
 import type { QualityOverviewView } from '@/services/data-quality';
 import { BRAND_CSS_VARIABLES } from '@/styles/brand';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { Spin } from 'antd';
 import { ArrowRight, CircleHelp } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { formatQualityDimension } from '../../i18n';
 import { QUALITY_RADAR_DIMENSIONS } from '../constants';
 import { findDimension, formatCount, formatRate } from '../utils';
 
@@ -57,30 +58,41 @@ const QualityMetricCard = ({
   active: boolean;
   position: string;
   onActivate: () => void;
-}) => (
-  <button
-    type="button"
-    onClick={onActivate}
-    className={[
-      'absolute z-10 min-w-[136px] rounded-lg bg-white px-3 py-2.5 text-left',
-      'transition-[border-color] duration-150',
-      'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--yak-brand-color-outline)]',
-      active
-        ? 'border border-solid border-[var(--yak-brand-color)]'
-        : 'border border-solid border-[#e5e7eb] hover:border-[var(--yak-brand-color-border)]',
-      position,
-    ].join(' ')}
-  >
-    <div className="text-[12px] font-semibold text-[#252a34]">
-      {metric.label} {formatRate(metric.passRate)}
-    </div>
-    <div className="mt-1 text-[11px] leading-4 text-[#98a2b3]">
-      {metric.total > 0
-        ? `执行 ${formatCount(metric.total)} 条 · 问题 ${formatCount(metric.issues)}`
-        : '暂无执行数据'}
-    </div>
-  </button>
-);
+}) => {
+  const intl = useIntl();
+  return (
+    <button
+      type="button"
+      onClick={onActivate}
+      className={[
+        'absolute z-10 min-w-[136px] rounded-lg bg-white px-3 py-2.5 text-left',
+        'transition-[border-color] duration-150',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--yak-brand-color-outline)]',
+        active
+          ? 'border border-solid border-[var(--yak-brand-color)]'
+          : 'border border-solid border-[#e5e7eb] hover:border-[var(--yak-brand-color-border)]',
+        position,
+      ].join(' ')}
+    >
+      <div className="text-[12px] font-semibold text-[#252a34]">
+        {metric.label} {formatRate(metric.passRate)}
+      </div>
+      <div className="mt-1 text-[11px] leading-4 text-[#98a2b3]">
+        {metric.total > 0
+          ? intl.formatMessage(
+              { id: 'pages.dataQuality.overview.executionsAndIssues' },
+              {
+                total: formatCount(metric.total),
+                issues: formatCount(metric.issues),
+              },
+            )
+          : intl.formatMessage({
+              id: 'pages.dataQuality.overview.noExecutionData',
+            })}
+      </div>
+    </button>
+  );
+};
 
 const QualityRadar = ({
   metrics,
@@ -89,6 +101,7 @@ const QualityRadar = ({
   metrics: RadarMetric[];
   onActivate: (key: string) => void;
 }) => {
+  const intl = useIntl();
   const hasCompleteRadar = metrics.every(
     (metric) => metric.passRate !== undefined && metric.passRate !== null,
   );
@@ -104,7 +117,9 @@ const QualityRadar = ({
   return (
     <svg
       viewBox="0 0 260 260"
-      aria-label="数据质量五维雷达图"
+      aria-label={intl.formatMessage({
+        id: 'pages.dataQuality.overview.radarAria',
+      })}
       className="absolute left-1/2 top-[47%] h-[250px] w-[250px] -translate-x-1/2 -translate-y-1/2"
     >
       {[1, 0.8, 0.6, 0.4, 0.2].map((ratio) => (
@@ -145,7 +160,10 @@ const QualityRadar = ({
         const [targetX, targetY] = pointAt(RADAR_RADIUS, RADAR_ANGLES[index]);
         const hasRate = metric.passRate !== undefined && metric.passRate !== null;
         const rate = Math.max(0, Math.min(100, metric.passRate ?? 0));
-        const [dataX, dataY] = pointAt((RADAR_RADIUS * rate) / 100, RADAR_ANGLES[index]);
+        const [dataX, dataY] = pointAt(
+          (RADAR_RADIUS * rate) / 100,
+          RADAR_ANGLES[index],
+        );
         return (
           <g
             key={metric.key}
@@ -186,24 +204,57 @@ const QualityRadar = ({
   );
 };
 
-const buildAnalysis = (overview: QualityOverviewView | undefined, active: RadarMetric) => {
+const buildAnalysis = (
+  overview: QualityOverviewView | undefined,
+  active: RadarMetric,
+  intl: ReturnType<typeof useIntl>,
+) => {
   const summary = overview?.summary;
   if (!summary || summary.executedRuleCount <= 0) {
-    return '当前统计周期暂无已完成的质量规则执行数据。完成监控运行后，这里会根据真实执行结果分析各质量维度。';
+    return intl.formatMessage({ id: 'pages.dataQuality.overview.noCompletedData' });
   }
   const overall = summary.passRate;
   const activeRate = active.passRate;
-  const overallText = overall === undefined ? '暂无整体通过率' : `整体通过率 ${overall.toFixed(1)}%`;
-  const activeText = activeRate === undefined
-    ? `${active.label}暂无可计算通过率的数据`
-    : `${active.label}通过率 ${activeRate.toFixed(1)}%，共执行 ${formatCount(active.total)} 条规则，其中 ${formatCount(active.issues)} 条存在问题`;
+  const overallText =
+    overall === undefined
+      ? intl.formatMessage({
+          id: 'pages.dataQuality.overview.noOverallPassRate',
+        })
+      : intl.formatMessage(
+          { id: 'pages.dataQuality.overview.overallPassRate' },
+          { rate: overall.toFixed(1) },
+        );
+  const activeText =
+    activeRate === undefined
+      ? intl.formatMessage(
+          { id: 'pages.dataQuality.overview.dimensionNoRate' },
+          { dimension: active.label },
+        )
+      : intl.formatMessage(
+          { id: 'pages.dataQuality.overview.dimensionRate' },
+          {
+            dimension: active.label,
+            rate: activeRate.toFixed(1),
+            total: formatCount(active.total),
+            issues: formatCount(active.issues),
+          },
+        );
   if ((overall ?? 0) >= 95) {
-    return `${overallText}，当前整体质量表现稳定。${activeText}。`;
+    return intl.formatMessage(
+      { id: 'pages.dataQuality.overview.analysisStable' },
+      { overall: overallText, active: activeText },
+    );
   }
   if ((overall ?? 0) >= 80) {
-    return `${overallText}，整体质量基本稳定，但仍存在需要关注的质量问题。${activeText}。`;
+    return intl.formatMessage(
+      { id: 'pages.dataQuality.overview.analysisAttention' },
+      { overall: overallText, active: activeText },
+    );
   }
-  return `${overallText}，当前质量风险较高，建议优先处理问题贡献较高的维度和规则。${activeText}。`;
+  return intl.formatMessage(
+    { id: 'pages.dataQuality.overview.analysisRisk' },
+    { overall: overallText, active: activeText },
+  );
 };
 
 export default function QualityRadarOverview({
@@ -211,22 +262,27 @@ export default function QualityRadarOverview({
   overview,
   loading = false,
 }: QualityRadarOverviewProps) {
+  const intl = useIntl();
   const metrics = useMemo<RadarMetric[]>(
-    () => QUALITY_RADAR_DIMENSIONS.map((definition) => {
-      const dimension = findDimension(overview?.dimensions, definition.aliases);
-      return {
-        key: definition.key,
-        label: definition.label,
-        description: definition.description,
-        passRate: dimension?.passRate,
-        total: dimension?.total ?? 0,
-        issues: dimension?.issues ?? 0,
-      };
-    }),
-    [overview?.dimensions],
+    () =>
+      QUALITY_RADAR_DIMENSIONS.map((definition) => {
+        const dimension = findDimension(overview?.dimensions, definition.aliases);
+        return {
+          key: definition.key,
+          label: formatQualityDimension(intl, definition.aliases[0]),
+          description: intl.formatMessage({
+            id: `pages.dataQuality.overview.dimension.${definition.key}Desc`,
+          }),
+          passRate: dimension?.passRate,
+          total: dimension?.total ?? 0,
+          issues: dimension?.issues ?? 0,
+        };
+      }),
+    [intl, overview?.dimensions],
   );
   const [activeKey, setActiveKey] = useState(QUALITY_RADAR_DIMENSIONS[0].key);
-  const activeMetric = metrics.find((metric) => metric.key === activeKey) ?? metrics[0];
+  const activeMetric =
+    metrics.find((metric) => metric.key === activeKey) ?? metrics[0];
   const contributors = overview?.issueContributors ?? [];
 
   return (
@@ -235,7 +291,9 @@ export default function QualityRadarOverview({
       style={BRAND_CSS_VARIABLES}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h1 className="m-0 text-[18px] font-semibold text-[#161823]">质量总览</h1>
+        <h1 className="m-0 text-[18px] font-semibold text-[#161823]">
+          {intl.formatMessage({ id: 'pages.dataQuality.overview.title' })}
+        </h1>
         <span className="inline-flex items-center gap-1 text-[11px] text-[#98a2b3]">
           <CircleHelp size={13} />
           {periodText}
@@ -259,32 +317,45 @@ export default function QualityRadarOverview({
               <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-4 whitespace-nowrap text-[11px] text-[#667085]">
                 <span className="flex items-center gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-[var(--yak-brand-color)]" />
-                  当前通过率
+                  {intl.formatMessage({
+                    id: 'pages.dataQuality.overview.currentPassRate',
+                  })}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="h-2 w-2 rounded-sm border border-solid border-[#d8dce3]" />
-                  100% 健康边界
+                  {intl.formatMessage({
+                    id: 'pages.dataQuality.overview.healthBoundary',
+                  })}
                 </span>
               </div>
             </div>
           </div>
 
           <div className="min-w-0 pt-1">
-            <h2 className="m-0 text-[16px] font-semibold text-[#161823]">质量分析</h2>
+            <h2 className="m-0 text-[16px] font-semibold text-[#161823]">
+              {intl.formatMessage({ id: 'pages.dataQuality.overview.analysis' })}
+            </h2>
             <div className="mt-3 rounded-lg bg-[#f7f8fa] px-4 py-3 text-[12px] leading-6 text-[#7d8592]">
-              <span className="font-medium text-[#4b5563]">{activeMetric.label}：</span>
-              {buildAnalysis(overview, activeMetric)}
+              <span className="font-medium text-[#4b5563]">
+                {activeMetric.label}：
+              </span>
+              {buildAnalysis(overview, activeMetric, intl)}
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-4">
-              <h3 className="m-0 text-[15px] font-semibold text-[#161823]">问题贡献 TOP3</h3>
+              <h3 className="m-0 text-[15px] font-semibold text-[#161823]">
+                {intl.formatMessage({ id: 'pages.dataQuality.overview.metric.top3' })}
+              </h3>
               <YakButton
                 type="text"
                 size="small"
                 className="!text-[12px] !text-[#667085]"
                 onClick={() => history.push('/data-quality/execution')}
               >
-                查看运行记录 <ArrowRight size={13} />
+                {intl.formatMessage({
+                  id: 'pages.dataQuality.overview.viewExecutions',
+                })}{' '}
+                <ArrowRight size={13} />
               </YakButton>
             </div>
 
@@ -303,18 +374,30 @@ export default function QualityRadarOverview({
                       </span>
                       <span className="min-w-0">
                         <span className="flex items-center justify-between gap-3 text-[12px]">
-                          <strong className="truncate font-medium text-[#30343b]">{item.dimension}</strong>
-                          <span className="shrink-0 text-[#98a2b3]">{formatRate(item.ratio)}</span>
+                          <strong className="truncate font-medium text-[#30343b]">
+                            {formatQualityDimension(intl, item.dimension)}
+                          </strong>
+                          <span className="shrink-0 text-[#98a2b3]">
+                            {formatRate(item.ratio)}
+                          </span>
                         </span>
                         <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-[#e8ebef]">
                           <span
                             className="block h-full rounded-full bg-[var(--yak-brand-color)]"
-                            style={{ width: `${Math.max(4, Math.min(100, item.ratio ?? 0))}%` }}
+                            style={{
+                              width: `${Math.max(
+                                4,
+                                Math.min(100, item.ratio ?? 0),
+                              )}%`,
+                            }}
                           />
                         </span>
                       </span>
                       <span className="text-right text-[12px] font-medium text-[#30343b]">
-                        {formatCount(item.issues)} 条
+                        {intl.formatMessage(
+                          { id: 'pages.dataQuality.overview.issueCount' },
+                          { count: formatCount(item.issues) },
+                        )}
                       </span>
                     </button>
                   ))}
@@ -325,16 +408,25 @@ export default function QualityRadarOverview({
                     width={146}
                     height={106}
                     primaryColor="var(--yak-brand-color)"
-                    title="近 7 日暂无问题数据"
+                    title={intl.formatMessage({
+                      id: 'pages.dataQuality.overview.noIssues7d',
+                    })}
                   />
                   <div className="-mt-1 text-[13px] leading-5">
-                    <span className="text-[#667085]">近 7 日暂无问题数据，</span>
+                    <span className="text-[#667085]">
+                      {intl.formatMessage({
+                        id: 'pages.dataQuality.overview.noIssues7d',
+                      })}
+                      ，
+                    </span>
                     <button
                       type="button"
                       onClick={() => history.push('/data-quality/execution')}
                       className="border-0 bg-transparent p-0 font-medium text-[var(--yak-brand-color)] transition-opacity hover:opacity-75"
                     >
-                      查看运行记录
+                      {intl.formatMessage({
+                        id: 'pages.dataQuality.overview.viewExecutions',
+                      })}
                     </button>
                   </div>
                 </div>

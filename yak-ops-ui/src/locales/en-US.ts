@@ -1,5 +1,6 @@
 import batchLinkUp from './en-US/batch-link-up';
 import component from './en-US/component';
+import dataQuality from './en-US/data-quality';
 import dataService from './en-US/data-service';
 import dataSource from './en-US/data-source';
 import globalHeader from './en-US/globalHeader';
@@ -30,4 +31,5 @@ export default {
   ...batchLinkUp,
   ...dataService,
   ...realtimeSync,
+  ...dataQuality,
 };

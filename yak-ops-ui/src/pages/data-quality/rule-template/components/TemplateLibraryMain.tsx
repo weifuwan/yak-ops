@@ -2,10 +2,12 @@ import YakOpsEmpty from '@/components/YakOpsEmpty';
 import YakTab from '@/components/YakTab';
 import type { TemplateView } from '@/services/data-quality';
 import { BRAND_COLOR, BRAND_COLOR_SOFT } from '@/styles/brand';
+import { useIntl } from '@umijs/max';
 import { Button, Dropdown, Input, Spin, Table, Tag } from 'antd';
 import { Copy, Ellipsis, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 
 import { dataQualityTableClassName } from '../../components/tableStyle';
+import { formatQualityDimension } from '../../i18n';
 import type { useQualityTemplateLibrary } from '../hooks/useQualityTemplateLibrary';
 import type { TemplateTabKey } from '../hooks/useQualityTemplateLibrary';
 
@@ -15,30 +17,26 @@ interface TemplateLibraryMainProps {
   library: TemplateLibraryModel;
 }
 
-const DIMENSION_DESCRIPTIONS: Record<string, string> = {
-  全部:
-    '汇总展示全部质量维度下的规则模板，可通过维度、模板类型和关键字快速定位。',
-  完整性:
-    '完整性用于衡量数据是否按照预设要求完整填充，可识别必要数据缺失。',
-  唯一性:
-    '唯一性用于衡量数据是否存在重复，可判断业务键或字段组合是否唯一。',
-  有效性:
-    '有效性用于判断数据是否符合预设格式、范围和业务定义。',
-  一致性:
-    '一致性用于衡量字段、数据表或系统之间的数据表达是否保持一致。',
-  准确性:
-    '准确性用于衡量数据是否正确反映实际业务对象。',
-  及时性:
-    '及时性用于衡量数据是否在规定时间内产生、更新或同步。',
-  规范性:
-    '规范性用于衡量数据是否符合统一的数据标准和编码规则。',
-  自定义:
-    '自定义维度用于承载团队自行定义的数据质量指标和检查口径。',
+const dimensionDescriptionId = (dimension: string) => {
+  const ids: Record<string, string> = {
+    全部: 'pages.dataQuality.template.dimensionDesc.all',
+    完整性: 'pages.dataQuality.template.dimensionDesc.completeness',
+    唯一性: 'pages.dataQuality.template.dimensionDesc.uniqueness',
+    有效性: 'pages.dataQuality.template.dimensionDesc.validity',
+    一致性: 'pages.dataQuality.template.dimensionDesc.consistency',
+    准确性: 'pages.dataQuality.template.dimensionDesc.accuracy',
+    时效性: 'pages.dataQuality.template.dimensionDesc.timeliness',
+    及时性: 'pages.dataQuality.template.dimensionDesc.timeliness',
+    规范性: 'pages.dataQuality.template.dimensionDesc.standardization',
+    自定义: 'pages.dataQuality.template.dimensionDesc.custom',
+  };
+  return ids[dimension];
 };
 
 export default function TemplateLibraryMain({
   library,
 }: TemplateLibraryMainProps) {
+  const intl = useIntl();
   const {
     data,
     catalogMeta,
@@ -56,6 +54,8 @@ export default function TemplateLibraryMain({
     removeTemplate,
     openCopy,
   } = library;
+  const descriptionId = dimensionDescriptionId(dimension);
+  const dimensionLabel = formatQualityDimension(intl, dimension);
 
   return (
     <main className="min-w-0 flex-1 overflow-hidden px-5 py-4">
@@ -64,11 +64,15 @@ export default function TemplateLibraryMain({
           <div className="flex items-start justify-between gap-6">
             <div className="min-w-0 flex-1">
               <h2 className="m-0 text-[15px] font-semibold leading-6 text-[#161823]">
-                {dimension}
+                {dimensionLabel}
               </h2>
               <div className="mt-1 max-w-[900px] text-[13px] leading-6 text-[#8a8f99]">
-                {DIMENSION_DESCRIPTIONS[dimension] ||
-                  `${dimension}用于衡量数据是否符合对应的数据质量要求。`}
+                {descriptionId
+                  ? intl.formatMessage({ id: descriptionId })
+                  : intl.formatMessage(
+                      { id: 'pages.dataQuality.template.dimensionDesc.fallback' },
+                      { dimension: dimensionLabel },
+                    )}
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -78,7 +82,9 @@ export default function TemplateLibraryMain({
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
                 prefix={<Search size={14} className="text-[#98a2b3]" />}
-                placeholder="搜索模板名称、编码或描述"
+                placeholder={intl.formatMessage({
+                  id: 'pages.dataQuality.template.searchPlaceholder',
+                })}
                 className="w-[330px]"
               />
               <Button
@@ -93,17 +99,17 @@ export default function TemplateLibraryMain({
 
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <div className="inline-flex h-7 items-center rounded bg-[#f5f5f6] px-2.5 text-xs text-[#60646f]">
-              维度类型：
-              <strong className="ml-1 text-[#30323b]">系统维度</strong>
-            </div>
-            <div className="inline-flex h-7 items-center rounded bg-[#f5f5f6] px-2.5 text-xs text-[#60646f]">
-              关联模板数：
+              {intl.formatMessage({ id: 'pages.dataQuality.template.dimensionType' })}
               <strong className="ml-1 text-[#30323b]">
-                {data.records.length}
+                {intl.formatMessage({ id: 'pages.dataQuality.template.systemDimension' })}
               </strong>
             </div>
             <div className="inline-flex h-7 items-center rounded bg-[#f5f5f6] px-2.5 text-xs text-[#60646f]">
-              关联规则数：
+              {intl.formatMessage({ id: 'pages.dataQuality.template.relatedTemplates' })}
+              <strong className="ml-1 text-[#30323b]">{data.records.length}</strong>
+            </div>
+            <div className="inline-flex h-7 items-center rounded bg-[#f5f5f6] px-2.5 text-xs text-[#60646f]">
+              {intl.formatMessage({ id: 'pages.dataQuality.template.relatedRules' })}
               <strong className="ml-1 text-[#30323b]">{relatedRuleCount}</strong>
             </div>
           </div>
@@ -114,11 +120,17 @@ export default function TemplateLibraryMain({
             items={[
               {
                 key: 'SYSTEM',
-                label: `系统模板 (${catalogMeta.systemTotal})`,
+                label: intl.formatMessage(
+                  { id: 'pages.dataQuality.template.systemTemplates' },
+                  { count: catalogMeta.systemTotal },
+                ),
               },
               {
                 key: 'CUSTOM',
-                label: `自定义模板 (${catalogMeta.customTotal})`,
+                label: intl.formatMessage(
+                  { id: 'pages.dataQuality.template.customTemplates' },
+                  { count: catalogMeta.customTotal },
+                ),
               },
             ]}
             onChange={(key) => setActiveTab(key as TemplateTabKey)}
@@ -134,10 +146,10 @@ export default function TemplateLibraryMain({
                 icon={<Plus size={14} />}
                 onClick={openCreateTemplate}
               >
-                新建规则模板
+                {intl.formatMessage({ id: 'pages.dataQuality.template.create' })}
               </Button>
               <div className="text-xs text-[#8a8f99]">
-                模板变更仅影响后续引用，不会修改存量质量规则。
+                {intl.formatMessage({ id: 'pages.dataQuality.template.changeHint' })}
               </div>
             </div>
           ) : null}
@@ -158,23 +170,27 @@ export default function TemplateLibraryMain({
                       <YakOpsEmpty
                         width={176}
                         height={120}
-                        title={
-                          activeTab === 'CUSTOM'
-                            ? '当前目录暂无自定义模板'
-                            : '暂无系统模板'
-                        }
-                        description={
-                          activeTab === 'CUSTOM'
-                            ? '当前筛选条件下没有可展示的自定义规则模板'
-                            : '当前筛选条件下没有可展示的系统规则模板'
-                        }
+                        title={intl.formatMessage({
+                          id:
+                            activeTab === 'CUSTOM'
+                              ? 'pages.dataQuality.template.emptyCustom'
+                              : 'pages.dataQuality.template.emptySystem',
+                        })}
+                        description={intl.formatMessage({
+                          id:
+                            activeTab === 'CUSTOM'
+                              ? 'pages.dataQuality.template.emptyCustomDesc'
+                              : 'pages.dataQuality.template.emptySystemDesc',
+                        })}
                       />
                     </div>
                   ),
                 }}
                 columns={[
                   {
-                    title: '模板名称 / 编码',
+                    title: intl.formatMessage({
+                      id: 'pages.dataQuality.template.column.nameCode',
+                    }),
                     dataIndex: 'name',
                     width: 260,
                     render: (_, record) => (
@@ -196,19 +212,23 @@ export default function TemplateLibraryMain({
                     ),
                   },
                   {
-                    title: '质量维度',
+                    title: intl.formatMessage({
+                      id: 'pages.dataQuality.template.column.dimension',
+                    }),
                     dataIndex: 'dimension',
-                    width: 110,
+                    width: 130,
                     render: (value) => (
                       <Tag className="!m-0 !border-0 !bg-[#f2f4f7] !text-[#667085]">
-                        {value}
+                        {formatQualityDimension(intl, value)}
                       </Tag>
                     ),
                   },
                   {
-                    title: '关联范围',
+                    title: intl.formatMessage({
+                      id: 'pages.dataQuality.template.column.scope',
+                    }),
                     dataIndex: 'scope',
-                    width: 100,
+                    width: 110,
                     render: (value) => (
                       <Tag
                         className="!m-0 !border-0"
@@ -217,12 +237,19 @@ export default function TemplateLibraryMain({
                           backgroundColor: BRAND_COLOR_SOFT,
                         }}
                       >
-                        {value === 'TABLE' ? '表级' : '字段级'}
+                        {intl.formatMessage({
+                          id:
+                            value === 'TABLE'
+                              ? 'pages.dataQuality.common.scope.table'
+                              : 'pages.dataQuality.common.scope.column',
+                        })}
                       </Tag>
                     ),
                   },
                   {
-                    title: '规则数',
+                    title: intl.formatMessage({
+                      id: 'pages.dataQuality.template.column.ruleCount',
+                    }),
                     dataIndex: 'ruleCount',
                     width: 90,
                     render: (value) => (
@@ -232,15 +259,23 @@ export default function TemplateLibraryMain({
                   ...(activeTab === 'CUSTOM'
                     ? [
                         {
-                          title: '所属目录',
+                          title: intl.formatMessage({
+                            id: 'pages.dataQuality.template.column.folder',
+                          }),
                           dataIndex: 'folderName',
                           width: 130,
-                          render: (value: string) => value || '未分类',
+                          render: (value: string) =>
+                            value ||
+                            intl.formatMessage({
+                              id: 'pages.dataQuality.template.uncategorized',
+                            }),
                         },
                       ]
                     : []),
                   {
-                    title: '模板描述',
+                    title: intl.formatMessage({
+                      id: 'pages.dataQuality.template.column.description',
+                    }),
                     dataIndex: 'description',
                     render: (value) => (
                       <div className="line-clamp-2 leading-5 text-[#667085]">
@@ -251,7 +286,9 @@ export default function TemplateLibraryMain({
                   ...(activeTab === 'CUSTOM'
                     ? [
                         {
-                          title: '操作',
+                          title: intl.formatMessage({
+                            id: 'pages.dataQuality.template.column.actions',
+                          }),
                           fixed: 'right' as const,
                           width: 150,
                           render: (_: unknown, record: TemplateView) => (
@@ -261,7 +298,7 @@ export default function TemplateLibraryMain({
                                 size="small"
                                 onClick={() => openEditTemplate(record)}
                               >
-                                编辑
+                                {intl.formatMessage({ id: 'pages.dataQuality.common.edit' })}
                               </Button>
                               <Dropdown
                                 menu={{
@@ -269,14 +306,18 @@ export default function TemplateLibraryMain({
                                     {
                                       key: 'copy',
                                       icon: <Copy size={14} />,
-                                      label: '复制模板',
+                                      label: intl.formatMessage({
+                                        id: 'pages.dataQuality.template.copy',
+                                      }),
                                       onClick: () => openCopy(record),
                                     },
                                     {
                                       key: 'delete',
                                       danger: true,
                                       icon: <Trash2 size={14} />,
-                                      label: '删除模板',
+                                      label: intl.formatMessage({
+                                        id: 'pages.dataQuality.template.deleteTemplate',
+                                      }),
                                       onClick: () => removeTemplate(record),
                                     },
                                   ],

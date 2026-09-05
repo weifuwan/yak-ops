@@ -17,6 +17,7 @@ import {
   type TemplateListView,
   type TemplateView,
 } from '@/services/data-quality';
+import { useIntl } from '@umijs/max';
 import { Form, Modal, message } from 'antd';
 import {
   useCallback,
@@ -65,6 +66,10 @@ const errorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
 export const useQualityTemplateLibrary = () => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+
   const [data, setData] = useState<TemplateListView>(EMPTY_TEMPLATE_LIST);
   const [folders, setFolders] = useState<TemplateFolderView[]>([]);
   const [catalogMeta, setCatalogMeta] =
@@ -97,7 +102,14 @@ export const useQualityTemplateLibrary = () => {
     try {
       setFolders(await listQualityTemplateFolders());
     } catch (error) {
-      message.error(errorMessage(error, '自定义模板目录加载失败'));
+      message.error(
+        errorMessage(
+          error,
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.folderLoadFailed',
+          }),
+        ),
+      );
     } finally {
       setFolderLoading(false);
     }
@@ -107,7 +119,14 @@ export const useQualityTemplateLibrary = () => {
     try {
       setCatalogMeta(await getQualityTemplateCatalogSummary());
     } catch (error) {
-      message.error(errorMessage(error, '模板统计加载失败'));
+      message.error(
+        errorMessage(
+          error,
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.statsLoadFailed',
+          }),
+        ),
+      );
     }
   }, []);
 
@@ -139,7 +158,14 @@ export const useQualityTemplateLibrary = () => {
         summary: value.summary,
       });
     } catch (error) {
-      message.error(errorMessage(error, '规则模板加载失败'));
+      message.error(
+        errorMessage(
+          error,
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.loadFailed',
+          }),
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -254,15 +280,30 @@ export const useQualityTemplateLibrary = () => {
     try {
       if (folderDialogMode === 'edit' && editingFolder) {
         await updateQualityTemplateFolder(editingFolder.id, payload);
-        message.success('目录已更新');
+        message.success(
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.folderUpdated',
+          }),
+        );
       } else {
         await createQualityTemplateFolder(payload);
-        message.success('目录已创建');
+        message.success(
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.folderCreated',
+          }),
+        );
       }
       setFolderDialogOpen(false);
       refreshLibrary();
     } catch (error) {
-      message.error(errorMessage(error, '目录保存失败'));
+      message.error(
+        errorMessage(
+          error,
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.folderSaveFailed',
+          }),
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -270,14 +311,24 @@ export const useQualityTemplateLibrary = () => {
 
   const removeFolder = (folder: TemplateFolderView) => {
     Modal.confirm({
-      title: `删除目录“${folder.name}”？`,
-      content: '只有不包含子目录和模板的空目录可以删除。',
-      okText: '删除',
+      title: intlRef.current.formatMessage(
+        { id: 'pages.dataQuality.template.message.deleteFolderTitle' },
+        { name: folder.name },
+      ),
+      content: intlRef.current.formatMessage({
+        id: 'pages.dataQuality.template.message.deleteFolderContent',
+      }),
+      okText: intlRef.current.formatMessage({ id: 'pages.dataQuality.common.delete' }),
+      cancelText: intlRef.current.formatMessage({ id: 'pages.dataQuality.common.cancel' }),
       okButtonProps: { danger: true },
       onOk: async () => {
         await deleteQualityTemplateFolder(folder.id);
         if (selectedFolder === folder.id) setSelectedFolder('ALL');
-        message.success('目录已删除');
+        message.success(
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.folderDeleted',
+          }),
+        );
         refreshLibrary();
       },
     });
@@ -300,15 +351,30 @@ export const useQualityTemplateLibrary = () => {
     try {
       if (drawerMode === 'edit' && editingTemplate) {
         await updateCustomQualityTemplate(editingTemplate.id, payload);
-        message.success('自定义模板已更新，已有规则不会被修改');
+        message.success(
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.templateUpdated',
+          }),
+        );
       } else {
         await createCustomQualityTemplate(payload);
-        message.success('自定义模板已创建');
+        message.success(
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.templateCreated',
+          }),
+        );
       }
       setDrawerOpen(false);
       refreshLibrary();
     } catch (error) {
-      message.error(errorMessage(error, '自定义模板保存失败'));
+      message.error(
+        errorMessage(
+          error,
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.templateSaveFailed',
+          }),
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -316,13 +382,24 @@ export const useQualityTemplateLibrary = () => {
 
   const removeTemplate = (template: TemplateView) => {
     Modal.confirm({
-      title: `删除模板“${template.name}”？`,
-      content: `该操作不会删除已引用此模板创建的 ${template.ruleCount} 条存量规则。`,
-      okText: '删除',
+      title: intlRef.current.formatMessage(
+        { id: 'pages.dataQuality.template.message.deleteTemplateTitle' },
+        { name: template.name },
+      ),
+      content: intlRef.current.formatMessage(
+        { id: 'pages.dataQuality.template.message.deleteTemplateContent' },
+        { count: template.ruleCount },
+      ),
+      okText: intlRef.current.formatMessage({ id: 'pages.dataQuality.common.delete' }),
+      cancelText: intlRef.current.formatMessage({ id: 'pages.dataQuality.common.cancel' }),
       okButtonProps: { danger: true },
       onOk: async () => {
         await deleteCustomQualityTemplate(template.id);
-        message.success('自定义模板已删除');
+        message.success(
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.templateDeleted',
+          }),
+        );
         refreshLibrary();
       },
     });
@@ -331,7 +408,9 @@ export const useQualityTemplateLibrary = () => {
   const openCopy = (template: TemplateView) => {
     setCopyTemplate(template);
     copyForm.setFieldsValue({
-      name: `${template.name}-副本`,
+      name: `${template.name}${intlRef.current.formatMessage({
+        id: 'pages.dataQuality.template.message.copySuffix',
+      })}`,
       folderId: template.folderId,
     });
   };
@@ -342,11 +421,22 @@ export const useQualityTemplateLibrary = () => {
     setSubmitting(true);
     try {
       await copyCustomQualityTemplate(copyTemplate.id, payload);
-      message.success('模板已复制');
+      message.success(
+        intlRef.current.formatMessage({
+          id: 'pages.dataQuality.template.message.copied',
+        }),
+      );
       setCopyTemplate(undefined);
       refreshLibrary();
     } catch (error) {
-      message.error(errorMessage(error, '模板复制失败'));
+      message.error(
+        errorMessage(
+          error,
+          intlRef.current.formatMessage({
+            id: 'pages.dataQuality.template.message.copyFailed',
+          }),
+        ),
+      );
     } finally {
       setSubmitting(false);
     }

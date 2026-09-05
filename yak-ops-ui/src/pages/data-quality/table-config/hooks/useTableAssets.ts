@@ -6,7 +6,7 @@ import {
   type TableAssetView,
   type TableCandidateView,
 } from '@/services/data-quality';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { message } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -33,6 +33,10 @@ export const useTableAssets = ({
   selectedDataSource,
   selectedSourceNode,
 }: UseTableAssetsOptions) => {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+
   const assetRequestSequenceRef = useRef(0);
   const candidateRequestSequenceRef = useRef(0);
   const [assets, setAssets] = useState<TableAssetView[]>([]);
@@ -91,7 +95,9 @@ export const useTableAssets = ({
           message.error(
             error instanceof Error
               ? error.message
-              : '已注册数据表加载失败',
+              : intlRef.current.formatMessage({
+                  id: 'pages.dataQuality.tableConfig.message.assetsLoadFailed',
+                }),
           );
         }
       } finally {
@@ -130,7 +136,9 @@ export const useTableAssets = ({
           message.error(
             error instanceof Error
               ? error.message
-              : '可注册数据表加载失败',
+              : intlRef.current.formatMessage({
+                  id: 'pages.dataQuality.tableConfig.message.candidatesLoadFailed',
+                }),
           );
         }
       } finally {
@@ -195,7 +203,11 @@ export const useTableAssets = ({
 
   const openRegisterDrawer = useCallback(() => {
     if (!dataSourceId) {
-      message.warning('请先从左侧选择数据源');
+      message.warning(
+        intlRef.current.formatMessage({
+          id: 'pages.dataQuality.tableConfig.message.selectSourceFirst',
+        }),
+      );
       return;
     }
     setSelectedCandidates(new Map());
@@ -249,7 +261,11 @@ export const useTableAssets = ({
   const handleRegister = useCallback(async () => {
     if (!dataSourceId || !selectedDataSource) return;
     if (!selectedCandidates.size) {
-      message.warning('请至少选择一张数据表');
+      message.warning(
+        intlRef.current.formatMessage({
+          id: 'pages.dataQuality.tableConfig.message.selectOneTable',
+        }),
+      );
       return;
     }
 
@@ -267,14 +283,23 @@ export const useTableAssets = ({
           remarks: record.remarks,
         })),
       });
-      message.success(`已注册 ${result.registered} 张数据表`);
+      message.success(
+        intlRef.current.formatMessage(
+          { id: 'pages.dataQuality.tableConfig.message.registered' },
+          { count: result.registered },
+        ),
+      );
       setRegisterOpen(false);
       setSelectedCandidates(new Map());
       setAssetCurrent(1);
       await requestAssets(dataSourceId, 1, queryKeyword);
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : '数据表注册失败',
+        error instanceof Error
+          ? error.message
+          : intlRef.current.formatMessage({
+              id: 'pages.dataQuality.tableConfig.message.registerFailed',
+            }),
       );
     } finally {
       setRegistering(false);
@@ -292,7 +317,11 @@ export const useTableAssets = ({
   const openRuleManagement = useCallback((record: TableAssetView) => {
     const path = getQualityMonitorDetailPath(record);
     if (!path) {
-      message.warning('当前数据表暂无监控配置，请先新增监控');
+      message.warning(
+        intlRef.current.formatMessage({
+          id: 'pages.dataQuality.tableConfig.message.noMonitor',
+        }),
+      );
       return;
     }
     history.push(path);
