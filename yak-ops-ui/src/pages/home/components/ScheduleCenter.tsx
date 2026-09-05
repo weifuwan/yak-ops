@@ -3,7 +3,7 @@ import {
   type HomeScheduleCalendar,
   type HomeScheduleDay,
 } from '@/services/home';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { ChevronLeft, ChevronRight, Clock3 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -31,9 +31,9 @@ function buildCalendarWeeks(cursor: Date): CalendarCell[][] {
     }
     const date = new Date(year, month, day);
     const isToday =
-      today.getFullYear() === year
-      && today.getMonth() === month
-      && today.getDate() === day;
+      today.getFullYear() === year &&
+      today.getMonth() === month &&
+      today.getDate() === day;
     return { day, date, isToday };
   });
 
@@ -45,11 +45,11 @@ function buildCalendarWeeks(cursor: Date): CalendarCell[][] {
 const formatDateKey = (date: Date) =>
   `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
-const taskTypeLabel = (taskType: string) => {
-  if (taskType === 'OFFLINE_SYNC') return '同步';
-  if (taskType === 'WORKFLOW') return '工作流';
-  if (taskType === 'DATA_QUALITY') return '质量';
-  return '任务';
+const taskTypeMessageId = (taskType: string) => {
+  if (taskType === 'OFFLINE_SYNC') return 'pages.home.scheduleCenter.taskType.sync';
+  if (taskType === 'WORKFLOW') return 'pages.home.scheduleCenter.taskType.workflow';
+  if (taskType === 'DATA_QUALITY') return 'pages.home.scheduleCenter.taskType.quality';
+  return 'pages.home.scheduleCenter.taskType.task';
 };
 
 const tooltipPosition = (index: number) => {
@@ -65,10 +65,13 @@ function CalendarWeek({
   cells: CalendarCell[];
   scheduleMap: Map<string, HomeScheduleDay>;
 }) {
+  const intl = useIntl();
   return (
     <div className="relative grid h-[39px] grid-cols-7 items-center">
       {cells.map((cell, index) => {
-        const schedule = cell.date ? scheduleMap.get(formatDateKey(cell.date)) : undefined;
+        const schedule = cell.date
+          ? scheduleMap.get(formatDateKey(cell.date))
+          : undefined;
         return (
           <div
             key={`${cell.day ?? 'empty'}-${index}`}
@@ -77,10 +80,11 @@ function CalendarWeek({
             {cell.day && (
               <>
                 <span
-                  className={`
-                    flex h-7 min-w-7 items-center justify-center rounded-full px-1
-                    ${cell.isToday ? 'bg-[#eef4ff] font-semibold text-[#356fe8]' : ''}
-                  `}
+                  className={`flex h-7 min-w-7 items-center justify-center rounded-full px-1 ${
+                    cell.isToday
+                      ? 'bg-[#eef4ff] font-semibold text-[#356fe8]'
+                      : ''
+                  }`}
                 >
                   {pad2(cell.day)}
                 </span>
@@ -89,19 +93,22 @@ function CalendarWeek({
                   <>
                     <span className="pointer-events-none absolute bottom-0 h-[3px] w-4 rounded-full bg-[#bfd3ff]" />
                     <div
-                      className={`
-                        absolute top-[36px] z-40 hidden w-[214px] rounded-[9px]
-                        border border-[#eceef2] bg-white px-3 py-2.5 text-left
-                        shadow-[0_10px_28px_rgba(31,35,41,0.12)] group-hover:block
-                        ${tooltipPosition(index)}
-                      `}
+                      className={`absolute top-[36px] z-40 hidden w-[230px] rounded-[9px] border border-[#eceef2] bg-white px-3 py-2.5 text-left shadow-[0_10px_28px_rgba(31,35,41,0.12)] group-hover:block ${tooltipPosition(index)}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <strong className="text-[12px] font-semibold text-[#343842]">
-                          {cell.date ? `${cell.date.getMonth() + 1}月${cell.day}日` : ''}
+                          {cell.date
+                            ? new Intl.DateTimeFormat(intl.locale, {
+                                month: 'long',
+                                day: 'numeric',
+                              }).format(cell.date)
+                            : ''}
                         </strong>
                         <span className="text-[11px] text-[#8f949d]">
-                          {schedule.count} 个任务
+                          {intl.formatMessage(
+                            { id: 'pages.home.scheduleCenter.taskCount' },
+                            { count: schedule.count },
+                          )}
                         </span>
                       </div>
 
@@ -118,7 +125,9 @@ function CalendarWeek({
                               {item.taskName}
                             </span>
                             <span className="shrink-0 text-[10px] text-[#969ba4]">
-                              {taskTypeLabel(item.taskType)}
+                              {intl.formatMessage({
+                                id: taskTypeMessageId(item.taskType),
+                              })}
                             </span>
                           </div>
                         ))}
@@ -126,7 +135,10 @@ function CalendarWeek({
 
                       {schedule.count > schedule.items.length && (
                         <div className="mt-2 border-t border-[#f0f1f3] pt-2 text-[10px] text-[#9ca1a9]">
-                          还有 {schedule.count - schedule.items.length} 个任务
+                          {intl.formatMessage(
+                            { id: 'pages.home.scheduleCenter.moreTasks' },
+                            { count: schedule.count - schedule.items.length },
+                          )}
                         </div>
                       )}
                     </div>
@@ -142,6 +154,7 @@ function CalendarWeek({
 }
 
 export default function ScheduleCenter() {
+  const intl = useIntl();
   const now = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(
     () => new Date(now.getFullYear(), now.getMonth(), 1),
@@ -150,15 +163,33 @@ export default function ScheduleCenter() {
 
   const weeks = useMemo(() => buildCalendarWeeks(cursor), [cursor]);
   const monthKey = `${cursor.getFullYear()}-${pad2(cursor.getMonth() + 1)}`;
-  const monthLabel = `${cursor.getFullYear()}年${pad2(cursor.getMonth() + 1)}月`;
+  const monthLabel = new Intl.DateTimeFormat(intl.locale, {
+    year: 'numeric',
+    month: 'long',
+  }).format(cursor);
+  const monthOnlyLabel = new Intl.DateTimeFormat(intl.locale, {
+    month: 'long',
+  }).format(cursor);
   const scheduleMap = useMemo(
     () => new Map((calendar?.days || []).map((item) => [item.date, item])),
     [calendar?.days],
   );
+  const weekdays = [
+    'sun',
+    'mon',
+    'tue',
+    'wed',
+    'thu',
+    'fri',
+    'sat',
+  ].map((day) =>
+    intl.formatMessage({ id: `pages.home.scheduleCenter.weekday.${day}` }),
+  );
 
   useEffect(() => {
     let active = true;
-    homeScheduleCenterApi.calendar(monthKey)
+    homeScheduleCenterApi
+      .calendar(monthKey)
       .then((response) => {
         if (active) setCalendar(response.data);
       })
@@ -181,7 +212,7 @@ export default function ScheduleCenter() {
     <section className="rounded-[22px] border border-[#f0f1f3] bg-white px-6 pb-5 pt-5">
       <header className="flex items-start justify-between gap-4">
         <h2 className="text-xl font-semibold tracking-[-0.35px] text-[#252832]">
-          调度中心
+          {intl.formatMessage({ id: 'pages.home.scheduleCenter.title' })}
         </h2>
 
         <div className="flex flex-col items-end gap-2">
@@ -189,12 +220,12 @@ export default function ScheduleCenter() {
             type="button"
             className="flex items-center gap-0.5 text-[12px] text-[#666b75] transition-colors hover:text-[#252832]"
           >
-            查看更多
+            {intl.formatMessage({ id: 'pages.home.common.viewMore' })}
             <ChevronRight size={14} strokeWidth={1.8} />
           </button>
           <span className="flex items-center gap-1.5 text-[11px] text-[#8b9099]">
             <span className="h-2 w-2 rounded-full bg-[#5b8cff]" />
-            已配置调度
+            {intl.formatMessage({ id: 'pages.home.scheduleCenter.configured' })}
           </span>
         </div>
       </header>
@@ -205,12 +236,14 @@ export default function ScheduleCenter() {
             type="button"
             onClick={() => moveMonth(-1)}
             className="flex h-7 w-7 items-center justify-center rounded-full text-[#91959d] transition-colors hover:bg-[#f5f6f8] hover:text-[#4a4f58]"
-            aria-label="上个月"
+            aria-label={intl.formatMessage({
+              id: 'pages.home.scheduleCenter.previousMonth',
+            })}
           >
             <ChevronLeft size={16} strokeWidth={1.8} />
           </button>
 
-          <div className="min-w-[112px] text-center text-[14px] font-semibold text-[#333741]">
+          <div className="min-w-[128px] text-center text-[14px] font-semibold text-[#333741]">
             {monthLabel}
           </div>
 
@@ -218,14 +251,16 @@ export default function ScheduleCenter() {
             type="button"
             onClick={() => moveMonth(1)}
             className="flex h-7 w-7 items-center justify-center rounded-full text-[#91959d] transition-colors hover:bg-[#f5f6f8] hover:text-[#4a4f58]"
-            aria-label="下个月"
+            aria-label={intl.formatMessage({
+              id: 'pages.home.scheduleCenter.nextMonth',
+            })}
           >
             <ChevronRight size={16} strokeWidth={1.8} />
           </button>
         </div>
 
         <div className="mt-2 grid grid-cols-7 text-center text-[11px] text-[#6d727c]">
-          {['日', '一', '二', '三', '四', '五', '六'].map((day) => (
+          {weekdays.map((day) => (
             <span key={day}>{day}</span>
           ))}
         </div>
@@ -240,10 +275,16 @@ export default function ScheduleCenter() {
       <div className="mt-4 border-t border-[#eef0f3] pt-4">
         <div className="flex items-center justify-between">
           <strong className="text-[13px] font-semibold text-[#3c4049]">
-            {cursor.getMonth() + 1}月调度总览
+            {intl.formatMessage(
+              { id: 'pages.home.scheduleCenter.monthOverview' },
+              { month: monthOnlyLabel },
+            )}
           </strong>
           <span className="text-[11px] text-[#999da5]">
-            共{calendar?.totalSchedules ?? 0}个调度配置
+            {intl.formatMessage(
+              { id: 'pages.home.scheduleCenter.totalConfigs' },
+              { count: calendar?.totalSchedules ?? 0 },
+            )}
           </span>
         </div>
 
@@ -260,7 +301,7 @@ export default function ScheduleCenter() {
                 {item.taskName}
               </span>
               <span className="shrink-0 rounded border border-[#eceef2] px-1.5 py-0.5 text-[10px] leading-4 text-[#8d929a]">
-                {taskTypeLabel(item.taskType)}
+                {intl.formatMessage({ id: taskTypeMessageId(item.taskType) })}
               </span>
               <span className="w-[74px] shrink-0 text-right text-[10px] text-[#9da1a8]">
                 {item.nextRunDate.slice(5)} {item.nextRunTime}
@@ -271,7 +312,7 @@ export default function ScheduleCenter() {
           {calendar && calendar.overview.length === 0 && (
             <HomeEmptyState
               icon={Clock3}
-              title="本月暂无调度配置"
+              title={intl.formatMessage({ id: 'pages.home.scheduleCenter.empty' })}
               size="medium"
               className="min-h-[126px]"
             />
