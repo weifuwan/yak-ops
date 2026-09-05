@@ -1,4 +1,5 @@
 import type { DashboardSummary } from '@/services/dashboard';
+import { useIntl } from '@umijs/max';
 import { Input, Modal } from 'antd';
 
 interface RenameDashboardModalProps {
@@ -17,34 +18,38 @@ const RenameDashboardModal = ({
   onChange,
   onCancel,
   onSubmit,
-}: RenameDashboardModalProps) => (
-  <Modal
-    title="重命名仪表盘"
-    open={Boolean(dashboard)}
-    okText="保存为草稿"
-    cancelText="取消"
-    confirmLoading={loading}
-    maskClosable={!loading}
-    closable={!loading}
-    onOk={onSubmit}
-    onCancel={onCancel}
-  >
-    <Input
-      autoFocus
-      maxLength={128}
-      value={value}
-      placeholder="请输入仪表盘名称"
-      disabled={loading}
-      onChange={(event) => onChange(event.target.value)}
-      onPressEnter={onSubmit}
-    />
+}: RenameDashboardModalProps) => {
+  const intl = useIntl();
 
-    {dashboard?.publishedVersionNo ? (
-      <div className="mt-2 text-[11px] leading-5 text-[#98a2b3]">
-        重命名会生成新的草稿版本，不会立即修改当前已发布版本。
-      </div>
-    ) : null}
-  </Modal>
-);
+  return (
+    <Modal
+      title={intl.formatMessage({ id: 'pages.dashboard.list.rename.title' })}
+      open={Boolean(dashboard)}
+      okText={intl.formatMessage({ id: 'pages.dashboard.list.rename.saveDraft' })}
+      cancelText={intl.formatMessage({ id: 'pages.dashboard.common.cancel' })}
+      confirmLoading={loading}
+      maskClosable={!loading}
+      closable={!loading}
+      onOk={onSubmit}
+      onCancel={onCancel}
+    >
+      <Input
+        autoFocus
+        maxLength={128}
+        value={value}
+        placeholder={intl.formatMessage({ id: 'pages.dashboard.list.rename.placeholder' })}
+        disabled={loading}
+        onChange={(event) => onChange(event.target.value)}
+        onPressEnter={onSubmit}
+      />
+
+      {dashboard?.publishedVersionNo ? (
+        <div className="mt-2 text-[11px] leading-5 text-[#98a2b3]">
+          {intl.formatMessage({ id: 'pages.dashboard.list.rename.publishedHint' })}
+        </div>
+      ) : null}
+    </Modal>
+  );
+};
 
 export default RenameDashboardModal;
