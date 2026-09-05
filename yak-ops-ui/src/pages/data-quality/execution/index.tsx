@@ -1,5 +1,5 @@
 import { BRAND_THEME } from '@/styles/brand';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { ConfigProvider, Pagination } from 'antd';
 import { useEffect } from 'react';
 
@@ -10,6 +10,7 @@ import ExecutionToolbar from './components/ExecutionToolbar';
 import { useQualityExecutionPage } from './hooks/useQualityExecutionPage';
 
 const ExecutionPage = () => {
+  const intl = useIntl();
   const {
     dataSourceId,
     selectedNodeKey,
@@ -33,7 +34,7 @@ const ExecutionPage = () => {
       <div className="flex h-[calc(100vh-64px)] min-h-[640px] flex-col overflow-hidden bg-white">
         <header className="shrink-0 border-b border-[#e8e9ec] px-5 py-3">
           <h1 className="m-0 text-[22px] font-semibold leading-8 text-[#161823]">
-            运行记录
+            {intl.formatMessage({ id: 'pages.dataQuality.execution.title' })}
           </h1>
         </header>
 
@@ -95,7 +96,12 @@ const ExecutionPage = () => {
                 pageSize={execution.pageSize}
                 total={execution.total}
                 showSizeChanger
-                showTotal={(value) => `共 ${value} 条`}
+                showTotal={(value) =>
+                  intl.formatMessage(
+                    { id: 'pages.dataQuality.execution.total' },
+                    { count: value },
+                  )
+                }
                 onChange={execution.changePage}
               />
             </div>
