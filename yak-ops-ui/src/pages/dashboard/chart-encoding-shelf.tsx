@@ -14,6 +14,7 @@ import type {
   AnalysisSpec,
   DatasetFieldRole,
 } from '@/components/analysis/model';
+import { useIntl } from '@umijs/max';
 import { Dropdown, Select } from 'antd';
 import { Plus, X } from 'lucide-react';
 import { useState, type DragEvent } from 'react';
@@ -30,10 +31,18 @@ interface FieldOption {
 
 const AXIS_TYPES = new Set(['bar', 'stackedBar', 'line', 'area', 'scatter']);
 
-const shelfLabel = (spec: AnalysisSpec, channel: string, fallback: string) => {
-  if (channel === 'category') return AXIS_TYPES.has(spec.type) ? '横轴' : '维度';
-  if (channel === 'value') return AXIS_TYPES.has(spec.type) ? '纵轴' : '指标';
-  return fallback;
+const shelfMessageId = (spec: AnalysisSpec, channel: string) => {
+  if (channel === 'category') {
+    return AXIS_TYPES.has(spec.type)
+      ? 'pages.dashboard.editor.encoding.xAxis'
+      : 'pages.dashboard.editor.encoding.dimension';
+  }
+  if (channel === 'value') {
+    return AXIS_TYPES.has(spec.type)
+      ? 'pages.dashboard.editor.encoding.yAxis'
+      : 'pages.dashboard.editor.encoding.metric';
+  }
+  return undefined;
 };
 
 export function ChartEncodingShelf({
@@ -47,10 +56,11 @@ export function ChartEncodingShelf({
   editable: boolean;
   onSpecPatch?: (patch: Partial<AnalysisSpec>) => void;
 }) {
+  const intl = useIntl();
   if (!spec || !dataset) {
     return (
       <div className="shrink-0 border-b border-[#e4e7ec] bg-white px-4 py-2 text-[10px] text-[#98a2b3]">
-        选择可用数据集后配置图表字段
+        {intl.formatMessage({ id: 'pages.dashboard.editor.encoding.selectDataset' })}
       </div>
     );
   }
@@ -71,7 +81,11 @@ export function ChartEncodingShelf({
   ];
   const fieldLabel = new Map(fieldOptions.map((option) => [option.value, option.label]));
   const calculated = new Set(fieldOptions.filter((option) => option.calculated).map((option) => option.value));
-  const aggregationLabel = new Map(AGGREGATION_OPTIONS.map((option) => [option.value, option.label]));
+  const aggregationOptions = AGGREGATION_OPTIONS.map((option) => ({
+    value: option.value,
+    label: intl.formatMessage({ id: option.messageId }),
+  }));
+  const aggregationLabel = new Map(aggregationOptions.map((option) => [option.value, option.label]));
   const encoding = resolveAnalysisEncoding(spec);
   const primaryRules = ANALYSIS_ENCODING_RULES[spec.type]
     .filter((rule) => rule.channel === 'category' || rule.channel === 'value');
@@ -129,10 +143,11 @@ export function ChartEncodingShelf({
           .filter((binding) => rule.roles.includes(binding.role))
           .slice(0, rule.max);
         const options = fieldOptions.filter((option) => rule.roles.includes(option.role));
+        const labelId = shelfMessageId(spec, rule.channel);
         return (
           <ShelfRow
             key={rule.channel}
-            label={shelfLabel(spec, rule.channel, rule.label)}
+            label={labelId ? intl.formatMessage({ id: labelId }) : rule.label}
             bindings={bindings}
             allBindings={encoding[rule.channel]}
             max={rule.max}
@@ -141,6 +156,15 @@ export function ChartEncodingShelf({
             fieldLabel={fieldLabel}
             calculated={calculated}
             aggregationLabel={aggregationLabel}
+            aggregationOptions={aggregationOptions}
+            calculatedLabel={intl.formatMessage({ id: 'pages.dashboard.editor.encoding.calculated' })}
+            defaultAggregationLabel={intl.formatMessage({ id: 'pages.dashboard.editor.aggregation.sum' })}
+            addFieldLabel={intl.formatMessage({ id: 'pages.dashboard.editor.encoding.addField' })}
+            emptyLabel={intl.formatMessage({ id: 'pages.dashboard.editor.encoding.dropOrSelect' })}
+            removeAria={(field) => intl.formatMessage(
+              { id: 'pages.dashboard.editor.encoding.removeField' },
+              { field },
+            )}
             onAdd={(field, role) => {
               const nextBinding: AnalysisEncodingBinding = {
                 field,
@@ -192,6 +216,12 @@ function ShelfRow({
   fieldLabel,
   calculated,
   aggregationLabel,
+  aggregationOptions,
+  calculatedLabel,
+  defaultAggregationLabel,
+  addFieldLabel,
+  emptyLabel,
+  removeAria,
   onAdd,
   onRemove,
   onAggregationChange,
@@ -205,6 +235,12 @@ function ShelfRow({
   fieldLabel: Map<string, string>;
   calculated: Set<string>;
   aggregationLabel: Map<string, string>;
+  aggregationOptions: Array<{ value: Aggregation; label: string }>;
+  calculatedLabel: string;
+  defaultAggregationLabel: string;
+  addFieldLabel: string;
+  emptyLabel: string;
+  removeAria: (field: string) => string;
   onAdd: (field: string, role: DatasetFieldRole) => void;
   onRemove: (field: string) => void;
   onAggregationChange: (field: string, aggregation: Aggregation) => void;
@@ -268,12 +304,12 @@ function ShelfRow({
               </span>
               {metric ? (
                 isCalculated ? (
-                  <span className="shrink-0 text-[8px] opacity-65">计算</span>
+                  <span className="shrink-0 text-[8px] opacity-65">{calculatedLabel}</span>
                 ) : (
                   <Dropdown
                     trigger={['click']}
                     menu={{
-                      items: AGGREGATION_OPTIONS.map((option) => ({
+                      items: aggregationOptions.map((option) => ({
                         key: option.value,
                         label: option.label,
                       })),
@@ -288,7 +324,7 @@ function ShelfRow({
                       disabled={!editable}
                       className="shrink-0 border-0 bg-transparent p-0 text-[8px] text-current opacity-65 hover:opacity-100 disabled:cursor-default"
                     >
-                      {aggregationLabel.get(binding.aggregation ?? 'SUM') ?? '求和'}
+                      {aggregationLabel.get(binding.aggregation ?? 'SUM') ?? defaultAggregationLabel}
                     </button>
                   </Dropdown>
                 )
@@ -296,7 +332,7 @@ function ShelfRow({
               {editable ? (
                 <button
                   type="button"
-                  aria-label={`移除${fieldLabel.get(binding.field) ?? binding.field}`}
+                  aria-label={removeAria(fieldLabel.get(binding.field) ?? binding.field)}
                   className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] text-current opacity-45 hover:bg-white/60 hover:opacity-90"
                   onClick={() => onRemove(binding.field)}
                 >
@@ -315,7 +351,7 @@ function ShelfRow({
             value={undefined}
             className="min-w-[138px] max-w-[220px]"
             optionFilterProp="label"
-            placeholder={bindings.length ? '+ 添加字段' : '拖入或选择字段'}
+            placeholder={bindings.length ? addFieldLabel : emptyLabel}
             options={available.map((option) => ({ label: option.label, value: option.value }))}
             suffixIcon={<Plus size={10} className="text-[#9aa1ab]" />}
             onChange={(field) => {
