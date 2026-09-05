@@ -95,7 +95,7 @@ export default {
   'pages.home.scheduleCenter.weekday.sat': '六',
   'pages.home.scheduleCenter.taskCount': '{count} 个任务',
   'pages.home.scheduleCenter.moreTasks': '还有 {count} 个任务',
-  'pages.home.scheduleCenter.monthOverview': '{month}月调度总览',
+  'pages.home.scheduleCenter.monthOverview': '{month}调度总览',
   'pages.home.scheduleCenter.totalConfigs': '共{count}个调度配置',
   'pages.home.scheduleCenter.empty': '本月暂无调度配置',
   'pages.home.scheduleCenter.taskType.sync': '同步',
