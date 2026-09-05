@@ -2,6 +2,7 @@ import batchLinkUp from './en-US/batch-link-up';
 import component from './en-US/component';
 import dashboard from './en-US/dashboard';
 import dashboardEditor from './en-US/dashboard-editor';
+import dashboardEditorChart from './en-US/dashboard-editor-chart';
 import dataDevelopment from './en-US/data-development';
 import dataDevelopmentEditor from './en-US/data-development-editor';
 import dataQuality from './en-US/data-quality';
@@ -52,4 +53,5 @@ export default {
   ...workflowScheduleHistory,
   ...dashboard,
   ...dashboardEditor,
+  ...dashboardEditorChart,
 };
