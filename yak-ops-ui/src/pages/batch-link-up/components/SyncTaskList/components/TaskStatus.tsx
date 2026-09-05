@@ -3,6 +3,7 @@ import {
   YakStatusIcon,
   type YakStatus,
 } from '@/components/ui';
+import { useIntl } from '@umijs/max';
 import { Popover, message } from 'antd';
 
 interface TaskStatusProps {
@@ -11,53 +12,53 @@ interface TaskStatusProps {
 }
 
 interface StatusMeta {
-  label: string;
+  messageId: string;
   yakStatus: YakStatus;
   animated?: boolean;
 }
 
 const STATUS_META: Record<string, StatusMeta> = {
   IDLE: {
-    label: '未运行',
+    messageId: 'pages.batchLinkUp.status.idle',
     yakStatus: 'pending',
   },
   CREATED: {
-    label: '已创建',
+    messageId: 'pages.batchLinkUp.status.created',
     yakStatus: 'pending',
   },
   SUBMITTED: {
-    label: '提交中',
+    messageId: 'pages.batchLinkUp.status.submitted',
     yakStatus: 'pending',
     animated: true,
   },
   QUEUED: {
-    label: '排队中',
+    messageId: 'pages.batchLinkUp.status.queued',
     yakStatus: 'pending',
     animated: true,
   },
   RUNNING: {
-    label: '运行中',
+    messageId: 'pages.batchLinkUp.status.running',
     yakStatus: 'running',
     animated: true,
   },
   SUCCEEDED: {
-    label: '已完成',
+    messageId: 'pages.batchLinkUp.status.succeeded',
     yakStatus: 'success',
   },
   FAILED: {
-    label: '失败',
+    messageId: 'pages.batchLinkUp.status.failed',
     yakStatus: 'failed',
   },
   PAUSED: {
-    label: '已暂停',
+    messageId: 'pages.batchLinkUp.status.paused',
     yakStatus: 'paused',
   },
   CANCELED: {
-    label: '已取消',
+    messageId: 'pages.batchLinkUp.status.canceled',
     yakStatus: 'canceled',
   },
   LOST: {
-    label: '状态丢失',
+    messageId: 'pages.batchLinkUp.status.lost',
     yakStatus: 'warning',
   },
 };
@@ -82,11 +83,13 @@ const normalizeStatus = (value?: string) => {
 };
 
 const TaskStatus = ({ status, errorMessage }: TaskStatusProps) => {
+  const intl = useIntl();
   const normalized = normalizeStatus(status);
-  const meta: StatusMeta = STATUS_META[normalized] || {
-    label: normalized,
-    yakStatus: 'unknown',
-  };
+  const meta = STATUS_META[normalized];
+  const label = meta
+    ? intl.formatMessage({ id: meta.messageId })
+    : normalized;
+  const yakStatus: YakStatus = meta?.yakStatus || 'unknown';
 
   const statusContent = (
     <span
@@ -94,11 +97,11 @@ const TaskStatus = ({ status, errorMessage }: TaskStatusProps) => {
       data-offline-sync-status={normalized}
     >
       <YakStatusIcon
-        status={meta.yakStatus}
+        status={yakStatus}
         size={17}
-        animated={Boolean(meta.animated)}
+        animated={Boolean(meta?.animated)}
       />
-      <span>{meta.label}</span>
+      <span>{label}</span>
     </span>
   );
 
@@ -109,9 +112,13 @@ const TaskStatus = ({ status, errorMessage }: TaskStatusProps) => {
   const copyError = async () => {
     try {
       await navigator.clipboard.writeText(errorMessage);
-      message.success('错误信息已复制');
+      message.success(
+        intl.formatMessage({ id: 'pages.batchLinkUp.status.copyErrorSuccess' }),
+      );
     } catch {
-      message.error('复制失败，请手动复制');
+      message.error(
+        intl.formatMessage({ id: 'pages.batchLinkUp.status.copyErrorFailed' }),
+      );
     }
   };
 
@@ -126,7 +133,7 @@ const TaskStatus = ({ status, errorMessage }: TaskStatusProps) => {
           </div>
           <div className="mt-2 flex justify-end">
             <YakButton size="small" onClick={copyError}>
-              复制错误
+              {intl.formatMessage({ id: 'pages.batchLinkUp.status.copyError' })}
             </YakButton>
           </div>
         </div>

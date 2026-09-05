@@ -2,7 +2,7 @@ import type {
   BatchLinkUpId,
   OfflineJobDefinitionVO,
 } from '@/services/batch-link-up';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import { ConfigProvider, Divider, message } from 'antd';
 import { useMemo } from 'react';
 
@@ -17,6 +17,7 @@ import type { OfflineSyncConnectorOption } from './types';
 import { getOfflineSyncEditPath } from './utils';
 
 const OfflineSyncPage = () => {
+  const intl = useIntl();
   const connectorOptions = useMemo(
     () => generateDataSourceOptions() as OfflineSyncConnectorOption[],
     [],
@@ -54,7 +55,9 @@ const OfflineSyncPage = () => {
         : record;
     const path = getOfflineSyncEditPath(editableRecord);
     if (!path) {
-      message.warning('暂不支持当前任务模式的编辑');
+      message.warning(
+        intl.formatMessage({ id: 'pages.batchLinkUp.page.unsupportedEdit' }),
+      );
       return;
     }
     history.push(path);
@@ -81,7 +84,7 @@ const OfflineSyncPage = () => {
             />
           </div>
 
-          <Divider style={{padding:0, margin: "8px 0"}}/>
+          <Divider style={{ padding: 0, margin: '8px 0' }} />
 
           <div className="mt-4 flex min-h-0 flex-1 flex-col">
             <OfflineSyncTaskTable

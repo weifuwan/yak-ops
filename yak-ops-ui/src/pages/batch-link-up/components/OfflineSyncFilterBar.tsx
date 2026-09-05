@@ -1,9 +1,9 @@
 import { YakButton, YakFilterSwitch } from '@/components/ui';
 import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import { DatePicker, Input, Popover, Select } from 'antd';
 import { useState } from 'react';
 
-import { OFFLINE_SYNC_STATUS_TABS } from '../constants';
 import type {
   OfflineSyncConnectorOption,
   OfflineSyncSearchField,
@@ -43,7 +43,26 @@ const OfflineSyncFilterBar = ({
   onReset,
   onAdvancedReset,
 }: OfflineSyncFilterBarProps) => {
+  const intl = useIntl();
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const statusOptions = [
+    {
+      label: intl.formatMessage({ id: 'pages.batchLinkUp.status.all' }),
+      value: 'ALL',
+    },
+    {
+      label: intl.formatMessage({ id: 'pages.batchLinkUp.status.running' }),
+      value: 'RUNNING',
+    },
+    {
+      label: intl.formatMessage({ id: 'pages.batchLinkUp.status.succeeded' }),
+      value: 'COMPLETED',
+    },
+    {
+      label: intl.formatMessage({ id: 'pages.batchLinkUp.status.failed' }),
+      value: 'FAILED',
+    },
+  ];
 
   const applyAdvancedFilters = () => {
     onSearch();
@@ -54,7 +73,7 @@ const OfflineSyncFilterBar = ({
     <div className="flex min-h-[44px] items-center justify-between gap-4">
       <YakFilterSwitch
         value={currentStatus}
-        options={OFFLINE_SYNC_STATUS_TABS}
+        options={statusOptions}
         onChange={onStatusChange}
       />
 
@@ -64,7 +83,9 @@ const OfflineSyncFilterBar = ({
           variant="filled"
           value={filterDraft.jobName}
           prefix={<SearchOutlined className="text-[#98a2b3]" />}
-          placeholder="搜索任务名称"
+          placeholder={intl.formatMessage({
+            id: 'pages.batchLinkUp.filter.jobNamePlaceholder',
+          })}
           className="!h-9 !w-[220px] !min-w-[180px]"
           onChange={(event) =>
             onDraftChange('jobName', event.target.value || undefined)
@@ -78,7 +99,9 @@ const OfflineSyncFilterBar = ({
           variant="filled"
           value={filterDraft.sourceType}
           options={connectorOptions}
-          placeholder="来源类型"
+          placeholder={intl.formatMessage({
+            id: 'pages.batchLinkUp.filter.sourceType',
+          })}
           className="!h-9 !w-[150px] !min-w-[140px]"
           optionFilterProp="value"
           onChange={(value) => onQuickFilterChange('sourceType', value)}
@@ -89,7 +112,10 @@ const OfflineSyncFilterBar = ({
           variant="filled"
           value={filterDraft.createTime as never}
           format="YYYY-MM-DD"
-          placeholder={['开始日期', '结束日期']}
+          placeholder={[
+            intl.formatMessage({ id: 'pages.batchLinkUp.filter.startDate' }),
+            intl.formatMessage({ id: 'pages.batchLinkUp.filter.endDate' }),
+          ]}
           className="!h-9 !w-[250px] !min-w-[230px]"
           onChange={(value) =>
             onQuickFilterChange(
@@ -100,11 +126,11 @@ const OfflineSyncFilterBar = ({
         />
 
         <YakButton className="!h-9 !px-4" onClick={onSearch}>
-          查询
+          {intl.formatMessage({ id: 'pages.batchLinkUp.filter.search' })}
         </YakButton>
 
         <YakButton type="text" className="!h-9 !px-2" onClick={onReset}>
-          重置
+          {intl.formatMessage({ id: 'pages.batchLinkUp.filter.reset' })}
         </YakButton>
 
         <Popover
@@ -117,23 +143,27 @@ const OfflineSyncFilterBar = ({
             <div className="w-[430px]">
               <div className="mb-4">
                 <div className="text-[14px] font-semibold text-[#101828]">
-                  高级搜索
+                  {intl.formatMessage({ id: 'pages.batchLinkUp.filter.advanced' })}
                 </div>
                 <div className="mt-1 text-[12px] text-[#98a2b3]">
-                  按任务标识、目标类型和同步表信息进一步筛选
+                  {intl.formatMessage({
+                    id: 'pages.batchLinkUp.filter.advancedDescription',
+                  })}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-x-3 gap-y-4">
                 <div>
                   <div className="mb-1.5 text-[12px] text-[#667085]">
-                    任务 ID
+                    {intl.formatMessage({ id: 'pages.batchLinkUp.filter.taskId' })}
                   </div>
                   <Input
                     allowClear
                     variant="filled"
                     value={filterDraft.id}
-                    placeholder="请输入任务 ID"
+                    placeholder={intl.formatMessage({
+                      id: 'pages.batchLinkUp.filter.taskIdPlaceholder',
+                    })}
                     onChange={(event) =>
                       onDraftChange('id', event.target.value || undefined)
                     }
@@ -143,7 +173,7 @@ const OfflineSyncFilterBar = ({
 
                 <div>
                   <div className="mb-1.5 text-[12px] text-[#667085]">
-                    目标类型
+                    {intl.formatMessage({ id: 'pages.batchLinkUp.filter.sinkType' })}
                   </div>
                   <Select
                     allowClear
@@ -151,7 +181,9 @@ const OfflineSyncFilterBar = ({
                     variant="filled"
                     value={filterDraft.sinkType}
                     options={connectorOptions}
-                    placeholder="请选择目标类型"
+                    placeholder={intl.formatMessage({
+                      id: 'pages.batchLinkUp.filter.sinkTypePlaceholder',
+                    })}
                     optionFilterProp="value"
                     className="w-full"
                     onChange={(value) => onDraftChange('sinkType', value)}
@@ -160,13 +192,15 @@ const OfflineSyncFilterBar = ({
 
                 <div>
                   <div className="mb-1.5 text-[12px] text-[#667085]">
-                    来源表
+                    {intl.formatMessage({ id: 'pages.batchLinkUp.filter.sourceTable' })}
                   </div>
                   <Input
                     allowClear
                     variant="filled"
                     value={filterDraft.sourceTable}
-                    placeholder="请输入来源表"
+                    placeholder={intl.formatMessage({
+                      id: 'pages.batchLinkUp.filter.sourceTablePlaceholder',
+                    })}
                     onChange={(event) =>
                       onDraftChange(
                         'sourceTable',
@@ -179,13 +213,15 @@ const OfflineSyncFilterBar = ({
 
                 <div>
                   <div className="mb-1.5 text-[12px] text-[#667085]">
-                    目标表
+                    {intl.formatMessage({ id: 'pages.batchLinkUp.filter.sinkTable' })}
                   </div>
                   <Input
                     allowClear
                     variant="filled"
                     value={filterDraft.sinkTable}
-                    placeholder="请输入目标表"
+                    placeholder={intl.formatMessage({
+                      id: 'pages.batchLinkUp.filter.sinkTablePlaceholder',
+                    })}
                     onChange={(event) =>
                       onDraftChange(
                         'sinkTable',
@@ -205,14 +241,14 @@ const OfflineSyncFilterBar = ({
                     setAdvancedOpen(false);
                   }}
                 >
-                  重置
+                  {intl.formatMessage({ id: 'pages.batchLinkUp.filter.reset' })}
                 </YakButton>
                 <YakButton
                   type="primary"
                   size="small"
                   onClick={applyAdvancedFilters}
                 >
-                  应用筛选
+                  {intl.formatMessage({ id: 'pages.batchLinkUp.filter.apply' })}
                 </YakButton>
               </div>
             </div>
@@ -228,7 +264,7 @@ const OfflineSyncFilterBar = ({
                 : '',
             ].join(' ')}
           >
-            高级搜索
+            {intl.formatMessage({ id: 'pages.batchLinkUp.filter.advanced' })}
             {advancedFilterCount > 0 ? (
               <span className="ml-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#ff4d4f] px-1 text-[10px] leading-[18px] text-white">
                 {advancedFilterCount}

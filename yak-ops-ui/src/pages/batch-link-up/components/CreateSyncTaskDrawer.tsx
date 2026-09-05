@@ -12,7 +12,7 @@ import {
   DatabaseOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import {
   ConfigProvider,
   Drawer,
@@ -67,35 +67,12 @@ interface ConnectorOption {
 
 const DEFAULT_DB_TYPE = 'MYSQL';
 
-const modeOptions: Array<{
-  value: SyncMode;
-  title: string;
-  description: string;
-  icon: ReactNode;
-}> = [
-  {
-    value: 'GUIDE_SINGLE',
-    title: '单表同步',
-    description: '配置一张来源表到一张目标表的离线同步任务',
-    icon: <TableOutlined />,
-  },
-  {
-    value: 'GUIDE_MULTI',
-    title: '多表同步',
-    description: '批量选择多张来源表，并按规则写入目标端',
-    icon: <DatabaseOutlined />,
-  },
-];
-
 const brandCssVariables = {
   '--yak-brand-color': BRAND_COLOR,
   '--yak-brand-color-border': BRAND_COLOR_BORDER,
   '--yak-brand-color-soft': BRAND_COLOR_SOFT,
   '--yak-brand-color-soft-hover': BRAND_COLOR_SOFT_HOVER,
 } as CSSProperties;
-
-const buildDefaultJobName = (sourceDbType: string, targetDbType: string) =>
-  `${sourceDbType} → ${targetDbType} 离线同步`.slice(0, 64);
 
 const resolveEndpoint = (
   dbType: string,
@@ -115,6 +92,10 @@ export default function CreateSyncTaskDrawer({
   onCancel,
   onCreated,
 }: CreateSyncTaskDrawerProps) {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+
   const [form] = Form.useForm<CreateSyncTaskFormValues>();
   const [submitting, setSubmitting] = useState(false);
   const [icon, setIcon] = useState<EmojiIconValue>(DEFAULT_EMOJI_ICON);
@@ -127,6 +108,37 @@ export default function CreateSyncTaskDrawer({
 
   const sourceDbType = Form.useWatch('sourceDbType', form);
   const targetDbType = Form.useWatch('targetDbType', form);
+  const modeOptions: Array<{
+    value: SyncMode;
+    title: string;
+    description: string;
+    icon: ReactNode;
+  }> = [
+    {
+      value: 'GUIDE_SINGLE',
+      title: intl.formatMessage({ id: 'pages.batchLinkUp.create.mode.single' }),
+      description: intl.formatMessage({
+        id: 'pages.batchLinkUp.create.mode.singleDescription',
+      }),
+      icon: <TableOutlined />,
+    },
+    {
+      value: 'GUIDE_MULTI',
+      title: intl.formatMessage({ id: 'pages.batchLinkUp.create.mode.multi' }),
+      description: intl.formatMessage({
+        id: 'pages.batchLinkUp.create.mode.multiDescription',
+      }),
+      icon: <DatabaseOutlined />,
+    },
+  ];
+
+  const createDefaultJobName = (source: string, target: string) =>
+    intlRef.current
+      .formatMessage(
+        { id: 'pages.batchLinkUp.create.defaultJobName' },
+        { source, target },
+      )
+      .slice(0, 64);
 
   useEffect(() => {
     if (!open) return;
@@ -135,7 +147,12 @@ export default function CreateSyncTaskDrawer({
       connectorOptions.find((item) => item.value === DEFAULT_DB_TYPE)?.value ||
       connectorOptions[0]?.value ||
       '';
-    const defaultJobName = buildDefaultJobName(defaultDbType, defaultDbType);
+    const defaultJobName = intlRef.current
+      .formatMessage(
+        { id: 'pages.batchLinkUp.create.defaultJobName' },
+        { source: defaultDbType, target: defaultDbType },
+      )
+      .slice(0, 64);
 
     autoJobNameRef.current = defaultJobName;
     setIcon(DEFAULT_EMOJI_ICON);
@@ -157,7 +174,10 @@ export default function CreateSyncTaskDrawer({
     if (!nextSourceDbType || !nextTargetDbType) return;
 
     const currentJobName = form.getFieldValue('jobName')?.trim() || '';
-    const nextJobName = buildDefaultJobName(nextSourceDbType, nextTargetDbType);
+    const nextJobName = createDefaultJobName(
+      nextSourceDbType,
+      nextTargetDbType,
+    );
 
     if (!currentJobName || currentJobName === autoJobNameRef.current) {
       form.setFieldValue('jobName', nextJobName);
@@ -188,12 +208,7 @@ export default function CreateSyncTaskDrawer({
       setSubmitting(true);
       const taskId = String(await getOfflineSyncUniqueId());
       const payload = {
-        ...buildCreatePayload(
-          taskId,
-          normalizedValues,
-          source,
-          sink,
-        ),
+        ...buildCreatePayload(taskId, normalizedValues, source, sink),
         editorMeta: { icon },
       };
       const savedId = await createOfflineSyncDraft(payload);
@@ -206,13 +221,17 @@ export default function CreateSyncTaskDrawer({
       form.resetFields();
       setIcon(DEFAULT_EMOJI_ICON);
       autoJobNameRef.current = '';
-      message.success('任务草稿已创建，请继续配置数据源和同步表');
+      message.success(
+        intl.formatMessage({ id: 'pages.batchLinkUp.create.success' }),
+      );
       onCreated(createdId, normalizedValues.mode);
       history.push(path);
     } catch (error) {
       if (error && typeof error === 'object' && 'errorFields' in error) return;
       message.error(
-        error instanceof Error ? error.message : '创建同步任务失败',
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: 'pages.batchLinkUp.create.failed' }),
       );
     } finally {
       setSubmitting(false);
@@ -234,7 +253,7 @@ export default function CreateSyncTaskDrawer({
         title={
           <div className="min-w-0">
             <div className="text-[18px] font-semibold leading-7 text-[#101828]">
-              新建离线同步任务
+              {intl.formatMessage({ id: 'pages.batchLinkUp.create.title' })}
             </div>
           </div>
         }
@@ -246,7 +265,7 @@ export default function CreateSyncTaskDrawer({
               onClick={handleCancel}
               className="!h-9 !rounded-lg !px-4 !font-medium !text-[#667085]"
             >
-              取消
+              {intl.formatMessage({ id: 'pages.batchLinkUp.create.cancel' })}
             </YakButton>
 
             <YakButton
@@ -256,7 +275,7 @@ export default function CreateSyncTaskDrawer({
               onClick={handleSubmit}
               className="!h-9 !rounded-lg !px-5 !font-medium !text-white"
             >
-              创建并配置
+              {intl.formatMessage({ id: 'pages.batchLinkUp.create.submit' })}
             </YakButton>
           </div>
         }
@@ -279,15 +298,26 @@ export default function CreateSyncTaskDrawer({
             <div className="grid grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] items-end gap-3">
               <Form.Item
                 name="sourceDbType"
-                label="来源类型"
+                label={intl.formatMessage({
+                  id: 'pages.batchLinkUp.create.sourceType',
+                })}
                 className="!mb-0"
-                rules={[{ required: true, message: '请选择来源类型' }]}
+                rules={[
+                  {
+                    required: true,
+                    message: intl.formatMessage({
+                      id: 'pages.batchLinkUp.create.sourceTypeRequired',
+                    }),
+                  },
+                ]}
               >
                 <Select
                   showSearch
                   variant="filled"
                   options={connectorOptions}
-                  placeholder="请选择来源类型"
+                  placeholder={intl.formatMessage({
+                    id: 'pages.batchLinkUp.create.sourceTypePlaceholder',
+                  })}
                   optionFilterProp="value"
                   filterOption={(input, option) =>
                     String(option?.value || '')
@@ -304,15 +334,26 @@ export default function CreateSyncTaskDrawer({
 
               <Form.Item
                 name="targetDbType"
-                label="目标类型"
+                label={intl.formatMessage({
+                  id: 'pages.batchLinkUp.create.targetType',
+                })}
                 className="!mb-0"
-                rules={[{ required: true, message: '请选择目标类型' }]}
+                rules={[
+                  {
+                    required: true,
+                    message: intl.formatMessage({
+                      id: 'pages.batchLinkUp.create.targetTypeRequired',
+                    }),
+                  },
+                ]}
               >
                 <Select
                   showSearch
                   variant="filled"
                   options={connectorOptions}
-                  placeholder="请选择目标类型"
+                  placeholder={intl.formatMessage({
+                    id: 'pages.batchLinkUp.create.targetTypePlaceholder',
+                  })}
                   optionFilterProp="value"
                   filterOption={(input, option) =>
                     String(option?.value || '')
@@ -325,7 +366,11 @@ export default function CreateSyncTaskDrawer({
             </div>
           </div>
 
-          <Form.Item label="任务名称" required className="!mb-6">
+          <Form.Item
+            label={intl.formatMessage({ id: 'pages.batchLinkUp.create.jobName' })}
+            required
+            className="!mb-6"
+          >
             <div className="flex items-start gap-2.5">
               <EmojiIconPicker
                 value={icon}
@@ -337,8 +382,18 @@ export default function CreateSyncTaskDrawer({
                 name="jobName"
                 noStyle
                 rules={[
-                  { required: true, message: '请输入任务名称' },
-                  { max: 64, message: '任务名称不能超过 64 个字符' },
+                  {
+                    required: true,
+                    message: intl.formatMessage({
+                      id: 'pages.batchLinkUp.create.jobNameRequired',
+                    }),
+                  },
+                  {
+                    max: 64,
+                    message: intl.formatMessage({
+                      id: 'pages.batchLinkUp.create.jobNameMax',
+                    }),
+                  },
                 ]}
               >
                 <Input
@@ -346,7 +401,9 @@ export default function CreateSyncTaskDrawer({
                   maxLength={64}
                   showCount
                   variant="filled"
-                  placeholder="例如：订单数据每日同步"
+                  placeholder={intl.formatMessage({
+                    id: 'pages.batchLinkUp.create.jobNamePlaceholder',
+                  })}
                   className="!h-[44px] !rounded-[10px]"
                 />
               </Form.Item>
@@ -355,22 +412,38 @@ export default function CreateSyncTaskDrawer({
 
           <Form.Item
             name="jobDesc"
-            label="任务描述"
-            rules={[{ max: 200, message: '任务描述不能超过 200 个字符' }]}
+            label={intl.formatMessage({ id: 'pages.batchLinkUp.create.jobDesc' })}
+            rules={[
+              {
+                max: 200,
+                message: intl.formatMessage({
+                  id: 'pages.batchLinkUp.create.jobDescMax',
+                }),
+              },
+            ]}
           >
             <Input.TextArea
               rows={5}
               maxLength={200}
               variant="filled"
               showCount
-              placeholder="请说明业务场景、同步范围和使用目的"
+              placeholder={intl.formatMessage({
+                id: 'pages.batchLinkUp.create.jobDescPlaceholder',
+              })}
             />
           </Form.Item>
 
           <Form.Item
             name="mode"
-            label="同步类型"
-            rules={[{ required: true, message: '请选择同步类型' }]}
+            label={intl.formatMessage({ id: 'pages.batchLinkUp.create.mode' })}
+            rules={[
+              {
+                required: true,
+                message: intl.formatMessage({
+                  id: 'pages.batchLinkUp.create.modeRequired',
+                }),
+              },
+            ]}
           >
             <Radio.Group className="grid w-full grid-cols-2 gap-2.5">
               {modeOptions.map((option) => (
