@@ -105,7 +105,7 @@ export default {
   'pages.batchLinkUp.schedule.noExecutionTime': 'No execution times',
   'pages.batchLinkUp.schedule.enabled': 'Enabled',
   'pages.batchLinkUp.schedule.paused': 'Paused',
-  'pages.batchLinkUp.schedule.lastFive': 'Next 5 Execution Times',
+  'pages.batchLinkUp.schedule.lastFive': 'Last 5 Execution Times',
   'pages.batchLinkUp.schedule.noCron': 'No Cron configured',
   'pages.batchLinkUp.schedule.lastRun': 'Last Run',
   'pages.batchLinkUp.schedule.nextRun': 'Next Run',
