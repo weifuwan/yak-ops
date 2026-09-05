@@ -29,6 +29,11 @@ export default {
   'pages.dashboard.editor.restore.title': '恢复 V{version} 为草稿？',
   'pages.dashboard.editor.restore.content': '当前还有未保存到草稿的修改。继续恢复会放弃这些本地修改，并基于历史版本生成一个新的草稿版本。',
   'pages.dashboard.editor.restore.ok': '放弃修改并恢复',
+  'pages.dashboard.editor.empty.chartTitle': '从一个图表开始',
+  'pages.dashboard.editor.empty.datasetTitle': '暂无可用数据集',
+  'pages.dashboard.editor.empty.chartDescription': '添加图表后，进入对应图表 Sheet 完成数据与样式配置。',
+  'pages.dashboard.editor.empty.datasetDescription': '请先在数据开发发布中心发布并上线 Dataset。',
+  'pages.dashboard.editor.empty.addChart': '添加图表',
 
   'pages.dashboard.editor.toolbar.lifecycle.unsaved': '未保存',
   'pages.dashboard.editor.toolbar.lifecycle.published': '已发布 V{version}',
