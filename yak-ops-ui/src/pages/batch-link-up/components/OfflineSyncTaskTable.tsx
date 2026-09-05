@@ -4,6 +4,7 @@ import type {
   OfflineJobDefinitionVO,
 } from '@/services/batch-link-up';
 import { CopyOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import { Empty, Table, Tooltip } from 'antd';
 import type { TableColumnsType } from 'antd';
 import type { TableRowSelection } from 'antd/es/table/interface';
@@ -14,12 +15,12 @@ import type {
   OfflineSyncPaginationState,
   OfflineSyncSelectedRowKeys,
 } from '../types';
+import OfflineSyncPagination from './OfflineSyncPagination';
 import ActionColumn from './SyncTaskList/components/ActionColumn';
 import DataSourceSyncPlan from './SyncTaskList/components/DataSourceSyncPlan';
 import ExecutionStatus from './SyncTaskList/components/ExecutionStatus';
 import ScheduleInfo from './SyncTaskList/components/ScheduleInfo';
 import TaskStatus from './SyncTaskList/components/TaskStatus';
-import OfflineSyncPagination from './OfflineSyncPagination';
 
 interface OfflineSyncTaskTableProps {
   records: OfflineJobDefinitionVO[];
@@ -44,10 +45,11 @@ const OfflineSyncTaskTable = ({
   onEdit,
   onRefresh,
 }: OfflineSyncTaskTableProps) => {
+  const intl = useIntl();
   const columns = useMemo<TableColumnsType<OfflineJobDefinitionVO>>(
     () => [
       {
-        title: '名称 / ID',
+        title: intl.formatMessage({ id: 'pages.batchLinkUp.table.nameId' }),
         dataIndex: 'jobName',
         width: 250,
         render: (_value, record) => (
@@ -62,7 +64,11 @@ const OfflineSyncTaskTable = ({
             <div className="mt-0.5 flex h-5 items-center gap-1 text-[11px] leading-5 text-[#98a2b3]">
               <span className="truncate">ID：{record.id ?? '-'}</span>
               {record.id !== undefined && record.id !== null ? (
-                <Tooltip title="复制任务定义 ID">
+                <Tooltip
+                  title={intl.formatMessage({
+                    id: 'pages.batchLinkUp.table.copyTaskId',
+                  })}
+                >
                   <YakButton
                     type="text"
                     size="small"
@@ -81,7 +87,7 @@ const OfflineSyncTaskTable = ({
         ),
       },
       {
-        title: '数据源同步方案',
+        title: intl.formatMessage({ id: 'pages.batchLinkUp.table.syncPlan' }),
         dataIndex: 'syncPlan',
         width: 290,
         render: (_value, record) => (
@@ -91,7 +97,7 @@ const OfflineSyncTaskTable = ({
         ),
       },
       {
-        title: '状态',
+        title: intl.formatMessage({ id: 'pages.batchLinkUp.table.status' }),
         dataIndex: 'lastJobStatus',
         width: 100,
         align: 'center',
@@ -105,7 +111,7 @@ const OfflineSyncTaskTable = ({
         ),
       },
       {
-        title: '执行概况',
+        title: intl.formatMessage({ id: 'pages.batchLinkUp.table.execution' }),
         dataIndex: 'execution',
         width: 300,
         render: (_value, record) => (
@@ -115,7 +121,7 @@ const OfflineSyncTaskTable = ({
         ),
       },
       {
-        title: '调度信息',
+        title: intl.formatMessage({ id: 'pages.batchLinkUp.table.schedule' }),
         dataIndex: 'schedule',
         width: 225,
         render: (_value, record) => (
@@ -125,7 +131,7 @@ const OfflineSyncTaskTable = ({
         ),
       },
       {
-        title: '创建时间',
+        title: intl.formatMessage({ id: 'pages.batchLinkUp.table.createTime' }),
         dataIndex: 'createTime',
         width: 165,
         render: (value?: string) => (
@@ -135,7 +141,7 @@ const OfflineSyncTaskTable = ({
         ),
       },
       {
-        title: '操作',
+        title: intl.formatMessage({ id: 'pages.batchLinkUp.table.actions' }),
         dataIndex: 'operate',
         width: 190,
         fixed: 'right',
@@ -150,7 +156,7 @@ const OfflineSyncTaskTable = ({
         ),
       },
     ],
-    [onCopyTaskId, onEdit, onRefresh],
+    [intl, onCopyTaskId, onEdit, onRefresh],
   );
 
   const rowSelection: TableRowSelection<OfflineJobDefinitionVO> = {
@@ -203,7 +209,7 @@ const OfflineSyncTaskTable = ({
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   <span className="text-[12px] text-[#98a2b3]">
-                    暂无离线同步任务
+                    {intl.formatMessage({ id: 'pages.batchLinkUp.table.empty' })}
                   </span>
                 }
               />
