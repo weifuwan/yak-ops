@@ -13,6 +13,8 @@ import pwa from './en-US/pwa';
 import realtimeSync from './en-US/realtime-sync';
 import settingDrawer from './en-US/settingDrawer';
 import settings from './en-US/settings';
+import workflow from './en-US/workflow';
+import workflowEditor from './en-US/workflow-editor';
 
 export default {
   'navBar.lang': 'Languages',
@@ -38,4 +40,6 @@ export default {
   ...home,
   ...dataDevelopment,
   ...dataDevelopmentEditor,
+  ...workflow,
+  ...workflowEditor,
 };
