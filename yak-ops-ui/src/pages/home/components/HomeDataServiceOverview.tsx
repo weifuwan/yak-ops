@@ -2,7 +2,7 @@ import {
   getDataServiceOverview,
   type DataServiceOverview,
 } from '@/services/data-service';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
 import { Activity } from 'lucide-react';
@@ -17,10 +17,8 @@ interface DataServiceOverviewState {
   failed: boolean;
 }
 
-const COUNT_FORMATTER = new Intl.NumberFormat('zh-CN');
-
-const formatMetric = (value?: number | null) =>
-  value == null ? '--' : COUNT_FORMATTER.format(value);
+const formatMetric = (value: number | null | undefined, locale: string) =>
+  value == null ? '--' : new Intl.NumberFormat(locale).format(value);
 
 const formatRate = (data?: DataServiceOverview) =>
   !data || data.totalCalls <= 0 ? '--' : `${data.successRate.toFixed(1)}%`;
@@ -54,7 +52,10 @@ function useDataServiceOverview(): DataServiceOverviewState {
   return state;
 }
 
-function buildTrendOption(data?: DataServiceOverview): EChartsOption {
+function buildTrendOption(
+  data: DataServiceOverview | undefined,
+  seriesName: string,
+): EChartsOption {
   const trend = data?.trend || [];
   return {
     animation: true,
@@ -89,7 +90,7 @@ function buildTrendOption(data?: DataServiceOverview): EChartsOption {
     },
     series: [
       {
-        name: '调用量',
+        name: seriesName,
         type: 'line',
         smooth: 0.38,
         symbol: 'none',
@@ -125,10 +126,15 @@ function OverviewMetric({ label, value }: { label: string; value: string }) {
 }
 
 function TrendEmpty({ state }: { state: DataServiceOverviewState }) {
+  const intl = useIntl();
   if (state.loading || state.failed) {
     return (
       <div className="flex h-[126px] items-center justify-center text-[11px] text-[#a0a4ac]">
-        {state.loading ? '数据加载中...' : '数据服务概览加载失败'}
+        {intl.formatMessage({
+          id: state.loading
+            ? 'pages.home.dataService.loading'
+            : 'pages.home.dataService.failed',
+        })}
       </div>
     );
   }
@@ -136,7 +142,7 @@ function TrendEmpty({ state }: { state: DataServiceOverviewState }) {
   return (
     <HomeEmptyState
       icon={Activity}
-      title="近 7 日暂无 API 调用"
+      title={intl.formatMessage({ id: 'pages.home.dataService.empty' })}
       size="small"
       className="h-[126px]"
     />
@@ -144,36 +150,63 @@ function TrendEmpty({ state }: { state: DataServiceOverviewState }) {
 }
 
 export default function HomeDataServiceOverview() {
+  const intl = useIntl();
   const state = useDataServiceOverview();
   const data = state.data;
-  const trendOption = useMemo(() => buildTrendOption(data), [data]);
+  const seriesName = intl.formatMessage({ id: 'pages.home.dataService.series.calls' });
+  const trendOption = useMemo(
+    () => buildTrendOption(data, seriesName),
+    [data, seriesName],
+  );
   const hasCalls = (data?.totalCalls || 0) > 0;
   const topApi = data?.hotApis?.[0];
 
   return (
     <section className="rounded-[22px] border border-[#f0f1f3] bg-white px-6 pb-5 pt-5">
       <SectionHeader
-        title="数据服务"
+        title={intl.formatMessage({ id: 'pages.home.dataService.title' })}
         description=""
         onMore={() => history.push('/data-service/overview')}
       />
 
       <div className="mt-5">
         <div className="grid grid-cols-2 divide-x divide-[#eef0f3] lg:grid-cols-4">
-          <OverviewMetric label="API 总数" value={formatMetric(data?.apiTotal)} />
-          <OverviewMetric label="运行中" value={formatMetric(data?.runningApis)} />
-          <OverviewMetric label="近 7 日调用" value={formatMetric(data?.totalCalls)} />
-          <OverviewMetric label="成功率" value={formatRate(data)} />
+          <OverviewMetric
+            label={intl.formatMessage({ id: 'pages.home.dataService.metric.apiTotal' })}
+            value={formatMetric(data?.apiTotal, intl.locale)}
+          />
+          <OverviewMetric
+            label={intl.formatMessage({ id: 'pages.home.dataService.metric.running' })}
+            value={formatMetric(data?.runningApis, intl.locale)}
+          />
+          <OverviewMetric
+            label={intl.formatMessage({ id: 'pages.home.dataService.metric.calls7d' })}
+            value={formatMetric(data?.totalCalls, intl.locale)}
+          />
+          <OverviewMetric
+            label={intl.formatMessage({ id: 'pages.home.dataService.metric.successRate' })}
+            value={formatRate(data)}
+          />
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-3 text-[10px] text-[#9da1a9]">
-          <span>调用趋势</span>
+          <span>{intl.formatMessage({ id: 'pages.home.dataService.trend' })}</span>
           {data ? (
             <span className="truncate text-right">
-              平均耗时 {formatMetric(data.averageDurationMs)} ms · 失败 {formatMetric(data.failureCalls)} 次
+              {intl.formatMessage(
+                { id: 'pages.home.dataService.summary' },
+                {
+                  duration: formatMetric(data.averageDurationMs, intl.locale),
+                  failures: formatMetric(data.failureCalls, intl.locale),
+                },
+              )}
             </span>
           ) : (
-            <span>{state.failed ? '暂不可用' : '--'}</span>
+            <span>
+              {state.failed
+                ? intl.formatMessage({ id: 'pages.home.dataService.unavailable' })
+                : '--'}
+            </span>
           )}
         </div>
 
@@ -191,7 +224,9 @@ export default function HomeDataServiceOverview() {
         </div>
 
         <div className="mt-2 flex min-h-[30px] items-center justify-between gap-3 border-t border-[#f0f1f3] pt-3 text-[10px]">
-          <span className="shrink-0 text-[#9da1a9]">调用最多</span>
+          <span className="shrink-0 text-[#9da1a9]">
+            {intl.formatMessage({ id: 'pages.home.dataService.mostCalled' })}
+          </span>
           {topApi ? (
             <button
               type="button"
@@ -201,13 +236,22 @@ export default function HomeDataServiceOverview() {
               <span className="block truncate">
                 {topApi.name || topApi.path || `API #${topApi.apiId}`}
                 <strong className="ml-1 font-semibold text-[#454a54]">
-                  {formatMetric(topApi.calls)} 次
+                  {intl.formatMessage(
+                    { id: 'pages.home.dataService.calls' },
+                    { count: formatMetric(topApi.calls, intl.locale) },
+                  )}
                 </strong>
               </span>
             </button>
           ) : (
             <span className="truncate text-right text-[#a0a4ac]">
-              {state.loading ? '加载中...' : state.failed ? '暂不可用' : '暂无调用'}
+              {intl.formatMessage({
+                id: state.loading
+                  ? 'pages.home.dataCenter.latest.loading'
+                  : state.failed
+                    ? 'pages.home.dataService.unavailable'
+                    : 'pages.home.dataService.noCalls',
+              })}
             </span>
           )}
         </div>
