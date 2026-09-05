@@ -1,4 +1,5 @@
 import { YakButton } from '@/components/ui';
+import { useIntl } from '@umijs/max';
 import { Boxes, RefreshCw } from 'lucide-react';
 import {
   Component,
@@ -29,41 +30,48 @@ interface DevelopmentEditorWorkspaceProps {
 }
 
 class ResourceEditorBoundary extends Component<
-  { resourceKey: DevelopmentId; children: ReactNode },
-  { error?: string }
+  {
+    resourceKey: DevelopmentId;
+    children: ReactNode;
+    unknownErrorText: string;
+    loadErrorText: string;
+    rerenderText: string;
+  },
+  { error?: string; failed?: boolean }
 > {
   state = {};
 
   static getDerivedStateFromError(error: unknown) {
     return {
-      error: error instanceof Error ? error.message : '资源编辑器发生未知错误',
+      error: error instanceof Error ? error.message : undefined,
+      failed: true,
     };
   }
 
   componentDidUpdate(previous: { resourceKey: DevelopmentId }) {
-    if (previous.resourceKey !== this.props.resourceKey && this.state.error) {
-      this.setState({ error: undefined });
+    if (previous.resourceKey !== this.props.resourceKey && this.state.failed) {
+      this.setState({ error: undefined, failed: false });
     }
   }
 
   render() {
-    if (!this.state.error) return this.props.children;
+    if (!this.state.failed) return this.props.children;
 
     return (
       <div className="flex flex-1 items-center justify-center bg-white">
         <div className="text-center">
           <Boxes className="mx-auto text-[#98a2b3]" />
-          <div className="mt-3 text-sm">资源编辑器加载异常</div>
+          <div className="mt-3 text-sm">{this.props.loadErrorText}</div>
           <div className="mt-2 text-xs text-[#98a2b3]">
-            {this.state.error}
+            {this.state.error || this.props.unknownErrorText}
           </div>
           <YakButton
             className="mt-4"
             size="small"
             icon={<RefreshCw size={13} />}
-            onClick={() => this.setState({ error: undefined })}
+            onClick={() => this.setState({ error: undefined, failed: false })}
           >
-            重新渲染
+            {this.props.rerenderText}
           </YakButton>
         </div>
       </div>
@@ -79,15 +87,11 @@ export default function DevelopmentEditorWorkspace({
   onCreateNode,
   onNodesChanged,
 }: DevelopmentEditorWorkspaceProps) {
-  const [focusedNodeId, setFocusedNodeId] = useState<
-    DevelopmentId | undefined
-  >(selectedNodeId);
+  const intl = useIntl();
+  const [focusedNodeId, setFocusedNodeId] = useState<DevelopmentId | undefined>(selectedNodeId);
   const requestedNodeId = useMemo(() => {
     if (typeof window === 'undefined') return undefined;
-    return (
-      new URLSearchParams(window.location.search).get('nodeId')?.trim() ||
-      undefined
-    );
+    return new URLSearchParams(window.location.search).get('nodeId')?.trim() || undefined;
   }, []);
   const deepLinkAppliedRef = useRef(false);
 
@@ -96,7 +100,6 @@ export default function DevelopmentEditorWorkspace({
       setFocusedNodeId(selectedNodeId);
       return;
     }
-
     if (
       !deepLinkAppliedRef.current &&
       requestedNodeId &&
@@ -142,7 +145,12 @@ export default function DevelopmentEditorWorkspace({
     selectedResource.type === 'DATASET'
   ) {
     return (
-      <ResourceEditorBoundary resourceKey={selectedResource.id}>
+      <ResourceEditorBoundary
+        resourceKey={selectedResource.id}
+        unknownErrorText={intl.formatMessage({ id: 'pages.dataDevelopment.workspace.editorUnknownError' })}
+        loadErrorText={intl.formatMessage({ id: 'pages.dataDevelopment.workspace.editorLoadError' })}
+        rerenderText={intl.formatMessage({ id: 'pages.dataDevelopment.workspace.rerender' })}
+      >
         <DevelopmentWorkbench
           nodes={workbenchNodes}
           directories={directories}
