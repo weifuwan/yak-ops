@@ -2,6 +2,7 @@ import batchLinkUp from './zh-CN/batch-link-up';
 import component from './zh-CN/component';
 import dashboard from './zh-CN/dashboard';
 import dashboardEditor from './zh-CN/dashboard-editor';
+import dashboardEditorAdvanced from './zh-CN/dashboard-editor-advanced';
 import dashboardEditorChart from './zh-CN/dashboard-editor-chart';
 import dataDevelopment from './zh-CN/data-development';
 import dataDevelopmentEditor from './zh-CN/data-development-editor';
@@ -47,6 +48,7 @@ export default {
   ...dashboard,
   ...dashboardEditor,
   ...dashboardEditorChart,
+  ...dashboardEditorAdvanced,
   ...globalHeader,
   ...menu,
   ...settingDrawer,
