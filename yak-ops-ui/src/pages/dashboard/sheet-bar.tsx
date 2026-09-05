@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Dropdown, Input, Modal, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -69,6 +70,7 @@ export function DashboardSheetBar({
   onDuplicate?: (sheetId: string) => void;
   onDelete?: (sheetId: string) => void;
 }) {
+  const intl = useIntl();
   const [draggingId, setDraggingId] = useState<string>();
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -239,10 +241,13 @@ export function DashboardSheetBar({
 
   const confirmDelete = (sheet: DashboardEditorSheet) => {
     Modal.confirm({
-      title: '删除 Sheet？',
-      content: `“${sheet.title}”对应的图表组件也会从当前仪表盘中删除。`,
-      okText: '删除',
-      cancelText: '取消',
+      title: intl.formatMessage({ id: 'pages.dashboard.editor.sheet.deleteTitle' }),
+      content: intl.formatMessage(
+        { id: 'pages.dashboard.editor.sheet.deleteContent' },
+        { title: sheet.title },
+      ),
+      okText: intl.formatMessage({ id: 'pages.dashboard.editor.common.delete' }),
+      cancelText: intl.formatMessage({ id: 'pages.dashboard.editor.common.cancel' }),
       okButtonProps: { danger: true },
       onOk: () => {
         if (activeSheet === 'chart' && activeSheetId === sheet.id) onDashboard();
@@ -256,30 +261,30 @@ export function DashboardSheetBar({
       {
         key: 'rename',
         icon: <FilePenLine size={14} />,
-        label: '重命名',
+        label: intl.formatMessage({ id: 'pages.dashboard.editor.common.rename' }),
         disabled: !onRename,
       },
       {
         key: 'duplicate',
         icon: <Copy size={14} />,
-        label: '复制',
+        label: intl.formatMessage({ id: 'pages.dashboard.editor.common.duplicate' }),
         disabled: !onDuplicate,
       },
       {
         key: 'note',
         icon: <MessageSquareText size={14} />,
-        label: '备注',
+        label: intl.formatMessage({ id: 'pages.dashboard.editor.common.note' }),
       },
       { type: 'divider' },
       {
         key: 'hide',
         icon: <EyeOff size={14} />,
-        label: '隐藏',
+        label: intl.formatMessage({ id: 'pages.dashboard.editor.common.hide' }),
       },
       {
         key: 'delete',
         icon: <Trash2 size={14} />,
-        label: '删除',
+        label: intl.formatMessage({ id: 'pages.dashboard.editor.common.delete' }),
         danger: true,
         disabled: !onDelete,
       },
@@ -301,7 +306,9 @@ export function DashboardSheetBar({
       label: (
         <div className="flex min-w-[150px] items-center justify-between gap-4">
           <span className="max-w-[190px] truncate">{sheet.title}</span>
-          <span className="text-[10px] text-[#98a2b3]">恢复</span>
+          <span className="text-[10px] text-[#98a2b3]">
+            {intl.formatMessage({ id: 'pages.dashboard.editor.common.restore' })}
+          </span>
         </div>
       ),
     })),
@@ -314,7 +321,7 @@ export function DashboardSheetBar({
     <>
       <div
         className="flex h-8 shrink-0 items-stretch border-t border-[#d8dde4] bg-[#eef1f4] shadow-[0_-1px_0_rgba(16,24,40,.025)]"
-        aria-label="仪表盘编辑 Sheet"
+        aria-label={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.aria' })}
       >
         <div className="flex shrink-0 items-end pl-1">
           <button
@@ -333,7 +340,7 @@ export function DashboardSheetBar({
             onKeyDown={(event) => handleNavigation(event, 'dashboard')}
           >
             <LayoutDashboard size={13} className={dashboardActive ? 'text-[#344054]' : 'text-[#7d8591]'} />
-            <span>仪表盘</span>
+            <span>{intl.formatMessage({ id: 'pages.dashboard.editor.sheet.dashboard' })}</span>
           </button>
         </div>
 
@@ -346,11 +353,20 @@ export function DashboardSheetBar({
             const active = activeSheet === 'chart' && activeSheetId === sheet.id;
             const note = sheetMeta[sheet.id]?.note?.trim();
             const renaming = renamingId === sheet.id;
+            const tooltip = note
+              ? intl.formatMessage(
+                { id: 'pages.dashboard.editor.sheet.noteTooltip' },
+                { title: sheet.title, note },
+              )
+              : intl.formatMessage(
+                { id: 'pages.dashboard.editor.sheet.tooltip' },
+                { title: sheet.title },
+              );
             return (
               <div
                 key={sheet.id}
                 draggable={!renaming}
-                title={renaming ? undefined : (note ? `${sheet.title}\n备注：${note}` : `${sheet.title} · 双击重命名 · 拖动可调整 Sheet 顺序`)}
+                title={renaming ? undefined : tooltip}
                 className={[
                   'group relative mb-0 flex h-7 w-[220px] min-w-[220px] max-w-[220px] shrink-0 items-stretch rounded-t-[4px] border transition-colors',
                   active
@@ -380,7 +396,10 @@ export function DashboardSheetBar({
                       autoFocus
                       value={renameDraft}
                       maxLength={60}
-                      aria-label={`重命名 ${sheet.title}`}
+                      aria-label={intl.formatMessage(
+                        { id: 'pages.dashboard.editor.sheet.renameAria' },
+                        { title: sheet.title },
+                      )}
                       className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-[11px] font-medium text-[#161823] outline-none shadow-none [appearance:none] focus:border-0 focus:outline-none focus:ring-0"
                       onFocus={(event) => event.currentTarget.select()}
                       onMouseDown={(event) => event.stopPropagation()}
@@ -421,7 +440,7 @@ export function DashboardSheetBar({
                     {note ? (
                       <span
                         className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#aeb5bf]"
-                        aria-label="已有备注"
+                        aria-label={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.hasNote' })}
                       />
                     ) : null}
                   </button>
@@ -430,7 +449,10 @@ export function DashboardSheetBar({
                 <Dropdown menu={menuFor(sheet)} trigger={['click']} placement="topLeft">
                   <button
                     type="button"
-                    aria-label={`${sheet.title} Sheet 操作`}
+                    aria-label={intl.formatMessage(
+                      { id: 'pages.dashboard.editor.sheet.actionsAria' },
+                      { title: sheet.title },
+                    )}
                     draggable={false}
                     className={[
                       'mr-1 flex w-6 shrink-0 items-center justify-center self-center rounded-[4px] text-[#818995] transition-all',
@@ -448,16 +470,16 @@ export function DashboardSheetBar({
             );
           }) : (
             <div className="flex h-7 items-center px-3 text-[10px] text-[#98a2b3]">
-              暂无图表 Sheet
+              {intl.formatMessage({ id: 'pages.dashboard.editor.sheet.empty' })}
             </div>
           )}
         </div>
 
         <div className="flex shrink-0 items-center border-l border-[#d8dde4] bg-[#eef1f4] px-0.5">
-          <Tooltip title="向左滚动">
+          <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.scrollLeft' })}>
             <button
               type="button"
-              aria-label="向左滚动图表 Sheet"
+              aria-label={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.scrollLeftAria' })}
               disabled={!canScrollLeft}
               className="flex h-7 w-7 items-center justify-center rounded-[4px] bg-transparent text-[#687180] transition-colors hover:bg-[#e1e5ea] hover:text-[#344054] disabled:cursor-default disabled:text-[#c2c8d0] disabled:hover:bg-transparent"
               onClick={() => scrollSheets(-1)}
@@ -465,10 +487,10 @@ export function DashboardSheetBar({
               <ChevronLeft size={13} />
             </button>
           </Tooltip>
-          <Tooltip title="向右滚动">
+          <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.scrollRight' })}>
             <button
               type="button"
-              aria-label="向右滚动图表 Sheet"
+              aria-label={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.scrollRightAria' })}
               disabled={!canScrollRight}
               className="flex h-7 w-7 items-center justify-center rounded-[4px] bg-transparent text-[#687180] transition-colors hover:bg-[#e1e5ea] hover:text-[#344054] disabled:cursor-default disabled:text-[#c2c8d0] disabled:hover:bg-transparent"
               onClick={() => scrollSheets(1)}
@@ -479,10 +501,15 @@ export function DashboardSheetBar({
 
           {hiddenSheets.length ? (
             <Dropdown menu={hiddenMenu} trigger={['click']} placement="topRight">
-              <Tooltip title={`${hiddenSheets.length} 个隐藏 Sheet`}>
+              <Tooltip
+                title={intl.formatMessage(
+                  { id: 'pages.dashboard.editor.sheet.hiddenCount' },
+                  { count: hiddenSheets.length },
+                )}
+              >
                 <button
                   type="button"
-                  aria-label="显示隐藏 Sheet"
+                  aria-label={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.showHidden' })}
                   className="relative flex h-7 w-8 items-center justify-center rounded-[4px] bg-transparent text-[#687180] transition-colors hover:bg-[#e1e5ea] hover:text-[#344054]"
                 >
                   <EyeOff size={13} />
@@ -495,10 +522,10 @@ export function DashboardSheetBar({
           ) : null}
 
           <div className="mx-0.5 h-4 w-px bg-[#d4d9e0]" />
-          <Tooltip title="新建图表 Sheet">
+          <Tooltip title={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.new' })}>
             <button
               type="button"
-              aria-label="新建图表 Sheet"
+              aria-label={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.new' })}
               disabled={!onAddChart || !canAddChart}
               className="flex h-7 w-8 items-center justify-center rounded-[4px] bg-transparent text-[#596271] transition-colors hover:bg-[#e1e5ea] hover:text-[#161823] disabled:cursor-not-allowed disabled:text-[#c2c8d0] disabled:hover:bg-transparent"
               onClick={onAddChart}
@@ -511,9 +538,14 @@ export function DashboardSheetBar({
 
       <Modal
         open={Boolean(noteSheet)}
-        title={noteSheet ? `备注 · ${noteSheet.title}` : 'Sheet 备注'}
-        okText="保存"
-        cancelText="取消"
+        title={noteSheet
+          ? intl.formatMessage(
+            { id: 'pages.dashboard.editor.sheet.noteTitle' },
+            { title: noteSheet.title },
+          )
+          : intl.formatMessage({ id: 'pages.dashboard.editor.sheet.noteFallbackTitle' })}
+        okText={intl.formatMessage({ id: 'pages.dashboard.editor.common.save' })}
+        cancelText={intl.formatMessage({ id: 'pages.dashboard.editor.common.cancel' })}
         width={440}
         onCancel={() => setNoteSheet(undefined)}
         onOk={() => {
@@ -527,11 +559,11 @@ export function DashboardSheetBar({
           value={noteDraft}
           maxLength={300}
           autoSize={{ minRows: 4, maxRows: 8 }}
-          placeholder="记录这个 Sheet 的用途、口径或待办事项"
+          placeholder={intl.formatMessage({ id: 'pages.dashboard.editor.sheet.notePlaceholder' })}
           onChange={(event) => setNoteDraft(event.target.value)}
         />
         <div className="mt-2 text-[11px] leading-5 text-[#98a2b3]">
-          Sheet 备注仅保存在当前浏览器，不进入仪表盘服务端版本。
+          {intl.formatMessage({ id: 'pages.dashboard.editor.sheet.noteHint' })}
         </div>
       </Modal>
     </>
