@@ -4,6 +4,7 @@ import dataQuality from './zh-CN/data-quality';
 import dataService from './zh-CN/data-service';
 import dataSource from './zh-CN/data-source';
 import globalHeader from './zh-CN/globalHeader';
+import home from './zh-CN/home';
 import menu from './zh-CN/menu';
 import pages from './zh-CN/pages';
 import pwa from './zh-CN/pwa';
@@ -25,6 +26,7 @@ export default {
   ...dataService,
   ...realtimeSync,
   ...dataQuality,
+  ...home,
   ...globalHeader,
   ...menu,
   ...settingDrawer,
