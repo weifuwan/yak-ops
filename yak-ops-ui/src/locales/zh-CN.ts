@@ -4,6 +4,7 @@ import dashboard from './zh-CN/dashboard';
 import dashboardEditor from './zh-CN/dashboard-editor';
 import dashboardEditorAdvanced from './zh-CN/dashboard-editor-advanced';
 import dashboardEditorChart from './zh-CN/dashboard-editor-chart';
+import dashboardEditorFields from './zh-CN/dashboard-editor-fields';
 import dataDevelopment from './zh-CN/data-development';
 import dataDevelopmentEditor from './zh-CN/data-development-editor';
 import dataQuality from './zh-CN/data-quality';
@@ -49,6 +50,7 @@ export default {
   ...dashboardEditor,
   ...dashboardEditorChart,
   ...dashboardEditorAdvanced,
+  ...dashboardEditorFields,
   ...globalHeader,
   ...menu,
   ...settingDrawer,
