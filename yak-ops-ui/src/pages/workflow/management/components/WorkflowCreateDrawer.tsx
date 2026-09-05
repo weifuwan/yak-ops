@@ -3,8 +3,8 @@ import EmojiIconPicker, {
   type EmojiIconValue,
 } from '@/components/EmojiIconPicker';
 import { YakButton } from '@/components/ui';
+import { useIntl } from '@umijs/max';
 import { Drawer, Form, Input } from 'antd';
-import { GitBranch } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export interface WorkflowCreateValues {
@@ -26,6 +26,7 @@ const WorkflowCreateDrawer = ({
   onClose,
   onSubmit,
 }: WorkflowCreateDrawerProps) => {
+  const intl = useIntl();
   const [form] = Form.useForm<Omit<WorkflowCreateValues, 'icon'>>();
   const [icon, setIcon] = useState<EmojiIconValue>(DEFAULT_EMOJI_ICON);
 
@@ -64,10 +65,8 @@ const WorkflowCreateDrawer = ({
       keyboard={!creating}
       onClose={handleClose}
       title={
-        <div>
-          <div className="text-[18px] font-semibold leading-7 text-[#101828]">
-            新建工作流
-          </div>
+        <div className="text-[18px] font-semibold leading-7 text-[#101828]">
+          {intl.formatMessage({ id: 'pages.workflow.definition.createDrawer.title' })}
         </div>
       }
       extra={
@@ -77,7 +76,7 @@ const WorkflowCreateDrawer = ({
             onClick={handleClose}
             className="!h-9 !rounded-lg !px-4"
           >
-            取消
+            {intl.formatMessage({ id: 'pages.workflow.common.cancel' })}
           </YakButton>
           <YakButton
             type="primary"
@@ -85,7 +84,7 @@ const WorkflowCreateDrawer = ({
             onClick={() => void handleSubmit()}
             className="!h-9 !rounded-lg !px-5 !text-white"
           >
-            创建并配置
+            {intl.formatMessage({ id: 'pages.workflow.definition.createDrawer.create' })}
           </YakButton>
         </div>
       }
@@ -98,7 +97,11 @@ const WorkflowCreateDrawer = ({
       }}
     >
       <Form form={form} layout="vertical" requiredMark="optional">
-        <Form.Item label="工作流名称" required className="!mb-6">
+        <Form.Item
+          label={intl.formatMessage({ id: 'pages.workflow.definition.createDrawer.name' })}
+          required
+          className="!mb-6"
+        >
           <div className="flex items-start gap-2.5">
             <EmojiIconPicker
               value={icon}
@@ -110,13 +113,19 @@ const WorkflowCreateDrawer = ({
               name="name"
               noStyle
               rules={[
-                { required: true, message: '请输入工作流名称' },
-                { max: 100, message: '名称不能超过 100 个字符' },
+                {
+                  required: true,
+                  message: intl.formatMessage({ id: 'pages.workflow.definition.createDrawer.nameRequired' }),
+                },
+                {
+                  max: 100,
+                  message: intl.formatMessage({ id: 'pages.workflow.definition.createDrawer.nameMax' }),
+                },
               ]}
             >
               <Input
                 variant="filled"
-                placeholder="例如：每日订单同步工作流"
+                placeholder={intl.formatMessage({ id: 'pages.workflow.definition.createDrawer.namePlaceholder' })}
                 className="!h-[44px] !rounded-[10px]"
               />
             </Form.Item>
@@ -125,13 +134,18 @@ const WorkflowCreateDrawer = ({
 
         <Form.Item
           name="description"
-          label="工作流描述"
-          rules={[{ max: 500, message: '描述不能超过 500 个字符' }]}
+          label={intl.formatMessage({ id: 'pages.workflow.definition.createDrawer.description' })}
+          rules={[
+            {
+              max: 500,
+              message: intl.formatMessage({ id: 'pages.workflow.definition.createDrawer.descriptionMax' }),
+            },
+          ]}
         >
           <Input.TextArea
             variant="filled"
             rows={4}
-            placeholder="简单说明这个工作流负责什么"
+            placeholder={intl.formatMessage({ id: 'pages.workflow.definition.createDrawer.descriptionPlaceholder' })}
           />
         </Form.Item>
       </Form>
