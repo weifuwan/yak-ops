@@ -8,6 +8,8 @@ import {
   statusKey,
   statusLabel,
   taskTypeLabel,
+  type HomeStatusKey,
+  type HomeTaskTypeKey,
 } from '../../utils/homeDataCenter';
 
 interface LatestTaskCardProps {
@@ -22,25 +24,14 @@ interface TaskMetricRowProps {
   danger?: boolean;
 }
 
-function TaskMetricRow({
-  label,
-  value,
-  danger = false,
-}: TaskMetricRowProps) {
+function TaskMetricRow({ label, value, danger = false }: TaskMetricRowProps) {
   return (
     <div className="flex h-6 items-center justify-between">
-      <span className="text-[11px] font-medium text-white/90">
-        {label}
-      </span>
-
+      <span className="text-[11px] font-medium text-white/90">{label}</span>
       <span
-        className={`
-          max-w-[84px]
-          truncate
-          text-[11px]
-          font-semibold
-          ${danger ? 'text-[#ff8993]' : 'text-white'}
-        `}
+        className={`max-w-[84px] truncate text-[11px] font-semibold ${
+          danger ? 'text-[#ff8993]' : 'text-white'
+        }`}
         title={typeof value === 'string' ? value : undefined}
       >
         {value}
@@ -51,9 +42,9 @@ function TaskMetricRow({
 
 function LatestTaskContent({ task }: { task: HomeLatestTask }) {
   const intl = useIntl();
-  const resolveStatus = (key: Parameters<typeof statusLabel>[1] extends ((key: infer K) => string) ? K : never) =>
+  const resolveStatus = (key: HomeStatusKey) =>
     intl.formatMessage({ id: `pages.home.dataCenter.status.${key}` });
-  const resolveTaskType = (key: Parameters<typeof taskTypeLabel>[1] extends ((key: infer K) => string) ? K : never) =>
+  const resolveTaskType = (key: HomeTaskTypeKey) =>
     intl.formatMessage({ id: `pages.home.dataCenter.taskType.${key}` });
   const status = statusLabel(task.status, resolveStatus);
 
@@ -102,7 +93,6 @@ function LatestTaskContent({ task }: { task: HomeLatestTask }) {
 
       <div className="absolute inset-x-0 bottom-0 z-10 h-[72px] overflow-hidden transition-[height] duration-300 ease-out group-hover:h-[150px] group-focus:h-[150px]">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(45,46,48,0)_0%,rgba(45,46,48,0.36)_18%,rgba(44,45,47,0.78)_100%)]" />
-
         <div className="relative z-10 px-3 pt-[10px]">
           <TaskMetricRow
             label={intl.formatMessage({ id: 'pages.home.dataCenter.latest.runCount' })}
@@ -124,7 +114,6 @@ function LatestTaskContent({ task }: { task: HomeLatestTask }) {
               label={intl.formatMessage({ id: 'pages.home.dataCenter.latest.taskId' })}
               value={String(task.taskId)}
             />
-
             <div className="mt-[4px] flex h-[24px] items-center gap-[2px] text-[11px] font-semibold text-white">
               <span>{intl.formatMessage({ id: 'pages.home.dataCenter.latest.detail' })}</span>
               <ChevronRight size={14} strokeWidth={2} className="transition-transform duration-200 group-hover:translate-x-[2px]" />
@@ -186,7 +175,6 @@ export function LatestTaskCard({ task, loading, failed }: LatestTaskCardProps) {
           {intl.formatMessage({ id: 'pages.home.dataCenter.latest.title' })}
         </span>
       </div>
-
       {task ? (
         <LatestTaskContent task={task} />
       ) : loading ? (
