@@ -43,6 +43,7 @@ fi
 exec "${JAVA_BIN}" \
   "${JAVA_ARGS[@]}" \
   -Dyak.ops.home="${YAK_OPS_HOME}" \
+  -Dloader.path="${DRIVER_DIR}" \
   -Dlogging.config="${CONF_DIR}/logback-spring.xml" \
   -jar "${YAK_OPS_HOME}/libs/yak-ops-api.jar" \
   --spring.config.location="${CONF_DIR}/application.yml" \
