@@ -96,7 +96,7 @@ const DataSourceCard = ({
                 }}
               >
                 {environmentConfig.icon}
-                {record.environmentName || environmentConfig.text}
+                {environmentConfig.text}
               </span>
             </div>
 
