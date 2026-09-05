@@ -1,11 +1,12 @@
 import { YakButton, YakFilterSwitch } from '@/components/ui';
 import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import { Input, Popover, Select } from 'antd';
 import { useState } from 'react';
 
 import {
-  REALTIME_SYNC_RELEASE_OPTIONS,
-  REALTIME_SYNC_STATUS_TABS,
+  getRealtimeSyncReleaseOptions,
+  getRealtimeSyncStatusTabs,
 } from '../constants';
 import type {
   RealtimeFilterField,
@@ -39,10 +40,13 @@ const RealtimeSyncFilterBar = ({
   onSearch,
   onReset,
 }: RealtimeSyncFilterBarProps) => {
+  const intl = useIntl();
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const hasActiveFilters =
     activeStateGroup !== 'ALL' ||
     Boolean(filterDraft.keyword || filterDraft.releaseState || filterDraft.id);
+  const statusTabs = getRealtimeSyncStatusTabs(intl);
+  const releaseOptions = getRealtimeSyncReleaseOptions(intl);
 
   const applyAdvancedFilter = () => {
     if (onSearch()) setAdvancedOpen(false);
@@ -57,7 +61,7 @@ const RealtimeSyncFilterBar = ({
     <div className="flex min-h-9 items-center justify-between gap-6">
       <YakFilterSwitch
         value={activeStateGroup}
-        options={REALTIME_SYNC_STATUS_TABS}
+        options={statusTabs}
         onChange={onStateGroupChange}
       />
 
@@ -67,7 +71,9 @@ const RealtimeSyncFilterBar = ({
           variant="filled"
           value={filterDraft.keyword}
           prefix={<SearchOutlined className="text-[#98a2b3]" />}
-          placeholder="搜索任务名称 / 描述"
+          placeholder={intl.formatMessage({
+            id: 'pages.realtimeSync.filter.searchPlaceholder',
+          })}
           className="!h-9 !w-[240px] !min-w-[190px]"
           onChange={(event) =>
             onDraftChange('keyword', event.target.value || undefined)
@@ -79,14 +85,16 @@ const RealtimeSyncFilterBar = ({
           allowClear
           variant="filled"
           value={filterDraft.releaseState}
-          options={REALTIME_SYNC_RELEASE_OPTIONS.map((item) => ({ ...item }))}
-          placeholder="发布状态"
-          className="!h-9 !w-[135px] !min-w-[125px]"
+          options={releaseOptions.map((item) => ({ ...item }))}
+          placeholder={intl.formatMessage({
+            id: 'pages.realtimeSync.filter.releaseState',
+          })}
+          className="!h-9 !w-[145px] !min-w-[135px]"
           onChange={onReleaseStateChange}
         />
 
         <YakButton className="!h-9 !px-4" onClick={() => void onSearch()}>
-          查询
+          {intl.formatMessage({ id: 'pages.realtimeSync.filter.search' })}
         </YakButton>
 
         {hasActiveFilters ? (
@@ -95,7 +103,7 @@ const RealtimeSyncFilterBar = ({
             className="!h-9 !px-2 !text-[#777c86]"
             onClick={resetFilters}
           >
-            重置
+            {intl.formatMessage({ id: 'pages.realtimeSync.filter.reset' })}
           </YakButton>
         ) : null}
 
@@ -107,21 +115,25 @@ const RealtimeSyncFilterBar = ({
           content={
             <div className="w-[320px]">
               <div className="text-[14px] font-semibold text-[#101828]">
-                高级搜索
+                {intl.formatMessage({ id: 'pages.realtimeSync.filter.advanced' })}
               </div>
               <div className="mt-1 text-[12px] text-[#98a2b3]">
-                按任务 ID 精确定位实时任务
+                {intl.formatMessage({
+                  id: 'pages.realtimeSync.filter.advancedDescription',
+                })}
               </div>
 
               <div className="mt-4">
                 <div className="mb-1.5 text-[12px] text-[#667085]">
-                  任务 ID
+                  {intl.formatMessage({ id: 'pages.realtimeSync.filter.taskId' })}
                 </div>
                 <Input
                   allowClear
                   variant="filled"
                   value={filterDraft.id}
-                  placeholder="请输入数字任务 ID"
+                  placeholder={intl.formatMessage({
+                    id: 'pages.realtimeSync.filter.taskIdPlaceholder',
+                  })}
                   onChange={(event) =>
                     onDraftChange('id', event.target.value || undefined)
                   }
@@ -131,14 +143,14 @@ const RealtimeSyncFilterBar = ({
 
               <div className="mt-5 flex items-center justify-end gap-2 border-t border-[#f0f0f0] pt-4">
                 <YakButton size="small" onClick={resetFilters}>
-                  重置全部
+                  {intl.formatMessage({ id: 'pages.realtimeSync.filter.resetAll' })}
                 </YakButton>
                 <YakButton
                   type="primary"
                   size="small"
                   onClick={applyAdvancedFilter}
                 >
-                  应用筛选
+                  {intl.formatMessage({ id: 'pages.realtimeSync.filter.apply' })}
                 </YakButton>
               </div>
             </div>
@@ -154,7 +166,7 @@ const RealtimeSyncFilterBar = ({
                 : '',
             ].join(' ')}
           >
-            高级搜索
+            {intl.formatMessage({ id: 'pages.realtimeSync.filter.advanced' })}
             {advancedFilterCount > 0 ? (
               <span className="ml-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#ff4d4f] px-1 text-[10px] leading-[18px] text-white">
                 {advancedFilterCount}
