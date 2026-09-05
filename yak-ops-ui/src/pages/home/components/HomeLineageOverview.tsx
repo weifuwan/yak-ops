@@ -1,5 +1,5 @@
 import YakOpsEmpty from '@/components/YakOpsEmpty';
-import { history } from '@umijs/max';
+import { history, useIntl } from '@umijs/max';
 import type { EChartsOption } from 'echarts';
 import ReactECharts from 'echarts-for-react';
 import { Activity } from 'lucide-react';
@@ -11,6 +11,7 @@ import {
   compactName,
   formatMetric,
   type HomeAssetOverviewState,
+  type HomeLineageRelationKey,
   relativeTime,
   relationTypeLabel,
   SectionHeader,
@@ -19,15 +20,14 @@ import type { HomeLineageActivity } from './service';
 
 function buildLineageGraphOption(
   state: HomeAssetOverviewState,
+  resolveRelation: (key: HomeLineageRelationKey) => string,
 ): EChartsOption {
   const nodes = state.data?.lineage?.nodes || [];
   const edges = state.data?.lineage?.edges || [];
   return {
     animationDuration: 520,
     animationDurationUpdate: 420,
-    tooltip: {
-      trigger: 'item',
-    },
+    tooltip: { trigger: 'item' },
     series: [
       {
         type: 'graph',
@@ -58,7 +58,7 @@ function buildLineageGraphOption(
           id: edge.id,
           source: edge.sourceAssetId,
           target: edge.targetAssetId,
-          value: relationTypeLabel(edge.relationType),
+          value: relationTypeLabel(edge.relationType, resolveRelation),
         })),
         force: {
           repulsion: 150,
@@ -72,16 +72,20 @@ function buildLineageGraphOption(
           width: 1.4,
           curveness: 0.08,
         },
-        emphasis: {
-          focus: 'adjacency',
-        },
+        emphasis: { focus: 'adjacency' },
       },
     ],
   };
 }
 
 function LineagePreview({ state }: { state: HomeAssetOverviewState }) {
-  const graphOption = useMemo(() => buildLineageGraphOption(state), [state]);
+  const intl = useIntl();
+  const resolveRelation = (key: HomeLineageRelationKey) =>
+    intl.formatMessage({ id: `pages.home.lineage.relation.${key}` });
+  const graphOption = useMemo(
+    () => buildLineageGraphOption(state, resolveRelation),
+    [intl.locale, state],
+  );
   const hasGraph = (state.data?.lineage?.nodes.length || 0) > 0;
   const unavailable = state.data?.lineage?.assetCount == null;
 
@@ -95,24 +99,26 @@ function LineagePreview({ state }: { state: HomeAssetOverviewState }) {
         />
       ) : state.loading || state.failed || unavailable ? (
         <div className="relative flex h-full items-center justify-center text-[11px] text-[#a0a4ac]">
-          {state.loading
-            ? '血缘加载中...'
-            : state.failed
-              ? '血缘数据加载失败'
-              : '血缘数据暂不可用'}
+          {intl.formatMessage({
+            id: state.loading
+              ? 'pages.home.lineage.loading'
+              : state.failed
+                ? 'pages.home.lineage.failed'
+                : 'pages.home.lineage.unavailable',
+          })}
         </div>
       ) : (
         <div className="relative flex h-full items-center justify-center">
           <YakOpsEmpty
             width={160}
             height={108}
-            title="暂无血缘关系"
+            title={intl.formatMessage({ id: 'pages.home.lineage.empty' })}
             showCaption
           />
         </div>
       )}
       <div className="absolute bottom-3 left-3 rounded-full border border-[#e6e8ec] bg-white/90 px-2.5 py-1 text-[9px] text-[#999da5] shadow-sm backdrop-blur">
-        最近血缘关系
+        {intl.formatMessage({ id: 'pages.home.lineage.recentBadge' })}
       </div>
     </div>
   );
@@ -125,17 +131,21 @@ function LineageMetric({
   label: string;
   value?: number | null;
 }) {
+  const intl = useIntl();
   return (
     <div>
       <div className="text-[10px] text-[#989ca4]">{label}</div>
       <strong className="mt-1 block text-[20px] font-semibold text-[#3c4049]">
-        {formatMetric(value)}
+        {formatMetric(value, intl.locale)}
       </strong>
     </div>
   );
 }
 
 function LineageUpdate({ item }: { item: HomeLineageActivity }) {
+  const intl = useIntl();
+  const resolveRelation = (key: HomeLineageRelationKey) =>
+    intl.formatMessage({ id: `pages.home.lineage.relation.${key}` });
   return (
     <button
       type="button"
@@ -148,11 +158,11 @@ function LineageUpdate({ item }: { item: HomeLineageActivity }) {
           {item.sourceName} → {item.targetName}
         </strong>
         <span className="mt-0.5 block text-[9px] text-[#a1a5ad]">
-          {relationTypeLabel(item.relationType)}
+          {relationTypeLabel(item.relationType, resolveRelation)}
         </span>
       </span>
       <span className="shrink-0 text-[9px] text-[#a1a5ad]">
-        {relativeTime(item.occurredAt)}
+        {relativeTime(item.occurredAt, intl.locale)}
       </span>
     </button>
   );
@@ -163,12 +173,13 @@ export function DataLineageOverview({
 }: {
   state: HomeAssetOverviewState;
 }) {
+  const intl = useIntl();
   const lineage = state.data?.lineage;
   const activities = lineage?.recentActivities || [];
   return (
     <section className="rounded-[22px] border border-[#f0f1f3] bg-white px-6 pb-5 pt-5">
       <SectionHeader
-        title="数据血缘"
+        title={intl.formatMessage({ id: 'pages.home.lineage.title' })}
         description=""
         onMore={() => history.push('/data-analysis/lineage')}
       />
@@ -177,16 +188,28 @@ export function DataLineageOverview({
         <LineagePreview state={state} />
         <div className="flex flex-col">
           <div className="grid grid-cols-2 gap-x-5 gap-y-5">
-            <LineageMetric label="数据节点" value={lineage?.assetCount} />
-            <LineageMetric label="血缘关系" value={lineage?.relationCount} />
-            <LineageMetric label="今日更新" value={lineage?.todayUpdatedCount} />
-            <LineageMetric label="数据集节点" value={lineage?.datasetAssetCount} />
+            <LineageMetric
+              label={intl.formatMessage({ id: 'pages.home.lineage.metric.nodes' })}
+              value={lineage?.assetCount}
+            />
+            <LineageMetric
+              label={intl.formatMessage({ id: 'pages.home.lineage.metric.relations' })}
+              value={lineage?.relationCount}
+            />
+            <LineageMetric
+              label={intl.formatMessage({ id: 'pages.home.lineage.metric.todayUpdated' })}
+              value={lineage?.todayUpdatedCount}
+            />
+            <LineageMetric
+              label={intl.formatMessage({ id: 'pages.home.lineage.metric.datasetNodes' })}
+              value={lineage?.datasetAssetCount}
+            />
           </div>
 
           <div className="mt-6 border-t border-[#eef0f3] pt-4">
             <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#525761]">
               <Activity size={13} strokeWidth={1.8} />
-              最近关系
+              {intl.formatMessage({ id: 'pages.home.lineage.recentRelations' })}
             </div>
             {activities.length > 0 ? (
               <div className="mt-3 space-y-3">
@@ -196,16 +219,18 @@ export function DataLineageOverview({
               </div>
             ) : state.loading || state.failed || lineage?.assetCount == null ? (
               <div className="flex min-h-[118px] items-center justify-center text-[10px] text-[#a0a4ac]">
-                {state.loading
-                  ? '数据加载中...'
-                  : state.failed
-                    ? '数据加载失败'
-                    : '数据暂不可用'}
+                {intl.formatMessage({
+                  id: state.loading
+                    ? 'pages.home.common.loading'
+                    : state.failed
+                      ? 'pages.home.common.loadFailed'
+                      : 'pages.home.common.unavailable',
+                })}
               </div>
             ) : (
               <HomeEmptyState
                 icon={Activity}
-                title="暂无最近关系"
+                title={intl.formatMessage({ id: 'pages.home.lineage.emptyRecent' })}
                 size="small"
                 className="min-h-[118px]"
               />
