@@ -61,3 +61,9 @@ spark-warehouse
 .env.*
 !.env.example
 !.env.*.example
+
+# Temporary stage / agent handoff artifacts
+# Keep durable architecture and migration runbooks under docs/, but do not commit
+# stage completion notes, connector probes, sync markers, or other agent handoff files.
+.stage*
+docs/**/STAGE*.md
