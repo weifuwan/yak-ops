@@ -10,7 +10,7 @@ import {
   type TableColumnsType,
 } from 'antd';
 import { ArrowLeft, Copy, MoreHorizontal, Trash2 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { describeDataServiceSource } from '../utils';
 import DataServiceMethodBadge from './DataServiceMethodBadge';
@@ -53,19 +53,22 @@ const DataServiceSearchResults = ({
 }: DataServiceSearchResultsProps) => {
   const intl = useIntl();
 
-  const confirmDelete = (service: DataServiceApi) => {
-    Modal.confirm({
-      title: intl.formatMessage({ id: 'pages.dataService.delete.title' }),
-      content: intl.formatMessage(
-        { id: 'pages.dataService.delete.confirm' },
-        { name: service.name },
-      ),
-      okText: intl.formatMessage({ id: 'pages.dataService.delete.ok' }),
-      okButtonProps: { danger: true },
-      cancelText: intl.formatMessage({ id: 'pages.dataService.delete.cancel' }),
-      onOk: () => onDelete(service),
-    });
-  };
+  const confirmDelete = useCallback(
+    (service: DataServiceApi) => {
+      Modal.confirm({
+        title: intl.formatMessage({ id: 'pages.dataService.delete.title' }),
+        content: intl.formatMessage(
+          { id: 'pages.dataService.delete.confirm' },
+          { name: service.name },
+        ),
+        okText: intl.formatMessage({ id: 'pages.dataService.delete.ok' }),
+        okButtonProps: { danger: true },
+        cancelText: intl.formatMessage({ id: 'pages.dataService.delete.cancel' }),
+        onOk: () => onDelete(service),
+      });
+    },
+    [intl, onDelete],
+  );
 
   const columns = useMemo<TableColumnsType<DataServiceApi>>(
     () => [
@@ -237,10 +240,10 @@ const DataServiceSearchResults = ({
       callsByApiId,
       canDelete,
       canManage,
+      confirmDelete,
       dataSourceName,
       intl,
       onCopyEndpoint,
-      onDelete,
       onOpen,
       onToggle,
     ],
