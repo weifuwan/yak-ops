@@ -1,4 +1,7 @@
+import YakButton from '@/components/YakButton';
 import YakTab from '@/components/YakTab';
+import { ReloadOutlined } from '@ant-design/icons';
+import { useIntl } from '@umijs/max';
 import {
   Alert,
   Button,
@@ -12,8 +15,8 @@ import {
   Typography,
   message,
 } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import { realtimeApi } from './api';
 import type {
   RealtimeEvent,
@@ -21,17 +24,16 @@ import type {
   RealtimeObservability,
   RealtimeRuntimeLog,
 } from './types';
-import YakButton from '@/components/YakButton';
 
 const ACTIVE_STATES = new Set(['STARTING', 'RUNNING', 'STOPPING', 'UNKNOWN']);
 
-const formatNumber = (value?: number) =>
+const formatNumber = (value: number | undefined, locale: string) =>
   value === undefined || value === null
     ? '-'
-    : new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 }).format(value);
+    : new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
 
-const formatRate = (value?: number) =>
-  value === undefined || value === null ? '-' : `${formatNumber(value)}/s`;
+const formatRate = (value: number | undefined, locale: string) =>
+  value === undefined || value === null ? '-' : `${formatNumber(value, locale)}/s`;
 
 const formatBytes = (value?: number) => {
   if (value === undefined || value === null) return '-';
@@ -49,30 +51,31 @@ const formatBytes = (value?: number) => {
 const formatByteRate = (value?: number) =>
   value === undefined || value === null ? '-' : `${formatBytes(value)}/s`;
 
-const formatDuration = (value?: number) => {
-  if (value === undefined || value === null) return '-';
-  const seconds = Math.max(0, Math.floor(value / 1000));
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const rest = seconds % 60;
-  if (days > 0) return `${days}天 ${hours}小时`;
-  if (hours > 0) return `${hours}小时 ${minutes}分`;
-  if (minutes > 0) return `${minutes}分 ${rest}秒`;
-  return `${rest}秒`;
-};
-
-const formatTime = (value?: number) =>
-  value === undefined || value === null ? '-' : new Date(value).toLocaleString('zh-CN');
+const formatTime = (value: number | undefined, locale: string) =>
+  value === undefined || value === null
+    ? '-'
+    : new Date(value).toLocaleString(locale);
 
 const pressurePercent = (value?: number) =>
-  value === undefined || value === null ? 0 : Math.max(0, Math.min(100, Math.round(value / 10)));
+  value === undefined || value === null
+    ? 0
+    : Math.max(0, Math.min(100, Math.round(value / 10)));
 
-function MetricCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function MetricCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <Card size="small" className="h-full">
       <div className="text-[12px] text-[#667085]">{label}</div>
-      <div className="mt-1 text-[22px] font-semibold leading-8 text-[#101828]">{value}</div>
+      <div className="mt-1 text-[22px] font-semibold leading-8 text-[#101828]">
+        {value}
+      </div>
       {hint && <div className="mt-1 text-[11px] text-[#98a2b3]">{hint}</div>}
     </Card>
   );
@@ -92,12 +95,47 @@ interface Props {
 }
 
 export default function RealtimeRuntimeDetail({ job, events }: Props) {
+  const intl = useIntl();
+  const intlRef = useRef(intl);
+  intlRef.current = intl;
+  const locale = intl.locale || 'zh-CN';
   const [observability, setObservability] = useState<RealtimeObservability>();
   const [observabilityLoading, setObservabilityLoading] = useState(false);
   const [submissionLog, setSubmissionLog] = useState('');
   const [runtimeLog, setRuntimeLog] = useState<RealtimeRuntimeLog>();
   const [submissionLoading, setSubmissionLoading] = useState(false);
   const [runtimeLoading, setRuntimeLoading] = useState(false);
+
+  const formatDuration = (value?: number) => {
+    if (value === undefined || value === null) return '-';
+    const seconds = Math.max(0, Math.floor(value / 1000));
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const rest = seconds % 60;
+    if (days > 0) {
+      return intl.formatMessage(
+        { id: 'pages.realtimeSync.runtime.durationDaysHours' },
+        { days, hours },
+      );
+    }
+    if (hours > 0) {
+      return intl.formatMessage(
+        { id: 'pages.realtimeSync.runtime.durationHoursMinutes' },
+        { hours, minutes },
+      );
+    }
+    if (minutes > 0) {
+      return intl.formatMessage(
+        { id: 'pages.realtimeSync.runtime.durationMinutesSeconds' },
+        { minutes, seconds: rest },
+      );
+    }
+    return intl.formatMessage(
+      { id: 'pages.realtimeSync.runtime.durationSeconds' },
+      { seconds: rest },
+    );
+  };
 
   const engineJobId = job.latestDeployment?.engineJobId;
   const runtimeEnvironment = job.latestDeployment?.runtimeEnvironment;
@@ -112,7 +150,14 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
         const result = await realtimeApi.observability(job.id);
         setObservability(result.data);
       } catch (error: any) {
-        if (showError) message.error(error?.message || 'Flink 观测数据不可用');
+        if (showError) {
+          message.error(
+            error?.message ||
+              intlRef.current.formatMessage({
+                id: 'pages.realtimeSync.runtime.observabilityUnavailable',
+              }),
+          );
+        }
       } finally {
         setObservabilityLoading(false);
       }
@@ -139,7 +184,12 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
       const result = await realtimeApi.submissionLog(job.id);
       setSubmissionLog(result.data.logs || '');
     } catch (error: any) {
-      message.error(error?.message || '提交日志不可用');
+      message.error(
+        error?.message ||
+          intl.formatMessage({
+            id: 'pages.realtimeSync.runtime.submissionLogUnavailable',
+          }),
+      );
     } finally {
       setSubmissionLoading(false);
     }
@@ -151,7 +201,12 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
       const result = await realtimeApi.runtimeLog(job.id);
       setRuntimeLog(result.data);
     } catch (error: any) {
-      message.error(error?.message || '运行诊断不可用');
+      message.error(
+        error?.message ||
+          intl.formatMessage({
+            id: 'pages.realtimeSync.runtime.runtimeLogUnavailable',
+          }),
+      );
     } finally {
       setRuntimeLoading(false);
     }
@@ -169,20 +224,31 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
   const metrics = observability?.metrics;
 
   const overview = !canObserve ? (
-    <Empty description="当前任务还没有可观测的 Flink JobId" />
+    <Empty
+      description={intl.formatMessage({
+        id: 'pages.realtimeSync.runtime.noObservableJobId',
+      })}
+    />
   ) : (
     <Spin spinning={observabilityLoading && !observability}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div className="flex items-center justify-between gap-3">
           <div className="text-[12px] text-[#98a2b3]">
             {observability?.sampledAt
-              ? `采样时间：${formatTime(observability.sampledAt)}`
-              : '正在读取 Flink 状态'}
+              ? intl.formatMessage(
+                  { id: 'pages.realtimeSync.runtime.sampledAt' },
+                  { time: formatTime(observability.sampledAt, locale) },
+                )
+              : intl.formatMessage({
+                  id: 'pages.realtimeSync.runtime.loadingFlink',
+                })}
           </div>
           <Space>
             {flinkWebUrl && (
               <YakButton size="small" href={flinkWebUrl} target="_blank">
-                打开 Flink Web UI
+                {intl.formatMessage({
+                  id: 'pages.realtimeSync.runtime.openFlinkWeb',
+                })}
               </YakButton>
             )}
             <YakButton
@@ -191,41 +257,68 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
               loading={observabilityLoading}
               onClick={() => void refreshObservability()}
             >
-              刷新
+              {intl.formatMessage({ id: 'pages.realtimeSync.runtime.refresh' })}
             </YakButton>
           </Space>
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <MetricCard
-            label="Flink 状态"
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.flinkState' })}
             value={observability?.flinkState || job.observedState || '-'}
-            hint={observability?.flinkJobName || '等待 Flink 返回运行名称'}
-          />
-          <MetricCard label="运行时长" value={formatDuration(observability?.durationMs)} />
-          <MetricCard
-            label="读取速率"
-            value={formatRate(metrics?.recordsReadPerSecond)}
-            hint={`累计 ${formatNumber(metrics?.recordsRead)} 条`}
+            hint={
+              observability?.flinkJobName ||
+              intl.formatMessage({ id: 'pages.realtimeSync.runtime.waitingJobName' })
+            }
           />
           <MetricCard
-            label="写入速率"
-            value={formatRate(metrics?.recordsWrittenPerSecond)}
-            hint={`累计 ${formatNumber(metrics?.recordsWritten)} 条`}
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.duration' })}
+            value={formatDuration(observability?.durationMs)}
+          />
+          <MetricCard
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.readRate' })}
+            value={formatRate(metrics?.recordsReadPerSecond, locale)}
+            hint={intl.formatMessage(
+              { id: 'pages.realtimeSync.runtime.totalRecords' },
+              { count: formatNumber(metrics?.recordsRead, locale) },
+            )}
+          />
+          <MetricCard
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.writeRate' })}
+            value={formatRate(metrics?.recordsWrittenPerSecond, locale)}
+            hint={intl.formatMessage(
+              { id: 'pages.realtimeSync.runtime.totalRecords' },
+              { count: formatNumber(metrics?.recordsWritten, locale) },
+            )}
           />
         </div>
 
         <Descriptions bordered size="small" column={2}>
-          <Descriptions.Item label="定义版本">
-            v{job.definitionVersion} / 已发布 v{job.publishedVersion || '-'}
+          <Descriptions.Item
+            label={intl.formatMessage({
+              id: 'pages.realtimeSync.runtime.definitionVersion',
+            })}
+          >
+            v{job.definitionVersion} /{' '}
+            {intl.formatMessage(
+              { id: 'pages.realtimeSync.runtime.publishedVersion' },
+              { version: job.publishedVersion || '-' },
+            )}
           </Descriptions.Item>
-          <Descriptions.Item label="运行意图">
+          <Descriptions.Item
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.runtimeIntent' })}
+          >
             {job.desiredState} / {job.observedState}
           </Descriptions.Item>
-          <Descriptions.Item label="运行环境">
+          <Descriptions.Item
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.environment' })}
+          >
             {runtimeEnvironment
               ? `${runtimeEnvironment.name} · env v${runtimeEnvironment.version}`
-              : `环境 #${job.runtimeEnvironmentId || '-'}`}
+              : intl.formatMessage(
+                  { id: 'pages.realtimeSync.runtime.environmentFallback' },
+                  { id: job.runtimeEnvironmentId || '-' },
+                )}
           </Descriptions.Item>
           <Descriptions.Item label="Flink REST">
             {runtimeEnvironment?.config.restUrl || '-'}
@@ -234,16 +327,32 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
           <Descriptions.Item label="Flink CDC Revision">
             {job.latestDeployment?.runtimeRevision || '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="启动时间">{formatTime(observability?.startTime)}</Descriptions.Item>
-          <Descriptions.Item label="最近 Checkpoint">
+          <Descriptions.Item
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.startTime' })}
+          >
+            {formatTime(observability?.startTime, locale)}
+          </Descriptions.Item>
+          <Descriptions.Item
+            label={intl.formatMessage({
+              id: 'pages.realtimeSync.runtime.latestCheckpoint',
+            })}
+          >
             {latestCheckpoint?.id
               ? `#${latestCheckpoint.id} · ${formatDuration(latestCheckpoint.durationMs)}`
               : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="部署摘要" span={2}>
+          <Descriptions.Item
+            label={intl.formatMessage({
+              id: 'pages.realtimeSync.runtime.deploymentSummary',
+            })}
+            span={2}
+          >
             {job.latestDeployment?.specSummary || '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="最近错误" span={2}>
+          <Descriptions.Item
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.lastError' })}
+            span={2}
+          >
             {job.lastError || '-'}
           </Descriptions.Item>
         </Descriptions>
@@ -256,48 +365,79 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
       items={[
         {
           key: 'submission',
-          label: '提交日志',
+          label: intl.formatMessage({ id: 'pages.realtimeSync.runtime.submissionLog' }),
           children: hasDeployment ? (
             <Space direction="vertical" style={{ width: '100%' }}>
               <Alert
                 type="info"
                 showIcon
-                message="这里展示 Flink CDC CLI 提交过程；即使提交失败、超时或 JobId 尚未恢复，也会按本次部署保留日志。密码、Token 等敏感字段会在后端再次脱敏。"
+                message={intl.formatMessage({
+                  id: 'pages.realtimeSync.runtime.submissionLogInfo',
+                })}
               />
               <Button loading={submissionLoading} onClick={() => void loadSubmissionLog()}>
-                读取最近提交日志
+                {intl.formatMessage({
+                  id: 'pages.realtimeSync.runtime.readSubmissionLog',
+                })}
               </Button>
-              <CodeBlock empty="尚未读取提交日志">{submissionLog}</CodeBlock>
+              <CodeBlock
+                empty={intl.formatMessage({
+                  id: 'pages.realtimeSync.runtime.submissionLogNotRead',
+                })}
+              >
+                {submissionLog}
+              </CodeBlock>
             </Space>
           ) : (
-            <Empty description="任务尚无部署记录，暂无提交日志" />
+            <Empty
+              description={intl.formatMessage({
+                id: 'pages.realtimeSync.runtime.noDeploymentLog',
+              })}
+            />
           ),
         },
         {
           key: 'runtime',
-          label: '运行诊断',
+          label: intl.formatMessage({
+            id: 'pages.realtimeSync.runtime.runtimeDiagnostics',
+          }),
           children: canObserve ? (
             <Space direction="vertical" style={{ width: '100%' }}>
               <Alert
                 type="info"
                 showIcon
-                message="运行诊断来自 Flink Job Exception History，用于定位作业失败和 Task 异常；完整 JobManager/TaskManager 日志请进入 Flink Web UI。"
+                message={intl.formatMessage({
+                  id: 'pages.realtimeSync.runtime.runtimeDiagnosticsInfo',
+                })}
               />
               <YakButton loading={runtimeLoading} onClick={() => void loadRuntimeLog()}>
-                刷新运行诊断
+                {intl.formatMessage({
+                  id: 'pages.realtimeSync.runtime.refreshDiagnostics',
+                })}
               </YakButton>
               {runtimeLog?.rootException && (
                 <Alert
                   type="error"
                   showIcon
-                  message={`最近异常 · ${formatTime(runtimeLog.timestamp)}`}
+                  message={intl.formatMessage(
+                    { id: 'pages.realtimeSync.runtime.latestException' },
+                    { time: formatTime(runtimeLog.timestamp, locale) },
+                  )}
                   description={
-                    <pre className="m-0 whitespace-pre-wrap text-[12px]">{runtimeLog.rootException}</pre>
+                    <pre className="m-0 whitespace-pre-wrap text-[12px]">
+                      {runtimeLog.rootException}
+                    </pre>
                   }
                 />
               )}
               {runtimeLog?.truncated && (
-                <Alert type="warning" showIcon message="Flink 异常历史已截断，仅展示最近部分记录" />
+                <Alert
+                  type="warning"
+                  showIcon
+                  message={intl.formatMessage({
+                    id: 'pages.realtimeSync.runtime.truncated',
+                  })}
+                />
               )}
               {runtimeLog?.exceptions?.length ? (
                 <Timeline
@@ -309,7 +449,7 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
                           {item.exceptionName || 'Runtime Exception'}
                         </div>
                         <div className="mt-0.5 text-[11px] text-[#98a2b3]">
-                          {formatTime(item.timestamp)} · {item.taskName || '-'} ·{' '}
+                          {formatTime(item.timestamp, locale)} · {item.taskName || '-'} ·{' '}
                           {item.taskManagerId || '-'}
                         </div>
                         {item.stacktrace && (
@@ -322,11 +462,21 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
                   }))}
                 />
               ) : (
-                <Empty description={runtimeLog ? 'Flink 当前没有异常历史' : '尚未读取运行诊断'} />
+                <Empty
+                  description={intl.formatMessage({
+                    id: runtimeLog
+                      ? 'pages.realtimeSync.runtime.noExceptionHistory'
+                      : 'pages.realtimeSync.runtime.diagnosticsNotRead',
+                  })}
+                />
               )}
             </Space>
           ) : (
-            <Empty description="Flink JobId 尚未确认；可以先查看提交日志，待状态对账恢复 JobId 后再读取运行诊断" />
+            <Empty
+              description={intl.formatMessage({
+                id: 'pages.realtimeSync.runtime.jobIdPending',
+              })}
+            />
           ),
         },
       ]}
@@ -334,54 +484,95 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
   );
 
   const checkpoints = !canObserve ? (
-    <Empty description="当前任务还没有 Flink JobId，暂无 Checkpoint 数据" />
+    <Empty
+      description={intl.formatMessage({
+        id: 'pages.realtimeSync.runtime.noCheckpoint',
+      })}
+    />
   ) : (
     <Spin spinning={observabilityLoading && !observability}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div className="flex items-center justify-between">
-          <Typography.Text type="secondary">Checkpoint 汇总由 Flink REST 归一化展示</Typography.Text>
+          <Typography.Text type="secondary">
+            {intl.formatMessage({ id: 'pages.realtimeSync.runtime.checkpointSummary' })}
+          </Typography.Text>
           <YakButton
             size="small"
             icon={<ReloadOutlined />}
             loading={observabilityLoading}
             onClick={() => void refreshObservability()}
           >
-            刷新
+            {intl.formatMessage({ id: 'pages.realtimeSync.runtime.refresh' })}
           </YakButton>
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard label="成功" value={formatNumber(checkpoint?.completed)} />
-          <MetricCard label="失败" value={formatNumber(checkpoint?.failed)} />
-          <MetricCard label="进行中" value={formatNumber(checkpoint?.inProgress)} />
-          <MetricCard label="总计" value={formatNumber(checkpoint?.total)} />
+          <MetricCard
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.success' })}
+            value={formatNumber(checkpoint?.completed, locale)}
+          />
+          <MetricCard
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.failed' })}
+            value={formatNumber(checkpoint?.failed, locale)}
+          />
+          <MetricCard
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.inProgress' })}
+            value={formatNumber(checkpoint?.inProgress, locale)}
+          />
+          <MetricCard
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.total' })}
+            value={formatNumber(checkpoint?.total, locale)}
+          />
         </div>
         {latestCheckpoint ? (
           <Descriptions bordered size="small" column={2}>
-            <Descriptions.Item label="最近成功 ID">#{latestCheckpoint.id}</Descriptions.Item>
-            <Descriptions.Item label="完成时间">
-              {formatTime(latestCheckpoint.latestAckTimestamp)}
+            <Descriptions.Item
+              label={intl.formatMessage({
+                id: 'pages.realtimeSync.runtime.latestSuccessId',
+              })}
+            >
+              #{latestCheckpoint.id}
             </Descriptions.Item>
-            <Descriptions.Item label="耗时">
+            <Descriptions.Item
+              label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.completedAt' })}
+            >
+              {formatTime(latestCheckpoint.latestAckTimestamp, locale)}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.elapsed' })}
+            >
               {formatDuration(latestCheckpoint.durationMs)}
             </Descriptions.Item>
-            <Descriptions.Item label="状态大小">
+            <Descriptions.Item
+              label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.stateSize' })}
+            >
               {formatBytes(latestCheckpoint.stateSizeBytes)}
             </Descriptions.Item>
             <Descriptions.Item label="Checkpointed Size">
               {formatBytes(latestCheckpoint.checkpointedSizeBytes)}
             </Descriptions.Item>
-            <Descriptions.Item label="确认 Subtasks">
-              {latestCheckpoint.acknowledgedSubtasks ?? '-'} / {latestCheckpoint.totalSubtasks ?? '-'}
+            <Descriptions.Item
+              label={intl.formatMessage({
+                id: 'pages.realtimeSync.runtime.acknowledgedSubtasks',
+              })}
+            >
+              {latestCheckpoint.acknowledgedSubtasks ?? '-'} /{' '}
+              {latestCheckpoint.totalSubtasks ?? '-'}
             </Descriptions.Item>
           </Descriptions>
         ) : (
-          <Empty description="还没有成功的 Checkpoint" />
+          <Empty
+            description={intl.formatMessage({
+              id: 'pages.realtimeSync.runtime.noSuccessfulCheckpoint',
+            })}
+          />
         )}
         {checkpoint?.latestFailed?.failureMessage && (
           <Alert
             type="error"
             showIcon
-            message="最近 Checkpoint 失败"
+            message={intl.formatMessage({
+              id: 'pages.realtimeSync.runtime.latestCheckpointFailed',
+            })}
             description={checkpoint.latestFailed.failureMessage}
           />
         )}
@@ -390,13 +581,15 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
   );
 
   const metricPanel = !canObserve ? (
-    <Empty description="当前任务还没有 Flink JobId，暂无 Metrics 数据" />
+    <Empty
+      description={intl.formatMessage({ id: 'pages.realtimeSync.runtime.noMetrics' })}
+    />
   ) : (
     <Spin spinning={observabilityLoading && !observability}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div className="flex items-center justify-between">
           <Typography.Text type="secondary">
-            Source/Sink 吞吐来自 Flink vertex 聚合指标；无法可靠识别时显示为 “-”
+            {intl.formatMessage({ id: 'pages.realtimeSync.runtime.metricsSummary' })}
           </Typography.Text>
           <YakButton
             size="small"
@@ -404,43 +597,53 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
             loading={observabilityLoading}
             onClick={() => void refreshObservability()}
           >
-            刷新
+            {intl.formatMessage({ id: 'pages.realtimeSync.runtime.refresh' })}
           </YakButton>
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <MetricCard
-            label="Source Records"
-            value={formatNumber(metrics?.recordsRead)}
-            hint={formatRate(metrics?.recordsReadPerSecond)}
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.sourceRecords' })}
+            value={formatNumber(metrics?.recordsRead, locale)}
+            hint={formatRate(metrics?.recordsReadPerSecond, locale)}
           />
           <MetricCard
-            label="Sink Records"
-            value={formatNumber(metrics?.recordsWritten)}
-            hint={formatRate(metrics?.recordsWrittenPerSecond)}
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.sinkRecords' })}
+            value={formatNumber(metrics?.recordsWritten, locale)}
+            hint={formatRate(metrics?.recordsWrittenPerSecond, locale)}
           />
           <MetricCard
-            label="Source Bytes"
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.sourceBytes' })}
             value={formatBytes(metrics?.bytesRead)}
             hint={formatByteRate(metrics?.bytesReadPerSecond)}
           />
           <MetricCard
-            label="Sink Bytes"
+            label={intl.formatMessage({ id: 'pages.realtimeSync.runtime.sinkBytes' })}
             value={formatBytes(metrics?.bytesWritten)}
             hint={formatByteRate(metrics?.bytesWrittenPerSecond)}
           />
         </div>
-        <Card size="small" title="运行压力">
+        <Card
+          size="small"
+          title={intl.formatMessage({ id: 'pages.realtimeSync.runtime.pressure' })}
+        >
           <Space direction="vertical" size={14} style={{ width: '100%' }}>
             <div>
               <div className="mb-1 flex justify-between text-[12px] text-[#667085]">
-                <span>最大 Busy</span>
+                <span>{intl.formatMessage({ id: 'pages.realtimeSync.runtime.maxBusy' })}</span>
                 <span>{metrics?.maxBusyMsPerSecond?.toFixed(0) ?? '-'} ms/s</span>
               </div>
-              <Progress percent={pressurePercent(metrics?.maxBusyMsPerSecond)} showInfo={false} />
+              <Progress
+                percent={pressurePercent(metrics?.maxBusyMsPerSecond)}
+                showInfo={false}
+              />
             </div>
             <div>
               <div className="mb-1 flex justify-between text-[12px] text-[#667085]">
-                <span>最大 Backpressure</span>
+                <span>
+                  {intl.formatMessage({
+                    id: 'pages.realtimeSync.runtime.maxBackpressure',
+                  })}
+                </span>
                 <span>{metrics?.maxBackpressuredMsPerSecond?.toFixed(0) ?? '-'} ms/s</span>
               </div>
               <Progress
@@ -455,13 +658,19 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
             </div>
             <div>
               <div className="mb-1 flex justify-between text-[12px] text-[#667085]">
-                <span>最大 Idle</span>
+                <span>{intl.formatMessage({ id: 'pages.realtimeSync.runtime.maxIdle' })}</span>
                 <span>{metrics?.maxIdleMsPerSecond?.toFixed(0) ?? '-'} ms/s</span>
               </div>
-              <Progress percent={pressurePercent(metrics?.maxIdleMsPerSecond)} showInfo={false} />
+              <Progress
+                percent={pressurePercent(metrics?.maxIdleMsPerSecond)}
+                showInfo={false}
+              />
             </div>
             <Typography.Text type="secondary" className="text-[11px]">
-              当前采集到 {metrics?.vertexCount || 0} 个 Flink Vertex。
+              {intl.formatMessage(
+                { id: 'pages.realtimeSync.runtime.vertexCount' },
+                { count: metrics?.vertexCount || 0 },
+              )}
             </Typography.Text>
           </Space>
         </Card>
@@ -472,19 +681,27 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
   return (
     <YakTab
       items={[
-        { key: 'overview', label: '运行概览', children: overview },
+        {
+          key: 'overview',
+          label: intl.formatMessage({ id: 'pages.realtimeSync.runtime.overview' }),
+          children: overview,
+        },
         {
           key: 'events',
-          label: '状态事件',
+          label: intl.formatMessage({ id: 'pages.realtimeSync.runtime.events' }),
           children: events.length ? (
             <Timeline
               items={events.map((event) => ({
                 color:
-                  event.toState === 'FAILED' || event.toState === 'CONFLICT' ? 'red' : 'blue',
+                  event.toState === 'FAILED' || event.toState === 'CONFLICT'
+                    ? 'red'
+                    : 'blue',
                 children: (
                   <div>
                     <Typography.Text strong>{event.eventType}</Typography.Text>{' '}
-                    <Typography.Text type="secondary">{event.createTime}</Typography.Text>
+                    <Typography.Text type="secondary">
+                      {event.createTime}
+                    </Typography.Text>
                     <div>
                       {event.fromState || '-'} → {event.toState || '-'} · {event.message}
                     </div>
@@ -493,12 +710,26 @@ export default function RealtimeRuntimeDetail({ job, events }: Props) {
               }))}
             />
           ) : (
-            <Empty description="暂无状态事件" />
+            <Empty
+              description={intl.formatMessage({ id: 'pages.realtimeSync.runtime.noEvents' })}
+            />
           ),
         },
-        { key: 'logs', label: '日志', children: logs },
-        { key: 'checkpoints', label: 'Checkpoint', children: checkpoints },
-        { key: 'metrics', label: 'Metrics', children: metricPanel },
+        {
+          key: 'logs',
+          label: intl.formatMessage({ id: 'pages.realtimeSync.runtime.logs' }),
+          children: logs,
+        },
+        {
+          key: 'checkpoints',
+          label: intl.formatMessage({ id: 'pages.realtimeSync.runtime.checkpoints' }),
+          children: checkpoints,
+        },
+        {
+          key: 'metrics',
+          label: intl.formatMessage({ id: 'pages.realtimeSync.runtime.metrics' }),
+          children: metricPanel,
+        },
       ]}
     />
   );
