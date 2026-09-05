@@ -1,3 +1,4 @@
+import { useIntl } from '@umijs/max';
 import { Dropdown, Tooltip } from 'antd';
 import { Check, MoreHorizontal, X } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
@@ -38,6 +39,7 @@ const EditorTabs = ({
   onClose,
   onAction,
 }: EditorTabsProps) => {
+  const intl = useIntl();
   const tabRefs = useRef(new Map<DevelopmentId, HTMLDivElement>());
   const sessionVersion = useEditorSessionVersion();
   const dirtySet = useMemo(() => new Set(dirtyNodeIds), [dirtyNodeIds]);
@@ -61,13 +63,15 @@ const EditorTabs = ({
     () => [
       {
         key: 'opened-editors',
-        label: `已打开的编辑器（${openNodeIds.length}）`,
+        label: intl.formatMessage(
+          { id: 'pages.dataDevelopment.tabs.opened' },
+          { count: openNodeIds.length },
+        ),
         children: openNodeIds.map((nodeId) => {
           const node = nodeMap.get(nodeId);
           const active = nodeId === activeNodeId;
           const appearance = node ? getEditorAppearance(node.type) : undefined;
           const Icon = appearance?.icon;
-
           return {
             key: `focus:${nodeId}`,
             icon: Icon ? (
@@ -78,46 +82,47 @@ const EditorTabs = ({
             label: (
               <div className="flex min-w-[190px] items-center justify-between gap-3">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="max-w-[200px] truncate">
-                    {node?.name || nodeId}
-                  </span>
+                  <span className="max-w-[200px] truncate">{node?.name || nodeId}</span>
                   {isDirty(nodeId) ? (
                     <span
                       className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#667085]"
-                      title="未保存"
+                      title={intl.formatMessage({ id: 'pages.dataDevelopment.common.unsaved' })}
                     />
                   ) : null}
                 </span>
-                {active ? (
-                  <Check size={13} className="shrink-0 text-[#667085]" />
-                ) : null}
+                {active ? <Check size={13} className="shrink-0 text-[#667085]" /> : null}
               </div>
             ),
           };
         }),
       },
       { type: 'divider' as const },
-      { key: 'close-current', label: '关闭当前编辑器' },
+      {
+        key: 'close-current',
+        label: intl.formatMessage({ id: 'pages.dataDevelopment.tabs.closeCurrent' }),
+      },
       {
         key: 'close-others',
-        label: '关闭其他编辑器',
+        label: intl.formatMessage({ id: 'pages.dataDevelopment.tabs.closeOthers' }),
         disabled: openNodeIds.length <= 1,
       },
       {
         key: 'close-left',
-        label: '关闭左侧编辑器',
+        label: intl.formatMessage({ id: 'pages.dataDevelopment.tabs.closeLeft' }),
         disabled: !activeNodeId || openNodeIds.indexOf(activeNodeId) <= 0,
       },
       {
         key: 'close-right',
-        label: '关闭右侧编辑器',
+        label: intl.formatMessage({ id: 'pages.dataDevelopment.tabs.closeRight' }),
         disabled:
-          !activeNodeId ||
-          openNodeIds.indexOf(activeNodeId) >= openNodeIds.length - 1,
+          !activeNodeId || openNodeIds.indexOf(activeNodeId) >= openNodeIds.length - 1,
       },
-      { key: 'close-all', label: '全部关闭' },
+      {
+        key: 'close-all',
+        label: intl.formatMessage({ id: 'pages.dataDevelopment.tabs.closeAll' }),
+      },
     ],
-    [activeNodeId, dirtySet, nodeMap, openNodeIds, sessionVersion],
+    [activeNodeId, dirtySet, intl, nodeMap, openNodeIds, sessionVersion],
   );
 
   return (
@@ -155,34 +160,30 @@ const EditorTabs = ({
                   onClick={() => onFocus(nodeId)}
                   className="flex h-full min-w-0 flex-1 items-center gap-2 bg-transparent pl-3 pr-1 text-left outline-none"
                 >
-                  <span
-                    className={[
-                      'flex h-5 w-4 shrink-0 items-center justify-center',
-                      appearance.iconClassName,
-                    ].join(' ')}
-                  >
+                  <span className={['flex h-5 w-4 shrink-0 items-center justify-center', appearance.iconClassName].join(' ')}>
                     <Icon size={13} strokeWidth={1.8} />
                   </span>
-                  <span
-                    className={[
-                      'min-w-0 flex-1 truncate text-[12px] leading-5',
-                      active ? 'font-medium text-[#344054]' : 'font-normal',
-                    ].join(' ')}
-                  >
+                  <span className={[
+                    'min-w-0 flex-1 truncate text-[12px] leading-5',
+                    active ? 'font-medium text-[#344054]' : 'font-normal',
+                  ].join(' ')}>
                     {node.name}
                   </span>
                   {isDirty(nodeId) ? (
                     <span
                       className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#667085]"
-                      title="未保存"
+                      title={intl.formatMessage({ id: 'pages.dataDevelopment.common.unsaved' })}
                     />
                   ) : null}
                 </button>
 
                 <button
                   type="button"
-                  aria-label={`关闭 ${node.name}`}
-                  title="关闭"
+                  aria-label={intl.formatMessage(
+                    { id: 'pages.dataDevelopment.tabs.closeNamed' },
+                    { name: node.name },
+                  )}
+                  title={intl.formatMessage({ id: 'pages.dataDevelopment.tabs.close' })}
                   onClick={() => onClose(nodeId)}
                   className={[
                     'mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-[3px] text-[#98a2b3] transition-all',
@@ -215,10 +216,13 @@ const EditorTabs = ({
             },
           }}
         >
-          <Tooltip title="编辑器操作" placement="bottomRight">
+          <Tooltip
+            title={intl.formatMessage({ id: 'pages.dataDevelopment.tabs.actions' })}
+            placement="bottomRight"
+          >
             <button
               type="button"
-              aria-label="编辑器操作"
+              aria-label={intl.formatMessage({ id: 'pages.dataDevelopment.tabs.actions' })}
               className="flex h-7 w-7 items-center justify-center rounded-[3px] text-[#667085] transition-colors hover:bg-white hover:text-[#344054]"
             >
               <MoreHorizontal size={17} strokeWidth={1.8} />
