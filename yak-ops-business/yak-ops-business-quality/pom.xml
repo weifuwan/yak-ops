@@ -49,7 +49,6 @@
         <dependency>
             <groupId>io.github.weifuwan</groupId>
             <artifactId>yak-schedule-api</artifactId>
-            <version>${yak-framework.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -5,19 +5,29 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.yak.ops</groupId>
-        <artifactId>yak-ops</artifactId>
-        <version>1.0.0</version>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.13</version>
+        <relativePath/>
     </parent>
 
+    <groupId>io.yak.ops</groupId>
     <artifactId>yak-ops-bom</artifactId>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
 
     <name>Yak Ops BOM</name>
     <description>Yak Ops and Yak Framework dependency alignment</description>
 
+    <properties>
+        <yak-framework.version>0.1.0</yak-framework.version>
+        <minio.version>8.6.0</minio.version>
+        <hadoop.version>3.5.0</hadoop.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
+            <!-- Yak Framework -->
             <dependency>
                 <groupId>io.github.weifuwan</groupId>
                 <artifactId>yak-framework-parent</artifactId>
@@ -42,10 +52,48 @@
             </dependency>
             <dependency>
                 <groupId>io.github.weifuwan</groupId>
+                <artifactId>yak-schedule-api</artifactId>
+                <version>${yak-framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.weifuwan</groupId>
+                <artifactId>yak-schedule-core</artifactId>
+                <version>${yak-framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.weifuwan</groupId>
+                <artifactId>yak-schedule-plugin-quartz</artifactId>
+                <version>${yak-framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.weifuwan</groupId>
+                <artifactId>yak-workflow-engine</artifactId>
+                <version>${yak-framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.weifuwan</groupId>
                 <artifactId>yak-file</artifactId>
                 <version>${yak-framework.version}</version>
             </dependency>
 
+            <!-- Third-party -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-client-api</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-client-runtime</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+
+            <!-- Yak Ops Internal Modules -->
             <dependency>
                 <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-common</artifactId>
@@ -63,12 +111,24 @@
             </dependency>
             <dependency>
                 <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-boot</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Business Modules -->
+            <dependency>
+                <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-business-audit</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-business-datasource</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-business-dataset</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -103,6 +163,16 @@
             </dependency>
             <dependency>
                 <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-business-quality</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-business-workflow</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-business-sync-offline</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -122,6 +192,7 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- Plugin: Datasource -->
             <dependency>
                 <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-plugin-datasource-api</artifactId>
@@ -143,6 +214,7 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- Plugin: Storage -->
             <dependency>
                 <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-plugin-storage-api</artifactId>
@@ -169,6 +241,7 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- Plugin: Task -->
             <dependency>
                 <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-plugin-task-api</artifactId>
@@ -200,6 +273,7 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- Plugin: Alert -->
             <dependency>
                 <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-plugin-alert-api</artifactId>
@@ -213,12 +287,6 @@
             <dependency>
                 <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-plugin-alert-all</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-boot</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
