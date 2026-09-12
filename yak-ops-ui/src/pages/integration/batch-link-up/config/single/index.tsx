@@ -203,6 +203,24 @@ const validateTaskConfig = (
     return 'Upsert 写入模式需要配置主键字段';
   }
 
+  if (editor.incremental?.enabled) {
+    if (String(editor.source.connectorId || '').toLowerCase() !== 'jdbc') {
+      return '全量 + 游标增量仅支持 JDBC 来源';
+    }
+    if (source.readMode === 'sql') {
+      return '全量 + 游标增量暂不支持自定义 SQL';
+    }
+    if (!editor.incremental.column?.trim()) {
+      return '请选择增量游标字段';
+    }
+    if (String(sink.writeMode || '').toLowerCase() !== 'upsert') {
+      return '全量 + 游标增量要求目标端使用 Upsert';
+    }
+    if (!sink.primaryKey?.trim()) {
+      return '全量 + 游标增量要求目标端配置主键';
+    }
+  }
+
   if (
     !editor.channel.parallelism ||
     editor.channel.parallelism < 1

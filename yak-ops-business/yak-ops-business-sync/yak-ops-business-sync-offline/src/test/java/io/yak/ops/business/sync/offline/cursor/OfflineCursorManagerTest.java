@@ -59,6 +59,47 @@ class OfflineCursorManagerTest {
     verify(repository, never()).advance(any(), any(), any(), org.mockito.ArgumentMatchers.anyLong());
   }
 
+  @Test
+  void successfulBootstrapCreatesCursorOnlyAfterBatchSucceeded() {
+    OfflineSyncCursorRepository repository = Mockito.mock(OfflineSyncCursorRepository.class);
+    OfflineCursorManager manager = new OfflineCursorManager(repository);
+    BatchScope.IncrementalRange scope =
+        BatchScope.incrementalBootstrap(
+            "timestamp-incremental", "updated_at", "route", "2026-09-12 10:00:00");
+    when(repository.find(10L, "timestamp-incremental")).thenReturn(Optional.empty());
+
+    assertThat(manager.advanceAfterSucceededBatch(incrementalBatch(BatchStatus.SUCCEEDED, scope)))
+        .isEqualTo(OfflineCursorGateway.AdvanceResult.INITIALIZED);
+    verify(repository)
+        .commitInitialSuccess(
+            10L,
+            "timestamp-incremental",
+            "updated_at",
+            "route",
+            "2026-09-12 10:00:00",
+            77L);
+  }
+
+  @Test
+  void failedBootstrapDoesNotCreateCursor() {
+    OfflineSyncCursorRepository repository = Mockito.mock(OfflineSyncCursorRepository.class);
+    OfflineCursorManager manager = new OfflineCursorManager(repository);
+    BatchScope.IncrementalRange scope =
+        BatchScope.incrementalBootstrap(
+            "timestamp-incremental", "updated_at", "route", "2026-09-12 10:00:00");
+
+    assertThat(manager.advanceAfterSucceededBatch(incrementalBatch(BatchStatus.FAILED, scope)))
+        .isEqualTo(OfflineCursorGateway.AdvanceResult.NOT_SUCCEEDED);
+    verify(repository, never())
+        .commitInitialSuccess(
+            org.mockito.ArgumentMatchers.anyLong(),
+            any(),
+            any(),
+            any(),
+            any(),
+            org.mockito.ArgumentMatchers.anyLong());
+  }
+
   private BatchExecution batch(BatchStatus status, String after, String through) {
     return new BatchExecution(
         77L,
@@ -67,6 +108,20 @@ class OfflineCursorManagerTest {
             "bf-1", BatchScope.cursorRange("orders-updated", after, through).fingerprint()),
         BatchTrigger.BACKFILL,
         BatchScope.cursorRange("orders-updated", after, through),
+        new ExecutionSnapshot(
+            "{}", 1, new RetryPolicySnapshot(2, 10), "digest", "{\"kind\":\"BatchSyncJob\"}"),
+        status,
+        List.of());
+  }
+
+  private BatchExecution incrementalBatch(
+      BatchStatus status, BatchScope.IncrementalRange scope) {
+    return new BatchExecution(
+        77L,
+        10L,
+        BatchKey.manual("manual-1"),
+        BatchTrigger.MANUAL,
+        scope,
         new ExecutionSnapshot(
             "{}", 1, new RetryPolicySnapshot(2, 10), "digest", "{\"kind\":\"BatchSyncJob\"}"),
         status,

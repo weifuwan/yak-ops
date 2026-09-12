@@ -40,6 +40,9 @@ public class OfflineCursorManager implements OfflineCursorGateway {
   @Override
   public AdvanceResult advanceAfterSucceededBatch(BatchExecution batch) {
     Objects.requireNonNull(batch, "BatchExecution 不能为空");
+    if (batch.batchScope() instanceof BatchScope.IncrementalRange range) {
+      return commitIncremental(batch, range);
+    }
     if (!(batch.batchScope() instanceof BatchScope.CursorRange range)) {
       return AdvanceResult.NOT_CURSOR_SCOPE;
     }
@@ -65,6 +68,66 @@ public class OfflineCursorManager implements OfflineCursorGateway {
       return AdvanceResult.ALREADY_ADVANCED;
     }
     return AdvanceResult.STALE;
+  }
+
+  private AdvanceResult commitIncremental(
+      BatchExecution batch, BatchScope.IncrementalRange range) {
+    if (batch.status() != BatchStatus.SUCCEEDED) {
+      return AdvanceResult.NOT_SUCCEEDED;
+    }
+    if (batch.id() == null || batch.id() <= 0L) {
+      throw new IllegalArgumentException("BatchExecutionId 必须大于 0");
+    }
+
+    OfflineSyncCursor current = repository.find(batch.taskId(), range.cursorId()).orElse(null);
+    if (current == null) {
+      if (!range.bootstrapFull()) {
+        return AdvanceResult.NOT_INITIALIZED;
+      }
+      repository.commitInitialSuccess(
+          batch.taskId(),
+          range.cursorId(),
+          range.sourceColumn(),
+          range.sourceSignature(),
+          range.throughInclusive(),
+          batch.id());
+      return AdvanceResult.INITIALIZED;
+    }
+
+    current = validateRoute(current, range);
+    if (Objects.equals(current.lastSucceededBatchId(), batch.id())
+        || current.position().equals(range.throughInclusive())) {
+      return AdvanceResult.ALREADY_ADVANCED;
+    }
+    if (range.bootstrapFull() || !current.position().equals(range.afterExclusive())) {
+      return AdvanceResult.STALE;
+    }
+    if (repository.advance(
+        current, range.afterExclusive(), range.throughInclusive(), batch.id())) {
+      return AdvanceResult.ADVANCED;
+    }
+
+    OfflineSyncCursor reread = repository.find(batch.taskId(), range.cursorId()).orElse(null);
+    if (reread != null
+        && (Objects.equals(reread.lastSucceededBatchId(), batch.id())
+            || reread.position().equals(range.throughInclusive()))) {
+      return AdvanceResult.ALREADY_ADVANCED;
+    }
+    return AdvanceResult.STALE;
+  }
+
+  private OfflineSyncCursor validateRoute(
+      OfflineSyncCursor current, BatchScope.IncrementalRange range) {
+    if (!current.sourceColumn().equals(range.sourceColumn())) {
+      throw new IllegalStateException("Cursor 已绑定不同增量字段：" + range.cursorId());
+    }
+    if (current.sourceSignature() == null) {
+      return repository.bindSourceSignature(current, range.sourceSignature());
+    }
+    if (!current.sourceSignature().equals(range.sourceSignature())) {
+      throw new IllegalStateException("Cursor 已绑定不同来源路由：" + range.cursorId());
+    }
+    return current;
   }
 
   private Optional<AdvanceResult> currentState(

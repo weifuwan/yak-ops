@@ -40,7 +40,9 @@ public class OfflineBatchScopeExecutionAdapter implements OfflineExecutionScopeV
 
   public String apply(long taskId, String logicalJobSpecJson, BatchScope scope) {
     validateInput(taskId, logicalJobSpecJson);
-    if (scope == null || scope instanceof BatchScope.FullSelection) {
+    if (scope == null
+        || scope instanceof BatchScope.FullSelection
+        || (scope instanceof BatchScope.IncrementalRange range && range.bootstrapFull())) {
       return logicalJobSpecJson.trim();
     }
 
@@ -124,6 +126,17 @@ public class OfflineBatchScopeExecutionAdapter implements OfflineExecutionScopeV
 
     if (scope instanceof BatchScope.CursorRange range) {
       String column = safeColumn(cursorGateway.requireSourceColumn(taskId, range.cursorId()));
+      return column
+          + " > "
+          + literal(range.afterExclusive())
+          + " AND "
+          + column
+          + " <= "
+          + literal(range.throughInclusive());
+    }
+
+    if (scope instanceof BatchScope.IncrementalRange range) {
+      String column = safeColumn(range.sourceColumn());
       return column
           + " > "
           + literal(range.afterExclusive())

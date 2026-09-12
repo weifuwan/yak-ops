@@ -40,6 +40,13 @@ export interface SyncMapping {
   columns: SyncColumnMapping[];
 }
 
+export interface SyncIncremental {
+  enabled: boolean;
+  strategy: 'MAX_TIMESTAMP';
+  column: string;
+  bootstrapMode: 'SOURCE_CURRENT_MAX';
+}
+
 export interface SyncSchedule {
   cron: string;
   enabled: boolean;
@@ -64,6 +71,7 @@ export interface SyncEditorState {
   sink: SyncEndpoint;
   channel: SyncChannel;
   mapping: SyncMapping;
+  incremental?: SyncIncremental;
   schedule: SyncSchedule;
   notification: SyncNotification;
   state?: Record<string, any>;
@@ -91,6 +99,13 @@ export const DEFAULT_CHANNEL_CONFIG: SyncChannel = {
 
 export const DEFAULT_MAPPING_CONFIG: SyncMapping = {
   columns: [],
+};
+
+export const DEFAULT_INCREMENTAL_CONFIG: SyncIncremental = {
+  enabled: false,
+  strategy: 'MAX_TIMESTAMP',
+  column: '',
+  bootstrapMode: 'SOURCE_CURRENT_MAX',
 };
 
 export const DEFAULT_SCHEDULE_CONFIG: SyncSchedule = {
@@ -366,6 +381,7 @@ export const buildCreatePayload = (
       sink: multiDraftEndpoint(sinkEndpoint, 'sink'),
       channel: serializeChannel(DEFAULT_CHANNEL_CONFIG),
       mapping: { ...DEFAULT_MAPPING_CONFIG },
+      incremental: { ...DEFAULT_INCREMENTAL_CONFIG },
       schedule: { ...DEFAULT_SCHEDULE_CONFIG },
       notification: { ...DEFAULT_NOTIFICATION_CONFIG },
     };
@@ -378,6 +394,7 @@ export const buildCreatePayload = (
     sink: sinkEndpoint,
     channel: DEFAULT_CHANNEL_CONFIG,
     mapping: { ...DEFAULT_MAPPING_CONFIG },
+    incremental: { ...DEFAULT_INCREMENTAL_CONFIG },
     schedule: { ...DEFAULT_SCHEDULE_CONFIG },
     notification: { ...DEFAULT_NOTIFICATION_CONFIG },
   };
@@ -568,6 +585,12 @@ export const normalizeEditDetail = (
       dirtyDataPolicy: dirtyDataPolicy === 'SKIP' ? 'skip' : 'stop',
     },
     mapping: normalizeMapping(raw),
+    incremental: {
+      ...DEFAULT_INCREMENTAL_CONFIG,
+      ...(raw?.incremental || {}),
+      enabled: Boolean(raw?.incremental?.enabled),
+      column: String(raw?.incremental?.column || ''),
+    },
     schedule: normalizeSchedule(raw),
     notification: normalizeNotification(raw),
     state: raw?.state,
@@ -636,6 +659,10 @@ export const applyEndpointSelection = (
     mapping: dataSourceChanged
       ? { ...DEFAULT_MAPPING_CONFIG }
       : editor.mapping,
+    incremental:
+      dataSourceChanged && kind === 'source'
+        ? { ...DEFAULT_INCREMENTAL_CONFIG }
+        : editor.incremental,
   };
 };
 
@@ -752,6 +779,7 @@ export const buildSavePayload = (
       sink: multiSinkPayload(editor.sink),
       channel: serializeChannel(editor.channel),
       mapping,
+      incremental: { ...DEFAULT_INCREMENTAL_CONFIG },
       schedule,
       notification,
     };
@@ -764,6 +792,11 @@ export const buildSavePayload = (
     sink: endpointSavePayload(editor.sink),
     channel: editor.channel,
     mapping,
+    incremental: {
+      ...DEFAULT_INCREMENTAL_CONFIG,
+      ...(editor.incremental || {}),
+      column: String(editor.incremental?.column || '').trim(),
+    },
     schedule,
     notification,
   };

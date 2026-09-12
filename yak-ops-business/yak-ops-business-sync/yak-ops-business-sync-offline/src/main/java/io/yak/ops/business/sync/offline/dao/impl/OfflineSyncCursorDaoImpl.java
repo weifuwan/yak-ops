@@ -64,4 +64,31 @@ public class OfflineSyncCursorDaoImpl implements OfflineSyncCursorDao {
             .set(OfflineSyncCursorPO::getStateVersion, expectedVersion + 1L)
             .set(OfflineSyncCursorPO::getUpdateTime, updateTime)) > 0;
   }
+
+  @Override
+  public boolean bindSourceSignature(
+      Long taskId,
+      String cursorId,
+      long expectedVersion,
+      String sourceSignature,
+      LocalDateTime updateTime) {
+    if (taskId == null
+        || taskId <= 0L
+        || !StringUtils.hasText(cursorId)
+        || expectedVersion < 1L
+        || !StringUtils.hasText(sourceSignature)) {
+      return false;
+    }
+    return mapper.update(
+            null,
+            Wrappers.<OfflineSyncCursorPO>lambdaUpdate()
+                .eq(OfflineSyncCursorPO::getJobDefinitionId, taskId)
+                .eq(OfflineSyncCursorPO::getCursorId, cursorId.trim())
+                .eq(OfflineSyncCursorPO::getStateVersion, expectedVersion)
+                .isNull(OfflineSyncCursorPO::getSourceSignature)
+                .set(OfflineSyncCursorPO::getSourceSignature, sourceSignature.trim())
+                .set(OfflineSyncCursorPO::getStateVersion, expectedVersion + 1L)
+                .set(OfflineSyncCursorPO::getUpdateTime, updateTime))
+        > 0;
+  }
 }

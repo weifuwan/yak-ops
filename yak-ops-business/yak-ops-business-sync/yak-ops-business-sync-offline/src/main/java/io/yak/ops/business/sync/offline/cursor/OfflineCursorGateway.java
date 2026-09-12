@@ -20,6 +20,7 @@ public interface OfflineCursorGateway {
     NOT_CURSOR_SCOPE,
     NOT_SUCCEEDED,
     NOT_INITIALIZED,
+    INITIALIZED,
     ADVANCED,
     ALREADY_ADVANCED,
     STALE

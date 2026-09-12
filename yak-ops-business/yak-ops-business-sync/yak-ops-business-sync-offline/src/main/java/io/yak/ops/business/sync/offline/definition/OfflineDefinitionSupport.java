@@ -131,6 +131,7 @@ public class OfflineDefinitionSupport {
     normalizeEndpoint(request, "source");
     normalizeEndpoint(request, "sink");
     normalizeChannel(request);
+    validateIncremental(request);
     OfflineDefinitionModelAdapter.sanitizeForPersistence(request);
     return request;
   }
@@ -154,6 +155,38 @@ public class OfflineDefinitionSupport {
     putDefault(channel, "recordsPerSecond", 10000L);
     putDefault(channel, "dirtyDataPolicy", "STOP");
     putDefault(channel, "dirtyDataLimit", 0L);
+  }
+
+  private void validateIncremental(ObjectNode request) {
+    JsonNode incremental = request.path("incremental");
+    if (!incremental.path("enabled").asBoolean(false)) return;
+    if (!"GUIDE_SINGLE".equalsIgnoreCase(request.path("basic").path("mode").asText())) {
+      throw new IllegalArgumentException("全量 + 游标增量首版仅支持单表同步");
+    }
+    if (!"MAX_TIMESTAMP".equalsIgnoreCase(incremental.path("strategy").asText())) {
+      throw new IllegalArgumentException("仅支持 MAX_TIMESTAMP 增量策略");
+    }
+    if (!"SOURCE_CURRENT_MAX".equalsIgnoreCase(
+        incremental.path("bootstrapMode").asText("SOURCE_CURRENT_MAX"))) {
+      throw new IllegalArgumentException("首版仅支持从来源当前 MAX 建立初始游标");
+    }
+    JsonNode source = request.path("source");
+    if (!"jdbc".equalsIgnoreCase(source.path("connectorId").asText())) {
+      throw new IllegalArgumentException("全量 + 游标增量首版仅支持 JDBC 来源");
+    }
+    if (!"table".equalsIgnoreCase(source.path("config").path("readMode").asText("table"))) {
+      throw new IllegalArgumentException("全量 + 游标增量暂不支持自定义 SQL");
+    }
+    if (!StringUtils.hasText(incremental.path("column").asText())) {
+      throw new IllegalArgumentException("增量字段不能为空");
+    }
+    JsonNode sinkConfig = request.path("sink").path("config");
+    if (!"upsert".equalsIgnoreCase(sinkConfig.path("writeMode").asText())) {
+      throw new IllegalArgumentException("全量 + 游标增量要求目标端使用 UPSERT");
+    }
+    if (!StringUtils.hasText(sinkConfig.path("primaryKey").asText())) {
+      throw new IllegalArgumentException("全量 + 游标增量要求目标端配置主键");
+    }
   }
 
   private void putDefault(ObjectNode target, String field, int value) {

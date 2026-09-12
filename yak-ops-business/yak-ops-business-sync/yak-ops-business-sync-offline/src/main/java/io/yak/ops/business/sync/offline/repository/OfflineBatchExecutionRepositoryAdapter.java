@@ -272,6 +272,9 @@ public class OfflineBatchExecutionRepositoryAdapter implements OfflineBatchExecu
     if (scope instanceof BatchScope.FullSelection) {
       return "FULL_SELECTION";
     }
+    if (scope instanceof BatchScope.EmptySelection) {
+      return "EMPTY_SELECTION";
+    }
     if (scope instanceof BatchScope.DataWindow) {
       return "DATA_WINDOW";
     }
@@ -280,6 +283,9 @@ public class OfflineBatchExecutionRepositoryAdapter implements OfflineBatchExecu
     }
     if (scope instanceof BatchScope.CursorRange) {
       return "CURSOR_RANGE";
+    }
+    if (scope instanceof BatchScope.IncrementalRange) {
+      return "INCREMENTAL_RANGE";
     }
     throw new IllegalArgumentException("不支持的 BatchScope：" + scope.getClass().getName());
   }
@@ -293,6 +299,12 @@ public class OfflineBatchExecutionRepositoryAdapter implements OfflineBatchExecu
           throw new IllegalStateException("FullSelection 持久化内容不正确");
         }
         yield BatchScope.fullSelection();
+      }
+      case "EMPTY_SELECTION" -> {
+        if (!"EMPTY_SELECTION".equals(canonical)) {
+          throw new IllegalStateException("EmptySelection 持久化内容不正确");
+        }
+        yield BatchScope.emptySelection();
       }
       case "DATA_WINDOW" -> {
         String[] parts = canonical.split("\\|", -1);
@@ -318,6 +330,30 @@ public class OfflineBatchExecutionRepositoryAdapter implements OfflineBatchExecu
           throw new IllegalStateException("CursorRange 持久化内容不正确");
         }
         yield BatchScope.cursorRange(decode(parts[1]), decode(parts[2]), decode(parts[3]));
+      }
+      case "INCREMENTAL_RANGE" -> {
+        String[] parts = canonical.split("\\|", -1);
+        if (parts.length != 7 || !"INCREMENTAL_RANGE".equals(parts[0])) {
+          throw new IllegalStateException("IncrementalRange 持久化内容不正确");
+        }
+        String cursorId = decode(parts[1]);
+        String sourceColumn = decode(parts[2]);
+        String sourceSignature = decode(parts[3]);
+        String afterExclusive = decode(parts[4]);
+        String throughInclusive = decode(parts[5]);
+        yield switch (parts[6]) {
+          case "BOOTSTRAP_FULL" ->
+              BatchScope.incrementalBootstrap(
+                  cursorId, sourceColumn, sourceSignature, throughInclusive);
+          case "RANGE" ->
+              BatchScope.incrementalRange(
+                  cursorId,
+                  sourceColumn,
+                  sourceSignature,
+                  afterExclusive,
+                  throughInclusive);
+          default -> throw new IllegalStateException("IncrementalRange 阶段不正确");
+        };
       }
       default -> throw new IllegalStateException("未知 BatchScope 类型：" + normalizedType);
     };

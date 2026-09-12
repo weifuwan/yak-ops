@@ -7,6 +7,8 @@ export interface DataSourceColumnOption {
   value: string;
   description?: string;
   primaryKey?: boolean;
+  typeName?: string;
+  jdbcType?: number;
 }
 
 const normalizeColumns = (data: any): DataSourceColumnOption[] => {
@@ -29,6 +31,8 @@ const normalizeColumns = (data: any): DataSourceColumnOption[] => {
         label: String(value),
         description: [type, comment].filter(Boolean).join(' · ') || undefined,
         primaryKey: String(item?.fieldKey || '').toUpperCase() === 'PRI' || Boolean(item?.primaryKey),
+        typeName: type ? String(type) : undefined,
+        jdbcType: item?.jdbcType === undefined ? undefined : Number(item.jdbcType),
       };
     })
     .filter(Boolean) as DataSourceColumnOption[];

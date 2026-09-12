@@ -21,6 +21,7 @@ import io.yak.ops.business.sync.offline.domain.core.BatchStatus;
 import io.yak.ops.business.sync.offline.domain.core.BatchTrigger;
 import io.yak.ops.business.sync.offline.domain.core.ExecutionSnapshot;
 import io.yak.ops.business.sync.offline.domain.core.RetryPolicySnapshot;
+import io.yak.ops.business.sync.offline.incremental.OfflineIncrementalPlanner;
 import io.yak.ops.business.sync.offline.repository.OfflineBatchExecutionRepository;
 import io.yak.ops.business.sync.offline.repository.OfflineJobDefinitionRepository;
 import io.yak.ops.business.sync.offline.repository.OfflineJobExecutionRepository;
@@ -45,6 +46,7 @@ class OfflineExecutionClaimManagerTest {
   @Mock private OfflineBatchRuntime batchRuntime;
   @Mock private OfflineExecutionAttemptFactory attemptFactory;
   @Mock private OfflineExistingBatchClaimManager existingBatchClaimManager;
+  @Mock private OfflineIncrementalPlanner incrementalPlanner;
 
   private OfflineExecutionClaimManager manager;
 
@@ -59,7 +61,11 @@ class OfflineExecutionClaimManagerTest {
         batchRuntime,
         new OfflineSyncProperties(),
         attemptFactory,
-        existingBatchClaimManager);
+        existingBatchClaimManager,
+        incrementalPlanner);
+    org.mockito.Mockito.lenient()
+        .when(incrementalPlanner.plan(org.mockito.ArgumentMatchers.anyLong(), anyString()))
+        .thenReturn(BatchScope.fullSelection());
   }
 
   @Test
@@ -122,7 +128,12 @@ class OfflineExecutionClaimManagerTest {
 
     assertThat(result.isReused()).isFalse();
     verify(attemptFactory)
-        .create(any(BatchExecution.class), 1, "WORKFLOW", null, "attempt-123");
+        .create(
+            any(BatchExecution.class),
+            eq(1),
+            eq("WORKFLOW"),
+            eq(null),
+            eq("attempt-123"));
     verify(batchRuntime).refreshBatch(78L);
   }
 

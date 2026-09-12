@@ -18,4 +18,11 @@ public interface OfflineSyncCursorDao {
       String nextPosition,
       Long succeededBatchId,
       LocalDateTime updateTime);
+
+  boolean bindSourceSignature(
+      Long taskId,
+      String cursorId,
+      long expectedVersion,
+      String sourceSignature,
+      LocalDateTime updateTime);
 }
