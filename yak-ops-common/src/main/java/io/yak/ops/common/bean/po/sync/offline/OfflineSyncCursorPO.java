@@ -16,6 +16,7 @@ public class OfflineSyncCursorPO {
   private Long jobDefinitionId;
   private String cursorId;
   private String sourceColumn;
+  private String sourceSignature;
   private String positionValue;
   private Long lastSucceededBatchId;
   private Long stateVersion;

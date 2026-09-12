@@ -64,6 +64,84 @@ public class OfflineSyncCursorRepositoryAdapter implements OfflineSyncCursorRepo
   }
 
   @Override
+  public OfflineSyncCursor commitInitialSuccess(
+      long taskId,
+      String cursorId,
+      String sourceColumn,
+      String sourceSignature,
+      String initialPosition,
+      long succeededBatchId) {
+    requireTask(taskId);
+    if (succeededBatchId <= 0L) {
+      throw new IllegalArgumentException("BatchExecutionId 必须大于 0");
+    }
+    String normalizedId = requireText(cursorId, "cursorId 不能为空");
+    String normalizedColumn = requireText(sourceColumn, "sourceColumn 不能为空");
+    String normalizedSignature = requireText(sourceSignature, "sourceSignature 不能为空");
+    String normalizedPosition = requireText(initialPosition, "initialPosition 不能为空");
+    OfflineSyncCursor existing = toDomain(dao.select(taskId, normalizedId));
+    if (existing != null) {
+      return validateInitialCommit(
+          bindAndValidate(existing, normalizedColumn, normalizedSignature),
+          normalizedPosition,
+          succeededBatchId);
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+    OfflineSyncCursorPO po = new OfflineSyncCursorPO();
+    po.setJobDefinitionId(taskId);
+    po.setCursorId(normalizedId);
+    po.setSourceColumn(normalizedColumn);
+    po.setSourceSignature(normalizedSignature);
+    po.setPositionValue(normalizedPosition);
+    po.setLastSucceededBatchId(succeededBatchId);
+    po.setStateVersion(1L);
+    po.setCreateTime(now);
+    po.setUpdateTime(now);
+    try {
+      if (dao.insert(po)) {
+        return new OfflineSyncCursor(
+            taskId,
+            normalizedId,
+            normalizedColumn,
+            normalizedSignature,
+            normalizedPosition,
+            succeededBatchId,
+            1L);
+      }
+    } catch (DuplicateKeyException ignored) {
+      // Concurrent successful bootstrap: the unique key chooses the cursor owner.
+    }
+    OfflineSyncCursor concurrent = toDomain(dao.select(taskId, normalizedId));
+    if (concurrent == null) {
+      throw new IllegalStateException("提交离线同步初始 Cursor 失败：" + normalizedId);
+    }
+    return validateInitialCommit(
+        bindAndValidate(concurrent, normalizedColumn, normalizedSignature),
+        normalizedPosition,
+        succeededBatchId);
+  }
+
+  @Override
+  public OfflineSyncCursor bindSourceSignature(
+      OfflineSyncCursor current, String sourceSignature) {
+    Objects.requireNonNull(current, "current cursor 不能为空");
+    String signature = requireText(sourceSignature, "sourceSignature 不能为空");
+    if (current.sourceSignature() != null) {
+      return validateSignature(current, signature);
+    }
+    dao.bindSourceSignature(
+        current.taskId(),
+        current.cursorId(),
+        current.stateVersion(),
+        signature,
+        LocalDateTime.now());
+    OfflineSyncCursor rebound = toDomain(dao.select(current.taskId(), current.cursorId()));
+    if (rebound == null) throw new IllegalStateException("绑定 Cursor 来源摘要后无法重读");
+    return validateSignature(rebound, signature);
+  }
+
+  @Override
   public boolean advance(
       OfflineSyncCursor current,
       String expectedPosition,
@@ -99,12 +177,36 @@ public class OfflineSyncCursorRepositoryAdapter implements OfflineSyncCursorRepo
     return cursor;
   }
 
+  private OfflineSyncCursor bindAndValidate(
+      OfflineSyncCursor cursor, String sourceColumn, String sourceSignature) {
+    validateRoute(cursor, sourceColumn);
+    return bindSourceSignature(cursor, sourceSignature);
+  }
+
+  private OfflineSyncCursor validateSignature(
+      OfflineSyncCursor cursor, String sourceSignature) {
+    if (!sourceSignature.equals(cursor.sourceSignature())) {
+      throw new IllegalStateException("Cursor 已绑定不同来源路由：" + cursor.cursorId());
+    }
+    return cursor;
+  }
+
+  private OfflineSyncCursor validateInitialCommit(
+      OfflineSyncCursor cursor, String position, long succeededBatchId) {
+    if (cursor.position().equals(position)
+        || Objects.equals(cursor.lastSucceededBatchId(), succeededBatchId)) {
+      return cursor;
+    }
+    throw new IllegalStateException("Cursor 已由其他成功 Batch 建立，当前初始上界已过期：" + cursor.cursorId());
+  }
+
   private OfflineSyncCursor toDomain(OfflineSyncCursorPO po) {
     if (po == null) return null;
     return new OfflineSyncCursor(
         positive(po.getJobDefinitionId(), "TaskId"),
         requireText(po.getCursorId(), "cursorId 不能为空"),
         requireText(po.getSourceColumn(), "sourceColumn 不能为空"),
+        po.getSourceSignature(),
         requireText(po.getPositionValue(), "positionValue 不能为空"),
         po.getLastSucceededBatchId(),
         positive(po.getStateVersion(), "stateVersion"));

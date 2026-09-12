@@ -15,6 +15,7 @@ import io.yak.ops.business.sync.offline.domain.core.BatchTriggerToken;
 import io.yak.ops.business.sync.offline.domain.core.BatchTriggerToken.Parsed;
 import io.yak.ops.business.sync.offline.domain.core.ExecutionSnapshot;
 import io.yak.ops.business.sync.offline.domain.core.RetryPolicySnapshot;
+import io.yak.ops.business.sync.offline.incremental.OfflineIncrementalPlanner;
 import io.yak.ops.business.sync.offline.repository.OfflineBatchExecutionRepository;
 import io.yak.ops.business.sync.offline.repository.OfflineJobDefinitionRepository;
 import io.yak.ops.business.sync.offline.repository.OfflineJobExecutionRepository;
@@ -40,6 +41,7 @@ public class OfflineExecutionClaimManager {
   private final OfflineSyncProperties properties;
   private final OfflineExecutionAttemptFactory attemptFactory;
   private final OfflineExistingBatchClaimManager existingBatchClaimManager;
+  private final OfflineIncrementalPlanner incrementalPlanner;
 
   public OfflineExecutionClaimManager(
       OfflineJobDefinitionService definitionService,
@@ -50,7 +52,8 @@ public class OfflineExecutionClaimManager {
       OfflineBatchRuntime batchRuntime,
       OfflineSyncProperties properties,
       OfflineExecutionAttemptFactory attemptFactory,
-      OfflineExistingBatchClaimManager existingBatchClaimManager) {
+      OfflineExistingBatchClaimManager existingBatchClaimManager,
+      OfflineIncrementalPlanner incrementalPlanner) {
     this.definitionService = definitionService;
     this.definitionRepository = definitionRepository;
     this.executionRepository = executionRepository;
@@ -60,6 +63,7 @@ public class OfflineExecutionClaimManager {
     this.properties = properties;
     this.attemptFactory = attemptFactory;
     this.existingBatchClaimManager = existingBatchClaimManager;
+    this.incrementalPlanner = incrementalPlanner;
   }
 
   @Transactional(transactionManager = "offlineSyncTransactionManager", rollbackFor = Exception.class)
@@ -225,7 +229,7 @@ public class OfflineExecutionClaimManager {
       String logicalJobSpecJson,
       Parsed trigger,
       String idempotencyKey) {
-    BatchScope scope = BatchScope.fullSelection();
+    BatchScope scope = incrementalPlanner.plan(definitionId, definitionSnapshotJson);
     BatchTrigger batchTrigger =
         Objects.requireNonNull(trigger.batchTrigger(), "初始执行必须包含 BatchTrigger");
     BatchKey batchKey = trigger.batchKey();

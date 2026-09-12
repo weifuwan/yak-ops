@@ -262,11 +262,36 @@ public class OfflineExecutionCoordinator {
       return result;
     }
 
+    if (batchScope(execution) instanceof BatchScope.EmptySelection) {
+      stateManager.recordCreated(execution);
+      AuditOperationHandle audit = auditBridge.ensureOperation(execution);
+      OfflineJobExecution result =
+          callInAuditContext(
+              audit,
+              () -> {
+                stateManager.markNoDataSucceeded(execution);
+                auditBridge.observeState(execution);
+                return execution;
+              });
+      return result;
+    }
+
     String executionJobSpec = resolveScopedExecutionJobSpec(claim);
     stateManager.recordCreated(execution);
     AuditOperationHandle audit = auditBridge.ensureOperation(execution);
     return callInAuditContext(
         audit, () -> submitClaimInContext(execution, executionJobSpec));
+  }
+
+  private BatchScope batchScope(OfflineJobExecution execution) {
+    Long batchId = execution.getBatchId();
+    if (batchId == null || batchId <= 0L) {
+      throw new IllegalStateException("运行实例未绑定 BatchExecution");
+    }
+    return batchRepository
+        .findById(batchId)
+        .orElseThrow(() -> new IllegalStateException("Attempt 绑定的 BatchExecution 不存在：" + batchId))
+        .batchScope();
   }
 
   private OfflineJobExecution submitClaimInContext(

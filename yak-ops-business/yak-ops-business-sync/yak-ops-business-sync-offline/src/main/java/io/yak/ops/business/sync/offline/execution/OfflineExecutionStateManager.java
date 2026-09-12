@@ -102,6 +102,39 @@ public class OfflineExecutionStateManager {
     markTerminal(execution, OfflineExecutionStatus.FAILED, message, null, retryable);
   }
 
+  /** Completes a frozen empty incremental batch locally without creating a Link-Up job. */
+  public void markNoDataSucceeded(OfflineJobExecution execution) {
+    LocalDateTime now = LocalDateTime.now();
+    String previous = execution.getStatus();
+    execution.setStartTime(now);
+    execution.setDurationMillis(0L);
+    execution.setSourceRecordCount(0L);
+    execution.setSinkAttemptedRecordCount(0L);
+    execution.setSinkSuccessRecordCount(0L);
+    execution.setSinkCommittedRecordCount(0L);
+    execution.setSourceReadBytes(0L);
+    execution.setSinkWrittenBytes(0L);
+    execution.setFailedRecordCount(0L);
+    execution.setSkippedRecordCount(0L);
+    execution.setQps(0D);
+    execution.setStatus(OfflineExecutionStatus.SUCCEEDED.name());
+    execution.setStateVersion(value(execution.getStateVersion(), 0L) + 1L);
+    execution.setErrorMessage(null);
+    execution.setEndTime(now);
+    execution.setLastSyncTime(now);
+    execution.setUpdateTime(now);
+    configureRetry(execution, OfflineExecutionStatus.SUCCEEDED, false);
+    batchRuntime.persistAttempt(execution);
+    projectTaskLastState(execution, OfflineExecutionStatus.SUCCEEDED.name());
+    record(
+        execution,
+        previous,
+        OfflineExecutionStatus.SUCCEEDED.name(),
+        "NO_DATA_SUCCEEDED",
+        "来源游标无变化，本批次无需同步",
+        null);
+  }
+
   public void markCancellationRequested(OfflineJobExecution execution) {
     execution.setCancellationRequested(true);
     execution.setUpdateTime(LocalDateTime.now());

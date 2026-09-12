@@ -44,6 +44,30 @@ class OfflineBatchScopeExecutionAdapterTest {
   }
 
   @Test
+  void regularIncrementalRangeUsesItsFrozenColumnAndBounds() {
+    String scoped =
+        adapter.apply(
+            10L,
+            logicalJobSpec(null),
+            BatchScope.incrementalRange(
+                "timestamp-incremental", "updated_at", "route", "100", "200"));
+    assertThat(scoped).contains("updated_at > '100'");
+    assertThat(scoped).contains("updated_at <= '200'");
+  }
+
+  @Test
+  void bootstrapKeepsTheOriginalFullSelectionJobSpec() {
+    String logical = logicalJobSpec(null);
+    assertThat(
+            adapter.apply(
+                10L,
+                logical,
+                BatchScope.incrementalBootstrap(
+                    "timestamp-incremental", "updated_at", "route", "200")))
+        .isEqualTo(logical);
+  }
+
+  @Test
   void scopedBatchRejectsMultiTableJobSpecInsteadOfGuessingRoute() {
     String logical =
         "{\"source\":{\"connectorId\":\"jdbc\",\"options\":{\"table_list\":[{\"table_path\":\"a\"},{\"table_path\":\"b\"}],\"partition_column\":\"updated_at\"}},\"sink\":{}}";

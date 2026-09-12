@@ -12,7 +12,11 @@ import {
 import useDataSourceColumns from '../hooks/useDataSourceColumns';
 import useDataSourceTables from '../hooks/useDataSourceTables';
 import useOfflineConnectorRuntime from '../hooks/useOfflineConnectorRuntime';
-import { updateEndpointConfig, type SyncEditorState } from '../model';
+import {
+  DEFAULT_INCREMENTAL_CONFIG,
+  updateEndpointConfig,
+  type SyncEditorState,
+} from '../model';
 import ChannelConfigSection from './ChannelConfigSection';
 import FieldMappingSection, { type FieldMappingValue } from './FieldMappingSection';
 import MultiTableConfigSection from './MultiTableConfigSection';
@@ -46,6 +50,7 @@ export default function SyncTaskEditor({
 }: SyncTaskEditorProps) {
   const sourceConfig = editor.source.config || {};
   const sinkConfig = editor.sink.config || {};
+  const incremental = editor.incremental || DEFAULT_INCREMENTAL_CONFIG;
   const sourceId = editor.source.dataSourceId;
   const targetId = editor.sink.dataSourceId;
   const mappingColumns = normalizeMappings(editor.mapping?.columns);
@@ -101,8 +106,25 @@ export default function SyncTaskEditor({
     ? sourceColumnCatalog.loading
     : targetColumnCatalog.loading;
 
-  const updateSource = (patch: Record<string, any>) =>
-    onChange(updateEndpointConfig(editor, 'source', patch));
+  const updateSource = (patch: Record<string, any>) => {
+    const next = updateEndpointConfig(editor, 'source', patch);
+    const changesReadMode = Object.prototype.hasOwnProperty.call(patch, 'readMode');
+    const changesTable = Object.prototype.hasOwnProperty.call(patch, 'table');
+    onChange(
+      changesReadMode || changesTable
+        ? {
+            ...next,
+            incremental: {
+              ...incremental,
+              enabled: changesReadMode && patch.readMode === 'sql'
+                ? false
+                : incremental.enabled,
+              column: '',
+            },
+          }
+        : next,
+    );
+  };
   const updateSink = (patch: Record<string, any>) =>
     onChange(updateEndpointConfig(editor, 'sink', patch));
   const updateMapping = (columns: FieldMappingValue[]) =>
@@ -227,8 +249,10 @@ export default function SyncTaskEditor({
         ) : (
           <SingleTableConfigSection
             sourceDataSourceId={sourceId}
+            sourceConnectorId={editor.source.connectorId}
             sourceConfig={sourceConfig}
             sinkConfig={sinkConfig}
+            incremental={incremental}
             sourceCapability={sourceCapability}
             sinkCapability={sinkCapability}
             autoCreateTableEnabled={sinkAutoCreateTableEnabled}
@@ -239,6 +263,8 @@ export default function SyncTaskEditor({
             targetLoading={targetCatalog.loading}
             primaryKeyOptions={primaryKeyCatalog.columns}
             primaryKeyLoading={primaryKeyCatalog.loading}
+            incrementalColumnOptions={sourceColumnCatalog.columns}
+            incrementalColumnLoading={sourceColumnCatalog.loading}
             sourceReady={Boolean(sourceId)}
             targetReady={Boolean(targetId)}
             allowCustomTargetName={isMongoSink}
@@ -254,6 +280,12 @@ export default function SyncTaskEditor({
               )
             }
             onSinkChange={updateSink}
+            onIncrementalChange={(patch) =>
+              onChange({
+                ...editor,
+                incremental: { ...incremental, ...patch },
+              })
+            }
           />
         )}
       </div>

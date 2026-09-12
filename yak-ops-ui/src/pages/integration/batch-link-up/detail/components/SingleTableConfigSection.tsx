@@ -20,13 +20,16 @@ import {
   type EndpointCapabilityState,
 } from '../capabilities';
 import type { DataSourceColumnOption } from '../hooks/useDataSourceColumns';
+import type { SyncIncremental } from '../model';
 import EditorSection from './EditorSection';
 import SingleTablePreviewModal from './SingleTablePreviewModal';
 
 interface SingleTableConfigSectionProps {
   sourceDataSourceId?: string | number;
+  sourceConnectorId?: string;
   sourceConfig: Record<string, any>;
   sinkConfig: Record<string, any>;
+  incremental: SyncIncremental;
   sourceCapability: EndpointCapabilityState;
   sinkCapability: EndpointCapabilityState;
   autoCreateTableEnabled: boolean;
@@ -37,6 +40,8 @@ interface SingleTableConfigSectionProps {
   targetLoading: boolean;
   primaryKeyOptions: DataSourceColumnOption[];
   primaryKeyLoading: boolean;
+  incrementalColumnOptions: DataSourceColumnOption[];
+  incrementalColumnLoading: boolean;
   sourceReady: boolean;
   targetReady: boolean;
   allowCustomTargetName?: boolean;
@@ -46,6 +51,7 @@ interface SingleTableConfigSectionProps {
   onTargetTableSearch: (keyword: string) => void;
   onSourceChange: (patch: Record<string, any>) => void;
   onSinkChange: (patch: Record<string, any>) => void;
+  onIncrementalChange: (patch: Partial<SyncIncremental>) => void;
 }
 
 interface EndpointPanelProps {
@@ -85,8 +91,10 @@ const splitPrimaryKeys = (value: unknown): string[] =>
 
 export default function SingleTableConfigSection({
   sourceDataSourceId,
+  sourceConnectorId,
   sourceConfig,
   sinkConfig,
+  incremental,
   sourceCapability,
   sinkCapability,
   autoCreateTableEnabled,
@@ -97,6 +105,8 @@ export default function SingleTableConfigSection({
   targetLoading,
   primaryKeyOptions,
   primaryKeyLoading,
+  incrementalColumnOptions,
+  incrementalColumnLoading,
   sourceReady,
   targetReady,
   allowCustomTargetName = false,
@@ -106,6 +116,7 @@ export default function SingleTableConfigSection({
   onTargetTableSearch,
   onSourceChange,
   onSinkChange,
+  onIncrementalChange,
 }: SingleTableConfigSectionProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const sourceReadMode = sourceConfig.readMode === 'sql' ? 'sql' : 'table';
@@ -128,6 +139,14 @@ export default function SingleTableConfigSection({
       CONNECTOR_CAPABILITY.UPSERT,
     );
   const supportsOverwrite = allowsOverwrite(sinkCapability);
+  const supportsIncremental =
+    String(sourceConnectorId || '').toLowerCase() === 'jdbc' &&
+    sourceReadMode === 'table' &&
+    supportsUpsert;
+  const cursorColumns = incrementalColumnOptions.filter((option) => {
+    const type = String(option.typeName || '').toUpperCase();
+    return /(DATE|TIME|CHAR|TEXT)/.test(type);
+  });
   const previewDisabled =
     !sourceDataSourceId ||
     (sourceReadMode === 'sql'
@@ -370,6 +389,62 @@ export default function SingleTableConfigSection({
 
           {sinkExtraParameters}
         </EndpointPanel>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-[#e8eaee] bg-[#fcfcfd] p-5">
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <div className="text-[14px] font-semibold text-[#182230]">
+              全量 + 游标增量
+            </div>
+            <div className="mt-1 text-[12px] leading-5 text-[#667085]">
+              首次同步全表并记录来源当前 MAX；后续只同步 (已提交游标, 本次 MAX]。仅成功后推进游标，失败重试复用原上界。
+            </div>
+          </div>
+          <Switch
+            checked={incremental.enabled}
+            disabled={!supportsIncremental}
+            onChange={(enabled) => {
+              onIncrementalChange({
+                enabled,
+                ...(enabled ? {} : { column: '' }),
+              });
+              if (enabled && currentWriteMode !== 'upsert') {
+                onSinkChange({ writeMode: 'upsert' });
+              }
+            }}
+          />
+        </div>
+        {!supportsIncremental ? (
+          <div className="mt-3 text-[11px] leading-5 text-[#b54708]">
+            该能力要求 JDBC 单表来源，以及支持 Upsert 的目标 Connector。
+          </div>
+        ) : null}
+        {incremental.enabled ? (
+          <div className="mt-4 max-w-[520px]">
+            <FieldLabel required>增量游标字段</FieldLabel>
+            <Select
+              showSearch
+              variant="filled"
+              className="w-full"
+              value={incremental.column || undefined}
+              loading={incrementalColumnLoading}
+              disabled={!sourceConfig.table}
+              options={cursorColumns.map((option) => ({
+                label: option.description
+                  ? `${option.label} · ${option.description}`
+                  : option.label,
+                value: option.value,
+              }))}
+              optionFilterProp="label"
+              placeholder="选择日期、时间戳或 ISO 字符时间字段"
+              onChange={(column) => onIncrementalChange({ column })}
+            />
+            <div className="mt-1.5 text-[11px] leading-5 text-[#98a2b3]">
+              字符字段必须使用可按字典序排序的 ISO 时间格式；目标端须选择 Upsert 并配置主键。
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <SingleTablePreviewModal

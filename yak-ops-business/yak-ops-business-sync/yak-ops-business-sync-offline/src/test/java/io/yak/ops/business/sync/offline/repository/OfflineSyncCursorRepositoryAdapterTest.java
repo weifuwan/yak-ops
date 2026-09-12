@@ -29,12 +29,12 @@ class OfflineSyncCursorRepositoryAdapterTest {
     assertThat(cursor.position()).isEqualTo("100");
     assertThat(cursor.stateVersion()).isEqualTo(1L);
     when(dao.advance(
-            10L,
-            "orders",
-            "100",
-            1L,
-            "200",
-            77L,
+            org.mockito.ArgumentMatchers.eq(10L),
+            org.mockito.ArgumentMatchers.eq("orders"),
+            org.mockito.ArgumentMatchers.eq("100"),
+            org.mockito.ArgumentMatchers.eq(1L),
+            org.mockito.ArgumentMatchers.eq("200"),
+            org.mockito.ArgumentMatchers.eq(77L),
             org.mockito.ArgumentMatchers.any()))
         .thenReturn(true);
 

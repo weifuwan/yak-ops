@@ -99,9 +99,9 @@ class OfflineExecutionCoordinatorTest {
     OfflineJobExecution execution = execution(99L, "CREATED");
     BatchExecution batch = frozenBatch(BatchStatus.RUNNING, BatchScope.fullSelection());
     when(claimManager.claim(10L, "WORKFLOW", null, 1))
-        .thenReturn(new OfflineExecutionClaim(null, "logical", execution));
+        .thenReturn(new OfflineExecutionClaim(null, "{}", execution));
     when(batchRepository.findById(77L)).thenReturn(Optional.of(batch));
-    when(scopeExecutionAdapter.apply(10L, "logical", batch.batchScope())).thenReturn("scoped");
+    when(scopeExecutionAdapter.apply(10L, "{}", batch.batchScope())).thenReturn("scoped");
     when(definitionService.resolveExecutionJobSpec("scoped"))
         .thenThrow(new IllegalStateException("invalid job spec"));
 
@@ -123,9 +123,9 @@ class OfflineExecutionCoordinatorTest {
     BatchScope.CursorRange range = BatchScope.cursorRange("orders", "100", "200");
     BatchExecution batch = frozenBatch(BatchStatus.RUNNING, range);
     when(claimManager.claimRetry(98L))
-        .thenReturn(new OfflineExecutionClaim(null, "logical", retry));
+        .thenReturn(new OfflineExecutionClaim(null, "{}", retry));
     when(batchRepository.findById(77L)).thenReturn(Optional.of(batch));
-    when(scopeExecutionAdapter.apply(10L, "logical", range)).thenReturn("scoped");
+    when(scopeExecutionAdapter.apply(10L, "{}", range)).thenReturn("scoped");
     when(definitionService.resolveExecutionJobSpec("scoped")).thenReturn("{}");
     when(linkUpClient.node())
         .thenThrow(new LinkUpTransportException("engine down", new ConnectException(), false));
@@ -133,7 +133,7 @@ class OfflineExecutionCoordinatorTest {
     assertThatThrownBy(() -> coordinator.retryFrom(previous))
         .isInstanceOf(LinkUpTransportException.class);
 
-    verify(scopeExecutionAdapter).apply(10L, "logical", range);
+    verify(scopeExecutionAdapter).apply(10L, "{}", range);
     verify(stateManager).markFailed(retry, "engine down", true);
     verify(auditBridge).ensureOperation(retry);
     verify(auditBridge).observeState(retry);
@@ -148,6 +148,21 @@ class OfflineExecutionCoordinatorTest {
     assertThat(coordinator.executePendingBackfill(77L)).isSameAs(existing);
 
     verifyNoInteractions(scopeExecutionAdapter, linkUpClient, stateManager, auditBridge);
+  }
+
+  @Test
+  void emptyIncrementalBatchSucceedsLocallyWithoutSubmittingLinkUpJob() {
+    OfflineJobExecution execution = execution(99L, "CREATED");
+    BatchExecution batch = frozenBatch(BatchStatus.RUNNING, BatchScope.emptySelection());
+    when(claimManager.claim(10L, "WORKFLOW", null, 1))
+        .thenReturn(new OfflineExecutionClaim(null, "{}", execution));
+    when(batchRepository.findById(77L)).thenReturn(Optional.of(batch));
+
+    assertThat(coordinator.execute(10L, "WORKFLOW", null, 1)).isSameAs(execution);
+
+    verify(stateManager).recordCreated(execution);
+    verify(stateManager).markNoDataSucceeded(execution);
+    verifyNoInteractions(linkUpClient, scopeExecutionAdapter);
   }
 
   @Test
@@ -249,7 +264,7 @@ class OfflineExecutionCoordinatorTest {
             1,
             new RetryPolicySnapshot(3, 30),
             "digest",
-            "logical"),
+            "{}"),
         status,
         List.of());
   }

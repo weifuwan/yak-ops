@@ -14,6 +14,17 @@ public interface OfflineSyncCursorRepository {
       String sourceColumn,
       String initialPosition);
 
+  OfflineSyncCursor commitInitialSuccess(
+      long taskId,
+      String cursorId,
+      String sourceColumn,
+      String sourceSignature,
+      String initialPosition,
+      long succeededBatchId);
+
+  OfflineSyncCursor bindSourceSignature(
+      OfflineSyncCursor current, String sourceSignature);
+
   boolean advance(
       OfflineSyncCursor current,
       String expectedPosition,

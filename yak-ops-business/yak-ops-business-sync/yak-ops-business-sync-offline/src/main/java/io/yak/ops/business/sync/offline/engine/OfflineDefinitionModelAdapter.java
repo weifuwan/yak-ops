@@ -12,8 +12,8 @@ import org.springframework.util.StringUtils;
 /**
  * 将 Yak Ops 对外任务定义转换为 JobSpec 工厂使用的内部配置结构。
  *
- * <p>持久化协议保持 basic + source + sink + channel。该适配仅作用于构建副本，
- * 不会把 config、workflow 或其他执行期结构写回任务定义。</p>
+ * <p>该适配仅作用于构建副本，不会把 config、workflow 或其他执行期结构写回任务定义。
+ * Yak Ops 自有的通知、编辑器与增量游标配置也不会进入 Link-Up JobSpec。</p>
  *
  * @author weifuwan
  */
@@ -112,10 +112,10 @@ public final class OfflineDefinitionModelAdapter {
       return definition;
     }
     ObjectNode adapted = (ObjectNode) definition.deepCopy();
-    // Notification and editor metadata are Yak Ops control-plane concerns. They must never alter
-    // engine JobSpec, execution snapshots or config digests when only UI preferences change.
+    // These are Yak Ops control-plane concerns and are not part of Link-Up's JobSpec contract.
     adapted.remove("notification");
     adapted.remove("editorMeta");
+    adapted.remove("incremental");
     String mode = text(adapted.path("basic"), "mode", "GUIDE_SINGLE");
     adaptEndpoint(adapted, "source", mode, objectMapper);
     adaptEndpoint(adapted, "sink", mode, objectMapper);
