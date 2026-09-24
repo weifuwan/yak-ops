@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -17,9 +21,13 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ]
     },
-    "types": ["vite/client"]
+    "types": [
+      "vite/client"
+    ]
   },
   "include": [
     "src/main.tsx",
@@ -30,13 +38,16 @@
     "src/pages/data-source/**/*.ts",
     "src/pages/data-source/**/*.tsx",
     "src/services/data-source/**/*.ts",
-    "src/services/security/**/*.ts",
-    "src/services/http/**/*.ts",
+    "src/services/security/account.ts",
+    "src/services/security/client.ts",
+    "src/services/security/currentIdentity.ts",
+    "src/services/http/response.ts",
     "src/utils/HttpUtils.tsx",
     "src/utils/request.ts",
     "src/utils/notifyOnce.ts",
     "src/utils/prettyNotification.tsx",
-    "src/utils/security/**/*.ts",
+    "src/utils/security/authentication.ts",
+    "src/utils/security/redirect.ts",
     "src/components/YakButton/**/*.ts",
     "src/components/YakButton/**/*.tsx",
     "src/components/YakTab/**/*.ts",
