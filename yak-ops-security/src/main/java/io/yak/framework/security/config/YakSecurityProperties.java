@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.util.StringUtils;
 
 /** Yak Security user/login configuration. */
 @Getter
@@ -32,7 +31,6 @@ public class YakSecurityProperties {
 
   private String applicationName;
 
-  private final DataSourceProperties datasource = new DataSourceProperties();
   private final AuthenticationProperties authentication = new AuthenticationProperties();
   private final BootstrapProperties bootstrap = new BootstrapProperties();
   private final LoginSecurityProperties login = new LoginSecurityProperties();
@@ -62,65 +60,5 @@ public class YakSecurityProperties {
     @ToString.Exclude
     private String password;
     private String realName = "系统管理员";
-  }
-
-  public void validateDatabaseConfiguration() {
-    if (!enabled || !databaseEnabled || !datasource.isEnabled()) return;
-    requireText(applicationName, PREFIX + ".application-name");
-    datasource.validate();
-  }
-
-  @Getter
-  @Setter
-  @ToString
-  public static class DataSourceProperties {
-    private boolean enabled = true;
-    private String url;
-    private String username;
-    @ToString.Exclude
-    private String password;
-    private String driverClassName = "com.mysql.cj.jdbc.Driver";
-    private int initialSize = 1;
-    private int minIdle = 1;
-    private int maxActive = 8;
-    private long maxWait = 60_000L;
-    private String validationQuery = "SELECT 1";
-    private boolean testWhileIdle = true;
-    private boolean testOnBorrow = false;
-    private boolean testOnReturn = false;
-
-    private void validate() {
-      requireText(url, PREFIX + ".datasource.url");
-      requireText(username, PREFIX + ".datasource.username");
-      requireText(driverClassName, PREFIX + ".datasource.driver-class-name");
-      if (initialSize < 0) throw invalidProperty(
-          PREFIX + ".datasource.initial-size", "must be greater than or equal to 0");
-      if (minIdle < 0) throw invalidProperty(
-          PREFIX + ".datasource.min-idle", "must be greater than or equal to 0");
-      if (maxActive <= 0) throw invalidProperty(
-          PREFIX + ".datasource.max-active", "must be greater than 0");
-      if (initialSize > maxActive) throw invalidProperty(
-          PREFIX + ".datasource.initial-size", "must not be greater than max-active");
-      if (minIdle > maxActive) throw invalidProperty(
-          PREFIX + ".datasource.min-idle", "must not be greater than max-active");
-      if (maxWait < -1L) throw invalidProperty(
-          PREFIX + ".datasource.max-wait", "must be -1 or greater than or equal to 0");
-      boolean validationEnabled = testWhileIdle || testOnBorrow || testOnReturn;
-      if (validationEnabled && !StringUtils.hasText(validationQuery)) {
-        throw invalidProperty(
-            PREFIX + ".datasource.validation-query",
-            "must not be blank when connection validation is enabled");
-      }
-    }
-  }
-
-  private static void requireText(String value, String key) {
-    if (!StringUtils.hasText(value)) {
-      throw new IllegalStateException("Missing required configuration: " + key);
-    }
-  }
-
-  private static IllegalStateException invalidProperty(String key, String message) {
-    return new IllegalStateException("Invalid configuration: " + key + " " + message);
   }
 }

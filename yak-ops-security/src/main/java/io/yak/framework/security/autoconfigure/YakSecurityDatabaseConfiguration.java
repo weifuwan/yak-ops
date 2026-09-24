@@ -1,15 +1,14 @@
 package io.yak.framework.security.autoconfigure;
 
-import io.yak.framework.security.config.DataSourceConfig;
-import io.yak.ops.dao.repository.security.impl.UserRepositoryImpl;
 import io.yak.framework.security.service.impl.LoginServiceImpl;
 import io.yak.framework.security.service.impl.UserAdministrationService;
 import io.yak.framework.security.service.impl.UserServiceImpl;
+import io.yak.ops.dao.repository.security.impl.UserRepositoryImpl;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-/** User/login database capability assembly. */
+/** User/login database capability assembly. Database infrastructure is owned by yak-ops-boot. */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(
     prefix = "yak.security",
@@ -17,7 +16,6 @@ import org.springframework.context.annotation.Import;
     havingValue = "true",
     matchIfMissing = true)
 @Import({
-    DataSourceConfig.class,
     UserRepositoryImpl.class,
     UserServiceImpl.class,
     UserAdministrationService.class,

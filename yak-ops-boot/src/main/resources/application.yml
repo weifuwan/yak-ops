@@ -5,12 +5,17 @@ server:
 spring:
   application:
     name: yak-ops
-  # Yak Ops schema 统一由 yak-ops-dao 管理；业务和 Security 复用同一数据库配置。
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
-  # Flyway 由 yak-ops-dao 的 FlywayConfiguration 显式管理，关闭 Spring Boot 默认 Flyway。
+  datasource:
+    url: ${YAK_DATABASE_URL:${YAK_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/yak_security?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai}}
+    username: ${YAK_DATABASE_USERNAME:${YAK_DATASOURCE_USERNAME:root}}
+    password: ${YAK_DATABASE_PASSWORD:${YAK_DATASOURCE_PASSWORD:123456}}
+    driver-class-name: ${YAK_DATABASE_DRIVER:com.mysql.cj.jdbc.Driver}
+    hikari:
+      pool-name: YakOpsDatabasePool
+      minimum-idle: ${YAK_DATABASE_MINIMUM_IDLE:1}
+      maximum-pool-size: ${YAK_DATABASE_MAXIMUM_POOL_SIZE:8}
+      auto-commit: true
+  # Flyway migration ownership remains in yak-ops-dao; disable Spring Boot's default Flyway runner.
   flyway:
     enabled: false
   servlet:
@@ -39,17 +44,6 @@ springdoc:
     tags-sorter: alpha
 
 yak:
-  # 数据库连接参数统一定义于此；Security 与业务 Schema 不再拆分数据库。
-  # 可通过 YAK_DATABASE_* 或 YAK_DATASOURCE_* 覆盖。
-  database:
-    enabled: ${YAK_DATABASE_ENABLED:true}
-    url: ${YAK_DATABASE_URL:${YAK_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/yak_security?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai}}
-    username: ${YAK_DATABASE_USERNAME:${YAK_DATASOURCE_USERNAME:root}}
-    password: ${YAK_DATABASE_PASSWORD:${YAK_DATASOURCE_PASSWORD:123456}}
-    driver-class-name: ${YAK_DATABASE_DRIVER:com.mysql.cj.jdbc.Driver}
-    minimum-idle: ${YAK_DATABASE_MINIMUM_IDLE:1}
-    maximum-pool-size: ${YAK_DATABASE_MAXIMUM_POOL_SIZE:8}
-
   security:
     enabled: true
     database-enabled: true
@@ -70,21 +64,6 @@ yak:
       username: ${YAK_SECURITY_BOOTSTRAP_USERNAME:root}
       password: ${YAK_SECURITY_BOOTSTRAP_PASSWORD:Root@123456}
       real-name: ${YAK_SECURITY_BOOTSTRAP_REAL_NAME:系统管理员}
-    datasource:
-      enabled: true
-      # Security 复用统一 Yak Ops 数据库；Schema migration 只由 yak-ops-dao 执行一次。
-      url: ${yak.database.url}
-      username: ${yak.database.username}
-      password: ${yak.database.password}
-      driver-class-name: ${yak.database.driver-class-name}
-      initial-size: 1
-      min-idle: 1
-      max-active: 8
-      max-wait: 60000
-      validation-query: SELECT 1
-      test-while-idle: true
-      test-on-borrow: false
-      test-on-return: false
 
   datasource:
     enabled: true
