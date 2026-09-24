@@ -16,7 +16,7 @@ import { useMemo, useState } from 'react';
 
 import { COMMON_DB_OPTIONS } from '../model/constants';
 import DatabaseIcons from '../model/icons/DatabaseIcons';
-import type { DataSourceGroup } from '../model/uiTypes';
+import type { DataSourceGroup } from '../model/presentation';
 
 interface DataSourceTypeSelectorProps {
   dataSourceGroups: DataSourceGroup[];
