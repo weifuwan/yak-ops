@@ -17,8 +17,7 @@ public class JacksonConfiguration {
 
     @Bean("yakOpsObjectMapper")
     @Primary
-    public ObjectMapper yakOpsObjectMapper(
-            Jackson2ObjectMapperBuilder builder) {
+    public ObjectMapper yakOpsObjectMapper(Jackson2ObjectMapperBuilder builder) {
         return builder.build();
     }
 }

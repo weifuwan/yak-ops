@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.common.PageData;
 import io.yak.ops.dao.repository.BaseRepository;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +53,7 @@ public abstract class BaseRepositoryImpl<M extends BaseMapper<T>, T, ID extends 
     public PageData<T> queryPage(long pageNo, long pageSize) {
         Page<T> page = new Page<>(pageNo, pageSize);
         IPage<T> result = mapper().selectPage(page, null);
-        return new PageData<>(result.getRecords(), result.getTotal(), result.getPages(), result.getCurrent(), result.getSize());
+        return new PageData<>(
+                result.getRecords(), result.getTotal(), result.getPages(), result.getCurrent(), result.getSize());
     }
 }

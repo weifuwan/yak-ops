@@ -1,12 +1,12 @@
 package io.yak.ops.security.service.impl;
 
-import io.yak.ops.security.authentication.AuthenticationManager;
-import io.yak.ops.common.exception.YakSecurityException;
-import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.enums.security.ResultCode;
+import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
+import io.yak.ops.security.authentication.AuthenticationManager;
+import io.yak.ops.security.extend.PasswordEncoder;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,118 +18,108 @@ import org.springframework.util.StringUtils;
 
 /** User administration operations that require focused persistence updates. */
 @ConditionalOnProperty(
-    prefix = "yak.security",
-    name = {"enabled", "database-enabled"},
-    havingValue = "true",
-    matchIfMissing = true)
+        prefix = "yak.security",
+        name = {"enabled", "database-enabled"},
+        havingValue = "true",
+        matchIfMissing = true)
 @Service
 public class UserAdministrationService {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(UserAdministrationService.class);
-  private static final int MIN_PASSWORD_LENGTH = 8;
-  private static final int MAX_PASSWORD_LENGTH = 64;
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserAdministrationService.class);
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_PASSWORD_LENGTH = 64;
 
-  private final UserRepository userRepository;
-  private final PasswordEncoder passwordEncoder;
-  private final ObjectProvider<AuthenticationManager> authenticationManagerProvider;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final ObjectProvider<AuthenticationManager> authenticationManagerProvider;
 
-  public UserAdministrationService(
-      UserRepository userRepository,
-      PasswordEncoder passwordEncoder,
-      ObjectProvider<AuthenticationManager> authenticationManagerProvider) {
-    this.userRepository = userRepository;
-    this.passwordEncoder = passwordEncoder;
-    this.authenticationManagerProvider = authenticationManagerProvider;
-  }
-
-  public void validateDelete(Long targetUserId, Long operatorId, String operator) {
-    if (targetUserId == null) {
-      throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+    public UserAdministrationService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            ObjectProvider<AuthenticationManager> authenticationManagerProvider) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManagerProvider = authenticationManagerProvider;
     }
 
-    UserEntity targetUser = userRepository.queryById(targetUserId).orElse(null);
-    if (targetUser == null) {
-      throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+    public void validateDelete(Long targetUserId, Long operatorId, String operator) {
+        if (targetUserId == null) {
+            throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+        }
+
+        UserEntity targetUser = userRepository.queryById(targetUserId).orElse(null);
+        if (targetUser == null) {
+            throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+        }
+
+        boolean deletingSelfById = operatorId != null && Objects.equals(targetUserId, operatorId);
+        boolean deletingSelfByName =
+                StringUtils.hasText(operator) && Objects.equals(targetUser.getUserName(), operator);
+
+        if (deletingSelfById || deletingSelfByName) {
+            throw new YakSecurityException("不能删除当前登录用户");
+        }
     }
 
-    boolean deletingSelfById =
-        operatorId != null && Objects.equals(targetUserId, operatorId);
-    boolean deletingSelfByName =
-        StringUtils.hasText(operator) && Objects.equals(targetUser.getUserName(), operator);
+    @Transactional(transactionManager = "yakSecurityTransactionManager", rollbackFor = Exception.class)
+    public void resetPassword(Long userId, UserPasswordResetDTO request, String operator) {
+        if (userId == null) {
+            throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+        }
 
-    if (deletingSelfById || deletingSelfByName) {
-      throw new YakSecurityException("不能删除当前登录用户");
-    }
-  }
+        String password = request == null ? null : request.getPassword();
+        if (!StringUtils.hasText(password)) {
+            throw new YakSecurityException("新密码不能为空");
+        }
+        if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
+            throw new YakSecurityException("密码长度必须为 8～64 位");
+        }
 
-  @Transactional(
-      transactionManager = "yakSecurityTransactionManager",
-      rollbackFor = Exception.class)
-  public void resetPassword(Long userId, UserPasswordResetDTO request, String operator) {
-    if (userId == null) {
-      throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
-    }
+        UserEntity user = userRepository.queryById(userId).orElse(null);
+        if (user == null) {
+            throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+        }
 
-    String password = request == null ? null : request.getPassword();
-    if (!StringUtils.hasText(password)) {
-      throw new YakSecurityException("新密码不能为空");
-    }
-    if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
-      throw new YakSecurityException("密码长度必须为 8～64 位");
-    }
+        String encodedPassword = passwordEncoder.encode(password);
+        if (userRepository.updatePassword(userId, encodedPassword) != 1) {
+            throw new YakSecurityException(ResultCode.USER_ACCOUNT_UPDATE_FAIL);
+        }
 
-    UserEntity user = userRepository.queryById(userId).orElse(null);
-    if (user == null) {
-      throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+        invalidateUserSessions(userId);
+        LOGGER.info("管理员重置用户密码成功，用户ID={}，用户名={}，操作人={}", userId, user.getUserName(), operator);
     }
 
-    String encodedPassword = passwordEncoder.encode(password);
-    if (userRepository.updatePassword(userId, encodedPassword) != 1) {
-      throw new YakSecurityException(ResultCode.USER_ACCOUNT_UPDATE_FAIL);
+    public void invalidateSessionsAfterPasswordChange(String username, String operator) {
+        if (!StringUtils.hasText(username)) return;
+
+        UserEntity user = userRepository.queryByUsername(username).orElse(null);
+        if (user == null || user.getId() == null) return;
+
+        invalidateUserSessions(user.getId());
+        LOGGER.info("用户密码变更后清理登录态，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
     }
 
-    invalidateUserSessions(userId);
-    LOGGER.info(
-        "管理员重置用户密码成功，用户ID={}，用户名={}，操作人={}",
-        userId, user.getUserName(), operator);
-  }
+    public void forceLogout(Long userId, String operator) {
+        if (userId == null) {
+            throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+        }
 
-  public void invalidateSessionsAfterPasswordChange(String username, String operator) {
-    if (!StringUtils.hasText(username)) return;
+        UserEntity user = userRepository.queryById(userId).orElse(null);
+        if (user == null) {
+            throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+        }
 
-    UserEntity user = userRepository.queryByUsername(username).orElse(null);
-    if (user == null || user.getId() == null) return;
+        AuthenticationManager authenticationManager = authenticationManagerProvider.getIfAvailable();
+        if (authenticationManager == null) {
+            throw new YakSecurityException("当前认证模式不支持账号级强制下线");
+        }
 
-    invalidateUserSessions(user.getId());
-    LOGGER.info(
-        "用户密码变更后清理登录态，用户ID={}，用户名={}，操作人={}",
-        user.getId(), user.getUserName(), operator);
-  }
-
-  public void forceLogout(Long userId, String operator) {
-    if (userId == null) {
-      throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+        authenticationManager.logoutUser(userId);
+        LOGGER.info("管理员强制下线用户，用户ID={}，用户名={}，操作人={}", userId, user.getUserName(), operator);
     }
 
-    UserEntity user = userRepository.queryById(userId).orElse(null);
-    if (user == null) {
-      throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+    private void invalidateUserSessions(Long userId) {
+        AuthenticationManager authenticationManager = authenticationManagerProvider.getIfAvailable();
+        if (authenticationManager != null) authenticationManager.logoutUser(userId);
     }
-
-    AuthenticationManager authenticationManager = authenticationManagerProvider.getIfAvailable();
-    if (authenticationManager == null) {
-      throw new YakSecurityException("当前认证模式不支持账号级强制下线");
-    }
-
-    authenticationManager.logoutUser(userId);
-    LOGGER.info(
-        "管理员强制下线用户，用户ID={}，用户名={}，操作人={}",
-        userId, user.getUserName(), operator);
-  }
-
-  private void invalidateUserSessions(Long userId) {
-    AuthenticationManager authenticationManager = authenticationManagerProvider.getIfAvailable();
-    if (authenticationManager != null) authenticationManager.logoutUser(userId);
-  }
 }

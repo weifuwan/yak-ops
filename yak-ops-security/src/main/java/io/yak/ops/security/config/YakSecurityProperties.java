@@ -16,49 +16,48 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = YakSecurityProperties.PREFIX)
 public class YakSecurityProperties {
 
-  public static final String PREFIX = "yak.security";
+    public static final String PREFIX = "yak.security";
 
-  private boolean enabled = true;
-  private boolean databaseEnabled = true;
-  private boolean webEnabled = true;
-  private boolean authenticationEnabled = true;
+    private boolean enabled = true;
+    private boolean databaseEnabled = true;
+    private boolean webEnabled = true;
+    private boolean authenticationEnabled = true;
 
-  private List<String> publicPaths = new ArrayList<>(Arrays.asList(
-      "/yak-security/api/v1/account/login",
-      "/v3/api-docs/**",
-      "/swagger-ui/**",
-      "/swagger-ui.html"));
+    private List<String> publicPaths = new ArrayList<>(Arrays.asList(
+            "/yak-security/api/v1/account/login", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"));
 
-  private String applicationName;
+    private String applicationName;
 
-  private final AuthenticationProperties authentication = new AuthenticationProperties();
-  private final BootstrapProperties bootstrap = new BootstrapProperties();
-  private final LoginSecurityProperties login = new LoginSecurityProperties();
+    private final AuthenticationProperties authentication = new AuthenticationProperties();
+    private final BootstrapProperties bootstrap = new BootstrapProperties();
+    private final LoginSecurityProperties login = new LoginSecurityProperties();
 
-  @Getter
-  @Setter
-  @ToString
-  public static class AuthenticationProperties {
-    private Duration idleTimeout = Duration.ofMinutes(30);
-  }
+    @Getter
+    @Setter
+    @ToString
+    public static class AuthenticationProperties {
+        private Duration idleTimeout = Duration.ofMinutes(30);
+    }
 
-  @Getter
-  @Setter
-  @ToString
-  public static class LoginSecurityProperties {
-    private int maxFailureCount = 5;
-    private Duration lockDuration = Duration.ofMinutes(15);
-    private boolean hideAccountNotFound = true;
-  }
+    @Getter
+    @Setter
+    @ToString
+    public static class LoginSecurityProperties {
+        private int maxFailureCount = 5;
+        private Duration lockDuration = Duration.ofMinutes(15);
+        private boolean hideAccountNotFound = true;
+    }
 
-  @Getter
-  @Setter
-  @ToString
-  public static class BootstrapProperties {
-    private boolean enabled = false;
-    private String username = "admin";
-    @ToString.Exclude
-    private String password;
-    private String realName = "系统管理员";
-  }
+    @Getter
+    @Setter
+    @ToString
+    public static class BootstrapProperties {
+        private boolean enabled = false;
+        private String username = "admin";
+
+        @ToString.Exclude
+        private String password;
+
+        private String realName = "系统管理员";
+    }
 }

@@ -7,15 +7,15 @@ import lombok.Data;
 @Data
 public class DataSourceVO {
 
-  private Long id;
-  private String name;
-  private String dbType;
-  private String jdbcUrl;
-  private String environment;
-  private String environmentName;
-  private String connStatus;
-  private String remark;
-  private String originalJson;
-  private LocalDateTime createTime;
-  private LocalDateTime updateTime;
+    private Long id;
+    private String name;
+    private String dbType;
+    private String jdbcUrl;
+    private String environment;
+    private String environmentName;
+    private String connStatus;
+    private String remark;
+    private String originalJson;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

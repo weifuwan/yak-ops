@@ -15,16 +15,22 @@ import lombok.ToString;
 @TableName("yak_ops_data_source")
 public class DataSourcePO {
 
-  @TableId(type = IdType.AUTO)
-  private Long id;
-  private String name;
-  private DataSourceDbType dbType;
-  private String jdbcUrl;
-  private DataSourceEnvironment environment;
-  private DataSourceConnStatus connStatus;
-  private String remark;
-  @ToString.Exclude private String connectionParams;
-  @ToString.Exclude private String originalJson;
-  private LocalDateTime createTime;
-  private LocalDateTime updateTime;
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    private String name;
+    private DataSourceDbType dbType;
+    private String jdbcUrl;
+    private DataSourceEnvironment environment;
+    private DataSourceConnStatus connStatus;
+    private String remark;
+
+    @ToString.Exclude
+    private String connectionParams;
+
+    @ToString.Exclude
+    private String originalJson;
+
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

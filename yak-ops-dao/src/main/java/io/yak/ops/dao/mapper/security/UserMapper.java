@@ -6,5 +6,4 @@ import org.apache.ibatis.annotations.Mapper;
 
 /** Yak Security user mapper. */
 @Mapper
-public interface UserMapper extends BaseMapper<UserEntity> {
-}
+public interface UserMapper extends BaseMapper<UserEntity> {}

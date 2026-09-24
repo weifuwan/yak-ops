@@ -11,19 +11,19 @@ import java.util.List;
 /** Persistence boundary for SQL execution observability. */
 public interface SqlExecutionAuditDao {
 
-  void insertExecution(SqlExecutionAuditPO execution);
+    void insertExecution(SqlExecutionAuditPO execution);
 
-  void insertStatements(List<SqlStatementExecutionAuditPO> statements);
+    void insertStatements(List<SqlStatementExecutionAuditPO> statements);
 
-  IPage<SqlExecutionAuditPO> selectPage(SqlExecutionAuditQuery query);
+    IPage<SqlExecutionAuditPO> selectPage(SqlExecutionAuditQuery query);
 
-  SqlExecutionAuditPO selectByExecutionId(String executionId);
+    SqlExecutionAuditPO selectByExecutionId(String executionId);
 
-  List<SqlStatementExecutionAuditPO> selectStatements(String executionId);
+    List<SqlStatementExecutionAuditPO> selectStatements(String executionId);
 
-  SqlExecutionAuditSummaryRow selectSummary(SqlExecutionAuditQuery query);
+    SqlExecutionAuditSummaryRow selectSummary(SqlExecutionAuditQuery query);
 
-  long selectP95DurationMs(SqlExecutionAuditQuery query);
+    long selectP95DurationMs(SqlExecutionAuditQuery query);
 
-  List<SqlStatementTypeCountRow> selectStatementTypeCounts(SqlExecutionAuditQuery query);
+    List<SqlStatementTypeCountRow> selectStatementTypeCounts(SqlExecutionAuditQuery query);
 }

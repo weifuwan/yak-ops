@@ -8,39 +8,38 @@ import java.util.Locale;
 /** InterSystems IRIS JDBC datasource plugin. */
 public final class IrisDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
-  @Override
-  public DataSourceDbType dbType() {
-    return DataSourceDbType.IRIS;
-  }
+    @Override
+    public DataSourceDbType dbType() {
+        return DataSourceDbType.IRIS;
+    }
 
-  @Override
-  protected String jdbcUrlTemplate() {
-    return "jdbc:IRIS://{host}:{port}/{database}";
-  }
+    @Override
+    protected String jdbcUrlTemplate() {
+        return "jdbc:IRIS://{host}:{port}/{database}";
+    }
 
-  @Override
-  protected int defaultPort() {
-    return 1972;
-  }
+    @Override
+    protected int defaultPort() {
+        return 1972;
+    }
 
-  @Override
-  protected String defaultDriverClassName() {
-    return "com.intersystems.jdbc.IRISDriver";
-  }
+    @Override
+    protected String defaultDriverClassName() {
+        return "com.intersystems.jdbc.IRISDriver";
+    }
 
-  @Override
-  protected String databaseLabel() {
-    return "Namespace";
-  }
+    @Override
+    protected String databaseLabel() {
+        return "Namespace";
+    }
 
-  @Override
-  protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
-    return "jdbc:IRIS://" + host + ":" + port + "/" + database;
-  }
+    @Override
+    protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
+        return "jdbc:IRIS://" + host + ":" + port + "/" + database;
+    }
 
-  @Override
-  public boolean acceptsUrl(String jdbcUrl) {
-    return jdbcUrl != null
-        && jdbcUrl.trim().toLowerCase(Locale.ROOT).startsWith("jdbc:iris://");
-  }
+    @Override
+    public boolean acceptsUrl(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.trim().toLowerCase(Locale.ROOT).startsWith("jdbc:iris://");
+    }
 }

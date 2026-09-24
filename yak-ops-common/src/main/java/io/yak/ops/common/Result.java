@@ -1,7 +1,6 @@
 package io.yak.ops.common;
 
 import io.yak.ops.common.exception.BusinessException;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -79,10 +78,7 @@ public class Result<T> extends BaseResult {
      * @return 成功结果
      */
     public static <T> Result<T> success() {
-        return new Result<>(
-                CommonErrorCode.SUCCESS.getCode(),
-                CommonErrorCode.SUCCESS.getMessage()
-        );
+        return new Result<>(CommonErrorCode.SUCCESS.getCode(), CommonErrorCode.SUCCESS.getMessage());
     }
 
     /**
@@ -97,10 +93,7 @@ public class Result<T> extends BaseResult {
             return fail();
         }
 
-        return new Result<>(
-                errorCode.getCode(),
-                errorCode.getMessage()
-        );
+        return new Result<>(errorCode.getCode(), errorCode.getMessage());
     }
 
     /**
@@ -123,10 +116,7 @@ public class Result<T> extends BaseResult {
      * @return 失败结果
      */
     public static <T> Result<T> fail(String message) {
-        return new Result<>(
-                CommonErrorCode.COMMON_FAIL.getCode(),
-                message
-        );
+        return new Result<>(CommonErrorCode.COMMON_FAIL.getCode(), message);
     }
 
     /**
@@ -156,9 +146,7 @@ public class Result<T> extends BaseResult {
             return fail(exception.getErrorCode());
         }
         String message = exception.getMessage();
-        return message == null || message.trim().isEmpty()
-                ? fail()
-                : fail(message);
+        return message == null || message.trim().isEmpty() ? fail() : fail(message);
     }
 
     /**
@@ -175,10 +163,7 @@ public class Result<T> extends BaseResult {
             return fail();
         }
 
-        return new Result<>(
-                source.getCode(),
-                source.getMessage()
-        );
+        return new Result<>(source.getCode(), source.getMessage());
     }
 
     /**
@@ -193,10 +178,7 @@ public class Result<T> extends BaseResult {
 
         return new Result<>(
                 CommonErrorCode.PARAM_NOT_VALID.getCode(),
-                CommonErrorCode.PARAM_NOT_VALID.getMessage()
-                        + (detail.isEmpty() ? "" : "：" + detail)
-                        + "，请检查后再提交！"
-        );
+                CommonErrorCode.PARAM_NOT_VALID.getMessage() + (detail.isEmpty() ? "" : "：" + detail) + "，请检查后再提交！");
     }
 
     /**
@@ -207,10 +189,7 @@ public class Result<T> extends BaseResult {
      * @return 资源不存在结果
      */
     public static <T> Result<T> buildNotExist(String message) {
-        return new Result<>(
-                CommonErrorCode.RESOURCE_NOT_EXISTS.getCode(),
-                message
-        );
+        return new Result<>(CommonErrorCode.RESOURCE_NOT_EXISTS.getCode(), message);
     }
 
     /**
@@ -221,10 +200,7 @@ public class Result<T> extends BaseResult {
      * @return 资源重复结果
      */
     public static <T> Result<T> buildDuplicate(String message) {
-        return new Result<>(
-                CommonErrorCode.RESOURCE_DUPLICATION.getCode(),
-                message
-        );
+        return new Result<>(CommonErrorCode.RESOURCE_DUPLICATION.getCode(), message);
     }
 
     /**

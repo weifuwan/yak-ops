@@ -8,34 +8,33 @@ import java.util.Locale;
 /** HighGo JDBC datasource plugin. */
 public final class HighGoDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
-  @Override
-  public DataSourceDbType dbType() {
-    return DataSourceDbType.HIGHGO;
-  }
+    @Override
+    public DataSourceDbType dbType() {
+        return DataSourceDbType.HIGHGO;
+    }
 
-  @Override
-  protected String jdbcUrlTemplate() {
-    return "jdbc:highgo://{host}:{port}/{database}";
-  }
+    @Override
+    protected String jdbcUrlTemplate() {
+        return "jdbc:highgo://{host}:{port}/{database}";
+    }
 
-  @Override
-  protected int defaultPort() {
-    return 5866;
-  }
+    @Override
+    protected int defaultPort() {
+        return 5866;
+    }
 
-  @Override
-  protected String defaultDriverClassName() {
-    return "com.highgo.jdbc.Driver";
-  }
+    @Override
+    protected String defaultDriverClassName() {
+        return "com.highgo.jdbc.Driver";
+    }
 
-  @Override
-  protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
-    return "jdbc:highgo://" + host + ":" + port + "/" + database;
-  }
+    @Override
+    protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
+        return "jdbc:highgo://" + host + ":" + port + "/" + database;
+    }
 
-  @Override
-  public boolean acceptsUrl(String jdbcUrl) {
-    return jdbcUrl != null
-        && jdbcUrl.trim().toLowerCase(Locale.ROOT).startsWith("jdbc:highgo://");
-  }
+    @Override
+    public boolean acceptsUrl(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.trim().toLowerCase(Locale.ROOT).startsWith("jdbc:highgo://");
+    }
 }

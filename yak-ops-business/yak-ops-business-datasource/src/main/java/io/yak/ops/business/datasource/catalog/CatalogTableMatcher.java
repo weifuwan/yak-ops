@@ -17,49 +17,44 @@ import org.springframework.stereotype.Component;
 @ConditionalOnDataSourceEnabled
 public class CatalogTableMatcher {
 
-  private static final int MAX_MATCH_KEYWORD_LENGTH = 256;
+    private static final int MAX_MATCH_KEYWORD_LENGTH = 256;
 
-  public List<CatalogTable> match(
-      List<CatalogTable> tables,
-      String matchMode,
-      String keyword) {
-    List<CatalogTable> source = tables == null ? List.of() : tables;
-    if (isBlank(keyword)) return source;
-    if (keyword.length() > MAX_MATCH_KEYWORD_LENGTH) {
-      throw new DataSourceException(
-          DataSourceErrorCode.INVALID_CONNECTION_PARAMS,
-          "表名匹配条件不能超过 " + MAX_MATCH_KEYWORD_LENGTH + " 个字符");
+    public List<CatalogTable> match(List<CatalogTable> tables, String matchMode, String keyword) {
+        List<CatalogTable> source = tables == null ? List.of() : tables;
+        if (isBlank(keyword)) return source;
+        if (keyword.length() > MAX_MATCH_KEYWORD_LENGTH) {
+            throw new DataSourceException(
+                    DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "表名匹配条件不能超过 " + MAX_MATCH_KEYWORD_LENGTH + " 个字符");
+        }
+
+        if ("2".equals(matchMode)) {
+            try {
+                Pattern pattern = Pattern.compile(keyword);
+                return source.stream()
+                        .filter(table -> pattern.matcher(table.name()).matches())
+                        .toList();
+            } catch (PatternSyntaxException exception) {
+                throw new DataSourceException(
+                        DataSourceErrorCode.INVALID_CONNECTION_PARAMS,
+                        "表名正则表达式不合法：" + exception.getDescription(),
+                        exception);
+            }
+        }
+
+        if ("3".equals(matchMode)) {
+            Set<String> exactNames = Arrays.stream(keyword.split(","))
+                    .map(String::trim)
+                    .filter(name -> !name.isEmpty())
+                    .collect(Collectors.toSet());
+            return source.stream()
+                    .filter(table -> exactNames.contains(table.name()))
+                    .toList();
+        }
+
+        return source;
     }
 
-    if ("2".equals(matchMode)) {
-      try {
-        Pattern pattern = Pattern.compile(keyword);
-        return source.stream()
-            .filter(table -> pattern.matcher(table.name()).matches())
-            .toList();
-      } catch (PatternSyntaxException exception) {
-        throw new DataSourceException(
-            DataSourceErrorCode.INVALID_CONNECTION_PARAMS,
-            "表名正则表达式不合法：" + exception.getDescription(),
-            exception);
-      }
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
-
-    if ("3".equals(matchMode)) {
-      Set<String> exactNames =
-          Arrays.stream(keyword.split(","))
-              .map(String::trim)
-              .filter(name -> !name.isEmpty())
-              .collect(Collectors.toSet());
-      return source.stream()
-          .filter(table -> exactNames.contains(table.name()))
-          .toList();
-    }
-
-    return source;
-  }
-
-  private boolean isBlank(String value) {
-    return value == null || value.trim().isEmpty();
-  }
 }

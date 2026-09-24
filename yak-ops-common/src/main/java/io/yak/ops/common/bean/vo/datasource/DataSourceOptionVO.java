@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataSourceOptionVO {
 
-  private String label;
-  private String value;
-  private String dbType;
+    private String label;
+    private String value;
+    private String dbType;
 }

@@ -10,63 +10,56 @@ import java.util.Locale;
 /** TiDB datasource plugin backed by the MySQL wire protocol and Connector/J. */
 public final class TiDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
-  @Override
-  public DataSourceDbType dbType() {
-    return DataSourceDbType.TIDB;
-  }
+    @Override
+    public DataSourceDbType dbType() {
+        return DataSourceDbType.TIDB;
+    }
 
-  @Override
-  protected String jdbcUrlTemplate() {
-    return "jdbc:mysql://{host}:{port}/{database}";
-  }
+    @Override
+    protected String jdbcUrlTemplate() {
+        return "jdbc:mysql://{host}:{port}/{database}";
+    }
 
-  @Override
-  protected int defaultPort() {
-    return 4000;
-  }
+    @Override
+    protected int defaultPort() {
+        return 4000;
+    }
 
-  @Override
-  protected String defaultDriverClassName() {
-    return "com.mysql.cj.jdbc.Driver";
-  }
+    @Override
+    protected String defaultDriverClassName() {
+        return "com.mysql.cj.jdbc.Driver";
+    }
 
-  @Override
-  protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
-    return "jdbc:mysql://" + host + ":" + port + "/" + database;
-  }
+    @Override
+    protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
+        return "jdbc:mysql://" + host + ":" + port + "/" + database;
+    }
 
-  @Override
-  public boolean acceptsUrl(String jdbcUrl) {
-    return jdbcUrl != null
-        && jdbcUrl.trim().toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:");
-  }
+    @Override
+    public boolean acceptsUrl(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.trim().toLowerCase(Locale.ROOT).startsWith("jdbc:mysql:");
+    }
 
-  /**
-   * TiDB exposes MySQL-compatible catalogs, schemas, identifier quoting and preview SQL. Keep the
-   * datasource identity as TIDB while reusing the mature MySQL metadata path internally.
-   */
-  @Override
-  protected DataSourceCatalog createJdbcCatalog(
-      JdbcConnectionProperties connection,
-      int connectionTimeoutSeconds,
-      int queryTimeoutSeconds) {
-    JdbcConnectionProperties mysqlCompatible =
-        new JdbcConnectionProperties(
-            DataSourceDbType.MYSQL,
-            connection.host(),
-            connection.port(),
-            connection.jdbcUrl(),
-            connection.driverClassName(),
-            connection.username(),
-            connection.password(),
-            connection.database(),
-            connection.schema(),
-            connection.properties(),
-            connection.sshTunnel(),
-            connection.normalizedJson());
-    return super.createJdbcCatalog(
-        mysqlCompatible,
-        connectionTimeoutSeconds,
-        queryTimeoutSeconds);
-  }
+    /**
+     * TiDB exposes MySQL-compatible catalogs, schemas, identifier quoting and preview SQL. Keep the
+     * datasource identity as TIDB while reusing the mature MySQL metadata path internally.
+     */
+    @Override
+    protected DataSourceCatalog createJdbcCatalog(
+            JdbcConnectionProperties connection, int connectionTimeoutSeconds, int queryTimeoutSeconds) {
+        JdbcConnectionProperties mysqlCompatible = new JdbcConnectionProperties(
+                DataSourceDbType.MYSQL,
+                connection.host(),
+                connection.port(),
+                connection.jdbcUrl(),
+                connection.driverClassName(),
+                connection.username(),
+                connection.password(),
+                connection.database(),
+                connection.schema(),
+                connection.properties(),
+                connection.sshTunnel(),
+                connection.normalizedJson());
+        return super.createJdbcCatalog(mysqlCompatible, connectionTimeoutSeconds, queryTimeoutSeconds);
+    }
 }

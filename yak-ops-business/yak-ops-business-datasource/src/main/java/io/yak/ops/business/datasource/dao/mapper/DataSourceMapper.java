@@ -8,5 +8,5 @@ import org.apache.ibatis.annotations.Mapper;
 /** 数据源 MyBatis 映射接口。 */
 @Mapper
 public interface DataSourceMapper extends BaseMapper<DataSourcePO> {
-  DataSourceSummaryRow selectSummary();
+    DataSourceSummaryRow selectSummary();
 }

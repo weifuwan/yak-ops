@@ -6,7 +6,6 @@ import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.exception.YakSecurityException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -26,46 +25,41 @@ import java.util.List;
  */
 public interface LoginExtend {
 
-  /**
-   * 校验登录信息并建立登录会话。
-   *
-   * @param loginDTO 登录参数
-   * @param request HTTP 请求
-   * @param response HTTP 响应
-   * @return 当前登录用户简要信息
-   * @throws YakSecurityException 登录校验失败时抛出
-   */
-  UserBriefVO verifyLogin(
-          AccountLoginDTO loginDTO,
-          HttpServletRequest request,
-          HttpServletResponse response)
-          throws YakSecurityException;
+    /**
+     * 校验登录信息并建立登录会话。
+     *
+     * @param loginDTO 登录参数
+     * @param request HTTP 请求
+     * @param response HTTP 响应
+     * @return 当前登录用户简要信息
+     * @throws YakSecurityException 登录校验失败时抛出
+     */
+    UserBriefVO verifyLogin(AccountLoginDTO loginDTO, HttpServletRequest request, HttpServletResponse response)
+            throws YakSecurityException;
 
-  /**
-   * 退出登录并清理登录上下文。
-   *
-   * @param request HTTP 请求
-   * @param response HTTP 响应
-   * @return 退出登录结果
-   */
-  Result<Boolean> logout(
-          HttpServletRequest request,
-          HttpServletResponse response);
+    /**
+     * 退出登录并清理登录上下文。
+     *
+     * @param request HTTP 请求
+     * @param response HTTP 响应
+     * @return 退出登录结果
+     */
+    Result<Boolean> logout(HttpServletRequest request, HttpServletResponse response);
 
-  /**
-   * 检查当前请求是否允许访问。
-   *
-   * @param request HTTP 请求
-   * @param response HTTP 响应
-   * @param requestPath 当前请求路径
-   * @param whiteListPatterns 白名单路径表达式
-   * @return 允许访问返回 {@code true}
-   * @throws IOException 响应写入异常
-   */
-  boolean interceptorCheck(
-          HttpServletRequest request,
-          HttpServletResponse response,
-          String requestPath,
-          List<String> whiteListPatterns)
-          throws IOException;
+    /**
+     * 检查当前请求是否允许访问。
+     *
+     * @param request HTTP 请求
+     * @param response HTTP 响应
+     * @param requestPath 当前请求路径
+     * @param whiteListPatterns 白名单路径表达式
+     * @return 允许访问返回 {@code true}
+     * @throws IOException 响应写入异常
+     */
+    boolean interceptorCheck(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            String requestPath,
+            List<String> whiteListPatterns)
+            throws IOException;
 }

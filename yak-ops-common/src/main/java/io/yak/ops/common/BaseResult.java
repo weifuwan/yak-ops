@@ -1,7 +1,5 @@
 package io.yak.ops.common;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**

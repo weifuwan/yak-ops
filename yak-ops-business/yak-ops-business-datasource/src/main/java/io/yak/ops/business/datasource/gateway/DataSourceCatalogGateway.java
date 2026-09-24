@@ -16,46 +16,22 @@ import java.util.List;
  */
 public interface DataSourceCatalogGateway {
 
-  List<String> listDatabases(DataSourceDefinition dataSource, int timeoutSeconds);
+    List<String> listDatabases(DataSourceDefinition dataSource, int timeoutSeconds);
 
-  List<String> listSchemas(
-      DataSourceDefinition dataSource,
-      String database,
-      int timeoutSeconds);
+    List<String> listSchemas(DataSourceDefinition dataSource, String database, int timeoutSeconds);
 
-  List<CatalogTable> listTables(
-      DataSourceDefinition dataSource,
-      CatalogTableQuery query,
-      int timeoutSeconds);
+    List<CatalogTable> listTables(DataSourceDefinition dataSource, CatalogTableQuery query, int timeoutSeconds);
 
-  List<CatalogColumn> listColumns(
-      DataSourceDefinition dataSource,
-      CatalogTablePath tablePath,
-      int timeoutSeconds);
+    List<CatalogColumn> listColumns(DataSourceDefinition dataSource, CatalogTablePath tablePath, int timeoutSeconds);
 
-  List<CatalogColumn> describe(
-      DataSourceDefinition dataSource,
-      CatalogReadRequest request,
-      int timeoutSeconds);
+    List<CatalogColumn> describe(DataSourceDefinition dataSource, CatalogReadRequest request, int timeoutSeconds);
 
-  CatalogQueryResult preview(
-      DataSourceDefinition dataSource,
-      CatalogReadRequest request,
-      int limit,
-      int timeoutSeconds);
+    CatalogQueryResult preview(
+            DataSourceDefinition dataSource, CatalogReadRequest request, int limit, int timeoutSeconds);
 
-  long count(
-      DataSourceDefinition dataSource,
-      CatalogReadRequest request,
-      int timeoutSeconds);
+    long count(DataSourceDefinition dataSource, CatalogReadRequest request, int timeoutSeconds);
 
-  String buildSqlTemplate(
-      DataSourceDefinition dataSource,
-      String tablePath,
-      int timeoutSeconds);
+    String buildSqlTemplate(DataSourceDefinition dataSource, String tablePath, int timeoutSeconds);
 
-  String resolveSql(
-      DataSourceDefinition dataSource,
-      CatalogReadRequest request,
-      int timeoutSeconds);
+    String resolveSql(DataSourceDefinition dataSource, CatalogReadRequest request, int timeoutSeconds);
 }

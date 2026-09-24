@@ -6,6 +6,6 @@ import lombok.Data;
 /** Statement semantic distribution aggregate. */
 @Data
 public class SqlStatementTypeCountRow {
-  private SqlStatementType statementType;
-  private long count;
+    private SqlStatementType statementType;
+    private long count;
 }

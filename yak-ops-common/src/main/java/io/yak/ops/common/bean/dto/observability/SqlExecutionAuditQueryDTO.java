@@ -9,26 +9,26 @@ import lombok.Data;
 @Data
 public class SqlExecutionAuditQueryDTO {
 
-  @Min(1)
-  private Integer pageNo = 1;
+    @Min(1)
+    private Integer pageNo = 1;
 
-  @Min(1)
-  @Max(200)
-  private Integer pageSize = 20;
+    @Min(1)
+    @Max(200)
+    private Integer pageSize = 20;
 
-  private String executionId;
-  private String dataSourceId;
-  private String caller;
-  private String callerReference;
-  private String operatorName;
-  private String status;
-  private String transactionMode;
-  private String statementType;
-  private String sqlFingerprint;
+    private String executionId;
+    private String dataSourceId;
+    private String caller;
+    private String callerReference;
+    private String operatorName;
+    private String status;
+    private String transactionMode;
+    private String statementType;
+    private String sqlFingerprint;
 
-  @Min(0)
-  private Long minDurationMs;
+    @Min(0)
+    private Long minDurationMs;
 
-  private LocalDateTime startedFrom;
-  private LocalDateTime startedTo;
+    private LocalDateTime startedFrom;
+    private LocalDateTime startedTo;
 }

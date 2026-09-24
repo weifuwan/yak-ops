@@ -17,81 +17,70 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SpiSqlExecutionGateway implements SqlExecutionGateway {
 
-  private final DataSourceExecutionProvider executionProvider;
-
-  @Override
-  public Session open(String dataSourceId) {
-    return new SessionAdapter(executionProvider.open(dataSourceId));
-  }
-
-  private static final class SessionAdapter implements Session {
-
-    private final DataSourceSqlExecutor delegate;
-
-    private SessionAdapter(DataSourceSqlExecutor delegate) {
-      if (delegate == null) throw new IllegalStateException("Datasource SQL executor must not be null");
-      this.delegate = delegate;
-    }
+    private final DataSourceExecutionProvider executionProvider;
 
     @Override
-    public Result execute(Command command) {
-      DataSourceSqlResult result =
-          delegate.execute(
-              new DataSourceSqlRequest(
-                  command.sql(),
-                  command.maxRows(),
-                  command.timeoutSeconds(),
-                  command.parameters()));
-      return new Result(
-          result.resultSet(),
-          mapColumns(result.columns()),
-          result.rows(),
-          result.affectedRows(),
-          result.truncated());
+    public Session open(String dataSourceId) {
+        return new SessionAdapter(executionProvider.open(dataSourceId));
     }
 
-    @Override
-    public boolean supportsTransactions() {
-      return delegate.supportsTransactions();
-    }
+    private static final class SessionAdapter implements Session {
 
-    @Override
-    public void beginTransaction() {
-      delegate.beginTransaction();
-    }
+        private final DataSourceSqlExecutor delegate;
 
-    @Override
-    public void commitTransaction() {
-      delegate.commitTransaction();
-    }
+        private SessionAdapter(DataSourceSqlExecutor delegate) {
+            if (delegate == null) throw new IllegalStateException("Datasource SQL executor must not be null");
+            this.delegate = delegate;
+        }
 
-    @Override
-    public void rollbackTransaction() {
-      delegate.rollbackTransaction();
-    }
+        @Override
+        public Result execute(Command command) {
+            DataSourceSqlResult result = delegate.execute(new DataSourceSqlRequest(
+                    command.sql(), command.maxRows(), command.timeoutSeconds(), command.parameters()));
+            return new Result(
+                    result.resultSet(),
+                    mapColumns(result.columns()),
+                    result.rows(),
+                    result.affectedRows(),
+                    result.truncated());
+        }
 
-    @Override
-    public void cancel() {
-      delegate.cancel();
-    }
+        @Override
+        public boolean supportsTransactions() {
+            return delegate.supportsTransactions();
+        }
 
-    @Override
-    public void close() {
-      delegate.close();
-    }
+        @Override
+        public void beginTransaction() {
+            delegate.beginTransaction();
+        }
 
-    private static List<Column> mapColumns(List<DataSourceSqlColumn> columns) {
-      if (columns == null || columns.isEmpty()) return List.of();
-      return columns.stream()
-          .map(
-              column ->
-                  new Column(
-                      column.name(),
-                      column.label(),
-                      column.typeName(),
-                      column.jdbcType(),
-                      column.nullable()))
-          .toList();
+        @Override
+        public void commitTransaction() {
+            delegate.commitTransaction();
+        }
+
+        @Override
+        public void rollbackTransaction() {
+            delegate.rollbackTransaction();
+        }
+
+        @Override
+        public void cancel() {
+            delegate.cancel();
+        }
+
+        @Override
+        public void close() {
+            delegate.close();
+        }
+
+        private static List<Column> mapColumns(List<DataSourceSqlColumn> columns) {
+            if (columns == null || columns.isEmpty()) return List.of();
+            return columns.stream()
+                    .map(column -> new Column(
+                            column.name(), column.label(), column.typeName(), column.jdbcType(), column.nullable()))
+                    .toList();
+        }
     }
-  }
 }

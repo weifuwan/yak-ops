@@ -5,8 +5,8 @@ import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 
 /** Typed command for creating or updating datasource configuration. */
 public record DataSourceConfigurationCommand(
-    String name,
-    DataSourceDbType dbType,
-    DataSourceEnvironment environment,
-    String remark,
-    String connectionJson) {}
+        String name,
+        DataSourceDbType dbType,
+        DataSourceEnvironment environment,
+        String remark,
+        String connectionJson) {}

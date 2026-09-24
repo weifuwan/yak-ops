@@ -8,5 +8,5 @@ package io.yak.ops.spi.datasource.execution;
  */
 public interface DataSourceExecutionProvider {
 
-  DataSourceSqlExecutor open(String dataSourceReference);
+    DataSourceSqlExecutor open(String dataSourceReference);
 }

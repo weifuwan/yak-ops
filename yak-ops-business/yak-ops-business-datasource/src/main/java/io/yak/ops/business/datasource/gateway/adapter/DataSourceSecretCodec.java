@@ -23,167 +23,160 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DataSourceSecretCodec {
 
-  public static final String MASKED_VALUE = SensitiveTextMasker.MASKED_VALUE;
+    public static final String MASKED_VALUE = SensitiveTextMasker.MASKED_VALUE;
 
-  private static final Set<String> COMMON_SECRET_KEYS =
-      Set.of(
-          "password",
-          "pwd",
-          "secret",
-          "secretkey",
-          "accesstoken",
-          "token",
-          "privatekey",
-          "privatekeycontent",
-          "passphrase",
-          "privatekeypassphrase");
+    private static final Set<String> COMMON_SECRET_KEYS = Set.of(
+            "password",
+            "pwd",
+            "secret",
+            "secretkey",
+            "accesstoken",
+            "token",
+            "privatekey",
+            "privatekeycontent",
+            "passphrase",
+            "privatekeypassphrase");
 
-  private final ObjectMapper objectMapper;
-  private final SensitiveTextMasker textMasker;
+    private final ObjectMapper objectMapper;
+    private final SensitiveTextMasker textMasker;
 
-  public String maskConnectionJson(DataSourcePluginDescriptor descriptor, String connectionJson) {
-    if (connectionJson == null || connectionJson.trim().isEmpty()) return null;
-    ObjectNode root = readObject(connectionJson);
-    maskObject(root, secretKeys(descriptor));
-    return write(root);
-  }
-
-  public String mergeStoredSecrets(
-      DataSourcePluginDescriptor descriptor, String submittedJson, String storedJson) {
-    ObjectNode submitted = readObject(submittedJson);
-    ObjectNode stored = readObject(storedJson);
-    mergeObject(submitted, stored, secretKeys(descriptor));
-    return write(submitted);
-  }
-
-  public String maskSensitiveText(String value) {
-    return textMasker.mask(value);
-  }
-
-  private void maskObject(ObjectNode object, Set<String> configuredKeys) {
-    Iterator<Map.Entry<String, JsonNode>> fields = object.fields();
-    while (fields.hasNext()) {
-      Map.Entry<String, JsonNode> field = fields.next();
-      JsonNode value = field.getValue();
-      if (isSecretKey(field.getKey(), configuredKeys)) {
-        object.put(field.getKey(), MASKED_VALUE);
-      } else if (value != null && value.isObject()) {
-        maskObject((ObjectNode) value, configuredKeys);
-      } else if (value != null && value.isArray()) {
-        maskArray((ArrayNode) value, configuredKeys);
-      }
+    public String maskConnectionJson(DataSourcePluginDescriptor descriptor, String connectionJson) {
+        if (connectionJson == null || connectionJson.trim().isEmpty()) return null;
+        ObjectNode root = readObject(connectionJson);
+        maskObject(root, secretKeys(descriptor));
+        return write(root);
     }
-  }
 
-  private void maskArray(ArrayNode array, Set<String> configuredKeys) {
-    for (JsonNode value : array) {
-      if (value != null && value.isObject()) {
-        maskObject((ObjectNode) value, configuredKeys);
-      } else if (value != null && value.isArray()) {
-        maskArray((ArrayNode) value, configuredKeys);
-      }
+    public String mergeStoredSecrets(DataSourcePluginDescriptor descriptor, String submittedJson, String storedJson) {
+        ObjectNode submitted = readObject(submittedJson);
+        ObjectNode stored = readObject(storedJson);
+        mergeObject(submitted, stored, secretKeys(descriptor));
+        return write(submitted);
     }
-  }
 
-  private void mergeObject(ObjectNode submitted, ObjectNode stored, Set<String> configuredKeys) {
-    Iterator<Map.Entry<String, JsonNode>> storedFields = stored.fields();
-    while (storedFields.hasNext()) {
-      Map.Entry<String, JsonNode> field = storedFields.next();
-      String key = field.getKey();
-      JsonNode storedValue = field.getValue();
-      JsonNode submittedValue = submitted.get(key);
-
-      if (isSecretKey(key, configuredKeys) && shouldPreserve(submittedValue)) {
-        submitted.set(key, storedValue.deepCopy());
-      } else if (storedValue != null
-          && storedValue.isObject()
-          && submittedValue != null
-          && submittedValue.isObject()) {
-        mergeObject((ObjectNode) submittedValue, (ObjectNode) storedValue, configuredKeys);
-      } else if (storedValue != null
-          && storedValue.isArray()
-          && submittedValue != null
-          && submittedValue.isArray()) {
-        mergeArray((ArrayNode) submittedValue, (ArrayNode) storedValue, configuredKeys);
-      }
+    public String maskSensitiveText(String value) {
+        return textMasker.mask(value);
     }
-  }
 
-  private void mergeArray(ArrayNode submitted, ArrayNode stored, Set<String> configuredKeys) {
-    int length = Math.min(submitted.size(), stored.size());
-    for (int index = 0; index < length; index++) {
-      JsonNode submittedValue = submitted.get(index);
-      JsonNode storedValue = stored.get(index);
-      if (submittedValue != null
-          && submittedValue.isObject()
-          && storedValue != null
-          && storedValue.isObject()) {
-        mergeObject((ObjectNode) submittedValue, (ObjectNode) storedValue, configuredKeys);
-      } else if (submittedValue != null
-          && submittedValue.isArray()
-          && storedValue != null
-          && storedValue.isArray()) {
-        mergeArray((ArrayNode) submittedValue, (ArrayNode) storedValue, configuredKeys);
-      }
+    private void maskObject(ObjectNode object, Set<String> configuredKeys) {
+        Iterator<Map.Entry<String, JsonNode>> fields = object.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            JsonNode value = field.getValue();
+            if (isSecretKey(field.getKey(), configuredKeys)) {
+                object.put(field.getKey(), MASKED_VALUE);
+            } else if (value != null && value.isObject()) {
+                maskObject((ObjectNode) value, configuredKeys);
+            } else if (value != null && value.isArray()) {
+                maskArray((ArrayNode) value, configuredKeys);
+            }
+        }
     }
-  }
 
-  private Set<String> secretKeys(DataSourcePluginDescriptor descriptor) {
-    Set<String> keys = new LinkedHashSet<>();
-    if (descriptor == null) return keys;
-    for (String key : descriptor.secretFieldKeys()) {
-      keys.add(normalizeKey(key));
+    private void maskArray(ArrayNode array, Set<String> configuredKeys) {
+        for (JsonNode value : array) {
+            if (value != null && value.isObject()) {
+                maskObject((ObjectNode) value, configuredKeys);
+            } else if (value != null && value.isArray()) {
+                maskArray((ArrayNode) value, configuredKeys);
+            }
+        }
     }
-    return keys;
-  }
 
-  private boolean isSecretKey(String key, Set<String> configuredKeys) {
-    String normalized = normalizeKey(key);
-    return COMMON_SECRET_KEYS.contains(normalized)
-        || configuredKeys.contains(normalized)
-        || normalized.endsWith("password")
-        || normalized.endsWith("secret")
-        || normalized.endsWith("token")
-        || normalized.endsWith("privatekey")
-        || normalized.endsWith("passphrase");
-  }
+    private void mergeObject(ObjectNode submitted, ObjectNode stored, Set<String> configuredKeys) {
+        Iterator<Map.Entry<String, JsonNode>> storedFields = stored.fields();
+        while (storedFields.hasNext()) {
+            Map.Entry<String, JsonNode> field = storedFields.next();
+            String key = field.getKey();
+            JsonNode storedValue = field.getValue();
+            JsonNode submittedValue = submitted.get(key);
 
-  private String normalizeKey(String key) {
-    return key == null
-        ? ""
-        : key.replace("_", "").replace("-", "").trim().toLowerCase(Locale.ROOT);
-  }
-
-  private boolean shouldPreserve(JsonNode value) {
-    if (value == null || value.isNull()) return true;
-    if (!value.isTextual()) return false;
-    String text = value.asText();
-    return text == null || text.trim().isEmpty() || MASKED_VALUE.equals(text.trim());
-  }
-
-  private ObjectNode readObject(String value) {
-    try {
-      JsonNode root = objectMapper.readTree(value);
-      if (root == null || !root.isObject()) {
-        throw invalidJson("连接参数必须是 JSON 对象", null);
-      }
-      return (ObjectNode) root;
-    } catch (DataSourceException exception) {
-      throw exception;
-    } catch (Exception exception) {
-      throw invalidJson("连接参数不是合法 JSON", exception);
+            if (isSecretKey(key, configuredKeys) && shouldPreserve(submittedValue)) {
+                submitted.set(key, storedValue.deepCopy());
+            } else if (storedValue != null
+                    && storedValue.isObject()
+                    && submittedValue != null
+                    && submittedValue.isObject()) {
+                mergeObject((ObjectNode) submittedValue, (ObjectNode) storedValue, configuredKeys);
+            } else if (storedValue != null
+                    && storedValue.isArray()
+                    && submittedValue != null
+                    && submittedValue.isArray()) {
+                mergeArray((ArrayNode) submittedValue, (ArrayNode) storedValue, configuredKeys);
+            }
+        }
     }
-  }
 
-  private String write(ObjectNode value) {
-    try {
-      return objectMapper.writeValueAsString(value);
-    } catch (Exception exception) {
-      throw invalidJson("连接参数序列化失败", exception);
+    private void mergeArray(ArrayNode submitted, ArrayNode stored, Set<String> configuredKeys) {
+        int length = Math.min(submitted.size(), stored.size());
+        for (int index = 0; index < length; index++) {
+            JsonNode submittedValue = submitted.get(index);
+            JsonNode storedValue = stored.get(index);
+            if (submittedValue != null && submittedValue.isObject() && storedValue != null && storedValue.isObject()) {
+                mergeObject((ObjectNode) submittedValue, (ObjectNode) storedValue, configuredKeys);
+            } else if (submittedValue != null
+                    && submittedValue.isArray()
+                    && storedValue != null
+                    && storedValue.isArray()) {
+                mergeArray((ArrayNode) submittedValue, (ArrayNode) storedValue, configuredKeys);
+            }
+        }
     }
-  }
 
-  private DataSourceException invalidJson(String message, Throwable cause) {
-    return new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, message, cause);
-  }
+    private Set<String> secretKeys(DataSourcePluginDescriptor descriptor) {
+        Set<String> keys = new LinkedHashSet<>();
+        if (descriptor == null) return keys;
+        for (String key : descriptor.secretFieldKeys()) {
+            keys.add(normalizeKey(key));
+        }
+        return keys;
+    }
+
+    private boolean isSecretKey(String key, Set<String> configuredKeys) {
+        String normalized = normalizeKey(key);
+        return COMMON_SECRET_KEYS.contains(normalized)
+                || configuredKeys.contains(normalized)
+                || normalized.endsWith("password")
+                || normalized.endsWith("secret")
+                || normalized.endsWith("token")
+                || normalized.endsWith("privatekey")
+                || normalized.endsWith("passphrase");
+    }
+
+    private String normalizeKey(String key) {
+        return key == null ? "" : key.replace("_", "").replace("-", "").trim().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean shouldPreserve(JsonNode value) {
+        if (value == null || value.isNull()) return true;
+        if (!value.isTextual()) return false;
+        String text = value.asText();
+        return text == null || text.trim().isEmpty() || MASKED_VALUE.equals(text.trim());
+    }
+
+    private ObjectNode readObject(String value) {
+        try {
+            JsonNode root = objectMapper.readTree(value);
+            if (root == null || !root.isObject()) {
+                throw invalidJson("连接参数必须是 JSON 对象", null);
+            }
+            return (ObjectNode) root;
+        } catch (DataSourceException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw invalidJson("连接参数不是合法 JSON", exception);
+        }
+    }
+
+    private String write(ObjectNode value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception exception) {
+            throw invalidJson("连接参数序列化失败", exception);
+        }
+    }
+
+    private DataSourceException invalidJson(String message, Throwable cause) {
+        return new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, message, cause);
+    }
 }

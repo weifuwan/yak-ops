@@ -1,10 +1,8 @@
 package io.yak.ops.security.util;
 
 import jakarta.servlet.http.HttpServletRequest;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -50,18 +48,15 @@ public final class NetworkUtil {
      * @throws IllegalStateException 当前线程不存在 HTTP 请求上下文时抛出
      */
     public static String getRealIpAddress() {
-        RequestAttributes requestAttributes =
-                RequestContextHolder.getRequestAttributes();
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 
         if (!(requestAttributes instanceof ServletRequestAttributes)) {
             throw new IllegalStateException("当前线程不存在 HTTP 请求上下文");
         }
 
-        ServletRequestAttributes servletRequestAttributes =
-                (ServletRequestAttributes) requestAttributes;
+        ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes) requestAttributes;
 
-        return NetworkUtil.getRealIpAddress(
-                servletRequestAttributes.getRequest());
+        return NetworkUtil.getRealIpAddress(servletRequestAttributes.getRequest());
     }
 
     /**
@@ -71,9 +66,7 @@ public final class NetworkUtil {
      * @return IP 地址为空或为 unknown 时返回 true
      */
     private static boolean isNotOk(String ipAddress) {
-        return ipAddress == null
-                || ipAddress.trim().isEmpty()
-                || UNKNOWN.equalsIgnoreCase(ipAddress.trim());
+        return ipAddress == null || ipAddress.trim().isEmpty() || UNKNOWN.equalsIgnoreCase(ipAddress.trim());
     }
 
     /**
@@ -121,23 +114,17 @@ public final class NetworkUtil {
      * @param defaultIpAddress 不存在 HTTP 请求时使用的默认 IP
      * @return 客户端 IP 或默认 IP
      */
-    public static String getRealIpAddressOrDefault(
-            String defaultIpAddress) {
+    public static String getRealIpAddressOrDefault(String defaultIpAddress) {
 
-        RequestAttributes requestAttributes =
-                RequestContextHolder.getRequestAttributes();
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
 
         if (requestAttributes instanceof ServletRequestAttributes) {
-            ServletRequestAttributes servletRequestAttributes =
-                    (ServletRequestAttributes) requestAttributes;
+            ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes) requestAttributes;
 
-            return getRealIpAddress(
-                    servletRequestAttributes.getRequest());
+            return getRealIpAddress(servletRequestAttributes.getRequest());
         }
 
-        return isNotOk(defaultIpAddress)
-                ? LOCAL_IPV4
-                : defaultIpAddress.trim();
+        return isNotOk(defaultIpAddress) ? LOCAL_IPV4 : defaultIpAddress.trim();
     }
 
     /**
@@ -172,9 +159,7 @@ public final class NetworkUtil {
      * @return 是本机回环地址时返回 true
      */
     private static boolean isLocalIpAddress(String ipAddress) {
-        return LOCAL_IPV4.equals(ipAddress)
-                || LOCAL_IPV6.equals(ipAddress)
-                || LOCAL_IPV6_SHORT.equals(ipAddress);
+        return LOCAL_IPV4.equals(ipAddress) || LOCAL_IPV6.equals(ipAddress) || LOCAL_IPV6_SHORT.equals(ipAddress);
     }
 
     /**

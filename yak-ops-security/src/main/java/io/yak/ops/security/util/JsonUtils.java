@@ -3,7 +3,6 @@ package io.yak.ops.security.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.List;
 
 /**
@@ -24,8 +23,7 @@ public final class JsonUtils {
     /**
      * 禁止实例化工具类。
      */
-    private JsonUtils() {
-    }
+    private JsonUtils() {}
 
     /**
      * 将对象序列化为 JSON 字符串。
@@ -68,21 +66,14 @@ public final class JsonUtils {
      * @return 反序列化后的集合
      * @throws IllegalArgumentException 当 JSON 数组反序列化失败时抛出
      */
-    public static <T> List<T> toList(
-            String value,
-            Class<T> elementType) {
+    public static <T> List<T> toList(String value, Class<T> elementType) {
 
-        JavaType type =
-                OBJECT_MAPPER
-                        .getTypeFactory()
-                        .constructCollectionType(List.class, elementType);
+        JavaType type = OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, elementType);
 
         try {
             return OBJECT_MAPPER.readValue(value, type);
         } catch (JsonProcessingException exception) {
-            throw new IllegalArgumentException(
-                    "JSON 数组反序列化失败",
-                    exception);
+            throw new IllegalArgumentException("JSON 数组反序列化失败", exception);
         }
     }
 }

@@ -15,15 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SqlExecutionAuditStore {
 
-  private final SqlExecutionAuditDao auditDao;
+    private final SqlExecutionAuditDao auditDao;
 
-  @Transactional(
-      transactionManager = "opsDataSourceTransactionManager",
-      rollbackFor = Exception.class)
-  public void save(
-      SqlExecutionAuditPO execution,
-      List<SqlStatementExecutionAuditPO> statements) {
-    auditDao.insertExecution(execution);
-    auditDao.insertStatements(statements);
-  }
+    @Transactional(transactionManager = "opsDataSourceTransactionManager", rollbackFor = Exception.class)
+    public void save(SqlExecutionAuditPO execution, List<SqlStatementExecutionAuditPO> statements) {
+        auditDao.insertExecution(execution);
+        auditDao.insertStatements(statements);
+    }
 }

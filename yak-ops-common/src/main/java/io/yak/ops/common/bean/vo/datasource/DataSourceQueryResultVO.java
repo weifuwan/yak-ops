@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataSourceQueryResultVO {
 
-  private List<DataSourcePreviewColumnVO> columns = new ArrayList<>();
-  private List<Map<String, Object>> data = new ArrayList<>();
-  private Long total;
+    private List<DataSourcePreviewColumnVO> columns = new ArrayList<>();
+    private List<Map<String, Object>> data = new ArrayList<>();
+    private Long total;
 }

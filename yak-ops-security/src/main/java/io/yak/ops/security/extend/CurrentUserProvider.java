@@ -13,11 +13,11 @@ import jakarta.servlet.http.HttpServletRequest;
 @FunctionalInterface
 public interface CurrentUserProvider {
 
-  /**
-   * 获取当前登录用户名。
-   *
-   * @param request HTTP 请求
-   * @return 当前登录用户名；未登录时返回 {@code null}
-   */
-  String getCurrentUser(HttpServletRequest request);
+    /**
+     * 获取当前登录用户名。
+     *
+     * @param request HTTP 请求
+     * @return 当前登录用户名；未登录时返回 {@code null}
+     */
+    String getCurrentUser(HttpServletRequest request);
 }
