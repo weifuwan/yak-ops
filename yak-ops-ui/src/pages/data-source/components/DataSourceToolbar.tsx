@@ -1,5 +1,5 @@
-import { YakButton, YakTab } from '@/components/ui';
-import { useIntl } from '@/shared/i18n';
+import { YakButton, YakTab } from '@/pages/data-source/components/ui';
+import { useIntl } from '@/pages/data-source/i18n';
 import { Input, Select } from 'antd';
 import { motion } from 'framer-motion';
 import { Grid2X2, LayoutList, Search } from 'lucide-react';

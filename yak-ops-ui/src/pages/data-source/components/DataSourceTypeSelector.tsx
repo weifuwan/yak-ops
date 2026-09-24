@@ -1,6 +1,6 @@
-import { YakButton } from '@/components/ui';
+import { YakButton } from '@/pages/data-source/components/ui';
 import { SearchOutlined } from '@ant-design/icons';
-import { useIntl } from '@/shared/i18n';
+import { useIntl } from '@/pages/data-source/i18n';
 import { Empty, Input, Select } from 'antd';
 import { useMemo, useState } from 'react';
 

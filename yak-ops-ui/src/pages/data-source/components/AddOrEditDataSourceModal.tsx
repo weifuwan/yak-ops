@@ -1,10 +1,10 @@
-import { YakButton } from '@/components/ui';
+import { YakButton } from '@/pages/data-source/components/ui';
 import {
   createDataSource,
   testDataSourceConnectionWithParams,
   updateDataSource,
 } from '@/service/datasource';
-import { useIntl } from '@/shared/i18n';
+import { useIntl } from '@/pages/data-source/i18n';
 import { Drawer, Form, message } from 'antd';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
