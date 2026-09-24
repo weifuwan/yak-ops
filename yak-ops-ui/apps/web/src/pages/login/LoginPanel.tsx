@@ -1,77 +1,89 @@
-import { ExclamationCircleOutlined } from "@ant-design/icons";
 import {
-  Form,
+  Button,
   Input,
+  PasswordInput,
   Popover,
-  type InputProps,
-} from "antd";
-import { useForm } from "antd/es/form/Form";
-import { useState } from "react";
+  PopoverContent,
+  PopoverTrigger,
+} from "@yak-ops/yak-ui";
+import { AlertCircle } from "lucide-react";
+import {
+  useRef,
+  useState,
+  type FormEvent,
+  type InputHTMLAttributes,
+} from "react";
 
-import { login } from "../../service/auth";
 import { notifyOnce } from "@/shared/lib/notification";
-import { Button } from "@yak-ops/yak-ui";
+import { login } from "../../service/auth";
 
 const WECHAT_QR_CODE_SRC = "/wechat_qr.png";
-const FORM_ITEM_CLASS_NAME =
-  "!mb-5 [&_.ant-form-item-explain]:!pt-1.5 [&_.ant-form-item-explain-error]:!text-[12px] [&_.ant-form-item-explain-error]:!leading-[18px] [&_.ant-form-item-explain-error]:!text-[#b42318]";
 
 interface LoginPanelProps {
   onAuthenticated: () => Promise<void>;
 }
 
-type FloatingInputProps = InputProps & {
+interface LoginValues {
+  userName: string;
+  userPassword: string;
+}
+
+type FloatingInputProps = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "className" | "type" | "value" | "onChange"
+> & {
   label: string;
   password?: boolean;
+  value: string;
+  invalid?: boolean;
+  onValueChange: (value: string) => void;
 };
 
 function FloatingInput({
   label,
   password = false,
+  value,
+  invalid = false,
+  onValueChange,
   onBlur,
   onFocus,
-  value,
   ...inputProps
 }: FloatingInputProps) {
   const [focused, setFocused] = useState(false);
-  const { status } = Form.Item.useStatus();
-  const floating = focused || String(value ?? "").length > 0;
-  const hasError = status === "error";
+  const floating = focused || value.length > 0;
 
-  const handleFocus: InputProps["onFocus"] = (event) => {
-    setFocused(true);
-    onFocus?.(event);
-  };
+  const className = [
+    "h-11 rounded-full border bg-white px-4 text-[15px] shadow-none",
+    invalid
+      ? "border-[#d92d20] hover:border-[#d92d20] focus:border-[#d92d20]"
+      : "border-[#dededb] hover:border-[#bdbdb8] focus:border-[#171717]",
+  ].join(" ");
 
-  const handleBlur: InputProps["onBlur"] = (event) => {
-    setFocused(false);
-    onBlur?.(event);
-  };
-
-  const className = password
-    ? `!h-11 !rounded-full !bg-white !px-4 !shadow-none [&>input.ant-input]:!bg-white [&>input.ant-input]:!text-[15px] ${
-        hasError
-          ? "!border-[#d92d20] hover:!border-[#d92d20] focus-within:!border-[#d92d20]"
-          : "!border-[#dededb] hover:!border-[#bdbdb8] focus-within:!border-[#171717]"
-      }`
-    : `!h-11 !rounded-full !bg-white !px-4 !text-[15px] !shadow-none ${
-        hasError
-          ? "!border-[#d92d20] hover:!border-[#d92d20] focus:!border-[#d92d20]"
-          : "!border-[#dededb] hover:!border-[#bdbdb8] focus:!border-[#171717]"
-      }`;
-
-  const controlProps: InputProps = {
+  const sharedProps = {
     ...inputProps,
     value,
     className,
     placeholder: "",
-    onFocus: handleFocus,
-    onBlur: handleBlur,
+    "aria-invalid": invalid || undefined,
+    onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
+      setFocused(true);
+      onFocus?.(event);
+    },
+    onBlur: (event: React.FocusEvent<HTMLInputElement>) => {
+      setFocused(false);
+      onBlur?.(event);
+    },
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+      onValueChange(event.target.value),
   };
 
   return (
     <div className="relative">
-      {password ? <Input.Password {...controlProps} /> : <Input {...controlProps} />}
+      {password ? (
+        <PasswordInput {...sharedProps} />
+      ) : (
+        <Input {...sharedProps} />
+      )}
       <label
         htmlFor={inputProps.id}
         className={`pointer-events-none absolute left-4 z-10 bg-white px-1 transition-all duration-200 ease-out ${
@@ -88,62 +100,93 @@ function FloatingInput({
 
 function ValidationMessage({ children }: { children: string }) {
   return (
-    <span className="mb-2 inline-flex h-[18px] items-center gap-1.5 align-middle leading-[18px]">
-      <ExclamationCircleOutlined className="flex shrink-0 items-center text-[12px] leading-none [&_svg]:block" />
-      <span className="leading-[18px]">{children}</span>
+    <span className="mt-1.5 inline-flex min-h-[18px] items-center gap-1.5 text-[12px] leading-[18px] text-[#b42318]">
+      <AlertCircle size={12} className="shrink-0" />
+      <span>{children}</span>
     </span>
   );
 }
 
 function WeChatQrHelp() {
   const [qrCodeAvailable, setQrCodeAvailable] = useState(true);
+  const [open, setOpen] = useState(false);
+  const closeTimerRef = useRef<number>();
 
-  const qrCodeContent = (
-    <div className="flex w-[176px] flex-col items-center gap-2 p-1">
-      {qrCodeAvailable ? (
-        <img
-          src={WECHAT_QR_CODE_SRC}
-          alt="微信公众号二维码"
-          className="h-40 w-40 rounded-xl object-cover"
-          onError={() => setQrCodeAvailable(false)}
-        />
-      ) : (
-        <div className="flex h-40 w-40 items-center justify-center rounded-xl border border-dashed border-[#dededb] bg-[#fafafa] px-5 text-center text-[12px] leading-5 text-[#999]">
-          微信公众号二维码待上传
-        </div>
-      )}
-      <span className="text-center text-[11px] leading-5 text-[#888]">
-        输入{" "}
-        <span className="rounded bg-black/[0.03] px-1">9527</span>
-        {" "}获取账号 / 密码
-      </span>
-    </div>
-  );
+  const openPopover = () => {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    setOpen(true);
+  };
+
+  const scheduleClose = () => {
+    closeTimerRef.current = window.setTimeout(() => setOpen(false), 120);
+  };
 
   return (
     <div className="mt-3 text-center text-[11px] leading-5 text-[#8c8c88]">
       获取账号 / 密码，请扫描{" "}
-      <Popover placement="right" trigger="hover" content={qrCodeContent}>
-        <span className="cursor-help font-medium text-[#555] underline decoration-[#d6d6d1] underline-offset-2 transition-colors hover:text-[#171717]">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          type="button"
+          className="cursor-help border-0 bg-transparent p-0 font-medium text-[#555] underline decoration-[#d6d6d1] underline-offset-2 transition-colors hover:text-[#171717]"
+          onMouseEnter={openPopover}
+          onMouseLeave={scheduleClose}
+        >
           微信公众号二维码
-        </span>
+        </PopoverTrigger>
+        <PopoverContent
+          side="right"
+          className="w-[188px] p-2"
+          onMouseEnter={openPopover}
+          onMouseLeave={scheduleClose}
+        >
+          <div className="flex flex-col items-center gap-2">
+            {qrCodeAvailable ? (
+              <img
+                src={WECHAT_QR_CODE_SRC}
+                alt="微信公众号二维码"
+                className="h-40 w-40 rounded-xl object-cover"
+                onError={() => setQrCodeAvailable(false)}
+              />
+            ) : (
+              <div className="flex h-40 w-40 items-center justify-center rounded-xl border border-dashed border-[#dededb] bg-[#fafafa] px-5 text-center text-[12px] leading-5 text-[#999]">
+                微信公众号二维码待上传
+              </div>
+            )}
+            <span className="text-center text-[11px] leading-5 text-[#888]">
+              输入{" "}
+              <span className="rounded bg-black/[0.03] px-1">9527</span>{" "}
+              获取账号 / 密码
+            </span>
+          </div>
+        </PopoverContent>
       </Popover>
     </div>
   );
 }
 
 export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
+  const [values, setValues] = useState<LoginValues>({
+    userName: "",
+    userPassword: "",
+  });
+  const [errors, setErrors] = useState<Partial<Record<keyof LoginValues, string>>>(
+    {},
+  );
   const [loading, setLoading] = useState(false);
-  const [form] = useForm();
 
-  const handleAccountLogin = async (values: {
-    userName: string;
-    userPassword: string;
-  }) => {
+  const handleAccountLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const nextErrors: Partial<Record<keyof LoginValues, string>> = {};
+    if (!values.userName.trim()) nextErrors.userName = "请输入用户名";
+    if (!values.userPassword) nextErrors.userPassword = "请输入密码";
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     try {
       setLoading(true);
       await login({
-        userName: values.userName,
+        userName: values.userName.trim(),
         pw: values.userPassword,
       });
       await onAuthenticated();
@@ -164,54 +207,61 @@ export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
 
   return (
     <div className="w-full rounded-[26px] border border-[#e4e4e1] bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.04)] sm:p-7">
-      <Form
-        layout="vertical"
-        form={form}
-        requiredMark={false}
-        onFinish={handleAccountLogin}
-      >
-        <Form.Item
-          className={FORM_ITEM_CLASS_NAME}
-          name="userName"
-          rules={[
-            {
-              required: true,
-              message: <ValidationMessage>请输入用户名</ValidationMessage>,
-            },
-          ]}
-        >
-          <FloatingInput label="Username" autoComplete="username" />
-        </Form.Item>
-
-        <Form.Item
-          className={FORM_ITEM_CLASS_NAME}
-          name="userPassword"
-          rules={[
-            {
-              required: true,
-              message: <ValidationMessage>请输入密码</ValidationMessage>,
-            },
-          ]}
-        >
+      <form noValidate onSubmit={(event) => void handleAccountLogin(event)}>
+        <div className="mb-5">
           <FloatingInput
+            id="login-username"
+            label="Username"
+            autoComplete="username"
+            value={values.userName}
+            invalid={Boolean(errors.userName)}
+            onValueChange={(userName) => {
+              setValues((current) => ({ ...current, userName }));
+              if (errors.userName) {
+                setErrors((current) => ({ ...current, userName: undefined }));
+              }
+            }}
+          />
+          {errors.userName ? (
+            <ValidationMessage>{errors.userName}</ValidationMessage>
+          ) : null}
+        </div>
+
+        <div className="mb-5">
+          <FloatingInput
+            id="login-password"
             label="Password"
             password
             autoComplete="current-password"
+            value={values.userPassword}
+            invalid={Boolean(errors.userPassword)}
+            onValueChange={(userPassword) => {
+              setValues((current) => ({ ...current, userPassword }));
+              if (errors.userPassword) {
+                setErrors((current) => ({
+                  ...current,
+                  userPassword: undefined,
+                }));
+              }
+            }}
           />
-        </Form.Item>
+          {errors.userPassword ? (
+            <ValidationMessage>{errors.userPassword}</ValidationMessage>
+          ) : null}
+        </div>
 
         <Button
           variant="primary"
           size="large"
           type="submit"
           loading={loading}
-          className="w-full rounded-full"
+          className="h-11 w-full rounded-full"
         >
           Log in
         </Button>
 
         <WeChatQrHelp />
-      </Form>
+      </form>
     </div>
   );
 }
