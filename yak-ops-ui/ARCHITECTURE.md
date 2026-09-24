@@ -27,7 +27,7 @@ Datasource 当前结构：
 ```text
 app/datasource/
 ├── index.tsx
-├── card.tsx
+├── table.tsx
 ├── toolbar.tsx
 ├── summary.tsx
 ├── empty-state.tsx
@@ -54,7 +54,7 @@ app/datasource/
 
 `management / model / plugin / connection` 已删除。
 
-Datasource Editor 允许一层独立目录，因为它本身足够复杂；Editor 内部继续保持扁平。
+Datasource 列表使用原生业务 Table，避免 Card/Grid/List 多套展示模式。Datasource Editor 允许一层独立目录，因为它本身足够复杂；Editor 内部继续保持扁平。
 
 ## Dependency Direction
 

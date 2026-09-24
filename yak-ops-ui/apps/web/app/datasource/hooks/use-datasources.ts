@@ -16,7 +16,7 @@ import {
   EMPTY_DATA_SOURCE_SUMMARY,
   PAGE_DEFAULT_PAGINATION,
 } from '../constants';
-import type { DataSourcePermissions, DataSourceViewMode } from '../types';
+import type { DataSourcePermissions } from '../types';
 import { dataSourceRecordKey } from '../utils';
 
 const DATA_SOURCE_PERMISSIONS: DataSourcePermissions = {
@@ -41,7 +41,6 @@ export const useDatasources = () => {
   const [keyword, setKeywordState] = useState('');
   const [dbType, setDbTypeState] = useState<string>();
   const [environment, setEnvironmentState] = useState<string>();
-  const [viewMode, setViewMode] = useState<DataSourceViewMode>('grid');
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [testingId, setTestingId] = useState('');
   const [editingId, setEditingId] = useState('');
@@ -223,7 +222,6 @@ export const useDatasources = () => {
     keyword,
     dbType,
     environment,
-    viewMode,
     hasActiveFilters,
     permissions,
     testingId,
@@ -231,7 +229,6 @@ export const useDatasources = () => {
     setKeyword,
     setDbType,
     setEnvironment,
-    setViewMode,
     resetFilters,
     changePage,
     refresh,

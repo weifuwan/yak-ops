@@ -24,7 +24,6 @@ export interface DataSourceGroup {
   datasourceList: DataSourceCatalogItem[];
 }
 
-export type DataSourceViewMode = "grid" | "list";
 
 export interface DataSourcePermissions {
   canCreate: boolean;
