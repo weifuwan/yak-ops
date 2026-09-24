@@ -16,7 +16,7 @@ import { Code2, FlaskConical, ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 
-import DatabaseIcons from '@/components/data-source/icons/DatabaseIcons';
+import DatabaseIcons from '@/pages/data-source/components/icons/DatabaseIcons';
 import type {
   DynamicDataSourceFormProps,
   DynamicFormField,

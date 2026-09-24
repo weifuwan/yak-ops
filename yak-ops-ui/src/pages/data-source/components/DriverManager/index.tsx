@@ -1,5 +1,5 @@
 import { YakButton } from '@/components/ui';
-import { uploadDataSourceDriver } from '@/services/data-source';
+import { uploadDataSourceDriver } from '@/service/datasource';
 import { UploadOutlined } from '@ant-design/icons';
 import { useIntl } from '@/shared/i18n';
 import { Input, message, Upload } from 'antd';

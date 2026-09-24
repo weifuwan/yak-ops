@@ -5,7 +5,7 @@ import { Empty, Input, Select } from 'antd';
 import { useMemo, useState } from 'react';
 
 import { COMMON_DB_OPTIONS } from '../constants';
-import DatabaseIcons from '@/components/data-source/icons/DatabaseIcons';
+import DatabaseIcons from '@/pages/data-source/components/icons/DatabaseIcons';
 import type { DataSourceGroup } from '../types';
 
 interface DataSourceTypeSelectorProps {

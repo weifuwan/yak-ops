@@ -9,7 +9,7 @@ import {
   getDataSourceEnvironmentTabs,
   PAGE_ANIMATION,
 } from '../constants';
-import DatabaseIcons from '@/components/data-source/icons/DatabaseIcons';
+import DatabaseIcons from '@/pages/data-source/components/icons/DatabaseIcons';
 import type { DataSourceViewMode } from '../types';
 
 interface DataSourceToolbarProps {
