@@ -1,9 +1,8 @@
+import type { DataSourceRecord, DataSourceSavePayload } from "../model/types";
 import type {
   DataSourceConnectionFormValues,
   DataSourceFormValues,
-  DataSourceRecord,
-  DataSourceSavePayload,
-} from '../model/uiTypes';
+} from "./types";
 
 let cachedOriginalJson: string | undefined;
 let cachedOriginalConfig: Record<string, unknown> = {};
