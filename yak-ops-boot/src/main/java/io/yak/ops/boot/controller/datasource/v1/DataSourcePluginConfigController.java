@@ -2,9 +2,8 @@ package io.yak.ops.boot.controller.datasource.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.yak.ops.boot.controller.datasource.v1.converter.DataSourcePluginViewConverter;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.plugin.DataSourcePluginRegistry;
+import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
@@ -28,20 +27,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class DataSourcePluginConfigController {
 
     @Resource
-    private DataSourcePluginRegistry pluginRegistry;
-
-    @Resource
-    private DataSourcePluginViewConverter viewConverter;
+    private DataSourcePluginBusiness pluginBusiness;
 
     @Operation(summary = "查询数据源动态表单配置")
     @GetMapping
     public Result<DataSourcePluginConfigVO> getPluginConfig(@RequestParam("pluginType") String pluginType) {
-        return Result.success(viewConverter.config(pluginRegistry.descriptor(pluginType)));
+        return Result.success(pluginBusiness.queryPluginConfig(pluginType));
     }
 
     @Operation(summary = "检查数据源插件是否可用")
     @PostMapping("/install")
     public Result<Boolean> installPlugin(@RequestParam("pluginType") String pluginType) {
-        return Result.success(pluginRegistry.install(pluginType));
+        return Result.success(pluginBusiness.checkPluginAvailable(pluginType));
     }
 }

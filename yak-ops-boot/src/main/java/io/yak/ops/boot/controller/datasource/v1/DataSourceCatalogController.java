@@ -2,8 +2,7 @@ package io.yak.ops.boot.controller.datasource.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.yak.ops.boot.controller.datasource.v1.converter.CatalogViewConverter;
-import io.yak.ops.business.datasource.catalog.DataSourceCatalogReader;
+import io.yak.ops.business.datasource.catalog.DataSourceCatalogBusiness;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
@@ -32,21 +31,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class DataSourceCatalogController {
 
     @Resource
-    private DataSourceCatalogReader catalogReader;
-
-    @Resource
-    private CatalogViewConverter viewConverter;
+    private DataSourceCatalogBusiness catalogBusiness;
 
     @Operation(summary = "查询 Catalog 运行诊断")
     @GetMapping("/diagnostics")
     public Result<DataSourceCatalogDiagnosticsVO> diagnostics() {
-        return Result.success(viewConverter.diagnostics(catalogReader.diagnostics()));
+        return Result.success(catalogBusiness.queryDiagnostics());
     }
 
     @Operation(summary = "查询数据库列表")
     @GetMapping("/{id}/databases")
     public Result<List<String>> databases(@PathVariable("id") Long id) {
-        return Result.success(catalogReader.listDatabases(id));
+        return Result.success(catalogBusiness.queryDatabases(id));
     }
 
     @Operation(summary = "查询 Schema 列表")
@@ -54,7 +50,7 @@ public class DataSourceCatalogController {
     public Result<List<String>> schemas(
             @PathVariable("id") Long id,
             @RequestParam(value = "database", required = false) String database) {
-        return Result.success(catalogReader.listSchemas(id, database));
+        return Result.success(catalogBusiness.querySchemas(id, database));
     }
 
     @Operation(summary = "查询表和视图列表")
@@ -64,9 +60,7 @@ public class DataSourceCatalogController {
             @RequestParam(value = "database", required = false) String database,
             @RequestParam(value = "schema", required = false) String schema,
             @RequestParam(value = "keyword", required = false) String keyword) {
-        return Result.success(catalogReader.listTables(id, database, schema, keyword).stream()
-                .map(viewConverter::table)
-                .toList());
+        return Result.success(catalogBusiness.queryTables(id, database, schema, keyword));
     }
 
     @Operation(summary = "按关键字搜索表和视图")
@@ -77,9 +71,7 @@ public class DataSourceCatalogController {
             @RequestParam(value = "schema", required = false) String schema,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "limit", required = false) Integer limit) {
-        return Result.success(catalogReader.searchTables(id, database, schema, keyword, limit).stream()
-                .map(viewConverter::table)
-                .toList());
+        return Result.success(catalogBusiness.searchTables(id, database, schema, keyword, limit));
     }
 
     @Operation(summary = "查询表字段列表")
@@ -89,15 +81,13 @@ public class DataSourceCatalogController {
             @RequestParam(value = "database", required = false) String database,
             @RequestParam(value = "schema", required = false) String schema,
             @RequestParam("table") String table) {
-        return Result.success(catalogReader.listColumns(id, database, schema, table).stream()
-                .map(viewConverter::column)
-                .toList());
+        return Result.success(catalogBusiness.queryColumns(id, database, schema, table));
     }
 
     @Operation(summary = "查询数据源表选项")
     @GetMapping("/list/{id}")
     public Result<List<DataSourceCatalogOptionVO>> listTable(@PathVariable("id") Long id) {
-        return Result.success(catalogReader.listTable(id).stream().map(viewConverter::option).toList());
+        return Result.success(catalogBusiness.queryTableOptions(id));
     }
 
     @Operation(summary = "按匹配模式查询数据源表")
@@ -106,8 +96,6 @@ public class DataSourceCatalogController {
             @PathVariable("id") Long id,
             @RequestParam(value = "matchMode", required = false) String matchMode,
             @RequestParam(value = "keyword", required = false) String keyword) {
-        return Result.success(catalogReader.listTableReference(id, matchMode, keyword).stream()
-                .map(viewConverter::option)
-                .toList());
+        return Result.success(catalogBusiness.queryTableOptions(id, matchMode, keyword));
     }
 }
