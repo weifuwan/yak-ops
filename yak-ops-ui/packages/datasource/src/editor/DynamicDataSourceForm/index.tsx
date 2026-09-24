@@ -22,7 +22,7 @@ import type {
   DynamicFormField,
   DynamicFormSection,
 } from '../../model/uiTypes';
-import { DataSourceOperateType } from '../../types';
+import { DataSourceOperateType } from '../../model/uiTypes';
 import DriverManager from '../../connection/DriverManager';
 import JdbcUrlField from '../../connection/JdbcUrlField';
 import SshTunnelManager, {
