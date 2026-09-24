@@ -48,7 +48,7 @@ Owns shared database persistence infrastructure:
 - the single Flyway configuration and schema history for all Yak Ops modules
 - all versioned SQL under `yak-ops-dao/src/main/resources/db/migration/yak-ops`
 
-Concrete Security user persistence (`UserEntity`, `UserMapper`, `UserRepository`) is owned here. Concrete Datasource persistence remains in `yak-ops-business-datasource` until a separate migration changes that ownership.
+Concrete Security user persistence (`UserEntity`, `UserMapper`, `UserRepository`) and Datasource persistence are owned here. Datasource table mappings use DAO-owned `Entity` types; Datasource Mapper / Repository implementations and mapper XML no longer live in Business or Common.
 
 DAO owns persistence and schema migration, not final application DataSource/MyBatis runtime assembly. That assembly belongs to Boot.
 
@@ -62,7 +62,7 @@ Reserved empty module.
 
 ### `yak-ops-business/yak-ops-business-datasource`
 
-Owns the Datasource domain: business rules, connection, catalog, SQL execution, current concrete persistence and Datasource-specific security policy. Schema migration is owned centrally by `yak-ops-dao`.
+Owns the Datasource domain: business rules, connection, catalog, SQL execution, persistence-facing business contracts/domain mapping and Datasource-specific security policy. Concrete database persistence and schema migration are owned by `yak-ops-dao`.
 
 Datasource does not own Controller, ControllerAdvice, Controller-only request/response conversion, connection-pool assembly or MyBatis runtime configuration. Boot exposes Datasource HTTP APIs and supplies application infrastructure.
 
@@ -119,6 +119,7 @@ Boot
  │              └───────────────→ DAO ─→ Common
  └────────→ Datasource Business ─→ Common
                 │
+                ├───────────────→ DAO ─→ Common
                 ├───────────────→ Security identity/runtime
                 └───────────────→ Datasource Plugin API
                                       ↑

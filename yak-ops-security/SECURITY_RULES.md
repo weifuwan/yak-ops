@@ -95,4 +95,4 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - add Flyway beans or versioned SQL migrations to this module.
 - reintroduce Role / Permission / Project / Resource / Message / Oplog / Notification runtime.
 - add no-op RBAC annotations or permission constants without an enforcing runtime consumer.
-- add non-user/login DTO / VO / Enum / PO models to this module.
+- add non-user/login DTO / VO / Enum / persistence Entity models to this module.

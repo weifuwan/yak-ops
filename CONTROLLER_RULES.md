@@ -50,7 +50,7 @@ Must:
 - Controller 只做协议转换、校验、调用 owner、返回结果。
 - 业务规则留在对应 capability owner。
 - 请求对象优先使用稳定 DTO，不用一组零散基础类型表达复杂业务输入。
-- 对外数据使用稳定 VO，不返回 PO / Mapper object。
+- 对外数据使用稳定 VO，不返回 Entity / Mapper object。
 - 使用 Jakarta Validation 表达必填、长度和范围。
 - 成功/失败复用现有统一 Result / exception handling。
 - 使用 Swagger 3 / OpenAPI 3 描述公开 API。

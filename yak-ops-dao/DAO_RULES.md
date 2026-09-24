@@ -16,6 +16,7 @@ Owns:
 - All versioned SQL migrations under `src/main/resources/db/migration/yak-ops`
 - Concrete database access after a domain is explicitly migrated here
 - Security user persistence through `UserEntity`, `UserMapper` and `UserRepository`
+- Datasource persistence through DAO-owned Entity / Mapper / Repository and mapper XML
 
 ## Flyway
 
@@ -35,14 +36,17 @@ All Yak Ops versioned SQL lives in this module. Security, Datasource, Boot and P
 - Return `PageData` from persistence boundaries instead of leaking MyBatis `IPage` upward.
 - Keep ID type generic; do not force the Yakable String-ID model onto existing Yak Ops Long-ID tables.
 - Move concrete persistence into this module only as an explicit refactor, not as a side effect of unrelated work.
+- Database table mapping objects use the `Entity` suffix and live under `io.yak.ops.dao.entity`.
+- Keep persistence enum storage independent from Business-owned Java types when DAO cannot depend on that capability module.
 
 ## Must Not
 
 - Business Service or Controller depends directly on Mapper.
 - Repeat `add / deleteById / update / queryById / queryList / queryCount / queryPage` as forwarding methods without additional semantics.
 - Put HTTP DTO / VO contracts in DAO.
+- Introduce `PO`, `DO` or another duplicate table-mapping naming convention.
+- Declare MyBatis table-mapping Entity classes in Common or Business modules.
 - Introduce `BaseEntity` until Yak Ops has one audited ID and audit-field contract that fits existing tables.
-- Rebuild Datasource persistence in this foundation PR.
 - Add Flyway migration directories outside `yak-ops-dao`.
 
 ## Boundary

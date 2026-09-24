@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="io.yak.ops.business.datasource.dao.mapper.SqlExecutionAuditMapper">
+<mapper namespace="io.yak.ops.dao.mapper.datasource.SqlExecutionAuditMapper">
 
     <sql id="ExecutionBaseFilters">
         <if test="query.executionId != null">
@@ -54,7 +54,7 @@
     </sql>
 
     <select id="selectAuditPage"
-            resultType="io.yak.ops.business.datasource.dao.model.SqlExecutionAuditPO">
+            resultType="io.yak.ops.dao.entity.datasource.SqlExecutionAuditEntity">
         SELECT e.*
         FROM yak_ops_sql_execution e
         <where>
@@ -66,7 +66,7 @@
     </select>
 
     <select id="selectAuditSummary"
-            resultType="io.yak.ops.business.datasource.dao.model.SqlExecutionAuditSummaryRow">
+            resultType="io.yak.ops.dao.model.datasource.SqlExecutionAuditSummaryRow">
         SELECT COUNT(*) AS total,
                COALESCE(SUM(CASE WHEN e.status = 'SUCCEEDED' THEN 1 ELSE 0 END), 0) AS succeeded,
                COALESCE(SUM(CASE WHEN e.status = 'FAILED' THEN 1 ELSE 0 END), 0) AS failed,
@@ -103,7 +103,7 @@
     </select>
 
     <select id="selectStatementTypeCounts"
-            resultType="io.yak.ops.business.datasource.dao.model.SqlStatementTypeCountRow">
+            resultType="io.yak.ops.dao.model.datasource.SqlStatementTypeCountRow">
         SELECT s.statement_type AS statement_type,
                COUNT(*) AS count
         FROM yak_ops_sql_statement_execution s
