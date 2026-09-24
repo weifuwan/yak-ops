@@ -1,7 +1,7 @@
 import {
   getDataSourcePluginConfig,
   installDataSourcePlugin,
-} from '@/services/data-source';
+} from '@/service/datasource';
 import type { FormInstance } from 'antd';
 import {
   useCallback,

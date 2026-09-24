@@ -9,7 +9,7 @@ import {
   type DataSourceRecord,
   type DataSourceSummary,
   type PaginationInfo,
-} from '@/services/data-source';
+} from '@/service/datasource';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {

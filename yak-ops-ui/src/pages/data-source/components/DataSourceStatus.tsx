@@ -1,4 +1,4 @@
-import type { DataSourceConnectionStatus } from '@/services/data-source';
+import type { DataSourceConnectionStatus } from '@/service/datasource';
 import {
   CheckCircleFilled,
   CloseCircleFilled,

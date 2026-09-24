@@ -3,13 +3,13 @@ import {
   createDataSource,
   testDataSourceConnectionWithParams,
   updateDataSource,
-} from '@/services/data-source';
+} from '@/service/datasource';
 import { useIntl } from '@/shared/i18n';
 import { Drawer, Form, message } from 'antd';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
 import { getDataSourceGroupList } from '../constants';
-import DatabaseIcons from '@/components/data-source/icons/DatabaseIcons';
+import DatabaseIcons from '@/pages/data-source/components/icons/DatabaseIcons';
 import type {
   DataSourceFormValues,
   DataSourceModalOpenPayload,
