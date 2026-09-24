@@ -35,7 +35,7 @@ class HttpUtils {
 
   static post<T>(
     url: string,
-    body?: Record<string, unknown>,
+    body?: unknown,
     options?: HttpRequestOptions,
   ): Promise<ApiResponse<T>> {
     return request<ApiResponse<T>>(url, {
@@ -75,7 +75,7 @@ class HttpUtils {
 
   static postData<T>(
     url: string,
-    body?: Record<string, unknown>,
+    body?: unknown,
     options?: HttpRequestOptions,
   ): Promise<T> {
     return HttpUtils.post<T>(
@@ -87,7 +87,7 @@ class HttpUtils {
 
   static put<T>(
     url: string,
-    body?: Record<string, unknown>,
+    body?: unknown,
     options?: HttpRequestOptions,
   ): Promise<ApiResponse<T>> {
     return request<ApiResponse<T>>(url, {
@@ -99,7 +99,7 @@ class HttpUtils {
 
   static putData<T>(
     url: string,
-    body?: Record<string, unknown>,
+    body?: unknown,
     options?: HttpRequestOptions,
   ): Promise<T> {
     return HttpUtils.put<T>(
@@ -111,7 +111,7 @@ class HttpUtils {
 
   static delete<T>(
     url: string,
-    data?: Record<string, unknown>,
+    data?: unknown,
     options?: HttpRequestOptions,
   ): Promise<ApiResponse<T>> {
     return request<ApiResponse<T>>(url, {
@@ -123,7 +123,7 @@ class HttpUtils {
 
   static deleteData<T>(
     url: string,
-    data?: Record<string, unknown>,
+    data?: unknown,
     options?: HttpRequestOptions,
   ): Promise<T> {
     return HttpUtils.delete<T>(
