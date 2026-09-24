@@ -3,7 +3,7 @@
 Scope:
 - `yak-ops-ui/apps/**`
 - `yak-ops-ui/packages/**`
-- `yak-ops-ui/src/**` migration bridge
+- remaining shared infrastructure under `yak-ops-ui/src/**`
 
 Depends On:
 - `./ARCHITECTURE.md`
@@ -26,8 +26,8 @@ packages/datasource
 packages/yak-ui
 = business-agnostic UI primitives
 
-src/**
-= temporary migration bridge only
+src/service/http + src/shared/lib
+= remaining shared infrastructure only
 ```
 
 ## Must
@@ -37,7 +37,7 @@ src/**
 - 通用 UI Primitive 统一从 `@yak-ops/yak-ui` 使用。
 - Datasource 路由只通过 `@yak-ops/datasource` 进入 App。
 - Page / Product Package / App 不直接依赖 `@base-ui/react`。
-- `src/pages/data-source`、`src/service/datasource` 与 `src/shared/ui` 已完成迁移并删除；禁止重新创建。
+- `src/pages/data-source`、`src/service/datasource`、`src/shared/ui` 已删除；禁止重新创建。
 - 优先原生 HTML 语义，保留 keyboard / focus / disabled 行为。
 - 可点击元素必须有明确 pointer cursor。
 - URL 已表达的状态归 URL；后端事实以 API 返回值为准；局部交互状态才使用 React state。
@@ -52,11 +52,13 @@ src/**
 
 ## Must Not
 
+- 重新引入 `antd`、`@ant-design/icons`、Ant Design CSS override 或 AntD compatibility wrapper。
+- 引入 MUI / Chakra / Mantine 等第二套 UI framework。
 - `apps/web` 绕过 `@yak-ops/datasource` 直接依赖 Datasource 内部 capability。
 - `packages/datasource` 依赖 `apps/web`。
 - `packages/yak-ui` 依赖任何业务 package。
 - App / Datasource 直接 import `@base-ui/react`。
-- 在 Datasource 内重新创建 Button / Input / Select 等通用 Primitive。
+- 在 Datasource 内重新创建 Button / Input / Select / Dialog 等通用 Primitive。
 - 新增 Umi Max、Umi Router、Umi Model。
 - 在 Component / Hook 直接调用 `fetch`。
 - 新增第二套 HTTP Client。
@@ -68,8 +70,6 @@ src/**
 - 用 broad lint disable、跳过 formatter 或关闭 warning 让检查变绿。
 
 ## Package Boundary
-
-新增代码按下面判断：
 
 ```text
 浏览器应用组装 / 路由 / Provider / Login
@@ -102,6 +102,8 @@ api
 
 组件、Hook、类型和 helper 跟随 owner 放置。
 
+Datasource 动态表单状态由 `editor/formRuntime.tsx` 拥有；Yak UI 不拥有 Datasource Schema、字段联动、业务校验或 payload 组装。
+
 ## Styling Boundary
 
 - Tailwind 4 是样式基础设施。
@@ -109,10 +111,9 @@ api
 - App 全局 reset / font / viewport 归 `apps/web/src/app/styles`。
 - Product 私有视觉归对应 package。
 - 不使用全局位置选择器改写业务 package 内部结构。
-- Ant Design 只允许存在于 Datasource / App 当前待迁移的存量代码；新代码不得新增 AntD / @ant-design/icons 依赖或引用。
-- Yak UI replacement set 已覆盖当前去 AntD 所需的通用 Primitive；业务迁移优先使用 `@yak-ops/yak-ui`。
-- Form 状态、动态 Schema、上传协议等业务能力归 owning package，不通过 Yak UI 重建 AntD 式万能 API。
-- 新增通用 Primitive 不再基于 Ant Design 二次封装。
+- 不使用 Less 作为新的样式入口。
+- 通用交互组件优先 Yak UI；业务上传使用原生 file input + owning package logic。
+- Icon 统一优先使用 Lucide 或能力自身已有 SVG，不引入第二套 icon framework。
 
 ## Validation
 
