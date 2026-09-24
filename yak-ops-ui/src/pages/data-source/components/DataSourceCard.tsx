@@ -1,4 +1,4 @@
-import { YakButton } from '@/pages/data-source/components/ui';
+import { Button } from '@/shared/ui';
 import type { DataSourceRecord } from '@/service/datasource';
 import { useIntl } from '@/pages/data-source/i18n';
 import { motion } from 'framer-motion';
@@ -113,46 +113,54 @@ const DataSourceCard = ({
         {actionAvailable ? (
           <div className="flex shrink-0 -translate-y-1 gap-1 opacity-0 transition-all duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
             {permissions.canTest ? (
-              <YakButton
-                type="text"
+              <Button
+                variant="ghost"
                 size="small"
-                iconOnly
                 title={intl.formatMessage({
+                  id: 'pages.datasource.card.testConnection',
+                })}
+                aria-label={intl.formatMessage({
                   id: 'pages.datasource.card.testConnection',
                 })}
                 loading={testingId === currentId}
                 disabled={Boolean(testingId) && testingId !== currentId}
-                className="!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/90 !p-0 !text-[#7e838d] !shadow-[0_1px_3px_rgba(31,35,41,0.035)] hover:!text-[#4058c8]"
-                icon={<Unplug size={14} strokeWidth={1.9} />}
+                className="h-[30px] w-[30px] border border-[#e9ebef] bg-white/90 p-0 text-[#7e838d] shadow-[0_1px_3px_rgba(31,35,41,0.035)] hover:text-[#4058c8]"
                 onClick={() => onTestConnection(record)}
-              />
+              >
+                {testingId === currentId ? null : (
+                  <Unplug size={14} strokeWidth={1.9} />
+                )}
+              </Button>
             ) : null}
 
             {permissions.canUpdate ? (
-              <YakButton
-                type="text"
+              <Button
+                variant="ghost"
                 size="small"
-                iconOnly
                 title={intl.formatMessage({ id: 'pages.datasource.card.edit' })}
+                aria-label={intl.formatMessage({ id: 'pages.datasource.card.edit' })}
                 loading={editingId === currentId}
                 disabled={Boolean(editingId) && editingId !== currentId}
-                className="!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/90 !p-0 !text-[#7e838d] !shadow-[0_1px_3px_rgba(31,35,41,0.035)] hover:!text-[#4058c8]"
-                icon={<Pencil size={14} strokeWidth={1.9} />}
+                className="h-[30px] w-[30px] border border-[#e9ebef] bg-white/90 p-0 text-[#7e838d] shadow-[0_1px_3px_rgba(31,35,41,0.035)] hover:text-[#4058c8]"
                 onClick={() => onEdit(record)}
-              />
+              >
+                {editingId === currentId ? null : (
+                  <Pencil size={14} strokeWidth={1.9} />
+                )}
+              </Button>
             ) : null}
 
             {permissions.canDelete ? (
-              <YakButton
-                type="text"
+              <Button
+                variant="danger"
                 size="small"
-                danger
-                iconOnly
                 title={intl.formatMessage({ id: 'pages.datasource.card.delete' })}
-                className="!h-[30px] !w-[30px] !rounded-[8px] !border !border-[#e9ebef] !bg-white/90 !p-0 !shadow-[0_1px_3px_rgba(31,35,41,0.035)]"
-                icon={<Trash2 size={14} strokeWidth={1.9} />}
+                aria-label={intl.formatMessage({ id: 'pages.datasource.card.delete' })}
+                className="h-[30px] w-[30px] border border-[#e9ebef] bg-white/90 p-0 shadow-[0_1px_3px_rgba(31,35,41,0.035)]"
                 onClick={() => onDelete(record)}
-              />
+              >
+                <Trash2 size={14} strokeWidth={1.9} />
+              </Button>
             ) : null}
           </div>
         ) : null}
