@@ -1,4 +1,4 @@
-import { useIntl } from "@/shared/i18n";
+import { useIntl } from "@/pages/data-source/i18n";
 import { message, Modal, Pagination, Spin } from "antd";
 import { motion } from "framer-motion";
 import { useRef } from "react";
