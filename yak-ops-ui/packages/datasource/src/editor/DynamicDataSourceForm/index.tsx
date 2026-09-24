@@ -17,12 +17,11 @@ import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 
 import DatabaseIcons from '../../model/icons/DatabaseIcons';
-import type {
-  DynamicDataSourceFormProps,
-  DynamicFormField,
-  DynamicFormSection,
-} from '../../model/uiTypes';
-import { DataSourceOperateType } from '../../model/uiTypes';
+import type { DynamicFormField, DynamicFormSection } from "../../model/types";
+import {
+  DataSourceOperateType,
+  type DynamicDataSourceFormProps,
+} from "../types";
 import DriverManager from '../../connection/DriverManager';
 import JdbcUrlField from '../../connection/JdbcUrlField';
 import SshTunnelManager, {
