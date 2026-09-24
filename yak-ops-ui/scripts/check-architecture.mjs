@@ -23,6 +23,8 @@ const forbiddenDirectories = [
   "apps/web/app/datasource/management",
   "apps/web/app/datasource/model",
   "apps/web/app/datasource/plugin",
+  "apps/web/app/datasource/connection",
+  "apps/web/app/datasource/editor/DynamicDataSourceForm",
 ];
 
 for (const path of forbiddenDirectories) {

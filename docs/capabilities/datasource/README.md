@@ -34,16 +34,22 @@ app/datasource/
 ├── empty-state.tsx
 ├── hooks/
 ├── editor/
-├── connection/
+│   ├── index.tsx
+│   ├── type-selector.tsx
+│   ├── dynamic-form.tsx
+│   ├── form-runtime.tsx
+│   ├── driver-manager.tsx
+│   ├── jdbc-url-field.tsx
+│   └── ssh-tunnel-manager.tsx
 ├── icons/
 └── i18n/
 
 service/datasource/
 ```
 
-Datasource 页面层已从 capability layering 收口为 feature-locality 结构。
+Datasource 页面和 Editor 都采用 feature-locality 结构。
 
-`management / model / plugin` 不再是目录 owner。
+`management / model / plugin / connection / DynamicDataSourceForm` 不再是目录 owner。
 
 ## Frontend Dependency
 
@@ -63,31 +69,26 @@ app/datasource
 
 Datasource is a Web App Domain, not an npm workspace package.
 
-Dynamic form state remains owned by `app/datasource/editor/formRuntime.tsx`。
+Dynamic form state is owned by `app/datasource/editor/form-runtime.tsx`。
 
 ## Current Capability Map
 
 ```text
 Datasource Management
+Datasource Editor
 Connection Test / Connection Normalization
 Plugin Configuration
 Catalog Browse
 ```
 
-这只是当前代码能力地图，不代表每个概念都需要一层目录。
+能力地图不代表每个概念都需要一层目录。
 
 ## Shared Rules
 
-- root `ARCHITECTURE.md`
-- root `JAVA_RULES.md`
-- `DATASOURCE_RULES.md`
-- `FLYWAY_RULES.md` when schema changes
-- `PLUGIN_RULES.md` when plugin behavior changes
 - `yak-ops-ui/ARCHITECTURE.md`
+- `yak-ops-ui/FRONTEND_RULES.md`
 - `yak-ops-ui/apps/web/app/datasource/DATASOURCE_RULES.md`
 
 ## Boundary
 
 Datasource is currently the only active Yak Ops product domain.
-
-Removed domains are not dependencies, reference architectures or future requirements unless explicitly reintroduced.
