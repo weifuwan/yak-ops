@@ -1,4 +1,0 @@
-/* biome-ignore-all lint/suspicious/noUnknownAtRules: Tailwind CSS directives are expanded by the build pipeline. */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;

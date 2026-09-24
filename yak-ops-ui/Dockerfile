@@ -1,6 +1,10 @@
-FROM node:20-alpine
-WORKDIR /app/linkup-ui
-COPY ./* ./
-RUN yarn install
-CMD ["yarn", "start"]
-EXPOSE 8000
+FROM node:22-alpine
+WORKDIR /app/yak-ops-ui
+
+COPY package.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

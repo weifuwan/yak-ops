@@ -1,13 +1,15 @@
-import { logout } from "@/services/security/account";
-import { history, Link, Outlet, useModel } from "@umijs/max";
 import { Dropdown, type MenuProps } from "antd";
 import { ChevronDown, Database, LogOut } from "lucide-react";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-export default function SiteLayout() {
-  const { initialState, setInitialState } = useModel("@@initialState");
+import { useAuth } from "@/app/providers/AuthProvider";
+import { logout } from "@/services/security/account";
+
+export default function AppLayout() {
+  const navigate = useNavigate();
+  const { currentUser, clearCurrentUser } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
-  const currentUser = initialState?.currentUser;
 
   const handleLogout = async () => {
     if (loggingOut) return;
@@ -15,12 +17,8 @@ export default function SiteLayout() {
     try {
       await logout();
     } finally {
-      await setInitialState((state) => ({
-        ...state,
-        currentUser: undefined,
-        currentUserLoadError: false,
-      }));
-      history.replace("/login");
+      clearCurrentUser();
+      navigate("/login", { replace: true });
     }
   };
 
@@ -78,10 +76,12 @@ export default function SiteLayout() {
           <Dropdown menu={{ items: userMenuItems }} placement="topLeft" trigger={["click"]}>
             <button
               type="button"
-              className="flex h-11 w-full items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left hover:bg-white/70"
+              className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left hover:bg-white/70"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm font-semibold shadow-sm">
-                {(currentUser?.name ?? currentUser?.userName ?? "Y").slice(0, 1).toUpperCase()}
+                {(currentUser?.name ?? currentUser?.userName ?? "Y")
+                  .slice(0, 1)
+                  .toUpperCase()}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm">
                 {currentUser?.name ?? currentUser?.userName ?? "当前用户"}
