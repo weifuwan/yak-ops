@@ -34,6 +34,9 @@ public final class CopyBeanUtil {
         if (source == null || source.isEmpty()) {
             return Collections.emptyList();
         }
-        return source.stream().filter(Objects::nonNull).map(value -> copy(value, target)).toList();
+        return source.stream()
+                .filter(Objects::nonNull)
+                .map(value -> copy(value, target))
+                .toList();
     }
 }
