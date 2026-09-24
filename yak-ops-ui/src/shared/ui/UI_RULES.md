@@ -59,6 +59,13 @@ DOM
 - 用一个超级组件通过几十个 Props 覆盖所有场景。
 - 为了迁移方便继续新增 Ant Design 通用 Primitive 封装。
 
+## Adoption
+
+- 当前产品 Button 已统一迁移到 Yak UI；不要重新创建 Page 私有 Button wrapper。
+- 普通文本 Input 与普通 Select 在 Contract 能无损覆盖时迁移到 Yak UI。
+- 依赖 Ant Design 专属组合能力的复杂控件暂时保留原实现，直到对应 Yak UI Primitive 有真实需求。
+- Adoption 以“不丢现有用户行为”为前提，不为了去依赖强行降级 searchable、clearable、password、textarea、number、upload 等能力。
+
 ## Current Scope
 
 当前 Yak UI Foundation 已包含：
