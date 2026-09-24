@@ -51,6 +51,8 @@ Task
 - [Security Rules](../yak-ops-security/SECURITY_RULES.md)
 - [Datasource Rules](../yak-ops-business/yak-ops-business-datasource/DATASOURCE_RULES.md)
 - [Common Rules](../yak-ops-common/COMMON_RULES.md)
+- [DAO Rules](../yak-ops-dao/DAO_RULES.md)
+- [Flyway Rules](../yak-ops-dao/FLYWAY_RULES.md)
 - [Core Rules](../yak-ops-core/CORE_RULES.md)
 - [SPI Rules](../yak-ops-spi/SPI_RULES.md)
 - [Datasource Plugin Rules](../yak-ops-plugins/yak-ops-plugin-datasource/PLUGIN_RULES.md)

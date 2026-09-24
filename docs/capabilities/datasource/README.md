@@ -26,7 +26,7 @@ Frontend Migration Bridge:
 - `yak-ops-ui/src/service/datasource`
 
 Data:
-- `yak-ops-business/yak-ops-business-datasource/src/main/resources/db/migration/yak-datasource`
+- `yak-ops-dao/src/main/resources/db/migration/yak-ops`
 - `yak-ops-business/yak-ops-business-datasource/src/main/resources/mapper`
 
 ## Frontend Dependency
@@ -70,6 +70,7 @@ SQL Execution Audit / Observability
 - root `ARCHITECTURE.md`
 - root `JAVA_RULES.md`
 - `DATASOURCE_RULES.md`
+- `FLYWAY_RULES.md` when schema changes
 - `PLUGIN_RULES.md` when plugin behavior changes
 - `yak-ops-ui/ARCHITECTURE.md`
 - `yak-ops-ui/packages/datasource/DATASOURCE_UI_RULES.md`
