@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.catalog;
 
+import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
@@ -13,25 +14,30 @@ import io.yak.ops.business.datasource.gateway.DataSourceCatalogGateway;
 import io.yak.ops.business.datasource.query.DataSourceReader;
 import java.util.List;
 import java.util.function.Supplier;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** Reads datasource catalog metadata and preview data through the typed catalog gateway. */
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceCatalogReader {
 
     private static final int PREVIEW_LIMIT = 20;
     private static final int MAX_TABLE_SEARCH_LIMIT = 200;
 
-    private final DataSourceReader dataSourceReader;
-    private final DataSourceCatalogGateway catalogGateway;
-    private final DataSourceProperties properties;
-    private final CatalogReadPolicy readPolicy;
-    private final CatalogTableMatcher tableMatcher;
-    private final DataSourceCatalogMetadataCache metadataCache;
-    private final DataSourceCatalogDiagnostics diagnostics;
+    @Resource
+    private DataSourceReader dataSourceReader;
+    @Resource
+    private DataSourceCatalogGateway catalogGateway;
+    @Resource
+    private DataSourceProperties properties;
+    @Resource
+    private CatalogReadPolicy readPolicy;
+    @Resource
+    private CatalogTableMatcher tableMatcher;
+    @Resource
+    private DataSourceCatalogMetadataCache metadataCache;
+    @Resource
+    private DataSourceCatalogDiagnostics diagnostics;
 
     public List<String> listDatabases(Long dataSourceId) {
         DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
