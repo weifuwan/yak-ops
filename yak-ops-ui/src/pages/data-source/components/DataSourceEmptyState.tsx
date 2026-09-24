@@ -136,7 +136,7 @@ const DataSourceEmptyState = ({
           ) : canCreate ? (
             <Button variant="primary" size="small" onClick={onCreate}>
               {intl.formatMessage({ id: 'pages.datasource.empty.create' })}
-            </YakButton>
+            </Button>
           ) : null}
         </div>
       </div>
