@@ -20,20 +20,20 @@
     <modules>
         <module>yak-ops-business-audit</module>
         <module>yak-ops-business-datasource</module>
-        <module>yak-ops-business-data-service</module>
-        <module>yak-ops-business-job</module>
-        <module>yak-ops-business-task-catalog</module>
-        <module>yak-ops-business-data-development</module>
-        <module>yak-ops-business-lineage</module>
-        <module>yak-ops-business-dataset</module>
-        <module>yak-ops-business-analysis</module>
-        <module>yak-ops-business-dashboard</module>
-        <module>yak-ops-business-digital-screen</module>
-        <module>yak-ops-business-resource</module>
-        <module>yak-ops-business-sync</module>
-        <module>yak-ops-business-quality</module>
-        <module>yak-ops-business-workflow</module>
-        <module>yak-ops-business-alert</module>
-        <module>yak-ops-business-home</module>
+        <!-- <module>yak-ops-business-data-service</module> -->
+        <!-- <module>yak-ops-business-job</module> -->
+        <!-- <module>yak-ops-business-task-catalog</module> -->
+        <!-- <module>yak-ops-business-data-development</module> -->
+        <!-- <module>yak-ops-business-lineage</module> -->
+        <!-- <module>yak-ops-business-dataset</module> -->
+        <!-- <module>yak-ops-business-analysis</module> -->
+        <!-- <module>yak-ops-business-dashboard</module> -->
+        <!-- <module>yak-ops-business-digital-screen</module> -->
+        <!-- <module>yak-ops-business-resource</module> -->
+        <!-- <module>yak-ops-business-sync</module> -->
+        <!-- <module>yak-ops-business-quality</module> -->
+        <!-- <module>yak-ops-business-workflow</module> -->
+        <!-- <module>yak-ops-business-alert</module> -->
+        <!-- <module>yak-ops-business-home</module> -->
     </modules>
 </project>
