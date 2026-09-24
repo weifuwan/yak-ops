@@ -36,19 +36,21 @@ yak-ops-ui/
 │       ├── constants/
 │       ├── assets/
 │       └── public/
-└── packages/
-    └── yak-ui/
+├── packages/
+│   └── yak-ui/
+└── scripts/
+    └── check-architecture.mjs
 ```
 
 `apps/web` 是产品 Web Root。
 
-业务能力归 `app/<domain>`，后端通信归 `service/<domain>`，真正跨业务的基础能力才进入 root infrastructure。无业务语义 UI Primitive 归 `packages/yak-ui`。
+业务能力归 `app/<domain>`，后端通信与后端 Contract 归 `service/<domain>`，真正跨业务的基础能力才进入 root infrastructure。无业务语义 UI Primitive 归 `packages/yak-ui`。
 
 ## Web Root Ownership
 
 ```text
 app        → Product Domain + Router + Layout
-service    → Domain API + HTTP transport
+service    → Domain API + Backend Contract + HTTP transport
 utils      → 无业务工具
 themes     → Theme Token / light / dark
 types      → 跨 Web 稳定类型
@@ -65,41 +67,13 @@ public     → 原样静态资源
 ```text
 apps/web/src
 apps/web/pages
+apps/web/shared
 yak-ops-ui/src
 yak-ops-ui/public
+yak-ops-ui/types
+yak-ops-ui/mock
 packages/datasource
 ```
-
-## Domain Structure
-
-Datasource：
-
-```text
-app/datasource
-├── management
-├── editor
-├── connection
-├── plugin
-├── model
-└── i18n
-
-service/datasource
-├── api.ts
-├── catalog.ts
-├── driver.ts
-└── index.ts
-```
-
-Login：
-
-```text
-app/login
-service/auth
-context/auth-context.tsx
-hooks/use-auth.ts
-```
-
-页面负责展示，Service 负责后端通信，Context 负责跨组件运行时状态。
 
 ## Dependency Direction
 
@@ -119,23 +93,40 @@ service/auth
 service/http
 ```
 
-禁止恢复 `@yak-ops/datasource` package / alias。
-
-## Theme Architecture
+核心 invariant：
 
 ```text
-themes/
-├── tokens.css
-├── light.css
-├── dark.css
-└── index.css
-
-context/theme-context.tsx
-hooks/use-theme.ts
-types/theme.ts
+app → service → http
 ```
 
-Theme 是 Web 基础设施，不属于 Yak UI 或某个业务 Domain。
+禁止：
+
+```text
+service → app
+app → service/http
+```
+
+Service 不得为了复用 TypeScript 类型反向 import App。
+
+## Datasource Contract Ownership
+
+Datasource 后端 Contract 归：
+
+```text
+service/datasource/types.ts
+```
+
+`app/datasource/model/types.ts` 只作为 App 内部的 type re-export facade，真实类型 owner 仍是 Service。
+
+这样依赖方向保持：
+
+```text
+app/datasource
+      ↓
+service/datasource/types
+```
+
+而不是形成 `app ↔ service` 环。
 
 ## Service Boundary
 
@@ -143,6 +134,7 @@ Theme 是 Web 基础设施，不属于 Yak UI 或某个业务 Domain。
 - 唯一 HTTP transport owner
 - Result envelope
 - network / authentication failure handling
+- 唯一允许调用原生 `fetch` 的位置
 
 `service/auth`
 - Login
@@ -150,6 +142,7 @@ Theme 是 Web 基础设施，不属于 Yak UI 或某个业务 Domain。
 - Current User
 
 `service/datasource`
+- Datasource Contract
 - Datasource CRUD
 - Connection Test
 - Plugin Config
@@ -167,6 +160,35 @@ packages/yak-ui
 ```
 
 Datasource 是产品 Domain，不再作为 npm workspace package。
+
+Workspace root 不拥有运行时 dependencies；运行时依赖由 `apps/web` / `packages/yak-ui` 分别声明。
+
+## Architecture Enforcement
+
+架构不只靠文档约定。
+
+```bash
+npm run architecture:check
+```
+
+由 `scripts/check-architecture.mjs` 检查稳定 invariant。
+
+`npm run check` 固定顺序：
+
+```text
+architecture
+→ typecheck
+→ lint
+→ format
+```
+
+架构变化必须同时更新：
+
+```text
+ARCHITECTURE.md
+*_RULES.md
+check-architecture.mjs
+```
 
 ## Verification
 

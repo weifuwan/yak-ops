@@ -1,6 +1,6 @@
 import HttpUtils from '@/service/http/HttpUtils';
 
-import type { DriverUploadResult } from '@/app/datasource/model/types';
+import type { DriverUploadResult } from './types';
 
 const DRIVER_UPLOAD_API = '/api/v1/data-source/plugin/driver/upload';
 

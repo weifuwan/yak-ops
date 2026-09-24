@@ -23,11 +23,37 @@ service/http
 = HTTP transport / Result envelope / network + auth failure handling
 
 service/auth
-= login / logout / current user
+= login / logout / current user contract + endpoints
 
 service/datasource
-= Datasource CRUD / connection / plugin / catalog / driver
+= Datasource contract + CRUD / connection / plugin / catalog / driver
 ```
+
+Backend request / response Contract 与对应 Service 放在一起。
+
+## Dependency Invariant
+
+Service 是 App 的下层。
+
+```text
+app → service
+```
+
+禁止：
+
+```text
+service → app
+```
+
+不要为了复用 `type` 破坏依赖方向。
+
+例如 Datasource API Contract 的 owner 是：
+
+```text
+service/datasource/types.ts
+```
+
+App 可以 import / re-export Service Contract；Service 不得 import App model。
 
 ## Must
 
@@ -41,6 +67,7 @@ service/datasource
 
 ## Must Not
 
+- 从 `service/**` import `@/app/**`。
 - Component、Page、Hook 直接调用 `fetch`。
 - 创建 axios、umi-request 或第二套 transport。
 - 让 HttpUtils 知道 Datasource 业务规则。
@@ -49,12 +76,6 @@ service/datasource
 - 在 Service 保存页面 UI state。
 - 从 Service import UI Component。
 
-## Boundary
+## Enforcement
 
-Service 回答：
-
-> 浏览器如何与后端通信？
-
-App Domain 回答：
-
-> 用户看到什么，以及用户操作如何组织？
+以上稳定 invariant 由 `npm run architecture:check` 检查。

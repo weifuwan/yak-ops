@@ -9,7 +9,7 @@ import type {
   DataSourceSavePayload,
   DataSourceSummary,
   DynamicFormSchemaResponse,
-} from '@/app/datasource/model/types';
+} from './types';
 
 const DATA_SOURCE_API_PREFIX = '/api/v1/data-source';
 

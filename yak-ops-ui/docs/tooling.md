@@ -18,6 +18,7 @@ TypeScript 5.9
 Oxlint
 Oxfmt
 npm
+Node architecture check
 ```
 
 Node 要求：
@@ -26,7 +27,7 @@ Node 要求：
 >= 22.13
 ```
 
-Umi Max、Biome 和 Yarn 不再是当前脚手架工具链。
+Umi Max、Biome、Yarn、Husky、lint-staged、commitlint 不属于当前前端工具链。
 
 ## Required Checks
 
@@ -37,13 +38,15 @@ npm run check
 npm run build
 ```
 
-当前 `check` 包含三个独立 gate：
+`check` 是四个独立 gate：
 
 ```text
+architecture:check
+      ↓
 typecheck
-   ↓
+      ↓
 lint
-   ↓
+      ↓
 format:check
 ```
 
@@ -55,6 +58,7 @@ Build 独立执行，验证 Vite 真实生产构建。
 npm run dev
 npm run build
 npm run preview
+npm run architecture:check
 npm run typecheck
 npm run lint
 npm run lint:fix
@@ -62,6 +66,28 @@ npm run format
 npm run format:check
 npm run check
 ```
+
+## Architecture Check
+
+```bash
+npm run architecture:check
+```
+
+由 `scripts/check-architecture.mjs` 执行。
+
+它保护当前稳定边界，包括：
+
+- 禁止恢复 `src / pages / shared / packages/datasource` 等遗留目录。
+- `packages` 当前只允许 `yak-ui`。
+- Workspace root 不拥有运行时依赖。
+- 禁止恢复 `@yak-ops/datasource`。
+- 禁止恢复 Ant Design / Umi / 第二套 HTTP Client。
+- `service/**` 禁止反向依赖 `app/**`。
+- `app/**` 禁止直接依赖 `service/http`。
+- 原生 `fetch` 只允许存在于唯一 HTTP transport owner。
+- `@base-ui/react` 只允许由 `packages/yak-ui` 使用。
+
+如果架构需要演进，应先修改 Architecture / Rules，再修改 enforcement。不要通过删检查规则绕过边界。
 
 ## Typecheck
 
@@ -71,13 +97,19 @@ TypeScript 是静态类型正确性的 owner：
 tsc --noEmit
 ```
 
-不要用 lint 替代 typecheck。
+检查覆盖 `apps / packages`。
 
-当前检查覆盖 `apps / packages / src migration bridge`。PR1 之后 `src/**` 不再是长期产品 owner，但在 Datasource 迁移完成前仍必须进入 typecheck / lint / format。
+不要用 lint 替代 typecheck。
 
 ## Lint
 
 Oxlint 拥有静态代码规则。
+
+```text
+apps
+packages
+scripts
+```
 
 - warning 按失败处理。
 - 优先修 owner 问题，不使用 broad disable。
@@ -86,7 +118,7 @@ Oxlint 拥有静态代码规则。
 
 ## Format
 
-Oxfmt 拥有 TypeScript / TSX / Vite 配置格式。
+Oxfmt 拥有 TypeScript / TSX / JavaScript / tooling scripts 格式。
 
 格式检查与 lint 分离。
 
@@ -113,11 +145,7 @@ npm run build
 
 Tailwind CSS 4 通过 Vite Plugin 接入。
 
-不要恢复：
-
-- Tailwind 3 PostCSS pipeline。
-- 旧 `tailwind.config.js` 只为兼容历史写法。
-- 第二套 Utility CSS framework。
+不要恢复 Tailwind 3 PostCSS pipeline 或第二套 Utility CSS framework。
 
 ## Package Manager
 
@@ -130,37 +158,36 @@ apps/*
 packages/*
 ```
 
-PR1 不切换 pnpm / yarn。
+运行时依赖由真实 workspace owner 声明：
 
-新增或修改依赖后应使用 npm 更新 lockfile。
+```text
+apps/web
+→ React / Router / Lucide / Framer Motion / Yak UI
 
-不要同时维护 npm / yarn 两套前端依赖事实来源。
+packages/yak-ui
+→ Base UI / CVA
+```
 
-## Dependency Policy
+Workspace root 只保留构建和质量工具，不声明运行时 dependencies。
 
-新增依赖前先回答：
+新增或修改依赖后应使用 npm 更新 lockfile（如果仓库启用 lockfile）。
 
-- 浏览器 / React / 当前依赖是否已经提供？
-- 是否解决当前真实问题？
-- 是否引入第二个 owner？
-- 删除它是否会改变业务 Contract？
+## Git Hooks
 
-没有明确必要性，不新增依赖。
+当前不维护 Husky / lint-staged / commitlint gate。
 
-尤其不要默认引入：
+不要保留“依赖已经删除但 hook 还存在”的假门禁。
 
-- Zustand。
-- Redux。
-- TanStack Query。
-- 第二套路由。
-- 第二套 HTTP Client。
-- 第二个 linter / formatter。
+质量入口统一是：
+
+```bash
+npm run check
+npm run build
+```
 
 ## Tests
 
 当前 Yak Ops UI 没有重新建立前端测试 gate。
-
-不要在架构 / 脚手架 PR 中顺手恢复历史测试体系。
 
 需要测试时单独定义测试 Contract 和 Tooling，再进入 `npm run check`。
 
@@ -168,13 +195,4 @@ PR1 不切换 pnpm / yarn。
 
 提交或 PR 中只记录实际执行过的检查。
 
-允许：
-
-```text
-npm run typecheck: passed
-npm run build: passed
-```
-
-如果环境无法执行，应明确说明原因。
-
-禁止写没有实际执行的“CI passed / build passed”。
+如果环境无法执行，应明确说明原因，不得写没有实际执行的 “CI passed / build passed”。
