@@ -4,11 +4,12 @@ import { login } from "@/services/security/account";
 import { notifyOnce } from "@/utils/notifyOnce";
 import { resetAuthenticationFailure } from "@/utils/request";
 import { getSafeReturnTo } from "@/utils/security/redirect";
-import { history, useIntl, useModel } from "@umijs/max";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/app/providers/AuthProvider";
+import { useIntl } from "@/shared/i18n";
 import { Form, Input, Popover, type InputProps } from "antd";
 import { useForm } from "antd/es/form/Form";
 import { useState } from "react";
-import { flushSync } from "react-dom";
 
 const WECHAT_QR_CODE_SRC = "/wechat_qr.png";
 const FORM_ITEM_CLASS_NAME =
@@ -132,30 +133,14 @@ export default function LoginPanel() {
   const [loading, setLoading] = useState(false);
   const [form] = useForm();
 
-  const { initialState, setInitialState } = useModel("@@initialState");
   const intl = useIntl();
-
-  const fetchUserInfo = async () => {
-    const userInfo = await initialState?.fetchUserInfo?.();
-
-    if (userInfo) {
-      flushSync(() => {
-        setInitialState((state: any) => ({
-          ...state,
-          currentUser: userInfo,
-          currentUserLoadError: false,
-        }));
-      });
-    }
-
-    return userInfo;
-  };
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { refreshCurrentUser } = useAuth();
 
   const redirectAfterLogin = () => {
-    const requested = new URLSearchParams(window.location.search).get(
-      "returnTo",
-    );
-    history.replace(getSafeReturnTo(requested));
+    const requested = new URLSearchParams(location.search).get("returnTo");
+    navigate(getSafeReturnTo(requested), { replace: true });
   };
 
   const handleAccountLogin = async (values: {
@@ -170,7 +155,7 @@ export default function LoginPanel() {
         pw: values.userPassword,
       });
 
-      const userInfo = await fetchUserInfo();
+      const userInfo = await refreshCurrentUser();
       if (!userInfo) {
         notifyOnce("login-current-user-missing", {
           type: "error",
