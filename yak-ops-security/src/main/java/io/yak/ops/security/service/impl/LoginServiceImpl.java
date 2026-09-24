@@ -1,5 +1,7 @@
 package io.yak.ops.security.service.impl;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
@@ -40,25 +42,28 @@ public class LoginServiceImpl implements LoginService {
     private static final Integer USER_DISABLED_STATUS = 2;
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
-    private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
-    private final ObjectMapper objectMapper;
-    private final LoginAttemptGuard loginAttemptGuard;
-    private final YakSecurityProperties.LoginSecurityProperties loginProperties;
+    @Resource
+    private UserService userService;
 
-    public LoginServiceImpl(
-            UserService userService,
-            PasswordEncoder passwordEncoder,
-            YakSecurityProperties properties,
-            AuthenticationManager authenticationManager,
-            ObjectMapper objectMapper) {
-        this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.objectMapper = objectMapper;
-        this.loginProperties = properties.getLogin();
-        this.loginAttemptGuard = new LoginAttemptGuard(loginProperties);
+    @Resource
+    private PasswordEncoder passwordEncoder;
+
+    @Resource
+    private AuthenticationManager authenticationManager;
+
+    @Resource
+    private ObjectMapper objectMapper;
+
+    @Resource
+    private YakSecurityProperties properties;
+
+    private LoginAttemptGuard loginAttemptGuard;
+    private YakSecurityProperties.LoginSecurityProperties loginProperties;
+
+    @PostConstruct
+    void initializeLoginSecurity() {
+        loginProperties = properties.getLogin();
+        loginAttemptGuard = new LoginAttemptGuard(loginProperties);
     }
 
     @Override
