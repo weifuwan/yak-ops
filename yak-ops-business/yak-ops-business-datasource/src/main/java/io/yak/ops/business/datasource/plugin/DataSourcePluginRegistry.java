@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.plugin;
 
-import jakarta.annotation.Resource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
@@ -11,6 +10,7 @@ import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
@@ -26,6 +26,7 @@ public class DataSourcePluginRegistry {
 
     @Resource
     private ObjectMapper objectMapper;
+
     private Map<DataSourceDbType, DataSourcePlugin> plugins = Collections.emptyMap();
 
     @PostConstruct

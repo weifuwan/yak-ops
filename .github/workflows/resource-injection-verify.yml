@@ -1,0 +1,74 @@
+name: Resource Injection Verification
+
+on:
+  push:
+    branches:
+      - refactor/resource-injection-rule-migration-verify
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Verify injection conventions
+        shell: python
+        run: |
+          from pathlib import Path
+          stereotypes = ("@Service", "@Repository", "@Component", "@RestController", "@RestControllerAdvice", "@Configuration")
+          violations = []
+          for path in Path(".").rglob("*.java"):
+              if "yak-ops-ui" in path.parts:
+                  continue
+              text = path.read_text(encoding="utf-8")
+              if not any(item in text for item in stereotypes):
+                  continue
+              if "@RequiredArgsConstructor" in text:
+                  violations.append(f"{path}: @RequiredArgsConstructor")
+              if "@Autowired" in text:
+                  violations.append(f"{path}: @Autowired")
+          if violations:
+              raise SystemExit("\n".join(violations))
+
+      - name: Spotless apply
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
+          com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet -- '*.java'; then
+            echo "No formatting changes"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -u
+            git commit -m "style(java): apply Resource injection formatting"
+            git push origin HEAD:${{ github.ref_name }}
+            exit 0
+          fi
+
+      - name: Spotless check
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
+          com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
+
+      - name: Backend compile
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-ui,!yak-ops-dist'
+          compile

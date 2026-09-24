@@ -1,6 +1,5 @@
 package io.yak.ops.dao.repository.security.impl;
 
-import jakarta.annotation.Resource;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -10,6 +9,7 @@ import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.mapper.security.UserMapper;
 import io.yak.ops.dao.repository.impl.BaseRepositoryImpl;
 import io.yak.ops.dao.repository.security.UserRepository;
+import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;

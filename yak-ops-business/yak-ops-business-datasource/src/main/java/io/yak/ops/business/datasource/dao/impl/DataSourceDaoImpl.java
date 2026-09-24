@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.dao.impl;
 
-import jakarta.annotation.Resource;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -12,6 +11,7 @@ import io.yak.ops.business.datasource.dao.model.DataSourceSummaryRow;
 import io.yak.ops.common.bean.po.datasource.DataSourcePO;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
+import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Repository;

@@ -1,6 +1,5 @@
 package io.yak.ops.boot.controller.datasource.v1.converter;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
 import io.yak.ops.business.datasource.domain.DataSourceSummary;
@@ -10,6 +9,7 @@ import io.yak.ops.common.PagingData;
 import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
+import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.stereotype.Component;
 

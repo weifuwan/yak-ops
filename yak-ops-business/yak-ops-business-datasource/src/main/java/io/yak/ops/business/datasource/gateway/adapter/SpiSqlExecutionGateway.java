@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.gateway.adapter;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.gateway.SqlExecutionGateway;
 import io.yak.ops.spi.datasource.execution.DataSourceExecutionProvider;
@@ -8,6 +7,7 @@ import io.yak.ops.spi.datasource.execution.DataSourceSqlColumn;
 import io.yak.ops.spi.datasource.execution.DataSourceSqlExecutor;
 import io.yak.ops.spi.datasource.execution.DataSourceSqlRequest;
 import io.yak.ops.spi.datasource.execution.DataSourceSqlResult;
+import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.stereotype.Component;
 

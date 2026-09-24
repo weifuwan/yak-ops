@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.dao.impl;
 
-import jakarta.annotation.Resource;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -13,6 +12,7 @@ import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditQuery;
 import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditSummaryRow;
 import io.yak.ops.business.datasource.dao.model.SqlStatementExecutionAuditPO;
 import io.yak.ops.business.datasource.dao.model.SqlStatementTypeCountRow;
+import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.stereotype.Repository;
 
@@ -23,6 +23,7 @@ public class SqlExecutionAuditDaoImpl implements SqlExecutionAuditDao {
 
     @Resource
     private SqlExecutionAuditMapper executionMapper;
+
     @Resource
     private SqlStatementExecutionAuditMapper statementMapper;
 

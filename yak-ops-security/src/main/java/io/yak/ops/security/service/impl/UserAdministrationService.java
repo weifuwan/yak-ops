@@ -1,6 +1,5 @@
 package io.yak.ops.security.service.impl;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.exception.YakSecurityException;
@@ -8,6 +7,7 @@ import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.extend.PasswordEncoder;
+import jakarta.annotation.Resource;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

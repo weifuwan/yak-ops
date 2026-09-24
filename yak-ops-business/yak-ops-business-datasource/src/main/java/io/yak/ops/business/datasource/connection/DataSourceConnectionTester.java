@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.connection;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.connection.DataSourceConnectionResolver.ResolvedConnection;
@@ -10,6 +9,7 @@ import io.yak.ops.business.datasource.gateway.DataSourcePluginGateway;
 import io.yak.ops.business.datasource.query.DataSourceReader;
 import io.yak.ops.business.datasource.repository.DataSourceRepository;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 /** Executes saved and unsaved datasource connectivity probes. */
@@ -19,12 +19,16 @@ public class DataSourceConnectionTester {
 
     @Resource
     private DataSourceReader reader;
+
     @Resource
     private DataSourceRepository repository;
+
     @Resource
     private DataSourceConnectionResolver resolver;
+
     @Resource
     private DataSourcePluginGateway pluginGateway;
+
     @Resource
     private DataSourceProperties properties;
 

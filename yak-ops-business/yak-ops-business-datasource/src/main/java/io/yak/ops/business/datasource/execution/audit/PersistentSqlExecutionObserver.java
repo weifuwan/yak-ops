@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.execution.audit;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditPO;
 import io.yak.ops.business.datasource.dao.model.SqlStatementExecutionAuditPO;
@@ -11,6 +10,7 @@ import io.yak.ops.core.execution.sql.SqlFingerprint;
 import io.yak.ops.core.execution.sql.SqlStatementSnapshot;
 import io.yak.ops.core.execution.sql.SqlStatementStatus;
 import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;

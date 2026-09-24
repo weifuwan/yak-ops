@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.execution.audit;
 
-import jakarta.annotation.Resource;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.dao.SqlExecutionAuditDao;
@@ -9,6 +8,7 @@ import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditQuery;
 import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditSummaryRow;
 import io.yak.ops.business.datasource.dao.model.SqlStatementExecutionAuditPO;
 import io.yak.ops.common.PageData;
+import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.stereotype.Component;
 

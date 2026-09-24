@@ -1,12 +1,12 @@
 package io.yak.ops.business.datasource.query;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.domain.plugin.DataSourcePluginDescriptor;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.gateway.DataSourcePluginGateway;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 /** Reads datasource plugin capabilities through the business plugin gateway. */

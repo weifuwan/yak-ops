@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.gateway.adapter;
 
-import jakarta.annotation.Resource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -10,6 +9,7 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.security.SensitiveTextMasker;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor;
+import jakarta.annotation.Resource;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -38,6 +38,7 @@ public class DataSourceSecretCodec {
 
     @Resource
     private ObjectMapper objectMapper;
+
     @Resource
     private SensitiveTextMasker textMasker;
 

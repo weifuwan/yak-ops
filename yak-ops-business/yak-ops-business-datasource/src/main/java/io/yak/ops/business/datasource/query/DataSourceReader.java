@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.query;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
 import io.yak.ops.business.datasource.domain.DataSourceQuery;
@@ -10,6 +9,7 @@ import io.yak.ops.business.datasource.repository.DataSourceRepository;
 import io.yak.ops.common.PageData;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
+import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.stereotype.Component;
 

@@ -1,6 +1,5 @@
 package io.yak.ops.boot.controller.datasource.v1;
 
-import jakarta.annotation.Resource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.boot.controller.datasource.v1.converter.DataSourceRequestConverter;
@@ -18,6 +17,7 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -38,12 +38,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class DataSourceController {
     @Resource
     private DataSourceManager manager;
+
     @Resource
     private DataSourceReader reader;
+
     @Resource
     private DataSourceConnectionTester connectionTester;
+
     @Resource
     private DataSourceRequestConverter requestConverter;
+
     @Resource
     private DataSourceViewConverter viewConverter;
 

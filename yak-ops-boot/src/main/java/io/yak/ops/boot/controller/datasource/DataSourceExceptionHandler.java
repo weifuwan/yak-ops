@@ -1,12 +1,12 @@
 package io.yak.ops.boot.controller.datasource;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.boot.controller.datasource.v1.DataSourceController;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.security.SensitiveTextMasker;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;

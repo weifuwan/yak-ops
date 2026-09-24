@@ -1,9 +1,9 @@
 package io.yak.ops.business.datasource.catalog;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
+import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -25,6 +25,7 @@ public class DataSourceCatalogDiagnostics {
 
     @Resource
     private DataSourceProperties properties;
+
     private final ConcurrentMap<String, OperationAccumulator> operations = new ConcurrentHashMap<>();
     private final LongAdder cacheHits = new LongAdder();
     private final LongAdder cacheMisses = new LongAdder();

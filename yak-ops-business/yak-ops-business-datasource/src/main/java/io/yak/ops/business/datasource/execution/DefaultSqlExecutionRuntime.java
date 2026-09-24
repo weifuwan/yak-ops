@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.execution;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.execution.domain.SqlExecutionAggregate;
 import io.yak.ops.business.datasource.gateway.SqlExecutionGateway;
@@ -21,6 +20,7 @@ import io.yak.ops.core.execution.sql.SqlStatementClassifier;
 import io.yak.ops.core.execution.sql.SqlStatementRequest;
 import io.yak.ops.core.execution.sql.SqlTransactionMode;
 import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
 import java.sql.SQLTimeoutException;
 import java.util.ArrayList;
 import java.util.List;

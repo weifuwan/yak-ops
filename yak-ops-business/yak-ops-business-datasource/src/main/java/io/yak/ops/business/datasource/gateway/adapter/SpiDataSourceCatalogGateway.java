@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.gateway.adapter;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
@@ -27,6 +26,7 @@ import io.yak.ops.spi.datasource.metadata.DataSourceColumn;
 import io.yak.ops.spi.datasource.metadata.DataSourceTable;
 import io.yak.ops.spi.datasource.query.DataSourceQueryColumn;
 import io.yak.ops.spi.datasource.query.DataSourceQueryResult;
+import jakarta.annotation.Resource;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;

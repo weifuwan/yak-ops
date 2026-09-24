@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.gateway.adapter;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.domain.ConnectionProfile;
 import io.yak.ops.business.datasource.domain.plugin.DataSourcePluginDescriptor;
@@ -14,6 +13,7 @@ import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourceConnection;
 import io.yak.ops.spi.datasource.DataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginException;
+import jakarta.annotation.Resource;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +24,7 @@ public class SpiDataSourcePluginGateway implements DataSourcePluginGateway {
 
     @Resource
     private DataSourcePluginRegistry pluginRegistry;
+
     @Resource
     private DataSourceSecretCodec secretCodec;
 

@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.execution.adapter;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
@@ -12,6 +11,7 @@ import io.yak.ops.spi.datasource.DataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginException;
 import io.yak.ops.spi.datasource.execution.DataSourceExecutionProvider;
 import io.yak.ops.spi.datasource.execution.DataSourceSqlExecutor;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 /** Outward Task-Plugin adapter that resolves platform datasource IDs to SQL executors. */
