@@ -3,7 +3,7 @@ name: Backend Formatter
 on:
   pull_request:
     branches:
-      - main
+      - style/backend-mechanical-cleanup
     paths:
       - "**/*.java"
       - "pom.xml"
