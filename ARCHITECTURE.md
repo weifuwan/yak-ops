@@ -21,33 +21,27 @@ A module or layer exists only when it owns a real boundary.
 
 ### `yak-ops-common`
 
-Owns shared Datasource-facing DTO / VO / PO / enum / constant and small reusable infrastructure.
+Owns shared Datasource DTO / VO / PO / enum / constant and small reusable infrastructure.
 
-It also owns the unified `io.yak.framework.common` Result / ErrorCode / BusinessException / PageData contracts migrated from Yak Framework. The package name is temporarily preserved for Yak Security binary compatibility.
-
-Legacy non-Datasource residue that still exists in Common is not an approved extension point. Do not add new code to those areas.
+It also owns the unified `io.yak.framework.common` Result / ErrorCode / BusinessException / PageData contracts migrated from Yak Framework.
 
 ### `yak-ops-spi`
 
-Reserved extension boundary.
+Reserved minimal extension boundary.
 
-Current Datasource plugin contracts do not live here; they live in `yak-ops-plugin-datasource-api`.
-
-Do not add a new SPI here unless a concrete cross-module extension contract requires it.
+Datasource plugin contracts live in `yak-ops-plugin-datasource-api`.
 
 ### `yak-ops-core`
 
 Reserved empty module.
 
-It currently has no production code.
-
-Do not move code into Core merely because it looks reusable or because another class is large. A future Core capability must first prove an independent lifecycle or stable runtime contract.
+Do not move code here merely because it looks reusable or because another class is long.
 
 ### `yak-ops-business/yak-ops-business-datasource`
 
 Owns the Datasource domain end to end:
 
-- HTTP controllers for Datasource capabilities
+- HTTP controllers
 - business rules and commands
 - queries
 - connection behavior
@@ -56,26 +50,15 @@ Owns the Datasource domain end to end:
 - persistence
 - repository / DAO / mapper
 - Datasource Flyway migrations
-- Datasource-specific security and exceptions
+- Datasource security and exceptions
 
-The module currently also contains the SQL Execution and Project Context contracts migrated out of the old Core module. Their Java package still uses `io.yak.ops.core.*`; this is a naming residue, not a separate module boundary.
+SQL Execution and Project Context physically live here even though some Java packages still use `io.yak.ops.core.*`.
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
 Owns Datasource extension contracts and concrete datasource implementations.
 
-Submodules:
-
-```text
-yak-ops-plugin-datasource-api
-yak-ops-plugin-datasource-jdbc
-yak-ops-plugin-datasource-doris
-yak-ops-plugin-datasource-elasticsearch
-yak-ops-plugin-datasource-mongodb
-yak-ops-plugin-datasource-all
-```
-
-`api` owns stable plugin contracts. Concrete providers depend on the API. Business code must not depend on a concrete provider implementation.
+`api` owns stable provider contracts. Concrete providers depend on the API. Business code must not depend on concrete provider implementations.
 
 ### `yak-ops-boot`
 
@@ -86,8 +69,6 @@ Owns final application assembly and global application boundaries:
 - health
 - global compatibility/controller endpoints
 - Project Space runtime and security integration
-
-Datasource product controllers currently live in the Datasource business module. Do not move them to Boot only for symmetry.
 
 ### `yak-ops-ui`
 
@@ -109,13 +90,9 @@ Yak Ops no longer imports `yak-framework-parent`.
 
 The only remaining active Yak Framework runtime dependency is Yak Security.
 
-`yak-common` is internalized into `yak-ops-common`. Unused Yak Schedule dependencies are removed.
-
-Yak Security must exclude its transitive external `yak-common` so runtime uses the in-repository compatibility classes.
+`yak-common` is internalized into `yak-ops-common`.
 
 ## Dependency Direction
-
-Current active dependency direction is approximately:
 
 ```text
 UI
@@ -136,16 +113,7 @@ Core = reserved empty module
 SPI  = reserved minimal module
 ```
 
-Rules:
-- Datasource Business must not depend on concrete datasource provider implementations.
-- Provider implementations depend on the Datasource Plugin API, not on Datasource Business internals.
-- Common must not own Datasource business orchestration.
-- Boot assembles the application; it must not become a second Datasource business layer.
-- Core and SPI are not default destinations for new code.
-
 ## Datasource Internal Ownership
-
-Use package ownership before creating new layers:
 
 ```text
 controller   HTTP contract
@@ -163,43 +131,6 @@ security     Datasource-specific security
 exception    Datasource error mapping
 ```
 
-Package names describe current owners. Do not add a new package role because another architecture uses one.
-
-## Transport Boundary
-
-Datasource HTTP controllers currently live in the Datasource module.
-
-Controllers own protocol conversion only. Domain decisions belong to the Datasource owner behind them.
-
-Boot owns application-wide transport concerns, not Datasource business policy.
-
-## Persistence Boundary
-
-Datasource persistence stays inside the Datasource module:
-
-```text
-Repository
-→ DAO / Mapper
-→ MyBatis / SQL
-→ Flyway-owned schema
-```
-
-Simple persistence should stay simple. Do not add forwarding layers without behavior.
-
-## Plugin Boundary
-
-`yak-ops-plugin-datasource-api` is the stable provider contract.
-
-Must:
-- keep provider-specific driver/config behavior in provider modules
-- keep business policy in Datasource Business
-- keep contracts provider-neutral
-
-Must Not:
-- import concrete provider implementations from Business
-- let one provider's protocol define the general Datasource contract
-- add a second plugin abstraction when the current API already expresses the capability
-
 ## Refactor Rule
 
 Architecture changes migrate current facts; they do not rebuild the product from scratch.
@@ -210,9 +141,9 @@ Before moving code:
 Capability Contract
 → current ownership
 → nearest RULES
-→ current code + tests
+→ current code
 → minimal migration
-→ verification
+→ explicit verification
 ```
 
 Do not split classes, add modules, or introduce roles only because a file is long.

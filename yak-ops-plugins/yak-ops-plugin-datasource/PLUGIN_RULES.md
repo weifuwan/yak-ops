@@ -6,7 +6,6 @@ Scope:
 Depends On:
 - `/ARCHITECTURE.md`
 - `/JAVA_RULES.md`
-- `/BACKEND_TEST_RULES.md`
 
 Owns:
 - stable Datasource provider contract
@@ -44,7 +43,7 @@ yak-ops-plugin-datasource-all
 - expose stable capability and connection contracts.
 - avoid Datasource Business implementation types.
 - avoid concrete driver classes.
-- keep default methods only when they preserve a stable backward-compatible contract.
+- keep default methods only when they preserve a stable contract.
 
 Do not add a second Datasource plugin contract in `yak-ops-spi`.
 
@@ -63,21 +62,10 @@ Must Not:
 - call Datasource Repository / DAO.
 - special-case one provider inside Business when the behavior belongs in that provider.
 - add generic abstractions used by only one provider without a clear boundary.
+- recreate deleted test modules or fixtures as a side effect.
 
 ## Aggregation
 
 `yak-ops-plugin-datasource-all` only assembles built-in providers.
 
 It must not own business behavior or duplicate provider logic.
-
-## Tests
-
-Prefer deterministic tests for:
-- descriptor / capability declarations
-- connection parsing
-- JDBC URL/property behavior
-- catalog mapping
-- execution adapter behavior
-- provider error mapping
-
-Do not require real external vendor services in normal unit tests.
