@@ -24,10 +24,10 @@ jobs:
           cache: maven
 
       - name: Apply formatter
-        run: bash mvnw -q -DskipTests spotless:apply
+        run: bash mvnw -q -DskipTests com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
 
       - name: Verify formatter
-        run: bash mvnw -q -DskipTests spotless:check
+        run: bash mvnw -q -DskipTests com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
 
       - name: Commit formatter output
         run: |
