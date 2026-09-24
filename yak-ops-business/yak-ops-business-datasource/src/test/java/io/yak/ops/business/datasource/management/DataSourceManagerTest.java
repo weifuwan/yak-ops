@@ -3,15 +3,9 @@ package io.yak.ops.business.datasource.management;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.yak.ops.business.audit.AuditEventType;
-import io.yak.ops.business.audit.AuditOperationHandle;
-import io.yak.ops.business.audit.AuditOperationRequest;
-import io.yak.ops.business.audit.BusinessAuditService;
 import io.yak.ops.business.datasource.connection.DataSourceConnectionResolver;
 import io.yak.ops.business.datasource.domain.ConnectionProfile;
 import io.yak.ops.business.datasource.domain.DataSourceChangedEvent;
@@ -21,8 +15,6 @@ import io.yak.ops.business.datasource.repository.DataSourceRepository;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
-import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -37,16 +29,9 @@ class DataSourceManagerTest {
   @Mock private DataSourceReader reader;
   @Mock private DataSourceConnectionResolver connectionResolver;
   @Mock private ApplicationEventPublisher eventPublisher;
-  @Mock private BusinessAuditService auditService;
-  @Mock private AuditOperationHandle auditOperation;
-
-  @BeforeEach
-  void setUpAudit() {
-    when(auditService.start(any(AuditOperationRequest.class))).thenReturn(auditOperation);
-  }
 
   @Test
-  void createBuildsAggregateFromNormalizedConnectionProfileAndAuditsLifecycle() {
+  void createBuildsAggregateFromNormalizedConnectionProfile() {
     DataSourceConfigurationCommand command =
         new DataSourceConfigurationCommand(
             "orders-db",
@@ -70,13 +55,10 @@ class DataSourceManagerTest {
     verify(repository).insert(captor.capture());
     assertThat(captor.getValue().getName()).isEqualTo("orders-db");
     assertThat(captor.getValue().getConnStatus()).isEqualTo(DataSourceConnStatus.UNKNOWN);
-    verify(auditOperation)
-        .event(eq(AuditEventType.RESOURCE_CREATED), eq("Datasource created"), anyMap());
-    verify(auditOperation).success("Datasource created");
   }
 
   @Test
-  void updatePublishesDatasourceChangedEventAndNeverAuditsCredentialValues() {
+  void updatePublishesDatasourceChangedEvent() {
     DataSourceConfigurationCommand command =
         new DataSourceConfigurationCommand(
             "orders-db-v2",
@@ -111,23 +93,10 @@ class DataSourceManagerTest {
     ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
     verify(eventPublisher).publishEvent(eventCaptor.capture());
     assertThat(eventCaptor.getValue()).isEqualTo(new DataSourceChangedEvent(42L));
-
-    @SuppressWarnings("unchecked")
-    ArgumentCaptor<Map<String, ?>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
-    verify(auditOperation)
-        .event(
-            eq(AuditEventType.RESOURCE_UPDATED),
-            eq("Datasource configuration updated"),
-            payloadCaptor.capture());
-    String payload = payloadCaptor.getValue().toString();
-    assertThat(payload)
-        .contains("connectionChanged=true", "credentialChanged=true")
-        .doesNotContain("new-super-secret", "old-secret", "password", "jdbc:mysql");
-    verify(auditOperation).success("Datasource updated");
   }
 
   @Test
-  void failedCreateMarksAuditOperationFailedAndRethrowsBusinessError() {
+  void failedCreateRethrowsBusinessError() {
     DataSourceConfigurationCommand command =
         new DataSourceConfigurationCommand(
             "orders-db",
@@ -145,12 +114,9 @@ class DataSourceManagerTest {
     when(repository.insert(any(DataSourceDefinition.class))).thenReturn(false);
 
     assertThatThrownBy(() -> manager().create(command)).isInstanceOf(RuntimeException.class);
-
-    verify(auditOperation).failure(eq("DATASOURCE_CREATE_FAILED"), any(RuntimeException.class));
   }
 
   private DataSourceManager manager() {
-    return new DataSourceManager(
-        repository, reader, connectionResolver, eventPublisher, auditService);
+    return new DataSourceManager(repository, reader, connectionResolver, eventPublisher);
   }
 }

@@ -26,10 +26,6 @@
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-business-audit</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-datasource</artifactId>
         </dependency>
         <!-- Datasource Focus Mode: disabled module
