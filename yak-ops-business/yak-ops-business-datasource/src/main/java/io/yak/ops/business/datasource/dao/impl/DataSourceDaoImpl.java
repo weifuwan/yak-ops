@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.dao.impl;
 
+import jakarta.annotation.Resource;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -13,17 +14,16 @@ import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import java.util.List;
 import java.util.Objects;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 /** MyBatis DataSource DAO. */
 @Repository
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceDaoImpl implements DataSourceDao {
 
-    private final DataSourceMapper dataSourceMapper;
+    @Resource
+    private DataSourceMapper dataSourceMapper;
 
     @Override
     public int addDataSource(DataSourcePO dataSourcePO) {
