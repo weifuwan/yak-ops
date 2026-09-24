@@ -2,7 +2,7 @@ package io.yak.ops.business.datasource.catalog;
 
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
-import io.yak.ops.business.datasource.domain.DataSourceDefinition;
+import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -17,7 +17,12 @@ import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/** Lightweight in-process observability for physical datasource Catalog reads. */
+/**
+ * 记录 Catalog 元数据访问的耗时、失败和缓存命中情况，用于定位慢数据源。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Slf4j
 @Component
 @ConditionalOnDataSourceEnabled
@@ -30,7 +35,7 @@ public class DataSourceCatalogDiagnostics {
     private final LongAdder cacheHits = new LongAdder();
     private final LongAdder cacheMisses = new LongAdder();
 
-    public <T> T observe(DataSourceDefinition definition, String operation, Supplier<T> action) {
+    public <T> T observe(DataSourceEntity entity, String operation, Supplier<T> action) {
         long startedAt = System.nanoTime();
         boolean failed = false;
         try {
@@ -39,17 +44,13 @@ public class DataSourceCatalogDiagnostics {
             failed = true;
             throw exception;
         } finally {
-            long durationNanos = Math.max(0L, System.nanoTime() - startedAt);
-            record(definition, operation, durationNanos, failed);
+            record(entity, operation, Math.max(0L, System.nanoTime() - startedAt), failed);
         }
     }
 
     public void recordCacheLookup(boolean hit) {
-        if (hit) {
-            cacheHits.increment();
-        } else {
-            cacheMisses.increment();
-        }
+        if (hit) cacheHits.increment();
+        else cacheMisses.increment();
     }
 
     public Snapshot snapshot() {
@@ -70,21 +71,20 @@ public class DataSourceCatalogDiagnostics {
         cacheMisses.reset();
     }
 
-    private void record(DataSourceDefinition definition, String operation, long durationNanos, boolean failed) {
+    private void record(DataSourceEntity entity, String operation, long durationNanos, boolean failed) {
         String operationName = operation == null || operation.isBlank() ? "unknown" : operation;
         long thresholdMs = Math.max(1L, properties.getCatalog().getSlowOperationThresholdMillis());
         long durationMs = TimeUnit.NANOSECONDS.toMillis(durationNanos);
         boolean slow = durationMs >= thresholdMs;
-
         operations
                 .computeIfAbsent(operationName, ignored -> new OperationAccumulator())
                 .record(durationNanos, failed, slow, durationMs);
 
         if (slow) {
-            String dbType = definition == null || definition.getDbType() == null
+            String dbType = entity == null || entity.getDbType() == null
                     ? "UNKNOWN"
-                    : definition.getDbType().name();
-            Long dataSourceId = definition == null ? null : definition.getId();
+                    : entity.getDbType().name();
+            Long dataSourceId = entity == null ? null : entity.getId();
             log.warn(
                     "Slow datasource catalog operation operation={} dataSourceId={} dbType={} durationMs={} thresholdMs={} failed={}",
                     operationName,
@@ -96,8 +96,32 @@ public class DataSourceCatalogDiagnostics {
         }
     }
 
+    /**
+     * Catalog 运行诊断快照。
+     *
+     * @param cacheHits 缓存命中次数
+     * @param cacheMisses 缓存未命中次数
+     * @param cacheHitRate 缓存命中率
+     * @param operations 各元数据操作统计
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     public record Snapshot(long cacheHits, long cacheMisses, double cacheHitRate, List<OperationSnapshot> operations) {}
 
+    /**
+     * 单个 Catalog 操作的聚合统计。
+     *
+     * @param operation 操作名称
+     * @param total 调用总次数
+     * @param failures 失败次数
+     * @param slow 慢调用次数
+     * @param averageDurationMs 平均耗时毫秒
+     * @param maxDurationMs 最大耗时毫秒
+     * @param lastSlowDurationMs 最近一次慢调用耗时毫秒
+     * @param lastSlowTime 最近一次慢调用时间
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     public record OperationSnapshot(
             String operation,
             long total,
@@ -108,6 +132,12 @@ public class DataSourceCatalogDiagnostics {
             Long lastSlowDurationMs,
             LocalDateTime lastSlowTime) {}
 
+    /**
+     * 线程安全地累计单个 Catalog 操作的运行指标。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     private static final class OperationAccumulator {
         private final LongAdder total = new LongAdder();
         private final LongAdder failures = new LongAdder();
