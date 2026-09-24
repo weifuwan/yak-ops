@@ -109,7 +109,9 @@ api
 - App 全局 reset / font / viewport 归 `apps/web/src/app/styles`。
 - Product 私有视觉归对应 package。
 - 不使用全局位置选择器改写业务 package 内部结构。
-- PR1 仍允许 Ant Design 作为迁移期依赖；删除 AntD 属于后续独立 PR。
+- Ant Design 只允许存在于当前 migration bridge 的存量代码；新代码不得新增 AntD / @ant-design/icons 依赖或引用。
+- Yak UI replacement set 已覆盖当前去 AntD 所需的通用 Primitive；业务迁移优先使用 `@yak-ops/yak-ui`。
+- Form 状态、动态 Schema、上传协议等业务能力归 owning package，不通过 Yak UI 重建 AntD 式万能 API。
 - 新增通用 Primitive 不再基于 Ant Design 二次封装。
 
 ## Validation

@@ -1,6 +1,7 @@
 import type { Button as BaseButtonNS } from "@base-ui/react/button";
 import { Button as BaseButton } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
+import { forwardRef, type ForwardedRef } from "react";
 
 import { cn } from "../cn";
 
@@ -31,26 +32,30 @@ export const buttonVariants = cva(
   },
 );
 
-export type ButtonProps = Omit<BaseButtonNS.Props, "className"> &
+export type ButtonProps = Omit<BaseButtonNS.Props, "className" | "ref"> &
   VariantProps<typeof buttonVariants> & {
     className?: string;
     loading?: boolean;
   };
 
-export function Button({
-  children,
-  className,
-  disabled,
-  focusableWhenDisabled,
-  loading = false,
-  size,
-  type = "button",
-  variant,
-  ...props
-}: ButtonProps) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    children,
+    className,
+    disabled,
+    focusableWhenDisabled,
+    loading = false,
+    size,
+    type = "button",
+    variant,
+    ...props
+  },
+  ref,
+) {
   return (
     <BaseButton
       {...props}
+      ref={ref as ForwardedRef<HTMLElement>}
       type={type}
       disabled={disabled || loading}
       focusableWhenDisabled={focusableWhenDisabled ?? loading}
@@ -66,4 +71,6 @@ export function Button({
       ) : null}
     </BaseButton>
   );
-}
+});
+
+Button.displayName = "Button";
