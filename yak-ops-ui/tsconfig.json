@@ -29,9 +29,6 @@
       ],
       "@yak-ops/yak-ui/*": [
         "packages/yak-ui/src/*"
-      ],
-      "@yak-ops/datasource": [
-        "packages/datasource/src/index.tsx"
       ]
     },
     "types": [

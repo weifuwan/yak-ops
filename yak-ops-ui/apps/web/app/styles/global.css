@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "../../../../packages/yak-ui/src/styles.css";
 
-@source "../../../../packages/datasource/src";
+@source "../datasource";
 @source "../../../../packages/yak-ui/src";
 @source "../../";
 

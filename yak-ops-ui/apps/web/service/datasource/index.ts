@@ -1,4 +1,4 @@
 export * from './api';
 export * from './catalog';
 export * from './driver';
-export type * from '../model/types';
+export type * from '@/app/datasource/model/types';

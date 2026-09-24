@@ -1,7 +1,7 @@
 import {
   getDataSourcePluginConfig,
   installDataSourcePlugin,
-} from '../api';
+} from '@/service/datasource';
 import type { DataSourceFormInstance } from '../editor/formRuntime';
 import {
   useCallback,
