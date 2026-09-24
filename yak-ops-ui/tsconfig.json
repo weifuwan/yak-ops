@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -17,12 +21,25 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["apps/web/*"],
-      "@yak-ops/yak-ui": ["packages/yak-ui/src/index.ts"],
-      "@yak-ops/yak-ui/*": ["packages/yak-ui/src/*"],
-      "@yak-ops/datasource": ["packages/datasource/src/index.tsx"]
+      "@/*": [
+        "apps/web/*"
+      ],
+      "@yak-ops/yak-ui": [
+        "packages/yak-ui/src/index.ts"
+      ],
+      "@yak-ops/yak-ui/*": [
+        "packages/yak-ui/src/*"
+      ],
+      "@yak-ops/datasource": [
+        "packages/datasource/src/index.tsx"
+      ]
     },
-    "types": ["vite/client"]
+    "types": [
+      "vite/client"
+    ]
   },
-  "include": ["apps", "packages"]
+  "include": [
+    "apps",
+    "packages"
+  ]
 }

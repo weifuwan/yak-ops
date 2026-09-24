@@ -23,6 +23,9 @@ export const uploadDataSourceDriver = async (
   const driverLocation =
     typeof data === 'string' ? data : data?.path || data?.fileName || '';
 
-  if (!driverLocation) throw new Error('驱动包上传成功，但服务端未返回驱动位置');
+  if (!driverLocation) {
+    throw new Error('驱动包上传成功，但服务端未返回驱动位置');
+  }
+
   return driverLocation;
 };
