@@ -1,4 +1,4 @@
-import HttpUtils from "@/utils/HttpUtils";
+import HttpUtils from "@/service/http/HttpUtils";
 
 import type {
   AuthUser,

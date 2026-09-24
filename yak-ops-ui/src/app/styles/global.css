@@ -2,9 +2,6 @@
 
 @source "../../pages/login";
 @source "../../pages/data-source";
-@source "../../components/YakButton";
-@source "../../components/YakTab";
-@source "../../components/data-source";
 @source "../";
 
 @font-face {
@@ -12,7 +9,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("../../assets/yak-ops.woff2") format("woff2");
+  src: url("./fonts/yak-ops.woff2") format("woff2");
 }
 
 @font-face {
@@ -20,7 +17,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("../../assets/web.woff2") format("woff2");
+  src: url("./fonts/web.woff2") format("woff2");
 }
 
 :root {
