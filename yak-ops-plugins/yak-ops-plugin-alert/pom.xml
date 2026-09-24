@@ -19,7 +19,7 @@
 
     <modules>
         <module>yak-ops-plugin-alert-api</module>
-        <module>yak-ops-plugin-alert-dingtalk</module>
-        <module>yak-ops-plugin-alert-all</module>
+        <!-- <module>yak-ops-plugin-alert-dingtalk</module> -->
+        <!-- <module>yak-ops-plugin-alert-all</module> -->
     </modules>
 </project>
