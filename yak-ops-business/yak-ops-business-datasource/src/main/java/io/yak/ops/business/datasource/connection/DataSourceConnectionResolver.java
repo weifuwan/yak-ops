@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.connection;
 
+import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.domain.ConnectionProfile;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
@@ -7,16 +8,15 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.gateway.DataSourcePluginGateway;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** Resolves raw connection input into a plugin-normalized business connection profile. */
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceConnectionResolver {
 
-    private final DataSourcePluginGateway pluginGateway;
+    @Resource
+    private DataSourcePluginGateway pluginGateway;
 
     public ConnectionProfile normalize(DataSourceDbType dbType, String connectionJson) {
         return pluginGateway.normalizeConnection(dbType, connectionJson);
