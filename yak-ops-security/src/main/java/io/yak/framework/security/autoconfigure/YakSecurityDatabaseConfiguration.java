@@ -1,7 +1,7 @@
 package io.yak.framework.security.autoconfigure;
 
 import io.yak.framework.security.config.DataSourceConfig;
-import io.yak.framework.security.dao.impl.UserDaoImpl;
+import io.yak.ops.dao.repository.security.impl.UserRepositoryImpl;
 import io.yak.framework.security.service.impl.LoginServiceImpl;
 import io.yak.framework.security.service.impl.UserAdministrationService;
 import io.yak.framework.security.service.impl.UserServiceImpl;
@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Import;
     matchIfMissing = true)
 @Import({
     DataSourceConfig.class,
-    UserDaoImpl.class,
+    UserRepositoryImpl.class,
     UserServiceImpl.class,
     UserAdministrationService.class,
     LoginServiceImpl.class,

@@ -2,7 +2,7 @@ package io.yak.ops.boot.controller.security;
 
 import io.yak.framework.common.ErrorCode;
 import io.yak.framework.common.Result;
-import io.yak.framework.security.common.enums.ResultCode;
+import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.framework.security.exception.YakSecurityException;
 import io.yak.ops.boot.controller.security.v1.LoginController;
 import org.slf4j.Logger;

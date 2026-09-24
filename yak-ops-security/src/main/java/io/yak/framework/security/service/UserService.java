@@ -2,11 +2,11 @@ package io.yak.framework.security.service;
 
 import io.yak.framework.common.PagingData;
 import io.yak.framework.common.Result;
-import io.yak.framework.security.common.dto.user.UserDTO;
-import io.yak.framework.security.common.dto.user.UserQueryDTO;
+import io.yak.ops.common.bean.dto.security.user.UserDTO;
+import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.framework.security.common.entity.user.User;
-import io.yak.framework.security.common.vo.user.UserBriefVO;
-import io.yak.framework.security.common.vo.user.UserVO;
+import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
+import io.yak.ops.common.bean.vo.security.user.UserVO;
 import java.util.List;
 
 /** User management capability used by the current user/login HTTP APIs. */

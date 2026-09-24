@@ -1,22 +1,21 @@
 package io.yak.framework.security.service.impl;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.framework.common.PageData;
 import io.yak.framework.common.PagingData;
 import io.yak.framework.common.Result;
-import io.yak.framework.security.common.dto.user.UserDTO;
-import io.yak.framework.security.common.dto.user.UserQueryDTO;
 import io.yak.framework.security.common.entity.user.User;
-import io.yak.framework.security.common.enums.ResultCode;
-import io.yak.framework.security.common.enums.user.UserCheckType;
-import io.yak.framework.security.common.po.UserPO;
-import io.yak.framework.security.common.vo.user.UserBriefVO;
-import io.yak.framework.security.common.vo.user.UserVO;
-import io.yak.framework.security.dao.UserDao;
 import io.yak.framework.security.exception.YakSecurityException;
 import io.yak.framework.security.extend.PasswordEncoder;
 import io.yak.framework.security.service.UserService;
 import io.yak.framework.security.util.CopyBeanUtil;
+import io.yak.ops.common.bean.dto.security.user.UserDTO;
+import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
+import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
+import io.yak.ops.common.bean.vo.security.user.UserVO;
+import io.yak.ops.common.enums.security.ResultCode;
+import io.yak.ops.common.enums.security.user.UserCheckType;
+import io.yak.ops.dao.entity.security.UserEntity;
+import io.yak.ops.dao.repository.security.UserRepository;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -38,11 +37,11 @@ public class UserServiceImpl implements UserService {
   private static final Pattern USER_MAIL_PATTERN = Pattern.compile(
       "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$");
 
-  private final UserDao userDao;
+  private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
 
-  public UserServiceImpl(UserDao userDao, PasswordEncoder passwordEncoder) {
-    this.userDao = userDao;
+  public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
   }
 
@@ -62,11 +61,12 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public PagingData<UserVO> getUserPage(UserQueryDTO queryDTO) {
-    IPage<User> page = userDao.selectPage(queryDTO);
-    List<UserVO> records = CopyBeanUtil.copyList(page.getRecords(), UserVO.class);
-    records.forEach(this::privacyProcessing);
-    return PagingData.from(new PageData<>(
-        records, page.getTotal(), page.getPages(), page.getCurrent(), page.getSize()));
+    UserQueryDTO query = queryDTO == null ? new UserQueryDTO() : queryDTO;
+    PageData<UserEntity> page = userRepository.queryPage(
+        query.getId(), query.getUserName(), query.getRealName(), query.getPage(), query.getSize());
+    PageData<UserVO> result = page.map(entity -> CopyBeanUtil.copy(entity, UserVO.class));
+    result.records().forEach(this::privacyProcessing);
+    return PagingData.from(result);
   }
 
   @Override
@@ -80,36 +80,35 @@ public class UserServiceImpl implements UserService {
   @Override
   public Result<Void> deleteByUserId(Long userId) {
     requireUser(userId);
-    return userDao.deleteByUserId(userId)
+    return userRepository.deleteById(userId) > 0
         ? Result.success()
         : Result.fail(ResultCode.USER_ACCOUNT_UPDATE_FAIL);
   }
 
   @Override
   public UserBriefVO getUserBriefByUsername(String username) {
-    return CopyBeanUtil.copy(userDao.selectByUsername(username), UserBriefVO.class);
+    return CopyBeanUtil.copy(userRepository.queryByUsername(username).orElse(null), UserBriefVO.class);
   }
 
   @Override
   public User getUserByUsername(String username) {
-    return userDao.selectByUsername(username);
+    return toUser(userRepository.queryByUsername(username).orElse(null));
   }
 
   @Override
   public List<UserBriefVO> getUserBriefListByUserIds(List<Long> userIds) {
     if (userIds == null || userIds.isEmpty()) return Collections.emptyList();
-    return CopyBeanUtil.copyList(userDao.selectListByUserIdList(userIds), UserBriefVO.class);
+    return CopyBeanUtil.copyList(userRepository.queryByIds(userIds), UserBriefVO.class);
   }
 
   @Override
   public List<UserBriefVO> searchUserBriefList(String keyword) {
-    return CopyBeanUtil.copyList(
-        userDao.selectListByNameAndDescOrderByCreateTime(keyword), UserBriefVO.class);
+    return CopyBeanUtil.copyList(userRepository.queryByName(keyword), UserBriefVO.class);
   }
 
   @Override
   public List<UserBriefVO> getAllUserBriefList() {
-    return CopyBeanUtil.copyList(userDao.selectAllList(), UserBriefVO.class);
+    return CopyBeanUtil.copyList(userRepository.queryList(), UserBriefVO.class);
   }
 
   @Override
@@ -126,11 +125,11 @@ public class UserServiceImpl implements UserService {
     if (uniqueResult.failed()) return uniqueResult;
 
     try {
-      UserPO userPO = toUserPO(userDTO);
-      userPO.setPw(passwordEncoder.encode(userDTO.getPw()));
-      if (userDao.addUser(userPO) != 1) return Result.fail(ResultCode.USER_ACCOUNT_INSERT_FAIL);
+      UserEntity user = toUserEntity(userDTO);
+      user.setPw(passwordEncoder.encode(userDTO.getPw()));
+      userRepository.add(user);
       LOGGER.info("新增用户成功，用户ID={}，用户名={}，操作人={}",
-          userPO.getId(), userPO.getUserName(), operator);
+          user.getId(), user.getUserName(), operator);
       return Result.success();
     } catch (YakSecurityException exception) {
       throw exception;
@@ -147,7 +146,7 @@ public class UserServiceImpl implements UserService {
     Result<Void> checkResult = checkUserParam(userDTO, false);
     if (checkResult.failed()) return checkResult;
 
-    User current = userDao.selectByUsername(userDTO.getUserName());
+    User current = getUserByUsername(userDTO.getUserName());
     if (current == null) return Result.fail(ResultCode.USER_ACCOUNT_NOT_EXIST);
 
     Result<Void> uniqueResult = userPhoneCheck(userDTO.getPhone(), current.getId());
@@ -156,14 +155,14 @@ public class UserServiceImpl implements UserService {
     if (uniqueResult.failed()) return uniqueResult;
 
     try {
-      UserPO userPO = toUserPO(userDTO);
-      userPO.setId(current.getId());
-      userPO.setPw(StringUtils.hasText(userDTO.getPw())
+      UserEntity user = toUserEntity(userDTO);
+      user.setId(current.getId());
+      user.setPw(StringUtils.hasText(userDTO.getPw())
           ? passwordEncoder.encode(userDTO.getPw())
           : null);
-      if (userDao.editUser(userPO) != 1) return Result.fail(ResultCode.USER_ACCOUNT_UPDATE_FAIL);
+      userRepository.update(user);
       LOGGER.info("编辑用户成功，用户ID={}，用户名={}，操作人={}",
-          userPO.getId(), userPO.getUserName(), operator);
+          user.getId(), user.getUserName(), operator);
       return Result.success();
     } catch (YakSecurityException exception) {
       throw exception;
@@ -177,21 +176,24 @@ public class UserServiceImpl implements UserService {
   @Override
   public Result<List<UserVO>> getUserDetailsByUserIds(List<Long> userIds) {
     if (userIds == null || userIds.isEmpty()) return Result.success(Collections.emptyList());
-    List<UserVO> users = CopyBeanUtil.copyList(
-        userDao.selectListByUserIdList(userIds), UserVO.class);
+    List<UserVO> users = CopyBeanUtil.copyList(userRepository.queryByIds(userIds), UserVO.class);
     users.forEach(this::privacyProcessing);
     return Result.success(users);
   }
 
   private User requireUser(Long userId) {
     if (userId == null) throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
-    User user = userDao.selectByUserId(userId);
+    User user = toUser(userRepository.queryById(userId).orElse(null));
     if (user == null) throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
     return user;
   }
 
-  private UserPO toUserPO(UserDTO source) {
-    UserPO target = new UserPO();
+  private User toUser(UserEntity source) {
+    return CopyBeanUtil.copy(source, User.class);
+  }
+
+  private UserEntity toUserEntity(UserDTO source) {
+    UserEntity target = new UserEntity();
     target.setUserName(source.getUserName().trim());
     target.setRealName(normalize(source.getRealName()));
     target.setPhone(normalize(source.getPhone()));
@@ -215,7 +217,7 @@ public class UserServiceImpl implements UserService {
         || !USER_NAME_PATTERN.matcher(username.trim()).matches()) {
       return Result.fail(ResultCode.USER_NAME_FORMAT_ERROR);
     }
-    User existing = userDao.selectByUsername(username.trim());
+    UserEntity existing = userRepository.queryByUsername(username.trim()).orElse(null);
     return existing != null && !Objects.equals(existing.getId(), currentUserId)
         ? Result.fail(ResultCode.USER_NAME_EXISTS)
         : Result.success();
@@ -227,7 +229,7 @@ public class UserServiceImpl implements UserService {
     if (!USER_PHONE_PATTERN.matcher(normalized).matches()) {
       return Result.fail(ResultCode.USER_PHONE_FORMAT_ERROR);
     }
-    User existing = userDao.selectByUserPhone(normalized);
+    UserEntity existing = userRepository.queryByPhone(normalized).orElse(null);
     return existing != null && !Objects.equals(existing.getId(), currentUserId)
         ? Result.fail(ResultCode.USER_PHONE_EXIST)
         : Result.success();
@@ -239,7 +241,7 @@ public class UserServiceImpl implements UserService {
     if (!USER_MAIL_PATTERN.matcher(normalized).matches()) {
       return Result.fail(ResultCode.USER_EMAIL_FORMAT_ERROR);
     }
-    User existing = userDao.selectByUserMail(normalized);
+    UserEntity existing = userRepository.queryByEmail(normalized).orElse(null);
     return existing != null && !Objects.equals(existing.getId(), currentUserId)
         ? Result.fail(ResultCode.USER_EMAIL_EXIST)
         : Result.success();

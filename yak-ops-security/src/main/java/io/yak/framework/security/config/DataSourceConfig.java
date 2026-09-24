@@ -48,7 +48,7 @@ import javax.sql.DataSource;
         matchIfMissing = true
 )
 @MapperScan(
-        basePackages = "io.yak.framework.security.dao.mapper",
+        basePackages = "io.yak.ops.dao.mapper.security",
         sqlSessionTemplateRef = "yakSecuritySqlSessionTemplate"
 )
 public class DataSourceConfig {
