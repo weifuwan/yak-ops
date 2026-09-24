@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.execution.audit;
 
+import jakarta.annotation.Resource;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.dao.SqlExecutionAuditDao;
@@ -9,16 +10,15 @@ import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditSummaryRow;
 import io.yak.ops.business.datasource.dao.model.SqlStatementExecutionAuditPO;
 import io.yak.ops.common.PageData;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** SQL execution observability read-side role. */
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class SqlExecutionAuditReader {
 
-    private final SqlExecutionAuditDao auditDao;
+    @Resource
+    private SqlExecutionAuditDao auditDao;
 
     public PageData<SqlExecutionAuditRecord> page(SqlExecutionAuditCriteria criteria) {
         SqlExecutionAuditQuery query = toQuery(criteria);
