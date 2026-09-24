@@ -4,14 +4,22 @@ import type { ReactNode } from "react";
 import { cn } from "../cn";
 
 export type ToastTone = "success" | "error" | "warning" | "info";
-type ToastData = Record<string, never>;
+
+type ToastData = {
+  meta?: ReactNode;
+};
 
 export const toastManager = BaseToast.createToastManager<ToastData>();
 
-type ToastOptions = {
+export type ToastOptions = {
   description?: ReactNode;
+  meta?: ReactNode;
   timeout?: number;
   id?: string;
+  action?: {
+    label: ReactNode;
+    onClick: () => void;
+  };
 };
 
 const addToast = (type: ToastTone, title: ReactNode, options?: ToastOptions) =>
@@ -21,6 +29,13 @@ const addToast = (type: ToastTone, title: ReactNode, options?: ToastOptions) =>
     description: options?.description,
     timeout: options?.timeout,
     type,
+    data: options?.meta ? { meta: options.meta } : undefined,
+    actionProps: options?.action
+      ? {
+          children: options.action.label,
+          onClick: options.action.onClick,
+        }
+      : undefined,
   });
 
 export const toast = {
@@ -53,7 +68,7 @@ function ToastHost() {
               swipeDirection={["up", "right"]}
               className={cn(
                 "pointer-events-auto mb-2 rounded-xl border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-3 shadow-[var(--yak-components-panel-shadow)] outline-none",
-                "transition-[opacity,transform] data-starting-style:translate-y-[-8px] data-starting-style:opacity-0 data-ending-style:translate-x-8 data-ending-style:opacity-0 motion-reduce:transition-none",
+                "transition-[opacity,transform] data-starting-style:-translate-y-2 data-starting-style:opacity-0 data-ending-style:translate-x-8 data-ending-style:opacity-0 motion-reduce:transition-none",
               )}
             >
               <BaseToast.Content className="flex items-start gap-3">
@@ -62,6 +77,17 @@ function ToastHost() {
                   <BaseToast.Title className="text-[13px] font-semibold text-[var(--yak-components-panel-text)]" />
                   {item.description ? (
                     <BaseToast.Description className="mt-1 text-xs leading-5 text-[var(--yak-components-muted-text)]" />
+                  ) : null}
+                  {item.data?.meta ? (
+                    <div className="mt-1 text-[11px] text-[var(--yak-components-muted-text)]">
+                      {item.data.meta}
+                    </div>
+                  ) : null}
+                  {item.actionProps ? (
+                    <BaseToast.Action
+                      {...item.actionProps}
+                      className="mt-2 cursor-pointer rounded-lg bg-[var(--yak-components-button-secondary-bg)] px-2.5 py-1.5 text-xs font-medium text-[var(--yak-components-button-secondary-text)] outline-none hover:bg-[var(--yak-components-button-secondary-bg-hover)]"
+                    />
                   ) : null}
                 </div>
                 <BaseToast.Close
