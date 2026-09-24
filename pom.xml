@@ -79,13 +79,13 @@
                         <includes>
                             <include>src/main/java/**/*.java</include>
                         </includes>
+                        <removeUnusedImports/>
+                        <forbidWildcardImports/>
                         <palantirJavaFormat>
                             <version>${palantir-java-format.version}</version>
                             <style>PALANTIR</style>
                             <formatJavadoc>false</formatJavadoc>
                         </palantirJavaFormat>
-                        <removeUnusedImports/>
-                        <forbidWildcardImports/>
                         <trimTrailingWhitespace/>
                         <endWithNewline/>
                     </java>
