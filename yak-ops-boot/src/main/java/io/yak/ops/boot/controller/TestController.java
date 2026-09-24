@@ -14,11 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/test")
 public class TestController {
 
-    private final String applicationName;
-
-    public TestController(@Value("${spring.application.name:yak-ops}") String applicationName) {
-        this.applicationName = applicationName;
-    }
+    @Value("${spring.application.name:yak-ops}")
+    private String applicationName;
 
     @GetMapping("/ping")
     public Result<Map<String, Object>> ping() {
