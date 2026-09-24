@@ -73,9 +73,7 @@ tsc --noEmit
 
 不要用 lint 替代 typecheck。
 
-当前 typecheck 只覆盖已发布前端运行边界和它们的真实依赖。
-
-历史未迁移代码不因为“还存在于仓库”就自动成为当前产品 Contract。
+当前 `src/` 已完成 Legacy Cleanup，TypeScript / Oxlint / Oxfmt 直接覆盖完整生产源码。
 
 ## Lint
 
