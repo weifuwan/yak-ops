@@ -43,9 +43,11 @@ apps/web
 @yak-ops/yak-ui
 ```
 
-Datasource frontend implementation is now fully owned by `yak-ops-ui/packages/datasource`.
+Datasource frontend implementation is fully owned by `yak-ops-ui/packages/datasource`.
 
 `src/pages/data-source` and `src/service/datasource` have been removed. App enters Datasource only through `@yak-ops/datasource`.
+
+Ant Design / `@ant-design/icons` have been removed from the frontend. Datasource uses `@yak-ops/yak-ui`, Lucide icons and native browser capabilities. Dynamic form state is owned by `packages/datasource/src/editor/formRuntime.tsx`.
 
 Internal ownership:
 
