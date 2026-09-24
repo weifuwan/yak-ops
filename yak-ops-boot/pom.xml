@@ -22,34 +22,12 @@
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-datasource</artifactId>
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-plugin-datasource-all</artifactId>
         </dependency>
-        <!-- Datasource Focus Mode: disabled module
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-storage-all</artifactId>
-        </dependency>
-        -->
-        <!-- Datasource Focus Mode: disabled module
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-task-all</artifactId>
-        </dependency>
-        -->
-        <!-- Datasource Focus Mode: disabled module
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-alert-all</artifactId>
-        </dependency>
-        -->
         <dependency>
             <groupId>io.github.weifuwan</groupId>
             <artifactId>yak-security-spring-boot-starter</artifactId>

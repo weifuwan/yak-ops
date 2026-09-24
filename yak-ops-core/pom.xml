@@ -10,24 +10,5 @@
     </parent>
     <artifactId>yak-ops-core</artifactId>
     <name>Yak Ops Core</name>
-    <description>Plugin registry, runtime coordination and execution mechanisms</description>
-    <dependencies>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-spi</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-task-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-alert-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <description>Reserved core module</description>
 </project>
