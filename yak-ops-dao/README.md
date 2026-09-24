@@ -19,8 +19,9 @@ Database
 - MyBatis-Plus Repository base contract.
 - MyBatis-Plus Repository base implementation.
 - Shared persistence rules.
+- Datasource Entity / Mapper / Repository persistence.
 
-Concrete Datasource persistence is still owned by `yak-ops-business-datasource` in this PR and should be migrated separately instead of being mixed into the module bootstrap.
+Datasource database persistence is owned here; Datasource Business keeps business-facing repository contracts and domain mapping only.
 
 ## Rules
 

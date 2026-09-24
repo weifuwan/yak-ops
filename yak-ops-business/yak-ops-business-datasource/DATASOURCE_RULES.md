@@ -12,7 +12,7 @@ Depends On:
 
 Owns:
 - Datasource product behavior
-- Datasource persistence
+- Datasource persistence-facing business contracts and domain mapping
 - Connection / Catalog / SQL Execution behavior
 - Datasource-to-plugin business boundary
 
@@ -26,8 +26,7 @@ connection   connection parsing / normalization / test orchestration
 catalog      catalog query and read policy
 execution    SQL execution runtime and observability
 gateway      ports toward plugin capability
-repository   persistence-facing business contract
-dao          MyBatis persistence implementation
+repository   persistence-facing business contract / domain mapping
 config       capability-local properties / conditions
 security     Datasource security
 exception    Datasource business errors
@@ -64,16 +63,18 @@ Must Not:
 
 ```text
 business behavior
-→ Repository
-→ DAO / Mapper
+→ Business Repository
+→ yak-ops-dao Repository
+→ Mapper / Entity
 → MyBatis / SQL
 ```
 
-- Repository owns persistence-facing business semantics.
-- DAO / Mapper own storage implementation.
+- Business Repository owns persistence-facing business semantics and domain mapping.
+- `yak-ops-dao` owns Entity / Mapper / Repository implementation and Mapper XML.
 - simple queries prefer MyBatis-Plus capabilities.
 - complex SQL may use Mapper XML.
 - do not add forwarding methods that only rename existing CRUD.
+- this module must not declare MyBatis `@TableName` Entity classes or `BaseMapper` implementations.
 - Schema evolution is owned by `yak-ops-dao`; changes must follow `/yak-ops-dao/FLYWAY_RULES.md`.
 - Final application MyBatis runtime assembly is owned by `yak-ops-boot`.
 

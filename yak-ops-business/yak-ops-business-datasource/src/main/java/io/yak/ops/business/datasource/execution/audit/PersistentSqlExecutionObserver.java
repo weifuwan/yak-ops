@@ -1,14 +1,14 @@
 package io.yak.ops.business.datasource.execution.audit;
 
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditPO;
-import io.yak.ops.business.datasource.dao.model.SqlStatementExecutionAuditPO;
 import io.yak.ops.core.execution.sql.SqlExecutionObserver;
 import io.yak.ops.core.execution.sql.SqlExecutionResult;
 import io.yak.ops.core.execution.sql.SqlExecutionSnapshot;
 import io.yak.ops.core.execution.sql.SqlFingerprint;
 import io.yak.ops.core.execution.sql.SqlStatementSnapshot;
 import io.yak.ops.core.execution.sql.SqlStatementStatus;
+import io.yak.ops.dao.entity.datasource.SqlExecutionAuditEntity;
+import io.yak.ops.dao.entity.datasource.SqlStatementExecutionAuditEntity;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import java.time.Instant;
@@ -79,14 +79,14 @@ public final class PersistentSqlExecutionObserver implements SqlExecutionObserve
     }
 
     static AuditBatch map(SqlExecutionSnapshot snapshot) {
-        SqlExecutionAuditPO execution = new SqlExecutionAuditPO();
+        SqlExecutionAuditEntity execution = new SqlExecutionAuditEntity();
         execution.setExecutionId(snapshot.executionId());
         execution.setDataSourceId(snapshot.dataSourceId());
-        execution.setCaller(snapshot.context().caller());
+        execution.setCaller(enumName(snapshot.context().caller()));
         execution.setCallerReference(snapshot.context().callerReference());
         execution.setOperatorName(snapshot.context().operator());
-        execution.setTransactionMode(snapshot.transactionMode());
-        execution.setStatus(snapshot.status());
+        execution.setTransactionMode(enumName(snapshot.transactionMode()));
+        execution.setStatus(enumName(snapshot.status()));
         execution.setStatementCount(snapshot.statements().size());
         execution.setSucceededStatementCount((int) snapshot.statements().stream()
                 .filter(statement -> statement.status() == SqlStatementStatus.SUCCEEDED)
@@ -106,19 +106,19 @@ public final class PersistentSqlExecutionObserver implements SqlExecutionObserve
         execution.setDurationMs(snapshot.durationMillis());
         execution.setErrorMessage(limit(snapshot.errorMessage(), 1000));
 
-        List<SqlStatementExecutionAuditPO> statements =
+        List<SqlStatementExecutionAuditEntity> statements =
                 new ArrayList<>(snapshot.statements().size());
         for (SqlStatementSnapshot statement : snapshot.statements()) {
-            SqlStatementExecutionAuditPO row = new SqlStatementExecutionAuditPO();
+            SqlStatementExecutionAuditEntity row = new SqlStatementExecutionAuditEntity();
             row.setExecutionId(snapshot.executionId());
             row.setStatementId(statement.statementId());
             row.setStatementIndex(statement.index());
-            row.setStatementType(statement.statementType());
+            row.setStatementType(enumName(statement.statementType()));
             row.setSqlFingerprint(SqlFingerprint.sha256(statement.sql()));
             row.setSqlPreview(SqlFingerprint.redactedPreview(statement.sql(), SQL_PREVIEW_LIMIT));
-            row.setStatus(statement.status());
+            row.setStatus(enumName(statement.status()));
             SqlExecutionResult result = statement.result();
-            row.setResultType(result == null ? null : result.type());
+            row.setResultType(result == null ? null : enumName(result.type()));
             row.setReturnedRows(result == null ? 0L : (long) result.returnedRows());
             row.setAffectedRows(result == null ? 0L : result.affectedRows());
             row.setTruncated(result != null && result.truncated());
@@ -131,6 +131,10 @@ public final class PersistentSqlExecutionObserver implements SqlExecutionObserve
         return new AuditBatch(execution, List.copyOf(statements));
     }
 
+    private static String enumName(Enum<?> value) {
+        return value == null ? null : value.name();
+    }
+
     private static LocalDateTime local(Instant value) {
         return value == null ? null : LocalDateTime.ofInstant(value, ZoneId.systemDefault());
     }
@@ -140,5 +144,5 @@ public final class PersistentSqlExecutionObserver implements SqlExecutionObserve
         return value.substring(0, maxChars);
     }
 
-    record AuditBatch(SqlExecutionAuditPO execution, List<SqlStatementExecutionAuditPO> statements) {}
+    record AuditBatch(SqlExecutionAuditEntity execution, List<SqlStatementExecutionAuditEntity> statements) {}
 }

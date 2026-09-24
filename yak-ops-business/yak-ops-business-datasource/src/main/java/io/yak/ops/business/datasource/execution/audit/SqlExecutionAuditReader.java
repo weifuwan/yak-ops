@@ -1,13 +1,17 @@
 package io.yak.ops.business.datasource.execution.audit;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.dao.SqlExecutionAuditDao;
-import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditPO;
-import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditQuery;
-import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditSummaryRow;
-import io.yak.ops.business.datasource.dao.model.SqlStatementExecutionAuditPO;
 import io.yak.ops.common.PageData;
+import io.yak.ops.core.execution.sql.SqlExecutionCaller;
+import io.yak.ops.core.execution.sql.SqlExecutionStatus;
+import io.yak.ops.core.execution.sql.SqlStatementStatus;
+import io.yak.ops.core.execution.sql.SqlStatementType;
+import io.yak.ops.core.execution.sql.SqlTransactionMode;
+import io.yak.ops.dao.entity.datasource.SqlExecutionAuditEntity;
+import io.yak.ops.dao.entity.datasource.SqlStatementExecutionAuditEntity;
+import io.yak.ops.dao.model.datasource.SqlExecutionAuditSummaryRow;
+import io.yak.ops.dao.repository.datasource.SqlExecutionAuditRepository;
+import io.yak.ops.dao.repository.datasource.SqlExecutionAuditRepository.Query;
 import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -18,41 +22,36 @@ import org.springframework.stereotype.Component;
 public class SqlExecutionAuditReader {
 
     @Resource
-    private SqlExecutionAuditDao auditDao;
+    private SqlExecutionAuditRepository auditRepository;
 
     public PageData<SqlExecutionAuditRecord> page(SqlExecutionAuditCriteria criteria) {
-        SqlExecutionAuditQuery query = toQuery(criteria);
-        IPage<SqlExecutionAuditPO> page = auditDao.selectPage(query);
-        return new PageData<>(
-                page.getRecords().stream().map(this::executionRecord).toList(),
-                page.getTotal(),
-                page.getPages(),
-                page.getCurrent(),
-                page.getSize());
+        return auditRepository.queryPage(toQuery(criteria)).map(this::executionRecord);
     }
 
     public SqlExecutionAuditDetail detail(String executionId) {
         if (executionId == null || executionId.isBlank())
             throw new IllegalArgumentException("executionId must not be blank");
         String normalizedId = executionId.trim();
-        SqlExecutionAuditPO execution = auditDao.selectByExecutionId(normalizedId);
-        if (execution == null) throw new IllegalArgumentException("SQL execution audit not found: " + normalizedId);
-        List<SqlStatementAuditRecord> statements = auditDao.selectStatements(normalizedId).stream()
+        SqlExecutionAuditEntity execution = auditRepository.queryByExecutionId(normalizedId);
+        if (execution == null)
+            throw new IllegalArgumentException("SQL execution audit not found: " + normalizedId);
+        List<SqlStatementAuditRecord> statements = auditRepository.queryStatements(normalizedId).stream()
                 .map(this::statementRecord)
                 .toList();
         return new SqlExecutionAuditDetail(executionRecord(execution), statements);
     }
 
     public SqlExecutionAuditSummary summary(SqlExecutionAuditCriteria criteria) {
-        SqlExecutionAuditQuery query = toQuery(criteria);
-        SqlExecutionAuditSummaryRow summary = auditDao.selectSummary(query);
-        long p95 = auditDao.selectP95DurationMs(query);
+        Query query = toQuery(criteria);
+        SqlExecutionAuditSummaryRow summary = auditRepository.querySummary(query);
+        long p95 = auditRepository.queryP95DurationMs(query);
         List<SqlExecutionAuditSummary.StatementTypeCount> statementTypes =
-                auditDao.selectStatementTypeCounts(query).stream()
-                        .map(row ->
-                                new SqlExecutionAuditSummary.StatementTypeCount(row.getStatementType(), row.getCount()))
+                auditRepository.queryStatementTypeCounts(query).stream()
+                        .map(row -> new SqlExecutionAuditSummary.StatementTypeCount(
+                                enumValue(SqlStatementType.class, row.getStatementType()), row.getCount()))
                         .toList();
-        double successRate = summary.getTotal() == 0L ? 0D : summary.getSucceeded() / (double) summary.getTotal();
+        double successRate =
+                summary.getTotal() == 0L ? 0D : summary.getSucceeded() / (double) summary.getTotal();
         return new SqlExecutionAuditSummary(
                 summary.getTotal(),
                 summary.getSucceeded(),
@@ -68,37 +67,37 @@ public class SqlExecutionAuditReader {
                 statementTypes);
     }
 
-    private SqlExecutionAuditQuery toQuery(SqlExecutionAuditCriteria criteria) {
+    private Query toQuery(SqlExecutionAuditCriteria criteria) {
         SqlExecutionAuditCriteria value = criteria == null
                 ? new SqlExecutionAuditCriteria(
                         1, 20, null, null, null, null, null, null, null, null, null, null, null, null)
                 : criteria;
-        return new SqlExecutionAuditQuery(
+        return new Query(
                 value.pageNo(),
                 value.pageSize(),
                 value.executionId(),
                 value.dataSourceId(),
-                value.caller(),
+                enumName(value.caller()),
                 value.callerReference(),
                 value.operatorName(),
-                value.status(),
-                value.transactionMode(),
-                value.statementType(),
+                enumName(value.status()),
+                enumName(value.transactionMode()),
+                enumName(value.statementType()),
                 value.sqlFingerprint(),
                 value.minDurationMs(),
                 value.startedFrom(),
                 value.startedTo());
     }
 
-    private SqlExecutionAuditRecord executionRecord(SqlExecutionAuditPO row) {
+    private SqlExecutionAuditRecord executionRecord(SqlExecutionAuditEntity row) {
         return new SqlExecutionAuditRecord(
                 row.getExecutionId(),
                 row.getDataSourceId(),
-                row.getCaller(),
+                enumValue(SqlExecutionCaller.class, row.getCaller()),
                 row.getCallerReference(),
                 row.getOperatorName(),
-                row.getTransactionMode(),
-                row.getStatus(),
+                enumValue(SqlTransactionMode.class, row.getTransactionMode()),
+                enumValue(SqlExecutionStatus.class, row.getStatus()),
                 value(row.getStatementCount()),
                 value(row.getSucceededStatementCount()),
                 value(row.getReturnedRows()),
@@ -109,15 +108,15 @@ public class SqlExecutionAuditReader {
                 row.getErrorMessage());
     }
 
-    private SqlStatementAuditRecord statementRecord(SqlStatementExecutionAuditPO row) {
+    private SqlStatementAuditRecord statementRecord(SqlStatementExecutionAuditEntity row) {
         return new SqlStatementAuditRecord(
                 row.getStatementId(),
                 value(row.getStatementIndex()),
-                row.getStatementType(),
+                enumValue(SqlStatementType.class, row.getStatementType()),
                 row.getSqlFingerprint(),
                 row.getSqlPreview(),
-                row.getStatus(),
-                row.getResultType() == null ? null : row.getResultType().name(),
+                enumValue(SqlStatementStatus.class, row.getStatus()),
+                row.getResultType(),
                 value(row.getReturnedRows()),
                 value(row.getAffectedRows()),
                 Boolean.TRUE.equals(row.getTruncated()),
@@ -125,6 +124,15 @@ public class SqlExecutionAuditReader {
                 row.getFinishedAt(),
                 value(row.getDurationMs()),
                 row.getErrorMessage());
+    }
+
+    private static String enumName(Enum<?> value) {
+        return value == null ? null : value.name();
+    }
+
+    private static <E extends Enum<E>> E enumValue(Class<E> type, String value) {
+        if (value == null || value.isBlank()) return null;
+        return Enum.valueOf(type, value);
     }
 
     private static int value(Integer value) {

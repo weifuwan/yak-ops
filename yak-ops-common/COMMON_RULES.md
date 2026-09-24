@@ -7,7 +7,7 @@ Depends On:
 - `/JAVA_RULES.md`
 
 Owns:
-- Datasource shared DTO / VO / PO
+- Datasource shared DTO / VO
 - Datasource enums and constants
 - Security user/login DTO / VO / Enum contracts
 - unified Result / ErrorCode / PageData contracts

@@ -149,7 +149,7 @@ public class UserAdministrationService {
 
 ### Data Model Fields
 
-- DTO, VO, PO, Entity and Model fields must have JavaDoc describing their business meaning.
+- DTO, VO, Entity and Model fields must have JavaDoc describing their business meaning.
 - A field comment must add semantic information, not only repeat the field name.
 - When a field has enumerated values, status codes, units, formats, ranges, sensitive-data semantics or other special constraints, document them explicitly.
 - The same rule applies to equivalent repository-owned request, response, command, criteria and persistent data carriers when their fields form an external or cross-layer data contract.
@@ -195,7 +195,7 @@ Formatter does not rewrite JavaDoc content; comment quality remains a review con
 - 一个类只承担一个明确 owner 的职责。
 - 不可变数据适合 `record` 且更清晰时优先使用 `record`。
 - Lombok 能明显减少样板代码时可以使用，但不能隐藏关键行为。
-- 仓库自有生产 Java 类型必须有类级 JavaDoc；DTO / VO / PO / Entity / Model 等数据模型字段必须有语义明确的 JavaDoc。
+- 仓库自有生产 Java 类型必须有类级 JavaDoc；DTO / VO / Entity / Model 等数据模型字段必须有语义明确的 JavaDoc。
 - 删除过期注释和已经不存在的架构描述。
 - 修改完成后执行与改动匹配的显式编译、构建、静态检查或手工验证。
 - Java 变更至少执行上面的 Spotless `check` 命令；需要修复格式时先执行对应的 `apply` 命令。

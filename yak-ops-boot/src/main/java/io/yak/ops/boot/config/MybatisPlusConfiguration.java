@@ -39,7 +39,7 @@ import org.springframework.util.StringUtils;
 @Configuration(proxyBeanMethods = false)
 @MapperScans({
     @MapperScan(
-            basePackages = "io.yak.ops.business.datasource.dao.mapper",
+            basePackages = "io.yak.ops.dao.mapper.datasource",
             sqlSessionTemplateRef = "yakBusinessSqlSessionTemplate"),
     @MapperScan(
             basePackages = "io.yak.ops.dao.mapper.security",
@@ -94,7 +94,7 @@ public class MybatisPlusConfiguration {
             throws Exception {
         MybatisSqlSessionFactoryBean factory = new MybatisSqlSessionFactoryBean();
         factory.setDataSource(dataSource);
-        factory.setTypeAliasesPackage("io.yak.ops.common.bean.po.datasource");
+        factory.setTypeAliasesPackage("io.yak.ops.dao.entity.datasource");
 
         Resource[] mapperLocations =
                 new PathMatchingResourcePatternResolver().getResources("classpath*:mapper/**/*.xml");
