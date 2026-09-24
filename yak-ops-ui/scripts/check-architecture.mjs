@@ -33,6 +33,16 @@ for (const path of forbiddenDirectories) {
   }
 }
 
+const forbiddenDataSourceFiles = [
+  "apps/web/app/datasource/card.tsx",
+];
+
+for (const path of forbiddenDataSourceFiles) {
+  if (existsSync(join(root, path))) {
+    fail(`forbidden datasource file exists: ${path}`);
+  }
+}
+
 const dataSourceServiceRoot = join(
   root,
   "apps",

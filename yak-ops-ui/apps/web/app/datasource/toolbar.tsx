@@ -10,7 +10,7 @@ import {
   TabsList,
   TabsTab,
 } from "@yak-ops/yak-ui";
-import { Grid2X2, LayoutList, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 import { useIntl } from "./i18n";
 import {
@@ -18,18 +18,15 @@ import {
   getDataSourceEnvironmentTabs,
 } from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
-import type { DataSourceViewMode } from "./types";
 
 interface DataSourceToolbarProps {
   environment?: string;
   dbType?: string;
   keyword: string;
-  viewMode: DataSourceViewMode;
   hasActiveFilters: boolean;
   onEnvironmentChange: (value?: string) => void;
   onDbTypeChange: (value?: string) => void;
   onKeywordChange: (value: string) => void;
-  onViewModeChange: (value: DataSourceViewMode) => void;
   onReset: () => void;
 }
 
@@ -77,12 +74,10 @@ const DataSourceToolbar = ({
   environment,
   dbType,
   keyword,
-  viewMode,
   hasActiveFilters,
   onEnvironmentChange,
   onDbTypeChange,
   onKeywordChange,
-  onViewModeChange,
   onReset,
 }: DataSourceToolbarProps) => {
   const intl = useIntl();
@@ -191,47 +186,7 @@ const DataSourceToolbar = ({
           </Button>
         ) : null}
 
-        <div className="flex h-9 items-center gap-0.5 rounded-[10px] bg-[#f4f5f7] p-[3px]">
-          <Button
-            variant="ghost"
-            size="small"
-            title={intl.formatMessage({
-              id: "pages.datasource.toolbar.gridView",
-            })}
-            aria-label={intl.formatMessage({
-              id: "pages.datasource.toolbar.gridView",
-            })}
-            className={[
-              "h-[30px] w-[30px] rounded-[7px] border-0 p-0",
-              viewMode === "grid"
-                ? "bg-white text-[#2d313a] shadow-[0_1px_4px_rgba(31,35,41,0.10)]"
-                : "bg-transparent text-[#92969f] hover:text-[#555b66]",
-            ].join(" ")}
-            onClick={() => onViewModeChange("grid")}
-          >
-            <Grid2X2 size={15} strokeWidth={1.8} />
-          </Button>
 
-          <Button
-            variant="ghost"
-            size="small"
-            title={intl.formatMessage({
-              id: "pages.datasource.toolbar.listView",
-            })}
-            aria-label={intl.formatMessage({
-              id: "pages.datasource.toolbar.listView",
-            })}
-            className={[
-              "h-[30px] w-[30px] rounded-[7px] border-0 p-0",
-              viewMode === "list"
-                ? "bg-white text-[#2d313a] shadow-[0_1px_4px_rgba(31,35,41,0.10)]"
-                : "bg-transparent text-[#92969f] hover:text-[#555b66]",
-            ].join(" ")}
-            onClick={() => onViewModeChange("list")}
-          >
-            <LayoutList size={16} strokeWidth={1.8} />
-          </Button>
-        </div>
       </div>
     </section>
   );

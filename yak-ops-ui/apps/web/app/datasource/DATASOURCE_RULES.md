@@ -26,7 +26,7 @@ Prefer local cohesion over architectural layering.
 ```text
 app/datasource/
 ├── index.tsx
-├── card.tsx
+├── table.tsx
 ├── toolbar.tsx
 ├── summary.tsx
 ├── empty-state.tsx
@@ -130,6 +130,7 @@ app/datasource
 ## Must
 
 - 页面专属代码优先保持局部内聚。
+- Datasource 列表使用业务级原生 Table，不维护 Card/Grid/List 多套展示模式。
 - Editor 相关组件和 helper 优先留在 `editor/` 同一层。
 - Datasource endpoint / backend Contract stays under `service/datasource`。
 - Datasource endpoint 默认集中在 `service/datasource/index.ts`。
@@ -151,3 +152,4 @@ app/datasource
 - Create a directory solely to represent a concept。
 - Call `fetch` directly from Datasource UI。
 - Import `framer-motion` from Datasource。
+- Recreate Datasource `card.tsx` or Grid/List view switching。

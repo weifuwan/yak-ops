@@ -28,7 +28,7 @@ Frontend Structure:
 ```text
 app/datasource/
 ├── index.tsx
-├── card.tsx
+├── table.tsx
 ├── toolbar.tsx
 ├── summary.tsx
 ├── empty-state.tsx
@@ -49,7 +49,7 @@ service/datasource/
 └── types.ts
 ```
 
-Datasource 页面、Editor 和 Service 都采用 feature-locality 结构。
+Datasource 页面、Editor 和 Service 都采用 feature-locality 结构。Datasource 列表固定使用原生业务 Table，不再维护 Card/Grid/List 多套展示模式。
 
 `management / model / plugin / connection / DynamicDataSourceForm` 不再是目录 owner。
 

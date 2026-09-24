@@ -16,9 +16,8 @@ import type { DataSourceModalRef } from "./editor/types";
 import { DataSourceOperateType } from "./editor/types";
 import { useIntl } from "./i18n";
 import { DATA_SOURCE_PAGE_SIZE_OPTIONS } from "./constants";
-import { dataSourceRecordKey } from "./utils";
 import type { DataSourceRecord } from "./types";
-import DataSourceCard from "./card";
+import DataSourceTable from "./table";
 import DataSourceEmptyState from "./empty-state";
 import DataSourceSummaryCards from "./summary";
 import DataSourceToolbar from "./toolbar";
@@ -63,7 +62,6 @@ const DataSourcePage = () => {
     keyword,
     dbType,
     environment,
-    viewMode,
     hasActiveFilters,
     permissions,
     testingId,
@@ -71,7 +69,6 @@ const DataSourcePage = () => {
     setKeyword,
     setDbType,
     setEnvironment,
-    setViewMode,
     resetFilters,
     changePage,
     refresh,
@@ -166,12 +163,10 @@ const DataSourcePage = () => {
                 environment={environment}
                 dbType={dbType}
                 keyword={keyword}
-                viewMode={viewMode}
                 hasActiveFilters={hasActiveFilters}
                 onEnvironmentChange={setEnvironment}
                 onDbTypeChange={setDbType}
                 onKeywordChange={setKeyword}
-                onViewModeChange={setViewMode}
                 onReset={resetFilters}
               />
             </div>
@@ -184,32 +179,19 @@ const DataSourcePage = () => {
                   </div>
                 ) : null}
 
-                <section
-                  className={
-                    viewMode === "list"
-                      ? "grid grid-cols-1 gap-[14px]"
-                      : "grid grid-cols-1 gap-[14px] md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-                  }
-                >
-                  {records.map((record, index) => (
-                    <DataSourceCard
-                      key={
-                        dataSourceRecordKey(record.id) ||
-                        `${record.name || "data-source"}-${index}`
-                      }
-                      record={record}
-                      viewMode={viewMode}
-                      permissions={permissions}
-                      testingId={testingId}
-                      editingId={editingId}
-                      onEdit={(item) => void handleEdit(item)}
-                      onDelete={handleDelete}
-                      onTestConnection={(item) =>
-                        void handleTestConnection(item)
-                      }
-                    />
-                  ))}
-                </section>
+                {records.length > 0 ? (
+                  <DataSourceTable
+                    records={records}
+                    permissions={permissions}
+                    testingId={testingId}
+                    editingId={editingId}
+                    onEdit={(item) => void handleEdit(item)}
+                    onDelete={handleDelete}
+                    onTestConnection={(item) =>
+                      void handleTestConnection(item)
+                    }
+                  />
+                ) : null}
 
                 {!loading && records.length === 0 ? (
                   <div className="mt-6">
