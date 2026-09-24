@@ -1,5 +1,6 @@
 package io.yak.ops.boot.controller.security.v1;
 
+import jakarta.annotation.Resource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.common.Result;
@@ -32,16 +33,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/yak-security/api/v1/account")
 public class LoginController {
 
-    private final LoginService loginService;
-    private final UserService userService;
-    private final AuthenticationManager authenticationManager;
+    @Resource
+    private LoginService loginService;
 
-    public LoginController(
-            LoginService loginService, UserService userService, AuthenticationManager authenticationManager) {
-        this.loginService = loginService;
-        this.userService = userService;
-        this.authenticationManager = authenticationManager;
-    }
+    @Resource
+    private UserService userService;
+
+    @Resource
+    private AuthenticationManager authenticationManager;
 
     @Operation(summary = "用户登录")
     @PostMapping("/login")
