@@ -3,7 +3,7 @@ package io.yak.ops.boot.controller.security;
 import io.yak.ops.common.ErrorCode;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.enums.security.ResultCode;
-import io.yak.framework.security.exception.YakSecurityException;
+import io.yak.ops.security.exception.YakSecurityException;
 import io.yak.ops.boot.controller.security.v1.LoginController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +21,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 /** User/login HTTP exception mapping. */
 @ConditionalOnProperty(
     prefix = "yak.security",
-    name = {"database-enabled", "web-enabled"},
+    name = {"enabled", "database-enabled", "web-enabled"},
     havingValue = "true",
     matchIfMissing = true)
 @RestControllerAdvice(basePackageClasses = LoginController.class)

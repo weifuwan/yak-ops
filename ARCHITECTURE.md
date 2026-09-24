@@ -36,7 +36,7 @@ Security does not own Controller, ControllerAdvice, OpenAPI configuration, conne
 
 Security production code was migrated from `yak-framework/yak-security`.
 
-Security business/runtime code still uses the `io.yak.framework.security` compatibility namespace. Shared DTO / VO / enum contracts have moved to `io.yak.ops.common`, while user persistence is owned by `yak-ops-dao`.
+Security business/runtime code uses the `io.yak.ops.security` product namespace. Shared DTO / VO / enum contracts live in `io.yak.ops.common`, while user persistence is owned by `yak-ops-dao`.
 
 ### `yak-ops-dao`
 

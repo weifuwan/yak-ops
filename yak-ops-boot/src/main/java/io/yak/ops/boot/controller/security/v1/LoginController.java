@@ -3,15 +3,15 @@ package io.yak.ops.boot.controller.security.v1;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.common.Result;
-import io.yak.framework.security.authentication.AuthenticationManager;
+import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.bean.vo.security.user.CurrentUserVO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
-import io.yak.framework.security.exception.YakSecurityException;
-import io.yak.framework.security.service.LoginService;
-import io.yak.framework.security.service.UserService;
-import io.yak.framework.security.web.PublicEndpoint;
+import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.security.service.LoginService;
+import io.yak.ops.security.service.UserService;
+import io.yak.ops.security.web.PublicEndpoint;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** 登录相关接口。 */
 @ConditionalOnProperty(
     prefix = "yak.security",
-    name = {"database-enabled", "web-enabled"},
+    name = {"enabled", "database-enabled", "web-enabled"},
     havingValue = "true",
     matchIfMissing = true)
 @Tag(name = "账户认证")

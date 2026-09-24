@@ -1,0 +1,38 @@
+package io.yak.ops.security.service;
+
+import io.yak.ops.common.PagingData;
+import io.yak.ops.common.Result;
+import io.yak.ops.common.bean.dto.security.user.UserDTO;
+import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
+import io.yak.ops.security.model.UserAccount;
+import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
+import io.yak.ops.common.bean.vo.security.user.UserVO;
+import java.util.List;
+
+/** UserAccount management capability used by the current user/login HTTP APIs. */
+public interface UserService {
+
+  Result<Void> check(Integer checkType, String checkValue);
+
+  PagingData<UserVO> getUserPage(UserQueryDTO queryDTO);
+
+  UserVO getUserDetailByUserId(Long userId);
+
+  Result<Void> deleteByUserId(Long userId);
+
+  UserBriefVO getUserBriefByUsername(String username);
+
+  UserAccount getUserByUsername(String username);
+
+  List<UserBriefVO> getUserBriefListByUserIds(List<Long> userIds);
+
+  List<UserBriefVO> searchUserBriefList(String keyword);
+
+  List<UserBriefVO> getAllUserBriefList();
+
+  Result<Void> addUser(UserDTO userDTO, String operator);
+
+  Result<Void> editUser(UserDTO userDTO, String operator);
+
+  Result<List<UserVO>> getUserDetailsByUserIds(List<Long> userIds);
+}

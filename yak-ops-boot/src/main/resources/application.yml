@@ -129,5 +129,5 @@ logging:
   level:
     root: INFO
     io.yak.ops: INFO
-    io.yak.framework.security: DEBUG
+    io.yak.ops.security: DEBUG
     org.flywaydb: INFO

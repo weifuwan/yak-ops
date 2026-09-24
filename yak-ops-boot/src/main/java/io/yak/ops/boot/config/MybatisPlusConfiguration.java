@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.zaxxer.hikari.HikariDataSource;
-import io.yak.framework.security.config.YakSecurityProperties;
+import io.yak.ops.security.config.YakSecurityProperties;
 import io.yak.ops.common.mybatis.MybatisPlusFactorySupport;
 import java.util.Objects;
 import javax.sql.DataSource;

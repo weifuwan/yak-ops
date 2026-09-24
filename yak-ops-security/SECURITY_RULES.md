@@ -23,7 +23,7 @@ Yak Ops 当前只发布两组 Security API：
 
 Role、Permission、Department、Project、Message、Oplog、Resource、Notification 等旧体系不再属于当前 Security runtime。
 
-Security runtime 的 Java namespace `io.yak.framework.security` 暂时保留。共享 DTO / VO / Enum 已迁入 `yak-ops-common`，持久化 Entity / Mapper / Repository 已迁入 `yak-ops-dao`。
+Security runtime 统一使用 `io.yak.ops.security` namespace。共享 DTO / VO / Enum 由 `yak-ops-common` 持有，持久化 Entity / Mapper / Repository 由 `yak-ops-dao` 持有。Security 不再保留 legacy `common` package 或 Spring Boot `autoconfigure` package。
 
 ## HTTP Boundary
 
@@ -88,6 +88,7 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - recreate removed tests or CI as a side effect.
 - add Controller / RestController / RestControllerAdvice to this module.
 - add application DataSource / MyBatis-Plus / OpenAPI / MVC registration configuration to this module.
+- add Spring Boot auto-configuration registration or `META-INF/spring.factories` to this module.
 - add Flyway beans or versioned SQL migrations to this module.
 - reintroduce Role / Permission / Project / Resource / Message / Oplog / Notification runtime.
 - add non-user/login DTO / VO / Enum / PO models to this module.
