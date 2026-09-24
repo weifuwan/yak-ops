@@ -9,7 +9,12 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Transactional persistence boundary for one completed SQL execution audit batch. */
+/**
+ * 在单个事务中保存一次完整 SQL execution 及其 Statement 审计记录。
+ *
+ * @author weifuwan
+ * @since 2026-08-18
+ */
 @Service
 @ConditionalOnDataSourceEnabled
 public class SqlExecutionAuditStore {

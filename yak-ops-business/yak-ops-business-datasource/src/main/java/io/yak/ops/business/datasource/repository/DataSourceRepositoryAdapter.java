@@ -16,7 +16,12 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
-/** MyBatis persistence adapter. */
+/**
+ * 连接 Datasource 领域仓储与 DAO 持久化仓储，负责领域对象和 Entity 的双向转换。
+ *
+ * @author weifuwan
+ * @since 2026-08-09
+ */
 @Repository
 @ConditionalOnDataSourceEnabled
 public class DataSourceRepositoryAdapter implements DataSourceRepository {

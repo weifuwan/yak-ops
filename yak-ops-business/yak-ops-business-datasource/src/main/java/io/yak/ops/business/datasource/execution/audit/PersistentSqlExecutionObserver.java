@@ -24,7 +24,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/** Persists completed SQL execution metadata without retaining result rows or bind parameters. */
+/**
+ * 异步持久化已完成的 SQL execution 审计元数据，不保存结果行和绑定参数。
+ *
+ * @author weifuwan
+ * @since 2026-08-18
+ */
 @Component
 @ConditionalOnDataSourceEnabled
 public final class PersistentSqlExecutionObserver implements SqlExecutionObserver {
