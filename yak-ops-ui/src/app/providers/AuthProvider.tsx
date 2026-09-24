@@ -8,26 +8,24 @@ import {
 
 import {
   getCurrentUser,
-  type CurrentUser,
-} from "@/services/security/account";
-import { toCurrentUser } from "@/services/security/currentIdentity";
-import { AUTHENTICATION_INVALIDATED_EVENT } from "@/utils/security/authentication";
+  type AuthUser,
+} from "@/service/auth";
 
 interface AuthContextValue {
-  currentUser?: CurrentUser;
+  currentUser?: AuthUser;
   loading: boolean;
-  refreshCurrentUser: () => Promise<CurrentUser | undefined>;
+  refreshCurrentUser: () => Promise<AuthUser>;
   clearCurrentUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<CurrentUser>();
+  const [currentUser, setCurrentUser] = useState<AuthUser>();
   const [loading, setLoading] = useState(true);
 
   const refreshCurrentUser = async () => {
-    const user = toCurrentUser(await getCurrentUser());
+    const user = await getCurrentUser();
     setCurrentUser(user);
     return user;
   };
@@ -41,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     getCurrentUser({ skipErrorHandler: true })
       .then((user) => {
-        if (active) setCurrentUser(toCurrentUser(user));
+        if (active) setCurrentUser(user);
       })
       .catch(() => {
         if (active) setCurrentUser(undefined);
@@ -50,21 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (active) setLoading(false);
       });
 
-    const clearAuthentication = () => {
-      setCurrentUser(undefined);
-    };
-
-    window.addEventListener(
-      AUTHENTICATION_INVALIDATED_EVENT,
-      clearAuthentication,
-    );
-
     return () => {
       active = false;
-      window.removeEventListener(
-        AUTHENTICATION_INVALIDATED_EVENT,
-        clearAuthentication,
-      );
     };
   }, []);
 

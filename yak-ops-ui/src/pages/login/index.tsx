@@ -1,7 +1,11 @@
-import loginHeroVideo from "@/assets/video/login-hero3.mp4";
+import loginHeroVideo from "./assets/login-hero3.mp4";
 import LoginPanel from "./LoginPanel";
 
-export default function LoginPage() {
+interface LoginPageProps {
+  onAuthenticated: () => Promise<void>;
+}
+
+export default function LoginPage({ onAuthenticated }: LoginPageProps) {
   return (
     <main className="yak-login-page h-screen overflow-y-auto bg-[#fbfbfa] text-[#171717]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1540px] flex-col px-6 py-4 sm:px-10 lg:px-12 lg:pb-6 lg:pt-5 xl:px-16">
@@ -22,16 +26,15 @@ export default function LoginPage() {
                 style={{ fontFamily: "'YakOps', Inter, sans-serif" }}
               >
                 <h1 className="m-0 text-[46px] font-normal leading-[1.01] tracking-[-0.045em] text-[#171717] sm:text-[60px] lg:text-[64px]">
-                  Data ops,  &nbsp; simplified.
+                  Data ops, &nbsp; simplified.
                 </h1>
-
                 <p className="mt-5 text-[16px] leading-7 text-[#555] sm:text-[17px]">
                   One workspace for your data.
                 </p>
               </div>
 
               <div className="mx-auto w-full max-w-[430px]">
-                <LoginPanel />
+                <LoginPanel onAuthenticated={onAuthenticated} />
               </div>
             </div>
           </section>
@@ -49,7 +52,6 @@ export default function LoginPage() {
               >
                 <source src={loginHeroVideo} type="video/mp4" />
               </video>
-
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/5" />
             </div>
           </aside>

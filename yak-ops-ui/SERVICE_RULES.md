@@ -3,7 +3,7 @@
 Scope:
 - 目标：`yak-ops-ui/src/service/**`
 - 迁移期：`yak-ops-ui/src/services/data-source/**`
-- 迁移期：`yak-ops-ui/src/services/security/{account,client,currentIdentity}.ts`
+- 已迁移：`yak-ops-ui/src/service/auth/**`
 - HTTP infrastructure
 
 Depends On:
@@ -39,9 +39,11 @@ src/service/
 └── datasource/
 ```
 
-PR1 后仍存在 `src/services` 是迁移事实。
+Login 已完成 Auth Service 迁移到 `src/service/auth`。
 
-后续迁移触达对应代码时向 `src/service` 收口，不再新增新的 `src/services/<domain>`。
+Datasource 仍在 `src/services/data-source`，后续 PR4 收口到 `src/service/datasource`。
+
+其它 `src/services/security` 历史管理代码不属于当前 Login / Datasource 运行边界，不得作为新代码依赖。
 
 ## Must
 

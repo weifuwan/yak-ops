@@ -1,19 +1,24 @@
 import { ExclamationCircleOutlined } from "@ant-design/icons";
-import YakButton from "@/components/YakButton";
-import { login } from "@/services/security/account";
-import { notifyOnce } from "@/utils/notifyOnce";
-import { resetAuthenticationFailure } from "@/utils/request";
-import { getSafeReturnTo } from "@/utils/security/redirect";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/app/providers/AuthProvider";
-import { useIntl } from "@/shared/i18n";
-import { Form, Input, Popover, type InputProps } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  Popover,
+  type InputProps,
+} from "antd";
 import { useForm } from "antd/es/form/Form";
 import { useState } from "react";
+
+import { login } from "@/service/auth";
+import { notifyOnce } from "@/utils/notifyOnce";
 
 const WECHAT_QR_CODE_SRC = "/wechat_qr.png";
 const FORM_ITEM_CLASS_NAME =
   "!mb-5 [&_.ant-form-item-explain]:!pt-1.5 [&_.ant-form-item-explain-error]:!text-[12px] [&_.ant-form-item-explain-error]:!leading-[18px] [&_.ant-form-item-explain-error]:!text-[#b42318]";
+
+interface LoginPanelProps {
+  onAuthenticated: () => Promise<void>;
+}
 
 type FloatingInputProps = InputProps & {
   label: string;
@@ -66,11 +71,7 @@ function FloatingInput({
 
   return (
     <div className="relative">
-      {password ? (
-        <Input.Password {...controlProps} />
-      ) : (
-        <Input {...controlProps} />
-      )}
+      {password ? <Input.Password {...controlProps} /> : <Input {...controlProps} />}
       <label
         htmlFor={inputProps.id}
         className={`pointer-events-none absolute left-4 z-10 bg-white px-1 transition-all duration-200 ease-out ${
@@ -87,7 +88,7 @@ function FloatingInput({
 
 function ValidationMessage({ children }: { children: string }) {
   return (
-    <span className="inline-flex h-[18px] items-center gap-1.5 align-middle leading-[18px]" style={{marginBottom: 8}}>
+    <span className="mb-2 inline-flex h-[18px] items-center gap-1.5 align-middle leading-[18px]">
       <ExclamationCircleOutlined className="flex shrink-0 items-center text-[12px] leading-none [&_svg]:block" />
       <span className="leading-[18px]">{children}</span>
     </span>
@@ -112,7 +113,9 @@ function WeChatQrHelp() {
         </div>
       )}
       <span className="text-center text-[11px] leading-5 text-[#888]">
-        输入 <span style={{background: "rgba(0,0,0,0.03)", paddingLeft: 4, paddingRight: 4, borderRadius: 4}}>9527</span> 获取账号 / 密码
+        输入{" "}
+        <span className="rounded bg-black/[0.03] px-1">9527</span>
+        {" "}获取账号 / 密码
       </span>
     </div>
   );
@@ -129,19 +132,9 @@ function WeChatQrHelp() {
   );
 }
 
-export default function LoginPanel() {
+export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
   const [loading, setLoading] = useState(false);
   const [form] = useForm();
-
-  const intl = useIntl();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { refreshCurrentUser } = useAuth();
-
-  const redirectAfterLogin = () => {
-    const requested = new URLSearchParams(location.search).get("returnTo");
-    navigate(getSafeReturnTo(requested), { replace: true });
-  };
 
   const handleAccountLogin = async (values: {
     userName: string;
@@ -149,36 +142,20 @@ export default function LoginPanel() {
   }) => {
     try {
       setLoading(true);
-
       await login({
         userName: values.userName,
         pw: values.userPassword,
       });
+      await onAuthenticated();
 
-      const userInfo = await refreshCurrentUser();
-      if (!userInfo) {
-        notifyOnce("login-current-user-missing", {
-          type: "error",
-          title: "登录未完成",
-          description: "登录请求已提交，但未能加载当前用户信息。",
-          meta: "请稍后重试",
-        });
-        return;
-      }
-
-      resetAuthenticationFailure();
       notifyOnce("login-success", {
         type: "success",
-        title: intl.formatMessage({
-          id: "pages.login.success",
-          defaultMessage: "登录成功！",
-        }),
+        title: "登录成功！",
         description: "正在进入 Yak Ops",
         meta: "身份验证完成",
         duration: 2,
       });
-      redirectAfterLogin();
-    } catch (_error) {
+    } catch {
       // Global request handling surfaces HTTP, business and network failures once.
     } finally {
       setLoading(false);
@@ -223,16 +200,15 @@ export default function LoginPanel() {
           />
         </Form.Item>
 
-        <YakButton
+        <Button
           block
-          effect="glass"
           type="primary"
           htmlType="submit"
           loading={loading}
-          className="!h-11 !rounded-full !border-[#171717] !bg-[#171717] !font-medium !text-white !shadow-none hover:!border-[#292929] hover:!bg-[#292929]"
+          className="!h-11 !cursor-pointer !rounded-full !border-[#171717] !bg-[#171717] !font-medium !text-white !shadow-none hover:!border-[#292929] hover:!bg-[#292929]"
         >
           Log in
-        </YakButton>
+        </Button>
 
         <WeChatQrHelp />
       </Form>
