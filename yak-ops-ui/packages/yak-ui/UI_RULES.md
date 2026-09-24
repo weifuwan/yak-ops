@@ -1,17 +1,17 @@
 # Yak UI Rules
 
 Scope:
-- `yak-ops-ui/src/shared/ui/**`
+- `yak-ops-ui/packages/yak-ui/**`
 
 Depends On:
 - `../../FRONTEND_RULES.md`
 - `../../ARCHITECTURE.md`
 
 Owns:
-- Yak Ops 可复用 UI Primitive
-- Primitive 的公开 Props Contract
-- Primitive keyboard / focus / disabled / accessibility 行为
-- Yak UI Design Token 与视觉状态
+- Yak Ops business-agnostic UI Primitive
+- Primitive public Props Contract
+- keyboard / focus / disabled / accessibility behavior
+- Yak UI Design Token and visual state
 
 Public Import:
 - `@yak-ops/yak-ui`
@@ -19,7 +19,7 @@ Public Import:
 ## Dependency Direction
 
 ```text
-Page / Feature / App
+apps / product packages
         ↓
 @yak-ops/yak-ui
         ↓
@@ -28,59 +28,122 @@ Page / Feature / App
 DOM
 ```
 
-`@base-ui/react` 是 Yak UI 的实现依赖，不是业务层 API。
+Base UI is an implementation dependency, not a product-facing API.
 
 ## Must
 
-- Primitive 必须无 Login / Datasource 等业务语义。
-- Page / Feature / App 只能从 `@yak-ops/yak-ui` 使用公共 Yak UI Primitive。
-- 需要 Headless interaction 时优先由 `@base-ui/react` 提供底层行为，Yak UI 自己拥有公开 API 与视觉 Contract。
-- Yak UI 不直接向业务层 re-export Base UI 原始 Primitive。
-- 样式统一使用 Tailwind 与 Yak UI Design Token。
-- Variant Contract 使用 `class-variance-authority` 管理。
-- Button 默认 `type="button"`。
-- Button 第一版只提供 `primary / secondary / ghost / danger` 四种视觉意图。
-- Button 第一版只提供 `small / medium / large` 三种尺寸。
-- Button loading 必须阻止重复触发，同时保留明确的 busy 状态。
-- Input 第一版只提供 `small / medium / large` 三种尺寸；invalid 状态使用 `aria-invalid` / Base UI Field state，不新增第二套错误状态事实来源。
-- Input 不拥有 Label、Description、Error Message、Prefix / Suffix 等组合能力；这些出现真实复用需求后再建立独立边界。
-- Select 使用组合式 Primitive：`Select / SelectTrigger / SelectValue / SelectContent / SelectItem`。
-- Select 的 keyboard navigation、focus restore、popup interaction、selection semantics 交给 Base UI；Yak UI 只拥有公开组合 Contract 与视觉。
-- Select 不新增把 `options / searchable / clearable / renderOption` 等便利能力堆在一起的超级组件 API；selection mode 由 Root Contract 表达，其它能力优先通过组合扩展。
-- `className` 只作为布局、定位和必要的局部 escape hatch，不用于重新发明 Primitive 的核心视觉状态。
-- 只有真实、稳定、重复使用的 UI Boundary 才新增 Primitive。
+- Primitive must not contain Login / Datasource or other product semantics.
+- App and product packages use public Yak UI exports instead of importing Base UI directly.
+- Headless interaction / accessibility should come from Base UI when it already owns the behavior.
+- Yak UI owns stable Props, composition API, Design Token and visual states.
+- Tailwind + Yak UI tokens are the styling foundation.
+- Variant contracts use `class-variance-authority` when variants are real product-wide concepts.
+- Button defaults to `type="button"`.
+- Input / Textarea / NumberField use one shared input visual language.
+- Select / Menu / Tooltip / Popover / Dialog / Drawer / Tabs remain compositional instead of becoming giant convenience-prop components.
+- Dialog / Drawer / Popover / Menu popup interaction, focus restore, Escape and outside press behavior stay in Base UI.
+- Toast is the common replacement for message / notification feedback.
+- Badge is the common lightweight status-label primitive; product-specific status semantics stay outside Yak UI.
+- `className` is a layout / positioning / necessary escape hatch, not a second visual contract.
+
+## Form Boundary
+
+Yak UI Form / Field only own:
+
+- semantic form container
+- label / description / error presentation
+- accessibility relationship
+- control visual state
+
+Yak UI does not own:
+
+- Datasource form schema
+- field dependency rules
+- dynamic visibility
+- cross-field business validation
+- form list business data
+- API payload assembly
+- submit lifecycle
+
+Product form state belongs to the owning product package.
+
+Do not rebuild an AntD-style mega Form API inside Yak UI.
+
+## Upload Boundary
+
+Yak UI does not provide an Upload product component.
+
+File selection uses native browser file input. Upload request, file type / size policy, progress, retry and backend contract belong to the owning product package.
+
+## AntD Replacement Map
+
+```text
+AntD Button          → Button
+AntD Input           → Input
+AntD Input.Password  → PasswordInput
+AntD Input.TextArea  → Textarea
+AntD InputNumber     → NumberField
+AntD Form            → Form + Field presentation; product owns form state
+AntD Select          → Select
+AntD Switch          → Switch
+AntD Tooltip         → Tooltip
+AntD Popover         → Popover
+AntD Modal           → Dialog
+AntD Drawer          → Drawer
+AntD Tabs            → Tabs
+AntD Dropdown        → DropdownMenu
+AntD Pagination      → Pagination
+AntD Spin            → Spinner
+AntD Empty           → Empty
+AntD Collapse        → Collapsible
+AntD Tag             → Badge
+AntD message         → Toast
+AntD notification    → Toast
+AntD Upload          → native file input + product upload logic
+AntD Space           → normal flex / grid layout
+```
 
 ## Must Not
 
-- 在 Page / Feature / App 直接导入 `@base-ui/react`。
-- 在 Shared UI 中请求 API、读取业务 Service 或拥有业务状态。
-- 把 Datasource、Login、Project、Workflow 等业务概念写进 Primitive。
-- 为未来需求预创建大量空组件。
-- 用一个超级组件通过几十个 Props 覆盖所有场景。
-- 为了迁移方便继续新增 Ant Design 通用 Primitive 封装。
+- App / product packages import `@base-ui/react` directly.
+- Yak UI requests APIs or reads product services.
+- Primitive names or Props expose Datasource-specific concepts.
+- Yak UI re-exports raw Base UI components as its public contract without an intentional Yak UI boundary.
+- Add a second UI framework such as Ant Design / MUI / Chakra inside Yak UI.
+- Recreate AntD-compatible APIs just to make migration search-and-replace easier.
+- Add future primitives that have no real current migration or product need.
 
-## Adoption
-
-- Datasource 的 Page 私有 `YakButton` 已迁移到 Yak UI；不要重新创建业务私有 Button wrapper。
-- 普通文本 Input 与普通 Select 在 Contract 能无损覆盖时迁移到 Yak UI。
-- 依赖 Ant Design 专属组合能力的复杂控件暂时保留原实现，直到对应 Yak UI Primitive 有真实需求。
-- Adoption 以“不丢现有用户行为”为前提，不为了去依赖强行降级 searchable、clearable、password、textarea、number、upload 等能力。
-
-## Current Scope
-
-当前 Yak UI Foundation 已包含：
+## Current Set
 
 ```text
 Yak UI
+├── Badge
 ├── Button
+├── Collapsible
+├── Dialog
+├── Drawer
+├── DropdownMenu
+├── Empty
+├── Field
+├── Form
 ├── Input
-└── Select
+├── PasswordInput
+├── NumberField
+├── Pagination
+├── Popover
+├── Select
+├── Spinner
+├── Switch
+├── Tabs
+├── Textarea
+├── Toast
+└── Tooltip
 ```
 
-这一层只解决通用 Primitive。Form / Field、Checkbox、Switch、Dialog 等能力继续由真实需求驱动，不提前扩展。
+This set exists to support the current Yak Ops AntD removal path. New primitives remain problem-driven.
 
 ## Boundary
 
-`shared/ui` 是 Yak Ops 内部的 Yak UI。
+`packages/yak-ui` is the internal Yak Ops UI package.
 
-当前不单独建立 npm workspace / published package；只有出现跨应用复用或独立发布需求时，再评估包级拆分。
+Cross-app publication is not a current requirement. Do not introduce a separate external publishing workflow until a real consumer exists.
