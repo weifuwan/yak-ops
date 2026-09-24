@@ -16,7 +16,7 @@ import {
   type InputHTMLAttributes,
 } from "react";
 
-import { notifyOnce } from "@/shared/lib/notification";
+import { notifyOnce } from "@/utils/notification";
 import { login } from "../../service/auth";
 
 const WECHAT_QR_CODE_SRC = "/wechat_qr.png";

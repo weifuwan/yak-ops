@@ -1,16 +1,16 @@
 @import "tailwindcss";
-@import "../../../../../packages/yak-ui/src/styles.css";
+@import "../../../../packages/yak-ui/src/styles.css";
 
-@source "../../../../../packages/datasource/src";
-@source "../../../../../packages/yak-ui/src";
-@source "../../../";
+@source "../../../../packages/datasource/src";
+@source "../../../../packages/yak-ui/src";
+@source "../../";
 
 @font-face {
   font-family: "YakOps";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("../../../../../src/app/styles/fonts/yak-ops.woff2") format("woff2");
+  src: url("../../assets/fonts/yak-ops.woff2") format("woff2");
 }
 
 @font-face {
@@ -18,12 +18,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("../../../../../src/app/styles/fonts/web.woff2") format("woff2");
-}
-
-:root {
-  --yak-font-family: "YakOpsZh", "YakOps", "PingFang SC", "Microsoft YaHei", sans-serif;
-
+  src: url("../../assets/fonts/web.woff2") format("woff2");
 }
 
 html,
@@ -37,6 +32,8 @@ body,
 }
 
 body {
+  background: var(--yak-color-background);
+  color: var(--yak-color-text-primary);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -54,12 +51,12 @@ body {
 *::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.32);
+  background: var(--yak-color-scrollbar);
   background-clip: padding-box;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--yak-color-scrollbar-hover);
   background-clip: padding-box;
 }
 
@@ -67,4 +64,3 @@ ul,
 ol {
   list-style: none;
 }
-

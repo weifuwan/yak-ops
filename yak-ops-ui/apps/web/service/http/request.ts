@@ -8,7 +8,7 @@ import {
   type ApiProtocol,
   type ApiResponse,
 } from "@/service/http/response";
-import { notifyOnce } from "@/shared/lib/notification";
+import { notifyOnce } from "@/utils/notification";
 
 export type { ApiProtocol, ApiResponse } from "@/service/http/response";
 
@@ -59,7 +59,6 @@ export const goLogin = () => {
     `/login?returnTo=${encodeURIComponent(returnTo)}`,
   );
 };
-
 
 export const handleAuthenticationFailure = (
   reason = "当前登录信息已过期，请重新登录后继续操作。",

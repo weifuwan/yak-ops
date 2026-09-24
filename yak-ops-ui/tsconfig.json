@@ -22,7 +22,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "apps/web/*"
       ],
       "@yak-ops/yak-ui": [
         "packages/yak-ui/src/index.ts"
@@ -40,8 +40,6 @@
   },
   "include": [
     "apps",
-    "packages",
-    "src",
-    "vite.config.ts"
+    "packages"
   ]
 }

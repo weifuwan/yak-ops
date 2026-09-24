@@ -6,34 +6,51 @@ Scope:
 Owns:
 - Browser application composition
 - Router
-- Application providers
+- Application providers / context
 - Application layout
 - Login page
-- Global styles
+- Web service infrastructure
+- Theme
+- Web assets and public files
+
+## Root Structure
+
+```text
+app/
+public/
+service/
+utils/
+themes/
+types/
+hooks/
+context/
+config/
+constants/
+assets/
+```
+
+`apps/web` 本身就是 Web Root，禁止再创建 `src/`。
 
 ## Must
 
-- App 只组合产品能力，不拥有 Datasource 业务实现。
-- Datasource 页面只通过 `@yak-ops/datasource` 进入 App。
+- App 只组合产品能力，不把业务实现塞进基础设施目录。
 - 通用 UI 只从 `@yak-ops/yak-ui` 使用。
 - Router 只负责 URL → Product Surface 映射。
-- Provider 只拥有应用级运行时状态。
+- Context 只拥有 App-wide runtime state。
+- HTTP transport 只存在于 `service/http`。
+- Theme Token 只存在于 `themes`。
+- 原样静态资源进入 `public`；参与构建的资源进入 `assets`。
 
 ## Must Not
 
 - 直接导入 `@base-ui/react`。
-- 在 App 内实现 Datasource Card、Editor、Connection、Plugin 等业务组件。
-- 从 `src/pages/data-source` 或 `src/service/datasource` 直接导入业务实现。
-- 因为方便而重新创建全局 Component / Utils 大桶。
+- 重新创建 `src/`。
+- 在 `utils/hooks/types/constants` 放某个 Domain 私有实现。
+- 创建第二套 Theme Provider 或 HTTP Client。
+- 因为方便而创建全局 Component / Utils 大桶。
 
-## Boundary
+## Migration Boundary
 
-```text
-apps/web
-   ↓
-packages/datasource
-   ↓
-packages/yak-ui
-```
+PR1 保留 `packages/datasource`，仅允许其 API 临时复用 `service/http`。
 
-PR1 只迁移 App owner，不改变 Datasource 用户行为。
+PR2 再把 Datasource 收口到 `app/datasource`，不在本 PR 提前改变业务行为。

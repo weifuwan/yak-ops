@@ -5,7 +5,6 @@ Status: Active
 Scope:
 - `yak-ops-ui/apps/**`
 - `yak-ops-ui/packages/**`
-- PR1 migration bridge under `yak-ops-ui/src/**`
 
 Depends On:
 - `../ARCHITECTURE.md`
@@ -13,19 +12,48 @@ Depends On:
 
 ## Principle
 
-Yak Ops UI 使用 App + Product Package + UI Package 组织前端。
+Yak Ops UI 使用 Workspace + Dify-style Web Root。
 
 ```text
 apps/web
-   ↓
-packages/datasource
-   ↓
+├── app
+├── public
+├── service
+├── utils
+├── themes
+├── types
+├── hooks
+├── context
+├── config
+├── constants
+└── assets
+
 packages/yak-ui
+packages/datasource
 ```
 
-App 负责产品组装，Product Package 负责业务能力，Yak UI 负责无业务语义的 Primitive。
+`apps/web` 本身就是浏览器应用根，不再额外套 `src/`。
 
-目录不是为了“看起来像 Monorepo”。每个 workspace 必须有真实 owner。
+根目录基础设施只接收跨业务能力；业务组件、业务 Hook、业务类型跟随业务 owner。真正无业务语义的 UI Primitive 继续归 `packages/yak-ui`。
+
+## Web Root Ownership
+
+```text
+app        → 应用组装、Router、Layout
+pages      → PR2 前存量页面入口
+service    → HTTP transport + 应用级后端访问
+utils      → 无业务工具
+themes     → Theme Token / light / dark
+types      → 跨 Web 稳定类型
+hooks      → 跨组件 React Hook
+context    → App-wide Context
+config     → 运行配置
+constants  → 稳定常量
+assets     → 参与构建的资源
+public     → 原样静态资源
+```
+
+禁止重新创建 `apps/web/src`、根 `yak-ops-ui/src` 或根 `yak-ops-ui/public`。
 
 ## Stable Structure
 
@@ -33,70 +61,33 @@ App 负责产品组装，Product Package 负责业务能力，Yak UI 负责无�
 yak-ops-ui/
 ├── apps/
 │   └── web/
-│       ├── APP_RULES.md
-│       ├── package.json
-│       └── src/
-│           ├── app/
-│           │   ├── App.tsx
-│           │   ├── layout/
-│           │   ├── providers/
-│           │   ├── router/
-│           │   └── styles/
-│           ├── pages/
-│           │   └── login/
-│           ├── service/
-│           │   └── auth/
-│           └── main.tsx
+│       ├── app/
+│       ├── pages/
+│       ├── service/
+│       │   ├── auth/
+│       │   └── http/
+│       ├── utils/
+│       ├── themes/
+│       ├── types/
+│       ├── hooks/
+│       ├── context/
+│       ├── config/
+│       ├── constants/
+│       ├── assets/
+│       ├── public/
+│       ├── index.html
+│       ├── main.tsx
+│       └── vite.config.ts
 ├── packages/
 │   ├── datasource/
-│   │   ├── DATASOURCE_UI_RULES.md
-│   │   ├── package.json
-│   │   └── src/
-│   │       ├── api/
-│   │       ├── connection/
-│   │       ├── editor/
-│   │       ├── i18n/
-│   │       ├── management/
-│   │       ├── model/
-│   │       ├── plugin/
-│   │       └── index.tsx
 │   └── yak-ui/
-│       ├── UI_RULES.md
-│       ├── package.json
-│       └── src/
-│           ├── button/
-│           ├── input/
-│           ├── select/
-│           ├── cn.ts
-│           ├── index.ts
-│           └── styles.css
-├── src/
-├── index.html
 ├── package.json
-├── tsconfig.json
-└── vite.config.ts
+└── tsconfig.json
 ```
-
-## Migration Bridge
-
-Datasource 产品代码已全部进入 `packages/datasource`。
-
-`src/**` 当前只保留少量跨阶段 infrastructure / binary asset：
-
-```text
-src/service/http
-src/shared/lib
-src/pages/login/assets
-src/app/styles/fonts
-```
-
-`src/pages/data-source`、`src/service/datasource`、`src/shared/ui` 已删除，禁止重新创建。
-
-HTTP transport 是否独立成 package，由后续真实跨 package owner 决定；不要为了目录对称提前拆。
 
 ## Dependency Direction
 
-正式依赖方向：
+当前正式方向：
 
 ```text
 apps/web
@@ -105,176 +96,96 @@ apps/web
 packages/datasource
    ↓
 packages/yak-ui
-   ↓
-@base-ui/react
 ```
 
-禁止：
+PR1 到 PR2 之间仅允许一条临时 bridge：
 
 ```text
-packages/yak-ui   ✕→ packages/datasource
-packages/yak-ui   ✕→ apps/web
-packages/datasource ✕→ apps/web
-packages/datasource ✕→ Router / AppLayout / AuthProvider
+packages/datasource/api
+        ↓
+apps/web/service/http
 ```
 
-Datasource API 当前只依赖 `src/service/http` 这一条 infrastructure bridge；Datasource 业务实现不再依赖旧 Page / Service 目录。
+这是为了删除历史根 `src/service/http`。PR2 将 Datasource 迁回 `app/datasource` 后，这条 bridge 必须消失。
 
-## apps/web
+除这条 transport bridge 外，Datasource 不得依赖 App Router、Layout、Context 或页面。
 
-`apps/web` 拥有浏览器应用组装：
+## Theme Architecture
 
-- React mount。
-- Router。
-- 应用级 Provider。
-- App Layout。
-- Login。
-- 全局样式。
-- 应用级认证 Service。
-
-App 回答“产品如何组合”，不回答“Datasource 如何实现”。
-
-Datasource 路由固定通过：
-
-```ts
-import { DataSourcePage } from "@yak-ops/datasource"
-```
-
-App 禁止直接 import `src/pages/data-source`。
-
-详细规则见 `apps/web/APP_RULES.md`。
-
-## packages/datasource
-
-`packages/datasource` 是 Datasource 前端唯一产品 owner。
-
-当前结构为：
+Theme 是 Web 基础设施，不属于 Yak UI 或某个业务页面。
 
 ```text
-packages/datasource/src/
-├── api/
-├── model/
-├── management/
-├── editor/
-├── connection/
-├── plugin/
-└── index.ts
+themes/
+├── tokens.css
+├── light.css
+├── dark.css
+└── index.css
 ```
 
-目录按 capability owner 划分，不建立全局 `components/hooks/utils/types` 大桶。
+职责：
 
-详细规则见 `packages/datasource/DATASOURCE_UI_RULES.md`。
+- `tokens.css`：字体、圆角、阴影等主题无关 Token。
+- `light.css`：Light 语义颜色。
+- `dark.css`：Dark 语义颜色及必要组件变量覆盖。
+- `context/theme-context.tsx`：运行时 Theme 状态与 DOM 同步。
+- `hooks/use-theme.ts`：组件访问 Theme 的入口。
+- `types/theme.ts`：Theme contract。
 
-## packages/yak-ui
-
-`packages/yak-ui` 拥有无业务语义的 UI Primitive。Ant Design 已移除，产品代码统一通过 Yak UI / 原生浏览器能力实现通用交互：
-
-```text
-Button / Input / PasswordInput / Textarea
-NumberField / Switch / Select / Combobox
-DropdownMenu / Tabs / Collapsible
-Tooltip / Popover / Dialog / Drawer
-Pagination / Spinner / Empty / Badge / Toast
-```
-
-固定依赖：
-
-```text
-product code
-    ↓
-@yak-ops/yak-ui
-    ↓
-@base-ui/react
-```
-
-Yak UI 自己拥有 Props Contract、Design Token 和视觉状态。
-
-详细规则见 `packages/yak-ui/UI_RULES.md`。
+默认主题保持 Light，避免 PR1 在未完成业务颜色迁移前改变现有视觉。Theme Runtime 已支持 `light / dark / system`。
 
 ## Service Boundary
 
-当前 HTTP transport 暂留 `src/service/http`。
+`apps/web/service/http` 是当前唯一 HTTP transport owner。
 
-长期方向：
+`apps/web/service/auth` 拥有 Login / Logout / Current User。
 
-- App 专属认证调用归 `apps/web`。
-- Datasource API 归 `packages/datasource/api`。
-- 通用 HTTP transport 如果形成稳定跨 package owner，再独立定义 shared infrastructure package。
+Datasource endpoint 仍由 `packages/datasource/src/api` 拥有；PR2 会随 Datasource 一起迁移到 Web Domain。
 
-禁止把 HTTP transport 塞进 Yak UI。
-
-## State Boundary
-
-状态按事实来源归属：
-
-- URL 状态归 Router。
-- 应用级认证状态归 App Provider。
-- Datasource 业务事实归 Datasource package。
-- Primitive interaction state 归 Yak UI。
-- 后端事实以 API 响应为准。
-
-不要复制同一事实来源形成第二份 state。
+Component / Page / Hook 禁止直接调用 `fetch`。
 
 ## Asset Boundary
 
-- App 全局样式 → `apps/web/src/app/styles`。
-- Yak UI Design Token → `packages/yak-ui/src/styles.css`。
-- Product package 私有资源 → 对应 package。
-- Login 视频 / App 字体当前暂留 migration bridge，后续单独搬迁二进制资源。
+- 原样静态文件 → `apps/web/public`。
+- 字体、视频等构建资源 → `apps/web/assets`。
+- App 全局样式 → `apps/web/app/styles`。
+- Theme → `apps/web/themes`。
+- Yak UI Primitive 样式 → `packages/yak-ui/src/styles.css`。
 
-## Package Manager
+## Vite Boundary
 
-Yak Ops UI 继续使用 npm。
+Vite Root 固定为 `apps/web`。
 
-根 `package.json` 使用 npm workspaces：
+根 workspace 只负责 npm workspace、TypeScript 和统一命令入口：
 
-```text
-apps/*
-packages/*
+```bash
+npm run dev
+npm run check
+npm run build
 ```
 
-PR1 不切换 pnpm / yarn，避免把 package-manager migration 与 architecture migration 混在一起。
+Build 仍输出到 `yak-ops-ui/dist`，不改变现有部署产物位置。
 
 ## Current Migration Stage
 
-PR1 已完成 Workspace / ownership 建立。
+PR1 — Web Foundation + Theme Architecture：
 
-PR2 已补齐 Yak UI AntD replacement set。
+- Web Root 去掉 `src/` 中间层。
+- 删除根 `src/**` migration bridge。
+- 静态资源收口到 `apps/web/public` / `assets`。
+- HTTP / notification 基础设施收口到 Web Root。
+- 建立 Theme Token + Light/Dark + Theme Context。
+- Vite Root 收口到 `apps/web`。
 
-PR3 已完成 Datasource package capability 重构：
+PR2 才负责：
 
-```text
-management / editor / connection / plugin / model / api
-```
-
-下一阶段负责：
-
-- 使用 Yak UI replacement set 迁移存量 AntD 组件。
-- 删除 Ant Design / @ant-design/icons / legacy less overrides。
-
-当前仍不引入：
-
-- pnpm / Turborepo。
-- Zustand / Redux。
-- 新产品页面。
+- `packages/datasource` → `apps/web/app/datasource`。
+- Login 进一步按 App Domain 收口。
+- 删除 Datasource → Web HTTP 临时 bridge。
 
 ## Verification
-
-完整前端验证：
 
 ```bash
 cd yak-ops-ui
 npm run check
 npm run build
 ```
-
-验证范围必须覆盖：
-
-```text
-apps
-packages
-src migration bridge
-vite.config.ts
-```
-
-工具定义见 `docs/tooling.md`。

@@ -1,0 +1,12 @@
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --yak-color-background: #ffffff;
+  --yak-color-surface: #f7f8f9;
+  --yak-color-surface-muted: #f3f3f5;
+  --yak-color-border: #e7e9ed;
+  --yak-color-text-primary: #161823;
+  --yak-color-text-secondary: #667085;
+  --yak-color-scrollbar: rgb(0 0 0 / 32%);
+  --yak-color-scrollbar-hover: rgb(0 0 0 / 45%);
+}

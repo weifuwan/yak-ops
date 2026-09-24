@@ -1,4 +1,4 @@
-import HttpUtils from '../../../../src/service/http/HttpUtils';
+import HttpUtils from '@/service/http/HttpUtils';
 
 import type { DriverUploadResult } from '../model/types';
 
