@@ -1,5 +1,0 @@
-export const DATA_DEVELOPMENT_DEFAULT_TREE_WIDTH = 300;
-export const DATA_DEVELOPMENT_MIN_TREE_WIDTH = 220;
-export const DATA_DEVELOPMENT_MAX_TREE_WIDTH = 440;
-export const DATA_DEVELOPMENT_TREE_WIDTH_STORAGE_KEY =
-  'yak-data-development.left-width';
