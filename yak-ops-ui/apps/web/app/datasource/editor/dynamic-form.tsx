@@ -44,11 +44,11 @@ import {
 } from "../hooks/use-plugin-form-config";
 import { getEnvironmentTagConfigMap } from "../constants";
 import DatabaseIcons from "../icons/DatabaseIcons";
-import type { DynamicFormField, DynamicFormSection } from "./types";
+import type { DynamicFormField, DynamicFormSection } from "../types";
 import {
   DataSourceOperateType,
   type DynamicDataSourceFormProps,
-} from "../types";
+} from "./types";
 import {
   DataSourceFormField,
   DataSourceFormProvider,
