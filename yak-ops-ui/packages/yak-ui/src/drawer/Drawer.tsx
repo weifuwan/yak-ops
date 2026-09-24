@@ -48,8 +48,8 @@ export function DrawerContent({
           className={cn(
             "fixed inset-y-0 flex max-w-[calc(100vw-1rem)] flex-col overflow-hidden border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-dialog-shadow)] outline-none",
             "transition-transform duration-200 motion-reduce:transition-none",
-            "data-[swipe-direction=right]:right-0 data-[swipe-direction=right]:border-l data-[swipe-direction=right]:data-starting-style:translate-x-full data-[swipe-direction=right]:data-ending-style:translate-x-full",
-            "data-[swipe-direction=left]:left-0 data-[swipe-direction=left]:border-r data-[swipe-direction=left]:data-starting-style:-translate-x-full data-[swipe-direction=left]:data-ending-style:-translate-x-full",
+            "data-[swipe-direction=right]:right-0 data-[swipe-direction=right]:border-l data-starting-style:data-[swipe-direction=right]:translate-x-full data-ending-style:data-[swipe-direction=right]:translate-x-full",
+            "data-[swipe-direction=left]:left-0 data-[swipe-direction=left]:border-r data-starting-style:data-[swipe-direction=left]:-translate-x-full data-ending-style:data-[swipe-direction=left]:-translate-x-full",
             className,
           )}
         >
