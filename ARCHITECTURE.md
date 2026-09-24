@@ -28,7 +28,7 @@ Owns shared contracts and the unified `io.yak.framework.common` Result / ErrorCo
 
 ### `yak-ops-security`
 
-Owns user management, login/logout/current identity, HttpSession authentication state, authentication interceptor/runtime, and the security schema.
+Owns user management, login/logout/current identity, HttpSession authentication state, and authentication interceptor/runtime.
 
 Security does not own Controller or ControllerAdvice. Boot exposes the current Security HTTP API by calling Security-owned services.
 
@@ -43,6 +43,8 @@ Owns shared database persistence infrastructure:
 - MyBatis-Plus Repository base contract
 - MyBatis-Plus Repository base implementation
 - persistence rules shared by concrete DAO code
+- the single Flyway configuration and schema history for all Yak Ops modules
+- all versioned SQL under `yak-ops-dao/src/main/resources/db/migration/yak-ops`
 
 Concrete Datasource persistence remains in `yak-ops-business-datasource` until a separate migration changes that ownership.
 
@@ -56,7 +58,7 @@ Reserved empty module.
 
 ### `yak-ops-business/yak-ops-business-datasource`
 
-Owns the Datasource domain: business rules, connection, catalog, SQL execution, current concrete persistence and Datasource-specific security policy.
+Owns the Datasource domain: business rules, connection, catalog, SQL execution, current concrete persistence and Datasource-specific security policy. Schema migration is owned centrally by `yak-ops-dao`.
 
 Datasource does not own Controller, ControllerAdvice or Controller-only request/response conversion. Boot exposes Datasource HTTP APIs by calling Datasource-owned capability.
 

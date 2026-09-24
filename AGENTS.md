@@ -38,6 +38,9 @@ yak-ops-common/**
 yak-ops-dao/**
 → yak-ops-dao/DAO_RULES.md
 
+yak-ops-dao/src/main/resources/db/migration/**
+→ yak-ops-dao/FLYWAY_RULES.md
+
 yak-ops-core/**
 → yak-ops-core/CORE_RULES.md
 

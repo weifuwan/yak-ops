@@ -7,6 +7,7 @@ Depends On:
 - `/ARCHITECTURE.md`
 - `/JAVA_RULES.md`
 - HTTP contract 变化加载 `/CONTROLLER_RULES.md`
+- Schema 变化加载 `/yak-ops-dao/FLYWAY_RULES.md`
 - Plugin 变化加载 `/yak-ops-plugins/yak-ops-plugin-datasource/PLUGIN_RULES.md`
 
 Owns:
@@ -70,7 +71,7 @@ business behavior
 - simple queries prefer MyBatis-Plus capabilities.
 - complex SQL may use Mapper XML.
 - do not add forwarding methods that only rename existing CRUD.
-- Flyway owns schema evolution under `src/main/resources/db/migration/yak-datasource`.
+- Schema evolution is owned by `yak-ops-dao`; changes must follow `/yak-ops-dao/FLYWAY_RULES.md`.
 
 ## Execution
 
