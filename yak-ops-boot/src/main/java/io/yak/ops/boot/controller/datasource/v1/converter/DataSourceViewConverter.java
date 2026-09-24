@@ -1,5 +1,6 @@
 package io.yak.ops.boot.controller.datasource.v1.converter;
 
+import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
 import io.yak.ops.business.datasource.domain.DataSourceSummary;
@@ -10,14 +11,13 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceViewConverter {
-    private final DataSourcePluginReader pluginReader;
+    @Resource
+    private DataSourcePluginReader pluginReader;
 
     public DataSourceVO definition(DataSourceDefinition source, boolean includeOriginalJson) {
         if (source == null) return null;
