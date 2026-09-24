@@ -1,5 +1,6 @@
 package io.yak.ops.security.service.impl;
 
+import jakarta.annotation.Resource;
 import io.yak.ops.common.PageData;
 import io.yak.ops.common.PagingData;
 import io.yak.ops.common.Result;
@@ -43,13 +44,11 @@ public class UserServiceImpl implements UserService {
     private static final Pattern USER_MAIL_PATTERN =
             Pattern.compile("^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$");
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    @Resource
+    private UserRepository userRepository;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
+    @Resource
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public Result<Void> check(Integer checkType, String checkValue) {
