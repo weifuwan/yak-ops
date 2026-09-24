@@ -61,15 +61,6 @@ for (const dependency of Object.keys(rootPackage.devDependencies ?? {})) {
   }
 }
 
-const forbiddenDependencies = new Set([
-  "@yak-ops/datasource",
-  "@ant-design/icons",
-  "@umijs/max",
-  "antd",
-  "axios",
-  "umi-request",
-]);
-
 const sourceExtensions = new Set([
   ".js",
   ".jsx",
