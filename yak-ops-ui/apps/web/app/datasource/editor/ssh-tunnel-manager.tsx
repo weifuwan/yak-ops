@@ -16,8 +16,8 @@ import {
 } from "@yak-ops/yak-ui";
 import { KeyRound, Network, ShieldCheck } from "lucide-react";
 
-import { useIntl } from "../../i18n";
-import type { SshTunnelConfigValue } from "../../types";
+import { useIntl } from "../i18n";
+import type { SshTunnelConfigValue } from "../types";
 
 interface IntlFormatter {
   formatMessage: (descriptor: { id: string }) => string;

@@ -1,12 +1,12 @@
 import { Button, Input } from "@yak-ops/yak-ui";
 import { Plus, Trash2 } from "lucide-react";
 
-import type { DynamicFormField } from "../../../types";
+import type { DynamicFormField } from "../types";
 import {
   DataSourceFormField,
   type DataSourceFormFieldState,
   type FormRule,
-} from "../../formRuntime";
+} from "./form-runtime";
 
 interface IntlFormatter {
   formatMessage: (

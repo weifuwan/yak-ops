@@ -1,4 +1,4 @@
-import type { DataSourceFormInstance } from "./formRuntime";
+import type { DataSourceFormInstance } from "./form-runtime";
 
 import type { DataSourceRecord } from "../types";
 

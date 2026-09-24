@@ -12,7 +12,7 @@ import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useRef, useState } from "react";
 
-import DataSourceEditor from "./editor/DataSourceEditor";
+import DataSourceEditor from "./editor";
 import type { DataSourceModalRef } from "./editor/types";
 import { DataSourceOperateType } from "./editor/types";
 import { useIntl } from "./i18n";

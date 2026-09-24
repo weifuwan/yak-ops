@@ -2,7 +2,7 @@ import {
   getDataSourcePluginConfig,
   installDataSourcePlugin,
 } from '@/service/datasource';
-import type { DataSourceFormInstance } from '../editor/formRuntime';
+import type { DataSourceFormInstance } from '../editor/form-runtime';
 import {
   useCallback,
   useEffect,
@@ -18,7 +18,7 @@ import {
   normalizeConfigValuesForForm,
   normalizeFormSections,
   patchEmptyWithDefaults,
-} from '../editor/DynamicDataSourceForm/utils/formUtils';
+} from '../editor/form-utils';
 
 
 export const PLUGIN_CONFIG_STATUS = {

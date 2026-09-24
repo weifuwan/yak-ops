@@ -14,34 +14,6 @@ Depends On:
 
 Yak Ops UI 使用 Workspace + Dify-style Web Root。
 
-```text
-yak-ops-ui/
-├── apps/
-│   └── web/
-│       ├── app/
-│       │   ├── datasource/
-│       │   ├── login/
-│       │   ├── layout/
-│       │   └── router/
-│       ├── service/
-│       │   ├── auth/
-│       │   ├── datasource/
-│       │   └── http/
-│       ├── utils/
-│       ├── themes/
-│       ├── types/
-│       ├── hooks/
-│       ├── context/
-│       ├── config/
-│       ├── constants/
-│       ├── assets/
-│       └── public/
-├── packages/
-│   └── yak-ui/
-└── scripts/
-    └── check-architecture.mjs
-```
-
 `apps/web` 是产品 Web Root。
 
 业务能力归 `app/<domain>`，后端通信与后端 Contract 归 `service/<domain>`，真正跨业务的基础能力才进入 root infrastructure。无业务语义 UI Primitive 归 `packages/yak-ui`。
@@ -50,7 +22,7 @@ yak-ops-ui/
 
 Domain 内优先局部内聚，不把概念名自动变成目录层级。
 
-Datasource 当前页面结构：
+Datasource 当前结构：
 
 ```text
 app/datasource/
@@ -64,12 +36,25 @@ app/datasource/
 ├── utils.ts
 ├── hooks/
 ├── editor/
-├── connection/
+│   ├── index.tsx
+│   ├── type-selector.tsx
+│   ├── dynamic-form.tsx
+│   ├── custom-kv-list.tsx
+│   ├── form-runtime.tsx
+│   ├── form-model.ts
+│   ├── form-utils.ts
+│   ├── driver-manager.tsx
+│   ├── jdbc-url-field.tsx
+│   ├── jdbc-url-utils.ts
+│   ├── ssh-tunnel-manager.tsx
+│   └── types.ts
 ├── icons/
 └── i18n/
 ```
 
-`management / model / plugin` 已删除，因为它们只是概念分层，不是独立产品能力。
+`management / model / plugin / connection` 已删除。
+
+Datasource Editor 允许一层独立目录，因为它本身足够复杂；Editor 内部继续保持扁平。
 
 ## Dependency Direction
 
@@ -110,15 +95,9 @@ Datasource 后端 Contract 归：
 service/datasource/types.ts
 ```
 
-App 通过：
+App 通过 `app/datasource/types.ts` 消费并补充 UI-only 类型。
 
-```text
-app/datasource/types.ts
-```
-
-消费和补充 UI-only 类型。
-
-不要重新创建 `model/types.ts` 或第二份 Contract owner。
+Editor 私有 Contract 归 `app/datasource/editor/types.ts`。
 
 ## Web Root Ownership
 
@@ -150,30 +129,17 @@ packages/datasource
 app/datasource/management
 app/datasource/model
 app/datasource/plugin
+app/datasource/connection
+app/datasource/editor/DynamicDataSourceForm
 ```
 
 ## Service Boundary
 
-`service/http`
-- 唯一 HTTP transport owner
-- Result envelope
-- network / authentication failure handling
-- 唯一允许调用原生 `fetch` 的位置
+`service/http` 是唯一 HTTP transport owner。
 
-`service/auth`
-- Login
-- Logout
-- Current User
+`service/auth` 拥有 Login / Logout / Current User。
 
-`service/datasource`
-- Datasource Contract
-- Datasource CRUD
-- Connection Test
-- Plugin Config
-- Catalog
-- Driver Upload
-
-Component / Domain Hook 禁止直接调用 `fetch`。
+`service/datasource` 拥有 Datasource Contract、CRUD、Connection Test、Plugin Config、Catalog、Driver Upload。
 
 ## Package Boundary
 
@@ -183,17 +149,11 @@ Component / Domain Hook 禁止直接调用 `fetch`。
 packages/yak-ui
 ```
 
-Datasource 是产品 Domain，不再作为 npm workspace package。
-
-Workspace root 不拥有运行时 dependencies；运行时依赖由 `apps/web` / `packages/yak-ui` 分别声明。
-
 ## Architecture Enforcement
 
 ```bash
 npm run architecture:check
 ```
-
-由 `scripts/check-architecture.mjs` 检查稳定 invariant。
 
 架构变化必须同时更新：
 
