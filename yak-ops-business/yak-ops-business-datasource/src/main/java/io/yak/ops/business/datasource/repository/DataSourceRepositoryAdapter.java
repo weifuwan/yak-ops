@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.repository;
 
+import jakarta.annotation.Resource;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.dao.DataSourceDao;
@@ -14,16 +15,15 @@ import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 /** MyBatis persistence adapter. */
 @Repository
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceRepositoryAdapter implements DataSourceRepository {
 
-    private final DataSourceDao dao;
+    @Resource
+    private DataSourceDao dao;
 
     @Override
     public Optional<DataSourceDefinition> findById(Long id) {
