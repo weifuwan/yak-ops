@@ -38,11 +38,13 @@ import SshTunnelManager, {
   getSshTunnelValidationMessage,
 } from "../../connection/SshTunnelManager";
 import { useIntl } from "../../i18n";
-import { PLUGIN_CONFIG_STATUS } from "../../plugin/pluginConfigState";
-import { usePluginFormConfig } from "../../plugin/usePluginFormConfig";
-import { getEnvironmentTagConfigMap } from "../../model/constants";
-import DatabaseIcons from "../../model/icons/DatabaseIcons";
-import type { DynamicFormField, DynamicFormSection } from "../../model/types";
+import {
+  PLUGIN_CONFIG_STATUS,
+  usePluginFormConfig,
+} from "../../hooks/use-plugin-form-config";
+import { getEnvironmentTagConfigMap } from "../../constants";
+import DatabaseIcons from "../../icons/DatabaseIcons";
+import type { DynamicFormField, DynamicFormSection } from "../../types";
 import {
   DataSourceOperateType,
   type DynamicDataSourceFormProps,

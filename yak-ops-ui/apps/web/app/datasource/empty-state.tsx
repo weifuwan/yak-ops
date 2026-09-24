@@ -1,5 +1,5 @@
 import { Button } from '@yak-ops/yak-ui';
-import { useIntl } from '../i18n';
+import { useIntl } from "./i18n";
 
 const DataSourceEmptyIllustration = () => (
   <svg

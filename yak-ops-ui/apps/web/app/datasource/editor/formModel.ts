@@ -1,4 +1,4 @@
-import type { DataSourceRecord, DataSourceSavePayload } from "../model/types";
+import type { DataSourceRecord, DataSourceSavePayload } from "../types";
 import type {
   DataSourceConnectionFormValues,
   DataSourceFormValues,

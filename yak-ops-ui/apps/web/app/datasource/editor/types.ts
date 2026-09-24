@@ -1,6 +1,6 @@
 import type { DataSourceFormInstance } from "./formRuntime";
 
-import type { DataSourceRecord } from "../model/types";
+import type { DataSourceRecord } from "../types";
 
 export enum DataSourceOperateType {
   Create = "CREATE",

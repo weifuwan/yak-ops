@@ -1,4 +1,4 @@
-import type { DataSourceId } from "./types";
+export type * from "@/service/datasource/types";
 
 export interface DataSourceOptionItem {
   label: string;
@@ -24,4 +24,11 @@ export interface DataSourceGroup {
   datasourceList: DataSourceCatalogItem[];
 }
 
-export const dataSourceRecordKey = (id?: DataSourceId) => String(id ?? "");
+export type DataSourceViewMode = "grid" | "list";
+
+export interface DataSourcePermissions {
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canTest: boolean;
+}

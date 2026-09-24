@@ -15,9 +15,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   EMPTY_DATA_SOURCE_SUMMARY,
   PAGE_DEFAULT_PAGINATION,
-} from '../model/constants';
-import type { DataSourcePermissions, DataSourceViewMode } from './types';
-import { dataSourceRecordKey } from '../model/presentation';
+} from '../constants';
+import type { DataSourcePermissions, DataSourceViewMode } from '../types';
+import { dataSourceRecordKey } from '../utils';
 
 const DATA_SOURCE_PERMISSIONS: DataSourcePermissions = {
   canCreate: true,
@@ -26,7 +26,7 @@ const DATA_SOURCE_PERMISSIONS: DataSourcePermissions = {
   canTest: true,
 };
 
-export const useDataSourceManagement = () => {
+export const useDatasources = () => {
   const requestSequenceRef = useRef(0);
   const permissions = DATA_SOURCE_PERMISSIONS;
 

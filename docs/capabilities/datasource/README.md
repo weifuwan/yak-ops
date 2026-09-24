@@ -23,17 +23,27 @@ Frontend Product Owner:
 Frontend Service Owner:
 - `yak-ops-ui/apps/web/service/datasource`
 
-Frontend Capabilities:
-- `app/datasource/management`
-- `app/datasource/editor`
-- `app/datasource/connection`
-- `app/datasource/plugin`
-- `app/datasource/model`
-- `service/datasource`
+Frontend Structure:
 
-Data:
-- `yak-ops-dao/src/main/resources/db/migration/yak-ops`
-- `yak-ops-business/yak-ops-business-datasource/src/main/resources/mapper`
+```text
+app/datasource/
+├── index.tsx
+├── card.tsx
+├── toolbar.tsx
+├── summary.tsx
+├── empty-state.tsx
+├── hooks/
+├── editor/
+├── connection/
+├── icons/
+└── i18n/
+
+service/datasource/
+```
+
+Datasource 页面层已从 capability layering 收口为 feature-locality 结构。
+
+`management / model / plugin` 不再是目录 owner。
 
 ## Frontend Dependency
 
@@ -53,9 +63,7 @@ app/datasource
 
 Datasource is a Web App Domain, not an npm workspace package.
 
-`packages/datasource` and `@yak-ops/datasource` have been removed.
-
-Dynamic form state remains owned by `app/datasource/editor/formRuntime.tsx`.
+Dynamic form state remains owned by `app/datasource/editor/formRuntime.tsx`。
 
 ## Current Capability Map
 
@@ -66,7 +74,7 @@ Plugin Configuration
 Catalog Browse
 ```
 
-这只是当前代码能力地图，不代表每个 Contract 已经确认。
+这只是当前代码能力地图，不代表每个概念都需要一层目录。
 
 ## Shared Rules
 
@@ -77,19 +85,6 @@ Catalog Browse
 - `PLUGIN_RULES.md` when plugin behavior changes
 - `yak-ops-ui/ARCHITECTURE.md`
 - `yak-ops-ui/apps/web/app/datasource/DATASOURCE_RULES.md`
-
-## Development Order
-
-```text
-choose one capability
-→ inspect current code
-→ write the capability contract
-→ review contract
-→ implement the gap
-→ review
-→ explicit verification
-→ mark Done
-```
 
 ## Boundary
 

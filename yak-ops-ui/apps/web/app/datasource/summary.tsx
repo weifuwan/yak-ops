@@ -1,10 +1,10 @@
-import type { DataSourceSummary } from '../model/types';
-import { useIntl } from '../i18n';
+import type { DataSourceSummary } from "./types";
+import { useIntl } from "./i18n";
 import { motion } from 'framer-motion';
 import { CheckCircle2, Database, Server, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { PAGE_ANIMATION } from '../model/constants';
+import { PAGE_ANIMATION } from "./constants";
 
 interface SummaryItem {
   key: keyof Pick<
