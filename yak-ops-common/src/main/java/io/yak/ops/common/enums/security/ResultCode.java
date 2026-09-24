@@ -33,7 +33,8 @@ public enum ResultCode implements ErrorCode {
   USER_ACCOUNT_UPDATE_FAIL(2018, "用户更新失败"),
   USER_PHONE_FORMAT_ERROR(2019, "手机号格式错误"),
   USER_NAME_FORMAT_ERROR(2020, "用户名格式错误"),
-  USER_NAME_EXISTS(2021, "用户名已经存在");
+  USER_NAME_EXISTS(2021, "用户名已经存在"),
+  NO_PERMISSION(3001, "没有权限");
 
   private final Integer code;
   private final String message;
