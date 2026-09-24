@@ -1,5 +1,5 @@
-import { YakButton } from '@/components/ui';
-import { useIntl } from '@/shared/i18n';
+import { YakButton } from '@/pages/data-source/components/ui';
+import { useIntl } from '@/pages/data-source/i18n';
 import { Database, Plus } from 'lucide-react';
 
 interface DataSourcePageHeaderProps {

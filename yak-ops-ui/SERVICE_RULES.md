@@ -1,10 +1,7 @@
 # Frontend Service Rules
 
 Scope:
-- 目标：`yak-ops-ui/src/service/**`
-- 已迁移：`yak-ops-ui/src/service/datasource/**`
-- 已迁移：`yak-ops-ui/src/service/auth/**`
-- HTTP infrastructure
+- `yak-ops-ui/src/service/**`
 
 Depends On:
 - `./ARCHITECTURE.md`

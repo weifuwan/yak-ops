@@ -1,4 +1,4 @@
-import YakButton from '@/components/YakButton';
+import YakButton from '@/pages/data-source/components/ui/YakButton';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { Form, Input } from 'antd';
 import type { Rule } from 'antd/es/form';

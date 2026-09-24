@@ -10,7 +10,7 @@ import { useForm } from "antd/es/form/Form";
 import { useState } from "react";
 
 import { login } from "@/service/auth";
-import { notifyOnce } from "@/utils/notifyOnce";
+import { notifyOnce } from "@/shared/lib/notification";
 
 const WECHAT_QR_CODE_SRC = "/wechat_qr.png";
 const FORM_ITEM_CLASS_NAME =

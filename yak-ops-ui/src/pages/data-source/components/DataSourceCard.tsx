@@ -1,6 +1,6 @@
-import { YakButton } from '@/components/ui';
+import { YakButton } from '@/pages/data-source/components/ui';
 import type { DataSourceRecord } from '@/service/datasource';
-import { useIntl } from '@/shared/i18n';
+import { useIntl } from '@/pages/data-source/i18n';
 import { motion } from 'framer-motion';
 import { Clock3, Pencil, Trash2, Unplug } from 'lucide-react';
 

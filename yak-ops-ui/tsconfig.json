@@ -30,28 +30,7 @@
     ]
   },
   "include": [
-    "src/main.tsx",
-    "src/app/**/*.ts",
-    "src/app/**/*.tsx",
-    "src/pages/login/**/*.ts",
-    "src/pages/login/**/*.tsx",
-    "src/pages/data-source/**/*.ts",
-    "src/pages/data-source/**/*.tsx",
-    "src/service/auth/**/*.ts",
-    "src/service/datasource/**/*.ts",
-    "src/services/http/response.ts",
-    "src/utils/HttpUtils.tsx",
-    "src/utils/request.ts",
-    "src/utils/notifyOnce.ts",
-    "src/utils/prettyNotification.tsx",
-    "src/components/YakButton/**/*.ts",
-    "src/components/YakButton/**/*.tsx",
-    "src/components/YakTab/**/*.ts",
-    "src/components/YakTab/**/*.tsx",
-    "src/components/ui/**/*.ts",
-    "src/shared/**/*.ts",
-    "src/shared/**/*.tsx",
-    "src/locales/zh-CN/data-source.ts",
+    "src",
     "vite.config.ts"
   ]
 }

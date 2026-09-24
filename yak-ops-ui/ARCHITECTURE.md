@@ -1,6 +1,6 @@
 # Yak Ops UI Architecture
 
-Status: Implementing
+Status: Active
 
 Scope:
 - `yak-ops-ui/src/**`
@@ -26,9 +26,9 @@ Login 是支撑能力，Datasource 是当前唯一产品能力。
 
 不要因为历史代码、旧目录或未来规划重新引入其它产品域。
 
-## Target Structure
+## Stable Structure
 
-目标结构与 Yakable 保持同一套前端骨架：
+当前稳定结构：
 
 ```text
 src/
@@ -41,75 +41,48 @@ src/
 ├── pages/
 │   ├── login/
 │   └── data-source/
-├── features/
-│   └── datasource/
 ├── service/
 │   ├── http/
 │   ├── auth/
 │   └── datasource/
 ├── shared/
-│   ├── lib/
-│   └── ui/
+│   └── lib/
 └── main.tsx
 ```
 
-`features` 不是必选层。
+当前没有 `features` 或 `shared/ui`。
 
-只有一个能力拥有独立状态、交互或复用边界时，才进入 Feature。简单页面行为直接留在 Page，不为了目录对称增加 Feature。
+只有一个能力出现真实独立 owner、多个调用方或稳定复用 Contract 时，才新增对应层级。不要为了目录对称提前创建。
 
-## Current Migration State
+## Current Structure
 
-PR1 已完成脚手架迁移：
-
-```text
-Umi Max
-→ Vite
-→ React Router
-→ Tailwind CSS 4
-→ TypeScript 5.9
-→ Oxlint / Oxfmt
-```
-
-PR3 已完成 Login ownership 迁移：
+PR1～PR5 已完成前端脚手架与 ownership 收口。
 
 ```text
-src/app/providers/
-→ 认证状态
-
-src/app/router/
-→ 登录守卫与登录后跳转
-
-src/pages/login/
-→ 登录 UI 与提交交互
-
-src/service/auth/
-→ login / logout / current user Contract
+src/
+├── app/
+│   ├── App.tsx
+│   ├── providers/
+│   ├── router/
+│   ├── layout/
+│   └── styles/
+├── pages/
+│   ├── login/
+│   └── data-source/
+├── service/
+│   ├── http/
+│   ├── auth/
+│   └── datasource/
+├── shared/
+│   └── lib/
+└── main.tsx
 ```
 
-PR4 已完成 Datasource ownership 迁移：
+当前没有 `features` 目录。
 
-```text
-src/pages/data-source/
-→ 页面组合、页面状态、页面 Hook、页面私有组件与 Datasource 图标
+Datasource 只有一个页面 owner，没有独立复用生命周期；不要为了目录对称创建 Feature。
 
-src/service/datasource/
-→ CRUD / Catalog / Driver / Plugin Config / API Contract
-```
-
-当前没有创建 `features/datasource`。
-
-Datasource 只有一个页面 owner，现阶段没有独立复用生命周期；为了目录对称拆 Feature 会增加无意义层级。
-
-当前仍存在以下基础设施迁移事实：
-
-```text
-src/components/
-src/services/http/
-src/services/security/
-src/utils/
-```
-
-它们不属于新的 Datasource ownership；后续 Legacy Cleanup 再按真实调用链收口。
+旧 `src/components / src/services / src/utils / src/locales / src/assets` 已清理，不再作为可用架构入口。
 
 ## Dependency Direction
 
@@ -253,7 +226,7 @@ React Router 是唯一浏览器路由 owner。
 
 资源按 owner 放置：
 
-- app 全局资源 → `app/styles` 或 `src/assets`。
+- app 全局资源 → `app/styles`。
 - Page 私有资源 → Page 内。
 - Feature 私有资源 → Feature 内。
 - 需要稳定 URL 的资源才进入 `public/`。

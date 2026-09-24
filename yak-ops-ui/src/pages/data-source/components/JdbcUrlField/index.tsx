@@ -1,4 +1,4 @@
-import { useIntl } from '@/shared/i18n';
+import { useIntl } from '@/pages/data-source/i18n';
 import { Form, Input, Tooltip } from 'antd';
 import type { FormInstance } from 'antd';
 import { Link2 } from 'lucide-react';

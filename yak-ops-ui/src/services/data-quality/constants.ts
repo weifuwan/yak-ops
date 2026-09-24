@@ -1,7 +1,0 @@
-export const DATA_QUALITY_API_PREFIX = '/api/v1/data-quality';
-export const DATA_QUALITY_TEMPLATE_API = `${DATA_QUALITY_API_PREFIX}/template`;
-export const DATA_QUALITY_TABLE_ASSET_API = `${DATA_QUALITY_API_PREFIX}/table-asset`;
-export const DATA_QUALITY_MONITOR_API = `${DATA_QUALITY_API_PREFIX}/monitor`;
-export const DATA_QUALITY_EXECUTION_API = `${DATA_QUALITY_API_PREFIX}/execution`;
-export const DATA_QUALITY_EXECUTION_WORKSPACE_API = `${DATA_QUALITY_EXECUTION_API}/workspace`;
-export const DATA_QUALITY_OVERVIEW_API = `${DATA_QUALITY_API_PREFIX}/overview`;
