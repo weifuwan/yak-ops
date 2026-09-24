@@ -7,7 +7,7 @@ import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.security.config.YakSecurityProperties;
-import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.security.extend.LoginExtend;
 import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.service.UserService;

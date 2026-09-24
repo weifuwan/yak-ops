@@ -8,7 +8,7 @@ import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.bean.vo.security.user.CurrentUserVO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
-import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.security.service.LoginService;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.web.PublicEndpoint;

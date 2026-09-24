@@ -50,6 +50,7 @@ Security runtime 只保留用户和登录业务行为、认证状态及内部领
 - DTO: `PageParamDTO`、`AccountLoginDTO`、`UserDTO`、`UserQueryDTO`、`UserPasswordResetDTO`
 - VO: `UserVO`、`UserBriefVO`、`CurrentUserVO`
 - Enum: `ResultCode`、`UserCheckType`
+- Exception: `YakSecurityException`（位于 `io.yak.ops.common.exception`）
 
 用户持久化统一由 `yak-ops-dao` 持有：
 
@@ -76,6 +77,7 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - keep authentication implementation behind AuthenticationManager.
 - route every Security schema change through `/yak-ops-dao/FLYWAY_RULES.md`.
 - reuse io.yak.ops.common contracts from yak-ops-common.
+- throw the shared `io.yak.ops.common.exception.YakSecurityException` for Security business failures.
 - access user persistence only through `UserRepository` from yak-ops-dao.
 
 ## Must Not

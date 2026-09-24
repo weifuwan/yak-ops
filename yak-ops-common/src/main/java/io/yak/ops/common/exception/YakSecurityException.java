@@ -1,6 +1,5 @@
-package io.yak.ops.security.exception;
+package io.yak.ops.common.exception;
 
-import io.yak.ops.common.BusinessException;
 import io.yak.ops.common.ErrorCode;
 
 import java.io.Serial;

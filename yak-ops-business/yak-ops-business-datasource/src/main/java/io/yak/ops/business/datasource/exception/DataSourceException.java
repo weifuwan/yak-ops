@@ -1,6 +1,6 @@
 package io.yak.ops.business.datasource.exception;
 
-import io.yak.ops.common.BusinessException;
+import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.ErrorCode;
 
 /** 数据源管理业务异常。 */
