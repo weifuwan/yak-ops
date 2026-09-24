@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.plugin;
 
+import jakarta.annotation.Resource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
@@ -14,7 +15,6 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.ServiceLoader;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -22,10 +22,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourcePluginRegistry {
 
-    private final ObjectMapper objectMapper;
+    @Resource
+    private ObjectMapper objectMapper;
     private Map<DataSourceDbType, DataSourcePlugin> plugins = Collections.emptyMap();
 
     @PostConstruct
