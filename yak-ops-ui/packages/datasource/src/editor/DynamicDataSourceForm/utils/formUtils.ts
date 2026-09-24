@@ -7,7 +7,7 @@ import type {
   DynamicFormSection,
   DynamicFormVisibilityCondition,
   DynamicFormVisibilityOperator,
-} from '../../../model/uiTypes';
+} from '../../../model/types';
 
 export interface DynamicKeyValueRow {
   key: string;
