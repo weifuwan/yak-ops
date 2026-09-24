@@ -26,7 +26,7 @@ Application runtime infrastructure is also a Boot boundary. Connection-pool asse
 
 ### `yak-ops-common`
 
-Owns shared data contracts for Datasource and Security, plus the unified Result / ErrorCode / PageData contracts and shared exception hierarchy under `io.yak.ops.common.exception`.
+Owns shared data contracts for Datasource and Security, plus the unified Result / ErrorCode / PageData contracts and shared exception hierarchy under `io.yak.ops.common.exception`. Security user/login DTO, VO, enum and shared exception contracts live here instead of inside the Security runtime module.
 
 ### `yak-ops-security`
 
@@ -34,9 +34,21 @@ Owns user management, login/logout/current identity, HttpSession authentication 
 
 Security does not own Controller, ControllerAdvice, OpenAPI configuration, connection-pool/MyBatis assembly or MVC interceptor registration. Boot exposes and wires the current Security HTTP capability by calling Security-owned services and registering Security-owned behavior.
 
+Security production code was migrated from `yak-framework/yak-security`.
+
+Security business/runtime code uses the `io.yak.ops.security` product namespace. Shared DTO / VO / enum contracts live in `io.yak.ops.common`, while user persistence is owned by `yak-ops-dao`.
+
 ### `yak-ops-dao`
 
-Owns shared database persistence infrastructure, concrete Security/Datasource persistence and the single Flyway schema history.
+Owns shared database persistence infrastructure:
+
+- MyBatis-Plus Repository base contract
+- MyBatis-Plus Repository base implementation
+- persistence rules shared by concrete DAO code
+- the single Flyway configuration and schema history for all Yak Ops modules
+- all versioned SQL under `yak-ops-dao/src/main/resources/db/migration/yak-ops`
+
+Concrete Security user persistence and Datasource persistence are owned here.
 
 Datasource Business uses DAO-owned `DataSourceEntity` and `DataSourceEntityRepository` directly. It does not rebuild a second persistence/domain mapping layer.
 
@@ -62,7 +74,7 @@ The module intentionally does not own SQL execution, SQL audit, a duplicate Doma
 
 Datasource Business may use DAO Entity/Repository directly for current datasource management and may call the stable Datasource Plugin SPI through `DataSourcePluginRegistry`.
 
-Datasource does not own Controller, ControllerAdvice, Controller-only request/response conversion, connection-pool assembly or MyBatis runtime configuration.
+Datasource does not own Controller, ControllerAdvice, Controller-only request/response conversion, connection-pool assembly or MyBatis runtime configuration. Boot exposes Datasource HTTP APIs and supplies application infrastructure.
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
@@ -78,7 +90,17 @@ SQL execution/query contracts are not part of the current plugin boundary.
 
 ### `yak-ops-boot`
 
-Owns final application assembly, all HTTP Controllers, ControllerAdvice, Controller-only request/response conversion, health and global runtime configuration.
+Owns final application assembly, all HTTP Controllers, ControllerAdvice, Controller-only request/response conversion, health and global runtime configuration. `GlobalExceptionHandler` is the single fallback HTTP exception outlet; capability-specific advice only keeps behavior that requires capability context such as Datasource message masking.
+
+Boot runtime configuration includes:
+
+- the shared application DataSource and transaction manager
+- MyBatis-Plus SqlSessionFactory / SqlSessionTemplate and plugin registration
+- MVC interceptor/filter registration
+- OpenAPI / Swagger UI configuration
+- Jackson and other application-wide web configuration
+
+Flyway schema history and migration SQL remain owned by `yak-ops-dao`; Boot only supplies the runtime DataSource used by that persistence layer.
 
 Hard boundary:
 
@@ -98,6 +120,12 @@ Owns release packaging.
 ### `yak-ops-bom`
 
 Owns Yak Ops dependency version alignment.
+
+## External Framework Boundary
+
+Yak Ops no longer depends on `yak-framework`.
+
+The former Yak Common and Yak Security code required by the product is now owned inside this repository.
 
 ## Dependency Direction
 
