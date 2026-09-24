@@ -1,5 +1,6 @@
 package io.yak.ops.boot.controller.datasource.v1;
 
+import jakarta.annotation.Resource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.boot.controller.datasource.v1.converter.CatalogRequestConverter;
@@ -16,7 +17,6 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceQueryResultVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
 import java.util.List;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,12 +28,14 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "数据源 Catalog 元数据接口")
 @RestController
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 @RequestMapping(DataSourceConstants.API_PREFIX + "/catalog")
 public class DataSourceCatalogController {
-    private final DataSourceCatalogReader catalogReader;
-    private final CatalogRequestConverter requestConverter;
-    private final CatalogViewConverter viewConverter;
+    @Resource
+    private DataSourceCatalogReader catalogReader;
+    @Resource
+    private CatalogRequestConverter requestConverter;
+    @Resource
+    private CatalogViewConverter viewConverter;
 
     @Operation(summary = "查询 Catalog 运行诊断")
     @GetMapping("/diagnostics")
