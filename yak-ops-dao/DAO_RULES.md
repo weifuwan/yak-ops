@@ -15,6 +15,7 @@ Owns:
 - MyBatis-Plus Repository base capabilities
 - All versioned SQL migrations under `src/main/resources/db/migration/yak-ops`
 - Concrete database access after a domain is explicitly migrated here
+- Security user persistence through `UserEntity`, `UserMapper` and `UserRepository`
 
 ## Flyway
 
@@ -26,6 +27,7 @@ All Yak Ops versioned SQL lives in this module. Security, Datasource, Boot and P
 
 
 - Business code accesses persistence through Repository boundaries.
+- Security Service must use `UserRepository`; direct `UserMapper` access outside DAO is not allowed.
 - Reuse `BaseRepository` / `BaseRepositoryImpl` for ordinary single-table CRUD and pagination.
 - Add domain-specific Repository methods only when the base contract cannot express the persistence semantics.
 - Keep simple single-table queries in MyBatis-Plus Lambda APIs.

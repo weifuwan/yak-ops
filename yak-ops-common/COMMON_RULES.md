@@ -9,6 +9,7 @@ Depends On:
 Owns:
 - Datasource shared DTO / VO / PO
 - Datasource enums and constants
+- Security user/login DTO / VO / Enum contracts
 - unified Result / ErrorCode / BusinessException / PageData contracts
 - small shared infrastructure with no better owner
 
@@ -24,6 +25,7 @@ Do not create a second copy under `io.yak.ops.common` until a deliberate namespa
 
 - unified Result / ErrorCode / BusinessException / PageData Contract only has one implementation.
 - public shared objects remain behavior-free.
+- Security shared contracts use the `io.yak.ops.common` namespace; do not recreate copies under `yak-ops-security`.
 - existing MyBatis shared configuration is reused where appropriate.
 
 ## Must Not
