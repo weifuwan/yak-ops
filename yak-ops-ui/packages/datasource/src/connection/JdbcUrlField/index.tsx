@@ -1,40 +1,37 @@
-import { useIntl } from '../../i18n';
-import { Form, Input, Tooltip } from 'antd';
-import type { FormInstance } from 'antd';
-import { Link2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  Input,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@yak-ops/yak-ui";
+import { Link2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import type { DynamicFormJdbcUrlLinkage } from '../../model/types';
+import type { DataSourceFormInstance } from "../../editor/formRuntime";
+import { useFormValue } from "../../editor/formRuntime";
+import { useIntl } from "../../i18n";
+import type { DynamicFormJdbcUrlLinkage } from "../../model/types";
 import {
   buildJdbcUrlFromTemplate,
   parseJdbcUrlByTemplate,
   type JdbcUrlStructuredValue,
-} from './utils';
+} from "./utils";
 
 const toNamePath = (field?: string, fallback?: string) =>
-  (field?.trim() || fallback || '').split('.').filter(Boolean);
+  (field?.trim() || fallback || "").split(".").filter(Boolean);
 
 const sourceSignature = (value: JdbcUrlStructuredValue) =>
-  JSON.stringify([value.host || '', value.port || '', value.database || '']);
+  JSON.stringify([value.host || "", value.port || "", value.database || ""]);
 
 export interface JdbcUrlFieldProps {
   value?: string;
   onChange?: (value: string) => void;
-  form: FormInstance;
+  form: DataSourceFormInstance;
   linkage?: DynamicFormJdbcUrlLinkage;
   placeholder?: string;
   disabled?: boolean;
 }
 
-/**
- * JDBC URL 标准联动组件。
- *
- * - Host / Port / Database 变化时自动生成 URL；
- * - URL 可被模板识别时反向回填结构化字段；
- * - 编辑历史数据时可由现有 URL 补齐结构化字段；
- * - 手工 URL 不可识别时保持原值，不强行覆盖；
- * - 自动生成时尽量保留已有 ?query / ;properties 尾部参数。
- */
 const JdbcUrlField = ({
   value,
   onChange,
@@ -45,21 +42,21 @@ const JdbcUrlField = ({
 }: JdbcUrlFieldProps) => {
   const intl = useIntl();
   const hostPath = useMemo(
-    () => toNamePath(linkage?.hostField, 'host'),
+    () => toNamePath(linkage?.hostField, "host"),
     [linkage?.hostField],
   );
   const portPath = useMemo(
-    () => toNamePath(linkage?.portField, 'port'),
+    () => toNamePath(linkage?.portField, "port"),
     [linkage?.portField],
   );
   const databasePath = useMemo(
-    () => toNamePath(linkage?.databaseField, 'database'),
+    () => toNamePath(linkage?.databaseField, "database"),
     [linkage?.databaseField],
   );
 
-  const host = Form.useWatch(hostPath, form) as string | undefined;
-  const port = Form.useWatch(portPath, form) as number | undefined;
-  const database = Form.useWatch(databasePath, form) as string | undefined;
+  const host = useFormValue(hostPath, form) as string | undefined;
+  const port = useFormValue(portPath, form) as number | undefined;
+  const database = useFormValue(databasePath, form) as string | undefined;
 
   const currentValueRef = useRef(value);
   const previousSourceRef = useRef<string>();
@@ -120,14 +117,7 @@ const JdbcUrlField = ({
       currentValueRef.current = nextUrl;
       onChange?.(nextUrl);
     }
-  }, [
-    applyParsedFields,
-    database,
-    host,
-    linkage,
-    onChange,
-    port,
-  ]);
+  }, [applyParsedFields, database, host, linkage, onChange, port]);
 
   const handleChange = (nextValue: string) => {
     currentValueRef.current = nextValue;
@@ -135,30 +125,35 @@ const JdbcUrlField = ({
 
     if (!linkage?.template) return;
     const parsed = parseJdbcUrlByTemplate(linkage, nextValue);
-    if (!parsed) return;
-    applyParsedFields(parsed);
+    if (parsed) applyParsedFields(parsed);
   };
 
   return (
-    <div>
+    <div className="relative">
       <Input
-        variant="filled"
         value={value}
         disabled={disabled}
         placeholder={placeholder}
+        className={linkage?.template ? "pr-9" : undefined}
         onChange={(event) => handleChange(event.target.value)}
-        suffix={
-          linkage?.template ? (
-            <Tooltip
-              title={intl.formatMessage({
-                id: 'pages.datasource.jdbc.linkageTooltip',
-              })}
-            >
-              <Link2 size={14} className="text-[#98a2b3]" />
-            </Tooltip>
-          ) : undefined
-        }
       />
+      {linkage?.template ? (
+        <Tooltip>
+          <TooltipTrigger
+            aria-label={intl.formatMessage({
+              id: "pages.datasource.jdbc.linkageTooltip",
+            })}
+            className="absolute right-2 top-1/2 inline-flex -translate-y-1/2 cursor-help text-[#98a2b3]"
+          >
+            <Link2 size={14} />
+          </TooltipTrigger>
+          <TooltipContent>
+            {intl.formatMessage({
+              id: "pages.datasource.jdbc.linkageTooltip",
+            })}
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
     </div>
   );
 };
