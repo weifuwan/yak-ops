@@ -10,13 +10,13 @@ import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
 import { getDataSourceGroupList } from '../model/constants';
 import DatabaseIcons from '../model/icons/DatabaseIcons';
-import type {
-  DataSourceFormValues,
-  DataSourceModalOpenPayload,
-  DataSourceModalRef,
-  DataSourceRecord,
-} from '../model/uiTypes';
-import { DataSourceOperateType } from '../model/uiTypes';
+import type { DataSourceRecord } from "../model/types";
+import {
+  DataSourceOperateType,
+  type DataSourceFormValues,
+  type DataSourceModalOpenPayload,
+  type DataSourceModalRef,
+} from "./types";
 import {
   buildSubmitPayload,
   normalizeConnectionFormValues,
