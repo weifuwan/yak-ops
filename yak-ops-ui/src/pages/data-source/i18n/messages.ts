@@ -112,6 +112,7 @@ export default {
   'pages.datasource.driver.uploadSuccess': '驱动包上传成功',
   'pages.datasource.driver.uploadFailed': '驱动包上传失败',
   'pages.datasource.driver.upload': '上传驱动',
+  'pages.datasource.driver.clear': '清空驱动路径',
   'pages.datasource.driver.hint': '支持 JAR 驱动包，单文件不超过 {maxSizeMB}MB；也可以直接填写已部署的驱动路径。',
 
   'pages.datasource.customKv.keyRequired': '请输入参数名',
