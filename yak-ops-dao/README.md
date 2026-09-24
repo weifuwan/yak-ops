@@ -1,28 +1,30 @@
 # yak-ops-dao
 
-`yak-ops-dao` owns shared database persistence infrastructure.
+`yak-ops-dao` owns Yak Ops persistence infrastructure and the single database schema history.
 
 Call chain:
 
 ```text
-Business
+Business / Service
   ↓
 Repository
   ↓
-Mapper
+Mapper / Entity
   ↓
 Database
 ```
 
 ## Current Scope
 
-- MyBatis-Plus Repository base contract.
-- MyBatis-Plus Repository base implementation.
-- Shared persistence rules.
-- Datasource Entity / Mapper / Repository persistence.
-
-Datasource database persistence is owned here; Datasource Business keeps business-facing repository contracts and domain mapping only.
+- Shared MyBatis-Plus Repository base contract and implementation.
+- Security user persistence.
+- Datasource persistence.
+- Unified Flyway schema and migration history.
+- Entity / Flyway / Repository persistence rules.
 
 ## Rules
 
-Load [DAO_RULES.md](./DAO_RULES.md) for changes in this module.
+Changes in this module load:
+- [DAO_RULES.md](./DAO_RULES.md)
+- Schema changes: [FLYWAY_RULES.md](./FLYWAY_RULES.md)
+- Entity changes: [ENTITY_RULES.md](./ENTITY_RULES.md)
