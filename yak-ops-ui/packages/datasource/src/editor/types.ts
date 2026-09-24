@@ -1,4 +1,4 @@
-import type { FormInstance } from "antd";
+import type { DataSourceFormInstance } from "./formRuntime";
 
 import type { DataSourceRecord } from "../model/types";
 
@@ -30,8 +30,8 @@ export interface DataSourceModalRef {
 
 export interface DynamicDataSourceFormProps {
   dbType: string;
-  form: FormInstance<DataSourceFormValues>;
-  configForm: FormInstance;
+  form: DataSourceFormInstance<DataSourceFormValues>;
+  configForm: DataSourceFormInstance;
   operateType: DataSourceOperateType;
   initialConfig?: Record<string, unknown>;
 }
