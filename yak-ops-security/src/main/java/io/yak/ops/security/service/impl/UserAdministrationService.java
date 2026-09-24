@@ -1,5 +1,6 @@
 package io.yak.ops.security.service.impl;
 
+import jakarta.annotation.Resource;
 import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.exception.YakSecurityException;
@@ -29,18 +30,14 @@ public class UserAdministrationService {
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_PASSWORD_LENGTH = 64;
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final ObjectProvider<AuthenticationManager> authenticationManagerProvider;
+    @Resource
+    private UserRepository userRepository;
 
-    public UserAdministrationService(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            ObjectProvider<AuthenticationManager> authenticationManagerProvider) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManagerProvider = authenticationManagerProvider;
-    }
+    @Resource
+    private PasswordEncoder passwordEncoder;
+
+    @Resource
+    private ObjectProvider<AuthenticationManager> authenticationManagerProvider;
 
     public void validateDelete(Long targetUserId, Long operatorId, String operator) {
         if (targetUserId == null) {
