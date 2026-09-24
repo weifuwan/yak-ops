@@ -32,91 +32,129 @@
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-datasource</artifactId>
         </dependency>
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-data-service</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-job</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-task-catalog</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-data-development</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-lineage</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-dataset</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-analysis</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-dashboard</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-digital-screen</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-home</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-resource</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-sync-offline</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-sync-realtime</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-quality</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-workflow</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-alert</artifactId>
         </dependency>
+        -->
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-plugin-datasource-all</artifactId>
         </dependency>
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-plugin-storage-all</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-plugin-task-all</artifactId>
         </dependency>
+        -->
+        <!-- Datasource Focus Mode: disabled module
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-plugin-alert-all</artifactId>
         </dependency>
+        -->
         <dependency>
             <groupId>io.github.weifuwan</groupId>
             <artifactId>yak-security-spring-boot-starter</artifactId>

@@ -19,10 +19,10 @@
 
     <modules>
         <module>yak-ops-plugin-task-api</module>
-        <module>yak-ops-plugin-task-sql</module>
-        <module>yak-ops-plugin-task-python</module>
-        <module>yak-ops-plugin-task-shell</module>
-        <module>yak-ops-plugin-task-java</module>
-        <module>yak-ops-plugin-task-all</module>
+        <!-- <module>yak-ops-plugin-task-sql</module> -->
+        <!-- <module>yak-ops-plugin-task-python</module> -->
+        <!-- <module>yak-ops-plugin-task-shell</module> -->
+        <!-- <module>yak-ops-plugin-task-java</module> -->
+        <!-- <module>yak-ops-plugin-task-all</module> -->
     </modules>
 </project>
