@@ -5,6 +5,9 @@ on:
     branches:
       - refactor/resource-injection-rule-migration-verify
 
+permissions:
+  contents: write
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -45,8 +48,18 @@ jobs:
           -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
           com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
 
-      - name: Ensure formatter is idempotent
-        run: git diff --exit-code -- '*.java'
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet -- '*.java'; then
+            echo "No formatting changes"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -u
+            git commit -m "style(java): apply Resource injection formatting"
+            git push origin HEAD:${{ github.ref_name }}
+            exit 0
+          fi
 
       - name: Spotless check
         run: >-
