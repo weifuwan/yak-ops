@@ -7,6 +7,7 @@ import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.extend.PasswordEncoder;
+import jakarta.annotation.Resource;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,18 +30,14 @@ public class UserAdministrationService {
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_PASSWORD_LENGTH = 64;
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final ObjectProvider<AuthenticationManager> authenticationManagerProvider;
+    @Resource
+    private UserRepository userRepository;
 
-    public UserAdministrationService(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            ObjectProvider<AuthenticationManager> authenticationManagerProvider) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManagerProvider = authenticationManagerProvider;
-    }
+    @Resource
+    private PasswordEncoder passwordEncoder;
+
+    @Resource
+    private ObjectProvider<AuthenticationManager> authenticationManagerProvider;
 
     public void validateDelete(Long targetUserId, Long operatorId, String operator) {
         if (targetUserId == null) {

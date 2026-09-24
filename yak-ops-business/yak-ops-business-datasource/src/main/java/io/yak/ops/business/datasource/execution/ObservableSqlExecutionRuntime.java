@@ -15,6 +15,7 @@ import io.yak.ops.core.execution.sql.SqlStatementStatus;
 import io.yak.ops.core.execution.sql.SqlStatementType;
 import io.yak.ops.core.execution.sql.SqlTransactionMode;
 import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
 import java.sql.SQLTimeoutException;
 import java.time.Instant;
 import java.util.List;
@@ -40,20 +41,14 @@ public final class ObservableSqlExecutionRuntime implements SqlExecutionRuntime 
 
     private static final Logger log = LoggerFactory.getLogger(ObservableSqlExecutionRuntime.class);
 
-    private final DefaultSqlExecutionRuntime delegate;
-    private final List<SqlExecutionObserver> observers;
+    @Resource
+    private DefaultSqlExecutionRuntime delegate;
+
+    @Resource
+    private ObjectProvider<SqlExecutionObserver> observerProvider;
+
     private final LexicalSqlStatementClassifier classifier = new LexicalSqlStatementClassifier();
     private final ExecutorService tracker = Executors.newVirtualThreadPerTaskExecutor();
-
-    public ObservableSqlExecutionRuntime(
-            DefaultSqlExecutionRuntime delegate, ObjectProvider<SqlExecutionObserver> observers) {
-        this(delegate, observers.orderedStream().toList());
-    }
-
-    ObservableSqlExecutionRuntime(DefaultSqlExecutionRuntime delegate, List<SqlExecutionObserver> observers) {
-        this.delegate = Objects.requireNonNull(delegate, "delegate");
-        this.observers = observers == null ? List.of() : List.copyOf(observers);
-    }
 
     @Override
     public SqlExecutionResult execute(SqlExecutionRequest request) {
@@ -156,7 +151,7 @@ public final class ObservableSqlExecutionRuntime implements SqlExecutionRuntime 
 
     private void notifyObservers(SqlExecutionSnapshot snapshot) {
         if (snapshot == null || !snapshot.terminal()) return;
-        for (SqlExecutionObserver observer : observers) {
+        for (SqlExecutionObserver observer : observerProvider.orderedStream().toList()) {
             try {
                 observer.onExecutionCompleted(snapshot);
             } catch (RuntimeException exception) {

@@ -9,17 +9,17 @@ import io.yak.ops.business.datasource.repository.DataSourceRepository;
 import io.yak.ops.common.PageData;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
+import jakarta.annotation.Resource;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** Datasource read-side role returning domain models rather than transport models. */
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceReader {
 
-    private final DataSourceRepository repository;
+    @Resource
+    private DataSourceRepository repository;
 
     public DataSourceDefinition require(Long id) {
         long dataSourceId = requireId(id);

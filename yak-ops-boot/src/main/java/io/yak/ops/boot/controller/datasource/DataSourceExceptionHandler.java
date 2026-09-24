@@ -6,7 +6,7 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.security.SensitiveTextMasker;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -19,10 +19,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(basePackageClasses = DataSourceController.class)
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceExceptionHandler {
 
-    private final SensitiveTextMasker textMasker;
+    @Resource
+    private SensitiveTextMasker textMasker;
 
     @ExceptionHandler(DataSourceException.class)
     public Result<Void> handleDataSourceException(DataSourceException exception) {

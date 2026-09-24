@@ -3,6 +3,7 @@ package io.yak.ops.boot.config;
 import io.yak.ops.security.config.YakSecurityProperties;
 import io.yak.ops.security.service.LoginService;
 import io.yak.ops.security.web.YakAuthenticationInterceptor;
+import jakarta.annotation.Resource;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -17,14 +18,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
         matchIfMissing = true)
 public class WebConfiguration implements WebMvcConfigurer {
 
-    private final YakAuthenticationInterceptor authenticationInterceptor;
+    @Resource
+    private LoginService loginService;
 
-    public WebConfiguration(LoginService loginService, YakSecurityProperties properties) {
-        this.authenticationInterceptor = new YakAuthenticationInterceptor(loginService, properties);
-    }
+    @Resource
+    private YakSecurityProperties properties;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(authenticationInterceptor).addPathPatterns("/**");
+        registry.addInterceptor(new YakAuthenticationInterceptor(loginService, properties))
+                .addPathPatterns("/**");
     }
 }

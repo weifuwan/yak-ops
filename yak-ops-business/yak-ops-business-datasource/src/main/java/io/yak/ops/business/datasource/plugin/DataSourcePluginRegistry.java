@@ -10,11 +10,11 @@ import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.ServiceLoader;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -22,10 +22,11 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourcePluginRegistry {
 
-    private final ObjectMapper objectMapper;
+    @Resource
+    private ObjectMapper objectMapper;
+
     private Map<DataSourceDbType, DataSourcePlugin> plugins = Collections.emptyMap();
 
     @PostConstruct

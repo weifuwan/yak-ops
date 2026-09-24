@@ -6,16 +6,16 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.gateway.DataSourcePluginGateway;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 /** Reads datasource plugin capabilities through the business plugin gateway. */
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourcePluginReader {
 
-    private final DataSourcePluginGateway pluginGateway;
+    @Resource
+    private DataSourcePluginGateway pluginGateway;
 
     public DataSourcePluginDescriptor get(String pluginType) {
         return pluginGateway.descriptor(parseDbType(pluginType));

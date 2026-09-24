@@ -9,18 +9,18 @@ import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.mapper.security.UserMapper;
 import io.yak.ops.dao.repository.impl.BaseRepositoryImpl;
 import io.yak.ops.dao.repository.security.UserRepository;
+import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 /** MyBatis-Plus user repository. */
 @Repository
-@RequiredArgsConstructor
 public class UserRepositoryImpl extends BaseRepositoryImpl<UserMapper, UserEntity, Long> implements UserRepository {
 
-    private final UserMapper userMapper;
+    @Resource
+    private UserMapper userMapper;
 
     @Override
     protected UserMapper mapper() {

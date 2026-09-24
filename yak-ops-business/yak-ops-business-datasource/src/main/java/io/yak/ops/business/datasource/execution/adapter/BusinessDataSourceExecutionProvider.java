@@ -11,6 +11,7 @@ import io.yak.ops.spi.datasource.DataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginException;
 import io.yak.ops.spi.datasource.execution.DataSourceExecutionProvider;
 import io.yak.ops.spi.datasource.execution.DataSourceSqlExecutor;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 /** Outward Task-Plugin adapter that resolves platform datasource IDs to SQL executors. */
@@ -18,16 +19,14 @@ import org.springframework.stereotype.Component;
 @ConditionalOnDataSourceEnabled
 public class BusinessDataSourceExecutionProvider implements DataSourceExecutionProvider {
 
-    private final DataSourceRepository repository;
-    private final DataSourcePluginRegistry pluginRegistry;
-    private final DataSourceProperties properties;
+    @Resource
+    private DataSourceRepository repository;
 
-    public BusinessDataSourceExecutionProvider(
-            DataSourceRepository repository, DataSourcePluginRegistry pluginRegistry, DataSourceProperties properties) {
-        this.repository = repository;
-        this.pluginRegistry = pluginRegistry;
-        this.properties = properties;
-    }
+    @Resource
+    private DataSourcePluginRegistry pluginRegistry;
+
+    @Resource
+    private DataSourceProperties properties;
 
     @Override
     public DataSourceSqlExecutor open(String dataSourceReference) {

@@ -11,19 +11,19 @@ import io.yak.ops.business.datasource.dao.model.DataSourceSummaryRow;
 import io.yak.ops.common.bean.po.datasource.DataSourcePO;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
+import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Objects;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 /** MyBatis DataSource DAO. */
 @Repository
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceDaoImpl implements DataSourceDao {
 
-    private final DataSourceMapper dataSourceMapper;
+    @Resource
+    private DataSourceMapper dataSourceMapper;
 
     @Override
     public int addDataSource(DataSourcePO dataSourcePO) {

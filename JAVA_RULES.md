@@ -86,8 +86,13 @@ Do not reorder code only for ceremony when keeping related behavior together is 
 
 ## Spring
 
-- Prefer constructor injection.
-- Do not use field injection.
+- Spring-managed dependencies use `jakarta.annotation.Resource` field injection.
+- Prefer `@Resource` by type for a single implementation; use `@Resource(name = "...")` only when bean identity must be explicit.
+- Do not use constructor injection only to receive Spring-managed dependencies.
+- Do not use Lombok `@RequiredArgsConstructor` as a dependency-injection mechanism.
+- Do not use `@Autowired` for ordinary application Bean injection.
+- A field injected by Spring is not `final`; object-owned immutable state, constants, caches, executors and value-object state should still use `final` when appropriate.
+- `@Value`, `@ConfigurationProperties` state and `@Bean` method parameters are configuration/wiring mechanisms, not replacements for ordinary `@Resource` Bean fields.
 - Application-level Spring wiring belongs to `yak-ops-boot` unless a module rule explicitly owns the configuration.
 - Do not create manual Bean wiring when component scanning or existing Boot configuration already provides the same stable behavior.
 - Keep capability code independent from Boot.

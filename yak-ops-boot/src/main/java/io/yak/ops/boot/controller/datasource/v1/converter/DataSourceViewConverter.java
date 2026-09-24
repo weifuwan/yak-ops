@@ -9,15 +9,15 @@ import io.yak.ops.common.PagingData;
 import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
+import jakarta.annotation.Resource;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceViewConverter {
-    private final DataSourcePluginReader pluginReader;
+    @Resource
+    private DataSourcePluginReader pluginReader;
 
     public DataSourceVO definition(DataSourceDefinition source, boolean includeOriginalJson) {
         if (source == null) return null;

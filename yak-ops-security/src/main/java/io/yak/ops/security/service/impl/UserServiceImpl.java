@@ -16,6 +16,7 @@ import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.util.CopyBeanUtil;
+import jakarta.annotation.Resource;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -43,13 +44,11 @@ public class UserServiceImpl implements UserService {
     private static final Pattern USER_MAIL_PATTERN =
             Pattern.compile("^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$");
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    @Resource
+    private UserRepository userRepository;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
+    @Resource
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public Result<Void> check(Integer checkType, String checkValue) {

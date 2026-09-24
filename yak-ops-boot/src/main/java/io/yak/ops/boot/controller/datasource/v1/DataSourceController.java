@@ -17,9 +17,9 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,14 +34,22 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "数据源管理接口")
 @RestController
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 @RequestMapping(DataSourceConstants.API_PREFIX)
 public class DataSourceController {
-    private final DataSourceManager manager;
-    private final DataSourceReader reader;
-    private final DataSourceConnectionTester connectionTester;
-    private final DataSourceRequestConverter requestConverter;
-    private final DataSourceViewConverter viewConverter;
+    @Resource
+    private DataSourceManager manager;
+
+    @Resource
+    private DataSourceReader reader;
+
+    @Resource
+    private DataSourceConnectionTester connectionTester;
+
+    @Resource
+    private DataSourceRequestConverter requestConverter;
+
+    @Resource
+    private DataSourceViewConverter viewConverter;
 
     @Operation(summary = "新增数据源")
     @PostMapping

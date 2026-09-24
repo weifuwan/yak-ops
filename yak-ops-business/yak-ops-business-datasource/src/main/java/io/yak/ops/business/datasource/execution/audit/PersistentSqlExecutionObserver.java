@@ -10,6 +10,7 @@ import io.yak.ops.core.execution.sql.SqlFingerprint;
 import io.yak.ops.core.execution.sql.SqlStatementSnapshot;
 import io.yak.ops.core.execution.sql.SqlStatementStatus;
 import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -32,20 +33,17 @@ public final class PersistentSqlExecutionObserver implements SqlExecutionObserve
     private static final int QUEUE_CAPACITY = 2048;
     private static final int SQL_PREVIEW_LIMIT = 2048;
 
-    private final SqlExecutionAuditStore store;
-    private final ThreadPoolExecutor executor;
+    @Resource
+    private SqlExecutionAuditStore store;
 
-    public PersistentSqlExecutionObserver(SqlExecutionAuditStore store) {
-        this.store = store;
-        this.executor = new ThreadPoolExecutor(
-                2,
-                2,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(QUEUE_CAPACITY),
-                Thread.ofPlatform().daemon(true).name("yak-sql-audit-", 0).factory(),
-                new ThreadPoolExecutor.AbortPolicy());
-    }
+    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
+            2,
+            2,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(QUEUE_CAPACITY),
+            Thread.ofPlatform().daemon(true).name("yak-sql-audit-", 0).factory(),
+            new ThreadPoolExecutor.AbortPolicy());
 
     @Override
     public void onExecutionCompleted(SqlExecutionSnapshot snapshot) {

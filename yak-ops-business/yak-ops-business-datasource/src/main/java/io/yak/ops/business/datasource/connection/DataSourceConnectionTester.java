@@ -9,20 +9,28 @@ import io.yak.ops.business.datasource.gateway.DataSourcePluginGateway;
 import io.yak.ops.business.datasource.query.DataSourceReader;
 import io.yak.ops.business.datasource.repository.DataSourceRepository;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 /** Executes saved and unsaved datasource connectivity probes. */
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceConnectionTester {
 
-    private final DataSourceReader reader;
-    private final DataSourceRepository repository;
-    private final DataSourceConnectionResolver resolver;
-    private final DataSourcePluginGateway pluginGateway;
-    private final DataSourceProperties properties;
+    @Resource
+    private DataSourceReader reader;
+
+    @Resource
+    private DataSourceRepository repository;
+
+    @Resource
+    private DataSourceConnectionResolver resolver;
+
+    @Resource
+    private DataSourcePluginGateway pluginGateway;
+
+    @Resource
+    private DataSourceProperties properties;
 
     public boolean testSaved(Long id) {
         DataSourceDefinition definition = reader.require(id);

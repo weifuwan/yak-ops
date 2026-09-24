@@ -13,18 +13,20 @@ import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourceConnection;
 import io.yak.ops.spi.datasource.DataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginException;
+import jakarta.annotation.Resource;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** Datasource Plugin SPI -> Business Plugin Gateway adapter. */
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class SpiDataSourcePluginGateway implements DataSourcePluginGateway {
 
-    private final DataSourcePluginRegistry pluginRegistry;
-    private final DataSourceSecretCodec secretCodec;
+    @Resource
+    private DataSourcePluginRegistry pluginRegistry;
+
+    @Resource
+    private DataSourceSecretCodec secretCodec;
 
     @Override
     public DataSourceDbType resolveConnectionType(String connectionJson) {

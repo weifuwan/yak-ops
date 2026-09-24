@@ -2,7 +2,7 @@ package io.yak.ops.business.datasource.catalog;
 
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.domain.DataSourceChangedEvent;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -12,10 +12,10 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceCatalogCacheInvalidationListener {
 
-    private final DataSourceCatalogMetadataCache metadataCache;
+    @Resource
+    private DataSourceCatalogMetadataCache metadataCache;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onDataSourceChanged(DataSourceChangedEvent event) {

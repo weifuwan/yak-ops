@@ -12,6 +12,7 @@ import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.service.LoginService;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.web.PublicEndpoint;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -32,16 +33,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/yak-security/api/v1/account")
 public class LoginController {
 
-    private final LoginService loginService;
-    private final UserService userService;
-    private final AuthenticationManager authenticationManager;
+    @Resource
+    private LoginService loginService;
 
-    public LoginController(
-            LoginService loginService, UserService userService, AuthenticationManager authenticationManager) {
-        this.loginService = loginService;
-        this.userService = userService;
-        this.authenticationManager = authenticationManager;
-    }
+    @Resource
+    private UserService userService;
+
+    @Resource
+    private AuthenticationManager authenticationManager;
 
     @Operation(summary = "用户登录")
     @PostMapping("/login")

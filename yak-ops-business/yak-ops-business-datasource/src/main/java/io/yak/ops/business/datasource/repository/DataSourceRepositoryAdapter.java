@@ -12,18 +12,18 @@ import io.yak.ops.common.PageData;
 import io.yak.ops.common.bean.po.datasource.DataSourcePO;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
+import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 /** MyBatis persistence adapter. */
 @Repository
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceRepositoryAdapter implements DataSourceRepository {
 
-    private final DataSourceDao dao;
+    @Resource
+    private DataSourceDao dao;
 
     @Override
     public Optional<DataSourceDefinition> findById(Long id) {

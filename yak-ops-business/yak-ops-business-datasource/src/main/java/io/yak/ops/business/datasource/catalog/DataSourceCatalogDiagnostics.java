@@ -3,6 +3,7 @@ package io.yak.ops.business.datasource.catalog;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
+import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -13,7 +14,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -21,10 +21,11 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceCatalogDiagnostics {
 
-    private final DataSourceProperties properties;
+    @Resource
+    private DataSourceProperties properties;
+
     private final ConcurrentMap<String, OperationAccumulator> operations = new ConcurrentHashMap<>();
     private final LongAdder cacheHits = new LongAdder();
     private final LongAdder cacheMisses = new LongAdder();

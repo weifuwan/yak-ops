@@ -7,17 +7,17 @@ import io.yak.ops.spi.datasource.execution.DataSourceSqlColumn;
 import io.yak.ops.spi.datasource.execution.DataSourceSqlExecutor;
 import io.yak.ops.spi.datasource.execution.DataSourceSqlRequest;
 import io.yak.ops.spi.datasource.execution.DataSourceSqlResult;
+import jakarta.annotation.Resource;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** Datasource SQL execution SPI -> Business SQL execution Gateway Adapter. */
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class SpiSqlExecutionGateway implements SqlExecutionGateway {
 
-    private final DataSourceExecutionProvider executionProvider;
+    @Resource
+    private DataSourceExecutionProvider executionProvider;
 
     @Override
     public Session open(String dataSourceId) {

@@ -20,6 +20,7 @@ import io.yak.ops.core.execution.sql.SqlStatementClassifier;
 import io.yak.ops.core.execution.sql.SqlStatementRequest;
 import io.yak.ops.core.execution.sql.SqlTransactionMode;
 import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
 import java.sql.SQLTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,26 +43,16 @@ public final class DefaultSqlExecutionRuntime implements SqlExecutionRuntime {
 
     private static final int MAX_COMPLETED_EXECUTIONS = 512;
 
-    private final SqlExecutionGateway executionGateway;
-    private final SqlStatementClassifier statementClassifier;
-    private final SqlExecutionPolicy executionPolicy;
-    private final ExecutorService lifecycleExecutor;
+    @Resource
+    private SqlExecutionGateway executionGateway;
+
+    @Resource
+    private SqlExecutionPolicy executionPolicy;
+
+    private final SqlStatementClassifier statementClassifier = new LexicalSqlStatementClassifier();
+    private final ExecutorService lifecycleExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final ConcurrentMap<String, RuntimeExecution> executions = new ConcurrentHashMap<>();
     private final ConcurrentLinkedDeque<String> completedOrder = new ConcurrentLinkedDeque<>();
-
-    public DefaultSqlExecutionRuntime(SqlExecutionGateway executionGateway, SqlExecutionPolicy executionPolicy) {
-        this(executionGateway, new LexicalSqlStatementClassifier(), executionPolicy);
-    }
-
-    DefaultSqlExecutionRuntime(
-            SqlExecutionGateway executionGateway,
-            SqlStatementClassifier statementClassifier,
-            SqlExecutionPolicy executionPolicy) {
-        this.executionGateway = Objects.requireNonNull(executionGateway, "executionGateway");
-        this.statementClassifier = Objects.requireNonNull(statementClassifier, "statementClassifier");
-        this.executionPolicy = Objects.requireNonNull(executionPolicy, "executionPolicy");
-        this.lifecycleExecutor = Executors.newVirtualThreadPerTaskExecutor();
-    }
 
     @Override
     public SqlExecutionResult execute(SqlExecutionRequest request) {
