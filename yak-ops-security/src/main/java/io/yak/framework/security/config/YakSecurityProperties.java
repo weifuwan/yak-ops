@@ -10,7 +10,7 @@ import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.StringUtils;
 
-/** Yak Security 模块配置。 */
+/** Yak Security user/login configuration. */
 @Getter
 @Setter
 @ToString
@@ -24,37 +24,24 @@ public class YakSecurityProperties {
   private boolean webEnabled = true;
   private boolean authenticationEnabled = true;
 
-  private List<String> publicPaths =
-          new ArrayList<String>(Arrays.asList(
-                  "/yak-security/api/v1/account/login",
-                  "/v3/api-docs/**",
-                  "/swagger-ui/**",
-                  "/swagger-ui.html"
-          ));
+  private List<String> publicPaths = new ArrayList<>(Arrays.asList(
+      "/yak-security/api/v1/account/login",
+      "/v3/api-docs/**",
+      "/swagger-ui/**",
+      "/swagger-ui.html"));
 
   private String applicationName;
 
-  private final DataSourceProperties datasource =
-          new DataSourceProperties();
-  private final AuthenticationProperties authentication =
-          new AuthenticationProperties();
-  private final BootstrapProperties bootstrap =
-          new BootstrapProperties();
-  private final PermissionRegistrationProperties
-          permissionRegistration =
-          new PermissionRegistrationProperties();
-  private final PermissionCacheProperties permissionCache =
-          new PermissionCacheProperties();
-  private final LoginSecurityProperties login =
-          new LoginSecurityProperties();
+  private final DataSourceProperties datasource = new DataSourceProperties();
+  private final AuthenticationProperties authentication = new AuthenticationProperties();
+  private final BootstrapProperties bootstrap = new BootstrapProperties();
+  private final LoginSecurityProperties login = new LoginSecurityProperties();
 
   @Getter
   @Setter
   @ToString
   public static class AuthenticationProperties {
-    /** HttpSession 最大无操作时间。 */
-    private Duration idleTimeout =
-            Duration.ofMinutes(30);
+    private Duration idleTimeout = Duration.ofMinutes(30);
   }
 
   @Getter
@@ -62,25 +49,8 @@ public class YakSecurityProperties {
   @ToString
   public static class LoginSecurityProperties {
     private int maxFailureCount = 5;
-    private Duration lockDuration =
-            Duration.ofMinutes(15);
+    private Duration lockDuration = Duration.ofMinutes(15);
     private boolean hideAccountNotFound = true;
-  }
-
-  @Getter
-  @Setter
-  @ToString
-  public static class PermissionCacheProperties {
-    private boolean enabled = true;
-    private long ttlMinutes = 20;
-    private long maximumSize = 10_000;
-  }
-
-  @Getter
-  @Setter
-  @ToString
-  public static class PermissionRegistrationProperties {
-    private boolean enabled = true;
   }
 
   @Getter
@@ -95,14 +65,8 @@ public class YakSecurityProperties {
   }
 
   public void validateDatabaseConfiguration() {
-    if (!enabled
-            || !databaseEnabled
-            || !datasource.isEnabled()) {
-      return;
-    }
-    requireText(
-            applicationName,
-            PREFIX + ".application-name");
+    if (!enabled || !databaseEnabled || !datasource.isEnabled()) return;
+    requireText(applicationName, PREFIX + ".application-name");
     datasource.validate();
   }
 
@@ -115,8 +79,7 @@ public class YakSecurityProperties {
     private String username;
     @ToString.Exclude
     private String password;
-    private String driverClassName =
-            "com.mysql.cj.jdbc.Driver";
+    private String driverClassName = "com.mysql.cj.jdbc.Driver";
     private int initialSize = 1;
     private int minIdle = 1;
     private int maxActive = 8;
@@ -127,80 +90,37 @@ public class YakSecurityProperties {
     private boolean testOnReturn = false;
 
     private void validate() {
-      requireText(
-              url,
-              PREFIX + ".datasource.url");
-      requireText(
-              username,
-              PREFIX + ".datasource.username");
-      requireText(
-              driverClassName,
-              PREFIX
-                      + ".datasource.driver-class-name");
-
-      if (initialSize < 0) {
+      requireText(url, PREFIX + ".datasource.url");
+      requireText(username, PREFIX + ".datasource.username");
+      requireText(driverClassName, PREFIX + ".datasource.driver-class-name");
+      if (initialSize < 0) throw invalidProperty(
+          PREFIX + ".datasource.initial-size", "must be greater than or equal to 0");
+      if (minIdle < 0) throw invalidProperty(
+          PREFIX + ".datasource.min-idle", "must be greater than or equal to 0");
+      if (maxActive <= 0) throw invalidProperty(
+          PREFIX + ".datasource.max-active", "must be greater than 0");
+      if (initialSize > maxActive) throw invalidProperty(
+          PREFIX + ".datasource.initial-size", "must not be greater than max-active");
+      if (minIdle > maxActive) throw invalidProperty(
+          PREFIX + ".datasource.min-idle", "must not be greater than max-active");
+      if (maxWait < -1L) throw invalidProperty(
+          PREFIX + ".datasource.max-wait", "must be -1 or greater than or equal to 0");
+      boolean validationEnabled = testWhileIdle || testOnBorrow || testOnReturn;
+      if (validationEnabled && !StringUtils.hasText(validationQuery)) {
         throw invalidProperty(
-                PREFIX + ".datasource.initial-size",
-                "must be greater than or equal to 0");
-      }
-      if (minIdle < 0) {
-        throw invalidProperty(
-                PREFIX + ".datasource.min-idle",
-                "must be greater than or equal to 0");
-      }
-      if (maxActive <= 0) {
-        throw invalidProperty(
-                PREFIX + ".datasource.max-active",
-                "must be greater than 0");
-      }
-      if (initialSize > maxActive) {
-        throw invalidProperty(
-                PREFIX + ".datasource.initial-size",
-                "must not be greater than max-active");
-      }
-      if (minIdle > maxActive) {
-        throw invalidProperty(
-                PREFIX + ".datasource.min-idle",
-                "must not be greater than max-active");
-      }
-      if (maxWait < -1L) {
-        throw invalidProperty(
-                PREFIX + ".datasource.max-wait",
-                "must be -1 or greater than or equal to 0");
-      }
-
-      boolean connectionValidationEnabled =
-              testWhileIdle
-                      || testOnBorrow
-                      || testOnReturn;
-      if (connectionValidationEnabled
-              && !StringUtils.hasText(
-                      validationQuery)) {
-        throw invalidProperty(
-                PREFIX
-                        + ".datasource.validation-query",
-                "must not be blank when connection validation is enabled");
+            PREFIX + ".datasource.validation-query",
+            "must not be blank when connection validation is enabled");
       }
     }
   }
 
-  private static void requireText(
-          String value,
-          String key) {
+  private static void requireText(String value, String key) {
     if (!StringUtils.hasText(value)) {
-      throw new IllegalStateException(
-              "Missing required configuration: "
-                      + key);
+      throw new IllegalStateException("Missing required configuration: " + key);
     }
   }
 
-  private static IllegalStateException invalidProperty(
-          String key,
-          String message) {
-    return new IllegalStateException(
-            "Invalid configuration: "
-                    + key
-                    + " "
-                    + message);
+  private static IllegalStateException invalidProperty(String key, String message) {
+    return new IllegalStateException("Invalid configuration: " + key + " " + message);
   }
 }
