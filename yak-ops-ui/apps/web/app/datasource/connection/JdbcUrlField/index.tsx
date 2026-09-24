@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { DataSourceFormInstance } from "../../editor/formRuntime";
 import { useFormValue } from "../../editor/formRuntime";
 import { useIntl } from "../../i18n";
-import type { DynamicFormJdbcUrlLinkage } from "../../model/types";
+import type { DynamicFormJdbcUrlLinkage } from "../../types";
 import {
   buildJdbcUrlFromTemplate,
   parseJdbcUrlByTemplate,
