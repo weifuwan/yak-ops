@@ -1,5 +1,5 @@
 import { Drawer as BaseDrawer } from "@base-ui/react/drawer";
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 import { cn } from "../cn";
 
@@ -60,7 +60,7 @@ export function DrawerContent({
   );
 }
 
-export type DrawerBodyProps = React.HTMLAttributes<HTMLDivElement>;
+export type DrawerBodyProps = HTMLAttributes<HTMLDivElement>;
 
 export function DrawerBody({ className, ...props }: DrawerBodyProps) {
   return <div className={cn("min-h-0 flex-1 overflow-y-auto p-5", className)} {...props} />;
