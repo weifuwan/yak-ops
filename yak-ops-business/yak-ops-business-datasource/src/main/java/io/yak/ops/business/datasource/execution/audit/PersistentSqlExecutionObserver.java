@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.execution.audit;
 
+import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditPO;
 import io.yak.ops.business.datasource.dao.model.SqlStatementExecutionAuditPO;
@@ -32,20 +33,17 @@ public final class PersistentSqlExecutionObserver implements SqlExecutionObserve
     private static final int QUEUE_CAPACITY = 2048;
     private static final int SQL_PREVIEW_LIMIT = 2048;
 
-    private final SqlExecutionAuditStore store;
-    private final ThreadPoolExecutor executor;
+    @Resource
+    private SqlExecutionAuditStore store;
 
-    public PersistentSqlExecutionObserver(SqlExecutionAuditStore store) {
-        this.store = store;
-        this.executor = new ThreadPoolExecutor(
-                2,
-                2,
-                0L,
-                TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(QUEUE_CAPACITY),
-                Thread.ofPlatform().daemon(true).name("yak-sql-audit-", 0).factory(),
-                new ThreadPoolExecutor.AbortPolicy());
-    }
+    private final ThreadPoolExecutor executor = new ThreadPoolExecutor(
+            2,
+            2,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(QUEUE_CAPACITY),
+            Thread.ofPlatform().daemon(true).name("yak-sql-audit-", 0).factory(),
+            new ThreadPoolExecutor.AbortPolicy());
 
     @Override
     public void onExecutionCompleted(SqlExecutionSnapshot snapshot) {
