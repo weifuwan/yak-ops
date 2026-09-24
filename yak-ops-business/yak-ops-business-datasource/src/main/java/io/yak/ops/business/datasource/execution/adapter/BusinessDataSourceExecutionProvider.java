@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.execution.adapter;
 
+import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
@@ -18,16 +19,14 @@ import org.springframework.stereotype.Component;
 @ConditionalOnDataSourceEnabled
 public class BusinessDataSourceExecutionProvider implements DataSourceExecutionProvider {
 
-    private final DataSourceRepository repository;
-    private final DataSourcePluginRegistry pluginRegistry;
-    private final DataSourceProperties properties;
+    @Resource
+    private DataSourceRepository repository;
 
-    public BusinessDataSourceExecutionProvider(
-            DataSourceRepository repository, DataSourcePluginRegistry pluginRegistry, DataSourceProperties properties) {
-        this.repository = repository;
-        this.pluginRegistry = pluginRegistry;
-        this.properties = properties;
-    }
+    @Resource
+    private DataSourcePluginRegistry pluginRegistry;
+
+    @Resource
+    private DataSourceProperties properties;
 
     @Override
     public DataSourceSqlExecutor open(String dataSourceReference) {
