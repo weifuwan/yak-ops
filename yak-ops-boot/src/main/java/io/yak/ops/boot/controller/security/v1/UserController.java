@@ -1,5 +1,6 @@
 package io.yak.ops.boot.controller.security.v1;
 
+import jakarta.annotation.Resource;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,21 +42,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/yak-security/api/v1/user")
 public class UserController {
 
-    private final UserService userService;
-    private final UserAdministrationService userAdministrationService;
-    private final AuthenticationManager authenticationManager;
-    private final ObjectMapper objectMapper;
+    @Resource
+    private UserService userService;
 
-    public UserController(
-            UserService userService,
-            UserAdministrationService userAdministrationService,
-            AuthenticationManager authenticationManager,
-            ObjectMapper objectMapper) {
-        this.userService = userService;
-        this.userAdministrationService = userAdministrationService;
-        this.authenticationManager = authenticationManager;
-        this.objectMapper = objectMapper;
-    }
+    @Resource
+    private UserAdministrationService userAdministrationService;
+
+    @Resource
+    private AuthenticationManager authenticationManager;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Operation(summary = "校验用户字段是否可用")
     @GetMapping("/{type}/{value}/check")
