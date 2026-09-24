@@ -16,7 +16,7 @@ import type {
   DataSourceModalRef,
   DataSourceRecord,
 } from '../model/uiTypes';
-import { DataSourceOperateType } from '../types';
+import { DataSourceOperateType } from '../model/uiTypes';
 import {
   buildSubmitPayload,
   normalizeConnectionFormValues,
