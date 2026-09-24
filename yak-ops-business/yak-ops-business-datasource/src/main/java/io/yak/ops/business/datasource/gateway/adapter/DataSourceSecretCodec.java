@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.gateway.adapter;
 
+import jakarta.annotation.Resource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -14,13 +15,11 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /** Masks and merges descriptor-owned connection secrets at the Plugin SPI adapter boundary. */
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceSecretCodec {
 
     public static final String MASKED_VALUE = SensitiveTextMasker.MASKED_VALUE;
@@ -37,8 +36,10 @@ public class DataSourceSecretCodec {
             "passphrase",
             "privatekeypassphrase");
 
-    private final ObjectMapper objectMapper;
-    private final SensitiveTextMasker textMasker;
+    @Resource
+    private ObjectMapper objectMapper;
+    @Resource
+    private SensitiveTextMasker textMasker;
 
     public String maskConnectionJson(DataSourcePluginDescriptor descriptor, String connectionJson) {
         if (connectionJson == null || connectionJson.trim().isEmpty()) return null;
