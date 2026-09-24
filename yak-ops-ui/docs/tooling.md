@@ -162,7 +162,7 @@ packages/*
 
 ```text
 apps/web
-→ React / Router / Lucide / Framer Motion / Yak UI
+→ React / Router / Lucide / Yak UI
 
 packages/yak-ui
 → Base UI / CVA

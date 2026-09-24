@@ -138,6 +138,7 @@ const directFetchPattern = /\b(?:globalThis\.|window\.)?fetch\s*\(/;
 const appImportPattern = /(?:from\s+|import\s*\()\s*["']@\/app\//;
 const httpImportPattern = /(?:from\s+|import\s*\()\s*["']@\/service\/http(?:\/|["'])/;
 const baseUiImportPattern = /(?:from\s+|import\s*\()\s*["']@base-ui\/react/;
+const framerMotionImportPattern = /(?:from\s+|import\s*\()\s*["']framer-motion["']/;
 
 for (const path of files) {
   const relativePath = toRelativePath(path);
@@ -186,6 +187,13 @@ for (const path of files) {
     baseUiImportPattern.test(content)
   ) {
     fail(`${relativePath} imports @base-ui/react outside packages/yak-ui`);
+  }
+
+  if (
+    relativePath.startsWith("apps/web/app/datasource/") &&
+    framerMotionImportPattern.test(content)
+  ) {
+    fail(`${relativePath} imports framer-motion; Datasource must use CSS transitions`);
   }
 
   if (content.includes("@yak-ops/datasource")) {

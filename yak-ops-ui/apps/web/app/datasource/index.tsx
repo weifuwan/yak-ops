@@ -8,7 +8,6 @@ import {
   Spinner,
   toast,
 } from "@yak-ops/yak-ui";
-import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -16,10 +15,7 @@ import DataSourceEditor from "./editor";
 import type { DataSourceModalRef } from "./editor/types";
 import { DataSourceOperateType } from "./editor/types";
 import { useIntl } from "./i18n";
-import {
-  DATA_SOURCE_PAGE_SIZE_OPTIONS,
-  PAGE_ANIMATION,
-} from "./constants";
+import { DATA_SOURCE_PAGE_SIZE_OPTIONS } from "./constants";
 import { dataSourceRecordKey } from "./utils";
 import type { DataSourceRecord } from "./types";
 import DataSourceCard from "./card";
@@ -155,13 +151,8 @@ const DataSourcePage = () => {
   return (
     <>
       <div className="min-h-[calc(100dvh-64px)] bg-[#f7f8fa] text-[#242731]">
-        <motion.main
-          initial="hidden"
-          animate="visible"
-          variants={PAGE_ANIMATION.sectionStagger}
-        >
-          <motion.section
-            variants={PAGE_ANIMATION.fadeUp}
+        <main>
+          <section
             className="flex min-h-[calc(100dvh-64px)] flex-col bg-white px-6 pb-4 pt-5 shadow-[0_2px_10px_rgba(31,35,41,0.025)] max-md:px-4"
             style={{ borderTopLeftRadius: 8, borderTopRightRadius: 8 }}
           >
@@ -193,10 +184,7 @@ const DataSourcePage = () => {
                   </div>
                 ) : null}
 
-                <motion.section
-                  variants={PAGE_ANIMATION.cardStagger}
-                  initial="hidden"
-                  animate="visible"
+                <section
                   className={
                     viewMode === "list"
                       ? "grid grid-cols-1 gap-[14px]"
@@ -221,7 +209,7 @@ const DataSourcePage = () => {
                       }
                     />
                   ))}
-                </motion.section>
+                </section>
 
                 {!loading && records.length === 0 ? (
                   <div className="mt-6">
@@ -236,10 +224,7 @@ const DataSourcePage = () => {
               </div>
 
               {pagination.total > 0 ? (
-                <motion.footer
-                  variants={PAGE_ANIMATION.fadeUp}
-                  className="mt-auto flex shrink-0 justify-end pt-6"
-                >
+                <footer className="mt-auto flex shrink-0 justify-end pt-6">
                   <Pagination
                     page={pagination.pageNo}
                     pageSize={pagination.pageSize}
@@ -256,11 +241,11 @@ const DataSourcePage = () => {
                     }
                     onChange={changePage}
                   />
-                </motion.footer>
+                </footer>
               ) : null}
             </div>
-          </motion.section>
-        </motion.main>
+          </section>
+        </main>
       </div>
 
       <DataSourceEditor ref={modalRef} />

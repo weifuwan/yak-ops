@@ -136,6 +136,7 @@ app/datasource
 - HTTP transport goes through `service/http`。
 - Common UI primitives come from `@yak-ops/yak-ui`。
 - Dynamic form state stays in Datasource, not Yak UI。
+- Datasource 不依赖 `framer-motion`，页面动效优先使用 CSS transition。
 
 ## Must Not
 
@@ -149,3 +150,4 @@ app/datasource
 - Let Datasource UI import `service/http` directly。
 - Create a directory solely to represent a concept。
 - Call `fetch` directly from Datasource UI。
+- Import `framer-motion` from Datasource。

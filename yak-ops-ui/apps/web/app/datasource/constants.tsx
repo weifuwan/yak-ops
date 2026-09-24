@@ -173,34 +173,3 @@ export const getDataSourceEnvironmentTabs = (intl: IntlFormatter) => {
     })),
   ];
 };
-
-export const PAGE_ANIMATION = {
-  fadeUp: {
-    hidden: { opacity: 0, y: 18 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.45,
-        ease: [0.22, 1, 0.36, 1],
-      },
-    },
-  },
-  sectionStagger: {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.08,
-        delayChildren: 0.06,
-      },
-    },
-  },
-  cardStagger: {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.06,
-      },
-    },
-  },
-};
