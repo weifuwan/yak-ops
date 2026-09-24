@@ -84,6 +84,7 @@
                             <style>PALANTIR</style>
                             <formatJavadoc>false</formatJavadoc>
                         </palantirJavaFormat>
+                        <removeUnusedImports/>
                         <forbidWildcardImports/>
                         <trimTrailingWhitespace/>
                         <endWithNewline/>
