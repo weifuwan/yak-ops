@@ -20,21 +20,12 @@
     <description>Yak Ops dependency alignment</description>
 
     <properties>
-        <yak-security.version>0.1.0</yak-security.version>
         <mybatis-plus.version>3.5.16</mybatis-plus.version>
         <springdoc.version>2.6.0</springdoc.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- External security boundary -->
-            <dependency>
-                <groupId>io.github.weifuwan</groupId>
-                <artifactId>yak-security-spring-boot-starter</artifactId>
-                <version>${yak-security.version}</version>
-            </dependency>
-
-            <!-- Third-party versions owned by Yak Ops -->
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-core</artifactId>
@@ -56,61 +47,17 @@
                 <version>${springdoc.version}</version>
             </dependency>
 
-            <!-- Yak Ops Internal Modules -->
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-dao</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-spi</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-boot</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <!-- Business Modules -->
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-business-datasource</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <!-- Plugin: Datasource -->
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-plugin-datasource-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-plugin-datasource-jdbc</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-plugin-datasource-doris</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-plugin-datasource-all</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-common</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-security</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-dao</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-spi</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-core</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-boot</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-business-datasource</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-datasource-api</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-datasource-jdbc</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-datasource-doris</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-datasource-all</artifactId><version>${project.version}</version></dependency>
         </dependencies>
     </dependencyManagement>
 </project>

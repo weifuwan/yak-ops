@@ -11,7 +11,6 @@
     </parent>
 
     <artifactId>yak-ops-boot</artifactId>
-
     <name>Yak Ops Boot</name>
     <description>Yak Ops application assembly and Spring Boot entry module</description>
 
@@ -22,21 +21,15 @@
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-datasource</artifactId>
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-plugin-datasource-all</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.weifuwan</groupId>
-            <artifactId>yak-security-spring-boot-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.github.weifuwan</groupId>
-                    <artifactId>yak-common</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
