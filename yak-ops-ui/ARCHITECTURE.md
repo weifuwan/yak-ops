@@ -234,15 +234,22 @@ packages/*
 
 PR1 不切换 pnpm / yarn，避免把 package-manager migration 与 architecture migration 混在一起。
 
-## Current Non-Goals
+## Current Migration Stage
 
-PR1 不做：
+PR1 已完成 Workspace / ownership 建立。
+
+PR2 补齐 Yak UI AntD replacement set，但仍不迁移 Datasource 业务实现，也不删除 AntD dependency。
+
+后续阶段负责：
 
 - Datasource 内部 capability 重构。
-- Ant Design 删除。
-- Form / Dialog / Drawer 等 Yak UI 扩展。
+- 使用 Yak UI replacement set 迁移存量 AntD 组件。
+- 删除 Ant Design / @ant-design/icons / legacy less overrides。
+
+当前仍不引入：
+
 - pnpm / Turborepo。
-- Zustand / Redux / TanStack Query。
+- Zustand / Redux。
 - 新产品页面。
 
 ## Verification
