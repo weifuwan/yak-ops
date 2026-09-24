@@ -51,7 +51,6 @@ Must Not:
 - access concrete plugin implementations from business code.
 - bypass Repository with ad hoc Mapper access from business behavior.
 - recreate deleted tests as architecture placeholders.
-- add Project Space / projectId scoping back into Datasource.
 
 ## Persistence
 
