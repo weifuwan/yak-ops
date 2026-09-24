@@ -33,6 +33,7 @@
     <modules>
         <module>yak-ops-bom</module>
         <module>yak-ops-common</module>
+        <module>yak-ops-dao</module>
         <module>yak-ops-spi</module>
         <module>yak-ops-core</module>
         <module>yak-ops-business</module>
