@@ -1,21 +1,22 @@
-import { notification } from 'antd';
-import { openPrettyNotification } from './PrettyNotification';
+import { toast, type ToastOptions, type ToastTone } from "@yak-ops/yak-ui";
 
-type PrettyNotificationOptions = Parameters<typeof openPrettyNotification>[0];
+export interface NotifyOnceOptions {
+  type?: ToastTone;
+  title: string;
+  description?: React.ReactNode;
+  meta?: React.ReactNode;
+  btnText?: React.ReactNode;
+  onClick?: () => void;
+  duration?: number;
+  key?: string;
+}
 
 const DEFAULT_DEDUPE_MS = 1200;
 const recentNotifications = new Map<string, number>();
 
-/**
- * Unified UI notification gateway.
- *
- * Repeated requests often fail at the same time (for example after a session
- * expires). Deduplicating by a stable key avoids flooding the screen while
- * keeping the original backend error visible.
- */
 export const notifyOnce = (
   key: string,
-  options: PrettyNotificationOptions,
+  options: NotifyOnceOptions,
   dedupeMs = DEFAULT_DEDUPE_MS,
 ): boolean => {
   const now = Date.now();
@@ -23,20 +24,28 @@ export const notifyOnce = (
   if (now - lastShown < dedupeMs) return false;
 
   recentNotifications.set(key, now);
-  openPrettyNotification({
-    ...options,
-    key: options.key ?? key,
-  });
+
+  const toastOptions: ToastOptions = {
+    id: options.key ?? key,
+    description: options.description,
+    meta: options.meta,
+    timeout: options.duration === undefined ? undefined : options.duration * 1000,
+    action:
+      options.btnText && options.onClick
+        ? { label: options.btnText, onClick: options.onClick }
+        : undefined,
+  };
+
+  const type = options.type ?? "info";
+  toast[type](options.title, toastOptions);
 
   globalThis.setTimeout(() => {
-    if (recentNotifications.get(key) === now) {
-      recentNotifications.delete(key);
-    }
+    if (recentNotifications.get(key) === now) recentNotifications.delete(key);
   }, dedupeMs);
 
   return true;
 };
 
 export const closeNotification = (key?: string) => {
-  notification.destroy(key);
+  toast.dismiss(key);
 };
