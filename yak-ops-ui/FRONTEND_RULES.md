@@ -21,6 +21,8 @@ Owns:
 - 代码按 ownership 放置，依赖方向遵循 `ARCHITECTURE.md`。
 - `src/pages` 只保留 `login` 和 `data-source`。
 - Page 只组合页面；Feature 只在存在真实独立 owner 时创建；Shared 只放无业务 owner 的复用能力。
+- 通用 UI Primitive 统一由 `src/shared/ui` 的 Yak UI 拥有，业务代码从 `@/shared/ui` 使用。
+- Page / Feature / App 不直接依赖 `@base-ui/react`；Base UI 只能作为 Yak UI 的底层实现依赖。
 - 优先使用原生 HTML 语义，保留键盘、焦点和 disabled 行为。
 - 可点击元素必须有明确 pointer cursor。
 - URL 已表达的状态归 URL；后端事实以 Service 返回值为准；交互局部状态才使用 `useState`。
@@ -41,6 +43,7 @@ Owns:
 
 - 使用 Umi Max、Umi Router 或 Umi Model。
 - 在 Page / Component / Hook 直接调用 `fetch`。
+- 在 Page / Feature / App 直接导入 `@base-ui/react`，绕过 Yak UI Contract。
 - 新增第二套 HTTP 请求工具。
 - 为简单前端逻辑增加 interface / impl / adapter 等 Java 风格层级。
 - 为未来能力预创建空 Feature、菜单、路由、Provider 或 Store。
@@ -102,7 +105,8 @@ Hook 必须拥有真实行为。
 - 页面 / Feature 视觉样式归真实 owner。
 - 全局 CSS 只负责 reset、字体、主题和 viewport。
 - 不使用全局位置选择器修改某个页面内部结构。
-- Ant Design 当前允许作为迁移期 UI 依赖；去 AntD 由独立 PR 决定，不与脚手架迁移混合。
+- Ant Design 当前允许作为迁移期 UI 依赖；已有业务组件按独立 PR 迁移，不在 Yak UI Foundation PR 中大范围替换。
+- 新增通用 Primitive 不再基于 Ant Design 二次封装；优先进入 `shared/ui`，复杂交互可由 Base UI 提供 Headless 行为。
 
 ## Validation
 
