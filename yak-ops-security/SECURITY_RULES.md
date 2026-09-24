@@ -6,13 +6,13 @@ Scope:
 Depends On:
 - /ARCHITECTURE.md
 - /JAVA_RULES.md
+- Schema changes also load /yak-ops-dao/FLYWAY_RULES.md
 - HTTP contract changes also load /CONTROLLER_RULES.md
 
 Owns:
 - user management
 - login / logout / current user
 - authentication session runtime
-- security database schema and migration
 
 ## Current Product Boundary
 
@@ -44,7 +44,7 @@ Security HTTP Controller 和 ControllerAdvice 统一由 `yak-ops-boot` 持有。
 - keep passwords encoded and never return stored password hashes.
 - keep login errors stable and avoid leaking sensitive credential detail.
 - keep authentication implementation behind AuthenticationManager.
-- keep database migration ownership inside this module.
+- route every Security schema change through `/yak-ops-dao/FLYWAY_RULES.md`.
 - reuse io.yak.framework.common contracts from yak-ops-common.
 
 ## Must Not
@@ -55,3 +55,4 @@ Security HTTP Controller 和 ControllerAdvice 统一由 `yak-ops-boot` 持有。
 - bypass UserService with ad hoc user SQL from Boot or Datasource.
 - recreate removed tests or CI as a side effect.
 - add Controller / RestController / RestControllerAdvice to this module.
+- add Flyway beans or versioned SQL migrations to this module.
