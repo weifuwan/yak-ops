@@ -8,7 +8,7 @@ import {
 import { useForm } from "antd/es/form/Form";
 import { useState } from "react";
 
-import { login } from "@/service/auth";
+import { login } from "../../service/auth";
 import { notifyOnce } from "@/shared/lib/notification";
 import { Button } from "@yak-ops/yak-ui";
 
