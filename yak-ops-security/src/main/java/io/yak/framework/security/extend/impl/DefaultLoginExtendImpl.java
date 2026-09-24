@@ -1,6 +1,6 @@
 package io.yak.framework.security.extend.impl;
 
-import io.yak.framework.common.Result;
+import io.yak.ops.common.Result;
 import io.yak.framework.security.authentication.AuthenticationManager;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.framework.security.common.entity.user.User;

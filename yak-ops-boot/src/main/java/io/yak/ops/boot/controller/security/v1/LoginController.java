@@ -2,7 +2,7 @@ package io.yak.ops.boot.controller.security.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.yak.framework.common.Result;
+import io.yak.ops.common.Result;
 import io.yak.framework.security.authentication.AuthenticationManager;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.enums.security.ResultCode;

@@ -1,4 +1,4 @@
-package io.yak.framework.common;
+package io.yak.ops.common;
 
 /**
  * 跨模块错误码契约。

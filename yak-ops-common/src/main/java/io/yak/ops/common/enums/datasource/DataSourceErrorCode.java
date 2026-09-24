@@ -1,6 +1,6 @@
 package io.yak.ops.common.enums.datasource;
 
-import io.yak.framework.common.ErrorCode;
+import io.yak.ops.common.ErrorCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

@@ -1,4 +1,4 @@
-package io.yak.framework.common;
+package io.yak.ops.common;
 
 /**
  * 统一响应构建所需的最小公共错误码集合。

@@ -1,7 +1,7 @@
 package io.yak.ops.business.datasource.repository;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.yak.framework.common.PageData;
+import io.yak.ops.common.PageData;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.dao.DataSourceDao;
 import io.yak.ops.business.datasource.dao.DataSourceDao.PageQuery;

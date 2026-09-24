@@ -1,6 +1,6 @@
 package io.yak.ops.common.enums.security;
 
-import io.yak.framework.common.ErrorCode;
+import io.yak.ops.common.ErrorCode;
 
 /** User/login result codes owned by Yak Security. */
 public enum ResultCode implements ErrorCode {

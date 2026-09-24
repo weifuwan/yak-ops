@@ -1,4 +1,4 @@
-package io.yak.framework.common;
+package io.yak.ops.common;
 
 import java.util.Collection;
 

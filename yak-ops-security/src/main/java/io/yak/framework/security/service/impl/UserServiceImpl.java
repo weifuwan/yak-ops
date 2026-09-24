@@ -1,8 +1,8 @@
 package io.yak.framework.security.service.impl;
 
-import io.yak.framework.common.PageData;
-import io.yak.framework.common.PagingData;
-import io.yak.framework.common.Result;
+import io.yak.ops.common.PageData;
+import io.yak.ops.common.PagingData;
+import io.yak.ops.common.Result;
 import io.yak.framework.security.common.entity.user.User;
 import io.yak.framework.security.exception.YakSecurityException;
 import io.yak.framework.security.extend.PasswordEncoder;

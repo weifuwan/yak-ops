@@ -1,7 +1,7 @@
 package io.yak.framework.security.service;
 
-import io.yak.framework.common.PagingData;
-import io.yak.framework.common.Result;
+import io.yak.ops.common.PagingData;
+import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.dto.security.user.UserDTO;
 import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.framework.security.common.entity.user.User;

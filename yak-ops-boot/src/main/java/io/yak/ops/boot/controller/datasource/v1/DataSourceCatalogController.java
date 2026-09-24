@@ -2,7 +2,7 @@ package io.yak.ops.boot.controller.datasource.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.yak.framework.common.Result;
+import io.yak.ops.common.Result;
 import io.yak.framework.security.web.RequiresPermission;
 import io.yak.ops.business.datasource.catalog.DataSourceCatalogReader;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
