@@ -1,0 +1,72 @@
+# Yak UI Rules
+
+Scope:
+- `yak-ops-ui/src/shared/ui/**`
+
+Depends On:
+- `../../../FRONTEND_RULES.md`
+- `../../../ARCHITECTURE.md`
+
+Owns:
+- Yak Ops 可复用 UI Primitive
+- Primitive 的公开 Props Contract
+- Primitive keyboard / focus / disabled / accessibility 行为
+- Yak UI Design Token 与视觉状态
+
+Public Import:
+- `@/shared/ui`
+
+## Dependency Direction
+
+```text
+Page / Feature / App
+        ↓
+@/shared/ui
+        ↓
+@base-ui/react
+        ↓
+DOM
+```
+
+`@base-ui/react` 是 Yak UI 的实现依赖，不是业务层 API。
+
+## Must
+
+- Primitive 必须无 Login / Datasource 等业务语义。
+- Page / Feature / App 只能从 `@/shared/ui` 使用公共 Yak UI Primitive。
+- 需要 Headless interaction 时优先由 `@base-ui/react` 提供底层行为，Yak UI 自己拥有公开 API 与视觉 Contract。
+- Yak UI 不直接向业务层 re-export Base UI 原始 Primitive。
+- 样式统一使用 Tailwind 与 Yak UI Design Token。
+- Variant Contract 使用 `class-variance-authority` 管理。
+- Button 默认 `type="button"`。
+- Button 第一版只提供 `primary / secondary / ghost / danger` 四种视觉意图。
+- Button 第一版只提供 `small / medium / large` 三种尺寸。
+- Button loading 必须阻止重复触发，同时保留明确的 busy 状态。
+- `className` 只作为布局、定位和必要的局部 escape hatch，不用于重新发明 Primitive 的核心视觉状态。
+- 只有真实、稳定、重复使用的 UI Boundary 才新增 Primitive。
+
+## Must Not
+
+- 在 Page / Feature / App 直接导入 `@base-ui/react`。
+- 在 Shared UI 中请求 API、读取业务 Service 或拥有业务状态。
+- 把 Datasource、Login、Project、Workflow 等业务概念写进 Primitive。
+- 为未来需求预创建大量空组件。
+- 用一个超级组件通过几十个 Props 覆盖所有场景。
+- 为了迁移方便继续新增 Ant Design 通用 Primitive 封装。
+
+## Current Scope
+
+PR1 只建立：
+
+```text
+Yak UI Foundation
+└── Button
+```
+
+Input 与 Select 属于后续 PR，不在当前 PR 扩展。
+
+## Boundary
+
+`shared/ui` 是 Yak Ops 内部的 Yak UI。
+
+当前不单独建立 npm workspace / published package；只有出现跨应用复用或独立发布需求时，再评估包级拆分。
