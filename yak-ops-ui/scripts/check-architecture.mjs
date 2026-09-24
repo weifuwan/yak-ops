@@ -38,12 +38,27 @@ if (existsSync(packageRoot)) {
   }
 }
 
+const forbiddenDependencies = new Set([
+  "@yak-ops/datasource",
+  "@ant-design/icons",
+  "@umijs/max",
+  "antd",
+  "axios",
+  "umi-request",
+]);
+
 const rootPackage = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const rootRuntimeDependencies = Object.keys(rootPackage.dependencies ?? {});
 if (rootRuntimeDependencies.length > 0) {
   fail(
     `workspace root must not own runtime dependencies: ${rootRuntimeDependencies.join(", ")}`,
   );
+}
+
+for (const dependency of Object.keys(rootPackage.devDependencies ?? {})) {
+  if (forbiddenDependencies.has(dependency)) {
+    fail(`workspace root declares forbidden dependency: ${dependency}`);
+  }
 }
 
 const forbiddenDependencies = new Set([
@@ -93,6 +108,11 @@ const walk = (directory) => {
 
 walk(join(root, "apps", "web"));
 walk(join(root, "packages"));
+
+const rootTypeScriptConfig = join(root, "tsconfig.json");
+if (existsSync(rootTypeScriptConfig)) {
+  files.push(rootTypeScriptConfig);
+}
 
 const directFetchPattern = /\b(?:globalThis\.|window\.)?fetch\s*\(/;
 const appImportPattern = /(?:from\s+|import\s*\()\s*["']@\/app\//;
