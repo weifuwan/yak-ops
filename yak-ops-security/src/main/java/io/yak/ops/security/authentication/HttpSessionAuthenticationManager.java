@@ -1,4 +1,4 @@
-package io.yak.framework.security.authentication;
+package io.yak.ops.security.authentication;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;

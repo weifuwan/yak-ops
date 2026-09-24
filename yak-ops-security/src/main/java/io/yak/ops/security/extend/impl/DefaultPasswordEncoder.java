@@ -1,6 +1,6 @@
-package io.yak.framework.security.extend.impl;
+package io.yak.ops.security.extend.impl;
 
-import io.yak.framework.security.extend.PasswordEncoder;
+import io.yak.ops.security.extend.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.StringUtils;
 

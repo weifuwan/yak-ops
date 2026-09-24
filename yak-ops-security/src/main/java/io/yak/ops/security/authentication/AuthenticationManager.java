@@ -1,4 +1,4 @@
-package io.yak.framework.security.authentication;
+package io.yak.ops.security.authentication;
 
 /**
  * 登录态管理边界。

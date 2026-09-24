@@ -1,7 +1,7 @@
-package io.yak.framework.security.extend.impl;
+package io.yak.ops.security.extend.impl;
 
-import io.yak.framework.security.authentication.AuthenticationManager;
-import io.yak.framework.security.extend.CurrentUserProvider;
+import io.yak.ops.security.authentication.AuthenticationManager;
+import io.yak.ops.security.extend.CurrentUserProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Objects;
 

@@ -1,18 +1,18 @@
-package io.yak.framework.security.extend.impl;
+package io.yak.ops.security.extend.impl;
 
 import io.yak.ops.common.Result;
-import io.yak.framework.security.authentication.AuthenticationManager;
+import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
-import io.yak.framework.security.common.entity.user.User;
+import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
-import io.yak.framework.security.config.YakSecurityProperties;
-import io.yak.framework.security.exception.YakSecurityException;
-import io.yak.framework.security.extend.LoginExtend;
-import io.yak.framework.security.extend.PasswordEncoder;
-import io.yak.framework.security.service.UserService;
-import io.yak.framework.security.util.CopyBeanUtil;
-import io.yak.framework.security.util.JsonUtils;
+import io.yak.ops.security.config.YakSecurityProperties;
+import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.security.extend.LoginExtend;
+import io.yak.ops.security.extend.PasswordEncoder;
+import io.yak.ops.security.service.UserService;
+import io.yak.ops.security.util.CopyBeanUtil;
+import io.yak.ops.security.util.JsonUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -62,7 +62,7 @@ public class DefaultLoginExtendImpl implements LoginExtend {
       throw new YakSecurityException(ResultCode.USER_ACCOUNT_LOCKED);
     }
 
-    User user = userService.getUserByUsername(userName);
+    UserAccount user = userService.getUserByUsername(userName);
     if (user == null) {
       loginAttemptGuard.recordFailure(userName, remoteAddress);
       throw new YakSecurityException(
@@ -124,7 +124,7 @@ public class DefaultLoginExtendImpl implements LoginExtend {
       return handleUnauthorized(response);
     }
 
-    User user = userService.getUserByUsername(operator);
+    UserAccount user = userService.getUserByUsername(operator);
     if (user == null
             || USER_DISABLED_STATUS.equals(user.getStatus())
             || !Objects.equals(loginUserId, user.getId())) {

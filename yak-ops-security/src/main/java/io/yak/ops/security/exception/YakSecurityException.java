@@ -1,4 +1,4 @@
-package io.yak.framework.security.exception;
+package io.yak.ops.security.exception;
 
 import io.yak.ops.common.BusinessException;
 import io.yak.ops.common.ErrorCode;

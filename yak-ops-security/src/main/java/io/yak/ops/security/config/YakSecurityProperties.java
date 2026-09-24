@@ -1,4 +1,4 @@
-package io.yak.framework.security.config;
+package io.yak.ops.security.config;
 
 import java.time.Duration;
 import java.util.ArrayList;

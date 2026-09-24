@@ -1,4 +1,4 @@
-package io.yak.framework.security.extend;
+package io.yak.ops.security.extend;
 
 /**
  * 密码编码器扩展点。

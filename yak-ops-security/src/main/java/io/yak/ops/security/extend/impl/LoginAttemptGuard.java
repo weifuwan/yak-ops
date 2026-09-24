@@ -1,6 +1,6 @@
-package io.yak.framework.security.extend.impl;
+package io.yak.ops.security.extend.impl;
 
-import io.yak.framework.security.config.YakSecurityProperties;
+import io.yak.ops.security.config.YakSecurityProperties;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
