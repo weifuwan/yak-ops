@@ -304,9 +304,11 @@ const DynamicDataSourceForm = ({
   const renderVisibleField = (field: DynamicFormField) => {
     if (field.type === "CUSTOM_SELECT") {
       return (
-        <div key={field.key} className="md:col-span-2">
-          <CustomKVList intl={intl} field={field} />
-        </div>
+        <VisibleFieldInitializer key={field.key} form={configForm} field={field}>
+          <div className="md:col-span-2">
+            <CustomKVList intl={intl} field={field} />
+          </div>
+        </VisibleFieldInitializer>
       );
     }
 
