@@ -10,14 +10,12 @@ import {
   TabsList,
   TabsTab,
 } from "@yak-ops/yak-ui";
-import { motion } from "framer-motion";
 import { Grid2X2, LayoutList, Search, X } from "lucide-react";
 
 import { useIntl } from "./i18n";
 import {
   COMMON_DB_OPTIONS,
   getDataSourceEnvironmentTabs,
-  PAGE_ANIMATION,
 } from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import type { DataSourceViewMode } from "./types";
@@ -91,10 +89,7 @@ const DataSourceToolbar = ({
   const environmentTabs = getDataSourceEnvironmentTabs(intl);
 
   return (
-    <motion.section
-      variants={PAGE_ANIMATION.fadeUp}
-      className="flex min-h-9 items-end justify-between gap-6 border-b border-solid border-[#eceef2] max-xl:flex-col max-xl:items-stretch max-xl:gap-3"
-    >
+    <section className="flex min-h-9 items-end justify-between gap-6 border-b border-solid border-[#eceef2] max-xl:flex-col max-xl:items-stretch max-xl:gap-3">
       <div className="flex items-end">
         <Tabs
           value={environment || "all"}
@@ -238,7 +233,7 @@ const DataSourceToolbar = ({
           </Button>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 };
 

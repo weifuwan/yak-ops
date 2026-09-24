@@ -9,7 +9,6 @@ import {
 } from "@yak-ops/yak-ui";
 import type { DataSourceConnectionStatus, DataSourceRecord } from "./types";
 import { useIntl } from "./i18n";
-import { motion } from 'framer-motion';
 import {
   CircleCheck,
   CircleMinus,
@@ -21,7 +20,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { getEnvironmentTagConfigMap, PAGE_ANIMATION } from "./constants";
+import { getEnvironmentTagConfigMap } from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import type { DataSourcePermissions, DataSourceViewMode } from "./types";
 import { dataSourceRecordKey } from "./utils";
@@ -140,8 +139,7 @@ const DataSourceCard = ({
   const isListView = viewMode === 'list';
 
   return (
-    <motion.article
-      variants={PAGE_ANIMATION.fadeUp}
+    <article
       className={[
         'group relative min-w-0 overflow-hidden rounded-[16px] border border-[rgba(31,35,41,0.075)] bg-white/[0.98]',
         'shadow-[0_3px_10px_rgba(31,35,41,0.035),0_1px_2px_rgba(31,35,41,0.02)]',
@@ -293,7 +291,7 @@ const DataSourceCard = ({
           </strong>
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 };
 

@@ -1,10 +1,8 @@
 import type { DataSourceSummary } from "./types";
 import { useIntl } from "./i18n";
-import { motion } from 'framer-motion';
 import { CheckCircle2, Database, Server, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { PAGE_ANIMATION } from "./constants";
 
 interface SummaryItem {
   key: keyof Pick<
@@ -56,10 +54,7 @@ const DataSourceSummaryCards = ({ summary }: DataSourceSummaryCardsProps) => {
   const intl = useIntl();
 
   return (
-    <motion.section
-      variants={PAGE_ANIMATION.fadeUp}
-      className="flex flex-wrap gap-3"
-    >
+    <section className="flex flex-wrap gap-3">
       {SUMMARY_ITEMS.map((item) => (
         <div
           key={item.key}
@@ -90,7 +85,7 @@ const DataSourceSummaryCards = ({ summary }: DataSourceSummaryCardsProps) => {
           </strong>
         </div>
       ))}
-    </motion.section>
+    </section>
   );
 };
 
