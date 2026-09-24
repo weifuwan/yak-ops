@@ -43,7 +43,7 @@ Security 只提供用户/登录行为和安全数据隔离所需的语义；最�
 
 ## Model Boundary
 
-Security runtime 只保留用户和登录业务行为、认证状态及内部领域模型。
+Security runtime 只保留用户和登录业务行为、认证状态及内部领域模型。`LoginService` 是当前登录行为 contract，不再叠加 `LoginExtend` 或纯转发 facade。
 
 共享接口对象统一由 `yak-ops-common` 持有：
 
@@ -75,6 +75,7 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - keep passwords encoded and never return stored password hashes.
 - keep login errors stable and avoid leaking sensitive credential detail.
 - keep authentication implementation behind AuthenticationManager.
+- keep login orchestration in `LoginService`; do not add parallel extension/facade layers without a real second implementation.
 - route every Security schema change through `/yak-ops-dao/FLYWAY_RULES.md`.
 - reuse io.yak.ops.common contracts from yak-ops-common.
 - throw the shared `io.yak.ops.common.exception.YakSecurityException` for Security business failures.
@@ -93,4 +94,5 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - add Spring Boot auto-configuration registration or `META-INF/spring.factories` to this module.
 - add Flyway beans or versioned SQL migrations to this module.
 - reintroduce Role / Permission / Project / Resource / Message / Oplog / Notification runtime.
+- add no-op RBAC annotations or permission constants without an enforcing runtime consumer.
 - add non-user/login DTO / VO / Enum / PO models to this module.

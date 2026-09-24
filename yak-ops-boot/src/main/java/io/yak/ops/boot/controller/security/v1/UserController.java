@@ -1,5 +1,8 @@
 package io.yak.ops.boot.controller.security.v1;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.common.PagingData;
@@ -14,8 +17,6 @@ import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.service.impl.UserAdministrationService;
-import io.yak.ops.security.util.JsonUtils;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.util.StringUtils;
@@ -43,14 +44,17 @@ public class UserController {
     private final UserService userService;
     private final UserAdministrationService userAdministrationService;
     private final AuthenticationManager authenticationManager;
+    private final ObjectMapper objectMapper;
 
     public UserController(
             UserService userService,
             UserAdministrationService userAdministrationService,
-            AuthenticationManager authenticationManager) {
+            AuthenticationManager authenticationManager,
+            ObjectMapper objectMapper) {
         this.userService = userService;
         this.userAdministrationService = userAdministrationService;
         this.authenticationManager = authenticationManager;
+        this.objectMapper = objectMapper;
     }
 
     @Operation(summary = "校验用户字段是否可用")
@@ -62,11 +66,7 @@ public class UserController {
     @Operation(summary = "根据用户 ID 集合批量查询用户详情")
     @GetMapping
     public Result<List<UserVO>> detailList(@RequestParam("ids") String ids) {
-        try {
-            return userService.getUserDetailsByUserIds(JsonUtils.toList(ids, Long.class));
-        } catch (Exception exception) {
-            throw new YakSecurityException(ResultCode.PARAM_NOT_VALID, exception);
-        }
+        return userService.getUserDetailsByUserIds(parseUserIds(ids));
     }
 
     @Operation(summary = "根据用户 ID 查询用户详情")
@@ -89,13 +89,13 @@ public class UserController {
 
     @Operation(summary = "新增用户")
     @PutMapping("/add")
-    public Result<Void> add(HttpServletRequest request, @RequestBody UserDTO userDTO) {
+    public Result<Void> add(@RequestBody UserDTO userDTO) {
         return userService.addUser(userDTO, currentUsername());
     }
 
     @Operation(summary = "编辑用户")
     @PostMapping("/edit")
-    public Result<Void> edit(HttpServletRequest request, @RequestBody UserDTO userDTO) {
+    public Result<Void> edit(@RequestBody UserDTO userDTO) {
 
         String operator = currentUsername();
         Result<Void> result = userService.editUser(userDTO, operator);
@@ -123,6 +123,15 @@ public class UserController {
         userAdministrationService.validateDelete(userId, authenticationManager.getLoginUserId(), currentUsername());
 
         return userService.deleteByUserId(userId);
+    }
+
+    private List<Long> parseUserIds(String ids) {
+        try {
+            JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, Long.class);
+            return objectMapper.readValue(ids, type);
+        } catch (JsonProcessingException exception) {
+            throw new YakSecurityException(ResultCode.PARAM_NOT_VALID, exception);
+        }
     }
 
     private String currentUsername() {

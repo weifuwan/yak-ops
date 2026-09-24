@@ -8,8 +8,6 @@ import io.yak.ops.business.datasource.query.DataSourcePluginReader;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
-import io.yak.ops.common.constant.datasource.DataSourcePermissionCode;
-import io.yak.ops.security.web.RequiresPermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnDataSourceEnabled
 @RequiredArgsConstructor
 @RequestMapping(DataSourceConstants.API_PREFIX + "/plugin/config")
-@RequiresPermission(DataSourcePermissionCode.READ)
 public class DataSourcePluginConfigController {
     private final DataSourcePluginReader pluginReader;
     private final DataSourcePluginViewConverter viewConverter;
@@ -35,7 +32,6 @@ public class DataSourcePluginConfigController {
 
     @Operation(summary = "安装数据源配置")
     @PostMapping("/install")
-    @RequiresPermission(DataSourcePermissionCode.CREATE)
     public Result<Boolean> installPlugin(@RequestParam("pluginType") String pluginType) {
         return Result.success(pluginReader.install(pluginType));
     }

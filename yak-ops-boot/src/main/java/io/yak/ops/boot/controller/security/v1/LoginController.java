@@ -13,7 +13,6 @@ import io.yak.ops.security.service.LoginService;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.web.PublicEndpoint;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,10 +46,8 @@ public class LoginController {
     @Operation(summary = "用户登录")
     @PostMapping("/login")
     @PublicEndpoint
-    public Result<UserBriefVO> login(
-            HttpServletRequest request, HttpServletResponse response, @Valid @RequestBody AccountLoginDTO loginDTO) {
-
-        return Result.success(loginService.verifyLogin(loginDTO, request, response));
+    public Result<UserBriefVO> login(HttpServletRequest request, @Valid @RequestBody AccountLoginDTO loginDTO) {
+        return Result.success(loginService.verifyLogin(loginDTO, request));
     }
 
     @Operation(summary = "获取当前登录用户")
@@ -81,7 +78,7 @@ public class LoginController {
 
     @Operation(summary = "用户退出登录")
     @PostMapping("/logout")
-    public Result<Boolean> logout(HttpServletRequest request, HttpServletResponse response) {
-        return loginService.logout(request, response);
+    public Result<Boolean> logout() {
+        return loginService.logout();
     }
 }

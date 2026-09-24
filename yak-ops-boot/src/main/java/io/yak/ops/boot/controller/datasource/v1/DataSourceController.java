@@ -17,8 +17,6 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
-import io.yak.ops.common.constant.datasource.DataSourcePermissionCode;
-import io.yak.ops.security.web.RequiresPermission;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +36,6 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnDataSourceEnabled
 @RequiredArgsConstructor
 @RequestMapping(DataSourceConstants.API_PREFIX)
-@RequiresPermission(DataSourcePermissionCode.READ)
 public class DataSourceController {
     private final DataSourceManager manager;
     private final DataSourceReader reader;
@@ -48,14 +45,12 @@ public class DataSourceController {
 
     @Operation(summary = "新增数据源")
     @PostMapping
-    @RequiresPermission(DataSourcePermissionCode.CREATE)
     public Result<Boolean> create(@Valid @RequestBody DataSourceDTO dto) {
         return Result.success(manager.create(requestConverter.configuration(dto)));
     }
 
     @Operation(summary = "编辑数据源")
     @PutMapping("/{id}")
-    @RequiresPermission(DataSourcePermissionCode.UPDATE)
     public Result<Boolean> update(@PathVariable("id") Long id, @Valid @RequestBody DataSourceDTO dto) {
         return Result.success(manager.update(id, requestConverter.configuration(dto)));
     }
@@ -68,7 +63,6 @@ public class DataSourceController {
 
     @Operation(summary = "删除数据源")
     @DeleteMapping("/{id}")
-    @RequiresPermission(DataSourcePermissionCode.DELETE)
     public Result<Boolean> delete(@PathVariable("id") Long id) {
         return Result.success(manager.delete(id));
     }
@@ -103,14 +97,12 @@ public class DataSourceController {
     @RequestMapping(
             value = "/{id}/connect-test",
             method = {RequestMethod.GET, RequestMethod.POST})
-    @RequiresPermission(DataSourcePermissionCode.TEST)
     public Result<Boolean> testConnection(@PathVariable("id") Long id) {
         return Result.success(connectionTester.testSaved(id));
     }
 
     @Operation(summary = "使用连接参数测试数据源连接")
     @PostMapping("/connect-test-with-param")
-    @RequiresPermission(DataSourcePermissionCode.TEST)
     public Result<Boolean> testConnection(@Valid @RequestBody DataSourceConnectTestDTO dto) {
         return Result.success(connectionTester.test(requestConverter.connectionTest(dto)));
     }
