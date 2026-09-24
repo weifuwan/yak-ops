@@ -51,6 +51,7 @@ export const navigationGroups: readonly NavigationGroup[] = [];
 export const canAccessNavigationRoute = (
   route: NavigationRoute,
   permissionCodes?: readonly string[] | null,
+  _menuCodes?: readonly string[] | null,
 ) =>
   !route.mode ||
   route.mode === "public" ||
@@ -59,12 +60,28 @@ export const canAccessNavigationRoute = (
 export const getRouteMetadata = (pathname: string) =>
   pathname === "/data-source" ? appRoutes[0] : undefined;
 
-export const getActiveNavigationId = (pathname: string) =>
-  getRouteMetadata(pathname)?.id;
+export const getActiveNavigationId = (
+  pathname: string,
+  _permissionCodes?: readonly string[] | null,
+  _menuCodes?: readonly string[] | null,
+) => getRouteMetadata(pathname)?.id;
 
-export const getActiveNavigationGroupId = () => undefined;
+export const getActiveNavigationGroupId = (
+  _pathname?: string,
+  _permissionCodes?: readonly string[] | null,
+  _menuCodes?: readonly string[] | null,
+) => undefined;
 
-export const getNavigationGroups = () => [];
+export const getNavigationGroups = (
+  _permissionCodes?: readonly string[] | null,
+  _menuCodes?: readonly string[] | null,
+) => [];
 export const getMainNavigationGroups = getNavigationGroups;
-export const getQuickCreateRoutes = () => [];
-export const getStandaloneNavigationRoutes = () => [...appRoutes];
+export const getQuickCreateRoutes = (
+  _permissionCodes?: readonly string[] | null,
+  _menuCodes?: readonly string[] | null,
+) => [];
+export const getStandaloneNavigationRoutes = (
+  _permissionCodes?: readonly string[] | null,
+  _menuCodes?: readonly string[] | null,
+) => [...appRoutes];
