@@ -26,7 +26,7 @@ Application runtime infrastructure is also a Boot boundary. Connection-pool asse
 
 ### `yak-ops-common`
 
-Owns shared data contracts for Datasource and Security, plus the unified `io.yak.framework.common` Result / ErrorCode / BusinessException / PageData contracts migrated into Yak Ops. Security user/login DTO, VO and enum contracts live here instead of inside the Security runtime module.
+Owns shared data contracts for Datasource and Security, plus the unified `io.yak.ops.common` Result / ErrorCode / BusinessException / PageData contracts migrated into Yak Ops. Security user/login DTO, VO and enum contracts live here instead of inside the Security runtime module.
 
 ### `yak-ops-security`
 

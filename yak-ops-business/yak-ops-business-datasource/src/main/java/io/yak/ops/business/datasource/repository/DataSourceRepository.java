@@ -1,6 +1,6 @@
 package io.yak.ops.business.datasource.repository;
 
-import io.yak.framework.common.PageData;
+import io.yak.ops.common.PageData;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
 import io.yak.ops.business.datasource.domain.DataSourceQuery;
 import io.yak.ops.business.datasource.domain.DataSourceSummary;

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.yak.framework.common.PageData;
+import io.yak.ops.common.PageData;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.mapper.security.UserMapper;
 import io.yak.ops.dao.repository.impl.BaseRepositoryImpl;

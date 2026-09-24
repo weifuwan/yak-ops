@@ -75,7 +75,7 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - keep login errors stable and avoid leaking sensitive credential detail.
 - keep authentication implementation behind AuthenticationManager.
 - route every Security schema change through `/yak-ops-dao/FLYWAY_RULES.md`.
-- reuse io.yak.framework.common contracts from yak-ops-common.
+- reuse io.yak.ops.common contracts from yak-ops-common.
 - access user persistence only through `UserRepository` from yak-ops-dao.
 
 ## Must Not

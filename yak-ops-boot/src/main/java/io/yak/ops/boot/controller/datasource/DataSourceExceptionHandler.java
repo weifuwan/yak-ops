@@ -1,7 +1,7 @@
 package io.yak.ops.boot.controller.datasource;
 
-import io.yak.framework.common.ErrorCode;
-import io.yak.framework.common.Result;
+import io.yak.ops.common.ErrorCode;
+import io.yak.ops.common.Result;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.framework.security.exception.YakSecurityException;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;

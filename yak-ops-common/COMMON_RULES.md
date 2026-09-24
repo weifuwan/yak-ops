@@ -13,13 +13,11 @@ Owns:
 - unified Result / ErrorCode / BusinessException / PageData contracts
 - small shared infrastructure with no better owner
 
-## Compatibility Namespace
+## Namespace
 
-The package `io.yak.framework.common` is physically owned by `yak-ops-common`.
+All shared Common contracts use the `io.yak.ops.common` namespace.
 
-The package name is a migration residue only. Yak Ops no longer depends on external Yak Common or Yak Security artifacts.
-
-Do not create a second copy under `io.yak.ops.common` until a deliberate namespace migration is designed.
+Do not recreate the legacy `io.yak.ops.common` compatibility package.
 
 ## Must
 

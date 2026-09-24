@@ -1,7 +1,7 @@
 package io.yak.ops.boot.controller.datasource.v1.converter;
 
-import io.yak.framework.common.PageData;
-import io.yak.framework.common.PagingData;
+import io.yak.ops.common.PageData;
+import io.yak.ops.common.PagingData;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
 import io.yak.ops.business.datasource.domain.DataSourceSummary;

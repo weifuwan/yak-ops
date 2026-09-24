@@ -3,7 +3,7 @@ package io.yak.ops.dao.repository.impl;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.yak.framework.common.PageData;
+import io.yak.ops.common.PageData;
 import io.yak.ops.dao.repository.BaseRepository;
 
 import java.io.Serializable;
