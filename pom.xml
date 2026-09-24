@@ -38,7 +38,7 @@
         <module>yak-ops-core</module>
         <module>yak-ops-business</module>
         <module>yak-ops-plugins/yak-ops-plugin-datasource</module>
-        <module>yak-ops-plugins/yak-ops-plugin-storage</module>
+        <!-- <module>yak-ops-plugins/yak-ops-plugin-storage</module> -->
         <module>yak-ops-plugins/yak-ops-plugin-task</module>
         <module>yak-ops-plugins/yak-ops-plugin-alert</module>
         <module>yak-ops-boot</module>
