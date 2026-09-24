@@ -11,7 +11,7 @@ import {
   PAGE_ANIMATION,
 } from '../model/constants';
 import DatabaseIcons from '../model/icons/DatabaseIcons';
-import type { DataSourceViewMode } from '../model/uiTypes';
+import type { DataSourceViewMode } from './types';
 
 interface DataSourceToolbarProps {
   environment?: string;
