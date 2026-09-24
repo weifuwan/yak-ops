@@ -25,12 +25,9 @@ public class DataSourceCatalogDiagnostics {
 
     @Resource
     private DataSourceProperties properties;
-    @Resource
-    private ConcurrentMap<String, OperationAccumulator> operations = new ConcurrentHashMap<>();
-    @Resource
-    private LongAdder cacheHits = new LongAdder();
-    @Resource
-    private LongAdder cacheMisses = new LongAdder();
+    private final ConcurrentMap<String, OperationAccumulator> operations = new ConcurrentHashMap<>();
+    private final LongAdder cacheHits = new LongAdder();
+    private final LongAdder cacheMisses = new LongAdder();
 
     public <T> T observe(DataSourceDefinition definition, String operation, Supplier<T> action) {
         long startedAt = System.nanoTime();
