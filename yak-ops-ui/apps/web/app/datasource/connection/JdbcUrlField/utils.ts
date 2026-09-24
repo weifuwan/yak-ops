@@ -1,4 +1,4 @@
-import type { DynamicFormJdbcUrlLinkage } from '../../model/types';
+import type { DynamicFormJdbcUrlLinkage } from '../../types';
 
 export interface JdbcUrlStructuredValue {
   host?: string;

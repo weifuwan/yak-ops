@@ -1,7 +1,7 @@
 import { Button, Input } from "@yak-ops/yak-ui";
 import { Plus, Trash2 } from "lucide-react";
 
-import type { DynamicFormField } from "../../../model/types";
+import type { DynamicFormField } from "../../../types";
 import {
   DataSourceFormField,
   type DataSourceFormFieldState,

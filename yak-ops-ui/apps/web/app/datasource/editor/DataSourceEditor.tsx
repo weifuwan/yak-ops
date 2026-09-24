@@ -21,9 +21,9 @@ import {
   updateDataSource,
 } from "@/service/datasource";
 import { useIntl } from "../i18n";
-import { getDataSourceGroupList } from "../model/constants";
-import DatabaseIcons from "../model/icons/DatabaseIcons";
-import type { DataSourceRecord } from "../model/types";
+import { getDataSourceGroupList } from "../constants";
+import DatabaseIcons from "../icons/DatabaseIcons";
+import type { DataSourceRecord } from "../types";
 import {
   DataSourceOperateType,
   type DataSourceFormValues,

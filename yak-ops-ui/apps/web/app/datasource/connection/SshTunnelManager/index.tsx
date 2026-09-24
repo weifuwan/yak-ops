@@ -17,7 +17,7 @@ import {
 import { KeyRound, Network, ShieldCheck } from "lucide-react";
 
 import { useIntl } from "../../i18n";
-import type { SshTunnelConfigValue } from "../../model/types";
+import type { SshTunnelConfigValue } from "../../types";
 
 interface IntlFormatter {
   formatMessage: (descriptor: { id: string }) => string;

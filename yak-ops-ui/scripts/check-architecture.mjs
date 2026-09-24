@@ -20,6 +20,9 @@ const forbiddenDirectories = [
   "apps/web/pages",
   "apps/web/shared",
   "packages/datasource",
+  "apps/web/app/datasource/management",
+  "apps/web/app/datasource/model",
+  "apps/web/app/datasource/plugin",
 ];
 
 for (const path of forbiddenDirectories) {

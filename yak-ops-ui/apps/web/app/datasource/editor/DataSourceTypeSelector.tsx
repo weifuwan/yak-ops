@@ -14,9 +14,9 @@ import { useIntl } from '../i18n';
 import { Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { COMMON_DB_OPTIONS } from '../model/constants';
-import DatabaseIcons from '../model/icons/DatabaseIcons';
-import type { DataSourceGroup } from '../model/presentation';
+import { COMMON_DB_OPTIONS } from '../constants';
+import DatabaseIcons from '../icons/DatabaseIcons';
+import type { DataSourceGroup } from '../types';
 
 interface DataSourceTypeSelectorProps {
   dataSourceGroups: DataSourceGroup[];
