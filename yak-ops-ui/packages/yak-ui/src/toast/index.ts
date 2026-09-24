@@ -1,1 +1,8 @@
-export { ToastProvider, toast, toastManager, type ToastProviderProps, type ToastTone } from "./Toast";
+export {
+  ToastProvider,
+  toast,
+  toastManager,
+  type ToastOptions,
+  type ToastProviderProps,
+  type ToastTone,
+} from "./Toast";
