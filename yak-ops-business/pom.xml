@@ -18,7 +18,6 @@
     <description>Yak Ops business-domain module aggregation</description>
 
     <modules>
-        <module>yak-ops-business-audit</module>
         <module>yak-ops-business-datasource</module>
         <!-- <module>yak-ops-business-data-service</module> -->
         <!-- <module>yak-ops-business-job</module> -->

@@ -2,7 +2,6 @@ package io.yak.ops.boot.project;
 
 import io.yak.framework.security.extend.CurrentUserProvider;
 import io.yak.ops.core.project.ProjectAccessGuard;
-import io.yak.ops.core.project.ProjectAuthorizationReason;
 import io.yak.ops.core.project.ProjectContext;
 import io.yak.ops.core.project.ProjectContextError;
 import io.yak.ops.core.project.ProjectContextException;
@@ -24,22 +23,18 @@ public class ProjectScopeInterceptor implements HandlerInterceptor {
   private final ProjectContextRuntime currentProject;
   private final ProjectAccessGuard accessGuard;
   private final CurrentUserProvider currentUserProvider;
-  private final ProjectAuthorizationAuditBridge authorizationAudit;
 
   public ProjectScopeInterceptor(
       ProjectContextRuntime currentProject,
       ProjectAccessGuard accessGuard,
-      CurrentUserProvider currentUserProvider,
-      ProjectAuthorizationAuditBridge authorizationAudit) {
+      CurrentUserProvider currentUserProvider) {
     this.currentProject = currentProject;
     this.accessGuard = accessGuard;
     this.currentUserProvider = currentUserProvider;
-    this.authorizationAudit = authorizationAudit;
   }
 
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-    authorizationAudit.beginRequest();
     currentProject.clear();
     if (!(handler instanceof HandlerMethod handlerMethod)) {
       return true;
@@ -55,9 +50,6 @@ public class ProjectScopeInterceptor implements HandlerInterceptor {
       return true;
     }
 
-    // Authentication remains the outer boundary. If this interceptor happens to run before the
-    // Yak Security authentication interceptor, an anonymous request must still receive the normal
-    // authentication response instead of leaking Project Space validation semantics first.
     String username = currentUserProvider.getCurrentUser(request);
     if (!StringUtils.hasText(username)) {
       return true;
@@ -79,11 +71,7 @@ public class ProjectScopeInterceptor implements HandlerInterceptor {
       HttpServletResponse response,
       Object handler,
       Exception exception) {
-    try {
-      authorizationAudit.endRequest();
-    } finally {
-      currentProject.clear();
-    }
+    currentProject.clear();
   }
 
   ProjectMigrationMode resolveMode(HandlerMethod handlerMethod) {
@@ -101,7 +89,6 @@ public class ProjectScopeInterceptor implements HandlerInterceptor {
   private Long parseProjectId(String rawProjectId, ProjectMigrationMode mode) {
     if (!StringUtils.hasText(rawProjectId)) {
       if (mode == ProjectMigrationMode.PROJECT_REQUIRED) {
-        authorizationAudit.denied(null, ProjectAuthorizationReason.PROJECT_REQUIRED.name());
         throw new ProjectContextException(ProjectContextError.PROJECT_REQUIRED);
       }
       return null;
@@ -114,7 +101,6 @@ public class ProjectScopeInterceptor implements HandlerInterceptor {
       }
       return projectId;
     } catch (NumberFormatException exception) {
-      authorizationAudit.denied(null, ProjectAuthorizationReason.PROJECT_ID_INVALID.name());
       throw new ProjectContextException(ProjectContextError.PROJECT_NOT_FOUND, exception);
     }
   }

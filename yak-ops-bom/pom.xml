@@ -118,11 +118,6 @@
             <!-- Business Modules -->
             <dependency>
                 <groupId>io.yak.ops</groupId>
-                <artifactId>yak-ops-business-audit</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-business-datasource</artifactId>
                 <version>${project.version}</version>
             </dependency>
