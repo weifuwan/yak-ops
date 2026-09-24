@@ -59,6 +59,10 @@ yak-ops-ui/FRONTEND_RULES.md
 
 Load `yak-ops-ui/SERVICE_RULES.md` when changing backend API calls.
 
+Load `yak-ops-ui/docs/tooling.md` when changing dependencies, Vite, TypeScript, lint, format, build or package scripts.
+
+Frontend architecture is currently in migration toward `app / pages / features / service / shared`. Treat `src/services`, `src/components` and `src/utils` as migration facts, not target architecture.
+
 ## Capability Context
 
 ```text
