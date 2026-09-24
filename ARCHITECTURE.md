@@ -50,7 +50,7 @@ Owns shared database persistence infrastructure:
 
 Concrete Security user persistence and Datasource persistence are owned here.
 
-Datasource Business uses DAO-owned `DataSourceEntity` and `DataSourceEntityRepository` directly. It does not rebuild a second persistence/domain mapping layer.
+BusinessImpl may use DAO-owned Entity/Repository internally. Entity and DAO Model do not cross the Business boundary into Boot.
 
 DAO owns persistence and schema migration, not final application DataSource/MyBatis runtime assembly. That assembly belongs to Boot.
 
@@ -62,6 +62,14 @@ Reserved minimal extension boundary.
 
 Reserved empty module.
 
+### `yak-ops-business`
+
+Owns the application Service Layer. Each stable capability exposes `XxxBusiness` interfaces and keeps Spring implementation, transactions, validation and DAO/Plugin orchestration in `impl/XxxBusinessImpl`.
+
+Boot depends on Business interfaces. Business public contracts use shared DTO / VO types and do not expose DAO Entity, Mapper, Repository Query or concrete Plugin implementation details.
+
+Detailed rules are defined in `yak-ops-business/BUSINESS_RULES.md`.
+
 ### `yak-ops-business/yak-ops-business-datasource`
 
 Owns only the current Datasource product behavior:
@@ -72,9 +80,9 @@ Owns only the current Datasource product behavior:
 
 The module intentionally does not own SQL execution, SQL audit, a duplicate Domain layer or a Gateway adapter layer.
 
-Datasource Business may use DAO Entity/Repository directly for current datasource management and may call the stable Datasource Plugin SPI through `DataSourcePluginRegistry`.
+Datasource follows the common Business Layer contract and may use DAO persistence and stable Datasource Plugin SPI only behind Business implementations.
 
-Datasource does not own Controller, ControllerAdvice, Controller-only request/response conversion, connection-pool assembly or MyBatis runtime configuration. Boot exposes Datasource HTTP APIs and supplies application infrastructure.
+Datasource does not own Controller, ControllerAdvice, connection-pool assembly or MyBatis runtime configuration. Boot exposes Datasource HTTP APIs and supplies application infrastructure.
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
@@ -90,7 +98,7 @@ SQL execution/query contracts are not part of the current plugin boundary.
 
 ### `yak-ops-boot`
 
-Owns final application assembly, all HTTP Controllers, ControllerAdvice, Controller-only request/response conversion, health and global runtime configuration. `GlobalExceptionHandler` is the single fallback HTTP exception outlet; capability-specific advice only keeps behavior that requires capability context such as Datasource message masking.
+Owns final application assembly, all HTTP Controllers, ControllerAdvice, health and global runtime configuration. `GlobalExceptionHandler` is the single fallback HTTP exception outlet; capability-specific advice only keeps behavior that requires capability context such as Datasource message masking.
 
 Boot runtime configuration includes:
 
@@ -106,6 +114,7 @@ Hard boundary:
 
 - every Yak Ops `@Controller` / `@RestController` lives in `yak-ops-boot`
 - every Yak Ops Controller package lives under `io.yak.ops.boot.controller`
+- Controller depends on Business interfaces rather than BusinessImpl / DAO / Plugin internals
 - application-wide Spring infrastructure configuration lives in `yak-ops-boot`
 - capability modules must not depend on Boot
 

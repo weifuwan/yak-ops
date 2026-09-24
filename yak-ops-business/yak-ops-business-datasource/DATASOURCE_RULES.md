@@ -6,6 +6,7 @@ Scope:
 Depends On:
 - `/ARCHITECTURE.md`
 - `/JAVA_RULES.md`
+- `/yak-ops-business/BUSINESS_RULES.md`
 - HTTP contract 变化加载 `/CONTROLLER_RULES.md`
 - Schema 变化加载 `/yak-ops-dao/FLYWAY_RULES.md`
 - Plugin 变化加载 `/yak-ops-plugins/yak-ops-plugin-datasource/PLUGIN_RULES.md`
@@ -22,32 +23,57 @@ Does Not Own:
 - duplicate Domain models around DAO Entity
 - Gateway / Adapter layers around the stable Plugin SPI
 
+## Business Entry
+
+Datasource exposes three stable Business contracts:
+
+```text
+DataSourceBusiness
+DataSourceCatalogBusiness
+DataSourcePluginBusiness
+```
+
+Implementation follows the common Business rule:
+
+```text
+XxxBusiness
+→ impl/XxxBusinessImpl
+```
+
+Boot only depends on these Business interfaces. `Manager / Reader / Registry / Tester` are not Controller-facing business entry points.
+
 ## Package Ownership
 
 ```text
-management   datasource lifecycle, reads and connection testing
+datasource   datasource lifecycle, reads and connection testing
 catalog      database / schema / table / column metadata
 plugin       plugin discovery, parsing, masking and Catalog creation
 config       capability-local properties / conditions
-security     sensitive text masking
 exception    datasource business errors
 ```
+
+Catalog cache, diagnostics and matching logic may remain internal collaborators when they own real state or mechanism.
 
 Do not recreate `domain`, `gateway`, `execution`, `query` or business `repository` packages unless a new capability contract proves a real boundary.
 
 ## HTTP Boundary
 
-Datasource HTTP Controller、ControllerAdvice 和 Controller-only converter 统一由 `yak-ops-boot` 持有。
+Datasource HTTP Controller、ControllerAdvice 统一由 `yak-ops-boot` 持有。
+
+Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsing、业务校验、Entity → VO、Plugin descriptor → VO 等业务输出转换归 Business。
 
 本模块只提供 Datasource capability，不创建 `controller` package，也不依赖 Boot。
 
 ## Business Rules
 
 Must:
-- datasource mutation and read behavior has one clear management owner.
+- datasource mutation、read 和 connection test 由 `DataSourceBusiness` 统一持有。
+- Catalog 元数据能力由 `DataSourceCatalogBusiness` 持有。
+- Plugin 配置与可用性入口由 `DataSourcePluginBusiness` 持有。
 - business validation stays close to Datasource behavior, not Controller.
-- current datasource persistence uses DAO-owned Entity / Repository directly.
-- plugin behavior enters through `DataSourcePluginRegistry` and the stable Plugin SPI.
+- DAO Entity / Repository 只出现在 BusinessImpl 内部。
+- Business 对 Boot 返回公共 VO，不返回 `DataSourceEntity`、`DataSourceSummaryRow` 或 Repository Query。
+- plugin behavior enters through stable Plugin SPI inside Business implementation.
 - Catalog is metadata-only: database, schema, table and column discovery.
 - secret handling must never leak raw credentials into logs, errors or response objects.
 
@@ -56,14 +82,14 @@ Must Not:
 - add Gateway / Adapter wrappers that only forward the Plugin SPI.
 - add Business Repository wrappers that only map DAO Entity to another model.
 - add SQL execution, SQL preview, SQL template, SQL variable resolution or SQL audit behavior.
-- add Manager / Reader / Adapter only because neighboring code has one.
+- use Manager / Reader / Registry / Tester as Boot-facing business APIs.
 - access concrete plugin implementations from business code.
 - create application-level DataSource / transaction manager / SqlSessionFactory / MyBatis-Plus plugin configuration in this module.
 
 ## Persistence
 
 ```text
-Datasource management
+DataSourceBusinessImpl
 → DataSourceEntityRepository
 → DataSourceMapper / DataSourceEntity
 → MyBatis / SQL
@@ -71,6 +97,7 @@ Datasource management
 
 - `yak-ops-dao` owns Entity / Mapper / Repository implementation and Mapper XML.
 - Business does not duplicate DAO persistence models.
+- Entity / DAO Model must be converted before leaving BusinessImpl.
 - Schema evolution is owned by `yak-ops-dao`.
 - Final application MyBatis runtime assembly is owned by `yak-ops-boot`.
 
