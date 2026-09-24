@@ -1,4 +1,4 @@
-import YakButton from '@/pages/data-source/components/ui/YakButton';
+import { Button } from '@/shared/ui';
 import { InfoCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useIntl } from '@/pages/data-source/i18n';
 import {
@@ -395,9 +395,9 @@ const DynamicDataSourceForm = ({
                 })}
             </div>
           </div>
-          <YakButton
+          <Button
             size="small"
-            type="text"
+            variant="ghost"
             className="shrink-0"
             onClick={() => {
               if (installRequired) {
@@ -423,7 +423,7 @@ const DynamicDataSourceForm = ({
               })}
               <DatabaseIcons dbType={dbType} height="15" width="15" />
             </span>
-          </YakButton>
+          </Button>
         </div>
       </div>
     );
