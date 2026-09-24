@@ -28,7 +28,7 @@ Owns shared contracts and the unified `io.yak.framework.common` Result / ErrorCo
 
 ### `yak-ops-security`
 
-Owns user management, login/logout/current identity, HttpSession authentication state, and authentication interceptor/runtime.
+Owns user management, login/logout/current identity, HttpSession authentication state, and authentication interceptor/runtime. It does not own RBAC administration, project authorization, messaging or notification runtime.
 
 Security does not own Controller or ControllerAdvice. Boot exposes the current Security HTTP API by calling Security-owned services.
 

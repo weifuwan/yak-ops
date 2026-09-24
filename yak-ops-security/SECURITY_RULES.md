@@ -21,7 +21,7 @@ Yak Ops 当前只发布两组 Security API：
 - /yak-security/api/v1/account/**
 - /yak-security/api/v1/user/**
 
-Role、Permission、Department、Project、Message、Oplog、Resource 等历史迁移代码不再作为当前对外 Security API。
+Role、Permission、Department、Project、Message、Oplog、Resource、Notification 等旧体系不再属于当前 Security runtime。
 
 Java namespace io.yak.framework.security 暂时保留，避免把依赖清理和包名迁移混在同一次改造中。
 
@@ -33,7 +33,21 @@ Security HTTP Controller 和 ControllerAdvice 统一由 `yak-ops-boot` 持有。
 
 现有 API 路径保持不变，由 Boot 暴露。
 
+## Model Boundary
+
+Security 只保留用户和登录所需模型：
+
+- DTO: `PageParamDTO`、`account/AccountLoginDTO`、`user/UserDTO`、`user/UserQueryDTO`、`user/UserPasswordResetDTO`
+- VO: `user/UserVO`、`user/UserBriefVO`、`user/CurrentUserVO`
+- Enum: `ResultCode`、`user/UserCheckType`
+- PO: `AppBasePO`、`BasePO`、`UserPO`
+
+用户模型不得重新携带 role / permission / project / menu 等旧授权字段。
+
+Notification capability 已删除，不在 Security 中保留 publisher、message DTO/VO 或自动装配。
+
 ## Authentication
+
 
 登录态统一使用 Servlet HttpSession。
 
@@ -56,3 +70,5 @@ Security HTTP Controller 和 ControllerAdvice 统一由 `yak-ops-boot` 持有。
 - recreate removed tests or CI as a side effect.
 - add Controller / RestController / RestControllerAdvice to this module.
 - add Flyway beans or versioned SQL migrations to this module.
+- reintroduce Role / Permission / Project / Resource / Message / Oplog / Notification runtime.
+- add non-user/login DTO / VO / Enum / PO models to this module.
