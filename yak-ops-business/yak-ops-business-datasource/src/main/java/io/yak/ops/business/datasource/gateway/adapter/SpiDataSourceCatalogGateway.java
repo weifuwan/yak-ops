@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.gateway.adapter;
 
+import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
@@ -30,7 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Datasource Catalog SPI -> typed Business Catalog Gateway Adapter. */
@@ -38,19 +38,11 @@ import org.springframework.stereotype.Component;
 @ConditionalOnDataSourceEnabled
 public class SpiDataSourceCatalogGateway implements DataSourceCatalogGateway {
 
-    private final DataSourcePluginRegistry pluginRegistry;
-    private final DataSourceProperties properties;
+    @Resource
+    private DataSourcePluginRegistry pluginRegistry;
 
-    @Autowired
-    public SpiDataSourceCatalogGateway(DataSourcePluginRegistry pluginRegistry, DataSourceProperties properties) {
-        this.pluginRegistry = pluginRegistry;
-        this.properties = properties;
-    }
-
-    /** Test/support constructor retaining the historical single-dependency shape. */
-    public SpiDataSourceCatalogGateway(DataSourcePluginRegistry pluginRegistry) {
-        this(pluginRegistry, new DataSourceProperties());
-    }
+    @Resource
+    private DataSourceProperties properties;
 
     @Override
     public List<String> listDatabases(DataSourceDefinition dataSource, int timeoutSeconds) {
