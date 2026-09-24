@@ -1,10 +1,11 @@
 package io.yak.ops.boot.project;
 
-import io.yak.ops.business.resource.config.ConditionalOnResourceEnabled;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.DependsOn;
@@ -14,8 +15,9 @@ import org.springframework.stereotype.Component;
 
 /** Completes the Resource Project Space cutover after the existing V2 expand migration. */
 @Component
+@ConditionalOnClass(name = "io.yak.ops.business.resource.config.ResourceConfiguration")
 @DependsOn("opsResourceFlyway")
-@ConditionalOnResourceEnabled
+@ConditionalOnExpression("${yak.resource.enabled:true}")
 @ConditionalOnProperty(
     prefix = "yak.database",
     name = "enabled",
