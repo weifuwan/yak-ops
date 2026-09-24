@@ -1,4 +1,10 @@
-import { Dropdown, type MenuProps } from "antd";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@yak-ops/yak-ui";
 import { ChevronDown, Database, LogOut } from "lucide-react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -21,34 +27,6 @@ export default function AppLayout() {
       navigate("/login", { replace: true });
     }
   };
-
-  const userMenuItems: MenuProps["items"] = [
-    {
-      key: "identity",
-      disabled: true,
-      label: (
-        <div className="min-w-44 py-1">
-          <div className="font-semibold text-[#161823]">
-            {currentUser?.name ?? currentUser?.userName ?? "当前用户"}
-          </div>
-          {currentUser?.email ? (
-            <div className="mt-0.5 text-xs text-black/45">
-              {currentUser.email}
-            </div>
-          ) : null}
-        </div>
-      ),
-    },
-    { type: "divider" },
-    {
-      key: "logout",
-      danger: true,
-      icon: <LogOut className="h-4 w-4" />,
-      label: loggingOut ? "正在退出…" : "退出登录",
-      disabled: loggingOut,
-      onClick: handleLogout,
-    },
-  ];
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f7f8f9] text-[#161823]">
@@ -73,11 +51,8 @@ export default function AppLayout() {
         </nav>
 
         <div className="mt-auto">
-          <Dropdown menu={{ items: userMenuItems }} placement="topLeft" trigger={["click"]}>
-            <button
-              type="button"
-              className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left hover:bg-white/70"
-            >
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left outline-none hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-black/10">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm font-semibold shadow-sm">
                 {(currentUser?.name ?? currentUser?.userName ?? "Y")
                   .slice(0, 1)
@@ -87,8 +62,32 @@ export default function AppLayout() {
                 {currentUser?.name ?? currentUser?.userName ?? "当前用户"}
               </span>
               <ChevronDown className="h-4 w-4 shrink-0 text-black/45" />
-            </button>
-          </Dropdown>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent side="top" align="start" className="w-56">
+              <div className="px-2.5 py-2">
+                <div className="font-semibold text-[#161823]">
+                  {currentUser?.name ?? currentUser?.userName ?? "当前用户"}
+                </div>
+                {currentUser?.email ? (
+                  <div className="mt-0.5 text-xs text-black/45">
+                    {currentUser.email}
+                  </div>
+                ) : null}
+              </div>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                tone="danger"
+                disabled={loggingOut}
+                onClick={() => void handleLogout()}
+              >
+                <LogOut className="h-4 w-4" />
+                {loggingOut ? "正在退出…" : "退出登录"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
