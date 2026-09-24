@@ -2,5 +2,15 @@
   "name": "@yak-ops/web",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@yak-ops/datasource": "*",
+    "@yak-ops/yak-ui": "*",
+    "@ant-design/icons": "^5.6.1",
+    "antd": "^5.25.4",
+    "lucide-react": "^0.577.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.4"
+  }
 }
