@@ -33,6 +33,14 @@ Security HTTP Controller 和 ControllerAdvice 统一由 `yak-ops-boot` 持有。
 
 现有 API 路径保持不变，由 Boot 暴露。
 
+认证拦截器实现仍由 Security 持有；将拦截器注册进 Spring MVC、OpenAPI / Swagger 以及其他应用级 Web 装配统一由 Boot 持有。
+
+## Infrastructure Boundary
+
+Security 不创建独立连接池、SqlSessionFactory、SqlSessionTemplate 或事务管理器。
+
+Security 只提供用户/登录行为和安全数据隔离所需的语义；最终 DataSource / MyBatis-Plus runtime wiring 由 `yak-ops-boot` 统一装配，Security user persistence 仍由 `yak-ops-dao` 持有。
+
 ## Model Boundary
 
 Security runtime 只保留用户和登录业务行为、认证状态及内部领域模型。
@@ -57,7 +65,6 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 
 ## Authentication
 
-
 登录态统一使用 Servlet HttpSession。
 
 浏览器通过 JSESSIONID Cookie 携带登录态，不再依赖第三方 Token 框架，也不再维护独立 Redis Token 存储。
@@ -80,6 +87,7 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - access `UserMapper` directly from Security Service.
 - recreate removed tests or CI as a side effect.
 - add Controller / RestController / RestControllerAdvice to this module.
+- add application DataSource / MyBatis-Plus / OpenAPI / MVC registration configuration to this module.
 - add Flyway beans or versioned SQL migrations to this module.
 - reintroduce Role / Permission / Project / Resource / Message / Oplog / Notification runtime.
 - add non-user/login DTO / VO / Enum / PO models to this module.

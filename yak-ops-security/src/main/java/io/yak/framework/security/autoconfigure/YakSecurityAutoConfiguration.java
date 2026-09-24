@@ -22,9 +22,7 @@ import org.springframework.context.annotation.Import;
     matchIfMissing = true)
 @Import({
     YakSecurityAutoConfiguration.ExtensionConfiguration.class,
-    YakSecurityDatabaseConfiguration.class,
-    YakSecurityWebConfiguration.class,
-    YakSecurityOpenApiConfiguration.class
+    YakSecurityDatabaseConfiguration.class
 })
 public class YakSecurityAutoConfiguration {
 

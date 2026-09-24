@@ -20,6 +20,8 @@ Architecture follows current ownership, not historical modules and not a future 
 
 HTTP is an application boundary. All Controller ownership belongs to `yak-ops-boot`; capability modules expose business capability to Boot and never own HTTP entry classes.
 
+Application runtime infrastructure is also a Boot boundary. Connection-pool assembly, MyBatis-Plus runtime wiring, OpenAPI/Swagger and MVC interceptor/filter registration belong to `yak-ops-boot`. Capability modules provide behavior and persistence contracts without assembling the final Spring application.
+
 ## Current Modules
 
 ### `yak-ops-common`
@@ -28,9 +30,9 @@ Owns shared data contracts for Datasource and Security, plus the unified `io.yak
 
 ### `yak-ops-security`
 
-Owns user management, login/logout/current identity, HttpSession authentication state, and authentication interceptor/runtime. It does not own RBAC administration, project authorization, messaging or notification runtime.
+Owns user management, login/logout/current identity, HttpSession authentication state, authentication policy and the authentication interceptor implementation. It does not own RBAC administration, project authorization, messaging or notification runtime.
 
-Security does not own Controller or ControllerAdvice. Boot exposes the current Security HTTP API by calling Security-owned services.
+Security does not own Controller, ControllerAdvice, OpenAPI configuration, connection-pool/MyBatis assembly or MVC interceptor registration. Boot exposes and wires the current Security HTTP capability by calling Security-owned services and registering Security-owned behavior.
 
 Security production code was migrated from `yak-framework/yak-security`.
 
@@ -48,6 +50,8 @@ Owns shared database persistence infrastructure:
 
 Concrete Security user persistence (`UserEntity`, `UserMapper`, `UserRepository`) is owned here. Concrete Datasource persistence remains in `yak-ops-business-datasource` until a separate migration changes that ownership.
 
+DAO owns persistence and schema migration, not final application DataSource/MyBatis runtime assembly. That assembly belongs to Boot.
+
 ### `yak-ops-spi`
 
 Reserved minimal extension boundary.
@@ -60,7 +64,7 @@ Reserved empty module.
 
 Owns the Datasource domain: business rules, connection, catalog, SQL execution, current concrete persistence and Datasource-specific security policy. Schema migration is owned centrally by `yak-ops-dao`.
 
-Datasource does not own Controller, ControllerAdvice or Controller-only request/response conversion. Boot exposes Datasource HTTP APIs by calling Datasource-owned capability.
+Datasource does not own Controller, ControllerAdvice, Controller-only request/response conversion, connection-pool assembly or MyBatis runtime configuration. Boot exposes Datasource HTTP APIs and supplies application infrastructure.
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
@@ -68,12 +72,23 @@ Owns Datasource provider contracts and implementations.
 
 ### `yak-ops-boot`
 
-Owns final application assembly, all HTTP Controllers, ControllerAdvice, Controller-only request/response conversion, health and global configuration.
+Owns final application assembly, all HTTP Controllers, ControllerAdvice, Controller-only request/response conversion, health and global runtime configuration.
+
+Boot runtime configuration includes:
+
+- the shared application DataSource and transaction manager
+- MyBatis-Plus SqlSessionFactory / SqlSessionTemplate and plugin registration
+- MVC interceptor/filter registration
+- OpenAPI / Swagger UI configuration
+- Jackson and other application-wide web configuration
+
+Flyway schema history and migration SQL remain owned by `yak-ops-dao`; Boot only supplies the runtime DataSource used by that persistence layer.
 
 Hard boundary:
 
 - every Yak Ops `@Controller` / `@RestController` lives in `yak-ops-boot`
 - every Yak Ops Controller package lives under `io.yak.ops.boot.controller`
+- application-wide Spring infrastructure configuration lives in `yak-ops-boot`
 - capability modules must not depend on Boot
 
 ### `yak-ops-ui`
@@ -112,7 +127,7 @@ Boot
 
 Boot owns protocol entry and application assembly.
 
-Security and Datasource own capability behavior. They never depend on Boot.
+Security and Datasource own capability behavior. DAO owns persistence and schema. None of them depend on Boot.
 
 ## Refactor Rule
 
