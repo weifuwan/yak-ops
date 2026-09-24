@@ -1,11 +1,12 @@
 import { toast, type ToastOptions, type ToastTone } from "@yak-ops/yak-ui";
+import type { ReactNode } from "react";
 
 export interface NotifyOnceOptions {
   type?: ToastTone;
   title: string;
-  description?: React.ReactNode;
-  meta?: React.ReactNode;
-  btnText?: React.ReactNode;
+  description?: ReactNode;
+  meta?: ReactNode;
+  btnText?: ReactNode;
   onClick?: () => void;
   duration?: number;
   key?: string;
