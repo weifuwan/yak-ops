@@ -10,16 +10,8 @@
     </parent>
     <artifactId>yak-ops-common</artifactId>
     <name>Yak Ops Common</name>
-    <description>Yak Ops product-specific shared contracts and value objects</description>
+    <description>Yak Ops shared contracts and value objects</description>
     <dependencies>
-        <dependency>
-            <groupId>io.github.weifuwan</groupId>
-            <artifactId>yak-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.weifuwan</groupId>
-            <artifactId>yak-schedule-api</artifactId>
-        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>

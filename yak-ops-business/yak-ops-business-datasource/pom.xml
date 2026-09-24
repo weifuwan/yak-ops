@@ -29,6 +29,12 @@
             <groupId>io.github.weifuwan</groupId>
             <artifactId>yak-security-spring-boot-starter</artifactId>
             <optional>true</optional>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.github.weifuwan</groupId>
+                    <artifactId>yak-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

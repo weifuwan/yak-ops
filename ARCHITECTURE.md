@@ -23,6 +23,8 @@ A module or layer exists only when it owns a real boundary.
 
 Owns shared Datasource-facing DTO / VO / PO / enum / constant and small reusable infrastructure.
 
+It also owns the unified `io.yak.framework.common` Result / ErrorCode / BusinessException / PageData contracts migrated from Yak Framework. The package name is temporarily preserved for Yak Security binary compatibility.
+
 Legacy non-Datasource residue that still exists in Common is not an approved extension point. Do not add new code to those areas.
 
 ### `yak-ops-spi`
@@ -99,7 +101,17 @@ Owns release packaging.
 
 ### `yak-ops-bom`
 
-Owns dependency version alignment.
+Owns dependency version alignment directly.
+
+Yak Ops no longer imports `yak-framework-parent`.
+
+## External Framework Boundary
+
+The only remaining active Yak Framework runtime dependency is Yak Security.
+
+`yak-common` is internalized into `yak-ops-common`. Unused Yak Schedule dependencies are removed.
+
+Yak Security must exclude its transitive external `yak-common` so runtime uses the in-repository compatibility classes.
 
 ## Dependency Direction
 
@@ -118,6 +130,7 @@ Datasource Plugin All
 
 Boot ─→ Datasource Business
 Boot ─→ Datasource Plugin All
+Boot ─→ Yak Security
 
 Core = reserved empty module
 SPI  = reserved minimal module
