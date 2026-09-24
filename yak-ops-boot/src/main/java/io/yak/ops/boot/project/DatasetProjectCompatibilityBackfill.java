@@ -5,6 +5,7 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.DependsOn;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
  * inferred from trusted producers before the compatibility default Project is used.
  */
 @Component
+@ConditionalOnClass(name = "io.yak.ops.business.dataset.config.DatasetPersistenceConfiguration")
 @DependsOn("yakDatasetFlyway")
 @ConditionalOnDataSourceEnabled
 @ConditionalOnProperty(
