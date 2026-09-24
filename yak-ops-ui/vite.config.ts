@@ -8,6 +8,12 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@yak-ops/yak-ui": fileURLToPath(
+        new URL("./packages/yak-ui/src/index.ts", import.meta.url),
+      ),
+      "@yak-ops/datasource": fileURLToPath(
+        new URL("./packages/datasource/src/index.tsx", import.meta.url),
+      ),
     },
   },
   server: {
