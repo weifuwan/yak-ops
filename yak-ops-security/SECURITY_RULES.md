@@ -23,7 +23,7 @@ Yak Ops 当前只发布两组 Security API：
 
 Role、Permission、Department、Project、Message、Oplog、Resource 等历史迁移代码不再作为当前对外 Security API。
 
-Java namespace io.yak.framework.security 暂时保留，避免把依赖清理和包名迁移混在同一次改造中。
+Security Java namespace 统一为 `io.yak.ops.security`，由 Yak Ops 主应用直接扫描。
 
 ## Authentication
 
@@ -36,12 +36,15 @@ Java namespace io.yak.framework.security 暂时保留，避免把依赖清理和
 - keep passwords encoded and never return stored password hashes.
 - keep login errors stable and avoid leaking sensitive credential detail.
 - keep authentication implementation behind AuthenticationManager.
-- keep database migration ownership inside this module.
+- keep security database migration SQL owned by this module.
+- keep Spring application wiring in `yak-ops-boot`; Security classes use normal component scanning.
 - reuse io.yak.framework.common contracts from yak-ops-common.
 
 ## Must Not
 
 - depend on external yak-framework modules.
+- add `spring.factories`, Boot AutoConfiguration metadata, or module-level application assembly.
+- create a second Security connection pool; Security reuses the shared `yak.database` datasource.
 - add another Token / RBAC framework as a replacement.
 - expose new Role / Permission / Department / Project / Message / Oplog / Resource Security APIs.
 - bypass UserService with ad hoc user SQL from Boot or Datasource.

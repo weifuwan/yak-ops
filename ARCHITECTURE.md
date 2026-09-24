@@ -30,7 +30,7 @@ Owns user management, login/logout/current identity, HttpSession authentication 
 
 Security production code was migrated from `yak-framework/yak-security`.
 
-The Java package `io.yak.framework.security` is temporarily preserved as a naming residue. It no longer means an external framework dependency.
+Security code uses the native `io.yak.ops.security` namespace and participates in normal application component scanning.
 
 ### `yak-ops-dao`
 
@@ -60,7 +60,7 @@ Owns Datasource provider contracts and implementations.
 
 ### `yak-ops-boot`
 
-Owns final application assembly, health and global configuration.
+Owns the application composition root, Spring wiring, shared runtime infrastructure, health and global configuration.
 
 ### `yak-ops-ui`
 
@@ -94,7 +94,7 @@ Boot ─→ Datasource Business ─→ Common
                            Plugin Implementations
 ```
 
-Boot assembles Security, Datasource Business and Datasource Plugin All.
+Boot assembles Security, Datasource Business and Datasource Plugin All. Security reuses the shared `yak.database` connection pool; only Security-specific MyBatis and migration behavior remains explicitly wired in Boot.
 
 Datasource may depend on Security identity contracts but must not own user/login persistence.
 

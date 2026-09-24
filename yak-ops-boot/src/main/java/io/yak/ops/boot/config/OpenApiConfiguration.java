@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * OpenAPI grouping for Yak Ops and the APIs contributed by Yak Framework.
+ * OpenAPI grouping for the Yak Ops application.
  */
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfiguration {
@@ -17,7 +17,7 @@ public class OpenApiConfiguration {
     return new OpenAPI()
         .info(new Info()
             .title("Yak Ops API")
-            .description("Yak Ops APIs and integrated Yak Framework capabilities")
+            .description("Yak Ops application APIs")
             .version("1.0.0"));
   }
 

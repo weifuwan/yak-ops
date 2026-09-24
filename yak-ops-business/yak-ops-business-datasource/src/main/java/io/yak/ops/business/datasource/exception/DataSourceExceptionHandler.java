@@ -2,8 +2,8 @@ package io.yak.ops.business.datasource.exception;
 
 import io.yak.framework.common.ErrorCode;
 import io.yak.framework.common.Result;
-import io.yak.framework.security.common.enums.ResultCode;
-import io.yak.framework.security.exception.YakSecurityException;
+import io.yak.ops.security.common.enums.ResultCode;
+import io.yak.ops.security.exception.YakSecurityException;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.security.SensitiveTextMasker;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
