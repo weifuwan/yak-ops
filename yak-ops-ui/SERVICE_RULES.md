@@ -2,7 +2,7 @@
 
 Scope:
 - 目标：`yak-ops-ui/src/service/**`
-- 迁移期：`yak-ops-ui/src/services/data-source/**`
+- 已迁移：`yak-ops-ui/src/service/datasource/**`
 - 已迁移：`yak-ops-ui/src/service/auth/**`
 - HTTP infrastructure
 
@@ -41,7 +41,9 @@ src/service/
 
 Login 已完成 Auth Service 迁移到 `src/service/auth`。
 
-Datasource 仍在 `src/services/data-source`，后续 PR4 收口到 `src/service/datasource`。
+Datasource 已完成迁移到 `src/service/datasource`。
+
+旧 `src/services/data-source` 已删除，不得重新建立兼容出口。
 
 其它 `src/services/security` 历史管理代码不属于当前 Login / Datasource 运行边界，不得作为新代码依赖。
 

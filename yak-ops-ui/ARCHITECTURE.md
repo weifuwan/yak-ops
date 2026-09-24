@@ -86,25 +86,30 @@ src/service/auth/
 → login / logout / current user Contract
 ```
 
-当前仍存在以下迁移目录：
+PR4 已完成 Datasource ownership 迁移：
 
 ```text
-src/services/data-source/
+src/pages/data-source/
+→ 页面组合、页面状态、页面 Hook、页面私有组件与 Datasource 图标
+
+src/service/datasource/
+→ CRUD / Catalog / Driver / Plugin Config / API Contract
+```
+
+当前没有创建 `features/datasource`。
+
+Datasource 只有一个页面 owner，现阶段没有独立复用生命周期；为了目录对称拆 Feature 会增加无意义层级。
+
+当前仍存在以下基础设施迁移事实：
+
+```text
 src/components/
+src/services/http/
+src/services/security/
 src/utils/
 ```
 
-它们是当前代码事实，不是最终 ownership 结构。
-
-后续 Login / Datasource 迁移时分别收口到：
-
-```text
-services/data-source → service/datasource
-components           → page / feature / shared/ui
-utils                → service/http / shared/lib
-```
-
-不要为了本 PR 一次性搬空这些目录。
+它们不属于新的 Datasource ownership；后续 Legacy Cleanup 再按真实调用链收口。
 
 ## Dependency Direction
 

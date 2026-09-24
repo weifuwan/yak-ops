@@ -20,7 +20,7 @@ Plugin:
 
 Frontend:
 - `yak-ops-ui/src/pages/data-source`
-- `yak-ops-ui/src/services/data-source`
+- `yak-ops-ui/src/service/datasource`
 
 Data:
 - `yak-ops-business/yak-ops-business-datasource/src/main/resources/db/migration/yak-datasource`
