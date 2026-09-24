@@ -1,12 +1,8 @@
 import { Code2, FlaskConical, ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import type {
-  DataSourceGroup,
-  DataSourceOptionItem,
-  DataSourceSummary,
-  PaginationInfo,
-} from './uiTypes';
+import type { DataSourceSummary, PaginationInfo } from "./types";
+import type { DataSourceGroup, DataSourceOptionItem } from "./presentation";
 
 interface IntlFormatter {
   formatMessage: (descriptor: { id: string }) => string;
