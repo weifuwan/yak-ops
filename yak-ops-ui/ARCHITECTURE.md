@@ -46,13 +46,14 @@ src/
 │   ├── auth/
 │   └── datasource/
 ├── shared/
-│   └── lib/
+│   ├── lib/
+│   └── ui/
 └── main.tsx
 ```
 
-当前没有 `features` 或 `shared/ui`。
+当前没有 `features`。
 
-只有一个能力出现真实独立 owner、多个调用方或稳定复用 Contract 时，才新增对应层级。不要为了目录对称提前创建。
+`shared/ui` 已作为 Yak UI 建立，用于 Button / Input / Select 等无业务语义、具有稳定交互 Contract 的 Primitive。不要因为目录对称继续预创建其它层级。
 
 ## Current Structure
 
@@ -74,7 +75,8 @@ src/
 │   ├── auth/
 │   └── datasource/
 ├── shared/
-│   └── lib/
+│   ├── lib/
+│   └── ui/
 └── main.tsx
 ```
 
@@ -193,8 +195,22 @@ shared/lib
 → 浏览器通用工具、纯函数、基础 infrastructure
 
 shared/ui
-→ 无业务语义的通用 UI primitive
+→ Yak UI，无业务语义的通用 UI Primitive
 ```
+
+Yak UI 的固定依赖方向：
+
+```text
+Page / Feature / App
+        ↓
+@/shared/ui
+        ↓
+@base-ui/react
+        ↓
+DOM
+```
+
+Base UI 只提供 Headless interaction / accessibility 能力；Yak UI 自己拥有公开 Props、Design Token 和视觉 Contract。业务层禁止直接导入 Base UI。
 
 Shared 不知道 Login、Datasource、Project、Session、Workflow 等产品语义。
 
@@ -244,6 +260,7 @@ React Router 是唯一浏览器路由 owner。
 - 第二套 HTTP Client。
 - 新的产品页面。
 - 为了目录对称创建空 Feature。
+- 独立发布的 Yak UI npm package / workspace；当前先由 `src/shared/ui` 承载。
 
 这些能力必须由真实问题驱动。
 
