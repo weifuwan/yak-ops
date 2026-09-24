@@ -46,34 +46,30 @@ yak-ops-ui/
 
 业务能力归 `app/<domain>`，后端通信与后端 Contract 归 `service/<domain>`，真正跨业务的基础能力才进入 root infrastructure。无业务语义 UI Primitive 归 `packages/yak-ui`。
 
-## Web Root Ownership
+## Domain Locality
+
+Domain 内优先局部内聚，不把概念名自动变成目录层级。
+
+Datasource 当前页面结构：
 
 ```text
-app        → Product Domain + Router + Layout
-service    → Domain API + Backend Contract + HTTP transport
-utils      → 无业务工具
-themes     → Theme Token / light / dark
-types      → 跨 Web 稳定类型
-hooks      → 跨组件 React Hook
-context    → App-wide Context
-config     → 运行配置
-constants  → 稳定常量
-assets     → 参与构建的资源
-public     → 原样静态资源
+app/datasource/
+├── index.tsx
+├── card.tsx
+├── toolbar.tsx
+├── summary.tsx
+├── empty-state.tsx
+├── constants.tsx
+├── types.ts
+├── utils.ts
+├── hooks/
+├── editor/
+├── connection/
+├── icons/
+└── i18n/
 ```
 
-禁止重新创建：
-
-```text
-apps/web/src
-apps/web/pages
-apps/web/shared
-yak-ops-ui/src
-yak-ops-ui/public
-yak-ops-ui/types
-yak-ops-ui/mock
-packages/datasource
-```
+`management / model / plugin` 已删除，因为它们只是概念分层，不是独立产品能力。
 
 ## Dependency Direction
 
@@ -106,8 +102,6 @@ service → app
 app → service/http
 ```
 
-Service 不得为了复用 TypeScript 类型反向 import App。
-
 ## Datasource Contract Ownership
 
 Datasource 后端 Contract 归：
@@ -116,17 +110,47 @@ Datasource 后端 Contract 归：
 service/datasource/types.ts
 ```
 
-`app/datasource/model/types.ts` 只作为 App 内部的 type re-export facade，真实类型 owner 仍是 Service。
-
-这样依赖方向保持：
+App 通过：
 
 ```text
-app/datasource
-      ↓
-service/datasource/types
+app/datasource/types.ts
 ```
 
-而不是形成 `app ↔ service` 环。
+消费和补充 UI-only 类型。
+
+不要重新创建 `model/types.ts` 或第二份 Contract owner。
+
+## Web Root Ownership
+
+```text
+app        → Product Domain + Router + Layout
+service    → Domain API + Backend Contract + HTTP transport
+utils      → 无业务工具
+themes     → Theme Token / light / dark
+types      → 跨 Web 稳定类型
+hooks      → 跨组件 React Hook
+context    → App-wide Context
+config     → 运行配置
+constants  → 稳定常量
+assets     → 参与构建的资源
+public     → 原样静态资源
+```
+
+禁止重新创建：
+
+```text
+apps/web/src
+apps/web/pages
+apps/web/shared
+yak-ops-ui/src
+yak-ops-ui/public
+yak-ops-ui/types
+yak-ops-ui/mock
+packages/datasource
+app/datasource/management
+app/datasource/model
+app/datasource/plugin
+```
 
 ## Service Boundary
 
@@ -165,22 +189,11 @@ Workspace root 不拥有运行时 dependencies；运行时依赖由 `apps/web` /
 
 ## Architecture Enforcement
 
-架构不只靠文档约定。
-
 ```bash
 npm run architecture:check
 ```
 
 由 `scripts/check-architecture.mjs` 检查稳定 invariant。
-
-`npm run check` 固定顺序：
-
-```text
-architecture
-→ typecheck
-→ lint
-→ format
-```
 
 架构变化必须同时更新：
 
