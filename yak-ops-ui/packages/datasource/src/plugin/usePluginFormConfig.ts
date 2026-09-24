@@ -2,7 +2,7 @@ import {
   getDataSourcePluginConfig,
   installDataSourcePlugin,
 } from '../api';
-import type { FormInstance } from 'antd';
+import type { DataSourceFormInstance } from '../editor/formRuntime';
 import {
   useCallback,
   useEffect,
@@ -35,7 +35,7 @@ const errorMessage = (error: unknown, fallback: string) =>
 /** 数据源插件配置统一生命周期。 */
 export function usePluginFormConfig(params: {
   dbType: string;
-  configForm: FormInstance;
+  configForm: DataSourceFormInstance;
   initialConfig?: Record<string, unknown>;
   /** 主编辑器切换数据源类型时需要清空旧配置。 */
   resetOnLoad?: boolean;
