@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.dao.impl;
 
+import jakarta.annotation.Resource;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -13,17 +14,17 @@ import io.yak.ops.business.datasource.dao.model.SqlExecutionAuditSummaryRow;
 import io.yak.ops.business.datasource.dao.model.SqlStatementExecutionAuditPO;
 import io.yak.ops.business.datasource.dao.model.SqlStatementTypeCountRow;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 /** MyBatis-Plus implementation of the SQL execution audit DAO. */
 @Repository
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class SqlExecutionAuditDaoImpl implements SqlExecutionAuditDao {
 
-    private final SqlExecutionAuditMapper executionMapper;
-    private final SqlStatementExecutionAuditMapper statementMapper;
+    @Resource
+    private SqlExecutionAuditMapper executionMapper;
+    @Resource
+    private SqlStatementExecutionAuditMapper statementMapper;
 
     @Override
     public void insertExecution(SqlExecutionAuditPO execution) {
