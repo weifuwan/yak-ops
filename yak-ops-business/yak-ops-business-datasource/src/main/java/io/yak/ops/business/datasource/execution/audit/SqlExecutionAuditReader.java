@@ -16,7 +16,12 @@ import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
-/** SQL execution observability read-side role. */
+/**
+ * 读取 SQL execution 审计数据，并将 DAO 持久化结果转换为业务查询模型。
+ *
+ * @author weifuwan
+ * @since 2026-08-24
+ */
 @Component
 @ConditionalOnDataSourceEnabled
 public class SqlExecutionAuditReader {
