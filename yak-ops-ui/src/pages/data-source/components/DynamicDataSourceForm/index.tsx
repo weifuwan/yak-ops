@@ -211,7 +211,6 @@ const DynamicDataSourceForm = ({
       default:
         return (
           <Input
-            variant="filled"
             placeholder={field.placeholder}
             onChange={() => validateField(field.key)}
           />
@@ -464,7 +463,6 @@ const DynamicDataSourceForm = ({
               ]}
             >
               <Input
-                variant="filled"
                 maxLength={128}
                 placeholder={intl.formatMessage({
                   id: 'pages.datasource.form.dsNamePlaceholder',
