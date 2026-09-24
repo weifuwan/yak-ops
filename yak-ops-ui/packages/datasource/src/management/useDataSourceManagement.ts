@@ -17,7 +17,7 @@ import {
   PAGE_DEFAULT_PAGINATION,
 } from '../model/constants';
 import type { DataSourcePermissions, DataSourceViewMode } from '../model/uiTypes';
-import { dataSourceRecordKey } from '../types';
+import { dataSourceRecordKey } from '../model/uiTypes';
 
 const DATA_SOURCE_PERMISSIONS: DataSourcePermissions = {
   canCreate: true,
