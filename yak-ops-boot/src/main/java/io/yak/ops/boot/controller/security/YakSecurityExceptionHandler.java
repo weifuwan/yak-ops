@@ -1,11 +1,13 @@
-package io.yak.framework.security.web;
+package io.yak.ops.boot.controller.security;
 
 import io.yak.framework.common.ErrorCode;
 import io.yak.framework.common.Result;
+import io.yak.ops.boot.controller.security.v1.LoginController;
 import io.yak.framework.security.common.enums.ResultCode;
 import io.yak.framework.security.exception.YakSecurityException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -19,7 +21,12 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 /**
  * Yak Security Web 接口的统一异常与 HTTP 状态映射。
  */
-@RestControllerAdvice(basePackages = "io.yak.framework.security.controller")
+@ConditionalOnProperty(
+    prefix = "yak.security",
+    name = {"database-enabled", "web-enabled"},
+    havingValue = "true",
+    matchIfMissing = true)
+@RestControllerAdvice(basePackageClasses = LoginController.class)
 public class YakSecurityExceptionHandler {
 
     private static final Logger LOGGER =

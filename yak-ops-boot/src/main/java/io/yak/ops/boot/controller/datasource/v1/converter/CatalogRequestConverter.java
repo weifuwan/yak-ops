@@ -1,4 +1,4 @@
-package io.yak.ops.business.datasource.controller.v1.converter;
+package io.yak.ops.boot.controller.datasource.v1.converter;
 
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.domain.catalog.CatalogReadRequest;

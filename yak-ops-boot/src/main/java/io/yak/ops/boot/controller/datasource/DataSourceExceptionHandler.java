@@ -1,10 +1,12 @@
-package io.yak.ops.business.datasource.exception;
+package io.yak.ops.boot.controller.datasource;
 
 import io.yak.framework.common.ErrorCode;
 import io.yak.framework.common.Result;
 import io.yak.framework.security.common.enums.ResultCode;
 import io.yak.framework.security.exception.YakSecurityException;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
+import io.yak.ops.business.datasource.exception.DataSourceException;
+import io.yak.ops.boot.controller.datasource.v1.DataSourceController;
 import io.yak.ops.business.datasource.security.SensitiveTextMasker;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +26,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /** 数据源管理接口异常转换。 */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(basePackages = "io.yak.ops.business.datasource.controller")
+@RestControllerAdvice(basePackageClasses = DataSourceController.class)
 @ConditionalOnDataSourceEnabled
 @RequiredArgsConstructor
 public class DataSourceExceptionHandler {
