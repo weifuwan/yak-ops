@@ -1,13 +1,14 @@
+import type { Field as BaseFieldNS } from "@base-ui/react/field";
 import { Field as BaseField } from "@base-ui/react/field";
 
 import { cn } from "../cn";
 
-export type FieldProps = Omit<BaseField.Root.Props, "className"> & { className?: string };
+export type FieldProps = Omit<BaseFieldNS.Root.Props, "className"> & { className?: string };
 export function Field({ className, ...props }: FieldProps) {
   return <BaseField.Root className={cn("grid min-w-0 gap-1.5", className)} {...props} />;
 }
 
-export type FieldLabelProps = Omit<BaseField.Label.Props, "className"> & { className?: string };
+export type FieldLabelProps = Omit<BaseFieldNS.Label.Props, "className"> & { className?: string };
 export function FieldLabel({ className, ...props }: FieldLabelProps) {
   return (
     <BaseField.Label
@@ -17,7 +18,7 @@ export function FieldLabel({ className, ...props }: FieldLabelProps) {
   );
 }
 
-export type FieldDescriptionProps = Omit<BaseField.Description.Props, "className"> & { className?: string };
+export type FieldDescriptionProps = Omit<BaseFieldNS.Description.Props, "className"> & { className?: string };
 export function FieldDescription({ className, ...props }: FieldDescriptionProps) {
   return (
     <BaseField.Description
@@ -27,7 +28,7 @@ export function FieldDescription({ className, ...props }: FieldDescriptionProps)
   );
 }
 
-export type FieldErrorProps = Omit<BaseField.Error.Props, "className"> & { className?: string };
+export type FieldErrorProps = Omit<BaseFieldNS.Error.Props, "className"> & { className?: string };
 export function FieldError({ className, ...props }: FieldErrorProps) {
   return (
     <BaseField.Error
@@ -38,4 +39,4 @@ export function FieldError({ className, ...props }: FieldErrorProps) {
 }
 
 export const FieldValidity = BaseField.Validity;
-export type FieldValidityProps = BaseField.Validity.Props;
+export type FieldValidityProps = BaseFieldNS.Validity.Props;
