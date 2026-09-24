@@ -1,15 +1,15 @@
-package io.yak.framework.security.service;
+package io.yak.ops.security.service;
 
 import io.yak.ops.common.PagingData;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.dto.security.user.UserDTO;
 import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
-import io.yak.framework.security.common.entity.user.User;
+import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.bean.vo.security.user.UserVO;
 import java.util.List;
 
-/** User management capability used by the current user/login HTTP APIs. */
+/** UserAccount management capability used by the current user/login HTTP APIs. */
 public interface UserService {
 
   Result<Void> check(Integer checkType, String checkValue);
@@ -22,7 +22,7 @@ public interface UserService {
 
   UserBriefVO getUserBriefByUsername(String username);
 
-  User getUserByUsername(String username);
+  UserAccount getUserByUsername(String username);
 
   List<UserBriefVO> getUserBriefListByUserIds(List<Long> userIds);
 

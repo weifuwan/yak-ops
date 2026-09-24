@@ -1,4 +1,4 @@
-package io.yak.framework.security.util;
+package io.yak.ops.security.util;
 
 import java.util.regex.Pattern;
 

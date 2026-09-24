@@ -1,4 +1,4 @@
-package io.yak.framework.security.util;
+package io.yak.ops.security.util;
 
 /**
  * 数据库数字类型转换工具。

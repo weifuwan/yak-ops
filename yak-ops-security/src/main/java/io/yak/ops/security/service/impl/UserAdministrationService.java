@@ -1,8 +1,8 @@
-package io.yak.framework.security.service.impl;
+package io.yak.ops.security.service.impl;
 
-import io.yak.framework.security.authentication.AuthenticationManager;
-import io.yak.framework.security.exception.YakSecurityException;
-import io.yak.framework.security.extend.PasswordEncoder;
+import io.yak.ops.security.authentication.AuthenticationManager;
+import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.dao.entity.security.UserEntity;
@@ -11,11 +11,17 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /** User administration operations that require focused persistence updates. */
+@ConditionalOnProperty(
+    prefix = "yak.security",
+    name = {"enabled", "database-enabled"},
+    havingValue = "true",
+    matchIfMissing = true)
 @Service
 public class UserAdministrationService {
 

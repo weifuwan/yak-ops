@@ -1,13 +1,13 @@
-package io.yak.framework.security.service.impl;
+package io.yak.ops.security.service.impl;
 
 import io.yak.ops.common.PageData;
 import io.yak.ops.common.PagingData;
 import io.yak.ops.common.Result;
-import io.yak.framework.security.common.entity.user.User;
-import io.yak.framework.security.exception.YakSecurityException;
-import io.yak.framework.security.extend.PasswordEncoder;
-import io.yak.framework.security.service.UserService;
-import io.yak.framework.security.util.CopyBeanUtil;
+import io.yak.ops.security.model.UserAccount;
+import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.security.extend.PasswordEncoder;
+import io.yak.ops.security.service.UserService;
+import io.yak.ops.security.util.CopyBeanUtil;
 import io.yak.ops.common.bean.dto.security.user.UserDTO;
 import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
@@ -22,11 +22,17 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-/** User-only service implementation. */
+/** UserAccount-only service implementation. */
+@ConditionalOnProperty(
+    prefix = "yak.security",
+    name = {"enabled", "database-enabled"},
+    havingValue = "true",
+    matchIfMissing = true)
 @Service("yakSecurityUserServiceImpl")
 public class UserServiceImpl implements UserService {
 
@@ -71,7 +77,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public UserVO getUserDetailByUserId(Long userId) {
-    User user = requireUser(userId);
+    UserAccount user = requireUser(userId);
     UserVO result = CopyBeanUtil.copy(user, UserVO.class);
     privacyProcessing(result);
     return result;
@@ -91,7 +97,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public User getUserByUsername(String username) {
+  public UserAccount getUserByUsername(String username) {
     return toUser(userRepository.queryByUsername(username).orElse(null));
   }
 
@@ -146,7 +152,7 @@ public class UserServiceImpl implements UserService {
     Result<Void> checkResult = checkUserParam(userDTO, false);
     if (checkResult.failed()) return checkResult;
 
-    User current = getUserByUsername(userDTO.getUserName());
+    UserAccount current = getUserByUsername(userDTO.getUserName());
     if (current == null) return Result.fail(ResultCode.USER_ACCOUNT_NOT_EXIST);
 
     Result<Void> uniqueResult = userPhoneCheck(userDTO.getPhone(), current.getId());
@@ -181,15 +187,15 @@ public class UserServiceImpl implements UserService {
     return Result.success(users);
   }
 
-  private User requireUser(Long userId) {
+  private UserAccount requireUser(Long userId) {
     if (userId == null) throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
-    User user = toUser(userRepository.queryById(userId).orElse(null));
+    UserAccount user = toUser(userRepository.queryById(userId).orElse(null));
     if (user == null) throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
     return user;
   }
 
-  private User toUser(UserEntity source) {
-    return CopyBeanUtil.copy(source, User.class);
+  private UserAccount toUser(UserEntity source) {
+    return CopyBeanUtil.copy(source, UserAccount.class);
   }
 
   private UserEntity toUserEntity(UserDTO source) {

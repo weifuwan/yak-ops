@@ -1,4 +1,4 @@
-package io.yak.framework.security.util;
+package io.yak.ops.security.util;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;

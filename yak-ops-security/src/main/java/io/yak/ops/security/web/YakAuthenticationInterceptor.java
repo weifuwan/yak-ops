@@ -1,7 +1,7 @@
-package io.yak.framework.security.web;
+package io.yak.ops.security.web;
 
-import io.yak.framework.security.config.YakSecurityProperties;
-import io.yak.framework.security.service.LoginService;
+import io.yak.ops.security.config.YakSecurityProperties;
+import io.yak.ops.security.service.LoginService;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

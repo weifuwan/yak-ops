@@ -1,4 +1,4 @@
-package io.yak.framework.security.util;
+package io.yak.ops.security.util;
 
 import java.util.Collections;
 import java.util.HashSet;

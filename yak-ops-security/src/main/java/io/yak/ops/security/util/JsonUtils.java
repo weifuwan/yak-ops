@@ -1,4 +1,4 @@
-package io.yak.framework.security.util;
+package io.yak.ops.security.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;

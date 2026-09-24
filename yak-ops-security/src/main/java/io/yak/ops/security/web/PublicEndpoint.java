@@ -1,4 +1,4 @@
-package io.yak.framework.security.web;
+package io.yak.ops.security.web;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
