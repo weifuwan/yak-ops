@@ -52,6 +52,13 @@ yak-ops-ui/
 │   │   ├── DATASOURCE_UI_RULES.md
 │   │   ├── package.json
 │   │   └── src/
+│   │       ├── api/
+│   │       ├── connection/
+│   │       ├── editor/
+│   │       ├── i18n/
+│   │       ├── management/
+│   │       ├── model/
+│   │       ├── plugin/
 │   │       └── index.tsx
 │   └── yak-ui/
 │       ├── UI_RULES.md
@@ -72,27 +79,20 @@ yak-ops-ui/
 
 ## Migration Bridge
 
-PR1 只迁移 ownership，不改变 Datasource 用户行为。
+Datasource 产品代码已全部进入 `packages/datasource`。
 
-因此 `src/**` 暂时保留以下旧实现：
+`src/**` 当前只保留少量跨阶段 infrastructure / binary asset：
 
 ```text
-src/pages/data-source
-src/service/datasource
 src/service/http
 src/shared/lib
-src/shared/ui/index.ts
 src/pages/login/assets
 src/app/styles/fonts
 ```
 
-其中：
+`src/pages/data-source`、`src/service/datasource`、`src/shared/ui` 已删除，禁止重新创建。
 
-- `packages/datasource/src/index.tsx` 是 App 唯一 Datasource 入口，暂时桥接 `src/pages/data-source`。
-- `src/shared/ui/index.ts` 是旧 Datasource 的兼容入口，只 re-export `packages/yak-ui`。
-- Login 视频与字体二进制暂留旧路径，App 通过静态 import 使用。
-
-这些是 migration bridge，不是长期 owner。后续 PR 必须逐步删除，而不是继续往 `src/**` 增加新业务代码。
+HTTP transport 是否独立成 package，由后续真实跨 package owner 决定；不要为了目录对称提前拆。
 
 ## Dependency Direction
 
@@ -118,7 +118,7 @@ packages/datasource ✕→ apps/web
 packages/datasource ✕→ Router / AppLayout / AuthProvider
 ```
 
-Migration bridge 中旧 Datasource 仍依赖 `src/service/**` 与 `src/shared/**`，只允许在迁移期间存在。
+Datasource API 当前只依赖 `src/service/http` 这一条 infrastructure bridge；Datasource 业务实现不再依赖旧 Page / Service 目录。
 
 ## apps/web
 
@@ -148,7 +148,7 @@ App 禁止直接 import `src/pages/data-source`。
 
 `packages/datasource` 是 Datasource 前端唯一产品 owner。
 
-PR1 只建立 public package boundary；后续重构目标为：
+当前结构为：
 
 ```text
 packages/datasource/src/
@@ -239,11 +239,16 @@ PR1 不切换 pnpm / yarn，避免把 package-manager migration 与 architecture
 
 PR1 已完成 Workspace / ownership 建立。
 
-PR2 补齐 Yak UI AntD replacement set，但仍不迁移 Datasource 业务实现，也不删除 AntD dependency。
+PR2 已补齐 Yak UI AntD replacement set。
 
-后续阶段负责：
+PR3 已完成 Datasource package capability 重构：
 
-- Datasource 内部 capability 重构。
+```text
+management / editor / connection / plugin / model / api
+```
+
+下一阶段负责：
+
 - 使用 Yak UI replacement set 迁移存量 AntD 组件。
 - 删除 Ant Design / @ant-design/icons / legacy less overrides。
 
