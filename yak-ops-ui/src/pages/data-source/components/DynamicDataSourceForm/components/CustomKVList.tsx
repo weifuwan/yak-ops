@@ -1,6 +1,6 @@
-import YakButton from '@/pages/data-source/components/ui/YakButton';
+import { Button, Input } from '@/shared/ui';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { Form, Input } from 'antd';
+import { Form } from 'antd';
 import type { Rule } from 'antd/es/form';
 
 const CustomKVList = ({ intl, field }: any) => {
@@ -93,7 +93,6 @@ const CustomKVList = ({ intl, field }: any) => {
                         className="!mb-0"
                       >
                         <Input
-                          variant="filled"
                           placeholder={intl.formatMessage({
                             id: 'pages.datasource.customKv.keyPlaceholder',
                           })}
@@ -107,24 +106,23 @@ const CustomKVList = ({ intl, field }: any) => {
                         className="!mb-0"
                       >
                         <Input
-                          variant="filled"
                           placeholder={intl.formatMessage({
                             id: 'pages.datasource.customKv.valuePlaceholder',
                           })}
                         />
                       </Form.Item>
 
-                      <YakButton
-                        type="text"
+                      <Button
+                        variant="danger"
                         size="small"
-                        danger
-                        iconOnly
-                        icon={<DeleteOutlined />}
+                        className="h-7 w-7 p-0"
                         aria-label={intl.formatMessage({
                           id: 'pages.datasource.customKv.deleteAria',
                         })}
                         onClick={() => remove(name)}
-                      />
+                      >
+                        <DeleteOutlined />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -135,20 +133,20 @@ const CustomKVList = ({ intl, field }: any) => {
               )}
 
               <div className="flex justify-end border-t border-[#eef0f3] bg-[#fcfcfd] px-3 py-2">
-                <YakButton
-                  type="text"
+                <Button
+                  variant="ghost"
                   size="small"
-                  icon={<PlusOutlined />}
                   disabled={!canAdd}
                   onClick={() => add({ key: '', value: '' })}
                 >
+                  <PlusOutlined />
                   {canAdd
                     ? intl.formatMessage({ id: 'pages.datasource.customKv.add' })
                     : intl.formatMessage(
                         { id: 'pages.datasource.customKv.maxRows' },
                         { maxRows },
                       )}
-                </YakButton>
+                </Button>
               </div>
             </div>
           );

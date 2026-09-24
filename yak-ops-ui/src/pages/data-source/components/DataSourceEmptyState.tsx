@@ -1,4 +1,4 @@
-import { YakButton } from '@/pages/data-source/components/ui';
+import { Button } from '@/shared/ui';
 import { useIntl } from '@/pages/data-source/i18n';
 
 const DataSourceEmptyIllustration = () => (
@@ -130,13 +130,13 @@ const DataSourceEmptyState = ({
         </h3>
         <div className="mt-3.5">
           {filtered ? (
-            <YakButton size="small" onClick={onReset}>
+            <Button size="small" onClick={onReset}>
               {intl.formatMessage({ id: 'pages.datasource.empty.reset' })}
-            </YakButton>
+            </Button>
           ) : canCreate ? (
-            <YakButton type="primary" size="small" onClick={onCreate}>
+            <Button variant="primary" size="small" onClick={onCreate}>
               {intl.formatMessage({ id: 'pages.datasource.empty.create' })}
-            </YakButton>
+            </Button>
           ) : null}
         </div>
       </div>

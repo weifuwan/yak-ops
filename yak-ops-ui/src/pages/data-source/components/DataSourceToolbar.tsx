@@ -1,4 +1,5 @@
-import { YakButton, YakTab } from '@/pages/data-source/components/ui';
+import { YakTab } from '@/pages/data-source/components/ui';
+import { Button } from '@/shared/ui';
 import { useIntl } from '@/pages/data-source/i18n';
 import { Input, Select } from 'antd';
 import { motion } from 'framer-motion';
@@ -189,44 +190,48 @@ const DataSourceToolbar = ({
         />
 
         {hasActiveFilters ? (
-          <YakButton
-            type="text"
+          <Button
+            variant="ghost"
             size="small"
-            className="!h-9 !rounded-[9px] !px-2.5 !text-[12px] !text-[#777c86]"
+            className="h-9 px-2.5 text-[12px] text-[#777c86]"
             onClick={onReset}
           >
             {intl.formatMessage({ id: 'pages.datasource.toolbar.reset' })}
-          </YakButton>
+          </Button>
         ) : null}
 
         <div className="flex h-9 items-center gap-0.5 rounded-[10px] bg-[#f4f5f7] p-[3px]">
-          <YakButton
-            type="text"
-            iconOnly
+          <Button
+            variant="ghost"
+            size="small"
             title={intl.formatMessage({ id: 'pages.datasource.toolbar.gridView' })}
+            aria-label={intl.formatMessage({ id: 'pages.datasource.toolbar.gridView' })}
             className={[
-              '!h-[30px] !w-[30px] !rounded-[7px] !border-0 !p-0',
+              'h-[30px] w-[30px] rounded-[7px] border-0 p-0',
               viewMode === 'grid'
-                ? '!bg-white !text-[#2d313a] !shadow-[0_1px_4px_rgba(31,35,41,0.10)]'
-                : '!bg-transparent !text-[#92969f] hover:!text-[#555b66]',
+                ? 'bg-white text-[#2d313a] shadow-[0_1px_4px_rgba(31,35,41,0.10)]'
+                : 'bg-transparent text-[#92969f] hover:text-[#555b66]',
             ].join(' ')}
-            icon={<Grid2X2 size={15} strokeWidth={1.8} />}
             onClick={() => onViewModeChange('grid')}
-          />
+          >
+            <Grid2X2 size={15} strokeWidth={1.8} />
+          </Button>
 
-          <YakButton
-            type="text"
-            iconOnly
+          <Button
+            variant="ghost"
+            size="small"
             title={intl.formatMessage({ id: 'pages.datasource.toolbar.listView' })}
+            aria-label={intl.formatMessage({ id: 'pages.datasource.toolbar.listView' })}
             className={[
-              '!h-[30px] !w-[30px] !rounded-[7px] !border-0 !p-0',
+              'h-[30px] w-[30px] rounded-[7px] border-0 p-0',
               viewMode === 'list'
-                ? '!bg-white !text-[#2d313a] !shadow-[0_1px_4px_rgba(31,35,41,0.10)]'
-                : '!bg-transparent !text-[#92969f] hover:!text-[#555b66]',
+                ? 'bg-white text-[#2d313a] shadow-[0_1px_4px_rgba(31,35,41,0.10)]'
+                : 'bg-transparent text-[#92969f] hover:text-[#555b66]',
             ].join(' ')}
-            icon={<LayoutList size={16} strokeWidth={1.8} />}
             onClick={() => onViewModeChange('list')}
-          />
+          >
+            <LayoutList size={16} strokeWidth={1.8} />
+          </Button>
         </div>
       </div>
     </motion.section>

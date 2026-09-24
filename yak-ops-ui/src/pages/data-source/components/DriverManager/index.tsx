@@ -1,9 +1,10 @@
-import { YakButton } from '@/pages/data-source/components/ui';
+import { Button, Input } from '@/shared/ui';
 import { uploadDataSourceDriver } from '@/service/datasource';
 import { UploadOutlined } from '@ant-design/icons';
 import { useIntl } from '@/pages/data-source/i18n';
-import { Input, message, Upload } from 'antd';
+import { message, Upload } from 'antd';
 import type { UploadProps } from 'antd';
+import { X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 const DEFAULT_MAX_SIZE_MB = 200;
@@ -91,24 +92,37 @@ const DriverManager = ({
   return (
     <div className="w-full">
       <div className="flex w-full items-center gap-2">
-        <Input
-          variant="filled"
-          value={value}
-          disabled={disabled}
-          allowClear
-          placeholder={inputPlaceholder}
-          onChange={(event) => onChange?.(event.target.value)}
-        />
+        <div className="relative min-w-0 flex-1">
+          <Input
+            value={value}
+            disabled={disabled}
+            placeholder={inputPlaceholder}
+            className={value && !disabled ? "pr-9" : undefined}
+            onChange={(event) => onChange?.(event.target.value)}
+          />
+          {value && !disabled ? (
+            <Button
+              variant="ghost"
+              size="small"
+              type="button"
+              aria-label={intl.formatMessage({ id: 'pages.datasource.driver.clear' })}
+              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0 text-[#98a2b3]"
+              onClick={() => onChange?.('')}
+            >
+              <X size={13} strokeWidth={1.8} />
+            </Button>
+          ) : null}
+        </div>
 
         <Upload {...uploadProps}>
-          <YakButton
+          <Button
             className="shrink-0"
-            icon={<UploadOutlined />}
             loading={uploading}
             disabled={disabled}
           >
+            <UploadOutlined />
             {intl.formatMessage({ id: 'pages.datasource.driver.upload' })}
-          </YakButton>
+          </Button>
         </Upload>
       </div>
 

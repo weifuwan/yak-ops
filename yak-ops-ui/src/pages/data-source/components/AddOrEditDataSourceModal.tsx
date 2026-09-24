@@ -1,4 +1,4 @@
-import { YakButton } from '@/pages/data-source/components/ui';
+import { Button } from '@/shared/ui';
 import {
   createDataSource,
   testDataSourceConnectionWithParams,
@@ -199,9 +199,9 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
     if (!showFormStep) {
       return (
         <div className="flex justify-end">
-          <YakButton type="text" disabled={busy} onClick={handleClose}>
+          <Button variant="ghost" disabled={busy} onClick={handleClose}>
             {intl.formatMessage({ id: 'pages.datasource.modal.button.cancel' })}
-          </YakButton>
+          </Button>
         </div>
       );
     }
@@ -210,27 +210,27 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
       <div className="flex items-center justify-between gap-3">
         <div>
           {isCreateMode && !hideBackButton ? (
-            <YakButton disabled={busy} onClick={handleBackToTypeSelection}>
+            <Button disabled={busy} onClick={handleBackToTypeSelection}>
               {intl.formatMessage({ id: 'pages.datasource.modal.button.lastStep' })}
-            </YakButton>
+            </Button>
           ) : (
-            <YakButton disabled={busy} onClick={handleClose}>
+            <Button disabled={busy} onClick={handleClose}>
               {intl.formatMessage({ id: 'pages.datasource.modal.button.cancel' })}
-            </YakButton>
+            </Button>
           )}
         </div>
 
         <div className="flex items-center gap-2">
-          <YakButton
+          <Button
             loading={testing}
             disabled={submitting}
             onClick={() => void handleTestConnection()}
           >
             {intl.formatMessage({ id: 'pages.datasource.modal.button.connTest' })}
-          </YakButton>
+          </Button>
 
-          <YakButton
-            type="primary"
+          <Button
+            variant="primary"
             loading={submitting}
             disabled={testing}
             onClick={() => void handleSubmit()}
@@ -240,7 +240,7 @@ const AddOrEditDataSourceModal = forwardRef<DataSourceModalRef>((_, ref) => {
                 ? 'pages.datasource.modal.button.create'
                 : 'pages.datasource.modal.button.save',
             })}
-          </YakButton>
+          </Button>
         </div>
       </div>
     );

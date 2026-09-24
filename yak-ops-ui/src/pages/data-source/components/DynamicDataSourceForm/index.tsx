@@ -1,10 +1,10 @@
-import YakButton from '@/pages/data-source/components/ui/YakButton';
+import { Button, Input } from '@/shared/ui';
 import { InfoCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useIntl } from '@/pages/data-source/i18n';
 import {
   Collapse,
   Form,
-  Input,
+  Input as AntInput,
   InputNumber,
   message,
   Select,
@@ -173,7 +173,7 @@ const DynamicDataSourceForm = ({
         );
       case 'PASSWORD':
         return (
-          <Input.Password
+          <AntInput.Password
             variant="filled"
             placeholder={field.placeholder}
             onChange={() => validateField(field.key)}
@@ -201,7 +201,7 @@ const DynamicDataSourceForm = ({
         return <Switch onChange={() => validateField(field.key)} />;
       case 'TEXTAREA':
         return (
-          <Input.TextArea
+          <AntInput.TextArea
             variant="filled"
             rows={2}
             placeholder={field.placeholder}
@@ -211,7 +211,6 @@ const DynamicDataSourceForm = ({
       default:
         return (
           <Input
-            variant="filled"
             placeholder={field.placeholder}
             onChange={() => validateField(field.key)}
           />
@@ -395,9 +394,9 @@ const DynamicDataSourceForm = ({
                 })}
             </div>
           </div>
-          <YakButton
+          <Button
             size="small"
-            type="text"
+            variant="ghost"
             className="shrink-0"
             onClick={() => {
               if (installRequired) {
@@ -423,7 +422,7 @@ const DynamicDataSourceForm = ({
               })}
               <DatabaseIcons dbType={dbType} height="15" width="15" />
             </span>
-          </YakButton>
+          </Button>
         </div>
       </div>
     );
@@ -464,7 +463,6 @@ const DynamicDataSourceForm = ({
               ]}
             >
               <Input
-                variant="filled"
                 maxLength={128}
                 placeholder={intl.formatMessage({
                   id: 'pages.datasource.form.dsNamePlaceholder',
@@ -521,7 +519,7 @@ const DynamicDataSourceForm = ({
               },
             ]}
           >
-            <Input.TextArea
+            <AntInput.TextArea
               variant="filled"
               maxLength={500}
               rows={2}

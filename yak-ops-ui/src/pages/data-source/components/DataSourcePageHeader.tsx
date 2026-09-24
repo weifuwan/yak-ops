@@ -1,6 +1,6 @@
-import { YakButton } from '@/pages/data-source/components/ui';
+import { Button } from '@/shared/ui';
 import { useIntl } from '@/pages/data-source/i18n';
-import { Database, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface DataSourcePageHeaderProps {
   canCreate: boolean;
@@ -22,14 +22,10 @@ const DataSourcePageHeader = ({
       </div>
 
       {canCreate ? (
-        <YakButton
-          type="primary"
-          icon={<Plus size={16} strokeWidth={2.1} />}
-          className="!h-9 !shrink-0 !rounded-[10px] !px-4 !text-[13px]"
-          onClick={onCreate}
-        >
+        <Button variant="primary" className="shrink-0" onClick={onCreate}>
+          <Plus size={16} strokeWidth={2.1} />
           {intl.formatMessage({ id: 'pages.datasource.page.create' })}
-        </YakButton>
+        </Button>
       ) : null}
     </header>
   );

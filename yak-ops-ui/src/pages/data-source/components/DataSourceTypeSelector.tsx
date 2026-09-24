@@ -1,7 +1,17 @@
-import { YakButton } from '@/pages/data-source/components/ui';
-import { SearchOutlined } from '@ant-design/icons';
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui';
 import { useIntl } from '@/pages/data-source/i18n';
-import { Empty, Input, Select } from 'antd';
+import { Empty } from 'antd';
+import { Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { COMMON_DB_OPTIONS } from '../constants';
@@ -105,11 +115,11 @@ const DataSourceTypeSelector = ({
   );
 
   const renderSourceItem = (item: (typeof filteredDataSources)[number]) => (
-    <YakButton
+    <Button
       key={[item.groupKey, item.dbType, item.connectorType || item.type || ''].join(
         '-',
       )}
-      htmlType="button"
+      type="button"
       disabled={item.disabled}
       className="!h-auto !min-h-[46px] !min-w-0 !justify-start !px-3 !py-2 !text-left"
       onClick={() => onSelect(item.dbType)}
@@ -123,7 +133,7 @@ const DataSourceTypeSelector = ({
       >
         {item.dbType}
       </span>
-    </YakButton>
+    </Button>
   );
 
   return (
@@ -134,28 +144,57 @@ const DataSourceTypeSelector = ({
         </div>
 
         <div className="flex gap-2">
-          <Input
-            allowClear
-            variant="filled"
-            prefix={<SearchOutlined className="text-[#98A2B3]" />}
-            placeholder={intl.formatMessage({
-              id: 'pages.datasource.typeSelector.searchPlaceholder',
-            })}
-            value={query}
-            className="!h-9 !min-w-0 !flex-1 !rounded-lg"
-            onChange={(event) => setQuery(event.target.value)}
-          />
+          <div className="relative min-w-0 flex-1">
+            <Search
+              aria-hidden="true"
+              size={14}
+              strokeWidth={1.8}
+              className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[#98A2B3]"
+            />
+            <Input
+              placeholder={intl.formatMessage({
+                id: 'pages.datasource.typeSelector.searchPlaceholder',
+              })}
+              value={query}
+              className="pl-9 pr-9"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            {query ? (
+              <Button
+                variant="ghost"
+                size="small"
+                type="button"
+                aria-label={intl.formatMessage({ id: 'pages.datasource.typeSelector.clearSearch' })}
+                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0 text-[#98A2B3]"
+                onClick={() => setQuery('')}
+              >
+                <X size={13} strokeWidth={1.8} />
+              </Button>
+            ) : null}
+          </div>
 
           <Select
-            variant="filled"
             value={selectedGroupKey || 'ALL'}
-            options={categoryOptions}
-            className="!h-9 !w-[150px] shrink-0"
-            popupMatchSelectWidth={false}
-            onChange={(value) =>
+            onValueChange={(value) =>
               setSelectedGroupKey(value === 'ALL' ? null : value)
             }
-          />
+          >
+            <SelectTrigger className="w-[150px] shrink-0">
+              <SelectValue
+                placeholder={intl.formatMessage({
+                  id: 'pages.datasource.typeSelector.allCategories',
+                })}
+              />
+            </SelectTrigger>
+            <SelectContent className="min-w-[180px]">
+              {categoryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <SelectItemText>{option.label}</SelectItemText>
+                  <SelectItemIndicator />
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -166,9 +205,9 @@ const DataSourceTypeSelector = ({
           </div>
           <div className="grid grid-cols-3 gap-2">
             {suggestedDataSources.map((item) => (
-              <YakButton
+              <Button
                 key={item.dbType}
-                htmlType="button"
+                type="button"
                 className="!h-auto !min-w-0 !justify-start !px-2.5 !py-2 !text-left"
                 onClick={() => onSelect(item.dbType)}
               >
@@ -182,7 +221,7 @@ const DataSourceTypeSelector = ({
                 <span className="min-w-0 flex-1 truncate text-xs font-medium">
                   {item.label}
                 </span>
-              </YakButton>
+              </Button>
             ))}
           </div>
         </section>

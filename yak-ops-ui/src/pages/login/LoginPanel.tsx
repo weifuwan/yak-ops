@@ -1,6 +1,5 @@
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import {
-  Button,
   Form,
   Input,
   Popover,
@@ -11,6 +10,7 @@ import { useState } from "react";
 
 import { login } from "@/service/auth";
 import { notifyOnce } from "@/shared/lib/notification";
+import { Button } from "@/shared/ui";
 
 const WECHAT_QR_CODE_SRC = "/wechat_qr.png";
 const FORM_ITEM_CLASS_NAME =
@@ -201,11 +201,11 @@ export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
         </Form.Item>
 
         <Button
-          block
-          type="primary"
-          htmlType="submit"
+          variant="primary"
+          size="large"
+          type="submit"
           loading={loading}
-          className="!h-11 !cursor-pointer !rounded-full !border-[#171717] !bg-[#171717] !font-medium !text-white !shadow-none hover:!border-[#292929] hover:!bg-[#292929]"
+          className="w-full rounded-full"
         >
           Log in
         </Button>
