@@ -12,7 +12,6 @@ import io.yak.ops.common.bean.vo.observability.SqlExecutionAuditDetailVO;
 import io.yak.ops.common.bean.vo.observability.SqlExecutionAuditSummaryVO;
 import io.yak.ops.common.bean.vo.observability.SqlExecutionAuditVO;
 import io.yak.ops.common.constant.observability.SqlExecutionAuditConstants;
-import io.yak.ops.security.web.RequiresPermission;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnDataSourceEnabled
 @RequiredArgsConstructor
 @RequestMapping(SqlExecutionAuditConstants.API_PREFIX)
-@RequiresPermission(SqlExecutionAuditConstants.READ_PERMISSION)
 public class SqlExecutionAuditController {
     private final SqlExecutionAuditReader auditReader;
     private final SqlExecutionAuditConverter auditConverter;

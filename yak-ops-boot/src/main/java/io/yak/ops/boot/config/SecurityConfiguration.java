@@ -4,11 +4,7 @@ import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.authentication.HttpSessionAuthenticationManager;
 import io.yak.ops.security.bootstrap.YakSecurityBootstrapInitializer;
 import io.yak.ops.security.config.YakSecurityProperties;
-import io.yak.ops.security.extend.CurrentUserProvider;
-import io.yak.ops.security.extend.LoginExtend;
 import io.yak.ops.security.extend.PasswordEncoder;
-import io.yak.ops.security.extend.impl.DefaultCurrentUserProvider;
-import io.yak.ops.security.extend.impl.DefaultLoginExtendImpl;
 import io.yak.ops.security.extend.impl.DefaultPasswordEncoder;
 import io.yak.ops.security.service.UserService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -44,32 +40,6 @@ public class SecurityConfiguration {
     AuthenticationManager authenticationManager(YakSecurityProperties properties) {
         return new HttpSessionAuthenticationManager(
                 properties.getAuthentication().getIdleTimeout());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(LoginExtend.class)
-    @ConditionalOnProperty(
-            prefix = "yak.security",
-            name = {"enabled", "database-enabled"},
-            havingValue = "true",
-            matchIfMissing = true)
-    LoginExtend loginExtend(
-            UserService userService,
-            PasswordEncoder passwordEncoder,
-            YakSecurityProperties properties,
-            AuthenticationManager authenticationManager) {
-        return new DefaultLoginExtendImpl(userService, passwordEncoder, properties, authenticationManager);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(CurrentUserProvider.class)
-    @ConditionalOnProperty(
-            prefix = "yak.security",
-            name = {"enabled", "database-enabled"},
-            havingValue = "true",
-            matchIfMissing = true)
-    CurrentUserProvider currentUserProvider(AuthenticationManager authenticationManager) {
-        return new DefaultCurrentUserProvider(authenticationManager);
     }
 
     @Bean

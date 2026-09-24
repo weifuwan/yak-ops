@@ -14,8 +14,6 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceQueryResultVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
-import io.yak.ops.common.constant.datasource.DataSourcePermissionCode;
-import io.yak.ops.security.web.RequiresPermission;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnDataSourceEnabled
 @RequiredArgsConstructor
 @RequestMapping(DataSourceConstants.API_PREFIX + "/catalog")
-@RequiresPermission(DataSourcePermissionCode.READ)
 public class DataSourceCatalogController {
     private final DataSourceCatalogReader catalogReader;
     private final CatalogRequestConverter requestConverter;

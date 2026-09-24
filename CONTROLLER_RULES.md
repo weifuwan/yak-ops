@@ -13,7 +13,6 @@ Owns:
 - HTTP boundary
 - request validation
 - response contract
-- permission metadata
 - OpenAPI description
 - HTTP exception mapping
 - Controller-only request/response conversion
@@ -55,7 +54,7 @@ Must:
 - 使用 Jakarta Validation 表达必填、长度和范围。
 - 成功/失败复用现有统一 Result / exception handling。
 - 使用 Swagger 3 / OpenAPI 3 描述公开 API。
-- 权限规则必须在 Controller contract 中清晰可见。
+- 只有存在真实运行时授权能力时，Controller 才声明权限 metadata；禁止保留无人读取的 permission annotation。
 - 简单方法保持直接，不增加无意义 facade。
 
 Must Not:
@@ -65,4 +64,5 @@ Must Not:
 - 返回 Map 代替已经稳定的业务响应模型。
 - 暴露 SQL、表名、Mapper、堆栈或数据库实现细节。
 - 为 Controller 再创建只做一层转发的 Handler / Adapter。
+- 添加没有运行时消费者的权限注解或权限常量。
 - 在 capability-specific ControllerAdvice 中重复处理通用参数异常、`BusinessException` 或兜底 `Exception`。

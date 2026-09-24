@@ -44,7 +44,7 @@ public class YakAuthenticationInterceptor implements HandlerInterceptor {
             requestPath = requestPath.substring(contextPath.length());
         }
 
-        return loginService.interceptorCheck(request, response, requestPath, properties.getPublicPaths());
+        return loginService.interceptorCheck(response, requestPath, properties.getPublicPaths());
     }
 
     private boolean isPublicEndpoint(Object handler) {
