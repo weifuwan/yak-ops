@@ -106,6 +106,8 @@ Hook 必须拥有真实行为。
 - 全局 CSS 只负责 reset、字体、主题和 viewport。
 - 不使用全局位置选择器修改某个页面内部结构。
 - Ant Design 当前允许作为迁移期 UI 依赖；已有业务组件按独立 PR 迁移，不在 Yak UI Foundation PR 中大范围替换。
+- Button / 普通 Input / 普通 Select 优先使用 `@/shared/ui`；不再新增 Datasource 私有 `YakButton` 或同类 AntD 二次封装。
+- Ant Design 继续承载 Yak UI V1 尚未覆盖的 Form、InputNumber、Password、TextArea、Upload、Tabs、Modal / Drawer 等能力，以及依赖其特有 searchable / clearable 行为的复杂控件。
 - 新增通用 Primitive 不再基于 Ant Design 二次封装；优先进入 `shared/ui`，复杂交互可由 Base UI 提供 Headless 行为。
 
 ## Validation
