@@ -11,7 +11,7 @@ import {
   useRef,
 } from 'react';
 
-import type { DynamicFormField } from '../model/uiTypes';
+import type { DynamicFormField } from '../model/types';
 import {
   flattenFormSectionFields,
   getConfigInitialValues,
