@@ -1,53 +1,100 @@
-import { Button, Input } from '@yak-ops/yak-ui';
-import { InfoCircleOutlined, LoadingOutlined } from '@ant-design/icons';
-import { useIntl } from '../../i18n';
 import {
-  Collapse,
-  Form,
-  Input as AntInput,
-  InputNumber,
-  message,
+  Button,
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+  Input,
+  NumberField,
+  NumberFieldGroup,
+  NumberFieldInput,
+  PasswordInput,
   Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+  Spinner,
   Switch,
+  Textarea,
+  toast,
   Tooltip,
-} from 'antd';
-import type { FormInstance } from 'antd';
-import { Code2, FlaskConical, ShieldCheck } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { useEffect } from 'react';
+  TooltipContent,
+  TooltipTrigger,
+} from "@yak-ops/yak-ui";
+import {
+  ChevronDown,
+  CircleHelp,
+  Code2,
+  FlaskConical,
+  ShieldCheck,
+} from "lucide-react";
+import { useEffect, type ReactNode } from "react";
 
-import DatabaseIcons from '../../model/icons/DatabaseIcons';
+import DriverManager from "../../connection/DriverManager";
+import JdbcUrlField from "../../connection/JdbcUrlField";
+import SshTunnelManager, {
+  getSshTunnelValidationMessage,
+} from "../../connection/SshTunnelManager";
+import { useIntl } from "../../i18n";
+import { PLUGIN_CONFIG_STATUS } from "../../plugin/pluginConfigState";
+import { usePluginFormConfig } from "../../plugin/usePluginFormConfig";
+import { getEnvironmentTagConfigMap } from "../../model/constants";
+import DatabaseIcons from "../../model/icons/DatabaseIcons";
 import type { DynamicFormField, DynamicFormSection } from "../../model/types";
 import {
   DataSourceOperateType,
   type DynamicDataSourceFormProps,
 } from "../types";
-import DriverManager from '../../connection/DriverManager';
-import JdbcUrlField from '../../connection/JdbcUrlField';
-import SshTunnelManager, {
-  getSshTunnelValidationMessage,
-} from '../../connection/SshTunnelManager';
-import CustomKVList from './components/CustomKVList';
-import { PLUGIN_CONFIG_STATUS } from '../../plugin/pluginConfigState';
-import { usePluginFormConfig } from '../../plugin/usePluginFormConfig';
+import {
+  DataSourceFormField,
+  DataSourceFormProvider,
+  type DataSourceFormFieldState,
+  type FormRule,
+  useFormValues,
+} from "../formRuntime";
+import CustomKVList from "./components/CustomKVList";
 import {
   getFieldDefaultValue,
-  getFieldDependencies,
   isDynamicFieldVisible,
   transformRules,
-} from './utils/formUtils';
+} from "./utils/formUtils";
 
-const DEFAULT_ENVIRONMENT = 'DEVELOP';
+const DEFAULT_ENVIRONMENT = "DEVELOP";
 
-const sectionTitleClass = 'm-0 text-sm font-semibold leading-6 text-[#161823]';
-const sectionDescriptionClass = 'm-0 text-xs leading-5 text-[#8a8f99]';
+const sectionTitleClass = "m-0 text-sm font-semibold leading-6 text-[#161823]";
+const sectionDescriptionClass = "m-0 text-xs leading-5 text-[#8a8f99]";
 
-/** 字段进入隐藏态时清除历史值和校验错误，确保不会被提交。 */
+const FieldShell = ({
+  children,
+  className,
+  error,
+  label,
+}: {
+  children: ReactNode;
+  className?: string;
+  error?: string;
+  label?: ReactNode;
+}) => (
+  <div className={className}>
+    {label ? (
+      <div className="mb-1.5 text-[13px] font-medium leading-5 text-[#344054]">
+        {label}
+      </div>
+    ) : null}
+    {children}
+    {error ? (
+      <div className="mt-1 text-[11px] leading-4 text-[#b42318]">{error}</div>
+    ) : null}
+  </div>
+);
+
 const HiddenFieldCleaner = ({
   form,
   fieldKey,
 }: {
-  form: FormInstance;
+  form: DynamicDataSourceFormProps["configForm"];
   fieldKey: string;
 }) => {
   useEffect(() => {
@@ -56,22 +103,19 @@ const HiddenFieldCleaner = ({
   return null;
 };
 
-/** 字段重新显示时，如果当前没有值，则恢复 Schema 默认值。 */
 const VisibleFieldInitializer = ({
-  form,
-  field,
   children,
+  field,
+  form,
 }: {
-  form: FormInstance;
-  field: DynamicFormField;
   children: ReactNode;
+  field: DynamicFormField;
+  form: DynamicDataSourceFormProps["configForm"];
 }) => {
   useEffect(() => {
     if (form.getFieldValue(field.key) !== undefined) return;
     const defaultValue = getFieldDefaultValue(field);
-    if (defaultValue !== undefined) {
-      form.setFieldValue(field.key, defaultValue);
-    }
+    if (defaultValue !== undefined) form.setFieldValue(field.key, defaultValue);
   }, [field, form]);
   return <>{children}</>;
 };
@@ -84,49 +128,12 @@ const DynamicDataSourceForm = ({
   initialConfig,
 }: DynamicDataSourceFormProps) => {
   const intl = useIntl();
-  const envOptions = [
-    {
-      value: 'DEVELOP',
-      label: (
-        <div className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-blue-50 text-blue-600">
-            <Code2 size={12} />
-          </span>
-          <span className="text-[13px] text-[#344054]">
-            {intl.formatMessage({
-              id: 'pages.datasource.environment.developFull',
-            })}
-          </span>
-        </div>
-      ),
-    },
-    {
-      value: 'TEST',
-      label: (
-        <div className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-amber-50 text-amber-600">
-            <FlaskConical size={12} />
-          </span>
-          <span className="text-[13px] text-[#344054]">
-            {intl.formatMessage({ id: 'pages.datasource.environment.testFull' })}
-          </span>
-        </div>
-      ),
-    },
-    {
-      value: 'PROD',
-      label: (
-        <div className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-rose-50 text-rose-600">
-            <ShieldCheck size={12} />
-          </span>
-          <span className="text-[13px] text-[#344054]">
-            {intl.formatMessage({ id: 'pages.datasource.environment.prodFull' })}
-          </span>
-        </div>
-      ),
-    },
-  ];
+  const configValues = useFormValues(configForm);
+  const environmentTagConfig = getEnvironmentTagConfigMap(intl);
+  const envOptions = ["DEVELOP", "TEST", "PROD"].map((value) => ({
+    value,
+    label: environmentTagConfig[value]?.text || value,
+  }));
 
   const {
     formSections,
@@ -144,85 +151,21 @@ const DynamicDataSourceForm = ({
 
   useEffect(() => {
     if (operateType !== DataSourceOperateType.Create) return;
-    const environment = form.getFieldValue('environment');
-    if (environment === undefined || environment === null || environment === '') {
-      form.setFieldValue('environment', DEFAULT_ENVIRONMENT);
+    const environment = form.getFieldValue("environment");
+    if (environment === undefined || environment === null || environment === "") {
+      form.setFieldValue("environment", DEFAULT_ENVIRONMENT);
     }
   }, [form, operateType]);
 
-  const validateField = (key: string) => {
-    window.setTimeout(() => {
-      void configForm.validateFields([key]).catch(() => undefined);
-    }, 0);
-  };
-
-  const renderFormControl = (field: DynamicFormField) => {
-    switch (field.type) {
-      case 'DRIVER':
-        return <DriverManager dbType={dbType} placeholder={field.placeholder} />;
-      case 'SSH':
-        return <SshTunnelManager />;
-      case 'JDBC_URL':
-        return (
-          <JdbcUrlField
-            form={configForm}
-            linkage={field.urlLinkage}
-            placeholder={field.placeholder}
-          />
-        );
-      case 'PASSWORD':
-        return (
-          <AntInput.Password
-            variant="filled"
-            placeholder={field.placeholder}
-            onChange={() => validateField(field.key)}
-          />
-        );
-      case 'SELECT':
-        return (
-          <Select
-            variant="filled"
-            placeholder={field.placeholder}
-            options={field.options}
-            onChange={() => validateField(field.key)}
-          />
-        );
-      case 'NUMBER':
-        return (
-          <InputNumber
-            variant="filled"
-            className="!w-full"
-            placeholder={field.placeholder}
-            onChange={() => validateField(field.key)}
-          />
-        );
-      case 'SWITCH':
-        return <Switch onChange={() => validateField(field.key)} />;
-      case 'TEXTAREA':
-        return (
-          <AntInput.TextArea
-            variant="filled"
-            rows={2}
-            placeholder={field.placeholder}
-            onChange={() => validateField(field.key)}
-          />
-        );
-      default:
-        return (
-          <Input
-            placeholder={field.placeholder}
-            onChange={() => validateField(field.key)}
-          />
-        );
-    }
-  };
-
-  const fieldRules = (field: DynamicFormField) => {
+  const fieldRules = (field: DynamicFormField): FormRule[] => {
     const rules = transformRules(field.rules, field.type);
-    if (field.type === 'SSH') {
+    if (field.type === "SSH") {
       rules.push({
-        validator: async (_rule, value) => {
-          const validationMessage = getSshTunnelValidationMessage(value, intl);
+        validator: async (value) => {
+          const validationMessage = getSshTunnelValidationMessage(
+            value as Parameters<typeof getSshTunnelValidationMessage>[0],
+            intl,
+          );
           if (validationMessage) throw new Error(validationMessage);
         },
       });
@@ -230,43 +173,162 @@ const DynamicDataSourceForm = ({
     return rules;
   };
 
+  const renderFormControl = (
+    field: DynamicFormField,
+    state: DataSourceFormFieldState,
+  ) => {
+    const { invalid, setValue, validate, value } = state;
+    const validateLater = () => {
+      window.setTimeout(() => void validate().catch(() => undefined), 0);
+    };
+
+    switch (field.type) {
+      case "DRIVER":
+        return (
+          <DriverManager
+            dbType={dbType}
+            value={String(value ?? "")}
+            placeholder={field.placeholder}
+            onChange={(next) => {
+              setValue(next);
+              validateLater();
+            }}
+          />
+        );
+      case "SSH":
+        return (
+          <SshTunnelManager
+            value={value as Parameters<typeof getSshTunnelValidationMessage>[0]}
+            onChange={(next) => {
+              setValue(next);
+              validateLater();
+            }}
+          />
+        );
+      case "JDBC_URL":
+        return (
+          <JdbcUrlField
+            form={configForm}
+            value={String(value ?? "")}
+            linkage={field.urlLinkage}
+            placeholder={field.placeholder}
+            onChange={(next) => {
+              setValue(next);
+              validateLater();
+            }}
+          />
+        );
+      case "PASSWORD":
+        return (
+          <PasswordInput
+            value={String(value ?? "")}
+            aria-invalid={invalid || undefined}
+            placeholder={field.placeholder}
+            onChange={(event) => setValue(event.target.value)}
+            onBlur={() => void validate().catch(() => undefined)}
+          />
+        );
+      case "SELECT":
+        return (
+          <Select
+            value={value == null ? null : String(value)}
+            onValueChange={(next) => {
+              setValue(next);
+              validateLater();
+            }}
+          >
+            <SelectTrigger aria-invalid={invalid || undefined}>
+              <SelectValue placeholder={field.placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {(field.options || []).map((option) => (
+                <SelectItem key={String(option.value)} value={String(option.value)}>
+                  <SelectItemText>{option.label}</SelectItemText>
+                  <SelectItemIndicator />
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      case "NUMBER":
+        return (
+          <NumberField
+            value={typeof value === "number" ? value : null}
+            onValueChange={(next) => {
+              setValue(next);
+              validateLater();
+            }}
+          >
+            <NumberFieldGroup>
+              <NumberFieldInput
+                aria-invalid={invalid || undefined}
+                placeholder={field.placeholder}
+              />
+            </NumberFieldGroup>
+          </NumberField>
+        );
+      case "SWITCH":
+        return (
+          <Switch
+            checked={Boolean(value)}
+            onCheckedChange={(next) => {
+              setValue(next);
+              validateLater();
+            }}
+          />
+        );
+      case "TEXTAREA":
+        return (
+          <Textarea
+            rows={2}
+            value={String(value ?? "")}
+            aria-invalid={invalid || undefined}
+            placeholder={field.placeholder}
+            onValueChange={(next) => setValue(next)}
+            onBlur={() => void validate().catch(() => undefined)}
+          />
+        );
+      default:
+        return (
+          <Input
+            value={String(value ?? "")}
+            aria-invalid={invalid || undefined}
+            placeholder={field.placeholder}
+            onChange={(event) => setValue(event.target.value)}
+            onBlur={() => void validate().catch(() => undefined)}
+          />
+        );
+    }
+  };
+
   const renderVisibleField = (field: DynamicFormField) => {
-    const content =
-      field.type === 'CUSTOM_SELECT' ? (
-        <div className="md:col-span-2">
+    if (field.type === "CUSTOM_SELECT") {
+      return (
+        <div key={field.key} className="md:col-span-2">
           <CustomKVList intl={intl} field={field} />
         </div>
-      ) : (
-        <Form.Item
-          label={field.label}
-          name={field.key}
-          preserve={false}
-          valuePropName={field.type === 'SWITCH' ? 'checked' : 'value'}
-          rules={fieldRules(field)}
-          validateTrigger={['onChange', 'onBlur']}
-          className={[
-            '!mb-3',
-            field.type === 'TEXTAREA' ||
-            field.type === 'DRIVER' ||
-            field.type === 'SSH' ||
-            field.type === 'JDBC_URL'
-              ? 'md:col-span-2'
-              : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        >
-          {renderFormControl(field)}
-        </Form.Item>
       );
+    }
+
+    const wide =
+      field.type === "TEXTAREA" ||
+      field.type === "DRIVER" ||
+      field.type === "SSH" ||
+      field.type === "JDBC_URL";
 
     return (
-      <VisibleFieldInitializer
-        key={field.key}
-        form={configForm}
-        field={field}
-      >
-        {content}
+      <VisibleFieldInitializer key={field.key} form={configForm} field={field}>
+        <DataSourceFormField name={field.key} rules={fieldRules(field)}>
+          {(state) => (
+            <FieldShell
+              label={field.label}
+              error={state.error}
+              className={wide ? "mb-3 md:col-span-2" : "mb-3"}
+            >
+              {renderFormControl(field, state)}
+            </FieldShell>
+          )}
+        </DataSourceFormField>
       </VisibleFieldInitializer>
     );
   };
@@ -275,27 +337,18 @@ const DynamicDataSourceForm = ({
     const hasVisibilityRule = Array.isArray(field.visibleWhen)
       ? field.visibleWhen.length > 0
       : Boolean(field.visibleWhen);
+
     if (!hasVisibilityRule) return renderVisibleField(field);
 
-    const dependencies = getFieldDependencies(field);
-    return (
-      <Form.Item
-        key={`visibility-${field.key}`}
-        noStyle
-        dependencies={dependencies.map((dependency) => dependency.split('.'))}
-      >
-        {({ getFieldsValue }) => {
-          const visible = isDynamicFieldVisible(
-            field,
-            getFieldsValue(true) as Record<string, unknown>,
-          );
-          return visible ? (
-            renderVisibleField(field)
-          ) : (
-            <HiddenFieldCleaner form={configForm} fieldKey={field.key} />
-          );
-        }}
-      </Form.Item>
+    const visible = isDynamicFieldVisible(field, configValues);
+    return visible ? (
+      renderVisibleField(field)
+    ) : (
+      <HiddenFieldCleaner
+        key={`hidden-${field.key}`}
+        form={configForm}
+        fieldKey={field.key}
+      />
     );
   };
 
@@ -308,34 +361,33 @@ const DynamicDataSourceForm = ({
   const renderSectionHeader = (section: DynamicFormSection) => (
     <div className="min-w-0">
       <h3 className={sectionTitleClass}>{section.title}</h3>
-      {section.description && (
+      {section.description ? (
         <p className={sectionDescriptionClass}>{section.description}</p>
-      )}
+      ) : null}
     </div>
   );
 
   const renderSchemaSection = (section: DynamicFormSection) => {
     if (section.collapsible) {
       return (
-        <Collapse
+        <Collapsible
           key={section.key}
-          className="datasource-schema-collapse"
-          bordered={false}
-          defaultActiveKey={section.defaultExpanded === false ? [] : [section.key]}
-          items={[
-            {
-              key: section.key,
-              label: renderSectionHeader(section),
-              children: renderFields(section.fields),
-              forceRender: true,
-            },
-          ]}
-        />
+          defaultOpen={section.defaultExpanded !== false}
+          className="border-b border-[#eef0f3] py-3"
+        >
+          <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between gap-3 text-left">
+            {renderSectionHeader(section)}
+            <ChevronDown size={16} className="shrink-0 text-[#98a2b3]" />
+          </CollapsibleTrigger>
+          <CollapsiblePanel className="pt-3">
+            {renderFields(section.fields)}
+          </CollapsiblePanel>
+        </Collapsible>
       );
     }
 
     return (
-      <section key={section.key} className="datasource-schema-section">
+      <section key={section.key} className="border-b border-[#eef0f3] py-4 last:border-b-0">
         <div className="mb-3">{renderSectionHeader(section)}</div>
         {renderFields(section.fields)}
       </section>
@@ -357,13 +409,13 @@ const DynamicDataSourceForm = ({
       return (
         <div className="mt-4 flex min-h-[96px] items-center justify-center rounded-lg border border-[#eef0f3] bg-[#fafbfc]">
           <div className="flex items-center gap-2 text-sm text-[#667085]">
-            <LoadingOutlined />
+            <Spinner label="Loading plugin configuration" />
             <span>
               {intl.formatMessage({
                 id:
                   pluginStatus === PLUGIN_CONFIG_STATUS.INSTALLING
-                    ? 'pages.datasource.plugin.installing'
-                    : 'pages.datasource.plugin.loading',
+                    ? "pages.datasource.plugin.installing"
+                    : "pages.datasource.plugin.loading",
               })}
             </span>
           </div>
@@ -373,6 +425,7 @@ const DynamicDataSourceForm = ({
 
     const installRequired =
       pluginStatus === PLUGIN_CONFIG_STATUS.INSTALL_REQUIRED;
+
     return (
       <div className="mt-4 rounded-lg border border-[#e4e7ec] bg-[#fafafa] px-3.5 py-3">
         <div className="flex items-center justify-between gap-4">
@@ -380,16 +433,16 @@ const DynamicDataSourceForm = ({
             <div className="text-[13px] font-medium leading-5 text-[#344054]">
               {intl.formatMessage({
                 id: installRequired
-                  ? 'pages.datasource.plugin.installRequiredTitle'
-                  : 'pages.datasource.plugin.loadFailedTitle',
+                  ? "pages.datasource.plugin.installRequiredTitle"
+                  : "pages.datasource.plugin.loadFailedTitle",
               })}
             </div>
             <div className="mt-1 text-xs leading-5 text-[#98a2b3]">
               {pluginMessage ||
                 intl.formatMessage({
                   id: installRequired
-                    ? 'pages.datasource.plugin.installRequiredDescription'
-                    : 'pages.datasource.plugin.loadFailedDescription',
+                    ? "pages.datasource.plugin.installRequiredDescription"
+                    : "pages.datasource.plugin.loadFailedDescription",
                 })}
             </div>
           </div>
@@ -401,9 +454,9 @@ const DynamicDataSourceForm = ({
               if (installRequired) {
                 void installPlugin().then((installed) => {
                   if (installed) {
-                    message.success(
+                    toast.success(
                       intl.formatMessage({
-                        id: 'pages.datasource.plugin.installSuccess',
+                        id: "pages.datasource.plugin.installSuccess",
                       }),
                     );
                   }
@@ -416,8 +469,8 @@ const DynamicDataSourceForm = ({
             <span className="inline-flex items-center gap-1.5">
               {intl.formatMessage({
                 id: installRequired
-                  ? 'pages.datasource.plugin.install'
-                  : 'pages.datasource.plugin.reload',
+                  ? "pages.datasource.plugin.install"
+                  : "pages.datasource.plugin.reload",
               })}
               <DatabaseIcons dbType={dbType} height="15" width="15" />
             </span>
@@ -429,122 +482,159 @@ const DynamicDataSourceForm = ({
 
   return (
     <div className="bg-white">
-      <section className="datasource-editor-base-section">
-        <div className="mb-3 flex items-end justify-between gap-4">
-          <h3 className={sectionTitleClass}>
-            {intl.formatMessage({ id: 'pages.datasource.form.basicInfo' })}
-          </h3>
-          <div className="flex items-center gap-1.5 text-xs text-[#8a8f99]">
-            <DatabaseIcons dbType={dbType} width="15" height="15" />
-            <span>{dbType}</span>
+      <DataSourceFormProvider form={form}>
+        <section className="border-b border-[#eef0f3] pb-4">
+          <div className="mb-3 flex items-end justify-between gap-4">
+            <h3 className={sectionTitleClass}>
+              {intl.formatMessage({ id: "pages.datasource.form.basicInfo" })}
+            </h3>
+            <div className="flex items-center gap-1.5 text-xs text-[#8a8f99]">
+              <DatabaseIcons dbType={dbType} width="15" height="15" />
+              <span>{dbType}</span>
+            </div>
           </div>
-        </div>
 
-        <Form form={form} layout="vertical" colon={false} requiredMark>
           <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
-            <Form.Item
-              className="!mb-3"
-              label={intl.formatMessage({ id: 'pages.datasource.form.dsName' })}
+            <DataSourceFormField
               name="name"
               rules={[
                 {
                   required: true,
                   message: intl.formatMessage({
-                    id: 'pages.datasource.form.dsNameRequired',
+                    id: "pages.datasource.form.dsNameRequired",
                   }),
                 },
                 {
                   max: 128,
                   message: intl.formatMessage({
-                    id: 'pages.datasource.form.dsNameMax',
+                    id: "pages.datasource.form.dsNameMax",
                   }),
                 },
               ]}
             >
-              <Input
-                maxLength={128}
-                placeholder={intl.formatMessage({
-                  id: 'pages.datasource.form.dsNamePlaceholder',
-                })}
-              />
-            </Form.Item>
-
-            <Form.Item
-              className="!mb-3"
-              label={
-                <span className="inline-flex items-center">
-                  {intl.formatMessage({ id: 'pages.datasource.form.env' })}
-                  <Tooltip
-                    title={intl.formatMessage({
-                      id: 'pages.datasource.form.envTooltip',
+              {(state) => (
+                <FieldShell
+                  className="mb-3"
+                  label={intl.formatMessage({ id: "pages.datasource.form.dsName" })}
+                  error={state.error}
+                >
+                  <Input
+                    maxLength={128}
+                    value={String(state.value ?? "")}
+                    aria-invalid={state.invalid || undefined}
+                    placeholder={intl.formatMessage({
+                      id: "pages.datasource.form.dsNamePlaceholder",
                     })}
-                  >
-                    <InfoCircleOutlined className="ml-1 text-[#98a2b3]" />
-                  </Tooltip>
-                </span>
-              }
+                    onChange={(event) => state.setValue(event.target.value)}
+                    onBlur={() => void state.validate().catch(() => undefined)}
+                  />
+                </FieldShell>
+              )}
+            </DataSourceFormField>
+
+            <DataSourceFormField
               name="environment"
               rules={[
                 {
                   required: true,
                   message: intl.formatMessage({
-                    id: 'pages.datasource.form.envRequired',
+                    id: "pages.datasource.form.envRequired",
                   }),
                 },
               ]}
             >
-              <Select
-                variant="filled"
-                placeholder={intl.formatMessage({
-                  id: 'pages.datasource.form.envPlaceholder',
-                })}
-                options={envOptions}
-              />
-            </Form.Item>
+              {(state) => (
+                <FieldShell
+                  className="mb-3"
+                  error={state.error}
+                  label={
+                    <span className="inline-flex items-center gap-1">
+                      {intl.formatMessage({ id: "pages.datasource.form.env" })}
+                      <Tooltip>
+                        <TooltipTrigger
+                          aria-label={intl.formatMessage({
+                            id: "pages.datasource.form.envTooltip",
+                          })}
+                          className="inline-flex cursor-help"
+                        >
+                          <CircleHelp size={13} className="text-[#98a2b3]" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {intl.formatMessage({
+                            id: "pages.datasource.form.envTooltip",
+                          })}
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                  }
+                >
+                  <Select
+                    value={state.value == null ? null : String(state.value)}
+                    onValueChange={(next) => state.setValue(next)}
+                  >
+                    <SelectTrigger aria-invalid={state.invalid || undefined}>
+                      <SelectValue
+                        placeholder={intl.formatMessage({
+                          id: "pages.datasource.form.envPlaceholder",
+                        })}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {envOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <SelectItemText>{option.label}</SelectItemText>
+                          <SelectItemIndicator />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FieldShell>
+              )}
+            </DataSourceFormField>
           </div>
 
-          <Form.Item
-            className="!mb-0"
-            label={intl.formatMessage({
-              id: 'pages.datasource.form.description',
-            })}
+          <DataSourceFormField
             name="remark"
             rules={[
               {
                 max: 500,
                 message: intl.formatMessage({
-                  id: 'pages.datasource.form.descriptionMax',
+                  id: "pages.datasource.form.descriptionMax",
                 }),
               },
             ]}
           >
-            <AntInput.TextArea
-              variant="filled"
-              maxLength={500}
-              rows={2}
-              placeholder={intl.formatMessage({
-                id: 'pages.datasource.form.descriptionPlaceholder',
-              })}
-            />
-          </Form.Item>
-        </Form>
-      </section>
+            {(state) => (
+              <FieldShell
+                label={intl.formatMessage({
+                  id: "pages.datasource.form.description",
+                })}
+                error={state.error}
+              >
+                <Textarea
+                  maxLength={500}
+                  rows={2}
+                  value={String(state.value ?? "")}
+                  aria-invalid={state.invalid || undefined}
+                  placeholder={intl.formatMessage({
+                    id: "pages.datasource.form.descriptionPlaceholder",
+                  })}
+                  onValueChange={(next) => state.setValue(next)}
+                  onBlur={() => void state.validate().catch(() => undefined)}
+                />
+              </FieldShell>
+            )}
+          </DataSourceFormField>
+        </section>
+      </DataSourceFormProvider>
 
       {renderPluginState()}
 
-      {formSections.length > 0 && (
-        <Form
-          form={configForm}
-          component={false}
-          layout="vertical"
-          colon={false}
-          requiredMark
-        >
-          <div className="datasource-schema-sections">
-            {formSections.map(renderSchemaSection)}
-          </div>
-        </Form>
-      )}
+      {formSections.length > 0 ? (
+        <DataSourceFormProvider form={configForm}>
+          <div className="mt-4">{formSections.map(renderSchemaSection)}</div>
+        </DataSourceFormProvider>
+      ) : null}
     </div>
   );
 };
