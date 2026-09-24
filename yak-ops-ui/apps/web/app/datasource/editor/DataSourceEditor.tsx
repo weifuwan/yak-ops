@@ -19,7 +19,7 @@ import {
   createDataSource,
   testDataSourceConnectionWithParams,
   updateDataSource,
-} from "../api";
+} from "@/service/datasource";
 import { useIntl } from "../i18n";
 import { getDataSourceGroupList } from "../model/constants";
 import DatabaseIcons from "../model/icons/DatabaseIcons";

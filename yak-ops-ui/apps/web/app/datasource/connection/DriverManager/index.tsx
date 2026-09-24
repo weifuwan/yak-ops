@@ -2,7 +2,7 @@ import { Button, Input, toast } from "@yak-ops/yak-ui";
 import { Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 
-import { uploadDataSourceDriver } from "../../api";
+import { uploadDataSourceDriver } from "@/service/datasource";
 import { useIntl } from "../../i18n";
 
 const DEFAULT_MAX_SIZE_MB = 200;
