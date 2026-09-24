@@ -10,16 +10,5 @@
     </parent>
     <artifactId>yak-ops-spi</artifactId>
     <name>Yak Ops SPI</name>
-    <description>Stable extension contracts for Yak Ops plugins</description>
-    <dependencies>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-    </dependencies>
+    <description>Stable extension contracts for Yak Ops datasource capabilities</description>
 </project>
