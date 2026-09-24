@@ -10,6 +10,8 @@ import { AlertCircle } from "lucide-react";
 import {
   useRef,
   useState,
+  type ChangeEvent,
+  type FocusEvent,
   type FormEvent,
   type InputHTMLAttributes,
 } from "react";
@@ -65,15 +67,15 @@ function FloatingInput({
     className,
     placeholder: "",
     "aria-invalid": invalid || undefined,
-    onFocus: (event: React.FocusEvent<HTMLInputElement>) => {
+    onFocus: (event: FocusEvent<HTMLInputElement>) => {
       setFocused(true);
       onFocus?.(event);
     },
-    onBlur: (event: React.FocusEvent<HTMLInputElement>) => {
+    onBlur: (event: FocusEvent<HTMLInputElement>) => {
       setFocused(false);
       onBlur?.(event);
     },
-    onChange: (event: React.ChangeEvent<HTMLInputElement>) =>
+    onChange: (event: ChangeEvent<HTMLInputElement>) =>
       onValueChange(event.target.value),
   };
 
