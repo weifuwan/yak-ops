@@ -60,7 +60,7 @@ Owns Datasource provider contracts and implementations.
 
 ### `yak-ops-boot`
 
-Owns final application assembly, health, global configuration and Project Space adapter code.
+Owns final application assembly, health and global configuration.
 
 ### `yak-ops-ui`
 

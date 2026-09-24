@@ -17,9 +17,9 @@ public interface SqlExecutionAuditDao {
 
   IPage<SqlExecutionAuditPO> selectPage(SqlExecutionAuditQuery query);
 
-  SqlExecutionAuditPO selectByExecutionId(Long projectId, String executionId);
+  SqlExecutionAuditPO selectByExecutionId(String executionId);
 
-  List<SqlStatementExecutionAuditPO> selectStatements(Long projectId, String executionId);
+  List<SqlStatementExecutionAuditPO> selectStatements(String executionId);
 
   SqlExecutionAuditSummaryRow selectSummary(SqlExecutionAuditQuery query);
 

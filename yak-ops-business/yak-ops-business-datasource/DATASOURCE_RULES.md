@@ -34,8 +34,6 @@ security     Datasource security
 exception    Datasource errors
 ```
 
-Existing package names are current facts. Do not create another role package by analogy.
-
 ## Business Rules
 
 Must:
@@ -45,7 +43,6 @@ Must:
 - plugin differences enter through stable plugin/gateway contracts.
 - secret handling must never leak raw credentials into logs, errors or response objects.
 - SQL Execution must preserve explicit lifecycle/status/transaction semantics.
-- Project Context behavior must remain fail-closed where current behavior requires it.
 
 Must Not:
 - add Manager / Reader / Adapter just because neighboring code has one.
@@ -71,10 +68,8 @@ business behavior
 - do not add forwarding methods that only rename existing CRUD.
 - Flyway owns schema evolution under `src/main/resources/db/migration/yak-datasource`.
 
-## Execution / Project Context
+## Execution
 
-SQL Execution and Project Context code physically lives in this Maven module while some Java packages still use `io.yak.ops.core.*`.
+SQL Execution code physically lives in this Maven module while some Java packages still use `io.yak.ops.core.execution.*`.
 
-Treat them as Datasource-owned current code until a dedicated package migration is reviewed.
-
-Do not move them back into `yak-ops-core` merely to match the package name.
+Treat it as Datasource-owned current code until a dedicated package migration is reviewed.

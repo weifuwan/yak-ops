@@ -13,8 +13,6 @@ import io.yak.ops.common.bean.vo.observability.SqlExecutionAuditDetailVO;
 import io.yak.ops.common.bean.vo.observability.SqlExecutionAuditSummaryVO;
 import io.yak.ops.common.bean.vo.observability.SqlExecutionAuditVO;
 import io.yak.ops.common.constant.observability.SqlExecutionAuditConstants;
-import io.yak.ops.core.project.ProjectMigrationMode;
-import io.yak.ops.core.project.ProjectScope;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,7 +28,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping(SqlExecutionAuditConstants.API_PREFIX)
 @RequiresPermission(SqlExecutionAuditConstants.READ_PERMISSION)
-@ProjectScope(ProjectMigrationMode.PROJECT_REQUIRED)
 public class SqlExecutionAuditController {
   private final SqlExecutionAuditReader auditReader;
   private final SqlExecutionAuditConverter auditConverter;
