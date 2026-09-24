@@ -121,11 +121,71 @@ Existing names such as `AuthenticationManager`, capability-specific exception ha
 
 ## Comments and JavaDoc
 
-- Public interfaces, core contracts and non-obvious behavior may have concise JavaDoc.
-- Explain responsibility, invariant, boundary or reason; do not narrate obvious code.
-- Do not add `@author` or verbose getter/setter comments to new code.
-- Delete comments that describe removed architecture or simply repeat the method/class name.
-- Formatter does not rewrite JavaDoc content; content quality remains a review concern.
+Comments exist to explain information that code cannot express clearly by itself. They must describe responsibility, semantics, constraints, boundaries or reasons instead of translating names and syntax into prose.
+
+### Type JavaDoc
+
+- Repository-owned production Java classes, interfaces, enums, records and annotations must have concise type-level JavaDoc.
+- Type JavaDoc must explain what the type is responsible for or what boundary it represents.
+- Do not use descriptions such as "user service", "datasource DTO", "CRUD service" or "implementation class" when they only repeat the type name or technical suffix.
+- Type JavaDoc must include the original author with `@author`.
+- Type JavaDoc must include the creation date with `@since YYYY-MM-DD`.
+- `@author` records the original creator. Later contributors must not replace it when modifying the type.
+- `@since` records the type creation date. Later changes must not update it to the modification date.
+- Prefer Chinese descriptions. Keep established technical terms, protocol names, table names and identifiers in their original form.
+
+Example:
+
+```java
+/**
+ * 负责用户账号的创建、修改和密码重置等后台管理能力。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
+public class UserAdministrationService {
+}
+```
+
+### Data Model Fields
+
+- DTO, VO, PO, Entity and Model fields must have JavaDoc describing their business meaning.
+- A field comment must add semantic information, not only repeat the field name.
+- When a field has enumerated values, status codes, units, formats, ranges, sensitive-data semantics or other special constraints, document them explicitly.
+- The same rule applies to equivalent repository-owned request, response, command, criteria and persistent data carriers when their fields form an external or cross-layer data contract.
+- Ordinary dependency fields, loggers, framework wiring and obvious implementation state do not require comments solely for completeness.
+
+Example:
+
+```java
+/** 用户状态：1 启用，0 禁用。 */
+private Integer status;
+
+/** 数据源连接参数，JSON 格式。 */
+private String connectionParams;
+```
+
+### Method JavaDoc
+
+- Do not require JavaDoc for every method.
+- Public contracts, SPI methods and non-obvious business behavior should document important preconditions, side effects, invariants, exceptional semantics or usage boundaries.
+- Private methods and straightforward application methods do not need JavaDoc when the method name and code already make their purpose clear.
+- Do not add getter/setter JavaDoc or comments that only restate a method name, parameter name or return type.
+
+### Comment Quality
+
+Must:
+- Keep comments synchronized with current behavior.
+- Explain responsibility, semantic meaning, constraint, boundary or reason.
+- Delete stale comments when the related behavior or architecture is removed.
+
+Must Not:
+- Use comments such as "用户 Service", "数据源 DTO", "XXX CRUD" or "获取用户方法" that add no information.
+- Add comments to `@Resource` dependencies, loggers or similar obvious fields only to satisfy a comment count.
+- Add verbose getter/setter comments.
+- Keep historical architecture descriptions that no longer match the code.
+
+Formatter does not rewrite JavaDoc content; comment quality remains a review concern.
 
 ## Must
 
@@ -135,7 +195,7 @@ Existing names such as `AuthenticationManager`, capability-specific exception ha
 - 一个类只承担一个明确 owner 的职责。
 - 不可变数据适合 `record` 且更清晰时优先使用 `record`。
 - Lombok 能明显减少样板代码时可以使用，但不能隐藏关键行为。
-- 公共接口、核心类和非直观行为只注释职责、边界和原因。
+- 仓库自有生产 Java 类型必须有类级 JavaDoc；DTO / VO / PO / Entity / Model 等数据模型字段必须有语义明确的 JavaDoc。
 - 删除过期注释和已经不存在的架构描述。
 - 修改完成后执行与改动匹配的显式编译、构建、静态检查或手工验证。
 - Java 变更至少执行上面的 Spotless `check` 命令；需要修复格式时先执行对应的 `apply` 命令。
