@@ -32,6 +32,9 @@ yak-ops-business/yak-ops-business-datasource/**
 yak-ops-common/**
 → yak-ops-common/COMMON_RULES.md
 
+yak-ops-dao/**
+→ yak-ops-dao/DAO_RULES.md
+
 yak-ops-core/**
 → yak-ops-core/CORE_RULES.md
 
