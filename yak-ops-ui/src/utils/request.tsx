@@ -164,7 +164,7 @@ const errorHandler = (error: any): Response | undefined => {
     const fallback = codeMessage[status] || response.statusText || "请求失败";
     const errorText = extractUnknownErrorMessage(payload, fallback);
 
-    // 401 明确代表未认证；另外兼容网关把 Sa-Token 未登录响应包装成
+    // 401 明确代表未认证；另外兼容网关把未登录业务响应包装成
     // 其他 HTTP 状态的情况。403/405 本身不等于登录失效。
     const payloadUnauthenticated =
       isApiResponse(payload) && isUnauthenticatedResponse(payload, protocol);

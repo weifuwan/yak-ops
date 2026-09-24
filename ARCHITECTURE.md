@@ -26,7 +26,7 @@ Owns shared contracts and the unified `io.yak.framework.common` Result / ErrorCo
 
 ### `yak-ops-security`
 
-Owns user management, login/logout/current identity, permission checks, role/project membership required by current identity, and the security schema.
+Owns user management, login/logout/current identity, HttpSession authentication state, and the security schema.
 
 Security production code was migrated from `yak-framework/yak-security`.
 
@@ -96,7 +96,7 @@ Boot ─→ Datasource Business ─→ Common
 
 Boot assembles Security, Datasource Business and Datasource Plugin All.
 
-Datasource may depend on Security contracts for Controller authorization but must not own user/login persistence.
+Datasource may depend on Security identity contracts but must not own user/login persistence.
 
 ## Refactor Rule
 
