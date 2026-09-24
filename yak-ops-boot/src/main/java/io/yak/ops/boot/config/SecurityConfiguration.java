@@ -42,7 +42,6 @@ public class SecurityConfiguration {
                 properties.getAuthentication().getIdleTimeout());
     }
 
-
     @Bean
     @ConditionalOnBean(UserService.class)
     @ConditionalOnProperty(prefix = "yak.security.bootstrap", name = "enabled", havingValue = "true")
