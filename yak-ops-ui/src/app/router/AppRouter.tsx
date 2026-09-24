@@ -1,9 +1,35 @@
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import {
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
 import AppLayout from "@/app/layout/AppLayout";
 import { useAuth } from "@/app/providers/AuthProvider";
 import DataSourcePage from "@/pages/data-source";
 import LoginPage from "@/pages/login";
+
+const DEFAULT_AUTHENTICATED_PATH = "/data-source";
+
+const resolveReturnTo = (requested: string | null) => {
+  if (!requested) return DEFAULT_AUTHENTICATED_PATH;
+
+  try {
+    const destination = new URL(requested, window.location.origin);
+    if (
+      destination.origin !== window.location.origin ||
+      destination.pathname !== DEFAULT_AUTHENTICATED_PATH
+    ) {
+      return DEFAULT_AUTHENTICATED_PATH;
+    }
+    return `${destination.pathname}${destination.search}${destination.hash}`;
+  } catch {
+    return DEFAULT_AUTHENTICATED_PATH;
+  }
+};
 
 function ProtectedRoute() {
   const { currentUser, loading } = useAuth();
@@ -31,7 +57,9 @@ function ProtectedRoute() {
 }
 
 function LoginRoute() {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading, refreshCurrentUser } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -41,7 +69,17 @@ function LoginRoute() {
     );
   }
 
-  return currentUser ? <Navigate replace to="/data-source" /> : <LoginPage />;
+  if (currentUser) {
+    return <Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />;
+  }
+
+  const handleAuthenticated = async () => {
+    await refreshCurrentUser();
+    const requested = new URLSearchParams(location.search).get("returnTo");
+    navigate(resolveReturnTo(requested), { replace: true });
+  };
+
+  return <LoginPage onAuthenticated={handleAuthenticated} />;
 }
 
 export default function AppRouter() {

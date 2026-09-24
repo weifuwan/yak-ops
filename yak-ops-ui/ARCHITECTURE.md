@@ -70,10 +70,26 @@ Umi Max
 → Oxlint / Oxfmt
 ```
 
+PR3 已完成 Login ownership 迁移：
+
+```text
+src/app/providers/
+→ 认证状态
+
+src/app/router/
+→ 登录守卫与登录后跳转
+
+src/pages/login/
+→ 登录 UI 与提交交互
+
+src/service/auth/
+→ login / logout / current user Contract
+```
+
 当前仍存在以下迁移目录：
 
 ```text
-src/services/
+src/services/data-source/
 src/components/
 src/utils/
 ```
@@ -83,9 +99,9 @@ src/utils/
 后续 Login / Datasource 迁移时分别收口到：
 
 ```text
-services  → service
-components → page / feature / shared/ui
-utils      → service/http / shared/lib
+services/data-source → service/datasource
+components           → page / feature / shared/ui
+utils                → service/http / shared/lib
 ```
 
 不要为了本 PR 一次性搬空这些目录。

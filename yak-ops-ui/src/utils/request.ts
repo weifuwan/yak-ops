@@ -9,7 +9,6 @@ import {
   type ApiResponse,
 } from "@/services/http/response";
 import { notifyOnce } from "@/utils/notifyOnce";
-import { dispatchAuthenticationInvalidated } from "@/utils/security/authentication";
 
 export type { ApiProtocol, ApiResponse } from "@/services/http/response";
 
@@ -61,17 +60,10 @@ export const goLogin = () => {
   );
 };
 
-let authenticationFailureHandled = false;
-
-export const resetAuthenticationFailure = () => {
-  authenticationFailureHandled = false;
-};
 
 export const handleAuthenticationFailure = (
   reason = "当前登录信息已过期，请重新登录后继续操作。",
 ) => {
-  dispatchAuthenticationInvalidated();
-
   if (isLoginPath()) {
     notifyOnce("login-authentication", {
       type: "error",
@@ -81,9 +73,6 @@ export const handleAuthenticationFailure = (
     });
     return;
   }
-
-  if (authenticationFailureHandled) return;
-  authenticationFailureHandled = true;
 
   notifyOnce("authentication", {
     type: "warning",
