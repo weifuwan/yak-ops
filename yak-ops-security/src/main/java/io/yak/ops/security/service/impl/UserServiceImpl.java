@@ -1,6 +1,5 @@
 package io.yak.ops.security.service.impl;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.common.PageData;
 import io.yak.ops.common.PagingData;
 import io.yak.ops.common.Result;
@@ -17,6 +16,7 @@ import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.util.CopyBeanUtil;
+import jakarta.annotation.Resource;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;

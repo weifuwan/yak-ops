@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.repository;
 
-import jakarta.annotation.Resource;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.dao.DataSourceDao;
@@ -13,6 +12,7 @@ import io.yak.ops.common.PageData;
 import io.yak.ops.common.bean.po.datasource.DataSourcePO;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
+import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;

@@ -1,6 +1,5 @@
 package io.yak.ops.boot.controller.datasource.v1;
 
-import jakarta.annotation.Resource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.boot.controller.datasource.v1.converter.DataSourcePluginViewConverter;
@@ -9,6 +8,7 @@ import io.yak.ops.business.datasource.query.DataSourcePluginReader;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class DataSourcePluginConfigController {
     @Resource
     private DataSourcePluginReader pluginReader;
+
     @Resource
     private DataSourcePluginViewConverter viewConverter;
 

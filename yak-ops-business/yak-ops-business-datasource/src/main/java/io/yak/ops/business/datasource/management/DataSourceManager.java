@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.management;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.connection.DataSourceConnectionResolver;
 import io.yak.ops.business.datasource.domain.ConnectionProfile;
@@ -10,6 +9,7 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.query.DataSourceReader;
 import io.yak.ops.business.datasource.repository.DataSourceRepository;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
+import jakarta.annotation.Resource;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +21,13 @@ public class DataSourceManager {
 
     @Resource
     private DataSourceRepository repository;
+
     @Resource
     private DataSourceReader reader;
+
     @Resource
     private DataSourceConnectionResolver connectionResolver;
+
     @Resource
     private ApplicationEventPublisher eventPublisher;
 

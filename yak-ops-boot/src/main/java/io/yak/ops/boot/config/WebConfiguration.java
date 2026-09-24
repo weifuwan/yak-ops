@@ -1,9 +1,9 @@
 package io.yak.ops.boot.config;
 
-import jakarta.annotation.Resource;
 import io.yak.ops.security.config.YakSecurityProperties;
 import io.yak.ops.security.service.LoginService;
 import io.yak.ops.security.web.YakAuthenticationInterceptor;
+import jakarta.annotation.Resource;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -26,6 +26,7 @@ public class WebConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new YakAuthenticationInterceptor(loginService, properties)).addPathPatterns("/**");
+        registry.addInterceptor(new YakAuthenticationInterceptor(loginService, properties))
+                .addPathPatterns("/**");
     }
 }

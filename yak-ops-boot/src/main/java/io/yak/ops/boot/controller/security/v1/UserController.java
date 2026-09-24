@@ -1,6 +1,5 @@
 package io.yak.ops.boot.controller.security.v1;
 
-import jakarta.annotation.Resource;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +17,7 @@ import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.service.impl.UserAdministrationService;
+import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.util.StringUtils;
