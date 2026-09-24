@@ -10,9 +10,9 @@ import DataSourcePageHeader from "./DataSourcePageHeader";
 import DataSourceSummaryCards from "./DataSourceSummaryCards";
 import DataSourceToolbar from "./DataSourceToolbar";
 import { DATA_SOURCE_PAGE_SIZE_OPTIONS, PAGE_ANIMATION } from "../model/constants";
-import { useDataSourcePage } from "./useDataSourceManagement";
+import { useDataSourceManagement } from "./useDataSourceManagement";
 import type { DataSourceModalRef, DataSourceRecord } from "../model/uiTypes";
-import { DataSourceOperateType, dataSourceRecordKey } from "./types";
+import { DataSourceOperateType, dataSourceRecordKey } from "../model/uiTypes";
 
 const { confirm } = Modal;
 
