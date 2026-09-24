@@ -73,7 +73,7 @@ tsc --noEmit
 
 不要用 lint 替代 typecheck。
 
-当前 `src/` 已完成 Legacy Cleanup，TypeScript / Oxlint / Oxfmt 直接覆盖完整生产源码。
+当前检查覆盖 `apps / packages / src migration bridge`。PR1 之后 `src/**` 不再是长期产品 owner，但在 Datasource 迁移完成前仍必须进入 typecheck / lint / format。
 
 ## Lint
 
@@ -122,6 +122,15 @@ Tailwind CSS 4 通过 Vite Plugin 接入。
 ## Package Manager
 
 前端命令统一使用 npm。
+
+根 `package.json` 使用 npm workspaces：
+
+```text
+apps/*
+packages/*
+```
+
+PR1 不切换 pnpm / yarn。
 
 新增或修改依赖后应使用 npm 更新 lockfile。
 

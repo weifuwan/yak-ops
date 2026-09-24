@@ -23,6 +23,15 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "@yak-ops/yak-ui": [
+        "packages/yak-ui/src/index.ts"
+      ],
+      "@yak-ops/yak-ui/*": [
+        "packages/yak-ui/src/*"
+      ],
+      "@yak-ops/datasource": [
+        "packages/datasource/src/index.tsx"
       ]
     },
     "types": [
@@ -30,6 +39,8 @@
     ]
   },
   "include": [
+    "apps",
+    "packages",
     "src",
     "vite.config.ts"
   ]

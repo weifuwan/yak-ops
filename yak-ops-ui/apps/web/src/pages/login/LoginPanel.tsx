@@ -8,9 +8,9 @@ import {
 import { useForm } from "antd/es/form/Form";
 import { useState } from "react";
 
-import { login } from "@/service/auth";
+import { login } from "../../service/auth";
 import { notifyOnce } from "@/shared/lib/notification";
-import { Button } from "@/shared/ui";
+import { Button } from "@yak-ops/yak-ui";
 
 const WECHAT_QR_CODE_SRC = "/wechat_qr.png";
 const FORM_ITEM_CLASS_NAME =

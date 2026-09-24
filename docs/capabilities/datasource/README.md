@@ -18,13 +18,39 @@ Backend:
 Plugin:
 - `yak-ops-plugins/yak-ops-plugin-datasource`
 
-Frontend:
+Frontend Public Owner:
+- `yak-ops-ui/packages/datasource`
+
+Frontend Migration Bridge:
 - `yak-ops-ui/src/pages/data-source`
 - `yak-ops-ui/src/service/datasource`
 
 Data:
 - `yak-ops-business/yak-ops-business-datasource/src/main/resources/db/migration/yak-datasource`
 - `yak-ops-business/yak-ops-business-datasource/src/main/resources/mapper`
+
+## Frontend Dependency
+
+```text
+apps/web
+   ↓
+@yak-ops/datasource
+   ↓
+@yak-ops/yak-ui
+```
+
+PR1 先建立 package public boundary，不改变 Datasource 用户行为。
+
+现有 `src/pages/data-source` / `src/service/datasource` 是迁移桥；后续 Frontend Datasource Package Refactor 会按 capability 把实现迁入：
+
+```text
+management
+editor
+connection
+plugin
+model
+api
+```
 
 ## Current Capability Map
 
@@ -45,7 +71,8 @@ SQL Execution Audit / Observability
 - root `JAVA_RULES.md`
 - `DATASOURCE_RULES.md`
 - `PLUGIN_RULES.md` when plugin behavior changes
-- frontend rules when UI changes
+- `yak-ops-ui/ARCHITECTURE.md`
+- `yak-ops-ui/packages/datasource/DATASOURCE_UI_RULES.md`
 
 ## Development Order
 

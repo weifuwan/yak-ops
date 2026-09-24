@@ -1,3 +1,4 @@
+import { DataSourcePage } from "@yak-ops/datasource";
 import {
   Navigate,
   Outlet,
@@ -7,10 +8,9 @@ import {
   useNavigate,
 } from "react-router-dom";
 
-import AppLayout from "@/app/layout/AppLayout";
-import { useAuth } from "@/app/providers/AuthProvider";
-import DataSourcePage from "@/pages/data-source";
-import LoginPage from "@/pages/login";
+import AppLayout from "../layout/AppLayout";
+import { useAuth } from "../providers/AuthProvider";
+import LoginPage from "../../pages/login";
 
 const DEFAULT_AUTHENTICATED_PATH = "/data-source";
 

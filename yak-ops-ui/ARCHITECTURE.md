@@ -3,9 +3,9 @@
 Status: Active
 
 Scope:
-- `yak-ops-ui/src/**`
-- Login
-- Datasource
+- `yak-ops-ui/apps/**`
+- `yak-ops-ui/packages/**`
+- PR1 migration bridge under `yak-ops-ui/src/**`
 
 Depends On:
 - `../ARCHITECTURE.md`
@@ -13,265 +13,255 @@ Depends On:
 
 ## Principle
 
-Yak Ops UI 按 ownership 组织代码，不按文件类型堆目录。
-
-当前产品范围只有：
+Yak Ops UI 使用 App + Product Package + UI Package 组织前端。
 
 ```text
-Login
-Datasource
+apps/web
+   ↓
+packages/datasource
+   ↓
+packages/yak-ui
 ```
 
-Login 是支撑能力，Datasource 是当前唯一产品能力。
+App 负责产品组装，Product Package 负责业务能力，Yak UI 负责无业务语义的 Primitive。
 
-不要因为历史代码、旧目录或未来规划重新引入其它产品域。
+目录不是为了“看起来像 Monorepo”。每个 workspace 必须有真实 owner。
 
 ## Stable Structure
 
-当前稳定结构：
-
 ```text
-src/
-├── app/
-│   ├── App.tsx
-│   ├── providers/
-│   ├── router/
-│   ├── layout/
-│   └── styles/
-├── pages/
-│   ├── login/
-│   └── data-source/
-├── service/
-│   ├── http/
-│   ├── auth/
-│   └── datasource/
-├── shared/
-│   ├── lib/
-│   └── ui/
-└── main.tsx
+yak-ops-ui/
+├── apps/
+│   └── web/
+│       ├── APP_RULES.md
+│       ├── package.json
+│       └── src/
+│           ├── app/
+│           │   ├── App.tsx
+│           │   ├── layout/
+│           │   ├── providers/
+│           │   ├── router/
+│           │   └── styles/
+│           ├── pages/
+│           │   └── login/
+│           ├── service/
+│           │   └── auth/
+│           └── main.tsx
+├── packages/
+│   ├── datasource/
+│   │   ├── DATASOURCE_UI_RULES.md
+│   │   ├── package.json
+│   │   └── src/
+│   │       └── index.tsx
+│   └── yak-ui/
+│       ├── UI_RULES.md
+│       ├── package.json
+│       └── src/
+│           ├── button/
+│           ├── input/
+│           ├── select/
+│           ├── cn.ts
+│           ├── index.ts
+│           └── styles.css
+├── src/
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
 ```
 
-当前没有 `features`。
+## Migration Bridge
 
-`shared/ui` 已作为 Yak UI 建立，用于 Button / Input / Select 等无业务语义、具有稳定交互 Contract 的 Primitive。不要因为目录对称继续预创建其它层级。
+PR1 只迁移 ownership，不改变 Datasource 用户行为。
 
-## Current Structure
-
-PR1～PR5 已完成前端脚手架与 ownership 收口。
+因此 `src/**` 暂时保留以下旧实现：
 
 ```text
-src/
-├── app/
-│   ├── App.tsx
-│   ├── providers/
-│   ├── router/
-│   ├── layout/
-│   └── styles/
-├── pages/
-│   ├── login/
-│   └── data-source/
-├── service/
-│   ├── http/
-│   ├── auth/
-│   └── datasource/
-├── shared/
-│   ├── lib/
-│   └── ui/
-└── main.tsx
+src/pages/data-source
+src/service/datasource
+src/service/http
+src/shared/lib
+src/shared/ui/index.ts
+src/pages/login/assets
+src/app/styles/fonts
 ```
 
-当前没有 `features` 目录。
+其中：
 
-Datasource 只有一个页面 owner，没有独立复用生命周期；不要为了目录对称创建 Feature。
+- `packages/datasource/src/index.tsx` 是 App 唯一 Datasource 入口，暂时桥接 `src/pages/data-source`。
+- `src/shared/ui/index.ts` 是旧 Datasource 的兼容入口，只 re-export `packages/yak-ui`。
+- Login 视频与字体二进制暂留旧路径，App 通过静态 import 使用。
 
-旧 `src/components / src/services / src/utils / src/locales / src/assets` 已清理，不再作为可用架构入口。
+这些是 migration bridge，不是长期 owner。后续 PR 必须逐步删除，而不是继续往 `src/**` 增加新业务代码。
 
 ## Dependency Direction
 
-目标依赖方向：
+正式依赖方向：
 
 ```text
-app
- ↓
-pages
- ↓
-features
- ↓
-service
-
-pages ─────→ service
-pages ─────→ shared
-features ──→ shared
-service ───→ shared/lib
-```
-
-Feature 层只有真实 owner 时才存在，所以 `pages → service` 是允许的。
-
-禁止反向依赖：
-
-```text
-shared  ✕→ feature
-service ✕→ page
-service ✕→ feature
-feature ✕→ page
-page    ✕→ app
-```
-
-## app
-
-`src/app` 拥有应用级组合：
-
-- `App.tsx`：根组合入口。
-- `providers`：认证等全局运行时 Provider。
-- `router`：React Router 路由注册与路由守卫。
-- `layout`：全局布局、侧边栏和 Outlet。
-- `styles`：reset、字体、主题和全局 viewport 样式。
-
-`main.tsx` 只挂载 React 应用。
-
-app 不拥有 Datasource 业务规则。
-
-## pages
-
-Page 负责回答“这个页面展示什么”。
-
-当前只允许：
-
-```text
-src/pages/login
-src/pages/data-source
-```
-
-Page 可以拥有：
-
-- 页面组合。
-- 页面局部交互状态。
-- 页面私有 Hook。
-- 页面私有组件。
-
-Page 不拥有：
-
-- HTTP transport。
-- 后端 Result 协议解析。
-- 跨页面通用组件。
-- 可独立复用的 Datasource 能力。
-
-## features
-
-Feature 负责拥有一个明确的产品能力，而不是减少 Page 文件长度。
-
-只有满足以下至少一个条件才创建 Feature：
-
-- 有独立状态生命周期。
-- 有多个真实调用方。
-- 有稳定交互 Contract。
-- 能脱离某个具体 Page 被独立理解和验证。
-
-当前不要预创建空的 Auth / Datasource Feature。
-
-## service
-
-目标目录为 `src/service`。
-
-所有后端接口、请求响应 Contract 和 HTTP 协议适配都归 Service。
-
-固定调用方向：
-
-```text
-Page / Feature
-→ Domain Service
-→ HttpUtils
-→ Backend API
-```
-
-详细规则见 `SERVICE_RULES.md`。
-
-## shared
-
-`shared` 只放没有产品 owner 的复用能力。
-
-```text
-shared/lib
-→ 浏览器通用工具、纯函数、基础 infrastructure
-
-shared/ui
-→ Yak UI，无业务语义的通用 UI Primitive
-```
-
-Yak UI 的固定依赖方向：
-
-```text
-Page / Feature / App
-        ↓
-@/shared/ui
-        ↓
+apps/web
+   ├────────────→ packages/yak-ui
+   ↓
+packages/datasource
+   ↓
+packages/yak-ui
+   ↓
 @base-ui/react
-        ↓
-DOM
 ```
 
-Base UI 只提供 Headless interaction / accessibility 能力；Yak UI 自己拥有公开 Props、Design Token 和视觉 Contract。业务层禁止直接导入 Base UI。
+禁止：
 
-Shared 不知道 Login、Datasource、Project、Session、Workflow 等产品语义。
+```text
+packages/yak-ui   ✕→ packages/datasource
+packages/yak-ui   ✕→ apps/web
+packages/datasource ✕→ apps/web
+packages/datasource ✕→ Router / AppLayout / AuthProvider
+```
 
-一个组件只被 Datasource 使用，不代表它应该进入 Shared。
+Migration bridge 中旧 Datasource 仍依赖 `src/service/**` 与 `src/shared/**`，只允许在迁移期间存在。
+
+## apps/web
+
+`apps/web` 拥有浏览器应用组装：
+
+- React mount。
+- Router。
+- 应用级 Provider。
+- App Layout。
+- Login。
+- 全局样式。
+- 应用级认证 Service。
+
+App 回答“产品如何组合”，不回答“Datasource 如何实现”。
+
+Datasource 路由固定通过：
+
+```ts
+import { DataSourcePage } from "@yak-ops/datasource"
+```
+
+App 禁止直接 import `src/pages/data-source`。
+
+详细规则见 `apps/web/APP_RULES.md`。
+
+## packages/datasource
+
+`packages/datasource` 是 Datasource 前端唯一产品 owner。
+
+PR1 只建立 public package boundary；后续重构目标为：
+
+```text
+packages/datasource/src/
+├── api/
+├── model/
+├── management/
+├── editor/
+├── connection/
+├── plugin/
+└── index.ts
+```
+
+目录按 capability owner 划分，不建立全局 `components/hooks/utils/types` 大桶。
+
+详细规则见 `packages/datasource/DATASOURCE_UI_RULES.md`。
+
+## packages/yak-ui
+
+`packages/yak-ui` 拥有无业务语义的 UI Primitive：
+
+```text
+Button
+Input
+Select
+...
+```
+
+固定依赖：
+
+```text
+product code
+    ↓
+@yak-ops/yak-ui
+    ↓
+@base-ui/react
+```
+
+Yak UI 自己拥有 Props Contract、Design Token 和视觉状态。
+
+详细规则见 `packages/yak-ui/UI_RULES.md`。
+
+## Service Boundary
+
+当前 HTTP transport 暂留 `src/service/http`。
+
+长期方向：
+
+- App 专属认证调用归 `apps/web`。
+- Datasource API 归 `packages/datasource/api`。
+- 通用 HTTP transport 如果形成稳定跨 package owner，再独立定义 shared infrastructure package。
+
+禁止把 HTTP transport 塞进 Yak UI。
 
 ## State Boundary
 
 状态按事实来源归属：
 
-- URL 已表达的状态归 URL。
-- 后端业务事实以 Service 返回值为准。
-- 当前交互拥有的可变 UI 状态使用 React state。
-- 应用级认证状态归 `app/providers`。
-- 不为了减少 props 提前引入全局 Store。
+- URL 状态归 Router。
+- 应用级认证状态归 App Provider。
+- Datasource 业务事实归 Datasource package。
+- Primitive interaction state 归 Yak UI。
+- 后端事实以 API 响应为准。
 
-不要复制同一份状态形成第二事实来源。
-
-## Routing Boundary
-
-React Router 是唯一浏览器路由 owner。
-
-- 路由注册只在 `app/router`。
-- Page / Feature 使用 React Router API。
-- 不直接维护 `window.history` / `popstate`。
-- 当前只发布 `/login` 与 `/data-source`。
-- 未发布能力不创建隐藏路由或占位菜单。
+不要复制同一事实来源形成第二份 state。
 
 ## Asset Boundary
 
-资源按 owner 放置：
+- App 全局样式 → `apps/web/src/app/styles`。
+- Yak UI Design Token → `packages/yak-ui/src/styles.css`。
+- Product package 私有资源 → 对应 package。
+- Login 视频 / App 字体当前暂留 migration bridge，后续单独搬迁二进制资源。
 
-- app 全局资源 → `app/styles`。
-- Page 私有资源 → Page 内。
-- Feature 私有资源 → Feature 内。
-- 需要稳定 URL 的资源才进入 `public/`。
+## Package Manager
 
-不要重新创建按文件类型划分的 `font/image/css` 顶层桶。
+Yak Ops UI 继续使用 npm。
+
+根 `package.json` 使用 npm workspaces：
+
+```text
+apps/*
+packages/*
+```
+
+PR1 不切换 pnpm / yarn，避免把 package-manager migration 与 architecture migration 混在一起。
 
 ## Current Non-Goals
 
-当前不引入：
+PR1 不做：
 
-- Zustand。
-- TanStack Query。
-- Redux。
-- 第二套路由框架。
-- 第二套 HTTP Client。
-- 新的产品页面。
-- 为了目录对称创建空 Feature。
-- 独立发布的 Yak UI npm package / workspace；当前先由 `src/shared/ui` 承载。
-
-这些能力必须由真实问题驱动。
+- Datasource 内部 capability 重构。
+- Ant Design 删除。
+- Form / Dialog / Drawer 等 Yak UI 扩展。
+- pnpm / Turborepo。
+- Zustand / Redux / TanStack Query。
+- 新产品页面。
 
 ## Verification
 
-架构规则由可执行工具约束：
+完整前端验证：
 
 ```bash
 cd yak-ops-ui
 npm run check
 npm run build
+```
+
+验证范围必须覆盖：
+
+```text
+apps
+packages
+src migration bridge
+vite.config.ts
 ```
 
 工具定义见 `docs/tooling.md`。

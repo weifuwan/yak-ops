@@ -9,7 +9,7 @@ import {
 import {
   getCurrentUser,
   type AuthUser,
-} from "@/service/auth";
+} from "../../service/auth";
 
 interface AuthContextValue {
   currentUser?: AuthUser;

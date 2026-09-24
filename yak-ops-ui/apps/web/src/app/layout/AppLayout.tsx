@@ -3,8 +3,8 @@ import { ChevronDown, Database, LogOut } from "lucide-react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-import { useAuth } from "@/app/providers/AuthProvider";
-import { logout } from "@/service/auth";
+import { logout } from "../../service/auth";
+import { useAuth } from "../providers/AuthProvider";
 
 export default function AppLayout() {
   const navigate = useNavigate();
