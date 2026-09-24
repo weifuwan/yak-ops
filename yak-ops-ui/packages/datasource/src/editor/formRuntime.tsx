@@ -43,7 +43,7 @@ export class DataSourceFormValidationError extends Error {
   }
 }
 
-export interface DataSourceFormInstance<T extends Record<string, unknown> = Record<string, unknown>> {
+export interface DataSourceFormInstance<T extends object = Record<string, unknown>> {
   getFieldValue: (name: FormNamePath) => unknown;
   getFieldsValue: (_all?: boolean) => T;
   getFieldError: (name: FormNamePath) => string[];
@@ -157,7 +157,7 @@ const validateRule = async (
 };
 
 const createDataSourceForm = <
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 >(): DataSourceFormInstance<T> => {
   let values = {} as T;
   let version = 0;
@@ -171,7 +171,7 @@ const createDataSourceForm = <
   };
 
   const setValue = (name: FormNamePath, value: unknown, clearError = true) => {
-    values = setAtPath(values, name, value) as T;
+    values = setAtPath(values as Record<string, unknown>, name, value) as T;
     if (clearError) errors.delete(pathKey(name));
   };
 
@@ -262,7 +262,7 @@ type AnyFormInstance = DataSourceFormInstance<any>;
 const FormContext = createContext<AnyFormInstance | null>(null);
 
 export function useDataSourceForm<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T extends object = Record<string, unknown>,
 >(): DataSourceFormInstance<T> {
   const ref = useRef<DataSourceFormInstance<T>>();
   if (!ref.current) ref.current = createDataSourceForm<T>();
@@ -285,7 +285,7 @@ export function useDataSourceFormInstance() {
   return form;
 }
 
-export function useFormValues<T extends Record<string, unknown>>(
+export function useFormValues<T extends object>(
   form: DataSourceFormInstance<T>,
 ): T {
   useSyncExternalStore(form.subscribe, form.getVersion, form.getVersion);
