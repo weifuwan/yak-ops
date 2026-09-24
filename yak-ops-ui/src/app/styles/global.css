@@ -43,6 +43,27 @@
   --yak-components-button-danger-text: #d92d20;
 
   --yak-components-button-focus-ring: rgba(37, 40, 50, 0.12);
+
+  --yak-components-input-bg: #f6f7f9;
+  --yak-components-input-bg-hover: #f2f3f5;
+  --yak-components-input-bg-focus: #ffffff;
+  --yak-components-input-bg-disabled: #f4f4f6;
+  --yak-components-input-text: #252832;
+  --yak-components-input-text-disabled: #9ca0a9;
+  --yak-components-input-placeholder: #8f949e;
+  --yak-components-input-icon: #8f949e;
+  --yak-components-input-border-hover: #e2e4e8;
+  --yak-components-input-border-focus: #b7bbc3;
+  --yak-components-input-border-danger: #d92d20;
+  --yak-components-input-focus-ring: rgba(37, 40, 50, 0.09);
+  --yak-components-input-danger-ring: rgba(217, 45, 32, 0.1);
+
+  --yak-components-select-bg: #ffffff;
+  --yak-components-select-border: #e7e9ed;
+  --yak-components-select-shadow: 0 10px 30px rgba(31, 35, 41, 0.14);
+  --yak-components-select-item-text: #343841;
+  --yak-components-select-item-bg-hover: #f5f6f8;
+  --yak-components-select-indicator: #252832;
 }
 
 html,

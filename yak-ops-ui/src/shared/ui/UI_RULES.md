@@ -42,6 +42,11 @@ DOM
 - Button 第一版只提供 `primary / secondary / ghost / danger` 四种视觉意图。
 - Button 第一版只提供 `small / medium / large` 三种尺寸。
 - Button loading 必须阻止重复触发，同时保留明确的 busy 状态。
+- Input 第一版只提供 `small / medium / large` 三种尺寸；invalid 状态使用 `aria-invalid` / Base UI Field state，不新增第二套错误状态事实来源。
+- Input 不拥有 Label、Description、Error Message、Prefix / Suffix 等组合能力；这些出现真实复用需求后再建立独立边界。
+- Select 使用组合式 Primitive：`Select / SelectTrigger / SelectValue / SelectContent / SelectItem`。
+- Select 的 keyboard navigation、focus restore、popup interaction、selection semantics 交给 Base UI；Yak UI 只拥有公开组合 Contract 与视觉。
+- Select 不新增把 `options / searchable / clearable / renderOption` 等便利能力堆在一起的超级组件 API；selection mode 由 Root Contract 表达，其它能力优先通过组合扩展。
 - `className` 只作为布局、定位和必要的局部 escape hatch，不用于重新发明 Primitive 的核心视觉状态。
 - 只有真实、稳定、重复使用的 UI Boundary 才新增 Primitive。
 
@@ -56,14 +61,16 @@ DOM
 
 ## Current Scope
 
-PR1 只建立：
+当前 Yak UI Foundation 已包含：
 
 ```text
-Yak UI Foundation
-└── Button
+Yak UI
+├── Button
+├── Input
+└── Select
 ```
 
-Input 与 Select 属于后续 PR，不在当前 PR 扩展。
+这一层只解决通用 Primitive。Form / Field、Checkbox、Switch、Dialog 等能力继续由真实需求驱动，不提前扩展。
 
 ## Boundary
 
