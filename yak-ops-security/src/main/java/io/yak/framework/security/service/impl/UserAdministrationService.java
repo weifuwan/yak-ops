@@ -99,8 +99,7 @@ public class UserAdministrationService {
   /**
    * 管理员重置指定用户密码。
    *
-   * <p>密码写入成功后立即注销该账号的所有登录态。Sa-Token 模式下这是主动、
-   * 跨设备的账号级注销；旧 Session 模式仍由原有凭证版本校验完成兼容失效。</p>
+   * <p>密码写入成功后立即注销该账号当前已登记的 HttpSession 登录态。</p>
    *
    * @param userId 用户 ID
    * @param request 重置密码请求

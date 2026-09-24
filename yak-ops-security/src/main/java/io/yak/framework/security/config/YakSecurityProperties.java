@@ -24,54 +24,38 @@ public class YakSecurityProperties {
   private boolean webEnabled = true;
   private boolean authenticationEnabled = true;
 
-  private List<String> publicPaths = new ArrayList<String>(Arrays.asList(
-          "/yak-security/api/v1/account/login",
-          "/yak-security/api/v1/common/heart",
-          "/v3/api-docs/**",
-          "/swagger-ui/**",
-          "/swagger-ui.html"
-  ));
+  private List<String> publicPaths =
+          new ArrayList<String>(Arrays.asList(
+                  "/yak-security/api/v1/account/login",
+                  "/v3/api-docs/**",
+                  "/swagger-ui/**",
+                  "/swagger-ui.html"
+          ));
 
   private boolean auditEnabled = true;
   private String applicationName;
 
-  private final DataSourceProperties datasource = new DataSourceProperties();
-  private final AuthenticationProperties authentication = new AuthenticationProperties();
-  private final BootstrapProperties bootstrap = new BootstrapProperties();
-  private final PermissionRegistrationProperties permissionRegistration =
+  private final DataSourceProperties datasource =
+          new DataSourceProperties();
+  private final AuthenticationProperties authentication =
+          new AuthenticationProperties();
+  private final BootstrapProperties bootstrap =
+          new BootstrapProperties();
+  private final PermissionRegistrationProperties
+          permissionRegistration =
           new PermissionRegistrationProperties();
-  private final PermissionCacheProperties permissionCache = new PermissionCacheProperties();
-  private final LoginSecurityProperties login = new LoginSecurityProperties();
-
-  /** Sa-Token login-state persistence. */
-  public enum AuthenticationStorage {
-    MEMORY,
-    REDIS
-  }
+  private final PermissionCacheProperties permissionCache =
+          new PermissionCacheProperties();
+  private final LoginSecurityProperties login =
+          new LoginSecurityProperties();
 
   @Getter
   @Setter
   @ToString
   public static class AuthenticationProperties {
-    /** Maximum idle time for an authenticated Sa-Token login state. */
-    private Duration idleTimeout = Duration.ofMinutes(30);
-
-    /** Memory for local development, Redis for shared multi-instance login state. */
-    private AuthenticationStorage storage = AuthenticationStorage.MEMORY;
-
-    private final RedisStorageProperties redis = new RedisStorageProperties();
-  }
-
-  @Getter
-  @Setter
-  @ToString
-  public static class RedisStorageProperties {
-    private String host = "127.0.0.1";
-    private int port = 6379;
-    @ToString.Exclude
-    private String password;
-    private int database = 0;
-    private int maxTotal = 64;
+    /** HttpSession 最大无操作时间。 */
+    private Duration idleTimeout =
+            Duration.ofMinutes(30);
   }
 
   @Getter
@@ -79,7 +63,8 @@ public class YakSecurityProperties {
   @ToString
   public static class LoginSecurityProperties {
     private int maxFailureCount = 5;
-    private Duration lockDuration = Duration.ofMinutes(15);
+    private Duration lockDuration =
+            Duration.ofMinutes(15);
     private boolean hideAccountNotFound = true;
   }
 
@@ -111,10 +96,14 @@ public class YakSecurityProperties {
   }
 
   public void validateDatabaseConfiguration() {
-    if (!enabled || !databaseEnabled || !datasource.isEnabled()) {
+    if (!enabled
+            || !databaseEnabled
+            || !datasource.isEnabled()) {
       return;
     }
-    requireText(applicationName, PREFIX + ".application-name");
+    requireText(
+            applicationName,
+            PREFIX + ".application-name");
     datasource.validate();
   }
 
@@ -127,7 +116,8 @@ public class YakSecurityProperties {
     private String username;
     @ToString.Exclude
     private String password;
-    private String driverClassName = "com.mysql.cj.jdbc.Driver";
+    private String driverClassName =
+            "com.mysql.cj.jdbc.Driver";
     private int initialSize = 1;
     private int minIdle = 1;
     private int maxActive = 8;
@@ -138,49 +128,80 @@ public class YakSecurityProperties {
     private boolean testOnReturn = false;
 
     private void validate() {
-      requireText(url, PREFIX + ".datasource.url");
-      requireText(username, PREFIX + ".datasource.username");
-      requireText(driverClassName, PREFIX + ".datasource.driver-class-name");
+      requireText(
+              url,
+              PREFIX + ".datasource.url");
+      requireText(
+              username,
+              PREFIX + ".datasource.username");
+      requireText(
+              driverClassName,
+              PREFIX
+                      + ".datasource.driver-class-name");
 
       if (initialSize < 0) {
-        throw invalidProperty(PREFIX + ".datasource.initial-size",
+        throw invalidProperty(
+                PREFIX + ".datasource.initial-size",
                 "must be greater than or equal to 0");
       }
       if (minIdle < 0) {
-        throw invalidProperty(PREFIX + ".datasource.min-idle",
+        throw invalidProperty(
+                PREFIX + ".datasource.min-idle",
                 "must be greater than or equal to 0");
       }
       if (maxActive <= 0) {
-        throw invalidProperty(PREFIX + ".datasource.max-active", "must be greater than 0");
+        throw invalidProperty(
+                PREFIX + ".datasource.max-active",
+                "must be greater than 0");
       }
       if (initialSize > maxActive) {
-        throw invalidProperty(PREFIX + ".datasource.initial-size",
+        throw invalidProperty(
+                PREFIX + ".datasource.initial-size",
                 "must not be greater than max-active");
       }
       if (minIdle > maxActive) {
-        throw invalidProperty(PREFIX + ".datasource.min-idle",
+        throw invalidProperty(
+                PREFIX + ".datasource.min-idle",
                 "must not be greater than max-active");
       }
       if (maxWait < -1L) {
-        throw invalidProperty(PREFIX + ".datasource.max-wait",
+        throw invalidProperty(
+                PREFIX + ".datasource.max-wait",
                 "must be -1 or greater than or equal to 0");
       }
 
-      boolean connectionValidationEnabled = testWhileIdle || testOnBorrow || testOnReturn;
-      if (connectionValidationEnabled && !StringUtils.hasText(validationQuery)) {
-        throw invalidProperty(PREFIX + ".datasource.validation-query",
+      boolean connectionValidationEnabled =
+              testWhileIdle
+                      || testOnBorrow
+                      || testOnReturn;
+      if (connectionValidationEnabled
+              && !StringUtils.hasText(
+                      validationQuery)) {
+        throw invalidProperty(
+                PREFIX
+                        + ".datasource.validation-query",
                 "must not be blank when connection validation is enabled");
       }
     }
   }
 
-  private static void requireText(String value, String key) {
+  private static void requireText(
+          String value,
+          String key) {
     if (!StringUtils.hasText(value)) {
-      throw new IllegalStateException("Missing required configuration: " + key);
+      throw new IllegalStateException(
+              "Missing required configuration: "
+                      + key);
     }
   }
 
-  private static IllegalStateException invalidProperty(String key, String message) {
-    return new IllegalStateException("Invalid configuration: " + key + " " + message);
+  private static IllegalStateException invalidProperty(
+          String key,
+          String message) {
+    return new IllegalStateException(
+            "Invalid configuration: "
+                    + key
+                    + " "
+                    + message);
   }
 }

@@ -1,65 +1,48 @@
 # Security Rules
 
 Scope:
-- `yak-ops-security/**`
+- yak-ops-security/**
 
 Depends On:
-- `/ARCHITECTURE.md`
-- `/JAVA_RULES.md`
-- Controller changes also load `/CONTROLLER_RULES.md`
+- /ARCHITECTURE.md
+- /JAVA_RULES.md
+- Controller changes also load /CONTROLLER_RULES.md
 
 Owns:
 - user management
-- login / logout / current identity
+- login / logout / current user
 - authentication session runtime
-- permissions required by current Datasource APIs
-- role and project membership required by current identity and Project Space
 - security database schema and migration
 
-## Current Fact
+## Current Product Boundary
 
-Security code was migrated from `yak-framework/yak-security` into this repository.
+Yak Ops 当前只发布两组 Security API：
 
-The Java namespace `io.yak.framework.security` is temporarily preserved to avoid mixing dependency removal with a broad namespace rewrite.
+- /yak-security/api/v1/account/**
+- /yak-security/api/v1/user/**
 
-This module is now the source owner. Do not add `io.github.weifuwan:yak-security-spring-boot-starter` back.
+Role、Permission、Department、Project、Message、Oplog、Resource 等历史迁移代码不再作为当前对外 Security API。
 
-## Product Focus
+Java namespace io.yak.framework.security 暂时保留，避免把依赖清理和包名迁移混在同一次改造中。
 
-The primary supported product capabilities are:
+## Authentication
 
-```text
-User Management
-Login / Logout
-Current User
-Datasource Permission Check
-Project Membership / Project Access
-```
+登录态统一使用 Servlet HttpSession。
 
-Other migrated Security code exists for behavior compatibility but is not a reason to expand Yak Ops product scope. When touched, prefer removal or simplification unless current behavior still requires it.
+浏览器通过 JSESSIONID Cookie 携带登录态，不再依赖第三方 Token 框架，也不再维护独立 Redis Token 存储。
 
 ## Must
 
-- keep authentication implementation behind the existing AuthenticationManager / CurrentUser boundaries.
 - keep passwords encoded and never return stored password hashes.
 - keep login errors stable and avoid leaking sensitive credential detail.
-- keep current-user permission/project resolution fail-closed.
-- keep permission annotations declarative at Controller boundaries.
+- keep authentication implementation behind AuthenticationManager.
 - keep database migration ownership inside this module.
-- reuse the internal `io.yak.framework.common` contracts from `yak-ops-common`.
+- reuse io.yak.framework.common contracts from yak-ops-common.
 
 ## Must Not
 
 - depend on external yak-framework modules.
-- create a second authentication stack beside Sa-Token.
-- bypass UserService / ProjectService with ad hoc SQL from Boot or Datasource.
-- add new Message / Oplog / Resource security features unless a current Datasource requirement needs them.
+- add another Token / RBAC framework as a replacement.
+- expose new Role / Permission / Department / Project / Message / Oplog / Resource Security APIs.
+- bypass UserService with ad hoc user SQL from Boot or Datasource.
 - recreate removed tests or CI as a side effect.
-
-## Boundary
-
-Security owns identity and authorization facts.
-
-Datasource owns Datasource business policy.
-
-Boot owns final assembly and Project Space adapter code.

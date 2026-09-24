@@ -12,7 +12,7 @@
 
     <artifactId>yak-ops-security</artifactId>
     <name>Yak Ops Security</name>
-    <description>Yak Ops user, login, permission and project security runtime</description>
+    <description>Yak Ops user management and login runtime</description>
 
     <dependencies>
         <dependency>
@@ -20,16 +20,6 @@
             <artifactId>yak-ops-common</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>cn.dev33</groupId>
-            <artifactId>sa-token-spring-boot3-starter</artifactId>
-            <version>1.45.0</version>
-        </dependency>
-        <dependency>
-            <groupId>cn.dev33</groupId>
-            <artifactId>sa-token-redisx</artifactId>
-            <version>1.45.0</version>
-        </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>

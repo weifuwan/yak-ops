@@ -38,17 +38,6 @@ springdoc:
     operations-sorter: alpha
     tags-sorter: alpha
 
-# Sa-Token 原生登录态治理。Yak Ops 不直接依赖 Sa-Token API，只通过配置控制行为。
-sa-token:
-  # 绝对登录有效期，单位秒；默认 24 小时。
-  timeout: ${YAK_SECURITY_LOGIN_TIMEOUT_SECONDS:86400}
-  # 是否允许同一账号多终端同时在线。
-  is-concurrent: ${YAK_SECURITY_LOGIN_CONCURRENT:true}
-  # 多终端登录时不共享 Token，便于独立失效和治理。
-  is-share: ${YAK_SECURITY_LOGIN_SHARE:false}
-  # 同一账号最大同时登录数量；-1 表示不限。
-  max-login-count: ${YAK_SECURITY_MAX_LOGIN_COUNT:5}
-
 yak:
   # 数据库连接参数统一定义于此；yak.security.datasource 默认复用本节值。
   # 可通过 YAK_DATABASE_* 覆盖本节，或通过 YAK_SECURITY_DATASOURCE_* 单独覆盖安全数据源。
@@ -70,20 +59,11 @@ yak:
     audit-enabled: true
     application-name: ${YAK_SECURITY_APPLICATION_NAME:${spring.application.name}}
     authentication:
-      # Sa-Token 无操作超时。
+      # HttpSession 无操作超时。
       idle-timeout: ${YAK_SECURITY_AUTHENTICATION_IDLE_TIMEOUT:30m}
-      # 本地默认内存；多实例生产环境设置为 redis。
-      storage: ${YAK_SECURITY_AUTHENTICATION_STORAGE:memory}
-      redis:
-        host: ${YAK_SECURITY_REDIS_HOST:127.0.0.1}
-        port: ${YAK_SECURITY_REDIS_PORT:6379}
-        password: ${YAK_SECURITY_REDIS_PASSWORD:}
-        database: ${YAK_SECURITY_REDIS_DATABASE:0}
-        max-total: ${YAK_SECURITY_REDIS_MAX_TOTAL:64}
     public-paths:
       - /api/test/ping
       - /yak-security/api/v1/account/login
-      - /yak-security/api/v1/common/heart
       - /v3/api-docs/**
       - /swagger-ui/**
       - /swagger-ui.html
