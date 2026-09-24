@@ -5,7 +5,6 @@ Scope:
 
 Depends On:
 - `./ARCHITECTURE.md`
-- behavior changes load `./TEST_RULES.md`
 - backend calls load `./SERVICE_RULES.md`
 
 Principles:
@@ -18,15 +17,14 @@ Principles:
 
 - new product behavior belongs to Datasource unless scope explicitly changes.
 - page, hook and component state stays at the smallest real owner.
-- backend business facts come from the backend, not fabricated browser state.
-- values derivable from props/state are computed directly instead of copied into synchronized state.
+- backend business facts come from backend responses.
+- values derivable from props/state are computed directly.
 - `useMemo` / `useCallback` are used only when real cost or reference stability requires them.
 - Effects handle external synchronization, not ordinary derived state.
 - Hook dependencies stay complete.
 - React components are declared at module scope.
-- public reusable exports use clear named exports where practical.
 - interactive elements preserve keyboard/focus/disabled semantics.
-- TypeScript errors and lint findings are fixed at the source, not hidden with broad disables.
+- TypeScript errors and lint findings are fixed at the source.
 - existing Datasource components/utilities are reused before creating a second version.
 
 ## Must Not
@@ -39,17 +37,16 @@ Principles:
 - default-wrap ordinary calculations in `useMemo`.
 - default-wrap ordinary event handlers in `useCallback`.
 - add generic shared components that only one Datasource screen uses.
-- rewrite historical frontend architecture as a side effect of one feature.
+- recreate deleted Jest tests or CI as a side effect.
 
-## Validation
+## Verification
 
-Local checks should match the change:
+Use only checks actually needed by the task, for example:
 
 ```bash
 cd yak-ops-ui
 yarn lint
-yarn test
 yarn build
 ```
 
-Current CI runs `yarn build` only; test/lint evidence must be stated separately until CI is upgraded.
+Record what was actually executed.

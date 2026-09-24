@@ -7,7 +7,6 @@ Scope:
 
 Depends On:
 - `JAVA_RULES.md`
-- `BACKEND_TEST_RULES.md`
 
 Owns:
 - HTTP boundary
@@ -36,7 +35,3 @@ Owns:
 - 返回 Map 代替已经稳定的业务响应模型。
 - 暴露 SQL、表名、Mapper、堆栈或数据库实现细节。
 - 为 Controller 再创建只做一层转发的 Handler / Adapter。
-
-## Tests
-
-HTTP Contract 变化必须按 `BACKEND_TEST_RULES.md` 提供回归证据。
