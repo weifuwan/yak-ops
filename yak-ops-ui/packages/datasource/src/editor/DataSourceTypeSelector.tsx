@@ -1,5 +1,6 @@
 import {
   Button,
+  Empty,
   Input,
   Select,
   SelectContent,
@@ -10,7 +11,6 @@ import {
   SelectValue,
 } from '@yak-ops/yak-ui';
 import { useIntl } from '../i18n';
-import { Empty } from 'antd';
 import { Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -242,7 +242,6 @@ const DataSourceTypeSelector = ({
         {filteredDataSources.length === 0 ? (
           <div className="flex min-h-0 flex-1 items-center justify-center px-5 py-8">
             <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={intl.formatMessage({
                 id: 'pages.datasource.typeSelector.empty',
               })}
