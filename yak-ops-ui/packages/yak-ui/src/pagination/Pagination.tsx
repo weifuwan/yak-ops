@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Button } from "../button";
 import { NumberField, NumberFieldGroup, NumberFieldInput } from "../number-field";
@@ -55,6 +55,11 @@ export function Pagination({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const [jumpPage, setJumpPage] = useState<number | null>(currentPage);
+
+  useEffect(() => {
+    setJumpPage(currentPage);
+  }, [currentPage]);
+
   const items = useMemo(() => buildItems(currentPage, totalPages), [currentPage, totalPages]);
   const start = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, total);

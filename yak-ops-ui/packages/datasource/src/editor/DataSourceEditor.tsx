@@ -1,15 +1,28 @@
-import { Button } from '@yak-ops/yak-ui';
+import {
+  Button,
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerDescription,
+  DrawerTitle,
+  toast,
+} from "@yak-ops/yak-ui";
+import { X } from "lucide-react";
+import {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
+
 import {
   createDataSource,
   testDataSourceConnectionWithParams,
   updateDataSource,
-} from '../api';
-import { useIntl } from '../i18n';
-import { Drawer, Form, message } from 'antd';
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-
-import { getDataSourceGroupList } from '../model/constants';
-import DatabaseIcons from '../model/icons/DatabaseIcons';
+} from "../api";
+import { useIntl } from "../i18n";
+import { getDataSourceGroupList } from "../model/constants";
+import DatabaseIcons from "../model/icons/DatabaseIcons";
 import type { DataSourceRecord } from "../model/types";
 import {
   DataSourceOperateType,
@@ -21,21 +34,21 @@ import {
   buildSubmitPayload,
   normalizeConnectionFormValues,
   parseOriginalJson,
-} from './formModel';
-import DataSourceTypeSelector from './DataSourceTypeSelector';
-import DynamicDataSourceForm from './DynamicDataSourceForm';
-import './DataSourceEditorDrawer.less';
+} from "./formModel";
+import { useDataSourceForm } from "./formRuntime";
+import DataSourceTypeSelector from "./DataSourceTypeSelector";
+import DynamicDataSourceForm from "./DynamicDataSourceForm";
 
 const DRAWER_WIDTH = 620;
 
 const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
   const intl = useIntl();
-  const [basicForm] = Form.useForm<DataSourceFormValues>();
-  const [configForm] = Form.useForm<Record<string, unknown>>();
+  const basicForm = useDataSourceForm<DataSourceFormValues>();
+  const configForm = useDataSourceForm<Record<string, unknown>>();
   const [open, setOpen] = useState(false);
   const [operateType, setOperateType] = useState(DataSourceOperateType.Create);
   const [currentRecord, setCurrentRecord] = useState<DataSourceRecord>();
-  const [selectedDbType, setSelectedDbType] = useState('');
+  const [selectedDbType, setSelectedDbType] = useState("");
   const [showFormStep, setShowFormStep] = useState(false);
   const [hideBackButton, setHideBackButton] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -49,7 +62,7 @@ const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
 
   const resetEditorState = () => {
     setCurrentRecord(undefined);
-    setSelectedDbType('');
+    setSelectedDbType("");
     setShowFormStep(false);
     setHideBackButton(false);
     setTesting(false);
@@ -60,19 +73,14 @@ const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
   };
 
   const handleClose = () => {
-    if (busy) return;
-    setOpen(false);
-  };
-
-  const handleAfterOpenChange = (visible: boolean) => {
-    if (!visible) resetEditorState();
+    if (!busy) setOpen(false);
   };
 
   const initializeEditForm = (record: DataSourceRecord) => {
     basicForm.setFieldsValue({
-      name: record.name || '',
-      environment: record.environment || '',
-      remark: record.remark || '',
+      name: record.name || "",
+      environment: record.environment || "",
+      remark: record.remark || "",
     });
   };
 
@@ -90,7 +98,7 @@ const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
       setCurrentRecord(nextRecord);
 
       if (nextOperateType === DataSourceOperateType.Edit && nextRecord) {
-        setSelectedDbType(nextRecord.dbType || '');
+        setSelectedDbType(nextRecord.dbType || "");
         setShowFormStep(true);
         setHideBackButton(true);
         initializeEditForm(nextRecord);
@@ -116,7 +124,7 @@ const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
   const handleBackToTypeSelection = () => {
     if (busy) return;
     setShowFormStep(false);
-    setSelectedDbType('');
+    setSelectedDbType("");
     setHideBackButton(false);
     basicForm.resetFields();
     configForm.resetFields();
@@ -140,12 +148,12 @@ const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
       });
 
       if (connected) {
-        message.success(
-          intl.formatMessage({ id: 'pages.datasource.test.success' }),
+        toast.success(
+          intl.formatMessage({ id: "pages.datasource.test.success" }),
         );
       }
     } catch (error) {
-      if (error && typeof error === 'object' && 'errorFields' in error) return;
+      if (error && typeof error === "object" && "errorFields" in error) return;
     } finally {
       setTesting(false);
     }
@@ -173,17 +181,17 @@ const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
       }
 
       const successCallback = successCallbackRef.current;
-      message.success(
+      toast.success(
         intl.formatMessage({
           id: isCreateMode
-            ? 'pages.datasource.modal.message.createSuccess'
-            : 'pages.datasource.modal.message.updateSuccess',
+            ? "pages.datasource.modal.message.createSuccess"
+            : "pages.datasource.modal.message.updateSuccess",
         }),
       );
       setOpen(false);
       successCallback?.();
     } catch (error) {
-      if (error && typeof error === 'object' && 'errorFields' in error) return;
+      if (error && typeof error === "object" && "errorFields" in error) return;
     } finally {
       setSubmitting(false);
     }
@@ -191,130 +199,126 @@ const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
 
   const drawerTitle = intl.formatMessage({
     id: isEditMode
-      ? 'pages.datasource.modal.drawerTitle.edit'
-      : 'pages.datasource.modal.drawerTitle.add',
+      ? "pages.datasource.modal.drawerTitle.edit"
+      : "pages.datasource.modal.drawerTitle.add",
   });
 
-  const renderFooter = () => {
-    if (!showFormStep) {
-      return (
-        <div className="flex justify-end">
-          <Button variant="ghost" disabled={busy} onClick={handleClose}>
-            {intl.formatMessage({ id: 'pages.datasource.modal.button.cancel' })}
+  const footer = showFormStep ? (
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        {isCreateMode && !hideBackButton ? (
+          <Button disabled={busy} onClick={handleBackToTypeSelection}>
+            {intl.formatMessage({ id: "pages.datasource.modal.button.lastStep" })}
           </Button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          {isCreateMode && !hideBackButton ? (
-            <Button disabled={busy} onClick={handleBackToTypeSelection}>
-              {intl.formatMessage({ id: 'pages.datasource.modal.button.lastStep' })}
-            </Button>
-          ) : (
-            <Button disabled={busy} onClick={handleClose}>
-              {intl.formatMessage({ id: 'pages.datasource.modal.button.cancel' })}
-            </Button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            loading={testing}
-            disabled={submitting}
-            onClick={() => void handleTestConnection()}
-          >
-            {intl.formatMessage({ id: 'pages.datasource.modal.button.connTest' })}
+        ) : (
+          <Button disabled={busy} onClick={handleClose}>
+            {intl.formatMessage({ id: "pages.datasource.modal.button.cancel" })}
           </Button>
-
-          <Button
-            variant="primary"
-            loading={submitting}
-            disabled={testing}
-            onClick={() => void handleSubmit()}
-          >
-            {intl.formatMessage({
-              id: isCreateMode
-                ? 'pages.datasource.modal.button.create'
-                : 'pages.datasource.modal.button.save',
-            })}
-          </Button>
-        </div>
+        )}
       </div>
-    );
-  };
+
+      <div className="flex items-center gap-2">
+        <Button
+          loading={testing}
+          disabled={submitting}
+          onClick={() => void handleTestConnection()}
+        >
+          {intl.formatMessage({ id: "pages.datasource.modal.button.connTest" })}
+        </Button>
+        <Button
+          variant="primary"
+          loading={submitting}
+          disabled={testing}
+          onClick={() => void handleSubmit()}
+        >
+          {intl.formatMessage({
+            id: isCreateMode
+              ? "pages.datasource.modal.button.create"
+              : "pages.datasource.modal.button.save",
+          })}
+        </Button>
+      </div>
+    </div>
+  ) : (
+    <div className="flex justify-end">
+      <Button variant="ghost" disabled={busy} onClick={handleClose}>
+        {intl.formatMessage({ id: "pages.datasource.modal.button.cancel" })}
+      </Button>
+    </div>
+  );
 
   return (
     <Drawer
-      className="datasource-editor-drawer"
-      width={DRAWER_WIDTH}
-      placement="right"
       open={open}
-      maskClosable={false}
-      closable={!busy}
-      keyboard={!busy}
-      onClose={handleClose}
-      afterOpenChange={handleAfterOpenChange}
-      destroyOnClose
-      styles={{
-        header: {
-          padding: '15px 20px',
-          borderBottom: '1px solid #EEF0F3',
-        },
-        body: {
-          padding: 0,
-          overflow: 'hidden',
-          background: '#FFFFFF',
-        },
-        footer: {
-          padding: '12px 20px',
-          borderTop: '1px solid #EEF0F3',
-          background: '#FFFFFF',
-        },
+      side="right"
+      disablePointerDismissal={busy}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && busy) return;
+        setOpen(nextOpen);
       }}
-      title={
-        <div className="flex min-w-0 items-center gap-3 pr-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#EAECF0] bg-[#F7F8FA]">
+      onOpenChangeComplete={(visible) => {
+        if (!visible) resetEditorState();
+      }}
+    >
+      <DrawerContent width={DRAWER_WIDTH} className="bg-white">
+        <div className="flex items-center gap-3 border-b border-[#eef0f3] px-5 py-[15px]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#eaecf0] bg-[#f7f8fa]">
             <DatabaseIcons dbType={selectedDbType} width="18" height="18" />
           </div>
-          <div className="min-w-0">
-            <div className="truncate text-[15px] font-semibold leading-6 text-[#161823]">
+          <div className="min-w-0 flex-1">
+            <DrawerTitle className="truncate text-[15px] font-semibold leading-6 text-[#161823]">
               {drawerTitle}
-            </div>
+            </DrawerTitle>
+            <DrawerDescription className="sr-only">
+              {drawerTitle}
+            </DrawerDescription>
           </div>
+          <Button
+            variant="ghost"
+            size="small"
+            disabled={busy}
+            aria-label={intl.formatMessage({ id: "pages.datasource.modal.button.cancel" })}
+            className="h-8 w-8 p-0"
+            onClick={handleClose}
+          >
+            <X size={16} />
+          </Button>
         </div>
-      }
-      footer={renderFooter()}
-    >
-      {showFormStep ? (
-        <div className="datasource-editor-drawer__body datasource-editor-drawer__form h-full overflow-y-auto px-5 py-5">
-          <DynamicDataSourceForm
-            key={`${operateType}-${selectedDbType}-${currentRecord?.id ?? 'create'}`}
-            dbType={selectedDbType}
-            form={basicForm}
-            configForm={configForm}
-            operateType={operateType}
-            initialConfig={
-              isEditMode
-                ? parseOriginalJson(currentRecord?.originalJson)
-                : undefined
-            }
-          />
+
+        <DrawerBody className="p-0">
+          {showFormStep ? (
+            <div className="h-full overflow-y-auto px-5 py-5">
+              <DynamicDataSourceForm
+                key={`${operateType}-${selectedDbType}-${currentRecord?.id ?? "create"}`}
+                dbType={selectedDbType}
+                form={basicForm}
+                configForm={configForm}
+                operateType={operateType}
+                initialConfig={
+                  isEditMode
+                    ? parseOriginalJson(currentRecord?.originalJson)
+                    : undefined
+                }
+              />
+            </div>
+          ) : (
+            <div className="h-full min-h-0 px-5 py-4">
+              <DataSourceTypeSelector
+                dataSourceGroups={dataSourceGroups}
+                onSelect={handleSelectDbType}
+              />
+            </div>
+          )}
+        </DrawerBody>
+
+        <div className="border-t border-[#eef0f3] bg-white px-5 py-3">
+          {footer}
         </div>
-      ) : (
-        <div className="datasource-editor-drawer__body h-full min-h-0 px-5 py-4">
-          <DataSourceTypeSelector
-            dataSourceGroups={dataSourceGroups}
-            onSelect={handleSelectDbType}
-          />
-        </div>
-      )}
+      </DrawerContent>
     </Drawer>
   );
 });
 
-DataSourceEditor.displayName = 'DataSourceEditor';
+DataSourceEditor.displayName = "DataSourceEditor";
 
 export default DataSourceEditor;

@@ -1,4 +1,4 @@
-import type { Rule } from 'antd/es/form';
+import type { FormRule } from '../../formRuntime';
 
 import type {
   DynamicFormField,
@@ -17,11 +17,11 @@ export interface DynamicKeyValueRow {
 export const transformRules = (
   rules: DynamicFormFieldRule[] | undefined,
   fieldType?: DynamicFormField['type'],
-): Rule[] => {
+): FormRule[] => {
   if (!rules) return [];
 
   return rules.map((rule) => {
-    const formRule: Rule = {
+    const formRule: FormRule = {
       message: rule.message,
       ...(fieldType === 'NUMBER' ? { type: 'number' as const } : {}),
     };

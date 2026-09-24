@@ -75,7 +75,7 @@ Yak UI does not provide an Upload product component.
 
 File selection uses native browser file input. Upload request, file type / size policy, progress, retry and backend contract belong to the owning product package.
 
-## AntD Replacement Map
+## Legacy Replacement Reference
 
 ```text
 AntD Button          → Button
@@ -109,7 +109,7 @@ AntD Space           → normal flex / grid layout
 - Yak UI requests APIs or reads product services.
 - Primitive names or Props expose Datasource-specific concepts.
 - Yak UI re-exports raw Base UI components as its public contract without an intentional Yak UI boundary.
-- Add a second UI framework such as Ant Design / MUI / Chakra inside Yak UI.
+- Add Ant Design or a second UI framework such as MUI / Chakra inside Yak UI.
 - Recreate AntD-compatible APIs just to make migration search-and-replace easier.
 - Add future primitives that have no real current migration or product need.
 
@@ -120,6 +120,7 @@ Yak UI
 ├── Badge
 ├── Button
 ├── Collapsible
+├── Combobox
 ├── Dialog
 ├── Drawer
 ├── DropdownMenu
@@ -140,7 +141,7 @@ Yak UI
 └── Tooltip
 ```
 
-This set exists to support the current Yak Ops AntD removal path. New primitives remain problem-driven.
+This set is the current Yak Ops UI foundation. New primitives remain problem-driven.
 
 ## Boundary
 

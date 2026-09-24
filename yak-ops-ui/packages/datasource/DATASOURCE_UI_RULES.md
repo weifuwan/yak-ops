@@ -7,6 +7,7 @@ Owns:
 - Datasource frontend product capability
 - Datasource API contract/adaptation
 - Datasource management / editor / connection / plugin behavior
+- Datasource dynamic form runtime
 
 ## Structure
 
@@ -15,6 +16,11 @@ src/
 ├── api/
 ├── connection/
 ├── editor/
+│   ├── DynamicDataSourceForm/
+│   ├── DataSourceEditor.tsx
+│   ├── formModel.ts
+│   ├── formRuntime.tsx
+│   └── types.ts
 ├── i18n/
 ├── management/
 ├── model/
@@ -35,11 +41,12 @@ Capability owns its component, hook, type and helper. Do not recreate top-level 
 - datasource type selection
 - dynamic connection form
 - payload normalization
+- product form state and validation runtime
 
 `connection`
 - JDBC URL linkage
 - SSH tunnel configuration
-- driver selection / upload UI
+- driver selection / native file upload UI
 
 `plugin`
 - plugin config load/install lifecycle
@@ -69,6 +76,23 @@ api + model
 
 `api` may temporarily use the shared HTTP transport under `src/service/http` until a real cross-package HTTP owner is extracted.
 
+## Form Runtime
+
+`editor/formRuntime.tsx` exists because dynamic Datasource form behavior is a product concern, not a generic UI concern.
+
+It owns only the current required behavior:
+
+- values
+- field registration
+- validation
+- field subscriptions
+- reset / patch
+- dynamic visibility support
+
+Do not turn it into an AntD Form compatibility layer.
+
+If a new form behavior is required, add it only when Datasource has a concrete use case.
+
 ## Must
 
 - App only enters Datasource through the package public entry.
@@ -77,18 +101,28 @@ api + model
 - Product state stays with the capability that owns the behavior.
 - Backend request/response adaptation stays under `api`.
 - Cross-capability stable contracts stay under `model`.
+- Driver file selection uses native browser file input; upload protocol remains under Datasource.
 
 ## Must Not
 
 - Depend on `apps/web`, Router, AppLayout or AuthProvider.
 - Import `src/pages/data-source` or `src/service/datasource`.
+- Import `antd` or `@ant-design/icons`.
+- Recreate Ant Design APIs or compatibility wrappers.
 - Recreate generic Button / Input / Select / Dialog primitives.
 - Add top-level generic `components / hooks / utils / types` buckets.
 - Move one-off capability helpers into `model` just to shorten relative imports.
-- Change backend or product behavior as part of a directory-only refactor.
 
-## AntD Migration
+## UI Boundary
 
-PR3 changes ownership, not UI behavior.
+Ant Design removal is complete.
 
-Existing AntD usage moved with the owning Datasource capability. New AntD usage remains forbidden. The following cleanup PR replaces these usages with Yak UI and removes the dependencies.
+```text
+Datasource business UI
+        ↓
+@yak-ops/yak-ui
+        ↓
+@base-ui/react
+```
+
+Product-only interaction and form state remain inside Datasource.

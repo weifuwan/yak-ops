@@ -1,6 +1,9 @@
-import { useIntl } from '../../i18n';
 import {
   Input,
+  NumberField,
+  NumberFieldGroup,
+  NumberFieldInput,
+  PasswordInput,
   Select,
   SelectContent,
   SelectItem,
@@ -8,11 +11,13 @@ import {
   SelectItemText,
   SelectTrigger,
   SelectValue,
-} from '@yak-ops/yak-ui';
-import { Input as AntInput, InputNumber, Switch } from 'antd';
-import { KeyRound, Network, ShieldCheck } from 'lucide-react';
+  Switch,
+  Textarea,
+} from "@yak-ops/yak-ui";
+import { KeyRound, Network, ShieldCheck } from "lucide-react";
 
-import type { SshTunnelConfigValue } from '../../model/types';
+import { useIntl } from "../../i18n";
+import type { SshTunnelConfigValue } from "../../model/types";
 
 interface IntlFormatter {
   formatMessage: (descriptor: { id: string }) => string;
@@ -20,15 +25,15 @@ interface IntlFormatter {
 
 const DEFAULT_VALUE: SshTunnelConfigValue = {
   enabled: false,
-  host: '',
+  host: "",
   port: 22,
-  username: '',
-  authType: 'PASSWORD',
-  password: '',
-  privateKey: '',
-  passphrase: '',
+  username: "",
+  authType: "PASSWORD",
+  password: "",
+  privateKey: "",
+  passphrase: "",
   strictHostKeyChecking: false,
-  knownHosts: '',
+  knownHosts: "",
 };
 
 export interface SshTunnelManagerProps {
@@ -43,34 +48,28 @@ export const getSshTunnelValidationMessage = (
 ): string | undefined => {
   if (!value?.enabled) return undefined;
   if (!value.host?.trim()) {
-    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.host' });
+    return intl.formatMessage({ id: "pages.datasource.ssh.validation.host" });
   }
   if (!value.port || value.port < 1 || value.port > 65535) {
-    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.port' });
+    return intl.formatMessage({ id: "pages.datasource.ssh.validation.port" });
   }
   if (!value.username?.trim()) {
-    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.username' });
+    return intl.formatMessage({ id: "pages.datasource.ssh.validation.username" });
   }
 
-  const authType = value.authType || 'PASSWORD';
-  if (authType === 'PASSWORD' && !value.password) {
-    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.password' });
+  const authType = value.authType || "PASSWORD";
+  if (authType === "PASSWORD" && !value.password) {
+    return intl.formatMessage({ id: "pages.datasource.ssh.validation.password" });
   }
-  if (authType === 'PRIVATE_KEY' && !value.privateKey?.trim()) {
-    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.privateKey' });
+  if (authType === "PRIVATE_KEY" && !value.privateKey?.trim()) {
+    return intl.formatMessage({ id: "pages.datasource.ssh.validation.privateKey" });
   }
   if (value.strictHostKeyChecking && !value.knownHosts?.trim()) {
-    return intl.formatMessage({ id: 'pages.datasource.ssh.validation.knownHosts' });
+    return intl.formatMessage({ id: "pages.datasource.ssh.validation.knownHosts" });
   }
   return undefined;
 };
 
-/**
- * 标准 SSH 隧道配置组件。
- *
- * 仅通过 value/onChange 与表单交互，不依赖 FormInstance 或特定字段 key，
- * 可以被动态 Schema、普通表单及后续独立连接配置复用。
- */
 const SshTunnelManager = ({
   value,
   onChange,
@@ -98,10 +97,10 @@ const SshTunnelManager = ({
           </span>
           <div className="min-w-0">
             <div className="text-[13px] font-medium leading-5 text-[#344054]">
-              {intl.formatMessage({ id: 'pages.datasource.ssh.enable' })}
+              {intl.formatMessage({ id: "pages.datasource.ssh.enable" })}
             </div>
             <div className="text-[11px] leading-4 text-[#98a2b3]">
-              {intl.formatMessage({ id: 'pages.datasource.ssh.description' })}
+              {intl.formatMessage({ id: "pages.datasource.ssh.description" })}
             </div>
           </div>
         </div>
@@ -109,22 +108,22 @@ const SshTunnelManager = ({
           size="small"
           checked={current.enabled}
           disabled={disabled}
-          onChange={(enabled) => patch({ enabled })}
+          onCheckedChange={(enabled) => patch({ enabled })}
         />
       </div>
 
-      {current.enabled && (
+      {current.enabled ? (
         <div className="border-t border-[#eef0f3] bg-[#fcfcfd] px-3.5 py-3.5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                {intl.formatMessage({ id: 'pages.datasource.ssh.host' })}
+                {intl.formatMessage({ id: "pages.datasource.ssh.host" })}
               </div>
               <Input
                 value={current.host}
                 disabled={disabled}
                 placeholder={intl.formatMessage({
-                  id: 'pages.datasource.ssh.hostPlaceholder',
+                  id: "pages.datasource.ssh.hostPlaceholder",
                 })}
                 onChange={(event) => patch({ host: event.target.value })}
               />
@@ -132,29 +131,30 @@ const SshTunnelManager = ({
 
             <div>
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                {intl.formatMessage({ id: 'pages.datasource.ssh.port' })}
+                {intl.formatMessage({ id: "pages.datasource.ssh.port" })}
               </div>
-              <InputNumber
-                variant="filled"
-                className="!w-full"
+              <NumberField
                 min={1}
                 max={65535}
                 value={current.port}
                 disabled={disabled}
-                placeholder="22"
-                onChange={(port) => patch({ port: port ?? 22 })}
-              />
+                onValueChange={(port) => patch({ port: port ?? 22 })}
+              >
+                <NumberFieldGroup>
+                  <NumberFieldInput placeholder="22" />
+                </NumberFieldGroup>
+              </NumberField>
             </div>
 
             <div>
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                {intl.formatMessage({ id: 'pages.datasource.ssh.username' })}
+                {intl.formatMessage({ id: "pages.datasource.ssh.username" })}
               </div>
               <Input
                 value={current.username}
                 disabled={disabled}
                 placeholder={intl.formatMessage({
-                  id: 'pages.datasource.ssh.usernamePlaceholder',
+                  id: "pages.datasource.ssh.usernamePlaceholder",
                 })}
                 onChange={(event) => patch({ username: event.target.value })}
               />
@@ -162,7 +162,7 @@ const SshTunnelManager = ({
 
             <div>
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                {intl.formatMessage({ id: 'pages.datasource.ssh.authType' })}
+                {intl.formatMessage({ id: "pages.datasource.ssh.authType" })}
               </div>
               <Select
                 value={current.authType}
@@ -176,7 +176,7 @@ const SshTunnelManager = ({
                   <SelectItem value="PASSWORD">
                     <SelectItemText>
                       {intl.formatMessage({
-                        id: 'pages.datasource.ssh.passwordAuth',
+                        id: "pages.datasource.ssh.passwordAuth",
                       })}
                     </SelectItemText>
                     <SelectItemIndicator />
@@ -184,7 +184,7 @@ const SshTunnelManager = ({
                   <SelectItem value="PRIVATE_KEY">
                     <SelectItemText>
                       {intl.formatMessage({
-                        id: 'pages.datasource.ssh.privateKeyAuth',
+                        id: "pages.datasource.ssh.privateKeyAuth",
                       })}
                     </SelectItemText>
                     <SelectItemIndicator />
@@ -194,35 +194,33 @@ const SshTunnelManager = ({
             </div>
           </div>
 
-          {current.authType === 'PRIVATE_KEY' ? (
+          {current.authType === "PRIVATE_KEY" ? (
             <div className="mt-3 grid grid-cols-1 gap-3">
               <div>
                 <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-[#475467]">
                   <KeyRound size={13} />
-                  {intl.formatMessage({ id: 'pages.datasource.ssh.privateKey' })}
+                  {intl.formatMessage({ id: "pages.datasource.ssh.privateKey" })}
                 </div>
-                <AntInput.TextArea
-                  variant="filled"
+                <Textarea
                   rows={4}
                   value={current.privateKey}
                   disabled={disabled}
                   placeholder={intl.formatMessage({
-                    id: 'pages.datasource.ssh.privateKeyPlaceholder',
+                    id: "pages.datasource.ssh.privateKeyPlaceholder",
                   })}
                   className="font-mono text-xs"
-                  onChange={(event) => patch({ privateKey: event.target.value })}
+                  onValueChange={(privateKey) => patch({ privateKey })}
                 />
               </div>
               <div>
                 <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                  {intl.formatMessage({ id: 'pages.datasource.ssh.passphrase' })}
+                  {intl.formatMessage({ id: "pages.datasource.ssh.passphrase" })}
                 </div>
-                <AntInput.Password
-                  variant="filled"
+                <PasswordInput
                   value={current.passphrase}
                   disabled={disabled}
                   placeholder={intl.formatMessage({
-                    id: 'pages.datasource.ssh.passphrasePlaceholder',
+                    id: "pages.datasource.ssh.passphrasePlaceholder",
                   })}
                   onChange={(event) => patch({ passphrase: event.target.value })}
                 />
@@ -231,14 +229,13 @@ const SshTunnelManager = ({
           ) : (
             <div className="mt-3">
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
-                {intl.formatMessage({ id: 'pages.datasource.ssh.password' })}
+                {intl.formatMessage({ id: "pages.datasource.ssh.password" })}
               </div>
-              <AntInput.Password
-                variant="filled"
+              <PasswordInput
                 value={current.password}
                 disabled={disabled}
                 placeholder={intl.formatMessage({
-                  id: 'pages.datasource.ssh.passwordPlaceholder',
+                  id: "pages.datasource.ssh.passwordPlaceholder",
                 })}
                 onChange={(event) => patch({ password: event.target.value })}
               />
@@ -252,12 +249,12 @@ const SshTunnelManager = ({
                 <div>
                   <div className="text-xs font-medium text-[#475467]">
                     {intl.formatMessage({
-                      id: 'pages.datasource.ssh.strictHostKeyChecking',
+                      id: "pages.datasource.ssh.strictHostKeyChecking",
                     })}
                   </div>
                   <div className="text-[11px] leading-4 text-[#98a2b3]">
                     {intl.formatMessage({
-                      id: 'pages.datasource.ssh.strictHostKeyCheckingDescription',
+                      id: "pages.datasource.ssh.strictHostKeyCheckingDescription",
                     })}
                   </div>
                 </div>
@@ -266,30 +263,29 @@ const SshTunnelManager = ({
                 size="small"
                 checked={current.strictHostKeyChecking}
                 disabled={disabled}
-                onChange={(strictHostKeyChecking) =>
+                onCheckedChange={(strictHostKeyChecking) =>
                   patch({ strictHostKeyChecking })
                 }
               />
             </div>
 
-            {current.strictHostKeyChecking && (
+            {current.strictHostKeyChecking ? (
               <div className="mt-2.5 border-t border-[#f0f1f3] pt-2.5">
-                <AntInput.TextArea
-                  variant="filled"
+                <Textarea
                   rows={3}
                   value={current.knownHosts}
                   disabled={disabled}
                   placeholder={intl.formatMessage({
-                    id: 'pages.datasource.ssh.knownHostsPlaceholder',
+                    id: "pages.datasource.ssh.knownHostsPlaceholder",
                   })}
                   className="font-mono text-xs"
-                  onChange={(event) => patch({ knownHosts: event.target.value })}
+                  onValueChange={(knownHosts) => patch({ knownHosts })}
                 />
               </div>
-            )}
+            ) : null}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

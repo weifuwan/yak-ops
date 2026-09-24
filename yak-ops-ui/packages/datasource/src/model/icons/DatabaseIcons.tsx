@@ -1,4 +1,4 @@
-import { DatabaseOutlined } from '@ant-design/icons';
+import { Database } from 'lucide-react';
 import type { CSSProperties } from 'react';
 
 import CacheIcon from './CacheIcon';
@@ -133,7 +133,7 @@ const DatabaseIcons = ({
     case 'hive3':
       return <HiveIcon width={width} height={height} />;
     default:
-      return <DatabaseOutlined style={fallbackStyle} />;
+      return <Database style={fallbackStyle} strokeWidth={1.7} />;
   }
 };
 

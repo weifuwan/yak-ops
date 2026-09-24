@@ -1,20 +1,23 @@
-import type { DataSourceConnectionStatus } from '../model/types';
 import {
-  CheckCircleFilled,
-  CloseCircleFilled,
-  LoadingOutlined,
-  MinusCircleOutlined,
-} from '@ant-design/icons';
-import { useIntl } from '../i18n';
-import { Tag, Tooltip } from 'antd';
-import type { ReactNode } from 'react';
+  Badge,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  type BadgeProps,
+} from "@yak-ops/yak-ui";
+import { CircleCheck, CircleMinus, CircleX } from "lucide-react";
+import type { ReactNode } from "react";
+
+import { useIntl } from "../i18n";
+import type { DataSourceConnectionStatus } from "../model/types";
 
 interface DataSourceStatusProps {
   status?: DataSourceConnectionStatus;
 }
 
 interface StatusConfigItem {
-  color: 'success' | 'error' | 'processing' | 'default' | 'warning';
+  tone: NonNullable<BadgeProps["tone"]>;
   icon: ReactNode;
   text: string;
   tooltip?: string;
@@ -23,26 +26,26 @@ interface StatusConfigItem {
 const DataSourceStatus = ({ status }: DataSourceStatusProps) => {
   const intl = useIntl();
   const connectedConfig: StatusConfigItem = {
-    color: 'success',
-    icon: <CheckCircleFilled />,
-    text: intl.formatMessage({ id: 'pages.datasource.status.connected' }),
+    tone: "success",
+    icon: <CircleCheck size={13} />,
+    text: intl.formatMessage({ id: "pages.datasource.status.connected" }),
     tooltip: intl.formatMessage({
-      id: 'pages.datasource.status.connectedTooltip',
+      id: "pages.datasource.status.connectedTooltip",
     }),
   };
   const disconnectedConfig: StatusConfigItem = {
-    color: 'error',
-    icon: <CloseCircleFilled />,
-    text: intl.formatMessage({ id: 'pages.datasource.status.disconnected' }),
+    tone: "danger",
+    icon: <CircleX size={13} />,
+    text: intl.formatMessage({ id: "pages.datasource.status.disconnected" }),
     tooltip: intl.formatMessage({
-      id: 'pages.datasource.status.disconnectedTooltip',
+      id: "pages.datasource.status.disconnectedTooltip",
     }),
   };
   const unknownConfig: StatusConfigItem = {
-    color: 'default',
-    icon: <MinusCircleOutlined />,
-    text: intl.formatMessage({ id: 'pages.datasource.status.unknown' }),
-    tooltip: intl.formatMessage({ id: 'pages.datasource.status.unknownTooltip' }),
+    tone: "neutral",
+    icon: <CircleMinus size={13} />,
+    text: intl.formatMessage({ id: "pages.datasource.status.unknown" }),
+    tooltip: intl.formatMessage({ id: "pages.datasource.status.unknownTooltip" }),
   };
   const statusConfigMap: Record<string, StatusConfigItem> = {
     CONNECTED: connectedConfig,
@@ -52,35 +55,33 @@ const DataSourceStatus = ({ status }: DataSourceStatusProps) => {
     UNKNOWN: unknownConfig,
     CONNECTED_NONE: unknownConfig,
     CONNECTING: {
-      color: 'processing',
-      icon: <LoadingOutlined spin />,
-      text: intl.formatMessage({ id: 'pages.datasource.status.connecting' }),
+      tone: "info",
+      icon: <Spinner size="small" label="Connecting" />,
+      text: intl.formatMessage({ id: "pages.datasource.status.connecting" }),
       tooltip: intl.formatMessage({
-        id: 'pages.datasource.status.connectingTooltip',
+        id: "pages.datasource.status.connectingTooltip",
       }),
     },
   };
 
-  const normalized = String(status || 'UNKNOWN').trim().toUpperCase();
+  const normalized = String(status || "UNKNOWN").trim().toUpperCase();
   const currentConfig = statusConfigMap[normalized] || unknownConfig;
 
   return (
-    <Tooltip title={currentConfig.tooltip}>
-      <Tag
-        color={currentConfig.color}
-        icon={currentConfig.icon}
-        style={{
-          marginInlineEnd: 0,
-          borderRadius: 999,
-          paddingInline: 10,
-          fontSize: 12,
-          minWidth: '80px',
-          lineHeight: '20px',
-          whiteSpace: 'nowrap',
-        }}
+    <Tooltip>
+      <TooltipTrigger
+        className="inline-flex"
+        aria-label={currentConfig.tooltip}
       >
-        {currentConfig.text}
-      </Tag>
+        <Badge
+          tone={currentConfig.tone}
+          className="min-w-20 justify-center gap-1.5 whitespace-nowrap px-2.5 py-0.5"
+        >
+          {currentConfig.icon}
+          {currentConfig.text}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>{currentConfig.tooltip}</TooltipContent>
     </Tooltip>
   );
 };

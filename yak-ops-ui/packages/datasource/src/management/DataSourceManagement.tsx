@@ -1,26 +1,38 @@
-import { useIntl } from "../i18n";
-import { message, Modal, Pagination, Spin } from "antd";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  Pagination,
+  Spinner,
+  toast,
+} from "@yak-ops/yak-ui";
 import { motion } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import DataSourceEditor from "../editor/DataSourceEditor";
+import type { DataSourceModalRef } from "../editor/types";
+import { DataSourceOperateType } from "../editor/types";
+import { useIntl } from "../i18n";
+import {
+  DATA_SOURCE_PAGE_SIZE_OPTIONS,
+  PAGE_ANIMATION,
+} from "../model/constants";
+import { dataSourceRecordKey } from "../model/presentation";
+import type { DataSourceRecord } from "../model/types";
 import DataSourceCard from "./DataSourceCard";
 import DataSourceEmptyState from "./DataSourceEmptyState";
 import DataSourcePageHeader from "./DataSourcePageHeader";
 import DataSourceSummaryCards from "./DataSourceSummaryCards";
 import DataSourceToolbar from "./DataSourceToolbar";
-import { DATA_SOURCE_PAGE_SIZE_OPTIONS, PAGE_ANIMATION } from "../model/constants";
 import { useDataSourceManagement } from "./useDataSourceManagement";
-import type { DataSourceRecord } from "../model/types";
-import type { DataSourceModalRef } from "../editor/types";
-import { DataSourceOperateType } from "../editor/types";
-import { dataSourceRecordKey } from "../model/presentation";
-
-const { confirm } = Modal;
 
 const DataSourceManagement = () => {
   const intl = useIntl();
   const modalRef = useRef<DataSourceModalRef>(null);
+  const [pendingDelete, setPendingDelete] = useState<DataSourceRecord>();
+  const [deleting, setDeleting] = useState(false);
 
   const {
     loading,
@@ -49,7 +61,6 @@ const DataSourceManagement = () => {
 
   const handleCreate = () => {
     if (!permissions.canCreate) return;
-
     modalRef.current?.open({
       operateType: DataSourceOperateType.Create,
       onSuccess: refresh,
@@ -67,66 +78,52 @@ const DataSourceManagement = () => {
         onSuccess: refresh,
       });
     } catch {
-      // The shared request layer owns request error feedback.
+      // Shared request handling owns request failure feedback.
     }
   };
 
   const handleDelete = (record: DataSourceRecord) => {
-    if (!permissions.canDelete) return;
+    if (permissions.canDelete) setPendingDelete(record);
+  };
 
-    confirm({
-      title: intl.formatMessage({ id: "pages.datasource.delete.confirmTitle" }),
-      centered: true,
-      content: (
-        <span>
-          {intl.formatMessage(
-            { id: "pages.datasource.delete.content" },
-            { name: record.name || "-" }
-          )}
-          <br />
-          {intl.formatMessage({ id: "pages.datasource.delete.warning" })}
-        </span>
-      ),
-      okText: intl.formatMessage({ id: "pages.datasource.delete.okText" }),
-      cancelText: intl.formatMessage({
-        id: "pages.datasource.delete.cancelText",
-      }),
-      okType: "primary",
-      okButtonProps: { size: "small", danger: true },
-      cancelButtonProps: { size: "small" },
-      maskClosable: true,
-      async onOk() {
-        if (record.id === undefined || record.id === null) {
-          message.error(
-            intl.formatMessage({ id: "pages.datasource.delete.idMissing" })
-          );
-          return;
-        }
+  const confirmDelete = async () => {
+    const record = pendingDelete;
+    if (!record || deleting) return;
 
-        try {
-          const deleted = await removeRecord(record.id);
-          if (deleted) {
-            message.success(
-              intl.formatMessage({ id: "pages.datasource.delete.success" })
-            );
-          }
-        } catch {
-          // The shared request layer owns request error feedback.
-        }
-      },
-    });
+    if (record.id === undefined || record.id === null) {
+      toast.error(
+        intl.formatMessage({ id: "pages.datasource.delete.idMissing" }),
+      );
+      setPendingDelete(undefined);
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      const deleted = await removeRecord(record.id);
+      if (deleted) {
+        toast.success(
+          intl.formatMessage({ id: "pages.datasource.delete.success" }),
+        );
+        setPendingDelete(undefined);
+      }
+    } catch {
+      // Shared request handling owns request failure feedback.
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleTestConnection = async (record: DataSourceRecord) => {
     try {
       const connected = await testRecord(record);
       if (connected) {
-        message.success(
-          intl.formatMessage({ id: "pages.datasource.test.success" })
+        toast.success(
+          intl.formatMessage({ id: "pages.datasource.test.success" }),
         );
       }
     } catch {
-      // The shared request layer owns request error feedback.
+      // Shared request handling owns request failure feedback.
     }
   };
 
@@ -137,12 +134,10 @@ const DataSourceManagement = () => {
           initial="hidden"
           animate="visible"
           variants={PAGE_ANIMATION.sectionStagger}
-          // className="px-4 pb-4 pt-4"
         >
           <motion.section
             variants={PAGE_ANIMATION.fadeUp}
-            className="flex min-h-[calc(100dvh-64px)] flex-col 
-             bg-white px-6 pb-4 pt-5 shadow-[0_2px_10px_rgba(31,35,41,0.025)] max-md:px-4"
+            className="flex min-h-[calc(100dvh-64px)] flex-col bg-white px-6 pb-4 pt-5 shadow-[0_2px_10px_rgba(31,35,41,0.025)] max-md:px-4"
             style={{ borderTopLeftRadius: 8, borderTopRightRadius: 8 }}
           >
             <div className="space-y-5">
@@ -150,9 +145,7 @@ const DataSourceManagement = () => {
                 canCreate={permissions.canCreate}
                 onCreate={handleCreate}
               />
-
               <DataSourceSummaryCards summary={summary} />
-
               <DataSourceToolbar
                 environment={environment}
                 dbType={dbType}
@@ -168,7 +161,13 @@ const DataSourceManagement = () => {
             </div>
 
             <div className="mt-5 flex flex-1 flex-col">
-              <Spin spinning={loading}>
+              <div className="relative min-h-28">
+                {loading ? (
+                  <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-white/75 backdrop-blur-[1px]">
+                    <Spinner size="large" label="Loading datasources" />
+                  </div>
+                ) : null}
+
                 <motion.section
                   variants={PAGE_ANIMATION.cardStagger}
                   initial="hidden"
@@ -209,7 +208,7 @@ const DataSourceManagement = () => {
                     />
                   </div>
                 ) : null}
-              </Spin>
+              </div>
 
               {pagination.total > 0 ? (
                 <motion.footer
@@ -217,17 +216,17 @@ const DataSourceManagement = () => {
                   className="mt-auto flex shrink-0 justify-end pt-6"
                 >
                   <Pagination
-                    current={pagination.pageNo}
+                    page={pagination.pageNo}
                     pageSize={pagination.pageSize}
                     total={pagination.total}
                     showSizeChanger
                     showQuickJumper
                     pageSizeOptions={DATA_SOURCE_PAGE_SIZE_OPTIONS}
                     disabled={loading}
-                    showTotal={(total, range) =>
+                    renderTotal={(total, range) =>
                       intl.formatMessage(
                         { id: "pages.datasource.pagination.total" },
-                        { start: range[0], end: range[1], total }
+                        { start: range[0], end: range[1], total },
                       )
                     }
                     onChange={changePage}
@@ -240,6 +239,45 @@ const DataSourceManagement = () => {
       </div>
 
       <DataSourceEditor ref={modalRef} />
+
+      <Dialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setPendingDelete(undefined);
+        }}
+      >
+        <DialogContent className="w-[420px]">
+          <DialogTitle className="text-base font-semibold text-[#161823]">
+            {intl.formatMessage({ id: "pages.datasource.delete.confirmTitle" })}
+          </DialogTitle>
+          <DialogDescription className="mt-2 text-sm leading-6 text-[#667085]">
+            {intl.formatMessage(
+              { id: "pages.datasource.delete.content" },
+              { name: pendingDelete?.name || "-" },
+            )}
+            <br />
+            {intl.formatMessage({ id: "pages.datasource.delete.warning" })}
+          </DialogDescription>
+
+          <div className="mt-6 flex justify-end gap-2">
+            <Button
+              disabled={deleting}
+              onClick={() => setPendingDelete(undefined)}
+            >
+              {intl.formatMessage({
+                id: "pages.datasource.delete.cancelText",
+              })}
+            </Button>
+            <Button
+              variant="danger"
+              loading={deleting}
+              onClick={() => void confirmDelete()}
+            >
+              {intl.formatMessage({ id: "pages.datasource.delete.okText" })}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
