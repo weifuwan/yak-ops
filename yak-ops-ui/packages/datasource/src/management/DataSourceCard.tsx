@@ -7,7 +7,7 @@ import { Clock3, Pencil, Trash2, Unplug } from 'lucide-react';
 import { getEnvironmentTagConfigMap, PAGE_ANIMATION } from '../model/constants';
 import DatabaseIcons from '../model/icons/DatabaseIcons';
 import type { DataSourcePermissions, DataSourceViewMode } from '../model/uiTypes';
-import { dataSourceRecordKey } from '../types';
+import { dataSourceRecordKey } from '../model/uiTypes';
 import DataSourceStatus from './DataSourceStatus';
 
 interface DataSourceCardProps {
