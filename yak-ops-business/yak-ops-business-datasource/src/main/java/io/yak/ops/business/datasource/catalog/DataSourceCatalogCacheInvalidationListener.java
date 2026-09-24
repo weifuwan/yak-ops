@@ -1,14 +1,19 @@
 package io.yak.ops.business.datasource.catalog;
 
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.domain.DataSourceChangedEvent;
+import io.yak.ops.business.datasource.management.DataSourceChangedEvent;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-/** Clears stale local Catalog metadata only after datasource mutations commit successfully. */
+/**
+ * 在数据源配置事务提交成功后失效对应的本地 Catalog 元数据缓存。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Slf4j
 @Component
 @ConditionalOnDataSourceEnabled

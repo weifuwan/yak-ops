@@ -2,7 +2,12 @@ package io.yak.ops.business.datasource.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** 数据源管理模块配置。 */
+/**
+ * 集中管理 Datasource capability 的连接测试和 Catalog 元数据参数。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @ConfigurationProperties(prefix = "yak.datasource")
 public class DataSourceProperties {
 
@@ -106,14 +111,11 @@ public class DataSourceProperties {
         }
     }
 
-    /** Catalog 元数据和轻量读取参数。 */
+    /** Catalog 元数据读取和缓存参数。 */
     public static class Catalog {
 
         /** 建立用户数据源连接的超时时间。 */
         private int connectionTimeoutSeconds = 5;
-
-        /** SQL describe / preview / count 的 statement 级超时时间。 */
-        private int queryTimeoutSeconds = 15;
 
         /** 数据库 / Schema / 表 / 字段元数据缓存 TTL；小于等于 0 时关闭缓存。 */
         private int metadataCacheTtlSeconds = 60;
@@ -130,14 +132,6 @@ public class DataSourceProperties {
 
         public void setConnectionTimeoutSeconds(int connectionTimeoutSeconds) {
             this.connectionTimeoutSeconds = connectionTimeoutSeconds;
-        }
-
-        public int getQueryTimeoutSeconds() {
-            return queryTimeoutSeconds;
-        }
-
-        public void setQueryTimeoutSeconds(int queryTimeoutSeconds) {
-            this.queryTimeoutSeconds = queryTimeoutSeconds;
         }
 
         public int getMetadataCacheTtlSeconds() {
