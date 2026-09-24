@@ -1,10 +1,10 @@
 import type {
   DataSourceId,
   DataSourceRecord,
-} from '@/services/data-source';
+} from '@/service/datasource';
 import type { FormInstance } from 'antd';
 
-export type * from '@/services/data-source';
+export type * from '@/service/datasource';
 
 export enum DataSourceOperateType {
   Create = 'CREATE',

@@ -1,4 +1,4 @@
-import type { DataSourceSummary } from '@/services/data-source';
+import type { DataSourceSummary } from '@/service/datasource';
 import { useIntl } from '@/shared/i18n';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Database, Server, XCircle } from 'lucide-react';

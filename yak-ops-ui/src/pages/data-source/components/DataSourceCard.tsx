@@ -1,11 +1,11 @@
 import { YakButton } from '@/components/ui';
-import type { DataSourceRecord } from '@/services/data-source';
+import type { DataSourceRecord } from '@/service/datasource';
 import { useIntl } from '@/shared/i18n';
 import { motion } from 'framer-motion';
 import { Clock3, Pencil, Trash2, Unplug } from 'lucide-react';
 
 import { getEnvironmentTagConfigMap, PAGE_ANIMATION } from '../constants';
-import DatabaseIcons from '@/components/data-source/icons/DatabaseIcons';
+import DatabaseIcons from '@/pages/data-source/components/icons/DatabaseIcons';
 import type { DataSourcePermissions, DataSourceViewMode } from '../types';
 import { dataSourceRecordKey } from '../types';
 import DataSourceStatus from './DataSourceStatus';
