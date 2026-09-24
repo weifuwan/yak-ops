@@ -167,12 +167,12 @@ packages/datasource/src/
 
 ## packages/yak-ui
 
-`packages/yak-ui` 拥有无业务语义的 UI Primitive，并提供当前 AntD removal 所需的 replacement set：
+`packages/yak-ui` 拥有无业务语义的 UI Primitive。Ant Design 已移除，产品代码统一通过 Yak UI / 原生浏览器能力实现通用交互：
 
 ```text
 Button / Input / PasswordInput / Textarea
-Field / Form / NumberField / Switch
-Select / DropdownMenu / Tabs / Collapsible
+NumberField / Switch / Select / Combobox
+DropdownMenu / Tabs / Collapsible
 Tooltip / Popover / Dialog / Drawer
 Pagination / Spinner / Empty / Badge / Toast
 ```
