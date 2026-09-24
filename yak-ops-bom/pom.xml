@@ -64,6 +64,11 @@
             </dependency>
             <dependency>
                 <groupId>io.yak.ops</groupId>
+                <artifactId>yak-ops-dao</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.yak.ops</groupId>
                 <artifactId>yak-ops-spi</artifactId>
                 <version>${project.version}</version>
             </dependency>
