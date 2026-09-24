@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 
 import { Button } from "../button";
 import { cn } from "../cn";
@@ -9,18 +9,19 @@ export type PasswordInputProps = Omit<InputProps, "type"> & {
   hidePasswordLabel?: string;
 };
 
-export function PasswordInput({
+export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(function PasswordInput({
   className,
   showPasswordLabel = "Show password",
   hidePasswordLabel = "Hide password",
   ...props
-}: PasswordInputProps) {
+}, ref) {
   const [visible, setVisible] = useState(false);
 
   return (
     <div className="relative">
       <Input
         {...props}
+        ref={ref}
         type={visible ? "text" : "password"}
         className={cn("pr-10", className)}
       />
@@ -46,4 +47,6 @@ export function PasswordInput({
       </Button>
     </div>
   );
-}
+});
+
+PasswordInput.displayName = "PasswordInput";
