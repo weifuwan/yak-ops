@@ -1,5 +1,15 @@
 import { useIntl } from '@/pages/data-source/i18n';
-import { Input, InputNumber, Select, Switch } from 'antd';
+import {
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui';
+import { Input as AntInput, InputNumber, Switch } from 'antd';
 import { KeyRound, Network, ShieldCheck } from 'lucide-react';
 
 import type { SshTunnelConfigValue } from '../../types';
@@ -111,7 +121,7 @@ const SshTunnelManager = ({
                 {intl.formatMessage({ id: 'pages.datasource.ssh.host' })}
               </div>
               <Input
-                variant="filled"
+               
                 value={current.host}
                 disabled={disabled}
                 placeholder={intl.formatMessage({
@@ -126,7 +136,7 @@ const SshTunnelManager = ({
                 {intl.formatMessage({ id: 'pages.datasource.ssh.port' })}
               </div>
               <InputNumber
-                variant="filled"
+               
                 className="!w-full"
                 min={1}
                 max={65535}
@@ -142,7 +152,7 @@ const SshTunnelManager = ({
                 {intl.formatMessage({ id: 'pages.datasource.ssh.username' })}
               </div>
               <Input
-                variant="filled"
+               
                 value={current.username}
                 disabled={disabled}
                 placeholder={intl.formatMessage({
@@ -157,7 +167,7 @@ const SshTunnelManager = ({
                 {intl.formatMessage({ id: 'pages.datasource.ssh.authType' })}
               </div>
               <Select
-                variant="filled"
+               
                 className="w-full"
                 value={current.authType}
                 disabled={disabled}
@@ -187,8 +197,8 @@ const SshTunnelManager = ({
                   <KeyRound size={13} />
                   {intl.formatMessage({ id: 'pages.datasource.ssh.privateKey' })}
                 </div>
-                <Input.TextArea
-                  variant="filled"
+                <AntInput.TextArea
+                 
                   rows={4}
                   value={current.privateKey}
                   disabled={disabled}
@@ -203,8 +213,8 @@ const SshTunnelManager = ({
                 <div className="mb-1.5 text-xs font-medium text-[#475467]">
                   {intl.formatMessage({ id: 'pages.datasource.ssh.passphrase' })}
                 </div>
-                <Input.Password
-                  variant="filled"
+                <AntInput.Password
+                 
                   value={current.passphrase}
                   disabled={disabled}
                   placeholder={intl.formatMessage({
@@ -219,8 +229,8 @@ const SshTunnelManager = ({
               <div className="mb-1.5 text-xs font-medium text-[#475467]">
                 {intl.formatMessage({ id: 'pages.datasource.ssh.password' })}
               </div>
-              <Input.Password
-                variant="filled"
+              <AntInput.Password
+               
                 value={current.password}
                 disabled={disabled}
                 placeholder={intl.formatMessage({
@@ -260,8 +270,8 @@ const SshTunnelManager = ({
 
             {current.strictHostKeyChecking && (
               <div className="mt-2.5 border-t border-[#f0f1f3] pt-2.5">
-                <Input.TextArea
-                  variant="filled"
+                <AntInput.TextArea
+                 
                   rows={3}
                   value={current.knownHosts}
                   disabled={disabled}
