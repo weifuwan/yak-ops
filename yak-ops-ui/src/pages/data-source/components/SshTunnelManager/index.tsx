@@ -121,7 +121,6 @@ const SshTunnelManager = ({
                 {intl.formatMessage({ id: 'pages.datasource.ssh.host' })}
               </div>
               <Input
-               
                 value={current.host}
                 disabled={disabled}
                 placeholder={intl.formatMessage({
@@ -136,7 +135,7 @@ const SshTunnelManager = ({
                 {intl.formatMessage({ id: 'pages.datasource.ssh.port' })}
               </div>
               <InputNumber
-               
+                variant="filled"
                 className="!w-full"
                 min={1}
                 max={65535}
@@ -152,7 +151,6 @@ const SshTunnelManager = ({
                 {intl.formatMessage({ id: 'pages.datasource.ssh.username' })}
               </div>
               <Input
-               
                 value={current.username}
                 disabled={disabled}
                 placeholder={intl.formatMessage({
@@ -167,26 +165,32 @@ const SshTunnelManager = ({
                 {intl.formatMessage({ id: 'pages.datasource.ssh.authType' })}
               </div>
               <Select
-               
-                className="w-full"
                 value={current.authType}
                 disabled={disabled}
-                options={[
-                  {
-                    label: intl.formatMessage({
-                      id: 'pages.datasource.ssh.passwordAuth',
-                    }),
-                    value: 'PASSWORD',
-                  },
-                  {
-                    label: intl.formatMessage({
-                      id: 'pages.datasource.ssh.privateKeyAuth',
-                    }),
-                    value: 'PRIVATE_KEY',
-                  },
-                ]}
-                onChange={(authType) => patch({ authType })}
-              />
+                onValueChange={(authType) => patch({ authType })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PASSWORD">
+                    <SelectItemText>
+                      {intl.formatMessage({
+                        id: 'pages.datasource.ssh.passwordAuth',
+                      })}
+                    </SelectItemText>
+                    <SelectItemIndicator />
+                  </SelectItem>
+                  <SelectItem value="PRIVATE_KEY">
+                    <SelectItemText>
+                      {intl.formatMessage({
+                        id: 'pages.datasource.ssh.privateKeyAuth',
+                      })}
+                    </SelectItemText>
+                    <SelectItemIndicator />
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -198,7 +202,7 @@ const SshTunnelManager = ({
                   {intl.formatMessage({ id: 'pages.datasource.ssh.privateKey' })}
                 </div>
                 <AntInput.TextArea
-                 
+                  variant="filled"
                   rows={4}
                   value={current.privateKey}
                   disabled={disabled}
@@ -214,7 +218,7 @@ const SshTunnelManager = ({
                   {intl.formatMessage({ id: 'pages.datasource.ssh.passphrase' })}
                 </div>
                 <AntInput.Password
-                 
+                  variant="filled"
                   value={current.passphrase}
                   disabled={disabled}
                   placeholder={intl.formatMessage({
@@ -230,7 +234,7 @@ const SshTunnelManager = ({
                 {intl.formatMessage({ id: 'pages.datasource.ssh.password' })}
               </div>
               <AntInput.Password
-               
+                variant="filled"
                 value={current.password}
                 disabled={disabled}
                 placeholder={intl.formatMessage({
@@ -271,7 +275,7 @@ const SshTunnelManager = ({
             {current.strictHostKeyChecking && (
               <div className="mt-2.5 border-t border-[#f0f1f3] pt-2.5">
                 <AntInput.TextArea
-                 
+                  variant="filled"
                   rows={3}
                   value={current.knownHosts}
                   disabled={disabled}
