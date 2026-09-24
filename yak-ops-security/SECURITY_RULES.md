@@ -6,7 +6,7 @@ Scope:
 Depends On:
 - /ARCHITECTURE.md
 - /JAVA_RULES.md
-- Controller changes also load /CONTROLLER_RULES.md
+- HTTP contract changes also load /CONTROLLER_RULES.md
 
 Owns:
 - user management
@@ -24,6 +24,14 @@ Yak Ops 当前只发布两组 Security API：
 Role、Permission、Department、Project、Message、Oplog、Resource 等历史迁移代码不再作为当前对外 Security API。
 
 Java namespace io.yak.framework.security 暂时保留，避免把依赖清理和包名迁移混在同一次改造中。
+
+## HTTP Boundary
+
+Security HTTP Controller 和 ControllerAdvice 统一由 `yak-ops-boot` 持有。
+
+本模块提供登录、用户管理和认证运行时能力，不创建 `controller` package，也不依赖 Boot。
+
+现有 API 路径保持不变，由 Boot 暴露。
 
 ## Authentication
 
@@ -46,3 +54,4 @@ Java namespace io.yak.framework.security 暂时保留，避免把依赖清理和
 - expose new Role / Permission / Department / Project / Message / Oplog / Resource Security APIs.
 - bypass UserService with ad hoc user SQL from Boot or Datasource.
 - recreate removed tests or CI as a side effect.
+- add Controller / RestController / RestControllerAdvice to this module.

@@ -6,12 +6,11 @@ Scope:
 Depends On:
 - `/ARCHITECTURE.md`
 - `/JAVA_RULES.md`
-- Controller 变化加载 `/CONTROLLER_RULES.md`
+- HTTP contract 变化加载 `/CONTROLLER_RULES.md`
 - Plugin 变化加载 `/yak-ops-plugins/yak-ops-plugin-datasource/PLUGIN_RULES.md`
 
 Owns:
 - Datasource product behavior
-- Datasource HTTP APIs
 - Datasource persistence
 - Connection / Catalog / SQL Execution behavior
 - Datasource-to-plugin business boundary
@@ -19,7 +18,6 @@ Owns:
 ## Package Ownership
 
 ```text
-controller   HTTP protocol
 management   mutation / lifecycle commands
 query        read behavior
 domain       business facts
@@ -31,8 +29,14 @@ repository   persistence-facing business contract
 dao          MyBatis persistence implementation
 config       module infrastructure
 security     Datasource security
-exception    Datasource errors
+exception    Datasource business errors
 ```
+
+## HTTP Boundary
+
+Datasource HTTP Controller、ControllerAdvice 和 Controller-only converter 统一由 `yak-ops-boot` 持有。
+
+本模块只提供 Datasource capability，不创建 `controller` package，也不依赖 Boot。
 
 ## Business Rules
 
