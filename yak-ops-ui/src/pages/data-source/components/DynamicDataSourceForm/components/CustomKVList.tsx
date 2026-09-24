@@ -93,7 +93,6 @@ const CustomKVList = ({ intl, field }: any) => {
                         className="!mb-0"
                       >
                         <Input
-                         
                           placeholder={intl.formatMessage({
                             id: 'pages.datasource.customKv.keyPlaceholder',
                           })}
@@ -107,7 +106,6 @@ const CustomKVList = ({ intl, field }: any) => {
                         className="!mb-0"
                       >
                         <Input
-                         
                           placeholder={intl.formatMessage({
                             id: 'pages.datasource.customKv.valuePlaceholder',
                           })}
