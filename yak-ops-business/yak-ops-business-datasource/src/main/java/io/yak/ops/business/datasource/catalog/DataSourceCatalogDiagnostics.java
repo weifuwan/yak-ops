@@ -1,5 +1,6 @@
 package io.yak.ops.business.datasource.catalog;
 
+import jakarta.annotation.Resource;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.domain.DataSourceDefinition;
@@ -13,7 +14,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -21,13 +21,16 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 public class DataSourceCatalogDiagnostics {
 
-    private final DataSourceProperties properties;
-    private final ConcurrentMap<String, OperationAccumulator> operations = new ConcurrentHashMap<>();
-    private final LongAdder cacheHits = new LongAdder();
-    private final LongAdder cacheMisses = new LongAdder();
+    @Resource
+    private DataSourceProperties properties;
+    @Resource
+    private ConcurrentMap<String, OperationAccumulator> operations = new ConcurrentHashMap<>();
+    @Resource
+    private LongAdder cacheHits = new LongAdder();
+    @Resource
+    private LongAdder cacheMisses = new LongAdder();
 
     public <T> T observe(DataSourceDefinition definition, String operation, Supplier<T> action) {
         long startedAt = System.nanoTime();
