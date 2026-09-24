@@ -1,14 +1,105 @@
-import { Button } from '@yak-ops/yak-ui';
-import type { DataSourceRecord } from '../model/types';
-import { useIntl } from '../i18n';
+import {
+  Badge,
+  Button,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  type BadgeProps,
+} from "@yak-ops/yak-ui";
+import type { DataSourceConnectionStatus, DataSourceRecord } from "./types";
+import { useIntl } from "./i18n";
 import { motion } from 'framer-motion';
-import { Clock3, Pencil, Trash2, Unplug } from 'lucide-react';
+import {
+  CircleCheck,
+  CircleMinus,
+  CircleX,
+  Clock3,
+  Pencil,
+  Trash2,
+  Unplug,
+} from "lucide-react";
+import type { ReactNode } from "react";
 
-import { getEnvironmentTagConfigMap, PAGE_ANIMATION } from '../model/constants';
-import DatabaseIcons from '../model/icons/DatabaseIcons';
-import type { DataSourcePermissions, DataSourceViewMode } from './types';
-import { dataSourceRecordKey } from '../model/presentation';
-import DataSourceStatus from './DataSourceStatus';
+import { getEnvironmentTagConfigMap, PAGE_ANIMATION } from "./constants";
+import DatabaseIcons from "./icons/DatabaseIcons";
+import type { DataSourcePermissions, DataSourceViewMode } from "./types";
+import { dataSourceRecordKey } from "./utils";
+
+interface DataSourceStatusProps {
+  status?: DataSourceConnectionStatus;
+}
+
+interface StatusConfigItem {
+  tone: NonNullable<BadgeProps["tone"]>;
+  icon: ReactNode;
+  text: string;
+  tooltip?: string;
+}
+
+const DataSourceStatus = ({ status }: DataSourceStatusProps) => {
+  const intl = useIntl();
+  const connectedConfig: StatusConfigItem = {
+    tone: "success",
+    icon: <CircleCheck size={13} />,
+    text: intl.formatMessage({ id: "pages.datasource.status.connected" }),
+    tooltip: intl.formatMessage({
+      id: "pages.datasource.status.connectedTooltip",
+    }),
+  };
+  const disconnectedConfig: StatusConfigItem = {
+    tone: "danger",
+    icon: <CircleX size={13} />,
+    text: intl.formatMessage({ id: "pages.datasource.status.disconnected" }),
+    tooltip: intl.formatMessage({
+      id: "pages.datasource.status.disconnectedTooltip",
+    }),
+  };
+  const unknownConfig: StatusConfigItem = {
+    tone: "neutral",
+    icon: <CircleMinus size={13} />,
+    text: intl.formatMessage({ id: "pages.datasource.status.unknown" }),
+    tooltip: intl.formatMessage({ id: "pages.datasource.status.unknownTooltip" }),
+  };
+  const statusConfigMap: Record<string, StatusConfigItem> = {
+    CONNECTED: connectedConfig,
+    CONNECTED_SUCCESS: connectedConfig,
+    DISCONNECTED: disconnectedConfig,
+    CONNECTED_FAILED: disconnectedConfig,
+    UNKNOWN: unknownConfig,
+    CONNECTED_NONE: unknownConfig,
+    CONNECTING: {
+      tone: "info",
+      icon: <Spinner size="small" label="Connecting" />,
+      text: intl.formatMessage({ id: "pages.datasource.status.connecting" }),
+      tooltip: intl.formatMessage({
+        id: "pages.datasource.status.connectingTooltip",
+      }),
+    },
+  };
+
+  const normalized = String(status || "UNKNOWN").trim().toUpperCase();
+  const currentConfig = statusConfigMap[normalized] || unknownConfig;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        className="inline-flex"
+        aria-label={currentConfig.tooltip}
+      >
+        <Badge
+          tone={currentConfig.tone}
+          className="min-w-20 justify-center gap-1.5 whitespace-nowrap px-2.5 py-0.5"
+        >
+          {currentConfig.icon}
+          {currentConfig.text}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>{currentConfig.tooltip}</TooltipContent>
+    </Tooltip>
+  );
+};
+
 
 interface DataSourceCardProps {
   record: DataSourceRecord;

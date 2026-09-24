@@ -13,13 +13,13 @@ import {
 import { motion } from "framer-motion";
 import { Grid2X2, LayoutList, Search, X } from "lucide-react";
 
-import { useIntl } from "../i18n";
+import { useIntl } from "./i18n";
 import {
   COMMON_DB_OPTIONS,
   getDataSourceEnvironmentTabs,
   PAGE_ANIMATION,
-} from "../model/constants";
-import DatabaseIcons from "../model/icons/DatabaseIcons";
+} from "./constants";
+import DatabaseIcons from "./icons/DatabaseIcons";
 import type { DataSourceViewMode } from "./types";
 
 interface DataSourceToolbarProps {
