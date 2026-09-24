@@ -17,80 +17,43 @@
     <packaging>pom</packaging>
 
     <name>Yak Ops BOM</name>
-    <description>Yak Ops and Yak Framework dependency alignment</description>
+    <description>Yak Ops dependency alignment</description>
 
     <properties>
-        <yak-framework.version>0.1.0</yak-framework.version>
-        <minio.version>8.6.0</minio.version>
-        <hadoop.version>3.5.0</hadoop.version>
+        <yak-security.version>0.1.0</yak-security.version>
+        <mybatis-plus.version>3.5.16</mybatis-plus.version>
+        <springdoc.version>2.6.0</springdoc.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Yak Framework -->
-            <dependency>
-                <groupId>io.github.weifuwan</groupId>
-                <artifactId>yak-framework-parent</artifactId>
-                <version>${yak-framework.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.github.weifuwan</groupId>
-                <artifactId>yak-common</artifactId>
-                <version>${yak-framework.version}</version>
-            </dependency>
+            <!-- External security boundary -->
             <dependency>
                 <groupId>io.github.weifuwan</groupId>
                 <artifactId>yak-security-spring-boot-starter</artifactId>
-                <version>${yak-framework.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.weifuwan</groupId>
-                <artifactId>yak-schedule-spring-boot-starter</artifactId>
-                <version>${yak-framework.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.weifuwan</groupId>
-                <artifactId>yak-schedule-api</artifactId>
-                <version>${yak-framework.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.weifuwan</groupId>
-                <artifactId>yak-schedule-core</artifactId>
-                <version>${yak-framework.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.weifuwan</groupId>
-                <artifactId>yak-schedule-plugin-quartz</artifactId>
-                <version>${yak-framework.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.weifuwan</groupId>
-                <artifactId>yak-workflow-engine</artifactId>
-                <version>${yak-framework.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.weifuwan</groupId>
-                <artifactId>yak-file</artifactId>
-                <version>${yak-framework.version}</version>
+                <version>${yak-security.version}</version>
             </dependency>
 
-            <!-- Third-party -->
+            <!-- Third-party versions owned by Yak Ops -->
             <dependency>
-                <groupId>io.minio</groupId>
-                <artifactId>minio</artifactId>
-                <version>${minio.version}</version>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-core</artifactId>
+                <version>${mybatis-plus.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-client-api</artifactId>
-                <version>${hadoop.version}</version>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-client-runtime</artifactId>
-                <version>${hadoop.version}</version>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-jsqlparser-4.9</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
             </dependency>
 
             <!-- Yak Ops Internal Modules -->

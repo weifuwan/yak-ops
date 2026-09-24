@@ -31,14 +31,12 @@
         <dependency>
             <groupId>io.github.weifuwan</groupId>
             <artifactId>yak-security-spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.weifuwan</groupId>
-            <artifactId>yak-schedule-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.weifuwan</groupId>
-            <artifactId>yak-schedule-plugin-quartz</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.github.weifuwan</groupId>
+                    <artifactId>yak-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -58,7 +56,6 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>io.yak.ops.boot.YakOpsApplication</mainClass>
-                    <!-- Use PropertiesLauncher so the distribution can extend its runtime classpath with jdbc-drivers/. -->
                     <layout>ZIP</layout>
                 </configuration>
             </plugin>
