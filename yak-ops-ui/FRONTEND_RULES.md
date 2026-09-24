@@ -15,6 +15,7 @@ Principles:
 
 ## Must
 
+- `src/pages` only contains `login` and `data-source`.
 - new product behavior belongs to Datasource unless scope explicitly changes.
 - page, hook and component state stays at the smallest real owner.
 - backend business facts come from backend responses.

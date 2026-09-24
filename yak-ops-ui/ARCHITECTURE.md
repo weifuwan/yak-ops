@@ -18,11 +18,11 @@ Do not reintroduce removed product domains through routes, menus, services or sh
 
 Yak Ops UI currently uses Umi Max + React + TypeScript.
 
-Relevant Datasource owners:
+Current page owners:
 
 ```text
-src/config/navigation.ts
-→ product navigation metadata
+src/pages/login/
+→ login
 
 src/pages/data-source/
 → Datasource page composition and page-owned interaction
@@ -31,13 +31,13 @@ src/services/data-source/
 → reusable Datasource backend API contracts
 
 src/components/
-→ reusable product UI / historical shared components
+→ reusable product UI
 
 src/utils/
 → generic browser utilities
 ```
 
-The repository still contains historical frontend code for removed domains. It is not an approved source of product scope or architecture.
+`src/pages` must not contain product pages outside `login` and `data-source`.
 
 ## Dependency Direction
 
@@ -82,7 +82,7 @@ Existing page-local service files are current code and may remain until delibera
 
 Only shipped capability should be visible.
 
-Removed modules may retain historical page source temporarily, but they must not reappear in navigation unless product scope changes explicitly.
+Removed product pages are deleted. Do not recreate them unless product scope changes explicitly.
 
 ## State Boundary
 
@@ -96,6 +96,5 @@ Removed modules may retain historical page source temporarily, but they must not
 - no frontend-wide rewrite to match Yakable folders.
 - no forced migration from Umi Max.
 - no new state framework or query framework only for architecture symmetry.
-- no deletion of historical frontend code as a side effect of Datasource feature work.
 
 Architecture changes must solve a concrete problem.

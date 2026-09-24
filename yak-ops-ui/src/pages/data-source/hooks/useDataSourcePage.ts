@@ -1,5 +1,3 @@
-import { YAK_OPS_PERMISSIONS } from '@/constants/yakOpsPermissions';
-import usePermissionAccess from '@/hooks/usePermissionAccess';
 import {
   deleteDataSource as deleteDataSourceById,
   getDataSource,
@@ -12,7 +10,7 @@ import {
   type DataSourceSummary,
   type PaginationInfo,
 } from '@/services/data-source';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   EMPTY_DATA_SOURCE_SUMMARY,
@@ -21,19 +19,16 @@ import {
 import type { DataSourcePermissions, DataSourceViewMode } from '../types';
 import { dataSourceRecordKey } from '../types';
 
+const DATA_SOURCE_PERMISSIONS: DataSourcePermissions = {
+  canCreate: true,
+  canUpdate: true,
+  canDelete: true,
+  canTest: true,
+};
+
 export const useDataSourcePage = () => {
   const requestSequenceRef = useRef(0);
-  const { can } = usePermissionAccess();
-
-  const permissions = useMemo<DataSourcePermissions>(
-    () => ({
-      canCreate: can(YAK_OPS_PERMISSIONS.dataSource.create),
-      canUpdate: can(YAK_OPS_PERMISSIONS.dataSource.update),
-      canDelete: can(YAK_OPS_PERMISSIONS.dataSource.delete),
-      canTest: can(YAK_OPS_PERMISSIONS.dataSource.test),
-    }),
-    [can],
-  );
+  const permissions = DATA_SOURCE_PERMISSIONS;
 
   const [loading, setLoading] = useState(false);
   const [records, setRecords] = useState<DataSourceRecord[]>([]);

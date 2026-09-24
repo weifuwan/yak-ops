@@ -1,9 +1,0 @@
-export const QUALITY_SOURCE_TREE_DEFAULT_WIDTH = 280;
-export const QUALITY_SOURCE_TREE_MIN_WIDTH = 220;
-export const QUALITY_SOURCE_TREE_MAX_WIDTH = 480;
-export const QUALITY_SOURCE_TREE_WIDTH_STORAGE_KEY =
-  'yak-data-quality.source-tree-width';
-
-export const QUALITY_TABLE_PAGE_SIZE = 20;
-export const QUALITY_TABLE_CANDIDATE_PAGE_SIZE = 20;
-export const QUALITY_TABLE_SEARCH_DEBOUNCE = 250;

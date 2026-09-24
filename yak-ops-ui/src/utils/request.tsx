@@ -2,7 +2,6 @@
 import { extractErrorMessage, extractUnknownErrorMessage, isApiResponse, isSuccessfulResponse, isUnauthenticatedResponse, protocolForUrl, type ApiProtocol, type ApiResponse } from "@/services/http/response";
 import { notifyOnce } from "@/utils/notifyOnce";
 import { dispatchAuthenticationInvalidated } from "@/utils/security/authentication";
-import { applyCurrentProjectHeader } from "@/utils/security/projectContext";
 import { history } from "umi";
 import { extend } from "umi-request";
 
@@ -211,18 +210,6 @@ function createClient() {
 }
 
 const request = createClient();
-
-request.interceptors.request.use((url: string, options: any) => {
-  const headers = applyCurrentProjectHeader(url, options.headers || {});
-
-  return {
-    url,
-    options: {
-      ...options,
-      headers,
-    },
-  };
-});
 
 /** 识别统一响应中的业务状态，并按调用方需要选择返回响应或拒绝 Promise。 */
 request.interceptors.response.use(async (response: Response, options: any) => {
