@@ -3,7 +3,7 @@ import { message, Modal, Pagination, Spin } from "antd";
 import { motion } from "framer-motion";
 import { useRef } from "react";
 
-import AddOrEditDataSourceModal from "../editor/DataSourceEditor";
+import DataSourceEditor from "../editor/DataSourceEditor";
 import DataSourceCard from "./DataSourceCard";
 import DataSourceEmptyState from "./DataSourceEmptyState";
 import DataSourcePageHeader from "./DataSourcePageHeader";
@@ -237,7 +237,7 @@ const DataSourceManagement = () => {
         </motion.main>
       </div>
 
-      <AddOrEditDataSourceModal ref={modalRef} />
+      <DataSourceEditor ref={modalRef} />
     </>
   );
 };
