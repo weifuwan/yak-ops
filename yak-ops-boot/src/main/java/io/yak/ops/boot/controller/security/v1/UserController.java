@@ -4,17 +4,17 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.common.PagingData;
 import io.yak.ops.common.Result;
-import io.yak.framework.security.authentication.AuthenticationManager;
+import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.common.bean.dto.security.user.UserDTO;
 import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.bean.vo.security.user.UserVO;
-import io.yak.framework.security.exception.YakSecurityException;
-import io.yak.framework.security.service.UserService;
-import io.yak.framework.security.service.impl.UserAdministrationService;
-import io.yak.framework.security.util.JsonUtils;
+import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.security.service.UserService;
+import io.yak.ops.security.service.impl.UserAdministrationService;
+import io.yak.ops.security.util.JsonUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.springframework.util.StringUtils;
@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** 用户管理接口。 */
 @ConditionalOnProperty(
     prefix = "yak.security",
-    name = {"database-enabled", "web-enabled"},
+    name = {"enabled", "database-enabled", "web-enabled"},
     havingValue = "true",
     matchIfMissing = true)
 @Tag(name = "用户管理")
