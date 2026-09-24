@@ -1,7 +1,7 @@
 package io.yak.framework.security.bootstrap;
 
 import io.yak.framework.common.Result;
-import io.yak.framework.security.common.dto.user.UserDTO;
+import io.yak.ops.common.bean.dto.security.user.UserDTO;
 import io.yak.framework.security.config.YakSecurityProperties;
 import io.yak.framework.security.service.UserService;
 import org.slf4j.Logger;

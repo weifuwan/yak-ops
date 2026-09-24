@@ -1,4 +1,4 @@
-package io.yak.framework.security.common.dto;
+package io.yak.ops.common.bean.dto.security;
 
 import lombok.Data;
 /**

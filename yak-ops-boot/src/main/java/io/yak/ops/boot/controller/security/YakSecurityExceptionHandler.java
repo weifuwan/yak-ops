@@ -2,7 +2,7 @@ package io.yak.ops.boot.controller.security;
 
 import io.yak.framework.common.ErrorCode;
 import io.yak.framework.common.Result;
-import io.yak.framework.security.common.enums.ResultCode;
+import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.framework.security.exception.YakSecurityException;
 import io.yak.ops.boot.controller.security.v1.LoginController;
 import org.slf4j.Logger;
@@ -74,6 +74,7 @@ public class YakSecurityExceptionHandler {
       case USER_NOT_LOGIN, USER_ACCOUNT_EXPIRED, USER_CREDENTIALS_ERROR,
           USER_CREDENTIALS_EXPIRED, USER_ACCOUNT_DISABLE, USER_ACCOUNT_LOCKED,
           USER_ACCOUNT_USE_BY_OTHERS -> HttpStatus.UNAUTHORIZED;
+      case NO_PERMISSION -> HttpStatus.FORBIDDEN;
       case USER_ACCOUNT_NOT_EXIST, USER_NOT_EXISTS -> HttpStatus.NOT_FOUND;
       case USER_ACCOUNT_ALREADY_EXIST, USER_PHONE_EXIST, USER_EMAIL_EXIST,
           USER_NAME_EXISTS -> HttpStatus.CONFLICT;

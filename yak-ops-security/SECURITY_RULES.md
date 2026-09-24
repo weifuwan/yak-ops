@@ -23,7 +23,7 @@ Yak Ops 当前只发布两组 Security API：
 
 Role、Permission、Department、Project、Message、Oplog、Resource、Notification 等旧体系不再属于当前 Security runtime。
 
-Java namespace io.yak.framework.security 暂时保留，避免把依赖清理和包名迁移混在同一次改造中。
+Security runtime 的 Java namespace `io.yak.framework.security` 暂时保留。共享 DTO / VO / Enum 已迁入 `yak-ops-common`，持久化 Entity / Mapper / Repository 已迁入 `yak-ops-dao`。
 
 ## HTTP Boundary
 
@@ -35,12 +35,21 @@ Security HTTP Controller 和 ControllerAdvice 统一由 `yak-ops-boot` 持有。
 
 ## Model Boundary
 
-Security 只保留用户和登录所需模型：
+Security runtime 只保留用户和登录业务行为、认证状态及内部领域模型。
 
-- DTO: `PageParamDTO`、`account/AccountLoginDTO`、`user/UserDTO`、`user/UserQueryDTO`、`user/UserPasswordResetDTO`
-- VO: `user/UserVO`、`user/UserBriefVO`、`user/CurrentUserVO`
-- Enum: `ResultCode`、`user/UserCheckType`
-- PO: `AppBasePO`、`BasePO`、`UserPO`
+共享接口对象统一由 `yak-ops-common` 持有：
+
+- DTO: `PageParamDTO`、`AccountLoginDTO`、`UserDTO`、`UserQueryDTO`、`UserPasswordResetDTO`
+- VO: `UserVO`、`UserBriefVO`、`CurrentUserVO`
+- Enum: `ResultCode`、`UserCheckType`
+
+用户持久化统一由 `yak-ops-dao` 持有：
+
+- Entity: `UserEntity`
+- Mapper: `UserMapper`
+- Repository: `UserRepository` / `UserRepositoryImpl`
+
+Security Service 不直接访问 Mapper，也不向上泄漏 MyBatis `IPage`。
 
 用户模型不得重新携带 role / permission / project / menu 等旧授权字段。
 
@@ -60,6 +69,7 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - keep authentication implementation behind AuthenticationManager.
 - route every Security schema change through `/yak-ops-dao/FLYWAY_RULES.md`.
 - reuse io.yak.framework.common contracts from yak-ops-common.
+- access user persistence only through `UserRepository` from yak-ops-dao.
 
 ## Must Not
 
@@ -67,6 +77,7 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - add another Token / RBAC framework as a replacement.
 - expose new Role / Permission / Department / Project / Message / Oplog / Resource Security APIs.
 - bypass UserService with ad hoc user SQL from Boot or Datasource.
+- access `UserMapper` directly from Security Service.
 - recreate removed tests or CI as a side effect.
 - add Controller / RestController / RestControllerAdvice to this module.
 - add Flyway beans or versioned SQL migrations to this module.

@@ -1,10 +1,10 @@
-package io.yak.framework.security.common.vo.user;
+package io.yak.ops.common.bean.vo.security.user;
 
 import lombok.Data;
 
-/** 当前登录用户身份。 */
+/** 用户简要信息视图对象。 */
 @Data
-public class CurrentUserVO {
+public class UserBriefVO {
   private Long id;
   private String userName;
   private String realName;

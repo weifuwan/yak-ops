@@ -2,10 +2,10 @@ package io.yak.framework.security.extend.impl;
 
 import io.yak.framework.common.Result;
 import io.yak.framework.security.authentication.AuthenticationManager;
-import io.yak.framework.security.common.dto.account.AccountLoginDTO;
+import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.framework.security.common.entity.user.User;
-import io.yak.framework.security.common.enums.ResultCode;
-import io.yak.framework.security.common.vo.user.UserBriefVO;
+import io.yak.ops.common.enums.security.ResultCode;
+import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.framework.security.config.YakSecurityProperties;
 import io.yak.framework.security.exception.YakSecurityException;
 import io.yak.framework.security.extend.LoginExtend;

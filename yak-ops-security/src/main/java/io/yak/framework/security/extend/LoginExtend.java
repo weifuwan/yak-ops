@@ -1,8 +1,8 @@
 package io.yak.framework.security.extend;
 
 import io.yak.framework.common.Result;
-import io.yak.framework.security.common.dto.account.AccountLoginDTO;
-import io.yak.framework.security.common.vo.user.UserBriefVO;
+import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
+import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.framework.security.exception.YakSecurityException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

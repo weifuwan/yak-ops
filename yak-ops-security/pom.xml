@@ -19,6 +19,10 @@
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-dao</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>

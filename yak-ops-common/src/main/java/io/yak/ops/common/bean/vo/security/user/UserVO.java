@@ -1,4 +1,4 @@
-package io.yak.framework.security.common.vo.user;
+package io.yak.ops.common.bean.vo.security.user;
 
 import java.util.Date;
 import lombok.Data;

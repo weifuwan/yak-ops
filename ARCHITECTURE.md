@@ -24,7 +24,7 @@ HTTP is an application boundary. All Controller ownership belongs to `yak-ops-bo
 
 ### `yak-ops-common`
 
-Owns shared contracts and the unified `io.yak.framework.common` Result / ErrorCode / BusinessException / PageData contracts migrated into Yak Ops.
+Owns shared data contracts for Datasource and Security, plus the unified `io.yak.framework.common` Result / ErrorCode / BusinessException / PageData contracts migrated into Yak Ops. Security user/login DTO, VO and enum contracts live here instead of inside the Security runtime module.
 
 ### `yak-ops-security`
 
@@ -34,7 +34,7 @@ Security does not own Controller or ControllerAdvice. Boot exposes the current S
 
 Security production code was migrated from `yak-framework/yak-security`.
 
-The Java package `io.yak.framework.security` is temporarily preserved as a naming residue. It no longer means an external framework dependency.
+Security business/runtime code still uses the `io.yak.framework.security` compatibility namespace. Shared DTO / VO / enum contracts have moved to `io.yak.ops.common`, while user persistence is owned by `yak-ops-dao`.
 
 ### `yak-ops-dao`
 
@@ -46,7 +46,7 @@ Owns shared database persistence infrastructure:
 - the single Flyway configuration and schema history for all Yak Ops modules
 - all versioned SQL under `yak-ops-dao/src/main/resources/db/migration/yak-ops`
 
-Concrete Datasource persistence remains in `yak-ops-business-datasource` until a separate migration changes that ownership.
+Concrete Security user persistence (`UserEntity`, `UserMapper`, `UserRepository`) is owned here. Concrete Datasource persistence remains in `yak-ops-business-datasource` until a separate migration changes that ownership.
 
 ### `yak-ops-spi`
 
@@ -101,6 +101,7 @@ UI
  ↓ HTTP
 Boot
  ├────────→ Security ─────────────→ Common
+ │              └───────────────→ DAO ─→ Common
  └────────→ Datasource Business ─→ Common
                 │
                 ├───────────────→ Security identity/runtime
