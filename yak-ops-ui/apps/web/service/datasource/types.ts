@@ -162,3 +162,14 @@ export interface DriverUploadResult {
   path?: string;
 }
 
+export interface DataSourceCatalogColumn {
+  name: string;
+  typeName?: string;
+  jdbcType?: number;
+  size?: number;
+  scale?: number;
+  nullable?: boolean;
+  ordinalPosition?: number;
+  primaryKey?: boolean;
+  remarks?: string;
+}
