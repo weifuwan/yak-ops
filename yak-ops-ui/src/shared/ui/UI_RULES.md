@@ -46,7 +46,7 @@ DOM
 - Input 不拥有 Label、Description、Error Message、Prefix / Suffix 等组合能力；这些出现真实复用需求后再建立独立边界。
 - Select 使用组合式 Primitive：`Select / SelectTrigger / SelectValue / SelectContent / SelectItem`。
 - Select 的 keyboard navigation、focus restore、popup interaction、selection semantics 交给 Base UI；Yak UI 只拥有公开组合 Contract 与视觉。
-- Select 不提供 `options / searchable / clearable / multiple / renderOption` 聚合式超级 Props API；业务需要的能力优先通过组合扩展。
+- Select 不新增把 `options / searchable / clearable / renderOption` 等便利能力堆在一起的超级组件 API；selection mode 由 Root Contract 表达，其它能力优先通过组合扩展。
 - `className` 只作为布局、定位和必要的局部 escape hatch，不用于重新发明 Primitive 的核心视觉状态。
 - 只有真实、稳定、重复使用的 UI Boundary 才新增 Primitive。
 
