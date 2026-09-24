@@ -167,13 +167,14 @@ packages/datasource/src/
 
 ## packages/yak-ui
 
-`packages/yak-ui` 拥有无业务语义的 UI Primitive：
+`packages/yak-ui` 拥有无业务语义的 UI Primitive，并提供当前 AntD removal 所需的 replacement set：
 
 ```text
-Button
-Input
-Select
-...
+Button / Input / PasswordInput / Textarea
+Field / Form / NumberField / Switch
+Select / DropdownMenu / Tabs / Collapsible
+Tooltip / Popover / Dialog / Drawer
+Pagination / Spinner / Empty / Badge / Toast
 ```
 
 固定依赖：
