@@ -10,13 +10,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataSourceCatalogColumnVO {
 
-  private String name;
-  private String typeName;
-  private Integer jdbcType;
-  private Integer size;
-  private Integer scale;
-  private Boolean nullable;
-  private Integer ordinalPosition;
-  private Boolean primaryKey;
-  private String remarks;
+    private String name;
+    private String typeName;
+    private Integer jdbcType;
+    private Integer size;
+    private Integer scale;
+    private Boolean nullable;
+    private Integer ordinalPosition;
+    private Boolean primaryKey;
+    private String remarks;
 }

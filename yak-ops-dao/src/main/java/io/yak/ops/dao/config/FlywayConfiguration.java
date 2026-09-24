@@ -12,17 +12,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 public class FlywayConfiguration {
 
-  @Bean(name = "yakOpsFlyway", initMethod = "migrate")
-  Flyway yakOpsFlyway(
-      DataSource dataSource,
-      @Value("${yak.security.application-name:${spring.application.name:yak-ops}}")
-          String applicationName) {
-    return Flyway.configure()
-        .dataSource(dataSource)
-        .locations("classpath:db/migration/yak-ops")
-        .placeholders(Map.of("appName", applicationName))
-        .baselineOnMigrate(true)
-        .baselineVersion(MigrationVersion.fromVersion("0"))
-        .load();
-  }
+    @Bean(name = "yakOpsFlyway", initMethod = "migrate")
+    Flyway yakOpsFlyway(
+            DataSource dataSource,
+            @Value("${yak.security.application-name:${spring.application.name:yak-ops}}") String applicationName) {
+        return Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration/yak-ops")
+                .placeholders(Map.of("appName", applicationName))
+                .baselineOnMigrate(true)
+                .baselineVersion(MigrationVersion.fromVersion("0"))
+                .load();
+    }
 }

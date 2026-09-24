@@ -15,5 +15,5 @@ import java.lang.annotation.Target;
 @JacksonAnnotationsInside
 @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = QualityDateTimeFormat.PATTERN)
 public @interface QualityDateTimeFormat {
-  String PATTERN = "yyyy-MM-dd HH:mm:ss";
+    String PATTERN = "yyyy-MM-dd HH:mm:ss";
 }

@@ -11,32 +11,32 @@ import java.util.List;
 /** 数据源数据访问接口。 */
 public interface DataSourceDao {
 
-  int addDataSource(DataSourcePO dataSourcePO);
+    int addDataSource(DataSourcePO dataSourcePO);
 
-  int editDataSource(DataSourcePO dataSourcePO);
+    int editDataSource(DataSourcePO dataSourcePO);
 
-  DataSourcePO selectById(Long id);
+    DataSourcePO selectById(Long id);
 
-  List<DataSourcePO> selectByIds(List<Long> ids);
+    List<DataSourcePO> selectByIds(List<Long> ids);
 
-  IPage<DataSourcePO> selectPage(PageQuery query);
+    IPage<DataSourcePO> selectPage(PageQuery query);
 
-  DataSourceSummaryRow selectSummary();
+    DataSourceSummaryRow selectSummary();
 
-  List<DataSourcePO> selectAll(DataSourceDbType dbType);
+    List<DataSourcePO> selectAll(DataSourceDbType dbType);
 
-  boolean existsByName(String name, Long excludeId);
+    boolean existsByName(String name, Long excludeId);
 
-  boolean deleteById(Long id);
+    boolean deleteById(Long id);
 
-  boolean updateConnectionStatus(Long id, DataSourceConnStatus connStatus);
+    boolean updateConnectionStatus(Long id, DataSourceConnStatus connStatus);
 
-  record PageQuery(
-      int pageNo,
-      int pageSize,
-      String name,
-      String keyword,
-      DataSourceDbType dbType,
-      DataSourceEnvironment environment,
-      DataSourceConnStatus connStatus) {}
+    record PageQuery(
+            int pageNo,
+            int pageSize,
+            String name,
+            String keyword,
+            DataSourceDbType dbType,
+            DataSourceEnvironment environment,
+            DataSourceConnStatus connStatus) {}
 }

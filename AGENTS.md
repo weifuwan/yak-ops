@@ -89,7 +89,7 @@ Must:
 - Solve only the current task.
 - Prefer modifying existing code over adding layers.
 - Validate the smallest meaningful result with explicit local compile/build/manual verification when needed.
-- For Java changes, apply the repository formatter when needed and run `./mvnw spotless:check` before declaring style verification.
+- For Java changes, apply the formatter when needed and run the repository Spotless check command defined in `JAVA_RULES.md` before declaring style verification.
 - State exactly what verification was or was not executed.
 
 Must Not:

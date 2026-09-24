@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataSourceSummaryVO {
 
-  private long total;
-  private long connected;
-  private long disconnected;
-  private long unknown;
-  private long environmentCount;
+    private long total;
+    private long connected;
+    private long disconnected;
+    private long unknown;
+    private long environmentCount;
 }

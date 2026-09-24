@@ -23,12 +23,7 @@ public final class PageData<T> {
     private final long pageNo;
     private final long pageSize;
 
-    public PageData(
-            List<T> records,
-            long total,
-            long pages,
-            long pageNo,
-            long pageSize) {
+    public PageData(List<T> records, long total, long pages, long pageNo, long pageSize) {
         this.records = records == null ? List.of() : List.copyOf(records);
         this.total = total;
         this.pages = pages;
@@ -68,11 +63,7 @@ public final class PageData<T> {
      * @param <T> 业务数据类型
      * @return 分页数据
      */
-    public static <T> PageData<T> of(
-            List<T> records,
-            long total,
-            long pageNo,
-            long pageSize) {
+    public static <T> PageData<T> of(List<T> records, long total, long pageNo, long pageSize) {
         long pages = pageSize <= 0L ? 0L : (total + pageSize - 1L) / pageSize;
         return new PageData<>(records, total, pages, pageNo, pageSize);
     }
@@ -89,12 +80,7 @@ public final class PageData<T> {
      */
     public <R> PageData<R> map(Function<? super T, ? extends R> mapper) {
         Objects.requireNonNull(mapper, "mapper");
-        return new PageData<>(
-                records.stream().<R>map(mapper).toList(),
-                total,
-                pages,
-                pageNo,
-                pageSize);
+        return new PageData<>(records.stream().<R>map(mapper).toList(), total, pages, pageNo, pageSize);
     }
 
     /**
@@ -127,12 +113,11 @@ public final class PageData<T> {
 
     @Override
     public String toString() {
-        return "PageData{" +
-                "records=" + records +
-                ", total=" + total +
-                ", pages=" + pages +
-                ", pageNo=" + pageNo +
-                ", pageSize=" + pageSize +
-                '}';
+        return "PageData{" + "records="
+                + records + ", total="
+                + total + ", pages="
+                + pages + ", pageNo="
+                + pageNo + ", pageSize="
+                + pageSize + '}';
     }
 }

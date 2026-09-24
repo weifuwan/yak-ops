@@ -15,16 +15,16 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class DataSourceCatalogCacheInvalidationListener {
 
-  private final DataSourceCatalogMetadataCache metadataCache;
+    private final DataSourceCatalogMetadataCache metadataCache;
 
-  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-  public void onDataSourceChanged(DataSourceChangedEvent event) {
-    int invalidated = metadataCache.invalidate(event.dataSourceId());
-    if (invalidated > 0) {
-      log.debug(
-          "Invalidated datasource catalog cache dataSourceId={} entries={}",
-          event.dataSourceId(),
-          invalidated);
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onDataSourceChanged(DataSourceChangedEvent event) {
+        int invalidated = metadataCache.invalidate(event.dataSourceId());
+        if (invalidated > 0) {
+            log.debug(
+                    "Invalidated datasource catalog cache dataSourceId={} entries={}",
+                    event.dataSourceId(),
+                    invalidated);
+        }
     }
-  }
 }

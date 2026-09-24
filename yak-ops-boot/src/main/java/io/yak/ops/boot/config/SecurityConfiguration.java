@@ -23,64 +23,60 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties(YakSecurityProperties.class)
 public class SecurityConfiguration {
 
-  @Bean
-  @ConditionalOnMissingBean(PasswordEncoder.class)
-  @ConditionalOnProperty(
-      prefix = "yak.security",
-      name = {"enabled", "database-enabled"},
-      havingValue = "true",
-      matchIfMissing = true)
-  PasswordEncoder passwordEncoder() {
-    return new DefaultPasswordEncoder();
-  }
+    @Bean
+    @ConditionalOnMissingBean(PasswordEncoder.class)
+    @ConditionalOnProperty(
+            prefix = "yak.security",
+            name = {"enabled", "database-enabled"},
+            havingValue = "true",
+            matchIfMissing = true)
+    PasswordEncoder passwordEncoder() {
+        return new DefaultPasswordEncoder();
+    }
 
-  @Bean
-  @ConditionalOnMissingBean(AuthenticationManager.class)
-  @ConditionalOnProperty(
-      prefix = "yak.security",
-      name = {"enabled", "database-enabled"},
-      havingValue = "true",
-      matchIfMissing = true)
-  AuthenticationManager authenticationManager(YakSecurityProperties properties) {
-    return new HttpSessionAuthenticationManager(properties.getAuthentication().getIdleTimeout());
-  }
+    @Bean
+    @ConditionalOnMissingBean(AuthenticationManager.class)
+    @ConditionalOnProperty(
+            prefix = "yak.security",
+            name = {"enabled", "database-enabled"},
+            havingValue = "true",
+            matchIfMissing = true)
+    AuthenticationManager authenticationManager(YakSecurityProperties properties) {
+        return new HttpSessionAuthenticationManager(
+                properties.getAuthentication().getIdleTimeout());
+    }
 
-  @Bean
-  @ConditionalOnMissingBean(LoginExtend.class)
-  @ConditionalOnProperty(
-      prefix = "yak.security",
-      name = {"enabled", "database-enabled"},
-      havingValue = "true",
-      matchIfMissing = true)
-  LoginExtend loginExtend(
-      UserService userService,
-      PasswordEncoder passwordEncoder,
-      YakSecurityProperties properties,
-      AuthenticationManager authenticationManager) {
-    return new DefaultLoginExtendImpl(
-        userService, passwordEncoder, properties, authenticationManager);
-  }
+    @Bean
+    @ConditionalOnMissingBean(LoginExtend.class)
+    @ConditionalOnProperty(
+            prefix = "yak.security",
+            name = {"enabled", "database-enabled"},
+            havingValue = "true",
+            matchIfMissing = true)
+    LoginExtend loginExtend(
+            UserService userService,
+            PasswordEncoder passwordEncoder,
+            YakSecurityProperties properties,
+            AuthenticationManager authenticationManager) {
+        return new DefaultLoginExtendImpl(userService, passwordEncoder, properties, authenticationManager);
+    }
 
-  @Bean
-  @ConditionalOnMissingBean(CurrentUserProvider.class)
-  @ConditionalOnProperty(
-      prefix = "yak.security",
-      name = {"enabled", "database-enabled"},
-      havingValue = "true",
-      matchIfMissing = true)
-  CurrentUserProvider currentUserProvider(AuthenticationManager authenticationManager) {
-    return new DefaultCurrentUserProvider(authenticationManager);
-  }
+    @Bean
+    @ConditionalOnMissingBean(CurrentUserProvider.class)
+    @ConditionalOnProperty(
+            prefix = "yak.security",
+            name = {"enabled", "database-enabled"},
+            havingValue = "true",
+            matchIfMissing = true)
+    CurrentUserProvider currentUserProvider(AuthenticationManager authenticationManager) {
+        return new DefaultCurrentUserProvider(authenticationManager);
+    }
 
-  @Bean
-  @ConditionalOnBean(UserService.class)
-  @ConditionalOnProperty(
-      prefix = "yak.security.bootstrap",
-      name = "enabled",
-      havingValue = "true")
-  YakSecurityBootstrapInitializer yakSecurityBootstrapInitializer(
-      YakSecurityProperties properties,
-      UserService userService) {
-    return new YakSecurityBootstrapInitializer(properties, userService);
-  }
+    @Bean
+    @ConditionalOnBean(UserService.class)
+    @ConditionalOnProperty(prefix = "yak.security.bootstrap", name = "enabled", havingValue = "true")
+    YakSecurityBootstrapInitializer yakSecurityBootstrapInitializer(
+            YakSecurityProperties properties, UserService userService) {
+        return new YakSecurityBootstrapInitializer(properties, userService);
+    }
 }

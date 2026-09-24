@@ -1,7 +1,6 @@
 package io.yak.ops.common;
 
 import io.yak.ops.common.exception.BusinessException;
-
 import java.util.Collection;
 
 /**
@@ -9,8 +8,7 @@ import java.util.Collection;
  */
 public final class Assert {
 
-    private Assert() {
-    }
+    private Assert() {}
 
     public static void isTrue(boolean expression, ErrorCode errorCode) {
         if (!expression) {

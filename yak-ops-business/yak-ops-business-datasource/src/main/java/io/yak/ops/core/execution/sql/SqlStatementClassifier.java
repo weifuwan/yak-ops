@@ -4,5 +4,5 @@ package io.yak.ops.core.execution.sql;
 @FunctionalInterface
 public interface SqlStatementClassifier {
 
-  SqlStatementClassification classify(String sql);
+    SqlStatementClassification classify(String sql);
 }

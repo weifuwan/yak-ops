@@ -15,12 +15,10 @@ import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
  * MongoDB driver on the assembled application classpath does not create a default localhost
  * client during startup.
  */
-@SpringBootApplication(
-    scanBasePackages = "io.yak.ops",
-    exclude = MongoAutoConfiguration.class)
+@SpringBootApplication(scanBasePackages = "io.yak.ops", exclude = MongoAutoConfiguration.class)
 public class YakOpsApplication {
 
-  public static void main(String[] args) {
-    SpringApplication.run(YakOpsApplication.class, args);
-  }
+    public static void main(String[] args) {
+        SpringApplication.run(YakOpsApplication.class, args);
+    }
 }

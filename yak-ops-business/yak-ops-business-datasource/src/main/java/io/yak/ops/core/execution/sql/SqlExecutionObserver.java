@@ -9,5 +9,5 @@ package io.yak.ops.core.execution.sql;
 @FunctionalInterface
 public interface SqlExecutionObserver {
 
-  void onExecutionCompleted(SqlExecutionSnapshot snapshot);
+    void onExecutionCompleted(SqlExecutionSnapshot snapshot);
 }

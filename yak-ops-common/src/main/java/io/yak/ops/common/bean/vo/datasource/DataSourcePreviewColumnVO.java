@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataSourcePreviewColumnVO {
 
-  private String title;
-  private String dataIndex;
-  private String key;
-  private Boolean ellipsis;
+    private String title;
+    private String dataIndex;
+    private String key;
+    private Boolean ellipsis;
 }

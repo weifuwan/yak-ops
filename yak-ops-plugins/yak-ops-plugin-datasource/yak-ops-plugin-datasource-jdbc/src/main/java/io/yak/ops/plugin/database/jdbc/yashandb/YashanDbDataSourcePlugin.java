@@ -8,34 +8,33 @@ import java.util.Locale;
 /** YashanDB JDBC datasource plugin. */
 public final class YashanDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
-  @Override
-  public DataSourceDbType dbType() {
-    return DataSourceDbType.YASHAN_DB;
-  }
+    @Override
+    public DataSourceDbType dbType() {
+        return DataSourceDbType.YASHAN_DB;
+    }
 
-  @Override
-  protected String jdbcUrlTemplate() {
-    return "jdbc:yasdb://{host}:{port}/{database}";
-  }
+    @Override
+    protected String jdbcUrlTemplate() {
+        return "jdbc:yasdb://{host}:{port}/{database}";
+    }
 
-  @Override
-  protected int defaultPort() {
-    return 1688;
-  }
+    @Override
+    protected int defaultPort() {
+        return 1688;
+    }
 
-  @Override
-  protected String defaultDriverClassName() {
-    return "com.yashandb.jdbc.Driver";
-  }
+    @Override
+    protected String defaultDriverClassName() {
+        return "com.yashandb.jdbc.Driver";
+    }
 
-  @Override
-  protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
-    return "jdbc:yasdb://" + host + ":" + port + "/" + database;
-  }
+    @Override
+    protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
+        return "jdbc:yasdb://" + host + ":" + port + "/" + database;
+    }
 
-  @Override
-  public boolean acceptsUrl(String jdbcUrl) {
-    return jdbcUrl != null
-        && jdbcUrl.trim().toLowerCase(Locale.ROOT).startsWith("jdbc:yasdb://");
-  }
+    @Override
+    public boolean acceptsUrl(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.trim().toLowerCase(Locale.ROOT).startsWith("jdbc:yasdb://");
+    }
 }

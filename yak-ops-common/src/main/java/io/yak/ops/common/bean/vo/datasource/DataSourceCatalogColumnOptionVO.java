@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataSourceCatalogColumnOptionVO {
 
-  private Integer key;
-  private Object fieldName;
-  private Object fieldType;
-  private Integer ordinalPosition;
-  private String isNullable;
-  private String fieldComment;
-  private String fieldKey;
+    private Integer key;
+    private Object fieldName;
+    private Object fieldType;
+    private Integer ordinalPosition;
+    private String isNullable;
+    private String fieldComment;
+    private String fieldKey;
 }

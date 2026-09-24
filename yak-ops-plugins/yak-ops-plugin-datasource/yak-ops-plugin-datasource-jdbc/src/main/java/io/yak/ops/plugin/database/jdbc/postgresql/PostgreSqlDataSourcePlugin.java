@@ -7,33 +7,33 @@ import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 /** PostgreSQL JDBC datasource plugin. */
 public final class PostgreSqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
-  @Override
-  public DataSourceDbType dbType() {
-    return DataSourceDbType.POSTGRE_SQL;
-  }
+    @Override
+    public DataSourceDbType dbType() {
+        return DataSourceDbType.POSTGRE_SQL;
+    }
 
-  @Override
-  protected String jdbcUrlTemplate() {
-    return "jdbc:postgresql://{host}:{port}/{database}";
-  }
+    @Override
+    protected String jdbcUrlTemplate() {
+        return "jdbc:postgresql://{host}:{port}/{database}";
+    }
 
-  @Override
-  protected int defaultPort() {
-    return 5432;
-  }
+    @Override
+    protected int defaultPort() {
+        return 5432;
+    }
 
-  @Override
-  protected String defaultDriverClassName() {
-    return "org.postgresql.Driver";
-  }
+    @Override
+    protected String defaultDriverClassName() {
+        return "org.postgresql.Driver";
+    }
 
-  @Override
-  protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
-    return "jdbc:postgresql://" + host + ":" + port + "/" + database;
-  }
+    @Override
+    protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
+        return "jdbc:postgresql://" + host + ":" + port + "/" + database;
+    }
 
-  @Override
-  public boolean acceptsUrl(String jdbcUrl) {
-    return jdbcUrl != null && jdbcUrl.startsWith("jdbc:postgresql:");
-  }
+    @Override
+    public boolean acceptsUrl(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.startsWith("jdbc:postgresql:");
+    }
 }

@@ -14,23 +14,23 @@ import lombok.Data;
 @TableName("yak_ops_sql_statement_execution")
 public class SqlStatementExecutionAuditPO {
 
-  @TableId(type = IdType.AUTO)
-  private Long id;
+    @TableId(type = IdType.AUTO)
+    private Long id;
 
-  private String executionId;
-  private String statementId;
-  private Integer statementIndex;
-  private SqlStatementType statementType;
-  private String sqlFingerprint;
-  private String sqlPreview;
-  private SqlStatementStatus status;
-  private SqlExecutionResultType resultType;
-  private Long returnedRows;
-  private Long affectedRows;
-  private Boolean truncated;
-  private LocalDateTime startedAt;
-  private LocalDateTime finishedAt;
-  private Long durationMs;
-  private String errorMessage;
-  private LocalDateTime createTime;
+    private String executionId;
+    private String statementId;
+    private Integer statementIndex;
+    private SqlStatementType statementType;
+    private String sqlFingerprint;
+    private String sqlPreview;
+    private SqlStatementStatus status;
+    private SqlExecutionResultType resultType;
+    private Long returnedRows;
+    private Long affectedRows;
+    private Boolean truncated;
+    private LocalDateTime startedAt;
+    private LocalDateTime finishedAt;
+    private Long durationMs;
+    private String errorMessage;
+    private LocalDateTime createTime;
 }

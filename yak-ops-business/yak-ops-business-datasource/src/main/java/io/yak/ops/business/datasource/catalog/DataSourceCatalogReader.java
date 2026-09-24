@@ -22,206 +22,166 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DataSourceCatalogReader {
 
-  private static final int PREVIEW_LIMIT = 20;
-  private static final int MAX_TABLE_SEARCH_LIMIT = 200;
+    private static final int PREVIEW_LIMIT = 20;
+    private static final int MAX_TABLE_SEARCH_LIMIT = 200;
 
-  private final DataSourceReader dataSourceReader;
-  private final DataSourceCatalogGateway catalogGateway;
-  private final DataSourceProperties properties;
-  private final CatalogReadPolicy readPolicy;
-  private final CatalogTableMatcher tableMatcher;
-  private final DataSourceCatalogMetadataCache metadataCache;
-  private final DataSourceCatalogDiagnostics diagnostics;
+    private final DataSourceReader dataSourceReader;
+    private final DataSourceCatalogGateway catalogGateway;
+    private final DataSourceProperties properties;
+    private final CatalogReadPolicy readPolicy;
+    private final CatalogTableMatcher tableMatcher;
+    private final DataSourceCatalogMetadataCache metadataCache;
+    private final DataSourceCatalogDiagnostics diagnostics;
 
-  public List<String> listDatabases(Long dataSourceId) {
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    return cached(
-        definition,
-        "databases",
-        "listDatabases",
-        () -> catalogGateway.listDatabases(definition, connectionTimeoutSeconds()));
-  }
-
-  public List<String> listSchemas(Long dataSourceId, String database) {
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    return cached(
-        definition,
-        "schemas",
-        "listSchemas",
-        () -> catalogGateway.listSchemas(definition, database, connectionTimeoutSeconds()),
-        database);
-  }
-
-  public List<CatalogTable> listTables(
-      Long dataSourceId,
-      String database,
-      String schema,
-      String keyword) {
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    CatalogTableQuery query = new CatalogTableQuery(database, schema, keyword);
-    return cached(
-        definition,
-        "tables",
-        "listTables",
-        () -> catalogGateway.listTables(definition, query, connectionTimeoutSeconds()),
-        query.database(),
-        query.schema(),
-        query.keyword());
-  }
-
-  /**
-   * Bounded table discovery for interactive selectors.
-   *
-   * <p>Unlike the legacy all-table endpoint, this path pushes the keyword and result limit to the
-   * datasource plugin so large HIS / warehouse catalogs do not need to be materialized in the UI.
-   */
-  public List<CatalogTable> searchTables(
-      Long dataSourceId,
-      String database,
-      String schema,
-      String keyword,
-      Integer limit) {
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    int safeLimit = tableSearchLimit(limit);
-    CatalogTableQuery query = new CatalogTableQuery(database, schema, keyword, safeLimit);
-    return cached(
-        definition,
-        "table-search",
-        "searchTables",
-        () -> catalogGateway.listTables(definition, query, connectionTimeoutSeconds()),
-        query.database(),
-        query.schema(),
-        query.keyword(),
-        query.limit());
-  }
-
-  public List<CatalogColumn> listColumns(
-      Long dataSourceId,
-      String database,
-      String schema,
-      String table) {
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    CatalogTablePath path = new CatalogTablePath(database, schema, table);
-    return cached(
-        definition,
-        "columns",
-        "listColumns",
-        () -> catalogGateway.listColumns(definition, path, connectionTimeoutSeconds()),
-        path.database(),
-        path.schema(),
-        path.table());
-  }
-
-  public List<CatalogTable> listTable(Long dataSourceId) {
-    return listAllTables(dataSourceId);
-  }
-
-  public List<CatalogTable> listTableReference(
-      Long dataSourceId,
-      String matchMode,
-      String keyword) {
-    return tableMatcher.match(listAllTables(dataSourceId), matchMode, keyword);
-  }
-
-  public List<CatalogColumn> listColumn(
-      Long dataSourceId,
-      CatalogReadRequest request) {
-    readPolicy.validateReadOnly(request);
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    return diagnostics.observe(
-        definition,
-        "describe",
-        () -> catalogGateway.describe(definition, request, connectionTimeoutSeconds()));
-  }
-
-  public CatalogQueryResult preview(
-      Long dataSourceId,
-      CatalogReadRequest request) {
-    readPolicy.validateReadOnly(request);
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    return diagnostics.observe(
-        definition,
-        "preview",
-        () ->
-            catalogGateway.preview(
+    public List<String> listDatabases(Long dataSourceId) {
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        return cached(
                 definition,
-                request,
-                PREVIEW_LIMIT,
-                connectionTimeoutSeconds()));
-  }
+                "databases",
+                "listDatabases",
+                () -> catalogGateway.listDatabases(definition, connectionTimeoutSeconds()));
+    }
 
-  public Long count(
-      Long dataSourceId,
-      CatalogReadRequest request) {
-    readPolicy.validateReadOnly(request);
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    return diagnostics.observe(
-        definition,
-        "count",
-        () -> catalogGateway.count(definition, request, connectionTimeoutSeconds()));
-  }
-
-  public String buildSqlTemplate(Long dataSourceId, String tablePath) {
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    return diagnostics.observe(
-        definition,
-        "buildSqlTemplate",
-        () ->
-            catalogGateway.buildSqlTemplate(
+    public List<String> listSchemas(Long dataSourceId, String database) {
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        return cached(
                 definition,
-                tablePath,
-                connectionTimeoutSeconds()));
-  }
+                "schemas",
+                "listSchemas",
+                () -> catalogGateway.listSchemas(definition, database, connectionTimeoutSeconds()),
+                database);
+    }
 
-  public String resolveSql(
-      Long dataSourceId,
-      CatalogReadRequest request) {
-    readPolicy.requireSql(request);
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    return diagnostics.observe(
-        definition,
-        "resolveSql",
-        () -> catalogGateway.resolveSql(definition, request, connectionTimeoutSeconds()));
-  }
+    public List<CatalogTable> listTables(Long dataSourceId, String database, String schema, String keyword) {
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        CatalogTableQuery query = new CatalogTableQuery(database, schema, keyword);
+        return cached(
+                definition,
+                "tables",
+                "listTables",
+                () -> catalogGateway.listTables(definition, query, connectionTimeoutSeconds()),
+                query.database(),
+                query.schema(),
+                query.keyword());
+    }
 
-  public DataSourceCatalogDiagnostics.Snapshot diagnostics() {
-    return diagnostics.snapshot();
-  }
+    /**
+     * Bounded table discovery for interactive selectors.
+     *
+     * <p>Unlike the legacy all-table endpoint, this path pushes the keyword and result limit to the
+     * datasource plugin so large HIS / warehouse catalogs do not need to be materialized in the UI.
+     */
+    public List<CatalogTable> searchTables(
+            Long dataSourceId, String database, String schema, String keyword, Integer limit) {
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        int safeLimit = tableSearchLimit(limit);
+        CatalogTableQuery query = new CatalogTableQuery(database, schema, keyword, safeLimit);
+        return cached(
+                definition,
+                "table-search",
+                "searchTables",
+                () -> catalogGateway.listTables(definition, query, connectionTimeoutSeconds()),
+                query.database(),
+                query.schema(),
+                query.keyword(),
+                query.limit());
+    }
 
-  private List<CatalogTable> listAllTables(Long dataSourceId) {
-    DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
-    CatalogTableQuery query = new CatalogTableQuery(null, null, null);
-    return cached(
-        definition,
-        "all-tables",
-        "listAllTables",
-        () -> catalogGateway.listTables(definition, query, connectionTimeoutSeconds()));
-  }
+    public List<CatalogColumn> listColumns(Long dataSourceId, String database, String schema, String table) {
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        CatalogTablePath path = new CatalogTablePath(database, schema, table);
+        return cached(
+                definition,
+                "columns",
+                "listColumns",
+                () -> catalogGateway.listColumns(definition, path, connectionTimeoutSeconds()),
+                path.database(),
+                path.schema(),
+                path.table());
+    }
 
-  private <T> T cached(
-      DataSourceDefinition definition,
-      String kind,
-      String operation,
-      Supplier<T> loader,
-      Object... qualifiers) {
-    return metadataCache.getOrLoad(
-        metadataCache.key(definition, kind, qualifiers),
-        metadataCacheTtlSeconds(),
-        () -> diagnostics.observe(definition, operation, loader),
-        diagnostics::recordCacheLookup);
-  }
+    public List<CatalogTable> listTable(Long dataSourceId) {
+        return listAllTables(dataSourceId);
+    }
 
-  private int connectionTimeoutSeconds() {
-    return Math.max(1, properties.getCatalog().getConnectionTimeoutSeconds());
-  }
+    public List<CatalogTable> listTableReference(Long dataSourceId, String matchMode, String keyword) {
+        return tableMatcher.match(listAllTables(dataSourceId), matchMode, keyword);
+    }
 
-  private int metadataCacheTtlSeconds() {
-    return Math.max(0, properties.getCatalog().getMetadataCacheTtlSeconds());
-  }
+    public List<CatalogColumn> listColumn(Long dataSourceId, CatalogReadRequest request) {
+        readPolicy.validateReadOnly(request);
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        return diagnostics.observe(
+                definition, "describe", () -> catalogGateway.describe(definition, request, connectionTimeoutSeconds()));
+    }
 
-  private int tableSearchLimit(Integer requestedLimit) {
-    int configured = Math.max(1, properties.getCatalog().getTableSearchLimit());
-    int requested = requestedLimit == null ? configured : Math.max(1, requestedLimit);
-    return Math.min(MAX_TABLE_SEARCH_LIMIT, requested);
-  }
+    public CatalogQueryResult preview(Long dataSourceId, CatalogReadRequest request) {
+        readPolicy.validateReadOnly(request);
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        return diagnostics.observe(
+                definition,
+                "preview",
+                () -> catalogGateway.preview(definition, request, PREVIEW_LIMIT, connectionTimeoutSeconds()));
+    }
+
+    public Long count(Long dataSourceId, CatalogReadRequest request) {
+        readPolicy.validateReadOnly(request);
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        return diagnostics.observe(
+                definition, "count", () -> catalogGateway.count(definition, request, connectionTimeoutSeconds()));
+    }
+
+    public String buildSqlTemplate(Long dataSourceId, String tablePath) {
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        return diagnostics.observe(
+                definition,
+                "buildSqlTemplate",
+                () -> catalogGateway.buildSqlTemplate(definition, tablePath, connectionTimeoutSeconds()));
+    }
+
+    public String resolveSql(Long dataSourceId, CatalogReadRequest request) {
+        readPolicy.requireSql(request);
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        return diagnostics.observe(
+                definition,
+                "resolveSql",
+                () -> catalogGateway.resolveSql(definition, request, connectionTimeoutSeconds()));
+    }
+
+    public DataSourceCatalogDiagnostics.Snapshot diagnostics() {
+        return diagnostics.snapshot();
+    }
+
+    private List<CatalogTable> listAllTables(Long dataSourceId) {
+        DataSourceDefinition definition = dataSourceReader.require(dataSourceId);
+        CatalogTableQuery query = new CatalogTableQuery(null, null, null);
+        return cached(
+                definition,
+                "all-tables",
+                "listAllTables",
+                () -> catalogGateway.listTables(definition, query, connectionTimeoutSeconds()));
+    }
+
+    private <T> T cached(
+            DataSourceDefinition definition, String kind, String operation, Supplier<T> loader, Object... qualifiers) {
+        return metadataCache.getOrLoad(
+                metadataCache.key(definition, kind, qualifiers),
+                metadataCacheTtlSeconds(),
+                () -> diagnostics.observe(definition, operation, loader),
+                diagnostics::recordCacheLookup);
+    }
+
+    private int connectionTimeoutSeconds() {
+        return Math.max(1, properties.getCatalog().getConnectionTimeoutSeconds());
+    }
+
+    private int metadataCacheTtlSeconds() {
+        return Math.max(0, properties.getCatalog().getMetadataCacheTtlSeconds());
+    }
+
+    private int tableSearchLimit(Integer requestedLimit) {
+        int configured = Math.max(1, properties.getCatalog().getTableSearchLimit());
+        int requested = requestedLimit == null ? configured : Math.max(1, requestedLimit);
+        return Math.min(MAX_TABLE_SEARCH_LIMIT, requested);
+    }
 }

@@ -18,48 +18,44 @@ import org.springframework.stereotype.Component;
 @ConditionalOnDataSourceEnabled
 public class BusinessDataSourceExecutionProvider implements DataSourceExecutionProvider {
 
-  private final DataSourceRepository repository;
-  private final DataSourcePluginRegistry pluginRegistry;
-  private final DataSourceProperties properties;
+    private final DataSourceRepository repository;
+    private final DataSourcePluginRegistry pluginRegistry;
+    private final DataSourceProperties properties;
 
-  public BusinessDataSourceExecutionProvider(
-      DataSourceRepository repository,
-      DataSourcePluginRegistry pluginRegistry,
-      DataSourceProperties properties) {
-    this.repository = repository;
-    this.pluginRegistry = pluginRegistry;
-    this.properties = properties;
-  }
+    public BusinessDataSourceExecutionProvider(
+            DataSourceRepository repository, DataSourcePluginRegistry pluginRegistry, DataSourceProperties properties) {
+        this.repository = repository;
+        this.pluginRegistry = pluginRegistry;
+        this.properties = properties;
+    }
 
-  @Override
-  public DataSourceSqlExecutor open(String dataSourceReference) {
-    long dataSourceId = parseDataSourceId(dataSourceReference);
-    DataSourceDefinition definition =
-        repository
-            .findById(dataSourceId)
-            .orElseThrow(() -> new IllegalArgumentException("数据源不存在：" + dataSourceReference));
-    DataSourcePlugin plugin = pluginRegistry.get(definition.getDbType());
-    if (!plugin.supports(DataSourceCapability.SQL_EXECUTION)) {
-      throw new DataSourcePluginException(
-          DataSourcePluginException.Operation.EXECUTION,
-          "当前数据源插件未声明 SQL_EXECUTION 能力：" + plugin.dbType().name());
+    @Override
+    public DataSourceSqlExecutor open(String dataSourceReference) {
+        long dataSourceId = parseDataSourceId(dataSourceReference);
+        DataSourceDefinition definition = repository
+                .findById(dataSourceId)
+                .orElseThrow(() -> new IllegalArgumentException("数据源不存在：" + dataSourceReference));
+        DataSourcePlugin plugin = pluginRegistry.get(definition.getDbType());
+        if (!plugin.supports(DataSourceCapability.SQL_EXECUTION)) {
+            throw new DataSourcePluginException(
+                    DataSourcePluginException.Operation.EXECUTION,
+                    "当前数据源插件未声明 SQL_EXECUTION 能力：" + plugin.dbType().name());
+        }
+        DataSourceConnection connection = plugin.parseConnection(definition.getConnectionParams());
+        return plugin.createSqlExecutor(
+                connection, Math.max(1, properties.getConnectionTest().getTimeoutSeconds()));
     }
-    DataSourceConnection connection = plugin.parseConnection(definition.getConnectionParams());
-    return plugin.createSqlExecutor(
-        connection,
-        Math.max(1, properties.getConnectionTest().getTimeoutSeconds()));
-  }
 
-  private long parseDataSourceId(String reference) {
-    if (reference == null || reference.isBlank()) {
-      throw new IllegalArgumentException("数据源 ID 不能为空");
+    private long parseDataSourceId(String reference) {
+        if (reference == null || reference.isBlank()) {
+            throw new IllegalArgumentException("数据源 ID 不能为空");
+        }
+        try {
+            long value = Long.parseLong(reference.trim());
+            if (value <= 0L) throw new NumberFormatException("non-positive");
+            return value;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("数据源 ID 非法：" + reference, exception);
+        }
     }
-    try {
-      long value = Long.parseLong(reference.trim());
-      if (value <= 0L) throw new NumberFormatException("non-positive");
-      return value;
-    } catch (NumberFormatException exception) {
-      throw new IllegalArgumentException("数据源 ID 非法：" + reference, exception);
-    }
-  }
 }

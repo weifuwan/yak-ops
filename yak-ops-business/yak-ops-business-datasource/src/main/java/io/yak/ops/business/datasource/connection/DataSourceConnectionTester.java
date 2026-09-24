@@ -18,60 +18,50 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DataSourceConnectionTester {
 
-  private final DataSourceReader reader;
-  private final DataSourceRepository repository;
-  private final DataSourceConnectionResolver resolver;
-  private final DataSourcePluginGateway pluginGateway;
-  private final DataSourceProperties properties;
+    private final DataSourceReader reader;
+    private final DataSourceRepository repository;
+    private final DataSourceConnectionResolver resolver;
+    private final DataSourcePluginGateway pluginGateway;
+    private final DataSourceProperties properties;
 
-  public boolean testSaved(Long id) {
-    DataSourceDefinition definition = reader.require(id);
-    try {
-      pluginGateway.testConnection(
-          definition.getDbType(),
-          definition.connectionProfile(),
-          connectionTimeoutSeconds());
-      definition.markConnected();
-      repository.updateConnectionStatus(definition.getId(), definition.getConnStatus());
-      return true;
-    } catch (RuntimeException exception) {
-      DataSourceException mapped = connectException(exception);
-      if (DataSourceErrorCode.CONNECT_FAILED.equals(mapped.getErrorCode())) {
-        definition.markDisconnected();
-        repository.updateConnectionStatus(definition.getId(), definition.getConnStatus());
-      }
-      throw mapped;
+    public boolean testSaved(Long id) {
+        DataSourceDefinition definition = reader.require(id);
+        try {
+            pluginGateway.testConnection(
+                    definition.getDbType(), definition.connectionProfile(), connectionTimeoutSeconds());
+            definition.markConnected();
+            repository.updateConnectionStatus(definition.getId(), definition.getConnStatus());
+            return true;
+        } catch (RuntimeException exception) {
+            DataSourceException mapped = connectException(exception);
+            if (DataSourceErrorCode.CONNECT_FAILED.equals(mapped.getErrorCode())) {
+                definition.markDisconnected();
+                repository.updateConnectionStatus(definition.getId(), definition.getConnStatus());
+            }
+            throw mapped;
+        }
     }
-  }
 
-  public boolean test(DataSourceConnectionRequest request) {
-    DataSourceDefinition existing =
-        request != null && request.dataSourceId() != null
-            ? reader.require(request.dataSourceId())
-            : null;
-    ResolvedConnection resolved = resolver.resolveTest(request, existing);
-    try {
-      pluginGateway.testConnection(
-          resolved.dbType(),
-          resolved.profile(),
-          connectionTimeoutSeconds());
-      return true;
-    } catch (RuntimeException exception) {
-      throw connectException(exception);
+    public boolean test(DataSourceConnectionRequest request) {
+        DataSourceDefinition existing =
+                request != null && request.dataSourceId() != null ? reader.require(request.dataSourceId()) : null;
+        ResolvedConnection resolved = resolver.resolveTest(request, existing);
+        try {
+            pluginGateway.testConnection(resolved.dbType(), resolved.profile(), connectionTimeoutSeconds());
+            return true;
+        } catch (RuntimeException exception) {
+            throw connectException(exception);
+        }
     }
-  }
 
-  private DataSourceException connectException(RuntimeException exception) {
-    if (exception instanceof DataSourceException dataSourceException) {
-      return dataSourceException;
+    private DataSourceException connectException(RuntimeException exception) {
+        if (exception instanceof DataSourceException dataSourceException) {
+            return dataSourceException;
+        }
+        return new DataSourceException(DataSourceErrorCode.CONNECT_FAILED, exception.getMessage(), exception);
     }
-    return new DataSourceException(
-        DataSourceErrorCode.CONNECT_FAILED,
-        exception.getMessage(),
-        exception);
-  }
 
-  private int connectionTimeoutSeconds() {
-    return Math.max(1, properties.getConnectionTest().getTimeoutSeconds());
-  }
+    private int connectionTimeoutSeconds() {
+        return Math.max(1, properties.getConnectionTest().getTimeoutSeconds());
+    }
 }

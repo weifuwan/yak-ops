@@ -16,58 +16,40 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DataSourceConnectionResolver {
 
-  private final DataSourcePluginGateway pluginGateway;
+    private final DataSourcePluginGateway pluginGateway;
 
-  public ConnectionProfile normalize(DataSourceDbType dbType, String connectionJson) {
-    return pluginGateway.normalizeConnection(dbType, connectionJson);
-  }
-
-  public ConnectionProfile mergeStoredSecrets(
-      DataSourceDefinition existing,
-      String connectionJson) {
-    String mergedConnectionJson =
-        pluginGateway.mergeStoredSecrets(
-            existing.getDbType(),
-            connectionJson,
-            existing.getConnectionParams());
-    return normalize(existing.getDbType(), mergedConnectionJson);
-  }
-
-  public ResolvedConnection resolveTest(
-      DataSourceConnectionRequest request,
-      DataSourceDefinition existing) {
-    if (request == null) {
-      throw new DataSourceException(
-          DataSourceErrorCode.INVALID_CONNECTION_PARAMS,
-          "连接测试参数不能为空");
+    public ConnectionProfile normalize(DataSourceDbType dbType, String connectionJson) {
+        return pluginGateway.normalizeConnection(dbType, connectionJson);
     }
 
-    String connectionJson = request.connectionJson();
-    DataSourceDbType dbType;
-    if (existing != null) {
-      dbType = existing.getDbType();
-      if (request.requestedType() != null && request.requestedType() != dbType) {
-        throw new DataSourceException(
-            DataSourceErrorCode.INVALID_DB_TYPE,
-            "连接测试的数据源类型与已保存数据源不一致");
-      }
-      connectionJson =
-          pluginGateway.mergeStoredSecrets(
-              dbType,
-              connectionJson,
-              existing.getConnectionParams());
-    } else {
-      dbType =
-          request.requestedType() != null
-              ? request.requestedType()
-              : pluginGateway.resolveConnectionType(connectionJson);
+    public ConnectionProfile mergeStoredSecrets(DataSourceDefinition existing, String connectionJson) {
+        String mergedConnectionJson =
+                pluginGateway.mergeStoredSecrets(existing.getDbType(), connectionJson, existing.getConnectionParams());
+        return normalize(existing.getDbType(), mergedConnectionJson);
     }
 
-    return new ResolvedConnection(dbType, normalize(dbType, connectionJson));
-  }
+    public ResolvedConnection resolveTest(DataSourceConnectionRequest request, DataSourceDefinition existing) {
+        if (request == null) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "连接测试参数不能为空");
+        }
 
-  /** Resolved datasource type and normalized connection profile. */
-  public record ResolvedConnection(
-      DataSourceDbType dbType,
-      ConnectionProfile profile) {}
+        String connectionJson = request.connectionJson();
+        DataSourceDbType dbType;
+        if (existing != null) {
+            dbType = existing.getDbType();
+            if (request.requestedType() != null && request.requestedType() != dbType) {
+                throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接测试的数据源类型与已保存数据源不一致");
+            }
+            connectionJson = pluginGateway.mergeStoredSecrets(dbType, connectionJson, existing.getConnectionParams());
+        } else {
+            dbType = request.requestedType() != null
+                    ? request.requestedType()
+                    : pluginGateway.resolveConnectionType(connectionJson);
+        }
+
+        return new ResolvedConnection(dbType, normalize(dbType, connectionJson));
+    }
+
+    /** Resolved datasource type and normalized connection profile. */
+    public record ResolvedConnection(DataSourceDbType dbType, ConnectionProfile profile) {}
 }

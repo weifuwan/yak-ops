@@ -8,30 +8,29 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum DataSourceEnvironment {
+    DEVELOP("开发"),
+    TEST("测试"),
+    PROD("生产");
 
-  DEVELOP("开发"),
-  TEST("测试"),
-  PROD("生产");
+    private final String displayName;
 
-  private final String displayName;
+    public static DataSourceEnvironment parse(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return DEVELOP;
+        }
 
-  public static DataSourceEnvironment parse(String value) {
-    if (value == null || value.trim().isEmpty()) {
-      return DEVELOP;
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if ("DEV".equals(normalized) || "DEVELOPMENT".equals(normalized)) {
+            normalized = "DEVELOP";
+        }
+        if ("PRODUCTION".equals(normalized)) {
+            normalized = "PROD";
+        }
+
+        try {
+            return valueOf(normalized);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("不支持的运行环境：" + value, exception);
+        }
     }
-
-    String normalized = value.trim().toUpperCase(Locale.ROOT);
-    if ("DEV".equals(normalized) || "DEVELOPMENT".equals(normalized)) {
-      normalized = "DEVELOP";
-    }
-    if ("PRODUCTION".equals(normalized)) {
-      normalized = "PROD";
-    }
-
-    try {
-      return valueOf(normalized);
-    } catch (IllegalArgumentException exception) {
-      throw new IllegalArgumentException("不支持的运行环境：" + value, exception);
-    }
-  }
 }

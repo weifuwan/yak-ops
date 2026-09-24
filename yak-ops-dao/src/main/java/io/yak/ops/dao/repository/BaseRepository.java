@@ -1,7 +1,6 @@
 package io.yak.ops.dao.repository;
 
 import io.yak.ops.common.PageData;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;

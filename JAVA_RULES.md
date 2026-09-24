@@ -20,23 +20,24 @@ Java production code uses Spotless + Palantir Java Format as the mechanical form
 
 Pinned versions:
 - Spotless Maven Plugin: `3.10.2`
-- Palantir Java Format: `2.98.0`
+- Palantir Java Format: `2.97.0`
 
-During the backend cleanup migration, Spotless uses `origin/main` as a ratchet baseline. Existing untouched legacy files are not required to become clean in PR1; every Java file changed after the baseline must pass the formatter.
+The backend production Java baseline has been fully formatted. Spotless no longer uses a ratchet; all backend Java sources are expected to remain clean.
 
-Commands:
+Repository commands:
 
 ```bash
-./mvnw spotless:apply
-./mvnw spotless:check
+bash mvnw -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+bash mvnw -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
 ```
+
+`yak-ops-bom` is excluded because it is an independent BOM and does not inherit the root formatter plugin. UI and Dist are outside the backend Java formatting scope.
 
 Rules:
 - Run `spotless:apply` after changing Java layout or imports.
 - Run `spotless:check` before declaring Java work verified.
 - Do not manually fight formatter output for indentation, wrapping, braces or imports.
 - Formatter owns mechanical layout. `JAVA_RULES.md`, `ARCHITECTURE.md` and module RULES own naming, abstraction, layering and behavior.
-- PR2 will format the existing backend codebase. After the full cleanup lands, remove the ratchet and switch to full-repository enforcement.
 
 ## Layout
 
@@ -132,7 +133,7 @@ Existing names such as `AuthenticationManager`, capability-specific exception ha
 - 公共接口、核心类和非直观行为只注释职责、边界和原因。
 - 删除过期注释和已经不存在的架构描述。
 - 修改完成后执行与改动匹配的显式编译、构建、静态检查或手工验证。
-- Java 变更至少执行 `spotless:check`；需要修复格式时先执行 `spotless:apply`。
+- Java 变更至少执行上面的 Spotless `check` 命令；需要修复格式时先执行对应的 `apply` 命令。
 
 ## Must Not
 
@@ -165,7 +166,7 @@ For a Java change, verification should match the touched boundary:
 
 ```text
 mechanical style
-→ ./mvnw spotless:check
+→ repository Spotless check command above
 
 compile-sensitive change
 → relevant Maven compile/package command

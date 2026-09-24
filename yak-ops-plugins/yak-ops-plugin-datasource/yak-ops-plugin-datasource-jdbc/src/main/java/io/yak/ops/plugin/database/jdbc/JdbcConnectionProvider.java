@@ -6,5 +6,5 @@ import java.sql.Connection;
 @FunctionalInterface
 public interface JdbcConnectionProvider {
 
-  Connection open(JdbcConnectionProperties connection, int timeoutSeconds) throws Exception;
+    Connection open(JdbcConnectionProperties connection, int timeoutSeconds) throws Exception;
 }

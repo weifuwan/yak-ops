@@ -12,31 +12,26 @@ import org.springframework.stereotype.Component;
 @ConditionalOnDataSourceEnabled
 public class CatalogReadPolicy {
 
-  private static final Pattern READ_ONLY_SELECT = Pattern.compile("(?is)^SELECT\\b.*");
+    private static final Pattern READ_ONLY_SELECT = Pattern.compile("(?is)^SELECT\\b.*");
 
-  public void validateReadOnly(CatalogReadRequest request) {
-    if (request == null) {
-      throw new DataSourceException(
-          DataSourceErrorCode.INVALID_CONNECTION_PARAMS,
-          "Catalog 读取请求不能为空");
+    public void validateReadOnly(CatalogReadRequest request) {
+        if (request == null) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "Catalog 读取请求不能为空");
+        }
+        if (!request.sqlMode()) return;
+        String normalized = request.sql().trim();
+        if (normalized.endsWith(";")) {
+            normalized = normalized.substring(0, normalized.length() - 1).trim();
+        }
+        if (normalized.indexOf(';') >= 0
+                || !READ_ONLY_SELECT.matcher(normalized).matches()) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "数据预览仅允许执行单条 SELECT 查询");
+        }
     }
-    if (!request.sqlMode()) return;
-    String normalized = request.sql().trim();
-    if (normalized.endsWith(";")) {
-      normalized = normalized.substring(0, normalized.length() - 1).trim();
-    }
-    if (normalized.indexOf(';') >= 0 || !READ_ONLY_SELECT.matcher(normalized).matches()) {
-      throw new DataSourceException(
-          DataSourceErrorCode.INVALID_CONNECTION_PARAMS,
-          "数据预览仅允许执行单条 SELECT 查询");
-    }
-  }
 
-  public void requireSql(CatalogReadRequest request) {
-    if (request == null || request.sql() == null) {
-      throw new DataSourceException(
-          DataSourceErrorCode.INVALID_CONNECTION_PARAMS,
-          "query 不能为空");
+    public void requireSql(CatalogReadRequest request) {
+        if (request == null || request.sql() == null) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "query 不能为空");
+        }
     }
-  }
 }

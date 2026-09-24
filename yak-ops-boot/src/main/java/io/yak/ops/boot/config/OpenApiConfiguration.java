@@ -12,36 +12,35 @@ import org.springframework.core.env.Environment;
 @Configuration(proxyBeanMethods = false)
 public class OpenApiConfiguration {
 
-  @Bean
-  public OpenAPI yakOpsOpenApi() {
-    return new OpenAPI()
-        .info(
-            new Info()
-                .title("Yak Ops API")
-                .description("Yak Ops Datasource and Security APIs")
-                .version("1.0.0"));
-  }
+    @Bean
+    public OpenAPI yakOpsOpenApi() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Yak Ops API")
+                        .description("Yak Ops Datasource and Security APIs")
+                        .version("1.0.0"));
+    }
 
-  @Bean
-  public GroupedOpenApi yakOpsApiGroup() {
-    return GroupedOpenApi.builder().group("yak-ops").pathsToMatch("/api/**").build();
-  }
+    @Bean
+    public GroupedOpenApi yakOpsApiGroup() {
+        return GroupedOpenApi.builder().group("yak-ops").pathsToMatch("/api/**").build();
+    }
 
-  @Bean
-  public GroupedOpenApi yakSecurityApiGroup() {
-    return GroupedOpenApi.builder()
-        .group("yak-security")
-        .pathsToMatch("/yak-security/api/**")
-        .build();
-  }
+    @Bean
+    public GroupedOpenApi yakSecurityApiGroup() {
+        return GroupedOpenApi.builder()
+                .group("yak-security")
+                .pathsToMatch("/yak-security/api/**")
+                .build();
+    }
 
-  @Bean
-  @ConditionalOnProperty(
-      prefix = "springdoc.swagger-ui",
-      name = "enabled",
-      havingValue = "true",
-      matchIfMissing = true)
-  SwaggerUiStartupLogger swaggerUiStartupLogger(Environment environment) {
-    return new SwaggerUiStartupLogger(environment);
-  }
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "springdoc.swagger-ui",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true)
+    SwaggerUiStartupLogger swaggerUiStartupLogger(Environment environment) {
+        return new SwaggerUiStartupLogger(environment);
+    }
 }

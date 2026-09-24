@@ -11,20 +11,20 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /** Central MVC runtime wiring for Yak Ops. */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(
-    prefix = "yak.security",
-    name = {"enabled", "database-enabled", "web-enabled"},
-    havingValue = "true",
-    matchIfMissing = true)
+        prefix = "yak.security",
+        name = {"enabled", "database-enabled", "web-enabled"},
+        havingValue = "true",
+        matchIfMissing = true)
 public class WebConfiguration implements WebMvcConfigurer {
 
-  private final YakAuthenticationInterceptor authenticationInterceptor;
+    private final YakAuthenticationInterceptor authenticationInterceptor;
 
-  public WebConfiguration(LoginService loginService, YakSecurityProperties properties) {
-    this.authenticationInterceptor = new YakAuthenticationInterceptor(loginService, properties);
-  }
+    public WebConfiguration(LoginService loginService, YakSecurityProperties properties) {
+        this.authenticationInterceptor = new YakAuthenticationInterceptor(loginService, properties);
+    }
 
-  @Override
-  public void addInterceptors(InterceptorRegistry registry) {
-    registry.addInterceptor(authenticationInterceptor).addPathPatterns("/**");
-  }
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(authenticationInterceptor).addPathPatterns("/**");
+    }
 }

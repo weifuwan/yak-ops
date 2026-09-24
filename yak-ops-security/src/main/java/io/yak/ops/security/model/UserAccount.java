@@ -8,21 +8,21 @@ import lombok.ToString;
 @Data
 public class UserAccount {
 
-  private Long id;
-  private Date createTime;
-  private Date updateTime;
-  private Boolean isDelete = false;
-  private String userName;
+    private Long id;
+    private Date createTime;
+    private Date updateTime;
+    private Boolean isDelete = false;
+    private String userName;
 
-  @ToString.Exclude
-  private String pw;
+    @ToString.Exclude
+    private String pw;
 
-  @ToString.Exclude
-  private String salt;
+    @ToString.Exclude
+    private String salt;
 
-  private String realName;
-  private String phone;
-  private String email;
-  private Long deptId;
-  private Integer status = 1;
+    private String realName;
+    private String phone;
+    private String email;
+    private Long deptId;
+    private Integer status = 1;
 }
