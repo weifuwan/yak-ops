@@ -33,6 +33,16 @@ export interface FormError {
   errors: string[];
 }
 
+export class DataSourceFormValidationError extends Error {
+  errorFields: FormError[];
+
+  constructor(errorFields: FormError[]) {
+    super("Datasource form validation failed");
+    this.name = "DataSourceFormValidationError";
+    this.errorFields = errorFields;
+  }
+}
+
 export interface DataSourceFormInstance<T extends Record<string, unknown> = Record<string, unknown>> {
   getFieldValue: (name: FormNamePath) => unknown;
   getFieldsValue: (_all?: boolean) => T;
@@ -224,7 +234,7 @@ const createDataSourceForm = <
       notify();
 
       if (nextErrors.length > 0) {
-        throw { errorFields: nextErrors };
+        throw new DataSourceFormValidationError(nextErrors);
       }
 
       return cloneValue(values);
@@ -247,7 +257,9 @@ const createDataSourceForm = <
   return instance;
 };
 
-const FormContext = createContext<DataSourceFormInstance | null>(null);
+type AnyFormInstance = DataSourceFormInstance<any>;
+
+const FormContext = createContext<AnyFormInstance | null>(null);
 
 export function useDataSourceForm<
   T extends Record<string, unknown> = Record<string, unknown>,
@@ -262,7 +274,7 @@ export function DataSourceFormProvider({
   form,
 }: {
   children: ReactNode;
-  form: DataSourceFormInstance;
+  form: AnyFormInstance;
 }) {
   return <FormContext.Provider value={form}>{children}</FormContext.Provider>;
 }
