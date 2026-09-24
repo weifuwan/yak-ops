@@ -3,7 +3,12 @@ package io.yak.ops.business.datasource.exception;
 import io.yak.ops.common.ErrorCode;
 import io.yak.ops.common.exception.BusinessException;
 
-/** 数据源管理业务异常。 */
+/**
+ * Datasource management、Catalog 和 Plugin 边界统一使用的业务异常。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public class DataSourceException extends BusinessException {
 
     private static final long serialVersionUID = 1L;

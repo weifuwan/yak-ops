@@ -48,7 +48,9 @@ Owns shared database persistence infrastructure:
 - the single Flyway configuration and schema history for all Yak Ops modules
 - all versioned SQL under `yak-ops-dao/src/main/resources/db/migration/yak-ops`
 
-Concrete Security user persistence (`UserEntity`, `UserMapper`, `UserRepository`) and Datasource persistence are owned here. Datasource table mappings use DAO-owned `Entity` types; Datasource Mapper / Repository implementations and mapper XML no longer live in Business or Common.
+Concrete Security user persistence and Datasource persistence are owned here.
+
+Datasource Business uses DAO-owned `DataSourceEntity` and `DataSourceEntityRepository` directly. It does not rebuild a second persistence/domain mapping layer.
 
 DAO owns persistence and schema migration, not final application DataSource/MyBatis runtime assembly. That assembly belongs to Boot.
 
@@ -62,13 +64,29 @@ Reserved empty module.
 
 ### `yak-ops-business/yak-ops-business-datasource`
 
-Owns the Datasource domain: business rules, connection, catalog, SQL execution, persistence-facing business contracts/domain mapping and Datasource-specific security policy. Concrete database persistence and schema migration are owned by `yak-ops-dao`.
+Owns only the current Datasource product behavior:
+
+- datasource management and connection testing
+- datasource Catalog metadata browsing
+- datasource plugin discovery, connection parsing and secret handling
+
+The module intentionally does not own SQL execution, SQL audit, a duplicate Domain layer or a Gateway adapter layer.
+
+Datasource Business may use DAO Entity/Repository directly for current datasource management and may call the stable Datasource Plugin SPI through `DataSourcePluginRegistry`.
 
 Datasource does not own Controller, ControllerAdvice, Controller-only request/response conversion, connection-pool assembly or MyBatis runtime configuration. Boot exposes Datasource HTTP APIs and supplies application infrastructure.
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
 Owns Datasource provider contracts and implementations.
+
+The active plugin surface is limited to:
+
+- plugin metadata and connection form
+- connection parsing and connectivity testing
+- Catalog metadata discovery
+
+SQL execution/query contracts are not part of the current plugin boundary.
 
 ### `yak-ops-boot`
 
@@ -120,7 +138,6 @@ Boot
  └────────→ Datasource Business ─→ Common
                 │
                 ├───────────────→ DAO ─→ Common
-                ├───────────────→ Security identity/runtime
                 └───────────────→ Datasource Plugin API
                                       ↑
                                 Plugin Implementations

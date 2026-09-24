@@ -1,16 +1,38 @@
 package io.yak.ops.spi.datasource.metadata;
 
-/** 数据库字段元数据。 */
+/**
+ * 数据源字段元数据。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public final class DataSourceColumn {
 
+    /** 字段名称。 */
     private final String name;
+
+    /** 数据源原生类型名称。 */
     private final String typeName;
+
+    /** JDBC Types 对应的类型编码。 */
     private final int jdbcType;
+
+    /** 字段长度或精度。 */
     private final Integer size;
+
+    /** 小数位数。 */
     private final Integer scale;
+
+    /** 是否允许为空。 */
     private final boolean nullable;
+
+    /** 字段顺序。 */
     private final int ordinalPosition;
+
+    /** 是否为主键字段。 */
     private final boolean primaryKey;
+
+    /** 数据源字段备注。 */
     private final String remarks;
 
     public DataSourceColumn(

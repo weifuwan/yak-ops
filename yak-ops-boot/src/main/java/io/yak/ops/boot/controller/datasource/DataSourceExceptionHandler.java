@@ -14,7 +14,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/** Datasource-specific HTTP exception translation that requires masking or persistence semantics. */
+/**
+ * 将 Datasource 业务异常转换为统一 HTTP Result，并在出站前再次遮罩敏感文本。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(basePackageClasses = DataSourceController.class)

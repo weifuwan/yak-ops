@@ -1,4 +1,4 @@
-package io.yak.ops.business.datasource.gateway.adapter;
+package io.yak.ops.business.datasource.plugin;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +17,12 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
-/** Masks and merges descriptor-owned connection secrets at the Plugin SPI adapter boundary. */
+/**
+ * 根据插件表单定义统一完成连接参数的敏感字段遮罩和编辑态密钥合并。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Component
 @ConditionalOnDataSourceEnabled
 public class DataSourceSecretCodec {
@@ -128,9 +133,7 @@ public class DataSourceSecretCodec {
     private Set<String> secretKeys(DataSourcePluginDescriptor descriptor) {
         Set<String> keys = new LinkedHashSet<>();
         if (descriptor == null) return keys;
-        for (String key : descriptor.secretFieldKeys()) {
-            keys.add(normalizeKey(key));
-        }
+        for (String key : descriptor.secretFieldKeys()) keys.add(normalizeKey(key));
         return keys;
     }
 
@@ -159,9 +162,7 @@ public class DataSourceSecretCodec {
     private ObjectNode readObject(String value) {
         try {
             JsonNode root = objectMapper.readTree(value);
-            if (root == null || !root.isObject()) {
-                throw invalidJson("连接参数必须是 JSON 对象", null);
-            }
+            if (root == null || !root.isObject()) throw invalidJson("连接参数必须是 JSON 对象", null);
             return (ObjectNode) root;
         } catch (DataSourceException exception) {
             throw exception;

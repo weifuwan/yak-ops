@@ -1,7 +1,7 @@
 package io.yak.ops.business.datasource.catalog;
 
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.domain.DataSourceDefinition;
+import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -15,10 +15,10 @@ import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 
 /**
- * Small in-process TTL cache for stable datasource catalog metadata.
+ * 缓存数据库、Schema、表和字段等稳定 Catalog 元数据，缓存键不包含任何连接密钥。
  *
- * <p>The datasource update timestamp is part of the key, so editing connection configuration naturally
- * moves subsequent reads to a new cache namespace without exposing connection secrets in cache keys.
+ * @author weifuwan
+ * @since 2026-09-24
  */
 @Component
 @ConditionalOnDataSourceEnabled
@@ -64,19 +64,18 @@ public class DataSourceCatalogMetadataCache {
         return value;
     }
 
-    public CacheKey key(DataSourceDefinition definition, String kind, Object... qualifiers) {
-        Objects.requireNonNull(definition, "datasource definition must not be null");
+    public CacheKey key(DataSourceEntity entity, String kind, Object... qualifiers) {
+        Objects.requireNonNull(entity, "datasource entity must not be null");
         List<String> normalizedQualifiers = Arrays.stream(qualifiers == null ? new Object[0] : qualifiers)
                 .map(value -> value == null ? "" : String.valueOf(value))
                 .toList();
         return new CacheKey(
-                definition.getId(),
-                definition.getUpdateTime(),
+                entity.getId(),
+                entity.getUpdateTime(),
                 Objects.requireNonNull(kind, "cache kind must not be null"),
                 normalizedQualifiers);
     }
 
-    /** Remove all local metadata cache entries for one datasource. */
     public int invalidate(Long dataSourceId) {
         if (dataSourceId == null) return 0;
         int before = entries.size();
@@ -94,26 +93,39 @@ public class DataSourceCatalogMetadataCache {
 
     private void trimIfNecessary(long now) {
         if (entries.size() <= MAX_ENTRIES) return;
-
         entries.entrySet().removeIf(entry -> entry.getValue().expiresAtNanos() <= now);
         int excess = entries.size() - MAX_ENTRIES;
         if (excess <= 0) return;
-
         for (CacheKey key : entries.keySet()) {
             if (excess <= 0) break;
-            if (entries.remove(key) != null) {
-                excess--;
-            }
+            if (entries.remove(key) != null) excess--;
         }
     }
 
+    /**
+     * Catalog 缓存键只保留数据源 ID、更新时间、元数据种类和非敏感限定条件。
+     *
+     * @param dataSourceId 数据源 ID
+     * @param dataSourceUpdateTime 数据源最后更新时间
+     * @param kind 元数据种类
+     * @param qualifiers database/schema/table 等非敏感限定条件
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     public record CacheKey(
             Long dataSourceId, LocalDateTime dataSourceUpdateTime, String kind, List<String> qualifiers) {
-
         public CacheKey {
             qualifiers = qualifiers == null ? List.of() : List.copyOf(qualifiers);
         }
     }
 
+    /**
+     * 缓存值和过期时间的内部不可变包装。
+     *
+     * @param value 缓存值
+     * @param expiresAtNanos 过期时间的 System.nanoTime 基准值
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     private record CacheEntry<T>(T value, long expiresAtNanos) {}
 }

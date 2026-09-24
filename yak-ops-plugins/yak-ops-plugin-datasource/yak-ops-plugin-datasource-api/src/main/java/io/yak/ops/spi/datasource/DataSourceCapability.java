@@ -1,11 +1,13 @@
 package io.yak.ops.spi.datasource;
 
-/** Stable capabilities that a datasource plugin can explicitly advertise. */
+/**
+ * 数据源插件可显式声明的稳定能力。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public enum DataSourceCapability {
     CONNECTION_TEST,
     CATALOG_METADATA,
-    CATALOG_READ,
-    SQL_EXECUTION,
-    TRANSACTIONS,
     SSH_TUNNEL
 }

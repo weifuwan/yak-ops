@@ -5,9 +5,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.boot.controller.datasource.v1.converter.DataSourceRequestConverter;
 import io.yak.ops.boot.controller.datasource.v1.converter.DataSourceViewConverter;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.connection.DataSourceConnectionTester;
+import io.yak.ops.business.datasource.management.DataSourceConnectionTester;
 import io.yak.ops.business.datasource.management.DataSourceManager;
-import io.yak.ops.business.datasource.query.DataSourceReader;
 import io.yak.ops.common.PagingData;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
@@ -31,16 +30,20 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 对外提供数据源配置管理、列表查询和连接测试 HTTP 接口。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Tag(name = "数据源管理接口")
 @RestController
 @ConditionalOnDataSourceEnabled
 @RequestMapping(DataSourceConstants.API_PREFIX)
 public class DataSourceController {
-    @Resource
-    private DataSourceManager manager;
 
     @Resource
-    private DataSourceReader reader;
+    private DataSourceManager manager;
 
     @Resource
     private DataSourceConnectionTester connectionTester;
@@ -66,7 +69,7 @@ public class DataSourceController {
     @Operation(summary = "查询数据源详情")
     @GetMapping("/{id}")
     public Result<DataSourceVO> detail(@PathVariable("id") Long id) {
-        return Result.success(viewConverter.definition(reader.require(id), true));
+        return Result.success(viewConverter.entity(manager.require(id), true));
     }
 
     @Operation(summary = "删除数据源")
@@ -78,13 +81,13 @@ public class DataSourceController {
     @Operation(summary = "分页查询数据源")
     @PostMapping("/page")
     public Result<PagingData<DataSourceVO>> page(@Valid @RequestBody DataSourceQueryDTO dto) {
-        return Result.success(viewConverter.page(reader.page(requestConverter.query(dto))));
+        return Result.success(viewConverter.page(manager.page(requestConverter.query(dto))));
     }
 
     @Operation(summary = "查询数据源总览统计")
     @GetMapping("/summary")
     public Result<DataSourceSummaryVO> summary() {
-        return Result.success(viewConverter.summary(reader.summary()));
+        return Result.success(viewConverter.summary(manager.summary()));
     }
 
     @Operation(summary = "查询全部数据源")
@@ -92,13 +95,13 @@ public class DataSourceController {
             value = "/all",
             method = {RequestMethod.GET, RequestMethod.POST})
     public Result<PagingData<DataSourceVO>> all() {
-        return Result.success(viewConverter.all(reader.findAll(null)));
+        return Result.success(viewConverter.all(manager.findAll(null)));
     }
 
     @Operation(summary = "查询数据源下拉选项")
     @GetMapping("/option")
     public Result<List<DataSourceOptionVO>> option(@RequestParam(value = "dbType", required = false) String dbType) {
-        return Result.success(viewConverter.options(reader.findAll(requestConverter.optionalDbType(dbType))));
+        return Result.success(viewConverter.options(manager.findAll(requestConverter.optionalDbType(dbType))));
     }
 
     @Operation(summary = "测试已保存数据源连接")

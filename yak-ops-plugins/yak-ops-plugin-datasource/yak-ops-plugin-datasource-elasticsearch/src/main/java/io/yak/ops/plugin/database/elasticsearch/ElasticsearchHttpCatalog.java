@@ -5,11 +5,9 @@ import io.yak.ops.spi.datasource.DataSourceCatalog;
 import io.yak.ops.spi.datasource.DataSourcePluginException;
 import io.yak.ops.spi.datasource.DataSourcePluginException.Operation;
 import io.yak.ops.spi.datasource.catalog.DataSourceCatalogQuery;
-import io.yak.ops.spi.datasource.catalog.DataSourceCatalogReadRequest;
 import io.yak.ops.spi.datasource.catalog.DataSourceTablePath;
 import io.yak.ops.spi.datasource.metadata.DataSourceColumn;
 import io.yak.ops.spi.datasource.metadata.DataSourceTable;
-import io.yak.ops.spi.datasource.query.DataSourceQueryResult;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -21,7 +19,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/** Maps Elasticsearch index/alias/mapping metadata onto the stable datasource Catalog contract. */
+/**
+ * 将 Elasticsearch Index、Alias 和 Mapping 映射为统一 Catalog 元数据。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 final class ElasticsearchHttpCatalog implements DataSourceCatalog {
 
     private final ElasticsearchHttpClient client;
@@ -62,25 +65,18 @@ final class ElasticsearchHttpCatalog implements DataSourceCatalog {
         while (indices.hasNext()) {
             Map.Entry<String, JsonNode> entry = indices.next();
             String index = entry.getKey();
-            if (matches(query, index)) {
-                result.add(table(index, "INDEX", null));
-            }
+            if (matches(query, index)) result.add(table(index, "INDEX", null));
             JsonNode aliasNode = entry.getValue().path("aliases");
             if (aliasNode.isObject()) {
-                aliasNode
-                        .fieldNames()
-                        .forEachRemaining(alias -> aliasTargets
-                                .computeIfAbsent(alias, ignored -> new LinkedHashSet<>())
-                                .add(index));
+                aliasNode.fieldNames().forEachRemaining(alias -> aliasTargets
+                        .computeIfAbsent(alias, ignored -> new LinkedHashSet<>())
+                        .add(index));
             }
         }
 
         for (Map.Entry<String, Set<String>> entry : aliasTargets.entrySet()) {
             if (entry.getValue().size() == 1 && matches(query, entry.getKey())) {
-                result.add(table(
-                        entry.getKey(),
-                        "ALIAS",
-                        "alias -> " + entry.getValue().iterator().next()));
+                result.add(table(entry.getKey(), "ALIAS", "alias -> " + entry.getValue().iterator().next()));
             }
         }
 
@@ -94,34 +90,6 @@ final class ElasticsearchHttpCatalog implements DataSourceCatalog {
         if (tablePath == null) throw catalog("Elasticsearch tablePath 不能为空");
         requireVirtualDatabase(tablePath.getDatabase());
         return mappingColumns(tablePath.getTable());
-    }
-
-    @Override
-    public List<DataSourceColumn> describe(DataSourceCatalogReadRequest request) {
-        if (request == null || request.sqlMode()) {
-            throw unsupportedRead("Elasticsearch Catalog 不支持 SQL describe");
-        }
-        return mappingColumns(indexFromPath(request.tablePath()));
-    }
-
-    @Override
-    public DataSourceQueryResult preview(DataSourceCatalogReadRequest request, int limit) {
-        throw unsupportedRead("Elasticsearch 预览由 Link-Up bounded Source 执行，本地 Catalog 不直接读取文档");
-    }
-
-    @Override
-    public long count(DataSourceCatalogReadRequest request) {
-        throw unsupportedRead("Elasticsearch count 不属于当前 control-plane Catalog 能力");
-    }
-
-    @Override
-    public String buildSqlTemplate(String tablePath) {
-        throw unsupportedRead("Elasticsearch 不提供 SQL 模板能力");
-    }
-
-    @Override
-    public String resolveSql(String sql, DataSourceCatalogReadRequest request) {
-        throw unsupportedRead("Elasticsearch 不提供 SQL 变量解析能力");
     }
 
     private List<DataSourceColumn> mappingColumns(String indexOrAlias) {
@@ -153,10 +121,7 @@ final class ElasticsearchHttpCatalog implements DataSourceCatalog {
             if (type == null || type.isBlank()) type = nested.isObject() ? "object" : "unknown";
 
             columns.add(new DataSourceColumn(name, type, jdbcType(type), null, null, true, ordinal[0]++, false, null));
-
-            if (nested.isObject()) {
-                flattenProperties(nested, name, columns, ordinal);
-            }
+            if (nested.isObject()) flattenProperties(nested, name, columns, ordinal);
         }
     }
 
@@ -183,9 +148,7 @@ final class ElasticsearchHttpCatalog implements DataSourceCatalog {
             if (versionChecked) return;
             JsonNode root = client.get("/", Operation.CATALOG);
             String version = root.path("version").path("number").asText(null);
-            if (version == null || version.isBlank()) {
-                throw catalog("Elasticsearch 未返回 version.number");
-            }
+            if (version == null || version.isBlank()) throw catalog("Elasticsearch 未返回 version.number");
             int separator = version.indexOf('.');
             String majorText = separator < 0 ? version : version.substring(0, separator);
             int actual;
@@ -217,16 +180,6 @@ final class ElasticsearchHttpCatalog implements DataSourceCatalog {
         }
     }
 
-    private String indexFromPath(String tablePath) {
-        if (tablePath == null || tablePath.isBlank()) throw catalog("Elasticsearch index 不能为空");
-        String normalized = tablePath.trim();
-        String prefix = ElasticsearchConnection.VIRTUAL_DATABASE + ".";
-        if (normalized.regionMatches(true, 0, prefix, 0, prefix.length())) {
-            return requireIndex(normalized.substring(prefix.length()));
-        }
-        return requireIndex(normalized);
-    }
-
     private String requireIndex(String value) {
         if (value == null || value.trim().isEmpty()) throw catalog("Elasticsearch index 不能为空");
         String index = value.trim();
@@ -234,10 +187,6 @@ final class ElasticsearchHttpCatalog implements DataSourceCatalog {
             throw catalog("当前阶段仅支持一个明确的 Elasticsearch index/alias，不支持 wildcard 或多 index");
         }
         return index;
-    }
-
-    private DataSourcePluginException unsupportedRead(String message) {
-        return new DataSourcePluginException(Operation.CATALOG, message);
     }
 
     private DataSourcePluginException catalog(String message) {

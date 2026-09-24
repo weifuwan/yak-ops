@@ -3,7 +3,12 @@ package io.yak.ops.business.datasource.security;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import org.springframework.stereotype.Component;
 
-/** Masks credentials embedded in user-facing text such as JDBC URLs and error messages. */
+/**
+ * 遮罩 JDBC URL 和错误消息等用户可见文本中可能出现的连接凭证。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Component
 @ConditionalOnDataSourceEnabled
 public class SensitiveTextMasker {

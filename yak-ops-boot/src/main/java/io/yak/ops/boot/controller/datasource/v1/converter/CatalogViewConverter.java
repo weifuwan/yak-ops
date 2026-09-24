@@ -2,61 +2,45 @@ package io.yak.ops.boot.controller.datasource.v1.converter;
 
 import io.yak.ops.business.datasource.catalog.DataSourceCatalogDiagnostics;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.domain.catalog.CatalogColumn;
-import io.yak.ops.business.datasource.domain.catalog.CatalogQueryResult;
-import io.yak.ops.business.datasource.domain.catalog.CatalogTable;
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogDiagnosticsVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourcePreviewColumnVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceQueryResultVO;
+import io.yak.ops.spi.datasource.metadata.DataSourceColumn;
+import io.yak.ops.spi.datasource.metadata.DataSourceTable;
 import org.springframework.stereotype.Component;
 
+/**
+ * 将插件 Catalog 元数据转换为稳定的 HTTP 展示结构。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Component
 @ConditionalOnDataSourceEnabled
 public class CatalogViewConverter {
-    public DataSourceCatalogTableVO table(CatalogTable value) {
+
+    public DataSourceCatalogTableVO table(DataSourceTable value) {
         return new DataSourceCatalogTableVO(
-                value.database(), value.schema(), value.name(), value.type(), value.remarks());
+                value.getDatabase(), value.getSchema(), value.getName(), value.getType(), value.getRemarks());
     }
 
-    public DataSourceCatalogColumnVO column(CatalogColumn value) {
+    public DataSourceCatalogColumnVO column(DataSourceColumn value) {
         return new DataSourceCatalogColumnVO(
-                value.name(),
-                value.typeName(),
-                value.jdbcType(),
-                value.size(),
-                value.scale(),
-                value.nullable(),
-                value.ordinalPosition(),
-                value.primaryKey(),
-                value.remarks());
+                value.getName(),
+                value.getTypeName(),
+                value.getJdbcType(),
+                value.getSize(),
+                value.getScale(),
+                value.isNullable(),
+                value.getOrdinalPosition(),
+                value.isPrimaryKey(),
+                value.getRemarks());
     }
 
-    public DataSourceCatalogColumnOptionVO columnOption(CatalogColumn value) {
-        return new DataSourceCatalogColumnOptionVO(
-                value.ordinalPosition(),
-                value.name(),
-                value.typeName(),
-                value.ordinalPosition(),
-                value.nullable() ? "YES" : "NO",
-                value.remarks(),
-                value.primaryKey() ? "PRI" : "");
-    }
-
-    public DataSourceCatalogOptionVO option(CatalogTable value) {
-        String label = isBlank(value.remarks()) ? value.name() : value.remarks();
-        return new DataSourceCatalogOptionVO(value.name(), label, value.remarks());
-    }
-
-    public DataSourceQueryResultVO preview(CatalogQueryResult result) {
-        var columns = result.columns().stream()
-                .map(column -> new DataSourcePreviewColumnVO(
-                        column.title(), column.dataIndex(), column.key(), column.ellipsis()))
-                .toList();
-        return new DataSourceQueryResultVO(columns, result.rows(), result.total());
+    public DataSourceCatalogOptionVO option(DataSourceTable value) {
+        String label = isBlank(value.getRemarks()) ? value.getName() : value.getRemarks();
+        return new DataSourceCatalogOptionVO(value.getName(), label, value.getRemarks());
     }
 
     public DataSourceCatalogDiagnosticsVO diagnostics(DataSourceCatalogDiagnostics.Snapshot snapshot) {

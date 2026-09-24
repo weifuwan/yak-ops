@@ -1,10 +1,9 @@
 package io.yak.ops.boot.controller.datasource.v1.converter;
 
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.connection.DataSourceConnectionRequest;
-import io.yak.ops.business.datasource.domain.DataSourceQuery;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.management.DataSourceConfigurationCommand;
+import io.yak.ops.business.datasource.management.DataSourceConnectionRequest;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
@@ -12,14 +11,24 @@ import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
+import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+/**
+ * 将 Datasource HTTP 请求参数转换为 Business/DAO 已定义的类型化输入。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Component
 @ConditionalOnDataSourceEnabled
 public class DataSourceRequestConverter {
+
     public DataSourceConfigurationCommand configuration(DataSourceDTO dto) {
-        if (dto == null) throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "数据源参数不能为空");
+        if (dto == null) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "数据源参数不能为空");
+        }
         return new DataSourceConfigurationCommand(
                 normalizeName(dto.getName()),
                 parseDbType(dto.getDbType()),
@@ -28,9 +37,11 @@ public class DataSourceRequestConverter {
                 dto.getConnectionParams());
     }
 
-    public DataSourceQuery query(DataSourceQueryDTO dto) {
-        if (dto == null) throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "分页查询参数不能为空");
-        return new DataSourceQuery(
+    public DataSourceEntityRepository.PageQuery query(DataSourceQueryDTO dto) {
+        if (dto == null) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "分页查询参数不能为空");
+        }
+        return new DataSourceEntityRepository.PageQuery(
                 dto.getPageNo(),
                 dto.getPageSize(),
                 normalizeNullable(dto.getName()),
@@ -45,7 +56,9 @@ public class DataSourceRequestConverter {
     }
 
     public DataSourceConnectionRequest connectionTest(DataSourceConnectTestDTO dto) {
-        if (dto == null) throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "连接测试参数不能为空");
+        if (dto == null) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "连接测试参数不能为空");
+        }
         return new DataSourceConnectionRequest(
                 dto.getDataSourceId(),
                 StringUtils.hasText(dto.getDbType()) ? parseDbType(dto.getDbType()) : null,
@@ -53,8 +66,9 @@ public class DataSourceRequestConverter {
     }
 
     private String normalizeName(String value) {
-        if (!StringUtils.hasText(value))
+        if (!StringUtils.hasText(value)) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "数据源名称不能为空");
+        }
         return value.trim();
     }
 

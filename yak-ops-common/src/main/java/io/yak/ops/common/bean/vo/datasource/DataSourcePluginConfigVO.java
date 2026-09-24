@@ -7,13 +7,19 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** 数据源动态表单配置。 */
+/**
+ * 数据源插件向前端暴露的动态连接表单配置。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class DataSourcePluginConfigVO {
 
+    /** 插件类型，对应 DataSourceDbType。 */
     private String pluginType;
 
     /**
@@ -29,39 +35,62 @@ public class DataSourcePluginConfigVO {
     private List<FormFieldVO> formFields = new ArrayList<>();
 
     @Builder.Default
+    /** 当前插件是否需要额外安装动作。 */
     private Boolean installRequired = false;
 
+    /** 插件安装或启用提示。 */
     private String installHint;
 
-    /** 动态表单分区。 */
+    /**
+     * 动态表单分区。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class FormSectionVO {
 
+        /** 分区唯一标识。 */
         private String key;
+
+        /** 分区标题。 */
         private String title;
+
+        /** 分区说明。 */
         private String description;
 
         @Builder.Default
+        /** 是否允许折叠。 */
         private Boolean collapsible = false;
 
         @Builder.Default
+        /** 是否默认展开。 */
         private Boolean defaultExpanded = true;
 
         @Builder.Default
+        /** 分区内的动态表单字段。 */
         private List<FormFieldVO> fields = new ArrayList<>();
     }
 
-    /** 动态表单字段。 */
+    /**
+     * 单个动态表单字段定义。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class FormFieldVO {
 
+        /** 字段唯一标识。 */
         private String key;
+
+        /** 前端展示标签。 */
         private String label;
 
         /**
@@ -72,13 +101,17 @@ public class DataSourcePluginConfigVO {
          */
         private String type;
 
+        /** 输入占位提示。 */
         private String placeholder;
+        /** 字段默认值。 */
         private Object defaultValue;
 
         @Builder.Default
+        /** SELECT 等字段的可选项。 */
         private List<OptionVO> options = new ArrayList<>();
 
         @Builder.Default
+        /** 前端校验规则。 */
         private List<RuleVO> rules = new ArrayList<>();
 
         /**
@@ -94,10 +127,16 @@ public class DataSourcePluginConfigVO {
         private List<VisibilityConditionVO> visibleWhen = new ArrayList<>();
 
         /** JDBC_URL 标准组件的 Host / Port / Database 双向联动描述。 */
+        /** JDBC_URL 字段的结构化联动配置。 */
         private JdbcUrlLinkageVO urlLinkage;
     }
 
-    /** JDBC URL 联动配置。 */
+    /**
+     * JDBC URL 与 Host、Port、Database 字段的双向联动配置。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -121,7 +160,12 @@ public class DataSourcePluginConfigVO {
         private Boolean preserveSuffix = true;
     }
 
-    /** 动态字段显示条件。 */
+    /**
+     * 动态字段显示条件。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -134,34 +178,58 @@ public class DataSourcePluginConfigVO {
         /** 支持 EQUALS、NOT_EQUALS、IN、NOT_IN、TRUTHY、FALSY。 */
         private String operator;
 
+        /** 条件比较值。 */
         private Object value;
 
         @Builder.Default
+        /** IN / NOT_IN 等操作使用的比较值集合。 */
         private List<Object> values = new ArrayList<>();
     }
 
-    /** 下拉选项。 */
+    /**
+     * 动态表单下拉选项。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OptionVO {
 
+        /** 选项展示名称。 */
         private String label;
+
+        /** 选项提交值。 */
         private Object value;
     }
 
-    /** 前端表单校验规则。 */
+    /**
+     * 前端动态表单校验规则。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RuleVO {
 
+        /** 是否必填。 */
         private Boolean required;
+
+        /** 正则表达式约束。 */
         private String pattern;
+
+        /** 数值或长度最小值。 */
         private Integer min;
+
+        /** 数值或长度最大值。 */
         private Integer max;
+
+        /** 校验失败提示。 */
         private String message;
     }
 }

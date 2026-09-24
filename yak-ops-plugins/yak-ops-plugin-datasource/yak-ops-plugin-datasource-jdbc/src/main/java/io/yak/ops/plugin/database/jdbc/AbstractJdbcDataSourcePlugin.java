@@ -18,7 +18,6 @@ import io.yak.ops.spi.datasource.DataSourcePluginDescriptor.VisibilityCondition;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor.VisibilityOperator;
 import io.yak.ops.spi.datasource.DataSourcePluginException;
 import io.yak.ops.spi.datasource.DataSourcePluginException.Operation;
-import io.yak.ops.spi.datasource.execution.DataSourceSqlExecutor;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -32,7 +31,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-/** JDBC datasource plugin base: descriptor, connection parsing, connectivity, SSH and SQL. */
+/**
+ * JDBC 数据源插件基础实现，负责表单描述、连接参数、连通性、SSH 和 Catalog 元数据。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -107,9 +111,6 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         return EnumSet.of(
                 DataSourceCapability.CONNECTION_TEST,
                 DataSourceCapability.CATALOG_METADATA,
-                DataSourceCapability.CATALOG_READ,
-                DataSourceCapability.SQL_EXECUTION,
-                DataSourceCapability.TRANSACTIONS,
                 DataSourceCapability.SSH_TUNNEL);
     }
 
@@ -221,22 +222,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     @Override
     public DataSourceCatalog createCatalog(DataSourceConnection connection, int timeoutSeconds) {
-        return createCatalog(connection, timeoutSeconds, timeoutSeconds);
-    }
-
-    @Override
-    public DataSourceCatalog createCatalog(
-            DataSourceConnection connection, int connectionTimeoutSeconds, int queryTimeoutSeconds) {
-        return createJdbcCatalog(
-                requireJdbcConnection(connection),
-                Math.max(1, connectionTimeoutSeconds),
-                Math.max(1, queryTimeoutSeconds));
-    }
-
-    @Override
-    public DataSourceSqlExecutor createSqlExecutor(DataSourceConnection connection, int connectionTimeoutSeconds) {
-        return new JdbcDataSourceSqlExecutor(
-                requireJdbcConnection(connection), Math.max(1, connectionTimeoutSeconds), this::openJdbcConnection);
+        int safeTimeout = Math.max(1, timeoutSeconds);
+        return createJdbcCatalog(requireJdbcConnection(connection), safeTimeout, safeTimeout);
     }
 
     protected DataSourceCatalog createJdbcCatalog(JdbcConnectionProperties connection, int timeoutSeconds) {

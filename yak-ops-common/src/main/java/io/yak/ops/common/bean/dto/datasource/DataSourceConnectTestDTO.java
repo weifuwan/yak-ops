@@ -4,7 +4,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
-/** 未保存数据源连接测试参数。 */
+/**
+ * 未保存或编辑态数据源的连接测试参数。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Data
 public class DataSourceConnectTestDTO {
 

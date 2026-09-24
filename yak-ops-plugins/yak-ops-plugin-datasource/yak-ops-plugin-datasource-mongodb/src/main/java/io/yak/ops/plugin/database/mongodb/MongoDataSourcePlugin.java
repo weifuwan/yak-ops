@@ -39,8 +39,7 @@ public final class MongoDataSourcePlugin implements DataSourcePlugin {
             DataSourcePluginDescriptor.CURRENT_API_VERSION,
             EnumSet.of(
                     DataSourceCapability.CONNECTION_TEST,
-                    DataSourceCapability.CATALOG_METADATA,
-                    DataSourceCapability.CATALOG_READ),
+                    DataSourceCapability.CATALOG_METADATA),
             connectionForm(),
             false,
             null);

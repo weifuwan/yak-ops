@@ -159,15 +159,6 @@ abstract class AbstractElasticsearchDataSourcePlugin implements DataSourcePlugin
     }
 
     @Override
-    public DataSourceCatalog createCatalog(
-            DataSourceConnection connection, int connectionTimeoutSeconds, int queryTimeoutSeconds) {
-        return new ElasticsearchHttpCatalog(
-                requireConnection(connection),
-                Math.max(1, Math.max(connectionTimeoutSeconds, queryTimeoutSeconds)),
-                expectedMajorVersion());
-    }
-
-    @Override
     public boolean acceptsUrl(String jdbcUrl) {
         // A plain HTTP URL cannot distinguish ES7 from ES8. Versioned plugins require explicit dbType.
         return false;
