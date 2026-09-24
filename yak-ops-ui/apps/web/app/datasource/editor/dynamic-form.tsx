@@ -32,19 +32,19 @@ import {
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 
-import DriverManager from "../../connection/DriverManager";
-import JdbcUrlField from "../../connection/JdbcUrlField";
+import DriverManager from "./driver-manager";
+import JdbcUrlField from "./jdbc-url-field";
 import SshTunnelManager, {
   getSshTunnelValidationMessage,
-} from "../../connection/SshTunnelManager";
-import { useIntl } from "../../i18n";
+} from "./ssh-tunnel-manager";
+import { useIntl } from "../i18n";
 import {
   PLUGIN_CONFIG_STATUS,
   usePluginFormConfig,
-} from "../../hooks/use-plugin-form-config";
-import { getEnvironmentTagConfigMap } from "../../constants";
-import DatabaseIcons from "../../icons/DatabaseIcons";
-import type { DynamicFormField, DynamicFormSection } from "../../types";
+} from "../hooks/use-plugin-form-config";
+import { getEnvironmentTagConfigMap } from "../constants";
+import DatabaseIcons from "../icons/DatabaseIcons";
+import type { DynamicFormField, DynamicFormSection } from "./types";
 import {
   DataSourceOperateType,
   type DynamicDataSourceFormProps,
@@ -55,13 +55,13 @@ import {
   type DataSourceFormFieldState,
   type FormRule,
   useFormValues,
-} from "../formRuntime";
-import CustomKVList from "./components/CustomKVList";
+} from "./form-runtime";
+import CustomKVList from "./custom-kv-list";
 import {
   getFieldDefaultValue,
   isDynamicFieldVisible,
   transformRules,
-} from "./utils/formUtils";
+} from "./form-utils";
 
 const DEFAULT_ENVIRONMENT = "DEVELOP";
 

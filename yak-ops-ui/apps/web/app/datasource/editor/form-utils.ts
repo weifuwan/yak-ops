@@ -1,4 +1,4 @@
-import type { FormRule } from '../../formRuntime';
+import type { FormRule } from './form-runtime';
 
 import type {
   DynamicFormField,
@@ -7,7 +7,7 @@ import type {
   DynamicFormSection,
   DynamicFormVisibilityCondition,
   DynamicFormVisibilityOperator,
-} from '../../../types';
+} from '../types';
 
 export interface DynamicKeyValueRow {
   key: string;

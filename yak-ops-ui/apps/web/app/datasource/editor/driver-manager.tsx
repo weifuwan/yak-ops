@@ -3,7 +3,7 @@ import { Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { uploadDataSourceDriver } from "@/service/datasource";
-import { useIntl } from "../../i18n";
+import { useIntl } from "../i18n";
 
 const DEFAULT_MAX_SIZE_MB = 200;
 

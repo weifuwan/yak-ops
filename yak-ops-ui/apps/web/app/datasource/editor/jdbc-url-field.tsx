@@ -7,15 +7,15 @@ import {
 import { Link2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import type { DataSourceFormInstance } from "../../editor/formRuntime";
-import { useFormValue } from "../../editor/formRuntime";
-import { useIntl } from "../../i18n";
-import type { DynamicFormJdbcUrlLinkage } from "../../types";
+import type { DataSourceFormInstance } from "./form-runtime";
+import { useFormValue } from "./form-runtime";
+import { useIntl } from "../i18n";
+import type { DynamicFormJdbcUrlLinkage } from "../types";
 import {
   buildJdbcUrlFromTemplate,
   parseJdbcUrlByTemplate,
   type JdbcUrlStructuredValue,
-} from "./utils";
+} from "./jdbc-url-utils";
 
 const toNamePath = (field?: string, fallback?: string) =>
   (field?.trim() || fallback || "").split(".").filter(Boolean);

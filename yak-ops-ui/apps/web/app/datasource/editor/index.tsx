@@ -34,10 +34,10 @@ import {
   buildSubmitPayload,
   normalizeConnectionFormValues,
   parseOriginalJson,
-} from "./formModel";
-import { useDataSourceForm } from "./formRuntime";
-import DataSourceTypeSelector from "./DataSourceTypeSelector";
-import DynamicDataSourceForm from "./DynamicDataSourceForm";
+} from "./form-model";
+import { useDataSourceForm } from "./form-runtime";
+import DataSourceTypeSelector from "./type-selector";
+import DynamicDataSourceForm from "./dynamic-form";
 
 const DRAWER_WIDTH = 620;
 
