@@ -1,4 +1,4 @@
-package io.yak.framework.security.common.dto.account;
+package io.yak.ops.common.bean.dto.security.account;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

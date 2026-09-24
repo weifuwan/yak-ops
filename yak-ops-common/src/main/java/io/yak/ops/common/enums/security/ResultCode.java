@@ -1,4 +1,4 @@
-package io.yak.framework.security.common.enums;
+package io.yak.ops.common.enums.security;
 
 import io.yak.framework.common.ErrorCode;
 

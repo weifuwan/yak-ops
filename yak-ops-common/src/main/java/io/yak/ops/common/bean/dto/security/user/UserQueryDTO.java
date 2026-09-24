@@ -1,6 +1,6 @@
-package io.yak.framework.security.common.dto.user;
+package io.yak.ops.common.bean.dto.security.user;
 
-import io.yak.framework.security.common.dto.PageParamDTO;
+import io.yak.ops.common.bean.dto.security.PageParamDTO;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

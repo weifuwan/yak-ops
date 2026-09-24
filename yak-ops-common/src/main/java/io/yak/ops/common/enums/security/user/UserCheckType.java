@@ -1,4 +1,4 @@
-package io.yak.framework.security.common.enums.user;
+package io.yak.ops.common.enums.security.user;
 
 public enum UserCheckType {
   USER_NAME(1, "用户名"),
