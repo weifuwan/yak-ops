@@ -6,22 +6,22 @@ import java.util.Map;
 /** 插件解析后的标准数据源连接参数。 */
 public interface DataSourceConnection {
 
-  DataSourceDbType dbType();
+    DataSourceDbType dbType();
 
-  String jdbcUrl();
+    String jdbcUrl();
 
-  String driverClassName();
+    String driverClassName();
 
-  String username();
+    String username();
 
-  String password();
+    String password();
 
-  String database();
+    String database();
 
-  String schema();
+    String schema();
 
-  Map<String, String> properties();
+    Map<String, String> properties();
 
-  /** 可持久化并用于编辑回显的规范化 JSON。 */
-  String normalizedJson();
+    /** 可持久化并用于编辑回显的规范化 JSON。 */
+    String normalizedJson();
 }

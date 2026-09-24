@@ -15,34 +15,31 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DataSourcePluginReader {
 
-  private final DataSourcePluginGateway pluginGateway;
+    private final DataSourcePluginGateway pluginGateway;
 
-  public DataSourcePluginDescriptor get(String pluginType) {
-    return pluginGateway.descriptor(parseDbType(pluginType));
-  }
-
-  public String maskSensitiveText(String value) {
-    return pluginGateway.maskSensitiveText(value);
-  }
-
-  public String maskConnectionJson(DataSourceDbType dbType, String value) {
-    return pluginGateway.maskConnectionJson(dbType, value);
-  }
-
-  /** Legacy install endpoint is an availability check because plugins are discovered at startup. */
-  public boolean install(String pluginType) {
-    pluginGateway.descriptor(parseDbType(pluginType));
-    return true;
-  }
-
-  private DataSourceDbType parseDbType(String value) {
-    try {
-      return DataSourceDbType.parse(value);
-    } catch (IllegalArgumentException exception) {
-      throw new DataSourceException(
-          DataSourceErrorCode.INVALID_DB_TYPE,
-          exception.getMessage(),
-          exception);
+    public DataSourcePluginDescriptor get(String pluginType) {
+        return pluginGateway.descriptor(parseDbType(pluginType));
     }
-  }
+
+    public String maskSensitiveText(String value) {
+        return pluginGateway.maskSensitiveText(value);
+    }
+
+    public String maskConnectionJson(DataSourceDbType dbType, String value) {
+        return pluginGateway.maskConnectionJson(dbType, value);
+    }
+
+    /** Legacy install endpoint is an availability check because plugins are discovered at startup. */
+    public boolean install(String pluginType) {
+        pluginGateway.descriptor(parseDbType(pluginType));
+        return true;
+    }
+
+    private DataSourceDbType parseDbType(String value) {
+        try {
+            return DataSourceDbType.parse(value);
+        } catch (IllegalArgumentException exception) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, exception.getMessage(), exception);
+        }
+    }
 }

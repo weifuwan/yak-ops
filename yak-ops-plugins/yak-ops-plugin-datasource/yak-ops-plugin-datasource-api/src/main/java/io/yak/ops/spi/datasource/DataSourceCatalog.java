@@ -11,26 +11,26 @@ import java.util.List;
 /** Typed datasource Catalog metadata and lightweight-read contract. */
 public interface DataSourceCatalog {
 
-  List<String> listDatabases();
+    List<String> listDatabases();
 
-  List<String> listSchemas(String database);
+    List<String> listSchemas(String database);
 
-  List<DataSourceTable> listTables(DataSourceCatalogQuery query);
+    List<DataSourceTable> listTables(DataSourceCatalogQuery query);
 
-  List<DataSourceColumn> listColumns(DataSourceTablePath tablePath);
+    List<DataSourceColumn> listColumns(DataSourceTablePath tablePath);
 
-  /** Resolve columns for a typed TABLE or SQL read request. */
-  List<DataSourceColumn> describe(DataSourceCatalogReadRequest request);
+    /** Resolve columns for a typed TABLE or SQL read request. */
+    List<DataSourceColumn> describe(DataSourceCatalogReadRequest request);
 
-  /** Preview data with a plugin-enforced maximum row limit. */
-  DataSourceQueryResult preview(DataSourceCatalogReadRequest request, int limit);
+    /** Preview data with a plugin-enforced maximum row limit. */
+    DataSourceQueryResult preview(DataSourceCatalogReadRequest request, int limit);
 
-  /** Count rows for a typed TABLE or SQL read request. */
-  long count(DataSourceCatalogReadRequest request);
+    /** Count rows for a typed TABLE or SQL read request. */
+    long count(DataSourceCatalogReadRequest request);
 
-  /** Build a SELECT template from one logical table path. */
-  String buildSqlTemplate(String tablePath);
+    /** Build a SELECT template from one logical table path. */
+    String buildSqlTemplate(String tablePath);
 
-  /** Resolve plugin-supported SQL variables using the typed request context. */
-  String resolveSql(String sql, DataSourceCatalogReadRequest request);
+    /** Resolve plugin-supported SQL variables using the typed request context. */
+    String resolveSql(String sql, DataSourceCatalogReadRequest request);
 }

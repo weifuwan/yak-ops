@@ -1,37 +1,35 @@
 package io.yak.ops.common.exception;
 
 import io.yak.ops.common.ErrorCode;
-
 import java.io.Serial;
 
 /** 安全模块业务异常；通用行为由 {@link BusinessException} 提供。 */
 public class YakSecurityException extends BusinessException {
 
-  @Serial
-  private static final long serialVersionUID = 1L;
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-  public YakSecurityException() {
-    super((String) null);
-  }
+    public YakSecurityException() {
+        super((String) null);
+    }
 
-  public YakSecurityException(ErrorCode errorCode) {
-    super(errorCode);
-  }
+    public YakSecurityException(ErrorCode errorCode) {
+        super(errorCode);
+    }
 
-  public YakSecurityException(ErrorCode errorCode, Throwable cause) {
-    super(errorCode, cause);
-  }
+    public YakSecurityException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode, cause);
+    }
 
-  public YakSecurityException(String message) {
-    super(message);
-  }
+    public YakSecurityException(String message) {
+        super(message);
+    }
 
-  public YakSecurityException(String message, Throwable cause) {
-    super(message, cause);
-  }
+    public YakSecurityException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-  public YakSecurityException(Throwable cause) {
-    super(cause);
-  }
-
+    public YakSecurityException(Throwable cause) {
+        super(cause);
+    }
 }

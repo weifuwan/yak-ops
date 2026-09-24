@@ -15,15 +15,12 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface SqlExecutionAuditMapper extends BaseMapper<SqlExecutionAuditPO> {
 
-  IPage<SqlExecutionAuditPO> selectAuditPage(
-      Page<SqlExecutionAuditPO> page,
-      @Param("query") SqlExecutionAuditQuery query);
+    IPage<SqlExecutionAuditPO> selectAuditPage(
+            Page<SqlExecutionAuditPO> page, @Param("query") SqlExecutionAuditQuery query);
 
-  SqlExecutionAuditSummaryRow selectAuditSummary(
-      @Param("query") SqlExecutionAuditQuery query);
+    SqlExecutionAuditSummaryRow selectAuditSummary(@Param("query") SqlExecutionAuditQuery query);
 
-  Long selectP95DurationMs(@Param("query") SqlExecutionAuditQuery query);
+    Long selectP95DurationMs(@Param("query") SqlExecutionAuditQuery query);
 
-  List<SqlStatementTypeCountRow> selectStatementTypeCounts(
-      @Param("query") SqlExecutionAuditQuery query);
+    List<SqlStatementTypeCountRow> selectStatementTypeCounts(@Param("query") SqlExecutionAuditQuery query);
 }

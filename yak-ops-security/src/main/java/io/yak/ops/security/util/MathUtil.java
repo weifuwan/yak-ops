@@ -50,14 +50,9 @@ public final class MathUtil {
      * @param list2 第二个集合
      * @return 两个集合的交集，任一集合为空时返回空集合
      */
-    public static Set<Long> getIntersection(
-            List<Long> list1,
-            List<Long> list2) {
+    public static Set<Long> getIntersection(List<Long> list1, List<Long> list2) {
 
-        if (list1 == null
-                || list1.isEmpty()
-                || list2 == null
-                || list2.isEmpty()) {
+        if (list1 == null || list1.isEmpty() || list2 == null || list2.isEmpty()) {
             return Collections.emptySet();
         }
 

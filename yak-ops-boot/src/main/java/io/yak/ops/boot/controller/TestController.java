@@ -14,19 +14,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/test")
 public class TestController {
 
-  private final String applicationName;
+    private final String applicationName;
 
-  public TestController(@Value("${spring.application.name:yak-ops}") String applicationName) {
-    this.applicationName = applicationName;
-  }
+    public TestController(@Value("${spring.application.name:yak-ops}") String applicationName) {
+        this.applicationName = applicationName;
+    }
 
-  @GetMapping("/ping")
-  public Result<Map<String, Object>> ping() {
-    Map<String, Object> data = new LinkedHashMap<>();
-    data.put("application", applicationName);
-    data.put("status", "UP");
-    data.put("framework", "yak-framework");
-    data.put("timestamp", Instant.now().toString());
-    return Result.success(data);
-  }
+    @GetMapping("/ping")
+    public Result<Map<String, Object>> ping() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("application", applicationName);
+        data.put("status", "UP");
+        data.put("framework", "yak-framework");
+        data.put("timestamp", Instant.now().toString());
+        return Result.success(data);
+    }
 }

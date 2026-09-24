@@ -12,22 +12,22 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataSourceCatalogDiagnosticsVO {
 
-  private long cacheHits;
-  private long cacheMisses;
-  private double cacheHitRate;
-  private List<OperationVO> operations;
+    private long cacheHits;
+    private long cacheMisses;
+    private double cacheHitRate;
+    private List<OperationVO> operations;
 
-  @Data
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class OperationVO {
-    private String operation;
-    private long total;
-    private long failures;
-    private long slow;
-    private long averageDurationMs;
-    private long maxDurationMs;
-    private Long lastSlowDurationMs;
-    private LocalDateTime lastSlowTime;
-  }
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OperationVO {
+        private String operation;
+        private long total;
+        private long failures;
+        private long slow;
+        private long averageDurationMs;
+        private long maxDurationMs;
+        private Long lastSlowDurationMs;
+        private LocalDateTime lastSlowTime;
+    }
 }

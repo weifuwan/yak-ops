@@ -7,22 +7,21 @@ package io.yak.ops.security.authentication;
  */
 public interface AuthenticationManager {
 
-  default void login(Long userId) {
-    throw new UnsupportedOperationException(
-            "login(userId, userName) is required");
-  }
+    default void login(Long userId) {
+        throw new UnsupportedOperationException("login(userId, userName) is required");
+    }
 
-  void login(Long userId, String userName);
+    void login(Long userId, String userName);
 
-  void logout();
+    void logout();
 
-  default void logoutUser(Long userId) {
-    // Authentication implementations may override account-level logout.
-  }
+    default void logoutUser(Long userId) {
+        // Authentication implementations may override account-level logout.
+    }
 
-  boolean isLogin();
+    boolean isLogin();
 
-  Long getLoginUserId();
+    Long getLoginUserId();
 
-  String getLoginUsername();
+    String getLoginUsername();
 }

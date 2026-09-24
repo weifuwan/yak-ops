@@ -4,5 +4,5 @@ package io.yak.ops.core.execution.sql;
 @FunctionalInterface
 public interface SqlExecutionPolicy {
 
-  void validate(SqlExecutionContext context, SqlStatementClassification classification);
+    void validate(SqlExecutionContext context, SqlStatementClassification classification);
 }

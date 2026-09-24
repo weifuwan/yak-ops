@@ -9,12 +9,7 @@ import java.util.Optional;
 /** User persistence boundary. */
 public interface UserRepository extends BaseRepository<UserEntity, Long> {
 
-    PageData<UserEntity> queryPage(
-            Long id,
-            String userName,
-            String realName,
-            long pageNo,
-            long pageSize);
+    PageData<UserEntity> queryPage(Long id, String userName, String realName, long pageNo, long pageSize);
 
     Optional<UserEntity> queryByEmail(String email);
 

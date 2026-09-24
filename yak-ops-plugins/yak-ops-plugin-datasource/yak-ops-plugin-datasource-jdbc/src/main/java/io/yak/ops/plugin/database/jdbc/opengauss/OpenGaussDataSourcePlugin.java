@@ -7,34 +7,33 @@ import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 /** openGauss JDBC datasource plugin. */
 public final class OpenGaussDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
-  @Override
-  public DataSourceDbType dbType() {
-    return DataSourceDbType.OPEN_GAUSS;
-  }
+    @Override
+    public DataSourceDbType dbType() {
+        return DataSourceDbType.OPEN_GAUSS;
+    }
 
-  @Override
-  protected String jdbcUrlTemplate() {
-    return "jdbc:opengauss://{host}:{port}/{database}";
-  }
+    @Override
+    protected String jdbcUrlTemplate() {
+        return "jdbc:opengauss://{host}:{port}/{database}";
+    }
 
-  @Override
-  protected int defaultPort() {
-    return 5432;
-  }
+    @Override
+    protected int defaultPort() {
+        return 5432;
+    }
 
-  @Override
-  protected String defaultDriverClassName() {
-    return "org.opengauss.Driver";
-  }
+    @Override
+    protected String defaultDriverClassName() {
+        return "org.opengauss.Driver";
+    }
 
-  @Override
-  protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
-    return "jdbc:opengauss://" + host + ":" + port + "/" + database;
-  }
+    @Override
+    protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
+        return "jdbc:opengauss://" + host + ":" + port + "/" + database;
+    }
 
-  @Override
-  public boolean acceptsUrl(String jdbcUrl) {
-    return jdbcUrl != null
-        && jdbcUrl.toLowerCase(java.util.Locale.ROOT).startsWith("jdbc:opengauss:");
-  }
+    @Override
+    public boolean acceptsUrl(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.toLowerCase(java.util.Locale.ROOT).startsWith("jdbc:opengauss:");
+    }
 }
