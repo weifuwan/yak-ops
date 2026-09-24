@@ -4,8 +4,8 @@ Scope:
 - `yak-ops-ui/src/shared/ui/**`
 
 Depends On:
-- `../../../FRONTEND_RULES.md`
-- `../../../ARCHITECTURE.md`
+- `../../FRONTEND_RULES.md`
+- `../../ARCHITECTURE.md`
 
 Owns:
 - Yak Ops 可复用 UI Primitive
@@ -14,14 +14,14 @@ Owns:
 - Yak UI Design Token 与视觉状态
 
 Public Import:
-- `@/shared/ui`
+- `@yak-ops/yak-ui`
 
 ## Dependency Direction
 
 ```text
 Page / Feature / App
         ↓
-@/shared/ui
+@yak-ops/yak-ui
         ↓
 @base-ui/react
         ↓
@@ -33,7 +33,7 @@ DOM
 ## Must
 
 - Primitive 必须无 Login / Datasource 等业务语义。
-- Page / Feature / App 只能从 `@/shared/ui` 使用公共 Yak UI Primitive。
+- Page / Feature / App 只能从 `@yak-ops/yak-ui` 使用公共 Yak UI Primitive。
 - 需要 Headless interaction 时优先由 `@base-ui/react` 提供底层行为，Yak UI 自己拥有公开 API 与视觉 Contract。
 - Yak UI 不直接向业务层 re-export Base UI 原始 Primitive。
 - 样式统一使用 Tailwind 与 Yak UI Design Token。
@@ -61,7 +61,7 @@ DOM
 
 ## Adoption
 
-- Datasource 的 Page 私有 `YakButton` 已迁移到 Yak UI；不要重新创建 Page 私有 Button wrapper。
+- Datasource 的 Page 私有 `YakButton` 已迁移到 Yak UI；不要重新创建业务私有 Button wrapper。
 - 普通文本 Input 与普通 Select 在 Contract 能无损覆盖时迁移到 Yak UI。
 - 依赖 Ant Design 专属组合能力的复杂控件暂时保留原实现，直到对应 Yak UI Primitive 有真实需求。
 - Adoption 以“不丢现有用户行为”为前提，不为了去依赖强行降级 searchable、clearable、password、textarea、number、upload 等能力。
