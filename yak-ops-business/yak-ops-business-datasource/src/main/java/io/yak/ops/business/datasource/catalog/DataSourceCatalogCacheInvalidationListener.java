@@ -1,7 +1,7 @@
 package io.yak.ops.business.datasource.catalog;
 
+import io.yak.ops.business.datasource.DataSourceChangedEvent;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.management.DataSourceChangedEvent;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

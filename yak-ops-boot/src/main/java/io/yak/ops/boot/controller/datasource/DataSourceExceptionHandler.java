@@ -3,7 +3,7 @@ package io.yak.ops.boot.controller.datasource;
 import io.yak.ops.boot.controller.datasource.v1.DataSourceController;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.exception.DataSourceException;
-import io.yak.ops.business.datasource.security.SensitiveTextMasker;
+import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
 import io.yak.ops.common.Result;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import jakarta.annotation.Resource;
@@ -27,12 +27,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class DataSourceExceptionHandler {
 
     @Resource
-    private SensitiveTextMasker textMasker;
+    private DataSourcePluginBusiness pluginBusiness;
 
     @ExceptionHandler(DataSourceException.class)
     public Result<Void> handleDataSourceException(DataSourceException exception) {
-        String message = textMasker.mask(exception.getUserMessage());
-        if (exception.getErrorCode() == null) return Result.fail(message);
+        String message = pluginBusiness.maskSensitiveText(exception.getUserMessage());
+        if (exception.getErrorCode() == null) {
+            return Result.fail(message);
+        }
         return Result.fail(exception.getErrorCode().getCode(), message);
     }
 
