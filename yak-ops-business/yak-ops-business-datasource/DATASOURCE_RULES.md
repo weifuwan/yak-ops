@@ -28,10 +28,12 @@ execution    SQL execution runtime and observability
 gateway      ports toward plugin capability
 repository   persistence-facing business contract
 dao          MyBatis persistence implementation
-config       module infrastructure
+config       capability-local properties / conditions
 security     Datasource security
 exception    Datasource business errors
 ```
+
+`config` 只持有 Datasource capability 自己的 properties、feature condition 等局部配置。应用级 DataSource、transaction manager、SqlSessionFactory、MyBatis-Plus plugin 等最终运行时装配统一由 `yak-ops-boot` 持有。
 
 ## HTTP Boundary
 
@@ -56,6 +58,7 @@ Must Not:
 - access concrete plugin implementations from business code.
 - bypass Repository with ad hoc Mapper access from business behavior.
 - recreate deleted tests as architecture placeholders.
+- create application-level DataSource / transaction manager / SqlSessionFactory / MyBatis-Plus plugin configuration in this module.
 
 ## Persistence
 
@@ -72,6 +75,7 @@ business behavior
 - complex SQL may use Mapper XML.
 - do not add forwarding methods that only rename existing CRUD.
 - Schema evolution is owned by `yak-ops-dao`; changes must follow `/yak-ops-dao/FLYWAY_RULES.md`.
+- Final application MyBatis runtime assembly is owned by `yak-ops-boot`.
 
 ## Execution
 
