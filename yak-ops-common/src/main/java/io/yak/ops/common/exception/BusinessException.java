@@ -1,4 +1,6 @@
-package io.yak.ops.common;
+package io.yak.ops.common.exception;
+
+import io.yak.ops.common.ErrorCode;
 
 /**
  * 跨模块业务异常，保留结构化错误码以避免从异常文本反向解析。

@@ -26,7 +26,7 @@ Application runtime infrastructure is also a Boot boundary. Connection-pool asse
 
 ### `yak-ops-common`
 
-Owns shared data contracts for Datasource and Security, plus the unified `io.yak.ops.common` Result / ErrorCode / BusinessException / PageData contracts migrated into Yak Ops. Security user/login DTO, VO and enum contracts live here instead of inside the Security runtime module.
+Owns shared data contracts for Datasource and Security, plus the unified Result / ErrorCode / PageData contracts and shared exception hierarchy under `io.yak.ops.common.exception`. Security user/login DTO, VO, enum and shared exception contracts live here instead of inside the Security runtime module.
 
 ### `yak-ops-security`
 
@@ -72,7 +72,7 @@ Owns Datasource provider contracts and implementations.
 
 ### `yak-ops-boot`
 
-Owns final application assembly, all HTTP Controllers, ControllerAdvice, Controller-only request/response conversion, health and global runtime configuration.
+Owns final application assembly, all HTTP Controllers, ControllerAdvice, Controller-only request/response conversion, health and global runtime configuration. `GlobalExceptionHandler` is the single fallback HTTP exception outlet; capability-specific advice only keeps behavior that requires capability context such as Datasource message masking.
 
 Boot runtime configuration includes:
 

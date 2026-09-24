@@ -1,5 +1,7 @@
 package io.yak.ops.common;
 
+import io.yak.ops.common.exception.BusinessException;
+
 import lombok.*;
 
 /**

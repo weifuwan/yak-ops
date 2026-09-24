@@ -4,7 +4,7 @@ import io.yak.ops.common.PageData;
 import io.yak.ops.common.PagingData;
 import io.yak.ops.common.Result;
 import io.yak.ops.security.model.UserAccount;
-import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.util.CopyBeanUtil;

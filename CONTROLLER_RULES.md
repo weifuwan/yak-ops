@@ -26,12 +26,16 @@ All Yak Ops Controllers belong to `yak-ops-boot`.
 yak-ops-boot
 └── src/main/java/io/yak/ops/boot/controller
     ├── datasource
+    ├── exception
+    │   └── GlobalExceptionHandler.java
     └── security
 ```
 
 Must:
 - `@Controller` / `@RestController` 只允许出现在 `yak-ops-boot`。
 - `@RestControllerAdvice` 和只服务于 Controller 的 converter 也放在 `yak-ops-boot/controller` 边界内。
+- 通用业务异常、参数异常和未知异常统一由 `controller/exception/GlobalExceptionHandler` 处理。
+- capability-specific ControllerAdvice 只保留必须依赖该 capability HTTP 语义的处理，例如 Datasource 敏感信息脱敏。
 - Controller 通过 Boot → capability owner 的单向依赖调用 Security / Datasource。
 - Security / Datasource / DAO / Core / SPI / Plugin 不得依赖 Boot。
 - 新增 API 时先确定 capability owner，再由 Boot 暴露 HTTP contract。
@@ -61,3 +65,4 @@ Must Not:
 - 返回 Map 代替已经稳定的业务响应模型。
 - 暴露 SQL、表名、Mapper、堆栈或数据库实现细节。
 - 为 Controller 再创建只做一层转发的 Handler / Adapter。
+- 在 capability-specific ControllerAdvice 中重复处理通用参数异常、`BusinessException` 或兜底 `Exception`。

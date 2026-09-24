@@ -11,7 +11,7 @@ import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.bean.vo.security.user.UserVO;
-import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.service.impl.UserAdministrationService;
 import io.yak.ops.security.util.JsonUtils;

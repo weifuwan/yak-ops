@@ -1,7 +1,7 @@
 package io.yak.ops.security.service.impl;
 
 import io.yak.ops.security.authentication.AuthenticationManager;
-import io.yak.ops.security.exception.YakSecurityException;
+import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.enums.security.ResultCode;
