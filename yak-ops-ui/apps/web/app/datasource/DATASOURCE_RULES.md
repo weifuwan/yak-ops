@@ -53,11 +53,8 @@ app/datasource/
 └── i18n/
 
 service/datasource/
-├── api.ts
-├── catalog.ts
-├── driver.ts
-├── types.ts
-└── index.ts
+├── index.ts
+└── types.ts
 ```
 
 ## Editor Ownership
@@ -75,6 +72,20 @@ connection/SshTunnelManager
 ```
 
 Driver / JDBC URL / SSH 不是独立 Domain，它们只是 Datasource Editor 的特殊字段能力。
+
+## Service Ownership
+
+`service/datasource/index.ts` 统一拥有：
+
+- Datasource CRUD。
+- Connection Test。
+- Plugin Config / Install。
+- Catalog Columns。
+- Driver Upload。
+
+这些 endpoint 共享同一个 Domain、同一个 HTTP transport 和同一套 Contract，没有独立生命周期，因此不再拆成 `api.ts / catalog.ts / driver.ts`。
+
+`service/datasource/types.ts` 单独保留，因为它是稳定 backend Contract owner。
 
 ## Types
 
@@ -121,6 +132,7 @@ app/datasource
 - 页面专属代码优先保持局部内聚。
 - Editor 相关组件和 helper 优先留在 `editor/` 同一层。
 - Datasource endpoint / backend Contract stays under `service/datasource`。
+- Datasource endpoint 默认集中在 `service/datasource/index.ts`。
 - HTTP transport goes through `service/http`。
 - Common UI primitives come from `@yak-ops/yak-ui`。
 - Dynamic form state stays in Datasource, not Yak UI。
@@ -128,6 +140,7 @@ app/datasource
 ## Must Not
 
 - Recreate `management/`、`model/`、`plugin/`、`connection/`。
+- Recreate `service/datasource/api.ts`、`catalog.ts`、`driver.ts` 这类概念拆分文件。
 - Recreate `editor/DynamicDataSourceForm/`。
 - Recreate one-file directories such as `DriverManager/` or `SshTunnelManager/`。
 - Recreate `packages/datasource`。

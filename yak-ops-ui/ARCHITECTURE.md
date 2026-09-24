@@ -139,7 +139,18 @@ app/datasource/editor/DynamicDataSourceForm
 
 `service/auth` 拥有 Login / Logout / Current User。
 
-`service/datasource` 拥有 Datasource Contract、CRUD、Connection Test、Plugin Config、Catalog、Driver Upload。
+Datasource Service 保持局部内聚：
+
+```text
+service/datasource/
+├── index.ts
+└── types.ts
+```
+
+- `index.ts`：CRUD、Connection Test、Plugin Config、Catalog、Driver Upload。
+- `types.ts`：稳定 backend Contract。
+
+Service 不按 endpoint 概念机械拆文件；只有形成独立协议、独立生命周期或明显复杂度时才继续拆。
 
 ## Package Boundary
 

@@ -33,6 +33,30 @@ for (const path of forbiddenDirectories) {
   }
 }
 
+const dataSourceServiceRoot = join(
+  root,
+  "apps",
+  "web",
+  "service",
+  "datasource",
+);
+const allowedDataSourceServiceFiles = new Set(["index.ts", "types.ts"]);
+
+if (existsSync(dataSourceServiceRoot)) {
+  for (const entry of readdirSync(dataSourceServiceRoot, {
+    withFileTypes: true,
+  })) {
+    if (
+      !entry.isFile() ||
+      !allowedDataSourceServiceFiles.has(entry.name)
+    ) {
+      fail(
+        `unexpected datasource service entry: apps/web/service/datasource/${entry.name}`,
+      );
+    }
+  }
+}
+
 const packageRoot = join(root, "packages");
 const allowedPackages = new Set(["yak-ui"]);
 if (existsSync(packageRoot)) {
