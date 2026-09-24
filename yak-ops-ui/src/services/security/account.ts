@@ -2,20 +2,23 @@ import {
   securityGetData,
   securityPostData,
   type SecurityRequestOptions,
-} from './client';
+} from "./client";
 
-/**
- * Yak Security AccountController contract.
- *
- * Authentication state is managed by the server and carried by cookies. The
- * shared request client sends cookies with `credentials: "include"`; this
- * module neither stores credentials nor depends on the server-side
- * authentication implementation.
- */
-const ACCOUNT_API = '/api/v1/account';
+const ACCOUNT_API = "/api/v1/account";
 
-/** AccountController's unauthenticated business/HTTP code. */
-export const ACCOUNT_UNAUTHENTICATED_CODE = 401;
+export interface CurrentUserVO {
+  id: number;
+  userName: string;
+  realName?: string | null;
+  deptId?: number | null;
+  phone?: string | null;
+  email?: string | null;
+}
+
+export interface CurrentUser extends CurrentUserVO {
+  name: string;
+  userid: string;
+}
 
 export type AccountLoginDTO = {
   userName: string;
@@ -25,13 +28,10 @@ export type AccountLoginDTO = {
 export const login = (body: AccountLoginDTO): Promise<void> =>
   securityPostData<void>(`${ACCOUNT_API}/login`, body);
 
-export const googleLogin = (credential: string): Promise<void> =>
-  securityPostData<void>('/api/v1/auth/google/login', { credential });
-
 export const getCurrentUser = (
   options?: SecurityRequestOptions,
-): Promise<API.CurrentUserVO> =>
-  securityGetData<API.CurrentUserVO>(`${ACCOUNT_API}/current`, options);
+): Promise<CurrentUserVO> =>
+  securityGetData<CurrentUserVO>(`${ACCOUNT_API}/current`, options);
 
 export const logout = (): Promise<void> =>
   securityPostData<void>(`${ACCOUNT_API}/logout`);

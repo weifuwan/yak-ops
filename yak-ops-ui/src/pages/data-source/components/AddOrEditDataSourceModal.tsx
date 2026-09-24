@@ -4,7 +4,7 @@ import {
   testDataSourceConnectionWithParams,
   updateDataSource,
 } from '@/services/data-source';
-import { useIntl } from '@umijs/max';
+import { useIntl } from '@/shared/i18n';
 import { Drawer, Form, message } from 'antd';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 

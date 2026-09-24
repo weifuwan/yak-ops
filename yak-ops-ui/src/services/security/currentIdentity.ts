@@ -1,25 +1,13 @@
-/**
- * Convert only the identity returned by AccountController/current.
- *
- * Do not enrich this value with account, role, department, permission, or
- * project administration list APIs: those lists describe manageable records,
- * not necessarily the authenticated principal.
- */
-export const toCurrentUser = (user: API.CurrentUserVO): API.CurrentUser => ({
+import type {
+  CurrentUser,
+  CurrentUserVO,
+} from "@/services/security/account";
+
+export const toCurrentUser = (user: CurrentUserVO): CurrentUser => ({
   ...user,
-  // ProLayout's user widgets use these legacy display fields.
   name: user.realName?.trim() || user.userName,
   userid: String(user.id),
   email: user.email ?? undefined,
   phone: user.phone ?? undefined,
-  // Missing authorization context is deliberately fail-closed.
-  roleList: Array.isArray(user.roleList) ? user.roleList : [],
-  permissionCodes: Array.isArray(user.permissionCodes)
-    ? user.permissionCodes
-    : [],
-  // Undefined means an older backend has not exposed menu authorization yet.
-  menuCodes: Array.isArray(user.menuCodes) ? user.menuCodes : undefined,
-  projectList: Array.isArray(user.projectList) ? user.projectList : [],
-  // A missing/null deptId means “no current department”; it is not inferred.
   deptId: user.deptId ?? null,
 });

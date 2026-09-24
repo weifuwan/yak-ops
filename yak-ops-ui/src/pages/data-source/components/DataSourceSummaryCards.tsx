@@ -1,5 +1,5 @@
 import type { DataSourceSummary } from '@/services/data-source';
-import { useIntl } from '@umijs/max';
+import { useIntl } from '@/shared/i18n';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Database, Server, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';

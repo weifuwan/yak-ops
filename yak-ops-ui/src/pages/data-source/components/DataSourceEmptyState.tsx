@@ -1,5 +1,5 @@
 import { YakButton } from '@/components/ui';
-import { useIntl } from '@umijs/max';
+import { useIntl } from '@/shared/i18n';
 
 const DataSourceEmptyIllustration = () => (
   <svg

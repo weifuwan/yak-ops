@@ -1,6 +1,6 @@
 import { YakButton } from '@/components/ui';
 import type { DataSourceRecord } from '@/services/data-source';
-import { useIntl } from '@umijs/max';
+import { useIntl } from '@/shared/i18n';
 import { motion } from 'framer-motion';
 import { Clock3, Pencil, Trash2, Unplug } from 'lucide-react';
 

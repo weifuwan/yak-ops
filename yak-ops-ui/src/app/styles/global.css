@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@source "../../pages/login";
+@source "../../pages/data-source";
+@source "../../components/YakButton";
+@source "../../components/YakTab";
+@source "../../components/data-source";
+@source "../";
+
+@font-face {
+  font-family: "YakOps";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../assets/yak-ops.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "YakOpsZh";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../assets/web.woff2") format("woff2");
+}
+
+:root {
+  --yak-font-family: "YakOpsZh", "YakOps", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: var(--yak-font-family);
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.32);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.45);
+  background-clip: padding-box;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+.ant-input-textarea-affix-wrapper.ant-input-affix-wrapper > textarea.ant-input,
+.ant-input-affix-wrapper > input.ant-input,
+.ant-input-filled,
+.ant-select-filled:not(.ant-select-customize-input) .ant-select-selector,
+.ant-input-number .ant-input-number-input {
+  background: #f9f9fa !important;
+}
+
+.ant-pagination .ant-pagination-item {
+  border-radius: 4px;
+}
+
+.ant-modal-root .ant-modal-mask {
+  background: rgba(0, 0, 0, 0.55);
+}

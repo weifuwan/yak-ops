@@ -16,7 +16,7 @@ Do not reintroduce removed product domains through routes, menus, services or sh
 
 ## Current Structure
 
-Yak Ops UI currently uses Umi Max + React + TypeScript.
+Yak Ops UI uses Vite + React + React Router + TypeScript + Tailwind CSS.
 
 Current page owners:
 

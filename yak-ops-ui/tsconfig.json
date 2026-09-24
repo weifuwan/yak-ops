@@ -1,22 +1,63 @@
 {
   "compilerOptions": {
-    "baseUrl": "./",
-    "target": "esnext",
-    "moduleResolution": "node",
-    "jsx": "react-jsx",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
     "esModuleInterop": true,
-    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true,
-    "declaration": true,
-    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@@/*": ["./src/.umi/*"],
-      "@@test/*": ["./src/.umi-test/*"]
-    }
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "types": [
+      "vite/client"
+    ]
   },
-  "include": ["./**/*.d.ts", "./**/*.ts", "./**/*.tsx"]
+  "include": [
+    "src/main.tsx",
+    "src/app/**/*.ts",
+    "src/app/**/*.tsx",
+    "src/pages/login/**/*.ts",
+    "src/pages/login/**/*.tsx",
+    "src/pages/data-source/**/*.ts",
+    "src/pages/data-source/**/*.tsx",
+    "src/services/data-source/**/*.ts",
+    "src/services/security/account.ts",
+    "src/services/security/client.ts",
+    "src/services/security/currentIdentity.ts",
+    "src/services/http/response.ts",
+    "src/utils/HttpUtils.tsx",
+    "src/utils/request.ts",
+    "src/utils/notifyOnce.ts",
+    "src/utils/prettyNotification.tsx",
+    "src/utils/security/authentication.ts",
+    "src/utils/security/redirect.ts",
+    "src/components/YakButton/**/*.ts",
+    "src/components/YakButton/**/*.tsx",
+    "src/components/YakTab/**/*.ts",
+    "src/components/YakTab/**/*.tsx",
+    "src/components/data-source/**/*.ts",
+    "src/components/data-source/**/*.tsx",
+    "src/components/ui/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/shared/**/*.tsx",
+    "src/locales/zh-CN/data-source.ts",
+    "vite.config.ts"
+  ]
 }

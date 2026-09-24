@@ -1,4 +1,4 @@
-import { useIntl } from '@umijs/max';
+import { useIntl } from '@/shared/i18n';
 import { Input, InputNumber, Select, Switch } from 'antd';
 import { KeyRound, Network, ShieldCheck } from 'lucide-react';
 

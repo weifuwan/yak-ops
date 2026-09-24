@@ -46,8 +46,8 @@ Use only checks actually needed by the task, for example:
 
 ```bash
 cd yak-ops-ui
-yarn lint
-yarn build
+npm run check
+npm run build
 ```
 
 Record what was actually executed.

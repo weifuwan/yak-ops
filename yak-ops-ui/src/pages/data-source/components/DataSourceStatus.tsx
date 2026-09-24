@@ -5,7 +5,7 @@ import {
   LoadingOutlined,
   MinusCircleOutlined,
 } from '@ant-design/icons';
-import { useIntl } from '@umijs/max';
+import { useIntl } from '@/shared/i18n';
 import { Tag, Tooltip } from 'antd';
 import type { ReactNode } from 'react';
 
