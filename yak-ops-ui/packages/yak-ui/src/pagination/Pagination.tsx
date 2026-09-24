@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { Button } from "../button";
 import { NumberField, NumberFieldGroup, NumberFieldInput } from "../number-field";
@@ -35,7 +35,7 @@ export interface PaginationProps {
   disabled?: boolean;
   showSizeChanger?: boolean;
   showQuickJumper?: boolean;
-  renderTotal?: (total: number, range: [number, number]) => React.ReactNode;
+  renderTotal?: (total: number, range: [number, number]) => ReactNode;
   className?: string;
   onChange: (page: number, pageSize: number) => void;
 }
