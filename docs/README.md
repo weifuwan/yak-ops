@@ -57,3 +57,4 @@ Task
 - [Frontend Architecture](../yak-ops-ui/ARCHITECTURE.md)
 - [Frontend Rules](../yak-ops-ui/FRONTEND_RULES.md)
 - [Frontend Service Rules](../yak-ops-ui/SERVICE_RULES.md)
+- [Frontend Tooling](../yak-ops-ui/docs/tooling.md)
