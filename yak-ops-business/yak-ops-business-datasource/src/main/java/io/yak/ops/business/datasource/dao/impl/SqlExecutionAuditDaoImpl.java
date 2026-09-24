@@ -16,7 +16,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-/** MyBatis-Plus implementation of the project-scoped SQL execution audit DAO. */
+/** MyBatis-Plus implementation of the SQL execution audit DAO. */
 @Repository
 @ConditionalOnDataSourceEnabled
 @RequiredArgsConstructor
@@ -27,9 +27,7 @@ public class SqlExecutionAuditDaoImpl implements SqlExecutionAuditDao {
 
   @Override
   public void insertExecution(SqlExecutionAuditPO execution) {
-    if (execution == null || execution.getProjectId() == null || execution.getProjectId() <= 0L) {
-      throw new IllegalArgumentException("SQL execution audit requires projectId");
-    }
+    if (execution == null) throw new IllegalArgumentException("execution must not be null");
     executionMapper.insert(execution);
   }
 
@@ -42,25 +40,22 @@ public class SqlExecutionAuditDaoImpl implements SqlExecutionAuditDao {
   @Override
   public IPage<SqlExecutionAuditPO> selectPage(SqlExecutionAuditQuery query) {
     SqlExecutionAuditQuery condition = requireQuery(query);
-    return executionMapper.selectAuditPage(
-        Page.of(condition.getPageNo(), condition.getPageSize()), condition);
+    return executionMapper.selectAuditPage(Page.of(condition.getPageNo(), condition.getPageSize()), condition);
   }
 
   @Override
-  public SqlExecutionAuditPO selectByExecutionId(Long projectId, String executionId) {
+  public SqlExecutionAuditPO selectByExecutionId(String executionId) {
     if (executionId == null || executionId.isBlank()) return null;
-    long scopedProjectId = requireProjectId(projectId);
     return executionMapper.selectOne(
         Wrappers.<SqlExecutionAuditPO>lambdaQuery()
-            .eq(SqlExecutionAuditPO::getProjectId, scopedProjectId)
             .eq(SqlExecutionAuditPO::getExecutionId, executionId.trim())
             .last("LIMIT 1"));
   }
 
   @Override
-  public List<SqlStatementExecutionAuditPO> selectStatements(Long projectId, String executionId) {
+  public List<SqlStatementExecutionAuditPO> selectStatements(String executionId) {
     if (executionId == null || executionId.isBlank()) return List.of();
-    if (selectByExecutionId(projectId, executionId) == null) return List.of();
+    if (selectByExecutionId(executionId) == null) return List.of();
     return statementMapper.selectList(
         Wrappers.<SqlStatementExecutionAuditPO>lambdaQuery()
             .eq(SqlStatementExecutionAuditPO::getExecutionId, executionId.trim())
@@ -82,22 +77,12 @@ public class SqlExecutionAuditDaoImpl implements SqlExecutionAuditDao {
 
   @Override
   public List<SqlStatementTypeCountRow> selectStatementTypeCounts(SqlExecutionAuditQuery query) {
-    List<SqlStatementTypeCountRow> rows =
-        executionMapper.selectStatementTypeCounts(requireQuery(query));
+    List<SqlStatementTypeCountRow> rows = executionMapper.selectStatementTypeCounts(requireQuery(query));
     return rows == null ? List.of() : List.copyOf(rows);
   }
 
   private static SqlExecutionAuditQuery requireQuery(SqlExecutionAuditQuery query) {
-    if (query == null || query.getProjectId() == null || query.getProjectId() <= 0L) {
-      throw new IllegalArgumentException("SQL execution audit query requires projectId");
-    }
+    if (query == null) throw new IllegalArgumentException("query must not be null");
     return query;
-  }
-
-  private static long requireProjectId(Long projectId) {
-    if (projectId == null || projectId <= 0L) {
-      throw new IllegalArgumentException("projectId must be positive");
-    }
-    return projectId;
   }
 }

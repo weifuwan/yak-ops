@@ -14,9 +14,6 @@ import io.yak.ops.core.execution.sql.SqlStatementSnapshot;
 import io.yak.ops.core.execution.sql.SqlStatementStatus;
 import io.yak.ops.core.execution.sql.SqlStatementType;
 import io.yak.ops.core.execution.sql.SqlTransactionMode;
-import io.yak.ops.core.project.CurrentProject;
-import io.yak.ops.core.project.ProjectContext;
-import io.yak.ops.core.project.ProjectContextScope;
 import jakarta.annotation.PreDestroy;
 import java.sql.SQLTimeoutException;
 import java.time.Instant;
@@ -29,7 +26,6 @@ import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -46,39 +42,20 @@ public final class ObservableSqlExecutionRuntime implements SqlExecutionRuntime 
 
   private final DefaultSqlExecutionRuntime delegate;
   private final List<SqlExecutionObserver> observers;
-  private final CurrentProject currentProject;
-  private final ProjectContextScope projectContextScope;
   private final LexicalSqlStatementClassifier classifier = new LexicalSqlStatementClassifier();
   private final ExecutorService tracker = Executors.newVirtualThreadPerTaskExecutor();
 
-  @Autowired
   public ObservableSqlExecutionRuntime(
       DefaultSqlExecutionRuntime delegate,
-      ObjectProvider<SqlExecutionObserver> observers,
-      CurrentProject currentProject,
-      ProjectContextScope projectContextScope) {
-    this(
-        delegate,
-        observers.orderedStream().toList(),
-        currentProject,
-        projectContextScope);
+      ObjectProvider<SqlExecutionObserver> observers) {
+    this(delegate, observers.orderedStream().toList());
   }
 
   ObservableSqlExecutionRuntime(
       DefaultSqlExecutionRuntime delegate,
       List<SqlExecutionObserver> observers) {
-    this(delegate, observers, null, null);
-  }
-
-  private ObservableSqlExecutionRuntime(
-      DefaultSqlExecutionRuntime delegate,
-      List<SqlExecutionObserver> observers,
-      CurrentProject currentProject,
-      ProjectContextScope projectContextScope) {
     this.delegate = Objects.requireNonNull(delegate, "delegate");
     this.observers = observers == null ? List.of() : List.copyOf(observers);
-    this.currentProject = currentProject;
-    this.projectContextScope = projectContextScope;
   }
 
   @Override
@@ -147,19 +124,13 @@ public final class ObservableSqlExecutionRuntime implements SqlExecutionRuntime 
 
   @Override
   public SqlExecutionSnapshot start(SqlExecutionPlan plan) {
-    ProjectContext projectContext = currentProject == null ? null : currentProject.require();
     SqlExecutionSnapshot started = delegate.start(plan);
     if (started.terminal()) {
       notifyObservers(started);
       return started;
     }
     try {
-      Runnable action = () -> notifyObservers(delegate.await(started.executionId()));
-      if (projectContext != null && projectContextScope != null) {
-        tracker.submit(() -> projectContextScope.run(projectContext, action));
-      } else {
-        tracker.submit(action);
-      }
+      tracker.submit(() -> notifyObservers(delegate.await(started.executionId())));
     } catch (RuntimeException exception) {
       // Observability scheduling must not change the underlying execution lifecycle.
       log.warn(

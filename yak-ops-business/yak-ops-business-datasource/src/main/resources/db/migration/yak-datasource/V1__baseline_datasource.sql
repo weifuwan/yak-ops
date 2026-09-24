@@ -3,7 +3,6 @@
 
 CREATE TABLE IF NOT EXISTS yak_ops_data_source (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-    project_id BIGINT NOT NULL COMMENT 'Yak Security Project ID',
     name VARCHAR(128) NOT NULL COMMENT '数据源名称',
     db_type VARCHAR(32) NOT NULL COMMENT '数据库类型',
     jdbc_url VARCHAR(1024) NOT NULL COMMENT 'JDBC 地址',
@@ -16,13 +15,11 @@ CREATE TABLE IF NOT EXISTS yak_ops_data_source (
     update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
         ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_yak_ops_data_source_project_name (project_id, name),
+    UNIQUE KEY uk_yak_ops_data_source_name (name),
     KEY idx_yak_ops_data_source_type (db_type),
     KEY idx_yak_ops_data_source_environment (environment),
     KEY idx_yak_ops_data_source_status (conn_status),
-    KEY idx_yak_ops_data_source_update_time (update_time),
-    KEY idx_yak_ops_data_source_project_update (project_id, update_time),
-    KEY idx_yak_ops_data_source_project_status (project_id, conn_status)
+    KEY idx_yak_ops_data_source_update_time (update_time)
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci
@@ -30,7 +27,6 @@ CREATE TABLE IF NOT EXISTS yak_ops_data_source (
 
 CREATE TABLE IF NOT EXISTS yak_ops_sql_execution (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-    project_id BIGINT NOT NULL COMMENT 'Yak Security Project ID',
     execution_id VARCHAR(96) NOT NULL COMMENT 'SQL Runtime execution id',
     data_source_id VARCHAR(128) NOT NULL COMMENT '数据源引用',
     caller VARCHAR(32) NOT NULL COMMENT '调用方类型',
@@ -53,9 +49,7 @@ CREATE TABLE IF NOT EXISTS yak_ops_sql_execution (
     KEY idx_yak_ops_sql_execution_status_started (status, started_at),
     KEY idx_yak_ops_sql_execution_caller_started (caller, started_at),
     KEY idx_yak_ops_sql_execution_datasource_started (data_source_id, started_at),
-    KEY idx_yak_ops_sql_execution_duration (duration_ms),
-    KEY idx_yak_ops_sql_execution_project_started (project_id, started_at),
-    KEY idx_yak_ops_sql_execution_project_status_started (project_id, status, started_at)
+    KEY idx_yak_ops_sql_execution_duration (duration_ms)
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci

@@ -5,7 +5,6 @@
 <mapper namespace="io.yak.ops.business.datasource.dao.mapper.SqlExecutionAuditMapper">
 
     <sql id="ExecutionBaseFilters">
-        AND e.project_id = #{query.projectId}
         <if test="query.executionId != null">
             AND e.execution_id = #{query.executionId}
         </if>

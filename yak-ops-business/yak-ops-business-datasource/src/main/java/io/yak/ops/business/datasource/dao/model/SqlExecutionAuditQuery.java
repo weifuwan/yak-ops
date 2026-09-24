@@ -11,7 +11,6 @@ import lombok.Getter;
 @Getter
 public final class SqlExecutionAuditQuery {
 
-  private final Long projectId;
   private final int pageNo;
   private final int pageSize;
   private final String executionId;
@@ -42,41 +41,6 @@ public final class SqlExecutionAuditQuery {
       Long minDurationMs,
       LocalDateTime startedFrom,
       LocalDateTime startedTo) {
-    this(
-        null,
-        pageNo,
-        pageSize,
-        executionId,
-        dataSourceId,
-        caller,
-        callerReference,
-        operatorName,
-        status,
-        transactionMode,
-        statementType,
-        sqlFingerprint,
-        minDurationMs,
-        startedFrom,
-        startedTo);
-  }
-
-  private SqlExecutionAuditQuery(
-      Long projectId,
-      int pageNo,
-      int pageSize,
-      String executionId,
-      String dataSourceId,
-      SqlExecutionCaller caller,
-      String callerReference,
-      String operatorName,
-      SqlExecutionStatus status,
-      SqlTransactionMode transactionMode,
-      SqlStatementType statementType,
-      String sqlFingerprint,
-      Long minDurationMs,
-      LocalDateTime startedFrom,
-      LocalDateTime startedTo) {
-    this.projectId = projectId;
     this.pageNo = Math.max(1, pageNo);
     this.pageSize = Math.min(200, Math.max(1, pageSize));
     this.executionId = normalize(executionId);
@@ -91,28 +55,6 @@ public final class SqlExecutionAuditQuery {
     this.minDurationMs = minDurationMs == null ? null : Math.max(0L, minDurationMs);
     this.startedFrom = startedFrom;
     this.startedTo = startedTo;
-  }
-
-  public SqlExecutionAuditQuery scopedTo(Long projectId) {
-    if (projectId == null || projectId <= 0L) {
-      throw new IllegalArgumentException("projectId must be positive");
-    }
-    return new SqlExecutionAuditQuery(
-        projectId,
-        pageNo,
-        pageSize,
-        executionId,
-        dataSourceId,
-        caller,
-        callerReference,
-        operatorName,
-        status,
-        transactionMode,
-        statementType,
-        sqlFingerprint,
-        minDurationMs,
-        startedFrom,
-        startedTo);
   }
 
   private static String normalize(String value) {

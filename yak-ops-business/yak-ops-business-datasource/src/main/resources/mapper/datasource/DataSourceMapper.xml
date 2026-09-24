@@ -4,25 +4,14 @@
     "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="io.yak.ops.business.datasource.dao.mapper.DataSourceMapper">
 
-    <sql id="summaryColumns">
-        COUNT(*) AS total,
-        COALESCE(SUM(CASE WHEN conn_status = 'CONNECTED' THEN 1 ELSE 0 END), 0) AS connected,
-        COALESCE(SUM(CASE WHEN conn_status = 'DISCONNECTED' THEN 1 ELSE 0 END), 0) AS disconnected,
-        COALESCE(SUM(CASE WHEN conn_status = 'UNKNOWN' THEN 1 ELSE 0 END), 0) AS unknown,
-        COUNT(DISTINCT environment) AS environment_count
-    </sql>
-
     <select id="selectSummary"
             resultType="io.yak.ops.business.datasource.dao.model.DataSourceSummaryRow">
-        SELECT <include refid="summaryColumns"/>
+        SELECT COUNT(*) AS total,
+               COALESCE(SUM(CASE WHEN conn_status = 'CONNECTED' THEN 1 ELSE 0 END), 0) AS connected,
+               COALESCE(SUM(CASE WHEN conn_status = 'DISCONNECTED' THEN 1 ELSE 0 END), 0) AS disconnected,
+               COALESCE(SUM(CASE WHEN conn_status = 'UNKNOWN' THEN 1 ELSE 0 END), 0) AS unknown,
+               COUNT(DISTINCT environment) AS environment_count
         FROM yak_ops_data_source
-    </select>
-
-    <select id="selectSummaryByProject"
-            resultType="io.yak.ops.business.datasource.dao.model.DataSourceSummaryRow">
-        SELECT <include refid="summaryColumns"/>
-        FROM yak_ops_data_source
-        WHERE project_id = #{projectId}
     </select>
 
 </mapper>
