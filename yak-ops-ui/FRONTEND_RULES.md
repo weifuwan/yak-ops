@@ -37,7 +37,7 @@ src/**
 - 通用 UI Primitive 统一从 `@yak-ops/yak-ui` 使用。
 - Datasource 路由只通过 `@yak-ops/datasource` 进入 App。
 - Page / Product Package / App 不直接依赖 `@base-ui/react`。
-- 新代码不得继续扩大 `src/pages/data-source`、`src/shared/ui` 等 migration bridge。
+- `src/pages/data-source`、`src/service/datasource` 与 `src/shared/ui` 已完成迁移并删除；禁止重新创建。
 - 优先原生 HTML 语义，保留 keyboard / focus / disabled 行为。
 - 可点击元素必须有明确 pointer cursor。
 - URL 已表达的状态归 URL；后端事实以 API 返回值为准；局部交互状态才使用 React state。
@@ -52,7 +52,7 @@ src/**
 
 ## Must Not
 
-- `apps/web` 直接 import `src/pages/data-source`。
+- `apps/web` 绕过 `@yak-ops/datasource` 直接依赖 Datasource 内部 capability。
 - `packages/datasource` 依赖 `apps/web`。
 - `packages/yak-ui` 依赖任何业务 package。
 - App / Datasource 直接 import `@base-ui/react`。
@@ -109,7 +109,7 @@ api
 - App 全局 reset / font / viewport 归 `apps/web/src/app/styles`。
 - Product 私有视觉归对应 package。
 - 不使用全局位置选择器改写业务 package 内部结构。
-- Ant Design 只允许存在于当前 migration bridge 的存量代码；新代码不得新增 AntD / @ant-design/icons 依赖或引用。
+- Ant Design 只允许存在于 Datasource / App 当前待迁移的存量代码；新代码不得新增 AntD / @ant-design/icons 依赖或引用。
 - Yak UI replacement set 已覆盖当前去 AntD 所需的通用 Primitive；业务迁移优先使用 `@yak-ops/yak-ui`。
 - Form 状态、动态 Schema、上传协议等业务能力归 owning package，不通过 Yak UI 重建 AntD 式万能 API。
 - 新增通用 Primitive 不再基于 Ant Design 二次封装。

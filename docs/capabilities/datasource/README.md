@@ -21,9 +21,13 @@ Plugin:
 Frontend Public Owner:
 - `yak-ops-ui/packages/datasource`
 
-Frontend Migration Bridge:
-- `yak-ops-ui/src/pages/data-source`
-- `yak-ops-ui/src/service/datasource`
+Frontend Capabilities:
+- `yak-ops-ui/packages/datasource/src/management`
+- `yak-ops-ui/packages/datasource/src/editor`
+- `yak-ops-ui/packages/datasource/src/connection`
+- `yak-ops-ui/packages/datasource/src/plugin`
+- `yak-ops-ui/packages/datasource/src/model`
+- `yak-ops-ui/packages/datasource/src/api`
 
 Data:
 - `yak-ops-dao/src/main/resources/db/migration/yak-ops`
@@ -39,9 +43,11 @@ apps/web
 @yak-ops/yak-ui
 ```
 
-PR1 先建立 package public boundary，不改变 Datasource 用户行为。
+Datasource frontend implementation is now fully owned by `yak-ops-ui/packages/datasource`.
 
-现有 `src/pages/data-source` / `src/service/datasource` 是迁移桥；后续 Frontend Datasource Package Refactor 会按 capability 把实现迁入：
+`src/pages/data-source` and `src/service/datasource` have been removed. App enters Datasource only through `@yak-ops/datasource`.
+
+Internal ownership:
 
 ```text
 management

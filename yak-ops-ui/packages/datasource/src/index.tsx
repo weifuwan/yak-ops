@@ -1,1 +1,1 @@
-export { default as DataSourcePage } from "../../../src/pages/data-source";
+export { default as DataSourcePage } from "./management/DataSourceManagement";
