@@ -1,5 +1,7 @@
+import type { Field as BaseFieldNS } from "@base-ui/react/field";
+import { Field as BaseField } from "@base-ui/react/field";
 import { cva, type VariantProps } from "class-variance-authority";
-import { forwardRef, type TextareaHTMLAttributes } from "react";
+import type * as React from "react";
 
 import { cn } from "../cn";
 
@@ -10,7 +12,7 @@ export const textareaVariants = cva(
     "transition-[background-color,border-color,box-shadow,color] duration-150",
     "hover:border-[var(--yak-components-input-border-hover)] hover:bg-[var(--yak-components-input-bg-hover)]",
     "focus:border-[var(--yak-components-input-border-focus)] focus:bg-[var(--yak-components-input-bg-focus)] focus:ring-[3px] focus:ring-[var(--yak-components-input-focus-ring)]",
-    "aria-[invalid=true]:border-[var(--yak-components-input-border-danger)] aria-[invalid=true]:focus:ring-[var(--yak-components-input-danger-ring)]",
+    "data-invalid:border-[var(--yak-components-input-border-danger)] data-invalid:focus:ring-[var(--yak-components-input-danger-ring)]",
     "disabled:cursor-not-allowed disabled:border-transparent disabled:bg-[var(--yak-components-input-bg-disabled)] disabled:text-[var(--yak-components-input-text-disabled)]",
     "read-only:cursor-default motion-reduce:transition-none",
   ],
@@ -26,14 +28,38 @@ export const textareaVariants = cva(
   },
 );
 
-export type TextareaProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size"> &
-  VariantProps<typeof textareaVariants>;
+type NativeTextareaProps = React.ComponentPropsWithRef<"textarea">;
+type TextareaVariantProps = VariantProps<typeof textareaVariants>;
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { className, size, ...props },
+export type TextareaProps = Omit<
+  NativeTextareaProps,
+  "children" | "className" | "defaultValue" | "onChange" | "size" | "value"
+> &
+  TextareaVariantProps & {
+    className?: string;
+    value?: string | number;
+    defaultValue?: string | number;
+    onValueChange?: BaseFieldNS.Control.Props["onValueChange"];
+  };
+
+export function Textarea({
+  className,
+  defaultValue,
+  onValueChange,
   ref,
-) {
-  return <textarea ref={ref} className={cn(textareaVariants({ size }), className)} {...props} />;
-});
-
-Textarea.displayName = "Textarea";
+  size,
+  value,
+  ...props
+}: TextareaProps) {
+  return (
+    <BaseField.Control
+      {...(props as Omit<BaseFieldNS.Control.Props, "render">)}
+      ref={ref}
+      render={<textarea />}
+      value={value}
+      defaultValue={defaultValue}
+      onValueChange={onValueChange}
+      className={textareaVariants({ size, className: cn(className) })}
+    />
+  );
+}
