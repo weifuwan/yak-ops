@@ -1,6 +1,6 @@
-import { Button } from '@/shared/ui';
+import { Button, Input } from '@/shared/ui';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { Form, Input } from 'antd';
+import { Form } from 'antd';
 import type { Rule } from 'antd/es/form';
 
 const CustomKVList = ({ intl, field }: any) => {
@@ -93,7 +93,7 @@ const CustomKVList = ({ intl, field }: any) => {
                         className="!mb-0"
                       >
                         <Input
-                          variant="filled"
+                         
                           placeholder={intl.formatMessage({
                             id: 'pages.datasource.customKv.keyPlaceholder',
                           })}
@@ -107,7 +107,7 @@ const CustomKVList = ({ intl, field }: any) => {
                         className="!mb-0"
                       >
                         <Input
-                          variant="filled"
+                         
                           placeholder={intl.formatMessage({
                             id: 'pages.datasource.customKv.valuePlaceholder',
                           })}
