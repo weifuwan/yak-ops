@@ -65,8 +65,6 @@ yak:
       - /v3/api-docs/**
       - /swagger-ui/**
       - /swagger-ui.html
-    permission-registration:
-      enabled: true
     bootstrap:
       enabled: true
       username: ${YAK_SECURITY_BOOTSTRAP_USERNAME:root}
