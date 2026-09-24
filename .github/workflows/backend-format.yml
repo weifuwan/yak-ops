@@ -24,22 +24,16 @@ jobs:
           cache: maven
 
       - name: Apply formatter
-        shell: bash
-        run: |
-          while IFS= read -r source_dir; do
-            module="${source_dir%/src/main/java}"
-            echo "Formatting ${module}"
-            bash mvnw -q -f "${module}/pom.xml" -DskipTests com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
-          done < <(find . -type d -path "*/src/main/java" -not -path "./yak-ops-ui/*" | sort)
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
+          com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
 
       - name: Verify formatter
-        shell: bash
-        run: |
-          while IFS= read -r source_dir; do
-            module="${source_dir%/src/main/java}"
-            echo "Checking ${module}"
-            bash mvnw -q -f "${module}/pom.xml" -DskipTests com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
-          done < <(find . -type d -path "*/src/main/java" -not -path "./yak-ops-ui/*" | sort)
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
+          com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
 
       - name: Commit formatter output
         run: |
