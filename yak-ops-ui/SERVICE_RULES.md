@@ -31,6 +31,25 @@ service/datasource
 
 Backend request / response Contract 与对应 Service 放在一起。
 
+## Service Locality
+
+Service 同样优先局部内聚，不按 endpoint 名词机械拆文件。
+
+默认 Domain Service 结构：
+
+```text
+service/<domain>/
+├── index.ts
+└── types.ts
+```
+
+- `index.ts`：该 Domain 的 endpoint、参数适配和轻量响应转换。
+- `types.ts`：稳定的 backend request / response Contract。
+
+只有形成独立 transport、独立协议、独立生命周期，或单文件复杂度已经明显影响阅读时，才继续拆 Service 文件。
+
+不要因为存在 CRUD / Catalog / Driver / Plugin 等概念，就默认创建 `api.ts / catalog.ts / driver.ts / plugin.ts`。
+
 ## Dependency Invariant
 
 Service 是 App 的下层。
@@ -62,6 +81,8 @@ App 可以 import / re-export Service Contract；Service 不得 import App model
 - 原生 `fetch` 只允许存在于唯一 transport owner。
 - HttpUtils 只负责 HTTP、统一 Result、JSON、网络错误和 transport 行为。
 - Domain Service 负责 endpoint、参数、响应 Contract 和数据适配。
+- 同一个 Domain 的轻量 endpoint 优先保持在一个 Service entry 中。
+- 稳定 backend Contract 可以独立放在 `types.ts`。
 - UI 只拿业务 data，不解析后端统一 Result。
 - 后端错误保留失败语义，不返回假成功数据。
 
@@ -73,6 +94,7 @@ App 可以 import / re-export Service Contract；Service 不得 import App model
 - 让 HttpUtils 知道 Datasource 业务规则。
 - 让 UI 感知 `Result<T>`。
 - 为 Service 创建 interface / impl / adapter 层。
+- 为 CRUD / Catalog / Driver 等概念创建只有少量代码的 Service 文件。
 - 在 Service 保存页面 UI state。
 - 从 Service import UI Component。
 

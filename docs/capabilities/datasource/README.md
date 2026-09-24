@@ -45,11 +45,15 @@ app/datasource/
 └── i18n/
 
 service/datasource/
+├── index.ts
+└── types.ts
 ```
 
-Datasource 页面和 Editor 都采用 feature-locality 结构。
+Datasource 页面、Editor 和 Service 都采用 feature-locality 结构。
 
 `management / model / plugin / connection / DynamicDataSourceForm` 不再是目录 owner。
+
+Datasource Service 的 CRUD / Connection / Plugin / Catalog / Driver endpoint 统一由 `service/datasource/index.ts` 拥有；稳定 backend Contract 由 `types.ts` 拥有。
 
 ## Frontend Dependency
 
