@@ -1,4 +1,4 @@
-import type { DynamicFormSection } from '../model/uiTypes';
+import type { DynamicFormSection } from '../model/types';
 
 export const PLUGIN_CONFIG_STATUS = {
   IDLE: 'IDLE',
