@@ -1,6 +1,6 @@
 import HttpUtils from '@/service/http/HttpUtils';
 
-import type { DataSourceId } from '@/app/datasource/model/types';
+import type { DataSourceId } from './types';
 
 const DATA_SOURCE_CATALOG_API_PREFIX = '/api/v1/data-source/catalog';
 

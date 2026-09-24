@@ -10,21 +10,13 @@
     "dev": "vite --config apps/web/vite.config.ts --host 127.0.0.1",
     "build": "vite build --config apps/web/vite.config.ts",
     "preview": "vite preview --config apps/web/vite.config.ts",
+    "architecture:check": "node scripts/check-architecture.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint apps packages --deny-warnings",
-    "lint:fix": "oxlint apps packages --fix",
-    "format": "oxfmt apps packages",
-    "format:check": "oxfmt --check apps packages",
-    "check": "npm run typecheck && npm run lint && npm run format:check"
-  },
-  "dependencies": {
-    "@base-ui/react": "^1.8.0",
-    "class-variance-authority": "^0.7.1",
-    "framer-motion": "^12.38.0",
-    "lucide-react": "^0.577.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.4"
+    "lint": "oxlint apps packages scripts --deny-warnings",
+    "lint:fix": "oxlint apps packages scripts --fix",
+    "format": "oxfmt apps packages scripts",
+    "format:check": "oxfmt --check apps packages scripts",
+    "check": "npm run architecture:check && npm run typecheck && npm run lint && npm run format:check"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.0",
