@@ -11,10 +11,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint src vite.config.ts --deny-warnings",
-    "lint:fix": "oxlint src vite.config.ts --fix",
-    "format": "oxfmt src vite.config.ts",
-    "format:check": "oxfmt --check src vite.config.ts",
+    "lint": "oxlint apps packages src vite.config.ts --deny-warnings",
+    "lint:fix": "oxlint apps packages src vite.config.ts --fix",
+    "format": "oxfmt apps packages src vite.config.ts",
+    "format:check": "oxfmt --check apps packages src vite.config.ts",
     "check": "npm run typecheck && npm run lint && npm run format:check"
   },
   "dependencies": {
