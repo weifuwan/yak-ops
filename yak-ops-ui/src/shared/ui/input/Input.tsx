@@ -1,6 +1,7 @@
 import type { Input as BaseInputNS } from "@base-ui/react/input";
 import { Input as BaseInput } from "@base-ui/react/input";
 import { cva, type VariantProps } from "class-variance-authority";
+import { forwardRef } from "react";
 
 import { cn } from "../cn";
 
@@ -36,11 +37,17 @@ export type InputProps = Omit<BaseInputNS.Props, "className" | "size"> &
     className?: string;
   };
 
-export function Input({ className, size, ...props }: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { className, size, ...props },
+  ref,
+) {
   return (
     <BaseInput
       {...props}
+      ref={ref}
       className={cn(inputVariants({ size }), className)}
     />
   );
-}
+});
+
+Input.displayName = "Input";
