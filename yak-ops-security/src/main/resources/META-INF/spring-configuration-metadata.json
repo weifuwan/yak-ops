@@ -12,7 +12,6 @@
     {"name":"yak.security.database-enabled","type":"java.lang.Boolean","defaultValue":true,"description":"是否启用数据库相关功能。"},
     {"name":"yak.security.web-enabled","type":"java.lang.Boolean","defaultValue":true,"description":"是否启用 Web 接口。"},
     {"name":"yak.security.authentication-enabled","type":"java.lang.Boolean","defaultValue":true,"description":"是否启用登录校验。"},
-    {"name":"yak.security.audit-enabled","type":"java.lang.Boolean","defaultValue":true,"description":"是否启用审计功能。"},
     {"name":"yak.security.application-name","type":"java.lang.String","description":"用于隔离安全数据的应用名称。"},
     {"name":"yak.security.authentication.idle-timeout","type":"java.time.Duration","defaultValue":"30m","description":"HttpSession 最大无操作时间。"},
     {"name":"yak.security.bootstrap.enabled","type":"java.lang.Boolean","defaultValue":false,"description":"用户表为空时是否创建初始管理员。"},

@@ -56,7 +56,6 @@ yak:
     database-enabled: true
     web-enabled: true
     authentication-enabled: true
-    audit-enabled: true
     application-name: ${YAK_SECURITY_APPLICATION_NAME:${spring.application.name}}
     authentication:
       # HttpSession 无操作超时。

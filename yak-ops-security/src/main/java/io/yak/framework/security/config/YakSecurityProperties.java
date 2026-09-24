@@ -32,7 +32,6 @@ public class YakSecurityProperties {
                   "/swagger-ui.html"
           ));
 
-  private boolean auditEnabled = true;
   private String applicationName;
 
   private final DataSourceProperties datasource =
