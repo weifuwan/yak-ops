@@ -1,6 +1,6 @@
 import YakButton from '@/components/YakButton';
 import { InfoCircleOutlined, LoadingOutlined } from '@ant-design/icons';
-import { useIntl } from '@umijs/max';
+import { useIntl } from '@/shared/i18n';
 import {
   Collapse,
   Form,

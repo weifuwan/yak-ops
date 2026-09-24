@@ -1,7 +1,7 @@
 import { YakButton } from '@/components/ui';
 import { uploadDataSourceDriver } from '@/services/data-source';
 import { UploadOutlined } from '@ant-design/icons';
-import { useIntl } from '@umijs/max';
+import { useIntl } from '@/shared/i18n';
 import { Input, message, Upload } from 'antd';
 import type { UploadProps } from 'antd';
 import { useMemo, useState } from 'react';
