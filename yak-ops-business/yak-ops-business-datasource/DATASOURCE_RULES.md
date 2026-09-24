@@ -11,29 +11,29 @@ Depends On:
 - Plugin 变化加载 `/yak-ops-plugins/yak-ops-plugin-datasource/PLUGIN_RULES.md`
 
 Owns:
-- Datasource product behavior
-- Datasource persistence
-- Connection / Catalog / SQL Execution behavior
-- Datasource-to-plugin business boundary
+- Datasource management
+- Datasource connection testing
+- Catalog metadata browsing
+- Datasource plugin discovery and connection handling
+
+Does Not Own:
+- SQL execution
+- SQL audit / observability
+- duplicate Domain models around DAO Entity
+- Gateway / Adapter layers around the stable Plugin SPI
 
 ## Package Ownership
 
 ```text
-management   mutation / lifecycle commands
-query        read behavior
-domain       business facts
-connection   connection parsing / normalization / test orchestration
-catalog      catalog query and read policy
-execution    SQL execution runtime and observability
-gateway      ports toward plugin capability
-repository   persistence-facing business contract
-dao          MyBatis persistence implementation
+management   datasource lifecycle, reads and connection testing
+catalog      database / schema / table / column metadata
+plugin       plugin discovery, parsing, masking and Catalog creation
 config       capability-local properties / conditions
-security     Datasource security
-exception    Datasource business errors
+security     sensitive text masking
+exception    datasource business errors
 ```
 
-`config` 只持有 Datasource capability 自己的 properties、feature condition 等局部配置。应用级 DataSource、transaction manager、SqlSessionFactory、MyBatis-Plus plugin 等最终运行时装配统一由 `yak-ops-boot` 持有。
+Do not recreate `domain`, `gateway`, `execution`, `query` or business `repository` packages unless a new capability contract proves a real boundary.
 
 ## HTTP Boundary
 
@@ -44,41 +44,45 @@ Datasource HTTP Controller、ControllerAdvice 和 Controller-only converter 统�
 ## Business Rules
 
 Must:
-- mutation behavior has one clear owner.
-- read behavior stays separate only when it has a real read contract.
-- validation close to business meaning stays in Datasource, not Controller.
-- plugin differences enter through stable plugin/gateway contracts.
+- datasource mutation and read behavior has one clear management owner.
+- business validation stays close to Datasource behavior, not Controller.
+- current datasource persistence uses DAO-owned Entity / Repository directly.
+- plugin behavior enters through `DataSourcePluginRegistry` and the stable Plugin SPI.
+- Catalog is metadata-only: database, schema, table and column discovery.
 - secret handling must never leak raw credentials into logs, errors or response objects.
-- SQL Execution must preserve explicit lifecycle/status/transaction semantics.
 
 Must Not:
-- add Manager / Reader / Adapter just because neighboring code has one.
-- split a cohesive owner only because the file is long.
-- push Datasource business policy into Plugin API.
+- add Domain objects that mirror `DataSourceEntity`.
+- add Gateway / Adapter wrappers that only forward the Plugin SPI.
+- add Business Repository wrappers that only map DAO Entity to another model.
+- add SQL execution, SQL preview, SQL template, SQL variable resolution or SQL audit behavior.
+- add Manager / Reader / Adapter only because neighboring code has one.
 - access concrete plugin implementations from business code.
-- bypass Repository with ad hoc Mapper access from business behavior.
-- recreate deleted tests as architecture placeholders.
 - create application-level DataSource / transaction manager / SqlSessionFactory / MyBatis-Plus plugin configuration in this module.
 
 ## Persistence
 
 ```text
-business behavior
-→ Repository
-→ DAO / Mapper
+Datasource management
+→ DataSourceEntityRepository
+→ DataSourceMapper / DataSourceEntity
 → MyBatis / SQL
 ```
 
-- Repository owns persistence-facing business semantics.
-- DAO / Mapper own storage implementation.
-- simple queries prefer MyBatis-Plus capabilities.
-- complex SQL may use Mapper XML.
-- do not add forwarding methods that only rename existing CRUD.
-- Schema evolution is owned by `yak-ops-dao`; changes must follow `/yak-ops-dao/FLYWAY_RULES.md`.
+- `yak-ops-dao` owns Entity / Mapper / Repository implementation and Mapper XML.
+- Business does not duplicate DAO persistence models.
+- Schema evolution is owned by `yak-ops-dao`.
 - Final application MyBatis runtime assembly is owned by `yak-ops-boot`.
 
-## Execution
+## Catalog
 
-SQL Execution code physically lives in this Maven module while some Java packages still use `io.yak.ops.core.execution.*`.
+Catalog only describes datasource metadata:
 
-Treat it as Datasource-owned current code until a dedicated package migration is reviewed.
+```text
+database
+→ schema
+→ table / view / collection / index
+→ column / field
+```
+
+Preview, count, SQL describe, SQL template generation and SQL variable resolution are not Catalog responsibilities.
