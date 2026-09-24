@@ -1,0 +1,10 @@
+:root {
+  --yak-font-family: "YakOpsZh", "YakOps", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --yak-radius-sm: 8px;
+  --yak-radius-md: 12px;
+  --yak-radius-lg: 22px;
+  --yak-radius-full: 999px;
+  --yak-shadow-sm: 0 1px 4px rgb(15 23 42 / 5%);
+  --yak-shadow-md: 0 10px 30px rgb(31 35 41 / 14%);
+  --yak-shadow-lg: 0 18px 48px rgb(16 24 40 / 18%);
+}

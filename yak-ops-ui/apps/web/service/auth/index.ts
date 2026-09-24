@@ -1,3 +1,4 @@
+import { SECURITY_API_PREFIX } from "@/config/api";
 import HttpUtils from "@/service/http/HttpUtils";
 
 import type {
@@ -7,7 +8,7 @@ import type {
   LoginCredentials,
 } from "./types";
 
-const ACCOUNT_API = "/yak-security/api/v1/account";
+const ACCOUNT_API = `${SECURITY_API_PREFIX}/account`;
 
 const toAuthUser = (user: AuthUserResponse): AuthUser => ({
   ...user,
@@ -38,11 +39,9 @@ export const getCurrentUser = async (
 };
 
 export const logout = async (): Promise<void> => {
-  await HttpUtils.postData<void>(
-    `${ACCOUNT_API}/logout`,
-    undefined,
-    { protocol: "security" },
-  );
+  await HttpUtils.postData<void>(`${ACCOUNT_API}/logout`, undefined, {
+    protocol: "security",
+  });
 };
 
 export type {

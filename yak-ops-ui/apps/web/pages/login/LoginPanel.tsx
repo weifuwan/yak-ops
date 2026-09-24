@@ -16,7 +16,7 @@ import {
   type InputHTMLAttributes,
 } from "react";
 
-import { notifyOnce } from "@/shared/lib/notification";
+import { notifyOnce } from "@/utils/notification";
 import { login } from "../../service/auth";
 
 const WECHAT_QR_CODE_SRC = "/wechat_qr.png";
@@ -81,11 +81,7 @@ function FloatingInput({
 
   return (
     <div className="relative">
-      {password ? (
-        <PasswordInput {...sharedProps} />
-      ) : (
-        <Input {...sharedProps} />
-      )}
+      {password ? <PasswordInput {...sharedProps} /> : <Input {...sharedProps} />}
       <label
         htmlFor={inputProps.id}
         className={`pointer-events-none absolute left-4 z-10 bg-white px-1 transition-all duration-200 ease-out ${

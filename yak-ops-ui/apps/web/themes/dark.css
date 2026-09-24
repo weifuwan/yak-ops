@@ -1,0 +1,25 @@
+[data-theme="dark"] {
+  color-scheme: dark;
+  --yak-color-background: #171717;
+  --yak-color-surface: #212121;
+  --yak-color-surface-muted: #2a2a2a;
+  --yak-color-border: #3a3a3a;
+  --yak-color-text-primary: #f5f5f5;
+  --yak-color-text-secondary: #b6b6b6;
+  --yak-color-scrollbar: rgb(255 255 255 / 24%);
+  --yak-color-scrollbar-hover: rgb(255 255 255 / 36%);
+
+  --yak-components-panel-bg: #212121;
+  --yak-components-panel-border: #3a3a3a;
+  --yak-components-panel-text: #f5f5f5;
+  --yak-components-input-bg: #2a2a2a;
+  --yak-components-input-bg-hover: #303030;
+  --yak-components-input-bg-focus: #212121;
+  --yak-components-input-text: #f5f5f5;
+  --yak-components-input-placeholder: #9b9b9b;
+  --yak-components-select-bg: #212121;
+  --yak-components-select-border: #3a3a3a;
+  --yak-components-select-item-text: #f5f5f5;
+  --yak-components-select-item-bg-hover: #303030;
+  --yak-components-menu-item-hover: #303030;
+}

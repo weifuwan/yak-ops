@@ -8,7 +8,7 @@ import {
   type ApiProtocol,
   type ApiResponse,
 } from "@/service/http/response";
-import { notifyOnce } from "@/shared/lib/notification";
+import { notifyOnce } from "@/utils/notification";
 
 export type { ApiProtocol, ApiResponse } from "@/service/http/response";
 
@@ -59,7 +59,6 @@ export const goLogin = () => {
     `/login?returnTo=${encodeURIComponent(returnTo)}`,
   );
 };
-
 
 export const handleAuthenticationFailure = (
   reason = "当前登录信息已过期，请重新登录后继续操作。",
@@ -132,9 +131,7 @@ export default async function request<T>(
     if (data instanceof FormData) {
       body = data;
     } else {
-      if (!headers.has("Content-Type")) {
-        headers.set("Content-Type", "application/json");
-      }
+      if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
       body = JSON.stringify(data);
     }
   }
@@ -160,9 +157,7 @@ export default async function request<T>(
   }
 
   if (responseType === "blob") {
-    if (!response.ok) {
-      throw new Error(HTTP_MESSAGES[response.status] ?? `HTTP ${response.status}`);
-    }
+    if (!response.ok) throw new Error(HTTP_MESSAGES[response.status] ?? `HTTP ${response.status}`);
     const blob = await response.blob();
     return (getResponse ? { data: blob, response } : blob) as T;
   }
@@ -186,7 +181,6 @@ export default async function request<T>(
         meta: `HTTP ${response.status}`,
       });
     }
-
     throw new Error(message);
   }
 
