@@ -26,9 +26,9 @@ Login 是支撑能力，Datasource 是当前唯一产品能力。
 
 不要因为历史代码、旧目录或未来规划重新引入其它产品域。
 
-## Target Structure
+## Stable Structure
 
-目标结构与 Yakable 保持同一套前端骨架：
+当前稳定结构：
 
 ```text
 src/
@@ -41,21 +41,18 @@ src/
 ├── pages/
 │   ├── login/
 │   └── data-source/
-├── features/
-│   └── datasource/
 ├── service/
 │   ├── http/
 │   ├── auth/
 │   └── datasource/
 ├── shared/
-│   ├── lib/
-│   └── ui/
+│   └── lib/
 └── main.tsx
 ```
 
-`features` 不是必选层。
+当前没有 `features` 或 `shared/ui`。
 
-只有一个能力拥有独立状态、交互或复用边界时，才进入 Feature。简单页面行为直接留在 Page，不为了目录对称增加 Feature。
+只有一个能力出现真实独立 owner、多个调用方或稳定复用 Contract 时，才新增对应层级。不要为了目录对称提前创建。
 
 ## Current Structure
 
