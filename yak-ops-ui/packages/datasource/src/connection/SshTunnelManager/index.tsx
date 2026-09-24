@@ -12,7 +12,7 @@ import {
 import { Input as AntInput, InputNumber, Switch } from 'antd';
 import { KeyRound, Network, ShieldCheck } from 'lucide-react';
 
-import type { SshTunnelConfigValue } from '../../model/uiTypes';
+import type { SshTunnelConfigValue } from '../../model/types';
 
 interface IntlFormatter {
   formatMessage: (descriptor: { id: string }) => string;
