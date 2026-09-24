@@ -2,7 +2,11 @@ package io.yak.ops.common;
 
 import io.yak.ops.common.exception.BusinessException;
 
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 统一接口返回结果。
