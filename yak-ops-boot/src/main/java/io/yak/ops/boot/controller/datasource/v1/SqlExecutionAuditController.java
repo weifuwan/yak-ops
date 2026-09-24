@@ -1,5 +1,6 @@
 package io.yak.ops.boot.controller.datasource.v1;
 
+import jakarta.annotation.Resource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.boot.controller.datasource.v1.converter.SqlExecutionAuditConverter;
@@ -13,7 +14,6 @@ import io.yak.ops.common.bean.vo.observability.SqlExecutionAuditSummaryVO;
 import io.yak.ops.common.bean.vo.observability.SqlExecutionAuditVO;
 import io.yak.ops.common.constant.observability.SqlExecutionAuditConstants;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,11 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "SQL 执行观测接口")
 @RestController
 @ConditionalOnDataSourceEnabled
-@RequiredArgsConstructor
 @RequestMapping(SqlExecutionAuditConstants.API_PREFIX)
 public class SqlExecutionAuditController {
-    private final SqlExecutionAuditReader auditReader;
-    private final SqlExecutionAuditConverter auditConverter;
+    @Resource
+    private SqlExecutionAuditReader auditReader;
+    @Resource
+    private SqlExecutionAuditConverter auditConverter;
 
     @Operation(summary = "分页查询 SQL 执行历史")
     @PostMapping("/page")
