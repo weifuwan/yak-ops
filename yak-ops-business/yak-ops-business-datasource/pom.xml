@@ -12,7 +12,6 @@
     </parent>
 
     <artifactId>yak-ops-business-datasource</artifactId>
-
     <name>Yak Ops Business Datasource</name>
     <description>Datasource registration, metadata and connectivity business capabilities</description>
 
@@ -23,18 +22,12 @@
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-datasource-api</artifactId>
+            <artifactId>yak-ops-security</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>io.github.weifuwan</groupId>
-            <artifactId>yak-security-spring-boot-starter</artifactId>
-            <optional>true</optional>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.github.weifuwan</groupId>
-                    <artifactId>yak-common</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-plugin-datasource-api</artifactId>
         </dependency>
 
         <dependency>

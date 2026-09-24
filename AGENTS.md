@@ -26,6 +26,9 @@ Then load only the nearest rules touched by the task:
 **/controller/**
 → CONTROLLER_RULES.md
 
+yak-ops-security/**
+→ yak-ops-security/SECURITY_RULES.md
+
 yak-ops-business/yak-ops-business-datasource/**
 → yak-ops-business/yak-ops-business-datasource/DATASOURCE_RULES.md
 
@@ -74,28 +77,17 @@ If no Capability Contract exists, inspect current code first and write the minim
 Must:
 - Read current code and direct dependencies before changing structure.
 - Treat Datasource as the only active product domain.
-- Reuse existing utilities and framework capabilities before adding abstractions.
+- Treat User/Login/Security as supporting platform capability, not a second product domain.
+- Reuse existing utilities before adding abstractions.
 - Solve only the current task.
 - Prefer modifying existing code over adding layers.
 - Validate the smallest meaningful result with explicit local compile/build/manual verification when needed.
 - State exactly what verification was or was not executed.
 
 Must Not:
-- Reintroduce removed domains, plugins, tests or CI as a side effect.
+- Reintroduce removed domains, external yak-framework dependencies, tests or CI as a side effect.
 - Add Manager / Coordinator / Handler / Assembler / Adapter only for symmetry.
 - Treat future design as current implementation.
 - Use deleted documentation or old Git history as current architecture unless historical analysis is explicitly requested.
-
-## Default Context
-
-```text
-Task goal
-+ Capability Contract when behavior is involved
-+ ARCHITECTURE.md
-+ JAVA_RULES.md or FRONTEND_RULES.md
-+ nearest module rules
-+ target code
-+ direct dependencies
-```
 
 **Locate first. Load only what constrains the task. Change only what the task owns.**
