@@ -102,10 +102,7 @@ public final class DuckDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     protected Set<DataSourceCapability> capabilities() {
         return EnumSet.of(
                 DataSourceCapability.CONNECTION_TEST,
-                DataSourceCapability.CATALOG_METADATA,
-                DataSourceCapability.CATALOG_READ,
-                DataSourceCapability.SQL_EXECUTION,
-                DataSourceCapability.TRANSACTIONS);
+                DataSourceCapability.CATALOG_METADATA);
     }
 
     @Override

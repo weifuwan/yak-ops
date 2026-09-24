@@ -1,14 +1,17 @@
 package io.yak.ops.spi.datasource;
 
 import io.yak.ops.spi.datasource.catalog.DataSourceCatalogQuery;
-import io.yak.ops.spi.datasource.catalog.DataSourceCatalogReadRequest;
 import io.yak.ops.spi.datasource.catalog.DataSourceTablePath;
 import io.yak.ops.spi.datasource.metadata.DataSourceColumn;
 import io.yak.ops.spi.datasource.metadata.DataSourceTable;
-import io.yak.ops.spi.datasource.query.DataSourceQueryResult;
 import java.util.List;
 
-/** Typed datasource Catalog metadata and lightweight-read contract. */
+/**
+ * 数据源 Catalog 元数据契约，只负责数据库、Schema、表和字段发现。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public interface DataSourceCatalog {
 
     List<String> listDatabases();
@@ -18,19 +21,4 @@ public interface DataSourceCatalog {
     List<DataSourceTable> listTables(DataSourceCatalogQuery query);
 
     List<DataSourceColumn> listColumns(DataSourceTablePath tablePath);
-
-    /** Resolve columns for a typed TABLE or SQL read request. */
-    List<DataSourceColumn> describe(DataSourceCatalogReadRequest request);
-
-    /** Preview data with a plugin-enforced maximum row limit. */
-    DataSourceQueryResult preview(DataSourceCatalogReadRequest request, int limit);
-
-    /** Count rows for a typed TABLE or SQL read request. */
-    long count(DataSourceCatalogReadRequest request);
-
-    /** Build a SELECT template from one logical table path. */
-    String buildSqlTemplate(String tablePath);
-
-    /** Resolve plugin-supported SQL variables using the typed request context. */
-    String resolveSql(String sql, DataSourceCatalogReadRequest request);
 }
