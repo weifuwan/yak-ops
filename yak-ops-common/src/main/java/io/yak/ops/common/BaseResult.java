@@ -1,6 +1,10 @@
 package io.yak.ops.common;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 接口返回结果基础类。
