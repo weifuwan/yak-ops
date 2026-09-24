@@ -4,7 +4,7 @@ import type { FormInstance } from 'antd';
 import { Link2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import type { DynamicFormJdbcUrlLinkage } from '../../model/uiTypes';
+import type { DynamicFormJdbcUrlLinkage } from '../../model/types';
 import {
   buildJdbcUrlFromTemplate,
   parseJdbcUrlByTemplate,
