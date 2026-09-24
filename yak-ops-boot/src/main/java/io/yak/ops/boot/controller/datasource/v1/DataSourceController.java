@@ -1,4 +1,4 @@
-package io.yak.ops.business.datasource.controller.v1;
+package io.yak.ops.boot.controller.datasource.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -7,8 +7,8 @@ import io.yak.framework.common.Result;
 import io.yak.framework.security.web.RequiresPermission;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.connection.DataSourceConnectionTester;
-import io.yak.ops.business.datasource.controller.v1.converter.DataSourceRequestConverter;
-import io.yak.ops.business.datasource.controller.v1.converter.DataSourceViewConverter;
+import io.yak.ops.boot.controller.datasource.v1.converter.DataSourceRequestConverter;
+import io.yak.ops.boot.controller.datasource.v1.converter.DataSourceViewConverter;
 import io.yak.ops.business.datasource.management.DataSourceManager;
 import io.yak.ops.business.datasource.query.DataSourceReader;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;

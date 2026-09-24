@@ -1,4 +1,4 @@
-package io.yak.ops.business.datasource.controller.v1;
+package io.yak.ops.boot.controller.datasource.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -6,8 +6,8 @@ import io.yak.framework.common.Result;
 import io.yak.framework.security.web.RequiresPermission;
 import io.yak.ops.business.datasource.catalog.DataSourceCatalogReader;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
-import io.yak.ops.business.datasource.controller.v1.converter.CatalogRequestConverter;
-import io.yak.ops.business.datasource.controller.v1.converter.CatalogViewConverter;
+import io.yak.ops.boot.controller.datasource.v1.converter.CatalogRequestConverter;
+import io.yak.ops.boot.controller.datasource.v1.converter.CatalogViewConverter;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogDiagnosticsVO;
