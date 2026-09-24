@@ -5,12 +5,12 @@ server:
 spring:
   application:
     name: yak-ops
-  # Yak Security 保留独立数据源；Yak Ops 业务模块统一复用 yak.database。
+  # Yak Ops schema 统一由 yak-ops-dao 管理；业务和 Security 复用同一数据库配置。
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
-  # 各业务模块继续维护独立 Flyway 历史表，但共享同一个业务数据源。
+  # Flyway 由 yak-ops-dao 的 FlywayConfiguration 显式管理，关闭 Spring Boot 默认 Flyway。
   flyway:
     enabled: false
   servlet:
@@ -39,9 +39,8 @@ springdoc:
     tags-sorter: alpha
 
 yak:
-  # 数据库连接参数统一定义于此；yak.security.datasource 默认复用本节值。
-  # 可通过 YAK_DATABASE_* 覆盖本节，或通过 YAK_SECURITY_DATASOURCE_* 单独覆盖安全数据源。
-  # 快捷方式：设置 YAK_DATASOURCE_URL/USERNAME/PASSWORD 同时作用于两者。
+  # 数据库连接参数统一定义于此；Security 与业务 Schema 不再拆分数据库。
+  # 可通过 YAK_DATABASE_* 或 YAK_DATASOURCE_* 覆盖。
   database:
     enabled: ${YAK_DATABASE_ENABLED:true}
     url: ${YAK_DATABASE_URL:${YAK_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/yak_security?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai}}
@@ -75,10 +74,10 @@ yak:
       real-name: ${YAK_SECURITY_BOOTSTRAP_REAL_NAME:系统管理员}
     datasource:
       enabled: true
-      # 连接参数默认复用 yak.database；可通过 YAK_SECURITY_DATASOURCE_* 环境变量单独覆盖（如需指向不同库）。
-      url: ${YAK_SECURITY_DATASOURCE_URL:${yak.database.url}}
-      username: ${YAK_SECURITY_DATASOURCE_USERNAME:${yak.database.username}}
-      password: ${YAK_SECURITY_DATASOURCE_PASSWORD:${yak.database.password}}
+      # Security 复用统一 Yak Ops 数据库；Schema migration 只由 yak-ops-dao 执行一次。
+      url: ${yak.database.url}
+      username: ${yak.database.username}
+      password: ${yak.database.password}
       driver-class-name: ${yak.database.driver-class-name}
       initial-size: 1
       min-idle: 1

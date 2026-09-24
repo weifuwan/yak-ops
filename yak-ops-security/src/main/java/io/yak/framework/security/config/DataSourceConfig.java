@@ -13,8 +13,6 @@ import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.StringValue;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.MigrationVersion;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -29,7 +27,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
-import java.util.Collections;
 
 /**
  * 安全模块独立数据源与 MyBatis 配置。
@@ -39,8 +36,7 @@ import java.util.Collections;
 @ConditionalOnClass({
         DataSource.class,
         SqlSessionFactory.class,
-        MybatisSqlSessionFactoryBean.class,
-        Flyway.class
+        MybatisSqlSessionFactoryBean.class
 })
 @ConditionalOnProperty(
         prefix = "yak.security",
@@ -57,8 +53,6 @@ import java.util.Collections;
 )
 public class DataSourceConfig {
 
-    static final String FLYWAY_MIGRATION_LOCATION =
-            "classpath:yak-security/db/migration";
 
     /**
      * MyBatis-Plus 全局配置。
@@ -219,49 +213,12 @@ public class DataSourceConfig {
     }
 
     /**
-     * 在安全模块独立数据源上执行 Flyway 迁移。
-     */
-    @Bean(
-            name = "yakSecurityFlyway",
-            initMethod = "migrate"
-    )
-    public Flyway yakSecurityFlyway(
-            @Qualifier("yakSecurityDataSource")
-                    DataSource dataSource,
-            YakSecurityProperties properties) {
-
-        requireText(
-                properties.getApplicationName(),
-                "yak.security.application-name"
-        );
-
-        return Flyway.configure()
-                .dataSource(dataSource)
-                // 使用模块专属目录，避免独立数据源误执行宿主应用的迁移脚本。
-                .locations(FLYWAY_MIGRATION_LOCATION)
-                .placeholders(Collections.singletonMap(
-                        "appName",
-                        properties.getApplicationName()))
-                /*
-                 * 宿主模块可能已经在共享 schema 中创建了业务表。
-                 * 默认基线版本 1 会跳过安全模块的 V1 建表脚本，因此显式从 0 开始。
-                 */
-                .baselineOnMigrate(true)
-                .baselineVersion(MigrationVersion.fromVersion("0"))
-                /*
-                 * 安全模块可能与宿主应用共享 Flyway history table。
-                 * 当宿主已经记录了更高版本时，后续新增的安全模块迁移会被视为迟到版本。
-                 * 允许 out-of-order 执行，确保合法的安全模块迁移不会阻塞应用启动。
-                 */
-                .outOfOrder(true)
-                .load();
-    }
-
-    /**
      * 安全模块独立 SqlSessionFactory。
+     *
+     * <p>Schema migration is owned by yak-ops-dao and must complete first.</p>
      */
     @Bean("yakSecuritySqlSessionFactory")
-    @DependsOn("yakSecurityFlyway")
+    @DependsOn("yakOpsFlyway")
     public SqlSessionFactory
     yakSecuritySqlSessionFactory(
             @Qualifier("yakSecurityDataSource")
