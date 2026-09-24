@@ -1,7 +1,7 @@
 import type { Field as BaseFieldNS } from "@base-ui/react/field";
 import { Field as BaseField } from "@base-ui/react/field";
 import { cva, type VariantProps } from "class-variance-authority";
-import type * as React from "react";
+import * as React from "react";
 
 import { cn } from "../cn";
 
@@ -28,38 +28,36 @@ export const textareaVariants = cva(
   },
 );
 
-type NativeTextareaProps = React.ComponentPropsWithRef<"textarea">;
-type TextareaVariantProps = VariantProps<typeof textareaVariants>;
+type NativeTextareaProps = React.ComponentPropsWithoutRef<"textarea">;
 
 export type TextareaProps = Omit<
   NativeTextareaProps,
   "children" | "className" | "defaultValue" | "onChange" | "size" | "value"
 > &
-  TextareaVariantProps & {
+  VariantProps<typeof textareaVariants> & {
     className?: string;
     value?: string | number;
     defaultValue?: string | number;
     onValueChange?: BaseFieldNS.Control.Props["onValueChange"];
   };
 
-export function Textarea({
-  className,
-  defaultValue,
-  onValueChange,
-  ref,
-  size,
-  value,
-  ...props
-}: TextareaProps) {
-  return (
-    <BaseField.Control
-      {...(props as Omit<BaseFieldNS.Control.Props, "render">)}
-      ref={ref}
-      render={<textarea />}
-      value={value}
-      defaultValue={defaultValue}
-      onValueChange={onValueChange}
-      className={textareaVariants({ size, className: cn(className) })}
-    />
-  );
-}
+export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
+  function Textarea(
+    { className, defaultValue, onValueChange, size, value, ...props },
+    ref,
+  ) {
+    return (
+      <BaseField.Control
+        {...(props as Omit<BaseFieldNS.Control.Props, "render">)}
+        ref={ref as React.ForwardedRef<HTMLElement>}
+        render={<textarea />}
+        value={value}
+        defaultValue={defaultValue}
+        onValueChange={onValueChange}
+        className={textareaVariants({ size, className: cn(className) })}
+      />
+    );
+  },
+);
+
+Textarea.displayName = "Textarea";
