@@ -165,8 +165,8 @@ const DataSourcePage = () => {
 
   return (
     <>
-      <div className="min-h-[calc(100dvh-64px)] bg-[#f7f8fa] text-[#242731]">
-        <main className="min-h-[calc(100dvh-64px)] bg-white px-6 pb-4 pt-5 max-md:px-4">
+      <div className="min-h-full bg-white text-[#242731]">
+        <div className="min-h-full bg-white px-6 pb-4 pt-5 max-md:px-4">
           <header className="flex items-center justify-between gap-4">
             <h1 className="m-0 text-xl font-semibold tracking-[-0.35px] text-[#252832]">
               {intl.formatMessage({ id: "pages.datasource.page.title" })}
@@ -309,7 +309,7 @@ const DataSourcePage = () => {
               />
             </footer>
           ) : null}
-        </main>
+        </div>
       </div>
 
       <DataSourceForm
