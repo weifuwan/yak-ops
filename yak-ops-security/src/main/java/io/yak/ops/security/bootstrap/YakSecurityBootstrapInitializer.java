@@ -26,7 +26,7 @@ public class YakSecurityBootstrapInitializer implements ApplicationRunner {
     }
 
     @Override
-    @Transactional(transactionManager = "yakSecurityTransactionManager", rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public void run(ApplicationArguments args) {
         if (!userService.getAllUserBriefList().isEmpty()) return;
 

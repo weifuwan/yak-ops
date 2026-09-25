@@ -18,18 +18,11 @@ spring:
   # Flyway migration ownership remains in yak-ops-dao; disable Spring Boot's default Flyway runner.
   flyway:
     enabled: false
-  servlet:
-    multipart:
-      max-file-size: ${YAK_RESOURCE_MAX_FILE_SIZE:100MB}
-      max-request-size: ${YAK_RESOURCE_MAX_REQUEST_SIZE:110MB}
   lifecycle:
     timeout-per-shutdown-phase: 20s
   jackson:
     default-property-inclusion: non_null
     time-zone: Asia/Shanghai
-  quartz:
-    auto-startup: true
-    job-store-type: memory
 
 springdoc:
   api-docs:
@@ -39,7 +32,6 @@ springdoc:
     enabled: true
     path: /swagger-ui.html
     display-request-duration: true
-    groups-order: ASC
     operations-sorter: alpha
     tags-sorter: alpha
 
@@ -54,7 +46,6 @@ yak:
       # HttpSession 无操作超时。
       idle-timeout: ${YAK_SECURITY_AUTHENTICATION_IDLE_TIMEOUT:30m}
     public-paths:
-      - /api/test/ping
       - /yak-security/api/v1/account/login
       - /v3/api-docs/**
       - /swagger-ui/**
@@ -69,61 +60,6 @@ yak:
     enabled: true
     connection-test:
       timeout-seconds: ${YAK_DATASOURCE_CONNECT_TIMEOUT_SECONDS:5}
-
-  resource:
-    enabled: ${YAK_RESOURCE_ENABLED:true}
-    max-file-size: ${YAK_RESOURCE_MAX_FILE_BYTES:104857600}
-    editable-max-bytes: ${YAK_RESOURCE_EDITABLE_MAX_BYTES:2097152}
-    storage:
-      type: ${YAK_RESOURCE_STORAGE_TYPE:LOCAL}
-      local:
-        enabled: ${YAK_RESOURCE_LOCAL_ENABLED:true}
-        base-directory: ${YAK_RESOURCE_LOCAL_BASE_DIRECTORY:./data/resources}
-        checksum-enabled: ${YAK_RESOURCE_LOCAL_CHECKSUM_ENABLED:true}
-      minio:
-        enabled: ${YAK_RESOURCE_MINIO_ENABLED:true}
-        endpoint: ${YAK_RESOURCE_MINIO_ENDPOINT:http://127.0.0.1:9000}
-        access-key: ${YAK_RESOURCE_MINIO_ACCESS_KEY:minioadmin}
-        secret-key: ${YAK_RESOURCE_MINIO_SECRET_KEY:minioadmin}
-        bucket: ${YAK_RESOURCE_MINIO_BUCKET:yak-ops}
-        base-prefix: ${YAK_RESOURCE_MINIO_BASE_PREFIX:resources}
-        auto-create-bucket: ${YAK_RESOURCE_MINIO_AUTO_CREATE_BUCKET:true}
-      hdfs:
-        enabled: ${YAK_RESOURCE_HDFS_ENABLED:false}
-        uri: ${YAK_RESOURCE_HDFS_URI:hdfs://127.0.0.1:9000}
-        user: ${YAK_RESOURCE_HDFS_USER:hdfs}
-        base-directory: ${YAK_RESOURCE_HDFS_BASE_DIRECTORY:/yak-ops/resources}
-        replication: ${YAK_RESOURCE_HDFS_REPLICATION:1}
-
-  sync:
-    realtime:
-      enabled: ${YAK_REALTIME_SYNC_ENABLED:true}
-      rest-url: ${YAK_FLINK_REST_URL:http://127.0.0.1:8081}
-      flink-home: ${YAK_FLINK_HOME:/opt/flink}
-      flink-cdc-home: ${YAK_FLINK_CDC_HOME:/opt/flink-cdc}
-      java-home: ${YAK_FLINK_JAVA_HOME:}
-      work-directory: ${YAK_REALTIME_WORK_DIRECTORY:./data/realtime-sync}
-      flink-version: ${YAK_FLINK_VERSION:1.20.5}
-      flink-cdc-version: ${YAK_FLINK_CDC_VERSION:3.6.0}
-      connect-timeout: ${YAK_REALTIME_CONNECT_TIMEOUT:3s}
-      request-timeout: ${YAK_REALTIME_REQUEST_TIMEOUT:30s}
-      submit-timeout: ${YAK_REALTIME_SUBMIT_TIMEOUT:60s}
-      reconcile-delay: ${YAK_REALTIME_RECONCILE_DELAY:10000}
-      reconcile-failure-threshold: ${YAK_REALTIME_RECONCILE_FAILURE_THRESHOLD:3}
-      reconcile-lease-seconds: ${YAK_REALTIME_RECONCILE_LEASE_SECONDS:30}
-
-    offline:
-      enabled: ${YAK_OFFLINE_SYNC_ENABLED:true}
-      engine:
-        enabled: ${YAK_LINK_UP_ENABLED:true}
-        base-url: ${YAK_LINK_UP_BASE_URL:http://127.0.0.1:18080}
-        connect-timeout: ${YAK_LINK_UP_CONNECT_TIMEOUT:10s}
-        request-timeout: ${YAK_LINK_UP_REQUEST_TIMEOUT:30s}
-
-  schedule:
-    enabled: true
-    engine: quartz
-    web-enabled: false
 
 logging:
   level:

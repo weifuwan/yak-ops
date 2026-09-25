@@ -117,7 +117,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(transactionManager = "yakSecurityTransactionManager", rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public Result<Void> addUser(UserDTO userDTO, String operator) {
         Result<Void> checkResult = checkUserParam(userDTO, true);
         if (checkResult.failed()) return checkResult;
@@ -145,7 +145,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(transactionManager = "yakSecurityTransactionManager", rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public Result<Void> editUser(UserDTO userDTO, String operator) {
         Result<Void> checkResult = checkUserParam(userDTO, false);
         if (checkResult.failed()) return checkResult;

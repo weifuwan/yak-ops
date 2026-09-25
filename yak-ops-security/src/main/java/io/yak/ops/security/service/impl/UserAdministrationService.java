@@ -58,7 +58,7 @@ public class UserAdministrationService {
         }
     }
 
-    @Transactional(transactionManager = "yakSecurityTransactionManager", rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public void resetPassword(String userId, UserPasswordResetDTO request, String operator) {
         if (userId == null) {
             throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
