@@ -10,7 +10,12 @@ import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-/** Tracks local login failures by username and source IP. */
+/**
+ * 按用户名和来源 IP 记录连续登录失败，并在达到阈值后执行临时锁定。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public final class LoginAttemptGuard {
 
     private final ConcurrentMap<String, FailureState> failures = new ConcurrentHashMap<>();
@@ -98,5 +103,6 @@ public final class LoginAttemptGuard {
         return StringUtils.isBlank(ipAddress) ? "<unknown>" : ipAddress.trim();
     }
 
+    /** 单一用户名或 IP 维度的失败次数与锁定截止时间。 */
     private record FailureState(int count, Instant blockedUntil) {}
 }
