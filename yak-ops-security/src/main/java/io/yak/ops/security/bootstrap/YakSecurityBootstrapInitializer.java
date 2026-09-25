@@ -35,7 +35,10 @@ public class YakSecurityBootstrapInitializer implements ApplicationRunner {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void run(ApplicationArguments args) {
-        if (!userService.getAllUserBriefList().isEmpty()) return;
+        if (!userService.getAllUserBriefList().isEmpty()) {
+            LOG.warn("安全模块 Bootstrap 配置仍处于开启状态，请关闭初始化配置，config=yak.security.bootstrap.enabled");
+            return;
+        }
 
         YakSecurityProperties.BootstrapProperties bootstrap = properties.getBootstrap();
         requireText(bootstrap.getUsername(), "username");
