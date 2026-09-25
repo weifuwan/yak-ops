@@ -1,5 +1,5 @@
 import { ChevronRight, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { PRODUCT_GROUPS } from "./navigation";
@@ -11,22 +11,8 @@ type ProductLauncherProps = {
 
 export default function ProductLauncher({ open, onClose }: ProductLauncherProps) {
   const [activeGroupId, setActiveGroupId] = useState(PRODUCT_GROUPS[0]?.id ?? "");
-
-  const activeGroup = useMemo(
-    () => PRODUCT_GROUPS.find((group) => group.id === activeGroupId) ?? PRODUCT_GROUPS[0],
-    [activeGroupId],
-  );
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, open]);
+  const activeGroup =
+    PRODUCT_GROUPS.find((group) => group.id === activeGroupId) ?? PRODUCT_GROUPS[0];
 
   if (!open || !activeGroup) return null;
 
