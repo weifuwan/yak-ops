@@ -143,7 +143,7 @@ LocalDateTime → yyyy-MM-dd HH:mm:ss
 ```
 
 Must:
-- 时间序列化 / 反序列化由 `yak-ops-boot` 的全局 Jackson 配置统一拥有。
+- 时间序列化 / 反序列化由 `yak-ops-boot` 的 `HttpJsonConfiguration` 统一拥有。
 - DTO 时间输入和 VO 时间输出使用同一格式。
 - 特殊外部协议确实要求其他格式时，才允许局部覆盖。
 
@@ -256,7 +256,7 @@ Repository 不承担 HTTP 输入校验。
 
 后续迁移顺序：
 
-1. 统一全局时间 JSON Contract。
+1. 全局时间 JSON Contract 已由 `yak-ops-boot/HttpJsonConfiguration` 落地。
 2. Security `PageParamDTO` → `PageQueryDTO`。
 3. Datasource `DataSourceQueryDTO` → `PageQueryDTO`。
 4. 按真实需求接入 `SortDTO` 和 Repository 排序白名单。
