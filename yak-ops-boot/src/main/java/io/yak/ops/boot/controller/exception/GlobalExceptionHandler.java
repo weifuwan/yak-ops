@@ -70,6 +70,9 @@ public class GlobalExceptionHandler {
                     default ->
                         resolved.is4xxClientError() ? CommonErrorCode.PARAM_NOT_VALID : CommonErrorCode.COMMON_FAIL;
                 };
+        if (resolved.is5xxServerError()) {
+            LOG.error("HTTP 状态异常处理失败，status={}", resolved.value(), exception);
+        }
         return ResponseEntity.status(resolved).body(Result.fail(errorCode));
     }
 
