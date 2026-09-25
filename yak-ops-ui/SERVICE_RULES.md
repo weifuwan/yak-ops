@@ -26,7 +26,7 @@ service/auth
 = login / logout / current user contract + endpoints
 
 service/datasource
-= Datasource contract + CRUD / connection / plugin / catalog / driver
+= Datasource contract + CRUD / connection / plugin / driver
 ```
 
 Backend request / response Contract 与对应 Service 放在一起。
@@ -73,6 +73,22 @@ service/datasource/types.ts
 ```
 
 App 可以 import / re-export Service Contract；Service 不得 import App model。
+
+## Service Export Lifecycle
+
+Frontend Service export 必须服务于当前 App 调用链，不把“后端存在的 API”机械镜像成前端函数。
+
+Must:
+- 新增 service function 时必须存在真实 App caller，或在当前功能 PR 中同时落地 caller。
+- service function 删除后，同一变更中删除只为它存在的 request / response type、endpoint 常量和适配代码。
+- 后端能力暂时没有前端产品入口时，可以保留后端 Contract，但前端不提前创建占位 service export。
+- 审查 service 时以 `app → service` 的真实引用为准，不以“以后可能会用”作为保留理由。
+
+Must Not:
+- 为每个后端 Controller 方法自动创建同名 frontend service。
+- 保留全仓只有定义、没有 App caller 的 export。
+- 保留只被死 service function 使用的 TypeScript interface / type。
+- 为未来页面提前维护 URL prefix、response type 或 adapter。
 
 ## Must
 

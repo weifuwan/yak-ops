@@ -1,7 +1,6 @@
 import HttpUtils from "@/service/http/HttpUtils";
 
 import type {
-  DataSourceCatalogColumn,
   DataSourceConnectTestPayload,
   DataSourceId,
   DataSourcePageParams,
@@ -16,7 +15,6 @@ import type {
 export type * from "./types";
 
 const DATA_SOURCE_API_PREFIX = "/api/v1/data-source";
-const DATA_SOURCE_CATALOG_API_PREFIX = `${DATA_SOURCE_API_PREFIX}/catalog`;
 const DRIVER_UPLOAD_API = `${DATA_SOURCE_API_PREFIX}/plugin/driver/upload`;
 
 const queryString = (params: Record<string, unknown>) => {
@@ -95,20 +93,6 @@ export const installDataSourcePlugin = async (
     {},
   );
 };
-
-export const listDataSourceColumns = (
-  id: DataSourceId,
-  database: string | undefined,
-  schema: string | undefined,
-  table: string,
-): Promise<DataSourceCatalogColumn[]> =>
-  HttpUtils.getData<DataSourceCatalogColumn[]>(
-    `${DATA_SOURCE_CATALOG_API_PREFIX}/${id}/columns${queryString({
-      database,
-      schema,
-      table,
-    })}`,
-  );
 
 export const uploadDataSourceDriver = async (
   pluginType: string,

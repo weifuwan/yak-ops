@@ -92,12 +92,13 @@ Driver / JDBC URL / SSH 不是独立 Domain，它们只是 Datasource Editor 的
 - Datasource CRUD。
 - Connection Test。
 - Plugin Config / Install。
-- Catalog Columns。
 - Driver Upload。
 
 这些 endpoint 共享同一个 Domain、同一个 HTTP transport 和同一套 Contract，没有独立生命周期，因此不再拆成 `api.ts / catalog.ts / driver.ts`。
 
-`service/datasource/types.ts` 单独保留，因为它是稳定 backend Contract owner。
+`service/datasource/types.ts` 单独保留，因为它是当前前端真实消费的稳定 backend Contract owner。
+
+后端 Catalog metadata capability 可以独立存在；当前 Datasource UI 没有 Catalog 浏览入口时，不在 frontend service 中提前镜像 databases / schemas / tables / columns API。
 
 ## Types
 
