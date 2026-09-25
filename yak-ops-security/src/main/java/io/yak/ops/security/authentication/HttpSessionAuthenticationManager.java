@@ -1,16 +1,17 @@
 package io.yak.ops.security.authentication;
 
+import io.yak.ops.common.util.CollectionUtils;
+import io.yak.ops.common.util.ObjectUtils;
+import io.yak.ops.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpSessionBindingEvent;
 import jakarta.servlet.http.HttpSessionBindingListener;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -29,7 +30,7 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     private final ConcurrentMap<String, Set<HttpSession>> sessionsByUser = new ConcurrentHashMap<>();
 
     public HttpSessionAuthenticationManager(Duration idleTimeout) {
-        Objects.requireNonNull(idleTimeout, "idleTimeout must not be null");
+        ObjectUtils.requireNonNull(idleTimeout, "idleTimeout must not be null");
 
         long seconds = idleTimeout.getSeconds();
         if (seconds < 1 || seconds > Integer.MAX_VALUE) {
@@ -41,14 +42,14 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
 
     @Override
     public void login(String userId, String userName) {
-        Objects.requireNonNull(userId, "userId must not be null");
-        if (!StringUtils.hasText(userName)) {
+        ObjectUtils.requireNonNull(userId, "userId must not be null");
+        if (StringUtils.isBlank(userName)) {
             throw new IllegalArgumentException("userName must not be blank");
         }
 
         HttpServletRequest request = requireRequest();
         HttpSession previous = request.getSession(false);
-        if (previous != null) {
+        if (ObjectUtils.isNotNull(previous)) {
             invalidate(previous);
         }
 
@@ -62,23 +63,23 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     @Override
     public void logout() {
         HttpServletRequest request = currentRequest();
-        if (request == null) {
+        if (ObjectUtils.isNull(request)) {
             return;
         }
         HttpSession session = request.getSession(false);
-        if (session != null) {
+        if (ObjectUtils.isNotNull(session)) {
             invalidate(session);
         }
     }
 
     @Override
     public void logoutUser(String userId) {
-        if (userId == null) {
+        if (ObjectUtils.isNull(userId)) {
             return;
         }
 
         Set<HttpSession> sessions = sessionsByUser.remove(userId);
-        if (sessions == null || sessions.isEmpty()) {
+        if (CollectionUtils.isEmpty(sessions)) {
             return;
         }
 
@@ -90,29 +91,31 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     @Override
     public boolean isLogin() {
         HttpSession session = currentSession();
-        return session != null && readUserId(session) != null && StringUtils.hasText(readUsername(session));
+        return ObjectUtils.isNotNull(session)
+                && ObjectUtils.isNotNull(readUserId(session))
+                && StringUtils.isNotBlank(readUsername(session));
     }
 
     @Override
     public String getLoginUserId() {
         HttpSession session = currentSession();
-        return session == null ? null : readUserId(session);
+        return ObjectUtils.isNull(session) ? null : readUserId(session);
     }
 
     @Override
     public String getLoginUsername() {
         HttpSession session = currentSession();
-        return session == null ? null : readUsername(session);
+        return ObjectUtils.isNull(session) ? null : readUsername(session);
     }
 
     private HttpSession currentSession() {
         HttpServletRequest request = currentRequest();
-        return request == null ? null : request.getSession(false);
+        return ObjectUtils.isNull(request) ? null : request.getSession(false);
     }
 
     private HttpServletRequest requireRequest() {
         HttpServletRequest request = currentRequest();
-        if (request == null) {
+        if (ObjectUtils.isNull(request)) {
             throw new IllegalStateException("No servlet request is bound to the current thread");
         }
         return request;
@@ -128,7 +131,7 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     private String readUserId(HttpSession session) {
         try {
             Object value = session.getAttribute(USER_ID_KEY);
-            return value instanceof String text && StringUtils.hasText(text) ? text : null;
+            return value instanceof String text && StringUtils.isNotBlank(text) ? text : null;
         } catch (IllegalStateException ignored) {
             return null;
         }
@@ -137,7 +140,7 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     private String readUsername(HttpSession session) {
         try {
             Object value = session.getAttribute(USERNAME_KEY);
-            return value instanceof String text && StringUtils.hasText(text) ? text : null;
+            return value instanceof String text && StringUtils.isNotBlank(text) ? text : null;
         } catch (IllegalStateException ignored) {
             return null;
         }
@@ -151,12 +154,12 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
 
     private void unregister(String userId, HttpSession session) {
         Set<HttpSession> sessions = sessionsByUser.get(userId);
-        if (sessions == null) {
+        if (ObjectUtils.isNull(sessions)) {
             return;
         }
 
         sessions.remove(session);
-        if (sessions.isEmpty()) {
+        if (CollectionUtils.isEmpty(sessions)) {
             sessionsByUser.remove(userId, sessions);
         }
     }
