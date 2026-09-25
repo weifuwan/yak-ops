@@ -47,7 +47,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
           <span className="right mr-3 flex shrink-0 items-center">
             <ChevronRight
               className={[
-                "h-3.5 w-3.5 transition-transform duration-200",
+                "h-3.5 w-3.5",
                 secondLevelOpen ? "text-white" : "text-white/65",
               ].join(" ")}
               strokeWidth={1.8}
@@ -80,9 +80,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
         </div>
       </aside>
 
-      <div id="all-product-menu">
-        <AllProductMenu open={secondLevelOpen} onNavigate={onClose} />
-      </div>
+      <AllProductMenu open={secondLevelOpen} onNavigate={onClose} />
     </>
   );
 }
