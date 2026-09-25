@@ -4,6 +4,7 @@ import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.authentication.HttpSessionAuthenticationManager;
 import io.yak.ops.security.bootstrap.YakSecurityBootstrapInitializer;
 import io.yak.ops.security.config.YakSecurityProperties;
+import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.extend.impl.DefaultPasswordEncoder;
 import io.yak.ops.security.service.LoginService;
@@ -31,7 +32,7 @@ public class SecurityConfiguration {
     @Bean
     @ConditionalOnMissingBean(PasswordEncoder.class)
     @ConditionalOnProperty(
-            prefix = "yak.security",
+            prefix = SecurityConstants.CONFIG_PREFIX,
             name = {"enabled", "database-enabled"},
             havingValue = "true",
             matchIfMissing = true)
@@ -42,7 +43,7 @@ public class SecurityConfiguration {
     @Bean
     @ConditionalOnMissingBean(AuthenticationManager.class)
     @ConditionalOnProperty(
-            prefix = "yak.security",
+            prefix = SecurityConstants.CONFIG_PREFIX,
             name = {"enabled", "database-enabled"},
             havingValue = "true",
             matchIfMissing = true)
@@ -52,7 +53,7 @@ public class SecurityConfiguration {
 
     @Bean
     @ConditionalOnProperty(
-            prefix = "yak.security",
+            prefix = SecurityConstants.CONFIG_PREFIX,
             name = {"enabled", "database-enabled", "web-enabled"},
             havingValue = "true",
             matchIfMissing = true)
@@ -67,7 +68,7 @@ public class SecurityConfiguration {
 
     @Bean
     @ConditionalOnBean(UserService.class)
-    @ConditionalOnProperty(prefix = "yak.security.bootstrap", name = "enabled", havingValue = "true")
+    @ConditionalOnProperty(prefix = SecurityConstants.BOOTSTRAP_CONFIG_PREFIX, name = "enabled", havingValue = "true")
     YakSecurityBootstrapInitializer yakSecurityBootstrapInitializer(
             YakSecurityProperties properties, UserService userService) {
         return new YakSecurityBootstrapInitializer(properties, userService);
