@@ -235,7 +235,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     }
 
     private int connectionTestTimeoutSeconds() {
-        return Math.max(1, properties.getConnectionTest().getTimeoutSeconds());
+        return Math.max(1, properties.getConnectionTestTimeoutSeconds());
     }
 
     private DataSourceVO toDataSourceVO(DataSourceEntity source, boolean includeOriginalJson) {
