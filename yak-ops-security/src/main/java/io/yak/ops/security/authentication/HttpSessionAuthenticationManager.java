@@ -16,9 +16,12 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
- * 基于 Servlet HttpSession 的登录态实现。
+ * 使用 Servlet HttpSession 管理当前用户登录态和账号级会话索引。
  *
- * <p>不引入额外 Token 框架。登录后由容器通过 JSESSIONID Cookie 维持会话。</p>
+ * <p>不引入额外 Token 框架；浏览器通过 JSESSIONID Cookie 维持会话，账号密码校验由上层 LoginService 负责。</p>
+ *
+ * @author weifuwan
+ * @since 2026-09-24
  */
 public final class HttpSessionAuthenticationManager implements AuthenticationManager {
 
@@ -172,6 +175,12 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
         }
     }
 
+    /**
+     * 在 HttpSession 绑定和解绑时维护用户到活动会话的索引。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     private static final class SessionRegistration implements HttpSessionBindingListener {
 
         private final HttpSessionAuthenticationManager manager;

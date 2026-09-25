@@ -6,6 +6,7 @@ package io.yak.ops.security.extend;
  * <p>密码编码必须使用不可逆的安全散列算法，不应保存或返回明文密码。</p>
  *
  * @author weifuwan
+ * @since 2026-09-24
  */
 public interface PasswordEncoder {
 

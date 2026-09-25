@@ -11,7 +11,14 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Creates the first user for a newly installed application. */
+/**
+ * 在全新环境没有任何用户时，根据显式 Bootstrap 配置创建首个管理员账号。
+ *
+ * <p>只在启用 Bootstrap 且用户表为空时执行，创建成功后应关闭对应配置。</p>
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public class YakSecurityBootstrapInitializer implements ApplicationRunner {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(YakSecurityBootstrapInitializer.class);
