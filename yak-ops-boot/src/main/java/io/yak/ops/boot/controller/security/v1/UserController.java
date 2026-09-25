@@ -11,13 +11,10 @@ import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import io.yak.ops.common.util.JSONUtils;
-import io.yak.ops.common.util.ObjectUtils;
-import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.exception.YakSecurityException;
 import io.yak.ops.security.service.UserService;
-import io.yak.ops.security.service.impl.UserAdministrationService;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -45,9 +42,6 @@ public class UserController {
 
     @Resource
     private UserService userService;
-
-    @Resource
-    private UserAdministrationService userAdministrationService;
 
     @Resource
     private AuthenticationManager authenticationManager;
@@ -91,33 +85,19 @@ public class UserController {
     @Operation(summary = "编辑用户")
     @PostMapping("/edit")
     public Result<Void> edit(@RequestBody UserDTO userDTO) {
-
-        String operator = currentUsername();
-        Result<Void> result = userService.editUser(userDTO, operator);
-
-        if (!result.failed() && ObjectUtils.isNotNull(userDTO) && StringUtils.isNotBlank(userDTO.getPw())) {
-            userAdministrationService.invalidateSessionsAfterPasswordChange(userDTO.getUserName(), operator);
-        }
-
-        return result;
+        return userService.editUser(userDTO, currentUsername());
     }
 
     @Operation(summary = "管理员重置用户密码")
     @PutMapping("/{id}/password")
     public Result<Void> resetPassword(@PathVariable("id") String userId, @RequestBody UserPasswordResetDTO resetDTO) {
-
-        userAdministrationService.resetPassword(userId, resetDTO, currentUsername());
-
-        return Result.success();
+        return userService.resetPassword(userId, resetDTO, currentUsername());
     }
 
     @Operation(summary = "根据用户 ID 删除用户")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable("id") String userId) {
-
-        userAdministrationService.validateDelete(userId, authenticationManager.getLoginUserId(), currentUsername());
-
-        return userService.deleteByUserId(userId);
+        return userService.deleteByUserId(userId, authenticationManager.getLoginUserId(), currentUsername());
     }
 
     private List<String> parseUserIds(String ids) {
