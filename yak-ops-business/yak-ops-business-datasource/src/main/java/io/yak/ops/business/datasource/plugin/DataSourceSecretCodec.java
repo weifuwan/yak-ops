@@ -16,7 +16,9 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * 根据插件描述和通用敏感字段规则完成连接参数遮罩与编辑态密钥合并。
+ * 处理 Datasource 连接参数中的敏感字段遮罩和编辑态密钥保留。
+ *
+ * <p>Plugin descriptor 提供领域敏感字段，本类再叠加 password / token / private key 等通用规则；任何对外连接 JSON 都必须经过遮罩后返回。</p>
  *
  * @author weifuwan
  * @since 2026-09-24
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DataSourceSecretCodec {
 
+    /** Datasource 连接参数中跨 Provider 通用的敏感字段名。 */
     private static final Set<String> COMMON_SECRET_KEYS = Set.of(
             "password",
             "pwd",
@@ -36,6 +39,13 @@ public class DataSourceSecretCodec {
             "passphrase",
             "privatekeypassphrase");
 
+    /**
+     * 递归遮罩连接 JSON 中的敏感字段，保持原 JSON 结构不变。
+     *
+     * @param descriptor Plugin 元数据
+     * @param connectionJson 原始连接参数
+     * @return 可安全返回给前端的连接 JSON
+     */
     public String maskConnectionJson(DataSourcePluginDescriptor descriptor, String connectionJson) {
         if (connectionJson == null || connectionJson.trim().isEmpty()) return null;
         ObjectNode root = readObject(connectionJson);
@@ -43,6 +53,16 @@ public class DataSourceSecretCodec {
         return write(root);
     }
 
+    /**
+     * 编辑数据源时，将空值或遮罩占位符恢复为已保存的密钥值。
+     *
+     * <p>只有识别为敏感字段的值会被保留，普通字段始终以本次提交内容为准。</p>
+     *
+     * @param descriptor Plugin 元数据
+     * @param submittedJson 本次提交的连接参数
+     * @param storedJson 已保存的连接参数
+     * @return 合并后的完整连接 JSON
+     */
     public String mergeStoredSecrets(DataSourcePluginDescriptor descriptor, String submittedJson, String storedJson) {
         ObjectNode submitted = readObject(submittedJson);
         ObjectNode stored = readObject(storedJson);
@@ -50,6 +70,7 @@ public class DataSourceSecretCodec {
         return write(submitted);
     }
 
+    /** 对 JDBC URL、异常消息等普通文本执行凭证遮罩。 */
     public String maskSensitiveText(String value) {
         return SensitiveUtils.mask(value);
     }
