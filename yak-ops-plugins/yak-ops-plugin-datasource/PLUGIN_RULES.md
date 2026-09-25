@@ -103,6 +103,23 @@ Must Not:
 - add generic abstractions used by only one provider without a clear boundary.
 - recreate deleted test modules or fixtures as a side effect.
 
+## Logging Boundary
+
+Plugin / JDBC 底层默认不记录连接参数流水日志。
+
+Must:
+- Provider 注册成功、type / aliases / apiVersion / capabilities 等生命周期信息由上层 `DataSourcePluginRegistry` 统一记录。
+- 需要记录异常时只记录已经脱敏的稳定错误信息；敏感文本必须先通过 Common `SensitiveUtils` 处理。
+- 日志只记录定位运行时问题真正需要的状态，例如 Provider identity、capability、失败阶段，不记录完整请求或连接对象。
+
+Must Not:
+- 记录 connection JSON、normalized JSON、JDBC URL、username、password、token、private key、passphrase、known_hosts 内容。
+- 在 MySQL / Oracle / PostgreSQL Provider 中分别重复打印连接开始、连接成功等流水日志。
+- 使用 `System.out`、`printStackTrace` 或绕过统一日志边界。
+- 为正常 Catalog 遍历、字段读取或 JDBC method 调用增加 debug 噪声日志。
+
+底层 Plugin 没有日志本身不是缺陷；当上层 Registry 已经拥有生命周期日志时，优先保持 Provider 静默。
+
 ## Aggregation
 
 `yak-ops-plugin-datasource-all` only assembles the current built-in provider baseline.
