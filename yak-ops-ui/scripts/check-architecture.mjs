@@ -48,6 +48,7 @@ const requiredAppShellFiles = [
   "apps/web/app/layout/TopBar.tsx",
   "apps/web/app/layout/ProductSidebar.tsx",
   "apps/web/app/layout/ProductLauncher.tsx",
+  "apps/web/app/layout/AllProductMenu.tsx",
   "apps/web/app/layout/navigation.ts",
 ];
 

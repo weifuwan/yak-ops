@@ -13,6 +13,12 @@ type GlobalProductMenuItem = {
   path: string;
 };
 
+type AllProductGroup = {
+  id: string;
+  label: string;
+  products: GlobalProductMenuItem[];
+};
+
 export const CURRENT_PRODUCT_LABEL = "数据集成";
 
 export const PRODUCT_NAVIGATION: ProductNavigationItem[] = [
@@ -29,5 +35,13 @@ export const GLOBAL_PRODUCT_MENU: GlobalProductMenuItem[] = [
     label: CURRENT_PRODUCT_LABEL,
     icon: Database,
     path: "/data-source",
+  },
+];
+
+export const ALL_PRODUCT_GROUPS: AllProductGroup[] = [
+  {
+    id: "data-integration",
+    label: CURRENT_PRODUCT_LABEL,
+    products: GLOBAL_PRODUCT_MENU,
   },
 ];
