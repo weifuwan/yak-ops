@@ -1,20 +1,21 @@
-package io.yak.ops.security.util;
+package io.yak.ops.common.util;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import org.springframework.beans.BeanUtils;
 
-/** Copies same-named bean properties for current Security DTO/VO mappings. */
-public final class CopyBeanUtil {
+/**
+ * 基于同名属性完成简单 Bean 复制，避免各领域重复维护无业务语义的映射样板代码。
+ *
+ * @author weifuwan
+ * @since 2026-09-25
+ */
+public final class BeanCopyUtils {
 
-    private CopyBeanUtil() {}
+    private BeanCopyUtils() {}
 
     public static <T> T copy(Object source, Class<T> target) {
-        if (source == null) {
-            return null;
-        }
-        Objects.requireNonNull(target, "target must not be null");
+        if (ObjectUtils.isNull(source)) return null;
+        if (ObjectUtils.isNull(target)) throw new IllegalArgumentException("target must not be null");
         try {
             T result = target.getDeclaredConstructor().newInstance();
             BeanUtils.copyProperties(source, result);
@@ -31,11 +32,9 @@ public final class CopyBeanUtil {
     }
 
     public static <T, K> List<K> copyList(List<T> source, Class<K> target) {
-        if (source == null || source.isEmpty()) {
-            return Collections.emptyList();
-        }
+        if (CollectionUtils.isEmpty(source)) return List.of();
         return source.stream()
-                .filter(Objects::nonNull)
+                .filter(ObjectUtils::isNotNull)
                 .map(value -> copy(value, target))
                 .toList();
     }

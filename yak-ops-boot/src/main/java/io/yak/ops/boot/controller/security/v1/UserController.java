@@ -1,8 +1,5 @@
 package io.yak.ops.boot.controller.security.v1;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.common.bean.dto.security.user.UserDTO;
@@ -14,6 +11,9 @@ import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
+import io.yak.ops.common.util.JSONUtils;
+import io.yak.ops.common.util.ObjectUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.service.UserService;
@@ -22,7 +22,6 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,9 +51,6 @@ public class UserController {
 
     @Resource
     private AuthenticationManager authenticationManager;
-
-    @Resource
-    private ObjectMapper objectMapper;
 
     @Operation(summary = "校验用户字段是否可用")
     @GetMapping("/{type}/{value}/check")
@@ -99,7 +95,7 @@ public class UserController {
         String operator = currentUsername();
         Result<Void> result = userService.editUser(userDTO, operator);
 
-        if (!result.failed() && userDTO != null && StringUtils.hasText(userDTO.getPw())) {
+        if (!result.failed() && ObjectUtils.isNotNull(userDTO) && StringUtils.isNotBlank(userDTO.getPw())) {
             userAdministrationService.invalidateSessionsAfterPasswordChange(userDTO.getUserName(), operator);
         }
 
@@ -126,9 +122,8 @@ public class UserController {
 
     private List<String> parseUserIds(String ids) {
         try {
-            JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, String.class);
-            return objectMapper.readValue(ids, type);
-        } catch (JsonProcessingException exception) {
+            return JSONUtils.parseList(ids, String.class);
+        } catch (IllegalArgumentException exception) {
             throw new YakSecurityException(ResultCode.PARAM_NOT_VALID, exception);
         }
     }

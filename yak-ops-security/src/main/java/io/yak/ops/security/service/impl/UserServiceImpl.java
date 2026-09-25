@@ -10,15 +10,17 @@ import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.common.page.PageData;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
+import io.yak.ops.common.util.BeanCopyUtils;
+import io.yak.ops.common.util.CollectionUtils;
+import io.yak.ops.common.util.ObjectUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
 import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.security.service.UserService;
-import io.yak.ops.security.util.CopyBeanUtil;
 import jakarta.annotation.Resource;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -27,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /** UserAccount-only service implementation. */
 @ConditionalOnProperty(
@@ -53,7 +54,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result<Void> check(Integer checkType, String checkValue) {
-        if (checkType == null) return Result.buildParamIllegal("校验类型不能为空");
+        if (ObjectUtils.isNull(checkType)) return Result.buildParamIllegal("校验类型不能为空");
         for (UserCheckType value : UserCheckType.values()) {
             if (value.getCode() != checkType) continue;
             return switch (value) {
@@ -67,8 +68,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PagingData<UserVO> getUserPage(UserQueryDTO queryDTO) {
-        UserQueryDTO query = queryDTO == null ? new UserQueryDTO() : queryDTO;
-        if (query.getSorts() != null && !query.getSorts().isEmpty()) {
+        UserQueryDTO query = ObjectUtils.isNull(queryDTO) ? new UserQueryDTO() : queryDTO;
+        if (CollectionUtils.isNotEmpty(query.getSorts())) {
             throw new YakSecurityException("用户分页暂不支持自定义排序");
         }
         PageData<UserEntity> page = userRepository.queryPage(
@@ -77,7 +78,7 @@ public class UserServiceImpl implements UserService {
                 query.getRealName(),
                 query.getPageNo(),
                 query.getPageSize());
-        PageData<UserVO> result = page.map(entity -> CopyBeanUtil.copy(entity, UserVO.class));
+        PageData<UserVO> result = page.map(entity -> BeanCopyUtils.copy(entity, UserVO.class));
         result.records().forEach(this::privacyProcessing);
         return PagingData.from(result);
     }
@@ -85,7 +86,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserVO getUserDetailByUserId(String userId) {
         UserAccount user = requireUser(userId);
-        UserVO result = CopyBeanUtil.copy(user, UserVO.class);
+        UserVO result = BeanCopyUtils.copy(user, UserVO.class);
         privacyProcessing(result);
         return result;
     }
@@ -100,7 +101,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserBriefVO getUserBriefByUsername(String username) {
-        return CopyBeanUtil.copy(userRepository.queryByUsername(username).orElse(null), UserBriefVO.class);
+        return BeanCopyUtils.copy(userRepository.queryByUsername(username).orElse(null), UserBriefVO.class);
     }
 
     @Override
@@ -110,18 +111,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserBriefVO> getUserBriefListByUserIds(List<String> userIds) {
-        if (userIds == null || userIds.isEmpty()) return Collections.emptyList();
-        return CopyBeanUtil.copyList(userRepository.queryByIds(userIds), UserBriefVO.class);
+        if (CollectionUtils.isEmpty(userIds)) return List.of();
+        return BeanCopyUtils.copyList(userRepository.queryByIds(userIds), UserBriefVO.class);
     }
 
     @Override
     public List<UserBriefVO> searchUserBriefList(String keyword) {
-        return CopyBeanUtil.copyList(userRepository.queryByName(keyword), UserBriefVO.class);
+        return BeanCopyUtils.copyList(userRepository.queryByName(keyword), UserBriefVO.class);
     }
 
     @Override
     public List<UserBriefVO> getAllUserBriefList() {
-        return CopyBeanUtil.copyList(userRepository.queryList(), UserBriefVO.class);
+        return BeanCopyUtils.copyList(userRepository.queryList(), UserBriefVO.class);
     }
 
     @Override
@@ -159,7 +160,7 @@ public class UserServiceImpl implements UserService {
         if (checkResult.failed()) return checkResult;
 
         UserAccount current = getUserByUsername(userDTO.getUserName());
-        if (current == null) return Result.fail(ResultCode.USER_ACCOUNT_NOT_EXIST);
+        if (ObjectUtils.isNull(current)) return Result.fail(ResultCode.USER_ACCOUNT_NOT_EXIST);
 
         Result<Void> uniqueResult = userPhoneCheck(userDTO.getPhone(), current.getId());
         if (uniqueResult.failed()) return uniqueResult;
@@ -169,7 +170,7 @@ public class UserServiceImpl implements UserService {
         try {
             UserEntity user = toUserEntity(userDTO);
             user.setId(current.getId());
-            user.setPw(StringUtils.hasText(userDTO.getPw()) ? passwordEncoder.encode(userDTO.getPw()) : null);
+            user.setPw(StringUtils.isNotBlank(userDTO.getPw()) ? passwordEncoder.encode(userDTO.getPw()) : null);
             user.initUpdate(operator);
             userRepository.update(user);
             LOGGER.info("编辑用户成功，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
@@ -184,84 +185,80 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result<List<UserVO>> getUserDetailsByUserIds(List<String> userIds) {
-        if (userIds == null || userIds.isEmpty()) return Result.success(Collections.emptyList());
-        List<UserVO> users = CopyBeanUtil.copyList(userRepository.queryByIds(userIds), UserVO.class);
+        if (CollectionUtils.isEmpty(userIds)) return Result.success(List.of());
+        List<UserVO> users = BeanCopyUtils.copyList(userRepository.queryByIds(userIds), UserVO.class);
         users.forEach(this::privacyProcessing);
         return Result.success(users);
     }
 
     private UserAccount requireUser(String userId) {
-        if (userId == null) throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+        if (ObjectUtils.isNull(userId)) throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
         UserAccount user = toUser(userRepository.queryById(userId).orElse(null));
-        if (user == null) throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+        if (ObjectUtils.isNull(user)) throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
         return user;
     }
 
     private UserAccount toUser(UserEntity source) {
-        return CopyBeanUtil.copy(source, UserAccount.class);
+        return BeanCopyUtils.copy(source, UserAccount.class);
     }
 
     private UserEntity toUserEntity(UserDTO source) {
         UserEntity target = new UserEntity();
         target.setUserName(source.getUserName().trim());
-        target.setRealName(normalize(source.getRealName()));
-        target.setPhone(normalize(source.getPhone()));
-        target.setEmail(normalize(source.getEmail()));
+        target.setRealName(StringUtils.trimToNull(source.getRealName()));
+        target.setPhone(StringUtils.trimToNull(source.getPhone()));
+        target.setEmail(StringUtils.trimToNull(source.getEmail()));
         return target;
     }
 
     private Result<Void> checkUserParam(UserDTO userDTO, boolean passwordRequired) {
-        if (userDTO == null) return Result.buildParamIllegal("用户信息不能为空");
-        if (!StringUtils.hasText(userDTO.getUserName())) {
+        if (ObjectUtils.isNull(userDTO)) return Result.buildParamIllegal("用户信息不能为空");
+        if (StringUtils.isBlank(userDTO.getUserName())) {
             return Result.buildParamIllegal("用户名不能为空");
         }
-        if (passwordRequired && !StringUtils.hasText(userDTO.getPw())) {
+        if (passwordRequired && StringUtils.isBlank(userDTO.getPw())) {
             return Result.buildParamIllegal("用户密码不能为空");
         }
         return Result.success();
     }
 
     private Result<Void> userNameCheck(String username, String currentUserId) {
-        if (!StringUtils.hasText(username)
+        if (StringUtils.isBlank(username)
                 || !USER_NAME_PATTERN.matcher(username.trim()).matches()) {
             return Result.fail(ResultCode.USER_NAME_FORMAT_ERROR);
         }
         UserEntity existing = userRepository.queryByUsername(username.trim()).orElse(null);
-        return existing != null && !Objects.equals(existing.getId(), currentUserId)
+        return ObjectUtils.isNotNull(existing) && !Objects.equals(existing.getId(), currentUserId)
                 ? Result.fail(ResultCode.USER_NAME_EXISTS)
                 : Result.success();
     }
 
     private Result<Void> userPhoneCheck(String phone, String currentUserId) {
-        if (!StringUtils.hasText(phone)) return Result.success();
+        if (StringUtils.isBlank(phone)) return Result.success();
         String normalized = phone.trim();
         if (!USER_PHONE_PATTERN.matcher(normalized).matches()) {
             return Result.fail(ResultCode.USER_PHONE_FORMAT_ERROR);
         }
         UserEntity existing = userRepository.queryByPhone(normalized).orElse(null);
-        return existing != null && !Objects.equals(existing.getId(), currentUserId)
+        return ObjectUtils.isNotNull(existing) && !Objects.equals(existing.getId(), currentUserId)
                 ? Result.fail(ResultCode.USER_PHONE_EXIST)
                 : Result.success();
     }
 
     private Result<Void> userMailCheck(String email, String currentUserId) {
-        if (!StringUtils.hasText(email)) return Result.success();
+        if (StringUtils.isBlank(email)) return Result.success();
         String normalized = email.trim();
         if (!USER_MAIL_PATTERN.matcher(normalized).matches()) {
             return Result.fail(ResultCode.USER_EMAIL_FORMAT_ERROR);
         }
         UserEntity existing = userRepository.queryByEmail(normalized).orElse(null);
-        return existing != null && !Objects.equals(existing.getId(), currentUserId)
+        return ObjectUtils.isNotNull(existing) && !Objects.equals(existing.getId(), currentUserId)
                 ? Result.fail(ResultCode.USER_EMAIL_EXIST)
                 : Result.success();
     }
 
     private void privacyProcessing(UserVO userVO) {
-        if (userVO == null || !StringUtils.hasText(userVO.getPhone())) return;
+        if (ObjectUtils.isNull(userVO) || StringUtils.isBlank(userVO.getPhone())) return;
         userVO.setPhone(userVO.getPhone().replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2"));
-    }
-
-    private String normalize(String value) {
-        return StringUtils.hasText(value) ? value.trim() : null;
     }
 }

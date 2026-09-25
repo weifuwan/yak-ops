@@ -3,6 +3,8 @@ package io.yak.ops.security.service.impl;
 import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.exception.YakSecurityException;
+import io.yak.ops.common.util.ObjectUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
 import io.yak.ops.security.authentication.AuthenticationManager;
@@ -16,7 +18,6 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /** User administration operations that require focused persistence updates. */
 @ConditionalOnProperty(
@@ -41,18 +42,18 @@ public class UserAdministrationService {
     private ObjectProvider<AuthenticationManager> authenticationManagerProvider;
 
     public void validateDelete(String targetUserId, String operatorId, String operator) {
-        if (targetUserId == null) {
+        if (ObjectUtils.isNull(targetUserId)) {
             throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
         }
 
         UserEntity targetUser = userRepository.queryById(targetUserId).orElse(null);
-        if (targetUser == null) {
+        if (ObjectUtils.isNull(targetUser)) {
             throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
         }
 
-        boolean deletingSelfById = operatorId != null && Objects.equals(targetUserId, operatorId);
+        boolean deletingSelfById = ObjectUtils.isNotNull(operatorId) && Objects.equals(targetUserId, operatorId);
         boolean deletingSelfByName =
-                StringUtils.hasText(operator) && Objects.equals(targetUser.getUserName(), operator);
+                StringUtils.isNotBlank(operator) && Objects.equals(targetUser.getUserName(), operator);
 
         if (deletingSelfById || deletingSelfByName) {
             throw new YakSecurityException("不能删除当前登录用户");
@@ -61,12 +62,12 @@ public class UserAdministrationService {
 
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(String userId, UserPasswordResetDTO request, String operator) {
-        if (userId == null) {
+        if (ObjectUtils.isNull(userId)) {
             throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
         }
 
-        String password = request == null ? null : request.getPassword();
-        if (!StringUtils.hasText(password)) {
+        String password = ObjectUtils.isNull(request) ? null : request.getPassword();
+        if (StringUtils.isBlank(password)) {
             throw new YakSecurityException("新密码不能为空");
         }
         if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
@@ -74,7 +75,7 @@ public class UserAdministrationService {
         }
 
         UserEntity user = userRepository.queryById(userId).orElse(null);
-        if (user == null) {
+        if (ObjectUtils.isNull(user)) {
             throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
         }
 
@@ -88,27 +89,27 @@ public class UserAdministrationService {
     }
 
     public void invalidateSessionsAfterPasswordChange(String username, String operator) {
-        if (!StringUtils.hasText(username)) return;
+        if (StringUtils.isBlank(username)) return;
 
         UserEntity user = userRepository.queryByUsername(username).orElse(null);
-        if (user == null || user.getId() == null) return;
+        if (ObjectUtils.isNull(user) || ObjectUtils.isNull(user.getId())) return;
 
         invalidateUserSessions(user.getId());
         LOGGER.info("用户密码变更后清理登录态，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
     }
 
     public void forceLogout(String userId, String operator) {
-        if (userId == null) {
+        if (ObjectUtils.isNull(userId)) {
             throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
         }
 
         UserEntity user = userRepository.queryById(userId).orElse(null);
-        if (user == null) {
+        if (ObjectUtils.isNull(user)) {
             throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
         }
 
         AuthenticationManager authenticationManager = authenticationManagerProvider.getIfAvailable();
-        if (authenticationManager == null) {
+        if (ObjectUtils.isNull(authenticationManager)) {
             throw new YakSecurityException("当前认证模式不支持账号级强制下线");
         }
 
@@ -118,6 +119,6 @@ public class UserAdministrationService {
 
     private void invalidateUserSessions(String userId) {
         AuthenticationManager authenticationManager = authenticationManagerProvider.getIfAvailable();
-        if (authenticationManager != null) authenticationManager.logoutUser(userId);
+        if (ObjectUtils.isNotNull(authenticationManager)) authenticationManager.logoutUser(userId);
     }
 }

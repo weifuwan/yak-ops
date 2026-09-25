@@ -51,6 +51,21 @@ Security HTTP Controller 和 ControllerAdvice 统一由 `yak-ops-boot` 持有。
 
 认证拦截器实现仍由 Security 持有；将拦截器注册进 Spring MVC、OpenAPI / Swagger 以及其他应用级 Web 装配统一由 Boot 持有。
 
+## Utility Boundary
+
+Security 不维护无领域语义的通用工具类。
+
+统一复用 Common：
+- `StringUtils`：blank / non-blank / trim-to-null
+- `ObjectUtils`：null / non-null
+- `CollectionUtils`：empty / non-empty
+- `BeanCopyUtils`：简单 DTO / VO / Model 同名属性复制
+- `JSONUtils`：JSON parse / serialize
+
+禁止重新创建 `CopyBeanUtil`、私有 `normalize(String)`、重复 `value == null || value.trim().isEmpty()` 之类的通用实现。
+
+Security-specific 校验、异常和领域模型仍由 Security owner 持有，不得下沉进 Common Utils。
+
 ## Infrastructure Boundary
 
 Security 不创建独立连接池、SqlSessionFactory、SqlSessionTemplate 或事务管理器。

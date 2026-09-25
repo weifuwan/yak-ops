@@ -2,6 +2,7 @@ package io.yak.ops.security.bootstrap;
 
 import io.yak.ops.common.bean.dto.security.user.UserDTO;
 import io.yak.ops.common.result.Result;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.security.config.YakSecurityProperties;
 import io.yak.ops.security.service.UserService;
 import org.slf4j.Logger;
@@ -9,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /** Creates the first user for a newly installed application. */
 public class YakSecurityBootstrapInitializer implements ApplicationRunner {
@@ -51,7 +51,7 @@ public class YakSecurityBootstrapInitializer implements ApplicationRunner {
     }
 
     private static void requireText(String value, String property) {
-        if (!StringUtils.hasText(value)) {
+        if (StringUtils.isBlank(value)) {
             throw new IllegalStateException(
                     "yak.security.bootstrap." + property + " must be configured when bootstrap is enabled");
         }
