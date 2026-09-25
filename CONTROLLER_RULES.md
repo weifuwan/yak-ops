@@ -39,7 +39,19 @@ Must:
 - Security / Datasource / DAO / Core / SPI / Plugin 不得依赖 Boot。
 - 新增 API 时先确定 capability owner，再由 Boot 暴露 HTTP contract。
 
+## Endpoint Lifecycle
+
+HTTP Endpoint 是产品 Contract，不是 Business 方法的自动镜像。
+
+Must:
+- 新增 Endpoint 必须能对应当前 Product Capability、明确外部消费者或已批准的稳定集成 Contract。
+- 删除产品能力时，同一变更中清理专属 Controller、DTO / VO、Business 转换和无人调用的持久化路径。
+- 后端能力允许暂时没有 Web UI，但必须在 capability RULES 中明确属于当前产品边界。
+
 Must Not:
+- 因为 Business / Repository 已有方法就顺手暴露 HTTP API。
+- 保留只用于历史联调、框架验证、临时 ping 的 Controller。
+- 仅以“以后可能会有页面或调用方”为理由发布新 Endpoint。
 - 在业务模块或 Security 模块创建 `controller` package。
 - 为了复用 Controller 逻辑让 capability module 反向依赖 Boot。
 - 把业务规则搬到 Boot，只因为 Controller 已经位于 Boot。
