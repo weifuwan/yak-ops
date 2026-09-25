@@ -43,6 +43,20 @@ const forbiddenDataSourceFiles = [
   "apps/web/app/datasource/constants.tsx",
 ];
 
+const requiredAppShellFiles = [
+  "apps/web/app/layout/AppLayout.tsx",
+  "apps/web/app/layout/TopBar.tsx",
+  "apps/web/app/layout/ProductSidebar.tsx",
+  "apps/web/app/layout/ProductLauncher.tsx",
+  "apps/web/app/layout/navigation.ts",
+];
+
+for (const path of requiredAppShellFiles) {
+  if (!existsSync(join(root, path))) {
+    fail(`required app shell file is missing: ${path}`);
+  }
+}
+
 for (const path of forbiddenDataSourceFiles) {
   if (existsSync(join(root, path))) {
     fail(`forbidden datasource file exists: ${path}`);

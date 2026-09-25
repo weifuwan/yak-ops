@@ -47,15 +47,19 @@ app/layout/
 ├── AppLayout.tsx
 ├── TopBar.tsx
 ├── ProductSidebar.tsx
+├── ProductLauncher.tsx
 └── navigation.ts
 ```
 
-- `AppLayout` 是认证后产品页面唯一的 viewport owner。
-- TopBar 和 ProductSidebar 属于 Shell，不属于 Datasource Domain。
-- 产品内导航配置统一放在 `app/layout/navigation.ts`，不要在页面中重复维护菜单。
+- `AppLayout` 是认证后产品页面唯一的 viewport owner，也是 Global Product Launcher 状态 owner。
+- TopBar、ProductSidebar、ProductLauncher 属于 Shell，不属于 Datasource Domain。
+- 产品内导航和全局产品菜单统一读取 `app/layout/navigation.ts`，不要维护两套菜单常量。
+- ProductLauncher 必须作为 overlay 覆盖页面，打开和关闭都不能改变 Sidebar / Outlet 的宽高布局。
+- Launcher 必须支持关闭按钮、背景点击、Escape 和路由变化关闭。
+- Launcher 只展示已有真实路由的 Product Surface，不为视觉完整性创建假路由、禁用占位菜单或空页面。
 - AppLayout 内的页面只填充可用容器，禁止通过 `calc(100vh - ...)` 或 `calc(100dvh - ...)` 自己扣减 Shell 高度。
-- 没有真实 Product Surface 时，不为视觉完整性创建假路由或假菜单项。
-- Global Product Launcher / Mega Menu 独立演进，不塞进 PR1 的基础 Shell。\n\n## Must
+
+## Must
 
 - Domain UI / state / presentation 放在 `app/<domain>`。
 - Domain backend Contract / calls 放在 `service/<domain>`。
