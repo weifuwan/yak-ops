@@ -53,9 +53,10 @@ app/layout/
 
 - `AppLayout` 是认证后产品页面唯一的 viewport owner，也是 Global Product Launcher 状态 owner。
 - TopBar、ProductSidebar、ProductLauncher 属于 Shell，不属于 Datasource Domain。
-- 产品内导航和全局一级产品菜单统一读取 `app/layout/navigation.ts`，不要维护两套菜单常量。
-- ProductLauncher V1 只负责一级菜单：`所有产品` + 当前 `数据集成`；二级菜单 / Mega Menu 后续独立实现。
-- ProductLauncher 必须从左向右滑入并覆盖 ProductSidebar，打开和关闭都不能改变 Sidebar / Outlet 的宽高布局。
+- 产品内导航和全局一级产品项统一读取 `app/layout/navigation.ts`，不要维护两套真实产品常量。
+- `所有产品` 是 ProductLauncher 自己的 `view-all` 入口，不允许混进真实产品数组。
+- ProductLauncher V1 固定宽度 220px，关闭态 `translateX(-220px)`，打开态 `translateX(0)`，动画 `300ms ease-in-out`；二级菜单后续独立实现。
+- ProductLauncher 必须覆盖 ProductSidebar，打开和关闭都不能改变 Sidebar / Outlet 的宽高布局，且外层不加阴影。
 - TopBar 三杠菜单按钮必须显示 pointer cursor；打开后同一位置切换为 X 图标。
 - Launcher 必须支持 TopBar X、Escape 和路由变化关闭。
 - 未实现二级菜单前，不创建假路由、空白二级面板或占位页面。
