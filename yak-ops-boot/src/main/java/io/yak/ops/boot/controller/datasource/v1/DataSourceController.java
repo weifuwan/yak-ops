@@ -68,7 +68,6 @@ public class DataSourceController {
         return Result.success(dataSourceService.queryDataSourcePage(dto));
     }
 
-
     @Operation(summary = "测试已保存数据源连接")
     @RequestMapping(
             value = "/{id}/connect-test",

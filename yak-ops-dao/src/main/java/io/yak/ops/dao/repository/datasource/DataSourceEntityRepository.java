@@ -5,7 +5,7 @@ import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.repository.BaseRepository;
 
 /**
- * 定义数据源实体的持久化能力，隔离 Business 与 MyBatis 细节。
+ * 定义数据源实体的持久化能力，隔离 Service Layer 与 MyBatis 细节。
  *
  * @author weifuwan
  * @since 2026-09-24

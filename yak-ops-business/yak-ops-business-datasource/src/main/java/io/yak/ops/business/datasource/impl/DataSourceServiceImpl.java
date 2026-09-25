@@ -128,7 +128,6 @@ public class DataSourceServiceImpl implements DataSourceService {
         return PagingData.from(repository.queryPage(query).map(value -> toDataSourceVO(value, false)));
     }
 
-
     @Override
     public boolean testConnection(String id) {
         DataSourceEntity entity = requireEntity(id);
@@ -260,5 +259,4 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
         return target;
     }
-
 }

@@ -25,7 +25,7 @@ import {
   testDataSourceConnectionWithParams,
   updateDataSource,
 } from "@/service/datasource";
-import { COMMON_DB_OPTIONS } from "./constants";
+import { COMMON_DB_OPTIONS, JDBC_URL_PLACEHOLDERS } from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import { useIntl } from "./i18n";
 import type { DataSourceRecord, DataSourceSavePayload } from "./types";
@@ -251,7 +251,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
               <Input
                 value={values.jdbcUrl}
                 aria-invalid={Boolean(errors.jdbcUrl) || undefined}
-                placeholder={intl.formatMessage({ id: "pages.datasource.form.jdbcUrlPlaceholder" })}
+                placeholder={JDBC_URL_PLACEHOLDERS[values.dbType] || intl.formatMessage({ id: "pages.datasource.form.jdbcUrlPlaceholder" })}
                 onChange={(event) => patch("jdbcUrl", event.target.value)}
               />
               {fieldError("jdbcUrl")}

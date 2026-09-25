@@ -1,12 +1,4 @@
-import {
-  Badge,
-  Button,
-  Spinner,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  type BadgeProps,
-} from "@yak-ops/yak-ui";
+import { Badge, Button, Spinner, type BadgeProps } from "@yak-ops/yak-ui";
 import { CircleCheck, CircleMinus, CircleX, Pencil, Trash2, Unplug } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -49,12 +41,11 @@ const DataSourceStatus = ({ status }: { status?: DataSourceConnectionStatus }) =
     },
   };
   const config = configMap[String(status || "UNKNOWN").toUpperCase()] || configMap.UNKNOWN;
-  const text = intl.formatMessage({ id: config.messageId });
 
   return (
     <Badge tone={config.tone} className="gap-1.5 whitespace-nowrap">
       {config.icon}
-      {text}
+      {intl.formatMessage({ id: config.messageId })}
     </Badge>
   );
 };
@@ -115,7 +106,10 @@ const DataSourceTable = ({
                   </td>
                   <td className="px-4 py-3 text-sm text-[#4f5561]">{record.dbType || "-"}</td>
                   <td className="px-4 py-3">
-                    <span className="block max-w-[520px] truncate text-sm text-[#667085]" title={record.jdbcUrl}>
+                    <span
+                      className="block max-w-[520px] truncate text-sm text-[#667085]"
+                      title={record.jdbcUrl}
+                    >
                       {record.jdbcUrl || "-"}
                     </span>
                   </td>
@@ -125,57 +119,40 @@ const DataSourceTable = ({
                   <td className="px-4 py-3 text-sm text-[#667085]">{record.updateTime || "-"}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Button
-                            variant="ghost"
-                            size="small"
-                            className="h-8 w-8 p-0"
-                            loading={testingId === id}
-                            disabled={Boolean(testingId) && testingId !== id}
-                            onClick={() => onTestConnection(record)}
-                          >
-                            {testingId === id ? null : <Unplug size={14} />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {intl.formatMessage({ id: "pages.datasource.table.testConnection" })}
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Button
-                            variant="ghost"
-                            size="small"
-                            className="h-8 w-8 p-0"
-                            loading={editingId === id}
-                            disabled={Boolean(editingId) && editingId !== id}
-                            onClick={() => onEdit(record)}
-                          >
-                            {editingId === id ? null : <Pencil size={14} />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {intl.formatMessage({ id: "pages.datasource.table.edit" })}
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Button
-                            variant="ghost"
-                            size="small"
-                            className="h-8 w-8 p-0 text-[#b42318]"
-                            onClick={() => onDelete(record)}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {intl.formatMessage({ id: "pages.datasource.table.delete" })}
-                        </TooltipContent>
-                      </Tooltip>
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        title={intl.formatMessage({ id: "pages.datasource.table.testConnection" })}
+                        aria-label={intl.formatMessage({ id: "pages.datasource.table.testConnection" })}
+                        className="h-8 w-8 p-0"
+                        loading={testingId === id}
+                        disabled={Boolean(testingId) && testingId !== id}
+                        onClick={() => onTestConnection(record)}
+                      >
+                        {testingId === id ? null : <Unplug size={14} />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        title={intl.formatMessage({ id: "pages.datasource.table.edit" })}
+                        aria-label={intl.formatMessage({ id: "pages.datasource.table.edit" })}
+                        className="h-8 w-8 p-0"
+                        loading={editingId === id}
+                        disabled={Boolean(editingId) && editingId !== id}
+                        onClick={() => onEdit(record)}
+                      >
+                        {editingId === id ? null : <Pencil size={14} />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        title={intl.formatMessage({ id: "pages.datasource.table.delete" })}
+                        aria-label={intl.formatMessage({ id: "pages.datasource.table.delete" })}
+                        className="h-8 w-8 p-0 text-[#b42318]"
+                        onClick={() => onDelete(record)}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
                     </div>
                   </td>
                 </tr>
