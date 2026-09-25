@@ -216,7 +216,7 @@ Example:
  * @author weifuwan
  * @since 2026-09-24
  */
-public class UserAdministrationService {
+public class UserServiceImpl {
 }
 ```
 

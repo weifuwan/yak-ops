@@ -1,6 +1,7 @@
 package io.yak.ops.security.service.impl;
 
 import io.yak.ops.common.bean.dto.security.user.UserDTO;
+import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.bean.vo.security.user.UserVO;
@@ -13,6 +14,7 @@ import io.yak.ops.common.util.ObjectUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
+import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.enums.SecurityErrorCode;
 import io.yak.ops.security.exception.YakSecurityException;
@@ -26,6 +28,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,12 +48,17 @@ public class UserServiceImpl implements UserService {
             Pattern.compile("^(13[0-9]|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18[0-9]|19[0-35-9])\\d{8}$");
     private static final Pattern USER_MAIL_PATTERN =
             Pattern.compile("^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$");
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_PASSWORD_LENGTH = 64;
 
     @Resource
     private UserRepository userRepository;
 
     @Resource
     private PasswordEncoder passwordEncoder;
+
+    @Resource
+    private ObjectProvider<AuthenticationManager> authenticationManagerProvider;
 
     @Override
     public Result<Void> check(Integer checkType, String checkValue) {
@@ -92,11 +100,39 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result<Void> deleteByUserId(String userId) {
-        requireUser(userId);
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> deleteByUserId(String userId, String operatorId, String operator) {
+        UserEntity targetUser = requireUserEntity(userId);
+        boolean deletingSelfById = ObjectUtils.isNotNull(operatorId) && Objects.equals(userId, operatorId);
+        boolean deletingSelfByName =
+                StringUtils.isNotBlank(operator) && Objects.equals(targetUser.getUserName(), operator);
+        if (deletingSelfById || deletingSelfByName) {
+            throw new YakSecurityException("不能删除当前登录用户");
+        }
         return userRepository.deleteById(userId) > 0
                 ? Result.success()
                 : Result.fail(SecurityErrorCode.USER_ACCOUNT_UPDATE_FAIL);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> resetPassword(String userId, UserPasswordResetDTO request, String operator) {
+        if (ObjectUtils.isNull(userId)) throw new YakSecurityException(SecurityErrorCode.USER_ID_CANNOT_BE_NULL);
+        String password = ObjectUtils.isNull(request) ? null : request.getPassword();
+        if (StringUtils.isBlank(password)) {
+            throw new YakSecurityException("新密码不能为空");
+        }
+        if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
+            throw new YakSecurityException("密码长度必须为 8～64 位");
+        }
+
+        UserEntity user = requireUserEntity(userId);
+        user.setPw(passwordEncoder.encode(password));
+        user.initUpdate(operator);
+        userRepository.update(user);
+        invalidateUserSessions(userId);
+        LOGGER.info("管理员重置用户密码成功，用户ID={}，用户名={}，操作人={}", userId, user.getUserName(), operator);
+        return Result.success();
     }
 
     @Override
@@ -173,6 +209,10 @@ public class UserServiceImpl implements UserService {
             user.setPw(StringUtils.isNotBlank(userDTO.getPw()) ? passwordEncoder.encode(userDTO.getPw()) : null);
             user.initUpdate(operator);
             userRepository.update(user);
+            if (StringUtils.isNotBlank(userDTO.getPw())) {
+                invalidateUserSessions(user.getId());
+                LOGGER.info("用户密码变更后清理登录态，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
+            }
             LOGGER.info("编辑用户成功，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
             return Result.success();
         } catch (YakSecurityException exception) {
@@ -192,10 +232,19 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserAccount requireUser(String userId) {
+        return toUser(requireUserEntity(userId));
+    }
+
+    private UserEntity requireUserEntity(String userId) {
         if (ObjectUtils.isNull(userId)) throw new YakSecurityException(SecurityErrorCode.USER_ID_CANNOT_BE_NULL);
-        UserAccount user = toUser(userRepository.queryById(userId).orElse(null));
+        UserEntity user = userRepository.queryById(userId).orElse(null);
         if (ObjectUtils.isNull(user)) throw new YakSecurityException(SecurityErrorCode.USER_NOT_EXISTS);
         return user;
+    }
+
+    private void invalidateUserSessions(String userId) {
+        AuthenticationManager authenticationManager = authenticationManagerProvider.getIfAvailable();
+        if (ObjectUtils.isNotNull(authenticationManager)) authenticationManager.logoutUser(userId);
     }
 
     private UserAccount toUser(UserEntity source) {

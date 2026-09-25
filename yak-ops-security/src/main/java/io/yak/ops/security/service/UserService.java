@@ -1,6 +1,7 @@
 package io.yak.ops.security.service;
 
 import io.yak.ops.common.bean.dto.security.user.UserDTO;
+import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.bean.vo.security.user.UserVO;
@@ -18,7 +19,9 @@ public interface UserService {
 
     UserVO getUserDetailByUserId(String userId);
 
-    Result<Void> deleteByUserId(String userId);
+    Result<Void> deleteByUserId(String userId, String operatorId, String operator);
+
+    Result<Void> resetPassword(String userId, UserPasswordResetDTO request, String operator);
 
     UserBriefVO getUserBriefByUsername(String username);
 
