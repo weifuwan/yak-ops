@@ -11,9 +11,12 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * Yak Security 登录拦截器。
+ * 将 Security 登录态校验接入 Spring MVC 请求链路。
  *
- * <p>当前只负责判断是否登录，不承载角色、权限或项目授权。</p>
+ * <p>负责跳过公开端点和 OPTIONS 请求，并将其余请求交给 LoginService 校验；不承载角色、权限或项目授权。</p>
+ *
+ * @author weifuwan
+ * @since 2026-09-24
  */
 public class YakAuthenticationInterceptor implements HandlerInterceptor {
 
