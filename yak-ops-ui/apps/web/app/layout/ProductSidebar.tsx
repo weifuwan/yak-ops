@@ -9,23 +9,24 @@ export default function ProductSidebar() {
         {CURRENT_PRODUCT_LABEL}
       </div>
 
-      <nav className="px-2">
+      <nav>
         {PRODUCT_NAVIGATION.map((item) => {
           const Icon = item.icon;
+
           return (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
                 [
-                  "flex h-9 items-center gap-2.5 rounded-md px-3 text-sm transition-colors",
+                  "flex h-8 items-center gap-2.5 border-r-2 px-[14px] text-sm font-semibold text-[#26282c] transition-colors",
                   isActive
-                    ? "bg-[#e8edff] font-medium text-[#1d4ed8]"
-                    : "text-[#4f5663] hover:bg-black/[0.035] hover:text-[#161823]",
+                    ? "border-[#1645d1] bg-[#dfe6fa]"
+                    : "border-transparent hover:bg-[#f2f2f2]",
                 ].join(" ")
               }
             >
-              <Icon className="h-4 w-4 shrink-0" strokeWidth={1.8} />
+              <Icon className="h-4 w-4 shrink-0 text-[#1645d1]" strokeWidth={1.8} />
               <span className="truncate">{item.label}</span>
             </NavLink>
           );
