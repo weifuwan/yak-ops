@@ -3,7 +3,12 @@ package io.yak.ops.plugin.database.jdbc.oracle;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 
-/** Oracle JDBC datasource plugin. */
+/**
+ * Oracle JDBC Provider，拥有 Oracle 默认端口、Driver 和 Service Name JDBC URL 规则。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public final class OracleDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
