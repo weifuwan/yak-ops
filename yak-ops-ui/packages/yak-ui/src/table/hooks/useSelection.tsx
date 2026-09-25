@@ -8,10 +8,7 @@ import type {
   TableRowSelection,
   TableRowSelectionCheckboxProps,
 } from "../interface";
-import {
-  TABLE_SELECTION_COLUMN_KEY,
-  resolveTableRowKey,
-} from "../utils";
+import { TABLE_SELECTION_COLUMN_KEY, resolveTableRowKey } from "../utils";
 
 const DEFAULT_SELECTION_COLUMN_WIDTH = 48;
 
@@ -32,9 +29,9 @@ export function useSelection<RecordType extends object>(
   columns: TableColumns<RecordType>,
   rowKey: TableProps<RecordType>["rowKey"],
 ): TableSelectionResult<RecordType> {
-  const [innerSelectedRowKeys, setInnerSelectedRowKeys] = useState<Key[]>(
-    () => [...(rowSelection?.defaultSelectedRowKeys ?? [])],
-  );
+  const [innerSelectedRowKeys, setInnerSelectedRowKeys] = useState<Key[]>(() => [
+    ...(rowSelection?.defaultSelectedRowKeys ?? []),
+  ]);
 
   const selectedRowKeys = rowSelection?.selectedRowKeys ?? innerSelectedRowKeys;
   const selectedKeySet = useMemo(() => new Set<Key>(selectedRowKeys), [selectedRowKeys]);
