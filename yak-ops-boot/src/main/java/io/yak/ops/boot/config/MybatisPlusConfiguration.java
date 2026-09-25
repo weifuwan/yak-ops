@@ -13,6 +13,7 @@ import net.sf.jsqlparser.expression.StringValue;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.type.JdbcType;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
@@ -35,27 +36,10 @@ public class MybatisPlusConfiguration {
 
     @Bean
     MybatisPlusInterceptor mybatisPlusInterceptor(YakSecurityProperties properties) {
-        String applicationName = requireText(properties.getApplicationName(), "yak.security.application-name");
-
-        TenantLineHandler tenantLineHandler = new TenantLineHandler() {
-            @Override
-            public Expression getTenantId() {
-                return new StringValue(applicationName);
-            }
-
-            @Override
-            public String getTenantIdColumn() {
-                return SECURITY_TENANT_COLUMN;
-            }
-
-            @Override
-            public boolean ignoreTable(String tableName) {
-                return !SECURITY_USER_TABLE.equalsIgnoreCase(tableName);
-            }
-        };
-
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(tenantLineHandler));
+        if (properties.isEnabled() && properties.isDatabaseEnabled()) {
+            interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(securityTenantLineHandler(properties)));
+        }
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
         return interceptor;
     }
@@ -73,6 +57,11 @@ public class MybatisPlusConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(
+            prefix = "yak.security",
+            name = {"enabled", "database-enabled"},
+            havingValue = "true",
+            matchIfMissing = true)
     MetaObjectHandler securityMetaObjectHandler(YakSecurityProperties properties) {
         String applicationName = requireText(properties.getApplicationName(), "yak.security.application-name");
         return new MetaObjectHandler() {
@@ -83,6 +72,26 @@ public class MybatisPlusConfiguration {
 
             @Override
             public void updateFill(MetaObject metaObject) {}
+        };
+    }
+
+    private TenantLineHandler securityTenantLineHandler(YakSecurityProperties properties) {
+        String applicationName = requireText(properties.getApplicationName(), "yak.security.application-name");
+        return new TenantLineHandler() {
+            @Override
+            public Expression getTenantId() {
+                return new StringValue(applicationName);
+            }
+
+            @Override
+            public String getTenantIdColumn() {
+                return SECURITY_TENANT_COLUMN;
+            }
+
+            @Override
+            public boolean ignoreTable(String tableName) {
+                return !SECURITY_USER_TABLE.equalsIgnoreCase(tableName);
+            }
         };
     }
 
