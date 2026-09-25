@@ -1,5 +1,8 @@
-package io.yak.ops.spi.datasource;
+package io.yak.ops.plugin.datasource.api.plugin;
 
+import io.yak.ops.common.util.CollectionUtils;
+import io.yak.ops.common.util.StringUtils;
+import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -47,13 +50,13 @@ public record DataSourcePluginDescriptor(
     }
 
     public static String normalizeType(String value) {
-        String normalized = trimToNull(value);
+        String normalized = StringUtils.trimToNull(value);
         if (normalized == null) throw new IllegalArgumentException("plugin type must not be blank");
         return normalized.toUpperCase(Locale.ROOT).replace('-', '_');
     }
 
     private static Set<String> immutableAliases(String type, Set<String> values) {
-        if (values == null || values.isEmpty()) return Set.of();
+        if (CollectionUtils.isEmpty(values)) return Set.of();
         LinkedHashSet<String> normalized = new LinkedHashSet<>();
         for (String value : values) {
             String alias = normalizeType(value);
@@ -63,28 +66,22 @@ public record DataSourcePluginDescriptor(
     }
 
     private static Set<DataSourceCapability> immutableCapabilities(Set<DataSourceCapability> values) {
-        if (values == null || values.isEmpty()) return Set.of();
+        if (CollectionUtils.isEmpty(values)) return Set.of();
         return Collections.unmodifiableSet(EnumSet.copyOf(values));
     }
 
     private static Set<String> immutableSecretFieldKeys(Set<String> values) {
-        if (values == null || values.isEmpty()) return Set.of();
+        if (CollectionUtils.isEmpty(values)) return Set.of();
         LinkedHashSet<String> normalized = new LinkedHashSet<>();
         for (String value : values) {
-            String key = trimToNull(value);
+            String key = StringUtils.trimToNull(value);
             if (key != null) normalized.add(key);
         }
         return Collections.unmodifiableSet(normalized);
     }
 
     private static String normalize(String value, String fallback) {
-        String normalized = trimToNull(value);
+        String normalized = StringUtils.trimToNull(value);
         return normalized == null ? fallback : normalized;
-    }
-
-    private static String trimToNull(String value) {
-        if (value == null) return null;
-        String normalized = value.trim();
-        return normalized.isEmpty() ? null : normalized;
     }
 }

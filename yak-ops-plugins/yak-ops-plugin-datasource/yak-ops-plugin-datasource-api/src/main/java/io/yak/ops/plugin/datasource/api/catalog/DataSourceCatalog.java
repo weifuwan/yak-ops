@@ -1,9 +1,5 @@
-package io.yak.ops.spi.datasource;
+package io.yak.ops.plugin.datasource.api.catalog;
 
-import io.yak.ops.spi.datasource.catalog.DataSourceCatalogQuery;
-import io.yak.ops.spi.datasource.catalog.DataSourceTablePath;
-import io.yak.ops.spi.datasource.metadata.DataSourceColumn;
-import io.yak.ops.spi.datasource.metadata.DataSourceTable;
 import java.util.List;
 
 /**

@@ -1,6 +1,6 @@
 package io.yak.ops.plugin.database.jdbc;
 
-import io.yak.ops.spi.datasource.DataSourceConnection;
+import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;

@@ -1,12 +1,12 @@
 package io.yak.ops.plugin.database.jdbc;
 
-import io.yak.ops.spi.datasource.DataSourceCatalog;
-import io.yak.ops.spi.datasource.DataSourcePluginException;
-import io.yak.ops.spi.datasource.DataSourcePluginException.Operation;
-import io.yak.ops.spi.datasource.catalog.DataSourceCatalogQuery;
-import io.yak.ops.spi.datasource.catalog.DataSourceTablePath;
-import io.yak.ops.spi.datasource.metadata.DataSourceColumn;
-import io.yak.ops.spi.datasource.metadata.DataSourceTable;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogQuery;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceTable;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
+import io.yak.ops.plugin.datasource.api.enums.DataSourcePluginOperation;
+import io.yak.ops.plugin.datasource.api.exception.DataSourcePluginException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -83,12 +83,12 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     @Override
     public List<DataSourceTable> listTables(DataSourceCatalogQuery query) {
         DataSourceCatalogQuery value = query == null ? new DataSourceCatalogQuery(null, null, null) : query;
-        String database = metadataCatalog(value.getDatabase());
-        String schema = metadataSchema(value.getSchema(), value.getLimit() != null);
-        String keyword = trimToNull(value.getKeyword());
-        int limit = value.getLimit() == null
+        String database = metadataCatalog(value.database());
+        String schema = metadataSchema(value.schema(), value.limit() != null);
+        String keyword = trimToNull(value.keyword());
+        int limit = value.limit() == null
                 ? Integer.MAX_VALUE
-                : Math.min(MAX_TABLE_SEARCH_LIMIT, Math.max(1, value.getLimit()));
+                : Math.min(MAX_TABLE_SEARCH_LIMIT, Math.max(1, value.limit()));
 
         try (Connection opened = openConnection()) {
             DatabaseMetaData metadata = opened.getMetaData();
@@ -114,13 +114,13 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
 
     @Override
     public List<DataSourceColumn> listColumns(DataSourceTablePath tablePath) {
-        String database = metadataCatalog(tablePath.getDatabase());
-        String schema = metadataSchema(tablePath.getSchema(), true);
+        String database = metadataCatalog(tablePath.database());
+        String schema = metadataSchema(tablePath.schema(), true);
         try (Connection opened = openConnection()) {
             DatabaseMetaData metadata = opened.getMetaData();
-            Set<String> primaryKeys = primaryKeys(metadata, database, schema, tablePath.getTable());
+            Set<String> primaryKeys = primaryKeys(metadata, database, schema, tablePath.table());
             List<DataSourceColumn> columns = new ArrayList<>();
-            try (ResultSet resultSet = metadata.getColumns(database, schema, tablePath.getTable(), "%")) {
+            try (ResultSet resultSet = metadata.getColumns(database, schema, tablePath.table(), "%")) {
                 while (resultSet.next()) {
                     String name = resultSet.getString("COLUMN_NAME");
                     columns.add(new DataSourceColumn(
@@ -177,7 +177,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     protected DataSourcePluginException catalogError(String action, Throwable throwable) {
         String message = safeMessage(throwable);
         return new DataSourcePluginException(
-                Operation.CATALOG, action + (message == null ? "" : "：" + message), throwable);
+                DataSourcePluginOperation.CATALOG, action + (message == null ? "" : "：" + message), throwable);
     }
 
     protected String safeMessage(Throwable throwable) {

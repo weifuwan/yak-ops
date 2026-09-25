@@ -7,7 +7,7 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.util.JsonUtils;
 import io.yak.ops.common.util.SensitiveUtils;
-import io.yak.ops.spi.datasource.DataSourcePluginDescriptor;
+import io.yak.ops.plugin.datasource.api.plugin.DataSourcePluginDescriptor;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Locale;
