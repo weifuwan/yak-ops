@@ -1,9 +1,12 @@
 package io.yak.ops.security.authentication;
 
 /**
- * 登录态管理边界。
+ * 定义 Security 登录态的建立、读取和销毁边界。
  *
- * <p>只负责建立、读取和销毁登录态，不负责账号密码校验、RBAC 或项目权限。</p>
+ * <p>该 Contract 只管理认证会话生命周期，不负责账号密码校验、RBAC 或项目权限判断。</p>
+ *
+ * @author weifuwan
+ * @since 2026-09-24
  */
 public interface AuthenticationManager {
 
