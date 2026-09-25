@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.mapper.datasource.DataSourceMapper;
-import io.yak.ops.dao.model.datasource.DataSourceSummaryRow;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
 import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
 import io.yak.ops.dao.repository.impl.BaseRepositoryImpl;
@@ -16,7 +15,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 /**
- * 使用 MyBatis-Plus 实现数据源实体查询、统计和状态更新。
+ * 使用 MyBatis-Plus 实现数据源实体分页查询和名称校验。
  *
  * @author weifuwan
  * @since 2026-09-24
@@ -48,10 +47,6 @@ public class DataSourceEntityRepositoryImpl
                 result.getRecords(), result.getTotal(), result.getPages(), result.getCurrent(), result.getSize());
     }
 
-    @Override
-    public DataSourceSummaryRow querySummary() {
-        return dataSourceMapper.selectSummary();
-    }
 
     @Override
     public boolean existsByName(String name, String excludeId) {

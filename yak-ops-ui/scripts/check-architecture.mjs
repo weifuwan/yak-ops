@@ -24,7 +24,8 @@ const forbiddenDirectories = [
   "apps/web/app/datasource/model",
   "apps/web/app/datasource/plugin",
   "apps/web/app/datasource/connection",
-  "apps/web/app/datasource/editor/DynamicDataSourceForm",
+  "apps/web/app/datasource/editor",
+  "apps/web/app/datasource/hooks",
 ];
 
 for (const path of forbiddenDirectories) {
@@ -35,6 +36,11 @@ for (const path of forbiddenDirectories) {
 
 const forbiddenDataSourceFiles = [
   "apps/web/app/datasource/card.tsx",
+  "apps/web/app/datasource/toolbar.tsx",
+  "apps/web/app/datasource/summary.tsx",
+  "apps/web/app/datasource/empty-state.tsx",
+  "apps/web/app/datasource/utils.ts",
+  "apps/web/app/datasource/constants.tsx",
 ];
 
 for (const path of forbiddenDataSourceFiles) {

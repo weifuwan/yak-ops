@@ -7,7 +7,6 @@ import type {
   DataSourcePageResult,
   DataSourceRecord,
   DataSourceSavePayload,
-  DataSourceSummary,
 } from "./types";
 
 export type * from "./types";
@@ -21,9 +20,6 @@ export const listDataSources = (
     `${DATA_SOURCE_API_PREFIX}/page`,
     params,
   );
-
-export const getDataSourceSummary = (): Promise<DataSourceSummary> =>
-  HttpUtils.getData<DataSourceSummary>(`${DATA_SOURCE_API_PREFIX}/summary`);
 
 export const getDataSource = (id: DataSourceId): Promise<DataSourceRecord> =>
   HttpUtils.getData<DataSourceRecord>(`${DATA_SOURCE_API_PREFIX}/${id}`);

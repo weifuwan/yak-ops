@@ -76,7 +76,7 @@ Detailed rules are defined in `yak-ops-business/BUSINESS_RULES.md`.
 
 Owns only the current Datasource product behavior:
 
-- datasource CRUD, paging, detail and temporary summary compatibility
+- datasource CRUD, paging and detail
 - datasource connection testing
 - internal datasource plugin discovery, connection parsing and secret handling
 

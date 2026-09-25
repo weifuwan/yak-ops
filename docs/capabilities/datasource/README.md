@@ -1,12 +1,11 @@
 # Datasource Domain
 
-Status: Review
+Status: Active
 
 Scope:
-- Datasource registration and lifecycle
-- Connection handling
-- Catalog browsing
-- Datasource plugin metadata
+- Datasource CRUD
+- Connection testing
+- JDBC plugin runtime
 - Datasource frontend
 
 ## Current Owners
@@ -23,23 +22,42 @@ Frontend Product Owner:
 Frontend Service Owner:
 - `yak-ops-ui/apps/web/service/datasource`
 
-Frontend Structure:
+## Product Boundary
+
+Current Datasource product is intentionally small:
+
+```text
+MySQL / Oracle / PostgreSQL
+        ↓
+Filter + Table + Pagination
+        ↓
+Create / Edit / Delete / Test Connection
+```
+
+Backend JDBC Plugin stays extensible, but the frontend is not a plugin platform.
+
+## Backend Flow
+
+```text
+DataSourceController
+→ DataSourceService
+→ DataSourceEntityRepository
+  or DataSourcePluginRegistry
+→ DataSourcePlugin SPI
+→ MySQL / Oracle / PostgreSQL JDBC Provider
+```
+
+Datasource does not publish Catalog or Summary product APIs.
+
+## Frontend Structure
 
 ```text
 app/datasource/
 ├── index.tsx
 ├── table.tsx
-├── toolbar.tsx
-├── summary.tsx
-├── empty-state.tsx
-├── hooks/
-├── editor/
-│   ├── index.tsx
-│   ├── type-selector.tsx
-│   ├── connection-form.tsx
-│   ├── form-runtime.tsx
-│   ├── jdbc-url-field.tsx
-│   └── ssh-tunnel-manager.tsx
+├── form.tsx
+├── constants.ts
+├── types.ts
 ├── icons/
 └── i18n/
 
@@ -48,11 +66,31 @@ service/datasource/
 └── types.ts
 ```
 
-Datasource 页面、Editor 和 Service 都采用 feature-locality 结构。Datasource 列表固定使用原生业务 Table，不再维护 Card/Grid/List 多套展示模式。
+Responsibilities:
 
-`management / model / plugin / connection / DynamicDataSourceForm` 不再是目录 owner。
+- `index.tsx`: filters, paging, list loading, delete confirmation and drawer state.
+- `table.tsx`: table rendering and row actions.
+- `form.tsx`: create, edit and connection test.
+- `service/datasource`: CRUD and connection-test HTTP Contract.
 
-Datasource Service 当前只拥有真实 UI 消费的 CRUD / Connection endpoint；Catalog backend capability 未在前端建立浏览入口时不提前镜像 service。连接表单固定服务于当前内置 Provider，不再通过 Plugin Config HTTP schema 驱动。
+## Connection Form
+
+The product form only exposes:
+
+```text
+name
+dbType
+jdbcUrl
+username
+password
+remark
+```
+
+Create uses `DEVELOP` as the default environment. Edit preserves the stored environment.
+
+Host/Port/Database linkage, SSH tunnel UI, driver configuration, JDBC properties editor, dynamic form schema and runtime plugin install UI are not current product capabilities.
+
+Provider-specific connection behavior remains owned by the backend JDBC Plugin.
 
 ## Frontend Dependency
 
@@ -69,22 +107,6 @@ app/datasource
    ↓
 @yak-ops/yak-ui
 ```
-
-Datasource is a Web App Domain, not an npm workspace package.
-
-Connection form state is owned by `app/datasource/editor/form-runtime.tsx`。
-
-## Current Capability Map
-
-```text
-Datasource Management
-Datasource Editor
-Connection Test / Connection Normalization
-Plugin Runtime
-Catalog Browse
-```
-
-能力地图不代表每个概念都需要一层目录。
 
 ## Shared Rules
 

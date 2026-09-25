@@ -3,7 +3,6 @@ package io.yak.ops.business.datasource;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.page.PagingData;
 
@@ -24,8 +23,6 @@ public interface DataSourceService {
     boolean deleteDataSource(String id);
 
     PagingData<DataSourceVO> queryDataSourcePage(DataSourceQueryDTO dto);
-
-    DataSourceSummaryVO queryDataSourceSummary();
 
     boolean testConnection(String id);
 
