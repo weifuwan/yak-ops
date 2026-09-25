@@ -131,6 +131,8 @@ const httpImportPattern = /(?:from\s+|import\s*\()\s*["']@\/service\/http(?:\/|[
 const baseUiImportPattern = /(?:from\s+|import\s*\()\s*["']@base-ui\/react/;
 const framerMotionImportPattern = /(?:from\s+|import\s*\()\s*["']framer-motion["']/;
 
+const shellViewportSubtractionPattern = /calc\\(100d?vh-/;
+
 for (const path of files) {
   const relativePath = toRelativePath(path);
   const content = readFileSync(path, "utf8");
@@ -173,6 +175,14 @@ for (const path of files) {
     fail(`${relativePath} imports framer-motion; Datasource must use CSS transitions`);
   }
 
+  if (
+    relativePath.startsWith("apps/web/app/datasource/") &&
+    shellViewportSubtractionPattern.test(content)
+  ) {
+    fail(
+      `${relativePath} subtracts App Shell dimensions from viewport height; AppLayout owns viewport sizing`,
+    );
+  }
   if (content.includes("@yak-ops/datasource")) {
     fail(`${relativePath} references removed @yak-ops/datasource package`);
   }
