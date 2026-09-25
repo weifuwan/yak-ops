@@ -33,7 +33,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.AntPathMatcher;
 
-/** Default login behavior and authenticated-request validation. */
+/**
+ * 实现登录凭证校验、失败次数保护、登录态建立和受保护请求校验。
+ *
+ * <p>账号查询通过 UserService 完成，登录态生命周期通过 AuthenticationManager 管理。</p>
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @ConditionalOnProperty(
         prefix = SecurityConstants.CONFIG_PREFIX,
         name = {"enabled", "database-enabled"},
