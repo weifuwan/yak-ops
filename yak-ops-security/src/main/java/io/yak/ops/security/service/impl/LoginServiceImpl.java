@@ -1,12 +1,16 @@
 package io.yak.ops.security.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.enums.security.user.UserStatus;
 import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.common.result.Result;
+import io.yak.ops.common.util.BeanCopyUtils;
+import io.yak.ops.common.util.CollectionUtils;
+import io.yak.ops.common.util.JSONUtils;
+import io.yak.ops.common.util.ObjectUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.authentication.LoginAttemptGuard;
 import io.yak.ops.security.config.YakSecurityProperties;
@@ -15,7 +19,6 @@ import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.security.service.LoginService;
 import io.yak.ops.security.service.UserService;
-import io.yak.ops.security.util.CopyBeanUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,8 +31,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.AntPathMatcher;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 /** Default login behavior and authenticated-request validation. */
 @ConditionalOnProperty(
@@ -53,9 +54,6 @@ public class LoginServiceImpl implements LoginService {
     private AuthenticationManager authenticationManager;
 
     @Resource
-    private ObjectMapper objectMapper;
-
-    @Resource
     private YakSecurityProperties properties;
 
     private LoginAttemptGuard loginAttemptGuard;
@@ -77,7 +75,7 @@ public class LoginServiceImpl implements LoginService {
         }
 
         UserAccount user = userService.getUserByUsername(userName);
-        if (user == null) {
+        if (ObjectUtils.isNull(user)) {
             loginAttemptGuard.recordFailure(userName, remoteAddress);
             throw new YakSecurityException(
                     loginProperties.isHideAccountNotFound()
@@ -91,14 +89,14 @@ public class LoginServiceImpl implements LoginService {
             loginAttemptGuard.recordFailure(userName, remoteAddress);
             throw new YakSecurityException(ResultCode.USER_CREDENTIALS_ERROR);
         }
-        if (user.getId() == null) {
+        if (ObjectUtils.isNull(user.getId())) {
             LOGGER.error("登录用户缺少用户 ID，userName={}", userName);
             throw new IllegalStateException("Login user id must not be null");
         }
 
         authenticationManager.login(user.getId(), userName);
         loginAttemptGuard.recordSuccess(userName, remoteAddress);
-        return CopyBeanUtil.copy(user, UserBriefVO.class);
+        return BeanCopyUtils.copy(user, UserBriefVO.class);
     }
 
     @Override
@@ -110,7 +108,7 @@ public class LoginServiceImpl implements LoginService {
     @Override
     public boolean interceptorCheck(HttpServletResponse response, String requestPath, List<String> whiteListPatterns)
             throws IOException {
-        if (!StringUtils.hasText(requestPath)) {
+        if (StringUtils.isBlank(requestPath)) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
@@ -123,13 +121,13 @@ public class LoginServiceImpl implements LoginService {
 
         String loginUserId = authenticationManager.getLoginUserId();
         String operator = authenticationManager.getLoginUsername();
-        if (loginUserId == null || !StringUtils.hasText(operator)) {
+        if (ObjectUtils.isNull(loginUserId) || StringUtils.isBlank(operator)) {
             authenticationManager.logout();
             return handleUnauthorized(response);
         }
 
         UserAccount user = userService.getUserByUsername(operator);
-        if (user == null
+        if (ObjectUtils.isNull(user)
                 || UserStatus.DISABLED.equals(user.getStatus())
                 || !Objects.equals(loginUserId, user.getId())) {
             LOGGER.warn("登录态失效，operator={}, loginUserId={}", operator, loginUserId);
@@ -143,7 +141,7 @@ public class LoginServiceImpl implements LoginService {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
-        response.getWriter().write(objectMapper.writeValueAsString(Result.fail(ResultCode.USER_NOT_LOGIN)));
+        response.getWriter().write(JSONUtils.toJson(Result.fail(ResultCode.USER_NOT_LOGIN)));
         return false;
     }
 
@@ -152,7 +150,7 @@ public class LoginServiceImpl implements LoginService {
             return false;
         }
         for (String pattern : whiteListPatterns) {
-            if (StringUtils.hasText(pattern) && PATH_MATCHER.match(pattern.trim(), requestPath)) {
+            if (StringUtils.isNotBlank(pattern) && PATH_MATCHER.match(pattern.trim(), requestPath)) {
                 return true;
             }
         }
@@ -160,10 +158,10 @@ public class LoginServiceImpl implements LoginService {
     }
 
     private void validateLoginParam(AccountLoginDTO loginDTO, HttpServletRequest request) {
-        if (loginDTO == null
-                || request == null
-                || !StringUtils.hasText(loginDTO.getUserName())
-                || !StringUtils.hasText(loginDTO.getPw())) {
+        if (ObjectUtils.isNull(loginDTO)
+                || ObjectUtils.isNull(request)
+                || StringUtils.isBlank(loginDTO.getUserName())
+                || StringUtils.isBlank(loginDTO.getPw())) {
             throw new YakSecurityException(ResultCode.PARAM_NOT_VALID);
         }
     }
