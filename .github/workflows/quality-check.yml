@@ -30,7 +30,7 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Spotless check
+      - name: Backend format
         run: >-
           bash mvnw -q -DskipTests
           -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
@@ -41,6 +41,12 @@ jobs:
           bash mvnw -q -DskipTests
           -pl '!yak-ops-ui,!yak-ops-dist'
           compile
+
+      - name: Backend verify
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-ui,!yak-ops-dist'
+          verify
 
   frontend-quality:
     name: Frontend Quality
