@@ -8,7 +8,8 @@ Depends On:
 
 Owns:
 - Datasource shared DTO / VO
-- Datasource enums and constants
+- cross-domain stable constants and shared domain constants
+- Datasource enums
 - Security user/login DTO / VO / Enum contracts
 - unified Result / ErrorCode / PageData contracts
 - shared business exception hierarchy under `io.yak.ops.common.exception`
@@ -26,7 +27,7 @@ io.yak.ops.common.page       → PageData / PagingData
 io.yak.ops.common.exception  → shared business exceptions
 io.yak.ops.common.bean       → shared DTO / VO
 io.yak.ops.common.enums      → shared enums, including enums/common/CommonErrorCode
-io.yak.ops.common.constant   → stable shared constants
+io.yak.ops.common.constant   → CommonConstants and stable shared constant ownership
 io.yak.ops.common.util       → genuinely reusable stateless utilities
 ```
 
@@ -36,6 +37,15 @@ Do not recreate root-level compatibility wrappers after a type has moved to its 
 ## Specialized Rules
 
 DTO / VO 变更必须同时加载 [DTO_VO_RULES.md](./DTO_VO_RULES.md)。该文档统一定义请求 / 响应边界、时间格式、分页、排序和 DTO / VO 命名规则。
+
+## Constant Ownership
+
+- `CommonConstants` 是全仓唯一的跨领域公共常量入口，只承载稳定、不可配置、跨领域共享的代码契约。
+- `io.yak.ops.common.constant.<domain>` 可以承载需要跨模块共享的领域常量，例如 `DataSourceConstants`；领域私有常量应留在领域 owner 模块。
+- 领域 API Prefix 必须基于公共 `CommonConstants.API_PREFIX` 组合，禁止重复硬编码全局 API 根路径。
+- 分页默认页码、默认 page size、最大 page size、最大排序字段数等全局分页约定统一由 `CommonConstants` 提供。
+- 不允许重新创建 `SystemConstant` / `SystemConstants` 等与 `CommonConstants` 重叠的全局常量容器。
+- Common 不是常量垃圾桶；类型和状态优先使用 enum，可配置值必须进入配置体系。
 
 ## Enum Contracts
 
