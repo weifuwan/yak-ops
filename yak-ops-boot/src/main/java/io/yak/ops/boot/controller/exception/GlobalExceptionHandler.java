@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleBusinessException(BusinessException exception) {
         ErrorCode errorCode = exception.getErrorCode();
         if (errorCode == null) {
-            LOG.warn("业务异常缺少 ErrorCode，exceptionType={}, message={}", exception.getClass().getSimpleName(), exception.getMessage());
+            LOG.warn("业务异常缺少 ErrorCode，exceptionType={}", exception.getClass().getSimpleName());
             String message = exception.getMessage();
             Result<Void> body = message == null || message.isBlank()
                     ? Result.fail(CommonErrorCode.PARAM_NOT_VALID)
@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
         IllegalArgumentException.class
     })
     public ResponseEntity<Result<Void>> handleInvalidRequest(Exception exception) {
-        LOG.debug("请求参数校验失败，exceptionType={}, message={}", exception.getClass().getSimpleName(), exception.getMessage());
+        LOG.debug("请求参数校验失败，exceptionType={}", exception.getClass().getSimpleName());
         return ResponseEntity.badRequest().body(Result.fail(CommonErrorCode.PARAM_NOT_VALID));
     }
 
