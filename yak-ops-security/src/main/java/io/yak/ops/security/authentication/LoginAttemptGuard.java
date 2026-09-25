@@ -1,5 +1,7 @@
 package io.yak.ops.security.authentication;
 
+import io.yak.ops.common.util.ObjectUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.security.config.YakSecurityProperties;
 import java.time.Clock;
 import java.time.Duration;
@@ -21,16 +23,16 @@ public final class LoginAttemptGuard {
     }
 
     LoginAttemptGuard(YakSecurityProperties.LoginSecurityProperties properties, Clock clock) {
-        if (properties == null) {
+        if (ObjectUtils.isNull(properties)) {
             throw new IllegalArgumentException("login security properties must not be null");
         }
-        if (clock == null) {
+        if (ObjectUtils.isNull(clock)) {
             throw new IllegalArgumentException("clock must not be null");
         }
         if (properties.getMaxFailureCount() < 1) {
             throw new IllegalArgumentException("max-failure-count must be greater than 0");
         }
-        if (properties.getLockDuration() == null
+        if (ObjectUtils.isNull(properties.getLockDuration())
                 || properties.getLockDuration().isNegative()
                 || properties.getLockDuration().isZero()) {
             throw new IllegalArgumentException("lock-duration must be greater than 0");
@@ -59,7 +61,7 @@ public final class LoginAttemptGuard {
 
     private boolean isBlocked(String key, Instant now) {
         FailureState state = failures.get(key);
-        if (state == null || state.blockedUntil == null) {
+        if (ObjectUtils.isNull(state) || ObjectUtils.isNull(state.blockedUntil)) {
             return false;
         }
         if (!now.isBefore(state.blockedUntil)) {
@@ -71,7 +73,7 @@ public final class LoginAttemptGuard {
 
     private void recordFailure(String key, Instant now) {
         failures.compute(key, (ignored, current) -> {
-            if (current == null || isLockExpired(current, now)) {
+            if (ObjectUtils.isNull(current) || isLockExpired(current, now)) {
                 current = new FailureState(0, null);
             }
             int count = current.count + 1;
@@ -81,7 +83,7 @@ public final class LoginAttemptGuard {
     }
 
     private static boolean isLockExpired(FailureState state, Instant now) {
-        return state.blockedUntil != null && !now.isBefore(state.blockedUntil);
+        return ObjectUtils.isNotNull(state.blockedUntil) && !now.isBefore(state.blockedUntil);
     }
 
     private static String key(String dimension, String value) {
@@ -89,11 +91,11 @@ public final class LoginAttemptGuard {
     }
 
     private static String normalizeUsername(String username) {
-        return username == null ? "<blank>" : username.trim().toLowerCase(Locale.ROOT);
+        return ObjectUtils.isNull(username) ? "<blank>" : username.trim().toLowerCase(Locale.ROOT);
     }
 
     private static String normalizeIp(String ipAddress) {
-        return ipAddress == null || ipAddress.trim().isEmpty() ? "<unknown>" : ipAddress.trim();
+        return StringUtils.isBlank(ipAddress) ? "<unknown>" : ipAddress.trim();
     }
 
     private record FailureState(int count, Instant blockedUntil) {}
