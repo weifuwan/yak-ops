@@ -19,7 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * Datasource Service 内部的插件发现与能力路由机制，不作为 Boot 或 HTTP 的业务入口。
+ * Datasource Service 内部的 Plugin 发现、类型解析和能力路由机制。
+ *
+ * <p>通过 ServiceLoader 注册当前运行时可用 Provider，并统一把 Plugin 异常映射为 DatasourceException；该组件不是 Boot 或 HTTP 的业务入口。</p>
  *
  * @author weifuwan
  * @since 2026-09-25
@@ -31,8 +33,10 @@ public class DataSourcePluginRegistry {
     @Resource
     private DataSourceSecretCodec secretCodec;
 
+    /** 按 canonical type 和兼容 alias 建立的只读 Plugin 路由表。 */
     private Map<String, DataSourcePlugin> plugins = Collections.emptyMap();
 
+    /** 启动时发现并校验当前 classpath 中可用的 Datasource Provider。 */
     @PostConstruct
     public void initialize() {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -101,6 +105,12 @@ public class DataSourcePluginRegistry {
         return secretCodec.maskSensitiveText(value);
     }
 
+    /**
+     * 从连接 JSON 中识别并规范化目标 Plugin 类型。
+     *
+     * @param connectionJson 数据源连接参数
+     * @return Plugin canonical type
+     */
     public String resolveConnectionType(String connectionJson) {
         try {
             JsonNode root = JsonUtils.readTree(connectionJson);

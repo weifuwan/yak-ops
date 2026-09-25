@@ -4,7 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * Datasource capability 的最小运行参数。
+ * Datasource Service Layer 的可调运行参数。
+ *
+ * <p>只承载真实运行时配置，不作为功能开关，也不重复持有应用自身数据库连接配置。</p>
  *
  * @author weifuwan
  * @since 2026-09-25
