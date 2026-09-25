@@ -10,9 +10,9 @@ Owns:
 - Datasource shared DTO / VO
 - cross-domain stable constants
 - Datasource enums
-- Security user/login DTO / VO / Enum contracts
+- Security user/login shared HTTP DTO / VO contracts
 - unified Result / ErrorCode / PageData contracts
-- shared business exception hierarchy under `io.yak.ops.common.exception`
+- cross-domain business exception base under `io.yak.ops.common.exception`
 - small shared infrastructure with no better owner
 
 ## Namespace
@@ -73,9 +73,9 @@ Common 中带字段的枚举统一保持不可变契约：
 ## Must
 
 - unified Result / ErrorCode / BusinessException / PageData Contract only has one implementation.
-- `BusinessException` and cross-capability exception types stay independent from HTTP/Spring Web.
+- `BusinessException` stays independent from HTTP/Spring Web and acts as the cross-domain exception base.
 - public shared objects remain behavior-free.
-- Security shared contracts use the `io.yak.ops.common` namespace; do not recreate copies under `yak-ops-security`.
+- Security HTTP DTO / VO may stay in Common when Boot and Security share them, but Security-specific error codes, exceptions and internal models must stay in `yak-ops-security`.
 - existing MyBatis shared configuration is reused where appropriate.
 
 ## Must Not
@@ -83,6 +83,7 @@ Common 中带字段的枚举统一保持不可变契约：
 - depend on external yak-framework modules.
 - put Datasource or Security business orchestration in Common.
 - put Datasource / Security domain constants in Common when they are not truly cross-domain contracts.
+- put Security-specific error codes, exceptions or internal domain models in Common.
 - put HTTP status or ControllerAdvice behavior into Common.
 - use Common as a miscellaneous dumping ground.
 - add root-level classes directly under `io.yak.ops.common`.
@@ -90,4 +91,4 @@ Common 中带字段的枚举统一保持不可变契约：
 
 ## Boundary
 
-Common stores stable shared data structures, shared exception contracts and small infrastructure only. HTTP exception mapping belongs to `yak-ops-boot`.
+Common stores stable cross-module DTO / VO contracts, cross-domain bases and small infrastructure only. Domain-specific exceptions and error codes belong to their capability owner; HTTP exception mapping belongs to `yak-ops-boot`.
