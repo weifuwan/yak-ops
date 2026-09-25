@@ -60,7 +60,7 @@ public class DataSourceSecretCodec {
             Map.Entry<String, JsonNode> field = fields.next();
             JsonNode value = field.getValue();
             if (isSecretKey(field.getKey(), configuredKeys)) {
-                object.put(field.getKey(), SensitiveTextMasker.MASKED_VALUE);
+                object.put(field.getKey(), SensitiveUtils.MASKED_VALUE);
             } else if (value != null && value.isObject()) {
                 maskObject((ObjectNode) value, configuredKeys);
             } else if (value != null && value.isArray()) {
@@ -145,7 +145,7 @@ public class DataSourceSecretCodec {
         if (value == null || value.isNull()) return true;
         if (!value.isTextual()) return false;
         String text = value.asText();
-        return text == null || text.trim().isEmpty() || SensitiveTextMasker.MASKED_VALUE.equals(text.trim());
+        return text == null || text.trim().isEmpty() || SensitiveUtils.MASKED_VALUE.equals(text.trim());
     }
 
     private ObjectNode readObject(String value) {
