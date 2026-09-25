@@ -2,9 +2,7 @@ package io.yak.ops.common.page;
 
 import java.util.ArrayList;
 import java.util.List;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,25 +27,16 @@ import lombok.ToString;
 @EqualsAndHashCode
 public class PagingData<T> {
 
-    /**
-     * 当前分页的业务数据列表。
-     */
+    /** 当前分页的业务数据列表。 */
     private List<T> bizData;
 
-    /**
-     * 分页信息。
-     */
-    private Pagination pagination;
+    /** 分页信息。 */
+    private PaginationData pagination;
 
-    /**
-     * 根据框架无关分页数据创建 HTTP 分页数据。
-     *
-     * @param pageData 业务分页数据
-     */
     public PagingData(PageData<T> pageData) {
         if (pageData == null) {
             this.bizData = new ArrayList<>();
-            this.pagination = Pagination.builder()
+            this.pagination = PaginationData.builder()
                     .total(0L)
                     .pages(0L)
                     .pageNo(1L)
@@ -56,7 +45,7 @@ public class PagingData<T> {
             return;
         }
         this.bizData = new ArrayList<>(pageData.records());
-        this.pagination = Pagination.builder()
+        this.pagination = PaginationData.builder()
                 .total(pageData.total())
                 .pages(pageData.pages())
                 .pageNo(pageData.pageNo())
@@ -64,50 +53,7 @@ public class PagingData<T> {
                 .build();
     }
 
-    /**
-     * 根据框架无关分页数据创建 HTTP 分页数据。
-     *
-     * @param pageData 业务分页数据
-     * @param <T> 业务数据类型
-     * @return HTTP 分页数据
-     */
     public static <T> PagingData<T> from(PageData<T> pageData) {
         return new PagingData<>(pageData);
-    }
-
-    /**
-     * 分页信息。
-     *
-     * <p>记录总数据量、总页数、当前页码和每页数据量。</p>
-     *
-     * @author weifuwan
-     */
-    @Getter
-    @Setter
-    @Builder
-    @ToString
-    @EqualsAndHashCode
-    @AllArgsConstructor(access = AccessLevel.PACKAGE)
-    public static class Pagination {
-
-        /**
-         * 数据总条数。
-         */
-        private long total;
-
-        /**
-         * 总页数。
-         */
-        private long pages;
-
-        /**
-         * 当前页码。
-         */
-        private long pageNo;
-
-        /**
-         * 每页数据条数。
-         */
-        private long pageSize;
     }
 }

@@ -1,6 +1,6 @@
 package io.yak.ops.business.datasource.plugin;
 
-import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO;
+import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginConfigVO;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
 import io.yak.ops.spi.datasource.DataSourceConnection;
 

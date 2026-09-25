@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
-import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO;
+import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginConfigVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
 import io.yak.ops.common.result.Result;
 import jakarta.annotation.Resource;

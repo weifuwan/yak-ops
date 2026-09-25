@@ -1,4 +1,4 @@
-package io.yak.ops.common.bean.vo.datasource;
+package io.yak.ops.common.bean.vo.datasource.catalog;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

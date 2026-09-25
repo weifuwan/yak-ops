@@ -8,10 +8,11 @@ import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogDiagnosticsVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogOptionVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
+import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogColumnVO;
+import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogDiagnosticsVO;
+import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogOperationVO;
+import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogOptionVO;
+import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogTableVO;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
@@ -209,7 +210,7 @@ public class DataSourceCatalogBusinessImpl implements DataSourceCatalogBusiness 
 
     private DataSourceCatalogDiagnosticsVO toDiagnosticsVO(DataSourceCatalogDiagnostics.Snapshot snapshot) {
         var operations = snapshot.operations().stream()
-                .map(operation -> new DataSourceCatalogDiagnosticsVO.OperationVO(
+                .map(operation -> new DataSourceCatalogOperationVO(
                         operation.operation(),
                         operation.total(),
                         operation.failures(),

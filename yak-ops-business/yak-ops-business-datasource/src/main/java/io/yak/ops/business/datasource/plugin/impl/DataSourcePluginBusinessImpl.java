@@ -6,13 +6,13 @@ import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
 import io.yak.ops.business.datasource.plugin.DataSourceSecretCodec;
-import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.FormFieldVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.FormSectionVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.JdbcUrlLinkageVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.OptionVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.RuleVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.VisibilityConditionVO;
+import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginConfigVO;
+import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginFormFieldVO;
+import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginFormOptionVO;
+import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginFormRuleVO;
+import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginFormSectionVO;
+import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginJdbcUrlLinkageVO;
+import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginVisibilityConditionVO;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
@@ -249,8 +249,8 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
                 .build();
     }
 
-    private FormSectionVO toSectionVO(DataSourcePluginDescriptor.FormSection source) {
-        return FormSectionVO.builder()
+    private DataSourcePluginFormSectionVO toSectionVO(DataSourcePluginDescriptor.FormSection source) {
+        return DataSourcePluginFormSectionVO.builder()
                 .key(source.key())
                 .title(source.title())
                 .description(source.description())
@@ -260,34 +260,34 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
                 .build();
     }
 
-    private FormFieldVO toFieldVO(DataSourcePluginDescriptor.FormField source) {
-        return FormFieldVO.builder()
+    private DataSourcePluginFormFieldVO toFieldVO(DataSourcePluginDescriptor.FormField source) {
+        return DataSourcePluginFormFieldVO.builder()
                 .key(source.key())
                 .label(source.label())
                 .type(source.type().name())
                 .placeholder(source.placeholder())
                 .defaultValue(source.defaultValue())
                 .options(source.options().stream()
-                        .map(value -> new OptionVO(value.label(), value.value()))
+                        .map(value -> new DataSourcePluginFormOptionVO(value.label(), value.value()))
                         .toList())
                 .rules(source.rules().stream()
-                        .map(value -> new RuleVO(
+                        .map(value -> new DataSourcePluginFormRuleVO(
                                 value.required(), value.pattern(), value.min(), value.max(), value.message()))
                         .toList())
                 .dependsOn(source.dependsOn())
                 .visibleWhen(source.visibleWhen().stream()
-                        .map(value -> new VisibilityConditionVO(
+                        .map(value -> new DataSourcePluginVisibilityConditionVO(
                                 value.field(), value.operator().name(), value.value(), value.values()))
                         .toList())
                 .urlLinkage(toLinkageVO(source.jdbcUrlLinkage()))
                 .build();
     }
 
-    private JdbcUrlLinkageVO toLinkageVO(DataSourcePluginDescriptor.JdbcUrlLinkage source) {
+    private DataSourcePluginJdbcUrlLinkageVO toLinkageVO(DataSourcePluginDescriptor.JdbcUrlLinkage source) {
         if (source == null) {
             return null;
         }
-        return JdbcUrlLinkageVO.builder()
+        return DataSourcePluginJdbcUrlLinkageVO.builder()
                 .template(source.template())
                 .hostField(source.hostField())
                 .portField(source.portField())
