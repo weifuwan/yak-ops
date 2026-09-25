@@ -130,7 +130,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
                 dto.getPageSize(),
                 normalizeNullable(dto.getName()),
                 normalizeNullable(dto.getKeyword()),
-                StringUtils.hasText(dto.getDbType()) ? parseDbType(dto.getDbType()) : null,
+                StringUtils.hasText(dto.getDbType()) ? pluginBusiness.resolvePluginType(dto.getDbType()) : null,
                 StringUtils.hasText(dto.getEnvironment()) ? parseEnvironment(dto.getEnvironment()) : null,
                 StringUtils.hasText(dto.getConnStatus()) ? parseConnectionStatus(dto.getConnStatus()) : null);
         return PagingData.from(repository.queryPage(query).map(value -> toDataSourceVO(value, false)));
@@ -197,7 +197,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
                     .normalizedJson();
         } else {
             dbType = StringUtils.hasText(dto.getDbType())
-                    ? parseDbType(dto.getDbType())
+                    ? pluginBusiness.resolvePluginType(dto.getDbType())
                     : pluginBusiness.resolveConnectionType(connectionJson);
         }
 
