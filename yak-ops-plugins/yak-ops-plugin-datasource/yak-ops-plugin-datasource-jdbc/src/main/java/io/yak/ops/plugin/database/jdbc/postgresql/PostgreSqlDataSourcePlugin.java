@@ -12,18 +12,8 @@ public final class PostgreSqlDataSourcePlugin extends AbstractJdbcDataSourcePlug
     }
 
     @Override
-    protected String displayName() {
-        return "PostgreSQL";
-    }
-
-    @Override
     protected java.util.Set<String> aliases() {
         return java.util.Set.of("POSTGRESQL", "POSTGRES");
-    }
-
-    @Override
-    protected String jdbcUrlTemplate() {
-        return "jdbc:postgresql://{host}:{port}/{database}";
     }
 
     @Override

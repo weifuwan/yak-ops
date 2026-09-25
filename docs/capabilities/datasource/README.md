@@ -36,6 +36,8 @@ Create / Edit / Delete / Test Connection
 
 Backend JDBC Plugin stays extensible, but the frontend is not a plugin platform.
 
+Plugin Descriptor V3 is runtime-only metadata: canonical type, aliases, API version, capabilities and secret field keys. Frontend labels, sections, validation rules and JDBC URL form linkage are not backend plugin contracts.
+
 ## Backend Flow
 
 ```text
