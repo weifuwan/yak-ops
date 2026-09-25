@@ -64,9 +64,11 @@ Reserved empty module.
 
 ### `yak-ops-business`
 
-Owns the application Service Layer. Each stable capability exposes `XxxBusiness` interfaces and keeps Spring implementation, transactions, validation and DAO/Plugin orchestration in `impl/XxxBusinessImpl`.
+Owns the application Service Layer. Stable capabilities expose one public Service Layer interface and keep Spring implementation, transactions, validation and DAO/Plugin orchestration in `impl`.
 
-Boot depends on Business interfaces. Business public contracts use shared DTO / VO types and do not expose DAO Entity, Mapper, Repository Query or concrete Plugin implementation details.
+The default naming is `XxxBusiness + XxxBusinessImpl`; a capability may explicitly choose `XxxService + XxxServiceImpl` in its nearest rules. A capability must not keep both names for the same boundary.
+
+Boot depends on stable Service Layer interfaces. Public contracts use shared DTO / VO types and do not expose DAO Entity, Mapper, Repository Query or concrete Plugin implementation details.
 
 Detailed rules are defined in `yak-ops-business/BUSINESS_RULES.md`.
 
@@ -74,13 +76,15 @@ Detailed rules are defined in `yak-ops-business/BUSINESS_RULES.md`.
 
 Owns only the current Datasource product behavior:
 
-- datasource management and connection testing
-- datasource Catalog metadata browsing
-- datasource plugin discovery, connection parsing and secret handling
+- datasource CRUD, paging, detail and temporary summary compatibility
+- datasource connection testing
+- internal datasource plugin discovery, connection parsing and secret handling
 
-The module intentionally does not own SQL execution, SQL audit, a duplicate Domain layer or a Gateway adapter layer.
+Datasource exposes exactly one public Service Layer entry: `DataSourceService`. Plugin discovery and secret handling are internal mechanisms behind `DataSourceServiceImpl`.
 
-Datasource follows the common Business Layer contract and may use DAO persistence and stable Datasource Plugin SPI only behind Business implementations.
+The module intentionally does not own Catalog HTTP/Business APIs, SQL execution, SQL audit, a duplicate Domain layer or a Gateway adapter layer.
+
+Datasource may use DAO persistence and the stable Datasource Plugin SPI only behind `DataSourceServiceImpl`.
 
 Datasource does not own Controller, ControllerAdvice, connection-pool assembly or MyBatis runtime configuration. Boot exposes Datasource HTTP APIs and supplies application infrastructure.
 
@@ -96,7 +100,7 @@ The active plugin surface is limited to:
 
 SQL execution/query contracts are not part of the current plugin boundary.
 
-Datasource Providers are an open extension set. A Provider owns its stable string type, display name and compatibility aliases through the Plugin descriptor. Common and Business do not enumerate all supported database types; adding a Provider must not require a core enum change.
+Datasource Providers are an open extension set. A Provider owns its stable string type, display name and compatibility aliases through the Plugin descriptor. Common and Service Layer code do not enumerate all supported database types; adding a Provider must not require a core enum change.
 
 ### `yak-ops-boot`
 
@@ -119,7 +123,7 @@ Hard boundary:
 
 - every Yak Ops `@Controller` / `@RestController` lives in `yak-ops-boot`
 - every Yak Ops Controller package lives under `io.yak.ops.boot.controller`
-- Controller depends on Business interfaces rather than BusinessImpl / DAO / Plugin internals
+- Controller depends on stable Service Layer interfaces rather than Impl / DAO / Plugin internals
 - application-wide Spring infrastructure configuration lives in `yak-ops-boot`
 - capability modules must not depend on Boot
 
@@ -149,7 +153,7 @@ UI
 Boot
  ├────────→ Security ─────────────→ Common
  │              └───────────────→ DAO ─→ Common
- └────────→ Datasource Business ─→ Common
+ └────────→ DataSourceService ───→ Common
                 │
                 ├───────────────→ DAO ─→ Common
                 └───────────────→ Datasource Plugin API

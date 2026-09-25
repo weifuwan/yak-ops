@@ -32,8 +32,8 @@ Boot owns HTTP. DAO owns persistence mechanics. Plugin implementations own provi
 
 ## Must
 
-- 每个稳定业务领域或主能力边界维护一个 Business 接口。
-- 使用 `XxxBusiness + impl/XxxBusinessImpl`。
+- 每个稳定业务领域或主能力边界维护一个 Service Layer 接口。
+- 默认使用 `XxxBusiness + impl/XxxBusinessImpl`；最近的 capability rules 可以显式选择 `XxxService + impl/XxxServiceImpl`，同一能力禁止同时保留 Business/Service 两套入口。
 - Spring 实现注解只放在 Impl；Controller 和其他 Business 只依赖接口。
 - BusinessImpl 只直接访问本领域 Repository；跨领域协作通过其他 Business 接口。
 - Spring 依赖统一使用 `@Resource` 和接口类型。
@@ -77,22 +77,16 @@ Boot owns HTTP. DAO owns persistence mechanics. Plugin implementations own provi
     XxxBusinessImpl.java
 ```
 
-子能力存在独立业务 Contract 时可以继续分包：
+最近的 capability rules 明确采用 Service 命名时：
 
 ```text
-datasource/
-  DataSourceBusiness.java
+<capability>/
+  XxxService.java
   impl/
-    DataSourceBusinessImpl.java
-  catalog/
-    DataSourceCatalogBusiness.java
-    impl/
-      DataSourceCatalogBusinessImpl.java
-  plugin/
-    DataSourcePluginBusiness.java
-    impl/
-      DataSourcePluginBusinessImpl.java
+    XxxServiceImpl.java
 ```
+
+同一个 capability 不得为了兼容同时保留 `XxxBusiness` 与 `XxxService`。
 
 `config / exception` 等包只有在 capability 确实拥有对应职责时存在。
 
