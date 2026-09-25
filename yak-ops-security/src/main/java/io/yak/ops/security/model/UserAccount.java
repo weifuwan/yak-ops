@@ -1,16 +1,21 @@
 package io.yak.ops.security.model;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.ToString;
 
-/** Internal user account model used by the Security runtime. */
+/**
+ * Security 运行时使用的内部用户账号模型。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @Data
 public class UserAccount {
 
     private Long id;
-    private Date createTime;
-    private Date updateTime;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
     private Boolean isDelete = false;
     private String userName;
 
