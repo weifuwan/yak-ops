@@ -1,7 +1,6 @@
 package io.yak.ops.business.datasource.impl;
 
 import io.yak.ops.business.datasource.DataSourceService;
-import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.plugin.DataSourcePluginRegistry;
@@ -28,7 +27,6 @@ import org.springframework.util.StringUtils;
  * @since 2026-09-25
  */
 @Service
-@ConditionalOnDataSourceEnabled
 public class DataSourceServiceImpl implements DataSourceService {
 
     @Resource
