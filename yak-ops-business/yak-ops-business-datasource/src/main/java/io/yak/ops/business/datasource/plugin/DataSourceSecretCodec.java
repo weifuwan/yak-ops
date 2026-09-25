@@ -42,7 +42,6 @@ public class DataSourceSecretCodec {
     @Resource
     private ObjectMapper objectMapper;
 
-
     public String maskConnectionJson(DataSourcePluginDescriptor descriptor, String connectionJson) {
         if (connectionJson == null || connectionJson.trim().isEmpty()) return null;
         ObjectNode root = readObject(connectionJson);
