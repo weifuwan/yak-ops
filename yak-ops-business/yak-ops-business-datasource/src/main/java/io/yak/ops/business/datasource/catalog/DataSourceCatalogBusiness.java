@@ -1,8 +1,6 @@
 package io.yak.ops.business.datasource.catalog;
 
 import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogColumnVO;
-import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogDiagnosticsVO;
-import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogOptionVO;
 import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogTableVO;
 import java.util.List;
 
@@ -14,8 +12,6 @@ import java.util.List;
  */
 public interface DataSourceCatalogBusiness {
 
-    DataSourceCatalogDiagnosticsVO queryDiagnostics();
-
     List<String> queryDatabases(String dataSourceId);
 
     List<String> querySchemas(String dataSourceId, String database);
@@ -26,8 +22,4 @@ public interface DataSourceCatalogBusiness {
             String dataSourceId, String database, String schema, String keyword, Integer limit);
 
     List<DataSourceCatalogColumnVO> queryColumns(String dataSourceId, String database, String schema, String table);
-
-    List<DataSourceCatalogOptionVO> queryTableOptions(String dataSourceId);
-
-    List<DataSourceCatalogOptionVO> queryTableOptions(String dataSourceId, String matchMode, String keyword);
 }

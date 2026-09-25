@@ -9,9 +9,9 @@ import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.mapper.datasource.DataSourceMapper;
 import io.yak.ops.dao.model.datasource.DataSourceSummaryRow;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
+import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
 import io.yak.ops.dao.repository.impl.BaseRepositoryImpl;
 import jakarta.annotation.Resource;
-import java.util.List;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
@@ -35,8 +35,8 @@ public class DataSourceEntityRepositoryImpl
     }
 
     @Override
-    public PageData<DataSourceEntity> queryPage(PageQuery query) {
-        PageQuery condition = query == null ? new PageQuery(1, 10, null, null, null, null, null) : query;
+    public PageData<DataSourceEntity> queryPage(DataSourcePageQuery query) {
+        DataSourcePageQuery condition = query == null ? new DataSourcePageQuery(1, 10, null, null, null, null, null) : query;
         Page<DataSourceEntity> page =
                 Page.of(Math.max(1, condition.pageNo()), Math.max(1, condition.pageSize()));
         IPage<DataSourceEntity> result = dataSourceMapper.selectPage(
@@ -46,14 +46,6 @@ public class DataSourceEntityRepositoryImpl
                         .orderByDesc(DataSourceEntity::getId));
         return new PageData<>(
                 result.getRecords(), result.getTotal(), result.getPages(), result.getCurrent(), result.getSize());
-    }
-
-    @Override
-    public List<DataSourceEntity> queryAll(String dbType) {
-        return dataSourceMapper.selectList(Wrappers.<DataSourceEntity>lambdaQuery()
-                .eq(dbType != null, DataSourceEntity::getDbType, dbType)
-                .orderByAsc(DataSourceEntity::getName)
-                .orderByAsc(DataSourceEntity::getId));
     }
 
     @Override
@@ -70,7 +62,7 @@ public class DataSourceEntityRepositoryImpl
         return count != null && count > 0;
     }
 
-    private LambdaQueryWrapper<DataSourceEntity> queryWrapper(PageQuery query) {
+    private LambdaQueryWrapper<DataSourceEntity> queryWrapper(DataSourcePageQuery query) {
         LambdaQueryWrapper<DataSourceEntity> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(query.keyword())) {
             wrapper.and(nested -> nested.like(DataSourceEntity::getName, query.keyword())

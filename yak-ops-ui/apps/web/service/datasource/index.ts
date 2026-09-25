@@ -46,9 +46,6 @@ export const getDataSourceSummary = (): Promise<DataSourceSummary> =>
 export const getDataSource = (id: DataSourceId): Promise<DataSourceRecord> =>
   HttpUtils.getData<DataSourceRecord>(`${DATA_SOURCE_API_PREFIX}/${id}`);
 
-export const listAllDataSources = (): Promise<DataSourcePageResult> =>
-  HttpUtils.getData<DataSourcePageResult>(`${DATA_SOURCE_API_PREFIX}/all`);
-
 export const createDataSource = async (
   payload: DataSourceSavePayload,
 ): Promise<void> => {
@@ -81,11 +78,6 @@ export const testDataSourceConnectionWithParams = (
   HttpUtils.postData<boolean>(
     `${DATA_SOURCE_API_PREFIX}/connect-test-with-param`,
     payload,
-  );
-
-export const listDataSourceOptions = (dbType?: string): Promise<unknown[]> =>
-  HttpUtils.getData<unknown[]>(
-    `${DATA_SOURCE_API_PREFIX}/option${queryString({ dbType })}`,
   );
 
 export const getDataSourcePluginConfig = (

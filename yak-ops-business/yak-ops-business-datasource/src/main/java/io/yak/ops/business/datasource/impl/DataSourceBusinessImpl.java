@@ -9,19 +9,17 @@ import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
-import io.yak.ops.common.page.PageData;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.model.datasource.DataSourceSummaryRow;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
+import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
 import jakarta.annotation.Resource;
-import java.util.List;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -128,7 +126,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         if (dto.getSorts() != null && !dto.getSorts().isEmpty()) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "数据源分页暂不支持自定义排序");
         }
-        DataSourceEntityRepository.PageQuery query = new DataSourceEntityRepository.PageQuery(
+        DataSourcePageQuery query = new DataSourcePageQuery(
                 dto.getPageNo(),
                 dto.getPageSize(),
                 normalizeNullable(dto.getName()),
@@ -142,22 +140,6 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
     @Override
     public DataSourceSummaryVO queryDataSourceSummary() {
         return toSummaryVO(repository.querySummary());
-    }
-
-    @Override
-    public PagingData<DataSourceVO> queryAllDataSources() {
-        List<DataSourceVO> records = repository.queryAll(null).stream()
-                .map(value -> toDataSourceVO(value, false))
-                .toList();
-        long pages = records.isEmpty() ? 0L : 1L;
-        long pageSize = Math.max(1, records.size());
-        return PagingData.from(new PageData<>(records, records.size(), pages, 1L, pageSize));
-    }
-
-    @Override
-    public List<DataSourceOptionVO> queryDataSourceOptions(String dbType) {
-        String type = StringUtils.hasText(dbType) ? pluginBusiness.resolvePluginType(dbType) : null;
-        return repository.queryAll(type).stream().map(this::toOptionVO).toList();
     }
 
     @Override
@@ -290,13 +272,6 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
             target.setOriginalJson(pluginBusiness.maskConnectionJson(source.getDbType(), source.getOriginalJson()));
         }
         return target;
-    }
-
-    private DataSourceOptionVO toOptionVO(DataSourceEntity source) {
-        return new DataSourceOptionVO(
-                source.getName(),
-                String.valueOf(source.getId()),
-                source.getDbType());
     }
 
     private DataSourceSummaryVO toSummaryVO(DataSourceSummaryRow source) {

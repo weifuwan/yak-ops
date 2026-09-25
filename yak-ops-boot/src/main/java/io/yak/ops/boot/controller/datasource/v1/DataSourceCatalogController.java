@@ -5,8 +5,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.business.datasource.catalog.DataSourceCatalogBusiness;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogColumnVO;
-import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogDiagnosticsVO;
-import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogOptionVO;
 import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogTableVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
 import io.yak.ops.common.result.Result;
@@ -32,12 +30,6 @@ public class DataSourceCatalogController {
 
     @Resource
     private DataSourceCatalogBusiness catalogBusiness;
-
-    @Operation(summary = "查询 Catalog 运行诊断")
-    @GetMapping("/diagnostics")
-    public Result<DataSourceCatalogDiagnosticsVO> diagnostics() {
-        return Result.success(catalogBusiness.queryDiagnostics());
-    }
 
     @Operation(summary = "查询数据库列表")
     @GetMapping("/{id}/databases")
@@ -82,20 +74,5 @@ public class DataSourceCatalogController {
             @RequestParam(value = "schema", required = false) String schema,
             @RequestParam("table") String table) {
         return Result.success(catalogBusiness.queryColumns(id, database, schema, table));
-    }
-
-    @Operation(summary = "查询数据源表选项")
-    @GetMapping("/list/{id}")
-    public Result<List<DataSourceCatalogOptionVO>> listTable(@PathVariable("id") String id) {
-        return Result.success(catalogBusiness.queryTableOptions(id));
-    }
-
-    @Operation(summary = "按匹配模式查询数据源表")
-    @GetMapping("/listByMatchMode/{id}")
-    public Result<List<DataSourceCatalogOptionVO>> listTableReference(
-            @PathVariable("id") String id,
-            @RequestParam(value = "matchMode", required = false) String matchMode,
-            @RequestParam(value = "keyword", required = false) String keyword) {
-        return Result.success(catalogBusiness.queryTableOptions(id, matchMode, keyword));
     }
 }

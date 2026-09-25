@@ -7,7 +7,6 @@ import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
@@ -15,7 +14,6 @@ import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,7 +22,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -76,20 +73,6 @@ public class DataSourceController {
     @GetMapping("/summary")
     public Result<DataSourceSummaryVO> summary() {
         return Result.success(dataSourceBusiness.queryDataSourceSummary());
-    }
-
-    @Operation(summary = "查询全部数据源")
-    @RequestMapping(
-            value = "/all",
-            method = {RequestMethod.GET, RequestMethod.POST})
-    public Result<PagingData<DataSourceVO>> all() {
-        return Result.success(dataSourceBusiness.queryAllDataSources());
-    }
-
-    @Operation(summary = "查询数据源下拉选项")
-    @GetMapping("/option")
-    public Result<List<DataSourceOptionVO>> option(@RequestParam(value = "dbType", required = false) String dbType) {
-        return Result.success(dataSourceBusiness.queryDataSourceOptions(dbType));
     }
 
     @Operation(summary = "测试已保存数据源连接")

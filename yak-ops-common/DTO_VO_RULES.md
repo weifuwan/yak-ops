@@ -82,6 +82,22 @@ Must Not:
 
 文件数量不是抽象目标。是否创建 VO 取决于它是否拥有稳定 HTTP 响应语义；不应为 Entity、SPI 或内部 Model 机械镜像 VO。
 
+## VO Usage Lifecycle
+
+VO 不是“先建着以后可能会用”的占位类型。
+
+Must:
+- 新增 VO 前必须能指出具体 HTTP Response Contract，以及当前产品能力为什么需要这个独立响应结构。
+- 当对应 Controller API 被删除时，同一变更中删除只为该 API 服务的 VO、Business 映射和无调用 Repository 路径。
+- 内部诊断、缓存统计、SPI Model 如果不需要作为产品 HTTP Contract，就保留在 owner 模块内部，不复制为 Common VO。
+- 下拉、Option、Summary 等专用 VO 只有存在真实独立响应语义时才保留。
+
+Must Not:
+- 为“以后可能有页面”提前创建 VO。
+- 为旧兼容接口保留当前产品没有调用方的 OptionVO / WrapperVO。
+- 为内部 Snapshot、Metric、Cache Model 机械创建 HTTP VO。
+- 只删除 Controller 方法，却留下无人调用的 VO、转换方法和 Repository 查询。
+
 ## DTO Contract
 
 DTO 用于 Controller 输入以及 Business / Service 的请求参数。
