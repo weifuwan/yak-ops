@@ -2,7 +2,6 @@ package io.yak.ops.dao.repository.datasource;
 
 import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
-import io.yak.ops.dao.model.datasource.DataSourceSummaryRow;
 import io.yak.ops.dao.repository.BaseRepository;
 
 /**
@@ -15,9 +14,6 @@ public interface DataSourceEntityRepository extends BaseRepository<DataSourceEnt
 
     /** 按数据源筛选条件查询分页数据。 */
     PageData<DataSourceEntity> queryPage(DataSourcePageQuery query);
-
-    /** 查询数据源统计聚合结果。 */
-    DataSourceSummaryRow querySummary();
 
     /** 判断数据源名称是否已被占用，可排除当前数据源 ID。 */
     boolean existsByName(String name, String excludeId);
