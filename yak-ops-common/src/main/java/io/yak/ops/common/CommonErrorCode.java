@@ -1,8 +1,16 @@
 package io.yak.ops.common;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
 /**
  * 统一响应构建所需的最小公共错误码集合。
+ *
+ * @author weifuwan
+ * @since 2026-09-25
  */
+@Getter
+@RequiredArgsConstructor
 public enum CommonErrorCode implements ErrorCode {
     SUCCESS(200, "成功"),
     COMMON_FAIL(999, "失败"),
@@ -12,19 +20,4 @@ public enum CommonErrorCode implements ErrorCode {
 
     private final Integer code;
     private final String message;
-
-    CommonErrorCode(Integer code, String message) {
-        this.code = code;
-        this.message = message;
-    }
-
-    @Override
-    public Integer getCode() {
-        return code;
-    }
-
-    @Override
-    public String getMessage() {
-        return message;
-    }
 }

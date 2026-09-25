@@ -4,7 +4,12 @@ import java.util.Locale;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/** 数据源所属环境。 */
+/**
+ * 数据源所属运行环境。
+ *
+ * @author weifuwan
+ * @since 2026-09-25
+ */
 @Getter
 @RequiredArgsConstructor
 public enum DataSourceEnvironment {

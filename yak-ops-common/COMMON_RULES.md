@@ -20,6 +20,19 @@ All shared Common contracts use the `io.yak.ops.common` namespace. Shared except
 
 Do not recreate the legacy `io.yak.ops.common` compatibility package.
 
+## Enum Contracts
+
+Common 中带字段的枚举统一保持不可变契约：
+
+- 使用 `@Getter` + `@RequiredArgsConstructor`，不手写纯样板 constructor / getter。
+- 枚举字段使用 `private final`。
+- ErrorCode 枚举统一使用 `code` / `message`。
+- 普通业务枚举的展示文案统一使用 `displayName`；业务标识字段使用明确名称，例如 `code`。
+- 枚举常量本身表达 Java 语义，数据库存储值属于 Persistence Contract。
+- 只有数据库列、Flyway、Entity 和查询逻辑在同一个变更中完成迁移时，才允许给持久化字段增加 `@EnumValue` 或等价映射。
+
+禁止为了减少几行代码提前改变枚举的数据库存储语义。
+
 ## Must
 
 - unified Result / ErrorCode / BusinessException / PageData Contract only has one implementation.
