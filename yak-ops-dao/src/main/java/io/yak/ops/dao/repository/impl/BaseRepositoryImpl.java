@@ -12,8 +12,7 @@ import java.util.Optional;
 /**
  * 基于 MyBatis-Plus BaseMapper 的 Repository 通用实现。
  */
-public abstract class BaseRepositoryImpl<M extends BaseMapper<T>, T extends BaseEntity>
-        implements BaseRepository<T> {
+public abstract class BaseRepositoryImpl<M extends BaseMapper<T>, T extends BaseEntity> implements BaseRepository<T> {
 
     protected abstract M mapper();
 
