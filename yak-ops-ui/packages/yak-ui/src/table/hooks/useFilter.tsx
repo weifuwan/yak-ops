@@ -8,7 +8,6 @@ import type {
   TableColumns,
   TableFilterItem,
   TableFilters,
-  TableFilterValue,
 } from "../interface";
 import { getTableColumnKey, stringifyTableColumnKey } from "../utils";
 
