@@ -28,7 +28,7 @@ io.yak.ops.common.exception  → shared business exceptions
 io.yak.ops.common.bean       → shared DTO / VO
 io.yak.ops.common.enums      → shared enums, including enums/common/CommonErrorCode
 io.yak.ops.common.constant   → CommonConstants for cross-domain stable constants
-io.yak.ops.common.util       → reusable stateless utilities such as DateUtils / IdUtils / JsonUtils / SensitiveUtils
+io.yak.ops.common.util       → reusable stateless utilities such as DateUtils / IdUtils / StringUtils / ObjectUtils / CollectionUtils / BeanCopyUtils / JSONUtils
 ```
 
 Do not place production Java types directly under `io.yak.ops.common`. New shared types must have an explicit owner package.
@@ -49,8 +49,10 @@ DTO / VO 变更必须同时加载 [DTO_VO_RULES.md](./DTO_VO_RULES.md)。该文�
 
 ## Utility Boundary
 
-- JSON 解析、JSON tree 创建和 JSON 序列化统一通过 `JsonUtils`；Business / Plugin 不得自行 `new ObjectMapper()` 或重复维护 mapper。
-- 通用 URL、连接串和错误文本凭证遮罩统一通过 `SensitiveUtils`。
+- 字符串空白和 trim-to-null 统一由 `StringUtils` 提供。
+- 对象 null 语义统一由 `ObjectUtils` 提供；集合 empty 语义统一由 `CollectionUtils` 提供。
+- 简单同名属性复制统一由 `BeanCopyUtils` 提供，不在 Security / Datasource 重复创建 Bean copy utility。
+- JSON 解析、JSON tree 创建和 JSON 序列化统一通过 `JSONUtils`；领域代码不得自行维护通用 parser / writer。
 - Common Utils 必须保持无领域编排、无 HTTP 语义、无 DAO 依赖；领域异常转换留在领域 owner。
 - 业务代码可以操作 `JsonNode` 表达领域逻辑，但 JSON parser / writer ownership 必须收口到 Common。
 
