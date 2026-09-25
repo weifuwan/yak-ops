@@ -127,6 +127,26 @@ Must Not:
 
 Existing implementation-only nested types are migration debt and must not be expanded. Configuration holder、private cache state 等遗留内部类型可在后续独立重构中清理，不应作为新增 nested type 的先例。
 
+## Null / Blank / Collection Handling
+
+空值语义必须统一，避免每个领域重复维护自己的 `isBlank / normalize / requireText`。
+
+Must:
+- 字符串空白判断统一使用 `io.yak.ops.common.util.StringUtils.isBlank / isNotBlank`。
+- 需要把空白字符串归一化为 `null` 时统一使用 `StringUtils.trimToNull`。
+- 集合空判断统一使用 `io.yak.ops.common.util.CollectionUtils.isEmpty / isNotEmpty`。
+- 需要统一表达对象空值时使用 `io.yak.ops.common.util.ObjectUtils.isNull / isNotNull`；需要保留 JDK 非空断言语义时使用 `ObjectUtils.requireNonNull`。
+- 简单同名 Bean 属性复制统一使用 `BeanCopyUtils`，领域代码不得重复创建 `CopyBeanUtil / BeanUtil`。
+- 通用 JSON parse / serialize 统一使用 `JSONUtils`；领域 owner 负责把通用 JSON 异常转换成自己的业务异常。
+
+Must Not:
+- 在业务模块重复实现 `value == null || value.trim().isEmpty()`、`hasText` 包装或 `trimToNull` 私有方法。
+- 为普通判空创建 capability-local Utils。
+- 为通用 JSON 解析自行维护新的 `ObjectMapper`。
+- 用 Common Utils 承载领域校验文案、错误码或业务异常转换。
+
+`Objects.equals`、`instanceof`、明确的状态比较等 JDK 语义不需要为了“统一”再包一层。
+
 ## Methods
 
 - A method should express one clear operation.
