@@ -1,0 +1,69 @@
+name: Quality Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-quality:
+    name: Backend Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Spotless check
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
+          com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
+
+      - name: Backend compile
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-ui,!yak-ops-dist'
+          compile
+
+  frontend-quality:
+    name: Frontend Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: yak-ops-ui
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22.13"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Frontend check
+        run: npm run check
+
+      - name: Frontend build
+        run: npm run build
