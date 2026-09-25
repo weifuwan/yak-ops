@@ -1,11 +1,6 @@
 import { useState, type Key } from "react";
 
-import type {
-  TableColumn,
-  TableColumns,
-  TableSorterResult,
-  TableSortOrder,
-} from "../interface";
+import type { TableColumn, TableColumns, TableSorterResult, TableSortOrder } from "../interface";
 import { getTableColumnKey } from "../utils";
 
 const DEFAULT_SORT_DIRECTIONS = ["ascend", "descend"] as const;
@@ -63,7 +58,8 @@ export function useSorter<RecordType extends object>(
     controlledColumn == null ? undefined : getTableColumnKey(controlledColumn, controlledIndex);
 
   const activeKey = controlledColumn == null ? innerSorter.columnKey : controlledKey;
-  const activeOrder = controlledColumn == null ? innerSorter.order : controlledColumn.sortOrder ?? null;
+  const activeOrder =
+    controlledColumn == null ? innerSorter.order : (controlledColumn.sortOrder ?? null);
 
   const activeIndex = columns.findIndex(
     (column, index) => column.sorter && getTableColumnKey(column, index) === activeKey,
@@ -143,8 +139,7 @@ export function useSorter<RecordType extends object>(
     const resolvedColumn =
       resolvedSorter.column ??
       columns.find(
-        (column, index) =>
-          getTableColumnKey(column, index) === resolvedSorter.columnKey,
+        (column, index) => getTableColumnKey(column, index) === resolvedSorter.columnKey,
       );
     const resolvedOrder = resolvedSorter.order ?? null;
 
