@@ -15,45 +15,41 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
       aria-label="全局产品一级菜单"
       aria-hidden={!open}
       className={[
-        "fixed bottom-0 left-0 top-10 z-40 flex w-48 flex-col bg-[#171a1e] text-white shadow-[8px_0_24px_rgba(0,0,0,0.2)]",
-        "will-change-transform transition-transform duration-200 ease-out motion-reduce:transition-none",
-        open ? "translate-x-0" : "-translate-x-full pointer-events-none",
+        "user-menu fixed bottom-0 left-0 top-10 z-40 flex w-[220px] flex-col bg-[#15181c] text-xs text-white",
+        "box-border transform-gpu transition-transform duration-300 ease-in-out motion-reduce:transition-none",
+        open ? "user-menu-active translate-x-0" : "-translate-x-[220px] pointer-events-none",
       ].join(" ")}
     >
-      <nav className="space-y-1 p-2" aria-label="产品菜单">
+      <div className="view-all mb-[7px] flex h-10 shrink-0 cursor-pointer items-center text-[#d3d3d3] hover:bg-[#1c1e21] hover:text-white">
+        <span className="text ml-[14px] min-w-0 flex-1 truncate">全部产品</span>
+        <span className="right mr-3 flex shrink-0 items-center">
+          <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+        </span>
+      </div>
+
+      <div className="item-list min-h-0 flex-1 overflow-y-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {GLOBAL_PRODUCT_MENU.map((item) => {
           const Icon = item.icon;
-          const itemClassName =
-            "flex h-10 w-full cursor-pointer items-center gap-3 rounded-md px-3 text-left text-sm text-white/68 transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20";
-
-          if (item.path) {
-            return (
-              <Link
-                key={item.id}
-                to={item.path}
-                tabIndex={open ? 0 : -1}
-                className={itemClassName}
-                onClick={onClose}
-              >
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-                <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-white/28" />
-              </Link>
-            );
-          }
 
           return (
-            <div
+            <Link
               key={item.id}
-              className="flex h-10 items-center gap-3 rounded-md px-3 text-sm text-white/68"
+              to={item.path}
+              tabIndex={open ? 0 : -1}
+              className="item group relative my-0.5 flex h-8 w-full cursor-pointer items-center rounded px-1.5 text-[#cbced3] transition-colors hover:bg-[#282b2e] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+              onClick={onClose}
             >
-              <Icon className="h-4 w-4 shrink-0" strokeWidth={1.8} />
-              <span className="min-w-0 flex-1 truncate">{item.label}</span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-white/28" />
-            </div>
+              <span className="info flex min-w-0 flex-1 items-center">
+                <Icon
+                  className="h-3.5 w-3.5 shrink-0 text-[#5d6064] group-hover:text-white"
+                  strokeWidth={1.8}
+                />
+                <span className="product-name ml-2 truncate">{item.label}</span>
+              </span>
+            </Link>
           );
         })}
-      </nav>
+      </div>
     </aside>
   );
 }
