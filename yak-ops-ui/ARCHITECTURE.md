@@ -116,6 +116,26 @@ assets     → 参与构建的资源
 public     → 原样静态资源
 ```
 
+## App Shell
+
+Authenticated product pages share one application shell:
+
+```text
+app/layout/
+├── AppLayout.tsx
+├── TopBar.tsx
+├── ProductSidebar.tsx
+└── navigation.ts
+```
+
+Ownership:
+
+- `AppLayout` owns the viewport and composes TopBar + ProductSidebar + Outlet.
+- `TopBar` owns product identity and current-user actions.
+- `ProductSidebar` owns navigation inside the current product.
+- `navigation.ts` is the single configuration source for product-local navigation items.
+- Product pages rendered inside `AppLayout` fill the available container; they do not subtract shell dimensions from `100vh / 100dvh`.
+- Global Product Launcher / Mega Menu is not part of this shell baseline and must remain a separate capability.
 ## Service Boundary
 
 `service/http` 是唯一 HTTP transport owner。
