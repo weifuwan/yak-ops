@@ -8,14 +8,12 @@ import type {
   DataSourceRecord,
   DataSourceSavePayload,
   DataSourceSummary,
-  DriverUploadResult,
   DynamicFormSchemaResponse,
 } from "./types";
 
 export type * from "./types";
 
 const DATA_SOURCE_API_PREFIX = "/api/v1/data-source";
-const DRIVER_UPLOAD_API = `${DATA_SOURCE_API_PREFIX}/plugin/driver/upload`;
 
 const queryString = (params: Record<string, unknown>) => {
   const search = new URLSearchParams();
@@ -84,38 +82,3 @@ export const getDataSourcePluginConfig = (
   HttpUtils.getData<DynamicFormSchemaResponse>(
     `${DATA_SOURCE_API_PREFIX}/plugin/config${queryString({ pluginType })}`,
   );
-
-export const installDataSourcePlugin = async (
-  pluginType: string,
-): Promise<void> => {
-  await HttpUtils.postData<boolean>(
-    `${DATA_SOURCE_API_PREFIX}/plugin/config/install${queryString({ pluginType })}`,
-    {},
-  );
-};
-
-export const uploadDataSourceDriver = async (
-  pluginType: string,
-  file: File,
-): Promise<string> => {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("pluginType", pluginType);
-
-  const data = await HttpUtils.unwrap(
-    await HttpUtils.postForm<DriverUploadResult | string>(
-      DRIVER_UPLOAD_API,
-      formData,
-      { businessErrorMode: "reject" },
-    ),
-  );
-
-  const driverLocation =
-    typeof data === "string" ? data : data?.path || data?.fileName || "";
-
-  if (!driverLocation) {
-    throw new Error("驱动包上传成功，但服务端未返回驱动位置");
-  }
-
-  return driverLocation;
-};

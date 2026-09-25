@@ -121,7 +121,6 @@ export type DynamicFormFieldType =
   | 'SWITCH'
   | 'TEXTAREA'
   | 'CUSTOM_SELECT'
-  | 'DRIVER'
   | 'SSH'
   | 'JDBC_URL';
 
@@ -153,11 +152,4 @@ export interface DynamicFormSchemaResponse {
   pluginType?: string;
   sections?: DynamicFormSection[];
   formFields?: DynamicFormField[];
-  installRequired?: boolean;
-  installHint?: string;
-}
-
-export interface DriverUploadResult {
-  fileName?: string;
-  path?: string;
 }

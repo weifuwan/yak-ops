@@ -43,7 +43,6 @@ app/datasource/
 │   ├── form-runtime.tsx
 │   ├── form-model.ts
 │   ├── form-utils.ts
-│   ├── driver-manager.tsx
 │   ├── jdbc-url-field.tsx
 │   ├── jdbc-url-utils.ts
 │   ├── ssh-tunnel-manager.tsx
@@ -147,7 +146,7 @@ service/datasource/
 └── types.ts
 ```
 
-- `index.ts`：CRUD、Connection Test、Plugin Config、Catalog、Driver Upload。
+- `index.ts`：CRUD、Connection Test、Plugin Config。
 - `types.ts`：稳定 backend Contract。
 
 Service 不按 endpoint 概念机械拆文件；只有形成独立协议、独立生命周期或明显复杂度时才继续拆。

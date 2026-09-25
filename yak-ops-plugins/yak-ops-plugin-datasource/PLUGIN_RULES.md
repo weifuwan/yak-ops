@@ -35,8 +35,15 @@ yak-ops-plugin-datasource-all
 - avoid Datasource Business implementation types.
 - avoid concrete driver classes.
 - keep default methods only when they preserve a stable contract.
+- describe providers that are already available in the current runtime; descriptor metadata does not own runtime installation state.
 
 Do not add a second Datasource plugin contract in `yak-ops-spi`.
+
+## Plugin API Version
+
+Current Datasource Plugin API version: `2`.
+
+V2 removes future-facing runtime installation metadata (`installRequired / installHint`) and the unreachable `DRIVER` form field type. Providers describe capabilities already available in the running application; deployment-time JDBC jars may still be supplied through the runtime classpath.
 
 ## Plugin Type Contract
 
@@ -50,9 +57,10 @@ Must:
 - duplicate canonical types or aliases fail fast during plugin discovery.
 - adding a new Provider must not require modifying Common, Business or a central database-type list.
 
-Closed protocol vocabularies such as `DataSourceCapability`, form `FieldType` and `VisibilityOperator` may remain enums because their value set belongs to the SPI contract itself.
+Closed protocol vocabularies such as `DataSourceCapability`, form `FieldType` and `VisibilityOperator` may remain enums because their value set belongs to the SPI contract itself. `FieldType` only models renderable configuration values; it must not add a `DRIVER` upload pseudo-field without a real backend upload capability.
 
 Must Not:
+- recreate runtime plugin install flags such as `installRequired` / `installHint` without an implemented installation lifecycle.
 - recreate `DataSourceDbType` or an equivalent central enum/list of supported databases.
 - make Business parse vendor type aliases.
 - require a core-module change only to register a new Provider.

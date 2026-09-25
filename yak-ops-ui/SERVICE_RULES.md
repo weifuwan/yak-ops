@@ -26,7 +26,7 @@ service/auth
 = login / logout / current user contract + endpoints
 
 service/datasource
-= Datasource contract + CRUD / connection / plugin / driver
+= Datasource contract + CRUD / connection / plugin
 ```
 
 Backend request / response Contract 与对应 Service 放在一起。
@@ -48,7 +48,7 @@ service/<domain>/
 
 只有形成独立 transport、独立协议、独立生命周期，或单文件复杂度已经明显影响阅读时，才继续拆 Service 文件。
 
-不要因为存在 CRUD / Catalog / Driver / Plugin 等概念，就默认创建 `api.ts / catalog.ts / driver.ts / plugin.ts`。
+不要因为存在 CRUD / Catalog / Plugin 等概念，就默认创建 `api.ts / catalog.ts / plugin.ts`。
 
 ## Dependency Invariant
 
@@ -110,7 +110,7 @@ Must Not:
 - 让 HttpUtils 知道 Datasource 业务规则。
 - 让 UI 感知 `Result<T>`。
 - 为 Service 创建 interface / impl / adapter 层。
-- 为 CRUD / Catalog / Driver 等概念创建只有少量代码的 Service 文件。
+- 为 CRUD / Catalog / Plugin 等概念创建只有少量代码的 Service 文件。
 - 在 Service 保存页面 UI state。
 - 从 Service import UI Component。
 

@@ -25,11 +25,9 @@ public record DataSourcePluginDescriptor(
         Set<String> aliases,
         String apiVersion,
         Set<DataSourceCapability> capabilities,
-        ConnectionForm connectionForm,
-        boolean installRequired,
-        String installHint) {
+        ConnectionForm connectionForm) {
 
-    public static final String CURRENT_API_VERSION = "1";
+    public static final String CURRENT_API_VERSION = "2";
 
     public DataSourcePluginDescriptor {
         type = normalizeType(type);
@@ -38,18 +36,6 @@ public record DataSourcePluginDescriptor(
         apiVersion = normalize(apiVersion, CURRENT_API_VERSION);
         capabilities = immutableCapabilities(capabilities);
         connectionForm = connectionForm == null ? ConnectionForm.empty() : connectionForm;
-        installHint = trimToNull(installHint);
-    }
-
-    public DataSourcePluginDescriptor(
-            String type,
-            String displayName,
-            String apiVersion,
-            Set<DataSourceCapability> capabilities,
-            ConnectionForm connectionForm,
-            boolean installRequired,
-            String installHint) {
-        this(type, displayName, Set.of(), apiVersion, capabilities, connectionForm, installRequired, installHint);
     }
 
     public boolean matchesType(String value) {
@@ -210,7 +196,6 @@ public record DataSourcePluginDescriptor(
         SWITCH,
         TEXTAREA,
         CUSTOM_SELECT,
-        DRIVER,
         SSH,
         JDBC_URL
     }

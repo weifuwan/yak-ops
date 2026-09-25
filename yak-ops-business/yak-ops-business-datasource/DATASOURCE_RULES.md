@@ -75,6 +75,8 @@ Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsi
 
 内部 Catalog diagnostics 用于慢调用日志，不作为 HTTP 产品 Contract。
 
+Plugin Config 只描述当前运行时已经注册的 Provider。当前产品不发布 `/plugin/config/install`，也不提供运行时 Driver Upload HTTP API；驱动和 Provider 必须在应用启动前进入运行时 classpath。
+
 本模块只提供 Datasource capability，不创建 `controller` package，也不依赖 Boot。
 
 ## Business Rules
@@ -82,7 +84,7 @@ Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsi
 Must:
 - datasource mutation、read 和 connection test 由 `DataSourceBusiness` 统一持有。
 - Catalog 元数据能力由 `DataSourceCatalogBusiness` 持有。
-- Plugin 配置与可用性入口由 `DataSourcePluginBusiness` 持有。
+- Plugin 配置、类型解析和运行时能力入口由 `DataSourcePluginBusiness` 持有。
 - business validation stays close to Datasource behavior, not Controller.
 - DAO Entity / Repository 只出现在 BusinessImpl 内部。
 - Business 对 Boot 返回公共 VO，不返回 `DataSourceEntity`、`DataSourceSummaryRow` 或 Repository Query。

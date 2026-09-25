@@ -79,12 +79,6 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
     }
 
     @Override
-    public boolean checkPluginAvailable(String pluginType) {
-        get(pluginType);
-        return true;
-    }
-
-    @Override
     public String resolvePluginType(String pluginType) {
         return get(pluginType).descriptor().type();
     }
@@ -244,8 +238,6 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
                 .pluginType(source.type())
                 .sections(source.connectionForm().sections().stream().map(this::toSectionVO).toList())
                 .formFields(source.connectionForm().legacyFields().stream().map(this::toFieldVO).toList())
-                .installRequired(source.installRequired())
-                .installHint(source.installHint())
                 .build();
     }
 

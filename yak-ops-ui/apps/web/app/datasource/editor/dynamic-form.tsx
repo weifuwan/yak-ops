@@ -18,7 +18,6 @@ import {
   Spinner,
   Switch,
   Textarea,
-  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -32,7 +31,6 @@ import {
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 
-import DriverManager from "./driver-manager";
 import JdbcUrlField from "./jdbc-url-field";
 import SshTunnelManager, {
   getSshTunnelValidationMessage,
@@ -142,7 +140,6 @@ const DynamicDataSourceForm = ({
     status: pluginStatus,
     message: pluginMessage,
     reload: reloadPluginConfig,
-    installPlugin,
   } = usePluginFormConfig({
     dbType,
     configForm,
@@ -185,18 +182,6 @@ const DynamicDataSourceForm = ({
     };
 
     switch (field.type) {
-      case "DRIVER":
-        return (
-          <DriverManager
-            dbType={dbType}
-            value={String(value ?? "")}
-            placeholder={field.placeholder}
-            onChange={(next) => {
-              setValue(next);
-              validateLater();
-            }}
-          />
-        );
       case "SSH":
         return (
           <SshTunnelManager
@@ -316,7 +301,6 @@ const DynamicDataSourceForm = ({
 
     const wide =
       field.type === "TEXTAREA" ||
-      field.type === "DRIVER" ||
       field.type === "SSH" ||
       field.type === "JDBC_URL";
 
@@ -406,20 +390,14 @@ const DynamicDataSourceForm = ({
       return null;
     }
 
-    if (
-      pluginStatus === PLUGIN_CONFIG_STATUS.LOADING ||
-      pluginStatus === PLUGIN_CONFIG_STATUS.INSTALLING
-    ) {
+    if (pluginStatus === PLUGIN_CONFIG_STATUS.LOADING) {
       return (
         <div className="mt-4 flex min-h-[96px] items-center justify-center rounded-lg border border-[#eef0f3] bg-[#fafbfc]">
           <div className="flex items-center gap-2 text-sm text-[#667085]">
             <Spinner label="Loading plugin configuration" />
             <span>
               {intl.formatMessage({
-                id:
-                  pluginStatus === PLUGIN_CONFIG_STATUS.INSTALLING
-                    ? "pages.datasource.plugin.installing"
-                    : "pages.datasource.plugin.loading",
+                id: "pages.datasource.plugin.loading",
               })}
             </span>
           </div>
@@ -427,26 +405,19 @@ const DynamicDataSourceForm = ({
       );
     }
 
-    const installRequired =
-      pluginStatus === PLUGIN_CONFIG_STATUS.INSTALL_REQUIRED;
-
     return (
       <div className="mt-4 rounded-lg border border-[#e4e7ec] bg-[#fafafa] px-3.5 py-3">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="text-[13px] font-medium leading-5 text-[#344054]">
               {intl.formatMessage({
-                id: installRequired
-                  ? "pages.datasource.plugin.installRequiredTitle"
-                  : "pages.datasource.plugin.loadFailedTitle",
+                id: "pages.datasource.plugin.loadFailedTitle",
               })}
             </div>
             <div className="mt-1 text-xs leading-5 text-[#98a2b3]">
               {pluginMessage ||
                 intl.formatMessage({
-                  id: installRequired
-                    ? "pages.datasource.plugin.installRequiredDescription"
-                    : "pages.datasource.plugin.loadFailedDescription",
+                  id: "pages.datasource.plugin.loadFailedDescription",
                 })}
             </div>
           </div>
@@ -454,27 +425,11 @@ const DynamicDataSourceForm = ({
             size="small"
             variant="ghost"
             className="shrink-0"
-            onClick={() => {
-              if (installRequired) {
-                void installPlugin().then((installed) => {
-                  if (installed) {
-                    toast.success(
-                      intl.formatMessage({
-                        id: "pages.datasource.plugin.installSuccess",
-                      }),
-                    );
-                  }
-                });
-                return;
-              }
-              void reloadPluginConfig();
-            }}
+            onClick={() => void reloadPluginConfig()}
           >
             <span className="inline-flex items-center gap-1.5">
               {intl.formatMessage({
-                id: installRequired
-                  ? "pages.datasource.plugin.install"
-                  : "pages.datasource.plugin.reload",
+                id: "pages.datasource.plugin.reload",
               })}
               <DatabaseIcons dbType={dbType} height="15" width="15" />
             </span>

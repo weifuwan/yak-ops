@@ -1,17 +1,8 @@
-import {
-  getDataSourcePluginConfig,
-  installDataSourcePlugin,
-} from '@/service/datasource';
+import { getDataSourcePluginConfig } from '@/service/datasource';
 import type { DataSourceFormInstance } from '../editor/form-runtime';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-} from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 
-import type { DynamicFormField, DynamicFormSection } from '../types';
+import type { DynamicFormSection } from '../types';
 import {
   flattenFormSectionFields,
   getConfigInitialValues,
@@ -20,14 +11,11 @@ import {
   patchEmptyWithDefaults,
 } from '../editor/form-utils';
 
-
 export const PLUGIN_CONFIG_STATUS = {
-  IDLE: "IDLE",
-  LOADING: "LOADING",
-  READY: "READY",
-  INSTALL_REQUIRED: "INSTALL_REQUIRED",
-  INSTALLING: "INSTALLING",
-  LOAD_FAILED: "LOAD_FAILED",
+  IDLE: 'IDLE',
+  LOADING: 'LOADING',
+  READY: 'READY',
+  LOAD_FAILED: 'LOAD_FAILED',
 } as const;
 
 type PluginConfigStatus =
@@ -40,13 +28,10 @@ interface PluginConfigState {
 }
 
 type PluginConfigAction =
-  | { type: "RESET" }
-  | { type: "LOAD_START" }
-  | { type: "LOAD_SUCCESS"; sections: DynamicFormSection[] }
-  | { type: "INSTALL_REQUIRED"; message?: string }
-  | { type: "INSTALL_START" }
-  | { type: "INSTALL_FAILED"; message?: string }
-  | { type: "LOAD_FAILED"; message?: string };
+  | { type: 'RESET' }
+  | { type: 'LOAD_START' }
+  | { type: 'LOAD_SUCCESS'; sections: DynamicFormSection[] }
+  | { type: 'LOAD_FAILED'; message?: string };
 
 const INITIAL_PLUGIN_CONFIG_STATE: PluginConfigState = {
   status: PLUGIN_CONFIG_STATUS.IDLE,
@@ -58,31 +43,17 @@ const pluginConfigStateReducer = (
   action: PluginConfigAction,
 ): PluginConfigState => {
   switch (action.type) {
-    case "LOAD_START":
+    case 'LOAD_START':
       return { status: PLUGIN_CONFIG_STATUS.LOADING, sections: [] };
-    case "LOAD_SUCCESS":
+    case 'LOAD_SUCCESS':
       return { status: PLUGIN_CONFIG_STATUS.READY, sections: action.sections };
-    case "INSTALL_REQUIRED":
-      return {
-        status: PLUGIN_CONFIG_STATUS.INSTALL_REQUIRED,
-        sections: [],
-        message: action.message,
-      };
-    case "INSTALL_START":
-      return { status: PLUGIN_CONFIG_STATUS.INSTALLING, sections: [] };
-    case "INSTALL_FAILED":
-      return {
-        status: PLUGIN_CONFIG_STATUS.INSTALL_REQUIRED,
-        sections: [],
-        message: action.message,
-      };
-    case "LOAD_FAILED":
+    case 'LOAD_FAILED':
       return {
         status: PLUGIN_CONFIG_STATUS.LOAD_FAILED,
         sections: [],
         message: action.message,
       };
-    case "RESET":
+    case 'RESET':
     default:
       return INITIAL_PLUGIN_CONFIG_STATE;
   }
@@ -133,18 +104,6 @@ export function usePluginFormConfig(params: {
     try {
       const data = await getDataSourcePluginConfig(dbType);
       if (requestSequence !== requestSequenceRef.current) return false;
-
-      if (data.installRequired) {
-        dispatch({
-          type: 'INSTALL_REQUIRED',
-          message:
-            data.installHint ||
-            intl.formatMessage({
-              id: 'pages.datasource.plugin.installRequiredTitle',
-            }),
-        });
-        return false;
-      }
 
       const sections = normalizeFormSections(data || { formFields: [] }).map(
         (section) => ({
@@ -200,36 +159,6 @@ export function usePluginFormConfig(params: {
     }
   }, [configForm, dbType, initialConfig, intl, resetOnLoad]);
 
-  const installPlugin = useCallback(async () => {
-    if (!dbType || state.status === PLUGIN_CONFIG_STATUS.INSTALLING) {
-      return false;
-    }
-
-    const requestSequence = requestSequenceRef.current + 1;
-    requestSequenceRef.current = requestSequence;
-    dispatch({ type: 'INSTALL_START' });
-
-    try {
-      await installDataSourcePlugin(dbType);
-      if (requestSequence !== requestSequenceRef.current) return false;
-
-      await loadFormConfig();
-      return true;
-    } catch (error) {
-      if (requestSequence !== requestSequenceRef.current) return false;
-      dispatch({
-        type: 'INSTALL_FAILED',
-        message: errorMessage(
-          error,
-          intl.formatMessage({
-            id: 'pages.datasource.plugin.installFailedFallback',
-          }),
-        ),
-      });
-      return false;
-    }
-  }, [dbType, intl, loadFormConfig, state.status]);
-
   useEffect(() => {
     void loadFormConfig();
     return () => {
@@ -237,19 +166,10 @@ export function usePluginFormConfig(params: {
     };
   }, [loadFormConfig]);
 
-  const formConfig = useMemo<DynamicFormField[]>(
-    () => flattenFormSectionFields(state.sections),
-    [state.sections],
-  );
-
   return {
-    formConfig,
-    loading: state.status === PLUGIN_CONFIG_STATUS.LOADING,
     formSections: state.sections,
     status: state.status,
     message: state.message,
-    installing: state.status === PLUGIN_CONFIG_STATUS.INSTALLING,
     reload: loadFormConfig,
-    installPlugin,
   };
 }

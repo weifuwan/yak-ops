@@ -29,11 +29,4 @@ public class DataSourcePluginConfigVO {
     /** 旧版扁平动态表单字段，保留兼容能力。 */
     @Builder.Default
     private List<DataSourcePluginFormFieldVO> formFields = new ArrayList<>();
-
-    /** 当前插件是否需要额外安装动作。 */
-    @Builder.Default
-    private Boolean installRequired = false;
-
-    /** 插件安装或启用提示。 */
-    private String installHint;
 }
