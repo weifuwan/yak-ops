@@ -213,17 +213,17 @@ public class UserServiceImpl implements UserService {
 
     private Result<Void> checkUserParam(UserDTO userDTO, boolean passwordRequired) {
         if (ObjectUtils.isNull(userDTO)) return Result.buildParamIllegal("用户信息不能为空");
-        if (!StringUtils.isNotBlank(userDTO.getUserName())) {
+        if (StringUtils.isBlank(userDTO.getUserName())) {
             return Result.buildParamIllegal("用户名不能为空");
         }
-        if (passwordRequired && !StringUtils.isNotBlank(userDTO.getPw())) {
+        if (passwordRequired && StringUtils.isBlank(userDTO.getPw())) {
             return Result.buildParamIllegal("用户密码不能为空");
         }
         return Result.success();
     }
 
     private Result<Void> userNameCheck(String username, String currentUserId) {
-        if (!StringUtils.isNotBlank(username)
+        if (StringUtils.isBlank(username)
                 || !USER_NAME_PATTERN.matcher(username.trim()).matches()) {
             return Result.fail(ResultCode.USER_NAME_FORMAT_ERROR);
         }
@@ -234,7 +234,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private Result<Void> userPhoneCheck(String phone, String currentUserId) {
-        if (!StringUtils.isNotBlank(phone)) return Result.success();
+        if (StringUtils.isBlank(phone)) return Result.success();
         String normalized = phone.trim();
         if (!USER_PHONE_PATTERN.matcher(normalized).matches()) {
             return Result.fail(ResultCode.USER_PHONE_FORMAT_ERROR);
@@ -246,7 +246,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private Result<Void> userMailCheck(String email, String currentUserId) {
-        if (!StringUtils.isNotBlank(email)) return Result.success();
+        if (StringUtils.isBlank(email)) return Result.success();
         String normalized = email.trim();
         if (!USER_MAIL_PATTERN.matcher(normalized).matches()) {
             return Result.fail(ResultCode.USER_EMAIL_FORMAT_ERROR);
@@ -261,5 +261,4 @@ public class UserServiceImpl implements UserService {
         if (ObjectUtils.isNull(userVO) || StringUtils.isBlank(userVO.getPhone())) return;
         userVO.setPhone(userVO.getPhone().replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2"));
     }
-
 }
