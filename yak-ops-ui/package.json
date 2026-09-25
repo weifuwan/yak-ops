@@ -15,7 +15,7 @@
     "lint": "oxlint apps packages scripts --deny-warnings",
     "lint:fix": "oxlint apps packages scripts --fix",
     "format": "oxfmt apps packages scripts",
-    "format:check": "oxfmt apps packages scripts && git diff --exit-code",
+    "format:check": "oxfmt --check apps packages scripts",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run architecture:check"
   },
   "devDependencies": {
