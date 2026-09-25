@@ -3,12 +3,7 @@ import { useEffect, useState, type Key } from "react";
 import { Button } from "../../button";
 import { Checkbox } from "../../checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "../../popover";
-import type {
-  TableColumn,
-  TableColumns,
-  TableFilterItem,
-  TableFilters,
-} from "../interface";
+import type { TableColumn, TableColumns, TableFilterItem, TableFilters } from "../interface";
 import { getTableColumnKey, stringifyTableColumnKey } from "../utils";
 
 interface TableFilterControlProps {
