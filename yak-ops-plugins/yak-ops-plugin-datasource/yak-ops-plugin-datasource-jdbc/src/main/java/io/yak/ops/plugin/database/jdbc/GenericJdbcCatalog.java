@@ -251,24 +251,25 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
         return properties;
     }
 
+    private boolean isType(String... types) {
+        for (String type : types) {
+            if (type.equals(connection.type())) return true;
+        }
+        return false;
+    }
+
     private boolean usesCatalogAsNamespace() {
-        return connection.dbType() == DataSourceDbType.MYSQL
-                || connection.dbType() == DataSourceDbType.TIDB
-                || connection.dbType() == DataSourceDbType.GOLDENDB
-                || connection.dbType() == DataSourceDbType.GBASE8A
-                || connection.dbType() == DataSourceDbType.DORIS
-                || connection.dbType() == DataSourceDbType.STARROCKS
-                || connection.dbType() == DataSourceDbType.CLICKHOUSE
-                || (connection.dbType() == DataSourceDbType.OCEANBASE && !oceanBaseOracleMode());
+        return isType("MYSQL", "TIDB", "GOLDENDB", "GBASE8A", "DORIS", "STARROCKS", "CLICKHOUSE")
+                || ("OCEANBASE".equals(connection.type()) && !oceanBaseOracleMode());
     }
 
     private boolean usesOracleStyle() {
-        return connection.dbType() == DataSourceDbType.ORACLE
-                || (connection.dbType() == DataSourceDbType.OCEANBASE && oceanBaseOracleMode());
+        return "ORACLE".equals(connection.type())
+                || ("OCEANBASE".equals(connection.type()) && oceanBaseOracleMode());
     }
 
     private boolean oceanBaseOracleMode() {
-        if (connection.dbType() != DataSourceDbType.OCEANBASE || isBlank(connection.normalizedJson())) return false;
+        if (!"OCEANBASE".equals(connection.type()) || isBlank(connection.normalizedJson())) return false;
         try {
             JsonNode root = OBJECT_MAPPER.readTree(connection.normalizedJson());
             String mode = root.path("compatibleMode").asText(root.path("compatible_mode").asText("mysql"));
