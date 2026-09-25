@@ -40,6 +40,22 @@ app/login
 
 业务代码按 Domain 聚合，不建立全局 `pages / shared / components` 大桶。
 
+## App Shell
+
+```text
+app/layout/
+├── AppLayout.tsx
+├── TopBar.tsx
+├── ProductSidebar.tsx
+└── navigation.ts
+```
+
+- `AppLayout` 是认证后产品页面唯一的 viewport owner。
+- TopBar 和 ProductSidebar 属于 Shell，不属于 Datasource Domain。
+- 产品内导航配置统一放在 `app/layout/navigation.ts`，不要在页面中重复维护菜单。
+- AppLayout 内的页面只填充可用容器，禁止通过 `calc(100vh - ...)` 或 `calc(100dvh - ...)` 自己扣减 Shell 高度。
+- 没有真实 Product Surface 时，不为视觉完整性创建假路由或假菜单项。
+- Global Product Launcher / Mega Menu 独立演进，不塞进 PR1 的基础 Shell。
 ## Must
 
 - Domain UI / state / presentation 放在 `app/<domain>`。
