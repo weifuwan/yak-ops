@@ -1,10 +1,10 @@
 package io.yak.ops.boot.controller.exception;
 
 import io.yak.ops.common.enums.common.CommonErrorCode;
-import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.result.ErrorCode;
 import io.yak.ops.common.result.Result;
+import io.yak.ops.security.enums.SecurityErrorCode;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,16 +85,9 @@ public class GlobalExceptionHandler {
         if (errorCode == CommonErrorCode.RESOURCE_DUPLICATION) return HttpStatus.CONFLICT;
         if (errorCode == CommonErrorCode.COMMON_FAIL) return HttpStatus.INTERNAL_SERVER_ERROR;
 
-        if (errorCode instanceof ResultCode code) {
+        if (errorCode instanceof SecurityErrorCode code) {
             return switch (code) {
-                case PARAM_NOT_VALID,
-                        PARAM_IS_BLANK,
-                        PARAM_ID_IS_BLANK,
-                        PARAM_TYPE_ERROR,
-                        PARAM_NOT_COMPLETE,
-                        PARAM_LENGTH_ERROR,
-                        PARAM_ERROR,
-                        USER_EMAIL_FORMAT_ERROR,
+                case USER_EMAIL_FORMAT_ERROR,
                         USER_ID_CANNOT_BE_NULL,
                         USER_PHONE_FORMAT_ERROR,
                         USER_NAME_FORMAT_ERROR -> HttpStatus.BAD_REQUEST;
