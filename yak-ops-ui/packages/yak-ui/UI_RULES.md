@@ -87,8 +87,13 @@ Yak UI Table uses an AntD-familiar core contract without becoming an AntD compat
 - `rowSelection` is a generic controlled / uncontrolled selection contract implemented by injecting a selection column; Table Body does not hard-code Checkbox behavior.
 - Select-all only affects selectable rows on the currently rendered page and preserves selected keys from other pages.
 - Disabled row selection comes from `getCheckboxProps`; selection never contains Datasource or other domain semantics.
-- Current Table supports size, border, row hover, selected-row state, ellipsis, horizontal / vertical scroll and sticky header.
-- Sorter, filter, expandable rows, fixed columns, virtualization and component overrides remain deferred.
+- Sorter is a single-column AntD-familiar contract: comparator function enables local sorting; `sorter: true` exposes sort state for server-side handling without reordering local rows.
+- Filter state is per-column: `onFilter` enables local filtering; columns with `filters` but no `onFilter` expose controlled filter state for server-side handling.
+- Controlled `sortOrder / filteredValue` and uncontrolled `defaultSortOrder / defaultFilteredValue` are both supported.
+- Table-level `onChange(pagination, filters, sorter, extra)` is the single generic notification boundary for paginate / sort / filter changes.
+- Local filter and sort run before local pagination; server pagination remains owned by the product when `pagination.total` is provided.
+- Current Table supports size, border, row hover, selected-row state, ellipsis, sort, filter, horizontal / vertical scroll and sticky header.
+- Expandable rows, fixed columns, virtualization, multi-column sort and component overrides remain deferred.
 
 Table must not own:
 
@@ -143,6 +148,7 @@ AntD Space           → normal flex / grid layout
 - Add Ant Design or a second UI framework such as MUI / Chakra inside Yak UI.
 - Recreate AntD-compatible APIs just to make migration search-and-replace easier.
 - Put request, search-form, CRUD or domain-specific behavior inside Table.
+- Add product-specific filter controls or backend query assembly to Table sort / filter hooks.
 - Add future primitives that have no real current migration or product need.
 
 ## Current Set
