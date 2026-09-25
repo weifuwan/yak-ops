@@ -33,7 +33,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** UserAccount-only service implementation. */
+/**
+ * 承担用户查询、维护、密码管理和用户会话联动的完整业务实现。
+ *
+ * <p>持久化统一通过 UserRepository，密码变更后由 AuthenticationManager 清理对应登录态。</p>
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 @ConditionalOnProperty(
         prefix = SecurityConstants.CONFIG_PREFIX,
         name = {"enabled", "database-enabled"},
