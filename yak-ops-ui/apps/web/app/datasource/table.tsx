@@ -1,309 +1,158 @@
-import {
-  Badge,
-  Button,
-  Spinner,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  type BadgeProps,
-} from "@yak-ops/yak-ui";
-import {
-  CircleCheck,
-  CircleMinus,
-  CircleX,
-  Pencil,
-  Trash2,
-  Unplug,
-} from "lucide-react";
+import { Badge, Button, Spinner, type BadgeProps } from "@yak-ops/yak-ui";
+import { CircleCheck, CircleMinus, CircleX, Pencil, Trash2, Unplug } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { getEnvironmentTagConfigMap } from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import { useIntl } from "./i18n";
-import type {
-  DataSourceConnectionStatus,
-  DataSourcePermissions,
-  DataSourceRecord,
-} from "./types";
-import { dataSourceRecordKey } from "./utils";
+import type { DataSourceConnectionStatus, DataSourceRecord } from "./types";
 
 interface DataSourceTableProps {
   records: DataSourceRecord[];
-  permissions: DataSourcePermissions;
-  testingId: string;
   editingId: string;
+  testingId: string;
   onEdit: (record: DataSourceRecord) => void;
   onDelete: (record: DataSourceRecord) => void;
   onTestConnection: (record: DataSourceRecord) => void;
 }
 
-interface StatusConfigItem {
+interface StatusConfig {
   tone: NonNullable<BadgeProps["tone"]>;
   icon: ReactNode;
-  text: string;
-  tooltip: string;
+  messageId: string;
 }
 
-const DataSourceStatus = ({
-  status,
-}: {
-  status?: DataSourceConnectionStatus;
-}) => {
+const DataSourceStatus = ({ status }: { status?: DataSourceConnectionStatus }) => {
   const intl = useIntl();
-
-  const connected: StatusConfigItem = {
-    tone: "success",
-    icon: <CircleCheck size={13} />,
-    text: intl.formatMessage({ id: "pages.datasource.status.connected" }),
-    tooltip: intl.formatMessage({
-      id: "pages.datasource.status.connectedTooltip",
-    }),
-  };
-  const disconnected: StatusConfigItem = {
-    tone: "danger",
-    icon: <CircleX size={13} />,
-    text: intl.formatMessage({ id: "pages.datasource.status.disconnected" }),
-    tooltip: intl.formatMessage({
-      id: "pages.datasource.status.disconnectedTooltip",
-    }),
-  };
-  const unknown: StatusConfigItem = {
-    tone: "neutral",
-    icon: <CircleMinus size={13} />,
-    text: intl.formatMessage({ id: "pages.datasource.status.unknown" }),
-    tooltip: intl.formatMessage({
-      id: "pages.datasource.status.unknownTooltip",
-    }),
-  };
-  const statusMap: Record<string, StatusConfigItem> = {
-    CONNECTED: connected,
-    CONNECTED_SUCCESS: connected,
-    DISCONNECTED: disconnected,
-    CONNECTED_FAILED: disconnected,
-    UNKNOWN: unknown,
-    CONNECTED_NONE: unknown,
-    CONNECTING: {
-      tone: "info",
-      icon: <Spinner size="small" label="Connecting" />,
-      text: intl.formatMessage({ id: "pages.datasource.status.connecting" }),
-      tooltip: intl.formatMessage({
-        id: "pages.datasource.status.connectingTooltip",
-      }),
+  const configMap: Record<string, StatusConfig> = {
+    CONNECTED: {
+      tone: "success",
+      icon: <CircleCheck size={13} />,
+      messageId: "pages.datasource.status.connected",
+    },
+    DISCONNECTED: {
+      tone: "danger",
+      icon: <CircleX size={13} />,
+      messageId: "pages.datasource.status.disconnected",
+    },
+    UNKNOWN: {
+      tone: "neutral",
+      icon: <CircleMinus size={13} />,
+      messageId: "pages.datasource.status.unknown",
     },
   };
-
-  const normalized = String(status || "UNKNOWN").trim().toUpperCase();
-  const config = statusMap[normalized] || unknown;
+  const config = configMap[String(status || "UNKNOWN").toUpperCase()] || configMap.UNKNOWN;
 
   return (
-    <Tooltip>
-      <TooltipTrigger
-        className="inline-flex"
-        aria-label={config.tooltip}
-      >
-        <Badge
-          tone={config.tone}
-          className="min-w-20 justify-center gap-1.5 whitespace-nowrap px-2.5 py-0.5"
-        >
-          {config.icon}
-          {config.text}
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>{config.tooltip}</TooltipContent>
-    </Tooltip>
+    <Badge tone={config.tone} className="gap-1.5 whitespace-nowrap">
+      {config.icon}
+      {intl.formatMessage({ id: config.messageId })}
+    </Badge>
   );
 };
 
 const DataSourceTable = ({
   records,
-  permissions,
-  testingId,
   editingId,
+  testingId,
   onEdit,
   onDelete,
   onTestConnection,
 }: DataSourceTableProps) => {
   const intl = useIntl();
-  const environmentConfigMap = getEnvironmentTagConfigMap(intl);
 
   return (
     <div className="overflow-hidden rounded-xl border border-[#e9ebef] bg-white">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1080px] border-collapse text-left">
-          <colgroup>
-            <col className="w-[220px]" />
-            <col className="w-[140px]" />
-            <col className="w-[120px]" />
-            <col className="w-[130px]" />
-            <col />
-            <col className="w-[170px]" />
-            <col className="w-[132px]" />
-          </colgroup>
+        <table className="w-full min-w-[900px] border-collapse text-left">
           <thead className="bg-[#fafbfc]">
             <tr className="border-b border-[#eceef2]">
               <th className="px-4 py-3 text-xs font-medium text-[#667085]">
                 {intl.formatMessage({ id: "pages.datasource.table.datasource" })}
               </th>
-              <th className="px-4 py-3 text-xs font-medium text-[#667085]">
+              <th className="w-[140px] px-4 py-3 text-xs font-medium text-[#667085]">
                 {intl.formatMessage({ id: "pages.datasource.table.type" })}
-              </th>
-              <th className="px-4 py-3 text-xs font-medium text-[#667085]">
-                {intl.formatMessage({ id: "pages.datasource.table.environment" })}
-              </th>
-              <th className="px-4 py-3 text-xs font-medium text-[#667085]">
-                {intl.formatMessage({ id: "pages.datasource.table.status" })}
               </th>
               <th className="px-4 py-3 text-xs font-medium text-[#667085]">
                 {intl.formatMessage({ id: "pages.datasource.table.jdbcUrl" })}
               </th>
-              <th className="px-4 py-3 text-xs font-medium text-[#667085]">
+              <th className="w-[130px] px-4 py-3 text-xs font-medium text-[#667085]">
+                {intl.formatMessage({ id: "pages.datasource.table.status" })}
+              </th>
+              <th className="w-[170px] px-4 py-3 text-xs font-medium text-[#667085]">
                 {intl.formatMessage({ id: "pages.datasource.table.updated" })}
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-[#667085]">
+              <th className="w-[132px] px-4 py-3 text-right text-xs font-medium text-[#667085]">
                 {intl.formatMessage({ id: "pages.datasource.table.actions" })}
               </th>
             </tr>
           </thead>
           <tbody>
             {records.map((record, index) => {
-              const currentId = dataSourceRecordKey(record.id);
-              const environment = environmentConfigMap[
-                record.environment || ""
-              ] || {
-                text:
-                  record.environmentName ||
-                  intl.formatMessage({
-                    id: "pages.datasource.environment.uncategorized",
-                  }),
-                color: "#667085",
-                backgroundColor: "#f2f4f7",
-                icon: null,
-              };
-
+              const id = String(record.id ?? "");
               return (
                 <tr
-                  key={
-                    currentId ||
-                    `${record.name || "data-source"}-${index}`
-                  }
+                  key={id || `${record.name || "datasource"}-${index}`}
                   className="border-b border-[#f0f1f3] last:border-b-0 hover:bg-[#fafbfc]"
                 >
                   <td className="px-4 py-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#eceef2] bg-white">
-                        <DatabaseIcons
-                          dbType={record.dbType}
-                          width="22"
-                          height="22"
-                        />
+                        <DatabaseIcons dbType={record.dbType} width="22" height="22" />
                       </span>
-                      <div className="min-w-0">
-                        <div
-                          title={record.name}
-                          className="truncate text-sm font-medium text-[#252832]"
-                        >
-                          {record.name ||
-                            intl.formatMessage({
-                              id: "pages.datasource.table.unnamed",
-                            })}
-                        </div>
-                      </div>
+                      <span className="truncate text-sm font-medium text-[#252832]" title={record.name}>
+                        {record.name || "-"}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-[#4f5561]">
-                    <span className="block truncate" title={record.dbType}>
-                      {record.dbType || "-"}
-                    </span>
-                  </td>
+                  <td className="px-4 py-3 text-sm text-[#4f5561]">{record.dbType || "-"}</td>
                   <td className="px-4 py-3">
                     <span
-                      className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-full px-2 text-xs font-medium"
-                      style={{
-                        color: environment.color,
-                        backgroundColor: environment.backgroundColor,
-                      }}
+                      className="block max-w-[520px] truncate text-sm text-[#667085]"
+                      title={record.jdbcUrl}
                     >
-                      {environment.icon}
-                      {environment.text}
+                      {record.jdbcUrl || "-"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <DataSourceStatus status={record.connStatus} />
                   </td>
+                  <td className="px-4 py-3 text-sm text-[#667085]">{record.updateTime || "-"}</td>
                   <td className="px-4 py-3">
-                    <span
-                      title={record.jdbcUrl}
-                      className="block max-w-[420px] truncate text-sm text-[#667085]"
-                    >
-                      {record.jdbcUrl ||
-                        intl.formatMessage({
-                          id: "pages.datasource.table.noJdbcUrl",
-                        })}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#667085]">
-                    {record.updateTime || "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      {permissions.canTest ? (
-                        <Button
-                          variant="ghost"
-                          size="small"
-                          title={intl.formatMessage({
-                            id: "pages.datasource.table.testConnection",
-                          })}
-                          aria-label={intl.formatMessage({
-                            id: "pages.datasource.table.testConnection",
-                          })}
-                          loading={testingId === currentId}
-                          disabled={Boolean(testingId) && testingId !== currentId}
-                          className="h-8 w-8 p-0 text-[#667085]"
-                          onClick={() => onTestConnection(record)}
-                        >
-                          {testingId === currentId ? null : (
-                            <Unplug size={14} strokeWidth={1.9} />
-                          )}
-                        </Button>
-                      ) : null}
-
-                      {permissions.canUpdate ? (
-                        <Button
-                          variant="ghost"
-                          size="small"
-                          title={intl.formatMessage({
-                            id: "pages.datasource.table.edit",
-                          })}
-                          aria-label={intl.formatMessage({
-                            id: "pages.datasource.table.edit",
-                          })}
-                          loading={editingId === currentId}
-                          disabled={Boolean(editingId) && editingId !== currentId}
-                          className="h-8 w-8 p-0 text-[#667085]"
-                          onClick={() => onEdit(record)}
-                        >
-                          {editingId === currentId ? null : (
-                            <Pencil size={14} strokeWidth={1.9} />
-                          )}
-                        </Button>
-                      ) : null}
-
-                      {permissions.canDelete ? (
-                        <Button
-                          variant="ghost"
-                          size="small"
-                          title={intl.formatMessage({
-                            id: "pages.datasource.table.delete",
-                          })}
-                          aria-label={intl.formatMessage({
-                            id: "pages.datasource.table.delete",
-                          })}
-                          className="h-8 w-8 p-0 text-[#b42318]"
-                          onClick={() => onDelete(record)}
-                        >
-                          <Trash2 size={14} strokeWidth={1.9} />
-                        </Button>
-                      ) : null}
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        title={intl.formatMessage({ id: "pages.datasource.table.testConnection" })}
+                        aria-label={intl.formatMessage({ id: "pages.datasource.table.testConnection" })}
+                        className="h-8 w-8 p-0"
+                        loading={testingId === id}
+                        disabled={Boolean(testingId) && testingId !== id}
+                        onClick={() => onTestConnection(record)}
+                      >
+                        {testingId === id ? null : <Unplug size={14} />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        title={intl.formatMessage({ id: "pages.datasource.table.edit" })}
+                        aria-label={intl.formatMessage({ id: "pages.datasource.table.edit" })}
+                        className="h-8 w-8 p-0"
+                        loading={editingId === id}
+                        disabled={Boolean(editingId) && editingId !== id}
+                        onClick={() => onEdit(record)}
+                      >
+                        {editingId === id ? null : <Pencil size={14} />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        title={intl.formatMessage({ id: "pages.datasource.table.delete" })}
+                        aria-label={intl.formatMessage({ id: "pages.datasource.table.delete" })}
+                        className="h-8 w-8 p-0 text-[#b42318]"
+                        onClick={() => onDelete(record)}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
                     </div>
                   </td>
                 </tr>

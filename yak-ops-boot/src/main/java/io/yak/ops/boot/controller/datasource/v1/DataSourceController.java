@@ -7,7 +7,6 @@ import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.constant.datasource.DataSourceConstants;
 import io.yak.ops.common.page.PagingData;
@@ -67,12 +66,6 @@ public class DataSourceController {
     @PostMapping("/page")
     public Result<PagingData<DataSourceVO>> page(@Valid @RequestBody DataSourceQueryDTO dto) {
         return Result.success(dataSourceService.queryDataSourcePage(dto));
-    }
-
-    @Operation(summary = "查询数据源总览统计")
-    @GetMapping("/summary")
-    public Result<DataSourceSummaryVO> summary() {
-        return Result.success(dataSourceService.queryDataSourceSummary());
     }
 
     @Operation(summary = "测试已保存数据源连接")

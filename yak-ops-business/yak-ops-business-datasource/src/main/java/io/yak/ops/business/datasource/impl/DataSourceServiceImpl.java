@@ -8,14 +8,12 @@ import io.yak.ops.business.datasource.plugin.DataSourcePluginRegistry;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
-import io.yak.ops.dao.model.datasource.DataSourceSummaryRow;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
 import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
 import jakarta.annotation.Resource;
@@ -128,11 +126,6 @@ public class DataSourceServiceImpl implements DataSourceService {
                 StringUtils.hasText(dto.getEnvironment()) ? parseEnvironment(dto.getEnvironment()) : null,
                 StringUtils.hasText(dto.getConnStatus()) ? parseConnectionStatus(dto.getConnStatus()) : null);
         return PagingData.from(repository.queryPage(query).map(value -> toDataSourceVO(value, false)));
-    }
-
-    @Override
-    public DataSourceSummaryVO queryDataSourceSummary() {
-        return toSummaryVO(repository.querySummary());
     }
 
     @Override
@@ -265,17 +258,5 @@ public class DataSourceServiceImpl implements DataSourceService {
             target.setOriginalJson(pluginRegistry.maskConnectionJson(source.getDbType(), source.getOriginalJson()));
         }
         return target;
-    }
-
-    private DataSourceSummaryVO toSummaryVO(DataSourceSummaryRow source) {
-        if (source == null) {
-            return new DataSourceSummaryVO(0L, 0L, 0L, 0L, 0L);
-        }
-        return new DataSourceSummaryVO(
-                source.getTotal(),
-                source.getConnected(),
-                source.getDisconnected(),
-                source.getUnknown(),
-                source.getEnvironmentCount());
     }
 }
