@@ -257,7 +257,7 @@ Repository 不承担 HTTP 输入校验。
 后续迁移顺序：
 
 1. 全局时间 JSON Contract 已由 `yak-ops-boot/HttpJsonConfiguration` 落地。
-2. Security `PageParamDTO` → `PageQueryDTO`。
+2. Security `UserQueryDTO` 已迁移到 `PageQueryDTO`，旧 `PageParamDTO` 已删除。
 3. Datasource `DataSourceQueryDTO` → `PageQueryDTO`。
 4. 按真实需求接入 `SortDTO` 和 Repository 排序白名单。
 5. 清理旧的 `page / size / pageNum` 等分页字段。

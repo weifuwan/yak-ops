@@ -34,7 +34,8 @@ public class UserRepositoryImpl extends BaseRepositoryImpl<UserMapper, UserEntit
                 .eq(id != null, UserEntity::getId, id)
                 .like(StringUtils.hasText(userName), UserEntity::getUserName, userName)
                 .like(StringUtils.hasText(realName), UserEntity::getRealName, realName)
-                .orderByDesc(UserEntity::getCreateTime);
+                .orderByDesc(UserEntity::getCreateTime)
+                .orderByDesc(UserEntity::getId);
         IPage<UserEntity> result = userMapper.selectPage(page, wrapper);
         return new PageData<>(
                 result.getRecords(), result.getTotal(), result.getPages(), result.getCurrent(), result.getSize());

@@ -67,8 +67,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public PagingData<UserVO> getUserPage(UserQueryDTO queryDTO) {
         UserQueryDTO query = queryDTO == null ? new UserQueryDTO() : queryDTO;
+        if (query.getSorts() != null && !query.getSorts().isEmpty()) {
+            throw new YakSecurityException("用户分页暂不支持自定义排序");
+        }
         PageData<UserEntity> page = userRepository.queryPage(
-                query.getId(), query.getUserName(), query.getRealName(), query.getPage(), query.getSize());
+                query.getId(),
+                query.getUserName(),
+                query.getRealName(),
+                query.getPageNo(),
+                query.getPageSize());
         PageData<UserVO> result = page.map(entity -> CopyBeanUtil.copy(entity, UserVO.class));
         result.records().forEach(this::privacyProcessing);
         return PagingData.from(result);

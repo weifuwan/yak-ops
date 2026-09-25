@@ -18,6 +18,7 @@ import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.service.impl.UserAdministrationService;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.util.StringUtils;
@@ -74,7 +75,7 @@ public class UserController {
 
     @Operation(summary = "分页查询用户")
     @PostMapping("/page")
-    public Result<PagingData<UserVO>> page(@RequestBody UserQueryDTO queryDTO) {
+    public Result<PagingData<UserVO>> page(@Valid @RequestBody UserQueryDTO queryDTO) {
         return Result.success(userService.getUserPage(queryDTO));
     }
 

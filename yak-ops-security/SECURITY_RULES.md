@@ -47,7 +47,7 @@ Security runtime 只保留用户和登录业务行为、认证状态及内部领
 
 共享接口对象统一由 `yak-ops-common` 持有：
 
-- DTO: `PageParamDTO`、`AccountLoginDTO`、`UserDTO`、`UserQueryDTO`、`UserPasswordResetDTO`
+- DTO: `AccountLoginDTO`、`UserDTO`、`UserQueryDTO`、`UserPasswordResetDTO`；`UserQueryDTO` 统一继承 Common `PageQueryDTO`
 - VO: `UserVO`、`UserBriefVO`、`CurrentUserVO`
 - Enum: `ResultCode`、`UserCheckType`
 - Exception: `YakSecurityException`（位于 `io.yak.ops.common.exception`）
@@ -59,6 +59,8 @@ Security runtime 只保留用户和登录业务行为、认证状态及内部领
 - Repository: `UserRepository` / `UserRepositoryImpl`
 
 Security Service 不直接访问 Mapper，也不向上泄漏 MyBatis `IPage`。
+
+用户分页请求统一使用 `pageNo / pageSize`。自定义 `sorts` 在 Security Repository 排序白名单落地前必须明确拒绝，禁止静默忽略；默认分页排序固定为 `createTime DESC, id DESC` 保证稳定翻页。
 
 用户模型不得重新携带 role / permission / project / menu 等旧授权字段。
 
