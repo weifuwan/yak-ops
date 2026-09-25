@@ -34,7 +34,8 @@ public class MybatisPlusConfiguration {
 
     private static final String SECURITY_USER_TABLE = "yak_security_user";
     private static final String SECURITY_TENANT_COLUMN = "app_name";
-    private static final String SECURITY_APPLICATION_NAME_PROPERTY =\n            SecurityConstants.CONFIG_PREFIX + ".application-name";
+    private static final String SECURITY_APPLICATION_NAME_PROPERTY =
+            SecurityConstants.CONFIG_PREFIX + ".application-name";
 
     @Bean
     MybatisPlusInterceptor mybatisPlusInterceptor(YakSecurityProperties properties) {
