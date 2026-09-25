@@ -1,10 +1,10 @@
 package io.yak.ops.boot.controller.exception;
 
-import io.yak.ops.common.CommonErrorCode;
-import io.yak.ops.common.ErrorCode;
-import io.yak.ops.common.Result;
+import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.exception.BusinessException;
+import io.yak.ops.common.result.ErrorCode;
+import io.yak.ops.common.result.Result;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

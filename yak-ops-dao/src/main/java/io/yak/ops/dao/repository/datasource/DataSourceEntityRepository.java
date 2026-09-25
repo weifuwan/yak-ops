@@ -1,6 +1,6 @@
 package io.yak.ops.dao.repository.datasource;
 
-import io.yak.ops.common.PageData;
+import io.yak.ops.common.page.PageData;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;

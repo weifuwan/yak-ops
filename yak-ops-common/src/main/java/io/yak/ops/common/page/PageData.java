@@ -1,4 +1,4 @@
-package io.yak.ops.common;
+package io.yak.ops.common.page;
 
 import java.util.List;
 import java.util.Objects;
@@ -14,6 +14,7 @@ import java.util.function.Function;
  *
  * @param <T> 业务数据类型
  * @author weifuwan
+ * @since 2026-09-25
  */
 public final class PageData<T> {
 

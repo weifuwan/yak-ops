@@ -1,12 +1,12 @@
 package io.yak.ops.security.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.enums.security.user.UserStatus;
 import io.yak.ops.common.exception.YakSecurityException;
+import io.yak.ops.common.result.Result;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.authentication.LoginAttemptGuard;
 import io.yak.ops.security.config.YakSecurityProperties;

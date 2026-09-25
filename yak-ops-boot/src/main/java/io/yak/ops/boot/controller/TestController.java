@@ -1,6 +1,6 @@
 package io.yak.ops.boot.controller;
 
-import io.yak.ops.common.Result;
+import io.yak.ops.common.result.Result;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;

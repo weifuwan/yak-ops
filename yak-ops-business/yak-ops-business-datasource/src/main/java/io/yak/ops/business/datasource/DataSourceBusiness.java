@@ -1,12 +1,12 @@
 package io.yak.ops.business.datasource;
 
-import io.yak.ops.common.PagingData;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
+import io.yak.ops.common.page.PagingData;
 import java.util.List;
 
 /**

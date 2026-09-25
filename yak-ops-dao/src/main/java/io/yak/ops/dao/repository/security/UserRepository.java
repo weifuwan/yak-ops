@@ -1,6 +1,6 @@
 package io.yak.ops.dao.repository.security;
 
-import io.yak.ops.common.PageData;
+import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.BaseRepository;
 import java.util.List;

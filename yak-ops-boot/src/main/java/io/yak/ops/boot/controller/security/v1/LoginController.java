@@ -2,12 +2,12 @@ package io.yak.ops.boot.controller.security.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.bean.vo.security.user.CurrentUserVO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.exception.YakSecurityException;
+import io.yak.ops.common.result.Result;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.service.LoginService;
 import io.yak.ops.security.service.UserService;

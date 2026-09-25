@@ -1,6 +1,6 @@
 package io.yak.ops.common.exception;
 
-import io.yak.ops.common.ErrorCode;
+import io.yak.ops.common.result.ErrorCode;
 import java.io.Serial;
 
 /** 安全模块业务异常；通用行为由 {@link BusinessException} 提供。 */

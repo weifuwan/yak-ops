@@ -1,6 +1,6 @@
 package io.yak.ops.dao.repository;
 
-import io.yak.ops.common.PageData;
+import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.BaseEntity;
 import java.util.List;
 import java.util.Optional;

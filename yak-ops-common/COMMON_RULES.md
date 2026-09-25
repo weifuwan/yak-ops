@@ -16,9 +16,22 @@ Owns:
 
 ## Namespace
 
-All shared Common contracts use the `io.yak.ops.common` namespace. Shared exception types live under `io.yak.ops.common.exception`.
+All shared Common contracts use the `io.yak.ops.common` namespace.
 
-Do not recreate the legacy `io.yak.ops.common` compatibility package.
+Package ownership:
+
+```text
+io.yak.ops.common.result     → Result / ErrorCode
+io.yak.ops.common.page       → PageData / PagingData
+io.yak.ops.common.exception  → shared business exceptions
+io.yak.ops.common.bean       → shared DTO / VO
+io.yak.ops.common.enums      → shared enums, including enums/common/CommonErrorCode
+io.yak.ops.common.constant   → stable shared constants
+io.yak.ops.common.util       → genuinely reusable stateless utilities
+```
+
+Do not place production Java types directly under `io.yak.ops.common`. New shared types must have an explicit owner package.
+Do not recreate root-level compatibility wrappers after a type has moved to its owned package.
 
 ## Enum Contracts
 
@@ -48,6 +61,7 @@ Common 中带字段的枚举统一保持不可变契约：
 - put Datasource or Security business orchestration in Common.
 - put HTTP status or ControllerAdvice behavior into Common.
 - use Common as a miscellaneous dumping ground.
+- add root-level classes directly under `io.yak.ops.common`.
 - recreate deleted tests or CI.
 
 ## Boundary
