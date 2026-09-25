@@ -26,13 +26,13 @@ import org.springframework.web.server.ResponseStatusException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Result<Void>> handleBusinessException(BusinessException exception) {
         ErrorCode errorCode = exception.getErrorCode();
         if (errorCode == null) {
-            LOGGER.warn("Business exception without ErrorCode", exception);
+            LOG.warn("业务异常缺少 ErrorCode，exceptionType={}, message={}", exception.getClass().getSimpleName(), exception.getMessage());
             String message = exception.getMessage();
             Result<Void> body = message == null || message.isBlank()
                     ? Result.fail(CommonErrorCode.PARAM_NOT_VALID)
@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
         }
 
         HttpStatus status = businessStatus(errorCode);
-        if (status.is5xxServerError()) LOGGER.error("Business request failed", exception);
+        if (status.is5xxServerError()) LOG.error("业务请求处理失败，errorCode={}", errorCode.getCode(), exception);
         return ResponseEntity.status(status).body(Result.fail(errorCode));
     }
 
@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
         IllegalArgumentException.class
     })
     public ResponseEntity<Result<Void>> handleInvalidRequest(Exception exception) {
-        LOGGER.debug("Invalid request", exception);
+        LOG.debug("请求参数校验失败，exceptionType={}, message={}", exception.getClass().getSimpleName(), exception.getMessage());
         return ResponseEntity.badRequest().body(Result.fail(CommonErrorCode.PARAM_NOT_VALID));
     }
 
@@ -75,7 +75,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<Void>> handleUnexpectedException(Exception exception) {
-        LOGGER.error("Unhandled controller exception", exception);
+        LOG.error("请求处理发生未预期异常", exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Result.fail(CommonErrorCode.COMMON_FAIL));
     }
 

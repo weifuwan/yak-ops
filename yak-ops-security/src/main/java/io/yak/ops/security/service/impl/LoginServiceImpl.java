@@ -49,7 +49,7 @@ import org.springframework.util.AntPathMatcher;
 @Service
 public class LoginServiceImpl implements LoginService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoginServiceImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LoginServiceImpl.class);
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
     @Resource
@@ -98,7 +98,6 @@ public class LoginServiceImpl implements LoginService {
             throw new YakSecurityException(SecurityErrorCode.USER_CREDENTIALS_ERROR);
         }
         if (ObjectUtils.isNull(user.getId())) {
-            LOGGER.error("登录用户缺少用户 ID，userName={}", userName);
             throw new IllegalStateException("Login user id must not be null");
         }
 
@@ -138,7 +137,7 @@ public class LoginServiceImpl implements LoginService {
         if (ObjectUtils.isNull(user)
                 || UserStatus.DISABLED.equals(user.getStatus())
                 || !Objects.equals(loginUserId, user.getId())) {
-            LOGGER.warn("登录态失效，operator={}, loginUserId={}", operator, loginUserId);
+            LOG.warn("登录态失效，operator={}, loginUserId={}", operator, loginUserId);
             authenticationManager.logout();
             return handleUnauthorized(response);
         }

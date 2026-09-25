@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class YakSecurityBootstrapInitializer implements ApplicationRunner {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(YakSecurityBootstrapInitializer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(YakSecurityBootstrapInitializer.class);
     private static final String BOOTSTRAP_OPERATOR = "yak-security-bootstrap";
 
     private final YakSecurityProperties properties;
@@ -52,8 +52,8 @@ public class YakSecurityBootstrapInitializer implements ApplicationRunner {
             throw new IllegalStateException("Cannot bootstrap Yak Security user: " + result.getMessage());
         }
 
-        LOGGER.warn(
-                "Yak Security bootstrap user '{}' was created. " + "Disable yak.security.bootstrap.enabled now.",
+        LOG.warn(
+                "已创建安全模块 Bootstrap 管理员，请关闭初始化配置，userName={}, config=yak.security.bootstrap.enabled",
                 bootstrap.getUsername());
     }
 
