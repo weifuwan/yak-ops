@@ -88,11 +88,7 @@ public class UserServiceImpl implements UserService {
             throw new YakSecurityException("用户分页暂不支持自定义排序");
         }
         PageData<UserEntity> page = userRepository.queryPage(
-                query.getId(),
-                query.getUserName(),
-                query.getRealName(),
-                query.getPageNo(),
-                query.getPageSize());
+                query.getId(), query.getUserName(), query.getRealName(), query.getPageNo(), query.getPageSize());
         PageData<UserVO> result = page.map(entity -> BeanCopyUtils.copy(entity, UserVO.class));
         result.records().forEach(this::privacyProcessing);
         return PagingData.from(result);
