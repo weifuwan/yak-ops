@@ -44,8 +44,6 @@ public class DataSourceSecretCodec {
     @Resource
     private ObjectMapper objectMapper;
 
-    @Resource
-    private SensitiveTextMasker textMasker;
 
     public String maskConnectionJson(DataSourcePluginDescriptor descriptor, String connectionJson) {
         if (connectionJson == null || connectionJson.trim().isEmpty()) return null;
@@ -62,7 +60,7 @@ public class DataSourceSecretCodec {
     }
 
     public String maskSensitiveText(String value) {
-        return textMasker.mask(value);
+        return SensitiveTextMasker.mask(value);
     }
 
     private void maskObject(ObjectNode object, Set<String> configuredKeys) {

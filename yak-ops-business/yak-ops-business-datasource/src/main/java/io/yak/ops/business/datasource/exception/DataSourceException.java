@@ -1,13 +1,14 @@
 package io.yak.ops.business.datasource.exception;
 
+import io.yak.ops.business.datasource.security.SensitiveTextMasker;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.result.ErrorCode;
 
 /**
- * Datasource management、Catalog 和 Plugin 边界统一使用的业务异常。
+ * Datasource 管理和 Plugin 边界统一使用的业务异常。
  *
  * @author weifuwan
- * @since 2026-09-24
+ * @since 2026-09-25
  */
 public class DataSourceException extends BusinessException {
 
@@ -43,6 +44,7 @@ public class DataSourceException extends BusinessException {
 
     private static String buildMessage(ErrorCode errorCode, String detail) {
         String base = errorCode == null ? "数据源操作失败" : errorCode.getMessage();
-        return detail == null || detail.trim().isEmpty() ? base : base + "：" + detail.trim();
+        String message = detail == null || detail.trim().isEmpty() ? base : base + "：" + detail.trim();
+        return SensitiveTextMasker.mask(message);
     }
 }
