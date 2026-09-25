@@ -65,6 +65,23 @@ bean/vo/<capability>
 
 Common DTO / VO 不依赖 Mapper、Repository、MyBatis、Entity 或 Spring Web Controller 类型。
 
+## Type Structure
+
+DTO / VO 必须是顶层类型，一个稳定 HTTP Contract 一个文件。
+
+Must:
+- DTO / VO 按 capability 和子域组织 package，例如 `vo/datasource/catalog`、`vo/datasource/plugin`。
+- 复合响应中的子结构只要拥有独立字段和语义，就拆成独立顶层 VO。
+- 公共分页元数据等跨接口响应结构也使用独立顶层类型。
+
+Must Not:
+- 在 DTO / VO 内声明 nested class、record、enum 或 interface。
+- 使用 `XxxVO.InnerVO` 作为 HTTP / Business Contract。
+- 因为某个子结构“只被一个父 VO 使用”就把它定义成内部类。
+- 为了减少文件数量牺牲 package ownership 和类型可发现性。
+
+文件数量不是抽象目标。是否创建 VO 取决于它是否拥有稳定 HTTP 响应语义；不应为 Entity、SPI 或内部 Model 机械镜像 VO。
+
 ## DTO Contract
 
 DTO 用于 Controller 输入以及 Business / Service 的请求参数。
@@ -277,3 +294,4 @@ Repository 不承担 HTTP 输入校验。
 - 让前端控制真实数据库列名。
 - 使用 Entity 代替 DTO / VO。
 - 为减少一行映射代码破坏分层边界。
+- 在 DTO / VO 内定义 nested class / record / enum / interface。

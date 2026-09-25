@@ -69,10 +69,25 @@ class declaration
 → public methods
 → package-private / protected methods
 → private methods
-→ nested types
 ```
 
 Do not reorder code only for ceremony when keeping related behavior together is clearer.
+
+## Type File Boundary
+
+新增生产 Java 类型默认遵循“一种语义，一个顶层文件”。
+
+Must:
+- class / record / enum / interface / annotation 有独立语义时定义为顶层类型，并放在明确 owner package。
+- DTO、VO、分页响应、公共 Contract、SPI Contract 必须使用顶层类型。
+- 修改到已有 nested contract 时，应在同一变更中优先拆为顶层类型。
+
+Must Not:
+- 新增 nested class、nested record、nested enum、nested interface 作为业务或跨层 Contract。
+- 为了“只在一个地方使用”把有独立字段和语义的数据结构塞进另一个类。
+- 用 `Outer.Inner` 作为 Controller / Business / Repository / SPI 之间的公开类型。
+
+Existing implementation-only nested types are migration debt and must not be expanded. Configuration holder、private cache state 等遗留内部类型可在后续独立重构中清理，不应作为新增 nested type 的先例。
 
 ## Methods
 
@@ -210,6 +225,7 @@ Formatter does not rewrite JavaDoc content; comment quality remains a review con
 - 为未来需求提前创建空层、空接口或扩展点。
 - 重建已删除的测试或 CI 体系作为任务副作用。
 - 为通过 formatter 改变业务行为。
+- 新增 nested class / record / enum / interface 承载业务或跨层 Contract。
 
 ## Abstraction Test
 

@@ -1,9 +1,9 @@
 package io.yak.ops.business.datasource.catalog;
 
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogDiagnosticsVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogOptionVO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
+import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogColumnVO;
+import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogDiagnosticsVO;
+import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogOptionVO;
+import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogTableVO;
 import java.util.List;
 
 /**
