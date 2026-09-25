@@ -1,5 +1,6 @@
 package io.yak.ops.common.enums.datasource;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
 import java.util.Locale;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -13,9 +14,12 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum DataSourceConnStatus {
-    UNKNOWN("未测试"),
-    CONNECTED("连接可用"),
-    DISCONNECTED("连接不可用");
+    UNKNOWN(0, "未测试"),
+    CONNECTED(1, "连接可用"),
+    DISCONNECTED(2, "连接不可用");
+
+    @EnumValue
+    private final Integer value;
 
     private final String displayName;
 

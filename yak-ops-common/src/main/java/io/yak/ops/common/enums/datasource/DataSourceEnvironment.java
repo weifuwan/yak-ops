@@ -1,5 +1,6 @@
 package io.yak.ops.common.enums.datasource;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
 import java.util.Locale;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -13,9 +14,12 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum DataSourceEnvironment {
-    DEVELOP("开发"),
-    TEST("测试"),
-    PROD("生产");
+    DEVELOP(0, "开发"),
+    TEST(1, "测试"),
+    PROD(2, "生产");
+
+    @EnumValue
+    private final Integer value;
 
     private final String displayName;
 

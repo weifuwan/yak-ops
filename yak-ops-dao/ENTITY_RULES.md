@@ -26,6 +26,7 @@ Owns:
 - 普通字段使用 Java camelCase，并依赖 MyBatis-Plus underscore-to-camel 映射。
 - 只有特殊映射、自动填充或逻辑删除等真实语义才使用 `@TableField / @TableLogic`。
 - 固定状态 / 类型优先使用枚举；枚举 Java 类型与 Flyway 中的真实存储格式必须一致。
+- 数值持久化枚举使用 Common 中声明 `@EnumValue` 的 `value` 字段自动读写，Entity 不保存裸 `Integer` 状态码，Repository / Business 不手动做枚举与数字转换。
 - Entity 类必须有中文 JavaDoc，并包含 `@author` 与 `@since`。
 - Entity 的持久化业务字段必须有中文 JavaDoc。
 - Entity 字段注释与 Flyway 对应字段 COMMENT 的业务语义保持一致。
