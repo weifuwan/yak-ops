@@ -28,31 +28,26 @@ Datasource 当前结构：
 app/datasource/
 ├── index.tsx
 ├── table.tsx
-├── toolbar.tsx
-├── summary.tsx
-├── empty-state.tsx
-├── constants.tsx
+├── form.tsx
+├── constants.ts
 ├── types.ts
-├── utils.ts
-├── hooks/
-├── editor/
-│   ├── index.tsx
-│   ├── type-selector.tsx
-│   ├── connection-form.tsx
-│   ├── custom-kv-list.tsx
-│   ├── form-runtime.tsx
-│   ├── form-model.ts
-│   ├── jdbc-url-field.tsx
-│   ├── jdbc-url-utils.ts
-│   ├── ssh-tunnel-manager.tsx
-│   └── types.ts
 ├── icons/
 └── i18n/
+
+service/datasource/
+├── index.ts
+└── types.ts
 ```
 
-`management / model / plugin / connection` 已删除。
+Datasource 当前就是普通管理页面：
 
-Datasource 列表使用原生业务 Table，避免 Card/Grid/List 多套展示模式。Datasource Editor 允许一层独立目录，因为它本身足够复杂；Editor 内部继续保持扁平。
+```text
+Filter + Table + Pagination + CRUD Drawer
+```
+
+`index.tsx` 拥有列表、筛选、分页和删除确认状态；`table.tsx` 只负责列表展示；`form.tsx` 只负责新增、编辑和连接测试。
+
+禁止为了 Datasource CRUD 重新创建 Editor Runtime、Domain Hook、Summary Layer 或动态表单体系。
 
 ## Dependency Direction
 
@@ -64,12 +59,6 @@ app/datasource ─────→ packages/yak-ui
 service/datasource
    ↓
 service/http
-
-app/login ──────────→ packages/yak-ui
-   ↓
-service/auth
-   ↓
-service/http
 ```
 
 核心 invariant：
@@ -78,24 +67,38 @@ service/http
 app → service → http
 ```
 
-禁止：
-
-```text
-service → app
-app → service/http
-```
-
 ## Datasource Contract Ownership
 
-Datasource 后端 Contract 归：
+稳定后端 Contract 归：
 
 ```text
 service/datasource/types.ts
 ```
 
-App 通过 `app/datasource/types.ts` 消费并补充 UI-only 类型。
+App 只通过 `app/datasource/types.ts` 重新导出这些 Contract。
 
-Editor 私有 Contract 归 `app/datasource/editor/types.ts`。Datasource 连接表单是当前内置 MySQL / Oracle / PostgreSQL 的固定产品表单，不由后端 schema 动态驱动。
+当前前端只消费 CRUD、分页和 Connection Test；不消费 Summary、Catalog、Plugin Config、Driver Upload 或 Runtime Install API。
+
+## Datasource Product Baseline
+
+当前只展示：
+
+- MySQL
+- Oracle
+- PostgreSQL
+
+表单固定为：
+
+```text
+name
+dbType
+jdbcUrl
+username
+password
+remark
+```
+
+数据库连接差异由后端 JDBC Plugin 处理。前端不维护 host/port/database 联动、SSH、Driver Class、Properties 或 Provider descriptor renderer。
 
 ## Web Root Ownership
 
@@ -103,7 +106,7 @@ Editor 私有 Contract 归 `app/datasource/editor/types.ts`。Datasource 连接�
 app        → Product Domain + Router + Layout
 service    → Domain API + Backend Contract + HTTP transport
 utils      → 无业务工具
-themes     → Theme Token / light / dark
+themes     → Theme
 types      → 跨 Web 稳定类型
 hooks      → 跨组件 React Hook
 context    → App-wide Context
@@ -113,31 +116,11 @@ assets     → 参与构建的资源
 public     → 原样静态资源
 ```
 
-禁止重新创建：
-
-```text
-apps/web/src
-apps/web/pages
-apps/web/shared
-yak-ops-ui/src
-yak-ops-ui/public
-yak-ops-ui/types
-yak-ops-ui/mock
-packages/datasource
-app/datasource/management
-app/datasource/model
-app/datasource/plugin
-app/datasource/connection
-app/datasource/editor/DynamicDataSourceForm
-```
-
 ## Service Boundary
 
 `service/http` 是唯一 HTTP transport owner。
 
-`service/auth` 拥有 Login / Logout / Current User。
-
-Datasource Service 保持局部内聚：
+Datasource Service 保持：
 
 ```text
 service/datasource/
@@ -145,18 +128,7 @@ service/datasource/
 └── types.ts
 ```
 
-- `index.ts`：CRUD、Connection Test。
-- `types.ts`：稳定 backend Contract。
-
-Service 不按 endpoint 概念机械拆文件；只有形成独立协议、独立生命周期或明显复杂度时才继续拆。
-
-## Package Boundary
-
-现在只保留真正独立的 UI Package：
-
-```text
-packages/yak-ui
-```
+不按 CRUD endpoint 机械拆文件。
 
 ## Architecture Enforcement
 

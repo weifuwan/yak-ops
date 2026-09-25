@@ -1,9 +1,9 @@
 export type DataSourceId = string;
 
 export type DataSourceConnectionStatus =
-  | 'UNKNOWN'
-  | 'CONNECTED'
-  | 'DISCONNECTED'
+  | "UNKNOWN"
+  | "CONNECTED"
+  | "DISCONNECTED"
   | string;
 
 export interface PaginationInfo {
@@ -22,7 +22,7 @@ export interface DataSourceRecord {
   environmentName?: string;
   connStatus?: DataSourceConnectionStatus;
   remark?: string;
-  /** 仅详情接口返回，敏感字段使用 ****** 回显。 */
+  /** Detail only. Sensitive values are returned as ******. */
   originalJson?: string;
   createTime?: string;
   updateTime?: string;
@@ -36,19 +36,9 @@ export interface DataSourcePageResult {
 export interface DataSourcePageParams {
   pageNo: number;
   pageSize: number;
-  dbType?: string;
-  name?: string;
   keyword?: string;
-  environment?: string;
+  dbType?: string;
   connStatus?: string;
-}
-
-export interface DataSourceSummary {
-  total: number;
-  connected: number;
-  disconnected: number;
-  unknown: number;
-  environmentCount: number;
 }
 
 export interface DataSourceSavePayload {
@@ -63,19 +53,4 @@ export interface DataSourceConnectTestPayload {
   dataSourceId?: DataSourceId;
   dbType?: string;
   connJson: string;
-}
-
-export type SshAuthType = 'PASSWORD' | 'PRIVATE_KEY';
-
-export interface SshTunnelConfigValue {
-  enabled?: boolean;
-  host?: string;
-  port?: number;
-  username?: string;
-  authType?: SshAuthType;
-  password?: string;
-  privateKey?: string;
-  passphrase?: string;
-  strictHostKeyChecking?: boolean;
-  knownHosts?: string;
 }
