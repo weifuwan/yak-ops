@@ -2,9 +2,8 @@ package io.yak.ops.security.service.impl;
 
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
-import io.yak.ops.common.enums.security.ResultCode;
+import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.security.user.UserStatus;
-import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.common.result.Result;
 import io.yak.ops.common.util.BeanCopyUtils;
 import io.yak.ops.common.util.CollectionUtils;
@@ -15,6 +14,8 @@ import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.authentication.LoginAttemptGuard;
 import io.yak.ops.security.config.YakSecurityProperties;
 import io.yak.ops.security.constant.SecurityConstants;
+import io.yak.ops.security.enums.SecurityErrorCode;
+import io.yak.ops.security.exception.YakSecurityException;
 import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.security.service.LoginService;
@@ -71,7 +72,7 @@ public class LoginServiceImpl implements LoginService {
         String userName = loginDTO.getUserName().trim();
         String remoteAddress = request.getRemoteAddr();
         if (loginAttemptGuard.isBlocked(userName, remoteAddress)) {
-            throw new YakSecurityException(ResultCode.USER_ACCOUNT_LOCKED);
+            throw new YakSecurityException(SecurityErrorCode.USER_ACCOUNT_LOCKED);
         }
 
         UserAccount user = userService.getUserByUsername(userName);
@@ -79,15 +80,15 @@ public class LoginServiceImpl implements LoginService {
             loginAttemptGuard.recordFailure(userName, remoteAddress);
             throw new YakSecurityException(
                     loginProperties.isHideAccountNotFound()
-                            ? ResultCode.USER_CREDENTIALS_ERROR
-                            : ResultCode.USER_NOT_EXISTS);
+                            ? SecurityErrorCode.USER_CREDENTIALS_ERROR
+                            : SecurityErrorCode.USER_NOT_EXISTS);
         }
         if (UserStatus.DISABLED.equals(user.getStatus())) {
-            throw new YakSecurityException(ResultCode.USER_ACCOUNT_DISABLE);
+            throw new YakSecurityException(SecurityErrorCode.USER_ACCOUNT_DISABLE);
         }
         if (!passwordEncoder.matches(loginDTO.getPw(), user.getPw())) {
             loginAttemptGuard.recordFailure(userName, remoteAddress);
-            throw new YakSecurityException(ResultCode.USER_CREDENTIALS_ERROR);
+            throw new YakSecurityException(SecurityErrorCode.USER_CREDENTIALS_ERROR);
         }
         if (ObjectUtils.isNull(user.getId())) {
             LOGGER.error("登录用户缺少用户 ID，userName={}", userName);
@@ -141,7 +142,7 @@ public class LoginServiceImpl implements LoginService {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
-        response.getWriter().write(JSONUtils.toJson(Result.fail(ResultCode.USER_NOT_LOGIN)));
+        response.getWriter().write(JSONUtils.toJson(Result.fail(SecurityErrorCode.USER_NOT_LOGIN)));
         return false;
     }
 
@@ -162,7 +163,7 @@ public class LoginServiceImpl implements LoginService {
                 || ObjectUtils.isNull(request)
                 || StringUtils.isBlank(loginDTO.getUserName())
                 || StringUtils.isBlank(loginDTO.getPw())) {
-            throw new YakSecurityException(ResultCode.PARAM_NOT_VALID);
+            throw new YakSecurityException(CommonErrorCode.PARAM_NOT_VALID);
         }
     }
 }
