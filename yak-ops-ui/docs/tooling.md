@@ -31,26 +31,40 @@ Umi Max、Biome、Yarn、Husky、lint-staged、commitlint 不属于当前前端�
 
 ## Required Checks
 
-在 `yak-ops-ui/` 下执行：
+本地在 `yak-ops-ui/` 下执行：
 
 ```bash
 npm run check
 npm run build
 ```
 
-`check` 是四个独立 gate：
+`check` 是本地聚合入口，按下面顺序执行四个确定性 quality gate：
 
 ```text
-architecture:check
-      ↓
-typecheck
+format:check
       ↓
 lint
       ↓
-format:check
+typecheck
+      ↓
+architecture:check
 ```
 
 Build 独立执行，验证 Vite 真实生产构建。
+
+GitHub Actions 不使用单一 `npm run check` 步骤，而是直接执行每个 gate，让失败原因在 CI 中独立可见：
+
+```text
+Frontend format
+      ↓
+Frontend lint
+      ↓
+Frontend type check
+      ↓
+Frontend architecture
+      ↓
+Frontend build
+```
 
 ## Commands
 
@@ -66,6 +80,27 @@ npm run format
 npm run format:check
 npm run check
 ```
+
+## Physical Quality Gate
+
+前端中能由工具确定判断的规则由确定性工具负责，不使用 AI 做全文格式判断。
+
+所有 CI gate 都是 check-only：
+
+- Oxfmt 负责格式，CI 执行 `npm run format:check`。
+- Oxlint 负责静态代码规则，CI 执行 `npm run lint`。
+- TypeScript 负责类型正确性，CI 执行 `npm run typecheck`。
+- Node architecture check 负责仓库架构边界，CI 执行 `npm run architecture:check`。
+- Vite 负责生产构建验证，CI 执行 `npm run build`。
+
+CI 禁止执行会修改源码的命令：
+
+```text
+npm run format
+npm run lint:fix
+```
+
+格式或 lint 不通过时直接失败，由开发者在本地修复后重新提交。
 
 ## Architecture Check
 
@@ -178,18 +213,20 @@ Workspace root 只保留构建和质量工具，不声明运行时 dependencies�
 
 不要保留“依赖已经删除但 hook 还存在”的假门禁。
 
-质量入口统一是：
+本地质量入口统一是：
 
 ```bash
 npm run check
 npm run build
 ```
 
+CI 则直接运行独立 physical quality gates，不把聚合命令作为黑盒门禁。
+
 ## Tests
 
 当前 Yak Ops UI 没有重新建立前端测试 gate。
 
-需要测试时单独定义测试 Contract 和 Tooling，再进入 `npm run check`。
+需要测试时单独定义测试 Contract 和 Tooling，再进入前端质量体系。
 
 ## Verification Record
 
