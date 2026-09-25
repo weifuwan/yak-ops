@@ -15,6 +15,7 @@ import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import io.yak.ops.security.authentication.AuthenticationManager;
+import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.service.impl.UserAdministrationService;
 import jakarta.annotation.Resource;
@@ -34,13 +35,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 用户管理接口。 */
 @ConditionalOnProperty(
-        prefix = "yak.security",
+        prefix = SecurityConstants.CONFIG_PREFIX,
         name = {"enabled", "database-enabled", "web-enabled"},
         havingValue = "true",
         matchIfMissing = true)
 @Tag(name = "用户管理")
 @RestController
-@RequestMapping("/yak-security/api/v1/user")
+@RequestMapping(SecurityConstants.USER_API_PREFIX)
 public class UserController {
 
     @Resource
