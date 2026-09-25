@@ -1,5 +1,6 @@
 package io.yak.ops.security.web;
 
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.security.config.YakSecurityProperties;
 import io.yak.ops.security.service.LoginService;
 import jakarta.servlet.DispatcherType;
@@ -40,7 +41,7 @@ public class YakAuthenticationInterceptor implements HandlerInterceptor {
 
         String contextPath = request.getContextPath();
         String requestPath = request.getRequestURI();
-        if (contextPath != null && !contextPath.isEmpty() && requestPath.startsWith(contextPath)) {
+        if (StringUtils.isNotBlank(contextPath) && requestPath.startsWith(contextPath)) {
             requestPath = requestPath.substring(contextPath.length());
         }
 
