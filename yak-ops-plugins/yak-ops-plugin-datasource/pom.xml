@@ -20,9 +20,6 @@
     <modules>
         <module>yak-ops-plugin-datasource-api</module>
         <module>yak-ops-plugin-datasource-jdbc</module>
-        <module>yak-ops-plugin-datasource-doris</module>
-        <module>yak-ops-plugin-datasource-elasticsearch</module>
-        <module>yak-ops-plugin-datasource-mongodb</module>
         <module>yak-ops-plugin-datasource-all</module>
     </modules>
 </project>

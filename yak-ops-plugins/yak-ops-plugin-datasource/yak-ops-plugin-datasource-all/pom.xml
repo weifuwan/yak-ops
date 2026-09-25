@@ -14,26 +14,12 @@
     <artifactId>yak-ops-plugin-datasource-all</artifactId>
 
     <name>Yak Ops All Datasource Plugins</name>
-    <description>Runtime aggregation of all built-in Yak Ops datasource plugins</description>
+    <description>Runtime aggregation of built-in Yak Ops datasource plugins</description>
 
     <dependencies>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-plugin-datasource-jdbc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-datasource-doris</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-datasource-elasticsearch</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-datasource-mongodb</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

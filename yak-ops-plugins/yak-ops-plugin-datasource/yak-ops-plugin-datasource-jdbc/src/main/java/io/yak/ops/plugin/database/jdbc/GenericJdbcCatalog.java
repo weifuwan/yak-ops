@@ -1,7 +1,5 @@
 package io.yak.ops.plugin.database.jdbc;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
 import io.yak.ops.spi.datasource.DataSourcePluginException;
 import io.yak.ops.spi.datasource.DataSourcePluginException.Operation;
@@ -31,7 +29,6 @@ import java.util.Set;
  */
 public class GenericJdbcCatalog implements DataSourceCatalog {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final int MAX_TABLE_SEARCH_LIMIT = 500;
 
     private final JdbcConnectionProperties connection;
@@ -173,9 +170,6 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
 
     protected String quoteIdentifier(String identifier) {
         if (isBlank(identifier)) throw new IllegalArgumentException("数据库标识符不能为空");
-        if ("SQL_SERVER".equals(connection.type())) {
-            return "[" + identifier.trim().replace("]", "]]") + "]";
-        }
         String quote = usesCatalogAsNamespace() ? "`" : "\"";
         return quote + identifier.trim().replace(quote, quote + quote) + quote;
     }
@@ -194,7 +188,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     }
 
     private String metadataCatalog(String requestedDatabase) {
-        if (usesOracleStyle() || "HANA".equals(connection.type())) return null;
+        if (usesOracleStyle()) return null;
         return firstNonBlank(requestedDatabase, connection.database());
     }
 
@@ -259,24 +253,11 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     }
 
     private boolean usesCatalogAsNamespace() {
-        return isType("MYSQL", "TIDB", "GOLDENDB", "GBASE8A", "DORIS", "STARROCKS", "CLICKHOUSE")
-                || ("OCEANBASE".equals(connection.type()) && !oceanBaseOracleMode());
+        return isType("MYSQL");
     }
 
     private boolean usesOracleStyle() {
-        return "ORACLE".equals(connection.type())
-                || ("OCEANBASE".equals(connection.type()) && oceanBaseOracleMode());
-    }
-
-    private boolean oceanBaseOracleMode() {
-        if (!"OCEANBASE".equals(connection.type()) || isBlank(connection.normalizedJson())) return false;
-        try {
-            JsonNode root = OBJECT_MAPPER.readTree(connection.normalizedJson());
-            String mode = root.path("compatibleMode").asText(root.path("compatible_mode").asText("mysql"));
-            return "oracle".equalsIgnoreCase(mode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return isType("ORACLE");
     }
 
     private String firstNonBlank(String value, String fallback) {

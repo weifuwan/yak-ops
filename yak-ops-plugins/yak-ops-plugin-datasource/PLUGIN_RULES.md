@@ -21,16 +21,7 @@ yak-ops-plugin-datasource-api
 → stable provider-neutral contracts
 
 yak-ops-plugin-datasource-jdbc
-→ shared JDBC implementation + JDBC providers
-
-yak-ops-plugin-datasource-doris
-→ Doris-specific behavior
-
-yak-ops-plugin-datasource-elasticsearch
-→ Elasticsearch-specific behavior
-
-yak-ops-plugin-datasource-mongodb
-→ MongoDB-specific behavior
+→ shared JDBC implementation + built-in MySQL / Oracle / PostgreSQL providers
 
 yak-ops-plugin-datasource-all
 → runtime aggregation only
@@ -52,7 +43,7 @@ Do not add a second Datasource plugin contract in `yak-ops-spi`.
 Datasource providers are an open set. Plugin identity must not be modeled as a Common enum.
 
 Must:
-- each Provider owns one stable canonical string `type`, such as `MYSQL` or `ELASTICSEARCH8`.
+- each Provider owns one stable canonical string `type`, such as `MYSQL`.
 - canonical type is normalized and persisted as a string.
 - provider-specific compatibility names are declared through descriptor `aliases`.
 - ServiceLoader discovery registers both canonical type and aliases to the same Provider.
@@ -65,6 +56,15 @@ Must Not:
 - recreate `DataSourceDbType` or an equivalent central enum/list of supported databases.
 - make Business parse vendor type aliases.
 - require a core-module change only to register a new Provider.
+
+## Built-in Provider Baseline
+
+The current Yak Ops product baseline only packages:
+- `MYSQL`
+- `ORACLE`
+- `POSTGRE_SQL` with `POSTGRESQL` and `POSTGRES` aliases.
+
+Other providers must not be packaged, registered, or pulled in through runtime dependencies unless the product baseline is intentionally expanded in a dedicated change.
 
 ## Provider Rules
 
@@ -85,6 +85,6 @@ Must Not:
 
 ## Aggregation
 
-`yak-ops-plugin-datasource-all` only assembles built-in providers.
+`yak-ops-plugin-datasource-all` only assembles the current built-in provider baseline.
 
 It must not own business behavior or duplicate provider logic.
