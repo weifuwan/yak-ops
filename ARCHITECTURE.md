@@ -36,7 +36,7 @@ Security does not own Controller, ControllerAdvice, OpenAPI configuration, conne
 
 Security production code was migrated from `yak-framework/yak-security`.
 
-Security business/runtime code uses the `io.yak.ops.security` product namespace. `SecurityErrorCode`, `YakSecurityException`, `UserAccount` and `UserCheckType` are Security-owned domain contracts. Shared HTTP DTO / VO live in `io.yak.ops.common`, while user persistence is owned by `yak-ops-dao`. `UserStatus` temporarily remains Common because DAO persistence directly owns its MyBatis enum mapping.
+Security business/runtime code uses the `io.yak.ops.security` product namespace. `SecurityErrorCode`, `YakSecurityException`, `UserAccount` and `UserCheckType` are Security-owned domain contracts. Shared HTTP DTO / VO live in `io.yak.ops.common`, while user persistence is owned by `yak-ops-dao`. `UserStatus` temporarily remains Common because DAO persistence directly owns its MyBatis enum mapping. Security exposes exactly two stable Service entries to Boot: `LoginService` and `UserService`; user administration behavior is consolidated inside `UserServiceImpl` rather than split into a second concrete service.
 
 ### `yak-ops-dao`
 
