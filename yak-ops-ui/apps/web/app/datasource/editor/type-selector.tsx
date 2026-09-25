@@ -2,9 +2,13 @@ import { Button, Empty, Input } from '@yak-ops/yak-ui';
 import { Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { COMMON_DB_OPTIONS } from '../constants';
 import DatabaseIcons from '../icons/DatabaseIcons';
 import { useIntl } from '../i18n';
 import type { DataSourceGroup } from '../types';
+
+const dbTypeLabel = (value: string) =>
+  COMMON_DB_OPTIONS.find((option) => option.value === value)?.label || value;
 
 interface DataSourceTypeSelectorProps {
   dataSourceGroups: DataSourceGroup[];
@@ -122,13 +126,7 @@ const DataSourceTypeSelector = ({
                     className="min-w-0 flex-1 truncate text-[13px] font-medium"
                     title={item.dbType}
                   >
-                    {item.dbType === 'POSTGRE_SQL'
-                      ? 'PostgreSQL'
-                      : item.dbType === 'MYSQL'
-                        ? 'MySQL'
-                        : item.dbType === 'ORACLE'
-                          ? 'Oracle'
-                          : item.dbType}
+                    {dbTypeLabel(item.dbType)}
                   </span>
                 </Button>
               ))}
