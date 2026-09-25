@@ -273,7 +273,7 @@ The verifier scans backend production Java and rejects:
 - obvious `String.format` / string-concatenation logging;
 - log calls that directly reference hard-sensitive identifiers such as password, token credentials, session IDs, connection JSON or JDBC URLs.
 
-GitHub Actions runs the same verifier from `.github/workflows/logging-rule-verification.yml` for backend-related pull requests and main-branch changes, then runs repository Spotless check and backend compile.
+GitHub Actions runs the same verifier as the `Backend logging rules` step in `.github/workflows/quality-check.yml` for pull requests and main-branch changes. It runs before the existing backend format, compile and verify gates.
 
 Semantic review is still required. Static verification cannot decide whether an INFO/WARN log is operationally useful, whether a recoverable condition really deserves WARN, or whether a specific identity field is materially necessary for diagnosis.
 
