@@ -1,15 +1,19 @@
 package io.yak.ops.plugin.database.jdbc.kingbase;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 
 /** KingbaseES JDBC datasource plugin. */
 public final class KingbaseDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.KINGBASE;
+    public String type() {
+        return "KINGBASE";
+    }
+
+    @Override
+    protected String displayName() {
+        return "KingbaseES";
     }
 
     @Override

@@ -1,6 +1,5 @@
 package io.yak.ops.plugin.database.mongodb;
 
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.spi.datasource.DataSourceConnection;
 import java.util.Map;
 
@@ -29,8 +28,8 @@ final class MongoConnection implements DataSourceConnection {
     }
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.MONGODB;
+    public String type() {
+        return "MONGODB";
     }
 
     /** Historical SPI field; keep it credential-free because Yak Ops surfaces it as connection URL. */

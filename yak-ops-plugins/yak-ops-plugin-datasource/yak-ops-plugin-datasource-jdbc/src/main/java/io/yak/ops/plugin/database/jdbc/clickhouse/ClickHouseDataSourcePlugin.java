@@ -2,7 +2,6 @@ package io.yak.ops.plugin.database.jdbc.clickhouse;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor.FormField;
 import java.util.Collections;
@@ -13,8 +12,13 @@ import java.util.Locale;
 public final class ClickHouseDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.CLICKHOUSE;
+    public String type() {
+        return "CLICKHOUSE";
+    }
+
+    @Override
+    protected String displayName() {
+        return "ClickHouse";
     }
 
     @Override

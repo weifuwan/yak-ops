@@ -1,19 +1,21 @@
 package io.yak.ops.spi.datasource;
 
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 /** Immutable datasource plugin metadata and connection-form contract. */
 public record DataSourcePluginDescriptor(
-        DataSourceDbType dbType,
+        String type,
         String displayName,
+        Set<String> aliases,
         String apiVersion,
         Set<DataSourceCapability> capabilities,
         ConnectionForm connectionForm,
@@ -23,16 +25,39 @@ public record DataSourcePluginDescriptor(
     public static final String CURRENT_API_VERSION = "1";
 
     public DataSourcePluginDescriptor {
-        dbType = Objects.requireNonNull(dbType, "dbType");
-        displayName = normalize(displayName, dbType.getDisplayName());
+        type = normalizeType(type);
+        displayName = normalize(displayName, type);
+        aliases = immutableAliases(type, aliases);
         apiVersion = normalize(apiVersion, CURRENT_API_VERSION);
         capabilities = immutableCapabilities(capabilities);
         connectionForm = connectionForm == null ? ConnectionForm.empty() : connectionForm;
         installHint = trimToNull(installHint);
     }
 
+    public DataSourcePluginDescriptor(
+            String type,
+            String displayName,
+            String apiVersion,
+            Set<DataSourceCapability> capabilities,
+            ConnectionForm connectionForm,
+            boolean installRequired,
+            String installHint) {
+        this(type, displayName, Set.of(), apiVersion, capabilities, connectionForm, installRequired, installHint);
+    }
+
+    public boolean matchesType(String value) {
+        String normalized = normalizeType(value);
+        return type.equals(normalized) || aliases.contains(normalized);
+    }
+
     public boolean supports(DataSourceCapability capability) {
         return capability != null && capabilities.contains(capability);
+    }
+
+    public static String normalizeType(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) throw new IllegalArgumentException("plugin type must not be blank");
+        return normalized.toUpperCase(Locale.ROOT).replace('-', '_');
     }
 
     public Set<String> secretFieldKeys() {
@@ -227,6 +252,16 @@ public record DataSourcePluginDescriptor(
             portField = normalize(portField, "port");
             databaseField = normalize(databaseField, "database");
         }
+    }
+
+    private static Set<String> immutableAliases(String type, Set<String> values) {
+        if (values == null || values.isEmpty()) return Set.of();
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        for (String value : values) {
+            String alias = normalizeType(value);
+            if (!type.equals(alias)) normalized.add(alias);
+        }
+        return Collections.unmodifiableSet(normalized);
     }
 
     private static Set<DataSourceCapability> immutableCapabilities(Set<DataSourceCapability> values) {

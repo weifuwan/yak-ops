@@ -15,7 +15,6 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceOptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceSummaryVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
@@ -55,7 +54,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
     public boolean addDataSource(DataSourceDTO dto) {
         requireDataSourceDto(dto);
         String name = normalizeName(dto.getName());
-        DataSourceDbType dbType = parseDbType(dto.getDbType());
+        String dbType = pluginBusiness.resolvePluginType(dto.getDbType());
         ensureNameAvailable(name, null);
         var connection = pluginBusiness.parseConnection(dbType, dto.getConnectionParams());
 
@@ -81,9 +80,9 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         requireDataSourceDto(dto);
         DataSourceEntity existing = requireEntity(id);
         String name = normalizeName(dto.getName());
-        DataSourceDbType dbType = parseDbType(dto.getDbType());
+        String dbType = pluginBusiness.resolvePluginType(dto.getDbType());
         ensureNameAvailable(name, id);
-        if (existing.getDbType() != dbType) {
+        if (!existing.getDbType().equals(dbType)) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "编辑数据源时不允许修改数据源类型");
         }
 
@@ -154,7 +153,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
 
     @Override
     public List<DataSourceOptionVO> queryDataSourceOptions(String dbType) {
-        DataSourceDbType type = StringUtils.hasText(dbType) ? parseDbType(dbType) : null;
+        String type = StringUtils.hasText(dbType) ? pluginBusiness.resolvePluginType(dbType) : null;
         return repository.queryAll(type).stream().map(this::toOptionVO).toList();
     }
 
@@ -185,12 +184,12 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         }
 
         DataSourceEntity existing = dto.getDataSourceId() == null ? null : requireEntity(dto.getDataSourceId());
-        DataSourceDbType dbType;
+        String dbType;
         String connectionJson = dto.getConnJson();
 
         if (existing != null) {
             dbType = existing.getDbType();
-            if (StringUtils.hasText(dto.getDbType()) && parseDbType(dto.getDbType()) != dbType) {
+            if (StringUtils.hasText(dto.getDbType()) && !pluginBusiness.resolvePluginType(dto.getDbType()).equals(dbType)) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接测试的数据源类型与已保存数据源不一致");
             }
             connectionJson = pluginBusiness
@@ -240,14 +239,6 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
 
-    private DataSourceDbType parseDbType(String value) {
-        try {
-            return DataSourceDbType.parse(value);
-        } catch (IllegalArgumentException exception) {
-            throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, exception.getMessage(), exception);
-        }
-    }
-
     private DataSourceEnvironment parseEnvironment(String value) {
         try {
             return DataSourceEnvironment.parse(value);
@@ -283,7 +274,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         DataSourceVO target = new DataSourceVO();
         target.setId(source.getId());
         target.setName(source.getName());
-        target.setDbType(source.getDbType() == null ? null : source.getDbType().name());
+        target.setDbType(source.getDbType());
         target.setJdbcUrl(pluginBusiness.maskSensitiveText(source.getJdbcUrl()));
         target.setEnvironment(source.getEnvironment() == null ? null : source.getEnvironment().name());
         target.setEnvironmentName(
@@ -302,7 +293,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         return new DataSourceOptionVO(
                 source.getName(),
                 String.valueOf(source.getId()),
-                source.getDbType() == null ? null : source.getDbType().name());
+                source.getDbType());
     }
 
     private DataSourceSummaryVO toSummaryVO(DataSourceSummaryRow source) {

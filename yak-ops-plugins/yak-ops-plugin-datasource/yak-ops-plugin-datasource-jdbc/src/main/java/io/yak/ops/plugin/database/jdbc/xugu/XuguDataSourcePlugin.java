@@ -1,7 +1,6 @@
 package io.yak.ops.plugin.database.jdbc.xugu;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import java.util.Locale;
 
@@ -9,8 +8,18 @@ import java.util.Locale;
 public final class XuguDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.XUGU;
+    public String type() {
+        return "XUGU";
+    }
+
+    @Override
+    protected String displayName() {
+        return "XuguDB";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("XUGUDB");
     }
 
     @Override

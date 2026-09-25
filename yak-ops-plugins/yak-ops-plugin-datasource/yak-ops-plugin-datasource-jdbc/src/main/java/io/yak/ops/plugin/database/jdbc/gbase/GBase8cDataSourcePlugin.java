@@ -2,7 +2,6 @@ package io.yak.ops.plugin.database.jdbc.gbase;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import java.util.Locale;
 
@@ -10,8 +9,18 @@ import java.util.Locale;
 public final class GBase8cDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.GBASE8C;
+    public String type() {
+        return "GBASE8C";
+    }
+
+    @Override
+    protected String displayName() {
+        return "GBase 8c";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("GBASE_8C");
     }
 
     @Override

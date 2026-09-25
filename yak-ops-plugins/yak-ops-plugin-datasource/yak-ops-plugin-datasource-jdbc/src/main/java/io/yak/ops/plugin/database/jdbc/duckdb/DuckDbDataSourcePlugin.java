@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import io.yak.ops.plugin.database.jdbc.JdbcConnectionProperties;
 import io.yak.ops.plugin.database.jdbc.SshTunnelConfig;
@@ -41,8 +40,8 @@ public final class DuckDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     private static final String DRIVER = "org.duckdb.DuckDBDriver";
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.DUCKDB;
+    public String type() {
+        return "DUCKDB";
     }
 
     @Override
@@ -78,8 +77,9 @@ public final class DuckDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
                 Collections.emptyList());
 
         return new DataSourcePluginDescriptor(
-                dbType(),
-                dbType().getDisplayName(),
+                type(),
+                "DuckDB",
+                Set.of("DUCK_DB"),
                 DataSourcePluginDescriptor.CURRENT_API_VERSION,
                 capabilities(),
                 new ConnectionForm(
@@ -133,7 +133,7 @@ public final class DuckDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
         String databaseName = databaseName(jdbcUrl);
 
         ObjectNode normalized = MAPPER.createObjectNode();
-        normalized.put("dbType", dbType().name());
+        normalized.put("dbType", type());
         normalized.put("databasePath", databaseSpec(jdbcUrl));
         normalized.put("database", databaseName);
         normalized.put("schema", schema);
@@ -143,7 +143,7 @@ public final class DuckDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
         properties.forEach(propertiesNode::put);
 
         return new JdbcConnectionProperties(
-                dbType(),
+                type(),
                 null,
                 0,
                 jdbcUrl,
@@ -191,12 +191,8 @@ public final class DuckDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     private void validateDeclaredType(JsonNode root) {
         String value = text(root, "dbType", text(root, "type", text(root, "pluginType", null)));
         if (isBlank(value)) return;
-        try {
-            if (DataSourceDbType.parse(value) != dbType()) {
-                throw parameter("连接参数中的数据源类型与 DuckDB 插件不匹配");
-            }
-        } catch (IllegalArgumentException exception) {
-            throw new DataSourcePluginException(Operation.PARAMETER, exception.getMessage(), exception);
+        if (!descriptor().matchesType(value)) {
+            throw parameter("连接参数中的数据源类型与 DuckDB 插件不匹配");
         }
     }
 

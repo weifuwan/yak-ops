@@ -1,15 +1,24 @@
 package io.yak.ops.plugin.database.jdbc.sqlserver;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 
 /** Microsoft SQL Server JDBC datasource plugin. */
 public final class SqlServerDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.SQL_SERVER;
+    public String type() {
+        return "SQL_SERVER";
+    }
+
+    @Override
+    protected String displayName() {
+        return "SQL Server";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("SQLSERVER", "MSSQL");
     }
 
     @Override

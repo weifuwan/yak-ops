@@ -2,7 +2,6 @@ package io.yak.ops.plugin.database.jdbc.hana;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import io.yak.ops.plugin.database.jdbc.GenericJdbcCatalog;
 import io.yak.ops.plugin.database.jdbc.JdbcConnectionProperties;
@@ -20,8 +19,18 @@ public final class HanaDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     private static final String URL_PREFIX = "jdbc:sap://";
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.HANA;
+    public String type() {
+        return "HANA";
+    }
+
+    @Override
+    protected String displayName() {
+        return "SAP HANA";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("SAP_HANA", "SAPHANA");
     }
 
     @Override

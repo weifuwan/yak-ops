@@ -32,8 +32,9 @@ public final class JdbcUrlSchemaSupport {
         List<FormField> legacyFields = configureFields(form.legacyFields(), template);
 
         return new DataSourcePluginDescriptor(
-                descriptor.dbType(),
+                descriptor.type(),
                 descriptor.displayName(),
+                descriptor.aliases(),
                 descriptor.apiVersion(),
                 descriptor.capabilities(),
                 new ConnectionForm(sections, legacyFields),

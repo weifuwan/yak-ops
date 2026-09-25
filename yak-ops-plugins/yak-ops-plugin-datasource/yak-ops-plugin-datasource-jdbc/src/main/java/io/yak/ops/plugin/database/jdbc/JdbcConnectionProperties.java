@@ -1,6 +1,5 @@
 package io.yak.ops.plugin.database.jdbc;
 
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.spi.datasource.DataSourceConnection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -9,7 +8,7 @@ import java.util.Map;
 /** JDBC 插件解析后的不可变连接参数。 */
 public final class JdbcConnectionProperties implements DataSourceConnection {
 
-    private final DataSourceDbType dbType;
+    private final String type;
     private final String host;
     private final int port;
     private final String jdbcUrl;
@@ -24,7 +23,7 @@ public final class JdbcConnectionProperties implements DataSourceConnection {
 
     /** 保留原构造器，兼容现有插件或测试代码的直接构造。 */
     public JdbcConnectionProperties(
-            DataSourceDbType dbType,
+            String type,
             String jdbcUrl,
             String driverClassName,
             String username,
@@ -34,7 +33,7 @@ public final class JdbcConnectionProperties implements DataSourceConnection {
             Map<String, String> properties,
             String normalizedJson) {
         this(
-                dbType,
+                type,
                 null,
                 0,
                 jdbcUrl,
@@ -49,7 +48,7 @@ public final class JdbcConnectionProperties implements DataSourceConnection {
     }
 
     public JdbcConnectionProperties(
-            DataSourceDbType dbType,
+            String type,
             String host,
             int port,
             String jdbcUrl,
@@ -61,7 +60,7 @@ public final class JdbcConnectionProperties implements DataSourceConnection {
             Map<String, String> properties,
             SshTunnelConfig sshTunnel,
             String normalizedJson) {
-        this.dbType = dbType;
+        this.type = type;
         this.host = host;
         this.port = port;
         this.jdbcUrl = jdbcUrl;
@@ -76,7 +75,7 @@ public final class JdbcConnectionProperties implements DataSourceConnection {
     }
 
     @Override
-    public DataSourceDbType dbType() {
+    public String type() {
         return dbType;
     }
 

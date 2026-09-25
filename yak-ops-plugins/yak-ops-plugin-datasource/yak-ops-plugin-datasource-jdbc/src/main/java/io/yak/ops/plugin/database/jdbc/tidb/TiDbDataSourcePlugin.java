@@ -1,7 +1,6 @@
 package io.yak.ops.plugin.database.jdbc.tidb;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import io.yak.ops.plugin.database.jdbc.JdbcConnectionProperties;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
@@ -11,8 +10,18 @@ import java.util.Locale;
 public final class TiDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.TIDB;
+    public String type() {
+        return "TIDB";
+    }
+
+    @Override
+    protected String displayName() {
+        return "TiDB";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("TI_DB");
     }
 
     @Override
@@ -48,7 +57,7 @@ public final class TiDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     protected DataSourceCatalog createJdbcCatalog(
             JdbcConnectionProperties connection, int connectionTimeoutSeconds, int queryTimeoutSeconds) {
         JdbcConnectionProperties mysqlCompatible = new JdbcConnectionProperties(
-                DataSourceDbType.MYSQL,
+                "MYSQL",
                 connection.host(),
                 connection.port(),
                 connection.jdbcUrl(),

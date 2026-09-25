@@ -34,6 +34,14 @@ abstract class AbstractElasticsearchDataSourcePlugin implements DataSourcePlugin
 
     protected abstract int expectedMajorVersion();
 
+    protected String displayName() {
+        return type();
+    }
+
+    protected Set<String> aliases() {
+        return Set.of();
+    }
+
     @Override
     public DataSourcePluginDescriptor descriptor() {
         List<FormField> connection = List.of(
@@ -74,8 +82,9 @@ abstract class AbstractElasticsearchDataSourcePlugin implements DataSourcePlugin
                 List.of());
 
         return new DataSourcePluginDescriptor(
-                dbType(),
-                dbType().getDisplayName(),
+                type(),
+                displayName(),
+                aliases(),
                 DataSourcePluginDescriptor.CURRENT_API_VERSION,
                 EnumSet.of(DataSourceCapability.CONNECTION_TEST, DataSourceCapability.CATALOG_METADATA),
                 new ConnectionForm(
@@ -121,7 +130,7 @@ abstract class AbstractElasticsearchDataSourcePlugin implements DataSourcePlugin
         List<String> hosts = List.copyOf(endpoints);
         URI primary = URI.create(hosts.get(0));
         ObjectNode normalized = MAPPER.createObjectNode();
-        normalized.put("dbType", dbType().name());
+        normalized.put("dbType", type());
         normalized.put("scheme", primary.getScheme());
         normalized.put("host", primary.getHost());
         normalized.put("port", primary.getPort() > 0 ? primary.getPort() : defaultPort(primary.getScheme()));
@@ -133,7 +142,7 @@ abstract class AbstractElasticsearchDataSourcePlugin implements DataSourcePlugin
         if (username != null) normalized.put("username", username);
         if (password != null) normalized.put("password", password);
 
-        return new ElasticsearchConnection(dbType(), hosts, username, password, write(normalized));
+        return new ElasticsearchConnection(type(), hosts, username, password, write(normalized));
     }
 
     @Override
@@ -148,7 +157,7 @@ abstract class AbstractElasticsearchDataSourcePlugin implements DataSourcePlugin
         if (actual != expectedMajorVersion()) {
             throw new DataSourcePluginException(
                     Operation.CONNECTIVITY,
-                    "数据源类型为 " + dbType().getDisplayName() + "，但服务端版本为 " + version + "（major=" + actual + "）");
+                    "数据源类型为 " + displayName() + "，但服务端版本为 " + version + "（major=" + actual + "）");
         }
     }
 
@@ -165,8 +174,8 @@ abstract class AbstractElasticsearchDataSourcePlugin implements DataSourcePlugin
     }
 
     private ElasticsearchConnection requireConnection(DataSourceConnection connection) {
-        if (!(connection instanceof ElasticsearchConnection elasticsearch) || elasticsearch.dbType() != dbType()) {
-            throw parameter("Elasticsearch 连接类型不匹配：" + dbType());
+        if (!(connection instanceof ElasticsearchConnection elasticsearch) || !type().equals(elasticsearch.type())) {
+            throw parameter("Elasticsearch 连接类型不匹配：" + type());
         }
         return elasticsearch;
     }

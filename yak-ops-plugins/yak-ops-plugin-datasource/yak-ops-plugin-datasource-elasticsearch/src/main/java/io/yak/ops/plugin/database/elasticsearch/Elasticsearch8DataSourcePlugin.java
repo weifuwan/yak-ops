@@ -1,13 +1,22 @@
 package io.yak.ops.plugin.database.elasticsearch;
 
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 
 /** Elasticsearch 8 control-plane datasource profile. */
 public final class Elasticsearch8DataSourcePlugin extends AbstractElasticsearchDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.ELASTICSEARCH8;
+    public String type() {
+        return "ELASTICSEARCH8";
+    }
+
+    @Override
+    protected String displayName() {
+        return "Elasticsearch 8";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("ELASTICSEARCH_8", "ES8");
     }
 
     @Override

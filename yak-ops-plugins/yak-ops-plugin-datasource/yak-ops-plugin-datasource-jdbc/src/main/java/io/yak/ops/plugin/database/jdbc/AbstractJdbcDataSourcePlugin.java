@@ -3,7 +3,6 @@ package io.yak.ops.plugin.database.jdbc;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
 import io.yak.ops.spi.datasource.DataSourceConnection;
@@ -97,14 +96,23 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         fields.addAll(advancedFields);
 
         DataSourcePluginDescriptor descriptor = new DataSourcePluginDescriptor(
-                dbType(),
-                dbType().getDisplayName(),
+                type(),
+                displayName(),
+                aliases(),
                 DataSourcePluginDescriptor.CURRENT_API_VERSION,
                 capabilities(),
                 new ConnectionForm(sections, fields),
                 false,
                 null);
         return JdbcUrlSchemaSupport.apply(descriptor, jdbcUrlTemplate());
+    }
+
+    protected String displayName() {
+        return type();
+    }
+
+    protected Set<String> aliases() {
+        return Set.of();
     }
 
     protected Set<DataSourceCapability> capabilities() {
@@ -167,7 +175,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
             Map<String, String> properties = parseProperties(root.get("properties"));
             ObjectNode normalized = OBJECT_MAPPER.createObjectNode();
-            normalized.put("dbType", dbType().name());
+            normalized.put("dbType", type());
             putIfText(normalized, "host", host);
             normalized.put("port", port);
             putIfText(normalized, "database", database);
@@ -184,7 +192,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             appendNormalizedFields(root, normalized);
 
             return new JdbcConnectionProperties(
-                    dbType(),
+                    type(),
                     trimToNull(host),
                     port,
                     jdbcUrl,
@@ -293,7 +301,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         if (!(connection instanceof JdbcConnectionProperties jdbcConnection)) {
             throw parameterError("连接参数与插件类型不匹配", null);
         }
-        if (connection.dbType() != dbType()) {
+        if (!type().equals(connection.type())) {
             throw parameterError("连接参数与插件类型不匹配", null);
         }
         return jdbcConnection;
@@ -453,12 +461,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         if (isBlank(declaredType)) {
             return;
         }
-        try {
-            if (DataSourceDbType.parse(declaredType) != dbType()) {
-                throw parameterError("连接参数中的数据源类型与插件不匹配", null);
-            }
-        } catch (IllegalArgumentException exception) {
-            throw parameterError(exception.getMessage(), exception);
+        if (!descriptor().matchesType(declaredType)) {
+            throw parameterError("连接参数中的数据源类型与插件不匹配", null);
         }
     }
 

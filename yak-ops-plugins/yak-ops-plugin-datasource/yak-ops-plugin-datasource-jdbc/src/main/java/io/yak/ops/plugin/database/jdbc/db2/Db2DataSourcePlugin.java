@@ -1,15 +1,19 @@
 package io.yak.ops.plugin.database.jdbc.db2;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 
 /** IBM Db2 LUW JDBC datasource plugin. */
 public final class Db2DataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.DB2;
+    public String type() {
+        return "DB2";
+    }
+
+    @Override
+    protected String displayName() {
+        return "IBM Db2";
     }
 
     @Override

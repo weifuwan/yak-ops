@@ -2,7 +2,6 @@ package io.yak.ops.plugin.database.jdbc.goldendb;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import io.yak.ops.plugin.database.jdbc.JdbcConnectionProperties;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
@@ -12,8 +11,18 @@ import java.util.Locale;
 public final class GoldenDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.GOLDENDB;
+    public String type() {
+        return "GOLDENDB";
+    }
+
+    @Override
+    protected String displayName() {
+        return "GoldenDB";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("GOLDEN_DB", "ZTE_GOLDENDB");
     }
 
     @Override
@@ -58,7 +67,7 @@ public final class GoldenDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin
     protected DataSourceCatalog createJdbcCatalog(
             JdbcConnectionProperties connection, int connectionTimeoutSeconds, int queryTimeoutSeconds) {
         JdbcConnectionProperties mysqlCompatible = new JdbcConnectionProperties(
-                DataSourceDbType.MYSQL,
+                "MYSQL",
                 connection.host(),
                 connection.port(),
                 connection.jdbcUrl(),
