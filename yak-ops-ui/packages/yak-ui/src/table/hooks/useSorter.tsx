@@ -143,16 +143,11 @@ export function useSorter<RecordType extends object>(
       );
     const resolvedOrder = resolvedSorter.order ?? null;
 
-    if (
-      resolvedColumn == null ||
-      resolvedOrder == null ||
-      typeof resolvedColumn.sorter !== "function"
-    ) {
-      return data;
-    }
+    const compare = resolvedColumn?.sorter;
+    if (resolvedOrder == null || typeof compare !== "function") return data;
 
     const factor = resolvedOrder === "ascend" ? 1 : -1;
-    return [...data].sort((a, b) => resolvedColumn.sorter!(a, b) * factor);
+    return [...data].sort((a, b) => compare(a, b) * factor);
   };
 
   return {
