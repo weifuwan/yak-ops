@@ -26,6 +26,7 @@ import DatabaseIcons from "../icons/DatabaseIcons";
 import type { DataSourceRecord } from "../types";
 import {
   DataSourceOperateType,
+  type DataSourceConnectionFormValues,
   type DataSourceFormValues,
   type DataSourceModalOpenPayload,
   type DataSourceModalRef,
@@ -37,14 +38,14 @@ import {
 } from "./form-model";
 import { useDataSourceForm } from "./form-runtime";
 import DataSourceTypeSelector from "./type-selector";
-import DynamicDataSourceForm from "./dynamic-form";
+import DataSourceConnectionForm from "./connection-form";
 
 const DRAWER_WIDTH = 620;
 
 const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
   const intl = useIntl();
   const basicForm = useDataSourceForm<DataSourceFormValues>();
-  const configForm = useDataSourceForm<Record<string, unknown>>();
+  const configForm = useDataSourceForm<DataSourceConnectionFormValues>();
   const [open, setOpen] = useState(false);
   const [operateType, setOperateType] = useState(DataSourceOperateType.Create);
   const [currentRecord, setCurrentRecord] = useState<DataSourceRecord>();
@@ -288,7 +289,7 @@ const DataSourceEditor = forwardRef<DataSourceModalRef>((_, ref) => {
         <DrawerBody className="p-0">
           {showFormStep ? (
             <div className="h-full overflow-y-auto px-5 py-5">
-              <DynamicDataSourceForm
+              <DataSourceConnectionForm
                 key={`${operateType}-${selectedDbType}-${currentRecord?.id ?? "create"}`}
                 dbType={selectedDbType}
                 form={basicForm}

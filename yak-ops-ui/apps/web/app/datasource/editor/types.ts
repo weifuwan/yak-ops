@@ -1,6 +1,6 @@
 import type { DataSourceFormInstance } from "./form-runtime";
 
-import type { DataSourceRecord } from "../types";
+import type { DataSourceRecord, SshTunnelConfigValue } from "../types";
 
 export enum DataSourceOperateType {
   Create = "CREATE",
@@ -13,7 +13,18 @@ export interface DataSourceFormValues {
   remark?: string;
 }
 
-export type DataSourceConnectionFormValues = Record<string, unknown>;
+export interface DataSourceConnectionFormValues {
+  host?: string;
+  port?: number;
+  database?: string;
+  schema?: string;
+  username?: string;
+  password?: string;
+  jdbcUrl?: string;
+  sshTunnel?: SshTunnelConfigValue;
+  driverClassName?: string;
+  properties?: unknown;
+}
 
 export interface DataSourceModalOpenPayload {
   operateType: DataSourceOperateType;
@@ -28,10 +39,10 @@ export interface DataSourceModalRef {
   close: () => void;
 }
 
-export interface DynamicDataSourceFormProps {
+export interface DataSourceConnectionFormProps {
   dbType: string;
   form: DataSourceFormInstance<DataSourceFormValues>;
-  configForm: DataSourceFormInstance;
+  configForm: DataSourceFormInstance<DataSourceConnectionFormValues>;
   operateType: DataSourceOperateType;
   initialConfig?: Record<string, unknown>;
 }

@@ -70,7 +70,7 @@ Common DTO / VO 不依赖 Mapper、Repository、MyBatis、Entity 或 Spring Web 
 DTO / VO 必须是顶层类型，一个稳定 HTTP Contract 一个文件。
 
 Must:
-- DTO / VO 按 capability 和子域组织 package，例如 `vo/datasource/catalog`、`vo/datasource/plugin`。
+- DTO / VO 按 capability 和子域组织 package，例如 `vo/datasource/catalog`、`vo/security/user`。
 - 复合响应中的子结构只要拥有独立字段和语义，就拆成独立顶层 VO。
 - 公共分页元数据等跨接口响应结构也使用独立顶层类型。
 

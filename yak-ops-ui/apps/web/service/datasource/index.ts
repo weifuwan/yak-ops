@@ -8,25 +8,11 @@ import type {
   DataSourceRecord,
   DataSourceSavePayload,
   DataSourceSummary,
-  DynamicFormSchemaResponse,
 } from "./types";
 
 export type * from "./types";
 
 const DATA_SOURCE_API_PREFIX = "/api/v1/data-source";
-
-const queryString = (params: Record<string, unknown>) => {
-  const search = new URLSearchParams();
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && String(value).length > 0) {
-      search.set(key, String(value));
-    }
-  });
-
-  const result = search.toString();
-  return result ? `?${result}` : "";
-};
 
 export const listDataSources = (
   params: DataSourcePageParams,
@@ -74,11 +60,4 @@ export const testDataSourceConnectionWithParams = (
   HttpUtils.postData<boolean>(
     `${DATA_SOURCE_API_PREFIX}/connect-test-with-param`,
     payload,
-  );
-
-export const getDataSourcePluginConfig = (
-  pluginType: string,
-): Promise<DynamicFormSchemaResponse> =>
-  HttpUtils.getData<DynamicFormSchemaResponse>(
-    `${DATA_SOURCE_API_PREFIX}/plugin/config${queryString({ pluginType })}`,
   );

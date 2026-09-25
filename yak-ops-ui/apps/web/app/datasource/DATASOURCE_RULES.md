@@ -6,7 +6,7 @@ Scope:
 
 Owns:
 - Datasource product UI and interaction
-- Datasource editor and dynamic form runtime
+- Datasource editor and fixed connection form
 - Datasource backend contract and endpoint adaptation
 
 ## Principle
@@ -34,16 +34,14 @@ app/datasource/
 ├── types.ts
 ├── utils.ts
 ├── hooks/
-│   ├── use-datasources.ts
-│   └── use-plugin-form-config.ts
+│   └── use-datasources.ts
 ├── editor/
 │   ├── index.tsx
 │   ├── type-selector.tsx
-│   ├── dynamic-form.tsx
+│   ├── connection-form.tsx
 │   ├── custom-kv-list.tsx
 │   ├── form-runtime.tsx
 │   ├── form-model.ts
-│   ├── form-utils.ts
 │   ├── jdbc-url-field.tsx
 │   ├── jdbc-url-utils.ts
 │   ├── ssh-tunnel-manager.tsx
@@ -72,11 +70,9 @@ Datasource Selector、Toolbar Filter 和本地数据库图标必须保持与后�
 
 `editor/` 是“编辑一个数据源”的局部工作区。
 
-它允许多个文件，因为动态表单本身足够复杂；但内部保持扁平，不再继续拆：
+连接字段固定服务于当前内置 MySQL / Oracle / PostgreSQL，不维护通用动态表单 schema。Editor 内部保持扁平，不再继续拆：
 
 ```text
-editor/DynamicDataSourceForm/components
-editor/DynamicDataSourceForm/utils
 connection/JdbcUrlField
 connection/SshTunnelManager
 ```
@@ -89,13 +85,12 @@ JDBC URL / SSH 不是独立 Domain，它们只是 Datasource Editor 的特殊字
 
 - Datasource CRUD。
 - Connection Test。
-- Plugin Config。
 
 这些 endpoint 共享同一个 Domain、同一个 HTTP transport 和同一套 Contract，没有独立生命周期，因此不再拆成 `api.ts / catalog.ts / driver.ts`。
 
 `service/datasource/types.ts` 单独保留，因为它是当前前端真实消费的稳定 backend Contract owner。
 
-当前产品不提供运行时插件安装或驱动上传：Provider 必须在应用启动前可用，前端只读取 Plugin Config。
+当前产品不提供运行时插件安装、驱动上传或 Plugin Config schema API：Provider 必须在应用启动前可用；前端使用固定连接表单，后端 Provider 负责解析、默认值、校验和 Normalize。
 
 后端 Catalog metadata capability 可以独立存在；当前 Datasource UI 没有 Catalog 浏览入口时，不在 frontend service 中提前镜像 databases / schemas / tables / columns API。
 
@@ -148,14 +143,14 @@ app/datasource
 - Datasource endpoint 默认集中在 `service/datasource/index.ts`。
 - HTTP transport goes through `service/http`。
 - Common UI primitives come from `@yak-ops/yak-ui`。
-- Dynamic form state stays in Datasource, not Yak UI。
+- Connection form state stays in Datasource, not Yak UI。
 - Datasource 不依赖 `framer-motion`，页面动效优先使用 CSS transition。
 
 ## Must Not
 
 - Recreate `management/`、`model/`、`plugin/`、`connection/`。
 - Recreate `service/datasource/api.ts`、`catalog.ts`、`driver.ts` 这类概念拆分文件。
-- Recreate `editor/DynamicDataSourceForm/`。
+- Recreate dynamic datasource form schema / renderer runtime。
 - Recreate one-file directories such as `DriverManager/` or `SshTunnelManager/`。
 - Recreate `packages/datasource`。
 - Recreate `@yak-ops/datasource` alias or package dependency。

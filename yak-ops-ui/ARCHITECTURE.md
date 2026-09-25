@@ -38,11 +38,10 @@ app/datasource/
 ├── editor/
 │   ├── index.tsx
 │   ├── type-selector.tsx
-│   ├── dynamic-form.tsx
+│   ├── connection-form.tsx
 │   ├── custom-kv-list.tsx
 │   ├── form-runtime.tsx
 │   ├── form-model.ts
-│   ├── form-utils.ts
 │   ├── jdbc-url-field.tsx
 │   ├── jdbc-url-utils.ts
 │   ├── ssh-tunnel-manager.tsx
@@ -96,7 +95,7 @@ service/datasource/types.ts
 
 App 通过 `app/datasource/types.ts` 消费并补充 UI-only 类型。
 
-Editor 私有 Contract 归 `app/datasource/editor/types.ts`。
+Editor 私有 Contract 归 `app/datasource/editor/types.ts`。Datasource 连接表单是当前内置 MySQL / Oracle / PostgreSQL 的固定产品表单，不由后端 schema 动态驱动。
 
 ## Web Root Ownership
 
@@ -146,7 +145,7 @@ service/datasource/
 └── types.ts
 ```
 
-- `index.ts`：CRUD、Connection Test、Plugin Config。
+- `index.ts`：CRUD、Connection Test。
 - `types.ts`：稳定 backend Contract。
 
 Service 不按 endpoint 概念机械拆文件；只有形成独立协议、独立生命周期或明显复杂度时才继续拆。

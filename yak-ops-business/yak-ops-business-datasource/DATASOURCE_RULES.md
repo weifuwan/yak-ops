@@ -60,7 +60,7 @@ Do not recreate `domain`, `gateway`, `execution`, `query` or business `repositor
 
 Datasource HTTP Controller、ControllerAdvice 统一由 `yak-ops-boot` 持有。
 
-Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsing、业务校验、Entity → VO、Plugin descriptor → VO 等业务输出转换归 Business。
+Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsing、业务校验、Entity → VO 等业务输出转换归 Business。
 
 数据源分页请求统一由 `DataSourceQueryDTO extends PageQueryDTO` 提供 `pageNo / pageSize / sorts` Contract。当前自定义 `sorts` 在 Repository 排序白名单落地前必须明确拒绝，禁止静默忽略；默认分页排序保持 `updateTime DESC, id DESC` 保证稳定翻页。
 
@@ -72,10 +72,11 @@ Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsi
 - `/api/v1/data-source/catalog/diagnostics`
 - `/api/v1/data-source/catalog/list/{id}`
 - `/api/v1/data-source/catalog/listByMatchMode/{id}`
+- `/api/v1/data-source/plugin/config`
 
 内部 Catalog diagnostics 用于慢调用日志，不作为 HTTP 产品 Contract。
 
-Plugin Config 只描述当前运行时已经注册的 Provider。当前产品不发布 `/plugin/config/install`，也不提供运行时 Driver Upload HTTP API；驱动和 Provider 必须在应用启动前进入运行时 classpath。
+当前产品不发布 Plugin Config HTTP schema、运行时插件安装或 Driver Upload API。连接字段由前端固定表单持有；Provider 必须在应用启动前进入运行时 classpath，并继续负责参数解析、默认值、校验、Normalize、Connection Test 和 Catalog。
 
 本模块只提供 Datasource capability，不创建 `controller` package，也不依赖 Boot。
 
@@ -84,7 +85,7 @@ Plugin Config 只描述当前运行时已经注册的 Provider。当前产品不
 Must:
 - datasource mutation、read 和 connection test 由 `DataSourceBusiness` 统一持有。
 - Catalog 元数据能力由 `DataSourceCatalogBusiness` 持有。
-- Plugin 配置、类型解析和运行时能力入口由 `DataSourcePluginBusiness` 持有。
+- Plugin 类型解析和运行时能力入口由 `DataSourcePluginBusiness` 持有。
 - business validation stays close to Datasource behavior, not Controller.
 - DAO Entity / Repository 只出现在 BusinessImpl 内部。
 - Business 对 Boot 返回公共 VO，不返回 `DataSourceEntity`、`DataSourceSummaryRow` 或 Repository Query。

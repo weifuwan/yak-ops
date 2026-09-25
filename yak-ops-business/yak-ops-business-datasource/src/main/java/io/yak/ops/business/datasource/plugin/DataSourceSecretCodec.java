@@ -18,7 +18,7 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * 根据插件表单定义统一完成连接参数的敏感字段遮罩和编辑态密钥合并。
+ * 根据插件描述和通用敏感字段规则完成连接参数遮罩与编辑态密钥合并。
  *
  * @author weifuwan
  * @since 2026-09-24

@@ -58,9 +58,7 @@ export function serializeKeyValueRows(value: unknown): Record<string, string> {
   return result;
 }
 
-/**
- * 动态表单内部可以使用更适合 UI 的值形态，但发给数据源插件的连接协议保持稳定。
- */
+/** 将固定连接表单的 UI 值转换成后端连接参数协议。 */
 export function normalizeConnectionFormValues(
   connectionValues: DataSourceConnectionFormValues,
 ): DataSourceConnectionFormValues {

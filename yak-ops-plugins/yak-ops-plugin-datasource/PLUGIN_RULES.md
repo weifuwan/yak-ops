@@ -57,7 +57,7 @@ Must:
 - duplicate canonical types or aliases fail fast during plugin discovery.
 - adding a new Provider must not require modifying Common, Business or a central database-type list.
 
-Closed protocol vocabularies such as `DataSourceCapability`, form `FieldType` and `VisibilityOperator` may remain enums because their value set belongs to the SPI contract itself. `FieldType` only models renderable configuration values; it must not add a `DRIVER` upload pseudo-field without a real backend upload capability.
+V2 仍保留 ConnectionForm / FieldType 等 descriptor 元数据用于现有敏感字段识别和兼容；它们不再通过 HTTP 驱动前端表单，也不得继续扩展新的 UI schema 能力。该遗留 contract 在独立 Plugin Descriptor V3 变更中收口。
 
 Must Not:
 - recreate runtime plugin install flags such as `installRequired` / `installHint` without an implemented installation lifecycle.
@@ -81,7 +81,7 @@ Must:
 - normalize provider failures into stable plugin exceptions.
 - declare capabilities explicitly.
 - keep secrets out of error messages and logs.
-- keep descriptor/config metadata deterministic.
+- keep remaining descriptor metadata deterministic.
 - reuse shared JDBC behavior before copying provider code.
 
 Must Not:
