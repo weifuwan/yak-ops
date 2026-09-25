@@ -1,7 +1,6 @@
 import { Button, Input } from "@yak-ops/yak-ui";
 import { Plus, Trash2 } from "lucide-react";
 
-import type { DynamicFormField } from "../types";
 import {
   DataSourceFormField,
   type DataSourceFormFieldState,
@@ -17,7 +16,10 @@ interface IntlFormatter {
 
 interface CustomKVListProps {
   intl: IntlFormatter;
-  field: DynamicFormField & { maxRows?: number };
+  name: string;
+  label: string;
+  placeholder?: string;
+  maxRows?: number;
 }
 
 interface KeyValueRow {
@@ -36,9 +38,13 @@ const normalizeRows = (value: unknown): KeyValueRow[] => {
   });
 };
 
-const CustomKVList = ({ intl, field }: CustomKVListProps) => {
-  const maxRows = field.maxRows ?? 50;
-
+const CustomKVList = ({
+  intl,
+  name,
+  label,
+  placeholder,
+  maxRows = 50,
+}: CustomKVListProps) => {
   const rules: FormRule[] = [
     {
       validator: async (value) => {
@@ -77,7 +83,7 @@ const CustomKVList = ({ intl, field }: CustomKVListProps) => {
   ];
 
   return (
-    <DataSourceFormField name={field.key} rules={rules}>
+    <DataSourceFormField name={name} rules={rules}>
       {(state: DataSourceFormFieldState) => {
         const rows = normalizeRows(state.value);
         const canAdd = rows.length < maxRows;
@@ -100,11 +106,11 @@ const CustomKVList = ({ intl, field }: CustomKVListProps) => {
           <div className="mb-3">
             <div className="mb-2">
               <div className="text-[13px] font-medium leading-5 text-[#344054]">
-                {field.label}
+                {label}
               </div>
-              {field.placeholder ? (
+              {placeholder ? (
                 <div className="mt-0.5 text-[11px] leading-4 text-[#98a2b3]">
-                  {field.placeholder}
+                  {placeholder}
                 </div>
               ) : null}
             </div>

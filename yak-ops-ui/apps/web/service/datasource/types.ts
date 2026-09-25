@@ -65,39 +65,6 @@ export interface DataSourceConnectTestPayload {
   connJson: string;
 }
 
-export interface DynamicFormFieldRule {
-  required?: boolean;
-  pattern?: string;
-  min?: number;
-  max?: number;
-  message: string;
-}
-
-export type DynamicFormVisibilityOperator =
-  | 'EQUALS'
-  | 'NOT_EQUALS'
-  | 'IN'
-  | 'NOT_IN'
-  | 'TRUTHY'
-  | 'FALSY';
-
-/** 多个条件默认使用 AND 语义。 */
-export interface DynamicFormVisibilityCondition {
-  field?: string;
-  operator?: DynamicFormVisibilityOperator;
-  value?: unknown;
-  values?: unknown[];
-}
-
-/** JDBC URL 与结构化 Host / Port / Database 字段之间的双向联动描述。 */
-export interface DynamicFormJdbcUrlLinkage {
-  template: string;
-  hostField?: string;
-  portField?: string;
-  databaseField?: string;
-  preserveSuffix?: boolean;
-}
-
 export type SshAuthType = 'PASSWORD' | 'PRIVATE_KEY';
 
 export interface SshTunnelConfigValue {
@@ -111,45 +78,4 @@ export interface SshTunnelConfigValue {
   passphrase?: string;
   strictHostKeyChecking?: boolean;
   knownHosts?: string;
-}
-
-export type DynamicFormFieldType =
-  | 'INPUT'
-  | 'PASSWORD'
-  | 'SELECT'
-  | 'NUMBER'
-  | 'SWITCH'
-  | 'TEXTAREA'
-  | 'CUSTOM_SELECT'
-  | 'SSH'
-  | 'JDBC_URL';
-
-export interface DynamicFormField {
-  key: string;
-  label: string;
-  type: DynamicFormFieldType;
-  placeholder?: string;
-  options?: Array<{ label: string; value: string | number }>;
-  defaultValue?: unknown;
-  rules?: DynamicFormFieldRule[];
-  dependsOn?: string[];
-  visibleWhen?:
-    | DynamicFormVisibilityCondition
-    | DynamicFormVisibilityCondition[];
-  urlLinkage?: DynamicFormJdbcUrlLinkage;
-}
-
-export interface DynamicFormSection {
-  key: string;
-  title: string;
-  description?: string;
-  collapsible?: boolean;
-  defaultExpanded?: boolean;
-  fields: DynamicFormField[];
-}
-
-export interface DynamicFormSchemaResponse {
-  pluginType?: string;
-  sections?: DynamicFormSection[];
-  formFields?: DynamicFormField[];
 }

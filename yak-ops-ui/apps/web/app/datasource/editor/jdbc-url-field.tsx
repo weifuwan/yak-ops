@@ -10,10 +10,10 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { DataSourceFormInstance } from "./form-runtime";
 import { useFormValue } from "./form-runtime";
 import { useIntl } from "../i18n";
-import type { DynamicFormJdbcUrlLinkage } from "../types";
 import {
   buildJdbcUrlFromTemplate,
   parseJdbcUrlByTemplate,
+  type JdbcUrlLinkage,
   type JdbcUrlStructuredValue,
 } from "./jdbc-url-utils";
 
@@ -27,7 +27,7 @@ export interface JdbcUrlFieldProps {
   value?: string;
   onChange?: (value: string) => void;
   form: DataSourceFormInstance;
-  linkage?: DynamicFormJdbcUrlLinkage;
+  linkage?: JdbcUrlLinkage;
   placeholder?: string;
   disabled?: boolean;
 }

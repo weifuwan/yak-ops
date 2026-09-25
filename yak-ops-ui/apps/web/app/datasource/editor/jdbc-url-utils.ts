@@ -1,4 +1,10 @@
-import type { DynamicFormJdbcUrlLinkage } from '../types';
+export interface JdbcUrlLinkage {
+  template: string;
+  hostField?: string;
+  portField?: string;
+  databaseField?: string;
+  preserveSuffix?: boolean;
+}
 
 export interface JdbcUrlStructuredValue {
   host?: string;
@@ -58,7 +64,7 @@ const buildTemplateMatcher = (template: string) => {
 };
 
 export const buildJdbcUrlFromTemplate = (
-  linkage: DynamicFormJdbcUrlLinkage,
+  linkage: JdbcUrlLinkage,
   value: JdbcUrlStructuredValue,
 ): string | undefined => {
   const template = linkage.template?.trim();
@@ -81,7 +87,7 @@ export const buildJdbcUrlFromTemplate = (
 };
 
 export const parseJdbcUrlByTemplate = (
-  linkage: DynamicFormJdbcUrlLinkage,
+  linkage: JdbcUrlLinkage,
   url?: string,
 ): JdbcUrlStructuredValue | undefined => {
   const template = linkage.template?.trim();

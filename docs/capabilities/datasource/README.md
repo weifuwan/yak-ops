@@ -36,7 +36,7 @@ app/datasource/
 ├── editor/
 │   ├── index.tsx
 │   ├── type-selector.tsx
-│   ├── dynamic-form.tsx
+│   ├── connection-form.tsx
 │   ├── form-runtime.tsx
 │   ├── jdbc-url-field.tsx
 │   └── ssh-tunnel-manager.tsx
@@ -52,7 +52,7 @@ Datasource 页面、Editor 和 Service 都采用 feature-locality 结构。Datas
 
 `management / model / plugin / connection / DynamicDataSourceForm` 不再是目录 owner。
 
-Datasource Service 当前只拥有真实 UI 消费的 CRUD / Connection / Plugin Config endpoint；Catalog backend capability 未在前端建立浏览入口时不提前镜像 service，运行时插件安装和驱动上传不属于当前产品能力。
+Datasource Service 当前只拥有真实 UI 消费的 CRUD / Connection endpoint；Catalog backend capability 未在前端建立浏览入口时不提前镜像 service。连接表单固定服务于当前内置 Provider，不再通过 Plugin Config HTTP schema 驱动。
 
 ## Frontend Dependency
 
@@ -72,7 +72,7 @@ app/datasource
 
 Datasource is a Web App Domain, not an npm workspace package.
 
-Dynamic form state is owned by `app/datasource/editor/form-runtime.tsx`。
+Connection form state is owned by `app/datasource/editor/form-runtime.tsx`。
 
 ## Current Capability Map
 
@@ -80,7 +80,7 @@ Dynamic form state is owned by `app/datasource/editor/form-runtime.tsx`。
 Datasource Management
 Datasource Editor
 Connection Test / Connection Normalization
-Plugin Configuration
+Plugin Runtime
 Catalog Browse
 ```
 

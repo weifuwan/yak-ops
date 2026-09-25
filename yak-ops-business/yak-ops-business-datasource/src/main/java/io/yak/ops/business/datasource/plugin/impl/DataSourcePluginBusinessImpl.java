@@ -6,13 +6,6 @@ import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
 import io.yak.ops.business.datasource.plugin.DataSourceSecretCodec;
-import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginConfigVO;
-import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginFormFieldVO;
-import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginFormOptionVO;
-import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginFormRuleVO;
-import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginFormSectionVO;
-import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginJdbcUrlLinkageVO;
-import io.yak.ops.common.bean.vo.datasource.plugin.DataSourcePluginVisibilityConditionVO;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
@@ -30,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * 发现并管理 Datasource Plugin，并把 SPI 描述、连接和 Catalog 能力收口到统一 Business Contract。
+ * 发现并管理 Datasource Plugin，并把连接解析、连通性和 Catalog 能力收口到统一 Business Contract。
  *
  * @author weifuwan
  * @since 2026-09-24
@@ -71,11 +64,6 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
                     plugin.getClass().getName());
         }
         plugins = Collections.unmodifiableMap(discovered);
-    }
-
-    @Override
-    public DataSourcePluginConfigVO queryPluginConfig(String pluginType) {
-        return toConfigVO(get(pluginType).descriptor());
     }
 
     @Override
@@ -230,61 +218,4 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
         return null;
     }
 
-    private DataSourcePluginConfigVO toConfigVO(DataSourcePluginDescriptor source) {
-        if (source == null) {
-            return null;
-        }
-        return DataSourcePluginConfigVO.builder()
-                .pluginType(source.type())
-                .sections(source.connectionForm().sections().stream().map(this::toSectionVO).toList())
-                .formFields(source.connectionForm().legacyFields().stream().map(this::toFieldVO).toList())
-                .build();
-    }
-
-    private DataSourcePluginFormSectionVO toSectionVO(DataSourcePluginDescriptor.FormSection source) {
-        return DataSourcePluginFormSectionVO.builder()
-                .key(source.key())
-                .title(source.title())
-                .description(source.description())
-                .collapsible(source.collapsible())
-                .defaultExpanded(source.defaultExpanded())
-                .fields(source.fields().stream().map(this::toFieldVO).toList())
-                .build();
-    }
-
-    private DataSourcePluginFormFieldVO toFieldVO(DataSourcePluginDescriptor.FormField source) {
-        return DataSourcePluginFormFieldVO.builder()
-                .key(source.key())
-                .label(source.label())
-                .type(source.type().name())
-                .placeholder(source.placeholder())
-                .defaultValue(source.defaultValue())
-                .options(source.options().stream()
-                        .map(value -> new DataSourcePluginFormOptionVO(value.label(), value.value()))
-                        .toList())
-                .rules(source.rules().stream()
-                        .map(value -> new DataSourcePluginFormRuleVO(
-                                value.required(), value.pattern(), value.min(), value.max(), value.message()))
-                        .toList())
-                .dependsOn(source.dependsOn())
-                .visibleWhen(source.visibleWhen().stream()
-                        .map(value -> new DataSourcePluginVisibilityConditionVO(
-                                value.field(), value.operator().name(), value.value(), value.values()))
-                        .toList())
-                .urlLinkage(toLinkageVO(source.jdbcUrlLinkage()))
-                .build();
-    }
-
-    private DataSourcePluginJdbcUrlLinkageVO toLinkageVO(DataSourcePluginDescriptor.JdbcUrlLinkage source) {
-        if (source == null) {
-            return null;
-        }
-        return DataSourcePluginJdbcUrlLinkageVO.builder()
-                .template(source.template())
-                .hostField(source.hostField())
-                .portField(source.portField())
-                .databaseField(source.databaseField())
-                .preserveSuffix(source.preserveSuffix())
-                .build();
-    }
 }
