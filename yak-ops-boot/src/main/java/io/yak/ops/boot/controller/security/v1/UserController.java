@@ -7,8 +7,7 @@ import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
 import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.bean.vo.security.user.UserVO;
-import io.yak.ops.common.enums.security.ResultCode;
-import io.yak.ops.common.exception.YakSecurityException;
+import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import io.yak.ops.common.util.JSONUtils;
@@ -16,6 +15,7 @@ import io.yak.ops.common.util.ObjectUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.constant.SecurityConstants;
+import io.yak.ops.security.exception.YakSecurityException;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.service.impl.UserAdministrationService;
 import jakarta.annotation.Resource;
@@ -124,7 +124,7 @@ public class UserController {
         try {
             return JSONUtils.parseList(ids, String.class);
         } catch (IllegalArgumentException exception) {
-            throw new YakSecurityException(ResultCode.PARAM_NOT_VALID, exception);
+            throw new YakSecurityException(CommonErrorCode.PARAM_NOT_VALID, exception);
         }
     }
 
