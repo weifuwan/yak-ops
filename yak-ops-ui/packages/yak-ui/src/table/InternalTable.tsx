@@ -29,7 +29,11 @@ const alignClasses: Record<TableAlign, string> = {
 };
 
 const normalizeKey = (value: unknown, fallback: number): Key => {
-  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "bigint"
+  ) {
     return value;
   }
 
@@ -198,10 +202,7 @@ export function InternalTable<RecordType extends object>({
             {data.length === 0 ? (
               <tr>
                 <td colSpan={Math.max(columns.length, 1)}>
-                  <Empty
-                    className="min-h-48"
-                    description={emptyText ?? "No data"}
-                  />
+                  <Empty className="min-h-48" description={emptyText ?? "No data"} />
                 </td>
               </tr>
             ) : null}
