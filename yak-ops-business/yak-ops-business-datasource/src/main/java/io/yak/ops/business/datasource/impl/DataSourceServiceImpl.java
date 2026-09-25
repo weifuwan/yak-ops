@@ -16,6 +16,8 @@ import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
 import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
 import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -30,6 +32,8 @@ import org.springframework.util.StringUtils;
  */
 @Service
 public class DataSourceServiceImpl implements DataSourceService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DataSourceServiceImpl.class);
 
     @Resource
     private DataSourceEntityRepository repository;
@@ -62,6 +66,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         if (repository.add(entity) == null) {
             throw new DataSourceException(DataSourceErrorCode.CREATE_FAILED);
         }
+        LOG.info("数据源创建完成，dataSourceId={}, type={}", entity.getId(), entity.getDbType());
         return true;
     }
 
@@ -91,6 +96,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         if (repository.update(existing) == null) {
             throw new DataSourceException(DataSourceErrorCode.UPDATE_FAILED);
         }
+        LOG.info("数据源更新完成，dataSourceId={}, type={}", existing.getId(), existing.getDbType());
         return true;
     }
 
@@ -106,6 +112,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         if (repository.deleteById(existing.getId()) <= 0) {
             throw new DataSourceException(DataSourceErrorCode.DELETE_FAILED);
         }
+        LOG.info("数据源删除完成，dataSourceId={}, type={}", existing.getId(), existing.getDbType());
         return true;
     }
 

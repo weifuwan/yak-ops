@@ -116,9 +116,11 @@ public class UserServiceImpl implements UserService {
         if (deletingSelfById || deletingSelfByName) {
             throw new YakSecurityException("不能删除当前登录用户");
         }
-        return userRepository.deleteById(userId) > 0
-                ? Result.success()
-                : Result.fail(SecurityErrorCode.USER_ACCOUNT_UPDATE_FAIL);
+        if (userRepository.deleteById(userId) <= 0) {
+            return Result.fail(SecurityErrorCode.USER_ACCOUNT_UPDATE_FAIL);
+        }
+        LOG.info("删除用户完成，userId={}", userId);
+        return Result.success();
     }
 
     @Override
@@ -138,7 +140,7 @@ public class UserServiceImpl implements UserService {
         user.initUpdate(operator);
         userRepository.update(user);
         invalidateUserSessions(userId);
-        LOG.info("管理员重置用户密码完成，userId={}, userName={}, operator={}", userId, user.getUserName(), operator);
+        LOG.info("管理员重置用户密码完成，userId={}", userId);
         return Result.success();
     }
 
@@ -186,7 +188,7 @@ public class UserServiceImpl implements UserService {
             user.setPw(passwordEncoder.encode(userDTO.getPw()));
             user.initCreate(operator);
             userRepository.add(user);
-            LOG.info("新增用户完成，userId={}, userName={}, operator={}", user.getId(), user.getUserName(), operator);
+            LOG.info("新增用户完成，userId={}", user.getId());
             return Result.success();
         } catch (YakSecurityException exception) {
             throw exception;
@@ -218,7 +220,7 @@ public class UserServiceImpl implements UserService {
             if (StringUtils.isNotBlank(userDTO.getPw())) {
                 invalidateUserSessions(user.getId());
             }
-            LOG.info("编辑用户完成，userId={}, userName={}, operator={}", user.getId(), user.getUserName(), operator);
+            LOG.info("编辑用户完成，userId={}", user.getId());
             return Result.success();
         } catch (YakSecurityException exception) {
             throw exception;
