@@ -1,5 +1,6 @@
 export * from "./badge";
 export * from "./button";
+export * from "./checkbox";
 export * from "./collapsible";
 export * from "./combobox";
 export * from "./dialog";
