@@ -46,10 +46,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
           <span className="text ml-[14px] min-w-0 flex-1 truncate">全部产品</span>
           <span className="right mr-3 flex shrink-0 items-center">
             <ChevronRight
-              className={[
-                "h-3.5 w-3.5",
-                secondLevelOpen ? "text-white" : "text-white/65",
-              ].join(" ")}
+              className={secondLevelOpen ? "h-3.5 w-3.5 text-white" : "h-3.5 w-3.5 text-white/65"}
               strokeWidth={1.8}
             />
           </span>
@@ -60,35 +57,33 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
             const Icon = item.icon;
 
             return (
-              <Link
+              <div
                 key={item.id}
-                to={item.path}
-                tabIndex={open ? 0 : -1}
-                className="item group relative my-0.5 flex h-8 w-full cursor-pointer items-center rounded px-1.5 text-[#cbced3] transition-colors hover:bg-[#282b2e] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                onClick={onClose}
+                className="item group relative my-0.5 flex h-8 w-full items-center rounded px-1.5 text-[#cbced3] transition-colors hover:bg-[#282b2e] hover:text-white"
               >
-                <span className="info flex min-w-0 flex-1 items-center">
+                <Link
+                  to={item.path}
+                  tabIndex={open ? 0 : -1}
+                  className="info flex h-full min-w-0 flex-1 cursor-pointer items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  onClick={onClose}
+                >
                   <Icon
                     className="h-3.5 w-3.5 shrink-0 text-[#5d6064] transition-colors group-hover:text-white"
                     strokeWidth={1.8}
                   />
                   <span className="product-name ml-2 truncate">{item.label}</span>
-                </span>
+                </Link>
 
                 <button
                   type="button"
                   aria-label="关闭产品菜单"
-                  tabIndex={-1}
-                  className="oper ml-2 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded text-white/45 opacity-0 transition-[background-color,color,opacity] hover:bg-white/8 hover:text-white group-hover:opacity-100"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onClose();
-                  }}
+                  tabIndex={open ? 0 : -1}
+                  className="oper ml-2 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded text-white/45 opacity-0 transition-[background-color,color,opacity] hover:bg-white/8 hover:text-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 group-hover:opacity-100"
+                  onClick={onClose}
                 >
                   <X className="h-3.5 w-3.5" strokeWidth={1.8} />
                 </button>
-              </Link>
+              </div>
             );
           })}
         </div>
