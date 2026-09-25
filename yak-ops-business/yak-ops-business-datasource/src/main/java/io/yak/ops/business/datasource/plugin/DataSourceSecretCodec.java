@@ -1,15 +1,13 @@
 package io.yak.ops.business.datasource.plugin;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.exception.DataSourceException;
-import io.yak.ops.business.datasource.security.SensitiveTextMasker;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
+import io.yak.ops.common.util.JsonUtils;
+import io.yak.ops.common.util.SensitiveUtils;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor;
-import jakarta.annotation.Resource;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -24,7 +22,6 @@ import org.springframework.stereotype.Component;
  * @since 2026-09-24
  */
 @Component
-@ConditionalOnDataSourceEnabled
 public class DataSourceSecretCodec {
 
     private static final Set<String> COMMON_SECRET_KEYS = Set.of(
@@ -38,9 +35,6 @@ public class DataSourceSecretCodec {
             "privatekeycontent",
             "passphrase",
             "privatekeypassphrase");
-
-    @Resource
-    private ObjectMapper objectMapper;
 
     public String maskConnectionJson(DataSourcePluginDescriptor descriptor, String connectionJson) {
         if (connectionJson == null || connectionJson.trim().isEmpty()) return null;
@@ -57,7 +51,7 @@ public class DataSourceSecretCodec {
     }
 
     public String maskSensitiveText(String value) {
-        return SensitiveTextMasker.mask(value);
+        return SensitiveUtils.mask(value);
     }
 
     private void maskObject(ObjectNode object, Set<String> configuredKeys) {
@@ -156,7 +150,7 @@ public class DataSourceSecretCodec {
 
     private ObjectNode readObject(String value) {
         try {
-            JsonNode root = objectMapper.readTree(value);
+            JsonNode root = JsonUtils.readTree(value);
             if (root == null || !root.isObject()) throw invalidJson("连接参数必须是 JSON 对象", null);
             return (ObjectNode) root;
         } catch (DataSourceException exception) {
@@ -168,7 +162,7 @@ public class DataSourceSecretCodec {
 
     private String write(ObjectNode value) {
         try {
-            return objectMapper.writeValueAsString(value);
+            return JsonUtils.toJson(value);
         } catch (Exception exception) {
             throw invalidJson("连接参数序列化失败", exception);
         }
