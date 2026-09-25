@@ -22,12 +22,12 @@ export function Checkbox({ className, ...props }: CheckboxProps) {
     >
       <BaseCheckbox.Indicator
         keepMounted
-        className="flex size-full items-center justify-center opacity-0 data-checked:opacity-100 data-indeterminate:opacity-100"
+        className="flex size-full items-center justify-center opacity-0 data-checked:opacity-100 data-indeterminate:opacity-100 data-indeterminate:[&_.yak-checkbox-check]:hidden data-indeterminate:[&_.yak-checkbox-indeterminate]:block"
       >
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
-          className="size-3 data-[indeterminate]:hidden"
+          className="yak-checkbox-check size-3"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -38,7 +38,7 @@ export function Checkbox({ className, ...props }: CheckboxProps) {
         </svg>
         <span
           aria-hidden="true"
-          className="hidden h-0.5 w-2 rounded-full bg-current data-[indeterminate]:block"
+          className="yak-checkbox-indeterminate hidden h-0.5 w-2 rounded-full bg-current"
         />
       </BaseCheckbox.Indicator>
     </BaseCheckbox.Root>
