@@ -61,20 +61,20 @@ public class DataSourceCatalogBusinessImpl implements DataSourceCatalogBusiness 
     }
 
     @Override
-    public List<String> queryDatabases(Long dataSourceId) {
+    public List<String> queryDatabases(String dataSourceId) {
         DataSourceEntity entity = requireEntity(dataSourceId);
         return cached(entity, "databases", "listDatabases", () -> catalog(entity).listDatabases());
     }
 
     @Override
-    public List<String> querySchemas(Long dataSourceId, String database) {
+    public List<String> querySchemas(String dataSourceId, String database) {
         DataSourceEntity entity = requireEntity(dataSourceId);
         return cached(entity, "schemas", "listSchemas", () -> catalog(entity).listSchemas(database), database);
     }
 
     @Override
     public List<DataSourceCatalogTableVO> queryTables(
-            Long dataSourceId, String database, String schema, String keyword) {
+            String dataSourceId, String database, String schema, String keyword) {
         DataSourceEntity entity = requireEntity(dataSourceId);
         DataSourceCatalogQuery query = new DataSourceCatalogQuery(database, schema, keyword);
         return cached(
@@ -92,7 +92,7 @@ public class DataSourceCatalogBusinessImpl implements DataSourceCatalogBusiness 
 
     @Override
     public List<DataSourceCatalogTableVO> searchTables(
-            Long dataSourceId, String database, String schema, String keyword, Integer limit) {
+            String dataSourceId, String database, String schema, String keyword, Integer limit) {
         DataSourceEntity entity = requireEntity(dataSourceId);
         int safeLimit = tableSearchLimit(limit);
         DataSourceCatalogQuery query = new DataSourceCatalogQuery(database, schema, keyword, safeLimit);
@@ -112,7 +112,7 @@ public class DataSourceCatalogBusinessImpl implements DataSourceCatalogBusiness 
 
     @Override
     public List<DataSourceCatalogColumnVO> queryColumns(
-            Long dataSourceId, String database, String schema, String table) {
+            String dataSourceId, String database, String schema, String table) {
         DataSourceEntity entity = requireEntity(dataSourceId);
         DataSourceTablePath path = new DataSourceTablePath(database, schema, table);
         return cached(
@@ -129,25 +129,25 @@ public class DataSourceCatalogBusinessImpl implements DataSourceCatalogBusiness 
     }
 
     @Override
-    public List<DataSourceCatalogOptionVO> queryTableOptions(Long dataSourceId) {
+    public List<DataSourceCatalogOptionVO> queryTableOptions(String dataSourceId) {
         return listAllTables(dataSourceId).stream().map(this::toOptionVO).toList();
     }
 
     @Override
-    public List<DataSourceCatalogOptionVO> queryTableOptions(Long dataSourceId, String matchMode, String keyword) {
+    public List<DataSourceCatalogOptionVO> queryTableOptions(String dataSourceId, String matchMode, String keyword) {
         return tableMatcher.match(listAllTables(dataSourceId), matchMode, keyword).stream()
                 .map(this::toOptionVO)
                 .toList();
     }
 
-    private List<DataSourceTable> listAllTables(Long dataSourceId) {
+    private List<DataSourceTable> listAllTables(String dataSourceId) {
         DataSourceEntity entity = requireEntity(dataSourceId);
         DataSourceCatalogQuery query = new DataSourceCatalogQuery(null, null, null);
         return cached(entity, "all-tables", "listAllTables", () -> catalog(entity).listTables(query));
     }
 
-    private DataSourceEntity requireEntity(Long id) {
-        if (id == null || id <= 0L) {
+    private DataSourceEntity requireEntity(String id) {
+        if (id == null || id.isBlank()) {
             throw new DataSourceException(DataSourceErrorCode.NOT_FOUND);
         }
         return repository.queryById(id).orElseThrow(() -> new DataSourceException(DataSourceErrorCode.NOT_FOUND));

@@ -41,14 +41,14 @@ public class DataSourceCatalogController {
 
     @Operation(summary = "查询数据库列表")
     @GetMapping("/{id}/databases")
-    public Result<List<String>> databases(@PathVariable("id") Long id) {
+    public Result<List<String>> databases(@PathVariable("id") String id) {
         return Result.success(catalogBusiness.queryDatabases(id));
     }
 
     @Operation(summary = "查询 Schema 列表")
     @GetMapping("/{id}/schemas")
     public Result<List<String>> schemas(
-            @PathVariable("id") Long id,
+            @PathVariable("id") String id,
             @RequestParam(value = "database", required = false) String database) {
         return Result.success(catalogBusiness.querySchemas(id, database));
     }
@@ -56,7 +56,7 @@ public class DataSourceCatalogController {
     @Operation(summary = "查询表和视图列表")
     @GetMapping("/{id}/tables")
     public Result<List<DataSourceCatalogTableVO>> tables(
-            @PathVariable("id") Long id,
+            @PathVariable("id") String id,
             @RequestParam(value = "database", required = false) String database,
             @RequestParam(value = "schema", required = false) String schema,
             @RequestParam(value = "keyword", required = false) String keyword) {
@@ -66,7 +66,7 @@ public class DataSourceCatalogController {
     @Operation(summary = "按关键字搜索表和视图")
     @GetMapping("/{id}/tables/search")
     public Result<List<DataSourceCatalogTableVO>> searchTables(
-            @PathVariable("id") Long id,
+            @PathVariable("id") String id,
             @RequestParam(value = "database", required = false) String database,
             @RequestParam(value = "schema", required = false) String schema,
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -77,7 +77,7 @@ public class DataSourceCatalogController {
     @Operation(summary = "查询表字段列表")
     @GetMapping("/{id}/columns")
     public Result<List<DataSourceCatalogColumnVO>> columns(
-            @PathVariable("id") Long id,
+            @PathVariable("id") String id,
             @RequestParam(value = "database", required = false) String database,
             @RequestParam(value = "schema", required = false) String schema,
             @RequestParam("table") String table) {
@@ -86,14 +86,14 @@ public class DataSourceCatalogController {
 
     @Operation(summary = "查询数据源表选项")
     @GetMapping("/list/{id}")
-    public Result<List<DataSourceCatalogOptionVO>> listTable(@PathVariable("id") Long id) {
+    public Result<List<DataSourceCatalogOptionVO>> listTable(@PathVariable("id") String id) {
         return Result.success(catalogBusiness.queryTableOptions(id));
     }
 
     @Operation(summary = "按匹配模式查询数据源表")
     @GetMapping("/listByMatchMode/{id}")
     public Result<List<DataSourceCatalogOptionVO>> listTableReference(
-            @PathVariable("id") Long id,
+            @PathVariable("id") String id,
             @RequestParam(value = "matchMode", required = false) String matchMode,
             @RequestParam(value = "keyword", required = false) String keyword) {
         return Result.success(catalogBusiness.queryTableOptions(id, matchMode, keyword));

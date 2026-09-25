@@ -1,5 +1,5 @@
 export interface AuthUserResponse {
-  id: number;
+  id: string;
   userName: string;
   realName?: string | null;
   deptId?: number | null;

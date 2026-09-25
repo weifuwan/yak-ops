@@ -26,7 +26,7 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     private static final String REGISTRATION_KEY = "yak-security:registration";
 
     private final int maxInactiveIntervalSeconds;
-    private final ConcurrentMap<Long, Set<HttpSession>> sessionsByUser = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Set<HttpSession>> sessionsByUser = new ConcurrentHashMap<>();
 
     public HttpSessionAuthenticationManager(Duration idleTimeout) {
         Objects.requireNonNull(idleTimeout, "idleTimeout must not be null");
@@ -40,7 +40,7 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     }
 
     @Override
-    public void login(Long userId, String userName) {
+    public void login(String userId, String userName) {
         Objects.requireNonNull(userId, "userId must not be null");
         if (!StringUtils.hasText(userName)) {
             throw new IllegalArgumentException("userName must not be blank");
@@ -72,7 +72,7 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     }
 
     @Override
-    public void logoutUser(Long userId) {
+    public void logoutUser(String userId) {
         if (userId == null) {
             return;
         }
@@ -94,7 +94,7 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     }
 
     @Override
-    public Long getLoginUserId() {
+    public String getLoginUserId() {
         HttpSession session = currentSession();
         return session == null ? null : readUserId(session);
     }
@@ -125,10 +125,10 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
         return attributes.getRequest();
     }
 
-    private Long readUserId(HttpSession session) {
+    private String readUserId(HttpSession session) {
         try {
             Object value = session.getAttribute(USER_ID_KEY);
-            return value instanceof Number number ? number.longValue() : null;
+            return value instanceof String text && StringUtils.hasText(text) ? text : null;
         } catch (IllegalStateException ignored) {
             return null;
         }
@@ -143,13 +143,13 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
         }
     }
 
-    private void register(Long userId, HttpSession session) {
+    private void register(String userId, HttpSession session) {
         sessionsByUser
                 .computeIfAbsent(userId, ignored -> ConcurrentHashMap.newKeySet())
                 .add(session);
     }
 
-    private void unregister(Long userId, HttpSession session) {
+    private void unregister(String userId, HttpSession session) {
         Set<HttpSession> sessions = sessionsByUser.get(userId);
         if (sessions == null) {
             return;
@@ -172,9 +172,9 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     private static final class SessionRegistration implements HttpSessionBindingListener {
 
         private final HttpSessionAuthenticationManager manager;
-        private final Long userId;
+        private final String userId;
 
-        private SessionRegistration(HttpSessionAuthenticationManager manager, Long userId) {
+        private SessionRegistration(HttpSessionAuthenticationManager manager, String userId) {
             this.manager = manager;
             this.userId = userId;
         }

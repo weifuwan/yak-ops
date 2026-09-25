@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class UserQueryDTO extends PageParamDTO {
-    private Long id;
+    private String id;
     private String userName;
     private String realName;
 }

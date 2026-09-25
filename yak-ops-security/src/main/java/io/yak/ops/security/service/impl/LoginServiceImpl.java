@@ -120,7 +120,7 @@ public class LoginServiceImpl implements LoginService {
             return handleUnauthorized(response);
         }
 
-        Long loginUserId = authenticationManager.getLoginUserId();
+        String loginUserId = authenticationManager.getLoginUserId();
         String operator = authenticationManager.getLoginUsername();
         if (loginUserId == null || !StringUtils.hasText(operator)) {
             authenticationManager.logout();

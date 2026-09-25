@@ -4,16 +4,16 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.common.PageData;
+import io.yak.ops.dao.entity.BaseEntity;
 import io.yak.ops.dao.repository.BaseRepository;
-import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * 基于 MyBatis-Plus BaseMapper 的 Repository 通用实现。
  */
-public abstract class BaseRepositoryImpl<M extends BaseMapper<T>, T, ID extends Serializable>
-        implements BaseRepository<T, ID> {
+public abstract class BaseRepositoryImpl<M extends BaseMapper<T>, T extends BaseEntity>
+        implements BaseRepository<T> {
 
     protected abstract M mapper();
 
@@ -24,7 +24,7 @@ public abstract class BaseRepositoryImpl<M extends BaseMapper<T>, T, ID extends 
     }
 
     @Override
-    public int deleteById(ID id) {
+    public int deleteById(String id) {
         return mapper().deleteById(id);
     }
 
@@ -35,7 +35,7 @@ public abstract class BaseRepositoryImpl<M extends BaseMapper<T>, T, ID extends 
     }
 
     @Override
-    public Optional<T> queryById(ID id) {
+    public Optional<T> queryById(String id) {
         return Optional.ofNullable(mapper().selectById(id));
     }
 

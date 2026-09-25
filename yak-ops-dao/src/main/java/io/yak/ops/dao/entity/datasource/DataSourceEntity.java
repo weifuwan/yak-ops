@@ -1,12 +1,10 @@
 package io.yak.ops.dao.entity.datasource;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
-import java.time.LocalDateTime;
+import io.yak.ops.dao.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -21,11 +19,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @TableName("yak_ops_data_source")
-public class DataSourceEntity {
-
-    /** 数据源主键，由数据库自增生成。 */
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class DataSourceEntity extends BaseEntity {
 
     /** 数据源名称，在当前产品范围内唯一。 */
     private String name;
@@ -52,10 +46,4 @@ public class DataSourceEntity {
     /** 前端编辑回显使用的原始配置 JSON，可能包含敏感连接信息。 */
     @ToString.Exclude
     private String originalJson;
-
-    /** 数据源记录创建时间。 */
-    private LocalDateTime createTime;
-
-    /** 数据源记录最后更新时间。 */
-    private LocalDateTime updateTime;
 }

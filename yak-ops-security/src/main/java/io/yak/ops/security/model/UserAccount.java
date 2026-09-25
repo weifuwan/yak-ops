@@ -13,7 +13,7 @@ import lombok.ToString;
 @Data
 public class UserAccount {
 
-    private Long id;
+    private String id;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private Boolean isDelete = false;

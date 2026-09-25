@@ -35,11 +35,11 @@ Database table mapping objects use the `Entity` suffix and live under `io.yak.op
 - Business code accesses persistence through Repository boundaries.
 - Security Service must use `UserRepository`; direct `UserMapper` access outside DAO is not allowed.
 - Reuse `BaseRepository / BaseRepositoryImpl` for ordinary single-table CRUD and pagination.
+- All real table Entity types extend `BaseEntity` and use the shared String snowflake ID contract.
 - Add domain-specific Repository methods only when the base contract cannot express the persistence semantics.
 - Keep simple single-table queries in MyBatis-Plus Lambda APIs.
 - Use Mapper XML for complex SQL when XML is clearer.
 - Return `PageData` from persistence boundaries instead of leaking MyBatis `IPage` upward.
-- Keep current Yak Ops Long auto-increment ID contract unless a dedicated migration changes it.
 - Move concrete persistence into this module only as an explicit refactor, not as a side effect of unrelated work.
 - Keep persistence enum storage aligned with the Flyway column contract.
 - Keep Flyway schema, Entity fields and Repository queries synchronized.
@@ -51,7 +51,7 @@ Database table mapping objects use the `Entity` suffix and live under `io.yak.op
 - Put HTTP DTO / VO contracts in DAO.
 - Introduce `PO`, `DO` or another duplicate table-mapping naming convention.
 - Declare MyBatis table-mapping Entity classes in Common or Business modules.
-- Introduce `BaseEntity` before a real shared audit-field contract exists.
+- Introduce a second ID generator or switch individual tables back to auto-increment IDs.
 - Add Flyway migration directories outside `yak-ops-dao`.
 - Keep tables or migrations for product capabilities that have already been deleted.
 

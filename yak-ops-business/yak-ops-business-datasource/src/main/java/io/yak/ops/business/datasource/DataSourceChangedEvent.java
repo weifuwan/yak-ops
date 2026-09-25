@@ -7,4 +7,4 @@ package io.yak.ops.business.datasource;
  * @author weifuwan
  * @since 2026-09-24
  */
-public record DataSourceChangedEvent(Long dataSourceId) {}
+public record DataSourceChangedEvent(String dataSourceId) {}

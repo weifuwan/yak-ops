@@ -50,19 +50,19 @@ public class DataSourceController {
 
     @Operation(summary = "编辑数据源")
     @PutMapping("/{id}")
-    public Result<Boolean> update(@PathVariable("id") Long id, @Valid @RequestBody DataSourceDTO dto) {
+    public Result<Boolean> update(@PathVariable("id") String id, @Valid @RequestBody DataSourceDTO dto) {
         return Result.success(dataSourceBusiness.updateDataSource(id, dto));
     }
 
     @Operation(summary = "查询数据源详情")
     @GetMapping("/{id}")
-    public Result<DataSourceVO> detail(@PathVariable("id") Long id) {
+    public Result<DataSourceVO> detail(@PathVariable("id") String id) {
         return Result.success(dataSourceBusiness.queryDataSource(id));
     }
 
     @Operation(summary = "删除数据源")
     @DeleteMapping("/{id}")
-    public Result<Boolean> delete(@PathVariable("id") Long id) {
+    public Result<Boolean> delete(@PathVariable("id") String id) {
         return Result.success(dataSourceBusiness.deleteDataSource(id));
     }
 
@@ -96,7 +96,7 @@ public class DataSourceController {
     @RequestMapping(
             value = "/{id}/connect-test",
             method = {RequestMethod.GET, RequestMethod.POST})
-    public Result<Boolean> testConnection(@PathVariable("id") Long id) {
+    public Result<Boolean> testConnection(@PathVariable("id") String id) {
         return Result.success(dataSourceBusiness.testConnection(id));
     }
 

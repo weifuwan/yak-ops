@@ -84,7 +84,7 @@ public class DataSourceCatalogDiagnostics {
             String dbType = entity == null || entity.getDbType() == null
                     ? "UNKNOWN"
                     : entity.getDbType().name();
-            Long dataSourceId = entity == null ? null : entity.getId();
+            String dataSourceId = entity == null ? null : entity.getId();
             log.warn(
                     "Slow datasource catalog operation operation={} dataSourceId={} dbType={} durationMs={} thresholdMs={} failed={}",
                     operationName,

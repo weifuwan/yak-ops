@@ -68,7 +68,7 @@ public class UserController {
 
     @Operation(summary = "根据用户 ID 查询用户详情")
     @GetMapping("/{id}")
-    public Result<UserVO> detail(@PathVariable("id") Long userId) {
+    public Result<UserVO> detail(@PathVariable("id") String userId) {
         return Result.success(userService.getUserDetailByUserId(userId));
     }
 
@@ -106,7 +106,7 @@ public class UserController {
 
     @Operation(summary = "管理员重置用户密码")
     @PutMapping("/{id}/password")
-    public Result<Void> resetPassword(@PathVariable("id") Long userId, @RequestBody UserPasswordResetDTO resetDTO) {
+    public Result<Void> resetPassword(@PathVariable("id") String userId, @RequestBody UserPasswordResetDTO resetDTO) {
 
         userAdministrationService.resetPassword(userId, resetDTO, currentUsername());
 
@@ -115,16 +115,16 @@ public class UserController {
 
     @Operation(summary = "根据用户 ID 删除用户")
     @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable("id") Long userId) {
+    public Result<Void> delete(@PathVariable("id") String userId) {
 
         userAdministrationService.validateDelete(userId, authenticationManager.getLoginUserId(), currentUsername());
 
         return userService.deleteByUserId(userId);
     }
 
-    private List<Long> parseUserIds(String ids) {
+    private List<String> parseUserIds(String ids) {
         try {
-            JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, Long.class);
+            JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, String.class);
             return objectMapper.readValue(ids, type);
         } catch (JsonProcessingException exception) {
             throw new YakSecurityException(ResultCode.PARAM_NOT_VALID, exception);

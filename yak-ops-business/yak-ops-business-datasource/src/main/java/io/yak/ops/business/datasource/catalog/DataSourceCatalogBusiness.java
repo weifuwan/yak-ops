@@ -16,18 +16,18 @@ public interface DataSourceCatalogBusiness {
 
     DataSourceCatalogDiagnosticsVO queryDiagnostics();
 
-    List<String> queryDatabases(Long dataSourceId);
+    List<String> queryDatabases(String dataSourceId);
 
-    List<String> querySchemas(Long dataSourceId, String database);
+    List<String> querySchemas(String dataSourceId, String database);
 
-    List<DataSourceCatalogTableVO> queryTables(Long dataSourceId, String database, String schema, String keyword);
+    List<DataSourceCatalogTableVO> queryTables(String dataSourceId, String database, String schema, String keyword);
 
     List<DataSourceCatalogTableVO> searchTables(
-            Long dataSourceId, String database, String schema, String keyword, Integer limit);
+            String dataSourceId, String database, String schema, String keyword, Integer limit);
 
-    List<DataSourceCatalogColumnVO> queryColumns(Long dataSourceId, String database, String schema, String table);
+    List<DataSourceCatalogColumnVO> queryColumns(String dataSourceId, String database, String schema, String table);
 
-    List<DataSourceCatalogOptionVO> queryTableOptions(Long dataSourceId);
+    List<DataSourceCatalogOptionVO> queryTableOptions(String dataSourceId);
 
-    List<DataSourceCatalogOptionVO> queryTableOptions(Long dataSourceId, String matchMode, String keyword);
+    List<DataSourceCatalogOptionVO> queryTableOptions(String dataSourceId, String matchMode, String keyword);
 }

@@ -13,7 +13,7 @@ import lombok.Data;
 public class DataSourceVO {
 
     /** 数据源主键 ID。 */
-    private Long id;
+    private String id;
 
     /** 数据源名称。 */
     private String name;

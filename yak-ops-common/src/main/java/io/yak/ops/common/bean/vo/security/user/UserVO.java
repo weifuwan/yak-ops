@@ -13,7 +13,7 @@ import lombok.Data;
 public class UserVO {
 
     /** 用户主键 ID。 */
-    private Long id;
+    private String id;
 
     /** 用户账号。 */
     private String userName;
