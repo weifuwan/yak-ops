@@ -149,13 +149,12 @@ public class DataSourcePluginRegistry {
         String normalized = DataSourcePluginDescriptor.normalizeType(pluginType);
         DataSourcePlugin existing = discovered.putIfAbsent(normalized, plugin);
         if (existing != null && existing != plugin) {
-            throw new IllegalStateException(
-                    "Duplicate datasource plugin type or alias "
-                            + normalized
-                            + ": "
-                            + existing.getClass().getName()
-                            + " and "
-                            + plugin.getClass().getName());
+            throw new IllegalStateException("Duplicate datasource plugin type or alias "
+                    + normalized
+                    + ": "
+                    + existing.getClass().getName()
+                    + " and "
+                    + plugin.getClass().getName());
         }
     }
 
@@ -165,8 +164,8 @@ public class DataSourcePluginRegistry {
         }
         DataSourcePluginDescriptor descriptor = plugin.descriptor();
         if (descriptor == null) {
-            throw new IllegalStateException(
-                    "Datasource plugin descriptor must not be null: " + plugin.getClass().getName());
+            throw new IllegalStateException("Datasource plugin descriptor must not be null: "
+                    + plugin.getClass().getName());
         }
         String normalizedType = DataSourcePluginDescriptor.normalizeType(plugin.type());
         if (!descriptor.type().equals(normalizedType)) {
@@ -185,8 +184,9 @@ public class DataSourcePluginRegistry {
             DataSourcePlugin plugin, DataSourceCapability capability, DataSourceErrorCode errorCode) {
         if (!plugin.supports(capability)) {
             throw new DataSourceException(
-                    errorCode, "数据源插件未声明能力 " + capability.name() + "：" + plugin.descriptor().type());
+                    errorCode,
+                    "数据源插件未声明能力 " + capability.name() + "："
+                            + plugin.descriptor().type());
         }
     }
-
 }

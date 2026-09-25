@@ -82,8 +82,8 @@ public class DataSourceServiceImpl implements DataSourceService {
             throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "编辑数据源时不允许修改数据源类型");
         }
 
-        var connection =
-                pluginRegistry.mergeStoredSecrets(existing.getDbType(), dto.getConnectionParams(), existing.getConnectionParams());
+        var connection = pluginRegistry.mergeStoredSecrets(
+                existing.getDbType(), dto.getConnectionParams(), existing.getConnectionParams());
         existing.setName(name);
         existing.setJdbcUrl(connection.jdbcUrl());
         existing.setEnvironment(parseEnvironment(dto.getEnvironment()));
@@ -139,7 +139,8 @@ public class DataSourceServiceImpl implements DataSourceService {
     public boolean testConnection(String id) {
         DataSourceEntity entity = requireEntity(id);
         try {
-            pluginRegistry.testConnection(entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds());
+            pluginRegistry.testConnection(
+                    entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds());
             entity.setConnStatus(DataSourceConnStatus.CONNECTED);
             entity.initUpdate();
             repository.update(entity);
@@ -167,7 +168,8 @@ public class DataSourceServiceImpl implements DataSourceService {
 
         if (existing != null) {
             dbType = existing.getDbType();
-            if (StringUtils.hasText(dto.getDbType()) && !pluginRegistry.resolvePluginType(dto.getDbType()).equals(dbType)) {
+            if (StringUtils.hasText(dto.getDbType())
+                    && !pluginRegistry.resolvePluginType(dto.getDbType()).equals(dbType)) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接测试的数据源类型与已保存数据源不一致");
             }
             connectionJson = pluginRegistry
@@ -254,10 +256,12 @@ public class DataSourceServiceImpl implements DataSourceService {
         target.setName(source.getName());
         target.setDbType(source.getDbType());
         target.setJdbcUrl(pluginRegistry.maskSensitiveText(source.getJdbcUrl()));
-        target.setEnvironment(source.getEnvironment() == null ? null : source.getEnvironment().name());
+        target.setEnvironment(
+                source.getEnvironment() == null ? null : source.getEnvironment().name());
         target.setEnvironmentName(
                 source.getEnvironment() == null ? null : source.getEnvironment().getDisplayName());
-        target.setConnStatus(source.getConnStatus() == null ? null : source.getConnStatus().name());
+        target.setConnStatus(
+                source.getConnStatus() == null ? null : source.getConnStatus().name());
         target.setRemark(source.getRemark());
         target.setCreateTime(source.getCreateTime());
         target.setUpdateTime(source.getUpdateTime());
