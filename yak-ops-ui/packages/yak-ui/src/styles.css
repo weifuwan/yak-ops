@@ -73,6 +73,16 @@
   --yak-components-empty-title: #344054;
   --yak-components-empty-description: #98a2b3;
 
+  --yak-components-table-bg: #ffffff;
+  --yak-components-table-header-bg: #f5f5f5;
+  --yak-components-table-header-text: #252832;
+  --yak-components-table-row-bg: #ffffff;
+  --yak-components-table-row-bg-hover: #fafafa;
+  --yak-components-table-text: #343841;
+  --yak-components-table-border: #eceef2;
+  --yak-components-table-border-strong: #e4e7ec;
+  --yak-components-table-loading-bg: rgba(255, 255, 255, 0.72);
+
   --yak-components-menu-item-hover: #f5f6f8;
 
   --yak-components-badge-neutral-bg: #f2f4f7;
