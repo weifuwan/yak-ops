@@ -23,7 +23,7 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * JDBC 数据源插件基础实现，负责运行时插件元数据、连接参数、连通性、SSH 和 Catalog 元数据.
+ * JDBC 数据源插件基础实现，负责运行时插件元数据、连接参数、连通性、SSH 和 Catalog 元数据。
  *
  * @author weifuwan
  * @since 2026-09-24
