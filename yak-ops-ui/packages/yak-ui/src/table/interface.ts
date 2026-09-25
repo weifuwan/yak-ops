@@ -47,8 +47,5 @@ export interface TableProps<RecordType extends object> {
   emptyText?: ReactNode;
   rowHoverable?: boolean;
   className?: string;
-  onRow?: (
-    record: RecordType,
-    index: number,
-  ) => HTMLAttributes<HTMLTableRowElement>;
+  onRow?: (record: RecordType, index: number) => HTMLAttributes<HTMLTableRowElement>;
 }
