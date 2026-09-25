@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -74,6 +74,20 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
                   />
                   <span className="product-name ml-2 truncate">{item.label}</span>
                 </span>
+
+                <button
+                  type="button"
+                  aria-label="关闭产品菜单"
+                  tabIndex={-1}
+                  className="oper ml-2 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded text-white/45 opacity-0 transition-[background-color,color,opacity] hover:bg-white/8 hover:text-white group-hover:opacity-100"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onClose();
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" strokeWidth={1.8} />
+                </button>
               </Link>
             );
           })}
