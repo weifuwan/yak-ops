@@ -5,6 +5,7 @@ import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.enums.security.ResultCode;
+import io.yak.ops.common.enums.security.user.UserStatus;
 import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.authentication.LoginAttemptGuard;
@@ -39,7 +40,6 @@ import org.springframework.util.StringUtils;
 public class LoginServiceImpl implements LoginService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginServiceImpl.class);
-    private static final Integer USER_DISABLED_STATUS = 2;
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
     @Resource
@@ -83,7 +83,7 @@ public class LoginServiceImpl implements LoginService {
                             ? ResultCode.USER_CREDENTIALS_ERROR
                             : ResultCode.USER_NOT_EXISTS);
         }
-        if (USER_DISABLED_STATUS.equals(user.getStatus())) {
+        if (UserStatus.DISABLED.equals(user.getStatus())) {
             throw new YakSecurityException(ResultCode.USER_ACCOUNT_DISABLE);
         }
         if (!passwordEncoder.matches(loginDTO.getPw(), user.getPw())) {
@@ -129,7 +129,7 @@ public class LoginServiceImpl implements LoginService {
 
         UserAccount user = userService.getUserByUsername(operator);
         if (user == null
-                || USER_DISABLED_STATUS.equals(user.getStatus())
+                || UserStatus.DISABLED.equals(user.getStatus())
                 || !Objects.equals(loginUserId, user.getId())) {
             LOGGER.warn("登录态失效，operator={}, loginUserId={}", operator, loginUserId);
             authenticationManager.logout();

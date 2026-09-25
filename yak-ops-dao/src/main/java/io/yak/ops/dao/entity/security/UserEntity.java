@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.yak.ops.common.enums.security.user.UserStatus;
 import io.yak.ops.dao.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
@@ -48,8 +49,8 @@ public class UserEntity extends BaseEntity {
     /** 部门 ID，仅作为用户资料字段保留，不创建数据库外键。 */
     private Long deptId;
 
-    /** 用户状态：1 正常，2 禁用。 */
-    private Integer status = 1;
+    /** 用户状态，由 UserStatus 的持久化 value 自动映射。 */
+    private UserStatus status = UserStatus.ACTIVE;
 
     /** 逻辑删除标记：0 未删除，1 已删除。 */
     @TableLogic(value = "0", delval = "1")

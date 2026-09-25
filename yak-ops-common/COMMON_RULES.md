@@ -28,6 +28,7 @@ Common 中带字段的枚举统一保持不可变契约：
 - 枚举字段使用 `private final`。
 - ErrorCode 枚举统一使用 `code` / `message`。
 - 普通业务枚举的展示文案统一使用 `displayName`；业务标识字段使用明确名称，例如 `code`。
+- 持久化数值枚举统一使用 `value` 字段并标记 `@EnumValue`，Business / Service 不手动进行 0/1/2 转换。
 - 枚举常量本身表达 Java 语义，数据库存储值属于 Persistence Contract。
 - 只有数据库列、Flyway、Entity 和查询逻辑在同一个变更中完成迁移时，才允许给持久化字段增加 `@EnumValue` 或等价映射。
 

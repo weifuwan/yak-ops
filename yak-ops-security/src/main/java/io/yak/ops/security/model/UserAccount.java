@@ -1,5 +1,6 @@
 package io.yak.ops.security.model;
 
+import io.yak.ops.common.enums.security.user.UserStatus;
 import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.ToString;
@@ -29,5 +30,5 @@ public class UserAccount {
     private String phone;
     private String email;
     private Long deptId;
-    private Integer status = 1;
+    private UserStatus status = UserStatus.ACTIVE;
 }
