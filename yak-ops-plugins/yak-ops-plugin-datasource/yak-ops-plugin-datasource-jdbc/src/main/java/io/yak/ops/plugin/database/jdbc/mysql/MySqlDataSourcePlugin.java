@@ -12,16 +12,6 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     }
 
     @Override
-    protected String displayName() {
-        return "MySQL";
-    }
-
-    @Override
-    protected String jdbcUrlTemplate() {
-        return "jdbc:mysql://{host}:{port}/{database}";
-    }
-
-    @Override
     protected int defaultPort() {
         return 3306;
     }

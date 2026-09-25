@@ -41,9 +41,19 @@ Do not add a second Datasource plugin contract in `yak-ops-spi`.
 
 ## Plugin API Version
 
-Current Datasource Plugin API version: `2`.
+Current Datasource Plugin API version: `3`.
 
-V2 removes future-facing runtime installation metadata (`installRequired / installHint`) and the unreachable `DRIVER` form field type. Providers describe capabilities already available in the running application; deployment-time JDBC jars may still be supplied through the runtime classpath.
+V3 removes the legacy frontend form schema from the provider contract. `DataSourcePluginDescriptor` is now runtime metadata only:
+
+```text
+type
+aliases
+apiVersion
+capabilities
+secretFieldKeys
+```
+
+`ConnectionForm / FieldType / FormField / FormRule / FormSection / VisibilityCondition / JdbcUrlLinkage` are not Plugin API concepts. Frontend labels, placeholders, visibility rules and JDBC URL form linkage belong to the fixed Datasource UI, not to backend Provider metadata.
 
 ## Plugin Type Contract
 
@@ -57,13 +67,14 @@ Must:
 - duplicate canonical types or aliases fail fast during plugin discovery.
 - adding a new Provider must not require modifying Common, Service Layer code or a central database-type list.
 
-V2 仍保留 ConnectionForm / FieldType 等 descriptor 元数据用于现有敏感字段识别和兼容；它们不再通过 HTTP 驱动前端表单，也不得继续扩展新的 UI schema 能力。该遗留 contract 在独立 Plugin Descriptor V3 变更中收口。
+V3 的 `secretFieldKeys` 只声明 Provider 运行时需要识别的敏感字段名；通用 password / token / secret / private-key 规则仍由 Datasource secret handling 统一兜底。
 
 Must Not:
 - recreate runtime plugin install flags such as `installRequired` / `installHint` without an implemented installation lifecycle.
 - recreate `DataSourceDbType` or an equivalent central enum/list of supported databases.
 - make Service Layer code parse vendor type aliases.
 - require a core-module change only to register a new Provider.
+- add frontend form metadata such as labels, placeholders, sections, validation rules, visibility conditions or JDBC URL templates back into the Plugin descriptor.
 
 ## Built-in Provider Baseline
 
