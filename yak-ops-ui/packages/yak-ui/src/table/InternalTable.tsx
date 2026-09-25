@@ -1,12 +1,24 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useRef, type CSSProperties, type ReactNode } from "react";
 
 import { cn } from "../cn";
 import { Empty } from "../empty";
 import { Pagination } from "../pagination";
 import { Spinner } from "../spinner";
+import { useFilter } from "./hooks/useFilter";
 import { usePagination } from "./hooks/usePagination";
 import { useSelection } from "./hooks/useSelection";
-import type { TableAlign, TableColumn, TableProps, TableSize } from "./interface";
+import { useSorter } from "./hooks/useSorter";
+import type {
+  TableAlign,
+  TableChangeAction,
+  TableColumn,
+  TableFilters,
+  TablePaginationConfig,
+  TablePaginationState,
+  TableProps,
+  TableSize,
+  TableSorterResult,
+} from "./interface";
 import { getTableColumnKey, resolveTableRowKey } from "./utils";
 
 const sizeClasses: Record<TableSize, { header: string; cell: string }> = {
@@ -47,6 +59,7 @@ export function InternalTable<RecordType extends object>({
   dataSource = [],
   emptyText,
   loading = false,
+  onChange,
   onRow,
   pagination,
   rowHoverable = true,
@@ -56,8 +69,95 @@ export function InternalTable<RecordType extends object>({
   size = "medium",
   sticky = false,
 }: TableProps<RecordType>) {
-  const { data, pagination: resolvedPagination } = usePagination(pagination, dataSource);
-  const { columns: mergedColumns, isSelected } = useSelection(rowSelection, data, columns, rowKey);
+  const filtersRef = useRef<TableFilters>({});
+  const sorterRef = useRef<TableSorterResult<RecordType>>({});
+  const paginationStateRef = useRef<TablePaginationState | false>(false);
+  const filterDataRef = useRef<
+    (data: readonly RecordType[], filtersOverride?: TableFilters) => readonly RecordType[]
+  >((data) => data);
+  const sortDataRef = useRef<
+    (
+      data: readonly RecordType[],
+      sorterOverride?: TableSorterResult<RecordType>,
+    ) => readonly RecordType[]
+  >((data) => data);
+
+  const emitChange = (
+    action: TableChangeAction,
+    nextFilters: TableFilters,
+    nextSorter: TableSorterResult<RecordType>,
+    paginationOverride?: Pick<TablePaginationState, "current" | "pageSize">,
+  ) => {
+    if (!onChange) return;
+
+    const currentDataSource = sortDataRef.current(
+      filterDataRef.current(dataSource, nextFilters),
+      nextSorter,
+    );
+
+    let nextPagination = paginationStateRef.current;
+    if (nextPagination !== false) {
+      nextPagination = {
+        ...nextPagination,
+        current: paginationOverride?.current ?? nextPagination.current,
+        pageSize: paginationOverride?.pageSize ?? nextPagination.pageSize,
+        total:
+          pagination !== false && pagination?.total != null
+            ? pagination.total
+            : currentDataSource.length,
+      };
+    }
+
+    onChange(nextPagination, nextFilters, nextSorter, {
+      action,
+      currentDataSource,
+    });
+  };
+
+  const sorterState = useSorter(columns, (nextSorter) => {
+    emitChange("sort", filtersRef.current, nextSorter);
+  });
+  sorterRef.current = sorterState.sorter;
+  sortDataRef.current = sorterState.sortData;
+
+  const filterState = useFilter(sorterState.columns, (nextFilters) => {
+    emitChange("filter", nextFilters, sorterRef.current);
+  });
+  filtersRef.current = filterState.filters;
+  filterDataRef.current = filterState.filterData;
+
+  const processedData = sorterState.sortData(filterState.filterData(dataSource));
+
+  const mergedPagination: false | TablePaginationConfig | undefined =
+    pagination === false || pagination == null
+      ? pagination
+      : {
+          ...pagination,
+          onChange: (page, pageSize) => {
+            pagination.onChange?.(page, pageSize);
+            emitChange("paginate", filtersRef.current, sorterRef.current, {
+              current: page,
+              pageSize,
+            });
+          },
+        };
+
+  const { data, pagination: resolvedPagination } = usePagination(mergedPagination, processedData);
+  paginationStateRef.current =
+    resolvedPagination == null
+      ? false
+      : {
+          current: resolvedPagination.page,
+          pageSize: resolvedPagination.pageSize,
+          total: resolvedPagination.total,
+        };
+
+  const { columns: mergedColumns, isSelected } = useSelection(
+    rowSelection,
+    data,
+    filterState.columns,
+    rowKey,
+  );
   const tableLayoutFixed = mergedColumns.some((column) => column.ellipsis);
   const scrollStyle: CSSProperties | undefined =
     scroll?.y == null ? undefined : { maxHeight: scroll.y };
@@ -141,7 +241,7 @@ export function InternalTable<RecordType extends object>({
                 >
                   {mergedColumns.map((column, columnIndex) => {
                     const value = column.dataIndex == null ? undefined : record[column.dataIndex];
-                    const content = column.render
+                    const cell = column.render
                       ? column.render(value, record, rowIndex)
                       : (value as ReactNode);
                     const align = column.align ?? "left";
@@ -160,9 +260,9 @@ export function InternalTable<RecordType extends object>({
                       >
                         <div
                           className={cn("min-w-0", column.ellipsis && "truncate")}
-                          title={column.ellipsis ? getCellTitle(content) : undefined}
+                          title={column.ellipsis ? getCellTitle(cell) : undefined}
                         >
-                          {content ?? null}
+                          {cell ?? null}
                         </div>
                       </td>
                     );
