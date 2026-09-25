@@ -35,7 +35,9 @@ public interface AuthenticationManager {
      *
      * @param userId 用户 ID
      */
-    default void logoutUser(String userId) {}
+    default void logoutUser(String userId) {
+        // 账号级下线是可选能力，支持多会话索引的实现按需覆盖。
+    }
 
     /** @return 当前请求是否存在有效登录态 */
     boolean isLogin();
