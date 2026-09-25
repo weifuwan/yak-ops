@@ -3,7 +3,6 @@ package io.yak.ops.boot.controller.datasource.v1;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.business.datasource.DataSourceService;
-import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
@@ -31,7 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Tag(name = "数据源管理接口")
 @RestController
-@ConditionalOnDataSourceEnabled
 @RequestMapping(CommonConstants.API_PREFIX + "/data-source")
 public class DataSourceController {
 
