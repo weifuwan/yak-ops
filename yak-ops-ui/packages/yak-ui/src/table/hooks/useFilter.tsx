@@ -128,7 +128,10 @@ const getInitialFilterState = <RecordType extends object>(
 export interface TableFilterHookResult<RecordType extends object> {
   columns: TableColumns<RecordType>;
   filters: TableFilters;
-  filterData: (data: readonly RecordType[]) => readonly RecordType[];
+  filterData: (
+    data: readonly RecordType[],
+    filtersOverride?: TableFilters,
+  ) => readonly RecordType[];
 }
 
 export function useFilter<RecordType extends object>(
@@ -197,11 +200,19 @@ export function useFilter<RecordType extends object>(
     };
   });
 
-  const filterData = (data: readonly RecordType[]): readonly RecordType[] =>
+  const filterData = (
+    data: readonly RecordType[],
+    filtersOverride?: TableFilters,
+  ): readonly RecordType[] =>
     columns.reduce<readonly RecordType[]>((currentData, column, index) => {
       if (!column.filters || typeof column.onFilter !== "function") return currentData;
 
-      const selectedValues = getColumnFilterValue(column, index);
+      const columnKey = stringifyTableColumnKey(getTableColumnKey(column, index));
+      const overrideValue = filtersOverride?.[columnKey];
+      const selectedValues =
+        filtersOverride && columnKey in filtersOverride
+          ? overrideValue ?? []
+          : getColumnFilterValue(column, index);
       if (selectedValues.length === 0) return currentData;
 
       return currentData.filter((record) =>
