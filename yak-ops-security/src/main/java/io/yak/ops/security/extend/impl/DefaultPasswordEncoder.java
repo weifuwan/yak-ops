@@ -11,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * <p>使用 BCrypt 对新建和修改后的密码进行不可逆编码。</p>
  *
  * @author weifuwan
+ * @since 2026-09-24
  */
 public class DefaultPasswordEncoder implements PasswordEncoder {
 
