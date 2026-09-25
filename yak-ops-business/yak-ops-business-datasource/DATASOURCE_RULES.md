@@ -52,7 +52,7 @@ config       capability-local properties / conditions
 exception    datasource business errors
 ```
 
-Catalog cache, diagnostics and matching logic may remain internal collaborators when they own real state or mechanism.
+Catalog cache and slow-operation diagnostics may remain internal collaborators when they own real state or mechanism.
 
 Do not recreate `domain`, `gateway`, `execution`, `query` or business `repository` packages unless a new capability contract proves a real boundary.
 
@@ -63,6 +63,17 @@ Datasource HTTP Controller、ControllerAdvice 统一由 `yak-ops-boot` 持有。
 Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsing、业务校验、Entity → VO、Plugin descriptor → VO 等业务输出转换归 Business。
 
 数据源分页请求统一由 `DataSourceQueryDTO extends PageQueryDTO` 提供 `pageNo / pageSize / sorts` Contract。当前自定义 `sorts` 在 Repository 排序白名单落地前必须明确拒绝，禁止静默忽略；默认分页排序保持 `updateTime DESC, id DESC` 保证稳定翻页。
+
+当前 Datasource 管理产品面只发布分页、详情、汇总、增删改和连接测试；Catalog 只发布 database / schema / table / column 元数据查询。
+
+已删除且禁止无真实调用方时重新引入的旧接口：
+- `/api/v1/data-source/all`
+- `/api/v1/data-source/option`
+- `/api/v1/data-source/catalog/diagnostics`
+- `/api/v1/data-source/catalog/list/{id}`
+- `/api/v1/data-source/catalog/listByMatchMode/{id}`
+
+内部 Catalog diagnostics 用于慢调用日志，不作为 HTTP 产品 Contract。
 
 本模块只提供 Datasource capability，不创建 `controller` package，也不依赖 Boot。
 

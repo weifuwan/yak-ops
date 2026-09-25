@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.catalog.impl;
 
-import io.yak.ops.business.datasource.catalog.CatalogTableMatcher;
 import io.yak.ops.business.datasource.catalog.DataSourceCatalogBusiness;
 import io.yak.ops.business.datasource.catalog.DataSourceCatalogDiagnostics;
 import io.yak.ops.business.datasource.catalog.DataSourceCatalogMetadataCache;
@@ -9,9 +8,6 @@ import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
 import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogColumnVO;
-import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogDiagnosticsVO;
-import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogOperationVO;
-import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogOptionVO;
 import io.yak.ops.common.bean.vo.datasource.catalog.DataSourceCatalogTableVO;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
@@ -48,18 +44,10 @@ public class DataSourceCatalogBusinessImpl implements DataSourceCatalogBusiness 
     private DataSourceProperties properties;
 
     @Resource
-    private CatalogTableMatcher tableMatcher;
-
-    @Resource
     private DataSourceCatalogMetadataCache metadataCache;
 
     @Resource
     private DataSourceCatalogDiagnostics diagnostics;
-
-    @Override
-    public DataSourceCatalogDiagnosticsVO queryDiagnostics() {
-        return toDiagnosticsVO(diagnostics.snapshot());
-    }
 
     @Override
     public List<String> queryDatabases(String dataSourceId) {
@@ -129,24 +117,6 @@ public class DataSourceCatalogBusinessImpl implements DataSourceCatalogBusiness 
                 .toList();
     }
 
-    @Override
-    public List<DataSourceCatalogOptionVO> queryTableOptions(String dataSourceId) {
-        return listAllTables(dataSourceId).stream().map(this::toOptionVO).toList();
-    }
-
-    @Override
-    public List<DataSourceCatalogOptionVO> queryTableOptions(String dataSourceId, String matchMode, String keyword) {
-        return tableMatcher.match(listAllTables(dataSourceId), matchMode, keyword).stream()
-                .map(this::toOptionVO)
-                .toList();
-    }
-
-    private List<DataSourceTable> listAllTables(String dataSourceId) {
-        DataSourceEntity entity = requireEntity(dataSourceId);
-        DataSourceCatalogQuery query = new DataSourceCatalogQuery(null, null, null);
-        return cached(entity, "all-tables", "listAllTables", () -> catalog(entity).listTables(query));
-    }
-
     private DataSourceEntity requireEntity(String id) {
         if (id == null || id.isBlank()) {
             throw new DataSourceException(DataSourceErrorCode.NOT_FOUND);
@@ -165,10 +135,11 @@ public class DataSourceCatalogBusinessImpl implements DataSourceCatalogBusiness 
             Supplier<T> loader,
             Object... qualifiers) {
         return metadataCache.getOrLoad(
-                metadataCache.key(entity, kind, qualifiers),
+                entity,
+                kind,
                 metadataCacheTtlSeconds(),
                 () -> diagnostics.observe(entity, operation, loader),
-                diagnostics::recordCacheLookup);
+                qualifiers);
     }
 
     private int connectionTimeoutSeconds() {
@@ -201,30 +172,5 @@ public class DataSourceCatalogBusinessImpl implements DataSourceCatalogBusiness 
                 value.getOrdinalPosition(),
                 value.isPrimaryKey(),
                 value.getRemarks());
-    }
-
-    private DataSourceCatalogOptionVO toOptionVO(DataSourceTable value) {
-        String label = isBlank(value.getRemarks()) ? value.getName() : value.getRemarks();
-        return new DataSourceCatalogOptionVO(value.getName(), label, value.getRemarks());
-    }
-
-    private DataSourceCatalogDiagnosticsVO toDiagnosticsVO(DataSourceCatalogDiagnostics.Snapshot snapshot) {
-        var operations = snapshot.operations().stream()
-                .map(operation -> new DataSourceCatalogOperationVO(
-                        operation.operation(),
-                        operation.total(),
-                        operation.failures(),
-                        operation.slow(),
-                        operation.averageDurationMs(),
-                        operation.maxDurationMs(),
-                        operation.lastSlowDurationMs(),
-                        operation.lastSlowTime()))
-                .toList();
-        return new DataSourceCatalogDiagnosticsVO(
-                snapshot.cacheHits(), snapshot.cacheMisses(), snapshot.cacheHitRate(), operations);
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
     }
 }
