@@ -125,17 +125,21 @@ app/layout/
 ├── AppLayout.tsx
 ├── TopBar.tsx
 ├── ProductSidebar.tsx
+├── ProductLauncher.tsx
 └── navigation.ts
 ```
 
 Ownership:
 
-- `AppLayout` owns the viewport and composes TopBar + ProductSidebar + Outlet.
-- `TopBar` owns product identity and current-user actions.
+- `AppLayout` owns the viewport and the Global Product Launcher open / close state.
+- `TopBar` owns product identity, launcher trigger and current-user actions.
 - `ProductSidebar` owns navigation inside the current product.
-- `navigation.ts` is the single configuration source for product-local navigation items.
+- `ProductLauncher` is an overlay navigation surface; opening it must not resize or reflow Sidebar / Outlet.
+- `navigation.ts` is the single configuration source for product-local navigation and launcher entries.
+- Launcher entries must point to real Product Surfaces; future products are not represented as placeholder routes.
+- Launcher closes on explicit close, backdrop click, Escape and route change.
 - Product pages rendered inside `AppLayout` fill the available container; they do not subtract shell dimensions from `100vh / 100dvh`.
-- Global Product Launcher / Mega Menu is not part of this shell baseline and must remain a separate capability.
+
 ## Service Boundary
 
 `service/http` 是唯一 HTTP transport owner。
