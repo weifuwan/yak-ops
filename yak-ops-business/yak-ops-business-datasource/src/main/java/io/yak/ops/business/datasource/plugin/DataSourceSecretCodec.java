@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
-import io.yak.ops.common.util.JsonUtils;
+import io.yak.ops.common.util.JSONUtils;
+import io.yak.ops.common.util.ObjectUtils;
 import io.yak.ops.common.util.SensitiveUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourcePluginDescriptor;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -47,7 +49,7 @@ public class DataSourceSecretCodec {
      * @return 可安全返回给前端的连接 JSON
      */
     public String maskConnectionJson(DataSourcePluginDescriptor descriptor, String connectionJson) {
-        if (connectionJson == null || connectionJson.trim().isEmpty()) return null;
+        if (StringUtils.isBlank(connectionJson)) return null;
         ObjectNode root = readObject(connectionJson);
         maskObject(root, secretKeys(descriptor));
         return write(root);
@@ -142,7 +144,7 @@ public class DataSourceSecretCodec {
 
     private Set<String> secretKeys(DataSourcePluginDescriptor descriptor) {
         Set<String> keys = new LinkedHashSet<>();
-        if (descriptor == null) return keys;
+        if (ObjectUtils.isNull(descriptor)) return keys;
         for (String key : descriptor.secretFieldKeys()) keys.add(normalizeKey(key));
         return keys;
     }
@@ -159,19 +161,19 @@ public class DataSourceSecretCodec {
     }
 
     private String normalizeKey(String key) {
-        return key == null ? "" : key.replace("_", "").replace("-", "").trim().toLowerCase(Locale.ROOT);
+        return ObjectUtils.isNull(key) ? "" : key.replace("_", "").replace("-", "").trim().toLowerCase(Locale.ROOT);
     }
 
     private boolean shouldPreserve(JsonNode value) {
-        if (value == null || value.isNull()) return true;
+        if (ObjectUtils.isNull(value) || value.isNull()) return true;
         if (!value.isTextual()) return false;
         String text = value.asText();
-        return text == null || text.trim().isEmpty() || SensitiveUtils.MASKED_VALUE.equals(text.trim());
+        return StringUtils.isBlank(text) || SensitiveUtils.MASKED_VALUE.equals(text.trim());
     }
 
     private ObjectNode readObject(String value) {
         try {
-            JsonNode root = JsonUtils.readTree(value);
+            JsonNode root = JSONUtils.readTree(value);
             if (root == null || !root.isObject()) throw invalidJson("连接参数必须是 JSON 对象", null);
             return (ObjectNode) root;
         } catch (DataSourceException exception) {
@@ -183,7 +185,7 @@ public class DataSourceSecretCodec {
 
     private String write(ObjectNode value) {
         try {
-            return JsonUtils.toJson(value);
+            return JSONUtils.toJson(value);
         } catch (Exception exception) {
             throw invalidJson("连接参数序列化失败", exception);
         }

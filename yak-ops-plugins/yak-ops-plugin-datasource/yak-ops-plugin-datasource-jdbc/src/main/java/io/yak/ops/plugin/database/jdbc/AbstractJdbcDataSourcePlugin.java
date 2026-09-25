@@ -2,8 +2,9 @@ package io.yak.ops.plugin.database.jdbc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.util.JsonUtils;
+import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.SensitiveUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
 import io.yak.ops.plugin.datasource.api.enums.DataSourcePluginOperation;
@@ -54,35 +55,35 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     @Override
     public DataSourceConnection parseConnection(String connectionJson) {
         try {
-            JsonNode root = JsonUtils.readTree(connectionJson);
+            JsonNode root = JSONUtils.readTree(connectionJson);
             if (root == null || !root.isObject()) {
                 throw parameterError("连接参数必须是 JSON 对象", null);
             }
 
             validateDeclaredType(root);
-            String explicitUrl = firstText(root, "jdbcUrl", "url");
-            String host = firstText(root, "host", "hostname");
+            String explicitUrl = JSONUtils.firstText(root, "jdbcUrl", "url");
+            String host = JSONUtils.firstText(root, "host", "hostname");
             int port = intValue(root, defaultPort(), "port");
-            String database = firstText(root, "database", "databaseName", "serviceName");
-            String schema = firstText(root, "schema", "schemaName");
-            String username = firstText(root, "username", "user");
-            String password = firstText(root, "password");
-            String driver = defaultIfBlank(firstText(root, "driverClassName", "driver"), defaultDriverClassName());
+            String database = JSONUtils.firstText(root, "database", "databaseName", "serviceName");
+            String schema = JSONUtils.firstText(root, "schema", "schemaName");
+            String username = JSONUtils.firstText(root, "username", "user");
+            String password = JSONUtils.firstText(root, "password");
+            String driver = defaultIfBlank(JSONUtils.firstText(root, "driverClassName", "driver"), defaultDriverClassName());
             SshTunnelConfig sshTunnel = parseSshTunnel(root);
 
-            if (isBlank(username)) {
+            if (StringUtils.isBlank(username)) {
                 throw parameterError("username 不能为空", null);
             }
-            if (sshTunnel.enabled() && !isBlank(explicitUrl)) {
+            if (sshTunnel.enabled() && !StringUtils.isBlank(explicitUrl)) {
                 throw parameterError("启用 SSH 隧道时请使用 host、port、database 参数，不支持自定义 JDBC 地址", null);
             }
 
             String jdbcUrl = explicitUrl;
-            if (isBlank(jdbcUrl)) {
-                if (isBlank(host)) {
+            if (StringUtils.isBlank(jdbcUrl)) {
+                if (StringUtils.isBlank(host)) {
                     throw parameterError("host 不能为空", null);
                 }
-                if (isBlank(database)) {
+                if (StringUtils.isBlank(database)) {
                     throw parameterError("database 不能为空", null);
                 }
                 jdbcUrl = buildJdbcUrl(host.trim(), port, database.trim(), root);
@@ -93,12 +94,12 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
                 }
             }
 
-            if (isBlank(database)) {
+            if (StringUtils.isBlank(database)) {
                 database = inferDatabase(jdbcUrl);
             }
 
             Map<String, String> properties = parseProperties(root.get("properties"));
-            ObjectNode normalized = JsonUtils.createObjectNode();
+            ObjectNode normalized = JSONUtils.createObjectNode();
             normalized.put("dbType", type());
             putIfText(normalized, "host", host);
             normalized.put("port", port);
@@ -117,17 +118,17 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
             return new JdbcConnectionProperties(
                     type(),
-                    trimToNull(host),
+                    StringUtils.trimToNull(host),
                     port,
                     jdbcUrl,
                     driver,
                     username.trim(),
                     password,
-                    trimToNull(database),
-                    trimToNull(schema),
+                    StringUtils.trimToNull(database),
+                    StringUtils.trimToNull(schema),
                     properties,
                     sshTunnel,
-                    JsonUtils.toJson(normalized));
+                    JSONUtils.toJson(normalized));
         } catch (DataSourcePluginException exception) {
             throw exception;
         } catch (Exception exception) {
@@ -185,7 +186,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
         SshTunnel tunnel = SshTunnel.open(sshTunnel, connection.host(), connection.port(), safeTimeout);
         try {
-            JsonNode normalized = JsonUtils.readTree(connection.normalizedJson());
+            JsonNode normalized = JSONUtils.readTree(connection.normalizedJson());
             String tunneledJdbcUrl = buildJdbcUrl("127.0.0.1", tunnel.localPort(), connection.database(), normalized);
             Connection opened = DriverManager.getConnection(tunneledJdbcUrl, connectionProperties(connection));
             return SshTunneledConnection.wrap(opened, tunnel);
@@ -204,7 +205,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     protected void appendNormalizedFields(JsonNode source, ObjectNode normalized) {}
 
     protected String inferDatabase(String jdbcUrl) {
-        if (isBlank(jdbcUrl)) {
+        if (StringUtils.isBlank(jdbcUrl)) {
             return null;
         }
         String value = jdbcUrl;
@@ -229,7 +230,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     protected Properties connectionProperties(JdbcConnectionProperties connection) {
         Properties properties = new Properties();
         properties.putAll(connection.properties());
-        if (!isBlank(connection.username())) {
+        if (!StringUtils.isBlank(connection.username())) {
             properties.setProperty("user", connection.username());
         }
         if (connection.password() != null) {
@@ -240,7 +241,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     protected String safeMessage(Throwable throwable) {
         String message = throwable == null ? null : throwable.getMessage();
-        if (isBlank(message)) {
+        if (StringUtils.isBlank(message)) {
             return throwable == null ? "未知错误" : throwable.getClass().getSimpleName();
         }
         String sanitized = SensitiveUtils.mask(message);
@@ -264,10 +265,10 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             return SshTunnelConfig.disabled();
         }
 
-        String host = trimToNull(firstText(node, "host", "sshHost"));
+        String host = StringUtils.trimToNull(JSONUtils.firstText(node, "host", "sshHost"));
         int port = intValue(node, 22, "port");
-        String username = trimToNull(firstText(node, "username", "user"));
-        String authValue = defaultIfBlank(firstText(node, "authType", "authenticationType"), "PASSWORD")
+        String username = StringUtils.trimToNull(JSONUtils.firstText(node, "username", "user"));
+        String authValue = defaultIfBlank(JSONUtils.firstText(node, "authType", "authenticationType"), "PASSWORD")
                 .toUpperCase(Locale.ROOT);
         SshTunnelConfig.AuthType authType;
         try {
@@ -276,25 +277,25 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             throw parameterError("SSH 认证方式仅支持 PASSWORD 或 PRIVATE_KEY", exception);
         }
 
-        String sshPassword = firstText(node, "password");
-        String privateKey = firstText(node, "privateKey", "privateKeyContent");
-        String passphrase = firstText(node, "passphrase", "privateKeyPassphrase");
+        String sshPassword = JSONUtils.firstText(node, "password");
+        String privateKey = JSONUtils.firstText(node, "privateKey", "privateKeyContent");
+        String passphrase = JSONUtils.firstText(node, "passphrase", "privateKeyPassphrase");
         boolean strictHostKeyChecking = booleanValue(node, false, "strictHostKeyChecking");
-        String knownHosts = firstText(node, "knownHosts", "knownHostsContent");
+        String knownHosts = JSONUtils.firstText(node, "knownHosts", "knownHostsContent");
 
-        if (isBlank(host)) {
+        if (StringUtils.isBlank(host)) {
             throw parameterError("SSH host 不能为空", null);
         }
-        if (isBlank(username)) {
+        if (StringUtils.isBlank(username)) {
             throw parameterError("SSH username 不能为空", null);
         }
-        if (authType == SshTunnelConfig.AuthType.PASSWORD && isBlank(sshPassword)) {
+        if (authType == SshTunnelConfig.AuthType.PASSWORD && StringUtils.isBlank(sshPassword)) {
             throw parameterError("SSH password 不能为空", null);
         }
-        if (authType == SshTunnelConfig.AuthType.PRIVATE_KEY && isBlank(privateKey)) {
+        if (authType == SshTunnelConfig.AuthType.PRIVATE_KEY && StringUtils.isBlank(privateKey)) {
             throw parameterError("SSH privateKey 不能为空", null);
         }
-        if (strictHostKeyChecking && isBlank(knownHosts)) {
+        if (strictHostKeyChecking && StringUtils.isBlank(knownHosts)) {
             throw parameterError("开启 SSH 严格主机校验后 knownHosts 不能为空", null);
         }
 
@@ -334,8 +335,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     }
 
     private void validateDeclaredType(JsonNode root) {
-        String declaredType = firstText(root, "dbType", "type", "pluginType");
-        if (isBlank(declaredType)) {
+        String declaredType = JSONUtils.firstText(root, "dbType", "type", "pluginType");
+        if (StringUtils.isBlank(declaredType)) {
             return;
         }
         if (!descriptor().matchesType(declaredType)) {
@@ -344,13 +345,13 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     }
 
     private Map<String, String> parseProperties(JsonNode node) {
-        if (node == null || node.isNull() || (node.isTextual() && isBlank(node.asText()))) {
+        if (node == null || node.isNull() || (node.isTextual() && StringUtils.isBlank(node.asText()))) {
             return Collections.emptyMap();
         }
         JsonNode objectNode = node;
         try {
             if (node.isTextual()) {
-                objectNode = JsonUtils.readTree(node.asText());
+                objectNode = JSONUtils.readTree(node.asText());
             }
             if (objectNode == null || !objectNode.isObject()) {
                 throw parameterError("properties 必须是 JSON 对象", null);
@@ -373,7 +374,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     private int intValue(JsonNode root, int defaultValue, String key) {
         JsonNode value = root.get(key);
-        if (value == null || value.isNull() || isBlank(value.asText())) {
+        if (value == null || value.isNull() || StringUtils.isBlank(value.asText())) {
             return defaultValue;
         }
         int port = value.asInt(-1);
@@ -385,7 +386,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     private boolean booleanValue(JsonNode root, boolean defaultValue, String key) {
         JsonNode value = root.get(key);
-        if (value == null || value.isNull() || isBlank(value.asText())) {
+        if (value == null || value.isNull() || StringUtils.isBlank(value.asText())) {
             return defaultValue;
         }
         if (value.isBoolean()) {
@@ -394,33 +395,15 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         return Boolean.parseBoolean(value.asText());
     }
 
-    private String firstText(JsonNode node, String... keys) {
-        for (String key : keys) {
-            JsonNode value = node.get(key);
-            if (value != null && !value.isNull()) {
-                return value.asText();
-            }
-        }
-        return null;
-    }
 
     private void putIfText(ObjectNode target, String key, String value) {
-        if (!isBlank(value)) {
+        if (!StringUtils.isBlank(value)) {
             target.put(key, value.trim());
         }
     }
 
-    private String defaultIfBlank(String value, String defaultValue) {
-        return isBlank(value) ? defaultValue : value.trim();
-    }
 
-    private String trimToNull(String value) {
-        return isBlank(value) ? null : value.trim();
-    }
 
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
-    }
 
     private DataSourcePluginException parameterError(String message, Throwable cause) {
         return cause == null

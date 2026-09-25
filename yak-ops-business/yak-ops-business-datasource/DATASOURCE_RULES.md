@@ -67,7 +67,7 @@ Do not recreate `catalog / domain / gateway / execution / query` business packag
 
 ## JSON / Secret Boundary
 
-- JSON parser / writer 统一复用 Common `JsonUtils`，本模块不得注入或创建独立 `ObjectMapper`。
+- JSON parser / writer 统一复用 Common `JSONUtils`，本模块不得注入或创建独立 `ObjectMapper`。
 - 通用敏感文本遮罩统一复用 Common `SensitiveUtils`。
 - Datasource 特有的 secret key 识别、JSON 递归遮罩和编辑态 secret merge 继续由 `DataSourceSecretCodec` 持有，不下沉 Common。
 - Plugin Registry 只负责插件发现和路由，不重复实现 JSON 基础设施。

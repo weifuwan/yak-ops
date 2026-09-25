@@ -1,5 +1,8 @@
 package io.yak.ops.plugin.database.jdbc;
 
+import io.yak.ops.common.util.CollectionUtils;
+import io.yak.ops.common.util.SensitiveUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogQuery;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
@@ -54,7 +57,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
                     if (includeDatabase(database)) databases.add(database);
                 }
             }
-            if (databases.isEmpty() && includeDatabase(connection.database())) databases.add(connection.database());
+            if (CollectionUtils.isEmpty(databases) && includeDatabase(connection.database())) databases.add(connection.database());
             return new ArrayList<>(databases);
         } catch (Exception exception) {
             throw catalogError("读取数据库列表失败", exception);
@@ -73,7 +76,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
                     if (includeSchema(schema)) schemas.add(schema);
                 }
             }
-            if (schemas.isEmpty() && includeSchema(connection.schema())) schemas.add(connection.schema());
+            if (CollectionUtils.isEmpty(schemas) && includeSchema(connection.schema())) schemas.add(connection.schema());
             return new ArrayList<>(schemas);
         } catch (Exception exception) {
             throw catalogError("读取 Schema 列表失败", exception);
@@ -85,7 +88,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
         DataSourceCatalogQuery value = query == null ? new DataSourceCatalogQuery(null, null, null) : query;
         String database = metadataCatalog(value.database());
         String schema = metadataSchema(value.schema(), value.limit() != null);
-        String keyword = trimToNull(value.keyword());
+        String keyword = StringUtils.trimToNull(value.keyword());
         int limit = value.limit() == null
                 ? Integer.MAX_VALUE
                 : Math.min(MAX_TABLE_SEARCH_LIMIT, Math.max(1, value.limit()));
@@ -152,11 +155,11 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     }
 
     protected boolean includeDatabase(String database) {
-        return !isBlank(database);
+        return !StringUtils.isBlank(database);
     }
 
     protected boolean includeSchema(String schema) {
-        return !isBlank(schema);
+        return !StringUtils.isBlank(schema);
     }
 
     protected String[] tableTypes() {
@@ -169,7 +172,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     }
 
     protected String quoteIdentifier(String identifier) {
-        if (isBlank(identifier)) throw new IllegalArgumentException("数据库标识符不能为空");
+        if (StringUtils.isBlank(identifier)) throw new IllegalArgumentException("数据库标识符不能为空");
         String quote = usesCatalogAsNamespace() ? "`" : "\"";
         return quote + identifier.trim().replace(quote, quote + quote) + quote;
     }
@@ -177,26 +180,30 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     protected DataSourcePluginException catalogError(String action, Throwable throwable) {
         String message = safeMessage(throwable);
         return new DataSourcePluginException(
-                DataSourcePluginOperation.CATALOG, action + (message == null ? "" : "：" + message), throwable);
+                DataSourcePluginOperation.CATALOG,
+                action + (StringUtils.StringUtils.isBlank(message) ? "" : "：" + message),
+                throwable);
     }
 
     protected String safeMessage(Throwable throwable) {
         String message = throwable == null ? null : throwable.getMessage();
-        if (isBlank(message))
+        if (StringUtils.isBlank(message))
             return throwable == null ? null : throwable.getClass().getSimpleName();
-        String sanitized = message.replaceAll("(?i)(password|pwd)=([^;&\\s]+)", "$1=******");
+        String sanitized = SensitiveUtils.mask(message);
         return sanitized.length() > 300 ? sanitized.substring(0, 300) : sanitized;
     }
 
     private String metadataCatalog(String requestedDatabase) {
         if (usesOracleStyle()) return null;
-        return firstNonBlank(requestedDatabase, connection.database());
+        String database = StringUtils.StringUtils.trimToNull(requestedDatabase);
+        return database == null ? StringUtils.StringUtils.trimToNull(connection.database()) : database;
     }
 
     private String metadataSchema(String requestedSchema, boolean narrowOracleDefault) {
-        String schema = firstNonBlank(requestedSchema, connection.schema());
+        String schema = StringUtils.StringUtils.trimToNull(requestedSchema);
+        if (schema == null) schema = StringUtils.StringUtils.trimToNull(connection.schema());
         if (!usesOracleStyle()) return schema;
-        if (isBlank(schema) && narrowOracleDefault) schema = trimToNull(connection.username());
+        if (StringUtils.isBlank(schema) && narrowOracleDefault) schema = StringUtils.trimToNull(connection.username());
         return schema == null ? null : schema.toUpperCase(Locale.ROOT);
     }
 
@@ -206,7 +213,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
         if (metadata.storesUpperCaseIdentifiers()) normalized = normalized.toUpperCase(Locale.ROOT);
         else if (metadata.storesLowerCaseIdentifiers()) normalized = normalized.toLowerCase(Locale.ROOT);
 
-        String escape = trimToNull(metadata.getSearchStringEscape());
+        String escape = StringUtils.trimToNull(metadata.getSearchStringEscape());
         if (escape != null) {
             normalized = normalized.replace(escape, escape + escape);
             normalized = normalized.replace("%", escape + "%");
@@ -241,7 +248,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     private Properties connectionPropertiesInternal() {
         Properties properties = new Properties();
         properties.putAll(connection.properties());
-        if (!isBlank(connection.username())) properties.setProperty("user", connection.username());
+        if (!StringUtils.isBlank(connection.username())) properties.setProperty("user", connection.username());
         if (connection.password() != null) properties.setProperty("password", connection.password());
         return properties;
     }
@@ -261,15 +268,6 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
         return isType("ORACLE");
     }
 
-    private String firstNonBlank(String value, String fallback) {
-        return isBlank(value) ? trimToNull(fallback) : value.trim();
-    }
 
-    private String trimToNull(String value) {
-        return isBlank(value) ? null : value.trim();
-    }
 
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
-    }
 }

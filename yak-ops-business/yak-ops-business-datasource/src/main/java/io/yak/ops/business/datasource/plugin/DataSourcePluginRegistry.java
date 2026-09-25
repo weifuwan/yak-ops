@@ -3,7 +3,9 @@ package io.yak.ops.business.datasource.plugin;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
-import io.yak.ops.common.util.JsonUtils;
+import io.yak.ops.common.util.JSONUtils;
+import io.yak.ops.common.util.ObjectUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
 import io.yak.ops.plugin.datasource.api.exception.DataSourcePluginException;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
@@ -115,12 +117,12 @@ public class DataSourcePluginRegistry {
      */
     public String resolveConnectionType(String connectionJson) {
         try {
-            JsonNode root = JsonUtils.readTree(connectionJson);
+            JsonNode root = JSONUtils.readTree(connectionJson);
             if (root == null || !root.isObject()) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "连接参数必须是 JSON 对象");
             }
-            String value = JsonUtils.firstText(root, "dbType", "type", "pluginType");
-            if (value == null || value.trim().isEmpty()) {
+            String value = JSONUtils.firstText(root, "dbType", "type", "pluginType");
+            if (StringUtils.isBlank(value)) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接参数中缺少 dbType 或 pluginType");
             }
             return get(value).descriptor().type();
@@ -159,11 +161,11 @@ public class DataSourcePluginRegistry {
     }
 
     private void validateDescriptor(DataSourcePlugin plugin) {
-        if (plugin == null || plugin.type() == null || plugin.type().isBlank()) {
+        if (ObjectUtils.isNull(plugin) || StringUtils.isBlank(plugin.type())) {
             throw new IllegalStateException("Datasource plugin and type must not be null or blank");
         }
         DataSourcePluginDescriptor descriptor = plugin.descriptor();
-        if (descriptor == null) {
+        if (ObjectUtils.isNull(descriptor)) {
             throw new IllegalStateException("Datasource plugin descriptor must not be null: "
                     + plugin.getClass().getName());
         }

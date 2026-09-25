@@ -4,10 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 
 /**
- * 统一提供无领域语义的 JSON 解析与序列化能力。
+ * 统一提供无领域语义的 JSON 解析、JSON Tree 创建与序列化能力。
  *
  * @author weifuwan
  * @since 2026-09-25
@@ -33,6 +34,19 @@ public final class JSONUtils {
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException("Invalid JSON", exception);
         }
+    }
+
+    public static ObjectNode createObjectNode() {
+        return OBJECT_MAPPER.createObjectNode();
+    }
+
+    public static String firstText(JsonNode node, String... keys) {
+        if (ObjectUtils.isNull(node) || ObjectUtils.isNull(keys)) return null;
+        for (String key : keys) {
+            JsonNode value = node.get(key);
+            if (ObjectUtils.isNotNull(value) && !value.isNull()) return value.asText();
+        }
+        return null;
     }
 
     public static <T> T parseObject(String json, Class<T> target) {

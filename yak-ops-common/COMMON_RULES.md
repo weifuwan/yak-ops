@@ -52,7 +52,7 @@ DTO / VO 变更必须同时加载 [DTO_VO_RULES.md](./DTO_VO_RULES.md)。该文�
 - 字符串空白和 trim-to-null 统一由 `StringUtils` 提供。
 - 对象 null 语义统一由 `ObjectUtils` 提供；集合 empty 语义统一由 `CollectionUtils` 提供。
 - 简单同名属性复制统一由 `BeanCopyUtils` 提供，不在 Security / Datasource 重复创建 Bean copy utility。
-- JSON 解析、JSON tree 创建和 JSON 序列化统一通过 `JSONUtils`；领域代码不得自行维护通用 parser / writer。
+- JSON 解析、JSON tree 创建和 JSON 序列化统一通过 `JSONUtils`；`JSONUtils` 是全仓唯一 JSON Utility 入口，禁止重新创建 `JsonUtils` 等大小写兼容包装；领域代码不得自行维护通用 parser / writer。
 - Common Utils 必须保持无领域编排、无 HTTP 语义、无 DAO 依赖；领域异常转换留在领域 owner。
 - 业务代码可以操作 `JsonNode` 表达领域逻辑，但 JSON parser / writer ownership 必须收口到 Common。
 
