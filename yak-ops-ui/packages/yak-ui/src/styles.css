@@ -33,6 +33,12 @@
   --yak-components-input-focus-ring: rgba(37, 40, 50, 0.09);
   --yak-components-input-danger-ring: rgba(217, 45, 32, 0.1);
 
+  --yak-components-checkbox-bg: #ffffff;
+  --yak-components-checkbox-border: #c9cdd4;
+  --yak-components-checkbox-border-hover: #8f949e;
+  --yak-components-checkbox-bg-checked: #292c35;
+  --yak-components-checkbox-focus-ring: rgba(37, 40, 50, 0.12);
+
   --yak-components-select-bg: #ffffff;
   --yak-components-select-border: #e7e9ed;
   --yak-components-select-shadow: 0 10px 30px rgba(31, 35, 41, 0.14);
@@ -78,6 +84,8 @@
   --yak-components-table-header-text: #252832;
   --yak-components-table-row-bg: #ffffff;
   --yak-components-table-row-bg-hover: #fafafa;
+  --yak-components-table-row-bg-selected: #eef3ff;
+  --yak-components-table-row-bg-selected-hover: #e6edff;
   --yak-components-table-text: #343841;
   --yak-components-table-border: #eceef2;
   --yak-components-table-border-strong: #e4e7ec;

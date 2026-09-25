@@ -1,11 +1,13 @@
-import type { CSSProperties, Key, ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "../cn";
 import { Empty } from "../empty";
 import { Pagination } from "../pagination";
 import { Spinner } from "../spinner";
 import { usePagination } from "./hooks/usePagination";
+import { useSelection } from "./hooks/useSelection";
 import type { TableAlign, TableColumn, TableProps, TableSize } from "./interface";
+import { getTableColumnKey, resolveTableRowKey } from "./utils";
 
 const sizeClasses: Record<TableSize, { header: string; cell: string }> = {
   small: {
@@ -28,35 +30,6 @@ const alignClasses: Record<TableAlign, string> = {
   right: "text-right",
 };
 
-const normalizeKey = (value: unknown, fallback: number): Key => {
-  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
-    return value;
-  }
-
-  if (value != null) return String(value);
-  return fallback;
-};
-
-const resolveRowKey = <RecordType extends object>(
-  record: RecordType,
-  index: number,
-  rowKey: TableProps<RecordType>["rowKey"],
-): Key => {
-  if (typeof rowKey === "function") return rowKey(record);
-
-  if (rowKey != null) {
-    return normalizeKey(record[rowKey], index);
-  }
-
-  const defaultKey = (record as unknown as Record<PropertyKey, unknown>).key;
-  return normalizeKey(defaultKey, index);
-};
-
-const getColumnKey = <RecordType extends object>(
-  column: TableColumn<RecordType>,
-  index: number,
-): Key => column.key ?? String(column.dataIndex ?? index);
-
 const getColumnStyle = <RecordType extends object>(
   column: TableColumn<RecordType>,
 ): CSSProperties => ({
@@ -78,12 +51,14 @@ export function InternalTable<RecordType extends object>({
   pagination,
   rowHoverable = true,
   rowKey,
+  rowSelection,
   scroll,
   size = "medium",
   sticky = false,
 }: TableProps<RecordType>) {
   const { data, pagination: resolvedPagination } = usePagination(pagination, dataSource);
-  const tableLayoutFixed = columns.some((column) => column.ellipsis);
+  const { columns: mergedColumns, isSelected } = useSelection(rowSelection, data, columns, rowKey);
+  const tableLayoutFixed = mergedColumns.some((column) => column.ellipsis);
   const scrollStyle: CSSProperties | undefined =
     scroll?.y == null ? undefined : { maxHeight: scroll.y };
   const tableStyle: CSSProperties =
@@ -113,19 +88,19 @@ export function InternalTable<RecordType extends object>({
           style={tableStyle}
         >
           <colgroup>
-            {columns.map((column, index) => (
-              <col key={getColumnKey(column, index)} style={getColumnStyle(column)} />
+            {mergedColumns.map((column, index) => (
+              <col key={getTableColumnKey(column, index)} style={getColumnStyle(column)} />
             ))}
           </colgroup>
 
           <thead>
             <tr className="border-b border-[var(--yak-components-table-border)]">
-              {columns.map((column, index) => {
+              {mergedColumns.map((column, index) => {
                 const align = column.align ?? "left";
 
                 return (
                   <th
-                    key={getColumnKey(column, index)}
+                    key={getTableColumnKey(column, index)}
                     scope="col"
                     style={getColumnStyle(column)}
                     className={cn(
@@ -154,15 +129,17 @@ export function InternalTable<RecordType extends object>({
               return (
                 <tr
                   {...restRowProps}
-                  key={resolveRowKey(record, rowIndex, rowKey)}
+                  key={resolveTableRowKey(record, rowIndex, rowKey)}
                   className={cn(
                     "border-b border-[var(--yak-components-table-border)] bg-[var(--yak-components-table-row-bg)] last:border-b-0",
                     rowHoverable &&
                       "transition-colors hover:bg-[var(--yak-components-table-row-bg-hover)]",
+                    isSelected(record, rowIndex) &&
+                      "bg-[var(--yak-components-table-row-bg-selected)] hover:bg-[var(--yak-components-table-row-bg-selected-hover)]",
                     rowClassName,
                   )}
                 >
-                  {columns.map((column, columnIndex) => {
+                  {mergedColumns.map((column, columnIndex) => {
                     const value = column.dataIndex == null ? undefined : record[column.dataIndex];
                     const content = column.render
                       ? column.render(value, record, rowIndex)
@@ -171,7 +148,7 @@ export function InternalTable<RecordType extends object>({
 
                     return (
                       <td
-                        key={getColumnKey(column, columnIndex)}
+                        key={getTableColumnKey(column, columnIndex)}
                         style={getColumnStyle(column)}
                         className={cn(
                           "align-middle",
@@ -196,7 +173,7 @@ export function InternalTable<RecordType extends object>({
 
             {data.length === 0 ? (
               <tr>
-                <td colSpan={Math.max(columns.length, 1)}>
+                <td colSpan={Math.max(mergedColumns.length, 1)}>
                   <Empty className="min-h-48" description={emptyText ?? "No data"} />
                 </td>
               </tr>

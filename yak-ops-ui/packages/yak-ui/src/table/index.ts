@@ -5,6 +5,8 @@ export type {
   TableColumns,
   TablePaginationConfig,
   TableProps,
+  TableRowSelection,
+  TableRowSelectionCheckboxProps,
   TableScroll,
   TableSize,
 } from "./interface";
