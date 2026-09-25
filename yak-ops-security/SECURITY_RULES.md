@@ -14,6 +14,8 @@ Owns:
 - login / logout / current user
 - authentication session runtime
 - stable Security constants shared by Security and Boot
+- Security domain error codes and exceptions
+- Security internal domain models
 
 ## Current Product Boundary
 
@@ -24,7 +26,7 @@ Yak Ops 当前只发布两组 Security API：
 
 Role、Permission、Department、Project、Message、Oplog、Resource、Notification 等旧体系不再属于当前 Security runtime。
 
-Security runtime 统一使用 `io.yak.ops.security` namespace。共享 DTO / VO / Enum 由 `yak-ops-common` 持有，持久化 Entity / Mapper / Repository 由 `yak-ops-dao` 持有。Security 不再保留 legacy `common` package 或 Spring Boot `autoconfigure` package。
+Security runtime 统一使用 `io.yak.ops.security` namespace。HTTP DTO / VO 等跨模块接口对象由 `yak-ops-common` 持有；Security 专属错误码、异常和内部领域模型由 `yak-ops-security` 持有；持久化 Entity / Mapper / Repository 由 `yak-ops-dao` 持有。Security 不再保留 legacy `common` package 或 Spring Boot `autoconfigure` package。
 
 ## Constant Boundary
 
@@ -76,12 +78,19 @@ Security 只提供用户/登录行为和安全数据隔离所需的语义；最�
 
 Security runtime 只保留用户和登录业务行为、认证状态及内部领域模型。`LoginService` 是当前登录行为 contract，不再叠加 `LoginExtend` 或纯转发 facade。
 
-共享接口对象统一由 `yak-ops-common` 持有：
+跨模块 HTTP Contract 继续由 `yak-ops-common` 持有：
 
 - DTO: `AccountLoginDTO`、`UserDTO`、`UserQueryDTO`、`UserPasswordResetDTO`；`UserQueryDTO` 统一继承 Common `PageQueryDTO`
 - VO: `UserVO`、`UserBriefVO`、`CurrentUserVO`
-- Enum: `ResultCode`、`UserCheckType`
-- Exception: `YakSecurityException`（位于 `io.yak.ops.common.exception`）
+- Persistence-shared Enum: `UserStatus` 暂留 Common，因为 DAO Entity 直接持有其 MyBatis `@EnumValue` 映射；后续若拆分 Persistence Enum 与 Domain Enum，再单独迁移
+
+Security 领域契约由本模块持有：
+
+- ErrorCode: `io.yak.ops.security.enums.SecurityErrorCode`
+- Exception: `io.yak.ops.security.exception.YakSecurityException`
+- Model: `UserAccount`、`UserCheckType`
+
+Common 不得重新创建 `ResultCode`、`YakSecurityException`、`UserCheckType` 等 Security 专属类型。
 
 用户持久化统一由 `yak-ops-dao` 持有：
 
@@ -110,8 +119,9 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - keep authentication implementation behind AuthenticationManager.
 - keep login orchestration in `LoginService`; do not add parallel extension/facade layers without a real second implementation.
 - route every Security schema change through `/yak-ops-dao/FLYWAY_RULES.md`.
-- reuse io.yak.ops.common contracts from yak-ops-common.
-- throw the shared `io.yak.ops.common.exception.YakSecurityException` for Security business failures.
+- reuse shared HTTP / utility contracts from yak-ops-common.
+- throw `io.yak.ops.security.exception.YakSecurityException` for Security business failures.
+- use `SecurityErrorCode` for Security-specific failures and `CommonErrorCode` for true cross-domain failures such as generic invalid parameters.
 - access user persistence only through `UserRepository` from yak-ops-dao.
 
 ## Must Not
