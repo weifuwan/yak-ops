@@ -57,12 +57,7 @@ export function InternalTable<RecordType extends object>({
   sticky = false,
 }: TableProps<RecordType>) {
   const { data, pagination: resolvedPagination } = usePagination(pagination, dataSource);
-  const { columns: mergedColumns, isSelected } = useSelection(
-    rowSelection,
-    data,
-    columns,
-    rowKey,
-  );
+  const { columns: mergedColumns, isSelected } = useSelection(rowSelection, data, columns, rowKey);
   const tableLayoutFixed = mergedColumns.some((column) => column.ellipsis);
   const scrollStyle: CSSProperties | undefined =
     scroll?.y == null ? undefined : { maxHeight: scroll.y };
