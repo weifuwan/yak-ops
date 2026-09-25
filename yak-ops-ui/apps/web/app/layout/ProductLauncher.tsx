@@ -53,13 +53,13 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
           </nav>
         </aside>
 
-        <section className="min-w-0 flex-1 bg-[#1d2126] px-8 py-6 text-white">
+        <section className="min-w-0 flex-1 overflow-y-auto bg-[#1d2126] px-8 py-6 text-white">
           <div className="flex items-center justify-between">
             <h2 className="m-0 text-base font-semibold">{activeGroup.label}</h2>
             <button
               type="button"
               aria-label="关闭产品菜单"
-              className="flex h-8 w-8 items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/8 hover:text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
               onClick={onClose}
             >
               <X className="h-4 w-4" />
@@ -93,6 +93,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
       <button
         type="button"
         aria-label="关闭产品菜单"
+        tabIndex={-1}
         className="min-w-0 flex-1 cursor-default bg-black/25"
         onClick={onClose}
       />
