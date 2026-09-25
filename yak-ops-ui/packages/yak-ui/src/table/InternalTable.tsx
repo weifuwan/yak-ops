@@ -29,11 +29,7 @@ const alignClasses: Record<TableAlign, string> = {
 };
 
 const normalizeKey = (value: unknown, fallback: number): Key => {
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "bigint"
-  ) {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
     return value;
   }
 
@@ -167,8 +163,7 @@ export function InternalTable<RecordType extends object>({
                   )}
                 >
                   {columns.map((column, columnIndex) => {
-                    const value =
-                      column.dataIndex == null ? undefined : record[column.dataIndex];
+                    const value = column.dataIndex == null ? undefined : record[column.dataIndex];
                     const content = column.render
                       ? column.render(value, record, rowIndex)
                       : (value as ReactNode);
