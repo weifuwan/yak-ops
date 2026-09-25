@@ -12,16 +12,6 @@ public final class OracleDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     }
 
     @Override
-    protected String displayName() {
-        return "Oracle";
-    }
-
-    @Override
-    protected String jdbcUrlTemplate() {
-        return "jdbc:oracle:thin:@//{host}:{port}/{database}";
-    }
-
-    @Override
     protected int defaultPort() {
         return 1521;
     }
@@ -29,11 +19,6 @@ public final class OracleDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     @Override
     protected String defaultDriverClassName() {
         return "oracle.jdbc.OracleDriver";
-    }
-
-    @Override
-    protected String databaseLabel() {
-        return "服务名 / 数据库";
     }
 
     @Override
