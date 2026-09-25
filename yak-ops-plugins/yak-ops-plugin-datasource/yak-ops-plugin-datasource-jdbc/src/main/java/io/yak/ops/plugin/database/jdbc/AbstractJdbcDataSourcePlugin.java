@@ -33,11 +33,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     @Override
     public DataSourcePluginDescriptor descriptor() {
         return new DataSourcePluginDescriptor(
-                type(),
-                aliases(),
-                DataSourcePluginDescriptor.CURRENT_API_VERSION,
-                capabilities(),
-                secretFieldKeys());
+                type(), aliases(), DataSourcePluginDescriptor.CURRENT_API_VERSION, capabilities(), secretFieldKeys());
     }
 
     protected Set<String> aliases() {
@@ -203,7 +199,6 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     protected abstract String defaultDriverClassName();
 
     protected abstract String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson);
-
 
     protected void appendNormalizedFields(JsonNode source, ObjectNode normalized) {}
 

@@ -182,7 +182,8 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
 
     protected String safeMessage(Throwable throwable) {
         String message = throwable == null ? null : throwable.getMessage();
-        if (isBlank(message)) return throwable == null ? null : throwable.getClass().getSimpleName();
+        if (isBlank(message))
+            return throwable == null ? null : throwable.getClass().getSimpleName();
         String sanitized = message.replaceAll("(?i)(password|pwd)=([^;&\\s]+)", "$1=******");
         return sanitized.length() > 300 ? sanitized.substring(0, 300) : sanitized;
     }

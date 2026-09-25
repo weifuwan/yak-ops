@@ -35,8 +35,8 @@ public class YakSecurityProperties {
     private boolean authenticationEnabled = true;
 
     /** 无需登录即可访问的请求路径模式。 */
-    private List<String> publicPaths = new ArrayList<>(Arrays.asList(
-            SecurityConstants.LOGIN_API_PATH, "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"));
+    private List<String> publicPaths = new ArrayList<>(
+            Arrays.asList(SecurityConstants.LOGIN_API_PATH, "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"));
 
     /** 用于隔离 Security 数据的应用标识。 */
     private String applicationName;
