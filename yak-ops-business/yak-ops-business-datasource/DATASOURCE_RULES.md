@@ -51,13 +51,26 @@ DataSourcePluginBusiness
 
 ```text
 datasource   datasource lifecycle, reads and connection testing
-plugin       internal plugin discovery, parsing and secret handling
-config       capability-local properties / conditions
+plugin       internal plugin discovery, parsing and datasource secret handling
+config       capability-local runtime properties
 exception    datasource business errors
-security     secret-safe text helpers
 ```
 
 Do not recreate `catalog / domain / gateway / execution / query` business packages unless a new capability contract proves a real product boundary.
+
+## Configuration Boundary
+
+- Datasource 是当前产品基线能力，不维护 `yak.datasource.enabled` 开关，也不把 `@ConditionalOnProperty` 扩散到 Service / Plugin / Controller。
+- `DataSourceProperties` 只承载真实可调运行参数；单个标量配置不得为了层级形式再创建 nested properties type。
+- 当前连接测试超时统一由 `yak.datasource.connection-test-timeout-seconds` 提供。
+- 应用自身数据库仍由 `spring.datasource` / `YAK_DATABASE_*` 持有；禁止重新引入容易混淆的 `YAK_DATASOURCE_URL / USERNAME / PASSWORD` 兼容别名。
+
+## JSON / Secret Boundary
+
+- JSON parser / writer 统一复用 Common `JsonUtils`，本模块不得注入或创建独立 `ObjectMapper`。
+- 通用敏感文本遮罩统一复用 Common `SensitiveUtils`。
+- Datasource 特有的 secret key 识别、JSON 递归遮罩和编辑态 secret merge 继续由 `DataSourceSecretCodec` 持有，不下沉 Common。
+- Plugin Registry 只负责插件发现和路由，不重复实现 JSON 基础设施。
 
 ## Constant Boundary
 
