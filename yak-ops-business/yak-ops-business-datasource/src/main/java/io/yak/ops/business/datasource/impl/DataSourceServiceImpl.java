@@ -21,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
- * 实现数据源配置生命周期、列表查询和连接测试，数据库差异统一委托给内部 JDBC Plugin Registry。
+ * 实现数据源配置生命周期、查询、连接测试和 Entity → VO 转换。
+ *
+ * <p>负责业务校验与持久化编排；数据库类型差异、连接参数解析和敏感信息处理统一委托给内部 DataSourcePluginRegistry。</p>
  *
  * @author weifuwan
  * @since 2026-09-25
