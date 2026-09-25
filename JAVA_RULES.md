@@ -73,6 +73,44 @@ class declaration
 
 Do not reorder code only for ceremony when keeping related behavior together is clearer.
 
+## Constants
+
+常量按 ownership 归属，不因为“可能复用”就提前提升为全局常量。
+
+Must:
+- 只被当前类使用的固定值保留为 `private static final`。
+- 跨领域、跨模块共享且属于稳定代码契约的值统一放入 `io.yak.ops.common.constant.CommonConstants`。
+- 只属于某个领域的共享固定值放入该领域的 `XxxConstants`；领域常量可以基于 `CommonConstants` 组合，例如 `DataSourceConstants.API_PREFIX = CommonConstants.API_PREFIX + "/data-source"`。
+- 类型、状态、模式、阶段等有限值集合使用 `enum`，不要用一组 String / Integer constants 模拟枚举。
+- 会随环境、部署或运行参数变化的值使用 `application.yml`、`@ConfigurationProperties` 或其他明确配置机制，不得硬编码为公共常量。
+- 公共分页默认值、分页上限、全局 API Prefix 等全局约定只保留一个定义。
+
+Must Not:
+- 新增 constant interface 或通过 implements 暴露常量。
+- 把 Datasource、Security 等领域语义塞进 `CommonConstants`。
+- 新增与 `CommonConstants` 职责重叠的 `SystemConstants`、`ApiConstants`、`PageConstants` 等全局垃圾桶。
+- 为只在一个类使用的值创建新的 Constants 类。
+- 把可配置项、数据库状态值或业务类型仅为了“统一”提升为公共常量。
+
+判断顺序：
+
+```text
+当前类独占
+→ private static final
+
+领域内共享
+→ XxxConstants
+
+跨领域稳定契约
+→ CommonConstants
+
+有限状态 / 类型
+→ enum
+
+运行时可变
+→ configuration
+```
+
 ## Type File Boundary
 
 新增生产 Java 类型默认遵循“一种语义，一个顶层文件”。
