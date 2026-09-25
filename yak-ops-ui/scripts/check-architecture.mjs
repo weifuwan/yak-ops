@@ -131,7 +131,7 @@ const httpImportPattern = /(?:from\s+|import\s*\()\s*["']@\/service\/http(?:\/|[
 const baseUiImportPattern = /(?:from\s+|import\s*\()\s*["']@base-ui\/react/;
 const framerMotionImportPattern = /(?:from\s+|import\s*\()\s*["']framer-motion["']/;
 
-const shellViewportSubtractionPattern = /calc\\(100d?vh-/;
+const shellViewportSubtractionPattern = /calc\(100d?vh-/;
 
 for (const path of files) {
   const relativePath = toRelativePath(path);
