@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataSourcePluginConfigVO {
 
-    /** 插件类型，对应 DataSourceDbType。 */
+    /** 插件稳定类型标识，由 Provider 自己声明。 */
     private String pluginType;
 
     /**

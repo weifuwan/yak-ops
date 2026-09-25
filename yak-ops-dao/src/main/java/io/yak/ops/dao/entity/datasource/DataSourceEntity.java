@@ -2,7 +2,6 @@ package io.yak.ops.dao.entity.datasource;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 import io.yak.ops.dao.entity.BaseEntity;
 import lombok.Getter;
@@ -25,7 +24,7 @@ public class DataSourceEntity extends BaseEntity {
     private String name;
 
     /** 数据库类型，用于选择对应的数据源插件能力。 */
-    private DataSourceDbType dbType;
+    private String dbType;
 
     /** JDBC 连接地址。 */
     private String jdbcUrl;

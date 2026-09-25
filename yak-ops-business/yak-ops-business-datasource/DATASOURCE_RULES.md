@@ -74,6 +74,8 @@ Must:
 - DAO Entity / Repository 只出现在 BusinessImpl 内部。
 - Business 对 Boot 返回公共 VO，不返回 `DataSourceEntity`、`DataSourceSummaryRow` 或 Repository Query。
 - plugin behavior enters through stable Plugin SPI inside Business implementation.
+- datasource `db_type` is the canonical Provider-owned plugin type string.
+- incoming plugin type / alias resolution goes through `DataSourcePluginBusiness`; Business does not own a database-type enum.
 - Catalog is metadata-only: database, schema, table and column discovery.
 - secret handling must never leak raw credentials into logs, errors or response objects.
 
@@ -84,6 +86,7 @@ Must Not:
 - add SQL execution, SQL preview, SQL template, SQL variable resolution or SQL audit behavior.
 - use Manager / Reader / Registry / Tester as Boot-facing business APIs.
 - access concrete plugin implementations from business code.
+- maintain a Common/Business enum or switch listing all supported datasource providers.
 - create application-level DataSource / transaction manager / SqlSessionFactory / MyBatis-Plus plugin configuration in this module.
 
 ## Persistence

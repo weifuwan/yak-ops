@@ -1,15 +1,19 @@
 package io.yak.ops.plugin.database.jdbc.oracle;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 
 /** Oracle JDBC datasource plugin. */
 public final class OracleDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.ORACLE;
+    public String type() {
+        return "ORACLE";
+    }
+
+    @Override
+    protected String displayName() {
+        return "Oracle";
     }
 
     @Override

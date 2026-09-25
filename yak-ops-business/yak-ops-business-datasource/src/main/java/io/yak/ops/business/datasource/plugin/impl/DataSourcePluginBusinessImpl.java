@@ -13,7 +13,6 @@ import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.JdbcUrlLink
 import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.OptionVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.RuleVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO.VisibilityConditionVO;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
@@ -24,7 +23,7 @@ import io.yak.ops.spi.datasource.DataSourcePluginException;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import java.util.Collections;
-import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +46,7 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
     @Resource
     private DataSourceSecretCodec secretCodec;
 
-    private Map<DataSourceDbType, DataSourcePlugin> plugins = Collections.emptyMap();
+    private Map<String, DataSourcePlugin> plugins = Collections.emptyMap();
 
     @PostConstruct
     public void initialize() {
@@ -56,21 +55,17 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
             classLoader = DataSourcePluginBusinessImpl.class.getClassLoader();
         }
 
-        Map<DataSourceDbType, DataSourcePlugin> discovered = new EnumMap<>(DataSourceDbType.class);
+        Map<String, DataSourcePlugin> discovered = new LinkedHashMap<>();
         for (DataSourcePlugin plugin : ServiceLoader.load(DataSourcePlugin.class, classLoader)) {
             validateDescriptor(plugin);
-            DataSourcePlugin existing = discovered.putIfAbsent(plugin.dbType(), plugin);
-            if (existing != null) {
-                throw new IllegalStateException("Duplicate datasource plugin for "
-                        + plugin.dbType().name()
-                        + ": "
-                        + existing.getClass().getName()
-                        + " and "
-                        + plugin.getClass().getName());
+            register(discovered, plugin.descriptor().type(), plugin);
+            for (String alias : plugin.descriptor().aliases()) {
+                register(discovered, alias, plugin);
             }
             log.info(
-                    "Registered datasource plugin: type={}, apiVersion={}, capabilities={}, implementation={}",
-                    plugin.dbType(),
+                    "Registered datasource plugin: type={}, aliases={}, apiVersion={}, capabilities={}, implementation={}",
+                    plugin.descriptor().type(),
+                    plugin.descriptor().aliases(),
                     plugin.descriptor().apiVersion(),
                     plugin.descriptor().capabilities(),
                     plugin.getClass().getName());
@@ -90,9 +85,14 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
     }
 
     @Override
-    public DataSourceConnection parseConnection(DataSourceDbType dbType, String connectionJson) {
+    public String resolvePluginType(String pluginType) {
+        return get(pluginType).descriptor().type();
+    }
+
+    @Override
+    public DataSourceConnection parseConnection(String pluginType, String connectionJson) {
         try {
-            return get(dbType).parseConnection(connectionJson);
+            return get(pluginType).parseConnection(connectionJson);
         } catch (DataSourcePluginException exception) {
             throw new DataSourceException(
                     DataSourceErrorCode.INVALID_CONNECTION_PARAMS, exception.getMessage(), exception);
@@ -103,17 +103,17 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
     }
 
     @Override
-    public DataSourceConnection mergeStoredSecrets(DataSourceDbType dbType, String submittedJson, String storedJson) {
-        DataSourcePlugin plugin = get(dbType);
+    public DataSourceConnection mergeStoredSecrets(String pluginType, String submittedJson, String storedJson) {
+        DataSourcePlugin plugin = get(pluginType);
         String merged = secretCodec.mergeStoredSecrets(plugin.descriptor(), submittedJson, storedJson);
-        return parseConnection(dbType, merged);
+        return parseConnection(plugin.descriptor().type(), merged);
     }
 
     @Override
-    public void testConnection(DataSourceDbType dbType, String connectionJson, int timeoutSeconds) {
-        DataSourcePlugin plugin = get(dbType);
+    public void testConnection(String pluginType, String connectionJson, int timeoutSeconds) {
+        DataSourcePlugin plugin = get(pluginType);
         requireCapability(plugin, DataSourceCapability.CONNECTION_TEST, DataSourceErrorCode.CONNECT_FAILED);
-        DataSourceConnection connection = parseConnection(dbType, connectionJson);
+        DataSourceConnection connection = parseConnection(plugin.descriptor().type(), connectionJson);
         try {
             plugin.testConnection(connection, Math.max(1, timeoutSeconds));
         } catch (DataSourcePluginException exception) {
@@ -124,14 +124,11 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
     }
 
     @Override
-    public DataSourceCatalog createCatalog(DataSourceDbType dbType, String connectionJson, int timeoutSeconds) {
-        if (dbType == null) {
-            throw new DataSourceException(DataSourceErrorCode.CATALOG_FAILED, "数据源类型不能为空");
-        }
-        DataSourcePlugin plugin = get(dbType);
+    public DataSourceCatalog createCatalog(String pluginType, String connectionJson, int timeoutSeconds) {
+        DataSourcePlugin plugin = get(pluginType);
         requireCapability(plugin, DataSourceCapability.CATALOG_METADATA, DataSourceErrorCode.CATALOG_FAILED);
         try {
-            DataSourceConnection connection = parseConnection(dbType, connectionJson);
+            DataSourceConnection connection = parseConnection(plugin.type(), connectionJson);
             return plugin.createCatalog(connection, Math.max(1, timeoutSeconds));
         } catch (DataSourceException exception) {
             throw exception;
@@ -143,8 +140,8 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
     }
 
     @Override
-    public String maskConnectionJson(DataSourceDbType dbType, String connectionJson) {
-        return secretCodec.maskConnectionJson(get(dbType).descriptor(), connectionJson);
+    public String maskConnectionJson(String pluginType, String connectionJson) {
+        return secretCodec.maskConnectionJson(get(pluginType).descriptor(), connectionJson);
     }
 
     @Override
@@ -153,7 +150,7 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
     }
 
     @Override
-    public DataSourceDbType resolveConnectionType(String connectionJson) {
+    public String resolveConnectionType(String connectionJson) {
         try {
             JsonNode root = objectMapper.readTree(connectionJson);
             if (root == null || !root.isObject()) {
@@ -163,52 +160,61 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
             if (value == null || value.trim().isEmpty()) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接参数中缺少 dbType 或 pluginType");
             }
-            return DataSourceDbType.parse(value);
+            return get(value).descriptor().type();
         } catch (DataSourceException exception) {
             throw exception;
-        } catch (IllegalArgumentException exception) {
-            throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, exception.getMessage(), exception);
         } catch (Exception exception) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "无法识别连接参数中的插件类型", exception);
         }
     }
 
-    private DataSourcePlugin get(String dbType) {
+    private DataSourcePlugin get(String pluginType) {
+        final String normalized;
         try {
-            return get(DataSourceDbType.parse(dbType));
+            normalized = DataSourcePluginDescriptor.normalizeType(pluginType);
         } catch (IllegalArgumentException exception) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, exception.getMessage(), exception);
         }
-    }
-
-    private DataSourcePlugin get(DataSourceDbType dbType) {
-        DataSourcePlugin plugin = dbType == null ? null : plugins.get(dbType);
+        DataSourcePlugin plugin = plugins.get(normalized);
         if (plugin == null) {
-            throw new DataSourceException(
-                    DataSourceErrorCode.PLUGIN_NOT_FOUND,
-                    dbType == null ? "未指定数据源类型" : "未找到插件：" + dbType.name());
+            throw new DataSourceException(DataSourceErrorCode.PLUGIN_NOT_FOUND, "未找到插件：" + normalized);
         }
         return plugin;
     }
 
+    private void register(Map<String, DataSourcePlugin> discovered, String pluginType, DataSourcePlugin plugin) {
+        String normalized = DataSourcePluginDescriptor.normalizeType(pluginType);
+        DataSourcePlugin existing = discovered.putIfAbsent(normalized, plugin);
+        if (existing != null && existing != plugin) {
+            throw new IllegalStateException(
+                    "Duplicate datasource plugin type or alias "
+                            + normalized
+                            + ": "
+                            + existing.getClass().getName()
+                            + " and "
+                            + plugin.getClass().getName());
+        }
+    }
+
     private void validateDescriptor(DataSourcePlugin plugin) {
-        if (plugin == null || plugin.dbType() == null) {
-            throw new IllegalStateException("Datasource plugin and dbType must not be null");
+        if (plugin == null || plugin.type() == null || plugin.type().isBlank()) {
+            throw new IllegalStateException("Datasource plugin and type must not be null or blank");
         }
         DataSourcePluginDescriptor descriptor = plugin.descriptor();
         if (descriptor == null) {
             throw new IllegalStateException(
                     "Datasource plugin descriptor must not be null: " + plugin.getClass().getName());
         }
-        if (descriptor.dbType() != plugin.dbType()) {
+        String normalizedType = DataSourcePluginDescriptor.normalizeType(plugin.type());
+        if (!descriptor.type().equals(normalizedType)) {
             throw new IllegalStateException("Datasource plugin descriptor type mismatch: plugin="
-                    + plugin.dbType()
+                    + normalizedType
                     + ", descriptor="
-                    + descriptor.dbType());
+                    + descriptor.type());
         }
         if (!DataSourcePluginDescriptor.CURRENT_API_VERSION.equals(descriptor.apiVersion())) {
             throw new IllegalStateException(
-                    "Unsupported datasource plugin API version " + descriptor.apiVersion() + " for " + plugin.dbType());
+                    "Unsupported datasource plugin API version " + descriptor.apiVersion() + " for " + normalizedType);
         }
     }
 
@@ -216,7 +222,7 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
             DataSourcePlugin plugin, DataSourceCapability capability, DataSourceErrorCode errorCode) {
         if (!plugin.supports(capability)) {
             throw new DataSourceException(
-                    errorCode, "数据源插件未声明能力 " + capability.name() + "：" + plugin.dbType().name());
+                    errorCode, "数据源插件未声明能力 " + capability.name() + "：" + plugin.descriptor().type());
         }
     }
 
@@ -235,7 +241,7 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
             return null;
         }
         return DataSourcePluginConfigVO.builder()
-                .pluginType(source.dbType().name())
+                .pluginType(source.type())
                 .sections(source.connectionForm().sections().stream().map(this::toSectionVO).toList())
                 .formFields(source.connectionForm().legacyFields().stream().map(this::toFieldVO).toList())
                 .installRequired(source.installRequired())

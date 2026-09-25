@@ -1,7 +1,6 @@
 package io.yak.ops.plugin.database.jdbc.highgo;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import java.util.Locale;
 
@@ -9,8 +8,18 @@ import java.util.Locale;
 public final class HighGoDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.HIGHGO;
+    public String type() {
+        return "HIGHGO";
+    }
+
+    @Override
+    protected String displayName() {
+        return "HighGo";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("HIGH_GO", "HGDB");
     }
 
     @Override

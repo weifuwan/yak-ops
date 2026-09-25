@@ -1,7 +1,5 @@
 package io.yak.ops.spi.datasource;
 
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
-
 /**
  * 数据源插件稳定扩展契约，负责插件描述、连接参数、连通性和 Catalog 元数据。
  *
@@ -10,7 +8,8 @@ import io.yak.ops.common.enums.datasource.DataSourceDbType;
  */
 public interface DataSourcePlugin {
 
-    DataSourceDbType dbType();
+    /** 插件稳定类型标识，例如 MYSQL、POSTGRE_SQL。 */
+    String type();
 
     DataSourcePluginDescriptor descriptor();
 

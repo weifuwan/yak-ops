@@ -1,7 +1,6 @@
 package io.yak.ops.plugin.database.jdbc.yashandb;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import java.util.Locale;
 
@@ -9,8 +8,18 @@ import java.util.Locale;
 public final class YashanDbDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.YASHAN_DB;
+    public String type() {
+        return "YASHAN_DB";
+    }
+
+    @Override
+    protected String displayName() {
+        return "YashanDB";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("YASHANDB", "YASDB");
     }
 
     @Override

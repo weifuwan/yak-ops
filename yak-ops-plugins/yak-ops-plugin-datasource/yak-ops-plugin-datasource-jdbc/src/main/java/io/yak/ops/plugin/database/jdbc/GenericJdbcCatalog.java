@@ -2,7 +2,6 @@ package io.yak.ops.plugin.database.jdbc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
 import io.yak.ops.spi.datasource.DataSourcePluginException;
 import io.yak.ops.spi.datasource.DataSourcePluginException.Operation;
@@ -174,7 +173,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
 
     protected String quoteIdentifier(String identifier) {
         if (isBlank(identifier)) throw new IllegalArgumentException("数据库标识符不能为空");
-        if (connection.dbType() == DataSourceDbType.SQL_SERVER) {
+        if ("SQL_SERVER".equals(connection.type())) {
             return "[" + identifier.trim().replace("]", "]]") + "]";
         }
         String quote = usesCatalogAsNamespace() ? "`" : "\"";
@@ -195,7 +194,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     }
 
     private String metadataCatalog(String requestedDatabase) {
-        if (usesOracleStyle() || connection.dbType() == DataSourceDbType.HANA) return null;
+        if (usesOracleStyle() || "HANA".equals(connection.type())) return null;
         return firstNonBlank(requestedDatabase, connection.database());
     }
 
@@ -252,24 +251,25 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
         return properties;
     }
 
+    private boolean isType(String... types) {
+        for (String type : types) {
+            if (type.equals(connection.type())) return true;
+        }
+        return false;
+    }
+
     private boolean usesCatalogAsNamespace() {
-        return connection.dbType() == DataSourceDbType.MYSQL
-                || connection.dbType() == DataSourceDbType.TIDB
-                || connection.dbType() == DataSourceDbType.GOLDENDB
-                || connection.dbType() == DataSourceDbType.GBASE8A
-                || connection.dbType() == DataSourceDbType.DORIS
-                || connection.dbType() == DataSourceDbType.STARROCKS
-                || connection.dbType() == DataSourceDbType.CLICKHOUSE
-                || (connection.dbType() == DataSourceDbType.OCEANBASE && !oceanBaseOracleMode());
+        return isType("MYSQL", "TIDB", "GOLDENDB", "GBASE8A", "DORIS", "STARROCKS", "CLICKHOUSE")
+                || ("OCEANBASE".equals(connection.type()) && !oceanBaseOracleMode());
     }
 
     private boolean usesOracleStyle() {
-        return connection.dbType() == DataSourceDbType.ORACLE
-                || (connection.dbType() == DataSourceDbType.OCEANBASE && oceanBaseOracleMode());
+        return "ORACLE".equals(connection.type())
+                || ("OCEANBASE".equals(connection.type()) && oceanBaseOracleMode());
     }
 
     private boolean oceanBaseOracleMode() {
-        if (connection.dbType() != DataSourceDbType.OCEANBASE || isBlank(connection.normalizedJson())) return false;
+        if (!"OCEANBASE".equals(connection.type()) || isBlank(connection.normalizedJson())) return false;
         try {
             JsonNode root = OBJECT_MAPPER.readTree(connection.normalizedJson());
             String mode = root.path("compatibleMode").asText(root.path("compatible_mode").asText("mysql"));

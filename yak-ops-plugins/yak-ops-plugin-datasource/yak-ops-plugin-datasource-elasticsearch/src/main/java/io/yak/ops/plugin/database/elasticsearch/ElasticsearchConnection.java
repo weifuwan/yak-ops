@@ -1,6 +1,5 @@
 package io.yak.ops.plugin.database.elasticsearch;
 
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.spi.datasource.DataSourceConnection;
 import java.util.List;
 import java.util.Map;
@@ -10,15 +9,15 @@ final class ElasticsearchConnection implements DataSourceConnection {
 
     static final String VIRTUAL_DATABASE = "elasticsearch";
 
-    private final DataSourceDbType dbType;
+    private final String type;
     private final List<String> hosts;
     private final String username;
     private final String password;
     private final String normalizedJson;
 
     ElasticsearchConnection(
-            DataSourceDbType dbType, List<String> hosts, String username, String password, String normalizedJson) {
-        this.dbType = dbType;
+            String type, List<String> hosts, String username, String password, String normalizedJson) {
+        this.type = type;
         this.hosts = List.copyOf(hosts);
         this.username = username;
         this.password = password;
@@ -34,8 +33,8 @@ final class ElasticsearchConnection implements DataSourceConnection {
     }
 
     @Override
-    public DataSourceDbType dbType() {
-        return dbType;
+    public String type() {
+        return type;
     }
 
     /** Historical SPI field; for HTTP-native sources it carries the primary endpoint. */

@@ -2,7 +2,6 @@ package io.yak.ops.plugin.database.jdbc.oceanbase;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor.FieldType;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor.FormField;
@@ -16,8 +15,13 @@ import java.util.Locale;
 public final class OceanBaseDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.OCEANBASE;
+    public String type() {
+        return "OCEANBASE";
+    }
+
+    @Override
+    protected String displayName() {
+        return "OceanBase";
     }
 
     @Override

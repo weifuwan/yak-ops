@@ -1,7 +1,6 @@
 package io.yak.ops.plugin.database.jdbc.iris;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import java.util.Locale;
 
@@ -9,8 +8,18 @@ import java.util.Locale;
 public final class IrisDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.IRIS;
+    public String type() {
+        return "IRIS";
+    }
+
+    @Override
+    protected String displayName() {
+        return "InterSystems IRIS";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("INTERSYSTEMS_IRIS");
     }
 
     @Override

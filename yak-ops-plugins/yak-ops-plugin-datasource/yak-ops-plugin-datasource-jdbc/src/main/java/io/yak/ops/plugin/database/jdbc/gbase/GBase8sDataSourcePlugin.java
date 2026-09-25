@@ -3,7 +3,6 @@ package io.yak.ops.plugin.database.jdbc.gbase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import io.yak.ops.plugin.database.jdbc.GenericJdbcCatalog;
 import io.yak.ops.plugin.database.jdbc.JdbcConnectionProperties;
@@ -26,8 +25,18 @@ public final class GBase8sDataSourcePlugin extends AbstractJdbcDataSourcePlugin 
     private static final String DELIMIDENT_PROPERTY = "DELIMIDENT";
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.GBASE8S;
+    public String type() {
+        return "GBASE8S";
+    }
+
+    @Override
+    protected String displayName() {
+        return "GBase 8s";
+    }
+
+    @Override
+    protected java.util.Set<String> aliases() {
+        return java.util.Set.of("GBASE_8S");
     }
 
     @Override
@@ -141,7 +150,7 @@ public final class GBase8sDataSourcePlugin extends AbstractJdbcDataSourcePlugin 
             JdbcConnectionProperties connection, int connectionTimeoutSeconds, int queryTimeoutSeconds) {
         String owner = hasText(connection.schema()) ? connection.schema().trim() : connection.username();
         JdbcConnectionProperties ownerAware = new JdbcConnectionProperties(
-                DataSourceDbType.GBASE8S,
+                "GBASE8S",
                 connection.host(),
                 connection.port(),
                 connection.jdbcUrl(),

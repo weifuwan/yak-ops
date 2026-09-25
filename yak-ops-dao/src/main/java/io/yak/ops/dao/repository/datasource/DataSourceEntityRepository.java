@@ -2,7 +2,6 @@ package io.yak.ops.dao.repository.datasource;
 
 import io.yak.ops.common.PageData;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.model.datasource.DataSourceSummaryRow;
@@ -21,7 +20,7 @@ public interface DataSourceEntityRepository extends BaseRepository<DataSourceEnt
     PageData<DataSourceEntity> queryPage(PageQuery query);
 
     /** 按数据库类型查询全部数据源并保持稳定排序。 */
-    List<DataSourceEntity> queryAll(DataSourceDbType dbType);
+    List<DataSourceEntity> queryAll(String dbType);
 
     /** 查询数据源统计聚合结果。 */
     DataSourceSummaryRow querySummary();
@@ -47,7 +46,7 @@ public interface DataSourceEntityRepository extends BaseRepository<DataSourceEnt
             int pageSize,
             String name,
             String keyword,
-            DataSourceDbType dbType,
+            String dbType,
             DataSourceEnvironment environment,
             DataSourceConnStatus connStatus) {}
 }

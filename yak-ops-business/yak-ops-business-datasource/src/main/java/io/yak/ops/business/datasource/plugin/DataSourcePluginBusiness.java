@@ -1,7 +1,6 @@
 package io.yak.ops.business.datasource.plugin;
 
 import io.yak.ops.common.bean.vo.datasource.DataSourcePluginConfigVO;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
 import io.yak.ops.spi.datasource.DataSourceConnection;
 
@@ -17,17 +16,19 @@ public interface DataSourcePluginBusiness {
 
     boolean checkPluginAvailable(String pluginType);
 
-    DataSourceConnection parseConnection(DataSourceDbType dbType, String connectionJson);
+    String resolvePluginType(String pluginType);
 
-    DataSourceConnection mergeStoredSecrets(DataSourceDbType dbType, String submittedJson, String storedJson);
+    DataSourceConnection parseConnection(String pluginType, String connectionJson);
 
-    void testConnection(DataSourceDbType dbType, String connectionJson, int timeoutSeconds);
+    DataSourceConnection mergeStoredSecrets(String pluginType, String submittedJson, String storedJson);
 
-    DataSourceCatalog createCatalog(DataSourceDbType dbType, String connectionJson, int timeoutSeconds);
+    void testConnection(String pluginType, String connectionJson, int timeoutSeconds);
 
-    String maskConnectionJson(DataSourceDbType dbType, String connectionJson);
+    DataSourceCatalog createCatalog(String pluginType, String connectionJson, int timeoutSeconds);
+
+    String maskConnectionJson(String pluginType, String connectionJson);
 
     String maskSensitiveText(String value);
 
-    DataSourceDbType resolveConnectionType(String connectionJson);
+    String resolveConnectionType(String connectionJson);
 }

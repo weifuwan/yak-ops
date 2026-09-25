@@ -2,7 +2,6 @@ package io.yak.ops.plugin.database.jdbc.starrocks;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor.FormField;
 import java.util.Collections;
@@ -13,8 +12,13 @@ import java.util.Locale;
 public final class StarRocksDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.STARROCKS;
+    public String type() {
+        return "STARROCKS";
+    }
+
+    @Override
+    protected String displayName() {
+        return "StarRocks";
     }
 
     @Override

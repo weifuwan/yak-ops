@@ -1,6 +1,5 @@
 package io.yak.ops.spi.datasource;
 
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import java.util.Map;
 
 /**
@@ -11,8 +10,8 @@ import java.util.Map;
  */
 public interface DataSourceConnection {
 
-    /** 数据库类型。 */
-    DataSourceDbType dbType();
+    /** 插件稳定类型标识。 */
+    String type();
 
     /** 插件规范化后的连接地址。 */
     String jdbcUrl();

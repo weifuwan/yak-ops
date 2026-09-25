@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoClient;
-import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
 import io.yak.ops.spi.datasource.DataSourceConnection;
@@ -34,8 +33,9 @@ public final class MongoDataSourcePlugin implements DataSourcePlugin {
     private static final int DEFAULT_PORT = 27017;
 
     private static final DataSourcePluginDescriptor DESCRIPTOR = new DataSourcePluginDescriptor(
-            DataSourceDbType.MONGODB,
+            "MONGODB",
             "MongoDB",
+            java.util.Set.of("MONGO", "MONGO_DB"),
             DataSourcePluginDescriptor.CURRENT_API_VERSION,
             EnumSet.of(
                     DataSourceCapability.CONNECTION_TEST,
@@ -45,8 +45,8 @@ public final class MongoDataSourcePlugin implements DataSourcePlugin {
             null);
 
     @Override
-    public DataSourceDbType dbType() {
-        return DataSourceDbType.MONGODB;
+    public String type() {
+        return "MONGODB";
     }
 
     @Override
@@ -71,7 +71,7 @@ public final class MongoDataSourcePlugin implements DataSourcePlugin {
         parseConnectionString(uri);
 
         ObjectNode normalized = MAPPER.createObjectNode();
-        normalized.put("dbType", DataSourceDbType.MONGODB.name());
+        normalized.put("dbType", type());
         normalized.put("host", host);
         normalized.put("port", port);
         normalized.put("database", database);
