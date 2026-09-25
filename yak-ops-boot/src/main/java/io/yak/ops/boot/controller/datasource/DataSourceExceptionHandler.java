@@ -1,7 +1,6 @@
 package io.yak.ops.boot.controller.datasource;
 
 import io.yak.ops.boot.controller.datasource.v1.DataSourceController;
-import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.result.Result;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice(basePackageClasses = DataSourceController.class)
-@ConditionalOnDataSourceEnabled
 public class DataSourceExceptionHandler {
 
     @ExceptionHandler(DataSourceException.class)
