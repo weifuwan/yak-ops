@@ -20,7 +20,7 @@ Architecture follows current ownership, not historical modules and not a future 
 
 HTTP is an application boundary. All Controller ownership belongs to `yak-ops-boot`; capability modules expose business capability to Boot and never own HTTP entry classes.
 
-Application runtime infrastructure is also a Boot boundary. Connection-pool assembly, MyBatis-Plus runtime wiring, OpenAPI/Swagger and MVC interceptor/filter registration belong to `yak-ops-boot`. Capability modules provide behavior and persistence contracts without assembling the final Spring application.
+Application runtime infrastructure is also a Boot boundary. DataSource/MyBatis-Plus runtime policy, OpenAPI/Swagger and MVC interceptor/filter registration belong to `yak-ops-boot`. Capability modules provide behavior and persistence contracts without assembling the final Spring application. Boot prefers Spring Boot/Starter auto-configuration over manually recreating framework beans.
 
 ## Current Modules
 
@@ -100,15 +100,18 @@ SQL execution/query contracts are not part of the current plugin boundary.
 
 Owns final application assembly, all HTTP Controllers, ControllerAdvice, health and global runtime configuration. `GlobalExceptionHandler` is the single fallback HTTP exception outlet; capability-specific advice only keeps behavior that requires capability context such as Datasource message masking.
 
-Boot runtime configuration includes:
+Boot runtime configuration follows a single-runtime contract:
 
-- the shared application DataSource and transaction manager
-- MyBatis-Plus SqlSessionFactory / SqlSessionTemplate and plugin registration
-- MVC interceptor/filter registration
-- OpenAPI / Swagger UI configuration
-- Jackson and other application-wide web configuration
+- one application DataSource, created from `spring.datasource` by Spring Boot
+- one default transaction manager; Business/Security do not use capability-specific transaction-manager aliases
+- one MyBatis-Plus SqlSessionFactory / SqlSessionTemplate created by the Starter
+- one MyBatis-Plus interceptor chain; Security tenant isolation is table-scoped inside that shared chain
+- MVC authentication interceptor registration
+- one application OpenAPI document
 
-Flyway schema history and migration SQL remain owned by `yak-ops-dao`; Boot only supplies the runtime DataSource used by that persistence layer.
+Boot must not manually recreate DataSource, SqlSessionFactory, SqlSessionTemplate, TransactionManager or ObjectMapper when Spring Boot already provides the required runtime behavior.
+
+Flyway schema history and migration SQL remain owned by `yak-ops-dao`; Boot supplies the runtime DataSource used by that persistence layer.
 
 Hard boundary:
 

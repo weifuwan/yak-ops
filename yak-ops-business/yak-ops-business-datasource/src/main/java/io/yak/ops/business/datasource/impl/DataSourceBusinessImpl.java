@@ -51,7 +51,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
     private ApplicationEventPublisher eventPublisher;
 
     @Override
-    @Transactional(transactionManager = "opsDataSourceTransactionManager", rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public boolean addDataSource(DataSourceDTO dto) {
         requireDataSourceDto(dto);
         String name = normalizeName(dto.getName());
@@ -76,7 +76,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
     }
 
     @Override
-    @Transactional(transactionManager = "opsDataSourceTransactionManager", rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public boolean updateDataSource(String id, DataSourceDTO dto) {
         requireDataSourceDto(dto);
         DataSourceEntity existing = requireEntity(id);
@@ -111,7 +111,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
     }
 
     @Override
-    @Transactional(transactionManager = "opsDataSourceTransactionManager", rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public boolean deleteDataSource(String id) {
         DataSourceEntity existing = requireEntity(id);
         if (repository.deleteById(existing.getId()) <= 0) {
