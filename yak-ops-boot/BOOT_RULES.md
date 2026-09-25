@@ -28,6 +28,7 @@ Spring Boot and the MyBatis-Plus Starter own the standard bean creation. Boot ad
 - Keep one MyBatis-Plus interceptor chain.
 - Scope Security `app_name` tenant behavior to Security tables instead of creating a second MyBatis runtime.
 - Prefer framework customizers/properties over replacing framework beans.
+- HTTP JSON 的 Java Time 格式统一由 `HttpJsonConfiguration` 通过 `Jackson2ObjectMapperBuilderCustomizer` 定义；禁止为同一格式重复创建 `ObjectMapper` 或在每个 VO 上重复声明 `@JsonFormat`。
 - Keep `application.yml` limited to capabilities that exist in the current product.
 - Keep one OpenAPI document unless a real external contract requires multiple groups.
 
