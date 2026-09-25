@@ -5,13 +5,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.bean.vo.security.user.CurrentUserVO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
-import io.yak.ops.common.enums.security.ResultCode;
-import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.common.result.Result;
-import io.yak.ops.common.util.ObjectUtils;
 import io.yak.ops.common.util.ObjectUtils;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.constant.SecurityConstants;
+import io.yak.ops.security.enums.SecurityErrorCode;
+import io.yak.ops.security.exception.YakSecurityException;
 import io.yak.ops.security.service.LoginService;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.web.PublicEndpoint;
@@ -56,7 +55,7 @@ public class LoginController {
     @GetMapping("/current")
     public Result<CurrentUserVO> current() {
         if (!authenticationManager.isLogin()) {
-            throw new YakSecurityException(ResultCode.USER_NOT_LOGIN);
+            throw new YakSecurityException(SecurityErrorCode.USER_NOT_LOGIN);
         }
 
         String username = authenticationManager.getLoginUsername();
@@ -64,7 +63,7 @@ public class LoginController {
 
         if (ObjectUtils.isNull(brief)) {
             authenticationManager.logout();
-            throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+            throw new YakSecurityException(SecurityErrorCode.USER_NOT_EXISTS);
         }
 
         CurrentUserVO user = new CurrentUserVO();
