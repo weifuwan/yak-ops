@@ -1,14 +1,14 @@
 package io.yak.ops.security.service.impl;
 
 import io.yak.ops.common.bean.dto.security.user.UserPasswordResetDTO;
-import io.yak.ops.common.enums.security.ResultCode;
-import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.common.util.ObjectUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.constant.SecurityConstants;
+import io.yak.ops.security.enums.SecurityErrorCode;
+import io.yak.ops.security.exception.YakSecurityException;
 import io.yak.ops.security.extend.PasswordEncoder;
 import jakarta.annotation.Resource;
 import java.util.Objects;
@@ -43,12 +43,12 @@ public class UserAdministrationService {
 
     public void validateDelete(String targetUserId, String operatorId, String operator) {
         if (ObjectUtils.isNull(targetUserId)) {
-            throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+            throw new YakSecurityException(SecurityErrorCode.USER_ID_CANNOT_BE_NULL);
         }
 
         UserEntity targetUser = userRepository.queryById(targetUserId).orElse(null);
         if (ObjectUtils.isNull(targetUser)) {
-            throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+            throw new YakSecurityException(SecurityErrorCode.USER_NOT_EXISTS);
         }
 
         boolean deletingSelfById = ObjectUtils.isNotNull(operatorId) && Objects.equals(targetUserId, operatorId);
@@ -63,7 +63,7 @@ public class UserAdministrationService {
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(String userId, UserPasswordResetDTO request, String operator) {
         if (ObjectUtils.isNull(userId)) {
-            throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+            throw new YakSecurityException(SecurityErrorCode.USER_ID_CANNOT_BE_NULL);
         }
 
         String password = ObjectUtils.isNull(request) ? null : request.getPassword();
@@ -76,7 +76,7 @@ public class UserAdministrationService {
 
         UserEntity user = userRepository.queryById(userId).orElse(null);
         if (ObjectUtils.isNull(user)) {
-            throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+            throw new YakSecurityException(SecurityErrorCode.USER_NOT_EXISTS);
         }
 
         String encodedPassword = passwordEncoder.encode(password);
@@ -100,12 +100,12 @@ public class UserAdministrationService {
 
     public void forceLogout(String userId, String operator) {
         if (ObjectUtils.isNull(userId)) {
-            throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+            throw new YakSecurityException(SecurityErrorCode.USER_ID_CANNOT_BE_NULL);
         }
 
         UserEntity user = userRepository.queryById(userId).orElse(null);
         if (ObjectUtils.isNull(user)) {
-            throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+            throw new YakSecurityException(SecurityErrorCode.USER_NOT_EXISTS);
         }
 
         AuthenticationManager authenticationManager = authenticationManagerProvider.getIfAvailable();
