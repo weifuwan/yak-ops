@@ -103,6 +103,11 @@ public final class LoginAttemptGuard {
         return StringUtils.isBlank(ipAddress) ? "<unknown>" : ipAddress.trim();
     }
 
-    /** 单一用户名或 IP 维度的失败次数与锁定截止时间。 */
+    /**
+     * 单一用户名或 IP 维度的失败次数与锁定截止时间。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     private record FailureState(int count, Instant blockedUntil) {}
 }
