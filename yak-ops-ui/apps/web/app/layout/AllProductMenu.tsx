@@ -10,7 +10,8 @@ type AllProductMenuProps = {
 export default function AllProductMenu({ open, onNavigate }: AllProductMenuProps) {
   return (
     <section
-      id="all-product-panel"\n      aria-label="全部产品二级菜单"
+      id="all-product-menu"
+      aria-label="全部产品二级菜单"
       aria-hidden={!open}
       className={[
         "fixed bottom-0 left-[220px] top-10 z-30 w-[765px] max-w-[calc(100vw-220px)] overflow-y-auto bg-[#1c1e21] text-xs text-[#cbced3]",
@@ -20,10 +21,7 @@ export default function AllProductMenu({ open, onNavigate }: AllProductMenuProps
     >
       <div className="min-h-full px-12 pt-4">
         {ALL_PRODUCT_GROUPS.map((group) => (
-          <section
-            key={group.id}
-            className="flex min-h-12 border-b border-[#242629] py-2"
-          >
+          <section key={group.id} className="flex min-h-12 border-b border-[#242629] py-2">
             <h3 className="m-0 w-40 shrink-0 py-2 text-xs font-normal leading-8 text-[#f4f4f4]">
               {group.label}
             </h3>
