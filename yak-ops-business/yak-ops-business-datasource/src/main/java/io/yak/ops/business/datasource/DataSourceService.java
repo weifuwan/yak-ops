@@ -8,12 +8,12 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.page.PagingData;
 
 /**
- * 提供数据源配置管理、查询和连接测试等核心业务能力，是 Boot 访问 Datasource 管理能力的唯一入口。
+ * 数据源管理唯一 Service 入口，负责增删改查、分页查询和连接测试。
  *
  * @author weifuwan
- * @since 2026-09-24
+ * @since 2026-09-25
  */
-public interface DataSourceBusiness {
+public interface DataSourceService {
 
     boolean addDataSource(DataSourceDTO dto);
 

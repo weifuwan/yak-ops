@@ -1,11 +1,10 @@
 package io.yak.ops.business.datasource.impl;
 
-import io.yak.ops.business.datasource.DataSourceBusiness;
-import io.yak.ops.business.datasource.DataSourceChangedEvent;
+import io.yak.ops.business.datasource.DataSourceService;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.exception.DataSourceException;
-import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
+import io.yak.ops.business.datasource.plugin.DataSourcePluginRegistry;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
@@ -20,41 +19,38 @@ import io.yak.ops.dao.model.datasource.DataSourceSummaryRow;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
 import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
 import jakarta.annotation.Resource;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
- * 负责数据源配置生命周期、列表查询和连接测试，并将 DAO 持久化对象收口在 Business 内部。
+ * 实现数据源配置生命周期、列表查询和连接测试，数据库差异统一委托给内部 JDBC Plugin Registry。
  *
  * @author weifuwan
- * @since 2026-09-24
+ * @since 2026-09-25
  */
 @Service
 @ConditionalOnDataSourceEnabled
-public class DataSourceBusinessImpl implements DataSourceBusiness {
+public class DataSourceServiceImpl implements DataSourceService {
 
     @Resource
     private DataSourceEntityRepository repository;
 
     @Resource
-    private DataSourcePluginBusiness pluginBusiness;
+    private DataSourcePluginRegistry pluginRegistry;
 
     @Resource
     private DataSourceProperties properties;
 
-    @Resource
-    private ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean addDataSource(DataSourceDTO dto) {
         requireDataSourceDto(dto);
         String name = normalizeName(dto.getName());
-        String dbType = pluginBusiness.resolvePluginType(dto.getDbType());
+        String dbType = pluginRegistry.resolvePluginType(dto.getDbType());
         ensureNameAvailable(name, null);
-        var connection = pluginBusiness.parseConnection(dbType, dto.getConnectionParams());
+        var connection = pluginRegistry.parseConnection(dbType, dto.getConnectionParams());
 
         DataSourceEntity entity = new DataSourceEntity();
         entity.setName(name);
@@ -78,14 +74,14 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         requireDataSourceDto(dto);
         DataSourceEntity existing = requireEntity(id);
         String name = normalizeName(dto.getName());
-        String dbType = pluginBusiness.resolvePluginType(dto.getDbType());
+        String dbType = pluginRegistry.resolvePluginType(dto.getDbType());
         ensureNameAvailable(name, id);
         if (!existing.getDbType().equals(dbType)) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "编辑数据源时不允许修改数据源类型");
         }
 
         var connection =
-                pluginBusiness.mergeStoredSecrets(existing.getDbType(), dto.getConnectionParams(), existing.getConnectionParams());
+                pluginRegistry.mergeStoredSecrets(existing.getDbType(), dto.getConnectionParams(), existing.getConnectionParams());
         existing.setName(name);
         existing.setJdbcUrl(connection.jdbcUrl());
         existing.setEnvironment(parseEnvironment(dto.getEnvironment()));
@@ -98,7 +94,6 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         if (repository.update(existing) == null) {
             throw new DataSourceException(DataSourceErrorCode.UPDATE_FAILED);
         }
-        eventPublisher.publishEvent(new DataSourceChangedEvent(id));
         return true;
     }
 
@@ -114,7 +109,6 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         if (repository.deleteById(existing.getId()) <= 0) {
             throw new DataSourceException(DataSourceErrorCode.DELETE_FAILED);
         }
-        eventPublisher.publishEvent(new DataSourceChangedEvent(existing.getId()));
         return true;
     }
 
@@ -131,7 +125,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
                 dto.getPageSize(),
                 normalizeNullable(dto.getName()),
                 normalizeNullable(dto.getKeyword()),
-                StringUtils.hasText(dto.getDbType()) ? pluginBusiness.resolvePluginType(dto.getDbType()) : null,
+                StringUtils.hasText(dto.getDbType()) ? pluginRegistry.resolvePluginType(dto.getDbType()) : null,
                 StringUtils.hasText(dto.getEnvironment()) ? parseEnvironment(dto.getEnvironment()) : null,
                 StringUtils.hasText(dto.getConnStatus()) ? parseConnectionStatus(dto.getConnStatus()) : null);
         return PagingData.from(repository.queryPage(query).map(value -> toDataSourceVO(value, false)));
@@ -146,7 +140,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
     public boolean testConnection(String id) {
         DataSourceEntity entity = requireEntity(id);
         try {
-            pluginBusiness.testConnection(entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds());
+            pluginRegistry.testConnection(entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds());
             entity.setConnStatus(DataSourceConnStatus.CONNECTED);
             entity.initUpdate();
             repository.update(entity);
@@ -174,20 +168,20 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
 
         if (existing != null) {
             dbType = existing.getDbType();
-            if (StringUtils.hasText(dto.getDbType()) && !pluginBusiness.resolvePluginType(dto.getDbType()).equals(dbType)) {
+            if (StringUtils.hasText(dto.getDbType()) && !pluginRegistry.resolvePluginType(dto.getDbType()).equals(dbType)) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接测试的数据源类型与已保存数据源不一致");
             }
-            connectionJson = pluginBusiness
+            connectionJson = pluginRegistry
                     .mergeStoredSecrets(dbType, connectionJson, existing.getConnectionParams())
                     .normalizedJson();
         } else {
             dbType = StringUtils.hasText(dto.getDbType())
-                    ? pluginBusiness.resolvePluginType(dto.getDbType())
-                    : pluginBusiness.resolveConnectionType(connectionJson);
+                    ? pluginRegistry.resolvePluginType(dto.getDbType())
+                    : pluginRegistry.resolveConnectionType(connectionJson);
         }
 
         try {
-            pluginBusiness.testConnection(dbType, connectionJson, connectionTestTimeoutSeconds());
+            pluginRegistry.testConnection(dbType, connectionJson, connectionTestTimeoutSeconds());
             return true;
         } catch (RuntimeException exception) {
             throw connectException(exception);
@@ -260,7 +254,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         target.setId(source.getId());
         target.setName(source.getName());
         target.setDbType(source.getDbType());
-        target.setJdbcUrl(pluginBusiness.maskSensitiveText(source.getJdbcUrl()));
+        target.setJdbcUrl(pluginRegistry.maskSensitiveText(source.getJdbcUrl()));
         target.setEnvironment(source.getEnvironment() == null ? null : source.getEnvironment().name());
         target.setEnvironmentName(
                 source.getEnvironment() == null ? null : source.getEnvironment().getDisplayName());
@@ -269,7 +263,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         target.setCreateTime(source.getCreateTime());
         target.setUpdateTime(source.getUpdateTime());
         if (includeOriginalJson && source.getDbType() != null) {
-            target.setOriginalJson(pluginBusiness.maskConnectionJson(source.getDbType(), source.getOriginalJson()));
+            target.setOriginalJson(pluginRegistry.maskConnectionJson(source.getDbType(), source.getOriginalJson()));
         }
         return target;
     }
