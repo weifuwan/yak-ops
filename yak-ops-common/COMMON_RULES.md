@@ -33,6 +33,10 @@ io.yak.ops.common.util       → genuinely reusable stateless utilities
 Do not place production Java types directly under `io.yak.ops.common`. New shared types must have an explicit owner package.
 Do not recreate root-level compatibility wrappers after a type has moved to its owned package.
 
+## Specialized Rules
+
+DTO / VO 变更必须同时加载 [DTO_VO_RULES.md](./DTO_VO_RULES.md)。该文档统一定义请求 / 响应边界、时间格式、分页、排序和 DTO / VO 命名规则。
+
 ## Enum Contracts
 
 Common 中带字段的枚举统一保持不可变契约：
