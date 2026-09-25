@@ -12,6 +12,7 @@ import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
+import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.security.service.UserService;
@@ -30,7 +31,7 @@ import org.springframework.util.StringUtils;
 
 /** UserAccount-only service implementation. */
 @ConditionalOnProperty(
-        prefix = "yak.security",
+        prefix = SecurityConstants.CONFIG_PREFIX,
         name = {"enabled", "database-enabled"},
         havingValue = "true",
         matchIfMissing = true)

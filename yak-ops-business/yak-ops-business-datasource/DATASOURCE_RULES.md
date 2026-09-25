@@ -59,6 +59,14 @@ security     secret-safe text helpers
 
 Do not recreate `catalog / domain / gateway / execution / query` business packages unless a new capability contract proves a real product boundary.
 
+## Constant Boundary
+
+- Datasource 不为了 HTTP 路径创建 Business 领域常量；HTTP ownership 属于 Boot。
+- 只有一个调用方使用的固定值留在调用类，不创建 `DataSourceConstants`。
+- Boot 的 Datasource API 根路径直接基于 `CommonConstants.API_PREFIX` 组合，禁止在 Common 建立 Datasource 常量中转层。
+- 只有多个真实 Datasource 调用方共享、且不可配置的领域值，才允许在 Datasource owner 内创建领域常量。
+- Plugin API version、provider metadata 等由 Plugin / SPI 自己持有，不搬进 Business 常量类。
+
 ## HTTP Boundary
 
 Datasource HTTP Controller、ControllerAdvice 统一由 `yak-ops-boot` 持有。

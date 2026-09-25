@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
 import io.yak.ops.security.config.YakSecurityProperties;
+import io.yak.ops.security.constant.SecurityConstants;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.StringValue;
 import org.apache.ibatis.reflection.MetaObject;
@@ -33,6 +34,7 @@ public class MybatisPlusConfiguration {
 
     private static final String SECURITY_USER_TABLE = "yak_security_user";
     private static final String SECURITY_TENANT_COLUMN = "app_name";
+    private static final String SECURITY_APPLICATION_NAME_PROPERTY =\n            SecurityConstants.CONFIG_PREFIX + ".application-name";
 
     @Bean
     MybatisPlusInterceptor mybatisPlusInterceptor(YakSecurityProperties properties) {
@@ -58,12 +60,12 @@ public class MybatisPlusConfiguration {
 
     @Bean
     @ConditionalOnProperty(
-            prefix = "yak.security",
+            prefix = SecurityConstants.CONFIG_PREFIX,
             name = {"enabled", "database-enabled"},
             havingValue = "true",
             matchIfMissing = true)
     MetaObjectHandler securityMetaObjectHandler(YakSecurityProperties properties) {
-        String applicationName = requireText(properties.getApplicationName(), "yak.security.application-name");
+        String applicationName = requireText(properties.getApplicationName(), SECURITY_APPLICATION_NAME_PROPERTY);
         return new MetaObjectHandler() {
             @Override
             public void insertFill(MetaObject metaObject) {
@@ -76,7 +78,7 @@ public class MybatisPlusConfiguration {
     }
 
     private TenantLineHandler securityTenantLineHandler(YakSecurityProperties properties) {
-        String applicationName = requireText(properties.getApplicationName(), "yak.security.application-name");
+        String applicationName = requireText(properties.getApplicationName(), SECURITY_APPLICATION_NAME_PROPERTY);
         return new TenantLineHandler() {
             @Override
             public Expression getTenantId() {

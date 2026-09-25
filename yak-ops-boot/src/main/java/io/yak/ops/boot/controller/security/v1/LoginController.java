@@ -9,6 +9,7 @@ import io.yak.ops.common.enums.security.ResultCode;
 import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.common.result.Result;
 import io.yak.ops.security.authentication.AuthenticationManager;
+import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.service.LoginService;
 import io.yak.ops.security.service.UserService;
 import io.yak.ops.security.web.PublicEndpoint;
@@ -24,13 +25,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 登录相关接口。 */
 @ConditionalOnProperty(
-        prefix = "yak.security",
+        prefix = SecurityConstants.CONFIG_PREFIX,
         name = {"enabled", "database-enabled", "web-enabled"},
         havingValue = "true",
         matchIfMissing = true)
 @Tag(name = "账户认证")
 @RestController
-@RequestMapping("/yak-security/api/v1/account")
+@RequestMapping(SecurityConstants.ACCOUNT_API_PREFIX)
 public class LoginController {
 
     @Resource

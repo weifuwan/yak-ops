@@ -13,6 +13,7 @@ Owns:
 - user management
 - login / logout / current user
 - authentication session runtime
+- stable Security constants shared by Security and Boot
 
 ## Current Product Boundary
 
@@ -24,6 +25,21 @@ Yak Ops 当前只发布两组 Security API：
 Role、Permission、Department、Project、Message、Oplog、Resource、Notification 等旧体系不再属于当前 Security runtime。
 
 Security runtime 统一使用 `io.yak.ops.security` namespace。共享 DTO / VO / Enum 由 `yak-ops-common` 持有，持久化 Entity / Mapper / Repository 由 `yak-ops-dao` 持有。Security 不再保留 legacy `common` package 或 Spring Boot `autoconfigure` package。
+
+## Constant Boundary
+
+`SecurityConstants` 只承载 Security 与 Boot 真实共享、稳定且不可配置的领域契约：
+
+- `CONFIG_PREFIX`
+- Security API 根路径
+- Account / User API Prefix
+- 登录公开路径
+
+Security API 根路径必须基于 `CommonConstants.API_PREFIX` 组合，不重复定义全局 `/api/v1`。
+
+只在一个类使用的校验长度、Pattern、Session key、表名等继续使用该类自己的 `private static final`，不得为了“统一”全部搬进 `SecurityConstants`。
+
+不得在 Common 创建 `SecurityConstants` 副本，也不得重新引入 Role / Permission 等无运行时消费者的权限常量。
 
 ## HTTP Boundary
 

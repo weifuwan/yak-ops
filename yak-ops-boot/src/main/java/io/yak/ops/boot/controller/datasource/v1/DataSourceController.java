@@ -8,7 +8,7 @@ import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
-import io.yak.ops.common.constant.datasource.DataSourceConstants;
+import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import jakarta.annotation.Resource;
@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "数据源管理接口")
 @RestController
 @ConditionalOnDataSourceEnabled
-@RequestMapping(DataSourceConstants.API_PREFIX)
+@RequestMapping(CommonConstants.API_PREFIX + "/data-source")
 public class DataSourceController {
 
     @Resource

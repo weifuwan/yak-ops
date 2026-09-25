@@ -6,6 +6,7 @@ import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
 import io.yak.ops.security.authentication.AuthenticationManager;
+import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.extend.PasswordEncoder;
 import jakarta.annotation.Resource;
 import java.util.Objects;
@@ -19,7 +20,7 @@ import org.springframework.util.StringUtils;
 
 /** User administration operations that require focused persistence updates. */
 @ConditionalOnProperty(
-        prefix = "yak.security",
+        prefix = SecurityConstants.CONFIG_PREFIX,
         name = {"enabled", "database-enabled"},
         havingValue = "true",
         matchIfMissing = true)
