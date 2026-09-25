@@ -13,7 +13,7 @@
 
     <artifactId>yak-ops-business-datasource</artifactId>
     <name>Yak Ops Business Datasource</name>
-    <description>Datasource registration, metadata and connectivity business capabilities</description>
+    <description>Datasource CRUD and connectivity service capabilities</description>
 
     <dependencies>
         <dependency>
@@ -23,11 +23,6 @@
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-dao</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-security</artifactId>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
