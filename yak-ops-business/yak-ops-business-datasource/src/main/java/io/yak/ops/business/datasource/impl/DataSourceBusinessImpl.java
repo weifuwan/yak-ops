@@ -125,6 +125,9 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         if (dto == null) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "分页查询参数不能为空");
         }
+        if (dto.getSorts() != null && !dto.getSorts().isEmpty()) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "数据源分页暂不支持自定义排序");
+        }
         DataSourceEntityRepository.PageQuery query = new DataSourceEntityRepository.PageQuery(
                 dto.getPageNo(),
                 dto.getPageSize(),

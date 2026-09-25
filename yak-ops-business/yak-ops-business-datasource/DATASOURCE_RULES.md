@@ -62,6 +62,8 @@ Datasource HTTP Controller、ControllerAdvice 统一由 `yak-ops-boot` 持有。
 
 Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsing、业务校验、Entity → VO、Plugin descriptor → VO 等业务输出转换归 Business。
 
+数据源分页请求统一由 `DataSourceQueryDTO extends PageQueryDTO` 提供 `pageNo / pageSize / sorts` Contract。当前自定义 `sorts` 在 Repository 排序白名单落地前必须明确拒绝，禁止静默忽略；默认分页排序保持 `updateTime DESC, id DESC` 保证稳定翻页。
+
 本模块只提供 Datasource capability，不创建 `controller` package，也不依赖 Boot。
 
 ## Business Rules
