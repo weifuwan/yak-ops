@@ -58,15 +58,10 @@ export default {
   'pages.datasource.empty.create': '新建数据源',
 
   'pages.datasource.group.relational': '关系型数据库',
-  'pages.datasource.group.olap': 'OLAP 数据库',
-  'pages.datasource.group.document': '文档数据库',
-  'pages.datasource.group.search': '搜索引擎',
   'pages.datasource.typeSelector.title': '选择数据源',
   'pages.datasource.typeSelector.searchPlaceholder': '搜索数据源',
   'pages.datasource.typeSelector.clearSearch': '清空搜索',
-  'pages.datasource.typeSelector.allCategories': '全部分类',
-  'pages.datasource.typeSelector.common': '常用',
-  'pages.datasource.typeSelector.allDataSources': '全部数据源',
+  'pages.datasource.typeSelector.supported': '支持的数据源',
   'pages.datasource.typeSelector.empty': '没有匹配的数据源',
 
   'pages.datasource.modal.title.add': '新建',

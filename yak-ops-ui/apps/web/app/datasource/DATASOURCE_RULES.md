@@ -57,6 +57,18 @@ service/datasource/
 └── types.ts
 ```
 
+## Supported Type Baseline
+
+当前产品内置数据源只展示：
+
+- `MYSQL`
+- `ORACLE`
+- `POSTGRE_SQL`（UI 展示为 PostgreSQL）
+
+Datasource Selector、Toolbar Filter 和本地数据库图标必须保持与后端 built-in provider baseline 一致。
+
+新增数据库类型时，必须先扩展后端 Provider，再单独更新前端产品入口；禁止只在前端增加不可用类型。
+
 ## Editor Ownership
 
 `editor/` 是“编辑一个数据源”的局部工作区。

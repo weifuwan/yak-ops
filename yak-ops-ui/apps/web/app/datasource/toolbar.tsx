@@ -9,15 +9,15 @@ import {
   Tabs,
   TabsList,
   TabsTab,
-} from "@yak-ops/yak-ui";
-import { Search, X } from "lucide-react";
+} from '@yak-ops/yak-ui';
+import { Search, X } from 'lucide-react';
 
-import { useIntl } from "./i18n";
 import {
   COMMON_DB_OPTIONS,
   getDataSourceEnvironmentTabs,
-} from "./constants";
-import DatabaseIcons from "./icons/DatabaseIcons";
+} from './constants';
+import DatabaseIcons from './icons/DatabaseIcons';
+import { useIntl } from './i18n';
 
 interface DataSourceToolbarProps {
   environment?: string;
@@ -30,36 +30,8 @@ interface DataSourceToolbarProps {
   onReset: () => void;
 }
 
-const DB_TYPE_LABELS: Record<string, string> = {
-  MYSQL: "MYSQL",
-  TIDB: "TiDB",
-  GOLDENDB: "GoldenDB",
-  GBASE8C: "GBase 8c",
-  GBASE8A: "GBase 8a",
-  GBASE8S: "GBase 8s",
-  HANA: "SAP HANA",
-  ORACLE: "ORACLE",
-  POSTGRE_SQL: "PostgreSQL",
-  DB2: "IBM Db2",
-  OPEN_GAUSS: "openGauss",
-  SQL_SERVER: "SQL Server",
-  OCEANBASE: "OceanBase",
-  YASHAN_DB: "YashanDB",
-  HIGHGO: "HighGo",
-  IRIS: "InterSystems IRIS",
-  XUGU: "XuguDB",
-  DUCKDB: "DuckDB",
-  DORIS: "Doris",
-  STARROCKS: "StarRocks",
-  CLICKHOUSE: "ClickHouse",
-  ELASTICSEARCH7: "Elasticsearch 7",
-  ELASTICSEARCH8: "Elasticsearch 8",
-  MONGODB: "MongoDB",
-  KINGBASE: "KINGBASE",
-  DAMENG: "DAMENG",
-};
-
-const dbTypeLabel = (value: string) => DB_TYPE_LABELS[value] || value;
+const dbTypeLabel = (value: string) =>
+  COMMON_DB_OPTIONS.find((option) => option.value === value)?.label || value;
 
 const DbTypeLabel = ({ value }: { value: string }) => (
   <span className="flex min-w-0 items-center gap-2">
@@ -87,7 +59,7 @@ const DataSourceToolbar = ({
     <section className="flex min-h-9 items-end justify-between gap-6 border-b border-solid border-[#eceef2] max-xl:flex-col max-xl:items-stretch max-xl:gap-3">
       <div className="flex items-end">
         <Tabs
-          value={environment || "all"}
+          value={environment || 'all'}
           onValueChange={(key) => {
             const target = environmentTabs.find((item) => item.key === key);
             onEnvironmentChange(target?.value);
@@ -116,9 +88,9 @@ const DataSourceToolbar = ({
           >
             <ComboboxInput
               placeholder={intl.formatMessage({
-                id: "pages.datasource.toolbar.typePlaceholder",
+                id: 'pages.datasource.toolbar.typePlaceholder',
               })}
-              className={dbType ? "pr-9 text-xs" : "text-xs"}
+              className={dbType ? 'pr-9 text-xs' : 'text-xs'}
             />
             {dbType ? (
               <Button
@@ -140,7 +112,7 @@ const DataSourceToolbar = ({
               ))}
               <ComboboxEmptyState>
                 {intl.formatMessage({
-                  id: "pages.datasource.typeSelector.empty",
+                  id: 'pages.datasource.typeSelector.empty',
                 })}
               </ComboboxEmptyState>
             </ComboboxContent>
@@ -157,7 +129,7 @@ const DataSourceToolbar = ({
             value={keyword}
             className="pl-9 pr-9 text-xs"
             placeholder={intl.formatMessage({
-              id: "pages.datasource.toolbar.searchPlaceholder",
+              id: 'pages.datasource.toolbar.searchPlaceholder',
             })}
             onChange={(event) => onKeywordChange(event.target.value)}
           />
@@ -168,7 +140,7 @@ const DataSourceToolbar = ({
               type="button"
               aria-label="Clear search"
               className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0 text-[#98a2b3]"
-              onClick={() => onKeywordChange("")}
+              onClick={() => onKeywordChange('')}
             >
               <X size={13} />
             </Button>
@@ -182,11 +154,9 @@ const DataSourceToolbar = ({
             className="h-9 px-2.5 text-[12px] text-[#777c86]"
             onClick={onReset}
           >
-            {intl.formatMessage({ id: "pages.datasource.toolbar.reset" })}
+            {intl.formatMessage({ id: 'pages.datasource.toolbar.reset' })}
           </Button>
         ) : null}
-
-
       </div>
     </section>
   );

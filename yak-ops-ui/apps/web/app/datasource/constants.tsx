@@ -6,7 +6,7 @@ import type {
   DataSourceOptionItem,
   DataSourceSummary,
   PaginationInfo,
-} from "./types";
+} from './types';
 
 interface IntlFormatter {
   formatMessage: (descriptor: { id: string }) => string;
@@ -29,32 +29,9 @@ export const EMPTY_DATA_SOURCE_SUMMARY: DataSourceSummary = {
 };
 
 export const COMMON_DB_OPTIONS: DataSourceOptionItem[] = [
-  { label: 'MYSQL', value: 'MYSQL' },
-  { label: 'TIDB', value: 'TIDB' },
-  { label: 'GOLDENDB', value: 'GOLDENDB' },
-  { label: 'GBASE8C', value: 'GBASE8C' },
-  { label: 'GBASE8A', value: 'GBASE8A' },
-  { label: 'GBASE8S', value: 'GBASE8S' },
-  { label: 'HANA', value: 'HANA' },
-  { label: 'ORACLE', value: 'ORACLE' },
-  { label: 'POSTGRE_SQL', value: 'POSTGRE_SQL' },
-  { label: 'DB2', value: 'DB2' },
-  { label: 'OPEN_GAUSS', value: 'OPEN_GAUSS' },
-  { label: 'SQL_SERVER', value: 'SQL_SERVER' },
-  { label: 'OCEANBASE', value: 'OCEANBASE' },
-  { label: 'YASHAN_DB', value: 'YASHAN_DB' },
-  { label: 'HIGHGO', value: 'HIGHGO' },
-  { label: 'IRIS', value: 'IRIS' },
-  { label: 'XUGU', value: 'XUGU' },
-  { label: 'DUCKDB', value: 'DUCKDB' },
-  { label: 'DORIS', value: 'DORIS' },
-  { label: 'STARROCKS', value: 'STARROCKS' },
-  { label: 'CLICKHOUSE', value: 'CLICKHOUSE' },
-  { label: 'ELASTICSEARCH7', value: 'ELASTICSEARCH7' },
-  { label: 'ELASTICSEARCH8', value: 'ELASTICSEARCH8' },
-  { label: 'MONGODB', value: 'MONGODB' },
-  { label: 'KINGBASE', value: 'KINGBASE' },
-  { label: 'DAMENG', value: 'DAMENG' },
+  { label: 'MySQL', value: 'MYSQL' },
+  { label: 'Oracle', value: 'ORACLE' },
+  { label: 'PostgreSQL', value: 'POSTGRE_SQL' },
 ];
 
 export const ENVIRONMENT_OPTIONS: DataSourceOptionItem[] = [
@@ -70,60 +47,14 @@ const relationalDataSource = (dbType: string) => ({
   connectorType: 'Jdbc',
 });
 
-const typedDataSource = (dbType: string, connectorType: string) => ({
-  onlyDiScript: false,
-  dbType,
-  type: dbType,
-  connectorType,
-});
-
 export const getDataSourceGroupList = (intl: IntlFormatter): DataSourceGroup[] => [
   {
     groupKey: 'relational',
     groupName: intl.formatMessage({ id: 'pages.datasource.group.relational' }),
     datasourceList: [
       relationalDataSource('MYSQL'),
-      relationalDataSource('TIDB'),
-      relationalDataSource('GOLDENDB'),
-      relationalDataSource('GBASE8C'),
-      relationalDataSource('GBASE8A'),
-      relationalDataSource('GBASE8S'),
-      relationalDataSource('HANA'),
       relationalDataSource('ORACLE'),
       relationalDataSource('POSTGRE_SQL'),
-      relationalDataSource('DB2'),
-      relationalDataSource('OPEN_GAUSS'),
-      relationalDataSource('SQL_SERVER'),
-      relationalDataSource('OCEANBASE'),
-      relationalDataSource('YASHAN_DB'),
-      relationalDataSource('HIGHGO'),
-      relationalDataSource('IRIS'),
-      relationalDataSource('XUGU'),
-      relationalDataSource('KINGBASE'),
-      relationalDataSource('DAMENG'),
-    ],
-  },
-  {
-    groupKey: 'olap',
-    groupName: intl.formatMessage({ id: 'pages.datasource.group.olap' }),
-    datasourceList: [
-      typedDataSource('DORIS', 'Doris'),
-      typedDataSource('STARROCKS', 'StarRocks'),
-      typedDataSource('CLICKHOUSE', 'ClickHouse'),
-      typedDataSource('DUCKDB', 'Jdbc'),
-    ],
-  },
-  {
-    groupKey: 'document',
-    groupName: intl.formatMessage({ id: 'pages.datasource.group.document' }),
-    datasourceList: [typedDataSource('MONGODB', 'MongoDB')],
-  },
-  {
-    groupKey: 'search',
-    groupName: intl.formatMessage({ id: 'pages.datasource.group.search' }),
-    datasourceList: [
-      typedDataSource('ELASTICSEARCH7', 'Elasticsearch7'),
-      typedDataSource('ELASTICSEARCH8', 'Elasticsearch8'),
     ],
   },
 ];
