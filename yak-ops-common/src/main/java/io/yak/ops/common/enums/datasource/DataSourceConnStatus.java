@@ -4,7 +4,12 @@ import java.util.Locale;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/** 数据源连通状态。 */
+/**
+ * 数据源连通状态。
+ *
+ * @author weifuwan
+ * @since 2026-09-25
+ */
 @Getter
 @RequiredArgsConstructor
 public enum DataSourceConnStatus {

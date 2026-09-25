@@ -4,7 +4,12 @@ import io.yak.ops.common.ErrorCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/** 数据源管理业务错误码。 */
+/**
+ * 数据源管理业务错误码。
+ *
+ * @author weifuwan
+ * @since 2026-09-25
+ */
 @Getter
 @RequiredArgsConstructor
 public enum DataSourceErrorCode implements ErrorCode {

@@ -1,8 +1,17 @@
 package io.yak.ops.common.enums.security;
 
 import io.yak.ops.common.ErrorCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-/** User/login result codes owned by Yak Security. */
+/**
+ * 用户与登录能力共享的业务结果码。
+ *
+ * @author weifuwan
+ * @since 2026-09-25
+ */
+@Getter
+@RequiredArgsConstructor
 public enum ResultCode implements ErrorCode {
     SUCCESS(200, "成功"),
     COMMON_FAIL(999, "失败"),
@@ -38,21 +47,6 @@ public enum ResultCode implements ErrorCode {
 
     private final Integer code;
     private final String message;
-
-    ResultCode(Integer code, String message) {
-        this.code = code;
-        this.message = message;
-    }
-
-    @Override
-    public Integer getCode() {
-        return code;
-    }
-
-    @Override
-    public String getMessage() {
-        return message;
-    }
 
     public static String getMessageByCode(Integer code) {
         for (ResultCode value : values()) {
