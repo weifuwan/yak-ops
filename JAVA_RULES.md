@@ -174,9 +174,27 @@ Must Not:
 ## Lombok
 
 - Lombok is allowed when it removes obvious boilerplate.
-- Prefer focused annotations such as `@Getter`, `@RequiredArgsConstructor` and `@Slf4j`.
+- Prefer focused annotations such as `@Getter` and `@RequiredArgsConstructor`.
+- Do not use Lombok `@Slf4j`; logging follows `LOGGING_RULES.md` and declares SLF4J `Logger` explicitly.
 - Do not use Lombok when generated behavior hides important invariants, lifecycle rules or security-sensitive behavior.
 - Do not add Lombok only to save one trivial method if it makes the class contract less obvious.
+
+## Logging
+
+Production logging follows `LOGGING_RULES.md`.
+
+Must:
+- Use SLF4J `Logger` + `LoggerFactory`; declare `private static final Logger LOG = LoggerFactory.getLogger(Xxx.class)`.
+- Repository-owned log messages use Chinese event descriptions with stable English keys, for example `"数据源创建完成，dataSourceId={}, type={}"`.
+- Use SLF4J `{}` placeholders instead of string concatenation or `String.format`.
+- Log exceptions once at the final handling boundary; a layer that only wraps and rethrows an exception must not log the same failure first.
+- Never log passwords, tokens, authorization headers, cookies, session identifiers, secret keys, unmasked connection JSON, credential-bearing JDBC URLs or complete request/data objects.
+
+Must Not:
+- Use `System.out`, `System.err` or `printStackTrace` for application diagnostics.
+- Add `LogUtils`, custom logger factories, logging managers or other wrappers around SLF4J.
+- Add method-entry/method-exit logs, ordinary read/query logs or loop-level INFO logs only to make execution look observable.
+- Use `TRACE` in V1 application code.
 
 ## Naming and Abstraction
 

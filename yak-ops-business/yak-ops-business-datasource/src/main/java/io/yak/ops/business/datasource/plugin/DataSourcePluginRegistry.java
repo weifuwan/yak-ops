@@ -15,7 +15,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,9 +27,10 @@ import org.springframework.stereotype.Component;
  * @author weifuwan
  * @since 2026-09-25
  */
-@Slf4j
 @Component
 public class DataSourcePluginRegistry {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DataSourcePluginRegistry.class);
 
     @Resource
     private DataSourceSecretCodec secretCodec;
@@ -51,8 +53,8 @@ public class DataSourcePluginRegistry {
             for (String alias : plugin.descriptor().aliases()) {
                 register(discovered, alias, plugin);
             }
-            log.info(
-                    "Registered datasource plugin: type={}, aliases={}, apiVersion={}, capabilities={}, implementation={}",
+            LOG.info(
+                    "数据源插件注册完成，type={}, aliases={}, apiVersion={}, capabilities={}, implementation={}",
                     plugin.descriptor().type(),
                     plugin.descriptor().aliases(),
                     plugin.descriptor().apiVersion(),

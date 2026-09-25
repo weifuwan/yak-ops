@@ -23,6 +23,9 @@ JAVA_RULES.md
 Then load only the nearest rules touched by the task:
 
 ```text
+logging / logger / log level / runtime logging
+→ LOGGING_RULES.md
+
 **/controller/**
 → CONTROLLER_RULES.md
 

@@ -60,8 +60,16 @@ yak:
     connection-test-timeout-seconds: ${YAK_DATASOURCE_CONNECT_TIMEOUT_SECONDS:5}
 
 logging:
+  file:
+    name: ${YAK_LOG_FILE:logs/yak-ops.log}
   level:
     root: INFO
-    io.yak.ops: INFO
-    io.yak.ops.security: DEBUG
+    io.yak.ops: ${YAK_LOG_LEVEL:INFO}
     org.flywaydb: INFO
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${YAK_LOG_FILE_PATTERN:logs/yak-ops.%d{yyyy-MM-dd}.%i.log.gz}
+      clean-history-on-start: true
+      max-file-size: ${YAK_LOG_MAX_FILE_SIZE:100MB}
+      max-history: ${YAK_LOG_MAX_HISTORY:7}
+      total-size-cap: ${YAK_LOG_TOTAL_SIZE_CAP:5GB}

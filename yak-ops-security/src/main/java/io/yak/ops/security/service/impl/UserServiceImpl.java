@@ -49,7 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service("yakSecurityUserServiceImpl")
 public class UserServiceImpl implements UserService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(UserServiceImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(UserServiceImpl.class);
     private static final Pattern USER_NAME_PATTERN = Pattern.compile("^[0-9a-zA-Z_]{3,50}$");
     private static final Pattern USER_PHONE_PATTERN =
             Pattern.compile("^(13[0-9]|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18[0-9]|19[0-35-9])\\d{8}$");
@@ -138,7 +138,7 @@ public class UserServiceImpl implements UserService {
         user.initUpdate(operator);
         userRepository.update(user);
         invalidateUserSessions(userId);
-        LOGGER.info("管理员重置用户密码成功，用户ID={}，用户名={}，操作人={}", userId, user.getUserName(), operator);
+        LOG.info("管理员重置用户密码完成，userId={}, userName={}, operator={}", userId, user.getUserName(), operator);
         return Result.success();
     }
 
@@ -186,12 +186,11 @@ public class UserServiceImpl implements UserService {
             user.setPw(passwordEncoder.encode(userDTO.getPw()));
             user.initCreate(operator);
             userRepository.add(user);
-            LOGGER.info("新增用户成功，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
+            LOG.info("新增用户完成，userId={}, userName={}, operator={}", user.getId(), user.getUserName(), operator);
             return Result.success();
         } catch (YakSecurityException exception) {
             throw exception;
         } catch (Exception exception) {
-            LOGGER.error("新增用户失败，用户名={}，操作人={}", userDTO.getUserName(), operator, exception);
             throw new YakSecurityException(SecurityErrorCode.USER_ACCOUNT_INSERT_FAIL, exception);
         }
     }
@@ -218,14 +217,12 @@ public class UserServiceImpl implements UserService {
             userRepository.update(user);
             if (StringUtils.isNotBlank(userDTO.getPw())) {
                 invalidateUserSessions(user.getId());
-                LOGGER.info("用户密码变更后清理登录态，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
             }
-            LOGGER.info("编辑用户成功，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
+            LOG.info("编辑用户完成，userId={}, userName={}, operator={}", user.getId(), user.getUserName(), operator);
             return Result.success();
         } catch (YakSecurityException exception) {
             throw exception;
         } catch (Exception exception) {
-            LOGGER.error("编辑用户失败，用户名={}，操作人={}", userDTO.getUserName(), operator, exception);
             throw new YakSecurityException(SecurityErrorCode.USER_ACCOUNT_UPDATE_FAIL, exception);
         }
     }
