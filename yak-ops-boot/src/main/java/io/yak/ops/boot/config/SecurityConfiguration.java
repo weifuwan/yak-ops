@@ -48,7 +48,8 @@ public class SecurityConfiguration {
             havingValue = "true",
             matchIfMissing = true)
     AuthenticationManager authenticationManager(YakSecurityProperties properties) {
-        return new HttpSessionAuthenticationManager(properties.getAuthentication().getIdleTimeout());
+        return new HttpSessionAuthenticationManager(
+                properties.getAuthentication().getIdleTimeout());
     }
 
     @Bean
@@ -61,7 +62,8 @@ public class SecurityConfiguration {
         return new WebMvcConfigurer() {
             @Override
             public void addInterceptors(InterceptorRegistry registry) {
-                registry.addInterceptor(new YakAuthenticationInterceptor(loginService, properties)).addPathPatterns("/**");
+                registry.addInterceptor(new YakAuthenticationInterceptor(loginService, properties))
+                        .addPathPatterns("/**");
             }
         };
     }
