@@ -30,7 +30,6 @@ public record SshTunnelConfig(
         boolean strictHostKeyChecking,
         String knownHosts) {
 
-
     /** @return 关闭 SSH 隧道的默认配置 */
     public static SshTunnelConfig disabled() {
         return new SshTunnelConfig(false, null, 22, null, SshAuthType.PASSWORD, null, null, null, false, null);

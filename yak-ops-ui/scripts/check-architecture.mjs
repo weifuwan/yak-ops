@@ -163,9 +163,9 @@ for (const path of files) {
   if (relativePath.endsWith("package.json")) {
     const packageJson = JSON.parse(content);
     const dependencies = {
-      ...(packageJson.dependencies ?? {}),
-      ...(packageJson.devDependencies ?? {}),
-      ...(packageJson.peerDependencies ?? {}),
+      ...packageJson.dependencies,
+      ...packageJson.devDependencies,
+      ...packageJson.peerDependencies,
     };
 
     for (const dependency of Object.keys(dependencies)) {

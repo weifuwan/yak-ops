@@ -1,4 +1,4 @@
-import { Badge, Button, Spinner, type BadgeProps } from "@yak-ops/yak-ui";
+import { Badge, Button, type BadgeProps } from "@yak-ops/yak-ui";
 import { CircleCheck, CircleMinus, CircleX, Pencil, Trash2, Unplug } from "lucide-react";
 import type { ReactNode } from "react";
 
