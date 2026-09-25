@@ -12,17 +12,25 @@ export type FieldLabelProps = Omit<BaseFieldNS.Label.Props, "className"> & { cla
 export function FieldLabel({ className, ...props }: FieldLabelProps) {
   return (
     <BaseField.Label
-      className={cn("w-fit text-[13px] font-medium leading-5 text-[var(--yak-components-field-label)] data-disabled:cursor-not-allowed", className)}
+      className={cn(
+        "w-fit text-[13px] font-medium leading-5 text-[var(--yak-components-field-label)] data-disabled:cursor-not-allowed",
+        className,
+      )}
       {...props}
     />
   );
 }
 
-export type FieldDescriptionProps = Omit<BaseFieldNS.Description.Props, "className"> & { className?: string };
+export type FieldDescriptionProps = Omit<BaseFieldNS.Description.Props, "className"> & {
+  className?: string;
+};
 export function FieldDescription({ className, ...props }: FieldDescriptionProps) {
   return (
     <BaseField.Description
-      className={cn("text-[11px] leading-4 text-[var(--yak-components-field-description)]", className)}
+      className={cn(
+        "text-[11px] leading-4 text-[var(--yak-components-field-description)]",
+        className,
+      )}
       {...props}
     />
   );

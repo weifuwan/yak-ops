@@ -1,14 +1,6 @@
-import {
-  createContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useEffect, useState, type ReactNode } from "react";
 
-import {
-  getCurrentUser,
-  type AuthUser,
-} from "@/service/auth";
+import { getCurrentUser, type AuthUser } from "@/service/auth";
 
 export interface AuthContextValue {
   currentUser?: AuthUser;

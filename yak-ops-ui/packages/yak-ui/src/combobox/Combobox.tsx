@@ -28,10 +28,7 @@ export function ComboboxInput({ className, ...props }: ComboboxInputProps) {
   );
 }
 
-export type ComboboxContentProps = Omit<
-  BaseCombobox.Popup.Props,
-  "children" | "className"
-> & {
+export type ComboboxContentProps = Omit<BaseCombobox.Popup.Props, "children" | "className"> & {
   children: ReactNode;
   className?: string;
   side?: BaseCombobox.Positioner.Props["side"];
@@ -79,10 +76,7 @@ export type ComboboxItemProps<Value = unknown> = Omit<
   value?: Value;
 };
 
-export function ComboboxItem<Value = unknown>({
-  className,
-  ...props
-}: ComboboxItemProps<Value>) {
+export function ComboboxItem<Value = unknown>({ className, ...props }: ComboboxItemProps<Value>) {
   return (
     <BaseCombobox.Item
       {...props}
@@ -102,10 +96,7 @@ export type ComboboxEmptyProps = Omit<BaseCombobox.Empty.Props, "className"> & {
   className?: string;
 };
 
-export function ComboboxEmptyState({
-  className,
-  ...props
-}: ComboboxEmptyProps) {
+export function ComboboxEmptyState({ className, ...props }: ComboboxEmptyProps) {
   return (
     <BaseCombobox.Empty
       className={cn(

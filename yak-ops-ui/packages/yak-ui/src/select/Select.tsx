@@ -9,10 +9,9 @@ export type SelectProps<
   Multiple extends boolean | undefined = false,
 > = BaseSelect.Root.Props<Value, Multiple>;
 
-export function Select<
-  Value,
-  Multiple extends boolean | undefined = false,
->(props: SelectProps<Value, Multiple>) {
+export function Select<Value, Multiple extends boolean | undefined = false>(
+  props: SelectProps<Value, Multiple>,
+) {
   return <BaseSelect.Root {...props} />;
 }
 
@@ -41,35 +40,17 @@ const selectTriggerVariants = cva(
   },
 );
 
-export type SelectTriggerProps = Omit<
-  BaseSelect.Trigger.Props,
-  "className"
-> &
+export type SelectTriggerProps = Omit<BaseSelect.Trigger.Props, "className"> &
   VariantProps<typeof selectTriggerVariants> & {
     className?: string;
   };
 
-export function SelectTrigger({
-  children,
-  className,
-  size,
-  ...props
-}: SelectTriggerProps) {
+export function SelectTrigger({ children, className, size, ...props }: SelectTriggerProps) {
   return (
-    <BaseSelect.Trigger
-      {...props}
-      className={cn(selectTriggerVariants({ size }), className)}
-    >
+    <BaseSelect.Trigger {...props} className={cn(selectTriggerVariants({ size }), className)}>
       <span className="min-w-0 flex-1 truncate">{children}</span>
-      <BaseSelect.Icon
-        className="shrink-0 text-[var(--yak-components-input-icon)] transition-transform duration-150 group-data-popup-open/select-trigger:rotate-180 motion-reduce:transition-none"
-      >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 20 20"
-          className="size-4"
-          fill="none"
-        >
+      <BaseSelect.Icon className="shrink-0 text-[var(--yak-components-input-icon)] transition-transform duration-150 group-data-popup-open/select-trigger:rotate-180 motion-reduce:transition-none">
+        <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4" fill="none">
           <path
             d="m6 8 4 4 4-4"
             stroke="currentColor"
@@ -83,26 +64,15 @@ export function SelectTrigger({
   );
 }
 
-export type SelectValueProps = Omit<
-  BaseSelect.Value.Props,
-  "className"
-> & {
+export type SelectValueProps = Omit<BaseSelect.Value.Props, "className"> & {
   className?: string;
 };
 
 export function SelectValue({ className, ...props }: SelectValueProps) {
-  return (
-    <BaseSelect.Value
-      {...props}
-      className={cn("min-w-0 truncate", className)}
-    />
-  );
+  return <BaseSelect.Value {...props} className={cn("min-w-0 truncate", className)} />;
 }
 
-export type SelectContentProps = Omit<
-  BaseSelect.Popup.Props,
-  "children" | "className"
-> & {
+export type SelectContentProps = Omit<BaseSelect.Popup.Props, "children" | "className"> & {
   children: ReactNode;
   className?: string;
   positionerClassName?: string;
@@ -156,10 +126,7 @@ export type SelectItemProps<Value = unknown> = Omit<
   value?: Value;
 };
 
-export function SelectItem<Value = unknown>({
-  className,
-  ...props
-}: SelectItemProps<Value>) {
+export function SelectItem<Value = unknown>({ className, ...props }: SelectItemProps<Value>) {
   return (
     <BaseSelect.Item
       {...props}
@@ -173,23 +140,12 @@ export function SelectItem<Value = unknown>({
   );
 }
 
-export type SelectItemTextProps = Omit<
-  BaseSelect.ItemText.Props,
-  "className"
-> & {
+export type SelectItemTextProps = Omit<BaseSelect.ItemText.Props, "className"> & {
   className?: string;
 };
 
-export function SelectItemText({
-  className,
-  ...props
-}: SelectItemTextProps) {
-  return (
-    <BaseSelect.ItemText
-      {...props}
-      className={cn("min-w-0 flex-1 truncate", className)}
-    />
-  );
+export function SelectItemText({ className, ...props }: SelectItemTextProps) {
+  return <BaseSelect.ItemText {...props} className={cn("min-w-0 flex-1 truncate", className)} />;
 }
 
 export type SelectItemIndicatorProps = Omit<
@@ -199,10 +155,7 @@ export type SelectItemIndicatorProps = Omit<
   className?: string;
 };
 
-export function SelectItemIndicator({
-  className,
-  ...props
-}: SelectItemIndicatorProps) {
+export function SelectItemIndicator({ className, ...props }: SelectItemIndicatorProps) {
   return (
     <BaseSelect.ItemIndicator
       {...props}
@@ -211,12 +164,7 @@ export function SelectItemIndicator({
         className,
       )}
     >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 20 20"
-        className="size-4"
-        fill="none"
-      >
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4" fill="none">
         <path
           d="m5.5 10 3 3 6-6"
           stroke="currentColor"

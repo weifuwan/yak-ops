@@ -1,9 +1,11 @@
 # Web App Rules
 
 Scope:
+
 - `yak-ops-ui/apps/web/**`
 
 Owns:
+
 - Product domains
 - Router / Layout
 - Application context

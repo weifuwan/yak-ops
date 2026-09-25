@@ -1,9 +1,9 @@
-import { Database } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { Database } from "lucide-react";
+import type { CSSProperties } from "react";
 
-import MysqlIcon from './MysqlIcon';
-import OracleIcon from './OracleIcon';
-import PsSqlIcon from './PsSqlIcon';
+import MysqlIcon from "./MysqlIcon";
+import OracleIcon from "./OracleIcon";
+import PsSqlIcon from "./PsSqlIcon";
 
 interface DatabaseIconsProps {
   dbType?: string;
@@ -11,29 +11,27 @@ interface DatabaseIconsProps {
   height?: string;
 }
 
-const DatabaseIcons = ({
-  dbType,
-  width = '20px',
-  height = '20px',
-}: DatabaseIconsProps) => {
-  const normalizedType = String(dbType || '').trim().toLowerCase();
+const DatabaseIcons = ({ dbType, width = "20px", height = "20px" }: DatabaseIconsProps) => {
+  const normalizedType = String(dbType || "")
+    .trim()
+    .toLowerCase();
   const fallbackStyle: CSSProperties = {
     fontSize: width,
     width,
     height,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
   };
 
   switch (normalizedType) {
-    case 'mysql':
+    case "mysql":
       return <MysqlIcon width={width} height={height} />;
-    case 'oracle':
+    case "oracle":
       return <OracleIcon width={width} height={height} />;
-    case 'postgre_sql':
-    case 'postgresql':
-    case 'postgres':
+    case "postgre_sql":
+    case "postgresql":
+    case "postgres":
       return <PsSqlIcon width={width} height={height} />;
     default:
       return <Database style={fallbackStyle} strokeWidth={1.7} />;

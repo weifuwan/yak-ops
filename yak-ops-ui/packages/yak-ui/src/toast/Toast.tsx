@@ -72,7 +72,10 @@ function ToastHost() {
               )}
             >
               <BaseToast.Content className="flex items-start gap-3">
-                <span aria-hidden="true" className={cn("mt-1 size-2 shrink-0 rounded-full bg-current", toneClass[tone])} />
+                <span
+                  aria-hidden="true"
+                  className={cn("mt-1 size-2 shrink-0 rounded-full bg-current", toneClass[tone])}
+                />
                 <div className="min-w-0 flex-1">
                   <BaseToast.Title className="text-[13px] font-semibold text-[var(--yak-components-panel-text)]" />
                   {item.description ? (

@@ -1,10 +1,6 @@
 export type DataSourceId = string;
 
-export type DataSourceConnectionStatus =
-  | "UNKNOWN"
-  | "CONNECTED"
-  | "DISCONNECTED"
-  | string;
+export type DataSourceConnectionStatus = "UNKNOWN" | "CONNECTED" | "DISCONNECTED" | string;
 
 export interface PaginationInfo {
   pageNo: number;

@@ -7,7 +7,15 @@ export type TabsProps = BaseTabs.Root.Props;
 
 export type TabsListProps = Omit<BaseTabs.List.Props, "className"> & { className?: string };
 export function TabsList({ className, ...props }: TabsListProps) {
-  return <BaseTabs.List className={cn("flex items-end gap-7 border-b border-[var(--yak-components-control-border)]", className)} {...props} />;
+  return (
+    <BaseTabs.List
+      className={cn(
+        "flex items-end gap-7 border-b border-[var(--yak-components-control-border)]",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export type TabsTabProps = Omit<BaseTabs.Tab.Props, "className"> & { className?: string };

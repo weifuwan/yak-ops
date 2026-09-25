@@ -54,9 +54,7 @@ export default function AppLayout() {
           <DropdownMenu>
             <DropdownMenuTrigger className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left outline-none hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-black/10">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-sm font-semibold shadow-sm">
-                {(currentUser?.name ?? currentUser?.userName ?? "Y")
-                  .slice(0, 1)
-                  .toUpperCase()}
+                {(currentUser?.name ?? currentUser?.userName ?? "Y").slice(0, 1).toUpperCase()}
               </span>
               <span className="min-w-0 flex-1 truncate text-sm">
                 {currentUser?.name ?? currentUser?.userName ?? "当前用户"}
@@ -70,9 +68,7 @@ export default function AppLayout() {
                   {currentUser?.name ?? currentUser?.userName ?? "当前用户"}
                 </div>
                 {currentUser?.email ? (
-                  <div className="mt-0.5 text-xs text-black/45">
-                    {currentUser.email}
-                  </div>
+                  <div className="mt-0.5 text-xs text-black/45">{currentUser.email}</div>
                 ) : null}
               </div>
 

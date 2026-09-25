@@ -103,12 +103,18 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
 
   const validate = () => {
     const next: FormErrors = {};
-    if (!values.name.trim()) next.name = intl.formatMessage({ id: "pages.datasource.form.dsNameRequired" });
-    if (!values.dbType) next.dbType = intl.formatMessage({ id: "pages.datasource.form.dbTypeRequired" });
-    if (!values.jdbcUrl.trim()) next.jdbcUrl = intl.formatMessage({ id: "pages.datasource.form.jdbcUrlRequired" });
-    if (!values.username.trim()) next.username = intl.formatMessage({ id: "pages.datasource.form.usernameRequired" });
-    if (values.name.length > 128) next.name = intl.formatMessage({ id: "pages.datasource.form.dsNameMax" });
-    if (values.remark.length > 500) next.remark = intl.formatMessage({ id: "pages.datasource.form.descriptionMax" });
+    if (!values.name.trim())
+      next.name = intl.formatMessage({ id: "pages.datasource.form.dsNameRequired" });
+    if (!values.dbType)
+      next.dbType = intl.formatMessage({ id: "pages.datasource.form.dbTypeRequired" });
+    if (!values.jdbcUrl.trim())
+      next.jdbcUrl = intl.formatMessage({ id: "pages.datasource.form.jdbcUrlRequired" });
+    if (!values.username.trim())
+      next.username = intl.formatMessage({ id: "pages.datasource.form.usernameRequired" });
+    if (values.name.length > 128)
+      next.name = intl.formatMessage({ id: "pages.datasource.form.dsNameMax" });
+    if (values.remark.length > 500)
+      next.remark = intl.formatMessage({ id: "pages.datasource.form.descriptionMax" });
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -251,7 +257,10 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
               <Input
                 value={values.jdbcUrl}
                 aria-invalid={Boolean(errors.jdbcUrl) || undefined}
-                placeholder={JDBC_URL_PLACEHOLDERS[values.dbType] || intl.formatMessage({ id: "pages.datasource.form.jdbcUrlPlaceholder" })}
+                placeholder={
+                  JDBC_URL_PLACEHOLDERS[values.dbType] ||
+                  intl.formatMessage({ id: "pages.datasource.form.jdbcUrlPlaceholder" })
+                }
                 onChange={(event) => patch("jdbcUrl", event.target.value)}
               />
               {fieldError("jdbcUrl")}
@@ -264,7 +273,9 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
               <Input
                 value={values.username}
                 aria-invalid={Boolean(errors.username) || undefined}
-                placeholder={intl.formatMessage({ id: "pages.datasource.form.usernamePlaceholder" })}
+                placeholder={intl.formatMessage({
+                  id: "pages.datasource.form.usernamePlaceholder",
+                })}
                 onChange={(event) => patch("username", event.target.value)}
               />
               {fieldError("username")}
@@ -276,7 +287,9 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
               </span>
               <PasswordInput
                 value={values.password}
-                placeholder={intl.formatMessage({ id: "pages.datasource.form.passwordPlaceholder" })}
+                placeholder={intl.formatMessage({
+                  id: "pages.datasource.form.passwordPlaceholder",
+                })}
                 onChange={(event) => patch("password", event.target.value)}
               />
             </label>
@@ -290,7 +303,9 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
                 maxLength={500}
                 value={values.remark}
                 aria-invalid={Boolean(errors.remark) || undefined}
-                placeholder={intl.formatMessage({ id: "pages.datasource.form.descriptionPlaceholder" })}
+                placeholder={intl.formatMessage({
+                  id: "pages.datasource.form.descriptionPlaceholder",
+                })}
                 onValueChange={(value) => patch("remark", value)}
               />
               {fieldError("remark")}

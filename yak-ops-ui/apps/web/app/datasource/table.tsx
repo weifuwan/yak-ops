@@ -99,7 +99,10 @@ const DataSourceTable = ({
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#eceef2] bg-white">
                         <DatabaseIcons dbType={record.dbType} width="22" height="22" />
                       </span>
-                      <span className="truncate text-sm font-medium text-[#252832]" title={record.name}>
+                      <span
+                        className="truncate text-sm font-medium text-[#252832]"
+                        title={record.name}
+                      >
                         {record.name || "-"}
                       </span>
                     </div>
@@ -123,7 +126,9 @@ const DataSourceTable = ({
                         variant="ghost"
                         size="small"
                         title={intl.formatMessage({ id: "pages.datasource.table.testConnection" })}
-                        aria-label={intl.formatMessage({ id: "pages.datasource.table.testConnection" })}
+                        aria-label={intl.formatMessage({
+                          id: "pages.datasource.table.testConnection",
+                        })}
                         className="h-8 w-8 p-0"
                         loading={testingId === id}
                         disabled={Boolean(testingId) && testingId !== id}

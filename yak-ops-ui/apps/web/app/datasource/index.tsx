@@ -26,7 +26,11 @@ import {
   listDataSources,
   testDataSourceConnection,
 } from "@/service/datasource";
-import { COMMON_DB_OPTIONS, CONNECTION_STATUS_OPTIONS, DATA_SOURCE_PAGE_SIZE_OPTIONS } from "./constants";
+import {
+  COMMON_DB_OPTIONS,
+  CONNECTION_STATUS_OPTIONS,
+  DATA_SOURCE_PAGE_SIZE_OPTIONS,
+} from "./constants";
 import DataSourceForm from "./form";
 import { useIntl } from "./i18n";
 import DataSourceTable from "./table";
@@ -182,7 +186,9 @@ const DataSourcePage = () => {
               <Input
                 value={keyword}
                 className="pl-9"
-                placeholder={intl.formatMessage({ id: "pages.datasource.toolbar.searchPlaceholder" })}
+                placeholder={intl.formatMessage({
+                  id: "pages.datasource.toolbar.searchPlaceholder",
+                })}
                 onChange={(event) => setKeyword(event.target.value)}
               />
             </div>
@@ -193,11 +199,17 @@ const DataSourcePage = () => {
                 onValueChange={(value) => setDbType(value && value !== "ALL" ? value : undefined)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={intl.formatMessage({ id: "pages.datasource.toolbar.typePlaceholder" })} />
+                  <SelectValue
+                    placeholder={intl.formatMessage({
+                      id: "pages.datasource.toolbar.typePlaceholder",
+                    })}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">
-                    <SelectItemText>{intl.formatMessage({ id: "pages.datasource.toolbar.allTypes" })}</SelectItemText>
+                    <SelectItemText>
+                      {intl.formatMessage({ id: "pages.datasource.toolbar.allTypes" })}
+                    </SelectItemText>
                     <SelectItemIndicator />
                   </SelectItem>
                   {COMMON_DB_OPTIONS.map((option) => (
@@ -213,19 +225,29 @@ const DataSourcePage = () => {
             <div className="w-[150px]">
               <Select
                 value={connStatus || "ALL"}
-                onValueChange={(value) => setConnStatus(value && value !== "ALL" ? value : undefined)}
+                onValueChange={(value) =>
+                  setConnStatus(value && value !== "ALL" ? value : undefined)
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={intl.formatMessage({ id: "pages.datasource.toolbar.statusPlaceholder" })} />
+                  <SelectValue
+                    placeholder={intl.formatMessage({
+                      id: "pages.datasource.toolbar.statusPlaceholder",
+                    })}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">
-                    <SelectItemText>{intl.formatMessage({ id: "pages.datasource.toolbar.allStatuses" })}</SelectItemText>
+                    <SelectItemText>
+                      {intl.formatMessage({ id: "pages.datasource.toolbar.allStatuses" })}
+                    </SelectItemText>
                     <SelectItemIndicator />
                   </SelectItem>
                   {CONNECTION_STATUS_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      <SelectItemText>{intl.formatMessage({ id: option.messageId })}</SelectItemText>
+                      <SelectItemText>
+                        {intl.formatMessage({ id: option.messageId })}
+                      </SelectItemText>
                       <SelectItemIndicator />
                     </SelectItem>
                   ))}

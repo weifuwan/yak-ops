@@ -1,19 +1,23 @@
 # Yak UI Rules
 
 Scope:
+
 - `yak-ops-ui/packages/yak-ui/**`
 
 Depends On:
+
 - `../../FRONTEND_RULES.md`
 - `../../ARCHITECTURE.md`
 
 Owns:
+
 - Yak Ops business-agnostic UI Primitive
 - Primitive public Props Contract
 - keyboard / focus / disabled / accessibility behavior
 - Yak UI Design Token and visual state
 
 Public Import:
+
 - `@yak-ops/yak-ui`
 
 ## Dependency Direction
