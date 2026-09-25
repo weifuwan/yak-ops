@@ -18,7 +18,10 @@ interface InternalSorterState {
 export interface TableSorterHookResult<RecordType extends object> {
   columns: TableColumns<RecordType>;
   sorter: TableSorterResult<RecordType>;
-  sortData: (data: readonly RecordType[]) => readonly RecordType[];
+  sortData: (
+    data: readonly RecordType[],
+    sorterOverride?: TableSorterResult<RecordType>,
+  ) => readonly RecordType[];
 }
 
 const getInitialSorterState = <RecordType extends object>(
@@ -132,17 +135,29 @@ export function useSorter<RecordType extends object>(
     };
   });
 
-  const sortData = (data: readonly RecordType[]): readonly RecordType[] => {
+  const sortData = (
+    data: readonly RecordType[],
+    sorterOverride?: TableSorterResult<RecordType>,
+  ): readonly RecordType[] => {
+    const resolvedSorter = sorterOverride ?? sorter;
+    const resolvedColumn =
+      resolvedSorter.column ??
+      columns.find(
+        (column, index) =>
+          getTableColumnKey(column, index) === resolvedSorter.columnKey,
+      );
+    const resolvedOrder = resolvedSorter.order ?? null;
+
     if (
-      activeColumn == null ||
-      activeOrder == null ||
-      typeof activeColumn.sorter !== "function"
+      resolvedColumn == null ||
+      resolvedOrder == null ||
+      typeof resolvedColumn.sorter !== "function"
     ) {
       return data;
     }
 
-    const factor = activeOrder === "ascend" ? 1 : -1;
-    return [...data].sort((a, b) => activeColumn.sorter!(a, b) * factor);
+    const factor = resolvedOrder === "ascend" ? 1 : -1;
+    return [...data].sort((a, b) => resolvedColumn.sorter!(a, b) * factor);
   };
 
   return {
