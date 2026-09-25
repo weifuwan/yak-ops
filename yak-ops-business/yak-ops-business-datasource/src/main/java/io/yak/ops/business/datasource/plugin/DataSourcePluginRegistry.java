@@ -63,6 +63,9 @@ public class DataSourcePluginRegistry {
                     plugin.descriptor().capabilities(),
                     plugin.getClass().getName());
         }
+        if (discovered.isEmpty()) {
+            LOG.warn("未发现可用数据源插件，数据源连接能力不可用");
+        }
         plugins = Collections.unmodifiableMap(discovered);
     }
 
