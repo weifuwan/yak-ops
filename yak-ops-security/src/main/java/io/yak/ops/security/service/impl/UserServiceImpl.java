@@ -117,6 +117,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> resetPassword(String userId, UserPasswordResetDTO request, String operator) {
+        if (ObjectUtils.isNull(userId)) throw new YakSecurityException(SecurityErrorCode.USER_ID_CANNOT_BE_NULL);
         String password = ObjectUtils.isNull(request) ? null : request.getPassword();
         if (StringUtils.isBlank(password)) {
             throw new YakSecurityException("新密码不能为空");
