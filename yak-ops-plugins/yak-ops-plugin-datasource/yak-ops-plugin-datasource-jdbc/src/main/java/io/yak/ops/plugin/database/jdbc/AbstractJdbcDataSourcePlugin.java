@@ -1,8 +1,9 @@
 package io.yak.ops.plugin.database.jdbc;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.yak.ops.common.util.JsonUtils;
+import io.yak.ops.common.util.SensitiveUtils;
 import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourceCatalog;
 import io.yak.ops.spi.datasource.DataSourceConnection;
@@ -37,8 +38,6 @@ import java.util.Set;
  * @since 2026-09-24
  */
 public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Override
     public DataSourcePluginDescriptor descriptor() {
@@ -128,7 +127,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     @Override
     public DataSourceConnection parseConnection(String connectionJson) {
         try {
-            JsonNode root = OBJECT_MAPPER.readTree(connectionJson);
+            JsonNode root = JsonUtils.readTree(connectionJson);
             if (root == null || !root.isObject()) {
                 throw parameterError("连接参数必须是 JSON 对象", null);
             }
@@ -172,7 +171,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             }
 
             Map<String, String> properties = parseProperties(root.get("properties"));
-            ObjectNode normalized = OBJECT_MAPPER.createObjectNode();
+            ObjectNode normalized = JsonUtils.createObjectNode();
             normalized.put("dbType", type());
             putIfText(normalized, "host", host);
             normalized.put("port", port);
@@ -201,7 +200,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
                     trimToNull(schema),
                     properties,
                     sshTunnel,
-                    OBJECT_MAPPER.writeValueAsString(normalized));
+                    JsonUtils.toJson(normalized));
         } catch (DataSourcePluginException exception) {
             throw exception;
         } catch (Exception exception) {
@@ -258,7 +257,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
         SshTunnel tunnel = SshTunnel.open(sshTunnel, connection.host(), connection.port(), safeTimeout);
         try {
-            JsonNode normalized = OBJECT_MAPPER.readTree(connection.normalizedJson());
+            JsonNode normalized = JsonUtils.readTree(connection.normalizedJson());
             String tunneledJdbcUrl = buildJdbcUrl("127.0.0.1", tunnel.localPort(), connection.database(), normalized);
             Connection opened = DriverManager.getConnection(tunneledJdbcUrl, connectionProperties(connection));
             return SshTunneledConnection.wrap(opened, tunnel);
@@ -322,7 +321,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         if (isBlank(message)) {
             return throwable == null ? "未知错误" : throwable.getClass().getSimpleName();
         }
-        String sanitized = message.replaceAll("(?i)(password|pwd)=([^;&\\s]+)", "$1=******");
+        String sanitized = SensitiveUtils.mask(message);
         return sanitized.length() > 300 ? sanitized.substring(0, 300) : sanitized;
     }
 
@@ -471,7 +470,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         JsonNode objectNode = node;
         try {
             if (node.isTextual()) {
-                objectNode = OBJECT_MAPPER.readTree(node.asText());
+                objectNode = JsonUtils.readTree(node.asText());
             }
             if (objectNode == null || !objectNode.isObject()) {
                 throw parameterError("properties 必须是 JSON 对象", null);

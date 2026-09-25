@@ -1,10 +1,9 @@
 package io.yak.ops.business.datasource.plugin;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
+import io.yak.ops.common.util.JsonUtils;
 import io.yak.ops.spi.datasource.DataSourceCapability;
 import io.yak.ops.spi.datasource.DataSourceConnection;
 import io.yak.ops.spi.datasource.DataSourcePlugin;
@@ -27,11 +26,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@ConditionalOnDataSourceEnabled
 public class DataSourcePluginRegistry {
-
-    @Resource
-    private ObjectMapper objectMapper;
 
     @Resource
     private DataSourceSecretCodec secretCodec;
@@ -108,11 +103,11 @@ public class DataSourcePluginRegistry {
 
     public String resolveConnectionType(String connectionJson) {
         try {
-            JsonNode root = objectMapper.readTree(connectionJson);
+            JsonNode root = JsonUtils.readTree(connectionJson);
             if (root == null || !root.isObject()) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "连接参数必须是 JSON 对象");
             }
-            String value = firstText(root, "dbType", "type", "pluginType");
+            String value = JsonUtils.firstText(root, "dbType", "type", "pluginType");
             if (value == null || value.trim().isEmpty()) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接参数中缺少 dbType 或 pluginType");
             }
@@ -182,13 +177,4 @@ public class DataSourcePluginRegistry {
         }
     }
 
-    private String firstText(JsonNode root, String... keys) {
-        for (String key : keys) {
-            JsonNode value = root.get(key);
-            if (value != null && !value.isNull()) {
-                return value.asText();
-            }
-        }
-        return null;
-    }
 }

@@ -28,7 +28,7 @@ io.yak.ops.common.exception  → shared business exceptions
 io.yak.ops.common.bean       → shared DTO / VO
 io.yak.ops.common.enums      → shared enums, including enums/common/CommonErrorCode
 io.yak.ops.common.constant   → CommonConstants for cross-domain stable constants
-io.yak.ops.common.util       → genuinely reusable stateless utilities
+io.yak.ops.common.util       → reusable stateless utilities such as DateUtils / IdUtils / JsonUtils / SensitiveUtils
 ```
 
 Do not place production Java types directly under `io.yak.ops.common`. New shared types must have an explicit owner package.
@@ -46,6 +46,13 @@ DTO / VO 变更必须同时加载 [DTO_VO_RULES.md](./DTO_VO_RULES.md)。该文�
 - 分页默认页码、默认 page size、最大 page size、最大排序字段数等全局分页约定统一由 `CommonConstants` 提供。
 - 不允许重新创建 `SystemConstant` / `SystemConstants` 等与 `CommonConstants` 重叠的全局常量容器。
 - Common 不是常量垃圾桶；类型和状态优先使用 enum，可配置值必须进入配置体系。
+
+## Utility Boundary
+
+- JSON 解析、JSON tree 创建和 JSON 序列化统一通过 `JsonUtils`；Business / Plugin 不得自行 `new ObjectMapper()` 或重复维护 mapper。
+- 通用 URL、连接串和错误文本凭证遮罩统一通过 `SensitiveUtils`。
+- Common Utils 必须保持无领域编排、无 HTTP 语义、无 DAO 依赖；领域异常转换留在领域 owner。
+- 业务代码可以操作 `JsonNode` 表达领域逻辑，但 JSON parser / writer ownership 必须收口到 Common。
 
 ## Enum Contracts
 

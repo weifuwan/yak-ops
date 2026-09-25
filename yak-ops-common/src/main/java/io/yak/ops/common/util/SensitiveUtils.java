@@ -1,17 +1,18 @@
-package io.yak.ops.business.datasource.security;
+package io.yak.ops.common.util;
 
 /**
- * 遮罩 JDBC URL 和错误消息等用户可见文本中可能出现的连接凭证。
+ * 通用敏感文本脱敏工具。
  *
  * @author weifuwan
  * @since 2026-09-25
  */
-public final class SensitiveTextMasker {
+public final class SensitiveUtils {
 
     public static final String MASKED_VALUE = "******";
 
-    private SensitiveTextMasker() {}
+    private SensitiveUtils() {}
 
+    /** 遮罩 URL、连接串和错误文本中的常见凭证。 */
     public static String mask(String value) {
         if (value == null || value.isEmpty()) return value;
         String masked =

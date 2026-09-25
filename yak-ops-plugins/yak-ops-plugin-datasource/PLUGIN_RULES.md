@@ -83,6 +83,7 @@ Must:
 - keep secrets out of error messages and logs.
 - keep remaining descriptor metadata deterministic.
 - reuse shared JDBC behavior before copying provider code.
+- reuse Common `JsonUtils` / `SensitiveUtils` for generic JSON read-write and credential masking; provider code must not create its own `ObjectMapper`.
 
 Must Not:
 - embed product business rules.
