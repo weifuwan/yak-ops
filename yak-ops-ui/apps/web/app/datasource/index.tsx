@@ -4,233 +4,298 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
+  Empty,
+  Input,
   Pagination,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+  SelectValue,
   Spinner,
   toast,
 } from "@yak-ops/yak-ui";
-import { Plus } from "lucide-react";
-import { useRef, useState } from "react";
+import { Plus, Search } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import DataSourceEditor from "./editor";
-import type { DataSourceModalRef } from "./editor/types";
-import { DataSourceOperateType } from "./editor/types";
+import {
+  deleteDataSource,
+  getDataSource,
+  listDataSources,
+  testDataSourceConnection,
+} from "@/service/datasource";
+import { COMMON_DB_OPTIONS, CONNECTION_STATUS_OPTIONS, DATA_SOURCE_PAGE_SIZE_OPTIONS } from "./constants";
+import DataSourceForm from "./form";
 import { useIntl } from "./i18n";
-import { DATA_SOURCE_PAGE_SIZE_OPTIONS } from "./constants";
-import type { DataSourceRecord } from "./types";
 import DataSourceTable from "./table";
-import DataSourceEmptyState from "./empty-state";
-import DataSourceSummaryCards from "./summary";
-import DataSourceToolbar from "./toolbar";
-import { useDatasources } from "./hooks/use-datasources";
+import type { DataSourceRecord } from "./types";
 
-const DataSourcePageHeader = ({
-  canCreate,
-  onCreate,
-}: {
-  canCreate: boolean;
-  onCreate: () => void;
-}) => {
-  const intl = useIntl();
-
-  return (
-    <header className="flex items-center justify-between gap-6">
-      <h1 className="m-0 text-xl font-semibold leading-7 tracking-[-0.35px] text-[#252832]">
-        {intl.formatMessage({ id: "pages.datasource.page.title" })}
-      </h1>
-
-      {canCreate ? (
-        <Button variant="primary" className="shrink-0" onClick={onCreate}>
-          <Plus size={16} strokeWidth={2.1} />
-          {intl.formatMessage({ id: "pages.datasource.page.create" })}
-        </Button>
-      ) : null}
-    </header>
-  );
-};
+const DEFAULT_PAGE_SIZE = 10;
 
 const DataSourcePage = () => {
   const intl = useIntl();
-  const modalRef = useRef<DataSourceModalRef>(null);
+  const requestSequenceRef = useRef(0);
+  const [loading, setLoading] = useState(false);
+  const [records, setRecords] = useState<DataSourceRecord[]>([]);
+  const [pageNo, setPageNo] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [total, setTotal] = useState(0);
+  const [keyword, setKeywordState] = useState("");
+  const [dbType, setDbTypeState] = useState<string>();
+  const [connStatus, setConnStatusState] = useState<string>();
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<DataSourceRecord>();
+  const [editingId, setEditingId] = useState("");
+  const [testingId, setTestingId] = useState("");
   const [pendingDelete, setPendingDelete] = useState<DataSourceRecord>();
   const [deleting, setDeleting] = useState(false);
 
-  const {
-    loading,
-    records,
-    summary,
-    pagination,
-    keyword,
-    dbType,
-    environment,
-    hasActiveFilters,
-    permissions,
-    testingId,
-    editingId,
-    setKeyword,
-    setDbType,
-    setEnvironment,
-    resetFilters,
-    changePage,
-    refresh,
-    loadRecordForEdit,
-    removeRecord,
-    testRecord,
-  } = useDatasources();
+  const hasActiveFilters = Boolean(keyword.trim() || dbType || connStatus);
+
+  const refresh = useCallback(() => {
+    setRefreshVersion((value) => value + 1);
+  }, []);
+
+  const loadPage = useCallback(async () => {
+    const requestSequence = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestSequence;
+    setLoading(true);
+
+    try {
+      const result = await listDataSources({
+        pageNo,
+        pageSize,
+        keyword: keyword.trim() || undefined,
+        dbType,
+        connStatus,
+      });
+      if (requestSequence !== requestSequenceRef.current) return;
+
+      const nextRecords = result?.bizData || [];
+      const nextPagination = result?.pagination;
+      if (nextRecords.length === 0 && (nextPagination?.total || 0) > 0 && pageNo > 1) {
+        setPageNo((value) => Math.max(1, value - 1));
+        return;
+      }
+
+      setRecords(nextRecords);
+      setTotal(nextPagination?.total || 0);
+    } finally {
+      if (requestSequence === requestSequenceRef.current) setLoading(false);
+    }
+  }, [connStatus, dbType, keyword, pageNo, pageSize, refreshVersion]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void loadPage(), keyword.trim() ? 300 : 0);
+    return () => window.clearTimeout(timer);
+  }, [keyword, loadPage]);
+
+  const setKeyword = (value: string) => {
+    setKeywordState(value);
+    setPageNo(1);
+  };
+
+  const setDbType = (value?: string) => {
+    setDbTypeState(value);
+    setPageNo(1);
+  };
+
+  const setConnStatus = (value?: string) => {
+    setConnStatusState(value);
+    setPageNo(1);
+  };
+
+  const resetFilters = () => {
+    setKeywordState("");
+    setDbTypeState(undefined);
+    setConnStatusState(undefined);
+    setPageNo(1);
+  };
 
   const handleCreate = () => {
-    if (!permissions.canCreate) return;
-    modalRef.current?.open({
-      operateType: DataSourceOperateType.Create,
-      onSuccess: refresh,
-    });
+    setEditingRecord(undefined);
+    setFormOpen(true);
   };
 
   const handleEdit = async (record: DataSourceRecord) => {
+    if (!record.id || editingId) return;
+    const id = String(record.id);
+    setEditingId(id);
     try {
-      const detail = await loadRecordForEdit(record);
-      if (!detail) return;
-
-      modalRef.current?.open({
-        operateType: DataSourceOperateType.Edit,
-        currentRecord: detail,
-        onSuccess: refresh,
-      });
-    } catch {
-      // Shared request handling owns request failure feedback.
-    }
-  };
-
-  const handleDelete = (record: DataSourceRecord) => {
-    if (permissions.canDelete) setPendingDelete(record);
-  };
-
-  const confirmDelete = async () => {
-    const record = pendingDelete;
-    if (!record || deleting) return;
-
-    if (record.id === undefined || record.id === null) {
-      toast.error(
-        intl.formatMessage({ id: "pages.datasource.delete.idMissing" }),
-      );
-      setPendingDelete(undefined);
-      return;
-    }
-
-    try {
-      setDeleting(true);
-      const deleted = await removeRecord(record.id);
-      if (deleted) {
-        toast.success(
-          intl.formatMessage({ id: "pages.datasource.delete.success" }),
-        );
-        setPendingDelete(undefined);
-      }
-    } catch {
-      // Shared request handling owns request failure feedback.
+      const detail = await getDataSource(record.id);
+      setEditingRecord(detail);
+      setFormOpen(true);
     } finally {
-      setDeleting(false);
+      setEditingId("");
     }
   };
 
   const handleTestConnection = async (record: DataSourceRecord) => {
+    if (!record.id || testingId) return;
+    const id = String(record.id);
+    setTestingId(id);
     try {
-      const connected = await testRecord(record);
-      if (connected) {
-        toast.success(
-          intl.formatMessage({ id: "pages.datasource.test.success" }),
-        );
-      }
-    } catch {
-      // Shared request handling owns request failure feedback.
+      await testDataSourceConnection(record.id);
+      toast.success(intl.formatMessage({ id: "pages.datasource.test.success" }));
+      refresh();
+    } finally {
+      setTestingId("");
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete?.id || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteDataSource(pendingDelete.id);
+      toast.success(intl.formatMessage({ id: "pages.datasource.delete.success" }));
+      setPendingDelete(undefined);
+      refresh();
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
     <>
       <div className="min-h-[calc(100dvh-64px)] bg-[#f7f8fa] text-[#242731]">
-        <main>
-          <section
-            className="flex min-h-[calc(100dvh-64px)] flex-col bg-white px-6 pb-4 pt-5 shadow-[0_2px_10px_rgba(31,35,41,0.025)] max-md:px-4"
-            style={{ borderTopLeftRadius: 8, borderTopRightRadius: 8 }}
-          >
-            <div className="space-y-5">
-              <DataSourcePageHeader
-                canCreate={permissions.canCreate}
-                onCreate={handleCreate}
+        <main className="min-h-[calc(100dvh-64px)] bg-white px-6 pb-4 pt-5 max-md:px-4">
+          <header className="flex items-center justify-between gap-4">
+            <h1 className="m-0 text-xl font-semibold tracking-[-0.35px] text-[#252832]">
+              {intl.formatMessage({ id: "pages.datasource.page.title" })}
+            </h1>
+            <Button variant="primary" onClick={handleCreate}>
+              <Plus size={16} />
+              {intl.formatMessage({ id: "pages.datasource.page.create" })}
+            </Button>
+          </header>
+
+          <section className="mt-5 flex flex-wrap items-center gap-2">
+            <div className="relative w-[300px] max-md:w-full">
+              <Search
+                size={15}
+                className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[#98a2b3]"
               />
-              <DataSourceSummaryCards summary={summary} />
-              <DataSourceToolbar
-                environment={environment}
-                dbType={dbType}
-                keyword={keyword}
-                hasActiveFilters={hasActiveFilters}
-                onEnvironmentChange={setEnvironment}
-                onDbTypeChange={setDbType}
-                onKeywordChange={setKeyword}
-                onReset={resetFilters}
+              <Input
+                value={keyword}
+                className="pl-9"
+                placeholder={intl.formatMessage({ id: "pages.datasource.toolbar.searchPlaceholder" })}
+                onChange={(event) => setKeyword(event.target.value)}
               />
             </div>
 
-            <div className="mt-5 flex flex-1 flex-col">
-              <div className="relative min-h-28">
-                {loading ? (
-                  <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-white/75 backdrop-blur-[1px]">
-                    <Spinner size="large" label="Loading datasources" />
-                  </div>
-                ) : null}
-
-                {records.length > 0 ? (
-                  <DataSourceTable
-                    records={records}
-                    permissions={permissions}
-                    testingId={testingId}
-                    editingId={editingId}
-                    onEdit={(item) => void handleEdit(item)}
-                    onDelete={handleDelete}
-                    onTestConnection={(item) =>
-                      void handleTestConnection(item)
-                    }
-                  />
-                ) : null}
-
-                {!loading && records.length === 0 ? (
-                  <div className="mt-6">
-                    <DataSourceEmptyState
-                      filtered={hasActiveFilters}
-                      canCreate={permissions.canCreate}
-                      onReset={resetFilters}
-                      onCreate={handleCreate}
-                    />
-                  </div>
-                ) : null}
-              </div>
-
-              {pagination.total > 0 ? (
-                <footer className="mt-auto flex shrink-0 justify-end pt-6">
-                  <Pagination
-                    page={pagination.pageNo}
-                    pageSize={pagination.pageSize}
-                    total={pagination.total}
-                    showSizeChanger
-                    showQuickJumper
-                    pageSizeOptions={DATA_SOURCE_PAGE_SIZE_OPTIONS}
-                    disabled={loading}
-                    renderTotal={(total, range) =>
-                      intl.formatMessage(
-                        { id: "pages.datasource.pagination.total" },
-                        { start: range[0], end: range[1], total },
-                      )
-                    }
-                    onChange={changePage}
-                  />
-                </footer>
-              ) : null}
+            <div className="w-[170px]">
+              <Select
+                value={dbType || "ALL"}
+                onValueChange={(value) => setDbType(value === "ALL" ? undefined : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={intl.formatMessage({ id: "pages.datasource.toolbar.typePlaceholder" })} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">
+                    <SelectItemText>{intl.formatMessage({ id: "pages.datasource.toolbar.allTypes" })}</SelectItemText>
+                    <SelectItemIndicator />
+                  </SelectItem>
+                  {COMMON_DB_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <SelectItemText>{option.label}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+            <div className="w-[150px]">
+              <Select
+                value={connStatus || "ALL"}
+                onValueChange={(value) => setConnStatus(value === "ALL" ? undefined : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={intl.formatMessage({ id: "pages.datasource.toolbar.statusPlaceholder" })} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">
+                    <SelectItemText>{intl.formatMessage({ id: "pages.datasource.toolbar.allStatuses" })}</SelectItemText>
+                    <SelectItemIndicator />
+                  </SelectItem>
+                  {CONNECTION_STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <SelectItemText>{intl.formatMessage({ id: option.messageId })}</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hasActiveFilters ? (
+              <Button variant="ghost" size="small" onClick={resetFilters}>
+                {intl.formatMessage({ id: "pages.datasource.toolbar.reset" })}
+              </Button>
+            ) : null}
           </section>
+
+          <section className="relative mt-4 min-h-40">
+            {loading ? (
+              <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-white/75">
+                <Spinner size="large" label="Loading datasources" />
+              </div>
+            ) : null}
+
+            {records.length > 0 ? (
+              <DataSourceTable
+                records={records}
+                editingId={editingId}
+                testingId={testingId}
+                onEdit={(record) => void handleEdit(record)}
+                onDelete={setPendingDelete}
+                onTestConnection={(record) => void handleTestConnection(record)}
+              />
+            ) : null}
+
+            {!loading && records.length === 0 ? (
+              <div className="flex min-h-72 items-center justify-center rounded-xl border border-[#e9ebef]">
+                <Empty
+                  description={intl.formatMessage({
+                    id: hasActiveFilters
+                      ? "pages.datasource.empty.filtered"
+                      : "pages.datasource.empty.default",
+                  })}
+                />
+              </div>
+            ) : null}
+          </section>
+
+          {total > 0 ? (
+            <footer className="mt-6 flex justify-end">
+              <Pagination
+                page={pageNo}
+                pageSize={pageSize}
+                total={total}
+                showSizeChanger
+                pageSizeOptions={DATA_SOURCE_PAGE_SIZE_OPTIONS}
+                disabled={loading}
+                onChange={(nextPage, nextPageSize) => {
+                  setPageNo(nextPage);
+                  setPageSize(nextPageSize);
+                }}
+              />
+            </footer>
+          ) : null}
         </main>
       </div>
 
-      <DataSourceEditor ref={modalRef} />
+      <DataSourceForm
+        open={formOpen}
+        record={editingRecord}
+        onOpenChange={setFormOpen}
+        onSaved={refresh}
+      />
 
       <Dialog
         open={Boolean(pendingDelete)}
@@ -239,7 +304,7 @@ const DataSourcePage = () => {
         }}
       >
         <DialogContent className="w-[420px]">
-          <DialogTitle className="text-base font-semibold text-[#161823]">
+          <DialogTitle className="text-base font-semibold">
             {intl.formatMessage({ id: "pages.datasource.delete.confirmTitle" })}
           </DialogTitle>
           <DialogDescription className="mt-2 text-sm leading-6 text-[#667085]">
@@ -247,24 +312,12 @@ const DataSourcePage = () => {
               { id: "pages.datasource.delete.content" },
               { name: pendingDelete?.name || "-" },
             )}
-            <br />
-            {intl.formatMessage({ id: "pages.datasource.delete.warning" })}
           </DialogDescription>
-
           <div className="mt-6 flex justify-end gap-2">
-            <Button
-              disabled={deleting}
-              onClick={() => setPendingDelete(undefined)}
-            >
-              {intl.formatMessage({
-                id: "pages.datasource.delete.cancelText",
-              })}
+            <Button disabled={deleting} onClick={() => setPendingDelete(undefined)}>
+              {intl.formatMessage({ id: "pages.datasource.delete.cancelText" })}
             </Button>
-            <Button
-              variant="danger"
-              loading={deleting}
-              onClick={() => void confirmDelete()}
-            >
+            <Button variant="danger" loading={deleting} onClick={() => void confirmDelete()}>
               {intl.formatMessage({ id: "pages.datasource.delete.okText" })}
             </Button>
           </div>
