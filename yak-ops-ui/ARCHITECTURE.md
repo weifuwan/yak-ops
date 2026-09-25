@@ -141,6 +141,7 @@ Ownership:
 - Product/category rows use subtle `#282b2e` hover feedback and brighter text/icon color; neither first nor second level adds an outer shadow.
 - `navigation.ts` owns real product entries and category grouping; current data exposes only the existing `数据集成` product.
 - Launcher closes from the TopBar X trigger, Escape and route change.
+- While Launcher is open, a transparent blank-area interaction layer sits below the menu panels and above page content. Blank-area clicks dismiss one menu level at a time: second level first, then first level.
 - Product pages rendered inside `AppLayout` fill the available container; they do not subtract shell dimensions from `100vh / 100dvh`.
 
 ## Service Boundary
