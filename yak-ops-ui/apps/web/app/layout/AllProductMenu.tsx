@@ -14,9 +14,11 @@ export default function AllProductMenu({ open, onNavigate }: AllProductMenuProps
       aria-label="全部产品二级菜单"
       aria-hidden={!open}
       className={[
-        "fixed bottom-0 left-[220px] top-10 z-30 w-[765px] max-w-[calc(100vw-220px)] overflow-y-auto bg-[#1c1e21] text-xs text-[#cbced3]",
-        "transform-gpu transition-transform duration-[240ms] ease-in-out motion-reduce:transition-none",
-        open ? "translate-x-0" : "-translate-x-[765px] pointer-events-none",
+        "fixed bottom-0 top-10 z-30 w-[765px] max-w-[calc(100vw-220px)] overflow-y-auto bg-[#1c1e21] text-xs text-[#cbced3]",
+        "transform-gpu transition-[left,transform] duration-[240ms] ease-in-out motion-reduce:transition-none",
+        open
+          ? "left-[220px] translate-x-0"
+          : "left-0 -translate-x-[765px] pointer-events-none",
       ].join(" ")}
     >
       <div className="min-h-full px-12 pt-4">

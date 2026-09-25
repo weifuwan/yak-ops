@@ -57,7 +57,8 @@ app/layout/
 - 产品内导航和全局一级产品项统一读取 `app/layout/navigation.ts`，不要维护两套真实产品常量。
 - `所有产品` 是 ProductLauncher 自己的 `view-all` 入口，不允许混进真实产品数组；点击后只控制二级 AllProductMenu。
 - ProductLauncher 固定宽度 220px，关闭态 `translateX(-220px)`，打开态 `translateX(0)`，动画 `300ms ease-in-out`。
-- AllProductMenu 固定宽度 765px，从 `left: 220px` 开始，背景固定 `#1c1e21`，关闭态 `translateX(-765px)`，打开态 `translateX(0)`，动画 `240ms ease-in-out`。
+- ProductSidebar 默认背景固定 `#FAFAFA`；二级深色面板关闭时不得残留覆盖默认 Sidebar。
+- AllProductMenu 固定宽度 765px，关闭态使用 `left: 0 + translateX(-765px)` 完全移出视口；打开态使用 `left: 220px + translateX(0)`，背景固定 `#1c1e21`，动画 `240ms ease-in-out`。
 - 一级 `view-all` 在二级展开时使用 `#1c1e21` 激活背景；一级 / 二级可点击产品 hover 使用 `#282b2e`，文字与图标同步提亮。
 - 两级菜单都作为 overlay 覆盖页面，不允许改变 Sidebar / Outlet 布局，也不允许添加外层阴影。
 - TopBar 三杠菜单按钮必须显示 pointer cursor；打开后同一位置切换为 X 图标。
