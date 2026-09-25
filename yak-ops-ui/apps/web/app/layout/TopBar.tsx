@@ -47,7 +47,7 @@ export default function TopBar({ launcherOpen, onToggleLauncher }: TopBarProps) 
           aria-expanded={launcherOpen}
           aria-haspopup="menu"
           aria-controls="global-product-launcher"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white/65 transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-white/65 transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
           onClick={onToggleLauncher}
         >
           {launcherOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}

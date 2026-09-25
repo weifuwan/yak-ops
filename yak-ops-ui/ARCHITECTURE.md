@@ -134,10 +134,10 @@ Ownership:
 - `AppLayout` owns the viewport and the Global Product Launcher open / close state.
 - `TopBar` owns product identity, launcher trigger and current-user actions.
 - `ProductSidebar` owns navigation inside the current product.
-- `ProductLauncher` is an overlay navigation surface; opening it must not resize or reflow Sidebar / Outlet.
-- `navigation.ts` is the single configuration source for product-local navigation and launcher entries.
-- Launcher entries must point to real Product Surfaces; future products are not represented as placeholder routes.
-- Launcher closes on explicit close, backdrop click, Escape and route change.
+- `ProductLauncher` is the first-level global product menu. It slides in from the left over `ProductSidebar`; opening it must not resize or reflow Sidebar / Outlet.
+- `navigation.ts` is the single configuration source for product-local navigation and the first-level product menu.
+- V1 first-level entries are `所有产品` and the current `数据集成` product. Secondary / Mega Menu content is intentionally deferred.
+- Launcher closes from the TopBar X trigger, Escape and route change.
 - Product pages rendered inside `AppLayout` fill the available container; they do not subtract shell dimensions from `100vh / 100dvh`.
 
 ## Service Boundary
