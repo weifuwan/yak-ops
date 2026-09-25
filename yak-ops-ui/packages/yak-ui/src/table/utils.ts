@@ -4,6 +4,8 @@ import type { TableColumn, TableProps } from "./interface";
 
 export const TABLE_SELECTION_COLUMN_KEY = "__yak_table_selection__";
 
+export const stringifyTableColumnKey = (key: Key): string => String(key);
+
 export const normalizeTableKey = (value: unknown, fallback: number): Key => {
   if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
     return value;

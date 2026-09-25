@@ -6,6 +6,45 @@ export type TableSize = "small" | "medium" | "large";
 
 export type TableAlign = "left" | "center" | "right";
 
+export type TableSortOrder = "ascend" | "descend" | null;
+
+export type TableSortDirection = Exclude<TableSortOrder, null>;
+
+export type TableChangeAction = "paginate" | "sort" | "filter";
+
+export type TableFilterValue = readonly Key[] | null;
+
+export type TableFilters = Record<string, TableFilterValue>;
+
+export interface TableFilterItem {
+  text: ReactNode;
+  value: Key;
+  disabled?: boolean;
+}
+
+export type TableSorterCompare<RecordType extends object> = (
+  a: RecordType,
+  b: RecordType,
+) => number;
+
+export interface TableSorterResult<RecordType extends object> {
+  columnKey?: Key;
+  field?: keyof RecordType;
+  order?: TableSortOrder;
+  column?: TableColumn<RecordType>;
+}
+
+export interface TablePaginationState {
+  current: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface TableChangeExtra<RecordType extends object> {
+  action: TableChangeAction;
+  currentDataSource: readonly RecordType[];
+}
+
 export interface TableColumn<RecordType extends object> {
   key?: Key;
   title?: ReactNode;
@@ -14,6 +53,15 @@ export interface TableColumn<RecordType extends object> {
   minWidth?: CSSProperties["minWidth"];
   align?: TableAlign;
   ellipsis?: boolean;
+  sorter?: boolean | TableSorterCompare<RecordType>;
+  sortOrder?: TableSortOrder;
+  defaultSortOrder?: TableSortDirection;
+  sortDirections?: readonly TableSortDirection[];
+  filters?: readonly TableFilterItem[];
+  filteredValue?: TableFilterValue;
+  defaultFilteredValue?: readonly Key[];
+  filterMultiple?: boolean;
+  onFilter?: (value: Key, record: RecordType) => boolean;
   render?: (value: unknown, record: RecordType, index: number) => ReactNode;
 }
 
@@ -64,5 +112,11 @@ export interface TableProps<RecordType extends object> {
   emptyText?: ReactNode;
   rowHoverable?: boolean;
   className?: string;
+  onChange?: (
+    pagination: TablePaginationState | false,
+    filters: TableFilters,
+    sorter: TableSorterResult<RecordType>,
+    extra: TableChangeExtra<RecordType>,
+  ) => void;
   onRow?: (record: RecordType, index: number) => HTMLAttributes<HTMLTableRowElement>;
 }

@@ -1,12 +1,22 @@
 export { Table } from "./Table";
 export type {
   TableAlign,
+  TableChangeAction,
+  TableChangeExtra,
   TableColumn,
   TableColumns,
+  TableFilterItem,
+  TableFilters,
+  TableFilterValue,
   TablePaginationConfig,
+  TablePaginationState,
   TableProps,
   TableRowSelection,
   TableRowSelectionCheckboxProps,
   TableScroll,
   TableSize,
+  TableSorterCompare,
+  TableSorterResult,
+  TableSortDirection,
+  TableSortOrder,
 } from "./interface";
