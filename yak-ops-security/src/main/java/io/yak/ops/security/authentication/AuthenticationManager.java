@@ -10,21 +10,39 @@ package io.yak.ops.security.authentication;
  */
 public interface AuthenticationManager {
 
+    /**
+     * 兼容旧调用形式；当前实现要求同时提供用户名。
+     *
+     * @param userId 用户 ID
+     */
     default void login(String userId) {
         throw new UnsupportedOperationException("login(userId, userName) is required");
     }
 
+    /**
+     * 为当前请求建立登录态。
+     *
+     * @param userId 用户 ID
+     * @param userName 用户名
+     */
     void login(String userId, String userName);
 
+    /** 销毁当前请求对应的登录态。 */
     void logout();
 
-    default void logoutUser(String userId) {
-        // Authentication implementations may override account-level logout.
-    }
+    /**
+     * 销毁指定用户的全部活动登录态；不支持账号级下线的实现可保持默认行为。
+     *
+     * @param userId 用户 ID
+     */
+    default void logoutUser(String userId) {}
 
+    /** @return 当前请求是否存在有效登录态 */
     boolean isLogin();
 
+    /** @return 当前登录用户 ID，未登录时返回 null */
     String getLoginUserId();
 
+    /** @return 当前登录用户名，未登录时返回 null */
     String getLoginUsername();
 }
