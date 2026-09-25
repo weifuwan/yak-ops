@@ -190,7 +190,7 @@ const DataSourcePage = () => {
             <div className="w-[170px]">
               <Select
                 value={dbType || "ALL"}
-                onValueChange={(value) => setDbType(value === "ALL" ? undefined : value)}
+                onValueChange={(value) => setDbType(value && value !== "ALL" ? value : undefined)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={intl.formatMessage({ id: "pages.datasource.toolbar.typePlaceholder" })} />
@@ -213,7 +213,7 @@ const DataSourcePage = () => {
             <div className="w-[150px]">
               <Select
                 value={connStatus || "ALL"}
-                onValueChange={(value) => setConnStatus(value === "ALL" ? undefined : value)}
+                onValueChange={(value) => setConnStatus(value && value !== "ALL" ? value : undefined)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={intl.formatMessage({ id: "pages.datasource.toolbar.statusPlaceholder" })} />

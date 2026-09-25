@@ -161,7 +161,9 @@ public class DataSourceSecretCodec {
     }
 
     private String normalizeKey(String key) {
-        return ObjectUtils.isNull(key) ? "" : key.replace("_", "").replace("-", "").trim().toLowerCase(Locale.ROOT);
+        return ObjectUtils.isNull(key)
+                ? ""
+                : key.replace("_", "").replace("-", "").trim().toLowerCase(Locale.ROOT);
     }
 
     private boolean shouldPreserve(JsonNode value) {

@@ -32,7 +32,7 @@ interface LoginValues {
 
 type FloatingInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
-  "className" | "type" | "value" | "onChange"
+  "className" | "size" | "type" | "value" | "onChange"
 > & {
   label: string;
   password?: boolean;

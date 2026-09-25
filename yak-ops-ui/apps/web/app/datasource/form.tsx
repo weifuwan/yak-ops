@@ -227,7 +227,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
               <Select
                 value={values.dbType}
                 disabled={editing}
-                onValueChange={(value) => patch("dbType", value)}
+                onValueChange={(value) => patch("dbType", value ?? "")}
               >
                 <SelectTrigger aria-invalid={Boolean(errors.dbType) || undefined}>
                   <SelectValue />
