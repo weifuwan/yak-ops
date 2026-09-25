@@ -1,11 +1,13 @@
 import { NavLink } from "react-router-dom";
 
-import { PRODUCT_NAVIGATION } from "./navigation";
+import { CURRENT_PRODUCT_LABEL, PRODUCT_NAVIGATION } from "./navigation";
 
 export default function ProductSidebar() {
   return (
     <aside className="flex w-48 shrink-0 flex-col border-r border-[#e6e8eb] bg-[#f6f7f8]">
-      <div className="px-3 pb-2 pt-4 text-[11px] font-medium text-[#8b929e]">数据集成</div>
+      <div className="px-3 pb-2 pt-4 text-[11px] font-medium text-[#8b929e]">
+        {CURRENT_PRODUCT_LABEL}
+      </div>
 
       <nav className="px-2">
         {PRODUCT_NAVIGATION.map((item) => {
