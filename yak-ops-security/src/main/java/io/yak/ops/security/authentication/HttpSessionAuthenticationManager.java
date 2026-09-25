@@ -91,7 +91,9 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
     @Override
     public boolean isLogin() {
         HttpSession session = currentSession();
-        return ObjectUtils.isNotNull(session) && readUserId(session) != null && StringUtils.isNotBlank(readUsername(session));
+        return ObjectUtils.isNotNull(session)
+                && ObjectUtils.isNotNull(readUserId(session))
+                && StringUtils.isNotBlank(readUsername(session));
     }
 
     @Override
@@ -157,7 +159,7 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
         }
 
         sessions.remove(session);
-        if (sessions.isEmpty()) {
+        if (CollectionUtils.isEmpty(sessions)) {
             sessionsByUser.remove(userId, sessions);
         }
     }
