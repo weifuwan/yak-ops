@@ -134,9 +134,10 @@ Ownership:
 - `AppLayout` owns the viewport and the Global Product Launcher open / close state.
 - `TopBar` owns product identity, launcher trigger and current-user actions.
 - `ProductSidebar` owns navigation inside the current product.
-- `ProductLauncher` is the first-level global product menu. It slides in from the left over `ProductSidebar`; opening it must not resize or reflow Sidebar / Outlet.
-- `navigation.ts` is the single configuration source for product-local navigation and the first-level product menu.
-- V1 first-level entries are `所有产品` and the current `数据集成` product. Secondary / Mega Menu content is intentionally deferred.
+- `ProductLauncher` mirrors the DataWorks first-level `user-menu`: a fixed 220px panel that slides from `translateX(-220px)` to `translateX(0)` over `ProductSidebar` without resizing Sidebar / Outlet.
+- `所有产品` is a dedicated `view-all` row, not a product item. Real product entries live in the `item-list` below it.
+- `navigation.ts` owns real product entries only; V1 currently exposes the existing `数据集成` product. Secondary / all-product content is intentionally deferred.
+- The first-level panel has no outer shadow.
 - Launcher closes from the TopBar X trigger, Escape and route change.
 - Product pages rendered inside `AppLayout` fill the available container; they do not subtract shell dimensions from `100vh / 100dvh`.
 
