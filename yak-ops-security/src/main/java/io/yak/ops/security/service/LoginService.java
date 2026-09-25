@@ -1,9 +1,9 @@
 package io.yak.ops.security.service;
 
-import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.dto.security.account.AccountLoginDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.exception.YakSecurityException;
+import io.yak.ops.common.result.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;

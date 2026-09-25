@@ -1,7 +1,7 @@
 package io.yak.ops.business.datasource.exception;
 
-import io.yak.ops.common.ErrorCode;
 import io.yak.ops.common.exception.BusinessException;
+import io.yak.ops.common.result.ErrorCode;
 
 /**
  * Datasource management、Catalog 和 Plugin 边界统一使用的业务异常。

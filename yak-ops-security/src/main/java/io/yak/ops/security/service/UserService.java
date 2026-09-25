@@ -1,11 +1,11 @@
 package io.yak.ops.security.service;
 
-import io.yak.ops.common.PagingData;
-import io.yak.ops.common.Result;
 import io.yak.ops.common.bean.dto.security.user.UserDTO;
 import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.bean.vo.security.user.UserVO;
+import io.yak.ops.common.page.PagingData;
+import io.yak.ops.common.result.Result;
 import io.yak.ops.security.model.UserAccount;
 import java.util.List;
 
