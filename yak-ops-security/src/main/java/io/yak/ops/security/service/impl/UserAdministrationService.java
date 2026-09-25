@@ -67,7 +67,7 @@ public class UserAdministrationService {
         }
 
         String password = ObjectUtils.isNull(request) ? null : request.getPassword();
-        if (!StringUtils.isNotBlank(password)) {
+        if (StringUtils.isBlank(password)) {
             throw new YakSecurityException("新密码不能为空");
         }
         if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
@@ -89,7 +89,7 @@ public class UserAdministrationService {
     }
 
     public void invalidateSessionsAfterPasswordChange(String username, String operator) {
-        if (!StringUtils.isNotBlank(username)) return;
+        if (StringUtils.isBlank(username)) return;
 
         UserEntity user = userRepository.queryByUsername(username).orElse(null);
         if (ObjectUtils.isNull(user) || ObjectUtils.isNull(user.getId())) return;
