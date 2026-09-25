@@ -64,8 +64,17 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Frontend check
-        run: npm run check
+      - name: Frontend format
+        run: npm run format:check
+
+      - name: Frontend lint
+        run: npm run lint
+
+      - name: Frontend type check
+        run: npm run typecheck
+
+      - name: Frontend architecture
+        run: npm run architecture:check
 
       - name: Frontend build
         run: npm run build
