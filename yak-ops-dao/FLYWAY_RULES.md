@@ -60,7 +60,7 @@ Yak Ops 当前仍处于可整体重建数据库的早期阶段。
 Must:
 - 表名使用 lower_snake_case。
 - Yak Ops 自有表使用 `yak_` 前缀，并按能力继续细分，例如 `yak_ops_`、`yak_security_`。
-- 当前 Yak Ops 主键统一使用 `BIGINT AUTO_INCREMENT`，Java 使用 `Long`。
+- 当前 Yak Ops 主键统一使用 `VARCHAR(64)`，Java 使用 `String`，由 Common 的统一雪花 ID 能力生成，禁止数据库自增。
 - 主键字段统一命名为 `id`。
 - 使用 InnoDB。
 - 字符集统一 `utf8mb4`。
@@ -75,7 +75,7 @@ Must:
 主键：
 
 ```sql
-id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID'
+id VARCHAR(64) NOT NULL COMMENT '主键ID，由应用雪花算法生成'
 ```
 
 表配置：
