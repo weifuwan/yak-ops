@@ -21,8 +21,7 @@ import org.springframework.util.StringUtils;
  * @since 2026-09-24
  */
 @Repository
-public class DataSourceEntityRepositoryImpl
-        extends BaseRepositoryImpl<DataSourceMapper, DataSourceEntity>
+public class DataSourceEntityRepositoryImpl extends BaseRepositoryImpl<DataSourceMapper, DataSourceEntity>
         implements DataSourceEntityRepository {
 
     @Resource
@@ -35,9 +34,9 @@ public class DataSourceEntityRepositoryImpl
 
     @Override
     public PageData<DataSourceEntity> queryPage(DataSourcePageQuery query) {
-        DataSourcePageQuery condition = query == null ? new DataSourcePageQuery(1, 10, null, null, null, null, null) : query;
-        Page<DataSourceEntity> page =
-                Page.of(Math.max(1, condition.pageNo()), Math.max(1, condition.pageSize()));
+        DataSourcePageQuery condition =
+                query == null ? new DataSourcePageQuery(1, 10, null, null, null, null, null) : query;
+        Page<DataSourceEntity> page = Page.of(Math.max(1, condition.pageNo()), Math.max(1, condition.pageSize()));
         IPage<DataSourceEntity> result = dataSourceMapper.selectPage(
                 page,
                 queryWrapper(condition)
@@ -46,7 +45,6 @@ public class DataSourceEntityRepositoryImpl
         return new PageData<>(
                 result.getRecords(), result.getTotal(), result.getPages(), result.getCurrent(), result.getSize());
     }
-
 
     @Override
     public boolean existsByName(String name, String excludeId) {
