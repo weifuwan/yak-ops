@@ -57,7 +57,9 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
                     if (includeDatabase(database)) databases.add(database);
                 }
             }
-            if (CollectionUtils.isEmpty(databases) && includeDatabase(connection.database())) databases.add(connection.database());
+            if (CollectionUtils.isEmpty(databases) && includeDatabase(connection.database())) {
+                databases.add(connection.database());
+            }
             return new ArrayList<>(databases);
         } catch (Exception exception) {
             throw catalogError("读取数据库列表失败", exception);
@@ -76,7 +78,9 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
                     if (includeSchema(schema)) schemas.add(schema);
                 }
             }
-            if (CollectionUtils.isEmpty(schemas) && includeSchema(connection.schema())) schemas.add(connection.schema());
+            if (CollectionUtils.isEmpty(schemas) && includeSchema(connection.schema())) {
+                schemas.add(connection.schema());
+            }
             return new ArrayList<>(schemas);
         } catch (Exception exception) {
             throw catalogError("读取 Schema 列表失败", exception);
@@ -181,7 +185,7 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
         String message = safeMessage(throwable);
         return new DataSourcePluginException(
                 DataSourcePluginOperation.CATALOG,
-                action + (StringUtils.StringUtils.isBlank(message) ? "" : "：" + message),
+                action + (StringUtils.isBlank(message) ? "" : "：" + message),
                 throwable);
     }
 
@@ -195,13 +199,13 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
 
     private String metadataCatalog(String requestedDatabase) {
         if (usesOracleStyle()) return null;
-        String database = StringUtils.StringUtils.trimToNull(requestedDatabase);
-        return database == null ? StringUtils.StringUtils.trimToNull(connection.database()) : database;
+        String database = StringUtils.trimToNull(requestedDatabase);
+        return database == null ? StringUtils.trimToNull(connection.database()) : database;
     }
 
     private String metadataSchema(String requestedSchema, boolean narrowOracleDefault) {
-        String schema = StringUtils.StringUtils.trimToNull(requestedSchema);
-        if (schema == null) schema = StringUtils.StringUtils.trimToNull(connection.schema());
+        String schema = StringUtils.trimToNull(requestedSchema);
+        if (schema == null) schema = StringUtils.trimToNull(connection.schema());
         if (!usesOracleStyle()) return schema;
         if (StringUtils.isBlank(schema) && narrowOracleDefault) schema = StringUtils.trimToNull(connection.username());
         return schema == null ? null : schema.toUpperCase(Locale.ROOT);
@@ -267,7 +271,4 @@ public class GenericJdbcCatalog implements DataSourceCatalog {
     private boolean usesOracleStyle() {
         return isType("ORACLE");
     }
-
-
-
 }
