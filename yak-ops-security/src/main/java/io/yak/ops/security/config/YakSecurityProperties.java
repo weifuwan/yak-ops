@@ -1,5 +1,6 @@
 package io.yak.ops.security.config;
 
+import io.yak.ops.security.constant.SecurityConstants;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,10 +14,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Getter
 @Setter
 @ToString
-@ConfigurationProperties(prefix = YakSecurityProperties.PREFIX)
+@ConfigurationProperties(prefix = SecurityConstants.CONFIG_PREFIX)
 public class YakSecurityProperties {
-
-    public static final String PREFIX = "yak.security";
 
     private boolean enabled = true;
     private boolean databaseEnabled = true;
@@ -24,7 +23,7 @@ public class YakSecurityProperties {
     private boolean authenticationEnabled = true;
 
     private List<String> publicPaths = new ArrayList<>(Arrays.asList(
-            "/yak-security/api/v1/account/login", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"));
+            SecurityConstants.LOGIN_API_PATH, "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"));
 
     private String applicationName;
 
