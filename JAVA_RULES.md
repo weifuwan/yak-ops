@@ -36,8 +36,40 @@ bash mvnw -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.
 Rules:
 - Run `spotless:apply` after changing Java layout or imports.
 - Run `spotless:check` before declaring Java work verified.
+- `spotless:check` is bound to the Maven `verify` lifecycle; backend verification cannot pass with unformatted production Java.
+- CI is check-only. It must never run `spotless:apply`, rewrite source files or commit formatter output.
 - Do not manually fight formatter output for indentation, wrapping, braces or imports.
 - Formatter owns mechanical layout. `JAVA_RULES.md`, `ARCHITECTURE.md` and module RULES own naming, abstraction, layering and behavior.
+
+## Backend Physical Quality Gate
+
+Backend rules that can be determined mechanically are enforced by tools rather than AI review.
+
+CI exposes three explicit gates:
+
+```text
+Backend format
+      ↓
+Backend compile
+      ↓
+Backend verify
+```
+
+Ownership:
+
+- `Backend format` runs Spotless check directly so formatting failures are visible as their own CI step.
+- `Backend compile` proves the selected backend Maven reactor compiles with Java 21.
+- `Backend verify` runs the Maven verification lifecycle; Spotless check is also bound to this lifecycle as a repository-level invariant.
+- `yak-ops-bom` remains outside the explicit formatter command because it does not inherit the Yak Ops root formatter plugin.
+- `yak-ops-ui` and `yak-ops-dist` remain outside the backend verification reactor because frontend and distribution have separate build ownership.
+
+Local backend verification:
+
+```bash
+bash mvnw -DskipTests -pl '!yak-ops-ui,!yak-ops-dist' verify
+```
+
+The explicit formatter command remains useful for fast local feedback, while `verify` is the final Maven lifecycle gate.
 
 ## Layout
 
@@ -326,7 +358,10 @@ mechanical style
 → repository Spotless check command above
 
 compile-sensitive change
-→ relevant Maven compile/package command
+→ relevant Maven compile command
+
+backend lifecycle verification
+→ bash mvnw -DskipTests -pl '!yak-ops-ui,!yak-ops-dist' verify
 
 behavior change
 → capability-specific manual or automated verification
