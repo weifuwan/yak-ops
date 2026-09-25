@@ -10,6 +10,7 @@ import io.yak.ops.common.result.Result;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import io.yak.ops.security.authentication.LoginAttemptGuard;
 import io.yak.ops.security.config.YakSecurityProperties;
+import io.yak.ops.security.constant.SecurityConstants;
 import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.model.UserAccount;
 import io.yak.ops.security.service.LoginService;
@@ -32,7 +33,7 @@ import org.springframework.util.StringUtils;
 
 /** Default login behavior and authenticated-request validation. */
 @ConditionalOnProperty(
-        prefix = "yak.security",
+        prefix = SecurityConstants.CONFIG_PREFIX,
         name = {"enabled", "database-enabled"},
         havingValue = "true",
         matchIfMissing = true)
