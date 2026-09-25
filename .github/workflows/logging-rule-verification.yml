@@ -1,0 +1,62 @@
+name: Logging Rule Verification
+
+on:
+  pull_request:
+    paths:
+      - "**/src/main/java/**/*.java"
+      - "pom.xml"
+      - "**/pom.xml"
+      - "JAVA_RULES.md"
+      - "LOGGING_RULES.md"
+      - "scripts/verify_logging_rules.py"
+      - ".github/workflows/logging-rule-verification.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "**/src/main/java/**/*.java"
+      - "pom.xml"
+      - "**/pom.xml"
+      - "JAVA_RULES.md"
+      - "LOGGING_RULES.md"
+      - "scripts/verify_logging_rules.py"
+      - ".github/workflows/logging-rule-verification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: logging-rule-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Verify logging rules
+        run: python3 scripts/verify_logging_rules.py
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Spotless check
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
+          com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
+
+      - name: Backend compile
+        run: >-
+          bash mvnw -q -DskipTests
+          -pl '!yak-ops-ui,!yak-ops-dist'
+          compile

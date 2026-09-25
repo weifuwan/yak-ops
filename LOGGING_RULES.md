@@ -256,15 +256,31 @@ Runtime log files are deployment artifacts. They are not packaged into the appli
 
 ## Verification
 
-For logging changes, verify the touched boundary:
+Hard logging rules are executable:
+
+```bash
+python3 scripts/verify_logging_rules.py
+```
+
+The verifier scans backend production Java and rejects:
+- Lombok `@Slf4j`;
+- `System.out`, `System.err` and `printStackTrace`;
+- direct Log4j2, Logback or `java.util.logging` APIs;
+- repository-owned logging wrappers such as `LogUtils`, `LoggerManager` or custom `*LoggerFactory`;
+- Logger fields that do not use `private static final Logger LOG = LoggerFactory.getLogger(CurrentType.class)`;
+- TRACE calls;
+- repository-owned log messages without Chinese event text;
+- obvious `String.format` / string-concatenation logging;
+- log calls that directly reference hard-sensitive identifiers such as password, token credentials, session IDs, connection JSON or JDBC URLs.
+
+GitHub Actions runs the same verifier from `.github/workflows/logging-rule-verification.yml` for backend-related pull requests and main-branch changes, then runs repository Spotless check and backend compile.
+
+Semantic review is still required. Static verification cannot decide whether an INFO/WARN log is operationally useful, whether a recoverable condition really deserves WARN, or whether a specific identity field is materially necessary for diagnosis.
+
+For runtime logging changes, additionally verify:
 
 ```text
-Java logger changes
-→ repository Spotless check
-→ relevant module compile
-
-runtime logging properties
-→ Boot configuration parses
+Boot configuration parses
 → application starts
 → logs/yak-ops.log is created
 → DEBUG can be enabled through YAK_LOG_LEVEL
