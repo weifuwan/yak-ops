@@ -19,8 +19,28 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
 
   const secondLevelOpen = open && allProductsOpen;
 
+  const handleBlankAreaClick = () => {
+    if (secondLevelOpen) {
+      setAllProductsOpen(false);
+      return;
+    }
+
+    onClose();
+  };
+
   return (
     <>
+      <button
+        type="button"
+        aria-label="关闭产品菜单"
+        tabIndex={-1}
+        className={[
+          "fixed inset-x-0 bottom-0 top-10 z-20 cursor-default border-0 bg-transparent p-0",
+          open ? "pointer-events-auto" : "pointer-events-none",
+        ].join(" ")}
+        onClick={handleBlankAreaClick}
+      />
+
       <aside
         id="global-product-launcher"
         aria-label="全局产品一级菜单"
