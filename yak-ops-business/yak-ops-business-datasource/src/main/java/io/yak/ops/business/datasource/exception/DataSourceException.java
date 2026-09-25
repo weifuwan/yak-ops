@@ -1,8 +1,8 @@
 package io.yak.ops.business.datasource.exception;
 
-import io.yak.ops.common.util.SensitiveUtils;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.result.ErrorCode;
+import io.yak.ops.common.util.SensitiveUtils;
 
 /**
  * Datasource Service 与 Plugin 边界统一使用的领域业务异常。
