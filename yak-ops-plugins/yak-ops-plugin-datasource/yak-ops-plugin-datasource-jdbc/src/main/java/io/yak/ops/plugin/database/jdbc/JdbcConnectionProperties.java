@@ -76,7 +76,7 @@ public final class JdbcConnectionProperties implements DataSourceConnection {
 
     @Override
     public String type() {
-        return dbType;
+        return type;
     }
 
     public String host() {
