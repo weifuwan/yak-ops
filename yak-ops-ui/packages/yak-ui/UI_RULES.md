@@ -48,6 +48,7 @@ Base UI is an implementation dependency, not a product-facing API.
 - Dialog / Drawer / Popover / Menu popup interaction, focus restore, Escape and outside press behavior stay in Base UI.
 - Toast is the common replacement for message / notification feedback.
 - Badge is the common lightweight status-label primitive; product-specific status semantics stay outside Yak UI.
+- Table owns generic tabular rendering, loading / empty presentation, scroll / sticky header and pagination placement; product code owns fetching, filters, mutations and business cell content.
 - `className` is a layout / positioning / necessary escape hatch, not a second visual contract.
 
 ## Form Boundary
@@ -73,6 +74,27 @@ Product form state belongs to the owning product package.
 
 Do not rebuild an AntD-style mega Form API inside Yak UI.
 
+## Table Boundary
+
+Yak UI Table uses an AntD-familiar core contract without becoming an AntD compatibility layer:
+
+- `columns / dataSource / rowKey` define generic tabular data.
+- Column `render` owns presentation composition but not product data fetching.
+- `pagination` reuses Yak UI Pagination; Table does not implement a second pagination control.
+- When `pagination.total` is omitted, Table may paginate the supplied in-memory `dataSource`.
+- When `pagination.total` is provided, Table treats `dataSource` as the already-paged server result.
+- `loading` keeps the current table structure mounted and overlays a Spinner instead of replacing the table.
+- V1 supports size, border, row hover, ellipsis, horizontal / vertical scroll and sticky header.
+- Selection, sorter, filter, expandable rows, fixed columns, virtualization and component overrides are not V1 responsibilities.
+
+Table must not own:
+
+- request / API lifecycle
+- search form or filter schema
+- CRUD actions
+- Datasource-specific columns
+- backend pagination contract adaptation
+
 ## Upload Boundary
 
 Yak UI does not provide an Upload product component.
@@ -97,6 +119,7 @@ AntD Drawer          → Drawer
 AntD Tabs            → Tabs
 AntD Dropdown        → DropdownMenu
 AntD Pagination      → Pagination
+AntD Table           → Table
 AntD Spin            → Spinner
 AntD Empty           → Empty
 AntD Collapse        → Collapsible
@@ -115,6 +138,7 @@ AntD Space           → normal flex / grid layout
 - Yak UI re-exports raw Base UI components as its public contract without an intentional Yak UI boundary.
 - Add Ant Design or a second UI framework such as MUI / Chakra inside Yak UI.
 - Recreate AntD-compatible APIs just to make migration search-and-replace easier.
+- Put request, search-form, CRUD or domain-specific behavior inside Table.
 - Add future primitives that have no real current migration or product need.
 
 ## Current Set
@@ -139,6 +163,7 @@ Yak UI
 ├── Select
 ├── Spinner
 ├── Switch
+├── Table
 ├── Tabs
 ├── Textarea
 ├── Toast
