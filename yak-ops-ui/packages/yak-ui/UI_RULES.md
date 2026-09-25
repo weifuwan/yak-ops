@@ -84,8 +84,11 @@ Yak UI Table uses an AntD-familiar core contract without becoming an AntD compat
 - When `pagination.total` is omitted, Table may paginate the supplied in-memory `dataSource`.
 - When `pagination.total` is provided, Table treats `dataSource` as the already-paged server result.
 - `loading` keeps the current table structure mounted and overlays a Spinner instead of replacing the table.
-- V1 supports size, border, row hover, ellipsis, horizontal / vertical scroll and sticky header.
-- Selection, sorter, filter, expandable rows, fixed columns, virtualization and component overrides are not V1 responsibilities.
+- `rowSelection` is a generic controlled / uncontrolled selection contract implemented by injecting a selection column; Table Body does not hard-code Checkbox behavior.
+- Select-all only affects selectable rows on the currently rendered page and preserves selected keys from other pages.
+- Disabled row selection comes from `getCheckboxProps`; selection never contains Datasource or other domain semantics.
+- Current Table supports size, border, row hover, selected-row state, ellipsis, horizontal / vertical scroll and sticky header.
+- Sorter, filter, expandable rows, fixed columns, virtualization and component overrides remain deferred.
 
 Table must not own:
 
@@ -105,6 +108,7 @@ File selection uses native browser file input. Upload request, file type / size 
 
 ```text
 AntD Button          → Button
+AntD Checkbox        → Checkbox
 AntD Input           → Input
 AntD Input.Password  → PasswordInput
 AntD Input.TextArea  → Textarea
@@ -147,6 +151,7 @@ AntD Space           → normal flex / grid layout
 Yak UI
 ├── Badge
 ├── Button
+├── Checkbox
 ├── Collapsible
 ├── Combobox
 ├── Dialog
