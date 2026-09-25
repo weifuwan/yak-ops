@@ -1,4 +1,4 @@
-import { Database, type LucideIcon } from "lucide-react";
+import { Database, Grid2X2, type LucideIcon } from "lucide-react";
 
 type ProductNavigationItem = {
   label: string;
@@ -6,10 +6,11 @@ type ProductNavigationItem = {
   icon: LucideIcon;
 };
 
-type ProductGroup = {
+type GlobalProductMenuItem = {
   id: string;
   label: string;
-  items: ProductNavigationItem[];
+  icon: LucideIcon;
+  path?: string;
 };
 
 export const CURRENT_PRODUCT_LABEL = "数据集成";
@@ -22,10 +23,16 @@ export const PRODUCT_NAVIGATION: ProductNavigationItem[] = [
   },
 ];
 
-export const PRODUCT_GROUPS: ProductGroup[] = [
+export const GLOBAL_PRODUCT_MENU: GlobalProductMenuItem[] = [
+  {
+    id: "all-products",
+    label: "所有产品",
+    icon: Grid2X2,
+  },
   {
     id: "data-integration",
     label: CURRENT_PRODUCT_LABEL,
-    items: PRODUCT_NAVIGATION,
+    icon: Database,
+    path: "/data-source",
   },
 ];
