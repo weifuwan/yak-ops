@@ -75,7 +75,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserVO getUserDetailByUserId(Long userId) {
+    public UserVO getUserDetailByUserId(String userId) {
         UserAccount user = requireUser(userId);
         UserVO result = CopyBeanUtil.copy(user, UserVO.class);
         privacyProcessing(result);
@@ -83,7 +83,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result<Void> deleteByUserId(Long userId) {
+    public Result<Void> deleteByUserId(String userId) {
         requireUser(userId);
         return userRepository.deleteById(userId) > 0
                 ? Result.success()
@@ -101,7 +101,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserBriefVO> getUserBriefListByUserIds(List<Long> userIds) {
+    public List<UserBriefVO> getUserBriefListByUserIds(List<String> userIds) {
         if (userIds == null || userIds.isEmpty()) return Collections.emptyList();
         return CopyBeanUtil.copyList(userRepository.queryByIds(userIds), UserBriefVO.class);
     }
@@ -132,6 +132,7 @@ public class UserServiceImpl implements UserService {
         try {
             UserEntity user = toUserEntity(userDTO);
             user.setPw(passwordEncoder.encode(userDTO.getPw()));
+            user.initCreate(operator);
             userRepository.add(user);
             LOGGER.info("新增用户成功，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
             return Result.success();
@@ -161,6 +162,7 @@ public class UserServiceImpl implements UserService {
             UserEntity user = toUserEntity(userDTO);
             user.setId(current.getId());
             user.setPw(StringUtils.hasText(userDTO.getPw()) ? passwordEncoder.encode(userDTO.getPw()) : null);
+            user.initUpdate(operator);
             userRepository.update(user);
             LOGGER.info("编辑用户成功，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
             return Result.success();
@@ -173,14 +175,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result<List<UserVO>> getUserDetailsByUserIds(List<Long> userIds) {
+    public Result<List<UserVO>> getUserDetailsByUserIds(List<String> userIds) {
         if (userIds == null || userIds.isEmpty()) return Result.success(Collections.emptyList());
         List<UserVO> users = CopyBeanUtil.copyList(userRepository.queryByIds(userIds), UserVO.class);
         users.forEach(this::privacyProcessing);
         return Result.success(users);
     }
 
-    private UserAccount requireUser(Long userId) {
+    private UserAccount requireUser(String userId) {
         if (userId == null) throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
         UserAccount user = toUser(userRepository.queryById(userId).orElse(null));
         if (user == null) throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
@@ -211,7 +213,7 @@ public class UserServiceImpl implements UserService {
         return Result.success();
     }
 
-    private Result<Void> userNameCheck(String username, Long currentUserId) {
+    private Result<Void> userNameCheck(String username, String currentUserId) {
         if (!StringUtils.hasText(username)
                 || !USER_NAME_PATTERN.matcher(username.trim()).matches()) {
             return Result.fail(ResultCode.USER_NAME_FORMAT_ERROR);
@@ -222,7 +224,7 @@ public class UserServiceImpl implements UserService {
                 : Result.success();
     }
 
-    private Result<Void> userPhoneCheck(String phone, Long currentUserId) {
+    private Result<Void> userPhoneCheck(String phone, String currentUserId) {
         if (!StringUtils.hasText(phone)) return Result.success();
         String normalized = phone.trim();
         if (!USER_PHONE_PATTERN.matcher(normalized).matches()) {
@@ -234,7 +236,7 @@ public class UserServiceImpl implements UserService {
                 : Result.success();
     }
 
-    private Result<Void> userMailCheck(String email, Long currentUserId) {
+    private Result<Void> userMailCheck(String email, String currentUserId) {
         if (!StringUtils.hasText(email)) return Result.success();
         String normalized = email.trim();
         if (!USER_MAIL_PATTERN.matcher(normalized).matches()) {

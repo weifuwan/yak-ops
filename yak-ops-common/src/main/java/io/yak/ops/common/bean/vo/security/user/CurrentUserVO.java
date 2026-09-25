@@ -5,7 +5,7 @@ import lombok.Data;
 /** 当前登录用户身份。 */
 @Data
 public class CurrentUserVO {
-    private Long id;
+    private String id;
     private String userName;
     private String realName;
     private Long deptId;

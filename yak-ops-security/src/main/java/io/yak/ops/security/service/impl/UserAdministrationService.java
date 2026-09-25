@@ -39,7 +39,7 @@ public class UserAdministrationService {
     @Resource
     private ObjectProvider<AuthenticationManager> authenticationManagerProvider;
 
-    public void validateDelete(Long targetUserId, Long operatorId, String operator) {
+    public void validateDelete(String targetUserId, String operatorId, String operator) {
         if (targetUserId == null) {
             throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
         }
@@ -59,7 +59,7 @@ public class UserAdministrationService {
     }
 
     @Transactional(transactionManager = "yakSecurityTransactionManager", rollbackFor = Exception.class)
-    public void resetPassword(Long userId, UserPasswordResetDTO request, String operator) {
+    public void resetPassword(String userId, UserPasswordResetDTO request, String operator) {
         if (userId == null) {
             throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
         }
@@ -78,9 +78,9 @@ public class UserAdministrationService {
         }
 
         String encodedPassword = passwordEncoder.encode(password);
-        if (userRepository.updatePassword(userId, encodedPassword) != 1) {
-            throw new YakSecurityException(ResultCode.USER_ACCOUNT_UPDATE_FAIL);
-        }
+        user.setPw(encodedPassword);
+        user.initUpdate(operator);
+        userRepository.update(user);
 
         invalidateUserSessions(userId);
         LOGGER.info("管理员重置用户密码成功，用户ID={}，用户名={}，操作人={}", userId, user.getUserName(), operator);
@@ -96,7 +96,7 @@ public class UserAdministrationService {
         LOGGER.info("用户密码变更后清理登录态，用户ID={}，用户名={}，操作人={}", user.getId(), user.getUserName(), operator);
     }
 
-    public void forceLogout(Long userId, String operator) {
+    public void forceLogout(String userId, String operator) {
         if (userId == null) {
             throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
         }
@@ -115,7 +115,7 @@ public class UserAdministrationService {
         LOGGER.info("管理员强制下线用户，用户ID={}，用户名={}，操作人={}", userId, user.getUserName(), operator);
     }
 
-    private void invalidateUserSessions(Long userId) {
+    private void invalidateUserSessions(String userId) {
         AuthenticationManager authenticationManager = authenticationManagerProvider.getIfAvailable();
         if (authenticationManager != null) authenticationManager.logoutUser(userId);
     }

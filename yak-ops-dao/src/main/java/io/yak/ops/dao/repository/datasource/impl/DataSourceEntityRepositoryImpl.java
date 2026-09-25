@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.common.PageData;
-import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceDbType;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.mapper.datasource.DataSourceMapper;
@@ -25,7 +24,7 @@ import org.springframework.util.StringUtils;
  */
 @Repository
 public class DataSourceEntityRepositoryImpl
-        extends BaseRepositoryImpl<DataSourceMapper, DataSourceEntity, Long>
+        extends BaseRepositoryImpl<DataSourceMapper, DataSourceEntity>
         implements DataSourceEntityRepository {
 
     @Resource
@@ -64,23 +63,12 @@ public class DataSourceEntityRepositoryImpl
     }
 
     @Override
-    public boolean existsByName(String name, Long excludeId) {
+    public boolean existsByName(String name, String excludeId) {
         if (!StringUtils.hasText(name)) return false;
         Long count = dataSourceMapper.selectCount(Wrappers.<DataSourceEntity>lambdaQuery()
                 .eq(DataSourceEntity::getName, name)
                 .ne(excludeId != null, DataSourceEntity::getId, excludeId));
         return count != null && count > 0;
-    }
-
-    @Override
-    public boolean updateConnectionStatus(Long id, DataSourceConnStatus status) {
-        if (id == null || status == null) return false;
-        return dataSourceMapper.update(
-                        null,
-                        Wrappers.<DataSourceEntity>lambdaUpdate()
-                                .set(DataSourceEntity::getConnStatus, status)
-                                .eq(DataSourceEntity::getId, id))
-                > 0;
     }
 
     private LambdaQueryWrapper<DataSourceEntity> queryWrapper(PageQuery query) {

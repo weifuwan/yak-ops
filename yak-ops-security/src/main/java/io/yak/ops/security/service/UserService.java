@@ -16,15 +16,15 @@ public interface UserService {
 
     PagingData<UserVO> getUserPage(UserQueryDTO queryDTO);
 
-    UserVO getUserDetailByUserId(Long userId);
+    UserVO getUserDetailByUserId(String userId);
 
-    Result<Void> deleteByUserId(Long userId);
+    Result<Void> deleteByUserId(String userId);
 
     UserBriefVO getUserBriefByUsername(String username);
 
     UserAccount getUserByUsername(String username);
 
-    List<UserBriefVO> getUserBriefListByUserIds(List<Long> userIds);
+    List<UserBriefVO> getUserBriefListByUserIds(List<String> userIds);
 
     List<UserBriefVO> searchUserBriefList(String keyword);
 
@@ -34,5 +34,5 @@ public interface UserService {
 
     Result<Void> editUser(UserDTO userDTO, String operator);
 
-    Result<List<UserVO>> getUserDetailsByUserIds(List<Long> userIds);
+    Result<List<UserVO>> getUserDetailsByUserIds(List<String> userIds);
 }

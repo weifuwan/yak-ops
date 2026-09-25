@@ -1,12 +1,10 @@
 package io.yak.ops.dao.entity.security;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.LocalDateTime;
+import io.yak.ops.dao.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -21,11 +19,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @TableName("yak_security_user")
-public class UserEntity {
-
-    /** 用户主键，由数据库自增生成。 */
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class UserEntity extends BaseEntity {
 
     /** 应用级数据隔离键，由 Security MyBatis 运行时自动填充。 */
     @TableField(fill = FieldFill.INSERT)
@@ -60,10 +54,4 @@ public class UserEntity {
     /** 逻辑删除标记：0 未删除，1 已删除。 */
     @TableLogic(value = "0", delval = "1")
     private int isDelete = 0;
-
-    /** 用户记录创建时间。 */
-    private LocalDateTime createTime;
-
-    /** 用户记录最后更新时间。 */
-    private LocalDateTime updateTime;
 }

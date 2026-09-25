@@ -76,7 +76,7 @@ public class DataSourceCatalogMetadataCache {
                 normalizedQualifiers);
     }
 
-    public int invalidate(Long dataSourceId) {
+    public int invalidate(String dataSourceId) {
         if (dataSourceId == null) return 0;
         int before = entries.size();
         entries.keySet().removeIf(key -> Objects.equals(dataSourceId, key.dataSourceId()));
@@ -113,7 +113,7 @@ public class DataSourceCatalogMetadataCache {
      * @since 2026-09-24
      */
     public record CacheKey(
-            Long dataSourceId, LocalDateTime dataSourceUpdateTime, String kind, List<String> qualifiers) {
+            String dataSourceId, LocalDateTime dataSourceUpdateTime, String kind, List<String> qualifiers) {
         public CacheKey {
             qualifiers = qualifiers == null ? List.of() : List.copyOf(qualifiers);
         }

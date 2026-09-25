@@ -19,11 +19,11 @@ public interface DataSourceBusiness {
 
     boolean addDataSource(DataSourceDTO dto);
 
-    boolean updateDataSource(Long id, DataSourceDTO dto);
+    boolean updateDataSource(String id, DataSourceDTO dto);
 
-    DataSourceVO queryDataSource(Long id);
+    DataSourceVO queryDataSource(String id);
 
-    boolean deleteDataSource(Long id);
+    boolean deleteDataSource(String id);
 
     PagingData<DataSourceVO> queryDataSourcePage(DataSourceQueryDTO dto);
 
@@ -33,7 +33,7 @@ public interface DataSourceBusiness {
 
     List<DataSourceOptionVO> queryDataSourceOptions(String dbType);
 
-    boolean testConnection(Long id);
+    boolean testConnection(String id);
 
     boolean testConnection(DataSourceConnectTestDTO dto);
 }

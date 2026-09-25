@@ -5,7 +5,7 @@ import lombok.Data;
 /** 用户简要信息视图对象。 */
 @Data
 public class UserBriefVO {
-    private Long id;
+    private String id;
     private String userName;
     private String realName;
     private Long deptId;

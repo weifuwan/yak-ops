@@ -1,4 +1,4 @@
-export type DataSourceId = number | string;
+export type DataSourceId = string;
 
 export type DataSourceConnectionStatus =
   | 'UNKNOWN'

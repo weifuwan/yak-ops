@@ -17,7 +17,7 @@ import org.springframework.util.StringUtils;
 
 /** MyBatis-Plus user repository. */
 @Repository
-public class UserRepositoryImpl extends BaseRepositoryImpl<UserMapper, UserEntity, Long> implements UserRepository {
+public class UserRepositoryImpl extends BaseRepositoryImpl<UserMapper, UserEntity> implements UserRepository {
 
     @Resource
     private UserMapper userMapper;
@@ -28,7 +28,7 @@ public class UserRepositoryImpl extends BaseRepositoryImpl<UserMapper, UserEntit
     }
 
     @Override
-    public PageData<UserEntity> queryPage(Long id, String userName, String realName, long pageNo, long pageSize) {
+    public PageData<UserEntity> queryPage(String id, String userName, String realName, long pageNo, long pageSize) {
         Page<UserEntity> page = Page.of(pageNo, pageSize);
         LambdaQueryWrapper<UserEntity> wrapper = Wrappers.<UserEntity>lambdaQuery()
                 .eq(id != null, UserEntity::getId, id)
@@ -62,7 +62,7 @@ public class UserRepositoryImpl extends BaseRepositoryImpl<UserMapper, UserEntit
     }
 
     @Override
-    public List<UserEntity> queryByIds(List<Long> userIds) {
+    public List<UserEntity> queryByIds(List<String> userIds) {
         if (userIds == null || userIds.isEmpty()) return List.of();
         return userMapper.selectList(Wrappers.<UserEntity>lambdaQuery()
                 .in(UserEntity::getId, userIds)
@@ -77,15 +77,5 @@ public class UserRepositoryImpl extends BaseRepositoryImpl<UserMapper, UserEntit
                         nested ->
                                 nested.like(UserEntity::getUserName, name).or().like(UserEntity::getRealName, name))
                 .orderByDesc(UserEntity::getCreateTime));
-    }
-
-    @Override
-    public int updatePassword(Long userId, String encodedPassword) {
-        if (userId == null) return 0;
-        return userMapper.update(
-                null,
-                Wrappers.<UserEntity>lambdaUpdate()
-                        .eq(UserEntity::getId, userId)
-                        .set(UserEntity::getPw, encodedPassword));
     }
 }

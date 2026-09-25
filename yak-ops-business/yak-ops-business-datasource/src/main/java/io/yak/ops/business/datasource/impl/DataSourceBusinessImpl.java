@@ -68,6 +68,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         entity.setRemark(normalizeNullable(dto.getRemark()));
         entity.setConnectionParams(connection.normalizedJson());
         entity.setOriginalJson(connection.normalizedJson());
+        entity.initCreate();
         if (repository.add(entity) == null) {
             throw new DataSourceException(DataSourceErrorCode.CREATE_FAILED);
         }
@@ -76,7 +77,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
 
     @Override
     @Transactional(transactionManager = "opsDataSourceTransactionManager", rollbackFor = Exception.class)
-    public boolean updateDataSource(Long id, DataSourceDTO dto) {
+    public boolean updateDataSource(String id, DataSourceDTO dto) {
         requireDataSourceDto(dto);
         DataSourceEntity existing = requireEntity(id);
         String name = normalizeName(dto.getName());
@@ -95,6 +96,7 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         existing.setRemark(normalizeNullable(dto.getRemark()));
         existing.setConnectionParams(connection.normalizedJson());
         existing.setOriginalJson(connection.normalizedJson());
+        existing.initUpdate();
 
         if (repository.update(existing) == null) {
             throw new DataSourceException(DataSourceErrorCode.UPDATE_FAILED);
@@ -104,13 +106,13 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
     }
 
     @Override
-    public DataSourceVO queryDataSource(Long id) {
+    public DataSourceVO queryDataSource(String id) {
         return toDataSourceVO(requireEntity(id), true);
     }
 
     @Override
     @Transactional(transactionManager = "opsDataSourceTransactionManager", rollbackFor = Exception.class)
-    public boolean deleteDataSource(Long id) {
+    public boolean deleteDataSource(String id) {
         DataSourceEntity existing = requireEntity(id);
         if (repository.deleteById(existing.getId()) <= 0) {
             throw new DataSourceException(DataSourceErrorCode.DELETE_FAILED);
@@ -157,16 +159,20 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
     }
 
     @Override
-    public boolean testConnection(Long id) {
+    public boolean testConnection(String id) {
         DataSourceEntity entity = requireEntity(id);
         try {
             pluginBusiness.testConnection(entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds());
-            repository.updateConnectionStatus(entity.getId(), DataSourceConnStatus.CONNECTED);
+            entity.setConnStatus(DataSourceConnStatus.CONNECTED);
+            entity.initUpdate();
+            repository.update(entity);
             return true;
         } catch (RuntimeException exception) {
             DataSourceException mapped = connectException(exception);
             if (DataSourceErrorCode.CONNECT_FAILED.equals(mapped.getErrorCode())) {
-                repository.updateConnectionStatus(entity.getId(), DataSourceConnStatus.DISCONNECTED);
+                entity.setConnStatus(DataSourceConnStatus.DISCONNECTED);
+                entity.initUpdate();
+                repository.update(entity);
             }
             throw mapped;
         }
@@ -204,14 +210,14 @@ public class DataSourceBusinessImpl implements DataSourceBusiness {
         }
     }
 
-    private DataSourceEntity requireEntity(Long id) {
-        if (id == null || id <= 0L) {
+    private DataSourceEntity requireEntity(String id) {
+        if (!StringUtils.hasText(id)) {
             throw new DataSourceException(DataSourceErrorCode.NOT_FOUND);
         }
         return repository.queryById(id).orElseThrow(() -> new DataSourceException(DataSourceErrorCode.NOT_FOUND));
     }
 
-    private void ensureNameAvailable(String name, Long excludeId) {
+    private void ensureNameAvailable(String name, String excludeId) {
         if (repository.existsByName(name, excludeId)) {
             throw new DataSourceException(DataSourceErrorCode.DUPLICATE_NAME);
         }

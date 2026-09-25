@@ -15,7 +15,7 @@ import java.util.List;
  * @author weifuwan
  * @since 2026-09-24
  */
-public interface DataSourceEntityRepository extends BaseRepository<DataSourceEntity, Long> {
+public interface DataSourceEntityRepository extends BaseRepository<DataSourceEntity> {
 
     /** 按数据源筛选条件查询分页数据。 */
     PageData<DataSourceEntity> queryPage(PageQuery query);
@@ -27,10 +27,7 @@ public interface DataSourceEntityRepository extends BaseRepository<DataSourceEnt
     DataSourceSummaryRow querySummary();
 
     /** 判断数据源名称是否已被占用，可排除当前数据源 ID。 */
-    boolean existsByName(String name, Long excludeId);
-
-    /** 更新数据源最近一次连接检测得到的状态。 */
-    boolean updateConnectionStatus(Long id, DataSourceConnStatus status);
+    boolean existsByName(String name, String excludeId);
 
     /**
      * 数据源分页筛选条件。

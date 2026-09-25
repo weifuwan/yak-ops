@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Optional;
 
 /** User persistence boundary. */
-public interface UserRepository extends BaseRepository<UserEntity, Long> {
+public interface UserRepository extends BaseRepository<UserEntity> {
 
-    PageData<UserEntity> queryPage(Long id, String userName, String realName, long pageNo, long pageSize);
+    PageData<UserEntity> queryPage(String id, String userName, String realName, long pageNo, long pageSize);
 
     Optional<UserEntity> queryByEmail(String email);
 
@@ -17,9 +17,7 @@ public interface UserRepository extends BaseRepository<UserEntity, Long> {
 
     Optional<UserEntity> queryByUsername(String username);
 
-    List<UserEntity> queryByIds(List<Long> userIds);
+    List<UserEntity> queryByIds(List<String> userIds);
 
     List<UserEntity> queryByName(String name);
-
-    int updatePassword(Long userId, String encodedPassword);
 }
