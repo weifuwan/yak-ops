@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import io.yak.ops.common.constant.SystemConstant;
+import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.util.DateUtils;
 import io.yak.ops.common.util.IdUtils;
 import java.time.LocalDateTime;
@@ -42,7 +42,7 @@ public abstract class BaseEntity {
     private String updateBy;
 
     public void initCreate() {
-        initCreate(SystemConstant.SYSTEM_USER);
+        initCreate(CommonConstants.SYSTEM_USER);
     }
 
     public void initCreate(String userId) {
@@ -57,7 +57,7 @@ public abstract class BaseEntity {
     }
 
     public void initUpdate() {
-        initUpdate(SystemConstant.SYSTEM_USER);
+        initUpdate(CommonConstants.SYSTEM_USER);
     }
 
     public void initUpdate(String userId) {
@@ -66,6 +66,6 @@ public abstract class BaseEntity {
     }
 
     private static String normalizeUser(String userId) {
-        return userId == null || userId.isBlank() ? SystemConstant.SYSTEM_USER : userId.strip();
+        return userId == null || userId.isBlank() ? CommonConstants.SYSTEM_USER : userId.strip();
     }
 }
