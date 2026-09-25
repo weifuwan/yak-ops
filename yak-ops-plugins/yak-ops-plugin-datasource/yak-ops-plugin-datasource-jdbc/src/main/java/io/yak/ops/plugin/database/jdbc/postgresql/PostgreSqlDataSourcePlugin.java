@@ -3,7 +3,12 @@ package io.yak.ops.plugin.database.jdbc.postgresql;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 
-/** PostgreSQL JDBC datasource plugin. */
+/**
+ * PostgreSQL JDBC Provider，拥有 PostgreSQL 默认端口、Driver、URL 和兼容类型别名。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public final class PostgreSqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override

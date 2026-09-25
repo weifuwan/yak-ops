@@ -3,7 +3,12 @@ package io.yak.ops.plugin.database.jdbc.mysql;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 
-/** MySQL JDBC datasource plugin. */
+/**
+ * MySQL JDBC Provider，拥有 MySQL 默认端口、Driver 和 JDBC URL 规则。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override

@@ -9,8 +9,13 @@ import java.util.Set;
 /**
  * 数据源 Provider 的稳定运行时元数据。
  *
- * <p>Provider 自己声明 canonical type、aliases、capabilities 与敏感字段；核心模块不维护数据库类型枚举或 UI schema。
+ * <p>Provider 自己声明 canonical type、aliases、capabilities 与敏感字段；核心模块不维护数据库类型枚举或 UI schema。</p>
  *
+ * @param type Provider canonical type
+ * @param aliases 与 canonical type 等价的兼容类型名
+ * @param apiVersion Datasource Plugin API 版本
+ * @param capabilities Provider 当前实际支持的能力集合
+ * @param secretFieldKeys Provider 特有的敏感连接字段名
  * @author weifuwan
  * @since 2026-09-25
  */
@@ -21,6 +26,7 @@ public record DataSourcePluginDescriptor(
         Set<DataSourceCapability> capabilities,
         Set<String> secretFieldKeys) {
 
+    /** 当前运行时接受的 Datasource Plugin API 版本。 */
     public static final String CURRENT_API_VERSION = "3";
 
     public DataSourcePluginDescriptor {
