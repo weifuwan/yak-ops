@@ -74,6 +74,24 @@ Security 不创建独立连接池、SqlSessionFactory、SqlSessionTemplate 或�
 
 Security 只提供用户/登录行为和安全数据隔离所需的语义；最终 DataSource / MyBatis-Plus runtime wiring 由 `yak-ops-boot` 统一装配，Security user persistence 仍由 `yak-ops-dao` 持有。
 
+## Service Boundary
+
+Security 只暴露两条稳定 Service contract：
+
+```text
+LoginService
+→ LoginServiceImpl
+
+UserService
+→ UserServiceImpl
+```
+
+Boot 只依赖这两个接口，不得直接注入 Security 的 concrete service / impl。
+
+User 领域的新增、编辑、删除、密码重置、自删除校验、密码变更后会话清理都属于 `UserServiceImpl` 行为，不再拆 `UserAdministrationService` 或其他第二业务入口。
+
+没有真实 HTTP / Service 调用方的 `forceLogout` 之类能力不保留未来接口；需要时由新的 Capability Contract 再引入。
+
 ## Model Boundary
 
 Security runtime 只保留用户和登录业务行为、认证状态及内部领域模型。`LoginService` 是当前登录行为 contract，不再叠加 `LoginExtend` 或纯转发 facade。
@@ -118,6 +136,8 @@ Notification capability 已删除，不在 Security 中保留 publisher、messag
 - keep login errors stable and avoid leaking sensitive credential detail.
 - keep authentication implementation behind AuthenticationManager.
 - keep login orchestration in `LoginService`; do not add parallel extension/facade layers without a real second implementation.
+- keep user management behind the single `UserService` contract; password reset, deletion validation and session invalidation stay inside `UserServiceImpl`.
+- Boot must not inject `UserServiceImpl` or any secondary user administration service.
 - route every Security schema change through `/yak-ops-dao/FLYWAY_RULES.md`.
 - reuse shared HTTP / utility contracts from yak-ops-common.
 - throw `io.yak.ops.security.exception.YakSecurityException` for Security business failures.
