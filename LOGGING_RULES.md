@@ -66,7 +66,7 @@ Example:
 
 ```java
 LOG.info("数据源插件注册完成，type={}, capabilities={}", type, capabilities);
-LOG.warn("登录态失效，operator={}, loginUserId={}", operator, loginUserId);
+LOG.warn("登录态失效，loginUserId={}", loginUserId);
 ```
 
 Rules:
@@ -190,6 +190,11 @@ Never log:
 - complete DTO / VO / Entity / Model objects when they may contain user or secret data.
 
 If a value is required for diagnosis, log a stable identifier or an explicitly masked representation.
+
+Identity data is minimized too:
+- prefer internal stable IDs over username, real name, email, phone or remote address;
+- log identity text only when it is materially required for diagnosis and no safer identifier can answer the same question;
+- do not treat INFO logs as an audit trail for personal data.
 
 The restriction applies to DEBUG as well as INFO/WARN/ERROR.
 

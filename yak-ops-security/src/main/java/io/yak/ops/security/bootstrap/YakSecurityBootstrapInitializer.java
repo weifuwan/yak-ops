@@ -52,9 +52,7 @@ public class YakSecurityBootstrapInitializer implements ApplicationRunner {
             throw new IllegalStateException("Cannot bootstrap Yak Security user: " + result.getMessage());
         }
 
-        LOG.warn(
-                "已创建安全模块 Bootstrap 管理员，请关闭初始化配置，userName={}, config=yak.security.bootstrap.enabled",
-                bootstrap.getUsername());
+        LOG.warn("已创建安全模块 Bootstrap 管理员，请关闭初始化配置，config=yak.security.bootstrap.enabled");
     }
 
     private static void requireText(String value, String property) {
