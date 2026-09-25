@@ -100,6 +100,7 @@ Must:
 - keep remaining descriptor metadata deterministic.
 - reuse shared JDBC behavior before copying provider code.
 - reuse Common `StringUtils` / `JSONUtils` / `SensitiveUtils` for blank handling, generic JSON read-write and credential masking; provider code must not create local string helpers or its own `ObjectMapper`.
+- keep JDBC-specific finite modes such as SSH authentication as top-level enums under the JDBC owner package; do not hide them as nested contract types.
 
 Must Not:
 - embed product business rules.

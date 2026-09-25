@@ -4,6 +4,7 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import io.yak.ops.common.util.StringUtils;
+import io.yak.ops.plugin.database.jdbc.enums.SshAuthType;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -32,7 +33,7 @@ final class SshTunnel implements AutoCloseable {
         configureIdentity(jsch, config);
 
         Session session = jsch.getSession(config.username(), config.host(), config.port());
-        if (config.authType() == SshTunnelConfig.AuthType.PASSWORD) {
+        if (config.authType() == SshAuthType.PASSWORD) {
             session.setPassword(config.password().getBytes(StandardCharsets.UTF_8));
             session.setConfig("PreferredAuthentications", "password,keyboard-interactive");
         } else {
@@ -68,7 +69,7 @@ final class SshTunnel implements AutoCloseable {
     }
 
     private static void configureIdentity(JSch jsch, SshTunnelConfig config) throws JSchException {
-        if (config.authType() != SshTunnelConfig.AuthType.PRIVATE_KEY) return;
+        if (config.authType() != SshAuthType.PRIVATE_KEY) return;
         byte[] passphrase = StringUtils.isBlank(config.passphrase())
                 ? null
                 : config.passphrase().getBytes(StandardCharsets.UTF_8);

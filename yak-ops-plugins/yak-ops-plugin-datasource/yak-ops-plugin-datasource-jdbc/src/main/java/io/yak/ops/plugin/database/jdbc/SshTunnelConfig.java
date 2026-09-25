@@ -1,5 +1,7 @@
 package io.yak.ops.plugin.database.jdbc;
 
+import io.yak.ops.plugin.database.jdbc.enums.SshAuthType;
+
 /**
  * JDBC Provider 可选的 SSH 隧道连接配置。
  *
@@ -21,30 +23,16 @@ public record SshTunnelConfig(
         String host,
         int port,
         String username,
-        AuthType authType,
+        SshAuthType authType,
         String password,
         String privateKey,
         String passphrase,
         boolean strictHostKeyChecking,
         String knownHosts) {
 
-    /**
-     * SSH 登录认证方式。
-     *
-     * @author weifuwan
-     * @since 2026-09-24
-     */
-    public enum AuthType {
-
-        /** 用户名 + 密码认证。 */
-        PASSWORD,
-
-        /** 用户名 + 私钥认证。 */
-        PRIVATE_KEY
-    }
 
     /** @return 关闭 SSH 隧道的默认配置 */
     public static SshTunnelConfig disabled() {
-        return new SshTunnelConfig(false, null, 22, null, AuthType.PASSWORD, null, null, null, false, null);
+        return new SshTunnelConfig(false, null, 22, null, SshAuthType.PASSWORD, null, null, null, false, null);
     }
 }

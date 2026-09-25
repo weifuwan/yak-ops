@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.SensitiveUtils;
 import io.yak.ops.common.util.StringUtils;
+import io.yak.ops.plugin.database.jdbc.enums.SshAuthType;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
 import io.yak.ops.plugin.datasource.api.enums.DataSourcePluginOperation;
@@ -68,7 +69,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             String schema = JSONUtils.firstText(root, "schema", "schemaName");
             String username = JSONUtils.firstText(root, "username", "user");
             String password = JSONUtils.firstText(root, "password");
-            String driver = defaultIfBlank(JSONUtils.firstText(root, "driverClassName", "driver"), defaultDriverClassName());
+            String driver = StringUtils.trimToNull(JSONUtils.firstText(root, "driverClassName", "driver"));
+            if (driver == null) driver = defaultDriverClassName();
             SshTunnelConfig sshTunnel = parseSshTunnel(root);
 
             if (StringUtils.isBlank(username)) {
@@ -268,11 +270,12 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         String host = StringUtils.trimToNull(JSONUtils.firstText(node, "host", "sshHost"));
         int port = intValue(node, 22, "port");
         String username = StringUtils.trimToNull(JSONUtils.firstText(node, "username", "user"));
-        String authValue = defaultIfBlank(JSONUtils.firstText(node, "authType", "authenticationType"), "PASSWORD")
-                .toUpperCase(Locale.ROOT);
-        SshTunnelConfig.AuthType authType;
+        String authValue = StringUtils.trimToNull(JSONUtils.firstText(node, "authType", "authenticationType"));
+        if (authValue == null) authValue = SshAuthType.PASSWORD.name();
+        authValue = authValue.toUpperCase(Locale.ROOT);
+        SshAuthType authType;
         try {
-            authType = SshTunnelConfig.AuthType.valueOf(authValue);
+            authType = SshAuthType.valueOf(authValue);
         } catch (IllegalArgumentException exception) {
             throw parameterError("SSH 认证方式仅支持 PASSWORD 或 PRIVATE_KEY", exception);
         }
@@ -289,10 +292,10 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         if (StringUtils.isBlank(username)) {
             throw parameterError("SSH username 不能为空", null);
         }
-        if (authType == SshTunnelConfig.AuthType.PASSWORD && StringUtils.isBlank(sshPassword)) {
+        if (authType == SshAuthType.PASSWORD && StringUtils.isBlank(sshPassword)) {
             throw parameterError("SSH password 不能为空", null);
         }
-        if (authType == SshTunnelConfig.AuthType.PRIVATE_KEY && StringUtils.isBlank(privateKey)) {
+        if (authType == SshAuthType.PRIVATE_KEY && StringUtils.isBlank(privateKey)) {
             throw parameterError("SSH privateKey 不能为空", null);
         }
         if (strictHostKeyChecking && StringUtils.isBlank(knownHosts)) {
@@ -395,15 +398,11 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         return Boolean.parseBoolean(value.asText());
     }
 
-
     private void putIfText(ObjectNode target, String key, String value) {
         if (!StringUtils.isBlank(value)) {
             target.put(key, value.trim());
         }
     }
-
-
-
 
     private DataSourcePluginException parameterError(String message, Throwable cause) {
         return cause == null
