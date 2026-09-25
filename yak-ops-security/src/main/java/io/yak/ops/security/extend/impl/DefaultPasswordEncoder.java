@@ -48,9 +48,7 @@ public class DefaultPasswordEncoder implements PasswordEncoder {
      */
     @Override
     public String encode(CharSequence rawPassword) {
-
         if (ObjectUtils.isNull(rawPassword) || StringUtils.isBlank(rawPassword)) {
-
             throw new IllegalArgumentException("rawPassword must not be blank");
         }
 
@@ -66,7 +64,6 @@ public class DefaultPasswordEncoder implements PasswordEncoder {
      */
     @Override
     public boolean matches(CharSequence rawPassword, String encodedPassword) {
-
         if (ObjectUtils.isNull(rawPassword) || StringUtils.isBlank(encodedPassword)) {
             return false;
         }
