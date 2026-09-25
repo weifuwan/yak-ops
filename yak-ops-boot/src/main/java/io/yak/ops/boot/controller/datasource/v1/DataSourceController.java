@@ -2,7 +2,7 @@ package io.yak.ops.boot.controller.datasource.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.yak.ops.business.datasource.DataSourceBusiness;
+import io.yak.ops.business.datasource.DataSourceService;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
@@ -37,42 +37,42 @@ import org.springframework.web.bind.annotation.RestController;
 public class DataSourceController {
 
     @Resource
-    private DataSourceBusiness dataSourceBusiness;
+    private DataSourceService dataSourceService;
 
     @Operation(summary = "新增数据源")
     @PostMapping
     public Result<Boolean> create(@Valid @RequestBody DataSourceDTO dto) {
-        return Result.success(dataSourceBusiness.addDataSource(dto));
+        return Result.success(dataSourceService.addDataSource(dto));
     }
 
     @Operation(summary = "编辑数据源")
     @PutMapping("/{id}")
     public Result<Boolean> update(@PathVariable("id") String id, @Valid @RequestBody DataSourceDTO dto) {
-        return Result.success(dataSourceBusiness.updateDataSource(id, dto));
+        return Result.success(dataSourceService.updateDataSource(id, dto));
     }
 
     @Operation(summary = "查询数据源详情")
     @GetMapping("/{id}")
     public Result<DataSourceVO> detail(@PathVariable("id") String id) {
-        return Result.success(dataSourceBusiness.queryDataSource(id));
+        return Result.success(dataSourceService.queryDataSource(id));
     }
 
     @Operation(summary = "删除数据源")
     @DeleteMapping("/{id}")
     public Result<Boolean> delete(@PathVariable("id") String id) {
-        return Result.success(dataSourceBusiness.deleteDataSource(id));
+        return Result.success(dataSourceService.deleteDataSource(id));
     }
 
     @Operation(summary = "分页查询数据源")
     @PostMapping("/page")
     public Result<PagingData<DataSourceVO>> page(@Valid @RequestBody DataSourceQueryDTO dto) {
-        return Result.success(dataSourceBusiness.queryDataSourcePage(dto));
+        return Result.success(dataSourceService.queryDataSourcePage(dto));
     }
 
     @Operation(summary = "查询数据源总览统计")
     @GetMapping("/summary")
     public Result<DataSourceSummaryVO> summary() {
-        return Result.success(dataSourceBusiness.queryDataSourceSummary());
+        return Result.success(dataSourceService.queryDataSourceSummary());
     }
 
     @Operation(summary = "测试已保存数据源连接")
@@ -80,12 +80,12 @@ public class DataSourceController {
             value = "/{id}/connect-test",
             method = {RequestMethod.GET, RequestMethod.POST})
     public Result<Boolean> testConnection(@PathVariable("id") String id) {
-        return Result.success(dataSourceBusiness.testConnection(id));
+        return Result.success(dataSourceService.testConnection(id));
     }
 
     @Operation(summary = "使用连接参数测试数据源连接")
     @PostMapping("/connect-test-with-param")
     public Result<Boolean> testConnection(@Valid @RequestBody DataSourceConnectTestDTO dto) {
-        return Result.success(dataSourceBusiness.testConnection(dto));
+        return Result.success(dataSourceService.testConnection(dto));
     }
 }

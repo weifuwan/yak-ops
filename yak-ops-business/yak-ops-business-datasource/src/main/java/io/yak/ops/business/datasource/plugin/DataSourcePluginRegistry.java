@@ -1,14 +1,11 @@
-package io.yak.ops.business.datasource.plugin.impl;
+package io.yak.ops.business.datasource.plugin;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.yak.ops.business.datasource.config.ConditionalOnDataSourceEnabled;
 import io.yak.ops.business.datasource.exception.DataSourceException;
-import io.yak.ops.business.datasource.plugin.DataSourcePluginBusiness;
-import io.yak.ops.business.datasource.plugin.DataSourceSecretCodec;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.spi.datasource.DataSourceCapability;
-import io.yak.ops.spi.datasource.DataSourceCatalog;
 import io.yak.ops.spi.datasource.DataSourceConnection;
 import io.yak.ops.spi.datasource.DataSourcePlugin;
 import io.yak.ops.spi.datasource.DataSourcePluginDescriptor;
@@ -20,18 +17,18 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 /**
- * 发现并管理 Datasource Plugin，并把连接解析、连通性和 Catalog 能力收口到统一 Business Contract。
+ * Datasource Service 内部的插件发现与能力路由机制，不作为 Boot 或 HTTP 的业务入口。
  *
  * @author weifuwan
- * @since 2026-09-24
+ * @since 2026-09-25
  */
 @Slf4j
-@Service
+@Component
 @ConditionalOnDataSourceEnabled
-public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
+public class DataSourcePluginRegistry {
 
     @Resource
     private ObjectMapper objectMapper;
@@ -45,7 +42,7 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
     public void initialize() {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         if (classLoader == null) {
-            classLoader = DataSourcePluginBusinessImpl.class.getClassLoader();
+            classLoader = DataSourcePluginRegistry.class.getClassLoader();
         }
 
         Map<String, DataSourcePlugin> discovered = new LinkedHashMap<>();
@@ -66,12 +63,10 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
         plugins = Collections.unmodifiableMap(discovered);
     }
 
-    @Override
     public String resolvePluginType(String pluginType) {
         return get(pluginType).descriptor().type();
     }
 
-    @Override
     public DataSourceConnection parseConnection(String pluginType, String connectionJson) {
         try {
             return get(pluginType).parseConnection(connectionJson);
@@ -84,14 +79,12 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
         }
     }
 
-    @Override
     public DataSourceConnection mergeStoredSecrets(String pluginType, String submittedJson, String storedJson) {
         DataSourcePlugin plugin = get(pluginType);
         String merged = secretCodec.mergeStoredSecrets(plugin.descriptor(), submittedJson, storedJson);
         return parseConnection(plugin.descriptor().type(), merged);
     }
 
-    @Override
     public void testConnection(String pluginType, String connectionJson, int timeoutSeconds) {
         DataSourcePlugin plugin = get(pluginType);
         requireCapability(plugin, DataSourceCapability.CONNECTION_TEST, DataSourceErrorCode.CONNECT_FAILED);
@@ -105,33 +98,14 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
         }
     }
 
-    @Override
-    public DataSourceCatalog createCatalog(String pluginType, String connectionJson, int timeoutSeconds) {
-        DataSourcePlugin plugin = get(pluginType);
-        requireCapability(plugin, DataSourceCapability.CATALOG_METADATA, DataSourceErrorCode.CATALOG_FAILED);
-        try {
-            DataSourceConnection connection = parseConnection(plugin.type(), connectionJson);
-            return plugin.createCatalog(connection, Math.max(1, timeoutSeconds));
-        } catch (DataSourceException exception) {
-            throw exception;
-        } catch (DataSourcePluginException exception) {
-            throw new DataSourceException(DataSourceErrorCode.CATALOG_FAILED, exception.getMessage(), exception);
-        } catch (RuntimeException exception) {
-            throw new DataSourceException(DataSourceErrorCode.CATALOG_FAILED, exception.getMessage(), exception);
-        }
-    }
-
-    @Override
     public String maskConnectionJson(String pluginType, String connectionJson) {
         return secretCodec.maskConnectionJson(get(pluginType).descriptor(), connectionJson);
     }
 
-    @Override
     public String maskSensitiveText(String value) {
         return secretCodec.maskSensitiveText(value);
     }
 
-    @Override
     public String resolveConnectionType(String connectionJson) {
         try {
             JsonNode root = objectMapper.readTree(connectionJson);
@@ -217,5 +191,4 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
         }
         return null;
     }
-
 }
