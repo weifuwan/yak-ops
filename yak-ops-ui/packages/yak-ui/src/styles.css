@@ -90,6 +90,12 @@
   --yak-components-table-border: #eceef2;
   --yak-components-table-border-strong: #e4e7ec;
   --yak-components-table-loading-bg: rgba(255, 255, 255, 0.72);
+  --yak-components-table-focus-ring: rgba(37, 40, 50, 0.12);
+  --yak-components-table-sorter-inactive: #b8bdc6;
+  --yak-components-table-sorter-active: #292c35;
+  --yak-components-table-filter-inactive: #8f949e;
+  --yak-components-table-filter-active: #292c35;
+  --yak-components-table-filter-bg-hover: #eef0f3;
 
   --yak-components-menu-item-hover: #f5f6f8;
 
