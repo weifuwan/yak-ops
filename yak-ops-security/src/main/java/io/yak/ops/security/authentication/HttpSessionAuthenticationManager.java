@@ -175,7 +175,12 @@ public final class HttpSessionAuthenticationManager implements AuthenticationMan
         }
     }
 
-    /** 在 HttpSession 绑定和解绑时维护用户到活动会话的索引。 */
+    /**
+     * 在 HttpSession 绑定和解绑时维护用户到活动会话的索引。
+     *
+     * @author weifuwan
+     * @since 2026-09-24
+     */
     private static final class SessionRegistration implements HttpSessionBindingListener {
 
         private final HttpSessionAuthenticationManager manager;
