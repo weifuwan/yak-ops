@@ -1,10 +1,9 @@
 package io.yak.ops.common.bean.dto.datasource;
 
-import io.yak.ops.common.constant.datasource.DataSourceConstants;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import io.yak.ops.common.bean.dto.common.PageQueryDTO;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 数据源管理列表的分页和筛选参数。
@@ -13,16 +12,8 @@ import lombok.Data;
  * @since 2026-09-24
  */
 @Data
-public class DataSourceQueryDTO {
-
-    /** 当前页码，从 1 开始。 */
-    @Min(value = 1, message = "页码必须大于 0")
-    private int pageNo = DataSourceConstants.DEFAULT_PAGE_NO;
-
-    /** 每页条数，最大 200。 */
-    @Min(value = 1, message = "每页条数必须大于 0")
-    @Max(value = DataSourceConstants.MAX_PAGE_SIZE, message = "每页条数不能超过 200")
-    private int pageSize = DataSourceConstants.DEFAULT_PAGE_SIZE;
+@EqualsAndHashCode(callSuper = true)
+public class DataSourceQueryDTO extends PageQueryDTO {
 
     /** 兼容旧调用方的数据源名称筛选。 */
     @Size(max = 128, message = "数据源名称筛选不能超过 128 个字符")
