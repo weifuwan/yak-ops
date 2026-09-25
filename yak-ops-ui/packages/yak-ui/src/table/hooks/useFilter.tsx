@@ -47,10 +47,7 @@ function TableFilterControl({
         ].join(" ")}
       >
         <svg aria-hidden="true" viewBox="0 0 16 16" className="size-3.5" fill="none">
-          <path
-            d="M2.5 3.25h11L9.25 8v3.35l-2.5 1.4V8L2.5 3.25Z"
-            fill="currentColor"
-          />
+          <path d="M2.5 3.25h11L9.25 8v3.35l-2.5 1.4V8L2.5 3.25Z" fill="currentColor" />
         </svg>
       </PopoverTrigger>
 
@@ -118,8 +115,7 @@ const getInitialFilterState = <RecordType extends object>(
 
   columns.forEach((column, index) => {
     if (!column.filters || column.defaultFilteredValue == null) return;
-    result[stringifyTableColumnKey(getTableColumnKey(column, index))] =
-      column.defaultFilteredValue;
+    result[stringifyTableColumnKey(getTableColumnKey(column, index))] = column.defaultFilteredValue;
   });
 
   return result;
@@ -142,25 +138,20 @@ export function useFilter<RecordType extends object>(
     getInitialFilterState(columns),
   );
 
-  const getColumnFilterValue = (
-    column: TableColumn<RecordType>,
-    index: number,
-  ): readonly Key[] => {
+  const getColumnFilterValue = (column: TableColumn<RecordType>, index: number): readonly Key[] => {
     if (column.filteredValue !== undefined) return column.filteredValue ?? [];
     return innerFilters[stringifyTableColumnKey(getTableColumnKey(column, index))] ?? [];
   };
 
-  const buildFilters = (
-    overrideKey?: string,
-    overrideValue?: readonly Key[],
-  ): TableFilters => {
+  const buildFilters = (overrideKey?: string, overrideValue?: readonly Key[]): TableFilters => {
     const result: TableFilters = {};
 
     columns.forEach((column, index) => {
       if (!column.filters) return;
 
       const key = stringifyTableColumnKey(getTableColumnKey(column, index));
-      const value = key === overrideKey ? overrideValue ?? [] : getColumnFilterValue(column, index);
+      const value =
+        key === overrideKey ? (overrideValue ?? []) : getColumnFilterValue(column, index);
       result[key] = value.length > 0 ? value : null;
     });
 
@@ -211,7 +202,7 @@ export function useFilter<RecordType extends object>(
       const overrideValue = filtersOverride?.[columnKey];
       const selectedValues =
         filtersOverride && columnKey in filtersOverride
-          ? overrideValue ?? []
+          ? (overrideValue ?? [])
           : getColumnFilterValue(column, index);
       if (selectedValues.length === 0) return currentData;
 
