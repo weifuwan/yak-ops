@@ -1,9 +1,15 @@
-package io.yak.ops.common.exception;
+package io.yak.ops.security.exception;
 
+import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.result.ErrorCode;
 import java.io.Serial;
 
-/** 安全模块业务异常；通用行为由 {@link BusinessException} 提供。 */
+/**
+ * Security 领域业务异常，复用 Common 的结构化业务异常契约。
+ *
+ * @author weifuwan
+ * @since 2026-09-25
+ */
 public class YakSecurityException extends BusinessException {
 
     @Serial

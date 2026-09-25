@@ -1,27 +1,18 @@
-package io.yak.ops.common.enums.security;
+package io.yak.ops.security.enums;
 
 import io.yak.ops.common.result.ErrorCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 用户与登录能力共享的业务结果码。
+ * Security 用户与登录领域错误码。
  *
  * @author weifuwan
  * @since 2026-09-25
  */
 @Getter
 @RequiredArgsConstructor
-public enum ResultCode implements ErrorCode {
-    SUCCESS(200, "成功"),
-    COMMON_FAIL(999, "失败"),
-    PARAM_NOT_VALID(1001, "参数无效"),
-    PARAM_IS_BLANK(1002, "参数为空"),
-    PARAM_ID_IS_BLANK(1003, "参数id为空"),
-    PARAM_TYPE_ERROR(1004, "参数类型错误"),
-    PARAM_NOT_COMPLETE(1005, "参数缺失"),
-    PARAM_LENGTH_ERROR(1006, "参数长度不正确"),
-    PARAM_ERROR(1007, "参数错误"),
+public enum SecurityErrorCode implements ErrorCode {
     USER_NOT_LOGIN(2001, "用户未登录"),
     USER_ACCOUNT_EXPIRED(2002, "账号已过期"),
     USER_CREDENTIALS_ERROR(2003, "密码错误"),
@@ -47,11 +38,4 @@ public enum ResultCode implements ErrorCode {
 
     private final Integer code;
     private final String message;
-
-    public static String getMessageByCode(Integer code) {
-        for (ResultCode value : values()) {
-            if (value.getCode().equals(code)) return value.getMessage();
-        }
-        return null;
-    }
 }

@@ -4,9 +4,6 @@ import io.yak.ops.common.bean.dto.security.user.UserDTO;
 import io.yak.ops.common.bean.dto.security.user.UserQueryDTO;
 import io.yak.ops.common.bean.vo.security.user.UserBriefVO;
 import io.yak.ops.common.bean.vo.security.user.UserVO;
-import io.yak.ops.common.enums.security.ResultCode;
-import io.yak.ops.common.enums.security.user.UserCheckType;
-import io.yak.ops.common.exception.YakSecurityException;
 import io.yak.ops.common.page.PageData;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
@@ -17,8 +14,11 @@ import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.security.UserEntity;
 import io.yak.ops.dao.repository.security.UserRepository;
 import io.yak.ops.security.constant.SecurityConstants;
+import io.yak.ops.security.enums.SecurityErrorCode;
+import io.yak.ops.security.exception.YakSecurityException;
 import io.yak.ops.security.extend.PasswordEncoder;
 import io.yak.ops.security.model.UserAccount;
+import io.yak.ops.security.model.UserCheckType;
 import io.yak.ops.security.service.UserService;
 import jakarta.annotation.Resource;
 import java.util.List;
@@ -96,7 +96,7 @@ public class UserServiceImpl implements UserService {
         requireUser(userId);
         return userRepository.deleteById(userId) > 0
                 ? Result.success()
-                : Result.fail(ResultCode.USER_ACCOUNT_UPDATE_FAIL);
+                : Result.fail(SecurityErrorCode.USER_ACCOUNT_UPDATE_FAIL);
     }
 
     @Override
@@ -149,7 +149,7 @@ public class UserServiceImpl implements UserService {
             throw exception;
         } catch (Exception exception) {
             LOGGER.error("新增用户失败，用户名={}，操作人={}", userDTO.getUserName(), operator, exception);
-            throw new YakSecurityException(ResultCode.USER_ACCOUNT_INSERT_FAIL, exception);
+            throw new YakSecurityException(SecurityErrorCode.USER_ACCOUNT_INSERT_FAIL, exception);
         }
     }
 
@@ -160,7 +160,7 @@ public class UserServiceImpl implements UserService {
         if (checkResult.failed()) return checkResult;
 
         UserAccount current = getUserByUsername(userDTO.getUserName());
-        if (ObjectUtils.isNull(current)) return Result.fail(ResultCode.USER_ACCOUNT_NOT_EXIST);
+        if (ObjectUtils.isNull(current)) return Result.fail(SecurityErrorCode.USER_ACCOUNT_NOT_EXIST);
 
         Result<Void> uniqueResult = userPhoneCheck(userDTO.getPhone(), current.getId());
         if (uniqueResult.failed()) return uniqueResult;
@@ -179,7 +179,7 @@ public class UserServiceImpl implements UserService {
             throw exception;
         } catch (Exception exception) {
             LOGGER.error("编辑用户失败，用户名={}，操作人={}", userDTO.getUserName(), operator, exception);
-            throw new YakSecurityException(ResultCode.USER_ACCOUNT_UPDATE_FAIL, exception);
+            throw new YakSecurityException(SecurityErrorCode.USER_ACCOUNT_UPDATE_FAIL, exception);
         }
     }
 
@@ -192,9 +192,9 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserAccount requireUser(String userId) {
-        if (ObjectUtils.isNull(userId)) throw new YakSecurityException(ResultCode.USER_ID_CANNOT_BE_NULL);
+        if (ObjectUtils.isNull(userId)) throw new YakSecurityException(SecurityErrorCode.USER_ID_CANNOT_BE_NULL);
         UserAccount user = toUser(userRepository.queryById(userId).orElse(null));
-        if (ObjectUtils.isNull(user)) throw new YakSecurityException(ResultCode.USER_NOT_EXISTS);
+        if (ObjectUtils.isNull(user)) throw new YakSecurityException(SecurityErrorCode.USER_NOT_EXISTS);
         return user;
     }
 
@@ -225,11 +225,11 @@ public class UserServiceImpl implements UserService {
     private Result<Void> userNameCheck(String username, String currentUserId) {
         if (StringUtils.isBlank(username)
                 || !USER_NAME_PATTERN.matcher(username.trim()).matches()) {
-            return Result.fail(ResultCode.USER_NAME_FORMAT_ERROR);
+            return Result.fail(SecurityErrorCode.USER_NAME_FORMAT_ERROR);
         }
         UserEntity existing = userRepository.queryByUsername(username.trim()).orElse(null);
         return ObjectUtils.isNotNull(existing) && !Objects.equals(existing.getId(), currentUserId)
-                ? Result.fail(ResultCode.USER_NAME_EXISTS)
+                ? Result.fail(SecurityErrorCode.USER_NAME_EXISTS)
                 : Result.success();
     }
 
@@ -237,11 +237,11 @@ public class UserServiceImpl implements UserService {
         if (StringUtils.isBlank(phone)) return Result.success();
         String normalized = phone.trim();
         if (!USER_PHONE_PATTERN.matcher(normalized).matches()) {
-            return Result.fail(ResultCode.USER_PHONE_FORMAT_ERROR);
+            return Result.fail(SecurityErrorCode.USER_PHONE_FORMAT_ERROR);
         }
         UserEntity existing = userRepository.queryByPhone(normalized).orElse(null);
         return ObjectUtils.isNotNull(existing) && !Objects.equals(existing.getId(), currentUserId)
-                ? Result.fail(ResultCode.USER_PHONE_EXIST)
+                ? Result.fail(SecurityErrorCode.USER_PHONE_EXIST)
                 : Result.success();
     }
 
@@ -249,11 +249,11 @@ public class UserServiceImpl implements UserService {
         if (StringUtils.isBlank(email)) return Result.success();
         String normalized = email.trim();
         if (!USER_MAIL_PATTERN.matcher(normalized).matches()) {
-            return Result.fail(ResultCode.USER_EMAIL_FORMAT_ERROR);
+            return Result.fail(SecurityErrorCode.USER_EMAIL_FORMAT_ERROR);
         }
         UserEntity existing = userRepository.queryByEmail(normalized).orElse(null);
         return ObjectUtils.isNotNull(existing) && !Objects.equals(existing.getId(), currentUserId)
-                ? Result.fail(ResultCode.USER_EMAIL_EXIST)
+                ? Result.fail(SecurityErrorCode.USER_EMAIL_EXIST)
                 : Result.success();
     }
 

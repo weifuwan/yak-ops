@@ -1,4 +1,4 @@
-package io.yak.ops.common.enums.security.user;
+package io.yak.ops.security.model;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

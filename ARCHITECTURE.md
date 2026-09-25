@@ -26,7 +26,7 @@ Application runtime infrastructure is also a Boot boundary. DataSource/MyBatis-P
 
 ### `yak-ops-common`
 
-Owns shared data contracts for Datasource and Security, plus the unified Result / ErrorCode / PageData contracts and shared exception hierarchy under `io.yak.ops.common.exception`. Security user/login DTO, VO, enum and shared exception contracts live here instead of inside the Security runtime module.
+Owns shared data contracts for Datasource and Security, plus the unified Result / ErrorCode / PageData contracts and the cross-domain `BusinessException` base. Security HTTP DTO / VO remain here when Boot and Security share them, but Security-specific error codes, exceptions and internal models do not.
 
 ### `yak-ops-security`
 
@@ -36,7 +36,7 @@ Security does not own Controller, ControllerAdvice, OpenAPI configuration, conne
 
 Security production code was migrated from `yak-framework/yak-security`.
 
-Security business/runtime code uses the `io.yak.ops.security` product namespace. Shared DTO / VO / enum contracts live in `io.yak.ops.common`, while user persistence is owned by `yak-ops-dao`.
+Security business/runtime code uses the `io.yak.ops.security` product namespace. `SecurityErrorCode`, `YakSecurityException`, `UserAccount` and `UserCheckType` are Security-owned domain contracts. Shared HTTP DTO / VO live in `io.yak.ops.common`, while user persistence is owned by `yak-ops-dao`. `UserStatus` temporarily remains Common because DAO persistence directly owns its MyBatis enum mapping.
 
 ### `yak-ops-dao`
 
