@@ -101,9 +101,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
                 aliases(),
                 DataSourcePluginDescriptor.CURRENT_API_VERSION,
                 capabilities(),
-                new ConnectionForm(sections, fields),
-                false,
-                null);
+                new ConnectionForm(sections, fields));
         return JdbcUrlSchemaSupport.apply(descriptor, jdbcUrlTemplate());
     }
 

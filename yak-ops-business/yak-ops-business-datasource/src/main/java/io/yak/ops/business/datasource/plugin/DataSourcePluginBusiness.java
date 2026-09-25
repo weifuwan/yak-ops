@@ -14,8 +14,6 @@ public interface DataSourcePluginBusiness {
 
     DataSourcePluginConfigVO queryPluginConfig(String pluginType);
 
-    boolean checkPluginAvailable(String pluginType);
-
     String resolvePluginType(String pluginType);
 
     DataSourceConnection parseConnection(String pluginType, String connectionJson);

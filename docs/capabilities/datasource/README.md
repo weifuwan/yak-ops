@@ -38,7 +38,6 @@ app/datasource/
 │   ├── type-selector.tsx
 │   ├── dynamic-form.tsx
 │   ├── form-runtime.tsx
-│   ├── driver-manager.tsx
 │   ├── jdbc-url-field.tsx
 │   └── ssh-tunnel-manager.tsx
 ├── icons/
@@ -53,7 +52,7 @@ Datasource 页面、Editor 和 Service 都采用 feature-locality 结构。Datas
 
 `management / model / plugin / connection / DynamicDataSourceForm` 不再是目录 owner。
 
-Datasource Service 的 CRUD / Connection / Plugin / Catalog / Driver endpoint 统一由 `service/datasource/index.ts` 拥有；稳定 backend Contract 由 `types.ts` 拥有。
+Datasource Service 当前只拥有真实 UI 消费的 CRUD / Connection / Plugin Config endpoint；Catalog backend capability 未在前端建立浏览入口时不提前镜像 service，运行时插件安装和驱动上传不属于当前产品能力。
 
 ## Frontend Dependency
 

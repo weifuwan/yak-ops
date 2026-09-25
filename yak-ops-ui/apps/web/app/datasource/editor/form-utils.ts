@@ -214,20 +214,13 @@ export const isDynamicFieldVisible = (
   );
 };
 
-/**
- * 兼容历史 Schema：
- * - driverLocation 曾经以普通 INPUT 字段下发，统一提升为 DRIVER。
- * - JDBC properties 曾经以 TEXTAREA 下发，统一提升为 Key / Value 编辑器。
- */
+/** 将历史 JDBC properties TEXTAREA 归一为 Key / Value 编辑器。 */
 const normalizeFormField = (field: DynamicFormField): DynamicFormField => {
   const normalized: DynamicFormField = {
     ...field,
     dependsOn: getFieldDependencies(field),
     visibleWhen: normalizeVisibilityConditions(field),
   };
-  if (field.key === 'driverLocation' && field.type !== 'DRIVER') {
-    normalized.type = 'DRIVER';
-  }
   if (field.key === 'properties' && field.type === 'TEXTAREA') {
     normalized.type = 'CUSTOM_SELECT';
     normalized.placeholder = '按键值对添加 JDBC 扩展参数，例如 useSSL = false';
@@ -235,7 +228,7 @@ const normalizeFormField = (field: DynamicFormField): DynamicFormField => {
   return normalized;
 };
 
-/** 只把 Driver 移到 SSH 前面，不改变插件其它自定义分区的相对顺序。 */
+/** 只把驱动配置分区移到 SSH 前面，不改变插件其它自定义分区的相对顺序。 */
 const moveDriverBeforeSsh = (
   sections: DynamicFormSection[],
 ): DynamicFormSection[] => {
@@ -253,7 +246,7 @@ const moveDriverBeforeSsh = (
 /**
  * 将新版 sections 和旧版 formFields 统一归一成分区结构。
  *
- * 标准能力区确保驱动配置位于 SSH 隧道之前；其它插件自定义 Section 保持原顺序。
+ * 标准能力区确保驱动类配置位于 SSH 隧道之前；其它插件自定义 Section 保持原顺序。
  * 新插件优先使用 sections；旧插件无需迁移，扁平 formFields 会自动落到
  * 一个始终展开的“连接参数”分区中。
  */

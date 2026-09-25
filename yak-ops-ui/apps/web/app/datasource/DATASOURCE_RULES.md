@@ -44,7 +44,6 @@ app/datasource/
 │   ├── form-runtime.tsx
 │   ├── form-model.ts
 │   ├── form-utils.ts
-│   ├── driver-manager.tsx
 │   ├── jdbc-url-field.tsx
 │   ├── jdbc-url-utils.ts
 │   ├── ssh-tunnel-manager.tsx
@@ -78,12 +77,11 @@ Datasource Selector、Toolbar Filter 和本地数据库图标必须保持与后�
 ```text
 editor/DynamicDataSourceForm/components
 editor/DynamicDataSourceForm/utils
-connection/DriverManager
 connection/JdbcUrlField
 connection/SshTunnelManager
 ```
 
-Driver / JDBC URL / SSH 不是独立 Domain，它们只是 Datasource Editor 的特殊字段能力。
+JDBC URL / SSH 不是独立 Domain，它们只是 Datasource Editor 的特殊字段能力。
 
 ## Service Ownership
 
@@ -91,12 +89,13 @@ Driver / JDBC URL / SSH 不是独立 Domain，它们只是 Datasource Editor 的
 
 - Datasource CRUD。
 - Connection Test。
-- Plugin Config / Install。
-- Driver Upload。
+- Plugin Config。
 
 这些 endpoint 共享同一个 Domain、同一个 HTTP transport 和同一套 Contract，没有独立生命周期，因此不再拆成 `api.ts / catalog.ts / driver.ts`。
 
 `service/datasource/types.ts` 单独保留，因为它是当前前端真实消费的稳定 backend Contract owner。
+
+当前产品不提供运行时插件安装或驱动上传：Provider 必须在应用启动前可用，前端只读取 Plugin Config。
 
 后端 Catalog metadata capability 可以独立存在；当前 Datasource UI 没有 Catalog 浏览入口时，不在 frontend service 中提前镜像 databases / schemas / tables / columns API。
 

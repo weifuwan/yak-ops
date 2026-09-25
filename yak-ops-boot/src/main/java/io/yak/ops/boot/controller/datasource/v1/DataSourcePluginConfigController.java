@@ -9,13 +9,12 @@ import io.yak.ops.common.constant.datasource.DataSourceConstants;
 import io.yak.ops.common.result.Result;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 对外提供数据源插件动态表单配置和插件可用性检查。
+ * 对外提供数据源插件动态表单配置。
  *
  * @author weifuwan
  * @since 2026-09-24
@@ -33,11 +32,5 @@ public class DataSourcePluginConfigController {
     @GetMapping
     public Result<DataSourcePluginConfigVO> getPluginConfig(@RequestParam("pluginType") String pluginType) {
         return Result.success(pluginBusiness.queryPluginConfig(pluginType));
-    }
-
-    @Operation(summary = "检查数据源插件是否可用")
-    @PostMapping("/install")
-    public Result<Boolean> installPlugin(@RequestParam("pluginType") String pluginType) {
-        return Result.success(pluginBusiness.checkPluginAvailable(pluginType));
     }
 }

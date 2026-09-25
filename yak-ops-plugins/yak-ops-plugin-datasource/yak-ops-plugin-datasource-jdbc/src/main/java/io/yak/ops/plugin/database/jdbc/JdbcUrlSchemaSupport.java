@@ -37,9 +37,7 @@ public final class JdbcUrlSchemaSupport {
                 descriptor.aliases(),
                 descriptor.apiVersion(),
                 descriptor.capabilities(),
-                new ConnectionForm(sections, legacyFields),
-                descriptor.installRequired(),
-                descriptor.installHint());
+                new ConnectionForm(sections, legacyFields));
     }
 
     private static List<FormField> configureFields(List<FormField> fields, String template) {
