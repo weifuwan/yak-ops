@@ -6,9 +6,9 @@ spring:
   application:
     name: yak-ops
   datasource:
-    url: ${YAK_DATABASE_URL:${YAK_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/yak_security?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai}}
-    username: ${YAK_DATABASE_USERNAME:${YAK_DATASOURCE_USERNAME:root}}
-    password: ${YAK_DATABASE_PASSWORD:${YAK_DATASOURCE_PASSWORD:123456}}
+    url: ${YAK_DATABASE_URL:jdbc:mysql://127.0.0.1:3306/yak_security?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai}
+    username: ${YAK_DATABASE_USERNAME:root}
+    password: ${YAK_DATABASE_PASSWORD:123456}
     driver-class-name: ${YAK_DATABASE_DRIVER:com.mysql.cj.jdbc.Driver}
     hikari:
       pool-name: YakOpsDatabasePool
@@ -57,9 +57,7 @@ yak:
       real-name: ${YAK_SECURITY_BOOTSTRAP_REAL_NAME:系统管理员}
 
   datasource:
-    enabled: true
-    connection-test:
-      timeout-seconds: ${YAK_DATASOURCE_CONNECT_TIMEOUT_SECONDS:5}
+    connection-test-timeout-seconds: ${YAK_DATASOURCE_CONNECT_TIMEOUT_SECONDS:5}
 
 logging:
   level:
