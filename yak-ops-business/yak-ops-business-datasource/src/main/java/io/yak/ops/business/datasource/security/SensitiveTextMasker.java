@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasource.security;
 
-
 /**
  * 遮罩 JDBC URL 和错误消息等用户可见文本中可能出现的连接凭证。
  *

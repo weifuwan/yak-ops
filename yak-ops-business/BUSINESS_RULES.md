@@ -36,7 +36,7 @@ Boot owns HTTP. DAO owns persistence mechanics. Plugin implementations own provi
 - 默认使用 `XxxBusiness + impl/XxxBusinessImpl`；最近的 capability rules 可以显式选择 `XxxService + impl/XxxServiceImpl`，同一能力禁止同时保留 Business/Service 两套入口。
 - Spring 实现注解只放在 Impl；Controller 和其他 Business 只依赖接口。
 - BusinessImpl 只直接访问本领域 Repository；跨领域协作通过其他 Business 接口。
-- Spring 依赖统一使用 `@Resource` 和接口类型。
+- Spring 依赖统一使用 `@Resource`；跨业务边界依赖稳定接口，capability-local 且拥有真实机制/状态的内部协作者允许注入 concrete type。
 - Business 只暴露真实业务能力，不为了形式统一补 CRUD。
 - 方法名表达业务语义；不要用 `manager / handle / process` 代替具体动作。
 - Controller 请求 DTO 可以直接进入 Business；参数解析、业务校验和业务默认值归 Business。

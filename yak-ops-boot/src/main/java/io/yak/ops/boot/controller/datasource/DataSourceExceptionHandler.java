@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @ConditionalOnDataSourceEnabled
 public class DataSourceExceptionHandler {
 
-
     @ExceptionHandler(DataSourceException.class)
     public Result<Void> handleDataSourceException(DataSourceException exception) {
         if (exception.getErrorCode() == null) {

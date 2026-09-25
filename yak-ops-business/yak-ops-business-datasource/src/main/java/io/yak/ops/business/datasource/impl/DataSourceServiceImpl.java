@@ -42,7 +42,6 @@ public class DataSourceServiceImpl implements DataSourceService {
     @Resource
     private DataSourceProperties properties;
 
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean addDataSource(DataSourceDTO dto) {
