@@ -58,13 +58,13 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
         Map<String, DataSourcePlugin> discovered = new LinkedHashMap<>();
         for (DataSourcePlugin plugin : ServiceLoader.load(DataSourcePlugin.class, classLoader)) {
             validateDescriptor(plugin);
-            register(discovered, plugin.type(), plugin);
+            register(discovered, plugin.descriptor().type(), plugin);
             for (String alias : plugin.descriptor().aliases()) {
                 register(discovered, alias, plugin);
             }
             log.info(
                     "Registered datasource plugin: type={}, aliases={}, apiVersion={}, capabilities={}, implementation={}",
-                    plugin.type(),
+                    plugin.descriptor().type(),
                     plugin.descriptor().aliases(),
                     plugin.descriptor().apiVersion(),
                     plugin.descriptor().capabilities(),
@@ -86,7 +86,7 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
 
     @Override
     public String resolvePluginType(String pluginType) {
-        return get(pluginType).type();
+        return get(pluginType).descriptor().type();
     }
 
     @Override
@@ -106,14 +106,14 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
     public DataSourceConnection mergeStoredSecrets(String pluginType, String submittedJson, String storedJson) {
         DataSourcePlugin plugin = get(pluginType);
         String merged = secretCodec.mergeStoredSecrets(plugin.descriptor(), submittedJson, storedJson);
-        return parseConnection(plugin.type(), merged);
+        return parseConnection(plugin.descriptor().type(), merged);
     }
 
     @Override
     public void testConnection(String pluginType, String connectionJson, int timeoutSeconds) {
         DataSourcePlugin plugin = get(pluginType);
         requireCapability(plugin, DataSourceCapability.CONNECTION_TEST, DataSourceErrorCode.CONNECT_FAILED);
-        DataSourceConnection connection = parseConnection(plugin.type(), connectionJson);
+        DataSourceConnection connection = parseConnection(plugin.descriptor().type(), connectionJson);
         try {
             plugin.testConnection(connection, Math.max(1, timeoutSeconds));
         } catch (DataSourcePluginException exception) {
@@ -160,7 +160,7 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
             if (value == null || value.trim().isEmpty()) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接参数中缺少 dbType 或 pluginType");
             }
-            return get(value).type();
+            return get(value).descriptor().type();
         } catch (DataSourceException exception) {
             throw exception;
         } catch (Exception exception) {
@@ -222,7 +222,7 @@ public class DataSourcePluginBusinessImpl implements DataSourcePluginBusiness {
             DataSourcePlugin plugin, DataSourceCapability capability, DataSourceErrorCode errorCode) {
         if (!plugin.supports(capability)) {
             throw new DataSourceException(
-                    errorCode, "数据源插件未声明能力 " + capability.name() + "：" + plugin.type());
+                    errorCode, "数据源插件未声明能力 " + capability.name() + "：" + plugin.descriptor().type());
         }
     }
 
