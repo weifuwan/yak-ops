@@ -148,7 +148,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             throw new DataSourcePluginException(
                     DataSourcePluginOperation.CONNECTIVITY, "数据库驱动未安装：" + jdbcConnection.driverClassName(), exception);
         } catch (Exception exception) {
-            throw new DataSourcePluginException(DataSourcePluginOperation.CONNECTIVITY, safeMessage(exception), exception);
+            throw new DataSourcePluginException(
+                    DataSourcePluginOperation.CONNECTIVITY, safeMessage(exception), exception);
         }
     }
 
