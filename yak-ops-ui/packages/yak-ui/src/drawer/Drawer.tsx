@@ -10,10 +10,7 @@ export type DrawerProps<Payload = unknown> = Omit<
   side?: "left" | "right";
 };
 
-export function Drawer<Payload = unknown>({
-  side = "right",
-  ...props
-}: DrawerProps<Payload>) {
+export function Drawer<Payload = unknown>({ side = "right", ...props }: DrawerProps<Payload>) {
   return <BaseDrawer.Root swipeDirection={side} {...props} />;
 }
 
@@ -22,10 +19,7 @@ export const DrawerClose = BaseDrawer.Close;
 export const DrawerTitle = BaseDrawer.Title;
 export const DrawerDescription = BaseDrawer.Description;
 
-export type DrawerContentProps = Omit<
-  BaseDrawer.Popup.Props,
-  "children" | "className"
-> & {
+export type DrawerContentProps = Omit<BaseDrawer.Popup.Props, "children" | "className"> & {
   children: ReactNode;
   className?: string;
   width?: number | string;

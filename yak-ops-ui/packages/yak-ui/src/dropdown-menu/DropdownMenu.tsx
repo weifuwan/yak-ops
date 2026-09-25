@@ -25,7 +25,12 @@ export function DropdownMenuContent({
 }: DropdownMenuContentProps) {
   return (
     <BaseMenu.Portal>
-      <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} className="z-60 outline-none">
+      <BaseMenu.Positioner
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        className="z-60 outline-none"
+      >
         <BaseMenu.Popup
           {...props}
           className={cn(
@@ -61,12 +66,29 @@ export function DropdownMenuItem({ className, tone = "default", ...props }: Drop
   );
 }
 
-export type DropdownMenuLabelProps = Omit<BaseMenu.GroupLabel.Props, "className"> & { className?: string };
+export type DropdownMenuLabelProps = Omit<BaseMenu.GroupLabel.Props, "className"> & {
+  className?: string;
+};
 export function DropdownMenuLabel({ className, ...props }: DropdownMenuLabelProps) {
-  return <BaseMenu.GroupLabel className={cn("px-2.5 py-1.5 text-[11px] font-medium text-[var(--yak-components-muted-text)]", className)} {...props} />;
+  return (
+    <BaseMenu.GroupLabel
+      className={cn(
+        "px-2.5 py-1.5 text-[11px] font-medium text-[var(--yak-components-muted-text)]",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
-export type DropdownMenuSeparatorProps = Omit<BaseMenu.Separator.Props, "className"> & { className?: string };
+export type DropdownMenuSeparatorProps = Omit<BaseMenu.Separator.Props, "className"> & {
+  className?: string;
+};
 export function DropdownMenuSeparator({ className, ...props }: DropdownMenuSeparatorProps) {
-  return <BaseMenu.Separator className={cn("my-1 h-px bg-[var(--yak-components-control-border)]", className)} {...props} />;
+  return (
+    <BaseMenu.Separator
+      className={cn("my-1 h-px bg-[var(--yak-components-control-border)]", className)}
+      {...props}
+    />
+  );
 }

@@ -58,9 +58,7 @@ export default function LoginPage({ onAuthenticated }: LoginPageProps) {
         </div>
 
         <footer className="flex h-8 shrink-0 items-center">
-          <span className="text-[12px] tracking-[0.01em] text-black/45">
-            Built by 魏福万
-          </span>
+          <span className="text-[12px] tracking-[0.01em] text-black/45">Built by 魏福万</span>
         </footer>
       </div>
     </main>

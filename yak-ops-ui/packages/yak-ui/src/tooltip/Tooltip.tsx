@@ -25,7 +25,12 @@ export function TooltipContent({
 }: TooltipContentProps) {
   return (
     <BaseTooltip.Portal>
-      <BaseTooltip.Positioner side={side} align={align} sideOffset={sideOffset} className="z-60 outline-none">
+      <BaseTooltip.Positioner
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        className="z-60 outline-none"
+      >
         <BaseTooltip.Popup
           {...props}
           className={cn(

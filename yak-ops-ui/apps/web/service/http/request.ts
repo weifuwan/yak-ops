@@ -48,16 +48,12 @@ const HTTP_MESSAGES: Record<number, string> = {
   504: "网关超时",
 };
 
-const isLoginPath = () =>
-  window.location.pathname.toLowerCase().startsWith("/login");
+const isLoginPath = () => window.location.pathname.toLowerCase().startsWith("/login");
 
 export const goLogin = () => {
   if (isLoginPath()) return;
-  const returnTo =
-    `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  window.location.replace(
-    `/login?returnTo=${encodeURIComponent(returnTo)}`,
-  );
+  const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  window.location.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`);
 };
 
 export const handleAuthenticationFailure = (
@@ -82,10 +78,7 @@ export const handleAuthenticationFailure = (
   goLogin();
 };
 
-const handleBusinessError = (
-  error: BizError,
-  skipErrorHandler: boolean,
-) => {
+const handleBusinessError = (error: BizError, skipErrorHandler: boolean) => {
   if (skipErrorHandler) return;
 
   if (isUnauthenticatedResponse(error.response, error.protocol)) {
@@ -93,15 +86,12 @@ const handleBusinessError = (
     return;
   }
 
-  notifyOnce(
-    `business:${error.protocol}:${error.code}:${error.message}`,
-    {
-      type: "error",
-      title: "操作失败",
-      description: error.message || "未知错误",
-      meta: "请稍后重试",
-    },
-  );
+  notifyOnce(`business:${error.protocol}:${error.code}:${error.message}`, {
+    type: "error",
+    title: "操作失败",
+    description: error.message || "未知错误",
+    meta: "请稍后重试",
+  });
 };
 
 const parseResponse = async (response: Response) => {
@@ -110,10 +100,7 @@ const parseResponse = async (response: Response) => {
   return response.json() as Promise<unknown>;
 };
 
-export default async function request<T>(
-  url: string,
-  options: RequestOptions = {},
-): Promise<T> {
+export default async function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
   const {
     data,
     protocol: explicitProtocol,
@@ -202,12 +189,7 @@ export default async function request<T>(
     }
 
     if (!isSuccessfulResponse(payload, protocol)) {
-      const error = new BizError(
-        extractErrorMessage(payload),
-        payload.code,
-        payload,
-        protocol,
-      );
+      const error = new BizError(extractErrorMessage(payload), payload.code, payload, protocol);
       handleBusinessError(error, skipErrorHandler);
       if (businessErrorMode === "reject") throw error;
     }

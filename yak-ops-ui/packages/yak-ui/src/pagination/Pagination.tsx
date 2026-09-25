@@ -65,8 +65,15 @@ export function Pagination({
   const end = Math.min(currentPage * pageSize, total);
 
   return (
-    <nav aria-label="Pagination" className={cn("flex flex-wrap items-center justify-end gap-2 text-xs", className)}>
-      {renderTotal ? <div className="mr-2 text-[var(--yak-components-muted-text)]">{renderTotal(total, [start, end])}</div> : null}
+    <nav
+      aria-label="Pagination"
+      className={cn("flex flex-wrap items-center justify-end gap-2 text-xs", className)}
+    >
+      {renderTotal ? (
+        <div className="mr-2 text-[var(--yak-components-muted-text)]">
+          {renderTotal(total, [start, end])}
+        </div>
+      ) : null}
 
       <Button
         size="small"
@@ -92,7 +99,12 @@ export function Pagination({
               {item}
             </Button>
           ) : (
-            <span key={item} className="flex h-7 min-w-7 items-center justify-center text-[var(--yak-components-muted-text)]">…</span>
+            <span
+              key={item}
+              className="flex h-7 min-w-7 items-center justify-center text-[var(--yak-components-muted-text)]"
+            >
+              …
+            </span>
           ),
         )}
       </div>
@@ -107,10 +119,7 @@ export function Pagination({
       </Button>
 
       {showSizeChanger ? (
-        <Select
-          value={pageSize}
-          onValueChange={(nextSize) => onChange(1, Number(nextSize))}
-        >
+        <Select value={pageSize} onValueChange={(nextSize) => onChange(1, Number(nextSize))}>
           <SelectTrigger size="small" className="w-24">
             <SelectValue />
           </SelectTrigger>
@@ -128,12 +137,7 @@ export function Pagination({
       {showQuickJumper ? (
         <div className="flex items-center gap-1">
           <span className="text-[var(--yak-components-muted-text)]">Go to</span>
-          <NumberField
-            value={jumpPage}
-            min={1}
-            max={totalPages}
-            onValueChange={setJumpPage}
-          >
+          <NumberField value={jumpPage} min={1} max={totalPages} onValueChange={setJumpPage}>
             <NumberFieldGroup size="small" className="w-16">
               <NumberFieldInput aria-label="Page number" />
             </NumberFieldGroup>
@@ -141,7 +145,9 @@ export function Pagination({
           <Button
             size="small"
             disabled={disabled || jumpPage == null}
-            onClick={() => onChange(Math.min(Math.max(jumpPage ?? currentPage, 1), totalPages), pageSize)}
+            onClick={() =>
+              onChange(Math.min(Math.max(jumpPage ?? currentPage, 1), totalPages), pageSize)
+            }
           >
             Go
           </Button>

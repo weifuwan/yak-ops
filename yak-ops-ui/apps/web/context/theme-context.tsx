@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useEffect, useState, type ReactNode } from "react";
 
 import { DEFAULT_THEME, THEME_STORAGE_KEY } from "@/constants/theme";
 import type { ResolvedTheme, ThemeMode } from "@/types/theme";

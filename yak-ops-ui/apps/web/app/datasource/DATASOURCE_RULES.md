@@ -1,10 +1,12 @@
 # Datasource Frontend Rules
 
 Scope:
+
 - `yak-ops-ui/apps/web/app/datasource/**`
 - `yak-ops-ui/apps/web/service/datasource/**`
 
 Owns:
+
 - Datasource CRUD UI
 - Datasource filters / table / pagination
 - Datasource create / edit / connection-test form
@@ -54,6 +56,7 @@ service/datasource/
 ## Page Ownership
 
 `index.tsx` owns:
+
 - keyword / dbType / connection-status filters
 - paging state
 - list loading
@@ -66,6 +69,7 @@ service/datasource/
 ## Form Ownership
 
 `form.tsx` owns:
+
 - create / edit state
 - field validation
 - connection test

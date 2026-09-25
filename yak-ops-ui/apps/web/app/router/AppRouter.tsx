@@ -1,11 +1,4 @@
-import {
-  Navigate,
-  Outlet,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { DataSourcePage } from "@/app/datasource";
 import LoginPage from "@/app/login";
@@ -46,12 +39,7 @@ function ProtectedRoute() {
 
   if (!currentUser) {
     const returnTo = `${location.pathname}${location.search}${location.hash}`;
-    return (
-      <Navigate
-        replace
-        to={`/login?returnTo=${encodeURIComponent(returnTo)}`}
-      />
-    );
+    return <Navigate replace to={`/login?returnTo=${encodeURIComponent(returnTo)}`} />;
   }
 
   return <Outlet />;

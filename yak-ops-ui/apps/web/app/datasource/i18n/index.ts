@@ -5,10 +5,7 @@ type MessageDescriptor = {
   defaultMessage?: string;
 };
 
-const interpolate = (
-  template: string,
-  values?: Record<string, string | number>,
-) => {
+const interpolate = (template: string, values?: Record<string, string | number>) => {
   if (!values) return template;
   return template.replace(/\{([^}]+)\}/g, (match, key: string) => {
     const value = values[key];
@@ -17,10 +14,7 @@ const interpolate = (
 };
 
 export const intl = {
-  formatMessage(
-    descriptor: MessageDescriptor,
-    values?: Record<string, string | number>,
-  ) {
+  formatMessage(descriptor: MessageDescriptor, values?: Record<string, string | number>) {
     const template =
       messages[descriptor.id as keyof typeof messages] ??
       descriptor.defaultMessage ??

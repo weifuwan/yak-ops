@@ -58,9 +58,11 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22.13"
+          cache: npm
+          cache-dependency-path: yak-ops-ui/package-lock.json
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Frontend check
         run: npm run check

@@ -52,19 +52,31 @@ export function NumberFieldInput({ className, ...props }: NumberFieldInputProps)
 const controlClass =
   "flex w-7 items-center justify-center border-l border-[var(--yak-components-control-border)] text-[var(--yak-components-input-icon)] outline-none hover:bg-[var(--yak-components-input-bg-hover)] focus-visible:bg-[var(--yak-components-input-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40";
 
-export type NumberFieldIncrementProps = Omit<BaseNumberField.Increment.Props, "className"> & { className?: string };
+export type NumberFieldIncrementProps = Omit<BaseNumberField.Increment.Props, "className"> & {
+  className?: string;
+};
 export function NumberFieldIncrement({ className, children, ...props }: NumberFieldIncrementProps) {
   return (
-    <BaseNumberField.Increment aria-label={props["aria-label"] ?? "Increment value"} className={cn(controlClass, className)} {...props}>
+    <BaseNumberField.Increment
+      aria-label={props["aria-label"] ?? "Increment value"}
+      className={cn(controlClass, className)}
+      {...props}
+    >
       {children ?? <span aria-hidden="true">+</span>}
     </BaseNumberField.Increment>
   );
 }
 
-export type NumberFieldDecrementProps = Omit<BaseNumberField.Decrement.Props, "className"> & { className?: string };
+export type NumberFieldDecrementProps = Omit<BaseNumberField.Decrement.Props, "className"> & {
+  className?: string;
+};
 export function NumberFieldDecrement({ className, children, ...props }: NumberFieldDecrementProps) {
   return (
-    <BaseNumberField.Decrement aria-label={props["aria-label"] ?? "Decrement value"} className={cn(controlClass, className)} {...props}>
+    <BaseNumberField.Decrement
+      aria-label={props["aria-label"] ?? "Decrement value"}
+      className={cn(controlClass, className)}
+      {...props}
+    >
       {children ?? <span aria-hidden="true">−</span>}
     </BaseNumberField.Decrement>
   );

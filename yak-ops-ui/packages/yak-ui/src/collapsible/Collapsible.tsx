@@ -5,7 +5,9 @@ import { cn } from "../cn";
 export const Collapsible = BaseCollapsible.Root;
 export const CollapsibleTrigger = BaseCollapsible.Trigger;
 
-export type CollapsiblePanelProps = Omit<BaseCollapsible.Panel.Props, "className"> & { className?: string };
+export type CollapsiblePanelProps = Omit<BaseCollapsible.Panel.Props, "className"> & {
+  className?: string;
+};
 export function CollapsiblePanel({ className, ...props }: CollapsiblePanelProps) {
   return (
     <BaseCollapsible.Panel

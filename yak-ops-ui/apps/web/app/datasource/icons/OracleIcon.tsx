@@ -1,11 +1,12 @@
-const OracleIcon = ({ width = "24", height = "24" }: { width?: string | number; height?: string | number }) => {
+const OracleIcon = ({
+  width = "24",
+  height = "24",
+}: {
+  width?: string | number;
+  height?: string | number;
+}) => {
   return (
-    <svg
-      viewBox="0 0 1619 1024"
-      xmlns="http://www.w3.org/2000/svg"
-      width={width}
-      height={height}
-    >
+    <svg viewBox="0 0 1619 1024" xmlns="http://www.w3.org/2000/svg" width={width} height={height}>
       <path
         d="M1107.401799 0h-595.401799C229.203123 0-0.001581 229.253731-0.001581 512c0 282.695661 229.103489 511.848176 511.748542 512h595.705446c282.796877 0 512-229.253731 512-512S1390.198675 0 1107.452407 0z m-13.056835 843.58288H525.309874c-180.265296-3.744984-324.953247-150.760897-324.953247-331.58288s144.687951-327.844223 324.598992-331.58288h569.389345c183.149946 0 331.58288 148.432935 331.58288 331.58288s-148.432935 331.58288-331.58288 331.58288z"
         fill="#F80000"

@@ -1,12 +1,7 @@
 import { SECURITY_API_PREFIX } from "@/config/api";
 import HttpUtils from "@/service/http/HttpUtils";
 
-import type {
-  AuthUser,
-  AuthUserResponse,
-  GetCurrentUserOptions,
-  LoginCredentials,
-} from "./types";
+import type { AuthUser, AuthUserResponse, GetCurrentUserOptions, LoginCredentials } from "./types";
 
 const ACCOUNT_API = `${SECURITY_API_PREFIX}/account`;
 
@@ -25,16 +20,11 @@ export const login = async (credentials: LoginCredentials): Promise<void> => {
   });
 };
 
-export const getCurrentUser = async (
-  options?: GetCurrentUserOptions,
-): Promise<AuthUser> => {
-  const user = await HttpUtils.getData<AuthUserResponse>(
-    `${ACCOUNT_API}/current`,
-    {
-      protocol: "security",
-      skipErrorHandler: options?.skipErrorHandler,
-    },
-  );
+export const getCurrentUser = async (options?: GetCurrentUserOptions): Promise<AuthUser> => {
+  const user = await HttpUtils.getData<AuthUserResponse>(`${ACCOUNT_API}/current`, {
+    protocol: "security",
+    skipErrorHandler: options?.skipErrorHandler,
+  });
   return toAuthUser(user);
 };
 
@@ -44,9 +34,4 @@ export const logout = async (): Promise<void> => {
   });
 };
 
-export type {
-  AuthUser,
-  AuthUserResponse,
-  GetCurrentUserOptions,
-  LoginCredentials,
-} from "./types";
+export type { AuthUser, AuthUserResponse, GetCurrentUserOptions, LoginCredentials } from "./types";

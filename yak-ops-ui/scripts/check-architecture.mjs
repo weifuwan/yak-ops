@@ -49,26 +49,15 @@ for (const path of forbiddenDataSourceFiles) {
   }
 }
 
-const dataSourceServiceRoot = join(
-  root,
-  "apps",
-  "web",
-  "service",
-  "datasource",
-);
+const dataSourceServiceRoot = join(root, "apps", "web", "service", "datasource");
 const allowedDataSourceServiceFiles = new Set(["index.ts", "types.ts"]);
 
 if (existsSync(dataSourceServiceRoot)) {
   for (const entry of readdirSync(dataSourceServiceRoot, {
     withFileTypes: true,
   })) {
-    if (
-      !entry.isFile() ||
-      !allowedDataSourceServiceFiles.has(entry.name)
-    ) {
-      fail(
-        `unexpected datasource service entry: apps/web/service/datasource/${entry.name}`,
-      );
+    if (!entry.isFile() || !allowedDataSourceServiceFiles.has(entry.name)) {
+      fail(`unexpected datasource service entry: apps/web/service/datasource/${entry.name}`);
     }
   }
 }
@@ -95,9 +84,7 @@ const forbiddenDependencies = new Set([
 const rootPackage = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const rootRuntimeDependencies = Object.keys(rootPackage.dependencies ?? {});
 if (rootRuntimeDependencies.length > 0) {
-  fail(
-    `workspace root must not own runtime dependencies: ${rootRuntimeDependencies.join(", ")}`,
-  );
+  fail(`workspace root must not own runtime dependencies: ${rootRuntimeDependencies.join(", ")}`);
 }
 
 for (const dependency of Object.keys(rootPackage.devDependencies ?? {})) {
@@ -106,21 +93,9 @@ for (const dependency of Object.keys(rootPackage.devDependencies ?? {})) {
   }
 }
 
-const sourceExtensions = new Set([
-  ".js",
-  ".jsx",
-  ".mjs",
-  ".ts",
-  ".tsx",
-  ".json",
-]);
+const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx", ".json"]);
 
-const ignoredDirectoryNames = new Set([
-  "assets",
-  "dist",
-  "node_modules",
-  "public",
-]);
+const ignoredDirectoryNames = new Set(["assets", "dist", "node_modules", "public"]);
 
 const files = [];
 
@@ -175,33 +150,19 @@ for (const path of files) {
     }
   }
 
-  if (
-    relativePath.startsWith("apps/web/service/") &&
-    appImportPattern.test(content)
-  ) {
+  if (relativePath.startsWith("apps/web/service/") && appImportPattern.test(content)) {
     fail(`${relativePath} imports App code; service must not depend on app`);
   }
 
-  if (
-    relativePath.startsWith("apps/web/app/") &&
-    httpImportPattern.test(content)
-  ) {
-    fail(
-      `${relativePath} imports service/http directly; App code must use a domain service`,
-    );
+  if (relativePath.startsWith("apps/web/app/") && httpImportPattern.test(content)) {
+    fail(`${relativePath} imports service/http directly; App code must use a domain service`);
   }
 
-  if (
-    relativePath !== "apps/web/service/http/request.ts" &&
-    directFetchPattern.test(content)
-  ) {
+  if (relativePath !== "apps/web/service/http/request.ts" && directFetchPattern.test(content)) {
     fail(`${relativePath} calls fetch directly outside service/http/request.ts`);
   }
 
-  if (
-    !relativePath.startsWith("packages/yak-ui/") &&
-    baseUiImportPattern.test(content)
-  ) {
+  if (!relativePath.startsWith("packages/yak-ui/") && baseUiImportPattern.test(content)) {
     fail(`${relativePath} imports @base-ui/react outside packages/yak-ui`);
   }
 

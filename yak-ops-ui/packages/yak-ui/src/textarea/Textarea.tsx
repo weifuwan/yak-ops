@@ -41,23 +41,21 @@ export type TextareaProps = Omit<
     onValueChange?: BaseFieldNS.Control.Props["onValueChange"];
   };
 
-export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  function Textarea(
-    { className, defaultValue, onValueChange, size, value, ...props },
-    ref,
-  ) {
-    return (
-      <BaseField.Control
-        {...(props as Omit<BaseFieldNS.Control.Props, "render">)}
-        ref={ref as React.ForwardedRef<HTMLElement>}
-        render={<textarea />}
-        value={value}
-        defaultValue={defaultValue}
-        onValueChange={onValueChange}
-        className={textareaVariants({ size, className: cn(className) })}
-      />
-    );
-  },
-);
+export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+  { className, defaultValue, onValueChange, size, value, ...props },
+  ref,
+) {
+  return (
+    <BaseField.Control
+      {...(props as Omit<BaseFieldNS.Control.Props, "render">)}
+      ref={ref as React.ForwardedRef<HTMLElement>}
+      render={<textarea />}
+      value={value}
+      defaultValue={defaultValue}
+      onValueChange={onValueChange}
+      className={textareaVariants({ size, className: cn(className) })}
+    />
+  );
+});
 
 Textarea.displayName = "Textarea";

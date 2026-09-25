@@ -10,16 +10,12 @@ export type HttpRequestOptions = RequestInit & {
   skipErrorHandler?: boolean;
 };
 
-const withEnvelopeBusinessErrors = (
-  options?: HttpRequestOptions,
-): HttpRequestOptions => ({
+const withEnvelopeBusinessErrors = (options?: HttpRequestOptions): HttpRequestOptions => ({
   ...options,
   businessErrorMode: options?.businessErrorMode ?? "resolve",
 });
 
-const withRejectedBusinessErrors = (
-  options?: HttpRequestOptions,
-): HttpRequestOptions => ({
+const withRejectedBusinessErrors = (options?: HttpRequestOptions): HttpRequestOptions => ({
   ...options,
   businessErrorMode: "reject",
 });
@@ -57,10 +53,7 @@ class HttpUtils {
     });
   }
 
-  static get<T>(
-    url: string,
-    options?: HttpRequestOptions,
-  ): Promise<ApiResponse<T>> {
+  static get<T>(url: string, options?: HttpRequestOptions): Promise<ApiResponse<T>> {
     return request<ApiResponse<T>>(url, {
       method: "GET",
       ...withEnvelopeBusinessErrors(options),
@@ -68,21 +61,11 @@ class HttpUtils {
   }
 
   static getData<T>(url: string, options?: HttpRequestOptions): Promise<T> {
-    return HttpUtils.get<T>(url, withRejectedBusinessErrors(options)).then(
-      HttpUtils.unwrap,
-    );
+    return HttpUtils.get<T>(url, withRejectedBusinessErrors(options)).then(HttpUtils.unwrap);
   }
 
-  static postData<T>(
-    url: string,
-    body?: unknown,
-    options?: HttpRequestOptions,
-  ): Promise<T> {
-    return HttpUtils.post<T>(
-      url,
-      body,
-      withRejectedBusinessErrors(options),
-    ).then(HttpUtils.unwrap);
+  static postData<T>(url: string, body?: unknown, options?: HttpRequestOptions): Promise<T> {
+    return HttpUtils.post<T>(url, body, withRejectedBusinessErrors(options)).then(HttpUtils.unwrap);
   }
 
   static put<T>(
@@ -97,16 +80,8 @@ class HttpUtils {
     });
   }
 
-  static putData<T>(
-    url: string,
-    body?: unknown,
-    options?: HttpRequestOptions,
-  ): Promise<T> {
-    return HttpUtils.put<T>(
-      url,
-      body,
-      withRejectedBusinessErrors(options),
-    ).then(HttpUtils.unwrap);
+  static putData<T>(url: string, body?: unknown, options?: HttpRequestOptions): Promise<T> {
+    return HttpUtils.put<T>(url, body, withRejectedBusinessErrors(options)).then(HttpUtils.unwrap);
   }
 
   static delete<T>(
@@ -121,16 +96,10 @@ class HttpUtils {
     });
   }
 
-  static deleteData<T>(
-    url: string,
-    data?: unknown,
-    options?: HttpRequestOptions,
-  ): Promise<T> {
-    return HttpUtils.delete<T>(
-      url,
-      data,
-      withRejectedBusinessErrors(options),
-    ).then(HttpUtils.unwrap);
+  static deleteData<T>(url: string, data?: unknown, options?: HttpRequestOptions): Promise<T> {
+    return HttpUtils.delete<T>(url, data, withRejectedBusinessErrors(options)).then(
+      HttpUtils.unwrap,
+    );
   }
 
   static download(url: string): Promise<Blob> {

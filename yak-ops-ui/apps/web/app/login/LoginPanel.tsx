@@ -75,17 +75,12 @@ function FloatingInput({
       setFocused(false);
       onBlur?.(event);
     },
-    onChange: (event: ChangeEvent<HTMLInputElement>) =>
-      onValueChange(event.target.value),
+    onChange: (event: ChangeEvent<HTMLInputElement>) => onValueChange(event.target.value),
   };
 
   return (
     <div className="relative">
-      {password ? (
-        <PasswordInput {...sharedProps} />
-      ) : (
-        <Input {...sharedProps} />
-      )}
+      {password ? <PasswordInput {...sharedProps} /> : <Input {...sharedProps} />}
       <label
         htmlFor={inputProps.id}
         className={`pointer-events-none absolute left-4 z-10 bg-white px-1 transition-all duration-200 ease-out ${
@@ -155,9 +150,7 @@ function WeChatQrHelp() {
               </div>
             )}
             <span className="text-center text-[11px] leading-5 text-[#888]">
-              输入{" "}
-              <span className="rounded bg-black/[0.03] px-1">9527</span>{" "}
-              获取账号 / 密码
+              输入 <span className="rounded bg-black/[0.03] px-1">9527</span> 获取账号 / 密码
             </span>
           </div>
         </PopoverContent>
@@ -171,9 +164,7 @@ export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
     userName: "",
     userPassword: "",
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof LoginValues, string>>>(
-    {},
-  );
+  const [errors, setErrors] = useState<Partial<Record<keyof LoginValues, string>>>({});
   const [loading, setLoading] = useState(false);
 
   const handleAccountLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -224,9 +215,7 @@ export default function LoginPanel({ onAuthenticated }: LoginPanelProps) {
               }
             }}
           />
-          {errors.userName ? (
-            <ValidationMessage>{errors.userName}</ValidationMessage>
-          ) : null}
+          {errors.userName ? <ValidationMessage>{errors.userName}</ValidationMessage> : null}
         </div>
 
         <div className="mb-5">

@@ -170,7 +170,7 @@ packages/yak-ui
 
 Workspace root 只保留构建和质量工具，不声明运行时 dependencies。
 
-新增或修改依赖后应使用 npm 更新 lockfile（如果仓库启用 lockfile）。
+前端提交 `package-lock.json` 作为 npm 依赖锁定文件。新增或修改依赖后必须同步更新 lockfile；CI 使用 `npm ci` 按 lockfile 安装依赖。
 
 ## Git Hooks
 
