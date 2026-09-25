@@ -87,10 +87,8 @@ public class GlobalExceptionHandler {
 
         if (errorCode instanceof SecurityErrorCode code) {
             return switch (code) {
-                case USER_EMAIL_FORMAT_ERROR,
-                        USER_ID_CANNOT_BE_NULL,
-                        USER_PHONE_FORMAT_ERROR,
-                        USER_NAME_FORMAT_ERROR -> HttpStatus.BAD_REQUEST;
+                case USER_EMAIL_FORMAT_ERROR, USER_ID_CANNOT_BE_NULL, USER_PHONE_FORMAT_ERROR, USER_NAME_FORMAT_ERROR ->
+                    HttpStatus.BAD_REQUEST;
                 case USER_NOT_LOGIN,
                         USER_ACCOUNT_EXPIRED,
                         USER_CREDENTIALS_ERROR,
