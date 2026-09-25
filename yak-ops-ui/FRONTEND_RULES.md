@@ -77,10 +77,44 @@ npm run architecture:check
 
 合理架构演进必须同步 Architecture / Rules / enforcement。
 
+## Physical Quality Gates
+
+前端可被工具确定验证的规则必须由确定性工具执行，不依赖 AI Review。
+
+CI 按独立 gate 顺序执行：
+
+```text
+format:check
+    ↓
+lint
+    ↓
+typecheck
+    ↓
+architecture:check
+    ↓
+build
+```
+
+每个 gate 必须独立暴露失败结果，不能只包装成单一的 `npm run check` CI 步骤。
+
+CI 只负责检查，不负责修改代码：
+
+- Format 使用 `npm run format:check`，禁止在 CI 执行 `npm run format`。
+- Lint 使用 `npm run lint`，禁止在 CI 执行 `npm run lint:fix`。
+- TypeScript 使用 `npm run typecheck`。
+- Architecture 使用 `npm run architecture:check`。
+- Production build 使用 `npm run build`。
+
+`npm run check` 保留为本地聚合入口，并保持与 CI 前四个 quality gate 相同的执行顺序。
+
 ## Validation
+
+本地聚合验证：
 
 ```bash
 cd yak-ops-ui
 npm run check
 npm run build
 ```
+
+CI 必须直接执行各独立 quality gate，以便明确显示具体失败阶段。
