@@ -1,8 +1,9 @@
 package io.yak.ops.security.extend.impl;
 
+import io.yak.ops.common.util.ObjectUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.security.extend.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.util.StringUtils;
 
 /**
  * BCrypt 密码编码器默认实现。
@@ -48,7 +49,7 @@ public class DefaultPasswordEncoder implements PasswordEncoder {
     @Override
     public String encode(CharSequence rawPassword) {
 
-        if (rawPassword == null || !StringUtils.hasText(rawPassword.toString())) {
+        if (ObjectUtils.isNull(rawPassword) || StringUtils.isBlank(rawPassword)) {
 
             throw new IllegalArgumentException("rawPassword must not be blank");
         }
@@ -66,7 +67,7 @@ public class DefaultPasswordEncoder implements PasswordEncoder {
     @Override
     public boolean matches(CharSequence rawPassword, String encodedPassword) {
 
-        if (rawPassword == null || !StringUtils.hasText(encodedPassword)) {
+        if (ObjectUtils.isNull(rawPassword) || StringUtils.isBlank(encodedPassword)) {
             return false;
         }
 
