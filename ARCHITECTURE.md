@@ -84,7 +84,7 @@ Datasource exposes exactly one public Service Layer entry: `DataSourceService`. 
 
 The module intentionally does not own Catalog HTTP/Business APIs, SQL execution, SQL audit, a duplicate Domain layer or a Gateway adapter layer.
 
-Datasource may use DAO persistence and the stable Datasource Plugin SPI only behind `DataSourceServiceImpl`.
+Datasource may use DAO persistence and the stable Datasource Plugin API only behind `DataSourceServiceImpl`.
 
 Datasource does not own Controller, ControllerAdvice, connection-pool assembly or MyBatis runtime configuration. Boot exposes Datasource HTTP APIs and supplies application infrastructure.
 

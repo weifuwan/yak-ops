@@ -30,6 +30,11 @@ yak-ops-plugin-datasource-all
 ## API Rules
 
 `yak-ops-plugin-datasource-api` must:
+- expose production API types only under `io.yak.ops.plugin.datasource.api` and its owner subpackages.
+- keep Plugin contracts under `api.plugin`, Catalog contracts/models under `api.catalog`, finite domain values under `api.enums`, and Plugin exceptions under `api.exception`.
+- keep independently meaningful API enums as top-level types; public nested enums/classes/records/interfaces are forbidden.
+- prefer records for immutable Catalog query/path/metadata carriers when validation can stay explicit.
+- never recreate the legacy `io.yak.ops.spi.datasource` namespace.
 - stay provider-neutral.
 - expose stable capability and connection contracts.
 - avoid Datasource Service Layer implementation types.

@@ -1,4 +1,4 @@
-package io.yak.ops.spi.datasource;
+package io.yak.ops.plugin.datasource.api.plugin;
 
 import java.util.Map;
 

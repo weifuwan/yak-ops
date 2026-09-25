@@ -1,4 +1,4 @@
-package io.yak.ops.spi.datasource;
+package io.yak.ops.plugin.datasource.api.enums;
 
 /**
  * 数据源插件可显式声明的稳定能力。

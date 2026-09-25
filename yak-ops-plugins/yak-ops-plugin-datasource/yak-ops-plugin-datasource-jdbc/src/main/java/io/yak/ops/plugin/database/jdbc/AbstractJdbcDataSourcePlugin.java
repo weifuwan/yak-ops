@@ -4,13 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.yak.ops.common.util.JsonUtils;
 import io.yak.ops.common.util.SensitiveUtils;
-import io.yak.ops.spi.datasource.DataSourceCapability;
-import io.yak.ops.spi.datasource.DataSourceCatalog;
-import io.yak.ops.spi.datasource.DataSourceConnection;
-import io.yak.ops.spi.datasource.DataSourcePlugin;
-import io.yak.ops.spi.datasource.DataSourcePluginDescriptor;
-import io.yak.ops.spi.datasource.DataSourcePluginException;
-import io.yak.ops.spi.datasource.DataSourcePluginException.Operation;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
+import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
+import io.yak.ops.plugin.datasource.api.enums.DataSourcePluginOperation;
+import io.yak.ops.plugin.datasource.api.exception.DataSourcePluginException;
+import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
+import io.yak.ops.plugin.datasource.api.plugin.DataSourcePlugin;
+import io.yak.ops.plugin.datasource.api.plugin.DataSourcePluginDescriptor;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Collections;
@@ -140,15 +140,16 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         JdbcConnectionProperties jdbcConnection = requireJdbcConnection(connection);
         try (Connection opened = openJdbcConnection(jdbcConnection, timeoutSeconds)) {
             if (opened == null || opened.isClosed()) {
-                throw new DataSourcePluginException(Operation.CONNECTIVITY, "数据库连接不可用");
+                throw new DataSourcePluginException(DataSourcePluginOperation.CONNECTIVITY, "数据库连接不可用");
             }
         } catch (DataSourcePluginException exception) {
             throw exception;
         } catch (ClassNotFoundException exception) {
             throw new DataSourcePluginException(
-                    Operation.CONNECTIVITY, "数据库驱动未安装：" + jdbcConnection.driverClassName(), exception);
+                    DataSourcePluginOperation.CONNECTIVITY, "数据库驱动未安装：" + jdbcConnection.driverClassName(), exception);
         } catch (Exception exception) {
-            throw new DataSourcePluginException(Operation.CONNECTIVITY, safeMessage(exception), exception);
+            throw new DataSourcePluginException(
+                    DataSourcePluginOperation.CONNECTIVITY, safeMessage(exception), exception);
         }
     }
 
@@ -423,7 +424,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     private DataSourcePluginException parameterError(String message, Throwable cause) {
         return cause == null
-                ? new DataSourcePluginException(Operation.PARAMETER, message)
-                : new DataSourcePluginException(Operation.PARAMETER, message, cause);
+                ? new DataSourcePluginException(DataSourcePluginOperation.PARAMETER, message)
+                : new DataSourcePluginException(DataSourcePluginOperation.PARAMETER, message, cause);
     }
 }

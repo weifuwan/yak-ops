@@ -1,4 +1,7 @@
-package io.yak.ops.spi.datasource;
+package io.yak.ops.plugin.datasource.api.plugin;
+
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
+import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
 
 /**
  * 数据源插件稳定扩展契约，负责插件描述、连接参数、连通性和 Catalog 元数据。

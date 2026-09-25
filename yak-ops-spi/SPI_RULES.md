@@ -21,6 +21,8 @@ yak-ops-plugins/yak-ops-plugin-datasource/
 
 `yak-ops-spi` 目前只有最小包声明，不是 Datasource Plugin API 的第二套入口。
 
+Datasource Plugin API 的 Java namespace 统一为 `io.yak.ops.plugin.datasource.api`；禁止重新创建 `io.yak.ops.spi.datasource` 兼容包。
+
 ## Must
 
 - 只有出现真实跨插件、跨产品能力的稳定扩展协议时，才在这里新增 SPI。
