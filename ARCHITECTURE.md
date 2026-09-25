@@ -96,6 +96,8 @@ The active plugin surface is limited to:
 
 SQL execution/query contracts are not part of the current plugin boundary.
 
+Datasource Providers are an open extension set. A Provider owns its stable string type, display name and compatibility aliases through the Plugin descriptor. Common and Business do not enumerate all supported database types; adding a Provider must not require a core enum change.
+
 ### `yak-ops-boot`
 
 Owns final application assembly, all HTTP Controllers, ControllerAdvice, health and global runtime configuration. `GlobalExceptionHandler` is the single fallback HTTP exception outlet; capability-specific advice only keeps behavior that requires capability context such as Datasource message masking.

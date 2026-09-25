@@ -11,7 +11,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Immutable datasource plugin metadata and connection-form contract. */
+/**
+ * 数据源 Provider 的稳定元数据与连接表单契约。
+ *
+ * <p>Provider 自己声明 canonical type 与 aliases；核心模块不维护数据库类型枚举。
+ *
+ * @author weifuwan
+ * @since 2026-09-24
+ */
 public record DataSourcePluginDescriptor(
         String type,
         String displayName,

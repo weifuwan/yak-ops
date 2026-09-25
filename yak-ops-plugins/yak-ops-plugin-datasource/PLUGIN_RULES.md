@@ -47,6 +47,25 @@ yak-ops-plugin-datasource-all
 
 Do not add a second Datasource plugin contract in `yak-ops-spi`.
 
+## Plugin Type Contract
+
+Datasource providers are an open set. Plugin identity must not be modeled as a Common enum.
+
+Must:
+- each Provider owns one stable canonical string `type`, such as `MYSQL` or `ELASTICSEARCH8`.
+- canonical type is normalized and persisted as a string.
+- provider-specific compatibility names are declared through descriptor `aliases`.
+- ServiceLoader discovery registers both canonical type and aliases to the same Provider.
+- duplicate canonical types or aliases fail fast during plugin discovery.
+- adding a new Provider must not require modifying Common, Business or a central database-type list.
+
+Closed protocol vocabularies such as `DataSourceCapability`, form `FieldType` and `VisibilityOperator` may remain enums because their value set belongs to the SPI contract itself.
+
+Must Not:
+- recreate `DataSourceDbType` or an equivalent central enum/list of supported databases.
+- make Business parse vendor type aliases.
+- require a core-module change only to register a new Provider.
+
 ## Provider Rules
 
 Must:
