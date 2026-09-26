@@ -28,7 +28,7 @@ public interface DataSourceConnection {
     /** 默认数据库名称。 */
     String database();
 
-    /** 默认 Schema 名称。 */
+    /** Provider 可选的默认 Schema 上下文；并非所有数据源都把 Schema 作为连接字段。 */
     String schema();
 
     /** 插件附加连接属性。 */
