@@ -45,6 +45,7 @@ Base UI is an implementation dependency, not a product-facing API.
 - Button / Input / SelectTrigger share control-radius tokens instead of hard-coded radius values: small `6px`, medium `8px`, large `10px`. Product code should not redefine these control radii through `className`.
 - Variant contracts use `class-variance-authority` when variants are real product-wide concepts.
 - Button defaults to `type="button"`.
+- Button `primary` uses `--yak-color-primary` as its source color; hover / active are derived from that token rather than maintaining a separate dark primary palette.
 - Input / Textarea / NumberField use one shared input visual language.
 - Input and SelectTrigger expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`. Input focus and SelectTrigger focus/open use the primary border only; they do not add a focus box-shadow / ring.
 - Select / Menu / Tooltip / Popover / Dialog / Drawer / Tabs remain compositional instead of becoming giant convenience-prop components.
