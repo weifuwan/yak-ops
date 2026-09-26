@@ -98,6 +98,7 @@ Must:
 - Provider may normalize and validate well-known properties while leaving unknown JDBC driver properties pass-through unless that Provider has a concrete reason to reject them.
 - frontend must not maintain a second vendor-property catalog or duplicate Provider validation rules.
 - normalize provider failures into stable plugin exceptions.
+- JDBC Connection Test must establish a real JDBC connection and validate it with `Connection.isValid(timeoutSeconds)`; parsing parameters or obtaining a non-null Connection alone is not a successful connectivity result.
 - declare capabilities explicitly.
 - keep secrets out of error messages and logs.
 - keep remaining descriptor metadata deterministic.
