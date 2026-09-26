@@ -16,6 +16,7 @@ Owns:
 - All versioned SQL migrations under `src/main/resources/db/migration/yak-ops`
 - Concrete database access after a domain is explicitly migrated here
 - Security user persistence through `UserEntity`, `UserMapper` and `UserRepository`
+- Workspace persistence through DAO-owned Workspace / WorkspaceMember Entity, Mapper and Repository
 - Datasource persistence through DAO-owned Entity / Mapper / Repository and mapper XML
 
 ## Flyway

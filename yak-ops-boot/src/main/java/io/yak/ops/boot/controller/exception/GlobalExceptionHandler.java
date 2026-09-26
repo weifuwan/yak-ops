@@ -1,6 +1,7 @@
 package io.yak.ops.boot.controller.exception;
 
 import io.yak.ops.business.datasource.exception.DataSourceException;
+import io.yak.ops.business.workspace.enums.WorkspaceErrorCode;
 import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.exception.BusinessException;
@@ -103,6 +104,14 @@ public class GlobalExceptionHandler {
                         INVALID_BATCH_OPERATION,
                         INVALID_CONNECTION_STATUS -> HttpStatus.BAD_REQUEST;
                 default -> HttpStatus.INTERNAL_SERVER_ERROR;
+            };
+        }
+
+        if (errorCode instanceof WorkspaceErrorCode code) {
+            return switch (code) {
+                case NOT_FOUND -> HttpStatus.NOT_FOUND;
+                case ACCESS_DENIED -> HttpStatus.FORBIDDEN;
+                case INVALID_WORKSPACE -> HttpStatus.BAD_REQUEST;
             };
         }
 

@@ -8,6 +8,7 @@ Depends On:
 
 Owns:
 - Datasource shared DTO / VO
+- Workspace shared DTO / VO, role enum and request WorkspaceContext
 - cross-domain stable constants
 - Datasource enums
 - Security user/login shared HTTP DTO / VO contracts
@@ -25,6 +26,7 @@ Package ownership:
 io.yak.ops.common.result     → Result / ErrorCode
 io.yak.ops.common.page       → PageData / PagingData
 io.yak.ops.common.exception  → shared business exceptions
+io.yak.ops.common.context    → validated cross-domain request context such as WorkspaceContext
 io.yak.ops.common.bean       → shared DTO / VO
 io.yak.ops.common.enums      → shared enums, including enums/common/CommonErrorCode
 io.yak.ops.common.constant   → CommonConstants for cross-domain stable constants
