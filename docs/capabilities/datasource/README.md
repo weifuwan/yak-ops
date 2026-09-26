@@ -75,6 +75,16 @@ DataSourceController
 
 Datasource publishes batch delete and batch saved-connection testing for the management list. Batch delete is transactional; batch connection testing returns one result per requested datasource and continues after individual connection failures.
 
+Datasource also publishes a lightweight connection-property key discovery endpoint:
+
+```text
+GET /api/v1/data-source/connection-property-keys?dbType=POSTGRE_SQL
+```
+
+The response only contains Provider-recommended advanced-property names. JDBC Providers discover Driver-supported names through `Driver#getPropertyInfo`, merge their known canonical property keys, filter structured connection fields and internal test-only keys, and never open a real database connection for this metadata lookup.
+
+Property keys are suggestions rather than a strict whitelist. Value normalization and validation remain owned by each Provider.
+
 Datasource does not publish Catalog or Summary product APIs.
 
 ## Frontend Structure
@@ -118,6 +128,8 @@ remark
 ```
 
 The UI renders a JDBC preview from Host / Port / Database, exposes a fixed username/password identity mode, a fixed no-auth option, an auto driver-version placeholder, and a lightweight provider-neutral Key/Value advanced-properties editor. Create, update and connection-test requests share the same structured `connectionParams` object instead of sending JSON strings. Vendor property names and value semantics are normalized and validated by the selected backend JDBC Provider, not duplicated in the frontend.
+
+The advanced-property Key selector may query the backend Provider for recommended property names. The endpoint remains lightweight metadata only: the frontend may search/select the returned names but must not treat them as a validation whitelist.
 
 Create uses `DEVELOP` as the default environment. Edit preserves the stored environment.
 
