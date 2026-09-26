@@ -25,7 +25,7 @@ export function PageHeader({
         className,
       )}
     >
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
         <h1 className="text-lg leading-7 font-semibold text-[var(--yak-components-page-header-title)]">
           {title}
         </h1>
@@ -35,7 +35,7 @@ export function PageHeader({
           </div>
         ) : null}
       </div>
-      {extra != null ? <div className="flex shrink-0 items-center gap-2">{extra}</div> : null}
+      {extra != null ? <div className="flex shrink-0 items-center gap-2 sm:ml-auto">{extra}</div> : null}
     </header>
   );
 }
