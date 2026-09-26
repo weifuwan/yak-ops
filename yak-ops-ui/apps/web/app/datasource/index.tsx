@@ -159,7 +159,7 @@ const DataSourcePage = () => {
 
   return (
     <>
-      <div className="min-h-full bg-white text-[#242731]">
+      <div className="min-h-full bg-[#F6F6F6] text-[#242731]">
         <PageHeader
           title={intl.formatMessage({ id: "pages.datasource.page.title" })}
           extra={
@@ -169,7 +169,7 @@ const DataSourcePage = () => {
             </Button>
           }
           bordered
-          className="px-6 max-md:px-4"
+          className="bg-white px-6 max-md:px-4"
         />
 
         <div className="px-6 pb-4 pt-5 max-md:px-4">
