@@ -1,5 +1,9 @@
 import {
   Button,
+  Field,
+  FieldError,
+  FieldLabel,
+  FieldRequiredMark,
   Input,
   Modal,
   PasswordInput,
@@ -339,17 +343,22 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     setCreateStep("config");
   };
 
-  const fieldError = (key: FormErrorKey) =>
-    errors[key] ? <div className="mt-1 text-xs text-[#b42318]">{errors[key]}</div> : null;
-
   const nameField = (
-    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <label htmlFor="datasource-name" className="pt-1.5 text-xs font-medium text-[#344054]">
+    <Field
+      invalid={Boolean(errors.name)}
+      className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3"
+    >
+      <FieldLabel
+        required
+        htmlFor="datasource-name"
+        className="pt-1.5 text-xs leading-4"
+      >
         {intl.formatMessage({ id: "pages.datasource.form.dsName" })}
-      </label>
+      </FieldLabel>
       <div className="min-w-0">
         <Input
           id="datasource-name"
+          required
           size="small"
           variant="outlined"
           value={values.name}
@@ -357,9 +366,11 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           placeholder={intl.formatMessage({ id: "pages.datasource.form.dsNamePlaceholder" })}
           onChange={(event) => patch("name", event.target.value)}
         />
-        {fieldError("name")}
+        <FieldError match={Boolean(errors.name)} className="mt-1">
+          {errors.name}
+        </FieldError>
       </div>
-    </div>
+    </Field>
   );
 
   const jdbcPreviewField = (
@@ -375,47 +386,64 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
 
   const connectionAddressField = (
     <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+      <span className="pt-1.5 text-xs font-medium text-[var(--yak-components-field-label)]">
+        <FieldRequiredMark />
         {intl.formatMessage({ id: "pages.datasource.form.connectionAddress" })}
       </span>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_160px] gap-2 max-sm:grid-cols-1">
-        <div>
+        <Field invalid={Boolean(errors.host)} className="!gap-0">
           <Input
             id="datasource-host"
+            required
             size="small"
             variant="outlined"
             value={values.host}
+            aria-label={intl.formatMessage({ id: "pages.datasource.form.hostPlaceholder" })}
             aria-invalid={Boolean(errors.host) || undefined}
             placeholder={intl.formatMessage({ id: "pages.datasource.form.hostPlaceholder" })}
             onChange={(event) => patch("host", event.target.value)}
           />
-          {fieldError("host")}
-        </div>
-        <div>
+          <FieldError match={Boolean(errors.host)} className="mt-1">
+            {errors.host}
+          </FieldError>
+        </Field>
+        <Field invalid={Boolean(errors.port)} className="!gap-0">
           <Input
             id="datasource-port"
+            required
             size="small"
             variant="outlined"
             inputMode="numeric"
             value={values.port}
+            aria-label={intl.formatMessage({ id: "pages.datasource.form.portPlaceholder" })}
             aria-invalid={Boolean(errors.port) || undefined}
             placeholder={intl.formatMessage({ id: "pages.datasource.form.portPlaceholder" })}
             onChange={(event) => patch("port", event.target.value)}
           />
-          {fieldError("port")}
-        </div>
+          <FieldError match={Boolean(errors.port)} className="mt-1">
+            {errors.port}
+          </FieldError>
+        </Field>
       </div>
     </div>
   );
 
   const databaseField = (
-    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <label htmlFor="datasource-database" className="pt-1.5 text-xs font-medium text-[#344054]">
+    <Field
+      invalid={Boolean(errors.database)}
+      className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3"
+    >
+      <FieldLabel
+        required
+        htmlFor="datasource-database"
+        className="pt-1.5 text-xs leading-4"
+      >
         {intl.formatMessage({ id: "pages.datasource.form.database" })}
-      </label>
+      </FieldLabel>
       <div className="min-w-0">
         <Input
           id="datasource-database"
+          required
           size="small"
           variant="outlined"
           value={values.database}
@@ -423,9 +451,11 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           placeholder={intl.formatMessage({ id: "pages.datasource.form.databasePlaceholder" })}
           onChange={(event) => patch("database", event.target.value)}
         />
-        {fieldError("database")}
+        <FieldError match={Boolean(errors.database)} className="mt-1">
+          {errors.database}
+        </FieldError>
       </div>
-    </div>
+    </Field>
   );
 
   const accessIdentityField = (
@@ -456,13 +486,21 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
   );
 
   const usernameField = (
-    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <label htmlFor="datasource-username" className="pt-1.5 text-xs font-medium text-[#344054]">
+    <Field
+      invalid={Boolean(errors.username)}
+      className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3"
+    >
+      <FieldLabel
+        required
+        htmlFor="datasource-username"
+        className="pt-1.5 text-xs leading-4"
+      >
         {intl.formatMessage({ id: "pages.datasource.form.username" })}
-      </label>
+      </FieldLabel>
       <div className="min-w-0">
         <Input
           id="datasource-username"
+          required
           size="small"
           variant="outlined"
           value={values.username}
@@ -472,16 +510,18 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           })}
           onChange={(event) => patch("username", event.target.value)}
         />
-        {fieldError("username")}
+        <FieldError match={Boolean(errors.username)} className="mt-1">
+          {errors.username}
+        </FieldError>
       </div>
-    </div>
+    </Field>
   );
 
   const passwordField = (
-    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <label htmlFor="datasource-password" className="pt-1.5 text-xs font-medium text-[#344054]">
+    <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3">
+      <FieldLabel htmlFor="datasource-password" className="pt-1.5 text-xs leading-4">
         {intl.formatMessage({ id: "pages.datasource.form.password" })}
-      </label>
+      </FieldLabel>
       <PasswordInput
         id="datasource-password"
         size="small"
@@ -492,7 +532,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
         })}
         onChange={(event) => patch("password", event.target.value)}
       />
-    </div>
+    </Field>
   );
 
   const authOptionField = (
@@ -542,7 +582,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       <span className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.advancedProperties" })}
       </span>
-      <div className="min-w-0">
+      <Field invalid={Boolean(errors.properties)} className="min-w-0 !gap-0">
         <Button size="small" onClick={addProperty}>
           {intl.formatMessage({ id: "pages.datasource.form.addProperty" })}
         </Button>
@@ -595,8 +635,10 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
             ))}
           </div>
         ) : null}
-        {fieldError("properties")}
-      </div>
+        <FieldError match={Boolean(errors.properties)} className="mt-1">
+          {errors.properties}
+        </FieldError>
+      </Field>
     </div>
   );
 
@@ -615,10 +657,13 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
   );
 
   const remarkField = (
-    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <label htmlFor="datasource-remark" className="pt-1.5 text-xs font-medium text-[#344054]">
+    <Field
+      invalid={Boolean(errors.remark)}
+      className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3"
+    >
+      <FieldLabel htmlFor="datasource-remark" className="pt-1.5 text-xs leading-4">
         {intl.formatMessage({ id: "pages.datasource.form.description" })}
-      </label>
+      </FieldLabel>
       <div className="min-w-0">
         <Textarea
           id="datasource-remark"
@@ -633,9 +678,11 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           })}
           onValueChange={(value) => patch("remark", value)}
         />
-        {fieldError("remark")}
+        <FieldError match={Boolean(errors.remark)} className="mt-1">
+          {errors.remark}
+        </FieldError>
       </div>
-    </div>
+    </Field>
   );
 
   const selectedType = COMMON_DB_OPTIONS.find((option) => option.value === values.dbType);

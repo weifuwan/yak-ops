@@ -74,6 +74,7 @@
   --yak-components-field-label: #344054;
   --yak-components-field-description: #98a2b3;
   --yak-components-field-error: #d92d20;
+  --yak-components-field-required: var(--yak-components-field-error);
 
   --yak-components-switch-bg: #d9dde3;
   --yak-components-switch-bg-hover: #cfd4dc;

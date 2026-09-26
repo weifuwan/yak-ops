@@ -1,5 +1,6 @@
 import type { Field as BaseFieldNS } from "@base-ui/react/field";
 import { Field as BaseField } from "@base-ui/react/field";
+import type { ComponentProps } from "react";
 
 import { cn } from "../cn";
 
@@ -8,8 +9,33 @@ export function Field({ className, ...props }: FieldProps) {
   return <BaseField.Root className={cn("grid min-w-0 gap-1.5", className)} {...props} />;
 }
 
-export type FieldLabelProps = Omit<BaseFieldNS.Label.Props, "className"> & { className?: string };
-export function FieldLabel({ className, ...props }: FieldLabelProps) {
+export type FieldRequiredMarkProps = Omit<ComponentProps<"span">, "children"> & {
+  className?: string;
+};
+
+export function FieldRequiredMark({ className, ...props }: FieldRequiredMarkProps) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn("mr-0.5 text-[var(--yak-components-field-required)]", className)}
+      {...props}
+    >
+      *
+    </span>
+  );
+}
+
+export type FieldLabelProps = Omit<BaseFieldNS.Label.Props, "className"> & {
+  className?: string;
+  required?: boolean;
+};
+
+export function FieldLabel({
+  children,
+  className,
+  required = false,
+  ...props
+}: FieldLabelProps) {
   return (
     <BaseField.Label
       className={cn(
@@ -17,7 +43,10 @@ export function FieldLabel({ className, ...props }: FieldLabelProps) {
         className,
       )}
       {...props}
-    />
+    >
+      {required ? <FieldRequiredMark /> : null}
+      {children}
+    </BaseField.Label>
   );
 }
 
