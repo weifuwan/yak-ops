@@ -91,6 +91,8 @@ export default {
   "pages.datasource.form.noAuth": "无认证",
   "pages.datasource.form.version": "版本",
   "pages.datasource.form.versionAuto": "自动选择",
+  "pages.datasource.form.versionMysql8": "MySQL 8.x / 5.7.x（Connector/J 8.x）推荐",
+  "pages.datasource.form.versionMysql5": "MySQL 5.5.x / 5.6.x（Connector/J 5.1.49）",
   "pages.datasource.form.advancedProperties": "高级参数",
   "pages.datasource.form.addProperty": "新增属性",
   "pages.datasource.form.addCustomProperty": "自定义属性",
