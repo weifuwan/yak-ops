@@ -1,6 +1,8 @@
 package io.yak.ops.common.bean.dto.datasource;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -15,10 +17,12 @@ public class DataSourceConnectTestDTO {
     /** 编辑已有数据源时传入，用于保留未修改的敏感字段。 */
     private String dataSourceId;
 
-    /** 可选的数据源类型；未提供时从 connJson 的 dbType/type/pluginType 路由。 */
+    /** 数据源类型，用于路由到对应 Provider。 */
+    @NotBlank(message = "数据源类型不能为空")
     private String dbType;
 
-    /** 连接表单参数 JSON。 */
-    @NotBlank(message = "connJson 不能为空")
-    private String connJson;
+    /** 与新增 / 编辑共用的结构化连接参数。 */
+    @Valid
+    @NotNull(message = "数据源连接参数不能为空")
+    private DataSourceConnectionDTO connectionParams;
 }
