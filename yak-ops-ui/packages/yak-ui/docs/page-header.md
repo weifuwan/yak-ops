@@ -91,7 +91,7 @@ Optional bottom divider.
 Default:
 
 ```ts
-bordered = false
+bordered = false;
 ```
 
 Use `bordered` when the header needs a strong visual boundary from the page body, such as a DataWorks-style title bar.
@@ -189,21 +189,13 @@ AI定时任务                                + 新建定时任务
 ### Title + extra + bordered
 
 ```tsx
-<PageHeader
-  title="数据源列表"
-  extra={<Button>新增数据源</Button>}
-  bordered
-/>
+<PageHeader title="数据源列表" extra={<Button>新增数据源</Button>} bordered />
 ```
 
 ### Title + description + bordered
 
 ```tsx
-<PageHeader
-  title="任务管理"
-  description="查看和管理任务运行情况。"
-  bordered
-/>
+<PageHeader title="任务管理" description="查看和管理任务运行情况。" bordered />
 ```
 
 These four combinations define the initial V1 need.
