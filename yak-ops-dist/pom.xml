@@ -14,16 +14,64 @@
         <nginx.config.file>${project.basedir}/src/main/conf/nginx/default.conf</nginx.config.file>
         <run.script.file>${project.basedir}/src/main/bin/run-yak-ops.sh</run.script.file>
         <maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
+        <maven-dependency-plugin.version>3.8.1</maven-dependency-plugin.version>
+        <mysql.connector.5.version>5.1.49</mysql.connector.5.version>
+        <mysql.connector.8.version>8.4.0</mysql.connector.8.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-boot</artifactId>
         </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>${mysql.connector.5.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>${mysql.connector.8.version}</version>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
     <build>
         <finalName>yak-ops-${project.version}</finalName>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>${maven-dependency-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>stage-mysql-5-driver</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeGroupIds>mysql</includeGroupIds>
+                            <includeArtifactIds>mysql-connector-java</includeArtifactIds>
+                            <includeScope>runtime</includeScope>
+                            <outputDirectory>${project.build.directory}/jdbc-drivers-builtin/mysql/5</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>stage-mysql-8-driver</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeGroupIds>com.mysql,com.google.protobuf</includeGroupIds>
+                            <includeArtifactIds>mysql-connector-j,protobuf-java</includeArtifactIds>
+                            <includeScope>runtime</includeScope>
+                            <outputDirectory>${project.build.directory}/jdbc-drivers-builtin/mysql/8</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>

@@ -83,11 +83,9 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         keys.addAll(knownConnectionPropertyKeys());
 
         try {
-            Class.forName(defaultDriverClassName());
             String jdbcUrl =
                     buildJdbcUrl("127.0.0.1", defaultPort(), propertyInfoDatabase(), JSONUtils.createObjectNode());
-            Driver driver = DriverManager.getDriver(jdbcUrl);
-            DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(jdbcUrl, new Properties());
+            DriverPropertyInfo[] propertyInfo = connectionPropertyInfo(jdbcUrl, new Properties());
             if (propertyInfo != null) {
                 for (DriverPropertyInfo item : propertyInfo) {
                     if (item != null && includeConnectionPropertyKey(item.name)) {
@@ -119,9 +117,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             String schema = JSONUtils.firstText(root, "schema", "schemaName");
             String username = JSONUtils.firstText(root, "username", "user");
             String password = JSONUtils.firstText(root, "password");
-            String driver = StringUtils.trimToNull(JSONUtils.firstText(root, "driverClassName", "driver"));
-            if (driver == null) driver = defaultDriverClassName();
             String driverId = normalizeDriverId(root);
+            String driver = normalizeDriverClassName(root, driverId);
             SshTunnelConfig sshTunnel = parseSshTunnel(root);
 
             if (StringUtils.isBlank(username)) {
@@ -233,25 +230,29 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     }
 
     protected Connection openJdbcConnection(JdbcConnectionProperties connection, int timeoutSeconds) throws Exception {
-        Class.forName(connection.driverClassName());
         int safeTimeout = Math.max(1, timeoutSeconds);
-        DriverManager.setLoginTimeout(safeTimeout);
-
         SshTunnelConfig sshTunnel = connection.sshTunnel();
         if (!sshTunnel.enabled()) {
-            return DriverManager.getConnection(connection.jdbcUrl(), connectionProperties(connection));
+            return connectJdbc(connection, connection.jdbcUrl(), safeTimeout);
         }
 
         SshTunnel tunnel = SshTunnel.open(sshTunnel, connection.host(), connection.port(), safeTimeout);
         try {
             JsonNode normalized = JSONUtils.readTree(connection.normalizedJson());
             String tunneledJdbcUrl = buildJdbcUrl("127.0.0.1", tunnel.localPort(), connection.database(), normalized);
-            Connection opened = DriverManager.getConnection(tunneledJdbcUrl, connectionProperties(connection));
+            Connection opened = connectJdbc(connection, tunneledJdbcUrl, safeTimeout);
             return SshTunneledConnection.wrap(opened, tunnel);
         } catch (Exception exception) {
             tunnel.close();
             throw exception;
         }
+    }
+
+    protected Connection connectJdbc(JdbcConnectionProperties connection, String jdbcUrl, int timeoutSeconds)
+            throws Exception {
+        Class.forName(connection.driverClassName());
+        DriverManager.setLoginTimeout(Math.max(1, timeoutSeconds));
+        return DriverManager.getConnection(jdbcUrl, connectionProperties(connection));
     }
 
     protected abstract int defaultPort();
@@ -266,6 +267,15 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     protected String propertyInfoDatabase() {
         return "database";
+    }
+
+    protected Driver connectionPropertyDriver(String jdbcUrl) throws Exception {
+        Class.forName(defaultDriverClassName());
+        return DriverManager.getDriver(jdbcUrl);
+    }
+
+    protected DriverPropertyInfo[] connectionPropertyInfo(String jdbcUrl, Properties properties) throws Exception {
+        return connectionPropertyDriver(jdbcUrl).getPropertyInfo(jdbcUrl, properties);
     }
 
     protected boolean includeConnectionPropertyKey(String key) {
@@ -293,6 +303,11 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             throw parameterError("当前数据源不支持 JDBC Driver 选择：" + driverId, null);
         }
         return null;
+    }
+
+    protected String normalizeDriverClassName(JsonNode connectionJson, String driverId) {
+        String driver = StringUtils.trimToNull(JSONUtils.firstText(connectionJson, "driverClassName", "driver"));
+        return driver == null ? defaultDriverClassName() : driver;
     }
 
     protected final Map<String, String> canonicalizeProperties(

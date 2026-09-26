@@ -127,7 +127,9 @@ properties
 remark
 ```
 
-The UI renders a JDBC preview from Host / Port / Database, exposes a fixed username/password identity mode, a fixed no-auth option, an auto driver-version placeholder, and a lightweight provider-neutral Key/Value advanced-properties editor. Create, update and connection-test requests share the same structured `connectionParams` object instead of sending JSON strings. Vendor property names and value semantics are normalized and validated by the selected backend JDBC Provider, not duplicated in the frontend.
+The UI renders a JDBC preview from Host / Port / Database, exposes a fixed username/password identity mode, a fixed no-auth option, and a lightweight provider-neutral Key/Value advanced-properties editor. Create, update and connection-test requests share the same structured `connectionParams` object instead of sending JSON strings. Vendor property names and value semantics are normalized and validated by the selected backend JDBC Provider, not duplicated in the frontend.
+
+Only MySQL exposes a Driver version selector. `AUTO` and `MYSQL_8` use the built-in Connector/J 8 runtime; `MYSQL_5` uses the built-in Connector/J 5.1 runtime. Both runtimes are loaded from `jdbc-drivers-builtin/mysql/{8,5}` through isolated ClassLoaders and are never added to Spring Boot `loader.path`. PostgreSQL and Oracle do not render or submit `driverId`.
 
 The advanced-property Key selector queries the backend Provider for recommended property names. The UI uses a searchable Yak UI Combobox with multiple selection; selecting several recommended keys materializes one independent Key / Value row per key. Existing recommended rows remain searchable/editable, while an explicit custom-property action keeps unknown JDBC properties available. The endpoint remains lightweight metadata only and is never treated as a validation whitelist.
 
@@ -135,7 +137,7 @@ Create uses `DEVELOP` as the default environment. Edit preserves the stored envi
 
 For PostgreSQL, `database` is the Datasource connection target. `schema` is not a create/edit connection field and must not be appended to the JDBC URL path. When a connection needs a default search path, use the provider-owned advanced property `currentSchema`; Schema discovery and table qualification stay in Catalog.
 
-SSH tunnel UI, dynamic driver-version management, dynamic form schema and runtime plugin install UI are not current product capabilities. JDBC URL generation, driver ownership, provider normalization and connection testing remain owned by the backend JDBC Plugin.
+SSH tunnel UI, arbitrary driver upload/installation, dynamic form schema and runtime plugin install UI are not current product capabilities. MySQL has a fixed built-in 5.x / 8.x driver selector; JDBC URL generation, driver ownership, provider normalization and connection testing remain owned by the backend JDBC Plugin.
 
 ## Frontend Dependency
 

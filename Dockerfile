@@ -50,7 +50,9 @@ RUN set -eux; \
         "${YAK_OPS_HOME}/logs" \
         "${YAK_OPS_HOME}/jdbc-drivers"; \
     test -f "${YAK_OPS_HOME}/libs/yak-ops-api.jar"; \
-    test -f "${YAK_OPS_HOME}/conf/application.yml"
+    test -f "${YAK_OPS_HOME}/conf/application.yml"; \
+    test -n "$(find "${YAK_OPS_HOME}/jdbc-drivers-builtin/mysql/5" -maxdepth 1 -name '*.jar' -print -quit)"; \
+    test -n "$(find "${YAK_OPS_HOME}/jdbc-drivers-builtin/mysql/8" -maxdepth 1 -name '*.jar' -print -quit)"
 
 EXPOSE 9527
 
