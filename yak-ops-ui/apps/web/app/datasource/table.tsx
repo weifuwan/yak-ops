@@ -204,7 +204,7 @@ const DataSourceTable = ({
 
   const batchFooter =
     total > 0 ? (
-      <div className="flex items-center gap-2 pl-4">
+      <div className="flex h-full items-center gap-2">
         <Checkbox
           aria-label={intl.formatMessage({ id: "pages.datasource.batch.selectCurrentPage" })}
           checked={allCurrentPageSelected}
