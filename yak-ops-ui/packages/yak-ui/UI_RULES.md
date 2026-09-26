@@ -42,12 +42,13 @@ Base UI is an implementation dependency, not a product-facing API.
 - Yak UI owns stable Props, composition API, Design Token and visual states.
 - Tailwind + Yak UI tokens are the styling foundation.
 - `--yak-color-primary` is the shared primary accent token; current baseline is `#0033FF`. Component active / focus colors should reference it instead of duplicating blue literals.
-- Button / Input / SelectTrigger share control-radius tokens instead of hard-coded radius values: small `6px`, medium `8px`, large `10px`. Product code should not redefine these control radii through `className`.
+- Button / Input / Textarea / SelectTrigger share control-radius tokens instead of hard-coded radius values: small `6px`, medium `8px`, large `10px`. Product code should not redefine these control radii through `className`.
 - Variant contracts use `class-variance-authority` when variants are real product-wide concepts.
 - Button defaults to `type="button"`.
 - Button `primary` uses `--yak-color-primary` as its source color; hover / active are derived from that token rather than maintaining a separate dark primary palette.
 - Input / Textarea / NumberField use one shared input visual language.
-- Input and SelectTrigger expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`. Input focus and SelectTrigger focus/open use the primary border only; they do not add a focus box-shadow / ring.
+- Input / Textarea / SelectTrigger expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`.
+- Input / Textarea focus and SelectTrigger focus/open use the primary border only; they do not add a focus box-shadow / ring. Textarea keeps only its multiline-specific height, vertical padding and resize behavior; radius, typography, surface and interaction states follow Input.
 - Select / Menu / Tooltip / Popover / Dialog / Drawer / Tabs remain compositional instead of becoming giant convenience-prop components.
 - Select separates domain values from user-visible labels: when `value` and `label` differ, product code must pass `items` to `Select` so `SelectValue` renders the matching label. Controlled state and `onValueChange` continue to use the domain `value`; product code must not duplicate value-to-label lookup logic inside the trigger.
 - Modal is the shared product-facing dialog shell: it owns title, close affordance, scrollable body, fixed footer and width; product code owns business content, step state and submit lifecycle.

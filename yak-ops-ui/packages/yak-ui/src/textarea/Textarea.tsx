@@ -7,24 +7,37 @@ import { cn } from "../cn";
 
 export const textareaVariants = cva(
   [
-    "min-h-20 w-full resize-y appearance-none border border-transparent bg-[var(--yak-components-input-bg)] text-[var(--yak-components-input-text)] outline-none",
+    "min-h-20 w-full resize-y appearance-none border text-[var(--yak-components-input-text)] outline-none",
     "placeholder:text-[var(--yak-components-input-placeholder)]",
-    "transition-[background-color,border-color,box-shadow,color] duration-150",
-    "hover:border-[var(--yak-components-input-border-hover)] hover:bg-[var(--yak-components-input-bg-hover)]",
-    "focus:border-[var(--yak-components-input-border-focus)] focus:bg-[var(--yak-components-input-bg-focus)] focus:ring-[3px] focus:ring-[var(--yak-components-input-focus-ring)]",
-    "data-invalid:border-[var(--yak-components-input-border-danger)] data-invalid:focus:ring-[var(--yak-components-input-danger-ring)]",
-    "disabled:cursor-not-allowed disabled:border-transparent disabled:bg-[var(--yak-components-input-bg-disabled)] disabled:text-[var(--yak-components-input-text-disabled)]",
-    "read-only:cursor-default motion-reduce:transition-none",
+    "transition-[background-color,border-color,color] duration-150",
+    "focus:border-[var(--yak-components-input-border-focus)] focus:bg-[var(--yak-components-input-bg-focus)]",
+    "aria-[invalid=true]:border-[var(--yak-components-input-border-danger)]",
+    "data-invalid:border-[var(--yak-components-input-border-danger)]",
+    "disabled:cursor-not-allowed disabled:bg-[var(--yak-components-input-bg-disabled)] disabled:text-[var(--yak-components-input-text-disabled)]",
+    "read-only:cursor-default",
+    "motion-reduce:transition-none",
   ],
   {
     variants: {
+      variant: {
+        filled:
+          "border-transparent bg-[var(--yak-components-input-bg)] hover:border-[var(--yak-components-input-border-hover)] hover:bg-[var(--yak-components-input-bg-hover)] disabled:border-transparent",
+        outlined:
+          "border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] hover:border-[var(--yak-components-input-border-focus)] hover:bg-[var(--yak-components-input-bg-focus)] disabled:border-[var(--yak-components-input-border)]",
+      },
       size: {
-        small: "rounded-lg px-2.5 py-1.5 text-xs",
-        medium: "rounded-[10px] px-3 py-2 text-[13px]",
-        large: "rounded-[11px] px-3.5 py-2.5 text-sm",
+        small:
+          "rounded-[var(--yak-radius-control-small)] px-2.5 py-1.5 text-[length:var(--yak-font-size-control-small)]",
+        medium:
+          "rounded-[var(--yak-radius-control-medium)] px-3 py-2 text-[length:var(--yak-font-size-control-medium)]",
+        large:
+          "rounded-[var(--yak-radius-control-large)] px-3.5 py-2.5 text-[length:var(--yak-font-size-control-large)]",
       },
     },
-    defaultVariants: { size: "medium" },
+    defaultVariants: {
+      variant: "filled",
+      size: "medium",
+    },
   },
 );
 
@@ -42,7 +55,7 @@ export type TextareaProps = Omit<
   };
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { className, defaultValue, onValueChange, size, value, ...props },
+  { className, defaultValue, onValueChange, size, value, variant, ...props },
   ref,
 ) {
   return (
@@ -53,7 +66,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
       value={value}
       defaultValue={defaultValue}
       onValueChange={onValueChange}
-      className={textareaVariants({ size, className: cn(className) })}
+      className={cn(textareaVariants({ size, variant }), className)}
     />
   );
 });
