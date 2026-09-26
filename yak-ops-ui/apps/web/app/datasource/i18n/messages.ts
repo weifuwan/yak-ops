@@ -50,6 +50,7 @@ export default {
   "pages.datasource.modal.message.createSuccess": "数据源创建成功",
   "pages.datasource.modal.message.updateSuccess": "数据源更新成功",
 
+  "pages.datasource.wizard.title": "新增数据源",
   "pages.datasource.wizard.searchPlaceholder": "搜索数据源",
   "pages.datasource.wizard.commonTypes": "常用数据源",
   "pages.datasource.wizard.jdbcDatabase": "JDBC 数据库",
