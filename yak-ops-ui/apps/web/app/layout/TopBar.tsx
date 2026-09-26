@@ -6,6 +6,7 @@ import {
   DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -124,30 +125,32 @@ export default function TopBar({ launcherOpen, onToggleLauncher }: TopBarProps) 
               </DropdownMenuTrigger>
 
               <DropdownMenuContent side="bottom" align="start" className="w-64">
-                <DropdownMenuLabel>工作空间</DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>工作空间</DropdownMenuLabel>
 
-                {workspaces.length > 0 ? (
-                  workspaces.map((workspace) => (
-                    <DropdownMenuItem
-                      key={workspace.id}
-                      onClick={() => selectWorkspace(workspace.id)}
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{workspace.name}</span>
-                        {workspace.roleName ? (
-                          <span className="mt-0.5 block text-[11px] text-black/40">
-                            {workspace.roleName}
-                          </span>
+                  {workspaces.length > 0 ? (
+                    workspaces.map((workspace) => (
+                      <DropdownMenuItem
+                        key={workspace.id}
+                        onClick={() => selectWorkspace(workspace.id)}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate">{workspace.name}</span>
+                          {workspace.roleName ? (
+                            <span className="mt-0.5 block text-[11px] text-black/40">
+                              {workspace.roleName}
+                            </span>
+                          ) : null}
+                        </span>
+                        {workspace.id === currentWorkspace?.id ? (
+                          <Check className="h-4 w-4 shrink-0 text-[#1645d1]" />
                         ) : null}
-                      </span>
-                      {workspace.id === currentWorkspace?.id ? (
-                        <Check className="h-4 w-4 shrink-0 text-[#1645d1]" />
-                      ) : null}
-                    </DropdownMenuItem>
-                  ))
-                ) : (
-                  <DropdownMenuItem disabled>暂无工作空间</DropdownMenuItem>
-                )}
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>暂无工作空间</DropdownMenuItem>
+                  )}
+                </DropdownMenuGroup>
 
                 <DropdownMenuSeparator />
 
