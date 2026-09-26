@@ -14,10 +14,10 @@ const selectFontSizeClasses: Record<SelectSize, string> = {
   large: "text-[var(--yak-font-size-control-large)]",
 };
 
-export type SelectProps<
-  Value,
-  Multiple extends boolean | undefined = false,
-> = Omit<BaseSelect.Root.Props<Value, Multiple>, "size"> & {
+export type SelectProps<Value, Multiple extends boolean | undefined = false> = Omit<
+  BaseSelect.Root.Props<Value, Multiple>,
+  "size"
+> & {
   size?: SelectSize;
 };
 
@@ -51,9 +51,12 @@ const selectTriggerVariants = cva(
           "border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] hover:border-[var(--yak-components-input-border-focus)] hover:bg-[var(--yak-components-input-bg-focus)] data-disabled:border-[var(--yak-components-input-border)]",
       },
       size: {
-        small: "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-[var(--yak-font-size-control-small)]",
-        medium: "h-9 gap-2 rounded-[var(--yak-radius-control-medium)] px-3 text-[var(--yak-font-size-control-medium)]",
-        large: "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-3.5 text-[var(--yak-font-size-control-large)]",
+        small:
+          "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-[var(--yak-font-size-control-small)]",
+        medium:
+          "h-9 gap-2 rounded-[var(--yak-radius-control-medium)] px-3 text-[var(--yak-font-size-control-medium)]",
+        large:
+          "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-3.5 text-[var(--yak-font-size-control-large)]",
       },
     },
     defaultVariants: {
