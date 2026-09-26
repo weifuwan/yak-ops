@@ -17,6 +17,7 @@ Owns:
 - Datasource paging / detail
 - Datasource connection testing
 - Datasource batch delete / batch connection testing
+- Datasource connection-property key discovery
 - Internal Datasource Plugin discovery, connection parsing and secret handling
 
 Does Not Own:
@@ -93,7 +94,9 @@ Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsi
 
 数据源分页请求统一由 `DataSourceQueryDTO extends PageQueryDTO` 提供 `pageNo / pageSize / sorts` Contract。当前自定义 `sorts` 在 Repository 排序白名单落地前必须明确拒绝，禁止静默忽略；默认分页排序保持 `updateTime DESC, id DESC` 保证稳定翻页。
 
-当前 Datasource 管理产品面发布分页、详情、增删改、批量删除、连接测试和批量连接测试。新增 / 编辑请求的 `connectionParams` 与未保存连接测试请求的 `connectionParams` 必须复用同一个结构化 DTO；连接测试必须显式携带 `dbType`，不再从连接 JSON 推断 Provider 类型。批量删除必须事务化；批量连接测试必须隔离单条失败并返回逐条结果。
+当前 Datasource 管理产品面发布分页、详情、增删改、批量删除、连接测试、批量连接测试，以及按 `dbType` 查询高级连接参数候选 Key。新增 / 编辑请求的 `connectionParams` 与未保存连接测试请求的 `connectionParams` 必须复用同一个结构化 DTO；连接测试必须显式携带 `dbType`，不再从连接 JSON 推断 Provider 类型。批量删除必须事务化；批量连接测试必须隔离单条失败并返回逐条结果。
+
+高级参数候选接口只返回 Provider 推荐的属性名，不返回 value、校验规则、控件类型或动态表单结构；它不需要读取 Workspace 数据，也不得绕过 `DataSourcePluginRegistry` 直接访问具体 JDBC Provider。
 
 当前产品不发布 Catalog、Plugin Config HTTP schema、运行时插件安装或 Driver Upload API。
 
@@ -116,6 +119,7 @@ DataSourceServiceImpl
 Must:
 - Provider 继续通过 `ServiceLoader` 发现。
 - Provider 自己拥有 canonical type、aliases、JDBC URL / driver quirks、参数 Normalize 和 Connection Test。
+- Provider 同时拥有高级连接参数 Key 的发现能力；Business 只负责按类型路由并包装 HTTP 输出，不维护 Vendor property list。
 - Service 不维护数据库类型 enum 或 provider switch。
 - `yak-ops-plugin-datasource-all` 继续负责运行时聚合 built-in JDBC providers。
 - 当前产品基线只打包 MySQL、Oracle、PostgreSQL。
