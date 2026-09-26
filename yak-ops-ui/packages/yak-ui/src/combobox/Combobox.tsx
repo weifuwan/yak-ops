@@ -1,5 +1,5 @@
 import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
-import { createContext, useContext } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
 import { cn } from "../cn";
 import { inputVariants, type InputProps } from "../input";
@@ -57,6 +57,7 @@ export function ComboboxInput({
 export type ComboboxContentProps = Omit<BaseCombobox.Popup.Props, "children" | "className"> & {
   children: BaseCombobox.List.Props["children"];
   className?: string;
+  emptyText?: ReactNode;
   positionerClassName?: string;
   side?: BaseCombobox.Positioner.Props["side"];
   align?: BaseCombobox.Positioner.Props["align"];
@@ -69,6 +70,7 @@ export function ComboboxContent({
   alignOffset = 0,
   children,
   className,
+  emptyText,
   positionerClassName,
   side = "bottom",
   sideOffset = 4,
@@ -93,6 +95,11 @@ export function ComboboxContent({
             className,
           )}
         >
+          {emptyText ? (
+            <BaseCombobox.Empty className="px-3 py-5 text-center text-[length:var(--yak-font-size-control-small)] text-[var(--yak-components-muted-text)]">
+              {emptyText}
+            </BaseCombobox.Empty>
+          ) : null}
           <BaseCombobox.List className="max-h-80 overflow-y-auto p-1 outline-none">
             {children}
           </BaseCombobox.List>
