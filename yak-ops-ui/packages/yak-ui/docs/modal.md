@@ -53,7 +53,8 @@ Core props:
 └──────────────────────────────┘
 ```
 
-- The popup never grows beyond the viewport.
+- The popup starts at a fixed `1rem` viewport offset and remains horizontally centered; avoid vertical `translateY(-50%)` centering because it can place the popup on half-pixel coordinates and make 1px child borders render like 2px lines.
+- The popup never grows beyond the viewport and keeps the matching `1rem` bottom clearance through its max-height.
 - Only the body scrolls.
 - Header and footer remain visible while the body scrolls.
 - Footer is omitted entirely when `footer` is not provided.
