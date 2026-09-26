@@ -26,7 +26,12 @@ import {
   testDataSourceConnectionWithParams,
   updateDataSource,
 } from "@/service/datasource";
-import { COMMON_DB_OPTIONS, JDBC_URL_PLACEHOLDERS, type DataSourceCategory } from "./constants";
+import {
+  COMMON_DB_OPTIONS,
+  JDBC_DEFAULT_PORTS,
+  JDBC_PROPERTY_SUGGESTIONS,
+  type DataSourceCategory,
+} from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import { useIntl } from "./i18n";
 import type { DataSourceRecord, DataSourceSavePayload } from "./types";
@@ -38,40 +43,133 @@ interface DataSourceFormProps {
   onSaved: () => void;
 }
 
+interface JdbcProperty {
+  key: string;
+  value: string;
+}
+
 interface FormValues {
   name: string;
   dbType: string;
-  jdbcUrl: string;
+  host: string;
+  port: string;
+  database: string;
   username: string;
   password: string;
+  properties: JdbcProperty[];
   remark: string;
 }
 
-type FormErrors = Partial<Record<keyof FormValues, string>>;
+type FormErrorKey =
+  | "name"
+  | "dbType"
+  | "host"
+  | "port"
+  | "database"
+  | "username"
+  | "properties"
+  | "remark";
+type FormErrors = Partial<Record<FormErrorKey, string>>;
 type CreateStep = "select" | "config";
 type CreateCategory = "ALL" | DataSourceCategory;
+
+interface ParsedJdbcUrl {
+  host?: string;
+  port?: string;
+  database?: string;
+}
+
+const DEFAULT_HOST = "127.0.0.1";
+
+const defaultPort = (dbType: string) => String(JDBC_DEFAULT_PORTS[dbType] || "");
 
 const EMPTY_FORM: FormValues = {
   name: "",
   dbType: "MYSQL",
-  jdbcUrl: "",
+  host: DEFAULT_HOST,
+  port: defaultPort("MYSQL"),
+  database: "",
   username: "",
   password: "",
+  properties: [],
   remark: "",
 };
 
+const parseJdbcUrl = (dbType: string, jdbcUrl?: string): ParsedJdbcUrl => {
+  if (!jdbcUrl) return {};
+  const value = jdbcUrl.trim();
+  const patterns: Record<string, RegExp> = {
+    MYSQL: /^jdbc:mysql:\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
+    ORACLE: /^jdbc:oracle:thin:@\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
+    POSTGRE_SQL: /^jdbc:postgresql:\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
+  };
+  const matched = value.match(patterns[dbType]);
+  if (!matched) return {};
+  return {
+    host: matched[1],
+    port: matched[2] || defaultPort(dbType),
+    database: matched[3],
+  };
+};
+
+const parseProperties = (value: unknown): JdbcProperty[] => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  return Object.entries(value as Record<string, unknown>).map(([key, propertyValue]) => ({
+    key,
+    value: propertyValue == null ? "" : String(propertyValue),
+  }));
+};
+
 const parseOriginalJson = (record?: DataSourceRecord): Partial<FormValues> => {
-  if (!record?.originalJson) return {};
+  const dbType = record?.dbType || "MYSQL";
+  if (!record?.originalJson) {
+    return {
+      ...parseJdbcUrl(dbType, record?.jdbcUrl),
+      port: parseJdbcUrl(dbType, record?.jdbcUrl).port || defaultPort(dbType),
+    };
+  }
   try {
     const value = JSON.parse(record.originalJson);
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const jdbc = parseJdbcUrl(
+      dbType,
+      typeof value.jdbcUrl === "string" ? value.jdbcUrl : record?.jdbcUrl,
+    );
     return {
-      jdbcUrl: typeof value.jdbcUrl === "string" ? value.jdbcUrl : undefined,
+      host: typeof value.host === "string" && value.host.trim() ? value.host : jdbc.host,
+      port:
+        typeof value.port === "number" || typeof value.port === "string"
+          ? String(value.port)
+          : jdbc.port || defaultPort(dbType),
+      database:
+        typeof value.database === "string" && value.database.trim()
+          ? value.database
+          : jdbc.database,
       username: typeof value.username === "string" ? value.username : undefined,
       password: typeof value.password === "string" ? value.password : undefined,
+      properties: parseProperties(value.properties),
     };
   } catch {
-    return {};
+    return {
+      ...parseJdbcUrl(dbType, record?.jdbcUrl),
+      port: parseJdbcUrl(dbType, record?.jdbcUrl).port || defaultPort(dbType),
+    };
+  }
+};
+
+const buildJdbcPreview = (values: FormValues) => {
+  const host = values.host.trim();
+  const port = values.port.trim();
+  const database = values.database.trim();
+  const authority = host + (port ? ":" + port : "");
+
+  switch (values.dbType) {
+    case "ORACLE":
+      return "jdbc:oracle:thin:@//" + authority + "/" + database;
+    case "POSTGRE_SQL":
+      return "jdbc:postgresql://" + authority + "/" + database;
+    default:
+      return "jdbc:mysql://" + authority + "/" + database;
   }
 };
 
