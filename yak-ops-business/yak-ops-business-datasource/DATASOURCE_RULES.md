@@ -68,6 +68,9 @@ Do not recreate `catalog / domain / gateway / execution / query` business packag
 
 ## JSON / Secret Boundary
 
+- HTTP 层使用结构化 `DataSourceConnectionDTO`；Create / Update / Connection Test 共用同一个 `connectionParams` Contract。
+- JSON String 只允许存在于 Business → Plugin 的内部边界和持久化后的 normalized connection JSON；Controller / Frontend 不承担连接参数 JSON 序列化。
+- `DataSourceServiceImpl` 在进入 Plugin Registry 前统一使用 Common `JSONUtils` 完成一次结构化 DTO → JSON 转换。
 - JSON parser / writer 统一复用 Common `JSONUtils`，本模块不得注入或创建独立 `ObjectMapper`。
 - 通用敏感文本遮罩统一复用 Common `SensitiveUtils`。
 - Datasource 特有的 secret key 识别、JSON 递归遮罩和编辑态 secret merge 继续由 `DataSourceSecretCodec` 持有，不下沉 Common。
@@ -89,7 +92,7 @@ Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsi
 
 数据源分页请求统一由 `DataSourceQueryDTO extends PageQueryDTO` 提供 `pageNo / pageSize / sorts` Contract。当前自定义 `sorts` 在 Repository 排序白名单落地前必须明确拒绝，禁止静默忽略；默认分页排序保持 `updateTime DESC, id DESC` 保证稳定翻页。
 
-当前 Datasource 管理产品面发布分页、详情、增删改、批量删除、连接测试和批量连接测试。批量删除必须事务化；批量连接测试必须隔离单条失败并返回逐条结果。
+当前 Datasource 管理产品面发布分页、详情、增删改、批量删除、连接测试和批量连接测试。新增 / 编辑请求的 `connectionParams` 与未保存连接测试请求的 `connectionParams` 必须复用同一个结构化 DTO；连接测试必须显式携带 `dbType`，不再从连接 JSON 推断 Provider 类型。批量删除必须事务化；批量连接测试必须隔离单条失败并返回逐条结果。
 
 当前产品不发布 Catalog、Plugin Config HTTP schema、运行时插件安装或 Driver Upload API。
 

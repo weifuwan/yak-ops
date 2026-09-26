@@ -37,18 +37,27 @@ export interface DataSourcePageParams {
   connStatus?: string;
 }
 
+export interface DataSourceConnectionParams {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+  properties: Record<string, string>;
+}
+
 export interface DataSourceSavePayload {
   name: string;
   environment: string;
   remark?: string;
   dbType: string;
-  connectionParams: string;
+  connectionParams: DataSourceConnectionParams;
 }
 
 export interface DataSourceConnectTestPayload {
   dataSourceId?: DataSourceId;
-  dbType?: string;
-  connJson: string;
+  dbType: string;
+  connectionParams: DataSourceConnectionParams;
 }
 
 export interface DataSourceBatchConnectTestResult {

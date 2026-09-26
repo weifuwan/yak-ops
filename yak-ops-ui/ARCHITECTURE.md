@@ -101,7 +101,7 @@ properties
 remark
 ```
 
-前端只负责当前 MySQL / Oracle / PostgreSQL 的 Host / Port / Database 输入、JDBC Preview 和轻量 Key/Value 高级参数。JDBC URL 生成、Driver Class、Provider 差异、Normalize 和 Connection Test 仍由后端 JDBC Plugin 负责；SSH 与动态 Driver Manager 不属于当前前端能力。
+前端只负责当前 MySQL / Oracle / PostgreSQL 的 Host / Port / Database 输入、JDBC Preview 和轻量 Key/Value 高级参数。HTTP Contract 使用结构化 `connectionParams` 对象；前端不把连接参数序列化成 JSON 字符串。JDBC URL 生成、Driver Class、Provider 差异、Normalize 和 Connection Test 仍由后端 JDBC Plugin 负责；SSH 与动态 Driver Manager 不属于当前前端能力。
 
 ## Web Root Ownership
 

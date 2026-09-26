@@ -49,12 +49,7 @@ export function Modal({
             className,
           )}
         >
-          <header
-            className={cn(
-              "flex shrink-0 items-center gap-4 px-5 py-4",
-              headerClassName,
-            )}
-          >
+          <header className={cn("flex shrink-0 items-center gap-4 px-5 py-4", headerClassName)}>
             <BaseDialog.Title className="min-w-0 flex-1 text-sm font-medium leading-5">
               {title}
             </BaseDialog.Title>

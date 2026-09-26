@@ -1,9 +1,7 @@
 package io.yak.ops.business.datasource.plugin;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
-import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.ObjectUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
@@ -110,30 +108,6 @@ public class DataSourcePluginRegistry {
 
     public String maskSensitiveText(String value) {
         return secretCodec.maskSensitiveText(value);
-    }
-
-    /**
-     * 从连接 JSON 中识别并规范化目标 Plugin 类型。
-     *
-     * @param connectionJson 数据源连接参数
-     * @return Plugin canonical type
-     */
-    public String resolveConnectionType(String connectionJson) {
-        try {
-            JsonNode root = JSONUtils.readTree(connectionJson);
-            if (root == null || !root.isObject()) {
-                throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "连接参数必须是 JSON 对象");
-            }
-            String value = JSONUtils.firstText(root, "dbType", "type", "pluginType");
-            if (StringUtils.isBlank(value)) {
-                throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接参数中缺少 dbType 或 pluginType");
-            }
-            return get(value).descriptor().type();
-        } catch (DataSourceException exception) {
-            throw exception;
-        } catch (Exception exception) {
-            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "无法识别连接参数中的插件类型", exception);
-        }
     }
 
     private DataSourcePlugin get(String pluginType) {

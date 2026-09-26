@@ -34,7 +34,7 @@ import {
 } from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import { useIntl } from "./i18n";
-import type { DataSourceRecord, DataSourceSavePayload } from "./types";
+import type { DataSourceConnectionParams, DataSourceRecord, DataSourceSavePayload } from "./types";
 
 interface DataSourceFormProps {
   open: boolean;
@@ -275,20 +275,16 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     return Object.keys(next).length === 0;
   };
 
-  const connectionJson = () => {
-    const properties = Object.fromEntries(
+  const connectionParams = (): DataSourceConnectionParams => ({
+    host: values.host.trim(),
+    port: Number(values.port),
+    database: values.database.trim(),
+    username: values.username.trim(),
+    password: values.password,
+    properties: Object.fromEntries(
       values.properties.map((property) => [property.key.trim(), property.value]),
-    );
-    return JSON.stringify({
-      dbType: values.dbType,
-      host: values.host.trim(),
-      port: Number(values.port),
-      database: values.database.trim(),
-      username: values.username.trim(),
-      password: values.password,
-      properties,
-    });
-  };
+    ),
+  });
 
   const handleTest = async () => {
     if (busy || !validate()) return;
@@ -297,7 +293,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       const connected = await testDataSourceConnectionWithParams({
         dataSourceId: record?.id,
         dbType: values.dbType,
-        connJson: connectionJson(),
+        connectionParams: connectionParams(),
       });
       if (connected) toast.success(intl.formatMessage({ id: "pages.datasource.test.success" }));
     } finally {
@@ -314,7 +310,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
         dbType: values.dbType,
         environment: record?.environment || "DEVELOP",
         remark: values.remark.trim() || undefined,
-        connectionParams: connectionJson(),
+        connectionParams: connectionParams(),
       };
 
       if (record?.id) await updateDataSource(record.id, payload);

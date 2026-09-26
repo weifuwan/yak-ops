@@ -6,6 +6,7 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.plugin.DataSourcePluginRegistry;
 import io.yak.ops.common.bean.dto.datasource.DataSourceBatchIdsDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
+import io.yak.ops.common.bean.dto.datasource.DataSourceConnectionDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceBatchConnectTestResultVO;
@@ -14,6 +15,7 @@ import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.page.PagingData;
+import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
 import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
@@ -56,7 +58,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         String name = normalizeName(dto.getName());
         String dbType = pluginRegistry.resolvePluginType(dto.getDbType());
         ensureNameAvailable(name, null);
-        var connection = pluginRegistry.parseConnection(dbType, dto.getConnectionParams());
+        var connection = pluginRegistry.parseConnection(dbType, serializeConnectionParams(dto.getConnectionParams()));
 
         DataSourceEntity entity = new DataSourceEntity();
         entity.setName(name);
@@ -88,7 +90,9 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
 
         var connection = pluginRegistry.mergeStoredSecrets(
-                existing.getDbType(), dto.getConnectionParams(), existing.getConnectionParams());
+                existing.getDbType(),
+                serializeConnectionParams(dto.getConnectionParams()),
+                existing.getConnectionParams());
         existing.setName(name);
         existing.setJdbcUrl(connection.jdbcUrl());
         existing.setEnvironment(parseEnvironment(dto.getEnvironment()));
@@ -188,22 +192,17 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
 
         DataSourceEntity existing = dto.getDataSourceId() == null ? null : requireEntity(dto.getDataSourceId());
-        String dbType;
-        String connectionJson = dto.getConnJson();
+        String requestedDbType = pluginRegistry.resolvePluginType(dto.getDbType());
+        String dbType = existing == null ? requestedDbType : existing.getDbType();
+        String connectionJson = serializeConnectionParams(dto.getConnectionParams());
 
         if (existing != null) {
-            dbType = existing.getDbType();
-            if (StringUtils.hasText(dto.getDbType())
-                    && !pluginRegistry.resolvePluginType(dto.getDbType()).equals(dbType)) {
+            if (!requestedDbType.equals(dbType)) {
                 throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "连接测试的数据源类型与已保存数据源不一致");
             }
             connectionJson = pluginRegistry
                     .mergeStoredSecrets(dbType, connectionJson, existing.getConnectionParams())
                     .normalizedJson();
-        } else {
-            dbType = StringUtils.hasText(dto.getDbType())
-                    ? pluginRegistry.resolvePluginType(dto.getDbType())
-                    : pluginRegistry.resolveConnectionType(connectionJson);
         }
 
         try {
@@ -276,6 +275,13 @@ public class DataSourceServiceImpl implements DataSourceService {
         if (dto == null) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "数据源参数不能为空");
         }
+    }
+
+    private String serializeConnectionParams(DataSourceConnectionDTO connectionParams) {
+        if (connectionParams == null) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "数据源连接参数不能为空");
+        }
+        return JSONUtils.toJson(connectionParams);
     }
 
     private String normalizeName(String value) {
