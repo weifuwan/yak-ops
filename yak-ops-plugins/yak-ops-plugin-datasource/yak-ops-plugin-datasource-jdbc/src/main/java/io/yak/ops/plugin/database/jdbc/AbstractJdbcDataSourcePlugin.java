@@ -83,8 +83,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
         try {
             Class.forName(defaultDriverClassName());
-            String jdbcUrl = buildJdbcUrl(
-                    "127.0.0.1", defaultPort(), propertyInfoDatabase(), JSONUtils.createObjectNode());
+            String jdbcUrl =
+                    buildJdbcUrl("127.0.0.1", defaultPort(), propertyInfoDatabase(), JSONUtils.createObjectNode());
             Driver driver = DriverManager.getDriver(jdbcUrl);
             DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(jdbcUrl, new Properties());
             if (propertyInfo != null) {
