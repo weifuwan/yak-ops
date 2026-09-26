@@ -22,11 +22,10 @@ export type ComboboxProps<
   size?: ComboboxSize;
 };
 
-export function Combobox<
-  Value,
-  Multiple extends boolean | undefined = false,
-  Item = Value,
->({ size = "medium", ...props }: ComboboxProps<Value, Multiple, Item>) {
+export function Combobox<Value, Multiple extends boolean | undefined = false, Item = Value>({
+  size = "medium",
+  ...props
+}: ComboboxProps<Value, Multiple, Item>) {
   return (
     <ComboboxSizeContext.Provider value={size}>
       <BaseCombobox.Root {...props} />
@@ -37,12 +36,7 @@ export function Combobox<
 export type ComboboxInputProps = Omit<BaseCombobox.Input.Props, "className" | "size"> &
   Pick<InputProps, "className" | "size" | "variant">;
 
-export function ComboboxInput({
-  className,
-  size,
-  variant,
-  ...props
-}: ComboboxInputProps) {
+export function ComboboxInput({ className, size, variant, ...props }: ComboboxInputProps) {
   const contextSize = useContext(ComboboxSizeContext);
   const resolvedSize = size ?? contextSize;
 
