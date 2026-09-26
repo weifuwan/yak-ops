@@ -394,7 +394,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       }}
       title={
         createStep === "select"
-          ? intl.formatMessage({ id: "pages.datasource.modal.drawerTitle.add" })
+          ? intl.formatMessage({ id: "pages.datasource.wizard.title" })
           : intl.formatMessage(
               { id: "pages.datasource.wizard.configTitle" },
               { type: selectedType?.label || values.dbType },
