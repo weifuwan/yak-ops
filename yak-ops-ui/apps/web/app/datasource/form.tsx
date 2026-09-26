@@ -536,6 +536,128 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     </div>
   );
 
+  const authOptionField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.authOption" })}
+      </span>
+      <label className="flex min-h-7 items-center gap-2 text-xs text-[#344054]">
+        <input
+          type="radio"
+          checked
+          readOnly
+          className="size-3.5 accent-[var(--yak-color-primary)]"
+        />
+        {intl.formatMessage({ id: "pages.datasource.form.noAuth" })}
+      </label>
+    </div>
+  );
+
+  const versionField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.version" })}
+      </span>
+      <Select size="small" value="AUTO">
+        <SelectTrigger variant="outlined">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="AUTO">
+            <SelectItemText>
+              {intl.formatMessage({ id: "pages.datasource.form.versionAuto" })}
+            </SelectItemText>
+            <SelectItemIndicator />
+          </SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const advancedPropertiesField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.advancedProperties" })}
+      </span>
+      <div className="min-w-0">
+        <Button size="small" onClick={addProperty}>
+          {intl.formatMessage({ id: "pages.datasource.form.addProperty" })}
+        </Button>
+
+        <datalist id="datasource-jdbc-property-suggestions">
+          {(JDBC_PROPERTY_SUGGESTIONS[values.dbType] || []).map((property) => (
+            <option key={property} value={property} />
+          ))}
+        </datalist>
+
+        {values.properties.length > 0 ? (
+          <div className="mt-2 overflow-hidden border border-[#e7e9ed]">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_56px] bg-[#f5f5f5] text-xs font-medium text-[#344054]">
+              <div className="px-2.5 py-2">
+                {intl.formatMessage({ id: "pages.datasource.form.propertyKey" })}
+              </div>
+              <div className="px-2.5 py-2">
+                {intl.formatMessage({ id: "pages.datasource.form.propertyValue" })}
+              </div>
+              <div className="px-2.5 py-2 text-center">
+                {intl.formatMessage({ id: "pages.datasource.table.actions" })}
+              </div>
+            </div>
+            {values.properties.map((property, index) => (
+              <div
+                key={"property-" + index}
+                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_56px] items-start gap-2 border-t border-[#eef0f3] p-2"
+              >
+                <Input
+                  size="small"
+                  variant="outlined"
+                  list="datasource-jdbc-property-suggestions"
+                  value={property.key}
+                  placeholder={intl.formatMessage({
+                    id: "pages.datasource.form.propertyKeyPlaceholder",
+                  })}
+                  onChange={(event) => patchProperty(index, "key", event.target.value)}
+                />
+                <Input
+                  size="small"
+                  variant="outlined"
+                  value={property.value}
+                  placeholder={intl.formatMessage({
+                    id: "pages.datasource.form.propertyValuePlaceholder",
+                  })}
+                  onChange={(event) => patchProperty(index, "value", event.target.value)}
+                />
+                <Button
+                  size="small"
+                  variant="ghost"
+                  className="px-1 text-xs font-normal text-[var(--yak-color-primary)]"
+                  onClick={() => removeProperty(index)}
+                >
+                  {intl.formatMessage({ id: "pages.datasource.form.deleteProperty" })}
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {fieldError("properties")}
+      </div>
+    </div>
+  );
+
+  const connectionFields = (
+    <>
+      {jdbcPreviewField}
+      {connectionAddressField}
+      {databaseField}
+      {accessIdentityField}
+      {usernameField}
+      {passwordField}
+      {authOptionField}
+      {versionField}
+      {advancedPropertiesField}
+    </>
+  );
+
   const remarkField = (
     <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
       <label htmlFor="datasource-remark" className="pt-1.5 text-xs font-medium text-[#344054]">
