@@ -26,7 +26,7 @@ import {
   testDataSourceConnectionWithParams,
   updateDataSource,
 } from "@/service/datasource";
-import { COMMON_DB_OPTIONS, JDBC_URL_PLACEHOLDERS } from "./constants";
+import { COMMON_DB_OPTIONS, JDBC_URL_PLACEHOLDERS, type DataSourceCategory } from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import { useIntl } from "./i18n";
 import type { DataSourceRecord, DataSourceSavePayload } from "./types";
@@ -49,6 +49,7 @@ interface FormValues {
 
 type FormErrors = Partial<Record<keyof FormValues, string>>;
 type CreateStep = "select" | "config";
+type CreateCategory = "ALL" | DataSourceCategory;
 
 const EMPTY_FORM: FormValues = {
   name: "",
@@ -82,6 +83,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
   const [submitting, setSubmitting] = useState(false);
   const [createStep, setCreateStep] = useState<CreateStep>("select");
   const [createSearch, setCreateSearch] = useState("");
+  const [createCategory, setCreateCategory] = useState<CreateCategory>("ALL");
   const editing = Boolean(record?.id);
   const busy = testing || submitting;
 
@@ -101,6 +103,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     if (!record?.id) {
       setCreateStep("select");
       setCreateSearch("");
+      setCreateCategory("ALL");
     }
   }, [open, record]);
 
@@ -378,17 +381,22 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
 
   const selectedType = COMMON_DB_OPTIONS.find((option) => option.value === values.dbType);
   const normalizedSearch = createSearch.trim().toLowerCase();
-  const visibleOptions = COMMON_DB_OPTIONS.filter(
-    (option) =>
+  const relationalCount = COMMON_DB_OPTIONS.filter(
+    (option) => option.category === "RELATIONAL",
+  ).length;
+  const visibleOptions = COMMON_DB_OPTIONS.filter((option) => {
+    const matchesCategory = createCategory === "ALL" || option.category === createCategory;
+    const matchesSearch =
       !normalizedSearch ||
       option.label.toLowerCase().includes(normalizedSearch) ||
-      option.value.toLowerCase().includes(normalizedSearch),
-  );
+      option.value.toLowerCase().includes(normalizedSearch);
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <Modal
       open={open}
-      width={820}
+      width={960}
       onClose={() => {
         if (!busy) onOpenChange(false);
       }}
@@ -428,8 +436,44 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       }
     >
       {createStep === "select" ? (
-        <div className="space-y-5">
-          <div className="relative">
+        <div className="flex h-[420px] flex-col">
+          <section className="shrink-0">
+            <div className="mb-2.5 text-[13px] font-medium text-[#344054]">
+              {intl.formatMessage({ id: "pages.datasource.wizard.category" })}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={
+                  createCategory === "ALL"
+                    ? "h-8 cursor-pointer rounded-[var(--yak-radius-control-small)] border border-[var(--yak-color-primary)] bg-[var(--yak-color-primary)] px-3 text-xs text-white outline-none"
+                    : "h-8 cursor-pointer rounded-[var(--yak-radius-control-small)] border border-[#d9dde3] bg-white px-3 text-xs text-[#667085] outline-none hover:bg-[var(--yak-color-hover)] focus-visible:border-[var(--yak-color-primary)]"
+                }
+                onClick={() => setCreateCategory("ALL")}
+              >
+                {intl.formatMessage(
+                  { id: "pages.datasource.wizard.categoryAll" },
+                  { count: COMMON_DB_OPTIONS.length },
+                )}
+              </button>
+              <button
+                type="button"
+                className={
+                  createCategory === "RELATIONAL"
+                    ? "h-8 cursor-pointer rounded-[var(--yak-radius-control-small)] border border-[var(--yak-color-primary)] bg-[var(--yak-color-primary)] px-3 text-xs text-white outline-none"
+                    : "h-8 cursor-pointer rounded-[var(--yak-radius-control-small)] border border-[#d9dde3] bg-white px-3 text-xs text-[#667085] outline-none hover:bg-[var(--yak-color-hover)] focus-visible:border-[var(--yak-color-primary)]"
+                }
+                onClick={() => setCreateCategory("RELATIONAL")}
+              >
+                {intl.formatMessage(
+                  { id: "pages.datasource.wizard.categoryRelational" },
+                  { count: relationalCount },
+                )}
+              </button>
+            </div>
+          </section>
+
+          <div className="relative mt-4 shrink-0">
             <Search
               aria-hidden="true"
               size={15}
@@ -446,28 +490,21 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
             />
           </div>
 
-          <section>
-            <div className="mb-3 text-[13px] font-medium text-[#344054]">
-              {intl.formatMessage({ id: "pages.datasource.wizard.commonTypes" })}
+          <section className="mt-5 min-h-0 flex-1">
+            <div className="mb-2.5 text-[13px] font-medium text-[#344054]">
+              {intl.formatMessage({ id: "pages.datasource.wizard.datasourceList" })}
             </div>
             {visibleOptions.length > 0 ? (
-              <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
+              <div className="grid grid-cols-3 gap-2 max-sm:grid-cols-1">
                 {visibleOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
-                    className="flex min-h-20 cursor-pointer items-center gap-3 rounded-[var(--yak-radius-control-medium)] border border-[#e7e9ed] bg-white px-4 text-left outline-none transition-[border-color,background-color] hover:border-[#cfd4dc] hover:bg-[var(--yak-color-hover)] focus-visible:border-[var(--yak-color-primary)]"
+                    className="flex h-10 cursor-pointer items-center gap-2.5 rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed] bg-white px-3 text-left text-[13px] text-[#343841] outline-none transition-[border-color,background-color] hover:border-[#cfd4dc] hover:bg-[var(--yak-color-hover)] focus-visible:border-[var(--yak-color-primary)]"
                     onClick={() => handleSelectType(option.value)}
                   >
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[#eaecf0] bg-[#f7f8fa]">
-                      <DatabaseIcons dbType={option.value} width="22" height="22" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-medium text-[#252832]">{option.label}</span>
-                      <span className="mt-1 block text-xs text-[#98a2b3]">
-                        {intl.formatMessage({ id: "pages.datasource.wizard.jdbcDatabase" })}
-                      </span>
-                    </span>
+                    <DatabaseIcons dbType={option.value} width="18" height="18" />
+                    <span className="min-w-0 truncate">{option.label}</span>
                   </button>
                 ))}
               </div>
