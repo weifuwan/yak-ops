@@ -8,11 +8,13 @@ import {
   type ApiProtocol,
   type ApiResponse,
 } from "@/service/http/response";
+import { WORKSPACE_HEADER_NAME, WORKSPACE_STORAGE_KEY } from "@/constants/workspace";
 import { notifyOnce } from "@/utils/notification";
 
 export type { ApiProtocol, ApiResponse } from "@/service/http/response";
 
 export type BusinessErrorMode = "reject" | "resolve";
+export type WorkspaceHeaderMode = "auto" | "omit";
 
 export type RequestOptions = RequestInit & {
   data?: unknown;
@@ -21,6 +23,7 @@ export type RequestOptions = RequestInit & {
   skipErrorHandler?: boolean;
   responseType?: "blob";
   getResponse?: boolean;
+  workspaceHeader?: WorkspaceHeaderMode;
 };
 
 export class BizError extends Error {
@@ -108,10 +111,16 @@ export default async function request<T>(url: string, options: RequestOptions = 
     skipErrorHandler = false,
     responseType,
     getResponse,
+    workspaceHeader = "auto",
     ...requestInit
   } = options;
 
   const headers = new Headers(requestInit.headers);
+  if (workspaceHeader === "auto" && !headers.has(WORKSPACE_HEADER_NAME)) {
+    const workspaceId = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
+    if (workspaceId) headers.set(WORKSPACE_HEADER_NAME, workspaceId);
+  }
+
   let body = requestInit.body;
 
   if (body === undefined && data !== undefined) {
