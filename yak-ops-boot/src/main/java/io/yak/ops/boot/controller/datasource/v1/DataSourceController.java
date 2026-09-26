@@ -55,8 +55,7 @@ public class DataSourceController {
 
     @Operation(summary = "查询数据源高级连接参数候选项")
     @GetMapping("/connection-property-keys")
-    public Result<DataSourceConnectionPropertyKeysVO> connectionPropertyKeys(
-            @RequestParam("dbType") String dbType) {
+    public Result<DataSourceConnectionPropertyKeysVO> connectionPropertyKeys(@RequestParam("dbType") String dbType) {
         return Result.success(dataSourceService.queryConnectionPropertyKeys(dbType));
     }
 
