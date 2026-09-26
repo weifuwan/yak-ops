@@ -3,6 +3,7 @@ package io.yak.ops.plugin.database.jdbc.oracle;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Oracle JDBC Provider，拥有 Oracle 默认端口、Driver、Service Name JDBC URL 和连接属性规则。
@@ -36,6 +37,11 @@ public final class OracleDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     @Override
     protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
         return "jdbc:oracle:thin:@//" + host + ":" + port + "/" + database;
+    }
+
+    @Override
+    protected Set<String> knownConnectionPropertyKeys() {
+        return Set.copyOf(PROPERTY_KEYS.values());
     }
 
     @Override

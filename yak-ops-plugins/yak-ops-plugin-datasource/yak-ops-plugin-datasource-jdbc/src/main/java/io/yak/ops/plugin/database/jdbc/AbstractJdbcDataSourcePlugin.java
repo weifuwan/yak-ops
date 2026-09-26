@@ -14,15 +14,19 @@ import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourcePlugin;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourcePluginDescriptor;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * JDBC 数据源插件基础实现，负责运行时插件元数据、连接参数、连通性、SSH 和 Catalog 元数据。
@@ -31,6 +35,25 @@ import java.util.Set;
  * @since 2026-09-24
  */
 public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
+
+    private static final Set<String> RESERVED_CONNECTION_PROPERTY_KEYS = Set.of(
+            "host",
+            "hostname",
+            "pghost",
+            "port",
+            "pgport",
+            "database",
+            "databasename",
+            "dbname",
+            "pgdbname",
+            "servicename",
+            "username",
+            "user",
+            "password",
+            "jdbcurl",
+            "url",
+            "driver",
+            "driverclassname");
 
     @Override
     public DataSourcePluginDescriptor descriptor() {
@@ -51,6 +74,32 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     protected Set<String> secretFieldKeys() {
         return Set.of("password", "privateKey", "privateKeyContent", "passphrase", "privateKeyPassphrase");
+    }
+
+    @Override
+    public List<String> connectionPropertyKeys() {
+        TreeSet<String> keys = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        keys.addAll(knownConnectionPropertyKeys());
+
+        try {
+            Class.forName(defaultDriverClassName());
+            String jdbcUrl =
+                    buildJdbcUrl("127.0.0.1", defaultPort(), propertyInfoDatabase(), JSONUtils.createObjectNode());
+            Driver driver = DriverManager.getDriver(jdbcUrl);
+            DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(jdbcUrl, new Properties());
+            if (propertyInfo != null) {
+                for (DriverPropertyInfo item : propertyInfo) {
+                    if (item != null && includeConnectionPropertyKey(item.name)) {
+                        keys.add(item.name.trim());
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // Driver 元数据不可用时仍返回 Provider 已知属性，不能把高级参数下拉框变成运行时连接前置条件。
+        }
+
+        keys.removeIf(key -> !includeConnectionPropertyKey(key));
+        return List.copyOf(keys);
     }
 
     @Override
@@ -206,6 +255,23 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     protected abstract String defaultDriverClassName();
 
     protected abstract String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson);
+
+    protected Set<String> knownConnectionPropertyKeys() {
+        return Set.of();
+    }
+
+    protected String propertyInfoDatabase() {
+        return "database";
+    }
+
+    protected boolean includeConnectionPropertyKey(String key) {
+        String value = StringUtils.trimToNull(key);
+        if (value == null) return false;
+        String normalized = value.toLowerCase(Locale.ROOT);
+        return !RESERVED_CONNECTION_PROPERTY_KEYS.contains(normalized)
+                && !normalized.contains(".testsuite.faultinjection.")
+                && !normalized.contains(".faultinjection.");
+    }
 
     protected Map<String, String> normalizeProperties(Map<String, String> properties) {
         return properties;

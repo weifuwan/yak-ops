@@ -52,6 +52,11 @@ public final class PostgreSqlDataSourcePlugin extends AbstractJdbcDataSourcePlug
     }
 
     @Override
+    protected Set<String> knownConnectionPropertyKeys() {
+        return Set.copyOf(PROPERTY_KEYS.values());
+    }
+
+    @Override
     protected String normalizeSchema(String schema) {
         String normalized = StringUtils.trimToNull(schema);
         if (normalized != null) {

@@ -2,6 +2,7 @@ package io.yak.ops.plugin.datasource.api.plugin;
 
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
+import java.util.List;
 
 /**
  * 数据源插件稳定扩展契约，负责插件描述、连接参数、连通性和 Catalog 元数据。
@@ -40,6 +41,17 @@ public interface DataSourcePlugin {
      * @param timeoutSeconds 连接与查询的默认超时时间，单位秒
      */
     DataSourceCatalog createCatalog(DataSourceConnection connection, int timeoutSeconds);
+
+    /**
+     * 返回当前 Provider 可推荐给高级参数编辑器的连接属性名。
+     *
+     * <p>这是轻量属性名发现能力，不是前端表单 Schema 或严格白名单；未知属性是否允许仍由 Provider 的连接参数规则决定。</p>
+     *
+     * @return 稳定、去重后的连接属性名列表
+     */
+    default List<String> connectionPropertyKeys() {
+        return List.of();
+    }
 
     /** 判断 Provider 是否显式声明指定能力。 */
     default boolean supports(DataSourceCapability capability) {

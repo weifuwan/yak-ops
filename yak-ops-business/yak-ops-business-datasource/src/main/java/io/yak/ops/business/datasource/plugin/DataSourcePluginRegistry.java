@@ -13,6 +13,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import org.slf4j.Logger;
@@ -69,6 +70,10 @@ public class DataSourcePluginRegistry {
 
     public String resolvePluginType(String pluginType) {
         return get(pluginType).descriptor().type();
+    }
+
+    public List<String> connectionPropertyKeys(String pluginType) {
+        return get(pluginType).connectionPropertyKeys();
     }
 
     public DataSourceConnection parseConnection(String pluginType, String connectionJson) {
