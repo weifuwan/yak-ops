@@ -19,19 +19,3 @@ export const JDBC_DEFAULT_PORTS: Record<string, number> = {
   ORACLE: 1521,
   POSTGRE_SQL: 5432,
 };
-
-export const JDBC_PROPERTY_SUGGESTIONS: Record<string, string[]> = {
-  MYSQL: [
-    "useUnicode",
-    "characterEncoding",
-    "serverTimezone",
-    "useSSL",
-    "sslMode",
-    "requireSSL",
-    "allowPublicKeyRetrieval",
-    "connectTimeout",
-    "socketTimeout",
-  ],
-  ORACLE: ["oracle.net.CONNECT_TIMEOUT", "oracle.jdbc.ReadTimeout", "defaultRowPrefetch"],
-  POSTGRE_SQL: ["sslmode", "connectTimeout", "socketTimeout", "ApplicationName", "currentSchema"],
-};

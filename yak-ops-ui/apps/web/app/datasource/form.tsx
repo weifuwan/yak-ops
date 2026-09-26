@@ -26,12 +26,7 @@ import {
   testDataSourceConnectionWithParams,
   updateDataSource,
 } from "@/service/datasource";
-import {
-  COMMON_DB_OPTIONS,
-  JDBC_DEFAULT_PORTS,
-  JDBC_PROPERTY_SUGGESTIONS,
-  type DataSourceCategory,
-} from "./constants";
+import { COMMON_DB_OPTIONS, JDBC_DEFAULT_PORTS, type DataSourceCategory } from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import { useIntl } from "./i18n";
 import type { DataSourceConnectionParams, DataSourceRecord, DataSourceSavePayload } from "./types";
@@ -580,12 +575,6 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           {intl.formatMessage({ id: "pages.datasource.form.addProperty" })}
         </Button>
 
-        <datalist id="datasource-jdbc-property-suggestions">
-          {(JDBC_PROPERTY_SUGGESTIONS[values.dbType] || []).map((property) => (
-            <option key={property} value={property} />
-          ))}
-        </datalist>
-
         {values.properties.length > 0 ? (
           <div className="mt-2 overflow-hidden border border-[#e7e9ed]">
             <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_56px] bg-[#f5f5f5] text-xs font-medium text-[#344054]">
@@ -607,7 +596,6 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
                 <Input
                   size="small"
                   variant="outlined"
-                  list="datasource-jdbc-property-suggestions"
                   value={property.key}
                   placeholder={intl.formatMessage({
                     id: "pages.datasource.form.propertyKeyPlaceholder",

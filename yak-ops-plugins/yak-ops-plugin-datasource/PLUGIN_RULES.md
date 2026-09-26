@@ -94,6 +94,9 @@ Other providers must not be packaged, registered, or pulled in through runtime d
 
 Must:
 - keep vendor URL/property/driver quirks inside the provider owner.
+- shared JDBC base only parses the generic `properties` object and provides reusable validation helpers; provider-specific property canonical names, value normalization and validation stay in MySQL / Oracle / PostgreSQL Provider implementations.
+- Provider may normalize and validate well-known properties while leaving unknown JDBC driver properties pass-through unless that Provider has a concrete reason to reject them.
+- frontend must not maintain a second vendor-property catalog or duplicate Provider validation rules.
 - normalize provider failures into stable plugin exceptions.
 - declare capabilities explicitly.
 - keep secrets out of error messages and logs.
@@ -106,6 +109,7 @@ Must Not:
 - embed product business rules.
 - call Datasource Repository / DAO.
 - special-case one provider inside Service Layer code when the behavior belongs in that provider.
+- centralize MySQL / Oracle / PostgreSQL property names or allowed values in Business, Common, Boot or the frontend.
 - add generic abstractions used by only one provider without a clear boundary.
 - recreate deleted test modules or fixtures as a side effect.
 

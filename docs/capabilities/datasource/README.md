@@ -95,7 +95,7 @@ properties
 remark
 ```
 
-The UI renders a JDBC preview from Host / Port / Database, exposes a fixed username/password identity mode, a fixed no-auth option, an auto driver-version placeholder, and a lightweight Key/Value advanced-properties editor. Create, update and connection-test requests share the same structured `connectionParams` object instead of sending JSON strings.
+The UI renders a JDBC preview from Host / Port / Database, exposes a fixed username/password identity mode, a fixed no-auth option, an auto driver-version placeholder, and a lightweight provider-neutral Key/Value advanced-properties editor. Create, update and connection-test requests share the same structured `connectionParams` object instead of sending JSON strings. Vendor property names and value semantics are normalized and validated by the selected backend JDBC Provider, not duplicated in the frontend.
 
 Create uses `DEVELOP` as the default environment. Edit preserves the stored environment.
 
