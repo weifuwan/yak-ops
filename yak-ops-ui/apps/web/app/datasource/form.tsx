@@ -183,7 +183,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
         if (!busy) onOpenChange(next);
       }}
     >
-      <DrawerContent width={520} className="bg-white">
+      <DrawerContent width={520} animated={false} className="bg-white">
         <div className="flex items-center gap-3 border-b border-[#eef0f3] px-5 py-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eaecf0] bg-[#f7f8fa]">
             <DatabaseIcons dbType={values.dbType} width="18" height="18" />
