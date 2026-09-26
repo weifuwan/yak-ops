@@ -7,14 +7,16 @@ Scope:
 
 Owns:
 
-- Datasource CRUD UI
+- Workspace-scoped Datasource CRUD UI
 - Datasource filters / table / pagination
 - Datasource create / edit / connection-test form
 - Datasource backend Contract adaptation
 
 ## Principle
 
-Datasource V1 is a simple database connection management page, not a frontend plugin platform.
+Datasource V1 is a Workspace-scoped database connection management page, not a frontend plugin platform.
+
+The active Workspace is application context, not Datasource form state. Datasource DTOs never carry `workspaceId`; `service/http` injects the validated current Workspace header automatically. Switching Workspace remounts the workspace-scoped product outlet so list/filter/selection/form state cannot leak across Workspaces.
 
 Current product flow:
 
@@ -122,6 +124,7 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 - Create / Update / Connection Test 共用同一个结构化 `connectionParams` Contract：`host / port / database / username / password / properties`；`dbType` 由外层请求字段负责 Provider 路由，不重复塞进连接对象。
 - 高级参数前端只校验 Key 非空 / 不重复；参数名称 canonicalization、布尔 / 枚举 / 数值语义和 Provider-specific 校验全部由对应后端 Provider 持有。
 - CRUD、Batch Operations 和 Connection Test 统一走 `service/datasource`。
+- Datasource 请求依赖全局当前 Workspace；页面不得自行拼接 `X-Workspace-Id` 或把 `workspaceId` 加进业务 DTO。
 - HTTP transport only through `service/http`。
 - Common primitives from `@yak-ops/yak-ui`。
 - Backend Contract owner stays in `service/datasource/types.ts`。

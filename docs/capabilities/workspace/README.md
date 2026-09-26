@@ -36,6 +36,11 @@ Persistence:
 HTTP:
 - `yak-ops-boot/src/main/java/io/yak/ops/boot/controller/workspace`
 
+Frontend:
+- `yak-ops-ui/apps/web/context/workspace-context.tsx`
+- `yak-ops-ui/apps/web/service/workspace`
+- `yak-ops-ui/apps/web/app/layout/TopBar.tsx`
+
 Request context:
 - `io.yak.ops.common.context.WorkspaceContext`
 - Header: `X-Workspace-Id`
@@ -124,8 +129,10 @@ PR2 — Datasource Workspace Ownership:
 
 PR3 — Workspace Switcher + Datasource Integration:
 - current Workspace state in UI
-- Workspace switcher
+- Workspace switcher and lightweight Workspace creation
 - HTTP client injects `X-Workspace-Id`
+- auth/workspace-global requests explicitly omit Workspace header
+- workspace-scoped product outlet remounts on Workspace switch
 
 ## Not In V1
 
@@ -136,4 +143,3 @@ PR3 — Workspace Switcher + Datasource Integration:
 - Workspace deletion
 - Workspace ownership transfer
 - default-workspace migration for existing Datasource rows
-- frontend Workspace switcher
