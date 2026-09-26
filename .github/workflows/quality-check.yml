@@ -71,7 +71,7 @@ jobs:
           cache-dependency-path: yak-ops-ui/package-lock.json
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Frontend format
         run: npm run format:check
