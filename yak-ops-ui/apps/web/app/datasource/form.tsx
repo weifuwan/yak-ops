@@ -692,7 +692,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           if (!busy) onOpenChange(next);
         }}
       >
-        <DrawerContent width={520} animated={false} className="bg-white">
+        <DrawerContent width={720} animated={false} className="bg-white">
           <div className="flex items-center gap-3 border-b border-[#eef0f3] px-5 py-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eaecf0] bg-[#f7f8fa]">
               <DatabaseIcons dbType={values.dbType} width="18" height="18" />
@@ -717,13 +717,26 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           </div>
 
           <DrawerBody className="px-5 py-4">
-            <div className="space-y-2.5">
-              {nameField}
-              {dbTypeField}
-              {jdbcUrlField}
-              {usernameField}
-              {passwordField}
-              {remarkField}
+            <div className="space-y-3.5">
+              <section className="overflow-hidden rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed]">
+                <h3 className="border-b border-[#eef0f3] bg-[#fafafa] px-3 py-2 text-xs font-medium text-[#344054]">
+                  {intl.formatMessage({ id: "pages.datasource.wizard.basicInfo" })}
+                </h3>
+                <div className="space-y-2.5 px-3 py-3">
+                  {nameField}
+                  {dbTypeField}
+                  {remarkField}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="mb-2 text-xs font-medium text-[#344054]">
+                  {intl.formatMessage({ id: "pages.datasource.wizard.connectionConfig" })}
+                </h3>
+                <div className="space-y-2.5 rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed] px-3 py-3">
+                  {connectionFields}
+                </div>
+              </section>
             </div>
           </DrawerBody>
 
@@ -916,9 +929,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
               {intl.formatMessage({ id: "pages.datasource.wizard.connectionConfig" })}
             </h3>
             <div className="space-y-2.5 rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed] px-3 py-3">
-              {jdbcUrlField}
-              {usernameField}
-              {passwordField}
+              {connectionFields}
             </div>
           </section>
         </div>
