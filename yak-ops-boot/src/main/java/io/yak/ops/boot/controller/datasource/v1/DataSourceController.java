@@ -8,6 +8,7 @@ import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceBatchConnectTestResultVO;
+import io.yak.ops.common.bean.vo.datasource.DataSourceConnectionPropertyKeysVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.page.PagingData;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -49,6 +51,13 @@ public class DataSourceController {
     @PutMapping("/{id}")
     public Result<Boolean> update(@PathVariable("id") String id, @Valid @RequestBody DataSourceDTO dto) {
         return Result.success(dataSourceService.updateDataSource(id, dto));
+    }
+
+    @Operation(summary = "查询数据源高级连接参数候选项")
+    @GetMapping("/connection-property-keys")
+    public Result<DataSourceConnectionPropertyKeysVO> connectionPropertyKeys(
+            @RequestParam("dbType") String dbType) {
+        return Result.success(dataSourceService.queryConnectionPropertyKeys(dbType));
     }
 
     @Operation(summary = "查询数据源详情")
