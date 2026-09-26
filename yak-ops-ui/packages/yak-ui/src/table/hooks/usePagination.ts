@@ -10,6 +10,7 @@ export interface ResolvedTablePagination {
   pageSize: number;
   total: number;
   pageSizeOptions?: readonly number[];
+  pageSizeLabel?: TablePaginationConfig["pageSizeLabel"];
   disabled: boolean;
   showSizeChanger: boolean;
   showQuickJumper: boolean;
@@ -60,6 +61,7 @@ export function usePagination<RecordType extends object>(
       pageSize,
       total,
       pageSizeOptions: config.pageSizeOptions,
+      pageSizeLabel: config.pageSizeLabel,
       disabled: config.disabled ?? false,
       showSizeChanger: config.showSizeChanger ?? false,
       showQuickJumper: config.showQuickJumper ?? false,

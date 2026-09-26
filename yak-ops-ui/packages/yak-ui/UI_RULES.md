@@ -94,6 +94,8 @@ Yak UI Table uses an AntD-familiar core contract without becoming an AntD compat
 - Table-level `onChange(pagination, filters, sorter, extra)` is the single generic notification boundary for paginate / sort / filter changes.
 - Local filter and sort run before local pagination; server pagination remains owned by the product when `pagination.total` is provided.
 - Current Table supports size, border, row hover, selected-row state, ellipsis, sort, filter, horizontal / vertical scroll and sticky header.
+- Table header uses the shared `#F2F2F2` surface and does not draw internal header dividers; `bordered` applies the outer frame and body grid only.
+- Pagination is a single-line compact control; the active page uses the shared blue pagination token instead of Button primary styling, and page-size wording is supplied through the generic `pageSizeLabel` composition point.
 - Expandable rows, fixed columns, virtualization, multi-column sort and component overrides remain deferred.
 
 Table must not own:
