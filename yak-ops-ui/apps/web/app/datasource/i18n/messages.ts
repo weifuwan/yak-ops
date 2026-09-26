@@ -41,8 +41,6 @@ export default {
   "pages.datasource.delete.success": "删除成功",
   "pages.datasource.test.success": "连接测试成功",
 
-  "pages.datasource.modal.drawerTitle.add": "新建数据源",
-  "pages.datasource.modal.drawerTitle.edit": "编辑数据源",
   "pages.datasource.modal.button.cancel": "取消",
   "pages.datasource.modal.button.connTest": "测试连接",
   "pages.datasource.modal.button.create": "创建",
@@ -60,6 +58,7 @@ export default {
   "pages.datasource.wizard.jdbcDatabase": "JDBC 数据库",
   "pages.datasource.wizard.empty": "没有找到匹配的数据源",
   "pages.datasource.wizard.configTitle": "新增{type}数据源",
+  "pages.datasource.wizard.editConfigTitle": "编辑{type}数据源",
   "pages.datasource.wizard.basicInfo": "基础信息",
   "pages.datasource.wizard.connectionConfig": "连接配置",
   "pages.datasource.wizard.back": "上一步",
