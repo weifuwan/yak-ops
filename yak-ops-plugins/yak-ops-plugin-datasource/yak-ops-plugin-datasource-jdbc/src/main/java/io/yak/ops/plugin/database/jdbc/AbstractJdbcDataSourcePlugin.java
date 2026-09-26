@@ -85,8 +85,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         try {
             String jdbcUrl =
                     buildJdbcUrl("127.0.0.1", defaultPort(), propertyInfoDatabase(), JSONUtils.createObjectNode());
-            Driver driver = connectionPropertyDriver(jdbcUrl);
-            DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(jdbcUrl, new Properties());
+            DriverPropertyInfo[] propertyInfo = connectionPropertyInfo(jdbcUrl, new Properties());
             if (propertyInfo != null) {
                 for (DriverPropertyInfo item : propertyInfo) {
                     if (item != null && includeConnectionPropertyKey(item.name)) {
@@ -273,6 +272,10 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     protected Driver connectionPropertyDriver(String jdbcUrl) throws Exception {
         Class.forName(defaultDriverClassName());
         return DriverManager.getDriver(jdbcUrl);
+    }
+
+    protected DriverPropertyInfo[] connectionPropertyInfo(String jdbcUrl, Properties properties) throws Exception {
+        return connectionPropertyDriver(jdbcUrl).getPropertyInfo(jdbcUrl, properties);
     }
 
     protected boolean includeConnectionPropertyKey(String key) {
