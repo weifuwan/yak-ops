@@ -65,6 +65,7 @@ Yak UI Form / Field only own:
 
 - semantic form container
 - label / description / error presentation
+- required-field marker presentation through `FieldLabel required` / `FieldRequiredMark`
 - accessibility relationship
 - control visual state
 
@@ -78,7 +79,7 @@ Yak UI does not own:
 - API payload assembly
 - submit lifecycle
 
-Product form state belongs to the owning product package.
+Product form state belongs to the owning product package. Product validation messages stay in the product i18n layer and are passed to `FieldError`; Yak UI must not own Datasource-specific required copy or validation rules.
 
 Do not rebuild an AntD-style mega Form API inside Yak UI.
 
