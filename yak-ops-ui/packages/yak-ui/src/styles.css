@@ -5,6 +5,10 @@
   --yak-radius-control-medium: 8px;
   --yak-radius-control-large: 10px;
 
+  --yak-font-size-control-small: 12px;
+  --yak-font-size-control-medium: 13px;
+  --yak-font-size-control-large: 14px;
+
   --yak-components-button-primary-bg: var(--yak-color-primary);
   --yak-components-button-primary-bg-hover: color-mix(in srgb, var(--yak-color-primary) 90%, #000);
   --yak-components-button-primary-bg-active: color-mix(in srgb, var(--yak-color-primary) 82%, #000);

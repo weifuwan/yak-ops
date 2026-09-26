@@ -209,10 +209,11 @@ const DataSourcePage = () => {
 
               <div className="w-[290px]">
                 <Select
+                  size="small"
                   value={dbType || "ALL"}
                   onValueChange={(value) => setDbType(value && value !== "ALL" ? value : undefined)}
                 >
-                  <SelectTrigger size="small" variant="outlined">
+                  <SelectTrigger variant="outlined">
                     <span className="mr-2 text-[#4f5561]">
                       {intl.formatMessage({ id: "pages.datasource.toolbar.typeLabel" })}
                     </span>
@@ -236,7 +237,7 @@ const DataSourcePage = () => {
               </div>
 
               <div className="relative w-[290px]">
-                <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-xs text-[#4f5561]">
+                <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[var(--yak-font-size-control-small)] text-[#4f5561]">
                   {intl.formatMessage({ id: "pages.datasource.toolbar.nameLabel" })}
                 </span>
                 <Input

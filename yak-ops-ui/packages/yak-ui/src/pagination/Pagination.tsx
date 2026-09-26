@@ -145,8 +145,12 @@ export function Pagination({
           {pageSizeLabel ? (
             <span className="text-[var(--yak-components-pagination-text)]">{pageSizeLabel}</span>
           ) : null}
-          <Select value={pageSize} onValueChange={(nextSize) => onChange(1, Number(nextSize))}>
-            <SelectTrigger size="small" className="w-[68px] rounded bg-white">
+          <Select
+            size="small"
+            value={pageSize}
+            onValueChange={(nextSize) => onChange(1, Number(nextSize))}
+          >
+            <SelectTrigger className="w-[68px] rounded bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
