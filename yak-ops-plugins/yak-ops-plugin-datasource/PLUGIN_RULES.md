@@ -144,6 +144,37 @@ Must Not:
 - add generic abstractions used by only one provider without a clear boundary.
 - recreate deleted test modules or fixtures as a side effect.
 
+## MySQL Driver Runtime
+
+MySQL 是当前唯一需要多版本 JDBC Driver 共存的数据源。Driver 版本选择由 MySQL Provider 拥有，不能把多个 MySQL Connector/J 直接加入 Yak Ops 应用 ClassLoader。
+
+Runtime Contract:
+
+```text
+driverId
+  AUTO ─────┐
+  MYSQL_8 ──┼→ mysql/8 → Connector/J 8.x → isolated ClassLoader
+  MYSQL_5 ──┘
+              mysql/5 → Connector/J 5.1.x → isolated ClassLoader
+```
+
+Must:
+- `AUTO` 当前解析为 `MYSQL_8`，但持久化仍保留用户选择的 `driverId`。
+- MySQL 8 与 MySQL 5 Driver 必须放在不同目录，并为每个 effective driverId 创建独立 ClassLoader。
+- Driver ClassLoader 的 parent 使用 JDK Platform ClassLoader，不继承 Yak Ops Application ClassLoader。
+- 使用 MySQL `NonRegisteringDriver` 并直接调用 `Driver.connect`，不得把隔离 Driver 注册进全局 `DriverManager`。
+- Driver ClassLoader / Driver 实例按 effective driverId 缓存并在应用生命周期内复用。
+- MySQL Connection Test、Catalog、SSH Tunnel 连接必须走同一套隔离 Driver Runtime。
+- MySQL 高级参数元数据默认通过隔离的 `MYSQL_8` Driver 执行 `Driver#getPropertyInfo`。
+- 发布包内置 Driver 放在 `jdbc-drivers-builtin/mysql/{5,8}`；运行时目录通过 `yak.ops.jdbc-driver-dir` 指定。
+- 外部覆盖 Driver 目录必须通过显式运行参数完成，不能重新使用 Spring Boot `loader.path`。
+
+Must Not:
+- 同时把 Connector/J 5.x 与 8.x 放入 Application ClassLoader。
+- 依赖 DriverManager 的全局注册顺序选择 MySQL Driver。
+- 在 Business / Boot / Common 层判断 `MYSQL_5` / `MYSQL_8`。
+- 为了版本隔离复制 MySQL Provider 的 Connection Test / Catalog / SSH 业务流程。
+
 ## PostgreSQL Connection Contract
 
 PostgreSQL Provider 的数据源连接目标是 Database，不把 Schema 提升为 Datasource 核心连接字段。
