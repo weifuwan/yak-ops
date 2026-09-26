@@ -5,9 +5,9 @@
   --yak-radius-control-medium: 8px;
   --yak-radius-control-large: 10px;
 
-  --yak-components-button-primary-bg: #292c35;
-  --yak-components-button-primary-bg-hover: #1f222a;
-  --yak-components-button-primary-bg-active: #17191f;
+  --yak-components-button-primary-bg: var(--yak-color-primary);
+  --yak-components-button-primary-bg-hover: color-mix(in srgb, var(--yak-color-primary) 90%, #000);
+  --yak-components-button-primary-bg-active: color-mix(in srgb, var(--yak-color-primary) 82%, #000);
   --yak-components-button-primary-text: #ffffff;
 
   --yak-components-button-secondary-bg: #f4f4f6;
