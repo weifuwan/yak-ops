@@ -14,10 +14,10 @@ export default function AllProductMenu({ open, onNavigate }: AllProductMenuProps
       aria-label="全部产品二级菜单"
       aria-hidden={!open}
       className={[
-        "fixed bottom-0 left-[220px] top-10 z-30 overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
+        "fixed bottom-0 left-[220px] top-10 z-30 max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
         "transition-[width] ease-in-out motion-reduce:transition-none",
         open
-          ? "w-[765px] max-w-[calc(100vw-220px)] duration-[240ms]"
+          ? "w-[765px] duration-[240ms]"
           : "w-0 duration-[170ms] pointer-events-none",
       ].join(" ")}
     >
