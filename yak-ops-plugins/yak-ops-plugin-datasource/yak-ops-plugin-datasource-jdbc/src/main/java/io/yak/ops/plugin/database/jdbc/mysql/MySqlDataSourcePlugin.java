@@ -1,7 +1,9 @@
 package io.yak.ops.plugin.database.jdbc.mysql;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
+import io.yak.ops.plugin.database.jdbc.mysql.enums.MySqlDriverId;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,6 +55,16 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     @Override
     protected Set<String> knownConnectionPropertyKeys() {
         return Set.copyOf(PROPERTY_KEYS.values());
+    }
+
+    @Override
+    protected String normalizeDriverId(JsonNode connectionJson) {
+        String value = JSONUtils.firstText(connectionJson, "driverId");
+        try {
+            return MySqlDriverId.parse(value).name();
+        } catch (IllegalArgumentException exception) {
+            throw parameterError("MySQL driverId 仅支持 AUTO、MYSQL_8、MYSQL_5", exception);
+        }
     }
 
     @Override

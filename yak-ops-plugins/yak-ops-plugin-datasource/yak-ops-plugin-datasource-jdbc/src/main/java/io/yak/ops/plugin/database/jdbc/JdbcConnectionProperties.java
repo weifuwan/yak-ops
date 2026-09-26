@@ -30,6 +30,9 @@ public final class JdbcConnectionProperties implements DataSourceConnection {
     /** JDBC Driver 类名。 */
     private final String driverClassName;
 
+    /** Provider 规范化后的 JDBC Driver 选择标识。 */
+    private final String driverId;
+
     /** 数据库登录用户名。 */
     private final String username;
 
@@ -90,11 +93,42 @@ public final class JdbcConnectionProperties implements DataSourceConnection {
             Map<String, String> properties,
             SshTunnelConfig sshTunnel,
             String normalizedJson) {
+        this(
+                type,
+                host,
+                port,
+                jdbcUrl,
+                driverClassName,
+                null,
+                username,
+                password,
+                database,
+                schema,
+                properties,
+                sshTunnel,
+                normalizedJson);
+    }
+
+    public JdbcConnectionProperties(
+            String type,
+            String host,
+            int port,
+            String jdbcUrl,
+            String driverClassName,
+            String driverId,
+            String username,
+            String password,
+            String database,
+            String schema,
+            Map<String, String> properties,
+            SshTunnelConfig sshTunnel,
+            String normalizedJson) {
         this.type = type;
         this.host = host;
         this.port = port;
         this.jdbcUrl = jdbcUrl;
         this.driverClassName = driverClassName;
+        this.driverId = driverId;
         this.username = username;
         this.password = password;
         this.database = database;
@@ -125,6 +159,10 @@ public final class JdbcConnectionProperties implements DataSourceConnection {
     @Override
     public String driverClassName() {
         return driverClassName;
+    }
+
+    public String driverId() {
+        return driverId;
     }
 
     @Override

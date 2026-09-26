@@ -53,7 +53,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             "jdbcurl",
             "url",
             "driver",
-            "driverclassname");
+            "driverclassname",
+            "driverid");
 
     @Override
     public DataSourcePluginDescriptor descriptor() {
@@ -120,6 +121,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
             String password = JSONUtils.firstText(root, "password");
             String driver = StringUtils.trimToNull(JSONUtils.firstText(root, "driverClassName", "driver"));
             if (driver == null) driver = defaultDriverClassName();
+            String driverId = normalizeDriverId(root);
             SshTunnelConfig sshTunnel = parseSshTunnel(root);
 
             if (StringUtils.isBlank(username)) {
@@ -163,6 +165,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
                 normalized.put("password", password);
             }
             normalized.put("jdbcUrl", jdbcUrl);
+            putIfText(normalized, "driverId", driverId);
             normalized.put("driverClassName", driver);
             ObjectNode propertiesNode = normalized.putObject("properties");
             properties.forEach(propertiesNode::put);
@@ -175,6 +178,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
                     port,
                     jdbcUrl,
                     driver,
+                    driverId,
                     username.trim(),
                     password,
                     StringUtils.trimToNull(database),
@@ -281,6 +285,14 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     protected String normalizeSchema(String schema) {
         return StringUtils.trimToNull(schema);
+    }
+
+    protected String normalizeDriverId(JsonNode connectionJson) {
+        String driverId = StringUtils.trimToNull(JSONUtils.firstText(connectionJson, "driverId"));
+        if (driverId != null) {
+            throw parameterError("当前数据源不支持 JDBC Driver 选择：" + driverId, null);
+        }
+        return null;
     }
 
     protected final Map<String, String> canonicalizeProperties(

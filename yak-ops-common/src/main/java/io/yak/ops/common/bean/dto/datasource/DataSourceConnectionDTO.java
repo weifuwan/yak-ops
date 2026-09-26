@@ -39,6 +39,9 @@ public class DataSourceConnectionDTO {
     /** 数据库登录密码；编辑时允许提交遮罩值，由后端保留已保存密钥。 */
     private String password;
 
+    /** Provider 自己解释的 JDBC Driver 选择标识；当前仅 MySQL 使用。 */
+    private String driverId;
+
     /** 透传给对应 Provider 的高级连接属性。 */
     private Map<String, String> properties;
 }

@@ -43,6 +43,8 @@ export interface DataSourceConnectionParams {
   database: string;
   username: string;
   password: string;
+  /** Provider-owned JDBC driver selection id. Only MySQL currently exposes this field. */
+  driverId?: string;
   properties: Record<string, string>;
 }
 
