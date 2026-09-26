@@ -8,7 +8,6 @@ import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Properties;
