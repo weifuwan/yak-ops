@@ -34,9 +34,9 @@ const selectTriggerVariants = cva(
           "border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] hover:border-[var(--yak-components-input-border-focus)] hover:bg-[var(--yak-components-input-bg-focus)] data-disabled:border-[var(--yak-components-input-border)]",
       },
       size: {
-        small: "h-7 gap-1.5 rounded-lg px-2.5 text-xs",
-        medium: "h-9 gap-2 rounded-[10px] px-3 text-[13px]",
-        large: "h-10 gap-2 rounded-[11px] px-3.5 text-sm",
+        small: "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-xs",
+        medium: "h-9 gap-2 rounded-[var(--yak-radius-control-medium)] px-3 text-[13px]",
+        large: "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-3.5 text-sm",
       },
     },
     defaultVariants: {

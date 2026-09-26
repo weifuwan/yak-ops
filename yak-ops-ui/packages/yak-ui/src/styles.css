@@ -1,6 +1,10 @@
 :root {
   --yak-color-primary: #0033ff;
 
+  --yak-radius-control-small: 6px;
+  --yak-radius-control-medium: 8px;
+  --yak-radius-control-large: 10px;
+
   --yak-components-button-primary-bg: #292c35;
   --yak-components-button-primary-bg-hover: #1f222a;
   --yak-components-button-primary-bg-active: #17191f;

@@ -26,9 +26,9 @@ export const inputVariants = cva(
           "border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] hover:border-[var(--yak-components-input-border-focus)] hover:bg-[var(--yak-components-input-bg-focus)] disabled:border-[var(--yak-components-input-border)]",
       },
       size: {
-        small: "h-7 rounded-lg px-2.5 text-xs",
-        medium: "h-9 rounded-[10px] px-3 text-[13px]",
-        large: "h-10 rounded-[11px] px-3.5 text-sm",
+        small: "h-7 rounded-[var(--yak-radius-control-small)] px-2.5 text-xs",
+        medium: "h-9 rounded-[var(--yak-radius-control-medium)] px-3 text-[13px]",
+        large: "h-10 rounded-[var(--yak-radius-control-large)] px-3.5 text-sm",
       },
     },
     defaultVariants: {
