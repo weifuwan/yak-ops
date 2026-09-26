@@ -40,12 +40,12 @@ export function Modal({
       }}
     >
       <BaseDialog.Portal>
-        <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-[var(--yak-components-overlay)] transition-opacity duration-200 ease-out data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:transition-none" />
+        <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-[var(--yak-components-overlay)] transition-opacity duration-[180ms] ease-out data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-[160ms] data-ending-style:ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none" />
         <BaseDialog.Popup
           style={{ width, ...style }}
           className={cn(
             "fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-dialog-shadow)] outline-none",
-            "transition-[opacity,transform] duration-[140ms] ease-[cubic-bezier(0.22,1,0.36,1)] data-starting-style:translate-y-3 data-starting-style:opacity-0 data-ending-style:-translate-y-3 data-ending-style:opacity-0 data-ending-style:duration-[120ms] data-ending-style:ease-in motion-reduce:transition-none",
+            "transition-[opacity,transform] duration-[140ms] ease-[cubic-bezier(0.22,1,0.36,1)] data-starting-style:translate-y-3 data-starting-style:opacity-0 data-ending-style:-translate-y-2 data-ending-style:opacity-0 data-ending-style:duration-[160ms] data-ending-style:ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none",
             className,
           )}
         >
