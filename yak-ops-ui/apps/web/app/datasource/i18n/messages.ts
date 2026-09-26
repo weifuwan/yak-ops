@@ -52,6 +52,10 @@ export default {
 
   "pages.datasource.wizard.title": "新增数据源",
   "pages.datasource.wizard.searchPlaceholder": "搜索数据源",
+  "pages.datasource.wizard.category": "分类",
+  "pages.datasource.wizard.categoryAll": "全部（{count}）",
+  "pages.datasource.wizard.categoryRelational": "关系型数据库（{count}）",
+  "pages.datasource.wizard.datasourceList": "数据源",
   "pages.datasource.wizard.commonTypes": "常用数据源",
   "pages.datasource.wizard.jdbcDatabase": "JDBC 数据库",
   "pages.datasource.wizard.empty": "没有找到匹配的数据源",
