@@ -92,7 +92,7 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 
 ## Must
 
-- 列表只使用 Table。
+- 列表只使用 `@yak-ops/yak-ui` 的 `Table`；Datasource 业务层禁止手写 `<table> / <thead> / <tbody>`。
 - 筛选只保留 keyword、dbType、connStatus。
 - CRUD 和 Connection Test 统一走 `service/datasource`。
 - HTTP transport only through `service/http`。
