@@ -118,6 +118,7 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 - Table `footer` 左侧承载“批量删除 / 批量测试连通性”，右侧继续使用 Yak UI Pagination；批量删除必须二次确认，批量连接测试直接执行并反馈成功 / 失败数量。
 - 新增使用 Yak UI `Modal` 两步 Wizard；Modal Header / Footer 固定，只允许 Body 滚动。第一步选择区使用固定高度，数据少时允许自然留白；提供“全部 / 关系型数据库”分类和搜索。Datasource Item 使用紧凑单行结构，只展示 Icon + 名称，不展示说明文案。第二步配置表单参考紧凑管理台布局：Label 左对齐、Control 右侧占满，Input / Select / PasswordInput 统一使用 `small`，字段纵向间距保持紧凑，分组只使用轻量边框与标题。连接配置使用 Host + Port + Database 结构化输入并实时展示 JDBC Preview；高级参数使用轻量 Key/Value 列表。当前只展示 `MYSQL / ORACLE / POSTGRE_SQL`，不引入动态 Provider UI。
 - Edit 使用与 Create 相同的 Yak UI `Modal` 和配置内容；不展示可修改的数据库类型控件，通过标题明确当前 Provider，且编辑时禁止修改 `dbType`。
+- Create / Edit 的必填标识与错误信息统一使用 Yak UI `FieldLabel required` / `FieldRequiredMark` / `FieldError`；Datasource 只持有字段规则和 i18n message，不在页面重复手写红色星号或错误文本样式。
 - Create / Update / Connection Test 共用同一个结构化 `connectionParams` Contract：`host / port / database / username / password / properties`；`dbType` 由外层请求字段负责 Provider 路由，不重复塞进连接对象。
 - 高级参数前端只校验 Key 非空 / 不重复；参数名称 canonicalization、布尔 / 枚举 / 数值语义和 Provider-specific 校验全部由对应后端 Provider 持有。
 - CRUD、Batch Operations 和 Connection Test 统一走 `service/datasource`。
