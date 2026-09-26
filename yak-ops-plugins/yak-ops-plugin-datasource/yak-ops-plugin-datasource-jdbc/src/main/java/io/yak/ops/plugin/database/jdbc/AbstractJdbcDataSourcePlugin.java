@@ -100,7 +100,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
                 database = inferDatabase(jdbcUrl);
             }
 
-            Map<String, String> properties = parseProperties(root.get("properties"));
+            Map<String, String> properties = normalizeProperties(parseProperties(root.get("properties")));
+            validateProperties(properties);
             ObjectNode normalized = JSONUtils.createObjectNode();
             normalized.put("dbType", type());
             putIfText(normalized, "host", host);
@@ -203,6 +204,110 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     protected abstract String defaultDriverClassName();
 
     protected abstract String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson);
+
+    protected Map<String, String> normalizeProperties(Map<String, String> properties) {
+        return properties;
+    }
+
+    protected void validateProperties(Map<String, String> properties) {}
+
+    protected final Map<String, String> canonicalizeProperties(
+            Map<String, String> properties, Map<String, String> canonicalKeys) {
+        Map<String, String> normalized = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            String key = StringUtils.trimToNull(entry.getKey());
+            if (key == null) {
+                throw parameterError("JDBC 属性名不能为空", null);
+            }
+            String canonicalKey = canonicalKeys.getOrDefault(key.toLowerCase(Locale.ROOT), key);
+            if (normalized.containsKey(canonicalKey)) {
+                throw parameterError("JDBC 属性重复：" + canonicalKey, null);
+            }
+            normalized.put(canonicalKey, entry.getValue());
+        }
+        return normalized;
+    }
+
+    protected final void normalizeBooleanProperty(Map<String, String> properties, String key) {
+        if (!properties.containsKey(key)) return;
+        String value = StringUtils.trimToNull(properties.get(key));
+        if (value == null) {
+            throw parameterError("JDBC 属性 " + key + " 不能为空", null);
+        }
+        if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+            throw parameterError("JDBC 属性 " + key + " 仅支持 true 或 false", null);
+        }
+        properties.put(key, value.toLowerCase(Locale.ROOT));
+    }
+
+    protected final void normalizeUpperCaseEnumProperty(
+            Map<String, String> properties, String key, Set<String> allowedValues) {
+        if (!properties.containsKey(key)) return;
+        String value = StringUtils.trimToNull(properties.get(key));
+        if (value == null) {
+            throw parameterError("JDBC 属性 " + key + " 不能为空", null);
+        }
+        String normalized = value.toUpperCase(Locale.ROOT);
+        if (!allowedValues.contains(normalized)) {
+            throw parameterError("JDBC 属性 " + key + " 不支持值：" + value, null);
+        }
+        properties.put(key, normalized);
+    }
+
+    protected final void normalizeLowerCaseEnumProperty(
+            Map<String, String> properties, String key, Set<String> allowedValues) {
+        if (!properties.containsKey(key)) return;
+        String value = StringUtils.trimToNull(properties.get(key));
+        if (value == null) {
+            throw parameterError("JDBC 属性 " + key + " 不能为空", null);
+        }
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (!allowedValues.contains(normalized)) {
+            throw parameterError("JDBC 属性 " + key + " 不支持值：" + value, null);
+        }
+        properties.put(key, normalized);
+    }
+
+    protected final void validateNonNegativeIntegerProperty(Map<String, String> properties, String key) {
+        if (!properties.containsKey(key)) return;
+        String value = StringUtils.trimToNull(properties.get(key));
+        if (value == null) {
+            throw parameterError("JDBC 属性 " + key + " 不能为空", null);
+        }
+        try {
+            if (Integer.parseInt(value) < 0) {
+                throw parameterError("JDBC 属性 " + key + " 不能小于 0", null);
+            }
+        } catch (NumberFormatException exception) {
+            throw parameterError("JDBC 属性 " + key + " 必须是整数", exception);
+        }
+        properties.put(key, value);
+    }
+
+    protected final void validatePositiveIntegerProperty(Map<String, String> properties, String key) {
+        if (!properties.containsKey(key)) return;
+        String value = StringUtils.trimToNull(properties.get(key));
+        if (value == null) {
+            throw parameterError("JDBC 属性 " + key + " 不能为空", null);
+        }
+        try {
+            if (Integer.parseInt(value) <= 0) {
+                throw parameterError("JDBC 属性 " + key + " 必须大于 0", null);
+            }
+        } catch (NumberFormatException exception) {
+            throw parameterError("JDBC 属性 " + key + " 必须是整数", exception);
+        }
+        properties.put(key, value);
+    }
+
+    protected final void validateNonBlankProperty(Map<String, String> properties, String key) {
+        if (!properties.containsKey(key)) return;
+        String value = StringUtils.trimToNull(properties.get(key));
+        if (value == null) {
+            throw parameterError("JDBC 属性 " + key + " 不能为空", null);
+        }
+        properties.put(key, value);
+    }
 
     protected void appendNormalizedFields(JsonNode source, ObjectNode normalized) {}
 
@@ -404,7 +509,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
         }
     }
 
-    private DataSourcePluginException parameterError(String message, Throwable cause) {
+    protected final DataSourcePluginException parameterError(String message, Throwable cause) {
         return cause == null
                 ? new DataSourcePluginException(DataSourcePluginOperation.PARAMETER, message)
                 : new DataSourcePluginException(DataSourcePluginOperation.PARAMETER, message, cause);
