@@ -111,6 +111,7 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
   return (
     <Modal
       open={open}
+      centered
       width={600}
       bodyClassName="py-3"
       title={editing ? "编辑用户" : "新增用户"}
