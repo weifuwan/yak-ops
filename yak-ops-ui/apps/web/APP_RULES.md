@@ -36,6 +36,8 @@ assets/
 ```text
 app/datasource
 app/management
+├── users
+└── workspaces
 app/login
 ```
 
@@ -76,6 +78,7 @@ app/layout/
 ## Must
 
 - Domain UI / state / presentation 放在 `app/<domain>`。
+- Management Center 的用户与工作空间页面收口在 `app/management/users` 与 `app/management/workspaces`，后端调用分别进入 `service/user` 与 `service/workspace`。
 - Domain backend Contract / calls 放在 `service/<domain>`。
 - 依赖方向保持 `app → service → http`。
 - 通用 UI 从 `@yak-ops/yak-ui` 使用。

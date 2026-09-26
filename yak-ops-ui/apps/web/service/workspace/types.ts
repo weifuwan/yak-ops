@@ -10,6 +10,13 @@ export interface WorkspaceRecord {
   updateTime?: string;
 }
 
+export interface WorkspaceMemberRecord {
+  userId: string;
+  role: WorkspaceRole;
+  roleName?: string | null;
+  joinedAt?: string;
+}
+
 export interface WorkspaceCreatePayload {
   name: string;
   description?: string;

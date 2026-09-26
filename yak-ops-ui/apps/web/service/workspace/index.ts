@@ -1,6 +1,6 @@
 import HttpUtils from "@/service/http/HttpUtils";
 
-import type { WorkspaceCreatePayload, WorkspaceRecord } from "./types";
+import type { WorkspaceCreatePayload, WorkspaceMemberRecord, WorkspaceRecord } from "./types";
 
 const WORKSPACE_API_PREFIX = "/api/v1/workspaces";
 
@@ -14,4 +14,15 @@ export const listWorkspaces = (): Promise<WorkspaceRecord[]> =>
 export const createWorkspace = (payload: WorkspaceCreatePayload): Promise<WorkspaceRecord> =>
   HttpUtils.postData<WorkspaceRecord>(WORKSPACE_API_PREFIX, payload, WITHOUT_WORKSPACE_HEADER);
 
-export type { WorkspaceCreatePayload, WorkspaceRecord, WorkspaceRole } from "./types";
+export const getWorkspaceMembers = (workspaceId: string): Promise<WorkspaceMemberRecord[]> =>
+  HttpUtils.getData<WorkspaceMemberRecord[]>(
+    `${WORKSPACE_API_PREFIX}/${workspaceId}/members`,
+    WITHOUT_WORKSPACE_HEADER,
+  );
+
+export type {
+  WorkspaceCreatePayload,
+  WorkspaceMemberRecord,
+  WorkspaceRecord,
+  WorkspaceRole,
+} from "./types";
