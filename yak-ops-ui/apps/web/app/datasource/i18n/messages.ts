@@ -18,6 +18,15 @@ export default {
   "pages.datasource.table.edit": "编辑",
   "pages.datasource.table.delete": "删除",
 
+  "pages.datasource.batch.selectCurrentPage": "全选当前页",
+  "pages.datasource.batch.delete": "批量删除",
+  "pages.datasource.batch.testConnection": "批量测试连通性",
+  "pages.datasource.batch.selectionLimit": "单次最多选择 {count} 个数据源",
+  "pages.datasource.batch.deleteConfirmTitle": "确认批量删除数据源吗？",
+  "pages.datasource.batch.deleteContent": "即将删除已选择的 {count} 个数据源，删除后无法恢复。",
+  "pages.datasource.batch.deleteSuccess": "已删除 {count} 个数据源",
+  "pages.datasource.batch.testResult": "连接测试完成：成功 {success}，失败 {failed}",
+
   "pages.datasource.status.connected": "已连接",
   "pages.datasource.status.disconnected": "连接失败",
   "pages.datasource.status.unknown": "待检测",

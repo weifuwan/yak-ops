@@ -1,4 +1,11 @@
-import { Badge, Button, Table, type BadgeProps, type TableColumns } from "@yak-ops/yak-ui";
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Table,
+  type BadgeProps,
+  type TableColumns,
+} from "@yak-ops/yak-ui";
 import { CircleCheck, CircleMinus, CircleX } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -15,9 +22,15 @@ interface DataSourceTableProps {
   total: number;
   hasActiveFilters: boolean;
   editingId: string;
+  selectedRowKeys: string[];
+  batchDeleting: boolean;
+  batchTesting: boolean;
   onPageChange: (page: number, pageSize: number) => void;
+  onSelectionChange: (selectedRowKeys: string[]) => void;
   onEdit: (record: DataSourceRecord) => void;
   onDelete: (record: DataSourceRecord) => void;
+  onBatchDelete: () => void;
+  onBatchTestConnection: () => void;
 }
 
 interface StatusConfig {
@@ -63,11 +76,32 @@ const DataSourceTable = ({
   total,
   hasActiveFilters,
   editingId,
+  selectedRowKeys,
+  batchDeleting,
+  batchTesting,
   onPageChange,
+  onSelectionChange,
   onEdit,
   onDelete,
+  onBatchDelete,
+  onBatchTestConnection,
 }: DataSourceTableProps) => {
   const intl = useIntl();
+  const batchBusy = batchDeleting || batchTesting;
+  const currentPageIds = records.flatMap((record) => (record.id ? [String(record.id)] : []));
+  const selectedKeySet = new Set(selectedRowKeys);
+  const allCurrentPageSelected =
+    currentPageIds.length > 0 && currentPageIds.every((id) => selectedKeySet.has(id));
+  const someCurrentPageSelected = currentPageIds.some((id) => selectedKeySet.has(id));
+
+  const toggleCurrentPageSelection = (checked: boolean) => {
+    const nextSelectedKeys = new Set(selectedRowKeys);
+    for (const id of currentPageIds) {
+      if (checked) nextSelectedKeys.add(id);
+      else nextSelectedKeys.delete(id);
+    }
+    onSelectionChange([...nextSelectedKeys]);
+  };
 
   const columns: TableColumns<DataSourceRecord> = [
     {
@@ -148,7 +182,7 @@ const DataSourceTable = ({
               size="small"
               className="px-1 text-xs font-normal text-[#667085] hover:text-[var(--yak-color-primary)]"
               loading={editingId === id}
-              disabled={Boolean(editingId) && editingId !== id}
+              disabled={batchBusy || (Boolean(editingId) && editingId !== id)}
               onClick={() => onEdit(record)}
             >
               {intl.formatMessage({ id: "pages.datasource.table.edit" })}
@@ -158,6 +192,7 @@ const DataSourceTable = ({
               variant="ghost"
               size="small"
               className="px-1 text-xs font-normal text-[#667085] hover:text-[#d92d20]"
+              disabled={batchBusy}
               onClick={() => onDelete(record)}
             >
               {intl.formatMessage({ id: "pages.datasource.table.delete" })}
@@ -168,6 +203,36 @@ const DataSourceTable = ({
     },
   ];
 
+  const batchFooter =
+    total > 0 ? (
+      <div className="flex items-center gap-2 pl-4">
+        <Checkbox
+          aria-label={intl.formatMessage({ id: "pages.datasource.batch.selectCurrentPage" })}
+          checked={allCurrentPageSelected}
+          indeterminate={!allCurrentPageSelected && someCurrentPageSelected}
+          disabled={loading || batchBusy || currentPageIds.length === 0}
+          onCheckedChange={toggleCurrentPageSelection}
+        />
+        <Button
+          size="small"
+          variant="primary"
+          loading={batchDeleting}
+          disabled={selectedRowKeys.length === 0 || batchBusy}
+          onClick={onBatchDelete}
+        >
+          {intl.formatMessage({ id: "pages.datasource.batch.delete" })}
+        </Button>
+        <Button
+          size="small"
+          loading={batchTesting}
+          disabled={selectedRowKeys.length === 0 || batchBusy}
+          onClick={onBatchTestConnection}
+        >
+          {intl.formatMessage({ id: "pages.datasource.batch.testConnection" })}
+        </Button>
+      </div>
+    ) : null;
+
   return (
     <Table<DataSourceRecord>
       className="min-h-full"
@@ -176,6 +241,15 @@ const DataSourceTable = ({
       rowKey={(record) => record.id || record.name || record.jdbcUrl || "datasource"}
       loading={loading}
       bordered
+      footer={batchFooter}
+      rowSelection={{
+        selectedRowKeys,
+        columnWidth: 48,
+        getCheckboxProps: (record) => ({
+          disabled: loading || batchBusy || !record.id,
+        }),
+        onChange: (keys) => onSelectionChange(keys.map(String)),
+      }}
       size="medium"
       scroll={{ x: 1280 }}
       emptyText={intl.formatMessage({
@@ -190,7 +264,7 @@ const DataSourceTable = ({
               pageSizeOptions: DATA_SOURCE_PAGE_SIZE_OPTIONS,
               pageSizeLabel: "每页显示：",
               showSizeChanger: true,
-              disabled: loading,
+              disabled: loading || batchBusy,
               onChange: onPageChange,
             }
           : false
