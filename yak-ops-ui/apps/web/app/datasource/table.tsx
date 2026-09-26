@@ -170,17 +170,17 @@ const DataSourceTable = ({
     {
       key: "actions",
       title: intl.formatMessage({ id: "pages.datasource.table.actions" }),
-      width: 112,
+      width: 120,
       align: "center",
       render: (_value, record) => {
         const id = String(record.id ?? "");
 
         return (
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-1">
             <Button
               variant="ghost"
               size="small"
-              className="px-1 text-xs font-normal text-[#667085] hover:text-[var(--yak-color-primary)]"
+              className="px-0.5 text-xs font-normal text-[#667085] hover:text-[var(--yak-color-primary)]"
               disabled={batchBusy || (Boolean(editingId) && editingId !== id)}
               onClick={() => onEdit(record)}
             >
@@ -190,7 +190,7 @@ const DataSourceTable = ({
             <Button
               variant="ghost"
               size="small"
-              className="px-1 text-xs font-normal text-[#667085] hover:text-[#d92d20]"
+              className="px-0.5 text-xs font-normal text-[#667085] hover:text-[#d92d20]"
               disabled={batchBusy}
               onClick={() => onDelete(record)}
             >
