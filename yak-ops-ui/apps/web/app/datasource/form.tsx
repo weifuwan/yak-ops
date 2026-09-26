@@ -276,7 +276,9 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
   const syncSuggestedProperties = (selectedKeys: string[]) => {
     setValues((current) => {
       const currentByKey = new Map(
-        current.properties.map((property) => [normalizePropertyKey(property.key), property] as const),
+        current.properties.map(
+          (property) => [normalizePropertyKey(property.key), property] as const,
+        ),
       );
       const customProperties = current.properties.filter(
         (property) => !propertyKeyMap.has(normalizePropertyKey(property.key)),
