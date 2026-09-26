@@ -11,13 +11,13 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "border border-[var(--yak-components-button-primary-bg)] bg-[var(--yak-components-button-primary-bg)] text-[var(--yak-components-button-primary-text)] hover:border-[var(--yak-components-button-primary-bg-hover)] hover:bg-[var(--yak-components-button-primary-bg-hover)] active:border-[var(--yak-components-button-primary-bg-active)] active:bg-[var(--yak-components-button-primary-bg-active)]",
+          "border border-[var(--yak-components-button-primary-bg)] bg-[var(--yak-components-button-primary-bg)] [color:var(--yak-components-button-primary-text)] hover:border-[var(--yak-components-button-primary-bg-hover)] hover:bg-[var(--yak-components-button-primary-bg-hover)] active:border-[var(--yak-components-button-primary-bg-active)] active:bg-[var(--yak-components-button-primary-bg-active)]",
         secondary:
-          "border border-transparent bg-[var(--yak-components-button-secondary-bg)] text-[var(--yak-components-button-secondary-text)] hover:bg-[var(--yak-components-button-secondary-bg-hover)] active:bg-[var(--yak-components-button-secondary-bg-active)]",
+          "border border-transparent bg-[var(--yak-components-button-secondary-bg)] [color:var(--yak-components-button-secondary-text)] hover:bg-[var(--yak-components-button-secondary-bg-hover)] active:bg-[var(--yak-components-button-secondary-bg-active)]",
         ghost:
-          "border border-transparent bg-transparent text-[var(--yak-components-button-ghost-text)] hover:bg-[var(--yak-components-button-ghost-bg-hover)] hover:text-[var(--yak-components-button-secondary-text)] active:bg-[var(--yak-components-button-secondary-bg-active)]",
+          "border border-transparent bg-transparent [color:var(--yak-components-button-ghost-text)] hover:bg-[var(--yak-components-button-ghost-bg-hover)] hover:[color:var(--yak-components-button-secondary-text)] active:bg-[var(--yak-components-button-secondary-bg-active)]",
         danger:
-          "border border-transparent bg-[var(--yak-components-button-danger-bg)] text-[var(--yak-components-button-danger-text)] hover:bg-[var(--yak-components-button-danger-bg-hover)] active:bg-[var(--yak-components-button-danger-bg-active)]",
+          "border border-transparent bg-[var(--yak-components-button-danger-bg)] [color:var(--yak-components-button-danger-text)] hover:bg-[var(--yak-components-button-danger-bg-hover)] active:bg-[var(--yak-components-button-danger-bg-active)]",
       },
       size: {
         small:
