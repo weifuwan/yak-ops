@@ -2,6 +2,9 @@
 
 Status: Active
 
+Related:
+- [PostgreSQL Datasource](./postgresql.md)
+
 Scope:
 - Workspace-scoped Datasource CRUD
 - Connection testing
