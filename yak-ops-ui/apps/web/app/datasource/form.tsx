@@ -1,10 +1,5 @@
 import {
   Button,
-  Drawer,
-  DrawerBody,
-  DrawerContent,
-  DrawerDescription,
-  DrawerTitle,
   Input,
   Modal,
   PasswordInput,
@@ -18,7 +13,7 @@ import {
   Textarea,
   toast,
 } from "@yak-ops/yak-ui";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -197,8 +192,8 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       remark: record?.remark || "",
     });
     setErrors({});
+    setCreateStep(record?.id ? "config" : "select");
     if (!record?.id) {
-      setCreateStep("select");
       setCreateSearch("");
       setCreateCategory("ALL");
     }
@@ -363,39 +358,6 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           onChange={(event) => patch("name", event.target.value)}
         />
         {fieldError("name")}
-      </div>
-    </div>
-  );
-
-  const dbTypeField = (
-    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <label htmlFor="datasource-db-type" className="pt-1.5 text-xs font-medium text-[#344054]">
-        {intl.formatMessage({ id: "pages.datasource.form.dbType" })}
-      </label>
-      <div className="min-w-0">
-        <Select
-          size="small"
-          value={values.dbType}
-          disabled={editing}
-          onValueChange={(value) => patch("dbType", value ?? "")}
-        >
-          <SelectTrigger
-            id="datasource-db-type"
-            variant="outlined"
-            aria-invalid={Boolean(errors.dbType) || undefined}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {COMMON_DB_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                <SelectItemText>{option.label}</SelectItemText>
-                <SelectItemIndicator />
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {fieldError("dbType")}
       </div>
     </div>
   );
@@ -666,93 +628,6 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     </div>
   );
 
-  if (editing) {
-    return (
-      <Drawer
-        open={open}
-        side="right"
-        disablePointerDismissal={busy}
-        onOpenChange={(next) => {
-          if (!busy) onOpenChange(next);
-        }}
-      >
-        <DrawerContent width={720} animated={false} className="bg-white">
-          <div className="flex items-center gap-3 border-b border-[#eef0f3] px-5 py-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eaecf0] bg-[#f7f8fa]">
-              <DatabaseIcons dbType={values.dbType} width="18" height="18" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <DrawerTitle className="text-[15px] font-semibold">
-                {intl.formatMessage({ id: "pages.datasource.modal.drawerTitle.edit" })}
-              </DrawerTitle>
-              <DrawerDescription className="sr-only">
-                {intl.formatMessage({ id: "pages.datasource.common.title" })}
-              </DrawerDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="small"
-              disabled={busy}
-              className="h-8 w-8 p-0"
-              onClick={() => onOpenChange(false)}
-            >
-              <X size={16} />
-            </Button>
-          </div>
-
-          <DrawerBody className="px-5 py-4">
-            <div className="space-y-3.5">
-              <section className="overflow-hidden rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed]">
-                <h3 className="border-b border-[#eef0f3] bg-[#fafafa] px-3 py-2 text-xs font-medium text-[#344054]">
-                  {intl.formatMessage({ id: "pages.datasource.wizard.basicInfo" })}
-                </h3>
-                <div className="space-y-2.5 px-3 py-3">
-                  {nameField}
-                  {dbTypeField}
-                  {remarkField}
-                </div>
-              </section>
-
-              <section>
-                <h3 className="mb-2 text-xs font-medium text-[#344054]">
-                  {intl.formatMessage({ id: "pages.datasource.wizard.connectionConfig" })}
-                </h3>
-                <div className="space-y-2.5 rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed] px-3 py-3">
-                  {connectionFields}
-                </div>
-              </section>
-            </div>
-          </DrawerBody>
-
-          <div className="flex items-center justify-between border-t border-[#eef0f3] px-5 py-3">
-            <Button size="small" disabled={busy} onClick={() => onOpenChange(false)}>
-              {intl.formatMessage({ id: "pages.datasource.modal.button.cancel" })}
-            </Button>
-            <div className="flex gap-2">
-              <Button
-                size="small"
-                loading={testing}
-                disabled={submitting}
-                onClick={() => void handleTest()}
-              >
-                {intl.formatMessage({ id: "pages.datasource.modal.button.connTest" })}
-              </Button>
-              <Button
-                size="small"
-                variant="primary"
-                loading={submitting}
-                disabled={testing}
-                onClick={() => void handleSubmit()}
-              >
-                {intl.formatMessage({ id: "pages.datasource.modal.button.save" })}
-              </Button>
-            </div>
-          </div>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
   const selectedType = COMMON_DB_OPTIONS.find((option) => option.value === values.dbType);
   const normalizedSearch = createSearch.trim().toLowerCase();
   const relationalCount = COMMON_DB_OPTIONS.filter(
@@ -767,6 +642,29 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     return matchesCategory && matchesSearch;
   });
 
+  const configContent = (
+    <div className="space-y-3.5">
+      <section className="overflow-hidden rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed]">
+        <h3 className="border-b border-[#eef0f3] bg-[#fafafa] px-3 py-2 text-xs font-medium text-[#344054]">
+          {intl.formatMessage({ id: "pages.datasource.wizard.basicInfo" })}
+        </h3>
+        <div className="space-y-2.5 px-3 py-3">
+          {nameField}
+          {remarkField}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-xs font-medium text-[#344054]">
+          {intl.formatMessage({ id: "pages.datasource.wizard.connectionConfig" })}
+        </h3>
+        <div className="space-y-2.5 rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed] px-3 py-3">
+          {connectionFields}
+        </div>
+      </section>
+    </div>
+  );
+
   return (
     <Modal
       open={open}
@@ -775,23 +673,38 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
         if (!busy) onOpenChange(false);
       }}
       title={
-        createStep === "select"
+        !editing && createStep === "select"
           ? intl.formatMessage({ id: "pages.datasource.wizard.title" })
           : intl.formatMessage(
-              { id: "pages.datasource.wizard.configTitle" },
+              {
+                id: editing
+                  ? "pages.datasource.wizard.editConfigTitle"
+                  : "pages.datasource.wizard.configTitle",
+              },
               { type: selectedType?.label || values.dbType },
             )
       }
       bodyClassName={createStep === "config" ? "py-3" : undefined}
       footer={
-        createStep === "select" ? (
+        !editing && createStep === "select" ? (
           <Button size="small" disabled={busy} onClick={() => onOpenChange(false)}>
             {intl.formatMessage({ id: "pages.datasource.modal.button.cancel" })}
           </Button>
         ) : (
           <div className="flex w-full items-center justify-between">
-            <Button size="small" disabled={busy} onClick={() => setCreateStep("select")}>
-              {intl.formatMessage({ id: "pages.datasource.wizard.back" })}
+            <Button
+              size="small"
+              disabled={busy}
+              onClick={() => {
+                if (editing) onOpenChange(false);
+                else setCreateStep("select");
+              }}
+            >
+              {intl.formatMessage({
+                id: editing
+                  ? "pages.datasource.modal.button.cancel"
+                  : "pages.datasource.wizard.back",
+              })}
             </Button>
             <div className="flex gap-2">
               <Button
@@ -809,14 +722,18 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
                 disabled={testing}
                 onClick={() => void handleSubmit()}
               >
-                {intl.formatMessage({ id: "pages.datasource.wizard.complete" })}
+                {intl.formatMessage({
+                  id: editing
+                    ? "pages.datasource.modal.button.save"
+                    : "pages.datasource.wizard.complete",
+                })}
               </Button>
             </div>
           </div>
         )
       }
     >
-      {createStep === "select" ? (
+      {!editing && createStep === "select" ? (
         <div className="flex h-[420px] flex-col">
           <section className="shrink-0">
             <div className="mb-2.5 text-[13px] font-medium text-[#344054]">
@@ -897,26 +814,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           </section>
         </div>
       ) : (
-        <div className="space-y-3.5">
-          <section className="overflow-hidden rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed]">
-            <h3 className="border-b border-[#eef0f3] bg-[#fafafa] px-3 py-2 text-xs font-medium text-[#344054]">
-              {intl.formatMessage({ id: "pages.datasource.wizard.basicInfo" })}
-            </h3>
-            <div className="space-y-2.5 px-3 py-3">
-              {nameField}
-              {remarkField}
-            </div>
-          </section>
-
-          <section>
-            <h3 className="mb-2 text-xs font-medium text-[#344054]">
-              {intl.formatMessage({ id: "pages.datasource.wizard.connectionConfig" })}
-            </h3>
-            <div className="space-y-2.5 rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed] px-3 py-3">
-              {connectionFields}
-            </div>
-          </section>
-        </div>
+        configContent
       )}
     </Modal>
   );
