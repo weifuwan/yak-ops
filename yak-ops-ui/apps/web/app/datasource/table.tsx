@@ -92,7 +92,7 @@ const DataSourceTable = ({
             <DatabaseIcons dbType={record.dbType} width="22" height="22" />
           </span>
           <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-[#252832]" title={record.name}>
+            <div className="truncate text-[13px] font-medium text-[#252832]" title={record.name}>
               {record.name || "-"}
             </div>
             <div className="mt-0.5 truncate text-xs text-[#667085]">{record.dbType || "-"}</div>
@@ -106,7 +106,7 @@ const DataSourceTable = ({
       minWidth: 360,
       render: (_value, record) => (
         <div className="min-w-0">
-          <div className="truncate text-sm text-[#4f5561]" title={record.jdbcUrl}>
+          <div className="truncate text-[13px] text-[#4f5561]" title={record.jdbcUrl}>
             {record.jdbcUrl || "-"}
           </div>
           <div className="mt-1.5">
@@ -191,13 +191,13 @@ const DataSourceTable = ({
 
   return (
     <Table<DataSourceRecord>
-      className="[&>div:first-child]:rounded-xl"
+      className="min-h-full"
       columns={columns}
       dataSource={records}
       rowKey={(record) => record.id || record.name || record.jdbcUrl || "datasource"}
       loading={loading}
       bordered
-      size="large"
+      size="medium"
       scroll={{ x: 1280 }}
       emptyText={intl.formatMessage({
         id: hasActiveFilters ? "pages.datasource.empty.filtered" : "pages.datasource.empty.default",
@@ -209,6 +209,7 @@ const DataSourceTable = ({
               pageSize,
               total,
               pageSizeOptions: DATA_SOURCE_PAGE_SIZE_OPTIONS,
+              pageSizeLabel: "每页显示：",
               showSizeChanger: true,
               disabled: loading,
               onChange: onPageChange,

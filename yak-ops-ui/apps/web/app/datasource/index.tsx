@@ -159,7 +159,7 @@ const DataSourcePage = () => {
 
   return (
     <>
-      <div className="min-h-full bg-[#F6F6F6] text-[#242731]">
+      <div className="flex min-h-full flex-col bg-[#F6F6F6] text-[#242731]">
         <PageHeader
           title={intl.formatMessage({ id: "pages.datasource.page.title" })}
           extra={
@@ -172,8 +172,8 @@ const DataSourcePage = () => {
           className="bg-white px-6 max-md:px-4"
         />
 
-        <div className="px-6 pb-4 pt-5 max-md:px-4">
-          <section className="flex flex-wrap items-center gap-2">
+        <div className="flex min-h-0 flex-1 flex-col px-6 pb-4 pt-5 max-md:px-4">
+          <section className="flex shrink-0 flex-wrap items-center gap-2">
             <div className="relative w-[300px] max-md:w-full">
               <Search
                 size={15}
@@ -258,7 +258,7 @@ const DataSourcePage = () => {
             ) : null}
           </section>
 
-          <section className="mt-4">
+          <section className="mt-4 min-h-0 flex-1">
             <DataSourceTable
               records={records}
               loading={loading}

@@ -170,7 +170,7 @@ export function InternalTable<RecordType extends object>({
   const sizeClass = sizeClasses[size];
 
   return (
-    <div className={cn("min-w-0", className)}>
+    <div className={cn("flex min-w-0 flex-col", className)}>
       <div
         className={cn(
           "relative overflow-x-auto bg-[var(--yak-components-table-bg)]",
@@ -194,7 +194,7 @@ export function InternalTable<RecordType extends object>({
           </colgroup>
 
           <thead>
-            <tr className="border-b border-[var(--yak-components-table-border)]">
+            <tr>
               {mergedColumns.map((column, index) => {
                 const align = column.align ?? "left";
 
@@ -208,8 +208,6 @@ export function InternalTable<RecordType extends object>({
                       sizeClass.header,
                       alignClasses[align],
                       sticky && "sticky top-0 z-10",
-                      bordered &&
-                        "border-r border-[var(--yak-components-table-border)] last:border-r-0",
                     )}
                   >
                     <div className={cn("min-w-0", column.ellipsis && "truncate")}>
@@ -289,12 +287,13 @@ export function InternalTable<RecordType extends object>({
       </div>
 
       {resolvedPagination ? (
-        <div className="mt-3 flex justify-end">
+        <div className="mt-auto flex justify-end pt-3">
           <Pagination
             page={resolvedPagination.page}
             pageSize={resolvedPagination.pageSize}
             total={resolvedPagination.total}
             pageSizeOptions={resolvedPagination.pageSizeOptions}
+            pageSizeLabel={resolvedPagination.pageSizeLabel}
             disabled={loading || resolvedPagination.disabled}
             showSizeChanger={resolvedPagination.showSizeChanger}
             showQuickJumper={resolvedPagination.showQuickJumper}

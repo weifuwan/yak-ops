@@ -72,6 +72,7 @@ export interface TablePaginationConfig {
   pageSize?: number;
   total?: number;
   pageSizeOptions?: readonly number[];
+  pageSizeLabel?: ReactNode;
   disabled?: boolean;
   showSizeChanger?: boolean;
   showQuickJumper?: boolean;

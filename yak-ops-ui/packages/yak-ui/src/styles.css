@@ -84,7 +84,7 @@
   --yak-components-page-header-border: #e7e9ed;
 
   --yak-components-table-bg: #ffffff;
-  --yak-components-table-header-bg: #f5f5f5;
+  --yak-components-table-header-bg: #f2f2f2;
   --yak-components-table-header-text: #252832;
   --yak-components-table-row-bg: #ffffff;
   --yak-components-table-row-bg-hover: #fafafa;
@@ -100,6 +100,14 @@
   --yak-components-table-filter-inactive: #8f949e;
   --yak-components-table-filter-active: #292c35;
   --yak-components-table-filter-bg-hover: #eef0f3;
+
+  --yak-components-pagination-bg: #ffffff;
+  --yak-components-pagination-bg-hover: #f6f7f9;
+  --yak-components-pagination-border: #e1e4e8;
+  --yak-components-pagination-text: #667085;
+  --yak-components-pagination-active-bg: #ffffff;
+  --yak-components-pagination-active-border: #1645d1;
+  --yak-components-pagination-active-text: #1645d1;
 
   --yak-components-menu-item-hover: #f5f6f8;
 
