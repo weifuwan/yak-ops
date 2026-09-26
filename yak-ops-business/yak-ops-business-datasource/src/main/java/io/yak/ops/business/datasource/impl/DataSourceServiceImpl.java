@@ -10,6 +10,7 @@ import io.yak.ops.common.bean.dto.datasource.DataSourceConnectionDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceBatchConnectTestResultVO;
+import io.yak.ops.common.bean.vo.datasource.DataSourceConnectionPropertyKeysVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
@@ -121,6 +122,14 @@ public class DataSourceServiceImpl implements DataSourceService {
     public DataSourceVO queryDataSource(String id) {
         String workspaceId = requireWorkspaceId();
         return toDataSourceVO(requireEntity(workspaceId, id), true);
+    }
+
+    @Override
+    public DataSourceConnectionPropertyKeysVO queryConnectionPropertyKeys(String dbType) {
+        String canonicalType = pluginRegistry.resolvePluginType(dbType);
+        DataSourceConnectionPropertyKeysVO result = new DataSourceConnectionPropertyKeysVO();
+        result.setAcceptedPropertyKeys(pluginRegistry.connectionPropertyKeys(canonicalType));
+        return result;
     }
 
     @Override
