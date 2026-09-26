@@ -60,6 +60,8 @@ secretFieldKeys
 
 `ConnectionForm / FieldType / FormField / FormRule / FormSection / VisibilityCondition / JdbcUrlLinkage` are not Plugin API concepts. Frontend labels, placeholders, visibility rules and JDBC URL form linkage belong to the fixed Datasource UI, not to backend Provider metadata.
 
+`connectionPropertyKeys()` is an additive V3 runtime discovery method. It only exposes recommended connection-property names for the advanced Key / Value editor and does not turn the Plugin API back into a dynamic frontend schema.
+
 ## Plugin Type Contract
 
 Datasource providers are an open set. Plugin identity must not be modeled as a Common enum.
@@ -89,6 +91,34 @@ The current Yak Ops product baseline only packages:
 - `POSTGRE_SQL` with `POSTGRESQL` and `POSTGRES` aliases.
 
 Other providers must not be packaged, registered, or pulled in through runtime dependencies unless the product baseline is intentionally expanded in a dedicated change.
+
+## Connection Property Key Discovery
+
+高级参数候选 Key 由 Provider 提供，前端不得复制 MySQL / Oracle / PostgreSQL JDBC 参数目录。
+
+Runtime path:
+
+```text
+DataSourceController
+→ DataSourceService
+→ DataSourcePluginRegistry
+→ DataSourcePlugin.connectionPropertyKeys()
+→ AbstractJdbcDataSourcePlugin
+→ JDBC Driver#getPropertyInfo(...)
+```
+
+Must:
+- JDBC Provider 优先通过 JDBC Driver 的 `Driver#getPropertyInfo` 发现连接属性名，并合并 Provider 已知 canonical property keys。
+- 返回值必须稳定排序、大小写不重复，并过滤已经由结构化连接字段拥有的 `host / port / database / username / password / jdbcUrl / driver` 等 Key。
+- Driver 内部测试 / fault-injection 属性不得暴露给产品高级参数候选项。
+- Driver 元数据读取失败时可以回退到 Provider 已知属性，不能为了打开高级参数下拉框建立真实数据库连接。
+- Property Keys 只是推荐候选项，不是严格白名单；未知属性继续遵循 Provider 现有 pass-through / validation 规则。
+- `POSTGRESQL` / `POSTGRES` 等 alias 必须由 Registry 路由到同一个 canonical Provider 后再查询候选项。
+
+Must Not:
+- 把 property value、默认凭证、连接实例或敏感信息返回给前端。
+- 把候选 Key 放入 `DataSourcePluginDescriptor` 或重新引入动态 Form Schema。
+- 在 Business、Boot 或 Frontend 维护第二份 Vendor JDBC property catalog。
 
 ## Provider Rules
 
