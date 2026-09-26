@@ -57,7 +57,7 @@ service/datasource/
 
 `index.tsx` owns:
 
-- keyword / dbType / connection-status filters
+- keyword / dbType filters
 - paging state
 - list loading
 - create/edit drawer visibility
@@ -95,7 +95,7 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 - 列表只使用 `@yak-ops/yak-ui` 的 `Table`；Datasource 业务层禁止手写 `<table> / <thead> / <tbody>`。
 - Datasource Table 使用 Yak UI 的中等密度、无圆角卡片覆盖；分页占用列表剩余高度的底部位置，并通过 `pageSizeLabel` 显示“每页显示：”。
 - Datasource 页面保持 `#F6F6F6` 页面底色，筛选、Table 和 Pagination 必须放在同一个白色内容面板中；内容面板不加阴影和额外圆角。
-- 筛选只保留 keyword、dbType、connStatus。
+- 筛选只保留 dbType 和 keyword；工具栏顺序固定为“新增数据源 → 数据源类型 → 数据源名称”，新增入口不放在 PageHeader extra。
 - CRUD 和 Connection Test 统一走 `service/datasource`。
 - HTTP transport only through `service/http`。
 - Common primitives from `@yak-ops/yak-ui`。

@@ -3,12 +3,10 @@ export default {
   "pages.datasource.page.title": "数据源管理",
   "pages.datasource.page.create": "新建数据源",
 
-  "pages.datasource.toolbar.searchPlaceholder": "搜索名称或 JDBC URL",
-  "pages.datasource.toolbar.typePlaceholder": "数据源类型",
-  "pages.datasource.toolbar.statusPlaceholder": "连接状态",
+  "pages.datasource.toolbar.typeLabel": "数据源类型：",
+  "pages.datasource.toolbar.nameLabel": "数据源名称：",
+  "pages.datasource.toolbar.namePlaceholder": "请输入名称",
   "pages.datasource.toolbar.allTypes": "全部类型",
-  "pages.datasource.toolbar.allStatuses": "全部状态",
-  "pages.datasource.toolbar.reset": "重置",
 
   "pages.datasource.table.sequence": "序号",
   "pages.datasource.table.datasource": "数据源信息",
