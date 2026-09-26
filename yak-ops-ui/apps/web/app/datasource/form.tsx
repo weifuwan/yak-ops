@@ -187,14 +187,18 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
 
   useEffect(() => {
     if (!open) return;
+    const dbType = record?.dbType || "MYSQL";
     const original = parseOriginalJson(record);
     setValues({
       ...EMPTY_FORM,
       name: record?.name || "",
-      dbType: record?.dbType || "MYSQL",
-      jdbcUrl: original.jdbcUrl || record?.jdbcUrl || "",
+      dbType,
+      host: original.host || DEFAULT_HOST,
+      port: original.port || defaultPort(dbType),
+      database: original.database || "",
       username: original.username || "",
       password: original.password || "",
+      properties: original.properties || [],
       remark: record?.remark || "",
     });
     setErrors({});
@@ -207,34 +211,84 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
 
   const patch = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
     setValues((current) => ({ ...current, [key]: value }));
-    setErrors((current) => ({ ...current, [key]: undefined }));
+    if (key in errors) {
+      setErrors((current) => ({ ...current, [key]: undefined }));
+    }
+  };
+
+  const patchProperty = (index: number, key: keyof JdbcProperty, value: string) => {
+    setValues((current) => ({
+      ...current,
+      properties: current.properties.map((property, propertyIndex) =>
+        propertyIndex === index ? { ...property, [key]: value } : property,
+      ),
+    }));
+    setErrors((current) => ({ ...current, properties: undefined }));
+  };
+
+  const addProperty = () => {
+    setValues((current) => ({
+      ...current,
+      properties: [...current.properties, { key: "", value: "" }],
+    }));
+    setErrors((current) => ({ ...current, properties: undefined }));
+  };
+
+  const removeProperty = (index: number) => {
+    setValues((current) => ({
+      ...current,
+      properties: current.properties.filter((_, propertyIndex) => propertyIndex !== index),
+    }));
+    setErrors((current) => ({ ...current, properties: undefined }));
   };
 
   const validate = () => {
     const next: FormErrors = {};
+    const port = Number(values.port);
     if (!values.name.trim())
       next.name = intl.formatMessage({ id: "pages.datasource.form.dsNameRequired" });
     if (!values.dbType)
       next.dbType = intl.formatMessage({ id: "pages.datasource.form.dbTypeRequired" });
-    if (!values.jdbcUrl.trim())
-      next.jdbcUrl = intl.formatMessage({ id: "pages.datasource.form.jdbcUrlRequired" });
+    if (!values.host.trim())
+      next.host = intl.formatMessage({ id: "pages.datasource.form.hostRequired" });
+    if (!values.port.trim())
+      next.port = intl.formatMessage({ id: "pages.datasource.form.portRequired" });
+    else if (!Number.isInteger(port) || port < 1 || port > 65535)
+      next.port = intl.formatMessage({ id: "pages.datasource.form.portInvalid" });
+    if (!values.database.trim())
+      next.database = intl.formatMessage({ id: "pages.datasource.form.databaseRequired" });
     if (!values.username.trim())
       next.username = intl.formatMessage({ id: "pages.datasource.form.usernameRequired" });
     if (values.name.length > 128)
       next.name = intl.formatMessage({ id: "pages.datasource.form.dsNameMax" });
     if (values.remark.length > 500)
       next.remark = intl.formatMessage({ id: "pages.datasource.form.descriptionMax" });
+
+    const propertyKeys = values.properties.map((property) => property.key.trim());
+    if (propertyKeys.some((key) => !key)) {
+      next.properties = intl.formatMessage({ id: "pages.datasource.form.propertyKeyRequired" });
+    } else if (new Set(propertyKeys).size !== propertyKeys.length) {
+      next.properties = intl.formatMessage({ id: "pages.datasource.form.propertyKeyDuplicate" });
+    }
+
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
-  const connectionJson = () =>
-    JSON.stringify({
+  const connectionJson = () => {
+    const properties = Object.fromEntries(
+      values.properties.map((property) => [property.key.trim(), property.value]),
+    );
+    return JSON.stringify({
       dbType: values.dbType,
-      jdbcUrl: values.jdbcUrl.trim(),
+      host: values.host.trim(),
+      port: Number(values.port),
+      database: values.database.trim(),
       username: values.username.trim(),
       password: values.password,
+      properties,
     });
+  };
 
   const handleTest = async () => {
     if (busy || !validate()) return;
@@ -281,18 +335,25 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
   };
 
   const handleSelectType = (dbType: string) => {
-    setValues((current) => ({
-      ...current,
-      dbType,
-      jdbcUrl: current.dbType === dbType ? current.jdbcUrl : "",
-      username: current.dbType === dbType ? current.username : "",
-      password: current.dbType === dbType ? current.password : "",
-    }));
+    setValues((current) =>
+      current.dbType === dbType
+        ? current
+        : {
+            ...current,
+            dbType,
+            host: DEFAULT_HOST,
+            port: defaultPort(dbType),
+            database: "",
+            username: "",
+            password: "",
+            properties: [],
+          },
+    );
     setErrors({});
     setCreateStep("config");
   };
 
-  const fieldError = (key: keyof FormValues) =>
+  const fieldError = (key: FormErrorKey) =>
     errors[key] ? <div className="mt-1 text-xs text-[#b42318]">{errors[key]}</div> : null;
 
   const nameField = (
