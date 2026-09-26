@@ -348,11 +348,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       invalid={Boolean(errors.name)}
       className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3"
     >
-      <FieldLabel
-        required
-        htmlFor="datasource-name"
-        className="pt-1.5 text-xs leading-4"
-      >
+      <FieldLabel required htmlFor="datasource-name" className="pt-1.5 text-xs leading-4">
         {intl.formatMessage({ id: "pages.datasource.form.dsName" })}
       </FieldLabel>
       <div className="min-w-0">
@@ -433,11 +429,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       invalid={Boolean(errors.database)}
       className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3"
     >
-      <FieldLabel
-        required
-        htmlFor="datasource-database"
-        className="pt-1.5 text-xs leading-4"
-      >
+      <FieldLabel required htmlFor="datasource-database" className="pt-1.5 text-xs leading-4">
         {intl.formatMessage({ id: "pages.datasource.form.database" })}
       </FieldLabel>
       <div className="min-w-0">
@@ -490,11 +482,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       invalid={Boolean(errors.username)}
       className="grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3"
     >
-      <FieldLabel
-        required
-        htmlFor="datasource-username"
-        className="pt-1.5 text-xs leading-4"
-      >
+      <FieldLabel required htmlFor="datasource-username" className="pt-1.5 text-xs leading-4">
         {intl.formatMessage({ id: "pages.datasource.form.username" })}
       </FieldLabel>
       <div className="min-w-0">
