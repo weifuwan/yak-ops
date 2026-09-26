@@ -286,18 +286,11 @@ export function InternalTable<RecordType extends object>({
       </div>
 
       {footer || resolvedPagination ? (
-        <div
-          className={cn(
-            "mt-auto flex flex-nowrap items-center gap-3",
-            footer
-              ? "border-t border-[var(--yak-components-table-border-strong)] py-3"
-              : "justify-end pt-3",
-          )}
-        >
-          {footer ? <div className="min-w-0 shrink-0">{footer}</div> : null}
+        <div className="mt-auto flex min-h-12 flex-nowrap items-center gap-4 border-t border-[var(--yak-components-table-border-strong)] px-4">
+          {footer ? <div className="min-w-0 flex-1">{footer}</div> : null}
           {resolvedPagination ? (
             <Pagination
-              className="ml-auto"
+              className="ml-auto shrink-0"
               page={resolvedPagination.page}
               pageSize={resolvedPagination.pageSize}
               total={resolvedPagination.total}
