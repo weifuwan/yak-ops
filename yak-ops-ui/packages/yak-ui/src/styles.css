@@ -1,5 +1,6 @@
 :root {
   --yak-color-primary: #0033ff;
+  --yak-color-hover: #f6f6f6;
 
   --yak-radius-control-small: 6px;
   --yak-radius-control-medium: 8px;
@@ -98,9 +99,6 @@
   --yak-components-table-header-bg: #f2f2f2;
   --yak-components-table-header-text: #252832;
   --yak-components-table-row-bg: #ffffff;
-  --yak-components-table-row-bg-hover: #fafafa;
-  --yak-components-table-row-bg-selected: #eef3ff;
-  --yak-components-table-row-bg-selected-hover: #e6edff;
   --yak-components-table-text: #343841;
   --yak-components-table-border: #eceef2;
   --yak-components-table-border-strong: #e4e7ec;
