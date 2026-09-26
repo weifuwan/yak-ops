@@ -172,111 +172,113 @@ const DataSourcePage = () => {
           className="bg-white px-6 max-md:px-4"
         />
 
-        <div className="flex min-h-0 flex-1 flex-col px-6 pb-4 pt-5 max-md:px-4">
-          <section className="flex shrink-0 flex-wrap items-center gap-2">
-            <div className="relative w-[300px] max-md:w-full">
-              <Search
-                size={15}
-                className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[#98a2b3]"
-              />
-              <Input
-                value={keyword}
-                className="pl-9"
-                placeholder={intl.formatMessage({
-                  id: "pages.datasource.toolbar.searchPlaceholder",
-                })}
-                onChange={(event) => setKeyword(event.target.value)}
-              />
-            </div>
+        <div className="flex min-h-0 flex-1 px-6 pb-4 pt-5 max-md:px-4">
+          <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
+            <section className="flex shrink-0 flex-wrap items-center gap-2">
+              <div className="relative w-[300px] max-md:w-full">
+                <Search
+                  size={15}
+                  className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[#98a2b3]"
+                />
+                <Input
+                  value={keyword}
+                  className="pl-9"
+                  placeholder={intl.formatMessage({
+                    id: "pages.datasource.toolbar.searchPlaceholder",
+                  })}
+                  onChange={(event) => setKeyword(event.target.value)}
+                />
+              </div>
 
-            <div className="w-[170px]">
-              <Select
-                value={dbType || "ALL"}
-                onValueChange={(value) => setDbType(value && value !== "ALL" ? value : undefined)}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={intl.formatMessage({
-                      id: "pages.datasource.toolbar.typePlaceholder",
-                    })}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">
-                    <SelectItemText>
-                      {intl.formatMessage({ id: "pages.datasource.toolbar.allTypes" })}
-                    </SelectItemText>
-                    <SelectItemIndicator />
-                  </SelectItem>
-                  {COMMON_DB_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <SelectItemText>{option.label}</SelectItemText>
-                      <SelectItemIndicator />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="w-[150px]">
-              <Select
-                value={connStatus || "ALL"}
-                onValueChange={(value) =>
-                  setConnStatus(value && value !== "ALL" ? value : undefined)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={intl.formatMessage({
-                      id: "pages.datasource.toolbar.statusPlaceholder",
-                    })}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">
-                    <SelectItemText>
-                      {intl.formatMessage({ id: "pages.datasource.toolbar.allStatuses" })}
-                    </SelectItemText>
-                    <SelectItemIndicator />
-                  </SelectItem>
-                  {CONNECTION_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+              <div className="w-[170px]">
+                <Select
+                  value={dbType || "ALL"}
+                  onValueChange={(value) => setDbType(value && value !== "ALL" ? value : undefined)}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={intl.formatMessage({
+                        id: "pages.datasource.toolbar.typePlaceholder",
+                      })}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">
                       <SelectItemText>
-                        {intl.formatMessage({ id: option.messageId })}
+                        {intl.formatMessage({ id: "pages.datasource.toolbar.allTypes" })}
                       </SelectItemText>
                       <SelectItemIndicator />
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                    {COMMON_DB_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <SelectItemText>{option.label}</SelectItemText>
+                        <SelectItemIndicator />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {hasActiveFilters ? (
-              <Button variant="ghost" size="small" onClick={resetFilters}>
-                {intl.formatMessage({ id: "pages.datasource.toolbar.reset" })}
-              </Button>
-            ) : null}
-          </section>
+              <div className="w-[150px]">
+                <Select
+                  value={connStatus || "ALL"}
+                  onValueChange={(value) =>
+                    setConnStatus(value && value !== "ALL" ? value : undefined)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={intl.formatMessage({
+                        id: "pages.datasource.toolbar.statusPlaceholder",
+                      })}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">
+                      <SelectItemText>
+                        {intl.formatMessage({ id: "pages.datasource.toolbar.allStatuses" })}
+                      </SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                    {CONNECTION_STATUS_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <SelectItemText>
+                          {intl.formatMessage({ id: option.messageId })}
+                        </SelectItemText>
+                        <SelectItemIndicator />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <section className="mt-4 min-h-0 flex-1">
-            <DataSourceTable
-              records={records}
-              loading={loading}
-              pageNo={pageNo}
-              pageSize={pageSize}
-              total={total}
-              hasActiveFilters={hasActiveFilters}
-              editingId={editingId}
-              testingId={testingId}
-              onPageChange={(nextPage, nextPageSize) => {
-                setPageNo(nextPage);
-                setPageSize(nextPageSize);
-              }}
-              onEdit={(record) => void handleEdit(record)}
-              onDelete={setPendingDelete}
-              onTestConnection={(record) => void handleTestConnection(record)}
-            />
-          </section>
+              {hasActiveFilters ? (
+                <Button variant="ghost" size="small" onClick={resetFilters}>
+                  {intl.formatMessage({ id: "pages.datasource.toolbar.reset" })}
+                </Button>
+              ) : null}
+            </section>
+
+            <section className="mt-4 min-h-0 flex-1">
+              <DataSourceTable
+                records={records}
+                loading={loading}
+                pageNo={pageNo}
+                pageSize={pageSize}
+                total={total}
+                hasActiveFilters={hasActiveFilters}
+                editingId={editingId}
+                testingId={testingId}
+                onPageChange={(nextPage, nextPageSize) => {
+                  setPageNo(nextPage);
+                  setPageSize(nextPageSize);
+                }}
+                onEdit={(record) => void handleEdit(record)}
+                onDelete={setPendingDelete}
+                onTestConnection={(record) => void handleTestConnection(record)}
+              />
+            </section>
+          </div>
         </div>
       </div>
 
