@@ -3,8 +3,13 @@ package io.yak.ops.plugin.database.jdbc.mysql;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
+import io.yak.ops.plugin.database.jdbc.JdbcConnectionProperties;
 import io.yak.ops.plugin.database.jdbc.mysql.enums.MySqlDriverId;
+import io.yak.ops.plugin.database.jdbc.runtime.IsolatedJdbcDriverRuntime;
+import java.sql.Connection;
+import java.sql.Driver;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -14,6 +19,8 @@ import java.util.Set;
  * @since 2026-09-24
  */
 public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
+
+    private static final IsolatedJdbcDriverRuntime DRIVER_RUNTIME = IsolatedJdbcDriverRuntime.getInstance();
 
     private static final Map<String, String> PROPERTY_KEYS = Map.ofEntries(
             Map.entry("useunicode", "useUnicode"),
@@ -44,7 +51,7 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
     protected String defaultDriverClassName() {
-        return "com.mysql.cj.jdbc.Driver";
+        return MySqlDriverId.MYSQL_8.driverClassName();
     }
 
     @Override
@@ -58,6 +65,13 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     }
 
     @Override
+    protected Driver connectionPropertyDriver(String jdbcUrl) {
+        MySqlDriverId driverId = MySqlDriverId.MYSQL_8;
+        return DRIVER_RUNTIME.driver(
+                driverId.runtimeId(), driverId.driverDirectory(), driverId.driverClassName());
+    }
+
+    @Override
     protected String normalizeDriverId(JsonNode connectionJson) {
         String value = JSONUtils.firstText(connectionJson, "driverId");
         try {
@@ -65,6 +79,25 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
         } catch (IllegalArgumentException exception) {
             throw parameterError("MySQL driverId 仅支持 AUTO、MYSQL_8、MYSQL_5", exception);
         }
+    }
+
+    @Override
+    protected String normalizeDriverClassName(JsonNode connectionJson, String driverId) {
+        return MySqlDriverId.parse(driverId).driverClassName();
+    }
+
+    @Override
+    protected Connection connectJdbc(JdbcConnectionProperties connection, String jdbcUrl, int timeoutSeconds)
+            throws Exception {
+        MySqlDriverId driverId = MySqlDriverId.parse(connection.driverId());
+        Properties properties = connectionProperties(connection);
+        properties.putIfAbsent("connectTimeout", String.valueOf(Math.max(1, timeoutSeconds) * 1000));
+        return DRIVER_RUNTIME.connect(
+                driverId.runtimeId(),
+                driverId.driverDirectory(),
+                driverId.driverClassName(),
+                jdbcUrl,
+                properties);
     }
 
     @Override
