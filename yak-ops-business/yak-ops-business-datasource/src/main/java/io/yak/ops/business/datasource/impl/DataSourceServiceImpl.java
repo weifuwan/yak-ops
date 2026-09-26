@@ -4,9 +4,11 @@ import io.yak.ops.business.datasource.DataSourceService;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.plugin.DataSourcePluginRegistry;
+import io.yak.ops.common.bean.dto.datasource.DataSourceBatchIdsDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
+import io.yak.ops.common.bean.vo.datasource.DataSourceBatchConnectTestResultVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
@@ -16,6 +18,9 @@ import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
 import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
 import jakarta.annotation.Resource;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -117,6 +122,19 @@ public class DataSourceServiceImpl implements DataSourceService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean batchDeleteDataSources(DataSourceBatchIdsDTO dto) {
+        List<DataSourceEntity> entities = requireBatchEntities(dto);
+        for (DataSourceEntity entity : entities) {
+            if (repository.deleteById(entity.getId()) <= 0) {
+                throw new DataSourceException(DataSourceErrorCode.DELETE_FAILED);
+            }
+        }
+        LOG.info("数据源批量删除完成，count={}", entities.size());
+        return true;
+    }
+
+    @Override
     public PagingData<DataSourceVO> queryDataSourcePage(DataSourceQueryDTO dto) {
         if (dto == null) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "分页查询参数不能为空");
@@ -137,23 +155,30 @@ public class DataSourceServiceImpl implements DataSourceService {
 
     @Override
     public boolean testConnection(String id) {
-        DataSourceEntity entity = requireEntity(id);
-        try {
-            pluginRegistry.testConnection(
-                    entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds());
-            entity.setConnStatus(DataSourceConnStatus.CONNECTED);
-            entity.initUpdate();
-            repository.update(entity);
-            return true;
-        } catch (RuntimeException exception) {
-            DataSourceException mapped = connectException(exception);
-            if (DataSourceErrorCode.CONNECT_FAILED.equals(mapped.getErrorCode())) {
-                entity.setConnStatus(DataSourceConnStatus.DISCONNECTED);
-                entity.initUpdate();
-                repository.update(entity);
+        return testSavedConnection(requireEntity(id));
+    }
+
+    @Override
+    public List<DataSourceBatchConnectTestResultVO> batchTestConnections(DataSourceBatchIdsDTO dto) {
+        List<DataSourceEntity> entities = requireBatchEntities(dto);
+        List<DataSourceBatchConnectTestResultVO> results = new ArrayList<>(entities.size());
+        int successCount = 0;
+        for (DataSourceEntity entity : entities) {
+            boolean connected;
+            try {
+                connected = testSavedConnection(entity);
+                successCount++;
+            } catch (DataSourceException exception) {
+                connected = false;
             }
-            throw mapped;
+            results.add(toBatchConnectTestResult(entity.getId(), connected));
         }
+        LOG.info(
+                "数据源批量连接测试完成，total={}, success={}, failed={}",
+                entities.size(),
+                successCount,
+                entities.size() - successCount);
+        return results;
     }
 
     @Override
@@ -194,6 +219,51 @@ public class DataSourceServiceImpl implements DataSourceService {
             throw new DataSourceException(DataSourceErrorCode.NOT_FOUND);
         }
         return repository.queryById(id).orElseThrow(() -> new DataSourceException(DataSourceErrorCode.NOT_FOUND));
+    }
+
+    private List<DataSourceEntity> requireBatchEntities(DataSourceBatchIdsDTO dto) {
+        List<String> ids = normalizeBatchIds(dto);
+        List<DataSourceEntity> entities = new ArrayList<>(ids.size());
+        for (String id : ids) {
+            entities.add(requireEntity(id));
+        }
+        return entities;
+    }
+
+    private List<String> normalizeBatchIds(DataSourceBatchIdsDTO dto) {
+        if (dto == null
+                || dto.getIds() == null
+                || dto.getIds().isEmpty()
+                || dto.getIds().size() > DataSourceBatchIdsDTO.MAX_IDS) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_BATCH_OPERATION);
+        }
+        LinkedHashSet<String> ids = new LinkedHashSet<>();
+        for (String id : dto.getIds()) {
+            if (!StringUtils.hasText(id)) {
+                throw new DataSourceException(DataSourceErrorCode.INVALID_BATCH_OPERATION);
+            }
+            ids.add(id.trim());
+        }
+        return new ArrayList<>(ids);
+    }
+
+    private boolean testSavedConnection(DataSourceEntity entity) {
+        try {
+            pluginRegistry.testConnection(
+                    entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds());
+            entity.setConnStatus(DataSourceConnStatus.CONNECTED);
+            entity.initUpdate();
+            repository.update(entity);
+            return true;
+        } catch (RuntimeException exception) {
+            DataSourceException mapped = connectException(exception);
+            if (DataSourceErrorCode.CONNECT_FAILED.equals(mapped.getErrorCode())) {
+                entity.setConnStatus(DataSourceConnStatus.DISCONNECTED);
+                entity.initUpdate();
+                repository.update(entity);
+            }
+            throw mapped;
+        }
     }
 
     private void ensureNameAvailable(String name, String excludeId) {
@@ -245,6 +315,13 @@ public class DataSourceServiceImpl implements DataSourceService {
 
     private int connectionTestTimeoutSeconds() {
         return Math.max(1, properties.getConnectionTestTimeoutSeconds());
+    }
+
+    private DataSourceBatchConnectTestResultVO toBatchConnectTestResult(String dataSourceId, boolean connected) {
+        DataSourceBatchConnectTestResultVO result = new DataSourceBatchConnectTestResultVO();
+        result.setDataSourceId(dataSourceId);
+        result.setConnected(connected);
+        return result;
     }
 
     private DataSourceVO toDataSourceVO(DataSourceEntity source, boolean includeOriginalJson) {

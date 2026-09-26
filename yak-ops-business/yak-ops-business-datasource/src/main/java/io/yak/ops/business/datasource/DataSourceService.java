@@ -1,10 +1,13 @@
 package io.yak.ops.business.datasource;
 
+import io.yak.ops.common.bean.dto.datasource.DataSourceBatchIdsDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
+import io.yak.ops.common.bean.vo.datasource.DataSourceBatchConnectTestResultVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.page.PagingData;
+import java.util.List;
 
 /**
  * Datasource 管理对 Boot 暴露的唯一稳定 Service Contract。
@@ -39,6 +42,14 @@ public interface DataSourceService {
     /** 删除指定数据源。 */
     boolean deleteDataSource(String id);
 
+    /**
+     * 在同一事务中批量删除数据源；任意数据源不存在或删除失败时整体回滚。
+     *
+     * @param dto 待删除的数据源 ID
+     * @return 全部删除成功返回 true
+     */
+    boolean batchDeleteDataSources(DataSourceBatchIdsDTO dto);
+
     /** 按当前分页 Contract 查询数据源列表。 */
     PagingData<DataSourceVO> queryDataSourcePage(DataSourceQueryDTO dto);
 
@@ -49,6 +60,14 @@ public interface DataSourceService {
      * @return 连接成功返回 true
      */
     boolean testConnection(String id);
+
+    /**
+     * 批量测试已保存数据源连接；单个连接失败不会中断其他数据源测试。
+     *
+     * @param dto 待测试的数据源 ID
+     * @return 按请求顺序返回每个数据源的连接结果
+     */
+    List<DataSourceBatchConnectTestResultVO> batchTestConnections(DataSourceBatchIdsDTO dto);
 
     /**
      * 使用请求参数执行一次连接测试，不持久化新的数据源配置。

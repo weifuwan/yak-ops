@@ -31,7 +31,9 @@ MySQL / Oracle / PostgreSQL
         ↓
 Filter + Table + Pagination
         ↓
-Create / Edit / Delete / Test Connection
+Create / Edit / Delete / Batch Delete
+        ↓
+Test Connection / Batch Test Connection
 ```
 
 Backend JDBC Plugin stays extensible, but the frontend is not a plugin platform.
@@ -48,6 +50,8 @@ DataSourceController
 → DataSourcePlugin SPI
 → MySQL / Oracle / PostgreSQL JDBC Provider
 ```
+
+Datasource publishes batch delete and batch saved-connection testing for the management list. Batch delete is transactional; batch connection testing returns one result per requested datasource and continues after individual connection failures.
 
 Datasource does not publish Catalog or Summary product APIs.
 
@@ -73,7 +77,7 @@ Responsibilities:
 - `index.tsx`: filters, paging, list loading, delete confirmation and drawer state.
 - `table.tsx`: table rendering and row actions.
 - `form.tsx`: create, edit and connection test.
-- `service/datasource`: CRUD and connection-test HTTP Contract.
+- `service/datasource`: CRUD, batch operations and connection-test HTTP Contract.
 
 ## Connection Form
 
