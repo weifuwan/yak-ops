@@ -48,7 +48,6 @@ public interface DataSourceService {
      */
     DataSourceConnectionPropertyKeysVO queryConnectionPropertyKeys(String dbType);
 
-
     /** 删除指定数据源。 */
     boolean deleteDataSource(String id);
 
