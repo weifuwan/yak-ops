@@ -21,7 +21,8 @@ export const buttonVariants = cva(
       },
       size: {
         small: "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-xs",
-        medium: "h-[34px] gap-[7px] rounded-[var(--yak-radius-control-medium)] px-[13px] text-[13px]",
+        medium:
+          "h-[34px] gap-[7px] rounded-[var(--yak-radius-control-medium)] px-[13px] text-[13px]",
         large: "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-4 text-sm",
       },
     },
