@@ -1,6 +1,8 @@
 package io.yak.ops.boot.controller.exception;
 
+import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.common.enums.common.CommonErrorCode;
+import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.result.ErrorCode;
 import io.yak.ops.common.result.Result;
@@ -42,7 +44,10 @@ public class GlobalExceptionHandler {
 
         HttpStatus status = businessStatus(errorCode);
         if (status.is5xxServerError()) LOG.error("业务请求处理失败，errorCode={}", errorCode.getCode(), exception);
-        return ResponseEntity.status(status).body(Result.fail(errorCode));
+        Result<Void> body = exception instanceof DataSourceException dataSourceException
+                ? Result.fail(errorCode.getCode(), dataSourceException.getUserMessage())
+                : Result.fail(errorCode);
+        return ResponseEntity.status(status).body(body);
     }
 
     @ExceptionHandler({
@@ -87,6 +92,19 @@ public class GlobalExceptionHandler {
         if (errorCode == CommonErrorCode.RESOURCE_NOT_EXISTS) return HttpStatus.NOT_FOUND;
         if (errorCode == CommonErrorCode.RESOURCE_DUPLICATION) return HttpStatus.CONFLICT;
         if (errorCode == CommonErrorCode.COMMON_FAIL) return HttpStatus.INTERNAL_SERVER_ERROR;
+
+        if (errorCode instanceof DataSourceErrorCode code) {
+            return switch (code) {
+                case NOT_FOUND -> HttpStatus.NOT_FOUND;
+                case DUPLICATE_NAME -> HttpStatus.CONFLICT;
+                case INVALID_DB_TYPE,
+                        INVALID_ENVIRONMENT,
+                        INVALID_CONNECTION_PARAMS,
+                        INVALID_BATCH_OPERATION,
+                        INVALID_CONNECTION_STATUS -> HttpStatus.BAD_REQUEST;
+                default -> HttpStatus.INTERNAL_SERVER_ERROR;
+            };
+        }
 
         if (errorCode instanceof SecurityErrorCode code) {
             return switch (code) {
