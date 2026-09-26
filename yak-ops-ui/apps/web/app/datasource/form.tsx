@@ -53,6 +53,8 @@ interface JdbcProperty {
   value: string;
 }
 
+type MySqlDriverId = "AUTO" | "MYSQL_8" | "MYSQL_5";
+
 interface FormValues {
   name: string;
   dbType: string;
@@ -61,6 +63,7 @@ interface FormValues {
   database: string;
   username: string;
   password: string;
+  driverId: MySqlDriverId;
   properties: JdbcProperty[];
   remark: string;
 }
@@ -89,6 +92,13 @@ const DEFAULT_HOST = "127.0.0.1";
 const defaultPort = (dbType: string) =>
   String(JDBC_DEFAULT_PORTS[normalizeDataSourceType(dbType)] || "");
 
+const normalizeMySqlDriverId = (value: unknown): MySqlDriverId => {
+  if (typeof value !== "string") return "AUTO";
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "MYSQL_8" || normalized === "MYSQL_5") return normalized;
+  return "AUTO";
+};
+
 const EMPTY_FORM: FormValues = {
   name: "",
   dbType: "MYSQL",
@@ -97,6 +107,7 @@ const EMPTY_FORM: FormValues = {
   database: "",
   username: "",
   password: "",
+  driverId: "AUTO",
   properties: [],
   remark: "",
 };
@@ -156,6 +167,7 @@ const parseOriginalJson = (record?: DataSourceRecord): Partial<FormValues> => {
           : jdbc.database,
       username: typeof value.username === "string" ? value.username : undefined,
       password: typeof value.password === "string" ? value.password : undefined,
+      driverId: normalizeMySqlDriverId(value.driverId),
       properties: parseProperties(value.properties),
     };
   } catch {
@@ -221,6 +233,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       database: original.database || "",
       username: original.username || "",
       password: original.password || "",
+      driverId: original.driverId || "AUTO",
       properties: original.properties || [],
       remark: record?.remark || "",
     });
@@ -362,6 +375,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     database: values.database.trim(),
     username: values.username.trim(),
     password: values.password,
+    ...(normalizeDataSourceType(values.dbType) === "MYSQL" ? { driverId: values.driverId } : {}),
     properties: Object.fromEntries(
       values.properties.map((property) => [property.key.trim(), property.value]),
     ),
@@ -424,6 +438,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
             database: "",
             username: "",
             password: "",
+            driverId: "AUTO",
             properties: [],
           },
     );
@@ -628,24 +643,39 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     </div>
   );
 
+  const mysqlDriverItems: Record<MySqlDriverId, string> = {
+    AUTO: intl.formatMessage({ id: "pages.datasource.form.versionAuto" }),
+    MYSQL_8: intl.formatMessage({ id: "pages.datasource.form.versionMysql8" }),
+    MYSQL_5: intl.formatMessage({ id: "pages.datasource.form.versionMysql5" }),
+  };
+
   const versionField = (
     <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
       <span className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.version" })}
       </span>
-      <Select
+      <Select<MySqlDriverId>
         size="small"
-        items={{ AUTO: intl.formatMessage({ id: "pages.datasource.form.versionAuto" }) }}
-        value="AUTO"
+        items={mysqlDriverItems}
+        value={values.driverId}
+        onValueChange={(driverId) => {
+          if (driverId) patch("driverId", driverId);
+        }}
       >
         <SelectTrigger variant="outlined">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="AUTO">
-            <SelectItemText>
-              {intl.formatMessage({ id: "pages.datasource.form.versionAuto" })}
-            </SelectItemText>
+            <SelectItemText>{mysqlDriverItems.AUTO}</SelectItemText>
+            <SelectItemIndicator />
+          </SelectItem>
+          <SelectItem value="MYSQL_8">
+            <SelectItemText>{mysqlDriverItems.MYSQL_8}</SelectItemText>
+            <SelectItemIndicator />
+          </SelectItem>
+          <SelectItem value="MYSQL_5">
+            <SelectItemText>{mysqlDriverItems.MYSQL_5}</SelectItemText>
             <SelectItemIndicator />
           </SelectItem>
         </SelectContent>
@@ -807,7 +837,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       {usernameField}
       {passwordField}
       {authOptionField}
-      {versionField}
+      {normalizeDataSourceType(values.dbType) === "MYSQL" ? versionField : null}
       {advancedPropertiesField}
     </>
   );
