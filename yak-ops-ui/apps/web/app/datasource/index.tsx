@@ -22,7 +22,6 @@ import {
   deleteDataSource,
   getDataSource,
   listDataSources,
-  testDataSourceConnection,
 } from "@/service/datasource";
 import { COMMON_DB_OPTIONS } from "./constants";
 import DataSourceForm from "./form";
@@ -46,7 +45,6 @@ const DataSourcePage = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DataSourceRecord>();
   const [editingId, setEditingId] = useState("");
-  const [testingId, setTestingId] = useState("");
   const [pendingDelete, setPendingDelete] = useState<DataSourceRecord>();
   const [deleting, setDeleting] = useState(false);
 
@@ -114,19 +112,6 @@ const DataSourcePage = () => {
       setFormOpen(true);
     } finally {
       setEditingId("");
-    }
-  };
-
-  const handleTestConnection = async (record: DataSourceRecord) => {
-    if (!record.id || testingId) return;
-    const id = String(record.id);
-    setTestingId(id);
-    try {
-      await testDataSourceConnection(record.id);
-      toast.success(intl.formatMessage({ id: "pages.datasource.test.success" }));
-      refresh();
-    } finally {
-      setTestingId("");
     }
   };
 
@@ -214,14 +199,12 @@ const DataSourcePage = () => {
                 total={total}
                 hasActiveFilters={hasActiveFilters}
                 editingId={editingId}
-                testingId={testingId}
                 onPageChange={(nextPage, nextPageSize) => {
                   setPageNo(nextPage);
                   setPageSize(nextPageSize);
                 }}
                 onEdit={(record) => void handleEdit(record)}
                 onDelete={setPendingDelete}
-                onTestConnection={(record) => void handleTestConnection(record)}
               />
             </section>
           </div>

@@ -1,5 +1,5 @@
 import { Badge, Button, Table, type BadgeProps, type TableColumns } from "@yak-ops/yak-ui";
-import { CircleCheck, CircleMinus, CircleX, Pencil, Trash2, Unplug } from "lucide-react";
+import { CircleCheck, CircleMinus, CircleX } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { DATA_SOURCE_PAGE_SIZE_OPTIONS } from "./constants";
@@ -15,11 +15,9 @@ interface DataSourceTableProps {
   total: number;
   hasActiveFilters: boolean;
   editingId: string;
-  testingId: string;
   onPageChange: (page: number, pageSize: number) => void;
   onEdit: (record: DataSourceRecord) => void;
   onDelete: (record: DataSourceRecord) => void;
-  onTestConnection: (record: DataSourceRecord) => void;
 }
 
 interface StatusConfig {
@@ -65,11 +63,9 @@ const DataSourceTable = ({
   total,
   hasActiveFilters,
   editingId,
-  testingId,
   onPageChange,
   onEdit,
   onDelete,
-  onTestConnection,
 }: DataSourceTableProps) => {
   const intl = useIntl();
 
@@ -140,48 +136,31 @@ const DataSourceTable = ({
     {
       key: "actions",
       title: intl.formatMessage({ id: "pages.datasource.table.actions" }),
-      width: 132,
+      width: 112,
       align: "right",
       render: (_value, record) => {
         const id = String(record.id ?? "");
 
         return (
-          <div className="flex justify-end gap-1">
+          <div className="flex items-center justify-end gap-2">
             <Button
               variant="ghost"
               size="small"
-              title={intl.formatMessage({ id: "pages.datasource.table.testConnection" })}
-              aria-label={intl.formatMessage({
-                id: "pages.datasource.table.testConnection",
-              })}
-              className="h-8 w-8 p-0"
-              loading={testingId === id}
-              disabled={Boolean(testingId) && testingId !== id}
-              onClick={() => onTestConnection(record)}
-            >
-              {testingId === id ? null : <Unplug size={14} />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="small"
-              title={intl.formatMessage({ id: "pages.datasource.table.edit" })}
-              aria-label={intl.formatMessage({ id: "pages.datasource.table.edit" })}
-              className="h-8 w-8 p-0"
+              className="px-1 text-xs font-normal text-[#667085] hover:text-[var(--yak-color-primary)]"
               loading={editingId === id}
               disabled={Boolean(editingId) && editingId !== id}
               onClick={() => onEdit(record)}
             >
-              {editingId === id ? null : <Pencil size={14} />}
+              {intl.formatMessage({ id: "pages.datasource.table.edit" })}
             </Button>
+            <span aria-hidden="true" className="h-3 w-px shrink-0 bg-[#e4e7ec]" />
             <Button
               variant="ghost"
               size="small"
-              title={intl.formatMessage({ id: "pages.datasource.table.delete" })}
-              aria-label={intl.formatMessage({ id: "pages.datasource.table.delete" })}
-              className="h-8 w-8 p-0 text-[#b42318]"
+              className="px-1 text-xs font-normal text-[#667085] hover:text-[#d92d20]"
               onClick={() => onDelete(record)}
             >
-              <Trash2 size={14} />
+              {intl.formatMessage({ id: "pages.datasource.table.delete" })}
             </Button>
           </div>
         );
