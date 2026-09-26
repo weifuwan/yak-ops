@@ -27,11 +27,11 @@ export const inputVariants = cva(
       },
       size: {
         small:
-          "h-7 rounded-[var(--yak-radius-control-small)] px-2.5 text-[var(--yak-font-size-control-small)]",
+          "h-7 rounded-[var(--yak-radius-control-small)] px-2.5 [font-size:var(--yak-font-size-control-small)]",
         medium:
-          "h-9 rounded-[var(--yak-radius-control-medium)] px-3 text-[var(--yak-font-size-control-medium)]",
+          "h-9 rounded-[var(--yak-radius-control-medium)] px-3 [font-size:var(--yak-font-size-control-medium)]",
         large:
-          "h-10 rounded-[var(--yak-radius-control-large)] px-3.5 text-[var(--yak-font-size-control-large)]",
+          "h-10 rounded-[var(--yak-radius-control-large)] px-3.5 [font-size:var(--yak-font-size-control-large)]",
       },
     },
     defaultVariants: {
