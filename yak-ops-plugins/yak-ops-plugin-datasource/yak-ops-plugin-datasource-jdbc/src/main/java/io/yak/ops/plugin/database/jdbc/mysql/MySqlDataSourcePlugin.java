@@ -7,7 +7,7 @@ import io.yak.ops.plugin.database.jdbc.JdbcConnectionProperties;
 import io.yak.ops.plugin.database.jdbc.mysql.enums.MySqlDriverId;
 import io.yak.ops.plugin.database.jdbc.runtime.IsolatedJdbcDriverRuntime;
 import java.sql.Connection;
-import java.sql.Driver;
+import java.sql.DriverPropertyInfo;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -65,10 +65,14 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     }
 
     @Override
-    protected Driver connectionPropertyDriver(String jdbcUrl) {
+    protected DriverPropertyInfo[] connectionPropertyInfo(String jdbcUrl, Properties properties) throws Exception {
         MySqlDriverId driverId = MySqlDriverId.MYSQL_8;
-        return DRIVER_RUNTIME.driver(
-                driverId.runtimeId(), driverId.driverDirectory(), driverId.driverClassName());
+        return DRIVER_RUNTIME.propertyInfo(
+                driverId.runtimeId(),
+                driverId.driverDirectory(),
+                driverId.driverClassName(),
+                jdbcUrl,
+                properties);
     }
 
     @Override
