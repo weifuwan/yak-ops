@@ -11,13 +11,13 @@ import java.util.Locale;
 public enum MySqlDriverId {
 
     /** 自动选择当前默认 Driver；当前等价于 MYSQL_8。 */
-    AUTO("mysql/8", "com.mysql.cj.jdbc.Driver"),
+    AUTO("mysql/8", "com.mysql.cj.jdbc.NonRegisteringDriver"),
 
     /** MySQL 8.x / 5.7.x 使用的 Connector/J 8.x Driver。 */
-    MYSQL_8("mysql/8", "com.mysql.cj.jdbc.Driver"),
+    MYSQL_8("mysql/8", "com.mysql.cj.jdbc.NonRegisteringDriver"),
 
     /** MySQL 5.5.x / 5.6.x 使用的 Connector/J 5.1.x Driver。 */
-    MYSQL_5("mysql/5", "com.mysql.jdbc.Driver");
+    MYSQL_5("mysql/5", "com.mysql.jdbc.NonRegisteringDriver");
 
     private final String driverDirectory;
     private final String driverClassName;
