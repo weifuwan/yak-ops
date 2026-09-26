@@ -54,7 +54,13 @@ Filter + Table + Pagination + CRUD Modal
 ```text
 app/router
    ↓
-app/datasource ─────→ packages/yak-ui
+app/layout
+   ├── app/datasource
+   └── app/management
+            ↓
+      packages/yak-ui
+
+app/datasource
    ↓
 service/datasource
    ↓
@@ -121,7 +127,7 @@ public     → 原样静态资源
 
 ## App Shell
 
-Authenticated product pages share one application shell:
+Authenticated product pages share one parameterized application shell:
 
 ```text
 app/layout/
@@ -135,15 +141,17 @@ app/layout/
 
 Ownership:
 
-- `AppLayout` owns the viewport and the Global Product Launcher open / close state.
-- `TopBar` owns product identity, launcher trigger and current-user actions.
-- `ProductSidebar` owns navigation inside the current product.
+- `AppLayout` owns the viewport and the Global Product Launcher open / close state. Data Integration and Management Center reuse this same shell.
+- `TopBar` owns product identity, launcher trigger and current-user actions. Workspace Switcher is rendered only for Workspace-scoped products.
+- `ProductSidebar` renders navigation supplied by the current product.
+- Data Integration is Workspace-scoped. Management Center is system-scoped and does not require an active Workspace.
+- Management Center routes are `/management/users` and `/management/workspaces`; PR1 establishes only the product/navigation surface.
 - `ProductLauncher` owns a fixed 220px launcher track. The track, not the first-level panel alone, opens from `translateX(-220px)` to `translateX(0)` in 300ms and closes in 220ms without resizing Sidebar / Outlet.
 - `所有产品` is a dedicated `view-all` row. Activating it keeps the first-level panel visible, highlights the row with `#1c1e21`, and opens `AllProductMenu` to its right.
 - `AllProductMenu` is absolutely anchored to the track with `left: 100%`, so its left edge always touches the first-level panel's right edge. It clips from 765px to 0 width on close, uses background `#1c1e21`, opens in 240ms and closes in 170ms.
 - A full Launcher close is staggered rather than hard-sequenced: the second level starts collapsing immediately, then the shared launcher track starts sliding 36ms later. Because both levels share the same moving coordinate system, no gap may appear between them during close.
 - Product/category rows use subtle `#282b2e` hover feedback and brighter text/icon color; neither first nor second level adds an outer shadow.
-- `navigation.ts` owns real product entries and category grouping; current data exposes only the existing `数据集成` product.
+- `navigation.ts` owns real product entries and category grouping; current products are `数据集成` and `管理中心`.
 - Launcher closes from the TopBar X trigger, Escape and route change.
 - While Launcher is open, a transparent blank-area interaction layer sits below the menu panels and above page content. A single blank-area click closes the whole Launcher; the visual close still staggers the second level ahead of the first level.
 - Product pages rendered inside `AppLayout` fill the available container; they do not subtract shell dimensions from `100vh / 100dvh`.

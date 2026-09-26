@@ -50,6 +50,7 @@ const requiredAppShellFiles = [
   "apps/web/app/layout/ProductLauncher.tsx",
   "apps/web/app/layout/AllProductMenu.tsx",
   "apps/web/app/layout/navigation.ts",
+  "apps/web/app/management/index.tsx",
 ];
 
 for (const path of requiredAppShellFiles) {

@@ -1,16 +1,19 @@
 import { NavLink } from "react-router-dom";
 
-import { CURRENT_PRODUCT_LABEL, PRODUCT_NAVIGATION } from "./navigation";
+import type { ProductNavigationItem } from "./navigation";
 
-export default function ProductSidebar() {
+type ProductSidebarProps = {
+  productLabel: string;
+  navigation: ProductNavigationItem[];
+};
+
+export default function ProductSidebar({ productLabel, navigation }: ProductSidebarProps) {
   return (
     <aside className="flex w-48 shrink-0 flex-col border-r border-[#e6e8eb] bg-[#FAFAFA]">
-      <div className="px-3 pb-2 pt-4 text-[11px] font-medium text-[#8b929e]">
-        {CURRENT_PRODUCT_LABEL}
-      </div>
+      <div className="px-3 pb-2 pt-4 text-[11px] font-medium text-[#8b929e]">{productLabel}</div>
 
       <nav>
-        {PRODUCT_NAVIGATION.map((item) => {
+        {navigation.map((item) => {
           const Icon = item.icon;
 
           return (
