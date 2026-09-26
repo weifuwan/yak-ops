@@ -7,7 +7,8 @@ YAK_OPS_HOME="$(cd "${BIN_DIR}/.." && pwd)"
 
 CONF_DIR="${YAK_OPS_HOME}/conf"
 LOG_DIR="${YAK_OPS_HOME}/logs"
-DRIVER_DIR="${YAK_OPS_HOME}/jdbc-drivers"
+BUILTIN_DRIVER_DIR="${YAK_OPS_HOME}/jdbc-drivers-builtin"
+DRIVER_DIR="${YAK_OPS_JDBC_DRIVER_DIR:-${BUILTIN_DRIVER_DIR}}"
 
 JAVA_BIN=""
 
@@ -43,7 +44,7 @@ fi
 exec "${JAVA_BIN}" \
   "${JAVA_ARGS[@]}" \
   -Dyak.ops.home="${YAK_OPS_HOME}" \
-  -Dloader.path="${DRIVER_DIR}" \
+  -Dyak.ops.jdbc-driver-dir="${DRIVER_DIR}" \
   -Dlogging.config="${CONF_DIR}/logback-spring.xml" \
   -jar "${YAK_OPS_HOME}/libs/yak-ops-api.jar" \
   --spring.config.location="${CONF_DIR}/application.yml" \
