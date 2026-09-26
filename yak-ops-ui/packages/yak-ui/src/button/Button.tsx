@@ -20,9 +20,9 @@ export const buttonVariants = cva(
           "border border-transparent bg-[var(--yak-components-button-danger-bg)] text-[var(--yak-components-button-danger-text)] hover:bg-[var(--yak-components-button-danger-bg-hover)] active:bg-[var(--yak-components-button-danger-bg-active)]",
       },
       size: {
-        small: "h-7 gap-1.5 rounded-lg px-2.5 text-xs",
-        medium: "h-[34px] gap-[7px] rounded-[10px] px-[13px] text-[13px]",
-        large: "h-10 gap-2 rounded-[11px] px-4 text-sm",
+        small: "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-xs",
+        medium: "h-[34px] gap-[7px] rounded-[var(--yak-radius-control-medium)] px-[13px] text-[13px]",
+        large: "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-4 text-sm",
       },
     },
     defaultVariants: {

@@ -42,6 +42,7 @@ Base UI is an implementation dependency, not a product-facing API.
 - Yak UI owns stable Props, composition API, Design Token and visual states.
 - Tailwind + Yak UI tokens are the styling foundation.
 - `--yak-color-primary` is the shared primary accent token; current baseline is `#0033FF`. Component active / focus colors should reference it instead of duplicating blue literals.
+- Button / Input / SelectTrigger share control-radius tokens instead of hard-coded radius values: small `6px`, medium `8px`, large `10px`. Product code should not redefine these control radii through `className`.
 - Variant contracts use `class-variance-authority` when variants are real product-wide concepts.
 - Button defaults to `type="button"`.
 - Input / Textarea / NumberField use one shared input visual language.
