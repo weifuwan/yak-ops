@@ -198,12 +198,13 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     errors[key] ? <div className="mt-1 text-xs text-[#b42318]">{errors[key]}</div> : null;
 
   const nameField = (
-    <label className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <label htmlFor="datasource-name" className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.dsName" })}
-      </span>
-      <span className="min-w-0">
+      </label>
+      <div className="min-w-0">
         <Input
+          id="datasource-name"
           size="small"
           variant="outlined"
           value={values.name}
@@ -212,15 +213,15 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           onChange={(event) => patch("name", event.target.value)}
         />
         {fieldError("name")}
-      </span>
-    </label>
+      </div>
+    </div>
   );
 
   const dbTypeField = (
     <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+      <label htmlFor="datasource-db-type" className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.dbType" })}
-      </span>
+      </label>
       <div className="min-w-0">
         <Select
           size="small"
@@ -228,7 +229,11 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           disabled={editing}
           onValueChange={(value) => patch("dbType", value ?? "")}
         >
-          <SelectTrigger variant="outlined" aria-invalid={Boolean(errors.dbType) || undefined}>
+          <SelectTrigger
+            id="datasource-db-type"
+            variant="outlined"
+            aria-invalid={Boolean(errors.dbType) || undefined}
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -246,12 +251,13 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
   );
 
   const jdbcUrlField = (
-    <label className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <label htmlFor="datasource-jdbc-url" className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.jdbcUrl" })}
-      </span>
-      <span className="min-w-0">
+      </label>
+      <div className="min-w-0">
         <Input
+          id="datasource-jdbc-url"
           size="small"
           variant="outlined"
           value={values.jdbcUrl}
@@ -263,17 +269,18 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           onChange={(event) => patch("jdbcUrl", event.target.value)}
         />
         {fieldError("jdbcUrl")}
-      </span>
-    </label>
+      </div>
+    </div>
   );
 
   const usernameField = (
-    <label className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <label htmlFor="datasource-username" className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.username" })}
-      </span>
-      <span className="min-w-0">
+      </label>
+      <div className="min-w-0">
         <Input
+          id="datasource-username"
           size="small"
           variant="outlined"
           value={values.username}
@@ -284,16 +291,17 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           onChange={(event) => patch("username", event.target.value)}
         />
         {fieldError("username")}
-      </span>
-    </label>
+      </div>
+    </div>
   );
 
   const passwordField = (
-    <label className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <label htmlFor="datasource-password" className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.password" })}
-      </span>
+      </label>
       <PasswordInput
+        id="datasource-password"
         size="small"
         variant="outlined"
         value={values.password}
@@ -302,16 +310,17 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
         })}
         onChange={(event) => patch("password", event.target.value)}
       />
-    </label>
+    </div>
   );
 
   const remarkField = (
-    <label className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <label htmlFor="datasource-remark" className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.description" })}
-      </span>
-      <span className="min-w-0">
+      </label>
+      <div className="min-w-0">
         <Textarea
+          id="datasource-remark"
           size="small"
           rows={2}
           maxLength={500}
@@ -324,8 +333,8 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           onValueChange={(value) => patch("remark", value)}
         />
         {fieldError("remark")}
-      </span>
-    </label>
+      </div>
+    </div>
   );
 
   if (editing) {
