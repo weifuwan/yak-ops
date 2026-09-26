@@ -3,6 +3,7 @@ import HttpUtils from "@/service/http/HttpUtils";
 import type {
   DataSourceBatchConnectTestResult,
   DataSourceConnectTestPayload,
+  DataSourceConnectionPropertyKeys,
   DataSourceId,
   DataSourcePageParams,
   DataSourcePageResult,
@@ -19,6 +20,13 @@ export const listDataSources = (params: DataSourcePageParams): Promise<DataSourc
 
 export const getDataSource = (id: DataSourceId): Promise<DataSourceRecord> =>
   HttpUtils.getData<DataSourceRecord>(`${DATA_SOURCE_API_PREFIX}/${id}`);
+
+export const getDataSourceConnectionPropertyKeys = (
+  dbType: string,
+): Promise<DataSourceConnectionPropertyKeys> =>
+  HttpUtils.getData<DataSourceConnectionPropertyKeys>(
+    `${DATA_SOURCE_API_PREFIX}/connection-property-keys?dbType=${encodeURIComponent(dbType)}`,
+  );
 
 export const createDataSource = async (payload: DataSourceSavePayload): Promise<void> => {
   await HttpUtils.postData<boolean>(DATA_SOURCE_API_PREFIX, payload);
