@@ -19,4 +19,3 @@ export const JDBC_DEFAULT_PORTS: Record<string, number> = {
   ORACLE: 1521,
   POSTGRE_SQL: 5432,
 };
-
