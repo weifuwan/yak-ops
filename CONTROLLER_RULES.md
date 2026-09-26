@@ -33,8 +33,8 @@ yak-ops-boot
 Must:
 - `@Controller` / `@RestController` 只允许出现在 `yak-ops-boot`。
 - `@RestControllerAdvice` 和只服务于 Controller 的 converter 也放在 `yak-ops-boot/controller` 边界内。
-- 通用业务异常、参数异常和未知异常统一由 `controller/exception/GlobalExceptionHandler` 处理。
-- capability-specific ControllerAdvice 只保留必须依赖该 capability HTTP 语义的处理，例如 Datasource 敏感信息脱敏。
+- 业务异常、参数异常、HTTP 状态异常和未知异常统一由 `controller/exception/GlobalExceptionHandler` 处理。
+- 只有无法通过 `BusinessException` / `ErrorCode` 表达的真实 capability HTTP 语义，才允许新增 capability-specific ControllerAdvice。
 - Controller 通过 Boot → capability owner 的单向依赖调用 Security / Datasource。
 - Security / Datasource / DAO / Core / SPI / Plugin 不得依赖 Boot。
 - 新增 API 时先确定 capability owner，再由 Boot 暴露 HTTP contract。
