@@ -1,6 +1,8 @@
 package io.yak.ops.common.bean.dto.datasource;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -29,7 +31,8 @@ public class DataSourceDTO {
     @Size(max = 500, message = "数据源备注不能超过 500 个字符")
     private String remark;
 
-    /** 前端固定连接表单提交的连接参数 JSON。 */
-    @NotBlank(message = "数据源连接参数不能为空")
-    private String connectionParams;
+    /** 前端提交的结构化连接参数。 */
+    @Valid
+    @NotNull(message = "数据源连接参数不能为空")
+    private DataSourceConnectionDTO connectionParams;
 }
