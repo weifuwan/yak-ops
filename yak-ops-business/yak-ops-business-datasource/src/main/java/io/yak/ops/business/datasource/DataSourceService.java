@@ -5,6 +5,7 @@ import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceBatchConnectTestResultVO;
+import io.yak.ops.common.bean.vo.datasource.DataSourceConnectionPropertyKeysVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.page.PagingData;
 import java.util.List;
@@ -38,6 +39,15 @@ public interface DataSourceService {
 
     /** 查询数据源详情，返回的敏感连接信息必须经过遮罩。 */
     DataSourceVO queryDataSource(String id);
+
+    /**
+     * 查询指定 Provider 可推荐的高级连接参数名。
+     *
+     * @param dbType 数据源类型或兼容别名
+     * @return Provider 属性名候选项
+     */
+    DataSourceConnectionPropertyKeysVO queryConnectionPropertyKeys(String dbType);
+
 
     /** 删除指定数据源。 */
     boolean deleteDataSource(String id);
