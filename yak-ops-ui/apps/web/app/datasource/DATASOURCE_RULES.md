@@ -87,20 +87,25 @@ service/datasource/
 
 Create 使用 Yak UI `Modal`，第一步只选择当前支持的数据源类型，提供轻量分类与搜索，点击数据源 Item 直接进入配置步骤；第二步固定展示基础信息与连接配置。Edit 继续使用 Drawer，不经过类型选择步骤。
 
-固定字段：
+结构化连接字段：
 
 ```text
 name
 dbType
-jdbcUrl
+host
+port
+database
 username
 password
+properties
 remark
 ```
 
+UI 中的访问身份当前固定为“用户名和密码”，认证选项当前固定为“无认证”，版本当前固定为“自动选择”；这三个选择只表达当前产品能力边界，不进入后端连接 Contract。
+
 Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 environment。Environment 不作为当前 UI 产品字段。
 
-后端 JDBC Plugin 负责 JDBC URL 校验、driver、Provider 差异、Normalize 和真正的 Connection Test。
+前端只维护当前三种 JDBC Provider 的 Host / Port / Database 输入、JDBC Preview 和轻量 Key/Value 高级参数；真正的 JDBC URL 生成、driver、Provider 差异、Normalize 和 Connection Test 仍由后端 JDBC Plugin 负责。
 
 ## Must
 
@@ -111,7 +116,7 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 - 列表行操作只保留“编辑｜删除”文字操作，中间使用轻量 Divider；操作组在操作列内居中对齐；列表不提供单行 Connection Test，连接测试保留在新增 / 编辑表单内。
 - Table 启用受控 `rowSelection`；表头和底部 Checkbox 都只全选当前页，跨页已选 ID 保留；筛选条件变化清空选择，单次最多选择 100 条。
 - Table `footer` 左侧承载“批量删除 / 批量测试连通性”，右侧继续使用 Yak UI Pagination；批量删除必须二次确认，批量连接测试直接执行并反馈成功 / 失败数量。
-- 新增使用 Yak UI `Modal` 两步 Wizard；Modal Header / Footer 固定，只允许 Body 滚动。第一步选择区使用固定高度，数据少时允许自然留白；提供“全部 / 关系型数据库”分类和搜索。Datasource Item 使用紧凑单行结构，只展示 Icon + 名称，不展示说明文案。第二步配置表单参考紧凑管理台布局：Label 左对齐、Control 右侧占满，Input / Select / PasswordInput 统一使用 `small`，字段纵向间距保持紧凑，分组只使用轻量边框与标题。当前只展示 `MYSQL / ORACLE / POSTGRE_SQL`，不引入动态 Provider UI。
+- 新增使用 Yak UI `Modal` 两步 Wizard；Modal Header / Footer 固定，只允许 Body 滚动。第一步选择区使用固定高度，数据少时允许自然留白；提供“全部 / 关系型数据库”分类和搜索。Datasource Item 使用紧凑单行结构，只展示 Icon + 名称，不展示说明文案。第二步配置表单参考紧凑管理台布局：Label 左对齐、Control 右侧占满，Input / Select / PasswordInput 统一使用 `small`，字段纵向间距保持紧凑，分组只使用轻量边框与标题。连接配置使用 Host + Port + Database 结构化输入并实时展示 JDBC Preview；高级参数使用轻量 Key/Value 列表。当前只展示 `MYSQL / ORACLE / POSTGRE_SQL`，不引入动态 Provider UI。
 - Edit 继续使用 Drawer，并直接打开和关闭，不使用滑入或淡入淡出过渡动画。
 - CRUD、Batch Operations 和 Connection Test 统一走 `service/datasource`。
 - HTTP transport only through `service/http`。
@@ -123,10 +128,8 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 - Recreate `editor/` or `hooks/` under Datasource。
 - Recreate Summary cards。
 - Recreate dynamic form schema / renderer / form runtime。
-- Recreate Host/Port/Database ↔ JDBC URL linkage UI。
 - Recreate SSH Tunnel UI。
 - Recreate Driver Manager / Driver Class configuration UI。
-- Recreate custom JDBC properties editor。
 - Recreate `management / model / plugin / connection` directories。
 - Recreate `packages/datasource`。
 - Call `fetch` directly from Datasource UI。

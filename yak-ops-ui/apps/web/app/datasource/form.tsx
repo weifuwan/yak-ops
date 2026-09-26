@@ -26,7 +26,12 @@ import {
   testDataSourceConnectionWithParams,
   updateDataSource,
 } from "@/service/datasource";
-import { COMMON_DB_OPTIONS, JDBC_URL_PLACEHOLDERS, type DataSourceCategory } from "./constants";
+import {
+  COMMON_DB_OPTIONS,
+  JDBC_DEFAULT_PORTS,
+  JDBC_PROPERTY_SUGGESTIONS,
+  type DataSourceCategory,
+} from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import { useIntl } from "./i18n";
 import type { DataSourceRecord, DataSourceSavePayload } from "./types";
@@ -38,40 +43,133 @@ interface DataSourceFormProps {
   onSaved: () => void;
 }
 
+interface JdbcProperty {
+  key: string;
+  value: string;
+}
+
 interface FormValues {
   name: string;
   dbType: string;
-  jdbcUrl: string;
+  host: string;
+  port: string;
+  database: string;
   username: string;
   password: string;
+  properties: JdbcProperty[];
   remark: string;
 }
 
-type FormErrors = Partial<Record<keyof FormValues, string>>;
+type FormErrorKey =
+  | "name"
+  | "dbType"
+  | "host"
+  | "port"
+  | "database"
+  | "username"
+  | "properties"
+  | "remark";
+type FormErrors = Partial<Record<FormErrorKey, string>>;
 type CreateStep = "select" | "config";
 type CreateCategory = "ALL" | DataSourceCategory;
+
+interface ParsedJdbcUrl {
+  host?: string;
+  port?: string;
+  database?: string;
+}
+
+const DEFAULT_HOST = "127.0.0.1";
+
+const defaultPort = (dbType: string) => String(JDBC_DEFAULT_PORTS[dbType] || "");
 
 const EMPTY_FORM: FormValues = {
   name: "",
   dbType: "MYSQL",
-  jdbcUrl: "",
+  host: DEFAULT_HOST,
+  port: defaultPort("MYSQL"),
+  database: "",
   username: "",
   password: "",
+  properties: [],
   remark: "",
 };
 
+const parseJdbcUrl = (dbType: string, jdbcUrl?: string): ParsedJdbcUrl => {
+  if (!jdbcUrl) return {};
+  const value = jdbcUrl.trim();
+  const patterns: Record<string, RegExp> = {
+    MYSQL: /^jdbc:mysql:\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
+    ORACLE: /^jdbc:oracle:thin:@\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
+    POSTGRE_SQL: /^jdbc:postgresql:\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
+  };
+  const matched = value.match(patterns[dbType]);
+  if (!matched) return {};
+  return {
+    host: matched[1],
+    port: matched[2] || defaultPort(dbType),
+    database: matched[3],
+  };
+};
+
+const parseProperties = (value: unknown): JdbcProperty[] => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  return Object.entries(value as Record<string, unknown>).map(([key, propertyValue]) => ({
+    key,
+    value: propertyValue == null ? "" : String(propertyValue),
+  }));
+};
+
 const parseOriginalJson = (record?: DataSourceRecord): Partial<FormValues> => {
-  if (!record?.originalJson) return {};
+  const dbType = record?.dbType || "MYSQL";
+  if (!record?.originalJson) {
+    return {
+      ...parseJdbcUrl(dbType, record?.jdbcUrl),
+      port: parseJdbcUrl(dbType, record?.jdbcUrl).port || defaultPort(dbType),
+    };
+  }
   try {
     const value = JSON.parse(record.originalJson);
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const jdbc = parseJdbcUrl(
+      dbType,
+      typeof value.jdbcUrl === "string" ? value.jdbcUrl : record?.jdbcUrl,
+    );
     return {
-      jdbcUrl: typeof value.jdbcUrl === "string" ? value.jdbcUrl : undefined,
+      host: typeof value.host === "string" && value.host.trim() ? value.host : jdbc.host,
+      port:
+        typeof value.port === "number" || typeof value.port === "string"
+          ? String(value.port)
+          : jdbc.port || defaultPort(dbType),
+      database:
+        typeof value.database === "string" && value.database.trim()
+          ? value.database
+          : jdbc.database,
       username: typeof value.username === "string" ? value.username : undefined,
       password: typeof value.password === "string" ? value.password : undefined,
+      properties: parseProperties(value.properties),
     };
   } catch {
-    return {};
+    return {
+      ...parseJdbcUrl(dbType, record?.jdbcUrl),
+      port: parseJdbcUrl(dbType, record?.jdbcUrl).port || defaultPort(dbType),
+    };
+  }
+};
+
+const buildJdbcPreview = (values: FormValues) => {
+  const host = values.host.trim();
+  const port = values.port.trim();
+  const database = values.database.trim();
+  const authority = host + (port ? ":" + port : "");
+
+  switch (values.dbType) {
+    case "ORACLE":
+      return "jdbc:oracle:thin:@//" + authority + "/" + database;
+    case "POSTGRE_SQL":
+      return "jdbc:postgresql://" + authority + "/" + database;
+    default:
+      return "jdbc:mysql://" + authority + "/" + database;
   }
 };
 
@@ -89,14 +187,18 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
 
   useEffect(() => {
     if (!open) return;
+    const dbType = record?.dbType || "MYSQL";
     const original = parseOriginalJson(record);
     setValues({
       ...EMPTY_FORM,
       name: record?.name || "",
-      dbType: record?.dbType || "MYSQL",
-      jdbcUrl: original.jdbcUrl || record?.jdbcUrl || "",
+      dbType,
+      host: original.host || DEFAULT_HOST,
+      port: original.port || defaultPort(dbType),
+      database: original.database || "",
       username: original.username || "",
       password: original.password || "",
+      properties: original.properties || [],
       remark: record?.remark || "",
     });
     setErrors({});
@@ -109,34 +211,84 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
 
   const patch = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
     setValues((current) => ({ ...current, [key]: value }));
-    setErrors((current) => ({ ...current, [key]: undefined }));
+    if (key in errors) {
+      setErrors((current) => ({ ...current, [key]: undefined }));
+    }
+  };
+
+  const patchProperty = (index: number, key: keyof JdbcProperty, value: string) => {
+    setValues((current) => ({
+      ...current,
+      properties: current.properties.map((property, propertyIndex) =>
+        propertyIndex === index ? { ...property, [key]: value } : property,
+      ),
+    }));
+    setErrors((current) => ({ ...current, properties: undefined }));
+  };
+
+  const addProperty = () => {
+    setValues((current) => ({
+      ...current,
+      properties: [...current.properties, { key: "", value: "" }],
+    }));
+    setErrors((current) => ({ ...current, properties: undefined }));
+  };
+
+  const removeProperty = (index: number) => {
+    setValues((current) => ({
+      ...current,
+      properties: current.properties.filter((_, propertyIndex) => propertyIndex !== index),
+    }));
+    setErrors((current) => ({ ...current, properties: undefined }));
   };
 
   const validate = () => {
     const next: FormErrors = {};
+    const port = Number(values.port);
     if (!values.name.trim())
       next.name = intl.formatMessage({ id: "pages.datasource.form.dsNameRequired" });
     if (!values.dbType)
       next.dbType = intl.formatMessage({ id: "pages.datasource.form.dbTypeRequired" });
-    if (!values.jdbcUrl.trim())
-      next.jdbcUrl = intl.formatMessage({ id: "pages.datasource.form.jdbcUrlRequired" });
+    if (!values.host.trim())
+      next.host = intl.formatMessage({ id: "pages.datasource.form.hostRequired" });
+    if (!values.port.trim())
+      next.port = intl.formatMessage({ id: "pages.datasource.form.portRequired" });
+    else if (!Number.isInteger(port) || port < 1 || port > 65535)
+      next.port = intl.formatMessage({ id: "pages.datasource.form.portInvalid" });
+    if (!values.database.trim())
+      next.database = intl.formatMessage({ id: "pages.datasource.form.databaseRequired" });
     if (!values.username.trim())
       next.username = intl.formatMessage({ id: "pages.datasource.form.usernameRequired" });
     if (values.name.length > 128)
       next.name = intl.formatMessage({ id: "pages.datasource.form.dsNameMax" });
     if (values.remark.length > 500)
       next.remark = intl.formatMessage({ id: "pages.datasource.form.descriptionMax" });
+
+    const propertyKeys = values.properties.map((property) => property.key.trim());
+    if (propertyKeys.some((key) => !key)) {
+      next.properties = intl.formatMessage({ id: "pages.datasource.form.propertyKeyRequired" });
+    } else if (new Set(propertyKeys).size !== propertyKeys.length) {
+      next.properties = intl.formatMessage({ id: "pages.datasource.form.propertyKeyDuplicate" });
+    }
+
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
-  const connectionJson = () =>
-    JSON.stringify({
+  const connectionJson = () => {
+    const properties = Object.fromEntries(
+      values.properties.map((property) => [property.key.trim(), property.value]),
+    );
+    return JSON.stringify({
       dbType: values.dbType,
-      jdbcUrl: values.jdbcUrl.trim(),
+      host: values.host.trim(),
+      port: Number(values.port),
+      database: values.database.trim(),
       username: values.username.trim(),
       password: values.password,
+      properties,
     });
+  };
 
   const handleTest = async () => {
     if (busy || !validate()) return;
@@ -183,18 +335,25 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
   };
 
   const handleSelectType = (dbType: string) => {
-    setValues((current) => ({
-      ...current,
-      dbType,
-      jdbcUrl: current.dbType === dbType ? current.jdbcUrl : "",
-      username: current.dbType === dbType ? current.username : "",
-      password: current.dbType === dbType ? current.password : "",
-    }));
+    setValues((current) =>
+      current.dbType === dbType
+        ? current
+        : {
+            ...current,
+            dbType,
+            host: DEFAULT_HOST,
+            port: defaultPort(dbType),
+            database: "",
+            username: "",
+            password: "",
+            properties: [],
+          },
+    );
     setErrors({});
     setCreateStep("config");
   };
 
-  const fieldError = (key: keyof FormValues) =>
+  const fieldError = (key: FormErrorKey) =>
     errors[key] ? <div className="mt-1 text-xs text-[#b42318]">{errors[key]}</div> : null;
 
   const nameField = (
@@ -250,26 +409,90 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     </div>
   );
 
-  const jdbcUrlField = (
+  const jdbcPreviewField = (
     <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <label htmlFor="datasource-jdbc-url" className="pt-1.5 text-xs font-medium text-[#344054]">
-        {intl.formatMessage({ id: "pages.datasource.form.jdbcUrl" })}
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.jdbcPreview" })}
+      </span>
+      <div className="min-h-7 break-all py-1.5 text-xs text-[#667085]">
+        {buildJdbcPreview(values)}
+      </div>
+    </div>
+  );
+
+  const connectionAddressField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.connectionAddress" })}
+      </span>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_160px] gap-2 max-sm:grid-cols-1">
+        <div>
+          <Input
+            id="datasource-host"
+            size="small"
+            variant="outlined"
+            value={values.host}
+            aria-invalid={Boolean(errors.host) || undefined}
+            placeholder={intl.formatMessage({ id: "pages.datasource.form.hostPlaceholder" })}
+            onChange={(event) => patch("host", event.target.value)}
+          />
+          {fieldError("host")}
+        </div>
+        <div>
+          <Input
+            id="datasource-port"
+            size="small"
+            variant="outlined"
+            inputMode="numeric"
+            value={values.port}
+            aria-invalid={Boolean(errors.port) || undefined}
+            placeholder={intl.formatMessage({ id: "pages.datasource.form.portPlaceholder" })}
+            onChange={(event) => patch("port", event.target.value)}
+          />
+          {fieldError("port")}
+        </div>
+      </div>
+    </div>
+  );
+
+  const databaseField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <label htmlFor="datasource-database" className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.database" })}
       </label>
       <div className="min-w-0">
         <Input
-          id="datasource-jdbc-url"
+          id="datasource-database"
           size="small"
           variant="outlined"
-          value={values.jdbcUrl}
-          aria-invalid={Boolean(errors.jdbcUrl) || undefined}
-          placeholder={
-            JDBC_URL_PLACEHOLDERS[values.dbType] ||
-            intl.formatMessage({ id: "pages.datasource.form.jdbcUrlPlaceholder" })
-          }
-          onChange={(event) => patch("jdbcUrl", event.target.value)}
+          value={values.database}
+          aria-invalid={Boolean(errors.database) || undefined}
+          placeholder={intl.formatMessage({ id: "pages.datasource.form.databasePlaceholder" })}
+          onChange={(event) => patch("database", event.target.value)}
         />
-        {fieldError("jdbcUrl")}
+        {fieldError("database")}
       </div>
+    </div>
+  );
+
+  const accessIdentityField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.accessIdentity" })}
+      </span>
+      <Select size="small" value="USERNAME_PASSWORD">
+        <SelectTrigger variant="outlined">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="USERNAME_PASSWORD">
+            <SelectItemText>
+              {intl.formatMessage({ id: "pages.datasource.form.usernamePassword" })}
+            </SelectItemText>
+            <SelectItemIndicator />
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 
@@ -313,6 +536,128 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     </div>
   );
 
+  const authOptionField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.authOption" })}
+      </span>
+      <label className="flex min-h-7 items-center gap-2 text-xs text-[#344054]">
+        <input
+          type="radio"
+          checked
+          readOnly
+          className="size-3.5 accent-[var(--yak-color-primary)]"
+        />
+        {intl.formatMessage({ id: "pages.datasource.form.noAuth" })}
+      </label>
+    </div>
+  );
+
+  const versionField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.version" })}
+      </span>
+      <Select size="small" value="AUTO">
+        <SelectTrigger variant="outlined">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="AUTO">
+            <SelectItemText>
+              {intl.formatMessage({ id: "pages.datasource.form.versionAuto" })}
+            </SelectItemText>
+            <SelectItemIndicator />
+          </SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const advancedPropertiesField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.advancedProperties" })}
+      </span>
+      <div className="min-w-0">
+        <Button size="small" onClick={addProperty}>
+          {intl.formatMessage({ id: "pages.datasource.form.addProperty" })}
+        </Button>
+
+        <datalist id="datasource-jdbc-property-suggestions">
+          {(JDBC_PROPERTY_SUGGESTIONS[values.dbType] || []).map((property) => (
+            <option key={property} value={property} />
+          ))}
+        </datalist>
+
+        {values.properties.length > 0 ? (
+          <div className="mt-2 overflow-hidden border border-[#e7e9ed]">
+            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_56px] bg-[#f5f5f5] text-xs font-medium text-[#344054]">
+              <div className="px-2.5 py-2">
+                {intl.formatMessage({ id: "pages.datasource.form.propertyKey" })}
+              </div>
+              <div className="px-2.5 py-2">
+                {intl.formatMessage({ id: "pages.datasource.form.propertyValue" })}
+              </div>
+              <div className="px-2.5 py-2 text-center">
+                {intl.formatMessage({ id: "pages.datasource.table.actions" })}
+              </div>
+            </div>
+            {values.properties.map((property, index) => (
+              <div
+                key={"property-" + index}
+                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_56px] items-start gap-2 border-t border-[#eef0f3] p-2"
+              >
+                <Input
+                  size="small"
+                  variant="outlined"
+                  list="datasource-jdbc-property-suggestions"
+                  value={property.key}
+                  placeholder={intl.formatMessage({
+                    id: "pages.datasource.form.propertyKeyPlaceholder",
+                  })}
+                  onChange={(event) => patchProperty(index, "key", event.target.value)}
+                />
+                <Input
+                  size="small"
+                  variant="outlined"
+                  value={property.value}
+                  placeholder={intl.formatMessage({
+                    id: "pages.datasource.form.propertyValuePlaceholder",
+                  })}
+                  onChange={(event) => patchProperty(index, "value", event.target.value)}
+                />
+                <Button
+                  size="small"
+                  variant="ghost"
+                  className="px-1 text-xs font-normal text-[var(--yak-color-primary)]"
+                  onClick={() => removeProperty(index)}
+                >
+                  {intl.formatMessage({ id: "pages.datasource.form.deleteProperty" })}
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {fieldError("properties")}
+      </div>
+    </div>
+  );
+
+  const connectionFields = (
+    <>
+      {jdbcPreviewField}
+      {connectionAddressField}
+      {databaseField}
+      {accessIdentityField}
+      {usernameField}
+      {passwordField}
+      {authOptionField}
+      {versionField}
+      {advancedPropertiesField}
+    </>
+  );
+
   const remarkField = (
     <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
       <label htmlFor="datasource-remark" className="pt-1.5 text-xs font-medium text-[#344054]">
@@ -347,7 +692,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           if (!busy) onOpenChange(next);
         }}
       >
-        <DrawerContent width={520} animated={false} className="bg-white">
+        <DrawerContent width={720} animated={false} className="bg-white">
           <div className="flex items-center gap-3 border-b border-[#eef0f3] px-5 py-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#eaecf0] bg-[#f7f8fa]">
               <DatabaseIcons dbType={values.dbType} width="18" height="18" />
@@ -372,13 +717,26 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
           </div>
 
           <DrawerBody className="px-5 py-4">
-            <div className="space-y-2.5">
-              {nameField}
-              {dbTypeField}
-              {jdbcUrlField}
-              {usernameField}
-              {passwordField}
-              {remarkField}
+            <div className="space-y-3.5">
+              <section className="overflow-hidden rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed]">
+                <h3 className="border-b border-[#eef0f3] bg-[#fafafa] px-3 py-2 text-xs font-medium text-[#344054]">
+                  {intl.formatMessage({ id: "pages.datasource.wizard.basicInfo" })}
+                </h3>
+                <div className="space-y-2.5 px-3 py-3">
+                  {nameField}
+                  {dbTypeField}
+                  {remarkField}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="mb-2 text-xs font-medium text-[#344054]">
+                  {intl.formatMessage({ id: "pages.datasource.wizard.connectionConfig" })}
+                </h3>
+                <div className="space-y-2.5 rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed] px-3 py-3">
+                  {connectionFields}
+                </div>
+              </section>
             </div>
           </DrawerBody>
 
@@ -571,9 +929,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
               {intl.formatMessage({ id: "pages.datasource.wizard.connectionConfig" })}
             </h3>
             <div className="space-y-2.5 rounded-[var(--yak-radius-control-small)] border border-[#e7e9ed] px-3 py-3">
-              {jdbcUrlField}
-              {usernameField}
-              {passwordField}
+              {connectionFields}
             </div>
           </section>
         </div>
