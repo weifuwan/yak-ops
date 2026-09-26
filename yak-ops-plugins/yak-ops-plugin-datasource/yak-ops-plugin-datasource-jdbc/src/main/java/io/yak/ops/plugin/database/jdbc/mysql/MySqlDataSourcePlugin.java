@@ -51,6 +51,11 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     }
 
     @Override
+    protected Set<String> knownConnectionPropertyKeys() {
+        return Set.copyOf(PROPERTY_KEYS.values());
+    }
+
+    @Override
     protected Map<String, String> normalizeProperties(Map<String, String> properties) {
         Map<String, String> normalized = canonicalizeProperties(properties, PROPERTY_KEYS);
         normalizeBooleanProperty(normalized, "useUnicode");
