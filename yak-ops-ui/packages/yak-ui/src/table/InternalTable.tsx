@@ -58,6 +58,7 @@ export function InternalTable<RecordType extends object>({
   columns,
   dataSource = [],
   emptyText,
+  footer,
   loading = false,
   onChange,
   onRow,
@@ -286,20 +287,31 @@ export function InternalTable<RecordType extends object>({
         ) : null}
       </div>
 
-      {resolvedPagination ? (
-        <div className="mt-auto flex justify-end pt-3">
-          <Pagination
-            page={resolvedPagination.page}
-            pageSize={resolvedPagination.pageSize}
-            total={resolvedPagination.total}
-            pageSizeOptions={resolvedPagination.pageSizeOptions}
-            pageSizeLabel={resolvedPagination.pageSizeLabel}
-            disabled={loading || resolvedPagination.disabled}
-            showSizeChanger={resolvedPagination.showSizeChanger}
-            showQuickJumper={resolvedPagination.showQuickJumper}
-            renderTotal={resolvedPagination.renderTotal}
-            onChange={resolvedPagination.onChange}
-          />
+      {footer || resolvedPagination ? (
+        <div
+          className={cn(
+            "mt-auto flex flex-nowrap items-center gap-3",
+            footer
+              ? "border-t border-[var(--yak-components-table-border-strong)] py-3"
+              : "justify-end pt-3",
+          )}
+        >
+          {footer ? <div className="min-w-0 shrink-0">{footer}</div> : null}
+          {resolvedPagination ? (
+            <Pagination
+              className="ml-auto"
+              page={resolvedPagination.page}
+              pageSize={resolvedPagination.pageSize}
+              total={resolvedPagination.total}
+              pageSizeOptions={resolvedPagination.pageSizeOptions}
+              pageSizeLabel={resolvedPagination.pageSizeLabel}
+              disabled={loading || resolvedPagination.disabled}
+              showSizeChanger={resolvedPagination.showSizeChanger}
+              showQuickJumper={resolvedPagination.showQuickJumper}
+              renderTotal={resolvedPagination.renderTotal}
+              onChange={resolvedPagination.onChange}
+            />
+          ) : null}
         </div>
       ) : null}
     </div>

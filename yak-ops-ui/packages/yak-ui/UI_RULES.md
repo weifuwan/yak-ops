@@ -91,6 +91,7 @@ Yak UI Table uses an AntD-familiar core contract without becoming an AntD compat
 - When `pagination.total` is provided, Table treats `dataSource` as the already-paged server result.
 - `loading` keeps the current table structure mounted and overlays a Spinner instead of replacing the table.
 - `rowSelection` is a generic controlled / uncontrolled selection contract implemented by injecting a selection column; Table Body does not hard-code Checkbox behavior.
+- `footer` is a generic left-side composition slot sharing the bottom row with Pagination; batch / CRUD semantics remain product-owned.
 - Select-all only affects selectable rows on the currently rendered page and preserves selected keys from other pages.
 - Disabled row selection comes from `getCheckboxProps`; selection never contains Datasource or other domain semantics.
 - Sorter is a single-column AntD-familiar contract: comparator function enables local sorting; `sorter: true` exposes sort state for server-side handling without reordering local rows.
@@ -101,6 +102,7 @@ Yak UI Table uses an AntD-familiar core contract without becoming an AntD compat
 - Current Table supports size, border, row hover, selected-row state, ellipsis, sort, filter, horizontal / vertical scroll and sticky header.
 - Table header uses the shared `#F2F2F2` surface and does not draw internal header dividers; `bordered` applies the outer frame and body grid only.
 - Pagination is a single-line compact control; the active page uses `--yak-color-primary` instead of Button primary styling, and page-size wording is supplied through the generic `pageSizeLabel` composition point.
+- Checked Table selection controls use the shared primary token; product code must not invent a separate selection blue.
 - Expandable rows, fixed columns, virtualization, multi-column sort and component overrides remain deferred.
 
 Table must not own:
