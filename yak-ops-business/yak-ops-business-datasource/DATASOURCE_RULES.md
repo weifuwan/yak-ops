@@ -7,6 +7,7 @@ Depends On:
 - `/ARCHITECTURE.md`
 - `/JAVA_RULES.md`
 - `/yak-ops-business/BUSINESS_RULES.md`
+- `/docs/capabilities/workspace/README.md`
 - HTTP contract 变化加载 `/CONTROLLER_RULES.md`
 - Schema 变化加载 `/yak-ops-dao/FLYWAY_RULES.md`
 - Plugin 变化加载 `/yak-ops-plugins/yak-ops-plugin-datasource/PLUGIN_RULES.md`
@@ -125,6 +126,24 @@ Must Not:
 - Service 直接访问具体 Provider implementation。
 - 为 Plugin 再增加一层 Business / Manager / Adapter。
 - 通过后端 Plugin descriptor 动态驱动前端表单。
+
+## Workspace Ownership
+
+Datasource is a Workspace Resource.
+
+Must:
+- every Datasource row has exactly one non-null `workspace_id`.
+- Datasource Service obtains the active Workspace only through `WorkspaceContext.requireWorkspaceId()`.
+- Datasource DTOs do not carry freely supplied `workspaceId`.
+- detail, update, delete, paging, saved connection testing and batch operations are always scoped by `workspaceId`.
+- Datasource names are unique inside a Workspace, not globally.
+- Repository code uses Workspace-scoped overloads for Datasource access; inherited unscoped BaseRepository ID/update/delete methods must not be called by Datasource Service.
+
+Must Not:
+- infer ownership from `createBy`.
+- query a Datasource by resource ID alone.
+- use `yak_security_user.app_name` as Datasource ownership.
+- accept another Workspace ID from a Datasource request body.
 
 ## Persistence
 
