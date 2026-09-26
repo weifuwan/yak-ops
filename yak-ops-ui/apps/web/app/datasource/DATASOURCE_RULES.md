@@ -21,7 +21,7 @@ Current product flow:
 ```text
 Filter
 → Table
-→ Create / Edit / Delete / Test Connection
+→ Create / Edit / Delete
 ```
 
 不要为了未来扩展提前引入动态表单、Editor Runtime、Domain Hook、Summary Layer 或 Provider UI abstraction。
@@ -96,6 +96,7 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 - Datasource Table 使用 Yak UI 的中等密度、无圆角卡片覆盖；分页占用列表剩余高度的底部位置，并通过 `pageSizeLabel` 显示“每页显示：”。
 - Datasource 页面保持 `#F6F6F6` 页面底色，筛选、Table 和 Pagination 必须放在同一个白色内容面板中；内容面板不加阴影和额外圆角。
 - 筛选只保留 dbType 和 keyword；工具栏顺序固定为“新增数据源 → 数据源类型 → 数据源名称”，新增入口不放在 PageHeader extra。筛选 Input / SelectTrigger 统一使用 Yak UI `outlined` variant，不在页面里覆盖基础 border/background。
+- 列表行操作只保留“编辑｜删除”文字操作，中间使用轻量 Divider；列表不提供 Connection Test，连接测试保留在新增 / 编辑表单内。
 - CRUD 和 Connection Test 统一走 `service/datasource`。
 - HTTP transport only through `service/http`。
 - Common primitives from `@yak-ops/yak-ui`。

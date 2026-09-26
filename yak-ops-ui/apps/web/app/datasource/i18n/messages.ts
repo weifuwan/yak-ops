@@ -15,7 +15,6 @@ export default {
   "pages.datasource.table.created": "创建时间",
   "pages.datasource.table.updated": "修改时间",
   "pages.datasource.table.actions": "操作",
-  "pages.datasource.table.testConnection": "测试连接",
   "pages.datasource.table.edit": "编辑",
   "pages.datasource.table.delete": "删除",
 
