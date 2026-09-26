@@ -19,3 +19,17 @@ export const JDBC_DEFAULT_PORTS: Record<string, number> = {
   ORACLE: 1521,
   POSTGRE_SQL: 5432,
 };
+
+export const normalizeDataSourceType = (dbType?: string) => {
+  const normalized = String(dbType || "")
+    .trim()
+    .toUpperCase();
+
+  if (normalized === "POSTGRESQL" || normalized === "POSTGRES") return "POSTGRE_SQL";
+  return normalized;
+};
+
+export const getDataSourceTypeLabel = (dbType?: string) => {
+  const normalized = normalizeDataSourceType(dbType);
+  return COMMON_DB_OPTIONS.find((option) => option.value === normalized)?.label || normalized || "-";
+};
