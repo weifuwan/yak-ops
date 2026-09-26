@@ -83,9 +83,9 @@ The request Workspace ID is carried by `X-Workspace-Id`. Boot validates membersh
 
 ### `yak-ops-business/yak-ops-business-datasource`
 
-Owns only the current Datasource product behavior:
+Owns only the current Workspace-scoped Datasource product behavior:
 
-- datasource CRUD, paging and detail
+- datasource CRUD, paging and detail inside the active Workspace
 - datasource connection testing
 - internal datasource plugin discovery, connection parsing and secret handling
 
@@ -93,7 +93,7 @@ Datasource exposes exactly one public Service Layer entry: `DataSourceService`. 
 
 The module intentionally does not own Catalog HTTP/Business APIs, SQL execution, SQL audit, a duplicate Domain layer or a Gateway adapter layer.
 
-Datasource may use DAO persistence and the stable Datasource Plugin API only behind `DataSourceServiceImpl`.
+Datasource may use DAO persistence and the stable Datasource Plugin API only behind `DataSourceServiceImpl`. Datasource is a Workspace Resource: Service reads the trusted active Workspace from `WorkspaceContext`, while DAO queries scope resource access by `workspace_id + resource id/query`.
 
 Datasource does not own Controller, ControllerAdvice, connection-pool assembly or MyBatis runtime configuration. Boot exposes Datasource HTTP APIs and supplies application infrastructure.
 

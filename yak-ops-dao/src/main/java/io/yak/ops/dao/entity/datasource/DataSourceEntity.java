@@ -9,7 +9,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 映射 yak_ops_data_source 表，承载数据源持久化状态。
+ * 映射 yak_ops_data_source 表，承载 Workspace 内的数据源持久化状态。
  *
  * @author weifuwan
  * @since 2026-09-24
@@ -20,7 +20,10 @@ import lombok.ToString;
 @TableName("yak_ops_data_source")
 public class DataSourceEntity extends BaseEntity {
 
-    /** 数据源名称，在当前产品范围内唯一。 */
+    /** 数据源所属 Workspace ID，是数据源业务归属与隔离边界。 */
+    private String workspaceId;
+
+    /** 数据源名称，在同一 Workspace 内唯一。 */
     private String name;
 
     /** 数据库类型，用于选择对应的数据源插件能力。 */
