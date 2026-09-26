@@ -135,10 +135,10 @@ Ownership:
 - `AppLayout` owns the viewport and the Global Product Launcher open / close state.
 - `TopBar` owns product identity, launcher trigger and current-user actions.
 - `ProductSidebar` owns navigation inside the current product.
-- `ProductLauncher` mirrors the DataWorks first-level `user-menu`: a fixed 220px panel that opens from `translateX(-220px)` to `translateX(0)` in 300ms and closes in 220ms without resizing Sidebar / Outlet.
+- `ProductLauncher` owns a fixed 220px launcher track. The track, not the first-level panel alone, opens from `translateX(-220px)` to `translateX(0)` in 300ms and closes in 220ms without resizing Sidebar / Outlet.
 - `所有产品` is a dedicated `view-all` row. Activating it keeps the first-level panel visible, highlights the row with `#1c1e21`, and opens `AllProductMenu` to its right.
-- `AllProductMenu` mirrors the DataWorks second-level `all-product-menu`: it stays anchored at `left: 220px`, clips from 765px to 0 width on close, uses background `#1c1e21`, opens in 240ms and closes in 170ms.
-- A full Launcher close is staggered rather than hard-sequenced: the second level starts collapsing immediately, then the first level starts its slide 36ms later. Both panels remain mounted through their CSS transition.
+- `AllProductMenu` is absolutely anchored to the track with `left: 100%`, so its left edge always touches the first-level panel's right edge. It clips from 765px to 0 width on close, uses background `#1c1e21`, opens in 240ms and closes in 170ms.
+- A full Launcher close is staggered rather than hard-sequenced: the second level starts collapsing immediately, then the shared launcher track starts sliding 36ms later. Because both levels share the same moving coordinate system, no gap may appear between them during close.
 - Product/category rows use subtle `#282b2e` hover feedback and brighter text/icon color; neither first nor second level adds an outer shadow.
 - `navigation.ts` owns real product entries and category grouping; current data exposes only the existing `数据集成` product.
 - Launcher closes from the TopBar X trigger, Escape and route change.
