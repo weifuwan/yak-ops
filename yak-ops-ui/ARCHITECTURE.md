@@ -42,7 +42,7 @@ service/datasource/
 Datasource 当前就是普通管理页面：
 
 ```text
-Filter + Table + Pagination + CRUD Drawer
+Filter + Table + Pagination + CRUD Modal
 ```
 
 `index.tsx` 拥有列表、筛选、分页和删除确认状态；`table.tsx` 只负责列表展示；`form.tsx` 只负责新增、编辑和连接测试。
