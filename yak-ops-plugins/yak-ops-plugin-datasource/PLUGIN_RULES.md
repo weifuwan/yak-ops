@@ -114,6 +114,25 @@ Must Not:
 - add generic abstractions used by only one provider without a clear boundary.
 - recreate deleted test modules or fixtures as a side effect.
 
+## PostgreSQL Connection Contract
+
+PostgreSQL Provider 的数据源连接目标是 Database，不把 Schema 提升为 Datasource 核心连接字段。
+
+Must:
+- canonical type 固定为 `POSTGRE_SQL`，兼容别名只保留 `POSTGRESQL` / `POSTGRES`。
+- 默认端口固定为 `5432`，默认 Driver 为 `org.postgresql.Driver`。
+- 结构化连接字段保持 `host / port / database / username / password / properties`。
+- JDBC URL 使用 `jdbc:postgresql://host:port/database`，不得把 Schema 追加到 URL path。
+- `schema` / `schemaName` 不属于 PostgreSQL Datasource 顶层连接字段；如需调整连接默认 search path，只能通过高级参数 `properties.currentSchema`。
+- `currentSchema` 只影响 JDBC Session 的默认 Schema 搜索路径，不改变 Datasource 的 Database identity，也不替代 Catalog 中显式的 Schema 路径。
+- Connection Test 必须真实打开 PostgreSQL JDBC Connection，并继续执行统一的 `Connection.isValid(timeoutSeconds)` 校验。
+- PostgreSQL 的 Schema 发现与表定位继续属于 Catalog 能力，Datasource 创建 / 编辑不要求绑定 `public` 或其他 Schema。
+
+Must Not:
+- 为 PostgreSQL 在 Business / Frontend 新增第二套 Schema 连接字段。
+- 把 `public` 当成 Yak Ops 固定默认值写入持久化连接参数。
+- 因为指定 `currentSchema` 就把 Catalog 可见范围永久收窄到单个 Schema。
+
 ## Logging Boundary
 
 Plugin / JDBC 底层默认不记录连接参数流水日志。
