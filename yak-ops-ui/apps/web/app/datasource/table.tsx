@@ -137,12 +137,12 @@ const DataSourceTable = ({
       key: "actions",
       title: intl.formatMessage({ id: "pages.datasource.table.actions" }),
       width: 112,
-      align: "right",
+      align: "center",
       render: (_value, record) => {
         const id = String(record.id ?? "");
 
         return (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Button
               variant="ghost"
               size="small"

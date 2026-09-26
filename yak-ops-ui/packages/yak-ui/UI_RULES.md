@@ -49,6 +49,7 @@ Base UI is an implementation dependency, not a product-facing API.
 - Input / Textarea / NumberField use one shared input visual language.
 - Input and SelectTrigger expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`. Input focus and SelectTrigger focus/open use the primary border only; they do not add a focus box-shadow / ring.
 - Select / Menu / Tooltip / Popover / Dialog / Drawer / Tabs remain compositional instead of becoming giant convenience-prop components.
+- Drawer motion is enabled by default; product flows that intentionally need immediate open / close use the explicit `animated={false}` opt-out instead of overriding transition classes through `className`.
 - Dialog / Drawer / Popover / Menu popup interaction, focus restore, Escape and outside press behavior stay in Base UI.
 - Toast is the common replacement for message / notification feedback.
 - Badge is the common lightweight status-label primitive; product-specific status semantics stay outside Yak UI.
