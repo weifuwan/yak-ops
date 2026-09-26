@@ -1,18 +1,35 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "../cn";
 
+type SelectSize = "small" | "medium" | "large";
+
+const SelectSizeContext = createContext<SelectSize>("medium");
+
+const selectFontSizeClasses: Record<SelectSize, string> = {
+  small: "text-[var(--yak-font-size-control-small)]",
+  medium: "text-[var(--yak-font-size-control-medium)]",
+  large: "text-[var(--yak-font-size-control-large)]",
+};
+
 export type SelectProps<
   Value,
   Multiple extends boolean | undefined = false,
-> = BaseSelect.Root.Props<Value, Multiple>;
+> = Omit<BaseSelect.Root.Props<Value, Multiple>, "size"> & {
+  size?: SelectSize;
+};
 
-export function Select<Value, Multiple extends boolean | undefined = false>(
-  props: SelectProps<Value, Multiple>,
-) {
-  return <BaseSelect.Root {...props} />;
+export function Select<Value, Multiple extends boolean | undefined = false>({
+  size = "medium",
+  ...props
+}: SelectProps<Value, Multiple>) {
+  return (
+    <SelectSizeContext.Provider value={size}>
+      <BaseSelect.Root {...props} />
+    </SelectSizeContext.Provider>
+  );
 }
 
 const selectTriggerVariants = cva(
@@ -34,9 +51,9 @@ const selectTriggerVariants = cva(
           "border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] hover:border-[var(--yak-components-input-border-focus)] hover:bg-[var(--yak-components-input-bg-focus)] data-disabled:border-[var(--yak-components-input-border)]",
       },
       size: {
-        small: "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-xs",
-        medium: "h-9 gap-2 rounded-[var(--yak-radius-control-medium)] px-3 text-[13px]",
-        large: "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-3.5 text-sm",
+        small: "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-[var(--yak-font-size-control-small)]",
+        medium: "h-9 gap-2 rounded-[var(--yak-radius-control-medium)] px-3 text-[var(--yak-font-size-control-medium)]",
+        large: "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-3.5 text-[var(--yak-font-size-control-large)]",
       },
     },
     defaultVariants: {
@@ -58,10 +75,13 @@ export function SelectTrigger({
   variant,
   ...props
 }: SelectTriggerProps) {
+  const contextSize = useContext(SelectSizeContext);
+  const resolvedSize = size ?? contextSize;
+
   return (
     <BaseSelect.Trigger
       {...props}
-      className={cn(selectTriggerVariants({ size, variant }), className)}
+      className={cn(selectTriggerVariants({ size: resolvedSize, variant }), className)}
     >
       <span className="min-w-0 flex-1 truncate">{children}</span>
       <BaseSelect.Icon className="shrink-0 text-[var(--yak-components-input-icon)] transition-transform duration-150 group-data-popup-open/select-trigger:rotate-180 motion-reduce:transition-none">
@@ -107,6 +127,8 @@ export function SelectContent({
   sideOffset = 4,
   ...props
 }: SelectContentProps) {
+  const size = useContext(SelectSizeContext);
+
   return (
     <BaseSelect.Portal>
       <BaseSelect.Positioner
@@ -121,6 +143,7 @@ export function SelectContent({
           {...props}
           className={cn(
             "min-w-[var(--anchor-width)] max-w-80 overflow-hidden rounded-[var(--yak-radius-control-medium)] border border-[var(--yak-components-select-border)] bg-[var(--yak-components-select-bg)] shadow-[var(--yak-components-select-shadow)] outline-none",
+            selectFontSizeClasses[size],
             className,
           )}
         >
@@ -146,7 +169,7 @@ export function SelectItem<Value = unknown>({ className, ...props }: SelectItemP
     <BaseSelect.Item
       {...props}
       className={cn(
-        "flex min-h-8 cursor-pointer items-center gap-2 rounded-[var(--yak-radius-control-small)] px-2.5 py-1.5 text-[13px] text-[var(--yak-components-select-item-text)] outline-none",
+        "flex min-h-8 cursor-pointer items-center gap-2 rounded-[var(--yak-radius-control-small)] px-2.5 py-1.5 text-[var(--yak-components-select-item-text)] outline-none",
         "data-highlighted:bg-[var(--yak-components-select-item-bg-hover)] data-selected:font-medium",
         "data-disabled:cursor-not-allowed data-disabled:opacity-45",
         className,
