@@ -47,8 +47,9 @@ Base UI is an implementation dependency, not a product-facing API.
 - Button defaults to `type="button"`.
 - Button `primary` uses `--yak-color-primary` as its source color; hover / active are derived from that token rather than maintaining a separate dark primary palette.
 - Input / Textarea / NumberField use one shared input visual language.
-- Input / Textarea / SelectTrigger expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`.
-- Input / Textarea focus and SelectTrigger focus/open use the primary border only; they do not add a focus box-shadow / ring. Textarea keeps only its multiline-specific height, vertical padding and resize behavior; radius, typography, surface and interaction states follow Input.
+- Input / Textarea / SelectTrigger / ComboboxInput expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`.
+- Input / Textarea / ComboboxInput focus and SelectTrigger focus/open use the primary border only; they do not add a focus box-shadow / ring. Textarea keeps only its multiline-specific height, vertical padding and resize behavior; radius, typography, surface and interaction states follow Input.
+- Combobox is the searchable selection primitive for larger option sets. It shares Input size/radius/variant styling and Select popup/item tokens, supports Base UI single/multiple selection, and exposes a selected-item indicator without product-specific semantics.
 - Select / Menu / Tooltip / Popover / Dialog / Drawer / Tabs remain compositional instead of becoming giant convenience-prop components.
 - Select separates domain values from user-visible labels: when `value` and `label` differ, product code must pass `items` to `Select` so `SelectValue` renders the matching label. Controlled state and `onValueChange` continue to use the domain `value`; product code must not duplicate value-to-label lookup logic inside the trigger.
 - Modal is the shared product-facing dialog shell: it owns title, close affordance, scrollable body, fixed footer, width and placement; product code owns business content, step state and submit lifecycle.
@@ -135,7 +136,7 @@ AntD Input.Password  → PasswordInput
 AntD Input.TextArea  → Textarea
 AntD InputNumber     → NumberField
 AntD Form            → Form + Field presentation; product owns form state
-AntD Select          → Select
+AntD Select          → Select / Combobox when filtering is required
 AntD Switch          → Switch
 AntD Tooltip         → Tooltip
 AntD Popover         → Popover
