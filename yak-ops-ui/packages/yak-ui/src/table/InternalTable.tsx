@@ -224,15 +224,17 @@ export function InternalTable<RecordType extends object>({
             {data.map((record, rowIndex) => {
               const rowProps = onRow?.(record, rowIndex) ?? {};
               const { className: rowClassName, ...restRowProps } = rowProps;
+              const selected = isSelected(record, rowIndex);
 
               return (
                 <tr
                   {...restRowProps}
                   key={resolveTableRowKey(record, rowIndex, rowKey)}
+                  data-selected={selected ? "true" : undefined}
                   className={cn(
                     "border-b border-[var(--yak-components-table-border)] bg-[var(--yak-components-table-row-bg)] last:border-b-0",
+                    "data-[selected=true]:bg-[var(--yak-color-hover)]",
                     rowHoverable && "transition-colors hover:bg-[var(--yak-color-hover)]",
-                    isSelected(record, rowIndex) && "bg-[var(--yak-color-hover)]",
                     rowClassName,
                   )}
                 >
