@@ -82,6 +82,7 @@ app/layout/
 - Domain backend Contract / calls 放在 `service/<domain>`。
 - 依赖方向保持 `app → service → http`。
 - 通用 UI 从 `@yak-ops/yak-ui` 使用。
+- 管理型新增 / 编辑表单遵循 `FORM_RULES.md` 的 Compact Horizontal Form Contract。
 - Router 只负责 URL → Product Surface 映射。
 - Context 只拥有 App-wide runtime state。
 - HTTP transport 只存在于 `service/http`。

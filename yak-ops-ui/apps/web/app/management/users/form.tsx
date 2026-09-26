@@ -39,6 +39,7 @@ const EMPTY_VALUES: FormValues = {
 const USERNAME_PATTERN = /^[0-9a-zA-Z_]{3,50}$/;
 const PHONE_PATTERN = /^1\d{10}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const HORIZONTAL_FIELD_CLASS = "grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3";
 
 export default function UserForm({ open, record, onClose, onSaved }: UserFormProps) {
   const editing = Boolean(record?.id);
@@ -110,7 +111,8 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
   return (
     <Modal
       open={open}
-      width={520}
+      width={600}
+      bodyClassName="py-3"
       title={editing ? "编辑用户" : "新增用户"}
       onClose={() => {
         if (!saving) onClose();
@@ -131,42 +133,59 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
         </>
       }
     >
-      <div className="space-y-4">
-        <Field invalid={Boolean(errors.userName)}>
-          <FieldLabel required htmlFor="management-user-name">
+      <div className="space-y-2.5">
+        <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors.userName)}>
+          <FieldLabel required htmlFor="management-user-name" className="pt-1.5 text-xs leading-4">
             用户名
           </FieldLabel>
-          <Input
-            id="management-user-name"
-            variant="outlined"
-            value={values.userName}
-            readOnly={editing}
-            aria-invalid={Boolean(errors.userName) || undefined}
-            placeholder="请输入用户名"
-            onChange={(event) => patch("userName", event.target.value)}
-          />
-          <FieldError match={Boolean(errors.userName)}>{errors.userName}</FieldError>
+          <div className="min-w-0">
+            <Input
+              id="management-user-name"
+              size="small"
+              variant="outlined"
+              value={values.userName}
+              readOnly={editing}
+              aria-invalid={Boolean(errors.userName) || undefined}
+              placeholder="请输入用户名"
+              onChange={(event) => patch("userName", event.target.value)}
+            />
+            <FieldError match={Boolean(errors.userName)} className="mt-1">
+              {errors.userName}
+            </FieldError>
+          </div>
         </Field>
 
-        <Field invalid={Boolean(errors.password)}>
-          <FieldLabel required={!editing} htmlFor="management-user-password">
+        <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors.password)}>
+          <FieldLabel
+            required={!editing}
+            htmlFor="management-user-password"
+            className="pt-1.5 text-xs leading-4"
+          >
             {editing ? "新密码" : "初始密码"}
           </FieldLabel>
-          <PasswordInput
-            id="management-user-password"
-            variant="outlined"
-            value={values.password}
-            aria-invalid={Boolean(errors.password) || undefined}
-            placeholder={editing ? "留空表示不修改密码" : "请输入 8～64 位密码"}
-            onChange={(event) => patch("password", event.target.value)}
-          />
-          <FieldError match={Boolean(errors.password)}>{errors.password}</FieldError>
+          <div className="min-w-0">
+            <PasswordInput
+              id="management-user-password"
+              size="small"
+              variant="outlined"
+              value={values.password}
+              aria-invalid={Boolean(errors.password) || undefined}
+              placeholder={editing ? "留空表示不修改密码" : "请输入 8～64 位密码"}
+              onChange={(event) => patch("password", event.target.value)}
+            />
+            <FieldError match={Boolean(errors.password)} className="mt-1">
+              {errors.password}
+            </FieldError>
+          </div>
         </Field>
 
-        <Field>
-          <FieldLabel htmlFor="management-user-real-name">姓名</FieldLabel>
+        <Field className={HORIZONTAL_FIELD_CLASS}>
+          <FieldLabel htmlFor="management-user-real-name" className="pt-1.5 text-xs leading-4">
+            姓名
+          </FieldLabel>
           <Input
             id="management-user-real-name"
+            size="small"
             variant="outlined"
             value={values.realName}
             placeholder="请输入姓名"
@@ -174,32 +193,46 @@ export default function UserForm({ open, record, onClose, onSaved }: UserFormPro
           />
         </Field>
 
-        <Field invalid={Boolean(errors.phone)}>
-          <FieldLabel htmlFor="management-user-phone">手机号</FieldLabel>
-          <Input
-            id="management-user-phone"
-            variant="outlined"
-            value={values.phone}
-            aria-invalid={Boolean(errors.phone) || undefined}
-            placeholder={
-              editing && record?.phone ? `当前：${record.phone}，留空表示不修改` : "请输入手机号"
-            }
-            onChange={(event) => patch("phone", event.target.value)}
-          />
-          <FieldError match={Boolean(errors.phone)}>{errors.phone}</FieldError>
+        <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors.phone)}>
+          <FieldLabel htmlFor="management-user-phone" className="pt-1.5 text-xs leading-4">
+            手机号
+          </FieldLabel>
+          <div className="min-w-0">
+            <Input
+              id="management-user-phone"
+              size="small"
+              variant="outlined"
+              value={values.phone}
+              aria-invalid={Boolean(errors.phone) || undefined}
+              placeholder={
+                editing && record?.phone ? `当前：${record.phone}，留空表示不修改` : "请输入手机号"
+              }
+              onChange={(event) => patch("phone", event.target.value)}
+            />
+            <FieldError match={Boolean(errors.phone)} className="mt-1">
+              {errors.phone}
+            </FieldError>
+          </div>
         </Field>
 
-        <Field invalid={Boolean(errors.email)}>
-          <FieldLabel htmlFor="management-user-email">邮箱</FieldLabel>
-          <Input
-            id="management-user-email"
-            variant="outlined"
-            value={values.email}
-            aria-invalid={Boolean(errors.email) || undefined}
-            placeholder="请输入邮箱"
-            onChange={(event) => patch("email", event.target.value)}
-          />
-          <FieldError match={Boolean(errors.email)}>{errors.email}</FieldError>
+        <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(errors.email)}>
+          <FieldLabel htmlFor="management-user-email" className="pt-1.5 text-xs leading-4">
+            邮箱
+          </FieldLabel>
+          <div className="min-w-0">
+            <Input
+              id="management-user-email"
+              size="small"
+              variant="outlined"
+              value={values.email}
+              aria-invalid={Boolean(errors.email) || undefined}
+              placeholder="请输入邮箱"
+              onChange={(event) => patch("email", event.target.value)}
+            />
+            <FieldError match={Boolean(errors.email)} className="mt-1">
+              {errors.email}
+            </FieldError>
+          </div>
         </Field>
       </div>
     </Modal>

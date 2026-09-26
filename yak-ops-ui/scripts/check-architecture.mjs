@@ -43,6 +43,14 @@ const forbiddenDataSourceFiles = [
   "apps/web/app/datasource/constants.tsx",
 ];
 
+const requiredWebContractFiles = ["apps/web/FORM_RULES.md"];
+
+for (const path of requiredWebContractFiles) {
+  if (!existsSync(join(root, path))) {
+    fail(`required web contract file is missing: ${path}`);
+  }
+}
+
 const requiredAppShellFiles = [
   "apps/web/app/layout/AppLayout.tsx",
   "apps/web/app/layout/TopBar.tsx",

@@ -10,6 +10,7 @@ Depends On:
 
 - `/yak-ops-ui/FRONTEND_RULES.md`
 - `/yak-ops-ui/apps/web/APP_RULES.md`
+- `/yak-ops-ui/apps/web/FORM_RULES.md`
 - `/yak-ops-ui/ARCHITECTURE.md`
 
 ## Ownership
@@ -55,6 +56,7 @@ service/
 Must:
 
 - reuse Yak UI `PageHeader / Table / Button / Input / Field / Modal / Dialog / Textarea / PasswordInput`.
+- User / Workspace create-edit forms follow `FORM_RULES.md`: 104px Label, small controls, outlined Input / PasswordInput / Select, and compact horizontal rows.
 - use the same `PageHeader → white content panel → toolbar → table` page rhythm as Datasource management.
 - keep backend contracts under `service/<domain>`.
 - omit Workspace request headers for system-scoped User APIs and Workspace discovery/management APIs.

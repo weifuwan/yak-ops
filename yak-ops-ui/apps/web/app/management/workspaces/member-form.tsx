@@ -34,6 +34,8 @@ const ROLE_LABELS: Record<WorkspaceRole, string> = {
   MEMBER: "成员",
 };
 
+const HORIZONTAL_FIELD_CLASS = "grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3";
+
 export default function WorkspaceMemberForm({
   open,
   workspaceId,
@@ -146,13 +148,16 @@ export default function WorkspaceMemberForm({
     : (["ADMIN", "MEMBER"] as WorkspaceRole[]);
 
   return (
-    <Modal open={open} width={760} title="添加成员" onClose={onClose}>
-      <div className="space-y-4">
-        <div className="grid grid-cols-[minmax(0,1fr)_180px] gap-3 max-sm:grid-cols-1">
-          <Field>
-            <FieldLabel htmlFor="workspace-member-keyword">搜索用户</FieldLabel>
+    <Modal open={open} width={760} bodyClassName="py-3" title="添加成员" onClose={onClose}>
+      <div className="space-y-3">
+        <div className="space-y-2.5">
+          <Field className={HORIZONTAL_FIELD_CLASS}>
+            <FieldLabel htmlFor="workspace-member-keyword" className="pt-1.5 text-xs leading-4">
+              搜索用户
+            </FieldLabel>
             <Input
               id="workspace-member-keyword"
+              size="small"
               variant="outlined"
               value={keyword}
               placeholder="输入用户名或姓名"
@@ -160,9 +165,10 @@ export default function WorkspaceMemberForm({
             />
           </Field>
 
-          <Field>
-            <FieldLabel>加入角色</FieldLabel>
+          <Field className={HORIZONTAL_FIELD_CLASS}>
+            <FieldLabel className="pt-1.5 text-xs leading-4">加入角色</FieldLabel>
             <Select<WorkspaceRole>
+              size="small"
               items={ROLE_LABELS}
               value={role}
               onValueChange={(nextRole) => {

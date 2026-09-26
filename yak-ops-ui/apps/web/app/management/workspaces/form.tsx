@@ -9,6 +9,8 @@ type WorkspaceFormProps = {
   onSaved: () => void;
 };
 
+const HORIZONTAL_FIELD_CLASS = "grid grid-cols-[104px_minmax(0,1fr)] items-start !gap-3";
+
 export default function WorkspaceForm({ open, onClose, onSaved }: WorkspaceFormProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -50,7 +52,8 @@ export default function WorkspaceForm({ open, onClose, onSaved }: WorkspaceFormP
   return (
     <Modal
       open={open}
-      width={520}
+      width={600}
+      bodyClassName="py-3"
       title="新建工作空间"
       onClose={() => {
         if (!saving) onClose();
@@ -71,33 +74,49 @@ export default function WorkspaceForm({ open, onClose, onSaved }: WorkspaceFormP
         </>
       }
     >
-      <div className="space-y-4">
-        <Field invalid={Boolean(nameError)}>
-          <FieldLabel required htmlFor="management-workspace-name">
+      <div className="space-y-2.5">
+        <Field className={HORIZONTAL_FIELD_CLASS} invalid={Boolean(nameError)}>
+          <FieldLabel
+            required
+            htmlFor="management-workspace-name"
+            className="pt-1.5 text-xs leading-4"
+          >
             工作空间名称
           </FieldLabel>
-          <Input
-            id="management-workspace-name"
-            variant="outlined"
-            maxLength={128}
-            value={name}
-            aria-invalid={Boolean(nameError) || undefined}
-            placeholder="请输入工作空间名称"
-            onChange={(event) => {
-              setName(event.target.value);
-              setNameError("");
-            }}
-          />
-          <FieldError match={Boolean(nameError)}>{nameError}</FieldError>
+          <div className="min-w-0">
+            <Input
+              id="management-workspace-name"
+              size="small"
+              variant="outlined"
+              maxLength={128}
+              value={name}
+              aria-invalid={Boolean(nameError) || undefined}
+              placeholder="请输入工作空间名称"
+              onChange={(event) => {
+                setName(event.target.value);
+                setNameError("");
+              }}
+            />
+            <FieldError match={Boolean(nameError)} className="mt-1">
+              {nameError}
+            </FieldError>
+          </div>
         </Field>
 
-        <Field>
-          <FieldLabel htmlFor="management-workspace-description">描述</FieldLabel>
+        <Field className={HORIZONTAL_FIELD_CLASS}>
+          <FieldLabel
+            htmlFor="management-workspace-description"
+            className="pt-1.5 text-xs leading-4"
+          >
+            描述
+          </FieldLabel>
           <Textarea
             id="management-workspace-description"
-            rows={3}
+            size="small"
+            rows={2}
             maxLength={500}
             value={description}
+            className="min-h-[56px] resize-none"
             placeholder="请输入工作空间描述"
             onValueChange={(value) => setDescription(String(value || ""))}
           />
