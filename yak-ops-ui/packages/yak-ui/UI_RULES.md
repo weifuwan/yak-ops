@@ -51,6 +51,7 @@ Base UI is an implementation dependency, not a product-facing API.
 - Select / Menu / Tooltip / Popover / Dialog / Drawer / Tabs remain compositional instead of becoming giant convenience-prop components.
 - Select separates domain values from user-visible labels: when `value` and `label` differ, product code must pass `items` to `Select` so `SelectValue` renders the matching label. Controlled state and `onValueChange` continue to use the domain `value`; product code must not duplicate value-to-label lookup logic inside the trigger.
 - Modal is the shared product-facing dialog shell: it owns title, close affordance, scrollable body, fixed footer and width; product code owns business content, step state and submit lifecycle.
+- Modal open / close motion is opacity-only: Backdrop and Popup fade in / out without scale, translate, bounce or spring transforms; product code must not override Modal motion through `className`.
 - Drawer motion is enabled by default; product flows that intentionally need immediate open / close use the explicit `animated={false}` opt-out instead of overriding transition classes through `className`.
 - Dialog / Modal / Drawer / Popover / Menu popup interaction, focus restore, Escape and outside press behavior stay in Base UI.
 - Toast is the common replacement for message / notification feedback.
