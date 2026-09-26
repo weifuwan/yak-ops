@@ -15,6 +15,7 @@ Owns:
 - Datasource CRUD
 - Datasource paging / detail
 - Datasource connection testing
+- Datasource batch delete / batch connection testing
 - Internal Datasource Plugin discovery, connection parsing and secret handling
 
 Does Not Own:
@@ -88,7 +89,7 @@ Controller 只负责 HTTP mapping、`@Valid` 和统一 Result 包装。DTO parsi
 
 数据源分页请求统一由 `DataSourceQueryDTO extends PageQueryDTO` 提供 `pageNo / pageSize / sorts` Contract。当前自定义 `sorts` 在 Repository 排序白名单落地前必须明确拒绝，禁止静默忽略；默认分页排序保持 `updateTime DESC, id DESC` 保证稳定翻页。
 
-当前 Datasource 管理产品面只发布分页、详情、增删改和连接测试。
+当前 Datasource 管理产品面发布分页、详情、增删改、批量删除、连接测试和批量连接测试。批量删除必须事务化；批量连接测试必须隔离单条失败并返回逐条结果。
 
 当前产品不发布 Catalog、Plugin Config HTTP schema、运行时插件安装或 Driver Upload API。
 

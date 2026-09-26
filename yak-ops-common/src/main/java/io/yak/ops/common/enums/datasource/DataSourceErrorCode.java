@@ -24,6 +24,7 @@ public enum DataSourceErrorCode implements ErrorCode {
     DELETE_FAILED(41009, "删除数据源失败"),
     QUERY_FAILED(41010, "查询数据源失败"),
     PLUGIN_NOT_FOUND(41011, "数据源插件未安装"),
+    INVALID_BATCH_OPERATION(41012, "数据源批量操作参数不合法"),
     INVALID_CONNECTION_STATUS(41013, "数据源连接状态不合法");
 
     private final Integer code;

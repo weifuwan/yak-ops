@@ -3,15 +3,18 @@ package io.yak.ops.boot.controller.datasource.v1;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.business.datasource.DataSourceService;
+import io.yak.ops.common.bean.dto.datasource.DataSourceBatchIdsDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceConnectTestDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
+import io.yak.ops.common.bean.vo.datasource.DataSourceBatchConnectTestResultVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -60,6 +63,12 @@ public class DataSourceController {
         return Result.success(dataSourceService.deleteDataSource(id));
     }
 
+    @Operation(summary = "批量删除数据源")
+    @PostMapping("/batch-delete")
+    public Result<Boolean> batchDelete(@Valid @RequestBody DataSourceBatchIdsDTO dto) {
+        return Result.success(dataSourceService.batchDeleteDataSources(dto));
+    }
+
     @Operation(summary = "分页查询数据源")
     @PostMapping("/page")
     public Result<PagingData<DataSourceVO>> page(@Valid @RequestBody DataSourceQueryDTO dto) {
@@ -72,6 +81,13 @@ public class DataSourceController {
             method = {RequestMethod.GET, RequestMethod.POST})
     public Result<Boolean> testConnection(@PathVariable("id") String id) {
         return Result.success(dataSourceService.testConnection(id));
+    }
+
+    @Operation(summary = "批量测试已保存数据源连接")
+    @PostMapping("/batch-connect-test")
+    public Result<List<DataSourceBatchConnectTestResultVO>> batchTestConnection(
+            @Valid @RequestBody DataSourceBatchIdsDTO dto) {
+        return Result.success(dataSourceService.batchTestConnections(dto));
     }
 
     @Operation(summary = "使用连接参数测试数据源连接")
