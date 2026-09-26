@@ -30,12 +30,7 @@ export type FieldLabelProps = Omit<BaseFieldNS.Label.Props, "className"> & {
   required?: boolean;
 };
 
-export function FieldLabel({
-  children,
-  className,
-  required = false,
-  ...props
-}: FieldLabelProps) {
+export function FieldLabel({ children, className, required = false, ...props }: FieldLabelProps) {
   return (
     <BaseField.Label
       className={cn(
