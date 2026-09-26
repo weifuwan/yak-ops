@@ -4,9 +4,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
-  Empty,
   Input,
-  Pagination,
   Select,
   SelectContent,
   SelectItem,
@@ -14,7 +12,6 @@ import {
   SelectItemText,
   SelectTrigger,
   SelectValue,
-  Spinner,
   toast,
 } from "@yak-ops/yak-ui";
 import { Plus, Search } from "lucide-react";
@@ -26,11 +23,7 @@ import {
   listDataSources,
   testDataSourceConnection,
 } from "@/service/datasource";
-import {
-  COMMON_DB_OPTIONS,
-  CONNECTION_STATUS_OPTIONS,
-  DATA_SOURCE_PAGE_SIZE_OPTIONS,
-} from "./constants";
+import { COMMON_DB_OPTIONS, CONNECTION_STATUS_OPTIONS } from "./constants";
 import DataSourceForm from "./form";
 import { useIntl } from "./i18n";
 import DataSourceTable from "./table";
@@ -262,53 +255,25 @@ const DataSourcePage = () => {
             ) : null}
           </section>
 
-          <section className="relative mt-4 min-h-40">
-            {loading ? (
-              <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-white/75">
-                <Spinner size="large" label="Loading datasources" />
-              </div>
-            ) : null}
-
-            {records.length > 0 ? (
-              <DataSourceTable
-                records={records}
-                editingId={editingId}
-                testingId={testingId}
-                onEdit={(record) => void handleEdit(record)}
-                onDelete={setPendingDelete}
-                onTestConnection={(record) => void handleTestConnection(record)}
-              />
-            ) : null}
-
-            {!loading && records.length === 0 ? (
-              <div className="flex min-h-72 items-center justify-center rounded-xl border border-[#e9ebef]">
-                <Empty
-                  description={intl.formatMessage({
-                    id: hasActiveFilters
-                      ? "pages.datasource.empty.filtered"
-                      : "pages.datasource.empty.default",
-                  })}
-                />
-              </div>
-            ) : null}
+          <section className="mt-4">
+            <DataSourceTable
+              records={records}
+              loading={loading}
+              pageNo={pageNo}
+              pageSize={pageSize}
+              total={total}
+              hasActiveFilters={hasActiveFilters}
+              editingId={editingId}
+              testingId={testingId}
+              onPageChange={(nextPage, nextPageSize) => {
+                setPageNo(nextPage);
+                setPageSize(nextPageSize);
+              }}
+              onEdit={(record) => void handleEdit(record)}
+              onDelete={setPendingDelete}
+              onTestConnection={(record) => void handleTestConnection(record)}
+            />
           </section>
-
-          {total > 0 ? (
-            <footer className="mt-6 flex justify-end">
-              <Pagination
-                page={pageNo}
-                pageSize={pageSize}
-                total={total}
-                showSizeChanger
-                pageSizeOptions={DATA_SOURCE_PAGE_SIZE_OPTIONS}
-                disabled={loading}
-                onChange={(nextPage, nextPageSize) => {
-                  setPageNo(nextPage);
-                  setPageSize(nextPageSize);
-                }}
-              />
-            </footer>
-          ) : null}
         </div>
       </div>
 
