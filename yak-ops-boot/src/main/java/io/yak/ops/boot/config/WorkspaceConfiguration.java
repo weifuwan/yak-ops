@@ -1,7 +1,7 @@
 package io.yak.ops.boot.config;
 
-import io.yak.ops.business.workspace.WorkspaceService;
 import io.yak.ops.boot.workspace.WorkspaceContextInterceptor;
+import io.yak.ops.business.workspace.WorkspaceService;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

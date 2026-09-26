@@ -66,7 +66,8 @@ CREATE TABLE yak_ops_workspace_member (
 
 CREATE TABLE yak_ops_data_source (
     id VARCHAR(64) NOT NULL COMMENT '主键ID，由应用雪花算法生成',
-    name VARCHAR(128) NOT NULL COMMENT '数据源名称，在当前产品范围内唯一',
+    workspace_id VARCHAR(64) NOT NULL COMMENT '所属工作空间ID，是数据源业务归属与隔离边界',
+    name VARCHAR(128) NOT NULL COMMENT '数据源名称，在同一工作空间内唯一',
     db_type VARCHAR(32) NOT NULL COMMENT '数据库类型，对应已注册的数据源插件类型',
     jdbc_url VARCHAR(1024) NOT NULL COMMENT 'JDBC 连接地址',
     environment TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '运行环境：0 开发，1 测试，2 生产',
@@ -79,11 +80,11 @@ CREATE TABLE yak_ops_data_source (
     create_by VARCHAR(64) NOT NULL COMMENT '创建人标识',
     update_by VARCHAR(64) NOT NULL COMMENT '更新人标识',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_ops_data_source_name (name),
-    KEY idx_ops_data_source_type (db_type),
-    KEY idx_ops_data_source_environment (environment),
-    KEY idx_ops_data_source_status (conn_status),
-    KEY idx_ops_data_source_update_time (update_time)
+    UNIQUE KEY uk_ops_data_source_workspace_name (workspace_id, name),
+    KEY idx_ops_data_source_workspace_type (workspace_id, db_type),
+    KEY idx_ops_data_source_workspace_environment (workspace_id, environment),
+    KEY idx_ops_data_source_workspace_status (workspace_id, conn_status),
+    KEY idx_ops_data_source_workspace_update_time (workspace_id, update_time)
 ) ENGINE=InnoDB
   DEFAULT CHARACTER SET=utf8mb4
   COLLATE=utf8mb4_unicode_ci

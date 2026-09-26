@@ -3,7 +3,7 @@
 Status: Active
 
 Scope:
-- Datasource CRUD
+- Workspace-scoped Datasource CRUD
 - Connection testing
 - JDBC plugin runtime
 - Datasource frontend
@@ -40,10 +40,29 @@ Backend JDBC Plugin stays extensible, but the frontend is not a plugin platform.
 
 Plugin Descriptor V3 is runtime-only metadata: canonical type, aliases, API version, capabilities and secret field keys. Frontend labels, sections, validation rules and JDBC URL form linkage are not backend plugin contracts.
 
+## Workspace Ownership
+
+Datasource is the first Yak Ops Workspace Resource.
+
+```text
+Authenticated User
+      ↓ membership validated by Boot
+X-Workspace-Id
+      ↓
+WorkspaceContext
+      ↓
+Datasource
+```
+
+Every persisted Datasource has exactly one `workspace_id`. Datasource names are unique inside a Workspace. Resource IDs never bypass Workspace scope: detail, update, delete, paging and saved connection testing all require the active `WorkspaceContext`.
+
+The Datasource HTTP DTO does not accept `workspaceId`; the request Workspace is trusted only after the Workspace interceptor validates membership.
+
 ## Backend Flow
 
 ```text
 DataSourceController
+→ WorkspaceContext
 → DataSourceService
 → DataSourceEntityRepository
   or DataSourcePluginRegistry
@@ -125,4 +144,4 @@ app/datasource
 
 ## Boundary
 
-Datasource is currently the only active Yak Ops product domain.
+Datasource is the active Yak Ops product resource and is always owned by exactly one Workspace.

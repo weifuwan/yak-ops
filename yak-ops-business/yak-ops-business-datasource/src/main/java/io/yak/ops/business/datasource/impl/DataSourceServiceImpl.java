@@ -11,6 +11,7 @@ import io.yak.ops.common.bean.dto.datasource.DataSourceDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceQueryDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceBatchConnectTestResultVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
+import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
@@ -30,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
- * 实现数据源配置生命周期、查询、连接测试和 Entity → VO 转换。
+ * 实现 Workspace-scoped 数据源配置生命周期、查询、连接测试和 Entity → VO 转换。
  *
  * <p>负责业务校验与持久化编排；数据库类型差异、连接参数解析和敏感信息处理统一委托给内部 DataSourcePluginRegistry。</p>
  *
@@ -55,12 +56,14 @@ public class DataSourceServiceImpl implements DataSourceService {
     @Transactional(rollbackFor = Exception.class)
     public boolean addDataSource(DataSourceDTO dto) {
         requireDataSourceDto(dto);
+        String workspaceId = requireWorkspaceId();
         String name = normalizeName(dto.getName());
         String dbType = pluginRegistry.resolvePluginType(dto.getDbType());
-        ensureNameAvailable(name, null);
+        ensureNameAvailable(workspaceId, name, null);
         var connection = pluginRegistry.parseConnection(dbType, serializeConnectionParams(dto.getConnectionParams()));
 
         DataSourceEntity entity = new DataSourceEntity();
+        entity.setWorkspaceId(workspaceId);
         entity.setName(name);
         entity.setDbType(dbType);
         entity.setJdbcUrl(connection.jdbcUrl());
@@ -73,7 +76,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         if (repository.add(entity) == null) {
             throw new DataSourceException(DataSourceErrorCode.CREATE_FAILED);
         }
-        LOG.info("数据源创建完成，dataSourceId={}, type={}", entity.getId(), entity.getDbType());
+        LOG.info("数据源创建完成，workspaceId={}, dataSourceId={}, type={}", workspaceId, entity.getId(), entity.getDbType());
         return true;
     }
 
@@ -81,10 +84,11 @@ public class DataSourceServiceImpl implements DataSourceService {
     @Transactional(rollbackFor = Exception.class)
     public boolean updateDataSource(String id, DataSourceDTO dto) {
         requireDataSourceDto(dto);
-        DataSourceEntity existing = requireEntity(id);
+        String workspaceId = requireWorkspaceId();
+        DataSourceEntity existing = requireEntity(workspaceId, id);
         String name = normalizeName(dto.getName());
         String dbType = pluginRegistry.resolvePluginType(dto.getDbType());
-        ensureNameAvailable(name, id);
+        ensureNameAvailable(workspaceId, name, id);
         if (!existing.getDbType().equals(dbType)) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, "编辑数据源时不允许修改数据源类型");
         }
@@ -102,39 +106,50 @@ public class DataSourceServiceImpl implements DataSourceService {
         existing.setOriginalJson(connection.normalizedJson());
         existing.initUpdate();
 
-        if (repository.update(existing) == null) {
+        if (repository.update(workspaceId, existing) == null) {
             throw new DataSourceException(DataSourceErrorCode.UPDATE_FAILED);
         }
-        LOG.info("数据源更新完成，dataSourceId={}, type={}", existing.getId(), existing.getDbType());
+        LOG.info(
+                "数据源更新完成，workspaceId={}, dataSourceId={}, type={}",
+                workspaceId,
+                existing.getId(),
+                existing.getDbType());
         return true;
     }
 
     @Override
     public DataSourceVO queryDataSource(String id) {
-        return toDataSourceVO(requireEntity(id), true);
+        String workspaceId = requireWorkspaceId();
+        return toDataSourceVO(requireEntity(workspaceId, id), true);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteDataSource(String id) {
-        DataSourceEntity existing = requireEntity(id);
-        if (repository.deleteById(existing.getId()) <= 0) {
+        String workspaceId = requireWorkspaceId();
+        DataSourceEntity existing = requireEntity(workspaceId, id);
+        if (repository.deleteById(workspaceId, existing.getId()) <= 0) {
             throw new DataSourceException(DataSourceErrorCode.DELETE_FAILED);
         }
-        LOG.info("数据源删除完成，dataSourceId={}, type={}", existing.getId(), existing.getDbType());
+        LOG.info(
+                "数据源删除完成，workspaceId={}, dataSourceId={}, type={}",
+                workspaceId,
+                existing.getId(),
+                existing.getDbType());
         return true;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean batchDeleteDataSources(DataSourceBatchIdsDTO dto) {
-        List<DataSourceEntity> entities = requireBatchEntities(dto);
+        String workspaceId = requireWorkspaceId();
+        List<DataSourceEntity> entities = requireBatchEntities(workspaceId, dto);
         for (DataSourceEntity entity : entities) {
-            if (repository.deleteById(entity.getId()) <= 0) {
+            if (repository.deleteById(workspaceId, entity.getId()) <= 0) {
                 throw new DataSourceException(DataSourceErrorCode.DELETE_FAILED);
             }
         }
-        LOG.info("数据源批量删除完成，count={}", entities.size());
+        LOG.info("数据源批量删除完成，workspaceId={}, count={}", workspaceId, entities.size());
         return true;
     }
 
@@ -143,6 +158,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         if (dto == null) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "分页查询参数不能为空");
         }
+        String workspaceId = requireWorkspaceId();
         if (dto.getSorts() != null && !dto.getSorts().isEmpty()) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "数据源分页暂不支持自定义排序");
         }
@@ -154,23 +170,25 @@ public class DataSourceServiceImpl implements DataSourceService {
                 StringUtils.hasText(dto.getDbType()) ? pluginRegistry.resolvePluginType(dto.getDbType()) : null,
                 StringUtils.hasText(dto.getEnvironment()) ? parseEnvironment(dto.getEnvironment()) : null,
                 StringUtils.hasText(dto.getConnStatus()) ? parseConnectionStatus(dto.getConnStatus()) : null);
-        return PagingData.from(repository.queryPage(query).map(value -> toDataSourceVO(value, false)));
+        return PagingData.from(repository.queryPage(workspaceId, query).map(value -> toDataSourceVO(value, false)));
     }
 
     @Override
     public boolean testConnection(String id) {
-        return testSavedConnection(requireEntity(id));
+        String workspaceId = requireWorkspaceId();
+        return testSavedConnection(workspaceId, requireEntity(workspaceId, id));
     }
 
     @Override
     public List<DataSourceBatchConnectTestResultVO> batchTestConnections(DataSourceBatchIdsDTO dto) {
-        List<DataSourceEntity> entities = requireBatchEntities(dto);
+        String workspaceId = requireWorkspaceId();
+        List<DataSourceEntity> entities = requireBatchEntities(workspaceId, dto);
         List<DataSourceBatchConnectTestResultVO> results = new ArrayList<>(entities.size());
         int successCount = 0;
         for (DataSourceEntity entity : entities) {
             boolean connected;
             try {
-                connected = testSavedConnection(entity);
+                connected = testSavedConnection(workspaceId, entity);
                 successCount++;
             } catch (DataSourceException exception) {
                 connected = false;
@@ -178,7 +196,8 @@ public class DataSourceServiceImpl implements DataSourceService {
             results.add(toBatchConnectTestResult(entity.getId(), connected));
         }
         LOG.info(
-                "数据源批量连接测试完成，total={}, success={}, failed={}",
+                "数据源批量连接测试完成，workspaceId={}, total={}, success={}, failed={}",
+                workspaceId,
                 entities.size(),
                 successCount,
                 entities.size() - successCount);
@@ -191,7 +210,9 @@ public class DataSourceServiceImpl implements DataSourceService {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, "连接测试参数不能为空");
         }
 
-        DataSourceEntity existing = dto.getDataSourceId() == null ? null : requireEntity(dto.getDataSourceId());
+        String workspaceId = requireWorkspaceId();
+        DataSourceEntity existing =
+                dto.getDataSourceId() == null ? null : requireEntity(workspaceId, dto.getDataSourceId());
         String requestedDbType = pluginRegistry.resolvePluginType(dto.getDbType());
         String dbType = existing == null ? requestedDbType : existing.getDbType();
         String connectionJson = serializeConnectionParams(dto.getConnectionParams());
@@ -213,18 +234,20 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
     }
 
-    private DataSourceEntity requireEntity(String id) {
+    private DataSourceEntity requireEntity(String workspaceId, String id) {
         if (!StringUtils.hasText(id)) {
             throw new DataSourceException(DataSourceErrorCode.NOT_FOUND);
         }
-        return repository.queryById(id).orElseThrow(() -> new DataSourceException(DataSourceErrorCode.NOT_FOUND));
+        return repository
+                .queryById(workspaceId, id)
+                .orElseThrow(() -> new DataSourceException(DataSourceErrorCode.NOT_FOUND));
     }
 
-    private List<DataSourceEntity> requireBatchEntities(DataSourceBatchIdsDTO dto) {
+    private List<DataSourceEntity> requireBatchEntities(String workspaceId, DataSourceBatchIdsDTO dto) {
         List<String> ids = normalizeBatchIds(dto);
         List<DataSourceEntity> entities = new ArrayList<>(ids.size());
         for (String id : ids) {
-            entities.add(requireEntity(id));
+            entities.add(requireEntity(workspaceId, id));
         }
         return entities;
     }
@@ -246,29 +269,33 @@ public class DataSourceServiceImpl implements DataSourceService {
         return new ArrayList<>(ids);
     }
 
-    private boolean testSavedConnection(DataSourceEntity entity) {
+    private boolean testSavedConnection(String workspaceId, DataSourceEntity entity) {
         try {
             pluginRegistry.testConnection(
                     entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds());
             entity.setConnStatus(DataSourceConnStatus.CONNECTED);
             entity.initUpdate();
-            repository.update(entity);
+            repository.update(workspaceId, entity);
             return true;
         } catch (RuntimeException exception) {
             DataSourceException mapped = connectException(exception);
             if (DataSourceErrorCode.CONNECT_FAILED.equals(mapped.getErrorCode())) {
                 entity.setConnStatus(DataSourceConnStatus.DISCONNECTED);
                 entity.initUpdate();
-                repository.update(entity);
+                repository.update(workspaceId, entity);
             }
             throw mapped;
         }
     }
 
-    private void ensureNameAvailable(String name, String excludeId) {
-        if (repository.existsByName(name, excludeId)) {
+    private void ensureNameAvailable(String workspaceId, String name, String excludeId) {
+        if (repository.existsByName(workspaceId, name, excludeId)) {
             throw new DataSourceException(DataSourceErrorCode.DUPLICATE_NAME);
         }
+    }
+
+    private String requireWorkspaceId() {
+        return WorkspaceContext.requireWorkspaceId();
     }
 
     private void requireDataSourceDto(DataSourceDTO dto) {
