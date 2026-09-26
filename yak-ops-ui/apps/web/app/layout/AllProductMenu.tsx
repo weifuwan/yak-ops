@@ -14,7 +14,7 @@ export default function AllProductMenu({ open, onNavigate }: AllProductMenuProps
       aria-label="全部产品二级菜单"
       aria-hidden={!open}
       className={[
-        "fixed bottom-0 left-[220px] top-10 z-30 max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
+        "absolute inset-y-0 left-full max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
         "transition-[width] ease-in-out motion-reduce:transition-none",
         open
           ? "w-[765px] duration-[240ms]"
