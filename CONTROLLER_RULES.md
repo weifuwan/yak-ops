@@ -25,6 +25,7 @@ All Yak Ops Controllers belong to `yak-ops-boot`.
 yak-ops-boot
 └── src/main/java/io/yak/ops/boot/controller
     ├── datasource
+    ├── workspace
     ├── exception
     │   └── GlobalExceptionHandler.java
     └── security
@@ -35,7 +36,7 @@ Must:
 - `@RestControllerAdvice` 和只服务于 Controller 的 converter 也放在 `yak-ops-boot/controller` 边界内。
 - 业务异常、参数异常、HTTP 状态异常和未知异常统一由 `controller/exception/GlobalExceptionHandler` 处理。
 - 只有无法通过 `BusinessException` / `ErrorCode` 表达的真实 capability HTTP 语义，才允许新增 capability-specific ControllerAdvice。
-- Controller 通过 Boot → capability owner 的单向依赖调用 Security / Datasource。
+- Controller 通过 Boot → capability owner 的单向依赖调用 Security / Workspace / Datasource。
 - Security / Datasource / DAO / Core / SPI / Plugin 不得依赖 Boot。
 - 新增 API 时先确定 capability owner，再由 Boot 暴露 HTTP contract。
 

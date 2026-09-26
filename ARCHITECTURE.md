@@ -3,7 +3,8 @@
 Status: Active
 
 Scope:
-- Current Yak Ops Datasource-only product architecture
+- Current Yak Ops Datasource product architecture
+- Workspace business ownership boundary
 - Supporting user/login/security capability
 - Module ownership and dependency direction
 
@@ -12,9 +13,9 @@ Depends On:
 
 ## Principle
 
-Yak Ops is currently a Datasource product.
+Yak Ops is currently a Datasource product with Workspace as the shared business ownership boundary.
 
-User/Login/Security is a supporting platform capability required to access the product.
+User/Login/Security is a supporting platform capability required to access the product. Workspace is separate from Security: authentication answers who the user is, while Workspace answers which business data boundary is active.
 
 Architecture follows current ownership, not historical modules and not a future platform plan.
 
@@ -26,7 +27,7 @@ Application runtime infrastructure is also a Boot boundary. DataSource/MyBatis-P
 
 ### `yak-ops-common`
 
-Owns shared data contracts for Datasource and Security, plus the unified Result / ErrorCode / PageData contracts and the cross-domain `BusinessException` base. Security HTTP DTO / VO remain here when Boot and Security share them, but Security-specific error codes, exceptions and internal models do not.
+Owns shared data contracts for Datasource, Workspace and Security, plus the unified Result / ErrorCode / PageData contracts, request `WorkspaceContext` and the cross-domain `BusinessException` base. Security HTTP DTO / VO remain here when Boot and Security share them, but Security-specific error codes, exceptions and internal models do not.
 
 ### `yak-ops-security`
 
@@ -48,7 +49,7 @@ Owns shared database persistence infrastructure:
 - the single Flyway configuration and schema history for all Yak Ops modules
 - all versioned SQL under `yak-ops-dao/src/main/resources/db/migration/yak-ops`
 
-Concrete Security user persistence and Datasource persistence are owned here.
+Concrete Security user persistence, Workspace persistence and Datasource persistence are owned here.
 
 BusinessImpl may use DAO-owned Entity/Repository internally. Entity and DAO Model do not cross the Business boundary into Boot.
 
@@ -71,6 +72,14 @@ The default naming is `XxxBusiness + XxxBusinessImpl`; a capability may explicit
 Boot depends on stable Service Layer interfaces. Public contracts use shared DTO / VO types and do not expose DAO Entity, Mapper, Repository Query or concrete Plugin implementation details.
 
 Detailed rules are defined in `yak-ops-business/BUSINESS_RULES.md`.
+
+### `yak-ops-business/yak-ops-business-workspace`
+
+Owns Workspace creation, Workspace discovery, membership and membership validation through the single stable `WorkspaceService` boundary.
+
+Workspace is not a Security role model. Security owns authenticated identity; Workspace owns the User ↔ Workspace membership relationship and supplies the ownership boundary used by future Workspace-scoped resources.
+
+The request Workspace ID is carried by `X-Workspace-Id`. Boot validates membership and binds the trusted value into Common `WorkspaceContext`. Missing Workspace context is globally allowed; a Workspace-scoped capability explicitly requires it.
 
 ### `yak-ops-business/yak-ops-business-datasource`
 
@@ -163,7 +172,7 @@ Boot
 
 Boot owns protocol entry and application assembly.
 
-Security and Datasource own capability behavior. DAO owns persistence and schema. None of them depend on Boot.
+Security, Workspace and Datasource own capability behavior. DAO owns persistence and schema. None of them depend on Boot.
 
 ## Refactor Rule
 

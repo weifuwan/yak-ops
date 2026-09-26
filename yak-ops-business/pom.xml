@@ -18,6 +18,7 @@
     <description>Yak Ops business-domain module aggregation</description>
 
     <modules>
+        <module>yak-ops-business-workspace</module>
         <module>yak-ops-business-datasource</module>
     </modules>
 </project>

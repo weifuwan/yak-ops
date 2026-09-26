@@ -1,5 +1,5 @@
 -- Yak Ops first stable schema baseline.
--- Current product scope only contains user/login persistence and datasource management persistence.
+-- Current product scope contains user/login persistence, workspace membership and datasource management persistence.
 -- This baseline is for rebuildable early-stage databases. Once released to a shared environment it becomes immutable.
 
 CREATE TABLE yak_security_user (
@@ -30,6 +30,39 @@ CREATE TABLE yak_security_user (
   DEFAULT CHARACTER SET=utf8mb4
   COLLATE=utf8mb4_unicode_ci
   COMMENT='用户账号表';
+
+
+CREATE TABLE yak_ops_workspace (
+    id VARCHAR(64) NOT NULL COMMENT '主键ID，由应用雪花算法生成',
+    name VARCHAR(128) NOT NULL COMMENT '工作空间展示名称',
+    description VARCHAR(500) NULL COMMENT '工作空间说明',
+    create_time DATETIME(3) NOT NULL COMMENT '创建时间',
+    update_time DATETIME(3) NOT NULL COMMENT '更新时间',
+    create_by VARCHAR(64) NOT NULL COMMENT '创建人标识，仅用于审计',
+    update_by VARCHAR(64) NOT NULL COMMENT '更新人标识，仅用于审计',
+    PRIMARY KEY (id),
+    KEY idx_ops_workspace_update_time (update_time)
+) ENGINE=InnoDB
+  DEFAULT CHARACTER SET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+  COMMENT='工作空间表';
+
+CREATE TABLE yak_ops_workspace_member (
+    id VARCHAR(64) NOT NULL COMMENT '主键ID，由应用雪花算法生成',
+    workspace_id VARCHAR(64) NOT NULL COMMENT '工作空间ID',
+    user_id VARCHAR(64) NOT NULL COMMENT '成员用户ID',
+    role TINYINT UNSIGNED NOT NULL COMMENT '成员角色：1 所有者，2 管理员，3 成员',
+    create_time DATETIME(3) NOT NULL COMMENT '加入时间',
+    update_time DATETIME(3) NOT NULL COMMENT '更新时间',
+    create_by VARCHAR(64) NOT NULL COMMENT '创建人标识',
+    update_by VARCHAR(64) NOT NULL COMMENT '更新人标识',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_ops_workspace_member_workspace_user (workspace_id, user_id),
+    KEY idx_ops_workspace_member_user_workspace (user_id, workspace_id)
+) ENGINE=InnoDB
+  DEFAULT CHARACTER SET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+  COMMENT='工作空间成员关系表';
 
 CREATE TABLE yak_ops_data_source (
     id VARCHAR(64) NOT NULL COMMENT '主键ID，由应用雪花算法生成',
