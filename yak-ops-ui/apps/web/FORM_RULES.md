@@ -118,6 +118,23 @@ Dialog
 
 Compact management forms may use `bodyClassName="py-3"` to align with the Datasource form density.
 
+Short, stable-height create / edit forms may opt into `<Modal centered />` when the content comfortably fits the viewport without normal body scrolling.
+
+Use `centered` for:
+
+- simple compact forms with a small, predictable number of fields
+- short configuration forms whose height remains stable across normal validation states
+
+Keep the default top-offset Modal for:
+
+- long forms
+- multi-step Wizards
+- Table / search-result content
+- dynamic content that may grow significantly
+- forms that commonly need body scrolling
+
+Do not choose `centered` only for visual preference; content height and interaction stability decide the placement.
+
 ## Selection / Search Modal
 
 A modal whose main job is selecting records may contain Table or search results, but its form controls still follow this contract:

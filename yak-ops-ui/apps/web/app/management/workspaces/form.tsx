@@ -52,6 +52,7 @@ export default function WorkspaceForm({ open, onClose, onSaved }: WorkspaceFormP
   return (
     <Modal
       open={open}
+      centered
       width={600}
       bodyClassName="py-3"
       title="新建工作空间"
