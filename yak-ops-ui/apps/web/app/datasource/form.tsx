@@ -1,5 +1,10 @@
 import {
   Button,
+  Combobox,
+  ComboboxContent,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxItemIndicator,
   Field,
   FieldError,
   FieldLabel,
@@ -22,6 +27,7 @@ import { useEffect, useState } from "react";
 
 import {
   createDataSource,
+  getDataSourceConnectionPropertyKeys,
   testDataSourceConnectionWithParams,
   updateDataSource,
 } from "@/service/datasource";
@@ -185,6 +191,8 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
   const [createStep, setCreateStep] = useState<CreateStep>("select");
   const [createSearch, setCreateSearch] = useState("");
   const [createCategory, setCreateCategory] = useState<CreateCategory>("ALL");
+  const [propertyKeyOptions, setPropertyKeyOptions] = useState<string[]>([]);
+  const [propertyKeysLoading, setPropertyKeysLoading] = useState(false);
   const editing = Boolean(record?.id);
   const busy = testing || submitting;
 
@@ -212,6 +220,31 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     }
   }, [open, record]);
 
+  useEffect(() => {
+    if (!open || createStep !== "config" || !values.dbType) {
+      setPropertyKeyOptions([]);
+      setPropertyKeysLoading(false);
+      return;
+    }
+
+    let active = true;
+    setPropertyKeysLoading(true);
+    void getDataSourceConnectionPropertyKeys(values.dbType)
+      .then((result) => {
+        if (active) setPropertyKeyOptions(result?.acceptedPropertyKeys || []);
+      })
+      .catch(() => {
+        if (active) setPropertyKeyOptions([]);
+      })
+      .finally(() => {
+        if (active) setPropertyKeysLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [createStep, open, values.dbType]);
+
   const patch = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
     setValues((current) => ({ ...current, [key]: value }));
     if (key in errors) {
@@ -226,6 +259,36 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
         propertyIndex === index ? { ...property, [key]: value } : property,
       ),
     }));
+    setErrors((current) => ({ ...current, properties: undefined }));
+  };
+
+  const normalizePropertyKey = (value: string) => value.trim().toLowerCase();
+
+  const propertyKeyMap = new Map(
+    propertyKeyOptions.map((key) => [normalizePropertyKey(key), key] as const),
+  );
+
+  const selectedSuggestedPropertyKeys = values.properties.flatMap((property) => {
+    const key = propertyKeyMap.get(normalizePropertyKey(property.key));
+    return key ? [key] : [];
+  });
+
+  const syncSuggestedProperties = (selectedKeys: string[]) => {
+    setValues((current) => {
+      const currentByKey = new Map(
+        current.properties.map((property) => [normalizePropertyKey(property.key), property] as const),
+      );
+      const customProperties = current.properties.filter(
+        (property) => !propertyKeyMap.has(normalizePropertyKey(property.key)),
+      );
+      const suggestedProperties = selectedKeys.map(
+        (key) => currentByKey.get(normalizePropertyKey(key)) || { key, value: "" },
+      );
+      return {
+        ...current,
+        properties: [...suggestedProperties, ...customProperties],
+      };
+    });
     setErrors((current) => ({ ...current, properties: undefined }));
   };
 
@@ -268,9 +331,10 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       next.remark = intl.formatMessage({ id: "pages.datasource.form.descriptionMax" });
 
     const propertyKeys = values.properties.map((property) => property.key.trim());
+    const normalizedPropertyKeys = propertyKeys.map(normalizePropertyKey);
     if (propertyKeys.some((key) => !key)) {
       next.properties = intl.formatMessage({ id: "pages.datasource.form.propertyKeyRequired" });
-    } else if (new Set(propertyKeys).size !== propertyKeys.length) {
+    } else if (new Set(normalizedPropertyKeys).size !== normalizedPropertyKeys.length) {
       next.properties = intl.formatMessage({ id: "pages.datasource.form.propertyKeyDuplicate" });
     }
 
