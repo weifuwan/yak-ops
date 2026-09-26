@@ -2,7 +2,7 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 
 import { DataSourcePage } from "@/app/datasource";
 import LoginPage from "@/app/login";
-import ManagementPageShell from "@/app/management";
+import { UserManagementPage, WorkspaceManagementPage } from "@/app/management";
 import { useAuth } from "@/hooks/use-auth";
 
 import AppLayout from "../layout/AppLayout";
@@ -112,11 +112,8 @@ export default function AppRouter() {
           }
         >
           <Route path="/management" element={<Navigate replace to="/management/users" />} />
-          <Route path="/management/users" element={<ManagementPageShell title="用户管理" />} />
-          <Route
-            path="/management/workspaces"
-            element={<ManagementPageShell title="工作空间管理" />}
-          />
+          <Route path="/management/users" element={<UserManagementPage />} />
+          <Route path="/management/workspaces" element={<WorkspaceManagementPage />} />
         </Route>
 
         <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />

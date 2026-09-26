@@ -145,7 +145,7 @@ Ownership:
 - `TopBar` owns product identity, launcher trigger and current-user actions. Workspace Switcher is rendered only for Workspace-scoped products.
 - `ProductSidebar` renders navigation supplied by the current product.
 - Data Integration is Workspace-scoped. Management Center is system-scoped and does not require an active Workspace.
-- Management Center routes are `/management/users` and `/management/workspaces`; PR1 establishes only the product/navigation surface.
+- Management Center routes are `/management/users` and `/management/workspaces`. User management calls `service/user`; Workspace management calls `service/workspace`. Management UI only renders actions already backed by stable backend contracts.
 - `ProductLauncher` owns a fixed 220px launcher track. The track, not the first-level panel alone, opens from `translateX(-220px)` to `translateX(0)` in 300ms and closes in 220ms without resizing Sidebar / Outlet.
 - `所有产品` is a dedicated `view-all` row. Activating it keeps the first-level panel visible, highlights the row with `#1c1e21`, and opens `AllProductMenu` to its right.
 - `AllProductMenu` is absolutely anchored to the track with `left: 100%`, so its left edge always touches the first-level panel's right edge. It clips from 765px to 0 width on close, uses background `#1c1e21`, opens in 240ms and closes in 170ms.

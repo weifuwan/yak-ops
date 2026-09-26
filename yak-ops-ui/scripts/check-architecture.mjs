@@ -51,6 +51,12 @@ const requiredAppShellFiles = [
   "apps/web/app/layout/AllProductMenu.tsx",
   "apps/web/app/layout/navigation.ts",
   "apps/web/app/management/index.tsx",
+  "apps/web/app/management/users/index.tsx",
+  "apps/web/app/management/users/form.tsx",
+  "apps/web/app/management/workspaces/index.tsx",
+  "apps/web/app/management/workspaces/form.tsx",
+  "apps/web/service/user/index.ts",
+  "apps/web/service/user/types.ts",
 ];
 
 for (const path of requiredAppShellFiles) {
