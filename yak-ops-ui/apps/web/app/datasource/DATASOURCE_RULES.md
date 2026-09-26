@@ -105,7 +105,7 @@ UI 中的访问身份当前固定为“用户名和密码”，认证选项当�
 
 Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 environment。Environment 不作为当前 UI 产品字段。
 
-前端只维护当前三种 JDBC Provider 的 Host / Port / Database 输入、JDBC Preview 和轻量 Key/Value 高级参数；HTTP 层直接提交结构化 `connectionParams` 对象，不允许在 App / Service 层手动 `JSON.stringify`。真正的 JDBC URL 生成、driver、Provider 差异、Normalize 和 Connection Test 仍由后端 JDBC Plugin 负责。
+前端只维护当前三种 JDBC Provider 的 Host / Port / Database 输入、JDBC Preview 和轻量 Key/Value 高级参数；高级参数编辑器保持 Provider-neutral，不维护 MySQL / Oracle / PostgreSQL 参数提示清单、枚举值或校验规则。HTTP 层直接提交结构化 `connectionParams` 对象，不允许在 App / Service 层手动 `JSON.stringify`。真正的 JDBC URL 生成、属性 Normalize / Validate、driver、Provider 差异和 Connection Test 仍由后端 JDBC Plugin 负责。
 
 ## Must
 
@@ -119,6 +119,7 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 - 新增使用 Yak UI `Modal` 两步 Wizard；Modal Header / Footer 固定，只允许 Body 滚动。第一步选择区使用固定高度，数据少时允许自然留白；提供“全部 / 关系型数据库”分类和搜索。Datasource Item 使用紧凑单行结构，只展示 Icon + 名称，不展示说明文案。第二步配置表单参考紧凑管理台布局：Label 左对齐、Control 右侧占满，Input / Select / PasswordInput 统一使用 `small`，字段纵向间距保持紧凑，分组只使用轻量边框与标题。连接配置使用 Host + Port + Database 结构化输入并实时展示 JDBC Preview；高级参数使用轻量 Key/Value 列表。当前只展示 `MYSQL / ORACLE / POSTGRE_SQL`，不引入动态 Provider UI。
 - Edit 继续使用 Drawer，并直接打开和关闭，不使用滑入或淡入淡出过渡动画。
 - Create / Update / Connection Test 共用同一个结构化 `connectionParams` Contract：`host / port / database / username / password / properties`；`dbType` 由外层请求字段负责 Provider 路由，不重复塞进连接对象。
+- 高级参数前端只校验 Key 非空 / 不重复；参数名称 canonicalization、布尔 / 枚举 / 数值语义和 Provider-specific 校验全部由对应后端 Provider 持有。
 - CRUD、Batch Operations 和 Connection Test 统一走 `service/datasource`。
 - HTTP transport only through `service/http`。
 - Common primitives from `@yak-ops/yak-ui`。
