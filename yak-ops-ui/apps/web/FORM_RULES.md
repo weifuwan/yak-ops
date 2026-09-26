@@ -36,7 +36,7 @@ Management create / edit forms default to:
 - Label top alignment: `pt-1.5`
 - Input / PasswordInput / Select: `size="small"`
 - Input / PasswordInput / SelectTrigger: `variant="outlined"`
-- Textarea: `size="small"`
+- Textarea: `size="small" + variant="outlined"`
 - Modal footer Button: `size="small"`
 
 Do not use medium controls in a management form without an explicit product reason.
@@ -95,7 +95,7 @@ Host + Port and similar structures must not redefine the whole form grid.
 Simple management descriptions / remarks stay compact:
 
 ```tsx
-<Textarea size="small" rows={2} className="min-h-[56px] resize-none" />
+<Textarea size="small" variant="outlined" rows={2} className="min-h-[56px] resize-none" />
 ```
 
 Textarea uses the Yak UI native visual contract; pages do not recreate its border or focus treatment.

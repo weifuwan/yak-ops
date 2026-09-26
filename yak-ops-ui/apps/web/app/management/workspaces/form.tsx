@@ -113,6 +113,7 @@ export default function WorkspaceForm({ open, onClose, onSaved }: WorkspaceFormP
           <Textarea
             id="management-workspace-description"
             size="small"
+            variant="outlined"
             rows={2}
             maxLength={500}
             value={description}
