@@ -259,24 +259,24 @@ const DataSourcePage = () => {
               ) : null}
             </section>
 
-              <section className="mt-4 min-h-0 flex-1">
-                  <DataSourceTable
-                  records={records}
-                  loading={loading}
-                  pageNo={pageNo}
-                  pageSize={pageSize}
-                  total={total}
-                  hasActiveFilters={hasActiveFilters}
-                  editingId={editingId}
-                  testingId={testingId}
-                  onPageChange={(nextPage, nextPageSize) => {
-                    setPageNo(nextPage);
-                    setPageSize(nextPageSize);
-                  }}
-                  onEdit={(record) => void handleEdit(record)}
-                  onDelete={setPendingDelete}
-                  onTestConnection={(record) => void handleTestConnection(record)}
-                  />
+            <section className="mt-4 min-h-0 flex-1">
+              <DataSourceTable
+                records={records}
+                loading={loading}
+                pageNo={pageNo}
+                pageSize={pageSize}
+                total={total}
+                hasActiveFilters={hasActiveFilters}
+                editingId={editingId}
+                testingId={testingId}
+                onPageChange={(nextPage, nextPageSize) => {
+                  setPageNo(nextPage);
+                  setPageSize(nextPageSize);
+                }}
+                onEdit={(record) => void handleEdit(record)}
+                onDelete={setPendingDelete}
+                onTestConnection={(record) => void handleTestConnection(record)}
+              />
             </section>
           </div>
         </div>
