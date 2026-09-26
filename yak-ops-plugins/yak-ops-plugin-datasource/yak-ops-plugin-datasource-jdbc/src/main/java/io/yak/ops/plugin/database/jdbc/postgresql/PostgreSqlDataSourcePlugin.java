@@ -1,12 +1,13 @@
 package io.yak.ops.plugin.database.jdbc.postgresql;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * PostgreSQL JDBC Provider，拥有 PostgreSQL 默认端口、Driver、URL、属性规则和兼容类型别名。
+ * PostgreSQL JDBC Provider，拥有默认端口、Driver、URL、属性规则和兼容类型别名；Schema 仅作为 Catalog 命名空间或 currentSchema 高级参数。
  *
  * @author weifuwan
  * @since 2026-09-24
@@ -48,6 +49,15 @@ public final class PostgreSqlDataSourcePlugin extends AbstractJdbcDataSourcePlug
     @Override
     protected String buildJdbcUrl(String host, int port, String database, JsonNode connectionJson) {
         return "jdbc:postgresql://" + host + ":" + port + "/" + database;
+    }
+
+    @Override
+    protected String normalizeSchema(String schema) {
+        String normalized = StringUtils.trimToNull(schema);
+        if (normalized != null) {
+            throw parameterError("PostgreSQL schema 不属于数据源连接字段，请通过 properties.currentSchema 配置", null);
+        }
+        return null;
     }
 
     @Override
