@@ -35,7 +35,9 @@ export function PageHeader({
           </div>
         ) : null}
       </div>
-      {extra != null ? <div className="flex shrink-0 items-center gap-2 sm:ml-auto">{extra}</div> : null}
+      {extra != null ? (
+        <div className="flex shrink-0 items-center gap-2 sm:ml-auto">{extra}</div>
+      ) : null}
     </header>
   );
 }
