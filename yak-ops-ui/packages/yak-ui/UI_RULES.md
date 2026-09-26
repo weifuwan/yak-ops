@@ -44,6 +44,7 @@ Base UI is an implementation dependency, not a product-facing API.
 - Variant contracts use `class-variance-authority` when variants are real product-wide concepts.
 - Button defaults to `type="button"`.
 - Input / Textarea / NumberField use one shared input visual language.
+- Input and SelectTrigger expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`.
 - Select / Menu / Tooltip / Popover / Dialog / Drawer / Tabs remain compositional instead of becoming giant convenience-prop components.
 - Dialog / Drawer / Popover / Menu popup interaction, focus restore, Escape and outside press behavior stay in Base UI.
 - Toast is the common replacement for message / notification feedback.

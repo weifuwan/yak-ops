@@ -165,10 +165,7 @@ const DataSourcePage = () => {
                   value={dbType || "ALL"}
                   onValueChange={(value) => setDbType(value && value !== "ALL" ? value : undefined)}
                 >
-                  <SelectTrigger
-                    size="small"
-                    className="border-[#d9dde3] bg-white hover:bg-white focus-visible:bg-white"
-                  >
+                  <SelectTrigger size="small" variant="outlined">
                     <span className="mr-2 text-[#4f5561]">
                       {intl.formatMessage({ id: "pages.datasource.toolbar.typeLabel" })}
                     </span>
@@ -197,8 +194,9 @@ const DataSourcePage = () => {
                 </span>
                 <Input
                   size="small"
+                  variant="outlined"
                   value={keyword}
-                  className="border-[#d9dde3] bg-white pl-[92px] hover:bg-white focus:bg-white"
+                  className="pl-[92px]"
                   placeholder={intl.formatMessage({
                     id: "pages.datasource.toolbar.namePlaceholder",
                   })}
