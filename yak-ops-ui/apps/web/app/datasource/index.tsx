@@ -5,6 +5,7 @@ import {
   DialogDescription,
   DialogTitle,
   Input,
+  PageHeader,
   Select,
   SelectContent,
   SelectItem,
@@ -159,18 +160,20 @@ const DataSourcePage = () => {
   return (
     <>
       <div className="min-h-full bg-white text-[#242731]">
-        <div className="min-h-full bg-white px-6 pb-4 pt-5 max-md:px-4">
-          <header className="flex items-center justify-between gap-4">
-            <h1 className="m-0 text-xl font-semibold tracking-[-0.35px] text-[#252832]">
-              {intl.formatMessage({ id: "pages.datasource.page.title" })}
-            </h1>
+        <PageHeader
+          title={intl.formatMessage({ id: "pages.datasource.page.title" })}
+          extra={
             <Button variant="primary" onClick={handleCreate}>
               <Plus size={16} />
               {intl.formatMessage({ id: "pages.datasource.page.create" })}
             </Button>
-          </header>
+          }
+          bordered
+          className="px-6 max-md:px-4"
+        />
 
-          <section className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="px-6 pb-4 pt-5 max-md:px-4">
+          <section className="flex flex-wrap items-center gap-2">
             <div className="relative w-[300px] max-md:w-full">
               <Search
                 size={15}
