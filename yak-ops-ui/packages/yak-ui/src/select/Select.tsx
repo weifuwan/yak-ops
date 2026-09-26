@@ -18,8 +18,8 @@ export function Select<Value, Multiple extends boolean | undefined = false>(
 const selectTriggerVariants = cva(
   [
     "group/select-trigger flex w-full cursor-pointer items-center border text-left text-[var(--yak-components-input-text)] outline-none",
-    "transition-[background-color,border-color,box-shadow,color] duration-150",
-    "focus-visible:border-[var(--yak-components-input-border-focus)] focus-visible:bg-[var(--yak-components-input-bg-focus)] focus-visible:ring-[3px] focus-visible:ring-[var(--yak-components-input-focus-ring)]",
+    "transition-[background-color,border-color,color] duration-150",
+    "focus-visible:border-[var(--yak-components-input-border-focus)] focus-visible:bg-[var(--yak-components-input-bg-focus)]",
     "data-popup-open:border-[var(--yak-components-input-border-focus)] data-popup-open:bg-[var(--yak-components-input-bg-focus)]",
     "data-placeholder:text-[var(--yak-components-input-placeholder)]",
     "data-disabled:cursor-not-allowed data-disabled:bg-[var(--yak-components-input-bg-disabled)] data-disabled:text-[var(--yak-components-input-text-disabled)]",
