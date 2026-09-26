@@ -115,6 +115,8 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 
 前端只维护当前三种 JDBC Provider 的 Host / Port / Database 输入、JDBC Preview 和轻量 Key/Value 高级参数；高级参数编辑器保持 Provider-neutral，不维护 MySQL / Oracle / PostgreSQL 参数提示清单、枚举值或校验规则。HTTP 层直接提交结构化 `connectionParams` 对象，不允许在 App / Service 层手动 `JSON.stringify`。真正的 JDBC URL 生成、属性 Normalize / Validate、driver、Provider 差异和 Connection Test 仍由后端 JDBC Plugin 负责。
 
+高级参数 Key 候选项通过 `service/datasource` 调用 `connection-property-keys` 接口动态获取。推荐 Key 使用 Yak UI `Combobox` 搜索 / 多选；一次选中多个 Key 后拆成独立的 Key / Value 行。已选择的推荐 Key 在行内继续使用可搜索 Combobox 编辑；自定义 Key 通过“自定义属性”创建并保留普通 Input。候选项只是推荐值，不是前端白名单。
+
 PostgreSQL 表单遵循 Database connection target：不新增 Schema 字段，不默认写入 `public`，JDBC Preview 只展示 `jdbc:postgresql://host:port/database`。如用户确实需要默认 search path，只通过通用高级参数 Key/Value 传递 `currentSchema`，前端不对其值做 PostgreSQL-specific 校验。
 
 ## Must
@@ -131,6 +133,9 @@ PostgreSQL 表单遵循 Database connection target：不新增 Schema 字段，�
 - Create / Edit 的必填标识与错误信息统一使用 Yak UI `FieldLabel required` / `FieldRequiredMark` / `FieldError`；Datasource 只持有字段规则和 i18n message，不在页面重复手写红色星号或错误文本样式。
 - Create / Update / Connection Test 共用同一个结构化 `connectionParams` Contract：`host / port / database / username / password / properties`；`dbType` 由外层请求字段负责 Provider 路由，不重复塞进连接对象。
 - PostgreSQL Create / Edit 必须使用默认端口 `5432`、`jdbc:postgresql://host:port/database` Preview，并且请求体中不得出现顶层 `schema` 字段。
+- 高级参数 Key 候选项必须从后端 Provider discovery 接口获取，前端禁止维护 Vendor property 常量列表。
+- 推荐 Key 选择支持搜索和多选，多选结果必须拆成独立 Key / Value 行；同一 Key 只能存在一次，重复判断大小写不敏感。
+- 自定义 JDBC Property 仍然允许输入；候选项不得被当成严格白名单。
 - 高级参数前端只校验 Key 非空 / 不重复；参数名称 canonicalization、布尔 / 枚举 / 数值语义和 Provider-specific 校验全部由对应后端 Provider 持有。
 - CRUD、Batch Operations 和 Connection Test 统一走 `service/datasource`。
 - Datasource 请求依赖全局当前 Workspace；页面不得自行拼接 `X-Workspace-Id` 或把 `workspaceId` 加进业务 DTO。
