@@ -31,5 +31,7 @@ export const normalizeDataSourceType = (dbType?: string) => {
 
 export const getDataSourceTypeLabel = (dbType?: string) => {
   const normalized = normalizeDataSourceType(dbType);
-  return COMMON_DB_OPTIONS.find((option) => option.value === normalized)?.label || normalized || "-";
+  return (
+    COMMON_DB_OPTIONS.find((option) => option.value === normalized)?.label || normalized || "-"
+  );
 };
