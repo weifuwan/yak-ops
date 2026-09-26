@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import AllProductMenu from "./AllProductMenu";
 import { GLOBAL_PRODUCT_MENU } from "./navigation";
 
+const FIRST_LEVEL_CLOSE_DELAY_MS = 36;
+
 type ProductLauncherProps = {
   open: boolean;
   onClose: () => void;
@@ -12,9 +14,21 @@ type ProductLauncherProps = {
 
 export default function ProductLauncher({ open, onClose }: ProductLauncherProps) {
   const [allProductsOpen, setAllProductsOpen] = useState(false);
+  const [firstLevelVisible, setFirstLevelVisible] = useState(open);
 
   useEffect(() => {
-    if (!open) setAllProductsOpen(false);
+    if (open) {
+      setFirstLevelVisible(true);
+      return;
+    }
+
+    setAllProductsOpen(false);
+    const timer = window.setTimeout(
+      () => setFirstLevelVisible(false),
+      FIRST_LEVEL_CLOSE_DELAY_MS,
+    );
+
+    return () => window.clearTimeout(timer);
   }, [open]);
 
   const secondLevelOpen = open && allProductsOpen;
@@ -47,8 +61,12 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
         aria-hidden={!open}
         className={[
           "user-menu fixed bottom-0 left-0 top-10 z-40 flex w-[220px] flex-col bg-[#15181c] text-xs text-white",
-          "box-border transform-gpu transition-transform duration-300 ease-in-out motion-reduce:transition-none",
-          open ? "user-menu-active translate-x-0" : "-translate-x-[220px] pointer-events-none",
+          "box-border transform-gpu transition-transform ease-in-out motion-reduce:transition-none",
+          open ? "duration-300" : "duration-[220ms]",
+          firstLevelVisible
+            ? "user-menu-active translate-x-0"
+            : "-translate-x-[220px]",
+          open ? "" : "pointer-events-none",
         ].join(" ")}
       >
         <button
@@ -66,7 +84,11 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
           <span className="text ml-[14px] min-w-0 flex-1 truncate">全部产品</span>
           <span className="right mr-3 flex shrink-0 items-center">
             <ChevronRight
-              className={secondLevelOpen ? "h-3.5 w-3.5 text-white" : "h-3.5 w-3.5 text-white/65"}
+              className={
+                secondLevelOpen
+                  ? "h-3.5 w-3.5 text-white"
+                  : "h-3.5 w-3.5 text-white/65"
+              }
               strokeWidth={1.8}
             />
           </span>
