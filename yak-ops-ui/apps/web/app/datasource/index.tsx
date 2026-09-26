@@ -15,7 +15,7 @@ import {
   SelectValue,
   toast,
 } from "@yak-ops/yak-ui";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -24,7 +24,7 @@ import {
   listDataSources,
   testDataSourceConnection,
 } from "@/service/datasource";
-import { COMMON_DB_OPTIONS, CONNECTION_STATUS_OPTIONS } from "./constants";
+import { COMMON_DB_OPTIONS } from "./constants";
 import DataSourceForm from "./form";
 import { useIntl } from "./i18n";
 import DataSourceTable from "./table";
@@ -42,7 +42,6 @@ const DataSourcePage = () => {
   const [total, setTotal] = useState(0);
   const [keyword, setKeywordState] = useState("");
   const [dbType, setDbTypeState] = useState<string>();
-  const [connStatus, setConnStatusState] = useState<string>();
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DataSourceRecord>();
@@ -51,7 +50,7 @@ const DataSourcePage = () => {
   const [pendingDelete, setPendingDelete] = useState<DataSourceRecord>();
   const [deleting, setDeleting] = useState(false);
 
-  const hasActiveFilters = Boolean(keyword.trim() || dbType || connStatus);
+  const hasActiveFilters = Boolean(keyword.trim() || dbType);
 
   const refresh = useCallback(() => {
     setRefreshVersion((value) => value + 1);
@@ -68,7 +67,6 @@ const DataSourcePage = () => {
         pageSize,
         keyword: keyword.trim() || undefined,
         dbType,
-        connStatus,
       });
       if (requestSequence !== requestSequenceRef.current) return;
 
@@ -84,7 +82,7 @@ const DataSourcePage = () => {
     } finally {
       if (requestSequence === requestSequenceRef.current) setLoading(false);
     }
-  }, [connStatus, dbType, keyword, pageNo, pageSize, refreshVersion]);
+  }, [dbType, keyword, pageNo, pageSize, refreshVersion]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadPage(), keyword.trim() ? 300 : 0);
@@ -98,18 +96,6 @@ const DataSourcePage = () => {
 
   const setDbType = (value?: string) => {
     setDbTypeState(value);
-    setPageNo(1);
-  };
-
-  const setConnStatus = (value?: string) => {
-    setConnStatusState(value);
-    setPageNo(1);
-  };
-
-  const resetFilters = () => {
-    setKeywordState("");
-    setDbTypeState(undefined);
-    setConnStatusState(undefined);
     setPageNo(1);
   };
 
@@ -162,12 +148,6 @@ const DataSourcePage = () => {
       <div className="flex min-h-full flex-col bg-[#F6F6F6] text-[#242731]">
         <PageHeader
           title={intl.formatMessage({ id: "pages.datasource.page.title" })}
-          extra={
-            <Button variant="primary" onClick={handleCreate}>
-              <Plus size={16} />
-              {intl.formatMessage({ id: "pages.datasource.page.create" })}
-            </Button>
-          }
           bordered
           className="bg-white px-6 max-md:px-4"
         />
@@ -175,32 +155,24 @@ const DataSourcePage = () => {
         <div className="flex min-h-0 flex-1 px-6 pb-4 pt-5 max-md:px-4">
           <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
             <section className="flex shrink-0 flex-wrap items-center gap-2">
-              <div className="relative w-[300px] max-md:w-full">
-                <Search
-                  size={15}
-                  className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[#98a2b3]"
-                />
-                <Input
-                  value={keyword}
-                  className="pl-9"
-                  placeholder={intl.formatMessage({
-                    id: "pages.datasource.toolbar.searchPlaceholder",
-                  })}
-                  onChange={(event) => setKeyword(event.target.value)}
-                />
-              </div>
+              <Button size="small" variant="primary" onClick={handleCreate}>
+                <Plus size={14} />
+                {intl.formatMessage({ id: "pages.datasource.page.create" })}
+              </Button>
 
-              <div className="w-[170px]">
+              <div className="w-[290px]">
                 <Select
                   value={dbType || "ALL"}
                   onValueChange={(value) => setDbType(value && value !== "ALL" ? value : undefined)}
                 >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={intl.formatMessage({
-                        id: "pages.datasource.toolbar.typePlaceholder",
-                      })}
-                    />
+                  <SelectTrigger
+                    size="small"
+                    className="border-[#d9dde3] bg-white hover:bg-white focus-visible:bg-white"
+                  >
+                    <span className="mr-2 text-[#4f5561]">
+                      {intl.formatMessage({ id: "pages.datasource.toolbar.typeLabel" })}
+                    </span>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">
@@ -219,44 +191,20 @@ const DataSourcePage = () => {
                 </Select>
               </div>
 
-              <div className="w-[150px]">
-                <Select
-                  value={connStatus || "ALL"}
-                  onValueChange={(value) =>
-                    setConnStatus(value && value !== "ALL" ? value : undefined)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={intl.formatMessage({
-                        id: "pages.datasource.toolbar.statusPlaceholder",
-                      })}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">
-                      <SelectItemText>
-                        {intl.formatMessage({ id: "pages.datasource.toolbar.allStatuses" })}
-                      </SelectItemText>
-                      <SelectItemIndicator />
-                    </SelectItem>
-                    {CONNECTION_STATUS_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <SelectItemText>
-                          {intl.formatMessage({ id: option.messageId })}
-                        </SelectItemText>
-                        <SelectItemIndicator />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="relative w-[290px]">
+                <span className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-xs text-[#4f5561]">
+                  {intl.formatMessage({ id: "pages.datasource.toolbar.nameLabel" })}
+                </span>
+                <Input
+                  size="small"
+                  value={keyword}
+                  className="border-[#d9dde3] bg-white pl-[92px] hover:bg-white focus:bg-white"
+                  placeholder={intl.formatMessage({
+                    id: "pages.datasource.toolbar.namePlaceholder",
+                  })}
+                  onChange={(event) => setKeyword(event.target.value)}
+                />
               </div>
-
-              {hasActiveFilters ? (
-                <Button variant="ghost" size="small" onClick={resetFilters}>
-                  {intl.formatMessage({ id: "pages.datasource.toolbar.reset" })}
-                </Button>
-              ) : null}
             </section>
 
             <section className="mt-4 min-h-0 flex-1">
