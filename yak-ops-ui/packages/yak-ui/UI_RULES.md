@@ -49,6 +49,7 @@ Base UI is an implementation dependency, not a product-facing API.
 - Toast is the common replacement for message / notification feedback.
 - Badge is the common lightweight status-label primitive; product-specific status semantics stay outside Yak UI.
 - Table owns generic tabular rendering, loading / empty presentation, scroll / sticky header and pagination placement; product code owns fetching, filters, mutations and business cell content.
+- PageHeader owns generic page title, description, right-side composition and optional divider; product code owns page actions and business behavior.
 - `className` is a layout / positioning / necessary escape hatch, not a second visual contract.
 
 ## Form Boundary
@@ -169,6 +170,7 @@ Yak UI
 ├── Input
 ├── PasswordInput
 ├── NumberField
+├── PageHeader
 ├── Pagination
 ├── Popover
 ├── Select

@@ -1,8 +1,8 @@
 # PageHeader Design
 
-Status: Design only  
+Status: Implemented  
 Package: `@yak-ops/yak-ui`  
-Implementation: Not started
+Implementation: `yak-ops-ui/packages/yak-ui/src/page-header`
 
 ## Goal
 
@@ -19,7 +19,7 @@ The component owns presentation and layout only. Product pages continue to own b
 
 ## Ownership
 
-Planned source location:
+Source location:
 
 ```text
 yak-ops-ui/packages/yak-ui/src/page-header/
@@ -27,7 +27,7 @@ yak-ops-ui/packages/yak-ui/src/page-header/
 └── index.ts
 ```
 
-Planned public import:
+Public import:
 
 ```tsx
 import { PageHeader } from "@yak-ops/yak-ui";
@@ -43,7 +43,7 @@ It must not live under:
 
 ## V1 Contract
 
-Planned public Props:
+Public Props:
 
 ```ts
 export interface PageHeaderProps {
@@ -265,11 +265,11 @@ App shell
 
 They are different ownership boundaries and should not be merged.
 
-## Planned Acceptance Criteria
+## Acceptance Criteria
 
-Implementation can start only when there is a real page migration/use case.
+The V1 implementation follows this contract. Product-page adoption remains separate and should happen only from a real page use case.
 
-When implemented, acceptance should verify:
+Acceptance verifies:
 
 - title-only rendering
 - title + description rendering
@@ -285,6 +285,6 @@ When implemented, acceptance should verify:
 
 ## Deferred
 
-No source component is added as part of this design change.
+The primitive is implemented, but no product page is migrated as part of the implementation change.
 
-The design document intentionally comes first. A later implementation change should build the primitive from this contract and introduce the first real product usage separately or in the same implementation PR only when explicitly planned.
+Product adoption should remain problem-driven. A later change can introduce the first real usage without expanding the V1 contract unless that page demonstrates a repeated requirement.
