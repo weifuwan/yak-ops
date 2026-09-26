@@ -45,7 +45,7 @@ export function Modal({
           style={{ width, ...style }}
           className={cn(
             "fixed left-1/2 top-4 z-50 flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-dialog-shadow)] outline-none",
-            "transition-opacity duration-200 ease-out data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:transition-none",
+            "transition-[opacity,transform] duration-200 ease-out data-starting-style:translate-y-2 data-starting-style:opacity-0 data-ending-style:-translate-y-2 data-ending-style:opacity-0 motion-reduce:transition-none",
             className,
           )}
         >
