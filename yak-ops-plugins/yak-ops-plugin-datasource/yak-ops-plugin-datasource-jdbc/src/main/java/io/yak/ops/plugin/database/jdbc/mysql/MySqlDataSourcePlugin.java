@@ -68,11 +68,7 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     protected DriverPropertyInfo[] connectionPropertyInfo(String jdbcUrl, Properties properties) throws Exception {
         MySqlDriverId driverId = MySqlDriverId.MYSQL_8;
         return DRIVER_RUNTIME.propertyInfo(
-                driverId.runtimeId(),
-                driverId.driverDirectory(),
-                driverId.driverClassName(),
-                jdbcUrl,
-                properties);
+                driverId.runtimeId(), driverId.driverDirectory(), driverId.driverClassName(), jdbcUrl, properties);
     }
 
     @Override
@@ -97,11 +93,7 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
         Properties properties = connectionProperties(connection);
         properties.putIfAbsent("connectTimeout", String.valueOf(Math.max(1, timeoutSeconds) * 1000));
         return DRIVER_RUNTIME.connect(
-                driverId.runtimeId(),
-                driverId.driverDirectory(),
-                driverId.driverClassName(),
-                jdbcUrl,
-                properties);
+                driverId.runtimeId(), driverId.driverDirectory(), driverId.driverClassName(), jdbcUrl, properties);
     }
 
     @Override
