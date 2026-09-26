@@ -49,6 +49,7 @@ Base UI is an implementation dependency, not a product-facing API.
 - Input / Textarea / NumberField use one shared input visual language.
 - Input and SelectTrigger expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`. Input focus and SelectTrigger focus/open use the primary border only; they do not add a focus box-shadow / ring.
 - Select / Menu / Tooltip / Popover / Dialog / Drawer / Tabs remain compositional instead of becoming giant convenience-prop components.
+- Select separates domain values from user-visible labels: when `value` and `label` differ, product code must pass `items` to `Select` so `SelectValue` renders the matching label. Controlled state and `onValueChange` continue to use the domain `value`; product code must not duplicate value-to-label lookup logic inside the trigger.
 - Modal is the shared product-facing dialog shell: it owns title, close affordance, scrollable body, fixed footer and width; product code owns business content, step state and submit lifecycle.
 - Drawer motion is enabled by default; product flows that intentionally need immediate open / close use the explicit `animated={false}` opt-out instead of overriding transition classes through `className`.
 - Dialog / Modal / Drawer / Popover / Menu popup interaction, focus restore, Escape and outside press behavior stay in Base UI.
