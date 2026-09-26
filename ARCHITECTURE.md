@@ -104,7 +104,7 @@ Datasource Providers are an open extension set. A Provider owns its stable strin
 
 ### `yak-ops-boot`
 
-Owns final application assembly, all HTTP Controllers, ControllerAdvice, health and global runtime configuration. `GlobalExceptionHandler` is the single fallback HTTP exception outlet; capability-specific advice only keeps behavior that requires capability context such as Datasource message masking.
+Owns final application assembly, all HTTP Controllers, ControllerAdvice, health and global runtime configuration. `GlobalExceptionHandler` is the single HTTP exception outlet: capability modules throw `BusinessException` with structured `ErrorCode`, and Boot centrally maps those errors to HTTP status and the unified `Result` contract.
 
 Boot runtime configuration follows a single-runtime contract:
 
