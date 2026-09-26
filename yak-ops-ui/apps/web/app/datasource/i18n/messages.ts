@@ -50,6 +50,16 @@ export default {
   "pages.datasource.modal.message.createSuccess": "数据源创建成功",
   "pages.datasource.modal.message.updateSuccess": "数据源更新成功",
 
+  "pages.datasource.wizard.searchPlaceholder": "搜索数据源",
+  "pages.datasource.wizard.commonTypes": "常用数据源",
+  "pages.datasource.wizard.jdbcDatabase": "JDBC 数据库",
+  "pages.datasource.wizard.empty": "没有找到匹配的数据源",
+  "pages.datasource.wizard.configTitle": "新增{type}数据源",
+  "pages.datasource.wizard.basicInfo": "基础信息",
+  "pages.datasource.wizard.connectionConfig": "连接配置",
+  "pages.datasource.wizard.back": "上一步",
+  "pages.datasource.wizard.complete": "完成",
+
   "pages.datasource.form.dsName": "数据源名称",
   "pages.datasource.form.dsNameRequired": "请输入数据源名称",
   "pages.datasource.form.dsNameMax": "数据源名称不能超过 128 个字符",
