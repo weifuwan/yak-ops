@@ -23,27 +23,36 @@ export type DrawerContentProps = Omit<BaseDrawer.Popup.Props, "children" | "clas
   children: ReactNode;
   className?: string;
   width?: number | string;
+  animated?: boolean;
 };
 
 export function DrawerContent({
   children,
   className,
   width = 620,
+  animated = true,
   style,
   ...props
 }: DrawerContentProps) {
   return (
     <BaseDrawer.Portal>
-      <BaseDrawer.Backdrop className="fixed inset-0 z-50 bg-[var(--yak-components-overlay)] transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:transition-none" />
+      <BaseDrawer.Backdrop
+        className={cn(
+          "fixed inset-0 z-50 bg-[var(--yak-components-overlay)]",
+          animated &&
+            "transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:transition-none",
+        )}
+      />
       <BaseDrawer.Viewport className="fixed inset-0 z-50 overflow-hidden outline-none">
         <BaseDrawer.Popup
           {...props}
           style={{ width, ...style }}
           className={cn(
             "fixed inset-y-0 flex max-w-[calc(100vw-1rem)] flex-col overflow-hidden border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-dialog-shadow)] outline-none",
-            "transition-transform duration-200 motion-reduce:transition-none",
-            "data-[swipe-direction=right]:right-0 data-[swipe-direction=right]:border-l data-starting-style:data-[swipe-direction=right]:translate-x-full data-ending-style:data-[swipe-direction=right]:translate-x-full",
-            "data-[swipe-direction=left]:left-0 data-[swipe-direction=left]:border-r data-starting-style:data-[swipe-direction=left]:-translate-x-full data-ending-style:data-[swipe-direction=left]:-translate-x-full",
+            "data-[swipe-direction=right]:right-0 data-[swipe-direction=right]:border-l",
+            "data-[swipe-direction=left]:left-0 data-[swipe-direction=left]:border-r",
+            animated &&
+              "transition-transform duration-200 motion-reduce:transition-none data-starting-style:data-[swipe-direction=right]:translate-x-full data-ending-style:data-[swipe-direction=right]:translate-x-full data-starting-style:data-[swipe-direction=left]:-translate-x-full data-ending-style:data-[swipe-direction=left]:-translate-x-full",
             className,
           )}
         >
