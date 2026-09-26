@@ -52,7 +52,7 @@ public final class PostgreSqlDataSourcePlugin extends AbstractJdbcDataSourcePlug
     }
 
     @Override
-    protected String normalizeSchema(String schema, Map<String, String> properties) {
+    protected String normalizeSchema(String schema) {
         String normalized = StringUtils.trimToNull(schema);
         if (normalized != null) {
             throw parameterError("PostgreSQL schema 不属于数据源连接字段，请通过 properties.currentSchema 配置", null);
