@@ -11,6 +11,7 @@ Depends On:
 Related:
 - `./SERVICE_RULES.md`
 - `./apps/web/APP_RULES.md`
+- `./apps/web/FORM_RULES.md`
 - `./apps/web/app/datasource/DATASOURCE_RULES.md`
 - `./packages/yak-ui/UI_RULES.md`
 - `./docs/tooling.md`
