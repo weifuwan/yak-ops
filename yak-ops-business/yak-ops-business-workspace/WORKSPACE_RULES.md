@@ -29,7 +29,15 @@ Boot depends on `WorkspaceService`, never its implementation or Workspace Reposi
 
 ## Membership
 
-V1 roles are OWNER, ADMIN and MEMBER. V1 only enforces membership; do not add a permission matrix until a concrete operation requires different role behavior.
+V1 roles are OWNER, ADMIN and MEMBER.
+
+Member-management rules:
+- OWNER and ADMIN may add, update and remove ordinary members.
+- only OWNER may grant OWNER or modify/remove an existing OWNER.
+- a Workspace must always retain at least one OWNER.
+- MEMBER has read access to member lists but cannot mutate membership.
+
+These rules exist only for Workspace member management; do not expand them into a generic RBAC framework.
 
 ## Request Context
 
@@ -40,6 +48,8 @@ A missing header is globally valid. Workspace-scoped capabilities explicitly req
 ## Must
 
 - create OWNER membership in the same transaction as Workspace creation.
+- validate the target User before adding a WorkspaceMember.
+- keep member mutation scoped by `workspaceId + userId`.
 - derive current user ID from trusted authentication runtime.
 - keep `workspaceId` out of ordinary resource create/update DTOs.
 - use membership for access and audit fields only for audit.

@@ -21,3 +21,12 @@ export interface WorkspaceCreatePayload {
   name: string;
   description?: string;
 }
+
+export interface WorkspaceMemberCreatePayload {
+  userId: string;
+  role: WorkspaceRole;
+}
+
+export interface WorkspaceMemberRolePayload {
+  role: WorkspaceRole;
+}

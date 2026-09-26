@@ -1,7 +1,14 @@
 import { SECURITY_API_PREFIX } from "@/config/api";
 import HttpUtils from "@/service/http/HttpUtils";
 
-import type { UserId, UserPageParams, UserPageResult, UserRecord, UserSavePayload } from "./types";
+import type {
+  UserBriefRecord,
+  UserId,
+  UserPageParams,
+  UserPageResult,
+  UserRecord,
+  UserSavePayload,
+} from "./types";
 
 const USER_API_PREFIX = `${SECURITY_API_PREFIX}/user`;
 
@@ -17,6 +24,15 @@ export const getUsersByIds = (ids: readonly UserId[]): Promise<UserRecord[]> => 
   if (ids.length === 0) return Promise.resolve([]);
   const query = encodeURIComponent(JSON.stringify(ids));
   return HttpUtils.getData<UserRecord[]>(`${USER_API_PREFIX}?ids=${query}`, MANAGEMENT_REQUEST);
+};
+
+export const searchUsers = (keyword: string): Promise<UserBriefRecord[]> => {
+  const normalized = keyword.trim();
+  if (!normalized) return Promise.resolve([]);
+  return HttpUtils.getData<UserBriefRecord[]>(
+    `${USER_API_PREFIX}/list/${encodeURIComponent(normalized)}`,
+    MANAGEMENT_REQUEST,
+  );
 };
 
 export const createUser = async (payload: UserSavePayload): Promise<void> => {

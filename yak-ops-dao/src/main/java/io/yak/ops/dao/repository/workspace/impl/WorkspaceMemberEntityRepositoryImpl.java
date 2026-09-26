@@ -1,6 +1,7 @@
 package io.yak.ops.dao.repository.workspace.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import io.yak.ops.common.enums.workspace.WorkspaceRole;
 import io.yak.ops.dao.entity.workspace.WorkspaceMemberEntity;
 import io.yak.ops.dao.mapper.workspace.WorkspaceMemberMapper;
 import io.yak.ops.dao.repository.impl.BaseRepositoryImpl;
@@ -11,7 +12,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 /**
- * 基于 MyBatis-Plus 实现 Workspace 成员关系查询。
+ * 基于 MyBatis-Plus 实现 Workspace 成员关系查询与维护。
  *
  * @author weifuwan
  * @since 2026-09-26
@@ -50,5 +51,20 @@ public class WorkspaceMemberEntityRepositoryImpl
                 .eq(WorkspaceMemberEntity::getWorkspaceId, workspaceId)
                 .orderByAsc(WorkspaceMemberEntity::getCreateTime)
                 .orderByAsc(WorkspaceMemberEntity::getId));
+    }
+
+    @Override
+    public long countByRole(String workspaceId, WorkspaceRole role) {
+        Long count = workspaceMemberMapper.selectCount(Wrappers.<WorkspaceMemberEntity>lambdaQuery()
+                .eq(WorkspaceMemberEntity::getWorkspaceId, workspaceId)
+                .eq(WorkspaceMemberEntity::getRole, role));
+        return count == null ? 0L : count;
+    }
+
+    @Override
+    public int deleteMembership(String workspaceId, String userId) {
+        return workspaceMemberMapper.delete(Wrappers.<WorkspaceMemberEntity>lambdaQuery()
+                .eq(WorkspaceMemberEntity::getWorkspaceId, workspaceId)
+                .eq(WorkspaceMemberEntity::getUserId, userId));
     }
 }
