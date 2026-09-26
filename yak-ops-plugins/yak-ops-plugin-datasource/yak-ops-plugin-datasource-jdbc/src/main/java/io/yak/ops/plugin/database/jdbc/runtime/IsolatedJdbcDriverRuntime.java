@@ -43,16 +43,11 @@ public final class IsolatedJdbcDriverRuntime {
         if (runtimeId == null || runtimeId.isBlank()) {
             throw new IllegalArgumentException("JDBC Driver runtimeId 不能为空");
         }
-        return drivers.computeIfAbsent(
-                runtimeId, ignored -> loadDriver(relativeDirectory, driverClassName));
+        return drivers.computeIfAbsent(runtimeId, ignored -> loadDriver(relativeDirectory, driverClassName));
     }
 
     public Connection connect(
-            String runtimeId,
-            String relativeDirectory,
-            String driverClassName,
-            String jdbcUrl,
-            Properties properties)
+            String runtimeId, String relativeDirectory, String driverClassName, String jdbcUrl, Properties properties)
             throws SQLException {
         Driver driver = driver(runtimeId, relativeDirectory, driverClassName);
         ClassLoader original = Thread.currentThread().getContextClassLoader();
@@ -69,11 +64,7 @@ public final class IsolatedJdbcDriverRuntime {
     }
 
     public DriverPropertyInfo[] propertyInfo(
-            String runtimeId,
-            String relativeDirectory,
-            String driverClassName,
-            String jdbcUrl,
-            Properties properties)
+            String runtimeId, String relativeDirectory, String driverClassName, String jdbcUrl, Properties properties)
             throws SQLException {
         Driver driver = driver(runtimeId, relativeDirectory, driverClassName);
         ClassLoader original = Thread.currentThread().getContextClassLoader();
@@ -123,8 +114,7 @@ public final class IsolatedJdbcDriverRuntime {
         } catch (RuntimeException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw new IllegalStateException(
-                    "JDBC Driver 加载失败：" + driverClassName + "，目录：" + directory, exception);
+            throw new IllegalStateException("JDBC Driver 加载失败：" + driverClassName + "，目录：" + directory, exception);
         }
     }
 
