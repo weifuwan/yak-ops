@@ -21,11 +21,11 @@ export const buttonVariants = cva(
       },
       size: {
         small:
-          "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 [font-size:var(--yak-font-size-control-small)]",
+          "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-[length:var(--yak-font-size-control-small)]",
         medium:
-          "h-[34px] gap-[7px] rounded-[var(--yak-radius-control-medium)] px-[13px] [font-size:var(--yak-font-size-control-medium)]",
+          "h-[34px] gap-[7px] rounded-[var(--yak-radius-control-medium)] px-[13px] text-[length:var(--yak-font-size-control-medium)]",
         large:
-          "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-4 [font-size:var(--yak-font-size-control-large)]",
+          "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-4 text-[length:var(--yak-font-size-control-large)]",
       },
     },
     defaultVariants: {
