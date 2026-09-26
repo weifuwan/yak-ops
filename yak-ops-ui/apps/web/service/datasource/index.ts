@@ -47,10 +47,6 @@ export const batchTestDataSourceConnections = (
     { ids },
   );
 
-export const testDataSourceConnection = async (id: DataSourceId): Promise<void> => {
-  await HttpUtils.postData<boolean>(`${DATA_SOURCE_API_PREFIX}/${id}/connect-test`, {});
-};
-
 export const testDataSourceConnectionWithParams = (
   payload: DataSourceConnectTestPayload,
 ): Promise<boolean> =>
