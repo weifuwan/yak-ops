@@ -172,8 +172,9 @@ const DataSourcePage = () => {
           className="bg-white px-6 max-md:px-4"
         />
 
-        <div className="flex min-h-0 flex-1 flex-col px-6 pb-4 pt-5 max-md:px-4">
-          <section className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex min-h-0 flex-1 px-6 pb-4 pt-5 max-md:px-4">
+          <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
+            <section className="flex shrink-0 flex-wrap items-center gap-2">
             <div className="relative w-[300px] max-md:w-full">
               <Search
                 size={15}
@@ -258,8 +259,8 @@ const DataSourcePage = () => {
             ) : null}
           </section>
 
-          <section className="mt-4 min-h-0 flex-1">
-            <DataSourceTable
+            <section className="mt-4 min-h-0 flex-1">
+              <DataSourceTable
               records={records}
               loading={loading}
               pageNo={pageNo}
@@ -275,8 +276,9 @@ const DataSourcePage = () => {
               onEdit={(record) => void handleEdit(record)}
               onDelete={setPendingDelete}
               onTestConnection={(record) => void handleTestConnection(record)}
-            />
-          </section>
+              />
+            </section>
+          </div>
         </div>
       </div>
 
