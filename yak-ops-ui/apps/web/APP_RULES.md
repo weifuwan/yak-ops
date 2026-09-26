@@ -35,6 +35,7 @@ assets/
 
 ```text
 app/datasource
+app/management
 app/login
 ```
 
@@ -52,8 +53,9 @@ app/layout/
 └── navigation.ts
 ```
 
-- `AppLayout` 是认证后产品页面唯一的 viewport owner，也是 Global Product Launcher 状态 owner。
-- TopBar、ProductSidebar、ProductLauncher 属于 Shell，不属于 Datasource Domain。
+- `AppLayout` 是认证后产品页面唯一的 viewport owner，也是 Global Product Launcher 状态 owner；通过 Product 参数服务数据集成和管理中心，不复制第二套 Shell。
+- TopBar、ProductSidebar、ProductLauncher 属于 Shell，不属于 Datasource 或 Management Domain。
+- 数据集成是 Workspace-scoped Product；管理中心是系统级 Product，不显示 Workspace Switcher，也不受 current Workspace gate。
 - 产品内导航和全局一级产品项统一读取 `app/layout/navigation.ts`，不要维护两套真实产品常量。
 - `所有产品` 是 ProductLauncher 自己的 `view-all` 入口，不允许混进真实产品数组；点击后只控制二级 AllProductMenu。
 - ProductLauncher 使用固定宽度 220px 的 Launcher Track；位移动画必须作用在 Track，而不是只作用在一级菜单。打开使用 `translateX(-220px) → translateX(0)` 和 `300ms ease-in-out`，关闭使用 `220ms ease-in-out`。
@@ -67,7 +69,8 @@ app/layout/
 - TopBar 三杠菜单按钮必须显示 pointer cursor；打开后同一位置切换为 X 图标。
 - Launcher 必须支持 TopBar X、Escape 和路由变化关闭。
 - Launcher 打开时，页面内容区覆盖透明 Blank Area 捕获点击；无论二级是否打开，一次 Blank Area 点击都关闭完整 Launcher，视觉上仍由二级先收、一级紧跟。
-- 二级 AllProductMenu 只展示已有真实产品 / 路由，不创建假路由、空白分类或占位页面。
+- 二级 AllProductMenu 只展示已有真实产品 / 路由；当前真实产品为数据集成和管理中心。
+- 管理中心 V1 路由为 `/management/users` 与 `/management/workspaces`；PR1 只建立 Product Surface 与导航壳，具体管理能力由后续 Capability PR 实现。
 - AppLayout 内的页面只填充可用容器，禁止通过 `calc(100vh - ...)` 或 `calc(100dvh - ...)` 自己扣减 Shell 高度。
 
 ## Must

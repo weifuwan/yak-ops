@@ -2,11 +2,23 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 
 import { DataSourcePage } from "@/app/datasource";
 import LoginPage from "@/app/login";
+import ManagementPageShell from "@/app/management";
 import { useAuth } from "@/hooks/use-auth";
 
 import AppLayout from "../layout/AppLayout";
+import {
+  DATA_INTEGRATION_NAVIGATION,
+  DATA_INTEGRATION_PRODUCT_LABEL,
+  MANAGEMENT_NAVIGATION,
+  MANAGEMENT_PRODUCT_LABEL,
+} from "../layout/navigation";
 
 const DEFAULT_AUTHENTICATED_PATH = "/data-source";
+const AUTHENTICATED_PATHS = new Set([
+  "/data-source",
+  "/management/users",
+  "/management/workspaces",
+]);
 
 const resolveReturnTo = (requested: string | null) => {
   if (!requested) return DEFAULT_AUTHENTICATED_PATH;
@@ -15,7 +27,7 @@ const resolveReturnTo = (requested: string | null) => {
     const destination = new URL(requested, window.location.origin);
     if (
       destination.origin !== window.location.origin ||
-      destination.pathname !== DEFAULT_AUTHENTICATED_PATH
+      !AUTHENTICATED_PATHS.has(destination.pathname)
     ) {
       return DEFAULT_AUTHENTICATED_PATH;
     }
@@ -75,12 +87,40 @@ export default function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
+
       <Route element={<ProtectedRoute />}>
-        <Route element={<AppLayout />}>
+        <Route
+          element={
+            <AppLayout
+              productLabel={DATA_INTEGRATION_PRODUCT_LABEL}
+              productPath="/data-source"
+              navigation={DATA_INTEGRATION_NAVIGATION}
+              workspaceScoped
+            />
+          }
+        >
           <Route path="/data-source" element={<DataSourcePage />} />
-          <Route path="/" element={<Navigate replace to="/data-source" />} />
-          <Route path="*" element={<Navigate replace to="/data-source" />} />
         </Route>
+
+        <Route
+          element={
+            <AppLayout
+              productLabel={MANAGEMENT_PRODUCT_LABEL}
+              productPath="/management/users"
+              navigation={MANAGEMENT_NAVIGATION}
+            />
+          }
+        >
+          <Route path="/management" element={<Navigate replace to="/management/users" />} />
+          <Route path="/management/users" element={<ManagementPageShell title="用户管理" />} />
+          <Route
+            path="/management/workspaces"
+            element={<ManagementPageShell title="工作空间管理" />}
+          />
+        </Route>
+
+        <Route path="/" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
+        <Route path="*" element={<Navigate replace to={DEFAULT_AUTHENTICATED_PATH} />} />
       </Route>
     </Routes>
   );
