@@ -103,7 +103,9 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     private WorkspaceEntity requireWorkspace(String workspaceId) {
         String id = StringUtils.trimToNull(workspaceId);
         if (id == null) throw new WorkspaceException(WorkspaceErrorCode.NOT_FOUND);
-        return workspaceRepository.queryById(id).orElseThrow(() -> new WorkspaceException(WorkspaceErrorCode.NOT_FOUND));
+        return workspaceRepository
+                .queryById(id)
+                .orElseThrow(() -> new WorkspaceException(WorkspaceErrorCode.NOT_FOUND));
     }
 
     private WorkspaceMemberEntity requireMember(String workspaceId, String userId) {
