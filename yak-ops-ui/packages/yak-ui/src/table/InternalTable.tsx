@@ -231,10 +231,8 @@ export function InternalTable<RecordType extends object>({
                   key={resolveTableRowKey(record, rowIndex, rowKey)}
                   className={cn(
                     "border-b border-[var(--yak-components-table-border)] bg-[var(--yak-components-table-row-bg)] last:border-b-0",
-                    rowHoverable &&
-                      "transition-colors hover:bg-[var(--yak-components-table-row-bg-hover)]",
-                    isSelected(record, rowIndex) &&
-                      "bg-[var(--yak-components-table-row-bg-selected)] hover:bg-[var(--yak-components-table-row-bg-selected-hover)]",
+                    rowHoverable && "transition-colors hover:bg-[var(--yak-color-hover)]",
+                    isSelected(record, rowIndex) && "bg-[var(--yak-color-hover)]",
                     rowClassName,
                   )}
                 >
