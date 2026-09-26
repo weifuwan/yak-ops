@@ -9,9 +9,9 @@ type SelectSize = "small" | "medium" | "large";
 const SelectSizeContext = createContext<SelectSize>("medium");
 
 const selectFontSizeClasses: Record<SelectSize, string> = {
-  small: "[font-size:var(--yak-font-size-control-small)]",
-  medium: "[font-size:var(--yak-font-size-control-medium)]",
-  large: "[font-size:var(--yak-font-size-control-large)]",
+  small: "text-[length:var(--yak-font-size-control-small)]",
+  medium: "text-[length:var(--yak-font-size-control-medium)]",
+  large: "text-[length:var(--yak-font-size-control-large)]",
 };
 
 export type SelectProps<Value, Multiple extends boolean | undefined = false> = Omit<
@@ -52,11 +52,11 @@ const selectTriggerVariants = cva(
       },
       size: {
         small:
-          "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 [font-size:var(--yak-font-size-control-small)]",
+          "h-7 gap-1.5 rounded-[var(--yak-radius-control-small)] px-2.5 text-[length:var(--yak-font-size-control-small)]",
         medium:
-          "h-9 gap-2 rounded-[var(--yak-radius-control-medium)] px-3 [font-size:var(--yak-font-size-control-medium)]",
+          "h-9 gap-2 rounded-[var(--yak-radius-control-medium)] px-3 text-[length:var(--yak-font-size-control-medium)]",
         large:
-          "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-3.5 [font-size:var(--yak-font-size-control-large)]",
+          "h-10 gap-2 rounded-[var(--yak-radius-control-large)] px-3.5 text-[length:var(--yak-font-size-control-large)]",
       },
     },
     defaultVariants: {
