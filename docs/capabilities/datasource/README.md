@@ -74,10 +74,10 @@ service/datasource/
 
 Responsibilities:
 
-- `index.tsx`: filters, paging, list loading, delete confirmation and drawer state.
-- `table.tsx`: table rendering and row actions.
+- `index.tsx`: filters, paging, list loading, controlled selection, batch operations, delete confirmation and drawer state.
+- `table.tsx`: table rendering, row selection, row actions and batch footer composition.
 - `form.tsx`: create, edit and connection test.
-- `service/datasource`: CRUD and connection-test HTTP Contract; batch-operation wiring is added with the frontend selection capability.
+- `service/datasource`: CRUD, batch operations and connection-test HTTP Contract.
 
 ## Connection Form
 

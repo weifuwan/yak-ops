@@ -43,7 +43,7 @@
   --yak-components-checkbox-bg: #ffffff;
   --yak-components-checkbox-border: #c9cdd4;
   --yak-components-checkbox-border-hover: #8f949e;
-  --yak-components-checkbox-bg-checked: #292c35;
+  --yak-components-checkbox-bg-checked: var(--yak-color-primary);
   --yak-components-checkbox-focus-ring: rgba(37, 40, 50, 0.12);
 
   --yak-components-select-bg: #ffffff;

@@ -50,3 +50,8 @@ export interface DataSourceConnectTestPayload {
   dbType?: string;
   connJson: string;
 }
+
+export interface DataSourceBatchConnectTestResult {
+  dataSourceId: DataSourceId;
+  connected: boolean;
+}

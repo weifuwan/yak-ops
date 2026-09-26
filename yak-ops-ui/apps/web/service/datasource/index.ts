@@ -1,6 +1,7 @@
 import HttpUtils from "@/service/http/HttpUtils";
 
 import type {
+  DataSourceBatchConnectTestResult,
   DataSourceConnectTestPayload,
   DataSourceId,
   DataSourcePageParams,
@@ -34,9 +35,17 @@ export const deleteDataSource = async (id: DataSourceId): Promise<void> => {
   await HttpUtils.deleteData<boolean>(`${DATA_SOURCE_API_PREFIX}/${id}`);
 };
 
-export const testDataSourceConnection = async (id: DataSourceId): Promise<void> => {
-  await HttpUtils.postData<boolean>(`${DATA_SOURCE_API_PREFIX}/${id}/connect-test`, {});
+export const batchDeleteDataSources = async (ids: readonly DataSourceId[]): Promise<void> => {
+  await HttpUtils.postData<boolean>(`${DATA_SOURCE_API_PREFIX}/batch-delete`, { ids });
 };
+
+export const batchTestDataSourceConnections = (
+  ids: readonly DataSourceId[],
+): Promise<DataSourceBatchConnectTestResult[]> =>
+  HttpUtils.postData<DataSourceBatchConnectTestResult[]>(
+    `${DATA_SOURCE_API_PREFIX}/batch-connect-test`,
+    { ids },
+  );
 
 export const testDataSourceConnectionWithParams = (
   payload: DataSourceConnectTestPayload,

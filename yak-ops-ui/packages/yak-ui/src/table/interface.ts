@@ -105,6 +105,7 @@ export interface TableProps<RecordType extends object> {
   rowKey?: keyof RecordType | ((record: RecordType) => Key);
   loading?: boolean;
   pagination?: false | TablePaginationConfig;
+  footer?: ReactNode;
   rowSelection?: TableRowSelection<RecordType>;
   size?: TableSize;
   bordered?: boolean;

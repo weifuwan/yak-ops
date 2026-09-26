@@ -19,6 +19,8 @@ import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  batchDeleteDataSources,
+  batchTestDataSourceConnections,
   deleteDataSource,
   getDataSource,
   listDataSources,
@@ -30,6 +32,7 @@ import DataSourceTable from "./table";
 import type { DataSourceRecord } from "./types";
 
 const DEFAULT_PAGE_SIZE = 10;
+const MAX_BATCH_SELECTION = 100;
 
 const DataSourcePage = () => {
   const intl = useIntl();
@@ -45,8 +48,12 @@ const DataSourcePage = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DataSourceRecord>();
   const [editingId, setEditingId] = useState("");
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [pendingDelete, setPendingDelete] = useState<DataSourceRecord>();
   const [deleting, setDeleting] = useState(false);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [batchTesting, setBatchTesting] = useState(false);
 
   const hasActiveFilters = Boolean(keyword.trim() || dbType);
 
@@ -89,12 +96,27 @@ const DataSourcePage = () => {
 
   const setKeyword = (value: string) => {
     setKeywordState(value);
+    setSelectedRowKeys([]);
     setPageNo(1);
   };
 
   const setDbType = (value?: string) => {
     setDbTypeState(value);
+    setSelectedRowKeys([]);
     setPageNo(1);
+  };
+
+  const handleSelectionChange = (keys: string[]) => {
+    if (keys.length > MAX_BATCH_SELECTION) {
+      toast.warning(
+        intl.formatMessage(
+          { id: "pages.datasource.batch.selectionLimit" },
+          { count: MAX_BATCH_SELECTION },
+        ),
+      );
+      return;
+    }
+    setSelectedRowKeys(keys);
   };
 
   const handleCreate = () => {
@@ -121,10 +143,50 @@ const DataSourcePage = () => {
     try {
       await deleteDataSource(pendingDelete.id);
       toast.success(intl.formatMessage({ id: "pages.datasource.delete.success" }));
+      setSelectedRowKeys((keys) => keys.filter((id) => id !== String(pendingDelete.id)));
       setPendingDelete(undefined);
       refresh();
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const confirmBatchDelete = async () => {
+    if (selectedRowKeys.length === 0 || batchDeleting) return;
+    setBatchDeleting(true);
+    try {
+      await batchDeleteDataSources(selectedRowKeys);
+      toast.success(
+        intl.formatMessage(
+          { id: "pages.datasource.batch.deleteSuccess" },
+          { count: selectedRowKeys.length },
+        ),
+      );
+      setBatchDeleteOpen(false);
+      setSelectedRowKeys([]);
+      refresh();
+    } finally {
+      setBatchDeleting(false);
+    }
+  };
+
+  const handleBatchTestConnection = async () => {
+    if (selectedRowKeys.length === 0 || batchTesting) return;
+    setBatchTesting(true);
+    try {
+      const results = await batchTestDataSourceConnections(selectedRowKeys);
+      const successCount = results.filter((result) => result.connected).length;
+      const failedCount = results.length - successCount;
+      const message = intl.formatMessage(
+        { id: "pages.datasource.batch.testResult" },
+        { success: successCount, failed: failedCount },
+      );
+      if (failedCount > 0) toast.warning(message);
+      else toast.success(message);
+      setSelectedRowKeys([]);
+      refresh();
+    } finally {
+      setBatchTesting(false);
     }
   };
 
@@ -199,12 +261,18 @@ const DataSourcePage = () => {
                 total={total}
                 hasActiveFilters={hasActiveFilters}
                 editingId={editingId}
+                selectedRowKeys={selectedRowKeys}
+                batchDeleting={batchDeleting}
+                batchTesting={batchTesting}
                 onPageChange={(nextPage, nextPageSize) => {
                   setPageNo(nextPage);
                   setPageSize(nextPageSize);
                 }}
+                onSelectionChange={handleSelectionChange}
                 onEdit={(record) => void handleEdit(record)}
                 onDelete={setPendingDelete}
+                onBatchDelete={() => setBatchDeleteOpen(true)}
+                onBatchTestConnection={() => void handleBatchTestConnection()}
               />
             </section>
           </div>
@@ -217,6 +285,37 @@ const DataSourcePage = () => {
         onOpenChange={setFormOpen}
         onSaved={refresh}
       />
+
+      <Dialog
+        open={batchDeleteOpen}
+        onOpenChange={(open) => {
+          if (!batchDeleting) setBatchDeleteOpen(open);
+        }}
+      >
+        <DialogContent className="w-[420px]">
+          <DialogTitle className="text-base font-semibold">
+            {intl.formatMessage({ id: "pages.datasource.batch.deleteConfirmTitle" })}
+          </DialogTitle>
+          <DialogDescription className="mt-2 text-sm leading-6 text-[#667085]">
+            {intl.formatMessage(
+              { id: "pages.datasource.batch.deleteContent" },
+              { count: selectedRowKeys.length },
+            )}
+          </DialogDescription>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button disabled={batchDeleting} onClick={() => setBatchDeleteOpen(false)}>
+              {intl.formatMessage({ id: "pages.datasource.delete.cancelText" })}
+            </Button>
+            <Button
+              variant="danger"
+              loading={batchDeleting}
+              onClick={() => void confirmBatchDelete()}
+            >
+              {intl.formatMessage({ id: "pages.datasource.batch.delete" })}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={Boolean(pendingDelete)}
