@@ -791,7 +791,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       }
     >
       {!editing && createStep === "select" ? (
-        <div className="flex h-[420px] flex-col">
+        <div className="flex h-[300px] flex-col">
           <section className="shrink-0">
             <div className="mb-2.5 text-[13px] font-medium text-[#344054]">
               {intl.formatMessage({ id: "pages.datasource.wizard.category" })}
