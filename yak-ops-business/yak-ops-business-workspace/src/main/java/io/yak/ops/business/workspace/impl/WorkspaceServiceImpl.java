@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 实现 Workspace 创建、当前用户 Workspace 查询和成员关系校验。
+ * 实现 Workspace 创建、发现、成员关系查询和成员管理。
  *
  * @author weifuwan
  * @since 2026-09-26
@@ -94,6 +94,86 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public WorkspaceMemberVO addWorkspaceMember(
+            String workspaceId, String targetUserId, WorkspaceRole role, String operatorUserId) {
+        requireWorkspace(workspaceId);
+        WorkspaceMemberEntity operator = requireManager(workspaceId, operatorUserId);
+        String memberUserId = requireUserId(targetUserId);
+        WorkspaceRole targetRole = requireRole(role);
+        requireOwnerForOwnerRole(operator.getRole(), targetRole);
+
+        if (workspaceMemberRepository.queryMembership(workspaceId, memberUserId).isPresent()) {
+            throw new WorkspaceException(WorkspaceErrorCode.MEMBER_ALREADY_EXISTS);
+        }
+
+        WorkspaceMemberEntity member = new WorkspaceMemberEntity();
+        member.setWorkspaceId(workspaceId);
+        member.setUserId(memberUserId);
+        member.setRole(targetRole);
+        member.initCreate(requireUserId(operatorUserId));
+        workspaceMemberRepository.add(member);
+
+        LOG.info(
+                "工作空间成员添加完成，workspaceId={}, userId={}, role={}, operatorUserId={}",
+                workspaceId,
+                memberUserId,
+                targetRole,
+                operatorUserId);
+        return toWorkspaceMemberVO(member);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public WorkspaceMemberVO updateWorkspaceMemberRole(
+            String workspaceId, String targetUserId, WorkspaceRole role, String operatorUserId) {
+        requireWorkspace(workspaceId);
+        WorkspaceMemberEntity operator = requireManager(workspaceId, operatorUserId);
+        WorkspaceMemberEntity target = requireTargetMember(workspaceId, targetUserId);
+        WorkspaceRole targetRole = requireRole(role);
+
+        if (target.getRole() == targetRole) return toWorkspaceMemberVO(target);
+        requireOwnerForOwnerMembership(operator.getRole(), target.getRole(), targetRole);
+        ensureOwnerRemains(workspaceId, target.getRole(), targetRole);
+
+        target.setRole(targetRole);
+        target.initUpdate(requireUserId(operatorUserId));
+        workspaceMemberRepository.update(target);
+
+        LOG.info(
+                "工作空间成员角色更新完成，workspaceId={}, userId={}, role={}, operatorUserId={}",
+                workspaceId,
+                target.getUserId(),
+                targetRole,
+                operatorUserId);
+        return toWorkspaceMemberVO(target);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean removeWorkspaceMember(String workspaceId, String targetUserId, String operatorUserId) {
+        requireWorkspace(workspaceId);
+        WorkspaceMemberEntity operator = requireManager(workspaceId, operatorUserId);
+        WorkspaceMemberEntity target = requireTargetMember(workspaceId, targetUserId);
+
+        if (target.getRole() == WorkspaceRole.OWNER && operator.getRole() != WorkspaceRole.OWNER) {
+            throw new WorkspaceException(WorkspaceErrorCode.ROLE_OPERATION_DENIED);
+        }
+        ensureOwnerRemains(workspaceId, target.getRole(), null);
+
+        if (workspaceMemberRepository.deleteMembership(workspaceId, target.getUserId()) <= 0) {
+            throw new WorkspaceException(WorkspaceErrorCode.MEMBER_NOT_FOUND);
+        }
+
+        LOG.info(
+                "工作空间成员移除完成，workspaceId={}, userId={}, operatorUserId={}",
+                workspaceId,
+                target.getUserId(),
+                operatorUserId);
+        return true;
+    }
+
+    @Override
     public boolean isMember(String workspaceId, String userId) {
         if (StringUtils.isBlank(workspaceId) || StringUtils.isBlank(userId)) return false;
         return workspaceMemberRepository.queryMembership(workspaceId, userId).isPresent()
@@ -115,6 +195,51 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         return workspaceMemberRepository
                 .queryMembership(id, currentUserId)
                 .orElseThrow(() -> new WorkspaceException(WorkspaceErrorCode.ACCESS_DENIED));
+    }
+
+    private WorkspaceMemberEntity requireTargetMember(String workspaceId, String userId) {
+        String id = StringUtils.trimToNull(workspaceId);
+        String targetUserId = requireUserId(userId);
+        if (id == null) throw new WorkspaceException(WorkspaceErrorCode.MEMBER_NOT_FOUND);
+        return workspaceMemberRepository
+                .queryMembership(id, targetUserId)
+                .orElseThrow(() -> new WorkspaceException(WorkspaceErrorCode.MEMBER_NOT_FOUND));
+    }
+
+    private WorkspaceMemberEntity requireManager(String workspaceId, String userId) {
+        WorkspaceMemberEntity membership = workspaceMemberRepository
+                .queryMembership(workspaceId, requireUserId(userId))
+                .orElseThrow(() -> new WorkspaceException(WorkspaceErrorCode.ACCESS_DENIED));
+        if (membership.getRole() != WorkspaceRole.OWNER && membership.getRole() != WorkspaceRole.ADMIN) {
+            throw new WorkspaceException(WorkspaceErrorCode.ACCESS_DENIED);
+        }
+        return membership;
+    }
+
+    private WorkspaceRole requireRole(WorkspaceRole role) {
+        if (role == null) throw new WorkspaceException(WorkspaceErrorCode.INVALID_WORKSPACE);
+        return role;
+    }
+
+    private void requireOwnerForOwnerRole(WorkspaceRole operatorRole, WorkspaceRole targetRole) {
+        if (targetRole == WorkspaceRole.OWNER && operatorRole != WorkspaceRole.OWNER) {
+            throw new WorkspaceException(WorkspaceErrorCode.ROLE_OPERATION_DENIED);
+        }
+    }
+
+    private void requireOwnerForOwnerMembership(
+            WorkspaceRole operatorRole, WorkspaceRole currentRole, WorkspaceRole targetRole) {
+        if ((currentRole == WorkspaceRole.OWNER || targetRole == WorkspaceRole.OWNER)
+                && operatorRole != WorkspaceRole.OWNER) {
+            throw new WorkspaceException(WorkspaceErrorCode.ROLE_OPERATION_DENIED);
+        }
+    }
+
+    private void ensureOwnerRemains(String workspaceId, WorkspaceRole currentRole, WorkspaceRole targetRole) {
+        if (currentRole != WorkspaceRole.OWNER || targetRole == WorkspaceRole.OWNER) return;
+        if (workspaceMemberRepository.countByRole(workspaceId, WorkspaceRole.OWNER) <= 1) {
+            throw new WorkspaceException(WorkspaceErrorCode.LAST_OWNER_REQUIRED);
+        }
     }
 
     private String requireUserId(String userId) {

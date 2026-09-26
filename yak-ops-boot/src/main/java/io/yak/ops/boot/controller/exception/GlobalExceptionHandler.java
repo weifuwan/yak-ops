@@ -109,8 +109,9 @@ public class GlobalExceptionHandler {
 
         if (errorCode instanceof WorkspaceErrorCode code) {
             return switch (code) {
-                case NOT_FOUND -> HttpStatus.NOT_FOUND;
-                case ACCESS_DENIED -> HttpStatus.FORBIDDEN;
+                case NOT_FOUND, MEMBER_NOT_FOUND -> HttpStatus.NOT_FOUND;
+                case ACCESS_DENIED, ROLE_OPERATION_DENIED -> HttpStatus.FORBIDDEN;
+                case MEMBER_ALREADY_EXISTS, LAST_OWNER_REQUIRED -> HttpStatus.CONFLICT;
                 case INVALID_WORKSPACE -> HttpStatus.BAD_REQUEST;
             };
         }

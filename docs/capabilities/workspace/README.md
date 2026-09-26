@@ -61,7 +61,7 @@ Workspace roles:
 - `ADMIN`
 - `MEMBER`
 
-PR1 only enforces membership. Role-specific authorization is intentionally deferred until a real operation requires it.
+Membership access is shared by all Workspace members. Member mutation introduces the minimum role authorization required by the product: OWNER / ADMIN may manage members, but only OWNER may grant or modify OWNER membership, and the final OWNER cannot be removed or demoted.
 
 ## Invariants
 
@@ -82,7 +82,10 @@ PR1 only enforces membership. Role-specific authorization is intentionally defer
 POST /api/v1/workspaces
 GET  /api/v1/workspaces
 GET  /api/v1/workspaces/{id}
-GET  /api/v1/workspaces/{id}/members
+GET    /api/v1/workspaces/{id}/members
+POST   /api/v1/workspaces/{id}/members
+PUT    /api/v1/workspaces/{id}/members/{userId}
+DELETE /api/v1/workspaces/{id}/members/{userId}
 ```
 
 The current user identity always comes from `AuthenticationManager`; callers do not submit a user ID in Workspace DTOs.
@@ -139,7 +142,7 @@ PR3 — Workspace Switcher + Datasource Integration:
 - Organization / Tenant / Team hierarchy
 - invitations
 - member disable lifecycle
-- role-specific permission matrix
+- generic role/permission matrix beyond Workspace member management
 - Workspace deletion
 - Workspace ownership transfer
 - default-workspace migration for existing Datasource rows

@@ -1,6 +1,12 @@
 import HttpUtils from "@/service/http/HttpUtils";
 
-import type { WorkspaceCreatePayload, WorkspaceMemberRecord, WorkspaceRecord } from "./types";
+import type {
+  WorkspaceCreatePayload,
+  WorkspaceMemberCreatePayload,
+  WorkspaceMemberRecord,
+  WorkspaceMemberRolePayload,
+  WorkspaceRecord,
+} from "./types";
 
 const WORKSPACE_API_PREFIX = "/api/v1/workspaces";
 
@@ -20,9 +26,40 @@ export const getWorkspaceMembers = (workspaceId: string): Promise<WorkspaceMembe
     WITHOUT_WORKSPACE_HEADER,
   );
 
+export const addWorkspaceMember = (
+  workspaceId: string,
+  payload: WorkspaceMemberCreatePayload,
+): Promise<WorkspaceMemberRecord> =>
+  HttpUtils.postData<WorkspaceMemberRecord>(
+    `${WORKSPACE_API_PREFIX}/${workspaceId}/members`,
+    payload,
+    WITHOUT_WORKSPACE_HEADER,
+  );
+
+export const updateWorkspaceMemberRole = (
+  workspaceId: string,
+  userId: string,
+  payload: WorkspaceMemberRolePayload,
+): Promise<WorkspaceMemberRecord> =>
+  HttpUtils.putData<WorkspaceMemberRecord>(
+    `${WORKSPACE_API_PREFIX}/${workspaceId}/members/${userId}`,
+    payload,
+    WITHOUT_WORKSPACE_HEADER,
+  );
+
+export const removeWorkspaceMember = async (workspaceId: string, userId: string): Promise<void> => {
+  await HttpUtils.deleteData<boolean>(
+    `${WORKSPACE_API_PREFIX}/${workspaceId}/members/${userId}`,
+    undefined,
+    WITHOUT_WORKSPACE_HEADER,
+  );
+};
+
 export type {
   WorkspaceCreatePayload,
+  WorkspaceMemberCreatePayload,
   WorkspaceMemberRecord,
+  WorkspaceMemberRolePayload,
   WorkspaceRecord,
   WorkspaceRole,
 } from "./types";

@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Workspace 成员角色；V1 只作为成员关系属性保存，不建立细粒度权限矩阵。
+ * Workspace 成员角色；成员管理只使用 OWNER / ADMIN / MEMBER 的最小权限边界，不建立通用 RBAC。
  *
  * @author weifuwan
  * @since 2026-09-26

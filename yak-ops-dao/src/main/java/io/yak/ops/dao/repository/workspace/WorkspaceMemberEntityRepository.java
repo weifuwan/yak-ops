@@ -1,5 +1,6 @@
 package io.yak.ops.dao.repository.workspace;
 
+import io.yak.ops.common.enums.workspace.WorkspaceRole;
 import io.yak.ops.dao.entity.workspace.WorkspaceMemberEntity;
 import io.yak.ops.dao.repository.BaseRepository;
 import java.util.List;
@@ -18,4 +19,8 @@ public interface WorkspaceMemberEntityRepository extends BaseRepository<Workspac
     List<WorkspaceMemberEntity> queryByUserId(String userId);
 
     List<WorkspaceMemberEntity> queryByWorkspaceId(String workspaceId);
+
+    long countByRole(String workspaceId, WorkspaceRole role);
+
+    int deleteMembership(String workspaceId, String userId);
 }

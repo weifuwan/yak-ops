@@ -10,6 +10,14 @@ export interface UserRecord {
   updateTime?: string;
 }
 
+export interface UserBriefRecord {
+  id: UserId;
+  userName: string;
+  realName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}
+
 export interface UserPageResult {
   bizData: UserRecord[];
   pagination: {
