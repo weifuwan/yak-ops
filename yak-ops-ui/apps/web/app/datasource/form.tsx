@@ -409,26 +409,90 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     </div>
   );
 
-  const jdbcUrlField = (
+  const jdbcPreviewField = (
     <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
-      <label htmlFor="datasource-jdbc-url" className="pt-1.5 text-xs font-medium text-[#344054]">
-        {intl.formatMessage({ id: "pages.datasource.form.jdbcUrl" })}
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.jdbcPreview" })}
+      </span>
+      <div className="min-h-7 break-all py-1.5 text-xs text-[#667085]">
+        {buildJdbcPreview(values)}
+      </div>
+    </div>
+  );
+
+  const connectionAddressField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.connectionAddress" })}
+      </span>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_160px] gap-2 max-sm:grid-cols-1">
+        <div>
+          <Input
+            id="datasource-host"
+            size="small"
+            variant="outlined"
+            value={values.host}
+            aria-invalid={Boolean(errors.host) || undefined}
+            placeholder={intl.formatMessage({ id: "pages.datasource.form.hostPlaceholder" })}
+            onChange={(event) => patch("host", event.target.value)}
+          />
+          {fieldError("host")}
+        </div>
+        <div>
+          <Input
+            id="datasource-port"
+            size="small"
+            variant="outlined"
+            inputMode="numeric"
+            value={values.port}
+            aria-invalid={Boolean(errors.port) || undefined}
+            placeholder={intl.formatMessage({ id: "pages.datasource.form.portPlaceholder" })}
+            onChange={(event) => patch("port", event.target.value)}
+          />
+          {fieldError("port")}
+        </div>
+      </div>
+    </div>
+  );
+
+  const databaseField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <label htmlFor="datasource-database" className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.database" })}
       </label>
       <div className="min-w-0">
         <Input
-          id="datasource-jdbc-url"
+          id="datasource-database"
           size="small"
           variant="outlined"
-          value={values.jdbcUrl}
-          aria-invalid={Boolean(errors.jdbcUrl) || undefined}
-          placeholder={
-            JDBC_URL_PLACEHOLDERS[values.dbType] ||
-            intl.formatMessage({ id: "pages.datasource.form.jdbcUrlPlaceholder" })
-          }
-          onChange={(event) => patch("jdbcUrl", event.target.value)}
+          value={values.database}
+          aria-invalid={Boolean(errors.database) || undefined}
+          placeholder={intl.formatMessage({ id: "pages.datasource.form.databasePlaceholder" })}
+          onChange={(event) => patch("database", event.target.value)}
         />
-        {fieldError("jdbcUrl")}
+        {fieldError("database")}
       </div>
+    </div>
+  );
+
+  const accessIdentityField = (
+    <div className="grid grid-cols-[104px_minmax(0,1fr)] items-start gap-3">
+      <span className="pt-1.5 text-xs font-medium text-[#344054]">
+        {intl.formatMessage({ id: "pages.datasource.form.accessIdentity" })}
+      </span>
+      <Select size="small" value="USERNAME_PASSWORD">
+        <SelectTrigger variant="outlined">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="USERNAME_PASSWORD">
+            <SelectItemText>
+              {intl.formatMessage({ id: "pages.datasource.form.usernamePassword" })}
+            </SelectItemText>
+            <SelectItemIndicator />
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 
