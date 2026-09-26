@@ -48,11 +48,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   return (
-    <BaseInput
-      {...props}
-      ref={ref}
-      className={cn(inputVariants({ size, variant }), className)}
-    />
+    <BaseInput {...props} ref={ref} className={cn(inputVariants({ size, variant }), className)} />
   );
 });
 
