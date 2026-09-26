@@ -65,6 +65,8 @@ service/datasource/
 - `ORACLE`
 - `POSTGRE_SQL`（UI 展示 PostgreSQL）
 
+PostgreSQL 的 `POSTGRESQL` / `POSTGRES` 只作为兼容输入别名；进入前端表单状态后必须统一规范为 `POSTGRE_SQL`，列表始终展示产品名 `PostgreSQL`，不得把 canonical type 文本直接暴露给用户。
+
 新增类型必须先扩展后端 Provider，再独立更新前端产品入口。
 
 ## Page Ownership
@@ -113,6 +115,8 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 
 前端只维护当前三种 JDBC Provider 的 Host / Port / Database 输入、JDBC Preview 和轻量 Key/Value 高级参数；高级参数编辑器保持 Provider-neutral，不维护 MySQL / Oracle / PostgreSQL 参数提示清单、枚举值或校验规则。HTTP 层直接提交结构化 `connectionParams` 对象，不允许在 App / Service 层手动 `JSON.stringify`。真正的 JDBC URL 生成、属性 Normalize / Validate、driver、Provider 差异和 Connection Test 仍由后端 JDBC Plugin 负责。
 
+PostgreSQL 表单遵循 Database connection target：不新增 Schema 字段，不默认写入 `public`，JDBC Preview 只展示 `jdbc:postgresql://host:port/database`。如用户确实需要默认 search path，只通过通用高级参数 Key/Value 传递 `currentSchema`，前端不对其值做 PostgreSQL-specific 校验。
+
 ## Must
 
 - 列表只使用 `@yak-ops/yak-ui` 的 `Table`；Datasource 业务层禁止手写 `<table> / <thead> / <tbody>`。
@@ -126,6 +130,7 @@ Create 默认使用 `DEVELOP` environment；Edit 沿用后端详情中的 enviro
 - Edit 使用与 Create 相同的 Yak UI `Modal` 和配置内容；不展示可修改的数据库类型控件，通过标题明确当前 Provider，且编辑时禁止修改 `dbType`。
 - Create / Edit 的必填标识与错误信息统一使用 Yak UI `FieldLabel required` / `FieldRequiredMark` / `FieldError`；Datasource 只持有字段规则和 i18n message，不在页面重复手写红色星号或错误文本样式。
 - Create / Update / Connection Test 共用同一个结构化 `connectionParams` Contract：`host / port / database / username / password / properties`；`dbType` 由外层请求字段负责 Provider 路由，不重复塞进连接对象。
+- PostgreSQL Create / Edit 必须使用默认端口 `5432`、`jdbc:postgresql://host:port/database` Preview，并且请求体中不得出现顶层 `schema` 字段。
 - 高级参数前端只校验 Key 非空 / 不重复；参数名称 canonicalization、布尔 / 枚举 / 数值语义和 Provider-specific 校验全部由对应后端 Provider 持有。
 - CRUD、Batch Operations 和 Connection Test 统一走 `service/datasource`。
 - Datasource 请求依赖全局当前 Workspace；页面不得自行拼接 `X-Workspace-Id` 或把 `workspaceId` 加进业务 DTO。
