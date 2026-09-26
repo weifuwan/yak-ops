@@ -81,22 +81,25 @@ Responsibilities:
 
 ## Connection Form
 
-The product form only exposes:
+The product form uses structured JDBC connection input:
 
 ```text
 name
 dbType
-jdbcUrl
+host
+port
+database
 username
 password
+properties
 remark
 ```
 
+The UI renders a JDBC preview from Host / Port / Database, exposes a fixed username/password identity mode, a fixed no-auth option, an auto driver-version placeholder, and a lightweight Key/Value advanced-properties editor.
+
 Create uses `DEVELOP` as the default environment. Edit preserves the stored environment.
 
-Host/Port/Database linkage, SSH tunnel UI, driver configuration, JDBC properties editor, dynamic form schema and runtime plugin install UI are not current product capabilities.
-
-Provider-specific connection behavior remains owned by the backend JDBC Plugin.
+SSH tunnel UI, dynamic driver-version management, dynamic form schema and runtime plugin install UI are not current product capabilities. JDBC URL generation, driver ownership, provider normalization and connection testing remain owned by the backend JDBC Plugin.
 
 ## Frontend Dependency
 
