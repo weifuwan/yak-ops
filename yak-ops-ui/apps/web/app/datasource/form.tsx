@@ -433,7 +433,13 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       <span className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.accessIdentity" })}
       </span>
-      <Select size="small" value="USERNAME_PASSWORD">
+      <Select
+        size="small"
+        items={{
+          USERNAME_PASSWORD: intl.formatMessage({ id: "pages.datasource.form.usernamePassword" }),
+        }}
+        value="USERNAME_PASSWORD"
+      >
         <SelectTrigger variant="outlined">
           <SelectValue />
         </SelectTrigger>
@@ -511,7 +517,11 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
       <span className="pt-1.5 text-xs font-medium text-[#344054]">
         {intl.formatMessage({ id: "pages.datasource.form.version" })}
       </span>
-      <Select size="small" value="AUTO">
+      <Select
+        size="small"
+        items={{ AUTO: intl.formatMessage({ id: "pages.datasource.form.versionAuto" }) }}
+        value="AUTO"
+      >
         <SelectTrigger variant="outlined">
           <SelectValue />
         </SelectTrigger>

@@ -36,6 +36,13 @@ const MAX_BATCH_SELECTION = 100;
 
 const DataSourcePage = () => {
   const intl = useIntl();
+  const dbTypeItems = [
+    {
+      label: intl.formatMessage({ id: "pages.datasource.toolbar.allTypes" }),
+      value: "ALL",
+    },
+    ...COMMON_DB_OPTIONS.map(({ label, value }) => ({ label, value })),
+  ];
   const requestSequenceRef = useRef(0);
   const [loading, setLoading] = useState(false);
   const [records, setRecords] = useState<DataSourceRecord[]>([]);
@@ -210,6 +217,7 @@ const DataSourcePage = () => {
               <div className="w-[290px]">
                 <Select
                   size="small"
+                  items={dbTypeItems}
                   value={dbType || "ALL"}
                   onValueChange={(value) => setDbType(value && value !== "ALL" ? value : undefined)}
                 >
