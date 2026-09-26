@@ -142,8 +142,9 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     @Override
     public void testConnection(DataSourceConnection connection, int timeoutSeconds) {
         JdbcConnectionProperties jdbcConnection = requireJdbcConnection(connection);
-        try (Connection opened = openJdbcConnection(jdbcConnection, timeoutSeconds)) {
-            if (opened == null || opened.isClosed()) {
+        int safeTimeout = Math.max(1, timeoutSeconds);
+        try (Connection opened = openJdbcConnection(jdbcConnection, safeTimeout)) {
+            if (opened == null || opened.isClosed() || !opened.isValid(safeTimeout)) {
                 throw new DataSourcePluginException(DataSourcePluginOperation.CONNECTIVITY, "数据库连接不可用");
             }
         } catch (DataSourcePluginException exception) {
