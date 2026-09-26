@@ -23,10 +23,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
     }
 
     setAllProductsOpen(false);
-    const timer = window.setTimeout(
-      () => setFirstLevelVisible(false),
-      FIRST_LEVEL_CLOSE_DELAY_MS,
-    );
+    const timer = window.setTimeout(() => setFirstLevelVisible(false), FIRST_LEVEL_CLOSE_DELAY_MS);
 
     return () => window.clearTimeout(timer);
   }, [open]);
@@ -79,11 +76,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
             <span className="text ml-[14px] min-w-0 flex-1 truncate">全部产品</span>
             <span className="right mr-3 flex shrink-0 items-center">
               <ChevronRight
-                className={
-                  secondLevelOpen
-                    ? "h-3.5 w-3.5 text-white"
-                    : "h-3.5 w-3.5 text-white/65"
-                }
+                className={secondLevelOpen ? "h-3.5 w-3.5 text-white" : "h-3.5 w-3.5 text-white/65"}
                 strokeWidth={1.8}
               />
             </span>
