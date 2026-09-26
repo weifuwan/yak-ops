@@ -16,9 +16,7 @@ export default function AllProductMenu({ open, onNavigate }: AllProductMenuProps
       className={[
         "absolute inset-y-0 left-full max-w-[calc(100vw-220px)] overflow-hidden bg-[#1c1e21] text-xs text-[#cbced3]",
         "transition-[width] ease-in-out motion-reduce:transition-none",
-        open
-          ? "w-[765px] duration-[240ms]"
-          : "w-0 duration-[170ms] pointer-events-none",
+        open ? "w-[765px] duration-[240ms]" : "w-0 duration-[170ms] pointer-events-none",
       ].join(" ")}
     >
       <div className="h-full w-[765px] max-w-[calc(100vw-220px)] overflow-y-auto">
