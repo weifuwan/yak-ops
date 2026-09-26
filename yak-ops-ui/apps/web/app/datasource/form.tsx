@@ -171,15 +171,27 @@ const buildJdbcPreview = (values: FormValues) => {
   const port = values.port.trim();
   const database = values.database.trim();
   const authority = host + (port ? ":" + port : "");
+  let jdbcUrl: string;
 
   switch (normalizeDataSourceType(values.dbType)) {
     case "ORACLE":
-      return "jdbc:oracle:thin:@//" + authority + "/" + database;
+      jdbcUrl = "jdbc:oracle:thin:@//" + authority + "/" + database;
+      break;
     case "POSTGRE_SQL":
-      return "jdbc:postgresql://" + authority + "/" + database;
+      jdbcUrl = "jdbc:postgresql://" + authority + "/" + database;
+      break;
     default:
-      return "jdbc:mysql://" + authority + "/" + database;
+      jdbcUrl = "jdbc:mysql://" + authority + "/" + database;
   }
+
+  const query = values.properties
+    .filter((property) => property.key.trim())
+    .map(
+      (property) =>
+        encodeURIComponent(property.key.trim()) + "=" + encodeURIComponent(property.value),
+    )
+    .join("&");
+  return query ? jdbcUrl + "?" + query : jdbcUrl;
 };
 
 const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormProps) => {
