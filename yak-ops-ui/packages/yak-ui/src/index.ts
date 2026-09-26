@@ -11,6 +11,7 @@ export * from "./field";
 export * from "./form";
 export * from "./input";
 export * from "./number-field";
+export * from "./page-header";
 export * from "./pagination";
 export * from "./popover";
 export * from "./select";
