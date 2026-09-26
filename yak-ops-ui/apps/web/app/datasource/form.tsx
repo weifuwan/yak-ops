@@ -25,7 +25,12 @@ import {
   testDataSourceConnectionWithParams,
   updateDataSource,
 } from "@/service/datasource";
-import { COMMON_DB_OPTIONS, JDBC_DEFAULT_PORTS, type DataSourceCategory } from "./constants";
+import {
+  COMMON_DB_OPTIONS,
+  JDBC_DEFAULT_PORTS,
+  normalizeDataSourceType,
+  type DataSourceCategory,
+} from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import { useIntl } from "./i18n";
 import type { DataSourceConnectionParams, DataSourceRecord, DataSourceSavePayload } from "./types";
@@ -75,7 +80,8 @@ interface ParsedJdbcUrl {
 
 const DEFAULT_HOST = "127.0.0.1";
 
-const defaultPort = (dbType: string) => String(JDBC_DEFAULT_PORTS[dbType] || "");
+const defaultPort = (dbType: string) =>
+  String(JDBC_DEFAULT_PORTS[normalizeDataSourceType(dbType)] || "");
 
 const EMPTY_FORM: FormValues = {
   name: "",
@@ -92,16 +98,17 @@ const EMPTY_FORM: FormValues = {
 const parseJdbcUrl = (dbType: string, jdbcUrl?: string): ParsedJdbcUrl => {
   if (!jdbcUrl) return {};
   const value = jdbcUrl.trim();
+  const normalizedType = normalizeDataSourceType(dbType);
   const patterns: Record<string, RegExp> = {
     MYSQL: /^jdbc:mysql:\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
     ORACLE: /^jdbc:oracle:thin:@\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
     POSTGRE_SQL: /^jdbc:postgresql:\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
   };
-  const matched = value.match(patterns[dbType]);
+  const matched = value.match(patterns[normalizedType]);
   if (!matched) return {};
   return {
     host: matched[1],
-    port: matched[2] || defaultPort(dbType),
+    port: matched[2] || defaultPort(normalizedType),
     database: matched[3],
   };
 };
@@ -115,7 +122,7 @@ const parseProperties = (value: unknown): JdbcProperty[] => {
 };
 
 const parseOriginalJson = (record?: DataSourceRecord): Partial<FormValues> => {
-  const dbType = record?.dbType || "MYSQL";
+  const dbType = normalizeDataSourceType(record?.dbType) || "MYSQL";
   if (!record?.originalJson) {
     return {
       ...parseJdbcUrl(dbType, record?.jdbcUrl),
@@ -157,7 +164,7 @@ const buildJdbcPreview = (values: FormValues) => {
   const database = values.database.trim();
   const authority = host + (port ? ":" + port : "");
 
-  switch (values.dbType) {
+  switch (normalizeDataSourceType(values.dbType)) {
     case "ORACLE":
       return "jdbc:oracle:thin:@//" + authority + "/" + database;
     case "POSTGRE_SQL":
@@ -181,7 +188,7 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
 
   useEffect(() => {
     if (!open) return;
-    const dbType = record?.dbType || "MYSQL";
+    const dbType = normalizeDataSourceType(record?.dbType) || "MYSQL";
     const original = parseOriginalJson(record);
     setValues({
       ...EMPTY_FORM,
@@ -325,14 +332,15 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
   };
 
   const handleSelectType = (dbType: string) => {
+    const normalizedType = normalizeDataSourceType(dbType);
     setValues((current) =>
-      current.dbType === dbType
+      current.dbType === normalizedType
         ? current
         : {
             ...current,
-            dbType,
+            dbType: normalizedType,
             host: DEFAULT_HOST,
-            port: defaultPort(dbType),
+            port: defaultPort(normalizedType),
             database: "",
             username: "",
             password: "",
@@ -673,7 +681,9 @@ const DataSourceForm = ({ open, record, onOpenChange, onSaved }: DataSourceFormP
     </Field>
   );
 
-  const selectedType = COMMON_DB_OPTIONS.find((option) => option.value === values.dbType);
+  const selectedType = COMMON_DB_OPTIONS.find(
+    (option) => option.value === normalizeDataSourceType(values.dbType),
+  );
   const normalizedSearch = createSearch.trim().toLowerCase();
   const relationalCount = COMMON_DB_OPTIONS.filter(
     (option) => option.category === "RELATIONAL",
