@@ -181,7 +181,6 @@ const DataSourceTable = ({
               variant="ghost"
               size="small"
               className="px-1 text-xs font-normal text-[#667085] hover:text-[var(--yak-color-primary)]"
-              loading={editingId === id}
               disabled={batchBusy || (Boolean(editingId) && editingId !== id)}
               onClick={() => onEdit(record)}
             >
