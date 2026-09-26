@@ -41,10 +41,11 @@ Base UI is an implementation dependency, not a product-facing API.
 - Headless interaction / accessibility should come from Base UI when it already owns the behavior.
 - Yak UI owns stable Props, composition API, Design Token and visual states.
 - Tailwind + Yak UI tokens are the styling foundation.
+- `--yak-color-primary` is the shared primary accent token; current baseline is `#0033FF`. Component active / focus colors should reference it instead of duplicating blue literals.
 - Variant contracts use `class-variance-authority` when variants are real product-wide concepts.
 - Button defaults to `type="button"`.
 - Input / Textarea / NumberField use one shared input visual language.
-- Input and SelectTrigger expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`.
+- Input and SelectTrigger expose `filled` as the default surface and `outlined` for explicit white/surface controls with a visible shared border token; product code must use the variant instead of fighting `border-transparent` through `className`. Input focus and SelectTrigger focus/open use the primary border only; they do not add a focus box-shadow / ring.
 - Select / Menu / Tooltip / Popover / Dialog / Drawer / Tabs remain compositional instead of becoming giant convenience-prop components.
 - Dialog / Drawer / Popover / Menu popup interaction, focus restore, Escape and outside press behavior stay in Base UI.
 - Toast is the common replacement for message / notification feedback.
@@ -96,7 +97,7 @@ Yak UI Table uses an AntD-familiar core contract without becoming an AntD compat
 - Local filter and sort run before local pagination; server pagination remains owned by the product when `pagination.total` is provided.
 - Current Table supports size, border, row hover, selected-row state, ellipsis, sort, filter, horizontal / vertical scroll and sticky header.
 - Table header uses the shared `#F2F2F2` surface and does not draw internal header dividers; `bordered` applies the outer frame and body grid only.
-- Pagination is a single-line compact control; the active page uses the shared blue pagination token instead of Button primary styling, and page-size wording is supplied through the generic `pageSizeLabel` composition point.
+- Pagination is a single-line compact control; the active page uses `--yak-color-primary` instead of Button primary styling, and page-size wording is supplied through the generic `pageSizeLabel` composition point.
 - Expandable rows, fixed columns, virtualization, multi-column sort and component overrides remain deferred.
 
 Table must not own:
