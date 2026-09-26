@@ -33,15 +33,6 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
 
   const secondLevelOpen = open && allProductsOpen;
 
-  const handleBlankAreaClick = () => {
-    if (secondLevelOpen) {
-      setAllProductsOpen(false);
-      return;
-    }
-
-    onClose();
-  };
-
   return (
     <>
       <button
@@ -52,7 +43,7 @@ export default function ProductLauncher({ open, onClose }: ProductLauncherProps)
           "fixed inset-x-0 bottom-0 top-10 z-20 cursor-default border-0 bg-transparent p-0",
           open ? "pointer-events-auto" : "pointer-events-none",
         ].join(" ")}
-        onClick={handleBlankAreaClick}
+        onClick={onClose}
       />
 
       <aside

@@ -66,7 +66,7 @@ app/layout/
 - 两级菜单都作为 overlay 覆盖页面，不允许改变 Sidebar / Outlet 布局，也不允许添加外层阴影。
 - TopBar 三杠菜单按钮必须显示 pointer cursor；打开后同一位置切换为 X 图标。
 - Launcher 必须支持 TopBar X、Escape 和路由变化关闭。
-- Launcher 打开时，页面内容区覆盖透明 Blank Area 捕获点击：二级已打开时第一次点击只关闭二级；只剩一级时再次点击关闭一级，形成逐级收起。
+- Launcher 打开时，页面内容区覆盖透明 Blank Area 捕获点击；无论二级是否打开，一次 Blank Area 点击都关闭完整 Launcher，视觉上仍由二级先收、一级紧跟。
 - 二级 AllProductMenu 只展示已有真实产品 / 路由，不创建假路由、空白分类或占位页面。
 - AppLayout 内的页面只填充可用容器，禁止通过 `calc(100vh - ...)` 或 `calc(100dvh - ...)` 自己扣减 Shell 高度。
 
