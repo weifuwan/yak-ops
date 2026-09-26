@@ -120,7 +120,7 @@ export function SelectContent({
         <BaseSelect.Popup
           {...props}
           className={cn(
-            "min-w-[var(--anchor-width)] max-w-80 overflow-hidden rounded-xl border border-[var(--yak-components-select-border)] bg-[var(--yak-components-select-bg)] shadow-[var(--yak-components-select-shadow)] outline-none",
+            "min-w-[var(--anchor-width)] max-w-80 overflow-hidden rounded-[var(--yak-radius-control-medium)] border border-[var(--yak-components-select-border)] bg-[var(--yak-components-select-bg)] shadow-[var(--yak-components-select-shadow)] outline-none",
             className,
           )}
         >
@@ -146,7 +146,7 @@ export function SelectItem<Value = unknown>({ className, ...props }: SelectItemP
     <BaseSelect.Item
       {...props}
       className={cn(
-        "flex min-h-8 cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] text-[var(--yak-components-select-item-text)] outline-none",
+        "flex min-h-8 cursor-pointer items-center gap-2 rounded-[var(--yak-radius-control-small)] px-2.5 py-1.5 text-[13px] text-[var(--yak-components-select-item-text)] outline-none",
         "data-highlighted:bg-[var(--yak-components-select-item-bg-hover)] data-selected:font-medium",
         "data-disabled:cursor-not-allowed data-disabled:opacity-45",
         className,
