@@ -44,7 +44,7 @@ const resolveCurrentWorkspace = (
 };
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [workspaces, setWorkspaces] = useState<WorkspaceRecord[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceRecord>();
   const [loading, setLoading] = useState(true);
@@ -86,6 +86,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
+    if (authLoading) {
+      setLoading(true);
+      return () => {
+        active = false;
+      };
+    }
+
     if (!currentUser) {
       persistWorkspace(undefined);
       setWorkspaces([]);
@@ -107,7 +114,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (!active) return;
-        persistWorkspace(undefined);
         setWorkspaces([]);
         setCurrentWorkspace(undefined);
       })
@@ -118,7 +124,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [currentUser?.id]);
+  }, [authLoading, currentUser?.id]);
 
   return (
     <WorkspaceContext.Provider
