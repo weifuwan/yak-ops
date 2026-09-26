@@ -104,7 +104,9 @@ const parseJdbcUrl = (dbType: string, jdbcUrl?: string): ParsedJdbcUrl => {
     ORACLE: /^jdbc:oracle:thin:@\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
     POSTGRE_SQL: /^jdbc:postgresql:\/\/(\[[^\]]+\]|[^:/?#]+)(?::(\d+))?\/([^?]+)(?:\?.*)?$/i,
   };
-  const matched = value.match(patterns[normalizedType]);
+  const pattern = patterns[normalizedType];
+  if (!pattern) return {};
+  const matched = value.match(pattern);
   if (!matched) return {};
   return {
     host: matched[1],
