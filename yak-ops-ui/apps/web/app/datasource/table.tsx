@@ -9,7 +9,7 @@ import {
 import { CircleCheck, CircleMinus, CircleX } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { DATA_SOURCE_PAGE_SIZE_OPTIONS } from "./constants";
+import { DATA_SOURCE_PAGE_SIZE_OPTIONS, getDataSourceTypeLabel } from "./constants";
 import DatabaseIcons from "./icons/DatabaseIcons";
 import { useIntl } from "./i18n";
 import type { DataSourceConnectionStatus, DataSourceRecord } from "./types";
@@ -125,7 +125,9 @@ const DataSourceTable = ({
             <div className="truncate text-[13px] font-medium text-[#252832]" title={record.name}>
               {record.name || "-"}
             </div>
-            <div className="mt-0.5 truncate text-xs text-[#667085]">{record.dbType || "-"}</div>
+            <div className="mt-0.5 truncate text-xs text-[#667085]">
+              {getDataSourceTypeLabel(record.dbType)}
+            </div>
           </div>
         </div>
       ),
