@@ -17,17 +17,22 @@ export function Select<Value, Multiple extends boolean | undefined = false>(
 
 const selectTriggerVariants = cva(
   [
-    "group/select-trigger flex w-full cursor-pointer items-center border border-transparent bg-[var(--yak-components-input-bg)] text-left text-[var(--yak-components-input-text)] outline-none",
+    "group/select-trigger flex w-full cursor-pointer items-center border text-left text-[var(--yak-components-input-text)] outline-none",
     "transition-[background-color,border-color,box-shadow,color] duration-150",
-    "hover:border-[var(--yak-components-input-border-hover)] hover:bg-[var(--yak-components-input-bg-hover)]",
     "focus-visible:border-[var(--yak-components-input-border-focus)] focus-visible:bg-[var(--yak-components-input-bg-focus)] focus-visible:ring-[3px] focus-visible:ring-[var(--yak-components-input-focus-ring)]",
     "data-popup-open:border-[var(--yak-components-input-border-focus)] data-popup-open:bg-[var(--yak-components-input-bg-focus)]",
     "data-placeholder:text-[var(--yak-components-input-placeholder)]",
-    "data-disabled:cursor-not-allowed data-disabled:border-transparent data-disabled:bg-[var(--yak-components-input-bg-disabled)] data-disabled:text-[var(--yak-components-input-text-disabled)]",
+    "data-disabled:cursor-not-allowed data-disabled:bg-[var(--yak-components-input-bg-disabled)] data-disabled:text-[var(--yak-components-input-text-disabled)]",
     "motion-reduce:transition-none",
   ],
   {
     variants: {
+      variant: {
+        filled:
+          "border-transparent bg-[var(--yak-components-input-bg)] hover:border-[var(--yak-components-input-border-hover)] hover:bg-[var(--yak-components-input-bg-hover)] data-disabled:border-transparent",
+        outlined:
+          "border-[var(--yak-components-input-border)] bg-[var(--yak-components-input-bg-focus)] hover:border-[var(--yak-components-input-border-focus)] hover:bg-[var(--yak-components-input-bg-focus)] data-disabled:border-[var(--yak-components-input-border)]",
+      },
       size: {
         small: "h-7 gap-1.5 rounded-lg px-2.5 text-xs",
         medium: "h-9 gap-2 rounded-[10px] px-3 text-[13px]",
@@ -35,6 +40,7 @@ const selectTriggerVariants = cva(
       },
     },
     defaultVariants: {
+      variant: "filled",
       size: "medium",
     },
   },
@@ -45,9 +51,18 @@ export type SelectTriggerProps = Omit<BaseSelect.Trigger.Props, "className"> &
     className?: string;
   };
 
-export function SelectTrigger({ children, className, size, ...props }: SelectTriggerProps) {
+export function SelectTrigger({
+  children,
+  className,
+  size,
+  variant,
+  ...props
+}: SelectTriggerProps) {
   return (
-    <BaseSelect.Trigger {...props} className={cn(selectTriggerVariants({ size }), className)}>
+    <BaseSelect.Trigger
+      {...props}
+      className={cn(selectTriggerVariants({ size, variant }), className)}
+    >
       <span className="min-w-0 flex-1 truncate">{children}</span>
       <BaseSelect.Icon className="shrink-0 text-[var(--yak-components-input-icon)] transition-transform duration-150 group-data-popup-open/select-trigger:rotate-180 motion-reduce:transition-none">
         <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4" fill="none">
