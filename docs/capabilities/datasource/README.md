@@ -129,7 +129,7 @@ remark
 
 The UI renders a JDBC preview from Host / Port / Database, exposes a fixed username/password identity mode, a fixed no-auth option, an auto driver-version placeholder, and a lightweight provider-neutral Key/Value advanced-properties editor. Create, update and connection-test requests share the same structured `connectionParams` object instead of sending JSON strings. Vendor property names and value semantics are normalized and validated by the selected backend JDBC Provider, not duplicated in the frontend.
 
-The advanced-property Key selector may query the backend Provider for recommended property names. The endpoint remains lightweight metadata only: the frontend may search/select the returned names but must not treat them as a validation whitelist.
+The advanced-property Key selector queries the backend Provider for recommended property names. The UI uses a searchable Yak UI Combobox with multiple selection; selecting several recommended keys materializes one independent Key / Value row per key. Existing recommended rows remain searchable/editable, while an explicit custom-property action keeps unknown JDBC properties available. The endpoint remains lightweight metadata only and is never treated as a validation whitelist.
 
 Create uses `DEVELOP` as the default environment. Edit preserves the stored environment.
 

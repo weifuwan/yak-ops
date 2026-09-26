@@ -60,6 +60,10 @@ export interface DataSourceConnectTestPayload {
   connectionParams: DataSourceConnectionParams;
 }
 
+export interface DataSourceConnectionPropertyKeys {
+  acceptedPropertyKeys: string[];
+}
+
 export interface DataSourceBatchConnectTestResult {
   dataSourceId: DataSourceId;
   connected: boolean;
