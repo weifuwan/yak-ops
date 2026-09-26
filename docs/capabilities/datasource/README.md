@@ -118,6 +118,8 @@ The UI renders a JDBC preview from Host / Port / Database, exposes a fixed usern
 
 Create uses `DEVELOP` as the default environment. Edit preserves the stored environment.
 
+For PostgreSQL, `database` is the Datasource connection target. `schema` is not a create/edit connection field and must not be appended to the JDBC URL path. When a connection needs a default search path, use the provider-owned advanced property `currentSchema`; Schema discovery and table qualification stay in Catalog.
+
 SSH tunnel UI, dynamic driver-version management, dynamic form schema and runtime plugin install UI are not current product capabilities. JDBC URL generation, driver ownership, provider normalization and connection testing remain owned by the backend JDBC Plugin.
 
 ## Frontend Dependency
