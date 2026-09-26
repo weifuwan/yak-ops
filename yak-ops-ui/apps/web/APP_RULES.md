@@ -56,11 +56,12 @@ app/layout/
 - TopBar、ProductSidebar、ProductLauncher 属于 Shell，不属于 Datasource Domain。
 - 产品内导航和全局一级产品项统一读取 `app/layout/navigation.ts`，不要维护两套真实产品常量。
 - `所有产品` 是 ProductLauncher 自己的 `view-all` 入口，不允许混进真实产品数组；点击后只控制二级 AllProductMenu。
-- ProductLauncher 固定宽度 220px，关闭态 `translateX(-220px)`，打开态 `translateX(0)`，动画 `300ms ease-in-out`。
+- ProductLauncher 固定宽度 220px；打开使用 `translateX(-220px) → translateX(0)` 和 `300ms ease-in-out`，关闭使用 `220ms ease-in-out`。
 - ProductSidebar 默认背景固定 `#FAFAFA`；二级深色面板关闭时不得残留覆盖默认 Sidebar。
 - ProductSidebar 菜单项使用整行布局，不使用圆角卡片；选中态背景为 `#DFE6FA`，右侧使用 `#1645D1` 2px 高亮边。
 - ProductSidebar 非选中项 hover 背景为 `#F2F2F2`；菜单图标保持 `#1645D1`，文字保持深色。
-- AllProductMenu 固定宽度 765px，关闭态使用 `left: 0 + translateX(-765px)` 完全移出视口；打开态使用 `left: 220px + translateX(0)`，背景固定 `#1c1e21`，动画 `240ms ease-in-out`。
+- AllProductMenu 固定锚定在 `left: 220px`，打开宽度 765px、关闭宽度 0，通过 `overflow: hidden` 裁切内容；打开动画 `240ms ease-in-out`，关闭动画 `170ms ease-in-out`，背景固定 `#1c1e21`。
+- 完整 Launcher 关闭时，二级立即开始收缩，一级延后 36ms 开始左滑；这是短暂错峰而不是等待二级完全结束后再关闭一级，两级 DOM 必须保留到 CSS transition 完成。
 - 一级 `view-all` 在二级展开时使用 `#1c1e21` 激活背景；一级 / 二级可点击产品 hover 使用 `#282b2e`，文字与图标同步提亮。
 - 两级菜单都作为 overlay 覆盖页面，不允许改变 Sidebar / Outlet 布局，也不允许添加外层阴影。
 - TopBar 三杠菜单按钮必须显示 pointer cursor；打开后同一位置切换为 X 图标。
