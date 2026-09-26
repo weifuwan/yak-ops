@@ -102,7 +102,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
             Map<String, String> properties = normalizeProperties(parseProperties(root.get("properties")));
             validateProperties(properties);
-            schema = normalizeSchema(schema, properties);
+            schema = normalizeSchema(schema);
             ObjectNode normalized = JSONUtils.createObjectNode();
             normalized.put("dbType", type());
             putIfText(normalized, "host", host);
@@ -213,7 +213,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
 
     protected void validateProperties(Map<String, String> properties) {}
 
-    protected String normalizeSchema(String schema, Map<String, String> properties) {
+    protected String normalizeSchema(String schema) {
         return StringUtils.trimToNull(schema);
     }
 
