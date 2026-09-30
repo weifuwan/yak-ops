@@ -27,6 +27,7 @@ Must:
 - Keep OFFLINE runtime tuning limited to fetch size, read batch size, write batch size, source parallelism, optional split size and timeout.
 - Show the Split consistency Yak UI `Alert` only when `splitSize` is configured: explain that split reads do not guarantee one table-wide snapshot point and may observe different source states while the source table is changing.
 - Use existing Yak UI primitives.
+- Compose the OFFLINE editor as independent Yak UI `SectionCard` blocks for basic info, datasource, source, target, mapping, schedule and runtime configuration. Each SectionCard is the section Surface; do not add a second page-wide Card or duplicate the same border/padding Surface inside a section.
 - Keep the OFFLINE editor as a full-height local-scroll workspace: PageHeader and the desktop section navigator stay outside the scrolling region, while only the definition content column owns vertical scrolling. Do not rely on sticky positioning for these fixed editor controls and do not change the global AppLayout scroll contract for this page.
 - Keep the Offline Sync editor definition-focused; runtime history belongs to the separate Task Detail surface, not an editor Tab.
 - Task Detail stays inside Data Integration and shows Basic Info plus Task-filtered Execution history. The selected Execution uses `执行情况 / 执行日志` Tabs: execution status reuses the shared Execution / Attempt presentation; execution log reads persisted product events only. It is read-only for runtime commands.
