@@ -50,7 +50,24 @@ const writeModeText = (writeMode?: string) => {
   return writeMode || "-";
 };
 
-function InfoItem({ label, children }: { label: string; children: ReactNode }) {
+function InfoItem({
+  label,
+  children,
+  inline = false,
+}: {
+  label: string;
+  children: ReactNode;
+  inline?: boolean;
+}) {
+  if (inline) {
+    return (
+      <div className="flex min-w-0 items-start gap-2 text-[13px] leading-5">
+        <div className="shrink-0 text-[#98a2b3]">{label}：</div>
+        <div className="min-w-0 flex-1 break-words text-[#344054]">{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-w-0">
       <div className="text-xs text-[#98a2b3]">{label}</div>
@@ -335,14 +352,14 @@ export function DataSyncTaskDetailPage({
             <div className="mx-6 mb-6 mt-5 space-y-4 max-md:mx-4">
               <SectionCard title="基本信息">
                 <div className="grid grid-cols-4 gap-x-6 gap-y-5 max-xl:grid-cols-3 max-lg:grid-cols-2 max-md:grid-cols-1">
-                  <InfoItem label="任务状态">
+                  <InfoItem label="任务状态" inline>
                     <DataSyncTaskStatusBadge status={task.status} />
                   </InfoItem>
-                  <InfoItem label="任务版本">v{task.definitionVersion}</InfoItem>
-                  <InfoItem label="同步类型">离线同步</InfoItem>
-                  <InfoItem label="写入方式">{writeModeText(task.writeMode)}</InfoItem>
+                  <InfoItem label="任务版本" inline>v{task.definitionVersion}</InfoItem>
+                  <InfoItem label="同步类型" inline>离线同步</InfoItem>
+                  <InfoItem label="写入方式" inline>{writeModeText(task.writeMode)}</InfoItem>
 
-                  <InfoItem label="来源数据源">
+                  <InfoItem label="来源数据源" inline>
                     <div>{source?.name || task.sourceDataSourceId}</div>
                     <div className="mt-0.5 text-xs text-[#667085]">
                       {pathText(task.sourceDatabase, task.sourceSchema, task.sourceTable)}
@@ -351,21 +368,21 @@ export function DataSyncTaskDetailPage({
                   <div className="hidden items-center justify-center xl:flex">
                     <ArrowRight size={18} className="text-[#98a2b3]" />
                   </div>
-                  <InfoItem label="目标数据源">
+                  <InfoItem label="目标数据源" inline>
                     <div>{target?.name || task.targetDataSourceId}</div>
                     <div className="mt-0.5 text-xs text-[#667085]">
                       {pathText(task.targetDatabase, task.targetSchema, task.targetTable)}
                     </div>
                   </InfoItem>
-                  <InfoItem label="调度">{scheduleText}</InfoItem>
+                  <InfoItem label="调度" inline>{scheduleText}</InfoItem>
 
-                  <InfoItem label="重试策略">
+                  <InfoItem label="重试策略" inline>
                     {retryPolicy
                       ? `最多 ${retryPolicy.maxAttempts} 次 · Backoff ${retryPolicy.backoffSeconds}s`
                       : "最多 1 次"}
                   </InfoItem>
-                  <InfoItem label="更新时间">{task.updateTime || task.createTime || "-"}</InfoItem>
-                  {task.remark ? <InfoItem label="备注">{task.remark}</InfoItem> : null}
+                  <InfoItem label="更新时间" inline>{task.updateTime || task.createTime || "-"}</InfoItem>
+                  {task.remark ? <InfoItem label="备注" inline>{task.remark}</InfoItem> : null}
                 </div>
               </SectionCard>
 
