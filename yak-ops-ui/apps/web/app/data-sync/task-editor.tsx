@@ -14,6 +14,7 @@ import {
   SelectItemText,
   SelectTrigger,
   SelectValue,
+  SectionCard,
   Table,
   Textarea,
   toast,
@@ -271,6 +272,7 @@ function DataSourceEndpointCard({
 interface TableSectionProps {
   children?: ReactNode;
   dataSourceId: string;
+  surface?: boolean;
   boundSchema?: string;
   database: string;
   schema: string;
@@ -283,6 +285,7 @@ interface TableSectionProps {
 function TableSection({
   children,
   dataSourceId,
+  surface = true,
   boundSchema,
   database,
   schema,
@@ -311,7 +314,7 @@ function TableSection({
   const tableDisabled = !dataSourceId || (requiresSchema && !schema);
 
   return (
-    <div className="rounded-lg border border-[#e6e8eb] bg-white p-4">
+    <div className={surface ? "rounded-lg border border-[#e6e8eb] bg-white p-4" : undefined}>
       <div className="space-y-3">
         {requiresSchema ? (
           <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
@@ -356,6 +359,56 @@ function TableSection({
         </Field>
         {children}
       </div>
+    </div>
+  );
+}
+
+interface EditorSectionProps {
+  id: string;
+  title: ReactNode;
+  realtime: boolean;
+  children: ReactNode;
+  extra?: ReactNode;
+  defaultOpen?: boolean;
+}
+
+function EditorSection({
+  id,
+  title,
+  realtime,
+  children,
+  extra,
+  defaultOpen,
+}: EditorSectionProps) {
+  if (realtime) {
+    return (
+      <CollapseSection
+        id={id}
+        title={title}
+        extra={extra}
+        defaultOpen={defaultOpen}
+      >
+        {children}
+      </CollapseSection>
+    );
+  }
+
+  return (
+    <div id={id}>
+      <SectionCard
+        title={
+          extra ? (
+            <span className="inline-flex items-center gap-2">
+              <span>{title}</span>
+              {extra}
+            </span>
+          ) : (
+            title
+          )
+        }
+      >
+        {children}
+      </SectionCard>
     </div>
   );
 }
@@ -915,8 +968,14 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
             </div>
           ) : null}
 
-          <CollapseSection id="basic" title="基本信息">
-            <div className="space-y-3 rounded-lg border border-[#e6e8eb] bg-white p-4">
+          <EditorSection id="basic" title="基本信息" realtime={realtime}>
+            <div
+              className={
+                realtime
+                  ? "space-y-3 rounded-lg border border-[#e6e8eb] bg-white p-4"
+                  : "space-y-3"
+              }
+            >
               <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
                 <FieldLabel required>任务名称</FieldLabel>
                 <Input
@@ -941,9 +1000,9 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                 />
               </Field>
             </div>
-          </CollapseSection>
+          </EditorSection>
 
-          <CollapseSection id="datasource" title="数据源">
+          <EditorSection id="datasource" title="数据源" realtime={realtime}>
             <div className="grid grid-cols-2 gap-3 max-lg:grid-cols-1">
               <DataSourceEndpointCard
                 title="来源"
@@ -982,9 +1041,9 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                 }}
               />
             </div>
-          </CollapseSection>
+          </EditorSection>
 
-          <CollapseSection id="source" title="数据来源">
+          <EditorSection id="source" title="数据来源" realtime={realtime}>
             <TableSection
               dataSourceId={form.sourceDataSourceId}
               boundSchema={selectedSourceDataSource?.schema}
@@ -992,6 +1051,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
               schema={form.sourceSchema}
               table={form.sourceTable}
               catalog={sourceCatalog}
+              surface={realtime}
               onSchemaChange={(value) =>
                 setForm((current) => ({ ...current, sourceSchema: value, sourceTable: "" }))
               }
@@ -1008,9 +1068,9 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                 <Alert>实时同步依赖 ROW Binlog 和 CDC 权限；连接测试通过不代表 CDC 可用。</Alert>
               ) : null}
             </TableSection>
-          </CollapseSection>
+          </EditorSection>
 
-          <CollapseSection id="target" title="数据去向">
+          <EditorSection id="target" title="数据去向" realtime={realtime}>
             <TableSection
               dataSourceId={form.targetDataSourceId}
               boundSchema={selectedTargetDataSource?.schema}
@@ -1018,6 +1078,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
               schema={form.targetSchema}
               table={form.targetTable}
               catalog={targetCatalog}
+              surface={realtime}
               onSchemaChange={(value) =>
                 setForm((current) => ({ ...current, targetSchema: value, targetTable: "" }))
               }
@@ -1069,11 +1130,12 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                 </Field>
               ) : null}
             </TableSection>
-          </CollapseSection>
+          </EditorSection>
 
-          <CollapseSection
+          <EditorSection
             id="mapping"
             title="字段映射"
+            realtime={realtime}
             extra={
               mapping ? (
                 mapping.compatible ? (
@@ -1103,11 +1165,11 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                 />
               </div>
             )}
-          </CollapseSection>
+          </EditorSection>
 
           {!realtime ? (
-            <CollapseSection id="schedule" title="调度配置">
-              <div className="space-y-3 rounded-lg border border-[#e6e8eb] bg-white p-4">
+            <EditorSection id="schedule" title="调度配置" realtime={realtime}>
+              <div className="space-y-3">
                 <Field className="grid grid-cols-[140px_minmax(0,1fr)] items-start !gap-3">
                   <FieldLabel className="pt-1.5">Cron 表达式</FieldLabel>
                   <div className="space-y-1">
@@ -1146,11 +1208,20 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                 </Field>
                 <Alert>这里只配置调度规则；任务上线后请在运维中心开启或关闭调度。</Alert>
               </div>
-            </CollapseSection>
+            </EditorSection>
           ) : null}
 
-          <CollapseSection id="runtime" title="运行参数" defaultOpen={false}>
-            <div className="rounded-lg border border-[#e6e8eb] bg-white p-4">
+          <EditorSection
+            id="runtime"
+            title="运行参数"
+            realtime={realtime}
+            defaultOpen={false}
+          >
+            <div
+              className={
+                realtime ? "rounded-lg border border-[#e6e8eb] bg-white p-4" : undefined
+              }
+            >
               <div className="grid grid-cols-2 gap-x-6 gap-y-3 max-lg:grid-cols-1">
                 {realtime ? (
                   <RealtimeRuntimeFields config={form.realtimeConfig} onChange={patchRealtime} />
@@ -1163,7 +1234,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                 )}
               </div>
             </div>
-          </CollapseSection>
+          </EditorSection>
         </main>
 
         <aside
