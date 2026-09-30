@@ -28,7 +28,9 @@ DataSyncTaskEditorPage 显式接收 syncType，不按 URL pathname 猜模式。O
 
 ## Layout
 
-编辑区使用 [CollapseSection](../../../../packages/yak-ui/docs/controls.md#collapsesection)。基本信息、数据源、来源、去向、映射及 OFFLINE 调度默认展开，运行参数默认收起。共享组件管理标题交互；数据同步内容继续保留白色 Card + border，不把业务内容外观改成共享组件默认规则。
+OFFLINE 编辑区使用 [SectionCard](../../../../packages/yak-ui/docs/section-card.md) 按“基本信息 / 数据源 / 数据来源 / 数据去向 / 字段映射 / 调度配置 / 运行参数”分块展示；SectionCard 自身就是每个区块的唯一外层 Surface，不再额外包整页 Card，也不在区块内重复套一层同职责 Card。运行参数在 OFFLINE 中保持直接可见，不再通过折叠隐藏。
+
+REALTIME 继续使用 [CollapseSection](../../../../packages/yak-ui/docs/controls.md#collapsesection)，保持现有折叠交互和内容 Surface，不因 OFFLINE 布局收口而同步迁移。
 
 OFFLINE 可编辑页面使用父容器高度、固定 PageHeader 与左侧局部滚动；右侧锚点导航在滚动区外，不能跟随内容滚走。REALTIME 当前保持原页面滚动方式，不把离线布局描述为两种模式都已采用。具体列宽与断点归 [task-editor.tsx](task-editor.tsx)，不照抄普通管理 Modal 的密度覆盖配置页。
 
@@ -38,4 +40,4 @@ OFFLINE 可编辑页面使用父容器高度、固定 PageHeader 与左侧局部
 
 ## Verification
 
-在真实页面验证离线/实时加载和异步回显、上线不可编辑、Schedule/Publish 部分失败、配置保存不自动运行，以及离线标题/锚点固定和折叠交互。业务结果验证复用已有 E2E，不在本规则记录一次执行的 PASS。
+在真实页面验证离线/实时加载和异步回显、上线不可编辑、Schedule/Publish 部分失败、配置保存不自动运行；OFFLINE 额外验证 SectionCard 分块、无整页外层 Card、标题/锚点固定与内容滚动，REALTIME 保持 CollapseSection 折叠交互。业务结果验证复用已有 E2E，不在本规则记录一次执行的 PASS。
