@@ -1,0 +1,35 @@
+name: Login form workspace validation
+
+on:
+  push:
+    branches:
+      - verify/login-form-workspace-20261003
+
+permissions:
+  contents: read
+
+jobs:
+  workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.13"
+          cache: npm
+          cache-dependency-path: yak-ops-ui/package-lock.json
+      - name: Install locked frontend dependencies
+        working-directory: yak-ops-ui
+        run: npm ci --prefer-offline --no-audit --no-fund
+      - name: Package isolated validation workspace
+        run: |
+          tar --exclude='./.git' --exclude='./.github/workflows/login-form-workspace-validation.yml' -czf "$RUNNER_TEMP/login-form-workspace.tar.gz" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: login-form-workspace
+          path: ${{ runner.temp }}/login-form-workspace.tar.gz
+          retention-days: 1
+          compression-level: 0
