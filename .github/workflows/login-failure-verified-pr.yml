@@ -1,0 +1,74 @@
+name: Validate and publish login failure change
+
+on:
+  push:
+    branches:
+      - verify/login-failure-direct-recovery-20261003
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Read verified change payload
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Apply exact locally verified source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .github/login-failure-verified.patch.xz "$RUNNER_TEMP/login-failure.patch.xz"
+          echo "b313fecd3640338f6b4caf5081214dc4217e014c74468e0f7fbfd4964f62029f  $RUNNER_TEMP/login-failure.patch.xz" | sha256sum --check
+          git switch --detach 3373d7df4d0079cd6d8796f6c17cd3d7eb365020
+          git switch -c feat/login-failure-pose-direct-recovery
+          xz --decompress --stdout "$RUNNER_TEMP/login-failure.patch.xz" > "$RUNNER_TEMP/login-failure.patch"
+          git apply --check "$RUNNER_TEMP/login-failure.patch"
+          git apply --index "$RUNNER_TEMP/login-failure.patch"
+          test "$(git write-tree)" = '5094bf99ad81cbc0f0205feb1ded436cce0632af'
+          test "$(git diff --cached --name-only | wc -l)" -eq 8
+          git diff --cached --check
+          git diff --cached --stat
+      - name: Setup locked Node environment
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.13'
+          cache: npm
+          cache-dependency-path: yak-ops-ui/package-lock.json
+      - name: Install locked dependencies
+        working-directory: yak-ops-ui
+        run: npm ci --prefer-offline --no-audit --no-fund
+      - name: Frontend format
+        working-directory: yak-ops-ui
+        run: npm run format:check
+      - name: Frontend lint
+        working-directory: yak-ops-ui
+        run: npm run lint
+      - name: Frontend type check
+        working-directory: yak-ops-ui
+        run: npm run typecheck
+      - name: Frontend architecture
+        working-directory: yak-ops-ui
+        run: npm run architecture:check
+      - name: Failure geometry regression
+        working-directory: yak-ops-ui
+        run: node scripts/verify-login-failure-transition.mjs
+      - name: Frontend production build
+        working-directory: yak-ops-ui
+        run: npm run build
+      - name: Publish requested feature branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git write-tree)" = '5094bf99ad81cbc0f0205feb1ded436cce0632af'
+          git diff --exit-code
+          git config user.name 'weifuwan'
+          git config user.email '78582861+weifuwan@users.noreply.github.com'
+          git commit -m 'fix(login): blend failure poses and recover directly to live targets'
+          test "$(git rev-parse HEAD^)" = '3373d7df4d0079cd6d8796f6c17cd3d7eb365020'
+          git push origin HEAD:refs/heads/feat/login-failure-pose-direct-recovery
+          echo "Verified commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Verified source tree: 5094bf99ad81cbc0f0205feb1ded436cce0632af' >> "$GITHUB_STEP_SUMMARY"
