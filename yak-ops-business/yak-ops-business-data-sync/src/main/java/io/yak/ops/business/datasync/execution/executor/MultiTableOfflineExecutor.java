@@ -181,8 +181,8 @@ public class MultiTableOfflineExecutor {
             }
         }
 
-        MultiTableRootContext root =
-                new MultiTableRootContext(workspaceId, rootExecutionId, snapshot, control, new MultiTableRootMetrics(tables));
+        MultiTableRootContext root = new MultiTableRootContext(
+                workspaceId, rootExecutionId, snapshot, control, new MultiTableRootMetrics(tables));
         for (DataSyncTableRouteSnapshotVO route : snapshot.getTableRoutes()) {
             if (control.isCanceled() || !rootRunning(workspaceId, rootExecutionId)) break;
             DataSyncTableExecutionEntity table = byRoute.get(route.getRouteId());
@@ -435,7 +435,8 @@ public class MultiTableOfflineExecutor {
 
     private void refreshRootMetrics(MultiTableRootContext root) {
         ExecutionMetrics summary = root.metrics().totals();
-        instanceRepository.updateMetrics(root.workspaceId(), root.executionId(), summary.readRows(), summary.writeRows());
+        instanceRepository.updateMetrics(
+                root.workspaceId(), root.executionId(), summary.readRows(), summary.writeRows());
     }
 
     private long[] totals(String workspaceId, String rootExecutionId) {
