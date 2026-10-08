@@ -208,7 +208,7 @@ export function MultiTableRouteEditor({
         while (active && cursor < previewRequests.length) {
           const request = previewRequests[cursor++];
           try {
-            const preview = await previewDataSyncMapping(request.payload);
+            const preview = await previewDataSyncMapping(request.payload, { silent: true });
             if (active) {
               setPreviews((current) => ({
                 ...current,
