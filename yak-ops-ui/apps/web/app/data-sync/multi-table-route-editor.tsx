@@ -1,4 +1,13 @@
-import { Alert, Button, Checkbox, CollapseSection, Field, FieldLabel, Input, Switch } from "@yak-ops/yak-ui";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  CollapseSection,
+  Field,
+  FieldLabel,
+  Input,
+  Switch,
+} from "@yak-ops/yak-ui";
 import { Check, CircleAlert, CircleDashed, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -130,47 +139,58 @@ export function MultiTableRouteEditor({
   const [selectedRoute, setSelectedRoute] = useState("");
   const [previews, setPreviews] = useState<Record<string, PreviewEntry>>({});
 
-  const routeByKey = useMemo(() => new Map(routes.map((route) => [sourceKey(route), route])), [routes]);
+  const routeByKey = useMemo(
+    () => new Map(routes.map((route) => [sourceKey(route), route])),
+    [routes],
+  );
   const sourceTables = useMemo(() => {
     const keyword = sourceKeyword.trim().toLocaleLowerCase();
-    return sourceCatalog.tables.filter((table) =>
-      !keyword ||
-      [table.name, table.schema, table.database, table.remarks]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase()
-        .includes(keyword),
+    return sourceCatalog.tables.filter(
+      (table) =>
+        !keyword ||
+        [table.name, table.schema, table.database, table.remarks]
+          .filter(Boolean)
+          .join(" ")
+          .toLocaleLowerCase()
+          .includes(keyword),
     );
   }, [sourceCatalog.tables, sourceKeyword]);
 
   const targetOptions = useMemo(
-    () => targetCatalog.tables.map((table) => ({
-      value: catalogKey(table, targetDatabase, targetSchema),
-      label: [table.schema, table.name].filter(Boolean).join(".") || table.name,
-      searchText: [table.database, table.schema, table.name].filter(Boolean).join(" "),
-    })),
+    () =>
+      targetCatalog.tables.map((table) => ({
+        value: catalogKey(table, targetDatabase, targetSchema),
+        label: [table.schema, table.name].filter(Boolean).join(".") || table.name,
+        searchText: [table.database, table.schema, table.name].filter(Boolean).join(" "),
+      })),
     [targetCatalog.tables, targetDatabase, targetSchema],
   );
 
   const previewRequests = useMemo<PreviewRequest[]>(
-    () => routes.flatMap((route) => {
-      if (!sourceDataSourceId || !targetDataSourceId || !route.sourceTable || !route.targetTable.trim()) {
-        return [];
-      }
-      const payload: DataSyncMappingPreviewPayload = {
-        sourceDataSourceId,
-        sourceDatabase: route.sourceDatabase || undefined,
-        sourceSchema: route.sourceSchema || undefined,
-        sourceTable: route.sourceTable,
-        targetDataSourceId,
-        targetDatabase: route.targetDatabase || undefined,
-        targetSchema: route.targetSchema || undefined,
-        targetTable: route.targetTable.trim(),
-        autoCreateTable: Boolean(route.autoCreateTable),
-        mapping: route.mapping,
-      };
-      return [{ key: sourceKey(route), payload, fingerprint: JSON.stringify(payload) }];
-    }),
+    () =>
+      routes.flatMap((route) => {
+        if (
+          !sourceDataSourceId ||
+          !targetDataSourceId ||
+          !route.sourceTable ||
+          !route.targetTable.trim()
+        ) {
+          return [];
+        }
+        const payload: DataSyncMappingPreviewPayload = {
+          sourceDataSourceId,
+          sourceDatabase: route.sourceDatabase || undefined,
+          sourceSchema: route.sourceSchema || undefined,
+          sourceTable: route.sourceTable,
+          targetDataSourceId,
+          targetDatabase: route.targetDatabase || undefined,
+          targetSchema: route.targetSchema || undefined,
+          targetTable: route.targetTable.trim(),
+          autoCreateTable: Boolean(route.autoCreateTable),
+          mapping: route.mapping,
+        };
+        return [{ key: sourceKey(route), payload, fingerprint: JSON.stringify(payload) }];
+      }),
     [routes, sourceDataSourceId, targetDataSourceId],
   );
 
@@ -224,12 +244,16 @@ export function MultiTableRouteEditor({
     return duplicates;
   }, [routes]);
 
-  const allReady = routes.length > 0 && duplicateTargets.size === 0
-    && routes.every((route) => {
+  const allReady =
+    routes.length > 0 &&
+    duplicateTargets.size === 0 &&
+    routes.every((route) => {
       const key = sourceKey(route);
       const request = requestByKey.get(key);
       const entry = previews[key];
-      return Boolean(request && entry?.fingerprint === request.fingerprint && entry.preview?.compatible);
+      return Boolean(
+        request && entry?.fingerprint === request.fingerprint && entry.preview?.compatible,
+      );
     });
 
   useEffect(() => {
@@ -250,16 +274,20 @@ export function MultiTableRouteEditor({
   const currentKey = currentRoute ? sourceKey(currentRoute) : "";
   const currentRequest = requestByKey.get(currentKey);
   const currentEntry = previews[currentKey];
-  const currentPreview = currentRequest?.fingerprint === currentEntry?.fingerprint
-    ? currentEntry?.preview
-    : undefined;
+  const currentPreview =
+    currentRequest?.fingerprint === currentEntry?.fingerprint ? currentEntry?.preview : undefined;
 
-  const targetDerived = Boolean(currentRoute?.autoCreateTable)
-    && !targetCatalog.tables.some((table) => (
-      catalogKey(table, targetDatabase, targetSchema) === pathKey(
-        currentRoute?.targetDatabase, currentRoute?.targetSchema, currentRoute?.targetTable || "",
-      )
-    ));
+  const targetDerived =
+    Boolean(currentRoute?.autoCreateTable) &&
+    !targetCatalog.tables.some(
+      (table) =>
+        catalogKey(table, targetDatabase, targetSchema) ===
+        pathKey(
+          currentRoute?.targetDatabase,
+          currentRoute?.targetSchema,
+          currentRoute?.targetTable || "",
+        ),
+    );
   const sourceColumns = useColumns(
     sourceDataSourceId,
     currentRoute?.sourceDatabase,
@@ -276,11 +304,17 @@ export function MultiTableRouteEditor({
   );
 
   const updateRoute = (key: string, patch: Partial<DataSyncTableRoute>, clearMapping = false) => {
-    onChange(routes.map((route) =>
-      sourceKey(route) === key
-        ? { ...route, ...patch, mapping: clearMapping ? undefined : (patch.mapping ?? route.mapping) }
-        : route,
-    ));
+    onChange(
+      routes.map((route) =>
+        sourceKey(route) === key
+          ? {
+              ...route,
+              ...patch,
+              mapping: clearMapping ? undefined : (patch.mapping ?? route.mapping),
+            }
+          : route,
+      ),
+    );
   };
 
   const toggleSource = (table: DataSourceCatalogTable, checked: boolean) => {
@@ -307,11 +341,17 @@ export function MultiTableRouteEditor({
 
   const currentDdl = currentPreview?.ddlStatements?.length
     ? currentPreview.ddlStatements
-    : currentPreview?.createTableSql ? [currentPreview.createTableSql] : [];
+    : currentPreview?.createTableSql
+      ? [currentPreview.createTableSql]
+      : [];
 
   return (
     <>
-      <CollapseSection id="source" title="数据来源" extra={<span className="text-xs text-[#667085]">{routes.length} 张表</span>}>
+      <CollapseSection
+        id="source"
+        title="数据来源"
+        extra={<span className="text-xs text-[#667085]">{routes.length} 张表</span>}
+      >
         <div className="rounded-lg border border-[#e6e8eb] bg-white p-4">
           {!sourceBoundSchema && sourceCatalog.schemas.length > 0 ? (
             <Field className="mb-3 grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
@@ -388,14 +428,20 @@ export function MultiTableRouteEditor({
                 const key = sourceKey(route);
                 const request = requestByKey.get(key);
                 const entry = previews[key];
-                const preview = entry?.fingerprint === request?.fingerprint ? entry?.preview : undefined;
-                const duplicate = duplicateTargets.has(pathKey(
-                  route.targetDatabase, route.targetSchema, route.targetTable.trim(),
-                ));
+                const preview =
+                  entry?.fingerprint === request?.fingerprint ? entry?.preview : undefined;
+                const duplicate = duplicateTargets.has(
+                  pathKey(route.targetDatabase, route.targetSchema, route.targetTable.trim()),
+                );
                 const option = pathKey(route.targetDatabase, route.targetSchema, route.targetTable);
-                const selectedOption = targetOptions.some((item) => item.value === option) ? option : null;
+                const selectedOption = targetOptions.some((item) => item.value === option)
+                  ? option
+                  : null;
                 return (
-                  <div key={key} className="grid grid-cols-[minmax(100px,1fr)_minmax(170px,1.4fr)_100px_68px] items-center gap-3 rounded-md border border-[#e6e8eb] px-3 py-2 max-lg:grid-cols-2">
+                  <div
+                    key={key}
+                    className="grid grid-cols-[minmax(100px,1fr)_minmax(170px,1.4fr)_100px_68px] items-center gap-3 rounded-md border border-[#e6e8eb] px-3 py-2 max-lg:grid-cols-2"
+                  >
                     <span className="truncate text-[13px] text-[#344054]">{tableLabel(route)}</span>
                     {route.autoCreateTable ? (
                       <Input
@@ -420,11 +466,15 @@ export function MultiTableRouteEditor({
                             (item) => catalogKey(item, targetDatabase, targetSchema) === value,
                           );
                           if (chosen) {
-                            updateRoute(key, {
-                              targetDatabase: chosen.database || targetDatabase,
-                              targetSchema: chosen.schema || targetSchema,
-                              targetTable: chosen.name,
-                            }, true);
+                            updateRoute(
+                              key,
+                              {
+                                targetDatabase: chosen.database || targetDatabase,
+                                targetSchema: chosen.schema || targetSchema,
+                                targetTable: chosen.name,
+                              },
+                              true,
+                            );
                           }
                         }}
                       />
@@ -434,27 +484,42 @@ export function MultiTableRouteEditor({
                         size="small"
                         checked={Boolean(route.autoCreateTable)}
                         onCheckedChange={(value) =>
-                          updateRoute(key, {
-                            autoCreateTable: Boolean(value),
-                            targetTable: route.targetTable || route.sourceTable,
-                          }, true)
+                          updateRoute(
+                            key,
+                            {
+                              autoCreateTable: Boolean(value),
+                              targetTable: route.targetTable || route.sourceTable,
+                            },
+                            true,
+                          )
                         }
                       />
                       自动建表
                     </label>
                     <div className="flex items-center justify-end gap-1 text-xs">
-                      {duplicate || (entry?.fingerprint === request?.fingerprint && entry.failed)
-                        || (preview && !preview.compatible) ? (
-                        <><CircleAlert size={14} className="text-[#d92d20]" /><span className="text-[#b42318]">异常</span></>
+                      {duplicate ||
+                      (entry?.fingerprint === request?.fingerprint && entry.failed) ||
+                      (preview && !preview.compatible) ? (
+                        <>
+                          <CircleAlert size={14} className="text-[#d92d20]" />
+                          <span className="text-[#b42318]">异常</span>
+                        </>
                       ) : preview?.compatible ? (
-                        <><Check size={14} className="text-[#039855]" /><span className="text-[#039855]">兼容</span></>
-                      ) : <CircleDashed size={14} className="text-[#98a2b3]" />}
+                        <>
+                          <Check size={14} className="text-[#039855]" />
+                          <span className="text-[#039855]">兼容</span>
+                        </>
+                      ) : (
+                        <CircleDashed size={14} className="text-[#98a2b3]" />
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
-          ) : <div className="py-5 text-center text-xs text-[#98a2b3]">请先选择来源表</div>}
+          ) : (
+            <div className="py-5 text-center text-xs text-[#98a2b3]">请先选择来源表</div>
+          )}
           {duplicateTargets.size > 0 ? <Alert>目标表不能重复映射。</Alert> : null}
         </div>
       </CollapseSection>
@@ -466,7 +531,8 @@ export function MultiTableRouteEditor({
               const key = sourceKey(route);
               const request = requestByKey.get(key);
               const entry = previews[key];
-              const preview = entry?.fingerprint === request?.fingerprint ? entry?.preview : undefined;
+              const preview =
+                entry?.fingerprint === request?.fingerprint ? entry?.preview : undefined;
               return (
                 <button
                   key={key}
@@ -479,9 +545,13 @@ export function MultiTableRouteEditor({
                   onClick={() => setSelectedRoute(key)}
                 >
                   {tableLabel(route)}
-                  {preview ? <span className={preview.compatible ? "ml-1 text-[#039855]" : "ml-1 text-[#d92d20]"}>
-                    {preview.compatible ? "✓" : "!"}
-                  </span> : null}
+                  {preview ? (
+                    <span
+                      className={preview.compatible ? "ml-1 text-[#039855]" : "ml-1 text-[#d92d20]"}
+                    >
+                      {preview.compatible ? "✓" : "!"}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -523,9 +593,11 @@ export function MultiTableRouteEditor({
                 </details>
               ) : null}
             </div>
-          ) : <div className="rounded-lg border border-[#e6e8eb] bg-white p-4 text-xs text-[#98a2b3]">
-            请先选择来源表
-          </div>}
+          ) : (
+            <div className="rounded-lg border border-[#e6e8eb] bg-white p-4 text-xs text-[#98a2b3]">
+              请先选择来源表
+            </div>
+          )}
         </div>
       </CollapseSection>
     </>

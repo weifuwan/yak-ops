@@ -301,8 +301,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         requireCompatibleMapping(resolvedScope);
 
         boolean executableDefinitionChanged = executableDefinitionChanged(entity, dto, resolvedScope)
-                || (requestedRoutes != null
-                        && routeDefinitionService.changed(workspaceId, id, requestedRoutes));
+                || (requestedRoutes != null && routeDefinitionService.changed(workspaceId, id, requestedRoutes));
         entity.setName(name);
         applyDefinition(entity, dto, resolvedScope);
         if (executableDefinitionChanged) {
@@ -2000,8 +1999,10 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
             route.setId(StringUtils.trimToNull(route.getId()));
             String sourceTable = StringUtils.trimToNull(route.getSourceTable());
             String targetTable = StringUtils.trimToNull(route.getTargetTable());
-            if (sourceTable == null || targetTable == null
-                    || sourceTable.length() > 128 || targetTable.length() > 128) {
+            if (sourceTable == null
+                    || targetTable == null
+                    || sourceTable.length() > 128
+                    || targetTable.length() > 128) {
                 throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "来源表或目标表名称不合法");
             }
             route.setSourceTable(sourceTable);
@@ -2054,8 +2055,8 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
     }
 
     private String tableIdentity(String database, String schema, String table) {
-        return ((database == null ? "" : database) + "\\u0000"
-                + (schema == null ? "" : schema) + "\\u0000" + table).toLowerCase(Locale.ROOT);
+        return ((database == null ? "" : database) + "\\u0000" + (schema == null ? "" : schema) + "\\u0000" + table)
+                .toLowerCase(Locale.ROOT);
     }
 
     private void createCompatibilityTableRoute(DataSyncTaskEntity task, String operatorUserId) {

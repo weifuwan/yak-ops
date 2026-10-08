@@ -8,7 +8,6 @@ import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncTableRouteEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import jakarta.annotation.Resource;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,8 +33,7 @@ public class DataSyncTableRouteDefinitionService {
     private DataSyncTableRouteRepository tableRouteRepository;
 
     /** 创建 / 编辑前检查请求中的 Route ID 只能引用同一 Task 下已存在的 Route。 */
-    public void requireOwnedIds(
-            String workspaceId, String taskId, List<DataSyncTableRouteDTO> requested) {
+    public void requireOwnedIds(String workspaceId, String taskId, List<DataSyncTableRouteDTO> requested) {
         Map<String, DataSyncTableRouteEntity> owned = new HashMap<>();
         if (taskId != null) {
             for (DataSyncTableRouteEntity route : tableRouteRepository.queryByTask(workspaceId, taskId)) {
@@ -53,8 +51,7 @@ public class DataSyncTableRouteDefinitionService {
     }
 
     /** 仅字段或 Route 集合/顺序实际变化时推进 Task definitionVersion。 */
-    public boolean changed(
-            String workspaceId, String taskId, List<DataSyncTableRouteDTO> requested) {
+    public boolean changed(String workspaceId, String taskId, List<DataSyncTableRouteDTO> requested) {
         List<DataSyncTableRouteEntity> existing = tableRouteRepository.queryByTask(workspaceId, taskId);
         return !same(existing, requested);
     }
@@ -88,8 +85,7 @@ public class DataSyncTableRouteDefinitionService {
             requireUpdated(workspaceId, route);
         }
         for (DataSyncTableRouteEntity route : existing) {
-            if (!retain.contains(route.getId())
-                    && tableRouteRepository.deleteById(workspaceId, route.getId()) <= 0) {
+            if (!retain.contains(route.getId()) && tableRouteRepository.deleteById(workspaceId, route.getId()) <= 0) {
                 throw new DataSyncException(DataSyncErrorCode.UPDATE_TASK_FAILED, "移除 Table Route 失败");
             }
         }
@@ -117,8 +113,11 @@ public class DataSyncTableRouteDefinitionService {
     }
 
     private void apply(
-            DataSyncTableRouteEntity target, String workspaceId, String taskId,
-            DataSyncTableRouteDTO source, int sortOrder) {
+            DataSyncTableRouteEntity target,
+            String workspaceId,
+            String taskId,
+            DataSyncTableRouteDTO source,
+            int sortOrder) {
         target.setWorkspaceId(workspaceId);
         target.setTaskId(taskId);
         target.setSourceDatabase(source.getSourceDatabase());
