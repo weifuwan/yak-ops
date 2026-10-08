@@ -32,6 +32,7 @@ Runtime Trace 只在 API 定义最小 Event / Listener 协议，JDBC SQL、Split
 
 - `SourceCoordinator` 使用协调侧 Context 管理并行度、Reader 注册、Split 分配及事件发送；`SourceOperator` 使用 Task 运行上下文创建 `SourceReaderContext`，不由构造器各自维护可能冲突的运行参数。
 - Coordinator 的事件循环与 Task 的 Mailbox 各自串行处理所属状态；事件投递、事件处理、Split 消费和 Checkpoint 成功必须分别定义确认语义。
+- `CompiledJobPlan` 在提交时冻结配置，校验已生成的 StreamGraph 并确定运行模式；Runner 只接收该计划，不能再以另一份默认配置解释节点并行度。
 - 物理 Task/Channel 装配归 Runtime，默认配置不代替已解析执行图属性；不提前引入远程 RPC、分布式调度器或万能 Environment。
 - 只有完整状态持久化并获得下游确认后才能通知 Checkpoint 完成；单独的 SourceCoordinator 快照不能宣称可恢复的完整 Job Checkpoint。
 - 新旧 Source / Sink API 迁移需要独立的适配与验收，不能直接以旧 LocalExecution 的测试结果作为新 Runtime 的通过证据。

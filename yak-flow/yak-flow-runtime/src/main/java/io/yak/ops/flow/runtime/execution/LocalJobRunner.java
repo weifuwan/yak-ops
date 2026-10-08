@@ -1,14 +1,11 @@
 package io.yak.ops.flow.runtime.execution;
 
-import io.yak.ops.core.api.RuntimeExecutionMode;
-import io.yak.ops.core.configuration.Configuration;
-import io.yak.ops.core.graph.StreamGraph;
 import java.util.function.BooleanSupplier;
 
 /**
  * 单次本地作业的数据处理入口。
  *
- * <p>此接口由后续本地 Runtime 实现，负责依据 StreamGraph 创建 Reader、Operator、Writer，
+ * <p>此接口由后续本地 Runtime 实现，负责依据冻结的执行计划创建 Reader、Operator、Writer，
  * 运行数据流，并在返回或抛出异常前释放本次运行的资源。
  *
  * <p>调用会占用当前执行线程直至作业结束；无界数据流通常持续运行到取消或失败。
@@ -22,17 +19,11 @@ import java.util.function.BooleanSupplier;
 public interface LocalJobRunner {
 
     /**
-     * 执行一张 StreamGraph。
+     * 执行一次已冻结的本地作业计划。
      *
-     * @param graph 已生成且经过校验的执行图
-     * @param mode 已解析的实际执行模式（BATCH 或 STREAMING）
-     * @param configuration 本次提交的配置副本
+     * @param plan 同时包含 StreamGraph、运行模式和配置快照的执行计划
      * @param cancellationRequested 是否已请求取消；应在运行循环中检查
      * @throws Exception 执行或清理失败
      */
-    void run(
-            StreamGraph graph,
-            RuntimeExecutionMode mode,
-            Configuration configuration,
-            BooleanSupplier cancellationRequested) throws Exception;
+    void run(CompiledJobPlan plan, BooleanSupplier cancellationRequested) throws Exception;
 }

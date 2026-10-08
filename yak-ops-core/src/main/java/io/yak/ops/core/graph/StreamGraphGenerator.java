@@ -3,6 +3,7 @@ package io.yak.ops.core.graph;
 import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.dag.Transformation;
 import io.yak.ops.core.configuration.Configuration;
+import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.core.transformations.SinkTransformation;
@@ -76,7 +77,7 @@ public final class StreamGraphGenerator {
      * @return 已生成的 StreamGraph
      */
     public StreamGraph generate() {
-        Integer defaultParallelism = configuration.get(ExecutionOptions.DEFAULT_PARALLELISM);
+        Integer defaultParallelism = configuration.get(CoreOptions.DEFAULT_PARALLELISM);
         if (defaultParallelism == null || defaultParallelism <= 0) {
             throw new IllegalArgumentException("parallelism.default 必须为正整数");
         }

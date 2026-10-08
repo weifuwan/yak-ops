@@ -10,9 +10,9 @@ public final class PipelineOptions {
                     .noDefaultValue();
 
     /**
-     * 是否允许 Pipeline 编译器为未指定稳定 ID 的算子自动生成 ID。
-     * 如果禁用，编译器必须要求算子显式指定 ID。
-     * 有状态 Pipeline 建议使用稳定的算子 ID。
+     * 是否允许没有显式稳定 UID 的算子使用构图时自动生成的内部 ID。
+     * 内部 ID 只适用于当前拓扑，不是跨版本恢复所需的稳定 UID。
+     * 如果禁用，所有算子必须显式指定稳定 UID。
      */
     public static final ConfigOption<Boolean> AUTO_GENERATE_UIDS =
             ConfigOptions.key("pipeline.auto-generate-uids")

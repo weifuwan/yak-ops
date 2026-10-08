@@ -20,24 +20,13 @@ public final class ExecutionOptions {
                     .enumType(RuntimeExecutionMode.class)
                     .defaultValue(RuntimeExecutionMode.AUTOMATIC);
 
-    /**
-     * 未显式指定并行度的算子使用的默认并行度。
-     * 最终解析的并行度必须大于 0。
-     */
-    public static final ConfigOption<Integer> DEFAULT_PARALLELISM =
-            ConfigOptions.key("parallelism.default")
-                    .intType()
-                    .defaultValue(1);
+    /** @deprecated 请使用 {@link CoreOptions#DEFAULT_PARALLELISM}；此字段仅作源码兼容别名。 */
+    @Deprecated
+    public static final ConfigOption<Integer> DEFAULT_PARALLELISM = CoreOptions.DEFAULT_PARALLELISM;
 
-    /**
-     * 周期性 Checkpoint 的触发间隔；Duration.ZERO 表示禁用。
-     * 负数间隔无效。仅设置此间隔不代表具备持久化恢复能力，
-     * 也不代表具备端到端 Exactly-once 语义。
-     */
-    public static final ConfigOption<Duration> CHECKPOINT_INTERVAL =
-            ConfigOptions.key("execution.checkpointing.interval")
-                    .durationType()
-                    .defaultValue(Duration.ZERO);
+    /** @deprecated 请使用 {@link CheckpointingOptions#CHECKPOINTING_INTERVAL}；此字段仅作源码兼容别名。 */
+    @Deprecated
+    public static final ConfigOption<Duration> CHECKPOINT_INTERVAL = CheckpointingOptions.CHECKPOINTING_INTERVAL;
 
     private ExecutionOptions() {}
 }

@@ -9,7 +9,7 @@ Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime` 的新批流执行链路�
 ## Current Boundary
 
 - `yak-ops-core` 已提供类型化 `Configuration`、`Transformation`、`StreamGraph`、Source / Sink / Operator 接口，以及 `PipelineExecutor` / `JobClient` 契约；它不执行任务。
-- `yak-flow-runtime` 已有 `LocalPipelineExecutor`、`LocalJobClient`、`LocalJobRunner` 接口、`StreamTask` Mailbox、SourceOperator、SourceCoordinator、事件通道和协调侧局部 Checkpoint 类型。新执行链路尚未构成经过验证的完整 Source → Operator → Sink 运行闭环。
+- `yak-flow-runtime` 已有 `CompiledJobPlan`、`LocalPipelineExecutor`、`LocalJobClient`、`LocalJobRunner` 接口、`StreamTask` Mailbox、SourceOperator、SourceCoordinator、事件通道和协调侧局部 Checkpoint 类型。新执行链路尚未构成经过验证的完整 Source → Operator → Sink 运行闭环。
 - `yak-flow-api` 的旧 Source / Sink、`CheckpointState` 与现有 Connector / 产品调用方仍是过渡范围。新旧 API 不能在同一执行路径中隐式混用，也不能用旧路径的验收证明新 Runtime 可用。
 - 产品 `Data Sync` 持有 Task / Route / Execution / Attempt、Retry、Schedule 和业务恢复状态。Runtime 的 `JobID`、Task 身份及局部 Checkpoint 不替代产品持久化标识。
 - 当前目标是单 JVM 本地运行。分布式资源管理、RPC、Slot、JobManager / TaskManager 不是本契约的要求。
@@ -29,7 +29,7 @@ Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime` 的新批流执行链路�
 | Split 格式、游标/偏移、读取或写入实现 | Connector | 不向 Core/Runtime 泄漏 JDBC、Debezium 或产品 DTO |
 | 产品任务发布、执行/重试及状态落库 | Data Sync | 不由 Runtime 创建第二套业务状态机 |
 
-这里的 `TaskInfo`、`TaskEnvironment` 和编译后的执行输入是**目标边界**，不是现有类清单；新增类型必须由直接消费者和生命周期证明必要性，不能为了减少构造器参数创建万能 Context。
+这里的 `TaskInfo` 与 `TaskEnvironment` 仍是**目标边界**，不是现有类清单；新增类型必须由直接消费者和生命周期证明必要性，不能为了减少构造器参数创建万能 Context。
 
 ## Configuration → Graph → Runtime
 
@@ -44,7 +44,7 @@ Configuration + Transformation
              ↓
   StreamGraph（逻辑图/节点属性）
              ↓
-  CompiledJobPlan（拟引入，单次提交冻结）
+  CompiledJobPlan（单次提交的配置快照）
              ↓
       LocalJobRunner
              ↓
@@ -56,9 +56,9 @@ Configuration + Transformation
 - 默认值、显式值与运行时实际值是不同概念。`parallelism.default` 是配置；`StreamNode.parallelism` 是编译属性；Subtask 所属的实际并行度从 TaskInfo / 对应 Context 读取。
 - `SourceCoordinator` 面向协调侧 Context 获取并行度和 Reader/Gateway 状态；`SourceOperator` 面向 Task 的运行上下文获取 Subtask 信息。二者不能因为字段名称相同而共享可变 Context。
 - 允许多次基于同一逻辑定义提交 Job，但每次提交必须绑定自己的配置快照和运行身份。禁止构图时使用配置 A、提交时使用冲突的配置 B 却静默沿用部分旧属性。
-- `CompiledJobPlan` 为目标设计名称；具体实现和归属必须在装配改造时确定，不能预先让 Core 持有本地 Task 工厂、线程、Channel 或 Connector 连接。
+- `CompiledJobPlan` 归 Runtime，绑定一份 StreamGraph、已解析运行模式与配置防御性快照。构图继承默认并行度的节点在提交配置不一致时拒绝执行；显式并行度节点不因此被修改。Core 不持有本地 Task 工厂、线程、Channel 或 Connector 连接。
 - Configuration 的可变容器可以用于构建；提交后依赖的配置视图必须固定或防御性复制。敏感连接配置不得进入日志、状态快照或 API 响应。
-- Checkpoint 选项只能有一个明确权威来源；同一 key 的默认值与“未设置”语义不得因不同 ConfigOption 定义而不一致。
+- `CoreOptions.DEFAULT_PARALLELISM` 和 `CheckpointingOptions.CHECKPOINTING_INTERVAL` 分别是默认并行度与周期 Checkpoint 间隔的权威定义。Checkpoint 未显式设置时读取为 `Duration.ZERO`（禁用），`getOptional` 仍表示未设置；旧 `ExecutionOptions` 字段仅作为同一 ConfigOption 的源码别名。配置可被校验不等于 Runtime 已经实现周期 Checkpoint 调度。
 
 ## Identity / Lifecycle
 
@@ -81,7 +81,7 @@ Configuration + Transformation
 
 - 新旧 API 在提交入口显式区分；既有产品的数据同步能力和 Connector 调用路径保持原有行为，迁移时才按直接消费者增加必要的兼容适配。
 - 不同时维护两份含义相近的 `Configuration`、Gateway 或 Coordinator 角色；已有 `SourceReaderContext` / `SplitEnumeratorContext` 由 Core 声明、Runtime 实现，避免新的跨层依赖倒置。
-- 先校验 Core 泛型、构图、重复 ConfigOption 和旧测试的静态一致性；再迁移 Task Context、Source 协调、作业装配、Channel 和 Checkpoint。每阶段的完成证据留在对应 PR，不写入本契约。
+- 每次迁移同时确认 Core 泛型、构图、配置唯一性、旧 Runtime 兼容与测试；Task Context、Source 协调、作业装配、Channel 和 Checkpoint 在其实现合入并验收前仍按未实现能力对待。每次完成证据留在对应 PR，不写入本契约。
 - 后续实现应提供默认/显式并行度、配置快照隔离、重复/失败 Split、Mailbox 控制、取消清理、Checkpoint 成败及恢复的测试。真实数据库验收继续使用现有 [Backend Acceptance](../../../.github/workflows/backend-acceptance.yml) 路径。
 
 ## Flink Reference / Non-Goals

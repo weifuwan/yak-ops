@@ -27,6 +27,7 @@ public final class StreamNode {
     private final int id;
     private final String name;
     private final String uid;
+    private final int declaredParallelism;
     private final int parallelism;
     private final Class<?> inputType;
     private final Class<?> outputType;
@@ -48,6 +49,7 @@ public final class StreamNode {
         this.id = transformation.getId();
         this.name = transformation.getName();
         this.uid = transformation.getUid();
+        this.declaredParallelism = transformation.getParallelism();
         this.parallelism = resolvedParallelism;
         this.outputType = transformation.getOutputType();
 
@@ -101,6 +103,17 @@ public final class StreamNode {
         return uid;
     }
 
+    /** 返回构图时声明的并行度；-1 表示继承默认值。 */
+    public int getDeclaredParallelism() {
+        return declaredParallelism;
+    }
+
+    /** 返回是否继承了构图时的默认并行度。 */
+    public boolean usesDefaultParallelism() {
+        return declaredParallelism == Transformation.DEFAULT_PARALLELISM;
+    }
+
+    /** 返回已经解析的算子并行度，不应在 Runtime 中再次用默认值覆盖。 */
     public int getParallelism() {
         return parallelism;
     }
