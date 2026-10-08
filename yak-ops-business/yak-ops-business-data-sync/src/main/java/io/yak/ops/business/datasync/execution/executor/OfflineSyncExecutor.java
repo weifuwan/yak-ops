@@ -228,6 +228,4 @@ public class OfflineSyncExecutor {
             return DataSyncRetryAssessment.retryable("固定重试策略");
         }
         return retryClassifier.classify(snapshot, failure, runtimeStarted, writeRows);
-    }
-
-}
+    }}

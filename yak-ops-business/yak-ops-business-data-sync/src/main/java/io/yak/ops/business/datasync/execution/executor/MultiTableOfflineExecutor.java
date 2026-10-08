@@ -102,7 +102,10 @@ public class MultiTableOfflineExecutor {
     }
 
     private void runBound(
-            String workspaceId, String rootExecutionId, DataSyncDefinitionSnapshotVO snapshot, MultiTableRunControl control) {
+            String workspaceId,
+            String rootExecutionId,
+            DataSyncDefinitionSnapshotVO snapshot,
+            MultiTableRunControl control) {
         WorkspaceContext.bind(workspaceId);
         try {
             execute(workspaceId, rootExecutionId, snapshot, control);
@@ -271,7 +274,8 @@ public class MultiTableOfflineExecutor {
                         message);
                 return;
             }
-            if (!waitForRetry(workspaceId, rootExecutionId, control, retryPolicy.delayForAttempt(attemptNo, backoffSeconds))) {
+            if (!waitForRetry(
+                    workspaceId, rootExecutionId, control, retryPolicy.delayForAttempt(attemptNo, backoffSeconds))) {
                 return;
             }
         }
@@ -286,7 +290,8 @@ public class MultiTableOfflineExecutor {
                 runtimeSnapshot, outcome.failure(), outcome.runtimeStarted(), outcome.writeRows());
     }
 
-    private boolean waitForRetry(String workspaceId, String rootExecutionId, MultiTableRunControl control, int backoffSeconds) {
+    private boolean waitForRetry(
+            String workspaceId, String rootExecutionId, MultiTableRunControl control, int backoffSeconds) {
         LocalDateTime next = DateUtils.now().plusSeconds(Math.max(0, backoffSeconds));
         while (!control.isCanceled() && rootRunning(workspaceId, rootExecutionId)) {
             long remaining = Duration.between(DateUtils.now(), next).toMillis();
