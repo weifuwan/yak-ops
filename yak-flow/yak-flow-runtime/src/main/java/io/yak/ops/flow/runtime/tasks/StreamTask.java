@@ -1,6 +1,8 @@
 package io.yak.ops.flow.runtime.tasks;
 
 import io.yak.ops.core.api.connector.source.InputStatus;
+import io.yak.ops.flow.runtime.execution.TaskEnvironment;
+import io.yak.ops.flow.runtime.execution.TaskInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -30,7 +32,7 @@ public abstract class StreamTask implements AutoCloseable {
     private static final int MAX_COMMANDS_PER_TURN = 32;
     private static final int MAX_EMPTY_READY_FUTURES = 64;
 
-    private final String threadName;
+    private final TaskEnvironment environment;
     private final ArrayBlockingQueue<Runnable> mailbox = new ArrayBlockingQueue<>(MAILBOX_CAPACITY);
     private final Object lifecycleLock = new Object();
     private final List<CompletableFuture<?>> replies = new ArrayList<>();
@@ -42,8 +44,19 @@ public abstract class StreamTask implements AutoCloseable {
     private volatile boolean cancelRequested;
     private boolean startRequested;
 
-    protected StreamTask(String threadName) {
-        this.threadName = Objects.requireNonNull(threadName, "threadName 不能为空");
+    protected StreamTask(TaskEnvironment environment) {
+        this.environment = Objects.requireNonNull(environment, "environment 不能为空")
+                .withCancellation(() -> cancelRequested);
+    }
+
+    /** 当前 Task 的实际运行身份（不是默认配置）。 */
+    public final TaskInfo taskInfo() {
+        return environment.taskInfo();
+    }
+
+    /** 仅向所属 Task 组件暴露只读运行上下文。 */
+    protected final TaskEnvironment taskEnvironment() {
+        return environment;
     }
 
     /** 初始化执行组件，在工作线程启动。 */
@@ -68,7 +81,7 @@ public abstract class StreamTask implements AutoCloseable {
                 return CompletableFuture.failedFuture(new IllegalStateException("StreamTask 不允许重复启动或取消后启动"));
             }
             startRequested = true;
-            Thread thread = Thread.ofVirtual().name(threadName).unstarted(this::run);
+            Thread thread = Thread.ofVirtual().name(taskInfo().threadName()).unstarted(this::run);
             worker = thread;
             try {
                 thread.start();
