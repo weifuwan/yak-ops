@@ -4,22 +4,22 @@ package io.yak.ops.core.configuration;
 import java.time.Duration;
 
 /**
- * Configuration options controlling periodic checkpoints.
+ * 周期性 Checkpoint 的配置项。
  *
- * <p>This class only declares typed options. The execution engine
- * validates their values and applies them to the checkpoint coordinator.
+ * <p>本类只声明类型化配置项。执行引擎负责校验配置值，
+ * 并将其应用于 Checkpoint 协调器。
  *
- * <p>Inspired by Apache Flink's CheckpointingOptions.
+ * <p>设计参考 Apache Flink 的 CheckpointingOptions。
  *
  * @author weifuwan
  */
 public final class CheckpointingOptions {
 
     /**
-     * Base interval between periodic checkpoint triggers.
+     * 周期性 Checkpoint 触发的基础间隔。
      *
-     * <p>Unset or Duration.ZERO disables periodic checkpoints.
-     * A negative value is invalid.
+     * <p>未设置或 Duration.ZERO 表示禁用周期性 Checkpoint。
+     * 负数间隔无效。
      */
     public static final ConfigOption<Duration> CHECKPOINTING_INTERVAL =
             ConfigOptions.key("execution.checkpointing.interval")
@@ -27,8 +27,8 @@ public final class CheckpointingOptions {
                     .noDefaultValue();
 
     /**
-     * Maximum time allowed for one checkpoint attempt.
-     * A checkpoint exceeding this limit should be discarded.
+     * 单次 Checkpoint 尝试允许的最长时间。
+     * 超过该时间的 Checkpoint 应被丢弃。
      */
     public static final ConfigOption<Duration> CHECKPOINTING_TIMEOUT =
             ConfigOptions.key("execution.checkpointing.timeout")
@@ -36,10 +36,10 @@ public final class CheckpointingOptions {
                     .defaultValue(Duration.ofMinutes(10));
 
     /**
-     * Minimum pause between checkpoint attempts.
+     * 两次 Checkpoint 尝试之间的最小间隔。
      *
-     * <p>With one concurrent checkpoint this guarantees
-     * an idle period between attempts.
+     * <p>只允许一个 Checkpoint 并发执行时，
+     * 可确保相邻尝试之间存在空闲时间。
      */
     public static final ConfigOption<Duration> MIN_PAUSE_BETWEEN_CHECKPOINTS =
             ConfigOptions.key("execution.checkpointing.min-pause")
@@ -47,10 +47,10 @@ public final class CheckpointingOptions {
                     .defaultValue(Duration.ZERO);
 
     /**
-     * Maximum number of checkpoint attempts in progress.
+     * 同时进行的 Checkpoint 尝试数量上限。
      *
-     * <p>An engine supporting only one in-flight checkpoint
-     * must reject values greater than one.
+     * <p>如果引擎仅支持一个正在进行的 Checkpoint，
+     * 则必须拒绝大于 1 的配置值。
      */
     public static final ConfigOption<Integer> MAX_CONCURRENT_CHECKPOINTS =
             ConfigOptions.key("execution.checkpointing.max-concurrent-checkpoints")

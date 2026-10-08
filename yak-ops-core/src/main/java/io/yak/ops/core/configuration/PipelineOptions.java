@@ -1,18 +1,18 @@
 package io.yak.ops.core.configuration;
 
-/** Typed options describing properties of a submitted pipeline. */
+/** 描述已提交 Pipeline 属性的类型化配置项。 */
 public final class PipelineOptions {
 
-    /** Optional job name for display and diagnostics; it is not a job identity. */
+    /** 可选的作业名称，用于展示和诊断，不作为作业身份标识。 */
     public static final ConfigOption<String> NAME =
             ConfigOptions.key("pipeline.name")
                     .stringType()
                     .noDefaultValue();
 
     /**
-     * Whether the pipeline compiler may generate IDs for operators lacking
-     * explicit stable IDs. If disabled, the compiler must require explicit
-     * operator IDs. Stable IDs are recommended for stateful pipelines.
+     * 是否允许 Pipeline 编译器为未指定稳定 ID 的算子自动生成 ID。
+     * 如果禁用，编译器必须要求算子显式指定 ID。
+     * 有状态 Pipeline 建议使用稳定的算子 ID。
      */
     public static final ConfigOption<Boolean> AUTO_GENERATE_UIDS =
             ConfigOptions.key("pipeline.auto-generate-uids")

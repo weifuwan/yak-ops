@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** A lightweight, typed configuration container inspired by Apache Flink's configuration API. */
+/** 参考 Apache Flink 配置 API 设计的轻量级类型安全配置容器。 */
 public class Configuration implements ReadableConfig, WritableConfig, Serializable, Cloneable {
 
     @Serial
@@ -29,7 +29,7 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
 
     public Configuration() {}
 
-    /** Defensive copy of explicitly stored values. */
+    /** 复制显式存储的配置值，避免共享内部配置容器。 */
     public Configuration(Configuration other) {
         values.putAll(Objects.requireNonNull(other, "other must not be null").snapshot());
     }
@@ -100,7 +100,7 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         return Collections.unmodifiableSet(new LinkedHashSet<>(values.keySet()));
     }
 
-    /** Merges explicit entries from other, overriding entries with the same key. */
+    /** 合并另一份配置中显式设置的条目，同名配置由传入值覆盖。 */
     public void addAll(Configuration other) {
         Map<String, Object> incoming = Objects.requireNonNull(other, "other must not be null").snapshot();
         synchronized (this) {
@@ -130,7 +130,7 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         return snapshot().hashCode();
     }
 
-    /** Masks common secret-like keys; do not use toMap() for logging. */
+    /** 对常见敏感配置键脱敏；日志中不要直接输出未脱敏的 toMap() 结果。 */
     @Override
     public String toString() {
         Map<String, Object> masked = new LinkedHashMap<>();
@@ -204,7 +204,7 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         try {
             return Duration.parse(value.toUpperCase(Locale.ROOT));
         } catch (DateTimeParseException ignored) {
-            // Accept human-readable durations such as 500ms, 10s, 2min, 1h.
+            // 支持 500ms、10s、2min、1h 等易读的时间长度格式。
         }
         Matcher matcher = DURATION_PATTERN.matcher(value);
         if (!matcher.matches()) {
