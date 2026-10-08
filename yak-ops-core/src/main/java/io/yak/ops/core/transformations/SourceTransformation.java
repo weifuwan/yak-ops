@@ -18,19 +18,19 @@ import java.util.Objects;
 public final class SourceTransformation<T> extends Transformation<T> {
 
     /** Source 组件定义；不应是已启动的读取实例。 */
-    private final Source<T> source;
+    private final Source<T, ?, ?> source;
 
-    public SourceTransformation(String name, Source<T> source, Class<T> outputType) {
+    public SourceTransformation(String name, Source<T, ?, ?> source, Class<T> outputType) {
         this(name, source, outputType, DEFAULT_PARALLELISM);
     }
 
-    public SourceTransformation(String name, Source<T> source, Class<T> outputType, int parallelism) {
+    public SourceTransformation(String name, Source<T, ?, ?> source, Class<T> outputType, int parallelism) {
         super(name, outputType, parallelism);
         this.source = Objects.requireNonNull(source, "source 不能为空");
     }
 
     /** 获取 Source 组件定义。 */
-    public Source<T> getSource() {
+    public Source<T, ?, ?> getSource() {
         return source;
     }
 

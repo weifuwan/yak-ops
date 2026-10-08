@@ -30,7 +30,7 @@ public final class StreamNode {
     private final int parallelism;
     private final Class<?> inputType;
     private final Class<?> outputType;
-    private final Source<?> source;
+    private final Source<?, ?, ?> source;
     private final OneInputOperatorFactory<?, ?> operatorFactory;
     private final Sink<?> sink;
     private final Boundedness boundedness;
@@ -127,7 +127,7 @@ public final class StreamNode {
         return sink != null;
     }
 
-    public Optional<Source<?>> getSource() {
+    public Optional<Source<?, ?, ?>> getSource() {
         return Optional.ofNullable(source);
     }
 
