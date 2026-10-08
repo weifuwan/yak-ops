@@ -41,3 +41,12 @@ Depends On:
 Core 拥有跨 Connector / Runtime 复用的稳定接口、配置与逻辑图模型；不创建运行线程，不拥有本地 Job 状态、Reader 调度或 Checkpoint 执行过程。
 
 **代码始终留在真实 owner。** 运行期职责归 Runtime，数据库特定逻辑归 Connector，业务持久化和任务状态归 Business。
+
+## Configuration / Graph Guardrails
+
+- `Configuration` 只表达类型化运行策略和构图所需默认值，不承载 JobID、Subtask、Attempt、Reader 或 Coordinator 的活动状态。
+- `Transformation` 保存逻辑拓扑与可覆盖的算子属性；`StreamGraph` 保存解析后的节点属性，不持有本地 Task、线程、Gateway 或连接。
+- 默认并行度与已解析的算子并行度必须区分。构图/提交时的配置快照需一致，不能让同一张图在运行时被另一份默认配置静默重解释。
+- 稳定算子 UID 与单次构图 ID 必须分清。Source / Sink / Operator 的公共契约只暴露 Connector 和 Runtime 真正共同需要的语义，不加入产品任务身份。
+- Runtime 的 TaskInfo、TaskEnvironment、CoordinatorContext 与物理装配属后续实现目标，按 [Core / Runtime Execution Contract](../docs/capabilities/yak-flow/core-runtime-contract.md) 的提案评审；不能因为希望缩短构造器就提前把这些本地实现放进 Core。
+

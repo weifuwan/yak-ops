@@ -4,6 +4,8 @@ Status: Active
 
 Scope: 批流共用的数据平面、本地执行、JDBC 与 MySQL CDC 连接器行为。
 
+> 本文的 Local Execution Engine、Checkpoint Boundary 与连接器行为描述既有 YakFlow API 执行路径的能力契约，不代表基于 `yak-ops-core` 的新 Runtime 已经完成迁移或具备同等验收结果。新引擎的目标分层见 [Core / Runtime Execution Contract](core-runtime-contract.md)；以同一提交的实际实现和测试确认可用范围。
+
 ## Goal
 
 当前跨库验收覆盖 MySQL 批量读取及 MySQL CDC → MySQL / PostgreSQL / Oracle。能力不拥有产品 Task、发布、Cron、Retry Policy、Execution / Attempt 表或 HTTP API；这些属于 Data Sync。
