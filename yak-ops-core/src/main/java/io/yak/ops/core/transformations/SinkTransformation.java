@@ -2,6 +2,8 @@ package io.yak.ops.core.transformations;
 
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.dag.Transformation;
+import io.yak.ops.core.api.operators.KeySelector;
+import io.yak.ops.core.graph.StreamPartitioning;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,6 +26,10 @@ public final class SinkTransformation<T> extends Transformation<Void> {
 
     /** Sink 组件定义，不是运行中的 Writer 实例。 */
     private final Sink<T> sink;
+
+    /** 此节点的输入边策略；null 表示由 GraphGenerator 根据两端并行度推断。 */
+    private StreamPartitioning inputPartitioning;
+    private KeySelector<T> inputKeySelector;
 
     public SinkTransformation(Transformation<T> input, String name, Sink<T> sink) {
         this(input, name, sink, DEFAULT_PARALLELISM);
@@ -48,6 +54,30 @@ public final class SinkTransformation<T> extends Transformation<Void> {
     /** 获取 Sink 组件定义；此方法不会创建 Writer。 */
     public Sink<T> getSink() {
         return sink;
+    }
+
+    /** 设置输入边的 FORWARD 或 REBALANCE 策略；不设置则由构图时并行度决定。 */
+    public final void setInputPartitioning(StreamPartitioning partitioning) {
+        Objects.requireNonNull(partitioning, "partitioning 不能为空");
+        if (partitioning == StreamPartitioning.KEYED) {
+            throw new IllegalArgumentException("KEYED 分区必须通过 keyBy() 提供稳定主键");
+        }
+        this.inputPartitioning = partitioning;
+        this.inputKeySelector = null;
+    }
+
+    /** 使用稳定业务键（如 CDC 目标主键）将相同键的记录交给同一个下游 Subtask。 */
+    public final void keyBy(KeySelector<T> keySelector) {
+        this.inputKeySelector = Objects.requireNonNull(keySelector, "keySelector 不能为空");
+        this.inputPartitioning = StreamPartitioning.KEYED;
+    }
+
+    public final StreamPartitioning getInputPartitioning() {
+        return inputPartitioning;
+    }
+
+    public final KeySelector<T> getInputKeySelector() {
+        return inputKeySelector;
     }
 
     /** 返回只包含上游节点的不可修改列表。 */

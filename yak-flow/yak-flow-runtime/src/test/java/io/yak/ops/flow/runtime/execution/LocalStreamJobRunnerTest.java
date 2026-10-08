@@ -143,10 +143,10 @@ class LocalStreamJobRunnerTest {
     }
 
     @Test
-    void shouldRejectUnsupportedTopologiesBeforeCreatingResources() {
+    void shouldRejectOversizedOrBranchingTopologiesBeforeCreatingResources() {
         TestSource source = new TestSource(true, List.of("one"), new CopyOnWriteArrayList<>());
         TestSink sink = new TestSink(false, new CopyOnWriteArrayList<>());
-        Configuration parallel = config(2);
+        Configuration parallel = config(17);
         StreamGraph graph = graph(source, sink, parallel);
 
         CompletionException failure = assertThrows(

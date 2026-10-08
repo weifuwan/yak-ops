@@ -36,8 +36,10 @@ Runtime Trace 只在 API 定义最小 Event / Listener 协议，JDBC SQL、Split
 - Split 投递 Future 在本地 Mailbox 实际处理后确认，但不代表数据已消费；先确认 AddSplit 事件，再发送 NoMoreSplits。事件交付失败必须传播到 Coordinator 失败边界。
 - Coordinator 的事件循环与 Task 的 Mailbox 各自串行处理所属状态；事件投递、事件处理、Split 消费和 Checkpoint 成功必须分别定义确认语义。
 - `CompiledJobPlan` 在提交时冻结配置，校验已生成的 StreamGraph 并确定运行模式；Runner 只接收该计划，不能再以另一份默认配置解释节点并行度。
-- `LocalStreamJobRunner` 只允许一个 Source → 零个或多个 OneInputOperator → 一个 Sink，所有节点实际并行度必须为 1；多 Source、分叉、多 Sink 或并行路由必须在提交前拒绝，而不是静默忽略节点。物理装配归 Runtime，不引入远程 RPC、分布式调度器或万能 Environment。
-- `LocalOperatorChain` 在 Source 所属 Task Mailbox 中创建并打开下游算子；所有同步 Collector 输出在同一线程写入。只有 InputStatus.END_OF_INPUT 正常结束时才依次调用 Operator.finish 与 SinkWriter.flush(true)；失败和取消时禁止补发 finish / 最终 flush。初始化失败也必须尝试关闭已创建的全部 Operator / Writer。
+- `LocalStreamJobRunner` 支持一个 Source → 零个或多个 OneInputOperator → 一个 Sink 的严格线性图；单并行 FORWARD 图采用内联链，其余合法图由 `LocalTaskGraph` 装配独立 Source/Operator/Sink Task。单节点并行度最多 16、Job 最多 64 个子任务；多源、分叉或多 Sink 必须在提交前拒绝，不能静默遗漏记录。不引入远程 RPC、分布式调度器或万能 Environment。
+- `LocalChannel` 对每个目标 Subtask 使用一个有界队列，多生产者、单消费者；`LocalResultPartition` 按 FORWARD、REBALANCE 或显式 KEYED 转发。全部生产者结束且队列排空才能返回 EOF；Channel 满时生产者必须阻塞并响应中断，失败/取消要中止全部 Channel 并唤醒上下游。
+- KEYED 要求稳定业务主键，同键进入同一目标 Subtask；不同 Reader 并发产生同键事件仍可能交错。不能用 REBALANCE 冒充 CDC 主键保序，也不能将 KEYED 声称为 exactly-once。
+- 单并行 `LocalOperatorChain` 在 Source 所属 Task Mailbox 中创建并打开下游算子；多并行 Task 各自拥有独立 OneInputOperator 或 SinkWriter，经 Channel 接收数据后仍在所属 Task Mailbox 串行处理。所有同步 Collector 输出不得异步保留。只有 InputStatus.END_OF_INPUT 正常结束时才依次调用 Operator.finish 与 SinkWriter.flush(true)；失败和取消时禁止补发 finish / 最终 flush。初始化失败也必须尝试关闭已创建的全部 Operator / Writer。
 - `CompiledJobPlan.jobID()` 与 JobClient / TaskInfo 保持一致；Runner 不重新生成 JobID，也不修改 Graph 已解析的并行度。全局 Checkpoint 未实现前，内置 Runner 必须拒绝非零周期 Checkpoint 配置。
 - 只有完整状态持久化并获得下游确认后才能通知 Checkpoint 完成；单独的 SourceCoordinator 快照不能宣称可恢复的完整 Job Checkpoint。
 - 新旧 Source / Sink API 迁移需要独立的适配与验收，不能直接以旧 LocalExecution 的测试结果作为新 Runtime 的通过证据。

@@ -5,6 +5,7 @@ import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
+import io.yak.ops.flow.runtime.io.LocalResultPartition;
 import io.yak.ops.flow.runtime.io.StreamTaskSourceInput;
 import io.yak.ops.flow.runtime.operators.LocalOperatorChain;
 import io.yak.ops.flow.runtime.operators.SourceOperator;
@@ -23,7 +24,8 @@ import java.util.concurrent.CompletionStage;
  * <p>接收来自 Coordinator 的 Split 事件，事件确认发生在 SourceReader 实际处理之后。
  * 不自行创建第二条 Reader 线程；SourceReader 全部生命周期由本 Task 的线程串行执行。
  *
- * <p>下游数据由 ReaderOutput / LocalOperatorChain 承接；跨 Task Channel 与全局 Checkpoint 不属于该类。
+ * <p>下游输出由 ReaderOutput / LocalResultPartition 或内联 OperatorChain 承接；
+ * 全局 Checkpoint 不属于该类。
  */
 public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         extends StreamTask implements SubtaskGateway {
@@ -32,6 +34,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
     private final SourceOperator<T, SplitT> operator;
     private final StreamTaskSourceInput<T> input;
     private final LocalOperatorChain operatorChain;
+    private final LocalResultPartition<?> resultPartition;
 
     public SourceOperatorStreamTask(
             Source<T, SplitT, ?> source,
@@ -50,6 +53,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
             LocalOperatorChain operatorChain) {
         super(environment);
         this.operatorChain = operatorChain;
+        this.resultPartition = output instanceof LocalResultPartition<?> partition ? partition : null;
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
         this.coordinator.coordinatorContext().validateTask(taskInfo());
         SourceReaderRuntimeContext readerContext = new SourceReaderRuntimeContext(
@@ -83,6 +87,9 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
     protected void finishTask() throws Exception {
         if (operatorChain != null) {
             operatorChain.finish();
+        }
+        if (resultPartition != null) {
+            resultPartition.finish();
         }
     }
 

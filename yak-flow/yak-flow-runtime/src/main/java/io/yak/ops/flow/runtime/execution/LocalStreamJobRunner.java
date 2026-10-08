@@ -3,9 +3,11 @@ package io.yak.ops.flow.runtime.execution;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.configuration.CheckpointingOptions;
+import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.graph.StreamEdge;
 import io.yak.ops.core.graph.StreamGraph;
 import io.yak.ops.core.graph.StreamNode;
+import io.yak.ops.core.graph.StreamPartitioning;
 import io.yak.ops.flow.runtime.operators.LocalOperatorChain;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
@@ -18,13 +20,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.BooleanSupplier;
 
 /**
- * Core-based 本地 Job 执行器：仅装配一条 Source → OneInputOperator* → Sink 线性链。
+ * Core-based 本地 Job 执行器：支持一个 Source → OneInputOperator* → Sink 的线性图。
  *
- * <p>PR5 在单条 Task Mailbox 线程中内联运行整条链；跨 Task 数据路由、不同并行度、
- * 全局 Checkpoint 与恢复由后续独立契约实现。每次调用独立创建 Coordinator、Task、
- * Operator 和 SinkWriter，不保存任何 Job 专属的可变状态。
+ * <p>并行度全为 1 且 FORWARD 的图沿用单 Mailbox 内联链；其它合法并行线性图由
+ * LocalTaskGraph 建立独立 Operator/Sink Task、显式分区以及有界 Channel。
+ * 不支持多源、分叉、网络 Shuffle 或尚未完成的全局 Checkpoint。
  */
 public final class LocalStreamJobRunner implements LocalJobRunner {
+
+    private static final int MAX_PARALLELISM = 16;
+    private static final int MAX_JOB_SUBTASKS = 64;
+    private static final int MAX_CHANNEL_CAPACITY = 4096;
 
     @Override
     public void validate(CompiledJobPlan plan) {
@@ -34,12 +40,14 @@ public final class LocalStreamJobRunner implements LocalJobRunner {
         if (graph.getSourceNodes().size() != 1 || graph.getSinkNodes().size() != 1 || nodes.size() < 2) {
             throw new UnsupportedOperationException("本地单 Task Runner 仅支持一个 Source 和一个 Sink");
         }
+        int totalTasks = 0;
         for (int i = 0; i < nodes.size(); i++) {
             StreamNode node = nodes.get(i);
-            if (node.getParallelism() != 1) {
+            if (node.getParallelism() <= 0 || node.getParallelism() > MAX_PARALLELISM) {
                 throw new UnsupportedOperationException(
-                        "尚未支持并行度大于 1 的 Task/Channel 路由：" + node.getId());
+                        "单个本地算子的并行度必须在 1 到 " + MAX_PARALLELISM + " 之间：" + node.getId());
             }
+            totalTasks += node.getParallelism();
             if (i == 0) {
                 if (!node.isSource() || !graph.getInEdges(node.getId()).isEmpty()) {
                     throw new UnsupportedOperationException("线性链的首节点必须为 Source");
@@ -64,6 +72,14 @@ public final class LocalStreamJobRunner implements LocalJobRunner {
                 }
             }
         }
+        if (totalTasks > MAX_JOB_SUBTASKS) {
+            throw new UnsupportedOperationException("单个本地 Job 子任务数量上限为 " + MAX_JOB_SUBTASKS);
+        }
+        int capacity = plan.configuration().get(CoreOptions.LOCAL_CHANNEL_CAPACITY);
+        if (capacity <= 0 || capacity > MAX_CHANNEL_CAPACITY) {
+            throw new IllegalArgumentException("execution.local-channel.capacity 必须在 1 到 "
+                    + MAX_CHANNEL_CAPACITY + " 之间");
+        }
         Duration interval = plan.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL);
         if (!interval.isZero()) {
             throw new UnsupportedOperationException("新 Runtime 尚未实现全局 Checkpoint，不能开启周期 Checkpoint");
@@ -78,6 +94,23 @@ public final class LocalStreamJobRunner implements LocalJobRunner {
             throw new CancellationException("作业已请求取消");
         }
 
+        if (!canRunInline(plan.graph())) {
+            new LocalTaskGraph(plan, cancellationRequested,
+                    plan.configuration().get(CoreOptions.LOCAL_CHANNEL_CAPACITY)).run();
+            return;
+        }
+
+        runInline(plan, cancellationRequested);
+    }
+
+    private static boolean canRunInline(StreamGraph graph) {
+        return graph.getStreamNodes().stream().allMatch(node -> node.getParallelism() == 1)
+                && graph.getStreamEdges().stream()
+                        .allMatch(edge -> edge.partitioning() == StreamPartitioning.FORWARD);
+    }
+
+    /** 兼容已有单并行 Task 语义：Reader、Operator Chain、SinkWriter 共用同一 Mailbox。 */
+    private static void runInline(CompiledJobPlan plan, BooleanSupplier cancellationRequested) throws Exception {
         List<StreamNode> nodes = plan.graph().getTopologicalNodes();
         StreamNode sourceNode = nodes.getFirst();
         StreamNode sinkNode = nodes.getLast();
