@@ -28,7 +28,7 @@ Datasource 校验、Catalog 和运行连接必须经过 DataSourceService。禁�
 | realtime | CDC state identity、目录和 MySQL serverId 资源 |
 | trace | Offline Attempt Runtime Trace 会话、文件持久化、Summary 和 Cursor 读取 |
 
-executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime 不反向依赖 executor。不要复制 offline/planning 与 realtime/planning 层级、逐类建包或重建 Manager / Coordinator。`planning.target` 只收口 Target Runtime Preflight 及其 DDL 副作用边界，不再继续按单类拆子包。
+executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime 不反向依赖 executor。`execution.executor` 不允许 nested 生产类型，独立语义的状态与结果使用顶层 Java 文件。不要复制 offline/planning 与 realtime/planning 层级、逐类建包或重建 Manager / Coordinator。`planning.target` 只收口 Target Runtime Preflight 及其 DDL 副作用边界，不再继续按单类拆子包。
 
 测试按对应职责组织；直接代码入口见 [execution 目录](src/main/java/io/yak/ops/business/datasync/execution)。
 
@@ -80,7 +80,7 @@ executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime �
 - REALTIME Mapping 必须覆盖全部 Source PK，Target PK 按 Mapping 后的目标字段名比较；UPSERT Existing Target 要求 Mapping 覆盖全部目标 PK，UPSERT Auto Create 要求 Mapping 覆盖全部 Source PK。
 - 版本比较集中在可执行定义的规范化比较，不每次 PUT 加一；包括 mapping 与 retryPolicy，具体语义见 [Version Contract](../../docs/capabilities/data-sync/task-lifecycle.md#definition-version-contract)。
 - Runtime Config / Retry Policy 的默认与保留语义由 Data Sync Service 拥有：创建请求省略时物化当前系统默认值；编辑请求省略时保留 Task 已持久化的具体配置。省略字段不得被解释为“重置默认”，也不得因为 UI 隐藏参数而修改历史调优值。
-- Retry Policy mode 只有 SMART / FIXED：新建且省略策略时物化 SMART(3 attempts, 15s base backoff)；历史 / 显式无 mode Policy 按 FIXED。SMART 分类归 `DataSyncRetryClassifier`，Attempt 状态迁移仍只归 `DataSyncAttemptLifecycle`，禁止 executor 自己写数据库状态。
+- Retry Policy mode 只有 SMART / FIXED：新建且省略策略时物化 SMART(3 attempts, 15s base backoff)；历史 / 显式无 mode Policy 按 FIXED。SMART 分类归 `DataSyncRetryClassifier`，Attempt 状态迁移仍只归 `DataSyncAttemptLifecycle`，禁止 executor 自己写数据库状态。Executor 默认重试参数与 backoff 计算统一通过 `ExecutionRetryPolicy`，不在 OFFLINE、REALTIME、多表 Executor 中分别复制算法。
 - SMART 仅重试明确瞬时异常。OFFLINE APPEND / OVERWRITE Runtime 启动后禁止自动重放；UPSERT / REALTIME CHANGELOG 可以对明确瞬时失败重试，但不得描述为 exactly-once。未知异常默认不重试。
 - OFFLINE Runtime Policy 只有 AUTO / FIXED 两种稳定语义：新建且省略 runtimeConfig 时物化 AUTO；历史无 policy 或显式 Runtime Config 未声明 policy 时按 FIXED 兼容。AUTO 不是 UI 开关，不允许前端复制规划算法。
 - `OfflineRuntimePlanner` 只在根 Execution 创建时把 AUTO Task Config 解析为 Effective Runtime Config；输入使用 Mapping 后的 Source Logical Schema、当前 Source Statistics 与 Target 类型。规划结果与摘要冻结进 definitionSnapshot，同一 Execution 的 Retry Attempt 禁止重新计算。

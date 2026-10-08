@@ -13,10 +13,8 @@ import io.yak.ops.common.bean.vo.datasync.DataSyncRetryPolicyVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTableRouteSnapshotVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasync.DataSyncInstanceStatus;
-import io.yak.ops.common.enums.datasync.DataSyncRetryPolicyMode;
 import io.yak.ops.common.enums.datasync.DataSyncTableExecutionStatus;
 import io.yak.ops.common.util.DateUtils;
-import io.yak.ops.common.util.SensitiveUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTableAttemptEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTableExecutionEntity;
@@ -54,8 +52,6 @@ public class MultiTableOfflineExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(MultiTableOfflineExecutor.class);
     private static final long METRICS_FLUSH_MILLIS = 500L;
-    private static final int MAX_ERROR_MESSAGE_LENGTH = 1000;
-    private static final int MAX_SMART_BACKOFF_SECONDS = 300;
 
     private final ConcurrentMap<String, MultiTableRunControl> controls = new ConcurrentHashMap<>();
     private final DataSyncRetryClassifier retryClassifier = new DataSyncRetryClassifier();
@@ -116,7 +112,7 @@ public class MultiTableOfflineExecutor {
                     "多表同步异常，workspaceId={}, executionId={}, error={}",
                     workspaceId,
                     rootExecutionId,
-                    safeMessage(exception));
+                    ExecutionErrorMessages.tableFailure(exception));
             try {
                 DataSyncInstanceEntity root = instanceRepository
                         .queryById(workspaceId, rootExecutionId)
@@ -139,14 +135,14 @@ public class MultiTableOfflineExecutor {
                             totals[0],
                             totals[1],
                             DataSyncErrorCode.EXECUTION_LOST.getCode(),
-                            safeMessage(exception));
+                            ExecutionErrorMessages.tableFailure(exception));
                 }
             } catch (Exception recoveryException) {
                 LOG.error(
                         "多表同步异常收口失败，workspaceId={}, executionId={}, error={}",
                         workspaceId,
                         rootExecutionId,
-                        safeMessage(recoveryException));
+                        ExecutionErrorMessages.tableFailure(recoveryException));
             }
         } finally {
             controls.remove(rootExecutionId, control);
@@ -213,9 +209,9 @@ public class MultiTableOfflineExecutor {
             MultiTableRunControl control) {
         DataSyncDefinitionSnapshotVO runtimeSnapshot = singleRouteSnapshot(rootSnapshot, route);
         DataSyncRetryPolicyVO policy = rootSnapshot.getRetryPolicy();
-        int maxAttempts = policy == null || policy.getMaxAttempts() == null ? 1 : Math.max(1, policy.getMaxAttempts());
-        int backoffSeconds =
-                policy == null || policy.getBackoffSeconds() == null ? 60 : Math.max(0, policy.getBackoffSeconds());
+        ExecutionRetryPolicy retryPolicy = ExecutionRetryPolicy.from(policy);
+        int maxAttempts = retryPolicy.maxAttempts();
+        int backoffSeconds = retryPolicy.baseBackoffSeconds();
 
         for (int attemptNo = 1; attemptNo <= maxAttempts; attemptNo++) {
             if (control.isCanceled() || !rootRunning(workspaceId, rootExecutionId)) return;
@@ -253,7 +249,7 @@ public class MultiTableOfflineExecutor {
                 return;
             }
 
-            String message = safeMessage(outcome.failure());
+            String message = ExecutionErrorMessages.tableFailure(outcome.failure());
             DataSyncRetryAssessment assessment = retryDecision(policy, runtimeSnapshot, outcome);
             boolean retry = assessment.retryable() && attemptNo < maxAttempts;
             tableAttemptLifecycle.complete(
@@ -276,7 +272,7 @@ public class MultiTableOfflineExecutor {
                         message);
                 return;
             }
-            if (!waitForRetry(workspaceId, rootExecutionId, control, retryDelay(policy, attemptNo, backoffSeconds))) {
+            if (!waitForRetry(workspaceId, rootExecutionId, control, retryPolicy.delayForAttempt(attemptNo, backoffSeconds))) {
                 return;
             }
         }
@@ -284,17 +280,11 @@ public class MultiTableOfflineExecutor {
 
     private DataSyncRetryAssessment retryDecision(
             DataSyncRetryPolicyVO policy, DataSyncDefinitionSnapshotVO runtimeSnapshot, RouteExecutionOutcome outcome) {
-        if (policy == null || policy.getMode() == null || policy.getMode() == DataSyncRetryPolicyMode.FIXED) {
+        if (ExecutionRetryPolicy.from(policy).isFixed()) {
             return DataSyncRetryAssessment.retryable("固定重试策略");
         }
         return retryClassifier.classify(
                 runtimeSnapshot, outcome.failure(), outcome.runtimeStarted(), outcome.writeRows());
-    }
-
-    private int retryDelay(DataSyncRetryPolicyVO policy, int attemptNo, int backoffSeconds) {
-        if (policy == null || policy.getMode() != DataSyncRetryPolicyMode.SMART) return backoffSeconds;
-        long multiplier = 1L << Math.min(4, Math.max(0, attemptNo - 1));
-        return (int) Math.min(MAX_SMART_BACKOFF_SECONDS, (long) backoffSeconds * multiplier);
     }
 
     private boolean waitForRetry(String workspaceId, String rootExecutionId, MultiTableRunControl control, int backoffSeconds) {
@@ -457,20 +447,6 @@ public class MultiTableOfflineExecutor {
     private long addSaturating(long total, Long next) {
         long value = next == null ? 0L : Math.max(0L, next);
         return total > Long.MAX_VALUE - value ? Long.MAX_VALUE : total + value;
-    }
-
-    private String safeMessage(Throwable error) {
-        String message = error == null
-                        || error.getMessage() == null
-                        || error.getMessage().isBlank()
-                ? "表级执行失败"
-                : error.getMessage();
-        return safeMessage(message);
-    }
-
-    private String safeMessage(String message) {
-        String value = SensitiveUtils.mask(message == null ? "表级执行失败" : message);
-        return value.length() > MAX_ERROR_MESSAGE_LENGTH ? value.substring(0, MAX_ERROR_MESSAGE_LENGTH) : value;
     }
 
 }
