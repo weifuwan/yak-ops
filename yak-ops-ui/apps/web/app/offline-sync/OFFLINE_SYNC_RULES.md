@@ -7,6 +7,19 @@ Scope:
 
 ## Current Boundary
 
+v1.3 PR4 adds OFFLINE Multi-Table Editor inside the existing Task Editor sections. OFFLINE supports 1-50 explicit Source Tables sharing one Source Datasource / one Target Datasource. REALTIME keeps its existing single-table editor.
+
+Must for Multi-Table:
+
+- Select multiple Source Catalog tables, without full database wildcard or automatic discovery.
+- Persist and hydrate stable `tableRoutes[].id`, maintaining per-route Mapping / Target / Auto Create; editing an existing Route must preserve its ID.
+- Under `数据去向`, show each Source → Target mapping. Auto Create disabled uses Catalog Select; enabled uses controlled Input; both must not appear simultaneously for the same Route.
+- Under `去向字段映射`, switch among the selected Routes and reuse `SchemaMappingEditor`; each Route has its own backend Schema Preview / DDL and backend-compatible status.
+- Limit Schema Preview requests to bounded concurrency; avoid N simultaneous unbounded network requests.
+- Disable Save until every selected Route's latest backend preview is compatible and target paths do not duplicate.
+- Preserve Task-level write mode, scheduling and publication controls; do not introduce per-table Runtime tuning, retry or scheduler configuration.
+- Do not add generic helper/subtitles. Only validation blockers, dangerous write modes and necessary state semantics may render Alert content.
+
 The offline product owns Task definition, publication configuration, Schedule definition, Schedule enable / disable on the Task list, a manual Run shortcut, and Task-scoped read-only runtime detail. Operations Center remains the cross-Task observability surface; Execution Stop is not moved into Offline Sync definition pages.
 
 Must:

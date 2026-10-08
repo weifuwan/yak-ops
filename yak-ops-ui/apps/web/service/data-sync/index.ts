@@ -69,10 +69,12 @@ export const deleteDataSyncTask = async (id: string): Promise<void> => {
 
 export const previewDataSyncMapping = (
   payload: DataSyncMappingPreviewPayload,
+  options?: { silent?: boolean },
 ): Promise<DataSyncMappingPreview> =>
   HttpUtils.postData<DataSyncMappingPreview>(
     `${DATA_SYNC_API_PREFIX}/tasks/mapping-preview`,
     payload,
+    options?.silent ? { skipErrorHandler: true } : undefined,
   );
 
 export const publishDataSyncTask = (id: string): Promise<DataSyncTaskRecord> =>

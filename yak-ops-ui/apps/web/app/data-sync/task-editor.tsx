@@ -28,6 +28,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { EditorAnchorStepper, type EditorAnchorItem } from "@/app/data-sync/editor-anchor-stepper";
+import { MultiTableRouteEditor } from "@/app/data-sync/multi-table-route-editor";
 import { SchemaMappingEditor } from "@/app/data-sync/schema-mapping-editor";
 import { DataSyncSearchableSelect } from "@/app/data-sync/searchable-select";
 import { getDataSourceTypeLabel } from "@/app/datasource/constants";
@@ -54,6 +55,7 @@ import {
   type DataSyncMappingPreview,
   type DataSyncScheduleSavePayload,
   type DataSyncTaskSavePayload,
+  type DataSyncTableRoute,
   type DataSyncTaskStatus,
   type DataSyncType,
   type DataSyncWriteMode,
@@ -847,6 +849,11 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     sourceDataSourceId: draft?.sourceDataSourceId || "",
     targetDataSourceId: draft?.targetDataSourceId || "",
   }));
+  const [tableRoutes, setTableRoutes] = useState<DataSyncTableRoute[]>([]);
+  const [routesReady, setRoutesReady] = useState(false);
+  const onRoutesChange = useCallback((routes: DataSyncTableRoute[]) => setTableRoutes(routes), []);
+  const onRoutesReadyChange = useCallback((ready: boolean) => setRoutesReady(ready), []);
+
   const [dataSources, setDataSources] = useState<DataSourceRecord[]>([]);
   const [dataSourcesLoading, setDataSourcesLoading] = useState(false);
   const [taskStatus, setTaskStatus] = useState<DataSyncTaskStatus>("UNPUBLISHED");
@@ -902,8 +909,8 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
   }, [dataSources, realtime]);
   const selectedSourceDataSource = dataSources.find((item) => item.id === form.sourceDataSourceId);
   const selectedTargetDataSource = dataSources.find((item) => item.id === form.targetDataSourceId);
-  const sourceReady = Boolean(form.sourceDataSourceId && form.sourceTable);
-  const targetReady = Boolean(form.targetDataSourceId && form.targetTable);
+  const sourceReady = Boolean(realtime && form.sourceDataSourceId && form.sourceTable);
+  const targetReady = Boolean(realtime && form.targetDataSourceId && form.targetTable);
   const targetTableExistsInCatalog =
     selectedTableKey(
       targetCatalog.tables,
@@ -991,6 +998,22 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
           mapping: task.mapping,
         });
         if (!realtime) {
+          setTableRoutes(
+            task.tableRoutes?.length
+              ? task.tableRoutes
+              : [
+                  {
+                    sourceDatabase: task.sourceDatabase,
+                    sourceSchema: task.sourceSchema,
+                    sourceTable: task.sourceTable,
+                    targetDatabase: task.targetDatabase,
+                    targetSchema: task.targetSchema,
+                    targetTable: task.targetTable,
+                    autoCreateTable: Boolean(task.autoCreateTable),
+                    mapping: task.mapping,
+                  },
+                ],
+          );
           setScheduleExists(Boolean(schedule));
           setScheduleForm(
             schedule
@@ -1038,6 +1061,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
 
   const mappingPayload = useMemo(
     () =>
+      realtime &&
       form.sourceDataSourceId &&
       form.sourceTable &&
       form.targetDataSourceId &&
@@ -1057,6 +1081,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
           }
         : undefined,
     [
+      realtime,
       form.sourceDataSourceId,
       form.sourceDatabase,
       form.sourceSchema,
@@ -1125,18 +1150,19 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     setScheduleForm((current) => ({ ...current, [key]: value }));
 
   const payload = (): DataSyncTaskSavePayload => {
+    const firstRoute = !realtime ? tableRoutes[0] : undefined;
     const common = {
       name: form.name.trim(),
       sourceDataSourceId: form.sourceDataSourceId,
-      sourceDatabase: form.sourceDatabase || undefined,
-      sourceSchema: form.sourceSchema || undefined,
-      sourceTable: form.sourceTable,
+      sourceDatabase: firstRoute?.sourceDatabase || form.sourceDatabase || undefined,
+      sourceSchema: firstRoute?.sourceSchema || form.sourceSchema || undefined,
+      sourceTable: firstRoute?.sourceTable || form.sourceTable,
       targetDataSourceId: form.targetDataSourceId,
-      targetDatabase: form.targetDatabase || undefined,
-      targetSchema: form.targetSchema || undefined,
-      targetTable: form.targetTable,
-      autoCreateTable: form.autoCreateTable,
-      mapping: form.mapping,
+      targetDatabase: firstRoute?.targetDatabase || form.targetDatabase || undefined,
+      targetSchema: firstRoute?.targetSchema || form.targetSchema || undefined,
+      targetTable: firstRoute?.targetTable || form.targetTable,
+      autoCreateTable: firstRoute ? Boolean(firstRoute.autoCreateTable) : form.autoCreateTable,
+      mapping: firstRoute ? firstRoute.mapping : form.mapping,
       remark: form.remark.trim() || undefined,
     };
     if (realtime) {
@@ -1150,6 +1176,17 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
       ...common,
       writeMode: form.writeMode,
       syncType: "OFFLINE",
+      tableRoutes: tableRoutes.map((route) => ({
+        id: route.id,
+        sourceDatabase: route.sourceDatabase,
+        sourceSchema: route.sourceSchema,
+        sourceTable: route.sourceTable,
+        targetDatabase: route.targetDatabase,
+        targetSchema: route.targetSchema,
+        targetTable: route.targetTable.trim(),
+        autoCreateTable: Boolean(route.autoCreateTable),
+        mapping: route.mapping,
+      })),
     };
   };
 
@@ -1167,8 +1204,9 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     !published &&
     scheduleValid &&
     form.name.trim() &&
-    mapping?.compatible &&
-    !mappingLoading &&
+    (realtime
+      ? Boolean(mapping?.compatible && !mappingLoading)
+      : routesReady && tableRoutes.length > 0) &&
     !sourceCatalog.loading &&
     !targetCatalog.loading;
 
@@ -1218,7 +1256,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
       : "新建离线同步任务";
   const pageDescription = realtime
     ? "MySQL CDC 单表实时同步 · 首次全量后持续消费 Binlog"
-    : "单表离线同步 · 去向字段映射";
+    : undefined;
 
   if (loading) {
     return <div className="p-8 text-sm text-[#667085]">正在加载同步任务...</div>;
@@ -1358,6 +1396,10 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                     sourceTable: "",
                     mapping: undefined,
                   }));
+                  if (!realtime) {
+                    setTableRoutes([]);
+                    setRoutesReady(false);
+                  }
                 }}
               />
               <DataSourceEndpointCard
@@ -1377,189 +1419,238 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                     targetTable: "",
                     mapping: undefined,
                   }));
+                  if (!realtime) {
+                    setTableRoutes((current) =>
+                      current.map((route) => ({
+                        ...route,
+                        targetDatabase: selected?.database || undefined,
+                        targetSchema: selected?.schema || undefined,
+                        targetTable: route.sourceTable,
+                        autoCreateTable: false,
+                        mapping: undefined,
+                      })),
+                    );
+                    setRoutesReady(false);
+                  }
                 }}
               />
             </div>
           </CollapseSection>
 
-          <CollapseSection id="source" title="数据来源">
-            <TableSection
-              dataSourceId={form.sourceDataSourceId}
-              boundSchema={selectedSourceDataSource?.schema}
-              database={form.sourceDatabase}
-              schema={form.sourceSchema}
-              table={form.sourceTable}
-              catalog={sourceCatalog}
-              onSchemaChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  sourceSchema: value,
-                  sourceTable: "",
-                  mapping: undefined,
-                }))
-              }
-              onTableChange={(table) =>
-                setForm((current) => ({
-                  ...current,
-                  sourceDatabase: current.sourceDatabase || table.database || "",
-                  sourceSchema: current.sourceSchema || table.schema || "",
-                  sourceTable: table.name,
-                  mapping: undefined,
-                }))
-              }
-            >
-              {realtime ? (
-                <Alert>实时同步依赖 ROW Binlog 和 CDC 权限；连接测试通过不代表 CDC 可用。</Alert>
-              ) : null}
-            </TableSection>
-          </CollapseSection>
-
-          <CollapseSection id="target" title="数据去向">
-            <TableSection
-              dataSourceId={form.targetDataSourceId}
-              boundSchema={selectedTargetDataSource?.schema}
-              database={form.targetDatabase}
-              schema={form.targetSchema}
-              table={form.targetTable}
-              catalog={targetCatalog}
-              allowCustomTable={form.autoCreateTable}
-              tableFieldLabel="目标表"
-              tableAction={
-                targetDerived ? (
-                  <DdlPreviewPopover preview={mapping} loading={mappingLoading} />
-                ) : undefined
-              }
-              onTableNameChange={(value) => patch("targetTable", value)}
-              onSchemaChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  targetSchema: value,
-                  targetTable: "",
-                  mapping: undefined,
-                }))
-              }
-              onTableChange={(table) =>
-                setForm((current) => ({
-                  ...current,
-                  targetDatabase: current.targetDatabase || table.database || "",
-                  targetSchema: current.targetSchema || table.schema || "",
-                  targetTable: table.name,
-                  mapping: undefined,
-                }))
-              }
-            >
-              <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
-                <FieldLabel>自动建表</FieldLabel>
-                <Switch
-                  size="small"
-                  checked={form.autoCreateTable}
-                  onCheckedChange={(checked) =>
-                    setForm((current) => {
-                      const autoCreateTable = Boolean(checked);
-                      if (autoCreateTable) {
-                        return { ...current, autoCreateTable, mapping: undefined };
-                      }
-                      const currentTableExists =
-                        selectedTableKey(
-                          targetCatalog.tables,
-                          current.targetDatabase,
-                          current.targetSchema,
-                          current.targetTable,
-                        ) !== null;
-                      return {
-                        ...current,
-                        autoCreateTable,
-                        targetTable: currentTableExists ? current.targetTable : "",
-                        mapping: undefined,
-                      };
-                    })
+          {realtime ? (
+            <>
+              <CollapseSection id="source" title="数据来源">
+                <TableSection
+                  dataSourceId={form.sourceDataSourceId}
+                  boundSchema={selectedSourceDataSource?.schema}
+                  database={form.sourceDatabase}
+                  schema={form.sourceSchema}
+                  table={form.sourceTable}
+                  catalog={sourceCatalog}
+                  onSchemaChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      sourceSchema: value,
+                      sourceTable: "",
+                      mapping: undefined,
+                    }))
                   }
-                />
-              </Field>
+                  onTableChange={(table) =>
+                    setForm((current) => ({
+                      ...current,
+                      sourceDatabase: current.sourceDatabase || table.database || "",
+                      sourceSchema: current.sourceSchema || table.schema || "",
+                      sourceTable: table.name,
+                      mapping: undefined,
+                    }))
+                  }
+                >
+                  {realtime ? (
+                    <Alert>
+                      实时同步依赖 ROW Binlog 和 CDC 权限；连接测试通过不代表 CDC 可用。
+                    </Alert>
+                  ) : null}
+                </TableSection>
+              </CollapseSection>
 
-              {!realtime ? (
-                <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-start !gap-3">
-                  <FieldLabel required className="pt-1.5">
-                    写入方式
-                  </FieldLabel>
-                  <div className="space-y-2">
-                    <Select
+              <CollapseSection id="target" title="数据去向">
+                <TableSection
+                  dataSourceId={form.targetDataSourceId}
+                  boundSchema={selectedTargetDataSource?.schema}
+                  database={form.targetDatabase}
+                  schema={form.targetSchema}
+                  table={form.targetTable}
+                  catalog={targetCatalog}
+                  allowCustomTable={form.autoCreateTable}
+                  tableFieldLabel="目标表"
+                  tableAction={
+                    targetDerived ? (
+                      <DdlPreviewPopover preview={mapping} loading={mappingLoading} />
+                    ) : undefined
+                  }
+                  onTableNameChange={(value) => patch("targetTable", value)}
+                  onSchemaChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      targetSchema: value,
+                      targetTable: "",
+                      mapping: undefined,
+                    }))
+                  }
+                  onTableChange={(table) =>
+                    setForm((current) => ({
+                      ...current,
+                      targetDatabase: current.targetDatabase || table.database || "",
+                      targetSchema: current.targetSchema || table.schema || "",
+                      targetTable: table.name,
+                      mapping: undefined,
+                    }))
+                  }
+                >
+                  <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
+                    <FieldLabel>自动建表</FieldLabel>
+                    <Switch
                       size="small"
-                      items={WRITE_MODE_ITEMS}
-                      value={form.writeMode}
-                      onValueChange={(value) =>
-                        patch("writeMode", String(value || "APPEND") as DataSyncWriteMode)
+                      checked={form.autoCreateTable}
+                      onCheckedChange={(checked) =>
+                        setForm((current) => {
+                          const autoCreateTable = Boolean(checked);
+                          if (autoCreateTable) {
+                            return { ...current, autoCreateTable, mapping: undefined };
+                          }
+                          const currentTableExists =
+                            selectedTableKey(
+                              targetCatalog.tables,
+                              current.targetDatabase,
+                              current.targetSchema,
+                              current.targetTable,
+                            ) !== null;
+                          return {
+                            ...current,
+                            autoCreateTable,
+                            targetTable: currentTableExists ? current.targetTable : "",
+                            mapping: undefined,
+                          };
+                        })
                       }
-                    >
-                      <SelectTrigger variant="outlined">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Object.entries(WRITE_MODE_ITEMS) as [DataSyncWriteMode, string][]).map(
-                          ([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              <SelectItemText>{label}</SelectItemText>
-                              <SelectItemIndicator />
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {form.writeMode === "OVERWRITE" ? (
-                      <Alert>覆盖写入会先清空目标表，同步失败时原数据不会自动恢复。</Alert>
-                    ) : null}
-                  </div>
-                </Field>
-              ) : null}
-            </TableSection>
-          </CollapseSection>
+                    />
+                  </Field>
 
-          <CollapseSection
-            id="mapping"
-            title="Schema 映射"
-            extra={
-              mapping ? (
-                <div className="flex items-center gap-2">
-                  {mapping.targetTableExists ? (
-                    <Badge tone="success">目标表已存在</Badge>
-                  ) : mapping.autoCreateTable ? (
-                    <Badge tone="warning">将自动建表</Badge>
-                  ) : (
-                    <Badge tone="danger">目标表不存在</Badge>
-                  )}
-                  <Badge tone={mapping.compatible ? "success" : "danger"}>
-                    {mapping.compatible ? "兼容" : "不兼容"}
-                  </Badge>
-                </div>
-              ) : undefined
-            }
-          >
-            <div className="space-y-3">
-              <SchemaMappingEditor
-                value={form.mapping}
-                onChange={(value) =>
-                  setForm((current) => ({
-                    ...current,
-                    mapping: value,
-                  }))
+                  {!realtime ? (
+                    <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-start !gap-3">
+                      <FieldLabel required className="pt-1.5">
+                        写入方式
+                      </FieldLabel>
+                      <div className="space-y-2">
+                        <Select
+                          size="small"
+                          items={WRITE_MODE_ITEMS}
+                          value={form.writeMode}
+                          onValueChange={(value) =>
+                            patch("writeMode", String(value || "APPEND") as DataSyncWriteMode)
+                          }
+                        >
+                          <SelectTrigger variant="outlined">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(
+                              Object.entries(WRITE_MODE_ITEMS) as [DataSyncWriteMode, string][]
+                            ).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                <SelectItemText>{label}</SelectItemText>
+                                <SelectItemIndicator />
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {form.writeMode === "OVERWRITE" ? (
+                          <Alert>覆盖写入会先清空目标表，同步失败时原数据不会自动恢复。</Alert>
+                        ) : null}
+                      </div>
+                    </Field>
+                  ) : null}
+                </TableSection>
+              </CollapseSection>
+
+              <CollapseSection
+                id="mapping"
+                title="Schema 映射"
+                extra={
+                  mapping ? (
+                    <div className="flex items-center gap-2">
+                      {mapping.targetTableExists ? (
+                        <Badge tone="success">目标表已存在</Badge>
+                      ) : mapping.autoCreateTable ? (
+                        <Badge tone="warning">将自动建表</Badge>
+                      ) : (
+                        <Badge tone="danger">目标表不存在</Badge>
+                      )}
+                      <Badge tone={mapping.compatible ? "success" : "danger"}>
+                        {mapping.compatible ? "兼容" : "不兼容"}
+                      </Badge>
+                    </div>
+                  ) : undefined
                 }
-                sourceColumns={sourceColumns.columns}
-                targetColumns={targetColumns.columns}
-                sourceLoading={sourceColumns.loading}
-                targetLoading={targetColumns.loading}
-                sourceReady={sourceReady}
-                targetReady={targetReady}
-                targetDerived={targetDerived}
-                preview={mapping}
-              />
+              >
+                <div className="space-y-3">
+                  <SchemaMappingEditor
+                    value={form.mapping}
+                    onChange={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        mapping: value,
+                      }))
+                    }
+                    sourceColumns={sourceColumns.columns}
+                    targetColumns={targetColumns.columns}
+                    sourceLoading={sourceColumns.loading}
+                    targetLoading={targetColumns.loading}
+                    sourceReady={sourceReady}
+                    targetReady={targetReady}
+                    targetDerived={targetDerived}
+                    preview={mapping}
+                  />
 
-              {form.mapping?.columns.length === 0 ? (
-                <Alert>至少保留一个字段映射后才能保存任务。</Alert>
-              ) : null}
+                  {form.mapping?.columns.length === 0 ? (
+                    <Alert>至少保留一个字段映射后才能保存任务。</Alert>
+                  ) : null}
 
-              <SchemaPreviewDiagnostics preview={mapping} />
-            </div>
-          </CollapseSection>
+                  <SchemaPreviewDiagnostics preview={mapping} />
+                </div>
+              </CollapseSection>
+            </>
+          ) : (
+            <MultiTableRouteEditor
+              routes={tableRoutes}
+              onChange={onRoutesChange}
+              onReadyChange={onRoutesReadyChange}
+              sourceDataSourceId={form.sourceDataSourceId}
+              targetDataSourceId={form.targetDataSourceId}
+              sourceDatabase={form.sourceDatabase}
+              sourceSchema={form.sourceSchema}
+              targetDatabase={form.targetDatabase}
+              targetSchema={form.targetSchema}
+              sourceBoundSchema={selectedSourceDataSource?.schema}
+              targetBoundSchema={selectedTargetDataSource?.schema}
+              sourceCatalog={sourceCatalog}
+              targetCatalog={targetCatalog}
+              onSourceSchemaChange={(value) =>
+                setForm((current) => ({ ...current, sourceSchema: value }))
+              }
+              onTargetSchemaChange={(value) => {
+                setForm((current) => ({ ...current, targetSchema: value }));
+                setTableRoutes((current) =>
+                  current.map((route) => ({
+                    ...route,
+                    targetSchema: value,
+                    mapping: undefined,
+                  })),
+                );
+                setRoutesReady(false);
+              }}
+            />
+          )}
 
           {!realtime ? (
             <CollapseSection id="schedule" title="调度配置">

@@ -1,6 +1,6 @@
 # Data Sync Multi-Table Route Contract
 
-Status: Active — v1.3 PR3 Multi-Table Runtime + Per-Table Retry / Metrics
+Status: Active — v1.3 PR4 Multi-Table Editor + Schema Preview
 
 Scope:
 
@@ -43,7 +43,7 @@ Target Table
 
 后续 Incremental Cursor、Schema Baseline、Table Execution、Route Metrics 与 Health 都以 Route ID 作为产品身份，不通过表名字符串拼接身份。
 
-PR1 已建立 Route Contract + Persistence；PR2 进一步让 Root Execution 冻结全部 Route，并为每条 Route 创建稳定 Table Execution。PR3 进一步开放 OFFLINE 逐表 Runtime、失败隔离和表级 Retry / Metrics；多表编辑器仍由 PR4 完成。
+PR1 已建立 Route Contract + Persistence；PR2 进一步让 Root Execution 冻结全部 Route，并为每条 Route 创建稳定 Table Execution。PR3 已开放 OFFLINE 逐表 Runtime、失败隔离和表级 Retry / Metrics；PR4 进一步开放多选来源表、目标表路由配置与逐表 Schema Preview。
 
 ## 2. Ownership
 
@@ -297,7 +297,24 @@ Root 的 `readRows / writeRows` 汇总各 Table Execution **当前或最终 Atte
 
 旧单表 Execution 继续使用原有 Root Attempt / Trace 查询模型。多表 Attempt Trace 内部按 Table Execution ID 隔离存储；对应独立 UI 和 Trace 页面由后续 PR 接入。
 
-REALTIME CDC 仍严格保持单 Route。多表 Task 的创建 / 编辑 UI 和 API 仍由 PR4 处理，不能把 PR3 的执行能力误写成“全库同步”或“实时多表同步”。
+REALTIME CDC 仍严格保持单 Route；不把 OFFLINE 多表误写成“全库同步”或“实时多表同步”。
+
+## 9.1 OFFLINE Multi-Table Editor / Save Contract (PR4)
+
+普通 OFFLINE 编辑器保持“数据源 → 数据来源 → 数据去向 → 去向字段映射 → 调度配置”结构：
+
+- Source / Target Datasource 始终属于 Task，只各选一次；数据库绑定层级不在编辑器二次配置。
+- Source Catalog 可多选 1-50 张表，筛选/刷新由现有 Datasource API 提供。
+- 每张 Source Table 生成一条稳定 Route，目标表名可修改，Auto Create 关闭时目标表用 Catalog Select，开启时为 Input。
+- 每张 Route 独立字段映射、Schema Compatibility 与建表 DDL 预览；前端只调用后端，不能自己推算 JDBC 类型兼容。
+- 全部 Route 的后端 Schema Preview 均 compatible 后才可保存，预览请求有限并行，不因一张表字段映射变化覆盖其它 Route。
+- Route ID 从 Task 详情回显；编辑更新原 Route ID、新增 Route 不传 ID，删除 Route 不重写历史 Execution。
+- Task、Route 变更在同一事务内提交；Source/Target 物理表身份防重，同一 Target Table 不允许被多个 Route 写入。
+- 旧单表请求省略 `tableRoutes` 时保留原有行为；REALTIME 不接受 `tableRoutes` 显式多表定义。
+- Route 增删、排序和表级字段变化会推进 definitionVersion，只有名称/备注变化则不推进；Root Snapshot 继续冻结执行时所有 Route。
+- `writeMode / Runtime Policy / Retry / Schedule / publication` 仍归 Task，不做 Route 级复杂策略 UI。
+
+PR4 不做前端全库勾选/通配规则、不允许自动持续发现新表、不开放 REALTIME Multi-Table。
 
 ## 10. definitionVersion
 
@@ -333,9 +350,8 @@ V6__data_sync_table_attempt.sql
 
 这些文件只属于 v1.3 可重建开发 / E2E 历史；Release Freeze 前必须按照 Flyway Rules 一起审查并收口为最多一个正式 `V4__v1_3_0.sql`。
 
-## 12. PR3 Non-Goals
+## 12. PR4 Non-Goals
 
-- Multi-Route 创建 / 编辑 HTTP UI / API（PR4）。
 - REALTIME Multi-Table CDC。
 - 无界表级并行和 Distributed Worker。
 - 增量 Cursor / 自动续传。
@@ -343,4 +359,4 @@ V6__data_sync_table_attempt.sql
 - Exactly-once 和跨库事务原子性。
 - 失败的 APPEND 数据的安全自动补偿。
 
-下一步：PR4 — Multi-Table Sync Editor + Schema Preview。
+下一步：PR5 — Offline Incremental Sync Contract + Cursor State。
