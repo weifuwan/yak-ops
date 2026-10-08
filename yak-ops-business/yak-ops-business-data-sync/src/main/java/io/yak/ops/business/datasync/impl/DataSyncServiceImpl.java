@@ -44,6 +44,7 @@ import io.yak.ops.common.bean.dto.datasync.DataSyncRealtimeConfigDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncRetryPolicyDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncRuntimeConfigDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncScheduleDTO;
+import io.yak.ops.common.bean.dto.datasync.DataSyncTableRouteDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskQueryDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
@@ -169,6 +170,9 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
 
     @Resource
     private DataSyncTableRouteRepository tableRouteRepository;
+
+    @Resource
+    private DataSyncTableRouteDefinitionService routeDefinitionService;
 
     @Resource
     private DataSyncTableExecutionRepository tableExecutionRepository;
