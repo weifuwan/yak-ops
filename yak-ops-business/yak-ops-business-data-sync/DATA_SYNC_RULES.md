@@ -28,7 +28,7 @@ Datasource 校验、Catalog 和运行连接必须经过 DataSourceService。禁�
 | realtime | CDC state identity、目录和 MySQL serverId 资源 |
 | trace | Offline Attempt Runtime Trace 会话、文件持久化、Summary 和 Cursor 读取 |
 
-executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime 不反向依赖 executor。`execution.executor` 不允许 nested 生产类型，独立语义的状态与结果使用顶层 Java 文件。不要复制 offline/planning 与 realtime/planning 层级、逐类建包或重建 Manager / Coordinator。`planning.target` 只收口 Target Runtime Preflight 及其 DDL 副作用边界，不再继续按单类拆子包。
+executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime 不反向依赖 executor。OFFLINE / REALTIME 单表执行器的 Attempt 循环、durable Retry 等待统一归 `SingleTableAttemptRunner`；`ExecutionMetricsPoller` 统一采集单次 YakFlow 指标，失败状态仍交给 `DataSyncAttemptLifecycle` 持久化。多表 Route 调度与 Table Attempt Lifecycle 继续保持独立。`execution.executor` 不允许 nested 生产类型，独立语义的状态与结果使用顶层 Java 文件。不要复制 offline/planning 与 realtime/planning 层级、逐类建包或重建 Manager / Coordinator。`planning.target` 只收口 Target Runtime Preflight 及其 DDL 副作用边界，不再继续按单类拆子包。
 
 测试按对应职责组织；直接代码入口见 [execution 目录](src/main/java/io/yak/ops/business/datasync/execution)。
 

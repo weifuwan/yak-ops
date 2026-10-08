@@ -18,4 +18,41 @@ record SingleTableRunContext(
         int maxAttempts,
         int backoffSeconds,
         DataSyncInstanceStatus expectedExecutionStatus,
-        LocalDateTime initialRetryTime) {}
+        LocalDateTime initialRetryTime) {
+
+    static SingleTableRunContext submission(
+            String workspaceId, String executionId, DataSyncDefinitionSnapshotVO snapshot) {
+        ExecutionRetryPolicy policy = ExecutionRetryPolicy.from(snapshot.getRetryPolicy());
+        return new SingleTableRunContext(
+                workspaceId,
+                executionId,
+                snapshot,
+                1,
+                policy.maxAttempts(),
+                policy.baseBackoffSeconds(),
+                DataSyncInstanceStatus.PENDING,
+                null);
+    }
+
+    static SingleTableRunContext recovery(
+            String workspaceId,
+            String executionId,
+            DataSyncDefinitionSnapshotVO snapshot,
+            int nextAttemptNo,
+            int maxAttempts,
+            int backoffSeconds,
+            LocalDateTime nextRetryTime) {
+        if (nextAttemptNo < 2 || maxAttempts < nextAttemptNo || nextRetryTime == null) {
+            throw new IllegalArgumentException("invalid durable retry recovery state");
+        }
+        return new SingleTableRunContext(
+                workspaceId,
+                executionId,
+                snapshot,
+                nextAttemptNo,
+                maxAttempts,
+                Math.max(0, backoffSeconds),
+                DataSyncInstanceStatus.RETRY_WAITING,
+                nextRetryTime);
+    }
+}

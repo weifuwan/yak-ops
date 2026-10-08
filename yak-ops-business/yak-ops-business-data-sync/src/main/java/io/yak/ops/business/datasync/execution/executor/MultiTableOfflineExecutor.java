@@ -51,7 +51,6 @@ import org.springframework.stereotype.Component;
 public class MultiTableOfflineExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(MultiTableOfflineExecutor.class);
-    private static final long METRICS_FLUSH_MILLIS = 500L;
 
     private final ConcurrentMap<String, MultiTableRunControl> controls = new ConcurrentHashMap<>();
     private final DataSyncRetryClassifier retryClassifier = new DataSyncRetryClassifier();
@@ -321,16 +320,11 @@ public class MultiTableOfflineExecutor {
             started = true;
             control.setActive(execution);
             if (control.isCanceled()) execution.cancel();
-            while (execution.status() == ExecutionStatus.RUNNING) {
-                ExecutionMetrics value = execution.metrics();
-                metrics.accept(value.readRows(), value.writeRows());
-                Thread.sleep(METRICS_FLUSH_MILLIS);
-            }
-            ExecutionStatus status = execution.await();
-            ExecutionMetrics value = execution.metrics();
-            metrics.accept(value.readRows(), value.writeRows());
+            ExecutionObservation observation = ExecutionMetricsPoller.awaitTermination(
+                    execution, value -> metrics.accept(value.readRows(), value.writeRows()));
+            ExecutionMetrics value = observation.metrics();
             return new RouteExecutionOutcome(
-                    status,
+                    observation.status(),
                     value.readRows(),
                     value.writeRows(),
                     execution.failure().orElse(null),

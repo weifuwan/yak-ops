@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasync.execution.executor;
 
-import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncAttemptLifecycle;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncExecutionRegistry;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncRetryAssessment;
@@ -11,7 +10,6 @@ import io.yak.ops.business.datasync.execution.planning.OfflineSyncExecutionPlann
 import io.yak.ops.business.datasync.execution.trace.ExecutionTraceSession;
 import io.yak.ops.business.datasync.execution.trace.ExecutionTraceStore;
 import io.yak.ops.common.bean.vo.datasync.DataSyncDefinitionSnapshotVO;
-import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasync.DataSyncAttemptStatus;
 import io.yak.ops.common.enums.datasync.DataSyncInstanceStatus;
 import io.yak.ops.dao.entity.datasync.DataSyncAttemptEntity;
@@ -20,7 +18,6 @@ import io.yak.ops.flow.runtime.ExecutionStatus;
 import io.yak.ops.flow.runtime.LocalExecution;
 import io.yak.ops.flow.runtime.LocalExecutionEngine;
 import jakarta.annotation.Resource;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +33,6 @@ import org.springframework.stereotype.Component;
 public class OfflineSyncExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(OfflineSyncExecutor.class);
-    private static final long METRICS_FLUSH_INTERVAL_MILLIS = 500L;
 
     private final DataSyncRetryClassifier retryClassifier = new DataSyncRetryClassifier();
 
@@ -53,16 +49,7 @@ public class OfflineSyncExecutor {
     private ExecutionTraceStore executionTraceStore;
 
     public void submit(String workspaceId, String instanceId, DataSyncDefinitionSnapshotVO snapshot) {
-        ExecutionRetryPolicy policy = ExecutionRetryPolicy.from(snapshot.getRetryPolicy());
-        start(new SingleTableRunContext(
-                workspaceId,
-                instanceId,
-                snapshot,
-                1,
-                policy.maxAttempts(),
-                policy.baseBackoffSeconds(),
-                DataSyncInstanceStatus.PENDING,
-                null));
+        start(SingleTableRunContext.submission(workspaceId, instanceId, snapshot));
     }
 
     public void resumeRetry(
@@ -73,42 +60,16 @@ public class OfflineSyncExecutor {
             int maxAttempts,
             int backoffSeconds,
             LocalDateTime nextRetryTime) {
-        if (nextAttemptNo < 2 || maxAttempts < nextAttemptNo || nextRetryTime == null) {
-            throw new IllegalArgumentException("invalid durable retry recovery state");
-        }
-        start(new SingleTableRunContext(
-                workspaceId,
-                instanceId,
-                snapshot,
-                nextAttemptNo,
-                maxAttempts,
-                Math.max(0, backoffSeconds),
-                DataSyncInstanceStatus.RETRY_WAITING,
-                nextRetryTime));
+        start(SingleTableRunContext.recovery(
+                workspaceId, instanceId, snapshot, nextAttemptNo, maxAttempts, backoffSeconds, nextRetryTime));
     }
 
     private void start(SingleTableRunContext context) {
-        Thread.ofVirtual().name("yak-offline-sync-" + context.executionId()).start(() -> execute(context));
-    }
-
-    private void execute(SingleTableRunContext context) {
-        String workspaceId = context.workspaceId();
-        String instanceId = context.executionId();
-        DataSyncInstanceStatus expectedExecutionStatus = context.expectedExecutionStatus();
-        WorkspaceContext.bind(workspaceId);
-        try {
-            if (context.initialRetryTime() != null
-                    && !waitForRetry(workspaceId, instanceId, context.initialRetryTime())) return;
-
-            for (int attemptNo = context.firstAttemptNo(); attemptNo <= context.maxAttempts(); attemptNo++) {
-                DataSyncRetryDecision decision = executeAttempt(context, attemptNo, expectedExecutionStatus);
-                if (!decision.retry()) return;
-                if (!waitForRetry(workspaceId, instanceId, decision.nextRetryTime())) return;
-                expectedExecutionStatus = DataSyncInstanceStatus.RETRY_WAITING;
-            }
-        } finally {
-            WorkspaceContext.clear();
-        }
+        SingleTableAttemptRunner.start(
+                context,
+                "yak-offline-sync-",
+                attemptLifecycle,
+                (attemptNo, expectedStatus) -> executeAttempt(context, attemptNo, expectedStatus));
     }
 
     private DataSyncRetryDecision executeAttempt(
@@ -147,14 +108,12 @@ public class OfflineSyncExecutor {
                     attemptNo,
                     maxAttempts);
 
-            while (execution.status() == ExecutionStatus.RUNNING) {
-                persistMetrics(workspaceId, instanceId, attempt.getId(), execution.metrics());
-                Thread.sleep(METRICS_FLUSH_INTERVAL_MILLIS);
-            }
-
-            ExecutionStatus status = execution.await();
-            ExecutionMetrics metrics = execution.metrics();
-            persistMetrics(workspaceId, instanceId, attempt.getId(), metrics);
+            ExecutionObservation observation = ExecutionMetricsPoller.awaitTermination(
+                    execution,
+                    value -> attemptLifecycle.updateMetrics(
+                            workspaceId, instanceId, attempt.getId(), value.readRows(), value.writeRows()));
+            ExecutionStatus status = observation.status();
+            ExecutionMetrics metrics = observation.metrics();
 
             if (status == ExecutionStatus.SUCCEEDED) {
                 attemptLifecycle.succeedAttempt(
@@ -233,34 +192,13 @@ public class OfflineSyncExecutor {
             boolean runtimeStarted) {
         String workspaceId = context.workspaceId();
         String instanceId = context.executionId();
-        DataSyncDefinitionSnapshotVO snapshot = context.snapshot();
         int maxAttempts = context.maxAttempts();
-        int backoffSeconds = context.backoffSeconds();
-        DataSyncAttemptStatus expectedAttemptStatus = details.expectedAttemptStatus();
-        DataSyncInstanceStatus expectedExecutionStatus = details.expectedExecutionStatus();
-        ExecutionMetrics metrics = details.metrics();
-        Throwable failure = details.cause();
         String message = details.message();
-        long readRows = metrics == null ? 0L : metrics.readRows();
-        long writeRows = metrics == null ? 0L : metrics.writeRows();
-        DataSyncRetryAssessment assessment = retryAssessment(snapshot, failure, runtimeStarted, writeRows);
-        int effectiveBackoffSeconds = ExecutionRetryPolicy.from(snapshot.getRetryPolicy())
-                .delayForAttempt(attemptNo, backoffSeconds);
-        DataSyncRetryDecision decision = attemptLifecycle.failAttempt(
-                workspaceId,
-                instanceId,
-                attempt.getId(),
-                attemptNo,
-                expectedAttemptStatus,
-                expectedExecutionStatus,
-                assessment.retryable(),
-                assessment.reason(),
-                maxAttempts,
-                effectiveBackoffSeconds,
-                readRows,
-                writeRows,
-                DataSyncErrorCode.EXECUTION_FAILED.getCode(),
-                message);
+        long writeRows = details.metrics() == null ? 0L : details.metrics().writeRows();
+        DataSyncRetryAssessment assessment = retryAssessment(
+                context.snapshot(), details.cause(), runtimeStarted, writeRows);
+        DataSyncRetryDecision decision =
+                SingleTableAttemptFailureRecorder.record(attemptLifecycle, context, attempt, attemptNo, details, assessment);
         if (decision.retry()) {
             LOG.warn(
                     "离线同步Attempt失败等待重试，workspaceId={}, instanceId={}, attempt={}/{}, nextRetryTime={}, retryReason={}, error={}",
@@ -290,23 +228,6 @@ public class OfflineSyncExecutor {
             return DataSyncRetryAssessment.retryable("固定重试策略");
         }
         return retryClassifier.classify(snapshot, failure, runtimeStarted, writeRows);
-    }
-
-    private void persistMetrics(String workspaceId, String instanceId, String attemptId, ExecutionMetrics metrics) {
-        attemptLifecycle.updateMetrics(workspaceId, instanceId, attemptId, metrics.readRows(), metrics.writeRows());
-    }
-
-    private boolean waitForRetry(String workspaceId, String instanceId, LocalDateTime nextRetryTime) {
-        if (nextRetryTime == null) return false;
-        long delayMillis = Math.max(
-                0L, Duration.between(LocalDateTime.now(), nextRetryTime).toMillis());
-        try {
-            if (delayMillis > 0) Thread.sleep(delayMillis);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-        return attemptLifecycle.isRetryWaiting(workspaceId, instanceId);
     }
 
 }
