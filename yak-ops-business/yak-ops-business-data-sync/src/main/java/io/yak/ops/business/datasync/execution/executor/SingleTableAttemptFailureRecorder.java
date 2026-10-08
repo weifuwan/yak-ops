@@ -27,7 +27,8 @@ final class SingleTableAttemptFailureRecorder {
         ExecutionMetrics metrics = details.metrics();
         long readRows = metrics == null ? 0L : metrics.readRows();
         long writeRows = metrics == null ? 0L : metrics.writeRows();
-        int effectiveBackoffSeconds = ExecutionRetryPolicy.from(context.snapshot().getRetryPolicy())
+        int effectiveBackoffSeconds = ExecutionRetryPolicy.from(
+                        context.snapshot().getRetryPolicy())
                 .delayForAttempt(attemptNo, context.backoffSeconds());
         return lifecycle.failAttempt(
                 context.workspaceId(),

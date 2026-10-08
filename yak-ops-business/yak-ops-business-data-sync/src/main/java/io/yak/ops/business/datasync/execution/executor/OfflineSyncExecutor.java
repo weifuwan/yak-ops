@@ -145,11 +145,7 @@ public class OfflineSyncExecutor {
                     attempt,
                     attemptNo,
                     new AttemptFailureDetails(
-                            DataSyncAttemptStatus.RUNNING,
-                            DataSyncInstanceStatus.RUNNING,
-                            metrics,
-                            failure,
-                            message),
+                            DataSyncAttemptStatus.RUNNING, DataSyncInstanceStatus.RUNNING, metrics, failure, message),
                     true);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
@@ -195,10 +191,10 @@ public class OfflineSyncExecutor {
         int maxAttempts = context.maxAttempts();
         String message = details.message();
         long writeRows = details.metrics() == null ? 0L : details.metrics().writeRows();
-        DataSyncRetryAssessment assessment = retryAssessment(
-                context.snapshot(), details.cause(), runtimeStarted, writeRows);
-        DataSyncRetryDecision decision =
-                SingleTableAttemptFailureRecorder.record(attemptLifecycle, context, attempt, attemptNo, details, assessment);
+        DataSyncRetryAssessment assessment =
+                retryAssessment(context.snapshot(), details.cause(), runtimeStarted, writeRows);
+        DataSyncRetryDecision decision = SingleTableAttemptFailureRecorder.record(
+                attemptLifecycle, context, attempt, attemptNo, details, assessment);
         if (decision.retry()) {
             LOG.warn(
                     "离线同步Attempt失败等待重试，workspaceId={}, instanceId={}, attempt={}/{}, nextRetryTime={}, retryReason={}, error={}",

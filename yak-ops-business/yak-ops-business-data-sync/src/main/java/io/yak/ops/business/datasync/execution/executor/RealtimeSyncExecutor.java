@@ -200,10 +200,10 @@ public class RealtimeSyncExecutor {
         int maxAttempts = context.maxAttempts();
         String message = details.message();
         long writeRows = details.metrics() == null ? 0L : details.metrics().writeRows();
-        DataSyncRetryAssessment assessment = retryAssessment(
-                context.snapshot(), details.cause(), writeRows, unexpectedContinuousEnd);
-        DataSyncRetryDecision decision =
-                SingleTableAttemptFailureRecorder.record(attemptLifecycle, context, attempt, attemptNo, details, assessment);
+        DataSyncRetryAssessment assessment =
+                retryAssessment(context.snapshot(), details.cause(), writeRows, unexpectedContinuousEnd);
+        DataSyncRetryDecision decision = SingleTableAttemptFailureRecorder.record(
+                attemptLifecycle, context, attempt, attemptNo, details, assessment);
         if (decision.retry()) {
             LOG.warn(
                     "实时同步Attempt失败等待重试，workspaceId={}, instanceId={}, attempt={}/{}, nextRetryTime={}, retryReason={}, error={}",
