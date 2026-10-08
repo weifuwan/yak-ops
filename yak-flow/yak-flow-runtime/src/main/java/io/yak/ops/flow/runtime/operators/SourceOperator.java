@@ -47,6 +47,17 @@ public final class SourceOperator<T, SplitT extends SourceSplit>
         reader = Objects.requireNonNull(source.createReader(readerContext), "Source 返回空 Reader");
     }
 
+    /** 在 Reader.start 之前注入从已完成 Checkpoint 反序列化的 Split 进度。 */
+    public void restoreSplits(List<SplitT> splits) throws Exception {
+        ensureInitialized();
+        if (started) {
+            throw new IllegalStateException("已经启动的 Reader 不允许直接恢复 Split");
+        }
+        if (!splits.isEmpty()) {
+            reader.addSplits(List.copyOf(splits));
+        }
+    }
+
     /** Reader 注册完成后启动读取组件。 */
     public void start() throws Exception {
         ensureInitialized();

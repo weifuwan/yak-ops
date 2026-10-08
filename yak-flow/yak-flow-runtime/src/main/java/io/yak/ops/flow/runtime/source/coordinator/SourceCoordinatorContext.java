@@ -7,6 +7,7 @@ import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
 import io.yak.ops.flow.runtime.source.event.NoMoreSplitsEvent;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,6 +44,8 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
     private final Set<Integer> noMoreRequested = new HashSet<>();
     private final Set<Integer> noMoreDispatched = new HashSet<>();
     private final Set<Integer> pendingNoMore = new HashSet<>();
+    private final List<Runnable> postponedDiscoveryCallbacks = new ArrayList<>();
+    private boolean checkpointPaused;
     private volatile boolean closed;
 
     SourceCoordinatorContext(OperatorCoordinatorContext operatorContext,
@@ -59,6 +62,9 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
 
     void registerReader(TaskInfo taskInfo, SubtaskGateway gateway) {
         assertCoordinatorThread();
+        if (checkpointPaused) {
+            throw new IllegalStateException("Checkpoint 对齐期间不允许注册新 Reader");
+        }
         operatorContext.validateTask(taskInfo);
         int subtaskId = taskInfo.subtaskIndex();
         checkSubtask(subtaskId);
@@ -92,6 +98,24 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         return !noMoreRequested.contains(subtaskId);
     }
 
+    void pauseForCheckpoint() {
+        assertCoordinatorThread();
+        if (checkpointPaused) {
+            throw new IllegalStateException("Coordinator Context 已暂停");
+        }
+        checkpointPaused = true;
+    }
+
+    void resumeAfterCheckpoint() {
+        assertCoordinatorThread();
+        checkpointPaused = false;
+        List<Runnable> deferred = List.copyOf(postponedDiscoveryCallbacks);
+        postponedDiscoveryCallbacks.clear();
+        for (Runnable callback : deferred) {
+            callback.run();
+        }
+    }
+
     void ensureDeliveriesCompleted() {
         assertCoordinatorThread();
         if (!inFlight.isEmpty() || !pendingNoMore.isEmpty()) {
@@ -109,6 +133,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         closed = true;
         readers.clear();
         readerIdentities.clear();
+        postponedDiscoveryCallbacks.clear();
         inFlight.clear();
         pendingNoMore.clear();
         noMoreRequested.clear();
@@ -205,17 +230,31 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
             }
             T finishedValue = value;
             Throwable finishedError = error;
-            post(() -> handler.accept(finishedValue, finishedError));
+            post(() -> {
+                Runnable callback = () -> handler.accept(finishedValue, finishedError);
+                if (checkpointPaused) {
+                    postponedDiscoveryCallbacks.add(callback);
+                } else {
+                    callback.run();
+                }
+            });
         });
     }
 
     @Override
     public void runInCoordinatorThread(Runnable action) {
         Objects.requireNonNull(action, "action 不能为空");
+        Runnable guarded = () -> {
+            if (checkpointPaused) {
+                postponedDiscoveryCallbacks.add(action);
+            } else {
+                action.run();
+            }
+        };
         if (Thread.currentThread() == coordinatorThread.get()) {
-            action.run();
+            guarded.run();
         } else {
-            post(action);
+            post(guarded);
         }
     }
 

@@ -26,6 +26,8 @@ public final class LocalChannel<T> {
 
     private int remainingProducers;
     private CompletableFuture<Void> available = new CompletableFuture<>();
+    private CompletableFuture<Void> drained = CompletableFuture.completedFuture(null);
+    private int processingRecords;
 
     public LocalChannel(int capacity, int producerCount) {
         if (capacity <= 0 || producerCount <= 0) {
@@ -43,7 +45,12 @@ public final class LocalChannel<T> {
             checkFailure();
             if (records.offer(value, BACKPRESSURE_POLL_MILLIS, TimeUnit.MILLISECONDS)) {
                 synchronized (stateLock) {
-                    // 如果消费线程已取走这条记录，就不再完成新的 availability Future。
+                    // 处理中的记录也是未完成的数据，不能让 Checkpoint 提前越过它。
+                    if (!records.isEmpty() || processingRecords > 0) {
+                        if (drained.isDone()) {
+                            drained = new CompletableFuture<>();
+                        }
+                    }
                     if (!records.isEmpty()) {
                         available.complete(null);
                     }
@@ -58,17 +65,32 @@ public final class LocalChannel<T> {
     public InputStatus emitNext(ReaderOutput<T> output) throws Exception {
         Objects.requireNonNull(output, "output 不能为空");
         checkFailure();
-        T record = records.poll();
-        if (record != null) {
+        T record;
+        synchronized (stateLock) {
+            record = records.poll();
+            if (record != null) {
+                processingRecords++;
+                if (drained.isDone()) {
+                    drained = new CompletableFuture<>();
+                }
+            } else {
+                checkFailure();
+                if (!records.isEmpty()) {
+                    return InputStatus.MORE_AVAILABLE;
+                }
+                return remainingProducers == 0 ? InputStatus.END_OF_INPUT : InputStatus.NOTHING_AVAILABLE;
+            }
+        }
+        try {
             output.collect(record);
             return InputStatus.MORE_AVAILABLE;
-        }
-        synchronized (stateLock) {
-            checkFailure();
-            if (!records.isEmpty()) {
-                return InputStatus.MORE_AVAILABLE;
+        } finally {
+            synchronized (stateLock) {
+                processingRecords--;
+                if (records.isEmpty() && processingRecords == 0) {
+                    drained.complete(null);
+                }
             }
-            return remainingProducers == 0 ? InputStatus.END_OF_INPUT : InputStatus.NOTHING_AVAILABLE;
         }
     }
 
@@ -86,6 +108,20 @@ public final class LocalChannel<T> {
                 available = new CompletableFuture<>();
             }
             return available.copy();
+        }
+    }
+
+    /** 所有在队列中的记录及正在执行的下游回调均完成后的快照屏障。 */
+    public CompletableFuture<Void> drainedFuture() {
+        synchronized (stateLock) {
+            Throwable error = failure.get();
+            if (error != null) {
+                return CompletableFuture.failedFuture(error);
+            }
+            if (records.isEmpty() && processingRecords == 0) {
+                return CompletableFuture.completedFuture(null);
+            }
+            return drained.copy();
         }
     }
 
@@ -111,6 +147,7 @@ public final class LocalChannel<T> {
         if (failure.compareAndSet(null, cause)) {
             synchronized (stateLock) {
                 available.completeExceptionally(cause);
+                drained.completeExceptionally(cause);
             }
         }
     }

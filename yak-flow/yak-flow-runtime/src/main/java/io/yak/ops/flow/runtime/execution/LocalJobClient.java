@@ -3,7 +3,10 @@ package io.yak.ops.flow.runtime.execution;
 import io.yak.ops.core.api.common.JobExecutionResult;
 import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.common.JobStatus;
+import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.execution.JobClient;
+import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointCoordinator;
+import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointState;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -23,9 +26,11 @@ public final class LocalJobClient implements JobClient {
     private final Object monitor = new Object();
     private final CompletableFuture<JobExecutionResult> result = new CompletableFuture<>();
     private final CompletableFuture<Void> cancellation = new CompletableFuture<>();
+    private final CompletableFuture<LocalCheckpointCoordinator> checkpointController = new CompletableFuture<>();
 
     private volatile JobStatus status = JobStatus.CREATED;
     private volatile boolean cancellationRequested;
+    private volatile boolean checkpointConfigured;
     private Thread worker;
 
     LocalJobClient(JobID jobID) {
@@ -36,6 +41,8 @@ public final class LocalJobClient implements JobClient {
     void start(CompiledJobPlan plan, LocalJobRunner runner) {
         Objects.requireNonNull(plan, "plan 不能为空");
         Objects.requireNonNull(runner, "runner 不能为空");
+        checkpointConfigured = !plan.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
+                || plan.configuration().get(CheckpointingOptions.RESTORE_LATEST);
 
         Thread thread = Thread.ofVirtual()
                 .name("yak-local-job-" + jobID)
@@ -62,7 +69,7 @@ public final class LocalJobClient implements JobClient {
 
         long startedNanos = System.nanoTime();
         try {
-            runner.run(plan, () -> cancellationRequested);
+            runner.run(plan, () -> cancellationRequested, this::registerCheckpoint);
             if (!plan.graph().isBounded() && !cancellationRequested) {
                 completeFailed(new IllegalStateException("无界 Pipeline 未被取消却提前结束"));
                 return;
@@ -87,6 +94,7 @@ public final class LocalJobClient implements JobClient {
             canceled = cancellationRequested;
             status = canceled ? JobStatus.CANCELED : JobStatus.FINISHED;
         }
+        checkpointController.completeExceptionally(new IllegalStateException("作业已经结束"));
         if (canceled) {
             notifyCanceled();
         } else {
@@ -98,6 +106,7 @@ public final class LocalJobClient implements JobClient {
         synchronized (monitor) {
             status = JobStatus.CANCELED;
         }
+        checkpointController.completeExceptionally(new CancellationException("作业已取消"));
         notifyCanceled();
     }
 
@@ -107,6 +116,7 @@ public final class LocalJobClient implements JobClient {
     }
 
     private void completeFailed(Throwable failure) {
+        checkpointController.completeExceptionally(failure);
         boolean wasCancelRequested;
         synchronized (monitor) {
             status = JobStatus.FAILED;
@@ -116,6 +126,26 @@ public final class LocalJobClient implements JobClient {
         if (wasCancelRequested) {
             cancellation.completeExceptionally(failure);
         }
+    }
+
+    private void registerCheckpoint(LocalCheckpointCoordinator controller) {
+        if (!checkpointController.complete(Objects.requireNonNull(controller, "controller 不能为空"))) {
+            throw new IllegalStateException("本次作业重复注册 CheckpointCoordinator");
+        }
+    }
+
+    /**
+     * 触发一次 Source → Sink 对齐式 Checkpoint；仅新 Runtime 的本地 JobClient 提供该操作。
+     * 状态已持久化并收到 Source 回调后完成，取消/失败时 Future 异常完成。
+     */
+    public CompletableFuture<LocalCheckpointState> checkpoint() {
+        if (!checkpointConfigured) {
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("该 Job 未启用持久化 Checkpoint"));
+        }
+        if (status.isTerminalState() || cancellationRequested) {
+            return CompletableFuture.failedFuture(new IllegalStateException("已结束或取消中的 Job 不能触发 Checkpoint"));
+        }
+        return checkpointController.thenCompose(LocalCheckpointCoordinator::trigger).copy();
     }
 
     @Override

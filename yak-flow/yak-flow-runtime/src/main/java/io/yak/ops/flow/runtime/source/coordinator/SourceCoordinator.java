@@ -10,8 +10,10 @@ import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import io.yak.ops.flow.runtime.source.event.ReaderRegistrationEvent;
 import io.yak.ops.flow.runtime.source.event.RequestSplitEvent;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -47,6 +49,8 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     private volatile Thread eventThread;
     private SplitEnumerator<SplitT, EnumStateT> enumerator;
     private boolean started;
+    private boolean checkpointPaused;
+    private final Set<Integer> deferredSplitRequests = new LinkedHashSet<>();
 
     public SourceCoordinator(Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext) {
         this(source, coordinatorContext, null, false);
@@ -146,6 +150,10 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
                 // 已发送 NoMoreSplits 的迟到请求不应再次触发 Enumerator。
                 return null;
             }
+            if (checkpointPaused) {
+                deferredSplitRequests.add(taskInfo.subtaskIndex());
+                return null;
+            }
             try {
                 enumerator.handleSplitRequest(taskInfo.subtaskIndex());
                 return null;
@@ -153,6 +161,45 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
                 fail(failure);
                 throw failure;
             }
+        });
+    }
+
+    /** Source 协调侧冻结新 Split 请求；现有 Gateway 确认和失败仍正常处理。 */
+    public CompletableFuture<Void> pauseForCheckpoint() {
+        return submit(() -> {
+            ensureStarted();
+            if (checkpointPaused) {
+                throw new IllegalStateException("SourceCoordinator 已暂停");
+            }
+            checkpointPaused = true;
+            context.pauseForCheckpoint();
+            return null;
+        });
+    }
+
+    /** 检查全部在途 Split 和 NoMoreSplits 事件均已由 Reader Mailbox 处理。 */
+    public CompletableFuture<Void> awaitCheckpointDeliveries() {
+        return submit(() -> {
+            ensureStarted();
+            context.ensureDeliveriesCompleted();
+            return null;
+        });
+    }
+
+    /** Checkpoint 成功或失败都解冻 Reader Split 请求和 Enumerator 后台回调。 */
+    public CompletableFuture<Void> resumeAfterCheckpoint() {
+        return submit(() -> {
+            if (checkpointPaused) {
+                checkpointPaused = false;
+                context.resumeAfterCheckpoint();
+                for (Integer subtask : deferredSplitRequests) {
+                    if (context.registeredReaders().contains(subtask)) {
+                        enumerator.handleSplitRequest(subtask);
+                    }
+                }
+                deferredSplitRequests.clear();
+            }
+            return null;
         });
     }
 

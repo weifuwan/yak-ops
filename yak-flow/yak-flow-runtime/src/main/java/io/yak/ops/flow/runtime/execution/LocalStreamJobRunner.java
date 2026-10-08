@@ -8,6 +8,8 @@ import io.yak.ops.core.graph.StreamEdge;
 import io.yak.ops.core.graph.StreamGraph;
 import io.yak.ops.core.graph.StreamNode;
 import io.yak.ops.core.graph.StreamPartitioning;
+import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointCoordinator;
 import io.yak.ops.flow.runtime.operators.LocalOperatorChain;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
@@ -18,6 +20,7 @@ import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * Core-based 本地 Job 执行器：支持一个 Source → OneInputOperator* → Sink 的线性图。
@@ -81,22 +84,44 @@ public final class LocalStreamJobRunner implements LocalJobRunner {
                     + MAX_CHANNEL_CAPACITY + " 之间");
         }
         Duration interval = plan.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL);
-        if (!interval.isZero()) {
-            throw new UnsupportedOperationException("新 Runtime 尚未实现全局 Checkpoint，不能开启周期 Checkpoint");
+        boolean restoration = plan.configuration().get(CheckpointingOptions.RESTORE_LATEST);
+        if (!interval.isZero() || restoration) {
+            String directory = plan.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
+            if (directory == null || directory.isBlank()) {
+                throw new IllegalArgumentException("启用 Checkpoint 或恢复时必须指定状态目录");
+            }
+            if (plan.configuration().get(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS) != 1) {
+                throw new UnsupportedOperationException("当前本地 Checkpoint 只允许一次在途快照");
+            }
+            if (nodes.stream().anyMatch(StreamNode::isOperator)) {
+                throw new UnsupportedOperationException(
+                        "OneInputOperator 尚未定义状态序列化/恢复接口，不允许启用 Checkpoint");
+            }
+            FileCheckpointStore.graphSignature(graph);
         }
     }
 
     @Override
     public void run(CompiledJobPlan plan, BooleanSupplier cancellationRequested) throws Exception {
+        run(plan, cancellationRequested, ignored -> {});
+    }
+
+    @Override
+    public void run(CompiledJobPlan plan, BooleanSupplier cancellationRequested,
+            Consumer<LocalCheckpointCoordinator> registerCheckpoint) throws Exception {
+        Objects.requireNonNull(registerCheckpoint, "registerCheckpoint 不能为空");
         Objects.requireNonNull(cancellationRequested, "cancellationRequested 不能为空");
         validate(plan);
         if (cancellationRequested.getAsBoolean()) {
             throw new CancellationException("作业已请求取消");
         }
 
-        if (!canRunInline(plan.graph())) {
+        boolean checkpointsEnabled = !plan.configuration()
+                .get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
+                || plan.configuration().get(CheckpointingOptions.RESTORE_LATEST);
+        if (checkpointsEnabled || !canRunInline(plan.graph())) {
             new LocalTaskGraph(plan, cancellationRequested,
-                    plan.configuration().get(CoreOptions.LOCAL_CHANNEL_CAPACITY)).run();
+                    plan.configuration().get(CoreOptions.LOCAL_CHANNEL_CAPACITY), registerCheckpoint).run();
             return;
         }
 
