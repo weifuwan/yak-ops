@@ -1,4 +1,3 @@
-
 package io.yak.ops.core.api.operators;
 
 /**
