@@ -51,11 +51,23 @@ public class DataSyncTableRouteRepositoryImpl
     @Override
     public DataSyncTableRouteEntity update(String workspaceId, DataSyncTableRouteEntity entity) {
         if (StringUtils.isBlank(workspaceId) || entity == null || StringUtils.isBlank(entity.getId())) return null;
+        // 显式写入 nullable 字段，避免 MyBatis-Plus 默认跳过 NULL 导致旧 Mapping / Schema 残留。
         int updated = tableRouteMapper.update(
-                entity,
+                null,
                 Wrappers.<DataSyncTableRouteEntity>lambdaUpdate()
                         .eq(DataSyncTableRouteEntity::getWorkspaceId, workspaceId)
-                        .eq(DataSyncTableRouteEntity::getId, entity.getId()));
+                        .eq(DataSyncTableRouteEntity::getId, entity.getId())
+                        .set(DataSyncTableRouteEntity::getSourceDatabase, entity.getSourceDatabase())
+                        .set(DataSyncTableRouteEntity::getSourceSchema, entity.getSourceSchema())
+                        .set(DataSyncTableRouteEntity::getSourceTable, entity.getSourceTable())
+                        .set(DataSyncTableRouteEntity::getTargetDatabase, entity.getTargetDatabase())
+                        .set(DataSyncTableRouteEntity::getTargetSchema, entity.getTargetSchema())
+                        .set(DataSyncTableRouteEntity::getTargetTable, entity.getTargetTable())
+                        .set(DataSyncTableRouteEntity::getAutoCreateTable, entity.getAutoCreateTable())
+                        .set(DataSyncTableRouteEntity::getMappingConfig, entity.getMappingConfig())
+                        .set(DataSyncTableRouteEntity::getSortOrder, entity.getSortOrder())
+                        .set(DataSyncTableRouteEntity::getUpdateTime, entity.getUpdateTime())
+                        .set(DataSyncTableRouteEntity::getUpdateBy, entity.getUpdateBy()));
         return updated > 0 ? entity : null;
     }
 
