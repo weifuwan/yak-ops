@@ -1,4 +1,4 @@
-package io.yak.ops.core.execution.local;
+package io.yak.ops.flow.runtime.execution;
 
 import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.common.JobExecutionResult;

@@ -36,15 +36,15 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-ops-core`
 
-保留模块；不因为名称通用而把业务代码迁入。
+拥有新的批流共用 Source / Sink / Operator API、类型化 Configuration、Transformation / StreamGraph 以及 `PipelineExecutor` / `JobClient` 稳定契约。只保留公共协议和逻辑拓扑，不创建本地运行线程，也不持有运行中 Job、Reader 或 Connector 连接。
 
 ### `yak-flow/yak-flow-api`
 
-拥有批流共用的 Source / Sink、Row / Schema / Logical Type、Boundedness 与不透明 CheckpointState 契约。只依赖 JDK，不引入 Spring、JDBC、Debezium 或产品业务类型。
+暂时保留原有 Source / Sink、Row / Schema / Logical Type、Boundedness 与 CheckpointState 契约，供尚未迁移的代码使用；新引擎以 `yak-ops-core` 契约为目标，不在一条执行链路中混用新旧 Source API。过渡期间 API 保持 JDK-only。
 
 ### `yak-flow/yak-flow-runtime`
 
-通过 API 连接 Source、有限容量 Channel 和 Sink，拥有本地线程、取消、指标与 checkpoint barrier。只依赖 YakFlow API，不拥有 Task / Execution / Attempt 持久化、调度或产品重试策略。
+拥有本地执行实现：`LocalPipelineExecutor`、`LocalJobClient`、`LocalJobRunner` 和 `source.coordinator`；后续逐步实现 Reader Task、IO、Checkpoint 等运行机制。依赖 `yak-ops-core`，并临时保留对旧 YakFlow API 的过渡依赖；不拥有产品 Task / Execution / Attempt 持久化、Cron 或业务重试策略。当前重构阶段不声明已具备完整运行闭环。
 
 ### `yak-flow/yak-flow-connector-jdbc`
 
@@ -142,8 +142,8 @@ UI → HTTP → Boot
              ├─ DataSourceService → DAO / Datasource Plugin API
              └─ DataSyncService → DAO / DataSourceService / YakFlow
 
-YakFlow Runtime → YakFlow API
-YakFlow Connectors → YakFlow API / Datasource connection runtime
+YakFlow Runtime → Yak Ops Core / YakFlow API（过渡）
+YakFlow Connectors → Yak Ops Core（目标）/ YakFlow API / Datasource connection runtime（过渡）
 Boot Quartz → Data Sync Scheduler Contract
 ```
 
