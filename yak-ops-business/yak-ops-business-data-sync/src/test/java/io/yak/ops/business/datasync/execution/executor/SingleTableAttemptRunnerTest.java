@@ -16,7 +16,7 @@ import io.yak.ops.common.enums.datasync.DataSyncAttemptStatus;
 import io.yak.ops.common.enums.datasync.DataSyncInstanceStatus;
 import io.yak.ops.common.enums.datasync.DataSyncRetryPolicyMode;
 import io.yak.ops.dao.entity.datasync.DataSyncAttemptEntity;
-import io.yak.ops.flow.runtime.ExecutionMetrics;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;

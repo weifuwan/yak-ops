@@ -1,8 +1,5 @@
 package io.yak.ops.business.datasync.execution.executor;
 
-import io.yak.ops.flow.runtime.ExecutionStatus;
-import io.yak.ops.flow.runtime.LocalExecution;
-
 /**
  * 取消后等待 YakFlow Source/Sink 工作线程真正退出，防止重试或 CDC serverId 释放先于 Runtime 终止。
  *

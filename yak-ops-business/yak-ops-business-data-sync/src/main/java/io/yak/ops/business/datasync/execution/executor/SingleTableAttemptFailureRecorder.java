@@ -5,7 +5,6 @@ import io.yak.ops.business.datasync.execution.lifecycle.DataSyncAttemptLifecycle
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncRetryAssessment;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncRetryDecision;
 import io.yak.ops.dao.entity.datasync.DataSyncAttemptEntity;
-import io.yak.ops.flow.runtime.ExecutionMetrics;
 
 /**
  * 单表执行器失败收口时，将共用指标和退避参数交给唯一的 Attempt Lifecycle 持久化。

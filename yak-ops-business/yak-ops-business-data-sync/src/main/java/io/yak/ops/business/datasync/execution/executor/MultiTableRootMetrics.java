@@ -1,7 +1,7 @@
 package io.yak.ops.business.datasync.execution.executor;
 
 import io.yak.ops.dao.entity.datasync.DataSyncTableExecutionEntity;
-import io.yak.ops.flow.runtime.ExecutionMetrics;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

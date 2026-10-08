@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.yak.ops.dao.entity.datasync.DataSyncTableExecutionEntity;
-import io.yak.ops.flow.runtime.ExecutionMetrics;
+
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

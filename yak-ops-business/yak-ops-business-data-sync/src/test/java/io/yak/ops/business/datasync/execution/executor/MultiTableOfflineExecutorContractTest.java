@@ -17,7 +17,7 @@ import io.yak.ops.dao.entity.datasync.DataSyncTableAttemptEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTableExecutionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableExecutionRepository;
-import io.yak.ops.flow.runtime.ExecutionStatus;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.net.SocketTimeoutException;

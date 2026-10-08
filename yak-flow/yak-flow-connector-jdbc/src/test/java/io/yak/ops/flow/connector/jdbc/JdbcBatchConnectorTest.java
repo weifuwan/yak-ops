@@ -8,8 +8,6 @@ import io.yak.ops.flow.api.row.YakTableSchema;
 import io.yak.ops.flow.connector.jdbc.sink.JdbcSink;
 import io.yak.ops.flow.connector.jdbc.source.JdbcSource;
 import io.yak.ops.flow.connector.jdbc.source.JdbcSourceSplit;
-import io.yak.ops.flow.runtime.ExecutionStatus;
-import io.yak.ops.flow.runtime.LocalExecutionEngine;
 import io.yak.ops.plugin.database.jdbc.JdbcConnectionProvider;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;

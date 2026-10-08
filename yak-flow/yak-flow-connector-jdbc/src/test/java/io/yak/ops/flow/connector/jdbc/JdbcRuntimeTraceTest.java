@@ -15,8 +15,6 @@ import io.yak.ops.flow.connector.jdbc.trace.JdbcSinkOpenedTraceEvent;
 import io.yak.ops.flow.connector.jdbc.trace.JdbcSourceSplitTraceEvent;
 import io.yak.ops.flow.connector.jdbc.trace.JdbcTraceEventType;
 import io.yak.ops.flow.connector.jdbc.trace.JdbcTraceFailureStage;
-import io.yak.ops.flow.runtime.ExecutionStatus;
-import io.yak.ops.flow.runtime.LocalExecutionEngine;
 import io.yak.ops.plugin.database.jdbc.JdbcConnectionProvider;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;

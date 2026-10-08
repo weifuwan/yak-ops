@@ -1,6 +1,5 @@
 package io.yak.ops.business.datasync.execution.lifecycle;
 
-import io.yak.ops.flow.runtime.LocalExecution;
 import java.util.Objects;
 import java.util.function.Supplier;
 
