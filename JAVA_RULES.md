@@ -152,6 +152,7 @@ Must:
 - class / record / enum / interface / annotation 有独立语义时定义为顶层类型，并放在明确 owner package。
 - DTO、VO、分页响应、公共 Contract、SPI Contract 必须使用顶层类型。
 - 修改到已有 nested contract 时，应在同一变更中优先拆为顶层类型。
+- `execution.executor` 下的生产类禁止保留 nested class / record / interface / enum，包括仅服务于实现的运行状态和结果载体；必须拆成语义明确的顶层文件。
 
 Must Not:
 - 新增 nested class、nested record、nested enum、nested interface 作为业务或跨层 Contract。
@@ -187,6 +188,8 @@ Must Not:
 - Prefer early return when it removes nesting.
 - Avoid methods that only forward the same arguments to another method without adding semantics.
 - Avoid repeated null checks when the boundary already guarantees the value.
+- 当方法同时传递大量相关参数时，优先把具有稳定含义的一组输入收敛为不可变顶层 record；禁止创建无边界的万能 Context。
+- 当默认值、退避计算和错误脱敏被多个真实 Executor 复用时，复用同一个领域 owner；通用 String / Collection / Object 判断继续使用 Common Utils。
 - Prefer existing JDK / Spring / MyBatis-Plus APIs over wrapper methods with identical semantics.
 - Use `record` for immutable data carriers when it makes the contract clearer.
 

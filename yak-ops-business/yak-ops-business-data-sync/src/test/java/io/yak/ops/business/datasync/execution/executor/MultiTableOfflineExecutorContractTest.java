@@ -35,9 +35,9 @@ class MultiTableOfflineExecutorContractTest {
     void failedAppendTableDoesNotBlockOtherTablesOrReplaySuccessfulTables() throws Exception {
         Fixture f = new Fixture();
         f.runner = (table, attempt) -> "orders".equals(table)
-                ? new MultiTableOfflineExecutor.RouteOutcome(
+                ? new RouteExecutionOutcome(
                         ExecutionStatus.FAILED, 5, 2, new SocketTimeoutException("timeout"), true)
-                : new MultiTableOfflineExecutor.RouteOutcome(
+                : new RouteExecutionOutcome(
                         ExecutionStatus.SUCCEEDED, "users".equals(table) ? 10 : 3,
                         "users".equals(table) ? 10 : 3, null, true);
         f.execute();
@@ -58,11 +58,11 @@ class MultiTableOfflineExecutorContractTest {
         Fixture f = new Fixture();
         f.runner = (table, attempt) -> {
             if ("orders".equals(table) && attempt == 1) {
-                return new MultiTableOfflineExecutor.RouteOutcome(
+                return new RouteExecutionOutcome(
                         ExecutionStatus.FAILED, 0, 0, new SocketTimeoutException("connect timeout"), false);
             }
             long rows = "users".equals(table) ? 10 : "orders".equals(table) ? 7 : 3;
-            return new MultiTableOfflineExecutor.RouteOutcome(ExecutionStatus.SUCCEEDED, rows, rows, null, true);
+            return new RouteExecutionOutcome(ExecutionStatus.SUCCEEDED, rows, rows, null, true);
         };
         f.execute();
 
@@ -93,7 +93,7 @@ class MultiTableOfflineExecutorContractTest {
     }
 
     private interface Scenario {
-        MultiTableOfflineExecutor.RouteOutcome run(String table, int attempt);
+        RouteExecutionOutcome run(String table, int attempt);
     }
 
     private static final class Fixture {
@@ -102,7 +102,7 @@ class MultiTableOfflineExecutorContractTest {
         private final Map<String, List<DataSyncTableAttemptEntity>> attempts = new LinkedHashMap<>();
         private final Map<String, Integer> calls = new LinkedHashMap<>();
         private Scenario runner = (table, attempt) ->
-                new MultiTableOfflineExecutor.RouteOutcome(ExecutionStatus.SUCCEEDED, 1, 1, null, true);
+                new RouteExecutionOutcome(ExecutionStatus.SUCCEEDED, 1, 1, null, true);
 
         Fixture() {
             root.setId("root-1");
@@ -130,12 +130,11 @@ class MultiTableOfflineExecutorContractTest {
         void execute() throws Exception {
             MultiTableOfflineExecutor executor = new MultiTableOfflineExecutor() {
                 @Override
-                protected RouteOutcome executeAttemptRuntime(
-                        String ws, String tableExecutionId, String attemptId, int no,
-                        DataSyncDefinitionSnapshotVO snapshot, RunControl control, BiConsumer<Long, Long> metrics) {
-                    String name = snapshot.getSource().getTable();
+                protected RouteExecutionOutcome executeAttemptRuntime(
+                        RouteAttemptRuntimeContext context, BiConsumer<Long, Long> metrics) {
+                    String name = context.snapshot().getSource().getTable();
                     calls.merge(name, 1, Integer::sum);
-                    RouteOutcome result = runner.run(name, no);
+                    RouteExecutionOutcome result = runner.run(name, context.attemptNo());
                     metrics.accept(result.readRows(), result.writeRows());
                     return result;
                 }

@@ -13,10 +13,8 @@ import io.yak.ops.common.bean.vo.datasync.DataSyncRetryPolicyVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTableRouteSnapshotVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasync.DataSyncInstanceStatus;
-import io.yak.ops.common.enums.datasync.DataSyncRetryPolicyMode;
 import io.yak.ops.common.enums.datasync.DataSyncTableExecutionStatus;
 import io.yak.ops.common.util.DateUtils;
-import io.yak.ops.common.util.SensitiveUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTableAttemptEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTableExecutionEntity;
@@ -54,10 +52,8 @@ public class MultiTableOfflineExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(MultiTableOfflineExecutor.class);
     private static final long METRICS_FLUSH_MILLIS = 500L;
-    private static final int MAX_ERROR_MESSAGE_LENGTH = 1000;
-    private static final int MAX_SMART_BACKOFF_SECONDS = 300;
 
-    private final ConcurrentMap<String, RunControl> controls = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, MultiTableRunControl> controls = new ConcurrentHashMap<>();
     private final DataSyncRetryClassifier retryClassifier = new DataSyncRetryClassifier();
 
     @Resource
@@ -82,20 +78,20 @@ public class MultiTableOfflineExecutor {
                 || !"OFFLINE".equals(snapshot.getSyncType())) {
             throw new IllegalArgumentException("multi-table executor requires an OFFLINE multi-route snapshot");
         }
-        RunControl control = new RunControl();
+        MultiTableRunControl control = new MultiTableRunControl();
         if (controls.putIfAbsent(rootExecutionId, control) != null) {
             throw new IllegalStateException("multi-table execution already started: " + rootExecutionId);
         }
         Thread worker = Thread.ofVirtual()
                 .name("yak-offline-multi-" + rootExecutionId)
                 .unstarted(() -> runBound(workspaceId, rootExecutionId, snapshot, control));
-        control.worker = worker;
+        control.setWorker(worker);
         worker.start();
     }
 
     /** 用户取消整个 Root；正在执行的 Route 会立即收到 Runtime cancel，后续 Route 不再启动。 */
     public boolean cancel(String rootExecutionId) {
-        RunControl control = controls.get(rootExecutionId);
+        MultiTableRunControl control = controls.get(rootExecutionId);
         if (control == null) return false;
         control.cancel();
         return true;
@@ -103,11 +99,11 @@ public class MultiTableOfflineExecutor {
 
     /** 用于 Contract Test 的同步执行入口，不创建额外线程。 */
     void executeInline(String workspaceId, String rootExecutionId, DataSyncDefinitionSnapshotVO snapshot) {
-        runBound(workspaceId, rootExecutionId, snapshot, new RunControl());
+        runBound(workspaceId, rootExecutionId, snapshot, new MultiTableRunControl());
     }
 
     private void runBound(
-            String workspaceId, String rootExecutionId, DataSyncDefinitionSnapshotVO snapshot, RunControl control) {
+            String workspaceId, String rootExecutionId, DataSyncDefinitionSnapshotVO snapshot, MultiTableRunControl control) {
         WorkspaceContext.bind(workspaceId);
         try {
             execute(workspaceId, rootExecutionId, snapshot, control);
@@ -116,7 +112,7 @@ public class MultiTableOfflineExecutor {
                     "多表同步异常，workspaceId={}, executionId={}, error={}",
                     workspaceId,
                     rootExecutionId,
-                    safeMessage(exception));
+                    ExecutionErrorMessages.tableFailure(exception));
             try {
                 DataSyncInstanceEntity root = instanceRepository
                         .queryById(workspaceId, rootExecutionId)
@@ -139,14 +135,14 @@ public class MultiTableOfflineExecutor {
                             totals[0],
                             totals[1],
                             DataSyncErrorCode.EXECUTION_LOST.getCode(),
-                            safeMessage(exception));
+                            ExecutionErrorMessages.tableFailure(exception));
                 }
             } catch (Exception recoveryException) {
                 LOG.error(
                         "多表同步异常收口失败，workspaceId={}, executionId={}, error={}",
                         workspaceId,
                         rootExecutionId,
-                        safeMessage(recoveryException));
+                        ExecutionErrorMessages.tableFailure(recoveryException));
             }
         } finally {
             controls.remove(rootExecutionId, control);
@@ -155,7 +151,7 @@ public class MultiTableOfflineExecutor {
     }
 
     private void execute(
-            String workspaceId, String rootExecutionId, DataSyncDefinitionSnapshotVO snapshot, RunControl control) {
+            String workspaceId, String rootExecutionId, DataSyncDefinitionSnapshotVO snapshot, MultiTableRunControl control) {
         if (!instanceRepository.transitionStatus(
                 workspaceId,
                 rootExecutionId,
@@ -181,7 +177,7 @@ public class MultiTableOfflineExecutor {
         }
 
         for (DataSyncTableRouteSnapshotVO route : snapshot.getTableRoutes()) {
-            if (control.canceled || !rootRunning(workspaceId, rootExecutionId)) break;
+            if (control.isCanceled() || !rootRunning(workspaceId, rootExecutionId)) break;
             DataSyncTableExecutionEntity table = byRoute.get(route.getRouteId());
             if (table == null || !route.getSortOrder().equals(table.getRouteOrder())) {
                 throw new IllegalStateException("frozen Route / Table Execution identity mismatch");
@@ -193,11 +189,11 @@ public class MultiTableOfflineExecutor {
             refreshRootMetrics(workspaceId, rootExecutionId);
         }
 
-        if (control.canceled && rootRunning(workspaceId, rootExecutionId)) {
+        if (control.isCanceled() && rootRunning(workspaceId, rootExecutionId)) {
             instanceRepository.cancelExecution(
                     workspaceId, rootExecutionId, DataSyncInstanceStatus.RUNNING, DateUtils.now());
         }
-        if (control.canceled || !rootRunning(workspaceId, rootExecutionId)) {
+        if (control.isCanceled() || !rootRunning(workspaceId, rootExecutionId)) {
             finishPendingAfterRootChange(workspaceId, rootExecutionId);
             return;
         }
@@ -210,15 +206,15 @@ public class MultiTableOfflineExecutor {
             DataSyncDefinitionSnapshotVO rootSnapshot,
             DataSyncTableRouteSnapshotVO route,
             DataSyncTableExecutionEntity table,
-            RunControl control) {
+            MultiTableRunControl control) {
         DataSyncDefinitionSnapshotVO runtimeSnapshot = singleRouteSnapshot(rootSnapshot, route);
         DataSyncRetryPolicyVO policy = rootSnapshot.getRetryPolicy();
-        int maxAttempts = policy == null || policy.getMaxAttempts() == null ? 1 : Math.max(1, policy.getMaxAttempts());
-        int backoffSeconds =
-                policy == null || policy.getBackoffSeconds() == null ? 60 : Math.max(0, policy.getBackoffSeconds());
+        ExecutionRetryPolicy retryPolicy = ExecutionRetryPolicy.from(policy);
+        int maxAttempts = retryPolicy.maxAttempts();
+        int backoffSeconds = retryPolicy.baseBackoffSeconds();
 
         for (int attemptNo = 1; attemptNo <= maxAttempts; attemptNo++) {
-            if (control.canceled || !rootRunning(workspaceId, rootExecutionId)) return;
+            if (control.isCanceled() || !rootRunning(workspaceId, rootExecutionId)) return;
             DataSyncTableAttemptEntity attempt = tableAttemptLifecycle.begin(workspaceId, table.getId(), attemptNo);
             int currentAttempt = attemptNo;
             BiConsumer<Long, Long> metrics = (read, write) -> {
@@ -226,14 +222,16 @@ public class MultiTableOfflineExecutor {
                         workspaceId, table.getId(), attempt.getId(), currentAttempt, read, write);
                 refreshRootMetrics(workspaceId, rootExecutionId);
             };
-            RouteOutcome outcome = executeAttemptRuntime(
-                    workspaceId, table.getId(), attempt.getId(), attemptNo, runtimeSnapshot, control, metrics);
+            RouteExecutionOutcome outcome = executeAttemptRuntime(
+                    new RouteAttemptRuntimeContext(
+                            workspaceId, table.getId(), attempt.getId(), attemptNo, runtimeSnapshot, control),
+                    metrics);
             if (outcome.status() == ExecutionStatus.CANCELED) control.cancel();
-            if (control.canceled && rootRunning(workspaceId, rootExecutionId)) {
+            if (control.isCanceled() && rootRunning(workspaceId, rootExecutionId)) {
                 instanceRepository.cancelExecution(
                         workspaceId, rootExecutionId, DataSyncInstanceStatus.RUNNING, DateUtils.now());
             }
-            if (control.canceled || !rootRunning(workspaceId, rootExecutionId)) {
+            if (control.isCanceled() || !rootRunning(workspaceId, rootExecutionId)) {
                 finishPendingAfterRootChange(workspaceId, rootExecutionId);
                 return;
             }
@@ -251,7 +249,7 @@ public class MultiTableOfflineExecutor {
                 return;
             }
 
-            String message = safeMessage(outcome.failure());
+            String message = ExecutionErrorMessages.tableFailure(outcome.failure());
             DataSyncRetryAssessment assessment = retryDecision(policy, runtimeSnapshot, outcome);
             boolean retry = assessment.retryable() && attemptNo < maxAttempts;
             tableAttemptLifecycle.complete(
@@ -274,30 +272,24 @@ public class MultiTableOfflineExecutor {
                         message);
                 return;
             }
-            if (!waitForRetry(workspaceId, rootExecutionId, control, retryDelay(policy, attemptNo, backoffSeconds))) {
+            if (!waitForRetry(workspaceId, rootExecutionId, control, retryPolicy.delayForAttempt(attemptNo, backoffSeconds))) {
                 return;
             }
         }
     }
 
     private DataSyncRetryAssessment retryDecision(
-            DataSyncRetryPolicyVO policy, DataSyncDefinitionSnapshotVO runtimeSnapshot, RouteOutcome outcome) {
-        if (policy == null || policy.getMode() == null || policy.getMode() == DataSyncRetryPolicyMode.FIXED) {
+            DataSyncRetryPolicyVO policy, DataSyncDefinitionSnapshotVO runtimeSnapshot, RouteExecutionOutcome outcome) {
+        if (ExecutionRetryPolicy.from(policy).isFixed()) {
             return DataSyncRetryAssessment.retryable("固定重试策略");
         }
         return retryClassifier.classify(
                 runtimeSnapshot, outcome.failure(), outcome.runtimeStarted(), outcome.writeRows());
     }
 
-    private int retryDelay(DataSyncRetryPolicyVO policy, int attemptNo, int backoffSeconds) {
-        if (policy == null || policy.getMode() != DataSyncRetryPolicyMode.SMART) return backoffSeconds;
-        long multiplier = 1L << Math.min(4, Math.max(0, attemptNo - 1));
-        return (int) Math.min(MAX_SMART_BACKOFF_SECONDS, (long) backoffSeconds * multiplier);
-    }
-
-    private boolean waitForRetry(String workspaceId, String rootExecutionId, RunControl control, int backoffSeconds) {
+    private boolean waitForRetry(String workspaceId, String rootExecutionId, MultiTableRunControl control, int backoffSeconds) {
         LocalDateTime next = DateUtils.now().plusSeconds(Math.max(0, backoffSeconds));
-        while (!control.canceled && rootRunning(workspaceId, rootExecutionId)) {
+        while (!control.isCanceled() && rootRunning(workspaceId, rootExecutionId)) {
             long remaining = Duration.between(DateUtils.now(), next).toMillis();
             if (remaining <= 0) return true;
             try {
@@ -311,14 +303,14 @@ public class MultiTableOfflineExecutor {
     }
 
     /** 执行一条已冻结 Route；测试可替换此数据平面入口，产品状态仍走真实 Lifecycle。 */
-    protected RouteOutcome executeAttemptRuntime(
-            String workspaceId,
-            String tableExecutionId,
-            String attemptId,
-            int attemptNo,
-            DataSyncDefinitionSnapshotVO runtimeSnapshot,
-            RunControl control,
-            BiConsumer<Long, Long> metrics) {
+    protected RouteExecutionOutcome executeAttemptRuntime(
+            RouteAttemptRuntimeContext context, BiConsumer<Long, Long> metrics) {
+        String workspaceId = context.workspaceId();
+        String tableExecutionId = context.tableExecutionId();
+        String attemptId = context.attemptId();
+        int attemptNo = context.attemptNo();
+        DataSyncDefinitionSnapshotVO runtimeSnapshot = context.snapshot();
+        MultiTableRunControl control = context.control();
         LocalExecution<?> execution = null;
         boolean started = false;
         try (ExecutionTraceSession trace =
@@ -327,8 +319,8 @@ public class MultiTableOfflineExecutor {
             execution = new LocalExecutionEngine()
                     .start(plan.source(), plan.sink(), plan.sourceSchema(), plan.sourceParallelism());
             started = true;
-            control.active = execution;
-            if (control.canceled) execution.cancel();
+            control.setActive(execution);
+            if (control.isCanceled()) execution.cancel();
             while (execution.status() == ExecutionStatus.RUNNING) {
                 ExecutionMetrics value = execution.metrics();
                 metrics.accept(value.readRows(), value.writeRows());
@@ -337,7 +329,7 @@ public class MultiTableOfflineExecutor {
             ExecutionStatus status = execution.await();
             ExecutionMetrics value = execution.metrics();
             metrics.accept(value.readRows(), value.writeRows());
-            return new RouteOutcome(
+            return new RouteExecutionOutcome(
                     status,
                     value.readRows(),
                     value.writeRows(),
@@ -351,13 +343,13 @@ public class MultiTableOfflineExecutor {
             if (execution != null) execution.cancel();
             return failedOutcome(execution, exception, started);
         } finally {
-            control.active = null;
+            control.clearActive();
         }
     }
 
-    private RouteOutcome failedOutcome(LocalExecution<?> execution, Throwable failure, boolean started) {
+    private RouteExecutionOutcome failedOutcome(LocalExecution<?> execution, Throwable failure, boolean started) {
         ExecutionMetrics value = execution == null ? null : execution.metrics();
-        return new RouteOutcome(
+        return new RouteExecutionOutcome(
                 ExecutionStatus.FAILED,
                 value == null ? 0L : value.readRows(),
                 value == null ? 0L : value.writeRows(),
@@ -457,40 +449,4 @@ public class MultiTableOfflineExecutor {
         return total > Long.MAX_VALUE - value ? Long.MAX_VALUE : total + value;
     }
 
-    private String safeMessage(Throwable error) {
-        String message = error == null
-                        || error.getMessage() == null
-                        || error.getMessage().isBlank()
-                ? "表级执行失败"
-                : error.getMessage();
-        return safeMessage(message);
-    }
-
-    private String safeMessage(String message) {
-        String value = SensitiveUtils.mask(message == null ? "表级执行失败" : message);
-        return value.length() > MAX_ERROR_MESSAGE_LENGTH ? value.substring(0, MAX_ERROR_MESSAGE_LENGTH) : value;
-    }
-
-    /** 用于取消的进程内运行令牌，不进入数据库和冻结快照。 */
-    protected static class RunControl {
-        private volatile boolean canceled;
-        private volatile Thread worker;
-        private volatile LocalExecution<?> active;
-
-        public void cancel() {
-            canceled = true;
-            LocalExecution<?> execution = active;
-            if (execution != null) execution.cancel();
-            Thread thread = worker;
-            if (thread != null) thread.interrupt();
-        }
-
-        public boolean isCanceled() {
-            return canceled;
-        }
-    }
-
-    /** 本 Route 最终 Runtime 结果与观测计数；不代表跨数据库 Exactly-once。 */
-    protected record RouteOutcome(
-            ExecutionStatus status, long readRows, long writeRows, Throwable failure, boolean runtimeStarted) {}
 }

@@ -11,12 +11,9 @@ import io.yak.ops.business.datasync.execution.planning.OfflineSyncExecutionPlann
 import io.yak.ops.business.datasync.execution.trace.ExecutionTraceSession;
 import io.yak.ops.business.datasync.execution.trace.ExecutionTraceStore;
 import io.yak.ops.common.bean.vo.datasync.DataSyncDefinitionSnapshotVO;
-import io.yak.ops.common.bean.vo.datasync.DataSyncRetryPolicyVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasync.DataSyncAttemptStatus;
 import io.yak.ops.common.enums.datasync.DataSyncInstanceStatus;
-import io.yak.ops.common.enums.datasync.DataSyncRetryPolicyMode;
-import io.yak.ops.common.util.SensitiveUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncAttemptEntity;
 import io.yak.ops.flow.runtime.ExecutionMetrics;
 import io.yak.ops.flow.runtime.ExecutionStatus;
@@ -39,9 +36,7 @@ import org.springframework.stereotype.Component;
 public class OfflineSyncExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(OfflineSyncExecutor.class);
-    private static final int MAX_ERROR_MESSAGE_LENGTH = 1000;
     private static final long METRICS_FLUSH_INTERVAL_MILLIS = 500L;
-    private static final int MAX_SMART_BACKOFF_SECONDS = 300;
 
     private final DataSyncRetryClassifier retryClassifier = new DataSyncRetryClassifier();
 
@@ -58,15 +53,16 @@ public class OfflineSyncExecutor {
     private ExecutionTraceStore executionTraceStore;
 
     public void submit(String workspaceId, String instanceId, DataSyncDefinitionSnapshotVO snapshot) {
-        start(
+        ExecutionRetryPolicy policy = ExecutionRetryPolicy.from(snapshot.getRetryPolicy());
+        start(new SingleTableRunContext(
                 workspaceId,
                 instanceId,
                 snapshot,
                 1,
-                maxAttempts(snapshot),
-                backoffSeconds(snapshot),
+                policy.maxAttempts(),
+                policy.baseBackoffSeconds(),
                 DataSyncInstanceStatus.PENDING,
-                null);
+                null));
     }
 
     public void resumeRetry(
@@ -80,7 +76,7 @@ public class OfflineSyncExecutor {
         if (nextAttemptNo < 2 || maxAttempts < nextAttemptNo || nextRetryTime == null) {
             throw new IllegalArgumentException("invalid durable retry recovery state");
         }
-        start(
+        start(new SingleTableRunContext(
                 workspaceId,
                 instanceId,
                 snapshot,
@@ -88,53 +84,24 @@ public class OfflineSyncExecutor {
                 maxAttempts,
                 Math.max(0, backoffSeconds),
                 DataSyncInstanceStatus.RETRY_WAITING,
-                nextRetryTime);
+                nextRetryTime));
     }
 
-    private void start(
-            String workspaceId,
-            String instanceId,
-            DataSyncDefinitionSnapshotVO snapshot,
-            int firstAttemptNo,
-            int maxAttempts,
-            int backoffSeconds,
-            DataSyncInstanceStatus expectedExecutionStatus,
-            LocalDateTime initialRetryTime) {
-        Thread.ofVirtual()
-                .name("yak-offline-sync-" + instanceId)
-                .start(() -> execute(
-                        workspaceId,
-                        instanceId,
-                        snapshot,
-                        firstAttemptNo,
-                        maxAttempts,
-                        backoffSeconds,
-                        expectedExecutionStatus,
-                        initialRetryTime));
+    private void start(SingleTableRunContext context) {
+        Thread.ofVirtual().name("yak-offline-sync-" + context.executionId()).start(() -> execute(context));
     }
 
-    private void execute(
-            String workspaceId,
-            String instanceId,
-            DataSyncDefinitionSnapshotVO snapshot,
-            int firstAttemptNo,
-            int maxAttempts,
-            int backoffSeconds,
-            DataSyncInstanceStatus expectedExecutionStatus,
-            LocalDateTime initialRetryTime) {
+    private void execute(SingleTableRunContext context) {
+        String workspaceId = context.workspaceId();
+        String instanceId = context.executionId();
+        DataSyncInstanceStatus expectedExecutionStatus = context.expectedExecutionStatus();
         WorkspaceContext.bind(workspaceId);
         try {
-            if (initialRetryTime != null && !waitForRetry(workspaceId, instanceId, initialRetryTime)) return;
+            if (context.initialRetryTime() != null
+                    && !waitForRetry(workspaceId, instanceId, context.initialRetryTime())) return;
 
-            for (int attemptNo = firstAttemptNo; attemptNo <= maxAttempts; attemptNo++) {
-                DataSyncRetryDecision decision = executeAttempt(
-                        workspaceId,
-                        instanceId,
-                        snapshot,
-                        attemptNo,
-                        maxAttempts,
-                        backoffSeconds,
-                        expectedExecutionStatus);
+            for (int attemptNo = context.firstAttemptNo(); attemptNo <= context.maxAttempts(); attemptNo++) {
+                DataSyncRetryDecision decision = executeAttempt(context, attemptNo, expectedExecutionStatus);
                 if (!decision.retry()) return;
                 if (!waitForRetry(workspaceId, instanceId, decision.nextRetryTime())) return;
                 expectedExecutionStatus = DataSyncInstanceStatus.RETRY_WAITING;
@@ -145,13 +112,11 @@ public class OfflineSyncExecutor {
     }
 
     private DataSyncRetryDecision executeAttempt(
-            String workspaceId,
-            String instanceId,
-            DataSyncDefinitionSnapshotVO snapshot,
-            int attemptNo,
-            int maxAttempts,
-            int backoffSeconds,
-            DataSyncInstanceStatus expectedExecutionStatus) {
+            SingleTableRunContext context, int attemptNo, DataSyncInstanceStatus expectedExecutionStatus) {
+        String workspaceId = context.workspaceId();
+        String instanceId = context.executionId();
+        DataSyncDefinitionSnapshotVO snapshot = context.snapshot();
+        int maxAttempts = context.maxAttempts();
         DataSyncAttemptEntity attempt = attemptLifecycle.createAttempt(workspaceId, instanceId, attemptNo);
         LocalExecution<?> execution = null;
         boolean started = false;
@@ -215,54 +180,45 @@ public class OfflineSyncExecutor {
             }
 
             Throwable failure = execution.failure().orElse(null);
-            String message = safeMessage(failure);
+            String message = ExecutionErrorMessages.attemptFailure(failure);
             return failAttempt(
-                    workspaceId,
-                    instanceId,
-                    snapshot,
+                    context,
                     attempt,
                     attemptNo,
-                    maxAttempts,
-                    backoffSeconds,
-                    DataSyncAttemptStatus.RUNNING,
-                    DataSyncInstanceStatus.RUNNING,
-                    metrics,
-                    failure,
-                    true,
-                    message);
+                    new AttemptFailureDetails(
+                            DataSyncAttemptStatus.RUNNING,
+                            DataSyncInstanceStatus.RUNNING,
+                            metrics,
+                            failure,
+                            message),
+                    true);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             if (execution != null) execution.cancel();
             return failAttempt(
-                    workspaceId,
-                    instanceId,
-                    snapshot,
+                    context,
                     attempt,
                     attemptNo,
-                    maxAttempts,
-                    backoffSeconds,
-                    started ? DataSyncAttemptStatus.RUNNING : DataSyncAttemptStatus.PENDING,
-                    started ? DataSyncInstanceStatus.RUNNING : expectedExecutionStatus,
-                    execution == null ? null : execution.metrics(),
-                    exception,
-                    execution != null,
-                    safeMessage(exception));
+                    new AttemptFailureDetails(
+                            started ? DataSyncAttemptStatus.RUNNING : DataSyncAttemptStatus.PENDING,
+                            started ? DataSyncInstanceStatus.RUNNING : expectedExecutionStatus,
+                            execution == null ? null : execution.metrics(),
+                            exception,
+                            ExecutionErrorMessages.attemptFailure(exception)),
+                    execution != null);
         } catch (Exception exception) {
             if (execution != null) execution.cancel();
             return failAttempt(
-                    workspaceId,
-                    instanceId,
-                    snapshot,
+                    context,
                     attempt,
                     attemptNo,
-                    maxAttempts,
-                    backoffSeconds,
-                    started ? DataSyncAttemptStatus.RUNNING : DataSyncAttemptStatus.PENDING,
-                    started ? DataSyncInstanceStatus.RUNNING : expectedExecutionStatus,
-                    execution == null ? null : execution.metrics(),
-                    exception,
-                    execution != null,
-                    safeMessage(exception));
+                    new AttemptFailureDetails(
+                            started ? DataSyncAttemptStatus.RUNNING : DataSyncAttemptStatus.PENDING,
+                            started ? DataSyncInstanceStatus.RUNNING : expectedExecutionStatus,
+                            execution == null ? null : execution.metrics(),
+                            exception,
+                            ExecutionErrorMessages.attemptFailure(exception)),
+                    execution != null);
         } finally {
             if (execution != null) executionRegistry.remove(instanceId, execution);
             traceSession.close();
@@ -270,23 +226,26 @@ public class OfflineSyncExecutor {
     }
 
     private DataSyncRetryDecision failAttempt(
-            String workspaceId,
-            String instanceId,
-            DataSyncDefinitionSnapshotVO snapshot,
+            SingleTableRunContext context,
             DataSyncAttemptEntity attempt,
             int attemptNo,
-            int maxAttempts,
-            int backoffSeconds,
-            DataSyncAttemptStatus expectedAttemptStatus,
-            DataSyncInstanceStatus expectedExecutionStatus,
-            ExecutionMetrics metrics,
-            Throwable failure,
-            boolean runtimeStarted,
-            String message) {
+            AttemptFailureDetails details,
+            boolean runtimeStarted) {
+        String workspaceId = context.workspaceId();
+        String instanceId = context.executionId();
+        DataSyncDefinitionSnapshotVO snapshot = context.snapshot();
+        int maxAttempts = context.maxAttempts();
+        int backoffSeconds = context.backoffSeconds();
+        DataSyncAttemptStatus expectedAttemptStatus = details.expectedAttemptStatus();
+        DataSyncInstanceStatus expectedExecutionStatus = details.expectedExecutionStatus();
+        ExecutionMetrics metrics = details.metrics();
+        Throwable failure = details.cause();
+        String message = details.message();
         long readRows = metrics == null ? 0L : metrics.readRows();
         long writeRows = metrics == null ? 0L : metrics.writeRows();
         DataSyncRetryAssessment assessment = retryAssessment(snapshot, failure, runtimeStarted, writeRows);
-        int effectiveBackoffSeconds = retryBackoffSeconds(snapshot, attemptNo, backoffSeconds);
+        int effectiveBackoffSeconds = ExecutionRetryPolicy.from(snapshot.getRetryPolicy())
+                .delayForAttempt(attemptNo, backoffSeconds);
         DataSyncRetryDecision decision = attemptLifecycle.failAttempt(
                 workspaceId,
                 instanceId,
@@ -327,21 +286,10 @@ public class OfflineSyncExecutor {
 
     private DataSyncRetryAssessment retryAssessment(
             DataSyncDefinitionSnapshotVO snapshot, Throwable failure, boolean runtimeStarted, long writeRows) {
-        DataSyncRetryPolicyVO policy = snapshot.getRetryPolicy();
-        if (policy == null || policy.getMode() == null || policy.getMode() == DataSyncRetryPolicyMode.FIXED) {
+        if (ExecutionRetryPolicy.from(snapshot.getRetryPolicy()).isFixed()) {
             return DataSyncRetryAssessment.retryable("固定重试策略");
         }
         return retryClassifier.classify(snapshot, failure, runtimeStarted, writeRows);
-    }
-
-    private int retryBackoffSeconds(
-            DataSyncDefinitionSnapshotVO snapshot, int attemptNo, int configuredBackoffSeconds) {
-        DataSyncRetryPolicyVO policy = snapshot.getRetryPolicy();
-        if (policy == null || policy.getMode() != DataSyncRetryPolicyMode.SMART) {
-            return Math.max(0, configuredBackoffSeconds);
-        }
-        long multiplier = 1L << Math.min(4, Math.max(0, attemptNo - 1));
-        return (int) Math.min(MAX_SMART_BACKOFF_SECONDS, Math.max(0L, configuredBackoffSeconds) * multiplier);
     }
 
     private void persistMetrics(String workspaceId, String instanceId, String attemptId, ExecutionMetrics metrics) {
@@ -361,24 +309,4 @@ public class OfflineSyncExecutor {
         return attemptLifecycle.isRetryWaiting(workspaceId, instanceId);
     }
 
-    private int maxAttempts(DataSyncDefinitionSnapshotVO snapshot) {
-        DataSyncRetryPolicyVO policy = snapshot.getRetryPolicy();
-        return policy == null || policy.getMaxAttempts() == null ? 1 : Math.max(1, policy.getMaxAttempts());
-    }
-
-    private int backoffSeconds(DataSyncDefinitionSnapshotVO snapshot) {
-        DataSyncRetryPolicyVO policy = snapshot.getRetryPolicy();
-        return policy == null || policy.getBackoffSeconds() == null ? 60 : Math.max(0, policy.getBackoffSeconds());
-    }
-
-    private String safeMessage(Throwable throwable) {
-        String message = throwable == null ? DataSyncErrorCode.EXECUTION_FAILED.getMessage() : throwable.getMessage();
-        if (message == null || message.isBlank()) {
-            message = throwable == null
-                    ? DataSyncErrorCode.EXECUTION_FAILED.getMessage()
-                    : throwable.getClass().getSimpleName();
-        }
-        String masked = SensitiveUtils.mask(message);
-        return masked.length() > MAX_ERROR_MESSAGE_LENGTH ? masked.substring(0, MAX_ERROR_MESSAGE_LENGTH) : masked;
-    }
 }
