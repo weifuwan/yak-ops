@@ -102,8 +102,9 @@ public class DataSyncAttemptLifecycle {
     }
 
     public void updateMetrics(String workspaceId, String executionId, String attemptId, long readRows, long writeRows) {
-        attemptRepository.updateMetrics(workspaceId, attemptId, readRows, writeRows);
-        instanceRepository.updateMetrics(workspaceId, executionId, readRows, writeRows);
+        if (attemptRepository.updateMetrics(workspaceId, attemptId, readRows, writeRows)) {
+            instanceRepository.updateMetrics(workspaceId, executionId, readRows, writeRows);
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)

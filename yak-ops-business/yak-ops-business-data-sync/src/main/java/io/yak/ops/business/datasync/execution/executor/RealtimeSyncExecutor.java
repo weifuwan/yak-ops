@@ -1,6 +1,7 @@
 package io.yak.ops.business.datasync.execution.executor;
 
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncAttemptLifecycle;
+import io.yak.ops.business.datasync.execution.lifecycle.DataSyncExecutionControl;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncExecutionRegistry;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncRetryAssessment;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncRetryClassifier;
@@ -82,27 +83,32 @@ public class RealtimeSyncExecutor {
         DataSyncDefinitionSnapshotVO snapshot = context.snapshot();
         int maxAttempts = context.maxAttempts();
         DataSyncAttemptEntity attempt = attemptLifecycle.createAttempt(workspaceId, instanceId, attemptNo);
+        DataSyncExecutionControl control = executionRegistry.reserve(instanceId);
         LocalExecution<?> execution = null;
         String stateKey = null;
         Long serverId = null;
         boolean started = false;
 
         try {
-            stateKey = stateNamespace.stateKey(workspaceId, snapshot.getTaskId(), snapshot.getTaskVersion());
-            serverId = serverIdAllocator.allocate(stateKey);
-            RealtimeSyncExecutionPlan plan = executionPlanner.plan(workspaceId, snapshot, serverId);
-            execution = new LocalExecutionEngine(plan.checkpointInterval())
-                    .start(plan.source(), plan.sink(), plan.sourceSchema());
-            executionRegistry.register(instanceId, execution);
-
             if (!attemptLifecycle.startAttempt(
                     workspaceId, instanceId, attempt.getId(), attemptNo, expectedExecutionStatus)) {
-                execution.cancel();
-                execution.await();
                 attemptLifecycle.cancelActiveAttempt(workspaceId, instanceId);
                 return DataSyncRetryDecision.stop();
             }
             started = true;
+            if (control.isCanceled()) {
+                attemptLifecycle.cancelActiveAttempt(workspaceId, instanceId);
+                return DataSyncRetryDecision.stop();
+            }
+            stateKey = stateNamespace.stateKey(workspaceId, snapshot.getTaskId(), snapshot.getTaskVersion());
+            serverId = serverIdAllocator.allocate(stateKey);
+            RealtimeSyncExecutionPlan plan = executionPlanner.plan(workspaceId, snapshot, serverId);
+            execution = control.launch(() -> new LocalExecutionEngine(plan.checkpointInterval())
+                    .start(plan.source(), plan.sink(), plan.sourceSchema()));
+            if (execution == null) {
+                attemptLifecycle.cancelActiveAttempt(workspaceId, instanceId);
+                return DataSyncRetryDecision.stop();
+            }
             attemptLifecycle.recordSourceReady(workspaceId, instanceId, attempt.getId());
             attemptLifecycle.recordTargetReady(workspaceId, instanceId, attempt.getId());
 
@@ -158,7 +164,7 @@ public class RealtimeSyncExecutor {
                     true);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            if (execution != null) execution.cancel();
+            ExecutionRuntimeTermination.cancelAndAwait(execution);
             return failAttempt(
                     context,
                     attempt,
@@ -171,7 +177,7 @@ public class RealtimeSyncExecutor {
                             ExecutionErrorMessages.attemptFailure(exception)),
                     false);
         } catch (Exception exception) {
-            if (execution != null) execution.cancel();
+            ExecutionRuntimeTermination.cancelAndAwait(execution);
             return failAttempt(
                     context,
                     attempt,
@@ -184,7 +190,8 @@ public class RealtimeSyncExecutor {
                             ExecutionErrorMessages.attemptFailure(exception)),
                     false);
         } finally {
-            if (execution != null) executionRegistry.remove(instanceId, execution);
+            ExecutionRuntimeTermination.stopAndAwait(execution);
+            executionRegistry.remove(instanceId, control);
             if (stateKey != null && serverId != null) serverIdAllocator.release(stateKey, serverId);
         }
     }

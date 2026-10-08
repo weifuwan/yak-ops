@@ -111,7 +111,8 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
                         update,
                         Wrappers.<DataSyncInstanceEntity>lambdaUpdate()
                                 .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
-                                .eq(DataSyncInstanceEntity::getId, id))
+                                .eq(DataSyncInstanceEntity::getId, id)
+                                .eq(DataSyncInstanceEntity::getStatus, DataSyncInstanceStatus.RUNNING))
                 > 0;
     }
 
