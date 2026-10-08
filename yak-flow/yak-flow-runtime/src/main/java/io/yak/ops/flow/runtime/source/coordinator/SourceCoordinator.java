@@ -6,6 +6,8 @@ import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.flow.runtime.checkpoint.SourceCoordinatorCheckpoint;
 import io.yak.ops.flow.runtime.source.event.ReaderRegistrationEvent;
 import io.yak.ops.flow.runtime.source.event.RequestSplitEvent;
+import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
+import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -88,8 +90,8 @@ public final class SourceCoordinator<T, SplitT extends SourceSplit, EnumStateT> 
         });
     }
 
-    /** Reader 已创建 Gateway 后进行注册；不会等待分片实际读取完成。 */
-    public CompletableFuture<Void> registerReader(int subtaskId, SourceReaderGateway<SplitT> gateway) {
+    /** Reader 已创建 SubtaskGateway 后进行注册；不会等待分片实际读取完成。 */
+    public CompletableFuture<Void> registerReader(int subtaskId, SubtaskGateway gateway) {
         ReaderRegistrationEvent event = new ReaderRegistrationEvent(subtaskId);
         Objects.requireNonNull(gateway, "gateway 不能为空");
         return submit(() -> {
@@ -105,16 +107,31 @@ public final class SourceCoordinator<T, SplitT extends SourceSplit, EnumStateT> 
         });
     }
 
-    /** 将 Reader 发出的请求送入 Enumerator 所在事件循环。 */
-    public CompletableFuture<Void> requestSplit(int subtaskId) {
-        RequestSplitEvent event = new RequestSplitEvent(subtaskId);
+    /**
+     * 接收指定 SourceOperator 子任务发来的控制事件。
+     *
+     * <p>目前只支持 RequestSplitEvent。子任务 ID 必须与事件声明一致，
+     * 避免一个 Reader 冒充其他 Reader 请求分片。事件在协调器线程中处理。
+     */
+    public CompletableFuture<Void> handleEventFromOperator(int subtaskId, OperatorEvent event) {
+        Objects.requireNonNull(event, "event 不能为空");
+        if (!(event instanceof RequestSplitEvent request)) {
+            return CompletableFuture.failedFuture(
+                    new IllegalArgumentException("Coordinator 不支持的 OperatorEvent："
+                            + event.getClass().getName()));
+        }
+        if (subtaskId != request.subtaskId()) {
+            return CompletableFuture.failedFuture(
+                    new IllegalArgumentException("OperatorEvent 子任务编号不匹配：" + subtaskId));
+        }
         return submit(() -> {
             ensureStarted();
-            if (!context.canRequestSplit(event.subtaskId())) {
+            if (!context.canRequestSplit(subtaskId)) {
+                // 已经发送 NoMoreSplits 后，迟到的请求不应被误判为故障。
                 return null;
             }
             try {
-                enumerator.handleSplitRequest(event.subtaskId());
+                enumerator.handleSplitRequest(subtaskId);
                 return null;
             } catch (Throwable failure) {
                 fail(failure);

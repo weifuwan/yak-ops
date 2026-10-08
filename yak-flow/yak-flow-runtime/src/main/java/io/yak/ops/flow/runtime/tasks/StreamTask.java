@@ -120,7 +120,7 @@ public abstract class StreamTask implements AutoCloseable {
         synchronized (lifecycleLock) {
             if (!startRequested || cancelRequested || completion.isDone()) {
                 reply.completeExceptionally(new IllegalStateException("StreamTask 尚未启动或已经结束"));
-                return reply;
+                return reply.copy();
             }
             Runnable command = () -> {
                 try {
@@ -136,12 +136,13 @@ public abstract class StreamTask implements AutoCloseable {
             };
             if (!mailbox.offer(command)) {
                 reply.completeExceptionally(new IllegalStateException("StreamTask 控制邮箱已满"));
-                return reply;
+                return reply.copy();
             }
             replies.add(reply);
         }
         wakeup();
-        return reply;
+        // 不能向外泄漏内部 Future；外部提前 complete() 会伪造事件已处理的确认。
+        return reply.copy();
     }
 
     /** 从异步分片请求、IO 回调等非 Mailbox 线程通知 Task 失败。 */

@@ -7,9 +7,8 @@ import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.flow.runtime.io.StreamTaskSourceInput;
 import io.yak.ops.flow.runtime.operators.SourceOperator;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
-import io.yak.ops.flow.runtime.source.coordinator.SourceReaderGateway;
-import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
-import io.yak.ops.flow.runtime.source.event.NoMoreSplitsEvent;
+import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
+import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -24,7 +23,7 @@ import java.util.concurrent.CompletionStage;
  * <p>下游输出与 Checkpoint Barrier 的全局协调不属于该类。
  */
 public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
-        extends StreamTask implements SourceReaderGateway<SplitT> {
+        extends StreamTask implements SubtaskGateway {
 
     private final int subtaskId;
     private final SourceCoordinator<T, SplitT, ?> coordinator;
@@ -41,7 +40,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         this.subtaskId = subtaskId;
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
         this.operator = new SourceOperator<>(source, subtaskId, parallelism,
-                coordinator::requestSplit, this::failAsync);
+                event -> coordinator.handleEventFromOperator(subtaskId, event), this::failAsync);
         this.input = new StreamTaskSourceInput<>(operator, output);
     }
 
@@ -73,20 +72,17 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         coordinator.readerFailed(subtaskId, failure);
     }
 
+    /**
+     * Coordinator 的统一事件入口。事件处理与 pollNext() 由 StreamTask Mailbox 串行执行。
+     *
+     * <p>Future 在 SourceOperator 真正处理事件后完成。由于当前实现仅限同 JVM，
+     * 该确认强于一般网络送达确认，但不等于数据消费完成或 Checkpoint 成功。
+     */
     @Override
-    public CompletionStage<Void> addSplits(List<SplitT> splits) {
-        AddSplitEvent<SplitT> event = new AddSplitEvent<>(splits);
+    public CompletionStage<Void> sendEvent(OperatorEvent event) {
+        Objects.requireNonNull(event, "event 不能为空");
         return submitMailbox(() -> {
-            operator.handle(event);
-            return null;
-        });
-    }
-
-    @Override
-    public CompletionStage<Void> noMoreSplits() {
-        NoMoreSplitsEvent event = new NoMoreSplitsEvent();
-        return submitMailbox(() -> {
-            operator.handle(event);
+            operator.handleOperatorEvent(event);
             return null;
         });
     }

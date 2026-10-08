@@ -3,6 +3,8 @@ package io.yak.ops.flow.runtime.source.coordinator;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
+import io.yak.ops.flow.runtime.source.event.NoMoreSplitsEvent;
+import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,7 +35,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
     private final Supplier<Thread> coordinatorThread;
     private final Consumer<Throwable> onFailure;
     private final SplitAssignmentTracker<SplitT> assignments = new SplitAssignmentTracker<>();
-    private final Map<Integer, SourceReaderGateway<SplitT>> readers = new HashMap<>();
+    private final Map<Integer, SubtaskGateway> readers = new HashMap<>();
     private final Map<String, Integer> inFlight = new HashMap<>();
     private final Set<Integer> noMoreRequested = new HashSet<>();
     private final Set<Integer> noMoreDispatched = new HashSet<>();
@@ -52,7 +54,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         this.onFailure = Objects.requireNonNull(onFailure);
     }
 
-    void registerReader(int subtaskId, SourceReaderGateway<SplitT> gateway) {
+    void registerReader(int subtaskId, SubtaskGateway gateway) {
         assertCoordinatorThread();
         checkSubtask(subtaskId);
         Objects.requireNonNull(gateway, "gateway 不能为空");
@@ -121,7 +123,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         try {
             assignments.recordAssignment(subtaskId, split);
             CompletionStage<Void> delivered = Objects.requireNonNull(
-                    readers.get(subtaskId).addSplits(event.splits()), "Gateway 返回了 null");
+                    readers.get(subtaskId).sendEvent(event), "SubtaskGateway 返回了 null");
             delivered.whenComplete((unused, error) -> post(() -> {
                 if (error != null) {
                     onFailure.accept(new IllegalStateException("Split 交付失败：" + splitId, error));
@@ -157,7 +159,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         pendingNoMore.add(subtaskId);
         try {
             CompletionStage<Void> delivered = Objects.requireNonNull(
-                    readers.get(subtaskId).noMoreSplits(), "Gateway 返回了 null");
+                    readers.get(subtaskId).sendEvent(new NoMoreSplitsEvent()), "SubtaskGateway 返回了 null");
             delivered.whenComplete((unused, error) -> post(() -> {
                 if (error != null) {
                     onFailure.accept(new IllegalStateException("NoMoreSplits 交付失败：" + subtaskId, error));
