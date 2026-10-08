@@ -72,6 +72,7 @@ class MultiTableOfflineExecutorContractTest {
         assertEquals(1, f.calls.get("products"));
         assertEquals(20L, f.root.getReadRows());
         assertEquals(20L, f.root.getWriteRows());
+        assertEquals(2, f.tableQueries);
         assertEquals(2, f.attempts.get("orders").size());
         assertEquals(DataSyncAttemptStatus.FAILED, f.attempts.get("orders").get(0).getStatus());
         assertEquals(DataSyncAttemptStatus.SUCCEEDED, f.attempts.get("orders").get(1).getStatus());
@@ -101,6 +102,7 @@ class MultiTableOfflineExecutorContractTest {
         private final Map<String, DataSyncTableExecutionEntity> tables = new LinkedHashMap<>();
         private final Map<String, List<DataSyncTableAttemptEntity>> attempts = new LinkedHashMap<>();
         private final Map<String, Integer> calls = new LinkedHashMap<>();
+        private int tableQueries;
         private Scenario runner = (table, attempt) ->
                 new RouteExecutionOutcome(ExecutionStatus.SUCCEEDED, 1, 1, null, true);
 
@@ -240,7 +242,10 @@ class MultiTableOfflineExecutorContractTest {
                     DataSyncTableExecutionRepository.class.getClassLoader(),
                     new Class<?>[] {DataSyncTableExecutionRepository.class},
                     (proxy, method, args) -> {
-                        if ("queryByExecution".equals(method.getName())) return List.copyOf(tables.values());
+                        if ("queryByExecution".equals(method.getName())) {
+                            tableQueries++;
+                            return List.copyOf(tables.values());
+                        }
                         if ("queryById".equals(method.getName()) && args.length == 2) {
                             return Optional.ofNullable(byTableId((String) args[1]));
                         }

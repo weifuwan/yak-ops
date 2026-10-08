@@ -92,8 +92,8 @@ executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime �
 
 - v1.3 PR3 的 OFFLINE 多表只由 MultiTableOfflineExecutor 按冻结 Route 顺序执行；每个 Root 同时只运行一张表，不能把多表逻辑塞进旧单表 Attempt Loop。Table Attempt 与 Table Execution 状态迁移集中在 DataSyncTableAttemptLifecycle，不能由 Executor 随意覆盖终态。
 - 多表 Root Status 是表级终态聚合：单表 FAILED 不取消后续表；所有表结束后只要有 FAILED / LOST，Root 就不能 SUCCEEDED。Retry 不重放该 Root 中已 SUCCEEDED 的 Route。
-- 表级 Metrics 是本表当前或最终 Attempt 镜像，Root 汇总每表的最后镜像；禁止累计失败历史 Attempt 后重复计数。SMART 对 APPEND / OVERWRITE 的启动后重放限制同样适用于 Table Attempt。
-- Cancel 必须停止后续 Route，正在运行的 LocalExecution 收到 cancel；启动 LOST 时同步标记未结束 Table Execution 和 Attempt，不能误把它们标成 SUCCEEDED。
+- 表级 Metrics 是本表当前或最终 Attempt 镜像，Root 汇总每表的最后镜像；禁止累计失败历史 Attempt 后重复计数。单个 Root 的工作线程可在内存维护各 Table Execution 最新指标以减少周期性数据库聚合，但最终终态必须由持久化表级事实计算；Retry 开始时必须重置该表镜像，绝不叠加历史 Attempt。SMART 对 APPEND / OVERWRITE 的启动后重放限制同样适用于 Table Attempt。
+- Cancel 必须停止后续 Route，正在运行的 LocalExecution 收到 cancel；启动 LOST 时同步标记未结束 Table Execution 和 Attempt，不能误把它们标成 SUCCEEDED。取消和 Runtime 启动使用同一进程内令牌互斥；Runtime 工作线程实际退出后才能清理活动引用或释放 CDC serverId。
 - 表级 Attempt Trace 使用 Table Execution ID 命名空间避免多张表相同 attemptNo 发生文件覆盖，安全与脱敏规则不变。
 - v1.3 PR2 起 Root definitionSnapshot 必须冻结有序 `tableRoutes[]`；每条 Route 保存稳定 routeId、Source / Target endpoint、Mapping、Auto Create，以及 OFFLINE Route 自己的 Effective Runtime Config / planning summary。Root 上旧单表字段只允许作为首 Route 兼容投影。
 - Root Execution 创建后、Runtime 提交前必须为每条冻结 Route 创建一条 Table Execution；PR2 状态固定为 PLANNED，禁止在没有 PR3 表级 Runtime 的情况下假写 RUNNING / SUCCEEDED。
@@ -101,7 +101,7 @@ executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime �
 - PR2 仍禁止 N>1 Route 进入当前单表 Executor；这个阻断只能由 PR3 在真正逐表执行闭环后移除。
 新 Execution 先保存脱敏快照，再提交 Runtime；有事务时在提交后派发，不让执行依赖尚未提交的产品记录。
 
-OFFLINE / REALTIME 共用 DataSyncAttemptLifecycle。状态变更使用 Repository 的预期状态条件更新，竞争失败不能当作已成功转移；取消和重试不得复活终态根记录。
+OFFLINE / REALTIME 共用 DataSyncAttemptLifecycle。状态变更使用 Repository 的预期状态条件更新，竞争失败不能当作已成功转移；取消和重试不得复活终态根记录。单表 Attempt 必须先完成 RUNNING 状态 CAS，再启动 YakFlow；进程内 Registry 应在启动窗口就预留取消令牌，不能等 Runtime 已启动才注册。Root / Attempt 指标只允许在 RUNNING 时写入，取消后不得覆盖终态指标。
 
 活动集合、backoff、root trigger 及指标唯一语义见 [Execution Contract](../../docs/capabilities/data-sync/execution-retry-attempt.md)。实现必须按 Runtime / Attempt 区分计数与 Execution 当前尝试镜像；不得对根记录使用跨 Attempt 的“只增不减”修补或累计总量。
 

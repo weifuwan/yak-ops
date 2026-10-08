@@ -92,7 +92,7 @@ REALTIME desired-state 启动恢复在 Durable Retry 之后执行；保留的 `R
 
 ## Cancel Semantics
 
-取消对象是整个 Execution，不是“跳过当前 Attempt 后继续 Retry”。PENDING / RETRY_WAITING 可以取消，后续等待不得再启动新 Attempt；RUNNING 通过本地注册表取消 Runtime，再收口 Execution / 当前活动 Attempt。
+取消对象是整个 Execution，不是“跳过当前 Attempt 后继续 Retry”。PENDING / RETRY_WAITING 可以取消，后续等待不得再启动新 Attempt；RUNNING 通过本地注册表取消 Runtime，再收口 Execution / 当前活动 Attempt。单表启动先预留取消令牌、确认 Attempt RUNNING，再启动 YakFlow；规划过程发生取消时不得继续启动 Source / Sink。取消后等待工作线程真正退出再释放 CDC serverId，避免下一次恢复与旧 Runtime 重叠。
 
 若 RUNNING Execution 的本地 Runtime 引用已经丢失，当前取消路径将其标记 LOST，而不是假报成功取消。对已终态 Execution 重复取消只返回历史记录；不会复活、追加尝试，也不会借此修改当前 Task 的运行意图。
 
@@ -109,7 +109,7 @@ REALTIME desired-state 启动恢复在 Durable Retry 之后执行；保留的 `R
 - 不把多个 Attempt 相加为业务同步量；失败前可能已提交部分数据，重试可能重新读取或写入。
 - REALTIME 计数是变更事件；一次 UPDATE 可以贡献前后两个事件，不直接等于 Source 表行数。
 
-指标轮询和终态 flush 不应更改上述身份边界。详情通过 Attempt History 观察每次尝试，不伪造 checkpoint 时间或全局业务总量。
+指标轮询和终态 flush 不应更改上述身份边界。多表 Root 运行期可将各表当前 / 最终 Attempt 指标缓存在所属 Worker 内，每次刷新直接写入镜像总和；最终 Root 终态使用数据库表级持久化值重新聚合。根实例和单表 Attempt 的周期性指标更新只在 RUNNING 状态生效，取消或完成后不再覆盖终态。详情通过 Attempt History 观察每次尝试，不伪造 checkpoint 时间或全局业务总量。
 
 ## Execution Event Log
 
