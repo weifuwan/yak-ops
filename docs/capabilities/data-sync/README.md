@@ -28,7 +28,7 @@ Task Definition → Published Task → Execution（DataSyncInstance）
 
 ## Task Definition
 
-Task 由 Workspace 拥有，名称在 Workspace 内唯一。数据源按 ID 引用，不复制凭证。v1.3 PR1 已建立稳定 Table Route 子资源：Task 拥有一个 Source Datasource 与一个 Target Datasource，Route 拥有 Source / Target Table path、Mapping、Auto Create 与顺序。当前写 API、Execution Snapshot 与 Runtime 仍保持单 Route 兼容语义，真正的 OFFLINE Multi-Table Runtime 尚未开放；`syncType` 创建后不变。当前兼容 Route 的 Target 默认必须已经存在，只有显式 `autoCreateTable=true` 时才允许在运行前创建缺失目标表。
+Task 由 Workspace 拥有，名称在 Workspace 内唯一。数据源按 ID 引用，不复制凭证。v1.3 PR1 已建立稳定 Table Route 子资源：Task 拥有一个 Source Datasource 与一个 Target Datasource，Route 拥有 Source / Target Table path、Mapping、Auto Create 与顺序。PR4 的 OFFLINE 写 API 支持 1-50 条 Route，运行时冻结全部 Route；REALTIME 仍只支持单 Route；`syncType` 创建后不变。当前兼容 Route 的 Target 默认必须已经存在，只有显式 `autoCreateTable=true` 时才允许在运行前创建缺失目标表。
 
 `runtime_config` 按类型解释：OFFLINE 使用 `DataSyncRuntimeConfig`，REALTIME 使用 `DataSyncRealtimeConfig`。Retry Policy 独立保存并在创建 Execution 时冻结。Task Editor 不要求普通用户填写这些引擎参数：新建普通任务省略 Retry Policy 时由后端物化 SMART Retry（最多 3 次、15 秒起始退避），历史 / 显式无 mode Policy 按 FIXED 兼容；编辑请求省略时保留该 Task 已持久化的具体配置。`writeMode` 是任务语义，不放进 runtime tuning。
 
@@ -56,7 +56,7 @@ Table Route
     → 数组顺序属于 Route Definition
 ```
 
-PR1 仍通过旧单表 DTO 创建 / 编辑任务，并在同一事务中双写唯一 Route 与 Task 兼容投影；Execution definitionSnapshot / Runtime 暂时继续读取 Task 投影，PR2 再切换为冻结 Route 集合。显式 Mapping 支持字段改名、字段子集和字段重排，但不允许表达式、自定义 SQL、CAST 或 Transform，也不保存字段值。Mapping 仍属于可执行定义，真实变化继续推进 definitionVersion；Retry / Auto Recovery 继续复用原 Execution 已冻结 Mapping。
+PR1 保留旧单表 DTO 兼容，PR2 让 Execution definitionSnapshot 冻结 Route 集合，PR3 已开放 OFFLINE 表级 Runtime，PR4 新增显式 `tableRoutes[]` 写入与逐表 Schema Preview；旧单表 API 仍可不传 `tableRoutes`。显式 Mapping 支持字段改名、字段子集和字段重排，但不允许表达式、自定义 SQL、CAST 或 Transform，也不保存字段值。Mapping 仍属于可执行定义，真实变化继续推进 definitionVersion；Retry / Auto Recovery 继续复用原 Execution 已冻结 Mapping。
 
 Schema Mapping Editor 已直接消费该任务级 Mapping Contract：已有目标表支持同名 / 同序 / 手动连线、删除与字段搜索；自动建表目标不存在时允许重命名目标字段。前端只维护字段身份与顺序，不判断 JDBC 类型兼容或主键合法性，所有编辑结果继续通过后端 Mapping Preview 验证。
 
