@@ -1,4 +1,3 @@
-
 package io.yak.ops.core.transformations;
 
 import io.yak.ops.core.api.connector.sink.Sink;
