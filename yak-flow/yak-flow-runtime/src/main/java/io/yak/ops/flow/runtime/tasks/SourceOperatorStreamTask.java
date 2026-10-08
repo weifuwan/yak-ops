@@ -6,6 +6,7 @@ import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.io.StreamTaskSourceInput;
+import io.yak.ops.flow.runtime.operators.LocalOperatorChain;
 import io.yak.ops.flow.runtime.operators.SourceOperator;
 import io.yak.ops.flow.runtime.operators.SourceReaderRuntimeContext;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
@@ -22,7 +23,7 @@ import java.util.concurrent.CompletionStage;
  * <p>接收来自 Coordinator 的 Split 事件，事件确认发生在 SourceReader 实际处理之后。
  * 不自行创建第二条 Reader 线程；SourceReader 全部生命周期由本 Task 的线程串行执行。
  *
- * <p>下游输出与 Checkpoint Barrier 的全局协调不属于该类。
+ * <p>下游数据由 ReaderOutput / LocalOperatorChain 承接；跨 Task Channel 与全局 Checkpoint 不属于该类。
  */
 public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         extends StreamTask implements SubtaskGateway {
@@ -30,13 +31,25 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
     private final SourceCoordinator<SplitT, ?> coordinator;
     private final SourceOperator<T, SplitT> operator;
     private final StreamTaskSourceInput<T> input;
+    private final LocalOperatorChain operatorChain;
 
     public SourceOperatorStreamTask(
             Source<T, SplitT, ?> source,
             SourceCoordinator<SplitT, ?> coordinator,
             TaskEnvironment environment,
             ReaderOutput<T> output) {
+        this(source, coordinator, environment, output, null);
+    }
+
+    /** 为内联 Operator Chain 建立完整的 Task 生命周期；不创建额外任务线程。 */
+    public SourceOperatorStreamTask(
+            Source<T, SplitT, ?> source,
+            SourceCoordinator<SplitT, ?> coordinator,
+            TaskEnvironment environment,
+            ReaderOutput<T> output,
+            LocalOperatorChain operatorChain) {
         super(environment);
+        this.operatorChain = operatorChain;
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
         this.coordinator.coordinatorContext().validateTask(taskInfo());
         SourceReaderRuntimeContext readerContext = new SourceReaderRuntimeContext(
@@ -47,6 +60,9 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
 
     @Override
     protected void openTask() throws Exception {
+        if (operatorChain != null) {
+            operatorChain.open();
+        }
         operator.initialize();
         // 必须先注册 Gateway，再启动可能调用 sendSplitRequest() 的 Reader。
         coordinator.registerReader(taskInfo(), this).get();
@@ -64,8 +80,22 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
     }
 
     @Override
+    protected void finishTask() throws Exception {
+        if (operatorChain != null) {
+            operatorChain.finish();
+        }
+    }
+
+    @Override
     protected void closeTask() throws Exception {
-        operator.close();
+        try (LocalOperatorChain chain = operatorChain; SourceOperator<T, SplitT> reader = operator) {
+            // 逆序关闭 Reader，然后关闭 Operator Chain；异常由 try-with-resources 聚合。
+        }
+    }
+
+    /** Coordinator 异步失败时唤醒 Task Mailbox，由统一 Task 生命周期执行关闭。 */
+    public void coordinatorFailed(Throwable failure) {
+        failAsync(failure);
     }
 
     @Override

@@ -44,7 +44,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-flow/yak-flow-runtime`
 
-拥有本地执行实现：`CompiledJobPlan`（提交配置快照与图一致性校验）、`TaskInfo` / `TaskEnvironment`（子任务身份、配置快照与只读取消信号）、`StreamTask`、`SourceOperatorStreamTask`、`OperatorCoordinatorContext`、`SourceReaderRuntimeContext`、`LocalPipelineExecutor`、`LocalJobClient`、`LocalJobRunner` 和 `source.coordinator`；后续逐步实现通用 Task 装配、Channel、全局 Checkpoint 等运行机制。依赖 `yak-ops-core`，并临时保留对旧 YakFlow API 的过渡依赖；不拥有产品 Task / Execution / Attempt 持久化、Cron 或业务重试策略。当前重构阶段不声明已具备完整运行闭环。 过渡期间保留现有 `io.yak.ops.flow.runtime.LocalExecutionEngine` / `LocalExecution` 入口，兼容 Data Sync 与 Connector 的旧 API 调用；旧执行路径与新 Core-based Runtime 独立验收，不以旧测试冒充新引擎的运行闭环。
+拥有本地执行实现：`CompiledJobPlan`（JobID / 配置快照 / 执行图一致性）、`TaskInfo` / `TaskEnvironment`、`LocalPipelineExecutor`、`LocalJobClient`、`LocalStreamJobRunner`、`StreamTask`、`SourceOperatorStreamTask`、`LocalOperatorChain` 和 `source.coordinator`。新 Core-based Runtime 只装配一个 Source、零个或多个单输入 Operator 和一个 Sink 的**单 Task、并行度为 1 的线性链**；正常结束在同一 Mailbox 中执行 Operator.finish 和 Sink.flush(true)，失败 / 取消只关闭资源。多源、分叉、跨 Task Channel、并行度大于 1 与全局 Checkpoint 均不属于当前可运行范围。模块依赖 `yak-ops-core`，过渡期保留旧 YakFlow API；不拥有产品 Task / Execution / Attempt 持久化、Cron 或 Retry 策略。旧 `io.yak.ops.flow.runtime.LocalExecutionEngine` / `LocalExecution` 仍服务现有 Data Sync / Connector，不能用旧链路验收证明新链路已通过验收。
 
 新 Core / Runtime 的配置、执行图、Task/Coordinator 运行上下文与状态恢复的目标边界见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。该契约区分当前实现与拟引入的装配机制，不代表新 Runtime 已具备完整运行或恢复能力。
 

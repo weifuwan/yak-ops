@@ -68,6 +68,9 @@ public abstract class StreamTask implements AutoCloseable {
     /** 输入暂时不可用时，返回一份会在数据可用时完成的 Future。 */
     protected abstract CompletableFuture<Void> getAvailableFuture();
 
+    /** 输入自然结束时串行完成 Operator.finish 与 Sink.flush(true)。取消或失败时不调用。 */
+    protected void finishTask() throws Exception {}
+
     /** 释放当前 Task 所持有的所有运行资源。 */
     protected abstract void closeTask() throws Exception;
 
@@ -207,6 +210,9 @@ public abstract class StreamTask implements AutoCloseable {
                 switch (status) {
                     case MORE_AVAILABLE -> emptyReadyFutures = 0;
                     case END_OF_INPUT -> {
+                        checkStop();
+                        finishTask();
+                        checkStop();
                         finished = true;
                         return;
                     }

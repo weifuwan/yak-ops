@@ -1,6 +1,5 @@
 package io.yak.ops.flow.runtime.execution;
 
-import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.dag.Pipeline;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.execution.JobClient;
@@ -23,6 +22,11 @@ public final class LocalPipelineExecutor implements PipelineExecutor {
 
     private final LocalJobRunner runner;
 
+    /** 使用内置单节点 Runner；只支持已具备本地装配语义的线性单并行拓扑。 */
+    public LocalPipelineExecutor() {
+        this(new LocalStreamJobRunner());
+    }
+
     /**
      * @param runner 真正执行本地 StreamGraph 的 Runtime 实现；不能为 null
      */
@@ -40,7 +44,8 @@ public final class LocalPipelineExecutor implements PipelineExecutor {
             }
 
             CompiledJobPlan plan = CompiledJobPlan.compile(graph, configuration);
-            LocalJobClient client = new LocalJobClient(JobID.generate());
+            runner.validate(plan);
+            LocalJobClient client = new LocalJobClient(plan.jobID());
             client.start(plan, runner);
             return CompletableFuture.completedFuture(client);
         } catch (RuntimeException failure) {

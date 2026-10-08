@@ -30,13 +30,15 @@ Runtime Trace 只在 API 定义最小 Event / Listener 协议，JDBC SQL、Split
 
 本节约束以 `yak-ops-core` 为接口的新 Runtime 迁移，**不表示已完成装配与验收**。目标契约见 [Core / Runtime Execution Contract](../docs/capabilities/yak-flow/core-runtime-contract.md)；上面的 Local Execution Engine 和 Connector 规则仍约束既有 YakFlow API 路径。
 
-- `TaskInfo` 保存当前 Job / Operator / Subtask / Attempt 身份及已解析并行度，`TaskEnvironment` 对配置做防御性复制并暴露只读取消信号。`StreamTask` 绑定取消信号并生成诊断线程名称；`SourceOperator` 通过 TaskEnvironment 实现 `SourceReaderContext`，不得再自行保存 subtaskId / parallelism。
+- `TaskInfo` 保存当前 Job / Operator / Subtask / Attempt 身份及已解析并行度，`TaskEnvironment` 对配置做防御性复制并暴露只读取消信号。`StreamTask` 绑定取消信号并生成诊断线程名称；`SourceReaderRuntimeContext` 从 TaskEnvironment 获取 Reader 身份，`SourceOperator` 不保存额外 subtaskId / parallelism。
 - `SourceCoordinator` 通过 `OperatorCoordinatorContext` 获得 Job / Operator 身份和已解析并行度，内部 `SourceCoordinatorContext` 负责 Enumerator / Reader 注册、Split 投递和回调线程。`SourceOperator` 不直接实现 Core 的 `SourceReaderContext`，由独立的 `SourceReaderRuntimeContext` 提供只读配置、Subtask 信息和 Split 请求。
 - `OperatorEventGateway` 负责 Task → Coordinator，原 `SubtaskGateway` 负责 Coordinator → Task；两条通道都异步返回，不阻塞 Mailbox 或协调线程。注册与 Split 请求需要校验 Job / Operator / Subtask / Attempt，不能由新的 Attempt 原地覆盖已有 Gateway；当前只支持整个 Job 恢复。
 - Split 投递 Future 在本地 Mailbox 实际处理后确认，但不代表数据已消费；先确认 AddSplit 事件，再发送 NoMoreSplits。事件交付失败必须传播到 Coordinator 失败边界。
 - Coordinator 的事件循环与 Task 的 Mailbox 各自串行处理所属状态；事件投递、事件处理、Split 消费和 Checkpoint 成功必须分别定义确认语义。
 - `CompiledJobPlan` 在提交时冻结配置，校验已生成的 StreamGraph 并确定运行模式；Runner 只接收该计划，不能再以另一份默认配置解释节点并行度。
-- 物理 Task/Channel 装配归 Runtime，默认配置不代替已解析执行图属性；不提前引入远程 RPC、分布式调度器或万能 Environment。
+- `LocalStreamJobRunner` 只允许一个 Source → 零个或多个 OneInputOperator → 一个 Sink，所有节点实际并行度必须为 1；多 Source、分叉、多 Sink 或并行路由必须在提交前拒绝，而不是静默忽略节点。物理装配归 Runtime，不引入远程 RPC、分布式调度器或万能 Environment。
+- `LocalOperatorChain` 在 Source 所属 Task Mailbox 中创建并打开下游算子；所有同步 Collector 输出在同一线程写入。只有 InputStatus.END_OF_INPUT 正常结束时才依次调用 Operator.finish 与 SinkWriter.flush(true)；失败和取消时禁止补发 finish / 最终 flush。初始化失败也必须尝试关闭已创建的全部 Operator / Writer。
+- `CompiledJobPlan.jobID()` 与 JobClient / TaskInfo 保持一致；Runner 不重新生成 JobID，也不修改 Graph 已解析的并行度。全局 Checkpoint 未实现前，内置 Runner 必须拒绝非零周期 Checkpoint 配置。
 - 只有完整状态持久化并获得下游确认后才能通知 Checkpoint 完成；单独的 SourceCoordinator 快照不能宣称可恢复的完整 Job Checkpoint。
 - 新旧 Source / Sink API 迁移需要独立的适配与验收，不能直接以旧 LocalExecution 的测试结果作为新 Runtime 的通过证据。
 

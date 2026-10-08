@@ -1,15 +1,15 @@
 # Core / Runtime Execution Contract
 
-Status: Proposed (architecture target; implementation incomplete)
+Status: Active (restricted local runtime implemented; multi-task / checkpoint extensions proposed)
 
-Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime` 的新批流执行链路。本文是后续实现必须遵守的设计边界，不表示新引擎已经实现或通过验收。
+Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime` 的新批流执行链路。本文区分已实现的**单 Task 线性执行**和仍待实现的多 Task / Checkpoint 契约；代码已提供不代表 Maven、CI 或端到端验收已通过。
 
 权威归属由 [Architecture](../../../ARCHITECTURE.md) 确定；现有产品能力由 [YakFlow Capability](README.md) 描述；实现规范分别见 [Core Rules](../../../yak-ops-core/CORE_RULES.md) 与 [YakFlow Rules](../../../yak-flow/YAK_FLOW_RULES.md)。
 
 ## Current Boundary
 
 - `yak-ops-core` 已提供类型化 `Configuration`、`Transformation`、`StreamGraph`、Source / Sink / Operator 接口，以及 `PipelineExecutor` / `JobClient` 契约；它不执行任务。
-- `yak-flow-runtime` 已有 `CompiledJobPlan`、`TaskInfo` / `TaskEnvironment`、`OperatorCoordinatorContext`、`SourceReaderRuntimeContext`、`LocalPipelineExecutor`、`LocalJobClient`、`LocalJobRunner` 接口、`StreamTask` Mailbox、SourceOperator、SourceCoordinator、事件通道和协调侧局部 Checkpoint 类型。新执行链路尚未构成经过验证的完整 Source → Operator → Sink 运行闭环。
+- `yak-flow-runtime` 已有 `CompiledJobPlan`、`TaskInfo` / `TaskEnvironment`、Coordinator / Reader Context、`LocalPipelineExecutor` / `LocalJobClient`、`LocalStreamJobRunner`、`StreamTask` / `SourceOperatorStreamTask`、`LocalOperatorChain` 和 SourceCoordinator。内置 Runner 形成受限的 Source → OneInputOperator* → Sink 本地执行路径；多 Task 装配、跨 Task Channel 和全局 Checkpoint 仍未实现，也不能把代码存在视为已通过真实数据同步 E2E。
 - `yak-flow-api` 的旧 Source / Sink、`CheckpointState` 与现有 Connector / 产品调用方仍是过渡范围。新旧 API 不能在同一执行路径中隐式混用，也不能用旧路径的验收证明新 Runtime 可用。
 - 产品 `Data Sync` 持有 Task / Route / Execution / Attempt、Retry、Schedule 和业务恢复状态。Runtime 的 `JobID`、Task 身份及局部 Checkpoint 不替代产品持久化标识。
 - 当前目标是单 JVM 本地运行。分布式资源管理、RPC、Slot、JobManager / TaskManager 不是本契约的要求。
@@ -22,7 +22,7 @@ Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime` 的新批流执行链路�
 | 显式算子并行度、上游依赖、稳定 UID | Core 的 Transformation | 逻辑定义；不打开连接、不创建线程 |
 | 节点实际并行度、边、类型和有界性 | Core 的 StreamGraph | 经构图解析的定义快照；不是活动执行实例 |
 | 运行模式与图/配置的一致性、Job 提交 | Runtime 的 PipelineExecutor 实现 | 冻结提交配置，建立一次提交对应的不可变执行输入 |
-| 物理 Task 装配及数据通道 | Runtime | 仅对受支持拓扑装配；不向 Core 回写运行状态 |
+| 物理 Task 装配及数据通道 | Runtime | 已支持单 Source、单 Sink、并行度为 1 的内联算子链；跨 Task 数据通道仍待实现 |
 | Subtask Index、实际并行度、Attempt、运行上下文 | Runtime 的 TaskInfo / TaskEnvironment | TaskInfo 保存不可变身份与实际并行度；TaskEnvironment 提供配置防御性副本和只读取消信号 |
 | Enumerator、Reader 注册与 Split 投递 | Runtime 的 SourceCoordinator / SourceCoordinatorContext / OperatorCoordinatorContext | 协调上下文提供 Job、Operator 与实际并行度，事件循环串行调度；分片生成逻辑留在 Connector |
 | SourceReader 生命周期和数据轮询 | Runtime 的 SourceOperator / StreamTask | Task Mailbox 串行；不能创建第二条独立 Reader 控制线程 |
@@ -44,13 +44,13 @@ Configuration + Transformation
              ↓
   StreamGraph（逻辑图/节点属性）
              ↓
-  CompiledJobPlan（单次提交的配置快照）
+  CompiledJobPlan（JobID / 模式 / 配置快照）
              ↓
       LocalJobRunner
              ↓
  StreamTask(TaskEnvironment) ↔ SourceCoordinator(OperatorCoordinatorContext)
              ↓
-  Source → Operator → Channel → Sink
+  Source → OneInputOperator* → Sink（当前内联链）
 ```
 
 - 默认值、显式值与运行时实际值是不同概念。`parallelism.default` 是配置；`StreamNode.parallelism` 是编译属性；Subtask 所属的实际并行度从 TaskInfo / 对应 Context 读取。
@@ -58,9 +58,21 @@ Configuration + Transformation
 - `SourceCoordinator` 通过 `OperatorCoordinatorContext` 持有 Job / Operator 身份与已解析并行度，`SourceCoordinatorContext` 只在事件线程管理 Reader/Gateway、分片交付与 Enumerator。Coordinator 与 Reader Context 不共享可变状态，也不从 `parallelism.default` 重算已确定的并行度。
 - 注册及请求 Split 时按 Job、Operator、Subtask、Attempt 校验，重复注册或不同 Attempt 的原地替换必须明确拒绝。当前 Runtime 仍不支持单 Reader 局部重启；Attempt 校验不构成动态恢复能力。
 - 允许多次基于同一逻辑定义提交 Job，但每次提交必须绑定自己的配置快照和运行身份。禁止构图时使用配置 A、提交时使用冲突的配置 B 却静默沿用部分旧属性。
-- `CompiledJobPlan` 归 Runtime，绑定一份 StreamGraph、已解析运行模式与配置防御性快照。构图继承默认并行度的节点在提交配置不一致时拒绝执行；显式并行度节点不因此被修改。Core 不持有本地 Task 工厂、线程、Channel 或 Connector 连接。
+- `CompiledJobPlan` 归 Runtime，每次编译生成独立 JobID，并绑定 StreamGraph、已解析运行模式与配置防御性快照。JobClient 和 TaskInfo 必须复用该 JobID；继承默认并行度的节点在提交配置不一致时拒绝执行。Core 不持有本地 Task 工厂、线程、Channel 或 Connector 连接。
 - Configuration 的可变容器可以用于构建；提交后依赖的配置视图必须固定或防御性复制。敏感连接配置不得进入日志、状态快照或 API 响应。
 - `CoreOptions.DEFAULT_PARALLELISM` 和 `CheckpointingOptions.CHECKPOINTING_INTERVAL` 分别是默认并行度与周期 Checkpoint 间隔的权威定义。Checkpoint 未显式设置时读取为 `Duration.ZERO`（禁用），`getOptional` 仍表示未设置；旧 `ExecutionOptions` 字段仅作为同一 ConfigOption 的源码别名。配置可被校验不等于 Runtime 已经实现周期 Checkpoint 调度。
+
+## Current Local Job Assembly
+
+内置 `LocalPipelineExecutor()` 在提交线程先调用 `LocalStreamJobRunner.validate(plan)`，不启动任务即可拒绝不支持的拓扑。支持的图必须是：
+
+- 恰好一个 Source、一个 Sink；两者之间为零个或多个单输入 Operator，连接严格线性、没有分叉。
+- Source / Operator / Sink 的实际并行度全部等于 1。并行度超过 1、扇出、多 Source、多 Sink 不静默降级。
+- 周期 Checkpoint 间隔必须为 `Duration.ZERO`；非零配置在提交前被拒绝，因为新 Runtime 尚无完整的 Source → Sink Checkpoint 协调。
+
+`LocalStreamJobRunner` 每次运行独立创建 Coordinator、单个 SourceOperatorStreamTask 和 LocalOperatorChain。Reader、Operator、Writer 运行时资源都在 Task Mailbox 线程创建、使用与关闭；Collector 同步传递零条、一条或多条记录，不启动额外数据线程。当前单 Task 采用内联链而非 Channel，跨 Task 有界 Channel、分区与背压传递由后续独立工作实现。
+
+`InputStatus.END_OF_INPUT` 才允许沿算子链依次调用 `OneInputOperator.finish` 和 `SinkWriter.flush(true)`。取消、读取/写入异常及初始化失败只执行资源清理，不能触发最终 Flush；若 finish / flush / close 失败，Job 必须按失败处理。Coordinator 异步失败应唤醒 Task，并让所属 Job 收到失败；取消只在 Task 退出并完成资源清理后确认。
 
 ## Identity / Lifecycle
 
@@ -84,7 +96,7 @@ Configuration + Transformation
 
 - 新旧 API 在提交入口显式区分；既有产品的数据同步能力和 Connector 调用路径保持原有行为，迁移时才按直接消费者增加必要的兼容适配。
 - Core 的 `SourceReaderContext` / `SplitEnumeratorContext` 由 Runtime 实现；`SourceReaderRuntimeContext#getConfiguration` 必须返回 Task 配置的防御性副本。上下行事件分别使用 `OperatorEventGateway`（Reader → Coordinator）与 `SubtaskGateway`（Coordinator → Reader）；方向不同，不引入第三套等价 Gateway。
-- 每次迁移同时确认 Core 泛型、构图、配置唯一性、旧 Runtime 兼容与测试；TaskInfo / TaskEnvironment 与基础 Source Coordination Context 已实现。整体 Job 装配、Channel、全局 Checkpoint 及 Reader 局部故障恢复仍属于未实现能力，不能把 Coordinator 的局部快照当成完整作业恢复。每次完成证据留在对应 PR，不写入本契约。
+- 每次迁移同时确认 Core 泛型、构图、配置唯一性、旧 Runtime 兼容与测试；TaskInfo / TaskEnvironment、Source Coordination Context 与**受限线性单 Task Job 装配**已实现。多 Task Channel、数据分区、全局 Checkpoint 及 Reader 局部故障恢复仍属于未实现能力，不能把 Coordinator 的局部快照当成完整作业恢复。每次完成证据留在对应 PR，不写入本契约。
 - 后续实现应提供默认/显式并行度、配置快照隔离、重复/失败 Split、Mailbox 控制、取消清理、Checkpoint 成败及恢复的测试。真实数据库验收继续使用现有 [Backend Acceptance](../../../.github/workflows/backend-acceptance.yml) 路径。
 
 ## Flink Reference / Non-Goals

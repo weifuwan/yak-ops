@@ -5,7 +5,7 @@ import java.util.function.BooleanSupplier;
 /**
  * 单次本地作业的数据处理入口。
  *
- * <p>此接口由后续本地 Runtime 实现，负责依据冻结的执行计划创建 Reader、Operator、Writer，
+ * <p>内置 LocalStreamJobRunner 已支持线性单 Task 运行；后续本地 Runtime 可以按独立契约实现更复杂的图，
  * 运行数据流，并在返回或抛出异常前释放本次运行的资源。
  *
  * <p>调用会占用当前执行线程直至作业结束；无界数据流通常持续运行到取消或失败。
@@ -26,4 +26,8 @@ public interface LocalJobRunner {
      * @throws Exception 执行或清理失败
      */
     void run(CompiledJobPlan plan, BooleanSupplier cancellationRequested) throws Exception;
+
+    /** 提交线程中提前验证该 Runner 的物理执行能力，不得创建运行资源。 */
+    default void validate(CompiledJobPlan plan) {}
+
 }
