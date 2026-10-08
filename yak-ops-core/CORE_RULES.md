@@ -4,7 +4,7 @@ Scope:
 - `yak-ops-core/**`
 
 Status:
-- Reserved
+- Active
 
 Depends On:
 - `/ARCHITECTURE.md`
@@ -12,9 +12,9 @@ Depends On:
 
 ## Current Fact
 
-`yak-ops-core` 当前没有生产代码，只保留 Maven Module 壳。
+`yak-ops-core` 维护批流共用的 Source / Sink / Operator API、配置、Transformation / StreamGraph 逻辑模型，以及 `PipelineExecutor` / `JobClient` 契约。
 
-这是有意状态，不是待填空的目录。
+`LocalPipelineExecutor`、`LocalJobClient`、`LocalJobRunner` 和 `SourceCoordinator` 等本地运行实现归 `yak-flow-runtime`，不再放在 Core。
 
 ## Entry Rule
 
@@ -38,6 +38,6 @@ Depends On:
 
 ## Boundary
 
-默认答案是：**代码留在真实 owner。**
+Core 拥有跨 Connector / Runtime 复用的稳定接口、配置与逻辑图模型；不创建运行线程，不拥有本地 Job 状态、Reader 调度或 Checkpoint 执行过程。
 
-只有独立 Runtime ownership 被证明后，Core 才重新承载代码。
+**代码始终留在真实 owner。** 运行期职责归 Runtime，数据库特定逻辑归 Connector，业务持久化和任务状态归 Business。
