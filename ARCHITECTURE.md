@@ -44,7 +44,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-flow/yak-flow-runtime`
 
-拥有本地执行实现：`CompiledJobPlan`（提交配置快照与图一致性校验）、`LocalPipelineExecutor`、`LocalJobClient`、`LocalJobRunner` 和 `source.coordinator`；后续逐步实现 Reader Task、IO、Checkpoint 等运行机制。依赖 `yak-ops-core`，并临时保留对旧 YakFlow API 的过渡依赖；不拥有产品 Task / Execution / Attempt 持久化、Cron 或业务重试策略。当前重构阶段不声明已具备完整运行闭环。 过渡期间保留现有 `io.yak.ops.flow.runtime.LocalExecutionEngine` / `LocalExecution` 入口，兼容 Data Sync 与 Connector 的旧 API 调用；旧执行路径与新 Core-based Runtime 独立验收，不以旧测试冒充新引擎的运行闭环。
+拥有本地执行实现：`CompiledJobPlan`（提交配置快照与图一致性校验）、`TaskInfo` / `TaskEnvironment`（子任务身份、配置快照与只读取消信号）、`StreamTask`、`SourceOperatorStreamTask`、`LocalPipelineExecutor`、`LocalJobClient`、`LocalJobRunner` 和 `source.coordinator`；后续逐步实现通用 Task 装配、Channel、全局 Checkpoint 等运行机制。依赖 `yak-ops-core`，并临时保留对旧 YakFlow API 的过渡依赖；不拥有产品 Task / Execution / Attempt 持久化、Cron 或业务重试策略。当前重构阶段不声明已具备完整运行闭环。 过渡期间保留现有 `io.yak.ops.flow.runtime.LocalExecutionEngine` / `LocalExecution` 入口，兼容 Data Sync 与 Connector 的旧 API 调用；旧执行路径与新 Core-based Runtime 独立验收，不以旧测试冒充新引擎的运行闭环。
 
 新 Core / Runtime 的配置、执行图、Task/Coordinator 运行上下文与状态恢复的目标边界见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。该契约区分当前实现与拟引入的装配机制，不代表新 Runtime 已具备完整运行或恢复能力。
 

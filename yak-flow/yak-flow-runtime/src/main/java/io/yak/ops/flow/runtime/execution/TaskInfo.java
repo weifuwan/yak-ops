@@ -1,0 +1,35 @@
+package io.yak.ops.flow.runtime.execution;
+
+import io.yak.ops.core.api.common.JobID;
+import java.util.Objects;
+
+/**
+ * 一次本地执行子任务的不可变身份与实际运行参数。
+ *
+ * <p>parallelism 是该 Operator 的已解析并行度，不是 Configuration 的默认值；
+ * operatorId 是当前图内节点 ID，不代表跨版本恢复所需的稳定 UID。
+ */
+public record TaskInfo(JobID jobID, int operatorId, int subtaskIndex, int parallelism, int attemptNumber) {
+
+    public TaskInfo {
+        Objects.requireNonNull(jobID, "jobID 不能为空");
+        if (operatorId <= 0) {
+            throw new IllegalArgumentException("operatorId 必须为正整数");
+        }
+        if (parallelism <= 0) {
+            throw new IllegalArgumentException("parallelism 必须为正整数");
+        }
+        if (subtaskIndex < 0 || subtaskIndex >= parallelism) {
+            throw new IllegalArgumentException("subtaskIndex 超出并行度范围");
+        }
+        if (attemptNumber < 0) {
+            throw new IllegalArgumentException("attemptNumber 不能为负数");
+        }
+    }
+
+    /** Task 线程的诊断名称，由统一运行身份生成，不从 Configuration 读取。 */
+    public String threadName() {
+        return "yak-stream-task-" + jobID.toHexString() + "-" + operatorId + "-" + subtaskIndex
+                + "-attempt-" + attemptNumber;
+    }
+}
