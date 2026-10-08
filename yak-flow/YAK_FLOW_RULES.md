@@ -31,7 +31,9 @@ Runtime Trace 只在 API 定义最小 Event / Listener 协议，JDBC SQL、Split
 本节约束以 `yak-ops-core` 为接口的新 Runtime 迁移，**不表示已完成装配与验收**。目标契约见 [Core / Runtime Execution Contract](../docs/capabilities/yak-flow/core-runtime-contract.md)；上面的 Local Execution Engine 和 Connector 规则仍约束既有 YakFlow API 路径。
 
 - `TaskInfo` 保存当前 Job / Operator / Subtask / Attempt 身份及已解析并行度，`TaskEnvironment` 对配置做防御性复制并暴露只读取消信号。`StreamTask` 绑定取消信号并生成诊断线程名称；`SourceOperator` 通过 TaskEnvironment 实现 `SourceReaderContext`，不得再自行保存 subtaskId / parallelism。
-- `SourceCoordinator` 现阶段仍接收并行度并在协调侧 Context 管理 Reader 注册、Split 分配及事件发送；它的构造与 Context 边界由后续 Source Coordination 改造统一，不能宣称已完成。
+- `SourceCoordinator` 通过 `OperatorCoordinatorContext` 获得 Job / Operator 身份和已解析并行度，内部 `SourceCoordinatorContext` 负责 Enumerator / Reader 注册、Split 投递和回调线程。`SourceOperator` 不直接实现 Core 的 `SourceReaderContext`，由独立的 `SourceReaderRuntimeContext` 提供只读配置、Subtask 信息和 Split 请求。
+- `OperatorEventGateway` 负责 Task → Coordinator，原 `SubtaskGateway` 负责 Coordinator → Task；两条通道都异步返回，不阻塞 Mailbox 或协调线程。注册与 Split 请求需要校验 Job / Operator / Subtask / Attempt，不能由新的 Attempt 原地覆盖已有 Gateway；当前只支持整个 Job 恢复。
+- Split 投递 Future 在本地 Mailbox 实际处理后确认，但不代表数据已消费；先确认 AddSplit 事件，再发送 NoMoreSplits。事件交付失败必须传播到 Coordinator 失败边界。
 - Coordinator 的事件循环与 Task 的 Mailbox 各自串行处理所属状态；事件投递、事件处理、Split 消费和 Checkpoint 成功必须分别定义确认语义。
 - `CompiledJobPlan` 在提交时冻结配置，校验已生成的 StreamGraph 并确定运行模式；Runner 只接收该计划，不能再以另一份默认配置解释节点并行度。
 - 物理 Task/Channel 装配归 Runtime，默认配置不代替已解析执行图属性；不提前引入远程 RPC、分布式调度器或万能 Environment。

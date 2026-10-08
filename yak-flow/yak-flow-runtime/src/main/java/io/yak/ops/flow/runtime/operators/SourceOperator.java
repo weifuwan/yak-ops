@@ -6,48 +6,37 @@ import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceReader;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
 import io.yak.ops.core.api.connector.source.SourceSplit;
-import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEventHandler;
 import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
 import io.yak.ops.flow.runtime.source.event.NoMoreSplitsEvent;
-import io.yak.ops.flow.runtime.source.event.RequestSplitEvent;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * SourceReader 的运行时包装层，对齐 Flink SourceOperator 的职责。
  *
  * <p>只在所属 StreamTask 的 Mailbox 线程中创建、启动、读取和关闭 Reader；
  * 不创建工作线程，也不负责 SplitEnumerator 的生命周期。
- * 下游 ReaderOutput 的背压由上层任务执行线程承接。
+ * SourceReaderContext 由 Runtime 单独提供；下游 ReaderOutput 的背压由上层任务执行线程承接。
  *
  * @param <T> 数据记录类型
  * @param <SplitT> 分片类型
  */
 public final class SourceOperator<T, SplitT extends SourceSplit>
-        implements SourceReaderContext, OperatorEventHandler, AutoCloseable {
+        implements OperatorEventHandler, AutoCloseable {
 
     private final Source<T, SplitT, ?> source;
-    private final TaskEnvironment environment;
-    private final Function<OperatorEvent, ? extends CompletionStage<Void>> eventSender;
-    private final Consumer<Throwable> asyncFailureHandler;
+    private final SourceReaderContext readerContext;
     private SourceReader<T, SplitT> reader;
     private boolean started;
     private boolean noMoreSplits;
     private boolean finished;
 
-    public SourceOperator(Source<T, SplitT, ?> source, TaskEnvironment environment,
-            Function<OperatorEvent, ? extends CompletionStage<Void>> eventSender,
-            Consumer<Throwable> asyncFailureHandler) {
+    public SourceOperator(Source<T, SplitT, ?> source, SourceReaderContext readerContext) {
         this.source = Objects.requireNonNull(source, "source 不能为空");
-        this.environment = Objects.requireNonNull(environment, "environment 不能为空");
-        this.eventSender = Objects.requireNonNull(eventSender, "eventSender 不能为空");
-        this.asyncFailureHandler = Objects.requireNonNull(asyncFailureHandler, "asyncFailureHandler 不能为空");
+        this.readerContext = Objects.requireNonNull(readerContext, "readerContext 不能为空");
     }
 
     /** 创建 Reader，必须在所属 Task 线程执行，并在注册 Coordinator 之前完成。 */
@@ -55,7 +44,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit>
         if (reader != null) {
             throw new IllegalStateException("SourceOperator 已初始化");
         }
-        reader = Objects.requireNonNull(source.createReader(this), "Source 返回空 Reader");
+        reader = Objects.requireNonNull(source.createReader(readerContext), "Source 返回空 Reader");
     }
 
     /** Reader 注册完成后启动读取组件。 */
@@ -95,7 +84,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit>
         if (noMoreSplits || finished) {
             throw new IllegalStateException("NoMoreSplits 后不能再交付新 Split");
         }
-        // 类型由 SourceCoordinator<T, SplitT, ?> 与本 SourceOperator 的连接保证。
+        // 类型由 SourceCoordinator<SplitT, ?> 与本 SourceOperator 的连接保证。
         reader.addSplits((List<SplitT>) event.splits());
     }
 
@@ -144,32 +133,6 @@ public final class SourceOperator<T, SplitT extends SourceSplit>
     public void notifyCheckpointComplete(long checkpointId) throws Exception {
         ensureStarted();
         reader.notifyCheckpointComplete(checkpointId);
-    }
-
-    @Override
-    public int getIndexOfSubtask() {
-        return environment.taskInfo().subtaskIndex();
-    }
-
-    @Override
-    public int currentParallelism() {
-        return environment.taskInfo().parallelism();
-    }
-
-    /** 由 Connector Reader 主动发起，不阻塞 Reader 所属 Task 线程。 */
-    @Override
-    public void sendSplitRequest() {
-        try {
-            CompletionStage<Void> stage = Objects.requireNonNull(
-                    eventSender.apply(new RequestSplitEvent(getIndexOfSubtask())), "Split 请求返回 null");
-            stage.whenComplete((unused, failure) -> {
-                if (failure != null) {
-                    asyncFailureHandler.accept(failure);
-                }
-            });
-        } catch (Throwable failure) {
-            asyncFailureHandler.accept(failure);
-        }
     }
 
     @Override

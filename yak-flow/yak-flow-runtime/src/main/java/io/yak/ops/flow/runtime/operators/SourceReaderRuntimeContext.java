@@ -1,0 +1,67 @@
+package io.yak.ops.flow.runtime.operators;
+
+import io.yak.ops.core.api.connector.source.SourceReaderContext;
+import io.yak.ops.core.configuration.Configuration;
+import io.yak.ops.flow.runtime.execution.TaskEnvironment;
+import io.yak.ops.flow.runtime.operators.coordination.OperatorEventGateway;
+import io.yak.ops.flow.runtime.source.event.RequestSplitEvent;
+import java.util.Objects;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
+
+/**
+ * SourceReader 的本地运行时上下文。
+ *
+ * <p>身份与配置来自所属 TaskEnvironment；Split 请求经 Coordinator Gateway 异步发送，
+ * 不能在 Task Mailbox 线程等待事件确认。
+ */
+public final class SourceReaderRuntimeContext implements SourceReaderContext {
+
+    private final TaskEnvironment environment;
+    private final OperatorEventGateway eventGateway;
+    private final Consumer<Throwable> asyncFailureHandler;
+
+    public SourceReaderRuntimeContext(
+            TaskEnvironment environment, OperatorEventGateway eventGateway, Consumer<Throwable> asyncFailureHandler) {
+        this.environment = Objects.requireNonNull(environment, "environment 不能为空");
+        this.eventGateway = Objects.requireNonNull(eventGateway, "eventGateway 不能为空");
+        this.asyncFailureHandler = Objects.requireNonNull(asyncFailureHandler, "asyncFailureHandler 不能为空");
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+        return environment.configuration();
+    }
+
+    @Override
+    public int getIndexOfSubtask() {
+        return environment.taskInfo().subtaskIndex();
+    }
+
+    @Override
+    public int currentParallelism() {
+        return environment.taskInfo().parallelism();
+    }
+
+    @Override
+    public void sendSplitRequest() {
+        if (environment.isCancellationRequested()) {
+            return;
+        }
+        CompletionStage<Void> response;
+        try {
+            response = Objects.requireNonNull(
+                    eventGateway.sendEventToCoordinator(
+                            new RequestSplitEvent(getIndexOfSubtask(), environment.taskInfo().attemptNumber())),
+                    "OperatorEventGateway 返回了 null");
+        } catch (Throwable failure) {
+            asyncFailureHandler.accept(failure);
+            return;
+        }
+        response.whenComplete((unused, failure) -> {
+            if (failure != null && !environment.isCancellationRequested()) {
+                asyncFailureHandler.accept(failure);
+            }
+        });
+    }
+}

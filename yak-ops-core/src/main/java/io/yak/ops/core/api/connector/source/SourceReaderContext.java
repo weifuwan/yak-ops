@@ -1,5 +1,7 @@
 package io.yak.ops.core.api.connector.source;
 
+import io.yak.ops.core.configuration.Configuration;
+
 /**
  * Runtime 提供给单个 SourceReader 的最小运行上下文。
  *
@@ -8,6 +10,9 @@ package io.yak.ops.core.api.connector.source;
  * @author weifuwan
  */
 public interface SourceReaderContext {
+
+    /** 返回任务提交时冻结的配置快照副本，修改返回对象不能影响 Runtime。 */
+    Configuration getConfiguration();
 
     /** 返回当前 Reader 的子任务编号，从 0 开始。 */
     int getIndexOfSubtask();
