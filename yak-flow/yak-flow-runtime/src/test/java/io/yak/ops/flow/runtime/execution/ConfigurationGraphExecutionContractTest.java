@@ -171,6 +171,7 @@ class ConfigurationGraphExecutionContractTest {
         job.getJobExecutionResult().get(5, TimeUnit.SECONDS);
 
         CompiledJobPlan plan = received.get();
+        assertEquals(job.getJobID(), plan.jobID());
         assertSame(graph, plan.graph());
         assertEquals("submitted", plan.configuration().get(PipelineOptions.NAME));
         assertEquals(RuntimeExecutionMode.BATCH, plan.runtimeMode());

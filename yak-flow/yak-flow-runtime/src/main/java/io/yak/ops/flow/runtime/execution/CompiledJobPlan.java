@@ -1,6 +1,7 @@
 package io.yak.ops.flow.runtime.execution;
 
 import io.yak.ops.core.api.RuntimeExecutionMode;
+import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
@@ -14,16 +15,19 @@ import java.util.Objects;
 /**
  * 单次本地 Job 提交的不可变执行输入。
  *
- * <p>只持有已解析的逻辑图、运行模式和配置快照，不管理线程、Task 或 Connector 连接。
+ * <p>只持有本次作业 JobID、已解析的逻辑图、运行模式和配置快照，不管理线程、Task 或 Connector 连接。
  * 读取配置时返回独立副本，避免 Runner 或调用方修改本次提交的有效配置。
  */
 public final class CompiledJobPlan {
 
+    private final JobID jobID;
     private final StreamGraph graph;
     private final RuntimeExecutionMode runtimeMode;
     private final Configuration configuration;
 
-    private CompiledJobPlan(StreamGraph graph, RuntimeExecutionMode runtimeMode, Configuration configuration) {
+    private CompiledJobPlan(JobID jobID, StreamGraph graph, RuntimeExecutionMode runtimeMode,
+            Configuration configuration) {
+        this.jobID = Objects.requireNonNull(jobID, "jobID 不能为空");
         this.graph = graph;
         this.runtimeMode = runtimeMode;
         this.configuration = new Configuration(configuration);
@@ -39,7 +43,12 @@ public final class CompiledJobPlan {
         Configuration snapshot = new Configuration(Objects.requireNonNull(configuration, "configuration 不能为空"));
         validateConfiguration(graph, snapshot);
         RuntimeExecutionMode mode = StreamGraphGenerator.resolveRuntimeMode(graph, snapshot);
-        return new CompiledJobPlan(graph, mode, snapshot);
+        return new CompiledJobPlan(JobID.generate(), graph, mode, snapshot);
+    }
+
+    /** 每次编译/提交获得独立的 JobID，与 LocalJobClient 和各 TaskInfo 一致。 */
+    public JobID jobID() {
+        return jobID;
     }
 
     public StreamGraph graph() {
