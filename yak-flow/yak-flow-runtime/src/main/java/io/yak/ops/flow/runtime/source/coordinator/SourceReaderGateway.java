@@ -1,6 +1,7 @@
-package io.yak.ops.flow.runtime.source;
+package io.yak.ops.flow.runtime.source.coordinator;
 
 import io.yak.ops.core.api.connector.source.SourceSplit;
+
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
