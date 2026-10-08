@@ -153,7 +153,10 @@ public class MultiTableOfflineExecutor {
     }
 
     private void execute(
-            String workspaceId, String rootExecutionId, DataSyncDefinitionSnapshotVO snapshot, MultiTableRunControl control) {
+            String workspaceId,
+            String rootExecutionId,
+            DataSyncDefinitionSnapshotVO snapshot,
+            MultiTableRunControl control) {
         if (!instanceRepository.transitionStatus(
                 workspaceId,
                 rootExecutionId,
@@ -447,5 +450,4 @@ public class MultiTableOfflineExecutor {
         long value = next == null ? 0L : Math.max(0L, next);
         return total > Long.MAX_VALUE - value ? Long.MAX_VALUE : total + value;
     }
-
 }

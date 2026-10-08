@@ -32,8 +32,8 @@ final class SingleTableAttemptRunner {
             BiFunction<Integer, DataSyncInstanceStatus, DataSyncRetryDecision> attempt) {
         WorkspaceContext.bind(context.workspaceId());
         try {
-            if (context.initialRetryTime() != null
-                    && !waitForRetry(context, lifecycle, context.initialRetryTime())) return;
+            if (context.initialRetryTime() != null && !waitForRetry(context, lifecycle, context.initialRetryTime()))
+                return;
 
             DataSyncInstanceStatus expectedStatus = context.expectedExecutionStatus();
             for (int attemptNo = context.firstAttemptNo(); attemptNo <= context.maxAttempts(); attemptNo++) {
@@ -50,7 +50,8 @@ final class SingleTableAttemptRunner {
     private static boolean waitForRetry(
             SingleTableRunContext context, DataSyncAttemptLifecycle lifecycle, LocalDateTime nextRetryTime) {
         if (nextRetryTime == null) return false;
-        long delayMillis = Math.max(0L, Duration.between(LocalDateTime.now(), nextRetryTime).toMillis());
+        long delayMillis = Math.max(
+                0L, Duration.between(LocalDateTime.now(), nextRetryTime).toMillis());
         try {
             if (delayMillis > 0) Thread.sleep(delayMillis);
         } catch (InterruptedException exception) {
