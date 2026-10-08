@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import lombok.Data;
 
 /**
@@ -70,6 +71,14 @@ public class DataSyncTaskDTO {
     /** 任务级显式字段映射；为空时继续使用系统默认同名映射。 */
     @Valid
     private DataSyncMappingDTO mapping;
+
+    /**
+     * OFFLINE Task 的有序表级定义。null 保持 v1.2 单表兼容；显式传入时必须 1-50 条，
+     * Source / Target Datasource 仍由 Task 共享。
+     */
+    @Valid
+    @Size(min = 1, max = 50, message = "表级路由数量必须在 1 到 50 之间")
+    private List<DataSyncTableRouteDTO> tableRoutes;
 
     /**
      * OFFLINE 任务使用的 YakFlow 运行参数。
