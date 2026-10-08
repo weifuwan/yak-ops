@@ -91,9 +91,7 @@ public class RealtimeSyncExecutor {
     }
 
     private void start(SingleTableRunContext context) {
-        Thread.ofVirtual()
-                .name("yak-realtime-sync-" + context.executionId())
-                .start(() -> execute(context));
+        Thread.ofVirtual().name("yak-realtime-sync-" + context.executionId()).start(() -> execute(context));
     }
 
     private void execute(SingleTableRunContext context) {
@@ -179,16 +177,16 @@ public class RealtimeSyncExecutor {
                 Throwable failure = execution.failure().orElse(null);
                 String message = ExecutionErrorMessages.attemptFailure(failure);
                 return failAttempt(
-                    context,
-                    attempt,
-                    attemptNo,
-                    new AttemptFailureDetails(
-                            DataSyncAttemptStatus.RUNNING,
-                            DataSyncInstanceStatus.RUNNING,
-                            metrics,
-                            failure,
-                            message),
-                    false);
+                        context,
+                        attempt,
+                        attemptNo,
+                        new AttemptFailureDetails(
+                                DataSyncAttemptStatus.RUNNING,
+                                DataSyncInstanceStatus.RUNNING,
+                                metrics,
+                                failure,
+                                message),
+                        false);
             }
 
             String message = "实时同步连续 Source 意外结束";
@@ -197,11 +195,7 @@ public class RealtimeSyncExecutor {
                     attempt,
                     attemptNo,
                     new AttemptFailureDetails(
-                            DataSyncAttemptStatus.RUNNING,
-                            DataSyncInstanceStatus.RUNNING,
-                            metrics,
-                            null,
-                            message),
+                            DataSyncAttemptStatus.RUNNING, DataSyncInstanceStatus.RUNNING, metrics, null, message),
                     true);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

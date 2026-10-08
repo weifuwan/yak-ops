@@ -88,9 +88,7 @@ public class OfflineSyncExecutor {
     }
 
     private void start(SingleTableRunContext context) {
-        Thread.ofVirtual()
-                .name("yak-offline-sync-" + context.executionId())
-                .start(() -> execute(context));
+        Thread.ofVirtual().name("yak-offline-sync-" + context.executionId()).start(() -> execute(context));
     }
 
     private void execute(SingleTableRunContext context) {
