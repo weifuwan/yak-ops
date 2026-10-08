@@ -48,6 +48,8 @@ Core 拥有跨 Connector / Runtime 复用的稳定接口、配置与逻辑图模
 - `Transformation` 保存逻辑拓扑与可覆盖的算子属性；`StreamGraph` 保存解析后的节点属性，不持有本地 Task、线程、Gateway 或连接。
 - `CoreOptions.DEFAULT_PARALLELISM` 是默认并行度的唯一权威定义，`ExecutionOptions.DEFAULT_PARALLELISM` 只作为兼容别名；Checkpoint 间隔仅由 `CheckpointingOptions.CHECKPOINTING_INTERVAL` 定义，旧字段也只能指向同一个 `ConfigOption`。
 - `StreamNode.getDeclaredParallelism()` 区分继承默认值与显式设置，`getParallelism()` 保存解析结果。构图/提交必须对继承默认值的节点做一致性检查，显式并行度不因提交配置变化而被覆盖。
+- `StreamEdge` 携带 FORWARD / REBALANCE / KEYED 分区策略；并行度相同默认 FORWARD，不同默认 REBALANCE。KEYED 通过下游 Transformation 的 `keyBy(KeySelector)` 配置稳定非空业务键，不能使用数组或身份哈希；FORWARD 的两侧并行度不一致时必须拒绝。
+- `CoreOptions.LOCAL_CHANNEL_CAPACITY` 定义下游每个 Subtask 的本地队列容量；Core 不拥有队列或 Task 状态。
 - 稳定算子 UID 与单次构图 ID 必须分清。Source / Sink / Operator 的公共契约只暴露 Connector 和 Runtime 真正共同需要的语义，不加入产品任务身份。
 - Runtime 的 `TaskInfo` / `TaskEnvironment`、协调侧 `OperatorCoordinatorContext` 和 `SourceReaderRuntimeContext` 均归 `yak-flow-runtime`，不下沉到 Core。Core 的 `SourceReaderContext#getConfiguration()` 返回独立的 `Configuration` 防御性副本；Task / Coordinator 身份不放入 Core。物理 Task 装配与全局 Checkpoint 仍属于后续工作，按 [Core / Runtime Execution Contract](../docs/capabilities/yak-flow/core-runtime-contract.md) 审查。
 

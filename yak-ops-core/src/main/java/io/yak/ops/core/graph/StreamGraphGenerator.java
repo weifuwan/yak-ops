@@ -2,10 +2,12 @@ package io.yak.ops.core.graph;
 
 import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.dag.Transformation;
+import io.yak.ops.core.api.operators.KeySelector;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
+import io.yak.ops.core.transformations.OneInputTransformation;
 import io.yak.ops.core.transformations.SinkTransformation;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -174,12 +176,35 @@ public final class StreamGraphGenerator {
                         : transformation.getParallelism();
                 nodes.add(StreamNode.fromTransformation(transformation, parallelism));
                 for (Transformation<?> input : inputs) {
-                    edges.add(new StreamEdge(input.getId(), transformation.getId()));
+                    edges.add(createEdge(input, transformation));
                 }
                 visited.add(transformation);
             } finally {
                 visiting.remove(transformation);
             }
         }
+        /** 将下游声明与两端并行度解析为明确的边策略；只有用户声明 KEYED 才使用键哈希。 */
+        private StreamEdge createEdge(Transformation<?> input, Transformation<?> target) {
+            StreamPartitioning requested = null;
+            KeySelector<?> selector = null;
+            if (target instanceof OneInputTransformation<?, ?> operator) {
+                requested = operator.getInputPartitioning();
+                selector = operator.getInputKeySelector();
+            } else if (target instanceof SinkTransformation<?> sink) {
+                requested = sink.getInputPartitioning();
+                selector = sink.getInputKeySelector();
+            }
+            int upstream = input.getParallelism() == Transformation.DEFAULT_PARALLELISM
+                    ? defaultParallelism
+                    : input.getParallelism();
+            int downstream = target.getParallelism() == Transformation.DEFAULT_PARALLELISM
+                    ? defaultParallelism
+                    : target.getParallelism();
+            StreamPartitioning partitioning = requested == null
+                    ? (upstream == downstream ? StreamPartitioning.FORWARD : StreamPartitioning.REBALANCE)
+                    : requested;
+            return new StreamEdge(input.getId(), target.getId(), partitioning, selector);
+        }
+
     }
 }

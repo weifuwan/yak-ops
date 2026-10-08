@@ -20,8 +20,8 @@ import java.util.Set;
  * <p>节点与边在构造时完成结构校验并冻结；不包含 JobID、运行状态、线程或连接。
  * StreamGraph 可以作为多个独立 Job 的共同执行定义。
  *
- * <p>这里只支持 Source、单输入 Operator 和 Sink。双输入、Union 和分区边
- * 等能力须在相应组件协议确定后再扩展，不能作为当前已支持的执行特性。
+ * <p>这里只支持 Source、单输入 Operator 和 Sink。边已携带分区策略，
+ * 但双输入、Union、Side Output 等能力仍不属于当前执行契约。
  *
  * @author weifuwan
  */
@@ -61,7 +61,7 @@ public final class StreamGraph implements Pipeline {
             out.put(id, new ArrayList<>());
         });
 
-        Set<StreamEdge> seen = new HashSet<>();
+        Set<Long> seen = new HashSet<>();
         List<StreamEdge> checkedEdges = new ArrayList<>();
         for (StreamEdge edge : streamEdges) {
             Objects.requireNonNull(edge, "StreamEdge 不能为空");
@@ -70,8 +70,13 @@ public final class StreamGraph implements Pipeline {
             if (source == null || target == null) {
                 throw new IllegalArgumentException("StreamEdge 引用了不存在的节点：" + edge);
             }
-            if (!seen.add(edge)) {
-                throw new IllegalArgumentException("StreamEdge 重复：" + edge);
+            long edgeIdentity = ((long) edge.sourceId() << 32) | (edge.targetId() & 0xffffffffL);
+            if (!seen.add(edgeIdentity)) {
+                throw new IllegalArgumentException("相同 Source/Target 不允许重复连接：" + edge);
+            }
+            if (edge.partitioning() == StreamPartitioning.FORWARD
+                    && source.getParallelism() != target.getParallelism()) {
+                throw new IllegalArgumentException("FORWARD 要求上下游并行度相同：" + edge);
             }
             if (source.isSink() || target.isSource()) {
                 throw new IllegalArgumentException("不允许从 Sink 输出或向 Source 输入：" + edge);

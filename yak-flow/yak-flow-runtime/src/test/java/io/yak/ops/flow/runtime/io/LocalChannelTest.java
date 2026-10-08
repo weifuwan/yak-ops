@@ -1,0 +1,183 @@
+package io.yak.ops.flow.runtime.io;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import io.yak.ops.core.api.connector.source.InputStatus;
+import io.yak.ops.core.graph.StreamEdge;
+import io.yak.ops.core.graph.StreamPartitioning;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
+
+class LocalChannelTest {
+
+    @Test
+    void shouldReturnEndOfInputOnlyAfterAllProducersAndDataDrain() throws Exception {
+        LocalChannel<String> channel = new LocalChannel<>(2, 2);
+        List<String> output = new ArrayList<>();
+
+        assertFalse(channel.isAvailable().isDone());
+        channel.send("first");
+        channel.producerFinished(0);
+        assertEquals(InputStatus.MORE_AVAILABLE, channel.emitNext(output::add));
+        assertEquals(List.of("first"), output);
+        assertEquals(InputStatus.NOTHING_AVAILABLE, channel.emitNext(output::add));
+        assertFalse(channel.isAvailable().isDone());
+
+        channel.producerFinished(1);
+        assertEquals(InputStatus.END_OF_INPUT, channel.emitNext(output::add));
+        assertTrue(channel.isAvailable().isDone());
+        assertThrows(IllegalStateException.class, () -> channel.producerFinished(1));
+    }
+
+    @Test
+    void shouldBackpressureProducerUntilConsumerDrainsCapacity() throws Exception {
+        LocalChannel<String> channel = new LocalChannel<>(1, 1);
+        channel.send("a");
+        CompletableFuture<Void> secondSend = new CompletableFuture<>();
+        CountDownLatch started = new CountDownLatch(1);
+        Thread producer = Thread.ofVirtual().start(() -> {
+            started.countDown();
+            try {
+                channel.send("b");
+                secondSend.complete(null);
+            } catch (Throwable failure) {
+                secondSend.completeExceptionally(failure);
+            }
+        });
+        try {
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            Thread.sleep(60);
+            assertFalse(secondSend.isDone(), "Bounded Channel 不得无限缓冲第二条记录");
+            List<String> output = new ArrayList<>();
+            assertEquals(InputStatus.MORE_AVAILABLE, channel.emitNext(output::add));
+            secondSend.get(5, TimeUnit.SECONDS);
+            channel.producerFinished(0);
+            assertEquals(InputStatus.MORE_AVAILABLE, channel.emitNext(output::add));
+            assertEquals(InputStatus.END_OF_INPUT, channel.emitNext(output::add));
+            assertEquals(List.of("a", "b"), output);
+        } finally {
+            channel.abort(new IllegalStateException("test closed"));
+            producer.join(5000);
+            assertFalse(producer.isAlive());
+        }
+    }
+
+    @Test
+    void shouldWakeWaitingReaderAndBlockedWriterOnAbort() throws Exception {
+        LocalChannel<String> channel = new LocalChannel<>(1, 1);
+        CompletableFuture<Void> waiting = channel.isAvailable();
+        channel.send("a");
+        CompletableFuture<Void> blocked = new CompletableFuture<>();
+        Thread producer = Thread.ofVirtual().start(() -> {
+            try {
+                channel.send("b");
+                blocked.complete(null);
+            } catch (Throwable failure) {
+                blocked.completeExceptionally(failure);
+            }
+        });
+
+        try {
+            channel.abort(new IllegalStateException("downstream failed"));
+            assertTrue(waiting.isDone());
+            assertThrows(IllegalStateException.class, () -> channel.emitNext(ignored -> {}));
+            assertThrows(ExecutionException.class, () -> blocked.get(5, TimeUnit.SECONDS));
+        } finally {
+            producer.join(5000);
+            assertFalse(producer.isAlive());
+        }
+    }
+
+    @Test
+    void shouldPartitionForwardAndRebalanceWithoutDuplicatingRecords() throws Exception {
+        List<LocalChannel<String>> forwardChannels = List.of(new LocalChannel<>(4, 2), new LocalChannel<>(4, 2));
+        StreamEdge forwardEdge = new StreamEdge(10, 20, StreamPartitioning.FORWARD);
+        LocalResultPartition<String> first =
+                new LocalResultPartition<>(forwardEdge, 0, 2, forwardChannels);
+        LocalResultPartition<String> second =
+                new LocalResultPartition<>(forwardEdge, 1, 2, forwardChannels);
+
+        first.collect("a");
+        second.collect("b");
+        first.finish();
+        second.finish();
+
+        List<String> f0 = new ArrayList<>();
+        List<String> f1 = new ArrayList<>();
+        assertEquals(InputStatus.MORE_AVAILABLE, forwardChannels.get(0).emitNext(f0::add));
+        assertEquals(InputStatus.MORE_AVAILABLE, forwardChannels.get(1).emitNext(f1::add));
+        assertEquals(List.of("a"), f0);
+        assertEquals(List.of("b"), f1);
+        assertEquals(InputStatus.END_OF_INPUT, forwardChannels.get(0).emitNext(f0::add));
+        assertEquals(InputStatus.END_OF_INPUT, forwardChannels.get(1).emitNext(f1::add));
+
+        List<LocalChannel<String>> rebalanceChannels = List.of(
+                new LocalChannel<>(4, 1), new LocalChannel<>(4, 1), new LocalChannel<>(4, 1));
+        LocalResultPartition<String> roundRobin = new LocalResultPartition<>(
+                new StreamEdge(10, 20, StreamPartitioning.REBALANCE), 0, 1, rebalanceChannels);
+        for (int i = 0; i < 6; i++) {
+            roundRobin.collect("record-" + i);
+        }
+        roundRobin.finish();
+        for (int i = 0; i < 3; i++) {
+            List<String> values = new ArrayList<>();
+            assertEquals(InputStatus.MORE_AVAILABLE, rebalanceChannels.get(i).emitNext(values::add));
+            assertEquals(InputStatus.MORE_AVAILABLE, rebalanceChannels.get(i).emitNext(values::add));
+            assertEquals(List.of("record-" + i, "record-" + (i + 3)), values);
+            assertEquals(InputStatus.END_OF_INPUT, rebalanceChannels.get(i).emitNext(values::add));
+        }
+    }
+
+    @Test
+    void shouldRouteSameBusinessKeyToOneChannel() throws Exception {
+        List<LocalChannel<String>> channels = List.of(new LocalChannel<>(8, 2), new LocalChannel<>(8, 2));
+        StreamEdge keyed = StreamEdge.keyed(1, 2, (String r) -> r.substring(0, 1));
+        LocalResultPartition<String> first = new LocalResultPartition<>(keyed, 0, 2, channels);
+        LocalResultPartition<String> second = new LocalResultPartition<>(keyed, 1, 2, channels);
+        first.collect("A1");
+        second.collect("A2");
+        first.collect("B1");
+        second.collect("B2");
+        first.finish();
+        second.finish();
+
+        List<String> all = new ArrayList<>();
+        for (LocalChannel<String> channel : channels) {
+            List<String> records = new ArrayList<>();
+            while (channel.emitNext(records::add) != InputStatus.END_OF_INPUT) {}
+            if (!records.isEmpty()) {
+                assertEquals(records.getFirst().substring(0, 1),
+                        records.getLast().substring(0, 1));
+            }
+            all.addAll(records);
+        }
+        assertEquals(4, all.size());
+        assertTrue(all.containsAll(List.of("A1", "A2", "B1", "B2")));
+    }
+
+    @Test
+    void shouldRejectUnsupportedKeyAndInvalidForwardParallelism() {
+        List<LocalChannel<String>> channels = List.of(new LocalChannel<>(2, 1), new LocalChannel<>(2, 1));
+        assertThrows(IllegalArgumentException.class, () ->
+                new LocalResultPartition<>(new StreamEdge(1, 2), 0, 1, channels));
+        assertThrows(IllegalArgumentException.class, () ->
+                new StreamEdge(1, 2, StreamPartitioning.KEYED));
+        assertThrows(IllegalArgumentException.class, () ->
+                new StreamEdge(1, 2, StreamPartitioning.FORWARD, (io.yak.ops.core.api.operators.KeySelector<String>) value -> value));
+
+        LocalResultPartition<String> nullKey = new LocalResultPartition<>(
+                StreamEdge.keyed(1, 2, (String value) -> null), 0, 1, channels);
+        assertThrows(NullPointerException.class, () -> nullKey.collect("record"));
+        LocalResultPartition<String> arrayKey = new LocalResultPartition<>(
+                StreamEdge.keyed(1, 2, (String value) -> new byte[] {1}), 0, 1, channels);
+        assertThrows(IllegalArgumentException.class, () -> arrayKey.collect("record"));
+    }
+}

@@ -2,14 +2,14 @@
 
 Status: Active (restricted local runtime implemented; multi-task / checkpoint extensions proposed)
 
-Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime` 的新批流执行链路。本文区分已实现的**单 Task 线性执行**和仍待实现的多 Task / Checkpoint 契约；代码已提供不代表 Maven、CI 或端到端验收已通过。
+Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime` 的新批流执行链路。本文区分已实现的**有界 Channel 多 Task 线性执行**和未实现的多源/分叉/全局 Checkpoint；代码存在不代表编译、CI 或 E2E 已通过。
 
 权威归属由 [Architecture](../../../ARCHITECTURE.md) 确定；现有产品能力由 [YakFlow Capability](README.md) 描述；实现规范分别见 [Core Rules](../../../yak-ops-core/CORE_RULES.md) 与 [YakFlow Rules](../../../yak-flow/YAK_FLOW_RULES.md)。
 
 ## Current Boundary
 
 - `yak-ops-core` 已提供类型化 `Configuration`、`Transformation`、`StreamGraph`、Source / Sink / Operator 接口，以及 `PipelineExecutor` / `JobClient` 契约；它不执行任务。
-- `yak-flow-runtime` 已有 `CompiledJobPlan`、`TaskInfo` / `TaskEnvironment`、Coordinator / Reader Context、`LocalPipelineExecutor` / `LocalJobClient`、`LocalStreamJobRunner`、`StreamTask` / `SourceOperatorStreamTask`、`LocalOperatorChain` 和 SourceCoordinator。内置 Runner 形成受限的 Source → OneInputOperator* → Sink 本地执行路径；多 Task 装配、跨 Task Channel 和全局 Checkpoint 仍未实现，也不能把代码存在视为已通过真实数据同步 E2E。
+- `yak-flow-runtime` 已有 `CompiledJobPlan`、Task/Coordinator/Reader Context、`LocalPipelineExecutor` / `LocalJobClient`、`LocalStreamJobRunner` / `LocalTaskGraph`、Source/Operator/Sink StreamTask、`LocalOperatorChain`、`LocalChannel` / `LocalResultPartition` 与 SourceCoordinator。线性单 Source、单 Sink 图允许多子任务并行；多源、分叉、动态扩缩容与全局 Checkpoint 仍未实现，也不能用代码存在证明真实数据库 E2E 通过。
 - `yak-flow-api` 的旧 Source / Sink、`CheckpointState` 与现有 Connector / 产品调用方仍是过渡范围。新旧 API 不能在同一执行路径中隐式混用，也不能用旧路径的验收证明新 Runtime 可用。
 - 产品 `Data Sync` 持有 Task / Route / Execution / Attempt、Retry、Schedule 和业务恢复状态。Runtime 的 `JobID`、Task 身份及局部 Checkpoint 不替代产品持久化标识。
 - 当前目标是单 JVM 本地运行。分布式资源管理、RPC、Slot、JobManager / TaskManager 不是本契约的要求。
@@ -22,7 +22,7 @@ Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime` 的新批流执行链路�
 | 显式算子并行度、上游依赖、稳定 UID | Core 的 Transformation | 逻辑定义；不打开连接、不创建线程 |
 | 节点实际并行度、边、类型和有界性 | Core 的 StreamGraph | 经构图解析的定义快照；不是活动执行实例 |
 | 运行模式与图/配置的一致性、Job 提交 | Runtime 的 PipelineExecutor 实现 | 冻结提交配置，建立一次提交对应的不可变执行输入 |
-| 物理 Task 装配及数据通道 | Runtime | 已支持单 Source、单 Sink、并行度为 1 的内联算子链；跨 Task 数据通道仍待实现 |
+| 物理 Task 装配及数据通道 | Runtime | 单并行 FORWARD 图采用内联链；并行线性图采用独立 Task、下游有界 Channel 和显式分区策略 |
 | Subtask Index、实际并行度、Attempt、运行上下文 | Runtime 的 TaskInfo / TaskEnvironment | TaskInfo 保存不可变身份与实际并行度；TaskEnvironment 提供配置防御性副本和只读取消信号 |
 | Enumerator、Reader 注册与 Split 投递 | Runtime 的 SourceCoordinator / SourceCoordinatorContext / OperatorCoordinatorContext | 协调上下文提供 Job、Operator 与实际并行度，事件循环串行调度；分片生成逻辑留在 Connector |
 | SourceReader 生命周期和数据轮询 | Runtime 的 SourceOperator / StreamTask | Task Mailbox 串行；不能创建第二条独立 Reader 控制线程 |
@@ -50,7 +50,7 @@ Configuration + Transformation
              ↓
  StreamTask(TaskEnvironment) ↔ SourceCoordinator(OperatorCoordinatorContext)
              ↓
-  Source → OneInputOperator* → Sink（当前内联链）
+  Source Task → LocalResultPartition → LocalChannel → Operator Task* → Sink Task
 ```
 
 - 默认值、显式值与运行时实际值是不同概念。`parallelism.default` 是配置；`StreamNode.parallelism` 是编译属性；Subtask 所属的实际并行度从 TaskInfo / 对应 Context 读取。
@@ -64,15 +64,23 @@ Configuration + Transformation
 
 ## Current Local Job Assembly
 
-内置 `LocalPipelineExecutor()` 在提交线程先调用 `LocalStreamJobRunner.validate(plan)`，不启动任务即可拒绝不支持的拓扑。支持的图必须是：
+内置 `LocalPipelineExecutor()` 在提交线程调用 `LocalStreamJobRunner.validate(plan)`，不启动任务就拒绝不支持的拓扑。当前范围：
 
-- 恰好一个 Source、一个 Sink；两者之间为零个或多个单输入 Operator，连接严格线性、没有分叉。
-- Source / Operator / Sink 的实际并行度全部等于 1。并行度超过 1、扇出、多 Source、多 Sink 不静默降级。
-- 周期 Checkpoint 间隔必须为 `Duration.ZERO`；非零配置在提交前被拒绝，因为新 Runtime 尚无完整的 Source → Sink Checkpoint 协调。
+- 恰好一个 Source、一个 Sink，中间为零个或多个单输入 Operator；拓扑严格线性，不支持分叉、多输入和多源。
+- 每个 Source/Operator/Sink 节点实际并行度为 1～16，单 Job 子任务总数不超过 64。
+- 周期 Checkpoint 必须禁用（`Duration.ZERO`）；新 Runtime 尚未实现全局 Checkpoint / 恢复。
 
-`LocalStreamJobRunner` 每次运行独立创建 Coordinator、单个 SourceOperatorStreamTask 和 LocalOperatorChain。Reader、Operator、Writer 运行时资源都在 Task Mailbox 线程创建、使用与关闭；Collector 同步传递零条、一条或多条记录，不启动额外数据线程。当前单 Task 采用内联链而非 Channel，跨 Task 有界 Channel、分区与背压传递由后续独立工作实现。
+所有节点并行度为 1 且边为 FORWARD 时，沿用一个 Mailbox 内的 `LocalOperatorChain`。其它线性图由 `LocalTaskGraph` 为每个子任务装配独立的 Reader、Operator 或 SinkWriter，并先启动下游消费者、再启动上游生产者。每次 Job 的 Task / Channel / Coordinator 互相隔离。
 
-`InputStatus.END_OF_INPUT` 才允许沿算子链依次调用 `OneInputOperator.finish` 和 `SinkWriter.flush(true)`。取消、读取/写入异常及初始化失败只执行资源清理，不能触发最终 Flush；若 finish / flush / close 失败，Job 必须按失败处理。Coordinator 异步失败应唤醒 Task，并让所属 Job 收到失败；取消只在 Task 退出并完成资源清理后确认。
+StreamEdge 具有明确分区语义：
+
+- **FORWARD**：源/目标并行度必须相同，按相同 Subtask Index 一对一传递。
+- **REBALANCE**：上游每个 Subtask 独立轮询所有下游子任务；并行度不同时为 GraphGenerator 的默认策略，不保证主键保序。
+- **KEYED**：下游 OneInputTransformation 或 SinkTransformation 通过 `keyBy(KeySelector)` 声明稳定业务键；将相同键哈希到同一目标子任务。来源仍需保证同键事件自身顺序，跨 Reader 到达顺序不受此策略保证，亦不构成 exactly-once。
+
+`LocalChannel` 对每个目标 Subtask 创建一个多生产者、单消费者的有界队列，`CoreOptions.LOCAL_CHANNEL_CAPACITY` 默认 64 条，最大 4096 条。生产者在队列满时阻塞虚拟 Task 线程形成背压；所有上游完成且队列排空后，下游才收到 EOF。任一 Task 或 SourceCoordinator 失败，Runtime 统一中止 Channel 并取消其它 Task。
+
+只有正常 EOF 才调用每级 Operator 的 `finish`，并在全部上游生产者结束后执行 Sink 的 `flush(true)`。异常、取消或部分初始化失败只关闭已创建资源，不发送成功结束标记。一个 Operator 或 SinkWriter 只由所属 Task Mailbox 串行访问；记录通过同步 Collector 转发，不由 Runtime 隐式复制或异步缓存。
 
 ## Identity / Lifecycle
 
@@ -86,8 +94,8 @@ Configuration + Transformation
 
 ## Dataflow / Checkpoint Safety
 
-- Graph 的每条边必须有明确的数据路由语义；跨不同算子并行度时，不能仅凭 `StreamEdge(sourceId,targetId)` 推断正确的记录分发。Channel 需限制容量并能传播背压、结束、取消和失败。
-- Source 的 Split 数量不等于 Reader 并行度；当日后需要 keyed routing 时，CDC 同一主键的变更顺序必须受分区和写入规则约束，不能盲目 Rebalance。
+- StreamEdge 明确保存 FORWARD / REBALANCE / KEYED 和必要的 KeySelector；FORWARD 两侧并行度不一致时拒绝。LocalChannel 限制容量并传播背压；全部上游完成且队列排空后才 EOF，失败和取消要通知全部 Channel 与 Task。
+- Source 的 Split 数量不等于 Reader 并行度；CDC 必须使用稳定主键选择 KEYED 才能保证同键进入同一目标 Subtask。多个 Reader 对同键同时发送事件仍可能交错，必须由 Source / Connector 保证该键的事件序列，不能盲目使用 REBALANCE。
 - 当前新 Runtime 仅有 Source 侧局部快照/分配跟踪。目标 Checkpoint 需要由上层统一协调 Enumerator、Reader、数据通道和 Sink 的同一边界，并持久化完成后才能通知成功。
 - SourceCoordinatorCheckpoint、`SplitAssignmentTracker` 的历史记录不能单独证明跨进程恢复。恢复需要版本化序列化、Reader 与 Enumerator 状态对齐、失败分片归还或重分配，以及完成确认规则。
 - `SinkWriter.flush` 或 Split 事件处理成功，不等于 Exactly-once 事务提交证明。新 Runtime 在全链路恢复验收前不得声称具备 at-least-once / exactly-once 等端到端保证；旧 YakFlow 的具体保证仍以其原有契约为准。
@@ -96,7 +104,7 @@ Configuration + Transformation
 
 - 新旧 API 在提交入口显式区分；既有产品的数据同步能力和 Connector 调用路径保持原有行为，迁移时才按直接消费者增加必要的兼容适配。
 - Core 的 `SourceReaderContext` / `SplitEnumeratorContext` 由 Runtime 实现；`SourceReaderRuntimeContext#getConfiguration` 必须返回 Task 配置的防御性副本。上下行事件分别使用 `OperatorEventGateway`（Reader → Coordinator）与 `SubtaskGateway`（Coordinator → Reader）；方向不同，不引入第三套等价 Gateway。
-- 每次迁移同时确认 Core 泛型、构图、配置唯一性、旧 Runtime 兼容与测试；TaskInfo / TaskEnvironment、Source Coordination Context 与**受限线性单 Task Job 装配**已实现。多 Task Channel、数据分区、全局 Checkpoint 及 Reader 局部故障恢复仍属于未实现能力，不能把 Coordinator 的局部快照当成完整作业恢复。每次完成证据留在对应 PR，不写入本契约。
+- 每次迁移同时确认 Core 泛型、构图、配置唯一性、旧 Runtime 兼容与测试；Task / Coordinator Context、线性图多 Task 装配、本地有界 Channel 和分区策略已有实现。多源/分叉、全局 Checkpoint、持久化恢复及 Reader 局部故障恢复仍未实现，不能将 Coordinator 局部快照当成完整作业恢复。每次完成证据留在对应 PR，不写入本契约。
 - 后续实现应提供默认/显式并行度、配置快照隔离、重复/失败 Split、Mailbox 控制、取消清理、Checkpoint 成败及恢复的测试。真实数据库验收继续使用现有 [Backend Acceptance](../../../.github/workflows/backend-acceptance.yml) 路径。
 
 ## Flink Reference / Non-Goals
