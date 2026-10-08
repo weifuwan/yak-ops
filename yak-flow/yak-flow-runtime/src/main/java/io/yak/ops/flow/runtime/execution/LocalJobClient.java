@@ -1,12 +1,9 @@
 package io.yak.ops.flow.runtime.execution;
 
-import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.common.JobExecutionResult;
 import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.common.JobStatus;
-import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.execution.JobClient;
-import io.yak.ops.core.graph.StreamGraph;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -36,15 +33,13 @@ public final class LocalJobClient implements JobClient {
     }
 
     /** 提交工作线程。该方法只允许被 LocalPipelineExecutor 调用一次。 */
-    void start(StreamGraph graph, RuntimeExecutionMode mode, Configuration configuration, LocalJobRunner runner) {
-        Objects.requireNonNull(graph, "graph 不能为空");
-        Objects.requireNonNull(mode, "mode 不能为空");
-        Objects.requireNonNull(configuration, "configuration 不能为空");
+    void start(CompiledJobPlan plan, LocalJobRunner runner) {
+        Objects.requireNonNull(plan, "plan 不能为空");
         Objects.requireNonNull(runner, "runner 不能为空");
 
         Thread thread = Thread.ofVirtual()
                 .name("yak-local-job-" + jobID)
-                .unstarted(() -> runJob(graph, mode, configuration, runner));
+                .unstarted(() -> runJob(plan, runner));
         synchronized (monitor) {
             if (worker != null) {
                 throw new IllegalStateException("同一 JobClient 不能重复提交");
@@ -54,11 +49,7 @@ public final class LocalJobClient implements JobClient {
         thread.start();
     }
 
-    private void runJob(
-            StreamGraph graph,
-            RuntimeExecutionMode mode,
-            Configuration configuration,
-            LocalJobRunner runner) {
+    private void runJob(CompiledJobPlan plan, LocalJobRunner runner) {
         synchronized (monitor) {
             if (!cancellationRequested) {
                 status = JobStatus.RUNNING;
@@ -71,8 +62,8 @@ public final class LocalJobClient implements JobClient {
 
         long startedNanos = System.nanoTime();
         try {
-            runner.run(graph, mode, configuration, () -> cancellationRequested);
-            if (!graph.isBounded() && !cancellationRequested) {
+            runner.run(plan, () -> cancellationRequested);
+            if (!plan.graph().isBounded() && !cancellationRequested) {
                 completeFailed(new IllegalStateException("无界 Pipeline 未被取消却提前结束"));
                 return;
             }

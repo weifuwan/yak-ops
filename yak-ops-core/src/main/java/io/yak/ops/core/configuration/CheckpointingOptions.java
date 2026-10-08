@@ -24,7 +24,7 @@ public final class CheckpointingOptions {
     public static final ConfigOption<Duration> CHECKPOINTING_INTERVAL =
             ConfigOptions.key("execution.checkpointing.interval")
                     .durationType()
-                    .noDefaultValue();
+                    .defaultValue(Duration.ZERO);
 
     /**
      * 单次 Checkpoint 尝试允许的最长时间。

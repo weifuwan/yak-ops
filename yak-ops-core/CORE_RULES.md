@@ -46,7 +46,8 @@ Core 拥有跨 Connector / Runtime 复用的稳定接口、配置与逻辑图模
 
 - `Configuration` 只表达类型化运行策略和构图所需默认值，不承载 JobID、Subtask、Attempt、Reader 或 Coordinator 的活动状态。
 - `Transformation` 保存逻辑拓扑与可覆盖的算子属性；`StreamGraph` 保存解析后的节点属性，不持有本地 Task、线程、Gateway 或连接。
-- 默认并行度与已解析的算子并行度必须区分。构图/提交时的配置快照需一致，不能让同一张图在运行时被另一份默认配置静默重解释。
+- `CoreOptions.DEFAULT_PARALLELISM` 是默认并行度的唯一权威定义，`ExecutionOptions.DEFAULT_PARALLELISM` 只作为兼容别名；Checkpoint 间隔仅由 `CheckpointingOptions.CHECKPOINTING_INTERVAL` 定义，旧字段也只能指向同一个 `ConfigOption`。
+- `StreamNode.getDeclaredParallelism()` 区分继承默认值与显式设置，`getParallelism()` 保存解析结果。构图/提交必须对继承默认值的节点做一致性检查，显式并行度不因提交配置变化而被覆盖。
 - 稳定算子 UID 与单次构图 ID 必须分清。Source / Sink / Operator 的公共契约只暴露 Connector 和 Runtime 真正共同需要的语义，不加入产品任务身份。
 - Runtime 的 TaskInfo、TaskEnvironment、CoordinatorContext 与物理装配属后续实现目标，按 [Core / Runtime Execution Contract](../docs/capabilities/yak-flow/core-runtime-contract.md) 的提案评审；不能因为希望缩短构造器就提前把这些本地实现放进 Core。
 

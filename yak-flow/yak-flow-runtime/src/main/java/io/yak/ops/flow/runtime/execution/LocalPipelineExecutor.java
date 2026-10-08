@@ -1,16 +1,11 @@
 package io.yak.ops.flow.runtime.execution;
 
-import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.dag.Pipeline;
 import io.yak.ops.core.configuration.Configuration;
-import io.yak.ops.core.configuration.ExecutionOptions;
-import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamGraphGenerator;
-import io.yak.ops.core.graph.StreamNode;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -44,29 +39,12 @@ public final class LocalPipelineExecutor implements PipelineExecutor {
                 throw new IllegalArgumentException("LocalPipelineExecutor 只支持 StreamGraph");
             }
 
-            Configuration snapshot = new Configuration(configuration);
-            validateSubmission(graph, snapshot);
-            RuntimeExecutionMode mode = StreamGraphGenerator.resolveRuntimeMode(graph, snapshot);
-
+            CompiledJobPlan plan = CompiledJobPlan.compile(graph, configuration);
             LocalJobClient client = new LocalJobClient(JobID.generate());
-            client.start(graph, mode, snapshot, runner);
+            client.start(plan, runner);
             return CompletableFuture.completedFuture(client);
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(failure);
-        }
-    }
-
-    private static void validateSubmission(StreamGraph graph, Configuration configuration) {
-        Integer parallelism = configuration.get(ExecutionOptions.DEFAULT_PARALLELISM);
-        if (parallelism == null || parallelism <= 0) {
-            throw new IllegalArgumentException("默认并行度必须大于 0");
-        }
-        if (Boolean.FALSE.equals(configuration.get(PipelineOptions.AUTO_GENERATE_UIDS))) {
-            for (StreamNode node : graph.getStreamNodes()) {
-                if (node.getUid() == null) {
-                    throw new IllegalArgumentException("关闭自动 UID 生成后，所有节点必须指定 UID：" + node.getId());
-                }
-            }
         }
     }
 }
