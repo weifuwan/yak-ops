@@ -51,7 +51,6 @@ import org.springframework.stereotype.Component;
 public class MultiTableOfflineExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(MultiTableOfflineExecutor.class);
-    private static final long METRICS_FLUSH_MILLIS = 500L;
 
     private final ConcurrentMap<String, MultiTableRunControl> controls = new ConcurrentHashMap<>();
     private final DataSyncRetryClassifier retryClassifier = new DataSyncRetryClassifier();
@@ -103,7 +102,10 @@ public class MultiTableOfflineExecutor {
     }
 
     private void runBound(
-            String workspaceId, String rootExecutionId, DataSyncDefinitionSnapshotVO snapshot, MultiTableRunControl control) {
+            String workspaceId,
+            String rootExecutionId,
+            DataSyncDefinitionSnapshotVO snapshot,
+            MultiTableRunControl control) {
         WorkspaceContext.bind(workspaceId);
         try {
             execute(workspaceId, rootExecutionId, snapshot, control);
@@ -151,7 +153,10 @@ public class MultiTableOfflineExecutor {
     }
 
     private void execute(
-            String workspaceId, String rootExecutionId, DataSyncDefinitionSnapshotVO snapshot, MultiTableRunControl control) {
+            String workspaceId,
+            String rootExecutionId,
+            DataSyncDefinitionSnapshotVO snapshot,
+            MultiTableRunControl control) {
         if (!instanceRepository.transitionStatus(
                 workspaceId,
                 rootExecutionId,
@@ -272,7 +277,8 @@ public class MultiTableOfflineExecutor {
                         message);
                 return;
             }
-            if (!waitForRetry(workspaceId, rootExecutionId, control, retryPolicy.delayForAttempt(attemptNo, backoffSeconds))) {
+            if (!waitForRetry(
+                    workspaceId, rootExecutionId, control, retryPolicy.delayForAttempt(attemptNo, backoffSeconds))) {
                 return;
             }
         }
@@ -287,7 +293,8 @@ public class MultiTableOfflineExecutor {
                 runtimeSnapshot, outcome.failure(), outcome.runtimeStarted(), outcome.writeRows());
     }
 
-    private boolean waitForRetry(String workspaceId, String rootExecutionId, MultiTableRunControl control, int backoffSeconds) {
+    private boolean waitForRetry(
+            String workspaceId, String rootExecutionId, MultiTableRunControl control, int backoffSeconds) {
         LocalDateTime next = DateUtils.now().plusSeconds(Math.max(0, backoffSeconds));
         while (!control.isCanceled() && rootRunning(workspaceId, rootExecutionId)) {
             long remaining = Duration.between(DateUtils.now(), next).toMillis();
@@ -321,16 +328,11 @@ public class MultiTableOfflineExecutor {
             started = true;
             control.setActive(execution);
             if (control.isCanceled()) execution.cancel();
-            while (execution.status() == ExecutionStatus.RUNNING) {
-                ExecutionMetrics value = execution.metrics();
-                metrics.accept(value.readRows(), value.writeRows());
-                Thread.sleep(METRICS_FLUSH_MILLIS);
-            }
-            ExecutionStatus status = execution.await();
-            ExecutionMetrics value = execution.metrics();
-            metrics.accept(value.readRows(), value.writeRows());
+            ExecutionObservation observation = ExecutionMetricsPoller.awaitTermination(
+                    execution, value -> metrics.accept(value.readRows(), value.writeRows()));
+            ExecutionMetrics value = observation.metrics();
             return new RouteExecutionOutcome(
-                    status,
+                    observation.status(),
                     value.readRows(),
                     value.writeRows(),
                     execution.failure().orElse(null),
@@ -448,5 +450,4 @@ public class MultiTableOfflineExecutor {
         long value = next == null ? 0L : Math.max(0L, next);
         return total > Long.MAX_VALUE - value ? Long.MAX_VALUE : total + value;
     }
-
 }
