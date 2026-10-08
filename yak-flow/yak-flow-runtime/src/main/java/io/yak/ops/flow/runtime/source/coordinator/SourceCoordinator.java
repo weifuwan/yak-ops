@@ -4,15 +4,16 @@ import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.flow.runtime.checkpoint.SourceCoordinatorCheckpoint;
-import io.yak.ops.flow.runtime.source.event.ReaderRegistrationEvent;
-import io.yak.ops.flow.runtime.source.event.RequestSplitEvent;
+import io.yak.ops.flow.runtime.execution.TaskInfo;
+import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
+import io.yak.ops.flow.runtime.source.event.ReaderRegistrationEvent;
+import io.yak.ops.flow.runtime.source.event.RequestSplitEvent;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,12 +27,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Split 投递、分配历史与异步发现由 SourceCoordinatorContext 承担。
  * 不读取记录，不实现 Connector 特有的分片算法。
  *
- * <p>当前仅支持整个作业失败后统一恢复，不实现单 Reader 局部故障恢复。
+ * <p>当前仅支持整个作业失败后统一恢复，单个 Reader 的新 Attempt 不可直接取代已注册 Gateway。
  * Coordinator Checkpoint 只是协调侧片段，不能替代完整作业 Checkpoint。
  */
-public final class SourceCoordinator<T, SplitT extends SourceSplit, EnumStateT> implements AutoCloseable {
+public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> implements AutoCloseable {
 
-    private final Source<T, SplitT, EnumStateT> source;
+    private final Source<?, SplitT, EnumStateT> source;
+    private final OperatorCoordinatorContext coordinatorContext;
     private final EnumStateT restoredEnumeratorState;
     private final boolean restoring;
     private final ExecutorService eventLoop = Executors.newSingleThreadExecutor(
@@ -46,28 +48,30 @@ public final class SourceCoordinator<T, SplitT extends SourceSplit, EnumStateT> 
     private SplitEnumerator<SplitT, EnumStateT> enumerator;
     private boolean started;
 
-    public SourceCoordinator(Source<T, SplitT, EnumStateT> source, int parallelism) {
-        this(source, parallelism, null, false);
+    public SourceCoordinator(Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext) {
+        this(source, coordinatorContext, null, false);
     }
 
-    /** 从已完成的全局检查点恢复时提供的 Enumerator 状态；Reader 状态另行恢复。 */
-    public static <T, SplitT extends SourceSplit, EnumStateT>
-            SourceCoordinator<T, SplitT, EnumStateT> restore(
-                    Source<T, SplitT, EnumStateT> source, int parallelism, EnumStateT state) {
-        return new SourceCoordinator<>(source, parallelism,
+    /** 从全局已完成 Checkpoint 的 Enumerator 状态恢复；Reader 状态由上层另外恢复。 */
+    public static <SplitT extends SourceSplit, EnumStateT> SourceCoordinator<SplitT, EnumStateT> restore(
+            Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext, EnumStateT state) {
+        return new SourceCoordinator<>(source, coordinatorContext,
                 Objects.requireNonNull(state, "恢复状态不能为空"), true);
     }
 
-    private SourceCoordinator(Source<T, SplitT, EnumStateT> source, int parallelism,
-            EnumStateT restoredEnumeratorState, boolean restoring) {
+    private SourceCoordinator(Source<?, SplitT, EnumStateT> source,
+            OperatorCoordinatorContext coordinatorContext, EnumStateT restoredEnumeratorState, boolean restoring) {
         this.source = Objects.requireNonNull(source, "source 不能为空");
-        if (parallelism <= 0) {
-            throw new IllegalArgumentException("并行度必须大于 0");
-        }
+        this.coordinatorContext = Objects.requireNonNull(coordinatorContext, "coordinatorContext 不能为空");
         this.restoredEnumeratorState = restoredEnumeratorState;
         this.restoring = restoring;
-        this.context = new SourceCoordinatorContext<>(parallelism, eventLoop, discovery,
+        this.context = new SourceCoordinatorContext<>(coordinatorContext, eventLoop, discovery,
                 () -> eventThread, this::fail);
+    }
+
+    /** Source 所属的不可变运行身份；用于 Task 装配时检查 Job/Operator/Parallelism。 */
+    public OperatorCoordinatorContext coordinatorContext() {
+        return coordinatorContext;
     }
 
     /** 创建 Enumerator 并调用 start()；同一个 Coordinator 不可重复启动。 */
@@ -91,12 +95,18 @@ public final class SourceCoordinator<T, SplitT extends SourceSplit, EnumStateT> 
     }
 
     /** Reader 已创建 SubtaskGateway 后进行注册；不会等待分片实际读取完成。 */
-    public CompletableFuture<Void> registerReader(int subtaskId, SubtaskGateway gateway) {
-        ReaderRegistrationEvent event = new ReaderRegistrationEvent(subtaskId);
+    public CompletableFuture<Void> registerReader(TaskInfo taskInfo, SubtaskGateway gateway) {
         Objects.requireNonNull(gateway, "gateway 不能为空");
+        try {
+            coordinatorContext.validateTask(taskInfo);
+        } catch (RuntimeException failure) {
+            return CompletableFuture.failedFuture(failure);
+        }
+        ReaderRegistrationEvent event =
+                new ReaderRegistrationEvent(taskInfo.subtaskIndex(), taskInfo.attemptNumber());
         return submit(() -> {
             ensureStarted();
-            context.registerReader(event.subtaskId(), gateway);
+            context.registerReader(taskInfo, gateway);
             try {
                 enumerator.addReader(event.subtaskId());
                 return null;
@@ -110,28 +120,34 @@ public final class SourceCoordinator<T, SplitT extends SourceSplit, EnumStateT> 
     /**
      * 接收指定 SourceOperator 子任务发来的控制事件。
      *
-     * <p>目前只支持 RequestSplitEvent。子任务 ID 必须与事件声明一致，
-     * 避免一个 Reader 冒充其他 Reader 请求分片。事件在协调器线程中处理。
+     * <p>目前只支持 RequestSplitEvent。事件中的 Subtask 与 Attempt 身份必须匹配
+     * 已注册的 TaskInfo，拒绝过期 Reader 请求；事件在协调器线程中处理。
      */
-    public CompletableFuture<Void> handleEventFromOperator(int subtaskId, OperatorEvent event) {
+    public CompletableFuture<Void> handleEventFromOperator(TaskInfo taskInfo, OperatorEvent event) {
         Objects.requireNonNull(event, "event 不能为空");
+        try {
+            coordinatorContext.validateTask(taskInfo);
+        } catch (RuntimeException failure) {
+            return CompletableFuture.failedFuture(failure);
+        }
         if (!(event instanceof RequestSplitEvent request)) {
             return CompletableFuture.failedFuture(
                     new IllegalArgumentException("Coordinator 不支持的 OperatorEvent："
                             + event.getClass().getName()));
         }
-        if (subtaskId != request.subtaskId()) {
-            return CompletableFuture.failedFuture(
-                    new IllegalArgumentException("OperatorEvent 子任务编号不匹配：" + subtaskId));
+        if (taskInfo.subtaskIndex() != request.subtaskId()
+                || taskInfo.attemptNumber() != request.attemptNumber()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException(
+                    "OperatorEvent 的 Subtask / Attempt 与发送者身份不匹配"));
         }
         return submit(() -> {
             ensureStarted();
-            if (!context.canRequestSplit(subtaskId)) {
-                // 已经发送 NoMoreSplits 后，迟到的请求不应被误判为故障。
+            if (!context.canRequestSplit(taskInfo)) {
+                // 已发送 NoMoreSplits 的迟到请求不应再次触发 Enumerator。
                 return null;
             }
             try {
-                enumerator.handleSplitRequest(subtaskId);
+                enumerator.handleSplitRequest(taskInfo.subtaskIndex());
                 return null;
             } catch (Throwable failure) {
                 fail(failure);
@@ -189,11 +205,12 @@ public final class SourceCoordinator<T, SplitT extends SourceSplit, EnumStateT> 
     }
 
     /** Reader 异常由 Job Runtime 执行整体恢复；此处不会盲目重新分配原始 Split。 */
-    public CompletableFuture<Void> readerFailed(int subtaskId, Throwable failure) {
+    public CompletableFuture<Void> readerFailed(TaskInfo taskInfo, Throwable failure) {
         Objects.requireNonNull(failure, "failure 不能为空");
         return submit(() -> {
-            context.checkRegistered(subtaskId);
-            fail(new IllegalStateException("Source Reader 故障，作业需要整体恢复：" + subtaskId, failure));
+            context.checkRegistered(taskInfo);
+            fail(new IllegalStateException("Source Reader 故障，作业需要整体恢复："
+                    + taskInfo.subtaskIndex() + "，attempt=" + taskInfo.attemptNumber(), failure));
             return null;
         });
     }

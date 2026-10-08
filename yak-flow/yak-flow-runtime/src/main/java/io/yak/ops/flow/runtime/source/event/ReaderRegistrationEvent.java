@@ -2,11 +2,12 @@ package io.yak.ops.flow.runtime.source.event;
 
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 
-/** Reader Task 向 Coordinator 注册的控制事件。 */
-public record ReaderRegistrationEvent(int subtaskId) implements OperatorEvent {
+/** Reader 注册身份：Subtask Index 与 Attempt Number 必须同时匹配。 */
+public record ReaderRegistrationEvent(int subtaskId, int attemptNumber) implements OperatorEvent {
+
     public ReaderRegistrationEvent {
-        if (subtaskId < 0) {
-            throw new IllegalArgumentException("subtaskId 不能为负数");
+        if (subtaskId < 0 || attemptNumber < 0) {
+            throw new IllegalArgumentException("Reader 注册身份不能为负数");
         }
     }
 }

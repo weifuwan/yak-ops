@@ -2,9 +2,11 @@ package io.yak.ops.flow.runtime.source.coordinator;
 
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
+import io.yak.ops.flow.runtime.execution.TaskInfo;
+import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
+import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
 import io.yak.ops.flow.runtime.source.event.NoMoreSplitsEvent;
-import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,50 +31,64 @@ import java.util.function.Supplier;
 public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         implements SplitEnumeratorContext<SplitT> {
 
-    private final int parallelism;
+    private final OperatorCoordinatorContext operatorContext;
     private final ExecutorService coordinatorExecutor;
     private final ExecutorService discoveryExecutor;
     private final Supplier<Thread> coordinatorThread;
     private final Consumer<Throwable> onFailure;
     private final SplitAssignmentTracker<SplitT> assignments = new SplitAssignmentTracker<>();
     private final Map<Integer, SubtaskGateway> readers = new HashMap<>();
+    private final Map<Integer, TaskInfo> readerIdentities = new HashMap<>();
     private final Map<String, Integer> inFlight = new HashMap<>();
     private final Set<Integer> noMoreRequested = new HashSet<>();
     private final Set<Integer> noMoreDispatched = new HashSet<>();
     private final Set<Integer> pendingNoMore = new HashSet<>();
     private volatile boolean closed;
 
-    SourceCoordinatorContext(int parallelism,
+    SourceCoordinatorContext(OperatorCoordinatorContext operatorContext,
             ExecutorService coordinatorExecutor,
             ExecutorService discoveryExecutor,
             Supplier<Thread> coordinatorThread,
             Consumer<Throwable> onFailure) {
-        this.parallelism = parallelism;
+        this.operatorContext = Objects.requireNonNull(operatorContext, "operatorContext 不能为空");
         this.coordinatorExecutor = Objects.requireNonNull(coordinatorExecutor);
         this.discoveryExecutor = Objects.requireNonNull(discoveryExecutor);
         this.coordinatorThread = Objects.requireNonNull(coordinatorThread);
         this.onFailure = Objects.requireNonNull(onFailure);
     }
 
-    void registerReader(int subtaskId, SubtaskGateway gateway) {
+    void registerReader(TaskInfo taskInfo, SubtaskGateway gateway) {
         assertCoordinatorThread();
+        operatorContext.validateTask(taskInfo);
+        int subtaskId = taskInfo.subtaskIndex();
         checkSubtask(subtaskId);
         Objects.requireNonNull(gateway, "gateway 不能为空");
         if (readers.putIfAbsent(subtaskId, gateway) != null) {
-            throw new IllegalArgumentException("Reader 重复注册：" + subtaskId);
+            throw new IllegalArgumentException("Reader 已注册，不支持单个 Reader 的 Attempt 热替换：" + subtaskId);
         }
+        readerIdentities.put(subtaskId, taskInfo);
     }
 
-    void checkRegistered(int subtaskId) {
+    void checkRegistered(TaskInfo taskInfo) {
         assertCoordinatorThread();
-        checkSubtask(subtaskId);
-        if (!readers.containsKey(subtaskId)) {
-            throw new IllegalArgumentException("Reader 尚未注册：" + subtaskId);
+        operatorContext.validateTask(taskInfo);
+        TaskInfo active = readerIdentities.get(taskInfo.subtaskIndex());
+        if (!taskInfo.equals(active)) {
+            throw new IllegalStateException("Reader 未注册或已过期，subtask="
+                    + taskInfo.subtaskIndex() + "，attempt=" + taskInfo.attemptNumber());
         }
     }
 
-    boolean canRequestSplit(int subtaskId) {
-        checkRegistered(subtaskId);
+    boolean canRequestSplit(TaskInfo taskInfo) {
+        checkRegistered(taskInfo);
+        return !noMoreRequested.contains(taskInfo.subtaskIndex());
+    }
+
+    private boolean canAssignSplit(int subtaskId) {
+        checkSubtask(subtaskId);
+        if (!readerIdentities.containsKey(subtaskId)) {
+            throw new IllegalStateException("Reader 尚未注册：" + subtaskId);
+        }
         return !noMoreRequested.contains(subtaskId);
     }
 
@@ -92,6 +108,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         assertCoordinatorThread();
         closed = true;
         readers.clear();
+        readerIdentities.clear();
         inFlight.clear();
         pendingNoMore.clear();
         noMoreRequested.clear();
@@ -100,7 +117,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
 
     @Override
     public int currentParallelism() {
-        return parallelism;
+        return operatorContext.parallelism();
     }
 
     @Override
@@ -112,7 +129,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
     @Override
     public void assignSplit(SplitT split, int subtaskId) {
         assertCoordinatorThread();
-        if (!canRequestSplit(subtaskId)) {
+        if (!canAssignSplit(subtaskId)) {
             throw new IllegalStateException("不能在 NoMoreSplits 后继续分配 Split：" + subtaskId);
         }
         AddSplitEvent<SplitT> event = new AddSplitEvent<>(List.of(split));
@@ -223,7 +240,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
     }
 
     private void checkSubtask(int subtaskId) {
-        if (subtaskId < 0 || subtaskId >= parallelism) {
+        if (subtaskId < 0 || subtaskId >= currentParallelism()) {
             throw new IllegalArgumentException("Reader 子任务编号越界：" + subtaskId);
         }
     }

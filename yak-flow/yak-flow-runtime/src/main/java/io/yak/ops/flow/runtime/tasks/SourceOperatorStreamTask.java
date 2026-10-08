@@ -7,6 +7,7 @@ import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.io.StreamTaskSourceInput;
 import io.yak.ops.flow.runtime.operators.SourceOperator;
+import io.yak.ops.flow.runtime.operators.SourceReaderRuntimeContext;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
@@ -26,19 +27,21 @@ import java.util.concurrent.CompletionStage;
 public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         extends StreamTask implements SubtaskGateway {
 
-    private final SourceCoordinator<T, SplitT, ?> coordinator;
+    private final SourceCoordinator<SplitT, ?> coordinator;
     private final SourceOperator<T, SplitT> operator;
     private final StreamTaskSourceInput<T> input;
 
     public SourceOperatorStreamTask(
             Source<T, SplitT, ?> source,
-            SourceCoordinator<T, SplitT, ?> coordinator,
+            SourceCoordinator<SplitT, ?> coordinator,
             TaskEnvironment environment,
             ReaderOutput<T> output) {
         super(environment);
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
-        this.operator = new SourceOperator<>(source, taskEnvironment(),
-                event -> coordinator.handleEventFromOperator(taskInfo().subtaskIndex(), event), this::failAsync);
+        this.coordinator.coordinatorContext().validateTask(taskInfo());
+        SourceReaderRuntimeContext readerContext = new SourceReaderRuntimeContext(
+                taskEnvironment(), event -> coordinator.handleEventFromOperator(taskInfo(), event), this::failAsync);
+        this.operator = new SourceOperator<>(source, readerContext);
         this.input = new StreamTaskSourceInput<>(operator, output);
     }
 
@@ -46,7 +49,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
     protected void openTask() throws Exception {
         operator.initialize();
         // 必须先注册 Gateway，再启动可能调用 sendSplitRequest() 的 Reader。
-        coordinator.registerReader(taskInfo().subtaskIndex(), this).get();
+        coordinator.registerReader(taskInfo(), this).get();
         operator.start();
     }
 
@@ -67,7 +70,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
 
     @Override
     protected void taskFailed(Throwable failure) {
-        coordinator.readerFailed(taskInfo().subtaskIndex(), failure);
+        coordinator.readerFailed(taskInfo(), failure);
     }
 
     /**

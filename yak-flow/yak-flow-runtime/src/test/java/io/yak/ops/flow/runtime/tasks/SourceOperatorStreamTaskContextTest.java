@@ -1,6 +1,7 @@
 package io.yak.ops.flow.runtime.tasks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.core.api.common.JobID;
@@ -18,6 +19,7 @@ import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.execution.TaskInfo;
+import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +41,9 @@ class SourceOperatorStreamTaskContextTest {
         configuration.set(CoreOptions.DEFAULT_PARALLELISM, 8);
         TaskInfo info = new TaskInfo(JobID.generate(), 17, 1, 2, 0);
 
-        try (SourceCoordinator<String, TestSplit, Integer> coordinator = new SourceCoordinator<>(source, 2)) {
+        OperatorCoordinatorContext coordinatorContext =
+                new OperatorCoordinatorContext(info.jobID(), info.operatorId(), info.parallelism());
+        try (SourceCoordinator<TestSplit, Integer> coordinator = new SourceCoordinator<>(source, coordinatorContext)) {
             coordinator.start().get(5, TimeUnit.SECONDS);
             SourceOperatorStreamTask<String, TestSplit> task = new SourceOperatorStreamTask<>(
                     source, coordinator, new TaskEnvironment(info, configuration), received::add);
@@ -51,8 +55,24 @@ class SourceOperatorStreamTaskContextTest {
             assertEquals(List.of("split-1"), received);
             assertEquals(1, source.readerContext.getIndexOfSubtask());
             assertEquals(2, source.readerContext.currentParallelism());
+            assertEquals(8, (int) source.readerContext.getConfiguration().get(CoreOptions.DEFAULT_PARALLELISM));
+            Configuration exposed = source.readerContext.getConfiguration();
+            exposed.set(CoreOptions.DEFAULT_PARALLELISM, 99);
+            assertEquals(8, (int) source.readerContext.getConfiguration().get(CoreOptions.DEFAULT_PARALLELISM));
             assertEquals(1, source.splitRequests.get());
             assertTrue(source.readerClosed.get());
+        }
+    }
+
+    @Test
+    void shouldRejectMismatchedTaskBeforeOpeningReader() throws Exception {
+        TestSource source = new TestSource();
+        JobID jobID = JobID.generate();
+        TaskInfo wrong = new TaskInfo(JobID.generate(), 17, 1, 2, 0);
+        try (SourceCoordinator<TestSplit, Integer> coordinator =
+                new SourceCoordinator<>(source, new OperatorCoordinatorContext(jobID, 17, 2))) {
+            assertThrows(IllegalArgumentException.class, () -> new SourceOperatorStreamTask<>(
+                    source, coordinator, new TaskEnvironment(wrong, new Configuration()), ignored -> {}));
         }
     }
 
