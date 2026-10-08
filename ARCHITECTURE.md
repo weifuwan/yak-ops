@@ -46,6 +46,8 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 拥有本地执行实现：`LocalPipelineExecutor`、`LocalJobClient`、`LocalJobRunner` 和 `source.coordinator`；后续逐步实现 Reader Task、IO、Checkpoint 等运行机制。依赖 `yak-ops-core`，并临时保留对旧 YakFlow API 的过渡依赖；不拥有产品 Task / Execution / Attempt 持久化、Cron 或业务重试策略。当前重构阶段不声明已具备完整运行闭环。
 
+新 Core / Runtime 的配置、执行图、Task/Coordinator 运行上下文与状态恢复的目标边界见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。该契约区分当前实现与拟引入的装配机制，不代表新 Runtime 已具备完整运行或恢复能力。
+
 ### `yak-flow/yak-flow-connector-jdbc`
 
 拥有同步 SQL、逻辑类型映射与兼容性、split、Reader、SinkWriter 及数据库方言。复用 Datasource Plugin API 的规范化连接和 JDBC 运行时，不复制凭证配置或 Driver 装载机制。

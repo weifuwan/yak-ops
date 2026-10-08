@@ -26,6 +26,17 @@ Runtime Trace 只在 API 定义最小 Event / Listener 协议，JDBC SQL、Split
 
 不把 Connector 特例写入 Runtime；不使用 Java 序列化强行持久化 opaque CheckpointState；不新增远程 RPC、Worker Registry 或分布式资源管理层。
 
+## Core-Based Runtime Target Boundary
+
+本节约束以 `yak-ops-core` 为接口的新 Runtime 迁移，**不表示已完成装配与验收**。目标契约见 [Core / Runtime Execution Contract](../docs/capabilities/yak-flow/core-runtime-contract.md)；上面的 Local Execution Engine 和 Connector 规则仍约束既有 YakFlow API 路径。
+
+- `SourceCoordinator` 使用协调侧 Context 管理并行度、Reader 注册、Split 分配及事件发送；`SourceOperator` 使用 Task 运行上下文创建 `SourceReaderContext`，不由构造器各自维护可能冲突的运行参数。
+- Coordinator 的事件循环与 Task 的 Mailbox 各自串行处理所属状态；事件投递、事件处理、Split 消费和 Checkpoint 成功必须分别定义确认语义。
+- 物理 Task/Channel 装配归 Runtime，默认配置不代替已解析执行图属性；不提前引入远程 RPC、分布式调度器或万能 Environment。
+- 只有完整状态持久化并获得下游确认后才能通知 Checkpoint 完成；单独的 SourceCoordinator 快照不能宣称可恢复的完整 Job Checkpoint。
+- 新旧 Source / Sink API 迁移需要独立的适配与验收，不能直接以旧 LocalExecution 的测试结果作为新 Runtime 的通过证据。
+
+
 ## Package Organization
 
 按实际职责聚合，避免按文件数量拆包。Connector 默认浅层：source / sink / dialect / debezium 等包有真实类族才创建，不建立单类包或空未来包。
