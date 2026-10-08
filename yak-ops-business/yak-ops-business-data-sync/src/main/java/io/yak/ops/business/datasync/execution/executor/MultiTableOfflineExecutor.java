@@ -181,6 +181,8 @@ public class MultiTableOfflineExecutor {
             }
         }
 
+        MultiTableRootContext root =
+                new MultiTableRootContext(workspaceId, rootExecutionId, snapshot, control, new MultiTableRootMetrics(tables));
         for (DataSyncTableRouteSnapshotVO route : snapshot.getTableRoutes()) {
             if (control.isCanceled() || !rootRunning(workspaceId, rootExecutionId)) break;
             DataSyncTableExecutionEntity table = byRoute.get(route.getRouteId());
@@ -190,8 +192,8 @@ public class MultiTableOfflineExecutor {
             if (table.getStatus() != DataSyncTableExecutionStatus.PLANNED) {
                 throw new IllegalStateException("a table was already started in this Root Execution");
             }
-            executeTable(workspaceId, rootExecutionId, snapshot, route, table, control);
-            refreshRootMetrics(workspaceId, rootExecutionId);
+            executeTable(root, route, table);
+            refreshRootMetrics(root);
         }
 
         if (control.isCanceled() && rootRunning(workspaceId, rootExecutionId)) {
@@ -206,12 +208,12 @@ public class MultiTableOfflineExecutor {
     }
 
     private void executeTable(
-            String workspaceId,
-            String rootExecutionId,
-            DataSyncDefinitionSnapshotVO rootSnapshot,
-            DataSyncTableRouteSnapshotVO route,
-            DataSyncTableExecutionEntity table,
-            MultiTableRunControl control) {
+            MultiTableRootContext root, DataSyncTableRouteSnapshotVO route, DataSyncTableExecutionEntity table) {
+        String workspaceId = root.workspaceId();
+        String rootExecutionId = root.executionId();
+        DataSyncDefinitionSnapshotVO rootSnapshot = root.snapshot();
+        MultiTableRunControl control = root.control();
+        MultiTableRootMetrics rootMetrics = root.metrics();
         DataSyncDefinitionSnapshotVO runtimeSnapshot = singleRouteSnapshot(rootSnapshot, route);
         DataSyncRetryPolicyVO policy = rootSnapshot.getRetryPolicy();
         ExecutionRetryPolicy retryPolicy = ExecutionRetryPolicy.from(policy);
@@ -221,11 +223,14 @@ public class MultiTableOfflineExecutor {
         for (int attemptNo = 1; attemptNo <= maxAttempts; attemptNo++) {
             if (control.isCanceled() || !rootRunning(workspaceId, rootExecutionId)) return;
             DataSyncTableAttemptEntity attempt = tableAttemptLifecycle.begin(workspaceId, table.getId(), attemptNo);
+            rootMetrics.reset(table.getId());
+            refreshRootMetrics(root);
             int currentAttempt = attemptNo;
             BiConsumer<Long, Long> metrics = (read, write) -> {
                 tableAttemptLifecycle.updateMetrics(
                         workspaceId, table.getId(), attempt.getId(), currentAttempt, read, write);
-                refreshRootMetrics(workspaceId, rootExecutionId);
+                rootMetrics.update(table.getId(), read, write);
+                refreshRootMetrics(root);
             };
             RouteExecutionOutcome outcome = executeAttemptRuntime(
                     new RouteAttemptRuntimeContext(
@@ -323,11 +328,12 @@ public class MultiTableOfflineExecutor {
         try (ExecutionTraceSession trace =
                 executionTraceStore.openSession(workspaceId, tableExecutionId, attemptId, attemptNo)) {
             OfflineSyncExecutionPlan plan = executionPlanner.plan(runtimeSnapshot, trace.listener());
-            execution = new LocalExecutionEngine()
-                    .start(plan.source(), plan.sink(), plan.sourceSchema(), plan.sourceParallelism());
+            execution = control.launch(() -> new LocalExecutionEngine()
+                    .start(plan.source(), plan.sink(), plan.sourceSchema(), plan.sourceParallelism()));
+            if (execution == null) {
+                return new RouteExecutionOutcome(ExecutionStatus.CANCELED, 0L, 0L, null, false);
+            }
             started = true;
-            control.setActive(execution);
-            if (control.isCanceled()) execution.cancel();
             ExecutionObservation observation = ExecutionMetricsPoller.awaitTermination(
                     execution, value -> metrics.accept(value.readRows(), value.writeRows()));
             ExecutionMetrics value = observation.metrics();
@@ -339,12 +345,13 @@ public class MultiTableOfflineExecutor {
                     true);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            if (execution != null) execution.cancel();
+            ExecutionRuntimeTermination.cancelAndAwait(execution);
             return failedOutcome(execution, exception, started);
         } catch (Exception exception) {
-            if (execution != null) execution.cancel();
+            ExecutionRuntimeTermination.cancelAndAwait(execution);
             return failedOutcome(execution, exception, started);
         } finally {
+            ExecutionRuntimeTermination.stopAndAwait(execution);
             control.clearActive();
         }
     }
@@ -426,10 +433,9 @@ public class MultiTableOfflineExecutor {
         tableAttemptLifecycle.cancelUnfinished(workspaceId, rootExecutionId, target);
     }
 
-    private void refreshRootMetrics(String workspaceId, String rootExecutionId) {
-        if (!rootRunning(workspaceId, rootExecutionId)) return;
-        long[] summary = totals(workspaceId, rootExecutionId);
-        instanceRepository.updateMetrics(workspaceId, rootExecutionId, summary[0], summary[1]);
+    private void refreshRootMetrics(MultiTableRootContext root) {
+        ExecutionMetrics summary = root.metrics().totals();
+        instanceRepository.updateMetrics(root.workspaceId(), root.executionId(), summary.readRows(), summary.writeRows());
     }
 
     private long[] totals(String workspaceId, String rootExecutionId) {

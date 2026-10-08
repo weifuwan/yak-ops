@@ -51,7 +51,8 @@ public class DataSyncAttemptRepositoryImpl extends BaseRepositoryImpl<DataSyncAt
                         update,
                         Wrappers.<DataSyncAttemptEntity>lambdaUpdate()
                                 .eq(DataSyncAttemptEntity::getWorkspaceId, workspaceId)
-                                .eq(DataSyncAttemptEntity::getId, id))
+                                .eq(DataSyncAttemptEntity::getId, id)
+                                .eq(DataSyncAttemptEntity::getStatus, DataSyncAttemptStatus.RUNNING))
                 > 0;
     }
 
