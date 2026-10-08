@@ -51,26 +51,29 @@ public final class StreamNode {
         this.parallelism = resolvedParallelism;
         this.outputType = transformation.getOutputType();
 
-        if (transformation instanceof SourceTransformation<?> sourceTransformation) {
-            this.inputType = null;
-            this.source = sourceTransformation.getSource();
-            this.boundedness = sourceTransformation.getBoundedness();
-            this.operatorFactory = null;
-            this.sink = null;
-        } else if (transformation instanceof OneInputTransformation<?, ?> operatorTransformation) {
-            this.inputType = operatorTransformation.getInputType();
-            this.source = null;
-            this.boundedness = null;
-            this.operatorFactory = operatorTransformation.getOperatorFactory();
-            this.sink = null;
-        } else if (transformation instanceof SinkTransformation<?> sinkTransformation) {
-            this.inputType = sinkTransformation.getInputType();
-            this.source = null;
-            this.boundedness = null;
-            this.operatorFactory = null;
-            this.sink = sinkTransformation.getSink();
-        } else {
-            throw new IllegalArgumentException("暂不支持的 Transformation 类型："
+        switch (transformation) {
+            case SourceTransformation<?> sourceTransformation -> {
+                this.inputType = null;
+                this.source = sourceTransformation.getSource();
+                this.boundedness = sourceTransformation.getBoundedness();
+                this.operatorFactory = null;
+                this.sink = null;
+            }
+            case OneInputTransformation<?, ?> operatorTransformation -> {
+                this.inputType = operatorTransformation.getInputType();
+                this.source = null;
+                this.boundedness = null;
+                this.operatorFactory = operatorTransformation.getOperatorFactory();
+                this.sink = null;
+            }
+            case SinkTransformation<?> sinkTransformation -> {
+                this.inputType = sinkTransformation.getInputType();
+                this.source = null;
+                this.boundedness = null;
+                this.operatorFactory = null;
+                this.sink = sinkTransformation.getSink();
+            }
+            default -> throw new IllegalArgumentException("暂不支持的 Transformation 类型："
                     + transformation.getClass().getName());
         }
     }
