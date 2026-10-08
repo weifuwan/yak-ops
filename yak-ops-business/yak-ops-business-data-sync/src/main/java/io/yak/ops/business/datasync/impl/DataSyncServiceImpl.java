@@ -1975,6 +1975,89 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         }
     }
 
+    /**
+     * 将显式 Table Route 请求转换为服务端解析后的物理路径，验证每张表的 Mapping / Schema。
+     * Source / Target Datasource 始终由根 Task 共享；null 继续走单表兼容写路径。
+     */
+    private List<DataSyncTableRouteDTO> prepareExplicitTableRoutes(DataSyncTaskDTO task) {
+        List<DataSyncTableRouteDTO> requested = task.getTableRoutes();
+        if (requested == null) return null;
+        if (task.getSyncType() != DataSyncType.OFFLINE) {
+            throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "REALTIME 当前只支持单表定义");
+        }
+        if (requested.isEmpty() || requested.size() > 50) {
+            throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "请选择 1 到 50 张来源表");
+        }
+
+        List<DataSyncTableRouteDTO> normalized = new ArrayList<>(requested.size());
+        Set<String> sourcePaths = new HashSet<>();
+        Set<String> targetPaths = new HashSet<>();
+        for (DataSyncTableRouteDTO raw : requested) {
+            if (raw == null) {
+                throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "表级 Route 不能为空");
+            }
+            DataSyncTableRouteDTO route = BeanCopyUtils.copy(raw, DataSyncTableRouteDTO.class);
+            route.setId(StringUtils.trimToNull(route.getId()));
+            String sourceTable = StringUtils.trimToNull(route.getSourceTable());
+            String targetTable = StringUtils.trimToNull(route.getTargetTable());
+            if (sourceTable == null || targetTable == null
+                    || sourceTable.length() > 128 || targetTable.length() > 128) {
+                throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "来源表或目标表名称不合法");
+            }
+            route.setSourceTable(sourceTable);
+            route.setTargetTable(targetTable);
+            route.setMapping(normalizeMapping(route.getMapping()));
+
+            DataSyncMappingPreviewDTO request = new DataSyncMappingPreviewDTO();
+            request.setSourceDataSourceId(task.getSourceDataSourceId());
+            request.setSourceDatabase(route.getSourceDatabase());
+            request.setSourceSchema(route.getSourceSchema());
+            request.setSourceTable(sourceTable);
+            request.setTargetDataSourceId(task.getTargetDataSourceId());
+            request.setTargetDatabase(route.getTargetDatabase());
+            request.setTargetSchema(route.getTargetSchema());
+            request.setTargetTable(targetTable);
+            request.setAutoCreateTable(Boolean.TRUE.equals(route.getAutoCreateTable()));
+            request.setMapping(route.getMapping());
+
+            DataSyncMappingPreviewDTO scope = resolveMappingScope(request);
+            String sourceKey = tableIdentity(scope.getSourceDatabase(), scope.getSourceSchema(), sourceTable);
+            String targetKey = tableIdentity(scope.getTargetDatabase(), scope.getTargetSchema(), targetTable);
+            if (!sourcePaths.add(sourceKey)) {
+                throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "来源表不能重复：" + sourceTable);
+            }
+            if (!targetPaths.add(targetKey)) {
+                throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "目标表不能重复：" + targetTable);
+            }
+            validateOfflineUpsertTarget(
+                    task.getSourceDataSourceId(), task.getTargetDataSourceId(), scope, task.getWriteMode());
+            requireCompatibleMapping(scope);
+
+            route.setSourceDatabase(scope.getSourceDatabase());
+            route.setSourceSchema(scope.getSourceSchema());
+            route.setTargetDatabase(scope.getTargetDatabase());
+            route.setTargetSchema(scope.getTargetSchema());
+            normalized.add(route);
+        }
+
+        // v1.2 Runtime / 列表继续使用第一条 Route 的兼容投影，不以当前 UI 选中的表覆盖它。
+        DataSyncTableRouteDTO first = normalized.get(0);
+        task.setSourceDatabase(first.getSourceDatabase());
+        task.setSourceSchema(first.getSourceSchema());
+        task.setSourceTable(first.getSourceTable());
+        task.setTargetDatabase(first.getTargetDatabase());
+        task.setTargetSchema(first.getTargetSchema());
+        task.setTargetTable(first.getTargetTable());
+        task.setAutoCreateTable(first.getAutoCreateTable());
+        task.setMapping(first.getMapping());
+        return List.copyOf(normalized);
+    }
+
+    private String tableIdentity(String database, String schema, String table) {
+        return ((database == null ? "" : database) + "\\u0000"
+                + (schema == null ? "" : schema) + "\\u0000" + table).toLowerCase(Locale.ROOT);
+    }
+
     private void createCompatibilityTableRoute(DataSyncTaskEntity task, String operatorUserId) {
         DataSyncTableRouteEntity route = new DataSyncTableRouteEntity();
         applyCompatibilityTableRoute(route, task);
