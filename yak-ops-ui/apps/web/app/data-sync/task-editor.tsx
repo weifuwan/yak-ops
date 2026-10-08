@@ -909,8 +909,8 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
   }, [dataSources, realtime]);
   const selectedSourceDataSource = dataSources.find((item) => item.id === form.sourceDataSourceId);
   const selectedTargetDataSource = dataSources.find((item) => item.id === form.targetDataSourceId);
-  const sourceReady = Boolean(form.sourceDataSourceId && form.sourceTable);
-  const targetReady = Boolean(form.targetDataSourceId && form.targetTable);
+  const sourceReady = Boolean(realtime && form.sourceDataSourceId && form.sourceTable);
+  const targetReady = Boolean(realtime && form.targetDataSourceId && form.targetTable);
   const targetTableExistsInCatalog =
     selectedTableKey(
       targetCatalog.tables,
@@ -1055,6 +1055,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
 
   const mappingPayload = useMemo(
     () =>
+      realtime &&
       form.sourceDataSourceId &&
       form.sourceTable &&
       form.targetDataSourceId &&
@@ -1074,6 +1075,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
           }
         : undefined,
     [
+      realtime,
       form.sourceDataSourceId,
       form.sourceDatabase,
       form.sourceSchema,
@@ -1142,18 +1144,19 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     setScheduleForm((current) => ({ ...current, [key]: value }));
 
   const payload = (): DataSyncTaskSavePayload => {
+    const firstRoute = !realtime ? tableRoutes[0] : undefined;
     const common = {
       name: form.name.trim(),
       sourceDataSourceId: form.sourceDataSourceId,
-      sourceDatabase: form.sourceDatabase || undefined,
-      sourceSchema: form.sourceSchema || undefined,
-      sourceTable: form.sourceTable,
+      sourceDatabase: firstRoute?.sourceDatabase || form.sourceDatabase || undefined,
+      sourceSchema: firstRoute?.sourceSchema || form.sourceSchema || undefined,
+      sourceTable: firstRoute?.sourceTable || form.sourceTable,
       targetDataSourceId: form.targetDataSourceId,
-      targetDatabase: form.targetDatabase || undefined,
-      targetSchema: form.targetSchema || undefined,
-      targetTable: form.targetTable,
-      autoCreateTable: form.autoCreateTable,
-      mapping: form.mapping,
+      targetDatabase: firstRoute?.targetDatabase || form.targetDatabase || undefined,
+      targetSchema: firstRoute?.targetSchema || form.targetSchema || undefined,
+      targetTable: firstRoute?.targetTable || form.targetTable,
+      autoCreateTable: firstRoute ? Boolean(firstRoute.autoCreateTable) : form.autoCreateTable,
+      mapping: firstRoute ? firstRoute.mapping : form.mapping,
       remark: form.remark.trim() || undefined,
     };
     if (realtime) {
@@ -1167,6 +1170,17 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
       ...common,
       writeMode: form.writeMode,
       syncType: "OFFLINE",
+      tableRoutes: tableRoutes.map((route) => ({
+        id: route.id,
+        sourceDatabase: route.sourceDatabase,
+        sourceSchema: route.sourceSchema,
+        sourceTable: route.sourceTable,
+        targetDatabase: route.targetDatabase,
+        targetSchema: route.targetSchema,
+        targetTable: route.targetTable.trim(),
+        autoCreateTable: Boolean(route.autoCreateTable),
+        mapping: route.mapping,
+      })),
     };
   };
 
@@ -1184,8 +1198,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     !published &&
     scheduleValid &&
     form.name.trim() &&
-    mapping?.compatible &&
-    !mappingLoading &&
+    (realtime ? Boolean(mapping?.compatible && !mappingLoading) : routesReady && tableRoutes.length > 0) &&
     !sourceCatalog.loading &&
     !targetCatalog.loading;
 
@@ -1235,7 +1248,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
       : "新建离线同步任务";
   const pageDescription = realtime
     ? "MySQL CDC 单表实时同步 · 首次全量后持续消费 Binlog"
-    : "单表离线同步 · 去向字段映射";
+    : undefined;
 
   if (loading) {
     return <div className="p-8 text-sm text-[#667085]">正在加载同步任务...</div>;
@@ -1414,6 +1427,8 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
             </div>
           </CollapseSection>
 
+          {realtime ? (
+            <>
           <CollapseSection id="source" title="数据来源">
             <TableSection
               dataSourceId={form.sourceDataSourceId}
@@ -1592,6 +1607,38 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
               <SchemaPreviewDiagnostics preview={mapping} />
             </div>
           </CollapseSection>
+
+
+            </>
+          ) : (
+            <MultiTableRouteEditor
+              routes={tableRoutes}
+              onChange={onRoutesChange}
+              onReadyChange={onRoutesReadyChange}
+              sourceDataSourceId={form.sourceDataSourceId}
+              targetDataSourceId={form.targetDataSourceId}
+              sourceDatabase={form.sourceDatabase}
+              sourceSchema={form.sourceSchema}
+              targetDatabase={form.targetDatabase}
+              targetSchema={form.targetSchema}
+              sourceBoundSchema={selectedSourceDataSource?.schema}
+              targetBoundSchema={selectedTargetDataSource?.schema}
+              sourceCatalog={sourceCatalog}
+              targetCatalog={targetCatalog}
+              onSourceSchemaChange={(value) =>
+                setForm((current) => ({ ...current, sourceSchema: value }))
+              }
+              onTargetSchemaChange={(value) => {
+                setForm((current) => ({ ...current, targetSchema: value }));
+                setTableRoutes((current) => current.map((route) => ({
+                  ...route,
+                  targetSchema: value,
+                  mapping: undefined,
+                })));
+                setRoutesReady(false);
+              }}
+            />
+          )}
 
           {!realtime ? (
             <CollapseSection id="schedule" title="调度配置">
