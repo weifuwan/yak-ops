@@ -1,12 +1,11 @@
 package io.yak.ops.business.datasync.execution.lifecycle;
 
-import io.yak.ops.flow.runtime.LocalExecution;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.springframework.stereotype.Component;
 
 /**
- * 保存当前 Yak Ops 进程内正在执行的 Data Sync LocalExecution 引用，供离线/实时实例统一取消和生命周期收口。
+ * 为单表 Execution 保留进程内启动/取消令牌，使取消能够覆盖运行计划已创建但 YakFlow 尚未启动的窗口。
  *
  * @author weifuwan
  * @since 2026-09-27
@@ -14,23 +13,24 @@ import org.springframework.stereotype.Component;
 @Component
 public class DataSyncExecutionRegistry {
 
-    private final ConcurrentMap<String, LocalExecution<?>> executions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, DataSyncExecutionControl> controls = new ConcurrentHashMap<>();
 
-    public void register(String instanceId, LocalExecution<?> execution) {
-        LocalExecution<?> existing = executions.putIfAbsent(instanceId, execution);
-        if (existing != null) {
+    public DataSyncExecutionControl reserve(String instanceId) {
+        DataSyncExecutionControl control = new DataSyncExecutionControl();
+        if (controls.putIfAbsent(instanceId, control) != null) {
             throw new IllegalStateException("data sync execution already registered: " + instanceId);
         }
+        return control;
     }
 
     public boolean cancel(String instanceId) {
-        LocalExecution<?> execution = executions.get(instanceId);
-        if (execution == null) return false;
-        execution.cancel();
+        DataSyncExecutionControl control = controls.get(instanceId);
+        if (control == null) return false;
+        control.cancel();
         return true;
     }
 
-    public void remove(String instanceId, LocalExecution<?> execution) {
-        executions.remove(instanceId, execution);
+    public void remove(String instanceId, DataSyncExecutionControl control) {
+        controls.remove(instanceId, control);
     }
 }

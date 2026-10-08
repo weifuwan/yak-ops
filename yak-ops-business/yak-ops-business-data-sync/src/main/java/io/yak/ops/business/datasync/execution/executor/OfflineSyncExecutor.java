@@ -1,6 +1,7 @@
 package io.yak.ops.business.datasync.execution.executor;
 
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncAttemptLifecycle;
+import io.yak.ops.business.datasync.execution.lifecycle.DataSyncExecutionControl;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncExecutionRegistry;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncRetryAssessment;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncRetryClassifier;
@@ -79,24 +80,29 @@ public class OfflineSyncExecutor {
         DataSyncDefinitionSnapshotVO snapshot = context.snapshot();
         int maxAttempts = context.maxAttempts();
         DataSyncAttemptEntity attempt = attemptLifecycle.createAttempt(workspaceId, instanceId, attemptNo);
+        DataSyncExecutionControl control = executionRegistry.reserve(instanceId);
         LocalExecution<?> execution = null;
         boolean started = false;
-        ExecutionTraceSession traceSession =
-                executionTraceStore.openSession(workspaceId, instanceId, attempt.getId(), attemptNo);
+        ExecutionTraceSession traceSession = null;
         try {
-            OfflineSyncExecutionPlan plan = executionPlanner.plan(snapshot, traceSession.listener());
-            execution = new LocalExecutionEngine()
-                    .start(plan.source(), plan.sink(), plan.sourceSchema(), plan.sourceParallelism());
-            executionRegistry.register(instanceId, execution);
-
             if (!attemptLifecycle.startAttempt(
                     workspaceId, instanceId, attempt.getId(), attemptNo, expectedExecutionStatus)) {
-                execution.cancel();
-                execution.await();
                 attemptLifecycle.cancelActiveAttempt(workspaceId, instanceId);
                 return DataSyncRetryDecision.stop();
             }
             started = true;
+            if (control.isCanceled()) {
+                attemptLifecycle.cancelActiveAttempt(workspaceId, instanceId);
+                return DataSyncRetryDecision.stop();
+            }
+            traceSession = executionTraceStore.openSession(workspaceId, instanceId, attempt.getId(), attemptNo);
+            OfflineSyncExecutionPlan plan = executionPlanner.plan(snapshot, traceSession.listener());
+            execution = control.launch(() -> new LocalExecutionEngine()
+                    .start(plan.source(), plan.sink(), plan.sourceSchema(), plan.sourceParallelism()));
+            if (execution == null) {
+                attemptLifecycle.cancelActiveAttempt(workspaceId, instanceId);
+                return DataSyncRetryDecision.stop();
+            }
             attemptLifecycle.recordSourceReady(workspaceId, instanceId, attempt.getId());
             attemptLifecycle.recordTargetReady(workspaceId, instanceId, attempt.getId());
 
@@ -149,7 +155,7 @@ public class OfflineSyncExecutor {
                     true);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            if (execution != null) execution.cancel();
+            ExecutionRuntimeTermination.cancelAndAwait(execution);
             return failAttempt(
                     context,
                     attempt,
@@ -162,7 +168,7 @@ public class OfflineSyncExecutor {
                             ExecutionErrorMessages.attemptFailure(exception)),
                     execution != null);
         } catch (Exception exception) {
-            if (execution != null) execution.cancel();
+            ExecutionRuntimeTermination.cancelAndAwait(execution);
             return failAttempt(
                     context,
                     attempt,
@@ -175,8 +181,9 @@ public class OfflineSyncExecutor {
                             ExecutionErrorMessages.attemptFailure(exception)),
                     execution != null);
         } finally {
-            if (execution != null) executionRegistry.remove(instanceId, execution);
-            traceSession.close();
+            ExecutionRuntimeTermination.stopAndAwait(execution);
+            executionRegistry.remove(instanceId, control);
+            if (traceSession != null) traceSession.close();
         }
     }
 
