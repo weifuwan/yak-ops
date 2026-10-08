@@ -244,6 +244,8 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         ensureTaskNameAvailable(workspaceId, name, null);
         DataSyncType syncType = requireSyncType(dto.getSyncType());
         materializeCreatePolicies(syncType, dto);
+        List<DataSyncTableRouteDTO> requestedRoutes = prepareExplicitTableRoutes(dto);
+        if (requestedRoutes != null) routeDefinitionService.requireOwnedIds(workspaceId, null, requestedRoutes);
         DataSyncMappingPreviewDTO resolvedScope =
                 resolveMappingScope(BeanCopyUtils.copy(dto, DataSyncMappingPreviewDTO.class));
         validateTaskDefinition(syncType, dto, resolvedScope);
@@ -262,7 +264,11 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         if (taskRepository.add(entity) == null) {
             throw new DataSyncException(DataSyncErrorCode.CREATE_TASK_FAILED);
         }
-        createCompatibilityTableRoute(entity, operatorUserId);
+        if (requestedRoutes == null) {
+            createCompatibilityTableRoute(entity, operatorUserId);
+        } else {
+            routeDefinitionService.reconcile(workspaceId, entity.getId(), requestedRoutes, operatorUserId);
+        }
         return toTaskVO(entity);
     }
 
@@ -287,12 +293,16 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
             throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "同步类型创建后不允许修改");
         }
         materializeUpdatePolicies(entity, dto);
+        List<DataSyncTableRouteDTO> requestedRoutes = prepareExplicitTableRoutes(dto);
+        if (requestedRoutes != null) routeDefinitionService.requireOwnedIds(workspaceId, id, requestedRoutes);
         DataSyncMappingPreviewDTO resolvedScope =
                 resolveMappingScope(BeanCopyUtils.copy(dto, DataSyncMappingPreviewDTO.class));
         validateTaskDefinition(syncType, dto, resolvedScope);
         requireCompatibleMapping(resolvedScope);
 
-        boolean executableDefinitionChanged = executableDefinitionChanged(entity, dto, resolvedScope);
+        boolean executableDefinitionChanged = executableDefinitionChanged(entity, dto, resolvedScope)
+                || (requestedRoutes != null
+                        && routeDefinitionService.changed(workspaceId, id, requestedRoutes));
         entity.setName(name);
         applyDefinition(entity, dto, resolvedScope);
         if (executableDefinitionChanged) {
@@ -303,7 +313,11 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         if (taskRepository.update(workspaceId, entity) == null) {
             throw new DataSyncException(DataSyncErrorCode.UPDATE_TASK_FAILED);
         }
-        synchronizeCompatibilityTableRoute(entity, operatorUserId);
+        if (requestedRoutes == null) {
+            synchronizeCompatibilityTableRoute(entity, operatorUserId);
+        } else {
+            routeDefinitionService.reconcile(workspaceId, id, requestedRoutes, operatorUserId);
+        }
         return toTaskVO(entity);
     }
 
