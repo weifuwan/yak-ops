@@ -1,0 +1,48 @@
+name: Temporary PR4 Format
+
+on:
+  push:
+    branches:
+      - feature/v1.3-multi-table-editor-schema-preview
+    paths:
+      - .github/workflows/temp-format-pr4.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.repository == 'weifuwan/yak-ops' && github.ref == 'refs/heads/feature/v1.3-multi-table-editor-schema-preview'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22.13'
+          cache: npm
+          cache-dependency-path: yak-ops-ui/package-lock.json
+      - name: Apply Java Spotless
+        run: >-
+          bash mvnw -q -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
+          com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+      - name: Apply frontend oxfmt
+        working-directory: yak-ops-ui
+        run: |
+          npm ci --prefer-offline --no-audit --no-fund
+          npm run format
+      - name: Commit formatting into current PR branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- '*.java' '*.ts' '*.tsx'
+          if ! git diff --cached --quiet; then
+            git commit -m 'style: apply repository formatters for PR4'
+            git push origin HEAD:feature/v1.3-multi-table-editor-schema-preview
+          fi
