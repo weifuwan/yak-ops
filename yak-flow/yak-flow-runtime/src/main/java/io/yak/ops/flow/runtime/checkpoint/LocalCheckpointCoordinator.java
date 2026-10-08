@@ -52,6 +52,7 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
     private final Consumer<Throwable> onFailure;
     private final long timeoutMillis;
     private final long intervalMillis;
+    private final long minPauseMillis;
     private final AtomicLong nextCheckpointId;
     private long checkpointDeadlineNanos;
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(
@@ -81,7 +82,9 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
         this.onFailure = Objects.requireNonNull(onFailure, "onFailure 不能为空");
         Duration interval = plan.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL);
         Duration timeout = plan.configuration().get(CheckpointingOptions.CHECKPOINTING_TIMEOUT);
+        Duration minPause = plan.configuration().get(CheckpointingOptions.MIN_PAUSE_BETWEEN_CHECKPOINTS);
         this.intervalMillis = interval.toMillis();
+        this.minPauseMillis = minPause.toMillis();
         this.timeoutMillis = timeout.toMillis();
         if (!interval.isZero() && intervalMillis <= 0) {
             throw new IllegalArgumentException("Checkpoint 周期不能小于 1ms");
@@ -106,7 +109,7 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
                         onFailure.accept(failure);
                     }
                 }
-            }, intervalMillis, intervalMillis, TimeUnit.MILLISECONDS);
+            }, intervalMillis, Math.max(intervalMillis, minPauseMillis), TimeUnit.MILLISECONDS);
         }
     }
 
@@ -203,6 +206,9 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
             LocalCheckpointState snapshot = serialize(checkpointId, sourceState, readerStates);
             storage.save(snapshot);
             stored = true;
+            if (System.nanoTime() >= checkpointDeadlineNanos) {
+                throw new IllegalStateException("Checkpoint 状态落盘已超时，拒绝通知 Source 完成");
+            }
             await(coordinator.notifyCheckpointComplete(checkpointId));
             for (SourceOperatorStreamTask<Object, SourceSplit> sourceTask : paused) {
                 await(sourceTask.notifyCheckpointComplete(checkpointId));
