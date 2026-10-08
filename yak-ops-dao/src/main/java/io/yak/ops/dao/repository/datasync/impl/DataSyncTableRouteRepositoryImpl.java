@@ -60,6 +60,14 @@ public class DataSyncTableRouteRepositoryImpl
     }
 
     @Override
+    public int deleteById(String workspaceId, String id) {
+        if (StringUtils.isBlank(workspaceId) || StringUtils.isBlank(id)) return 0;
+        return tableRouteMapper.delete(Wrappers.<DataSyncTableRouteEntity>lambdaQuery()
+                .eq(DataSyncTableRouteEntity::getWorkspaceId, workspaceId)
+                .eq(DataSyncTableRouteEntity::getId, id));
+    }
+
+    @Override
     public int deleteByTask(String workspaceId, String taskId) {
         if (StringUtils.isBlank(workspaceId) || StringUtils.isBlank(taskId)) return 0;
         return tableRouteMapper.delete(Wrappers.<DataSyncTableRouteEntity>lambdaQuery()
