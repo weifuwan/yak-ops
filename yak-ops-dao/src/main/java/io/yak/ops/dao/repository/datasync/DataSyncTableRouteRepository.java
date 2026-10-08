@@ -19,5 +19,8 @@ public interface DataSyncTableRouteRepository extends BaseRepository<DataSyncTab
 
     DataSyncTableRouteEntity update(String workspaceId, DataSyncTableRouteEntity entity);
 
+    /** 删除指定 Workspace 与 Route ID 下的定义，不影响历史 Table Execution。 */
+    int deleteById(String workspaceId, String id);
+
     int deleteByTask(String workspaceId, String taskId);
 }
