@@ -236,5 +236,5 @@ public class RealtimeSyncExecutor {
             return retryClassifier.classifyUnexpectedContinuousEnd(snapshot);
         }
         return retryClassifier.classify(snapshot, failure, true, writeRows);
-     }
+    }
 }
