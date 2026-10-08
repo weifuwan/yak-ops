@@ -1,18 +1,18 @@
 package io.yak.ops.core.api;
 
 /**
- * Runtime mode for bounded and unbounded pipelines.
+ * 有界与无界 Pipeline 的运行模式。
  *
- * <p>The mode is resolved before a pipeline starts. The executor must reject
- * {@link #BATCH} for a pipeline containing an unbounded source.
+ * <p>在 Pipeline 启动前确定运行模式。若 Pipeline 包含无界 Source，
+ * 执行器必须拒绝 {@link #BATCH} 模式。
  */
 public enum RuntimeExecutionMode {
-    /** Resolve the runtime mode from the boundedness of all sources. */
+    /** 根据所有 Source 的有界性自动确定运行模式。 */
     AUTOMATIC,
 
-    /** Execute a bounded pipeline with batch semantics. */
+    /** 使用批处理语义执行有界 Pipeline。 */
     BATCH,
 
-    /** Execute a bounded or unbounded pipeline with streaming semantics. */
+    /** 使用流处理语义执行有界或无界 Pipeline。 */
     STREAMING
 }

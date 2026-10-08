@@ -4,7 +4,7 @@ package io.yak.ops.core.configuration;
 import java.time.Duration;
 import java.util.Objects;
 
-/** Fluent builder for typed {@link ConfigOption} declarations. */
+/** 用于声明类型安全 {@link ConfigOption} 的链式构建工具。 */
 public final class ConfigOptions {
 
     private ConfigOptions() {}

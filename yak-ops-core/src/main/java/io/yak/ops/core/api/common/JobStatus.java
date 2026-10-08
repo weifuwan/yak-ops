@@ -1,6 +1,6 @@
 package io.yak.ops.core.api.common;
 
-/** Lifecycle status of one submitted job, independent of batch or stream mode. */
+/** 单次提交作业的生命周期状态，与批处理或流处理模式无关。 */
 public enum JobStatus {
     CREATED,
     RUNNING,

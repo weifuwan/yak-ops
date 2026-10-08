@@ -5,7 +5,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
-/** A typed configuration key with an optional default value. */
+/** 具有类型信息和可选默认值的配置项。 */
 public final class ConfigOption<T> implements Serializable {
 
     @Serial
