@@ -62,6 +62,10 @@ executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime �
 
 ## Task and Mapping Implementation
 
+- v1.3 PR4 OFFLINE 显式 `tableRoutes[]` 保存必须先逐 Route 解析 Datasource Scope、标准化 Mapping，并复用后端真实 Catalog / Schema Compatibility；不能信任前端的 compatible 状态。
+- Route 增删/重排/更新与 Task version bump 在同一 `@Transactional` 业务事务内；旧 Route ID 必须保持，Request 中伪造/跨 Task / 重复 Route ID 必须拒绝，来源和目标表路径均不能重复。
+- `DataSyncTableRouteDefinitionService` 只持有 Route 结构变更与持久化，不重新实现 Mapping / JDBC 校验；更新 Route 时须显式写入 NULL，支持清除旧 Mapping / Schema。
+- 旧单表 DTO 的 `tableRoutes=null` 保持兼容。新保存显式传 1-50 条 Route；REALTIME 拒绝显式 Route 集合。Task 根单表字段仍只是首 Route 兼容投影。
 - v1.3 起 Table Route 是 Source / Target table path、Mapping、Auto Create 与 route order 的稳定产品 owner；Task 根记录上的单表字段在过渡期只是 Runtime / API 兼容投影，禁止新增能力继续把表级状态绑定回 Task。
 - Route 必须使用稳定 ID 持久化为独立子资源，不能存成 Task 内 opaque JSON；所有 Route Repository 查询都必须带 workspaceId。
 - PR1 的旧单表写接口只允许维护唯一兼容 Route：创建 Task 后同事务创建 Route，编辑保持原 Route ID，删除 Task 同事务删除当前 Route。检测到多 Route 时旧单表编辑入口必须拒绝覆盖。
