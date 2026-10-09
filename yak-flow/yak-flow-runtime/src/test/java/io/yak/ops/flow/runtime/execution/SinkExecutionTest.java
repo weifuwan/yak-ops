@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.common.TaskInfo;
-import io.yak.ops.core.api.connector.sink.SinkV2;
+import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.sink.StatefulSinkWriter;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
@@ -43,10 +43,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-class SinkV2ExecutionTest {
+class SinkExecutionTest {
 
     @Test
-    void shouldUseSinkV2WriterContextInChainedOperatorAndPreserveWriterLifecycle() throws Exception {
+    void shouldProvideSinkWriterContextInChainedOperatorAndPreserveWriterLifecycle() throws Exception {
         Configuration configuration = configuration(1, 256);
         SourceTransformation<String> source = new SourceTransformation<>(
                 "source", new SplitSource(), String.class, 1);
@@ -99,7 +99,7 @@ class SinkV2ExecutionTest {
         Configuration configuration = configuration(1, 128);
         configuration.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofSeconds(1));
         AtomicInteger closes = new AtomicInteger();
-        SinkV2<String> sink = context -> new StatefulSinkWriter<String, String>() {
+        Sink<String> sink = context -> new StatefulSinkWriter<String, String>() {
             @Override
             public void write(String value) {}
 
@@ -239,7 +239,7 @@ class SinkV2ExecutionTest {
         }
     }
 
-    private static final class RecordingSink implements SinkV2<String> {
+    private static final class RecordingSink implements Sink<String> {
         private final List<String> rows = new CopyOnWriteArrayList<>();
         private final List<WriterInitContext> created = new CopyOnWriteArrayList<>();
         private final List<Integer> operatorIds = new CopyOnWriteArrayList<>();

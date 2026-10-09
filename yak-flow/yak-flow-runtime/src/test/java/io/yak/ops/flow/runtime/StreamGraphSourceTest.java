@@ -28,7 +28,7 @@ class StreamGraphSourceTest {
     void shouldRetainTypedSourceDefinitionWithoutCreatingRuntimeInstances() {
         Source<String, TestSplit, Integer> source = new ContractSource();
         SourceTransformation<String> input = new SourceTransformation<>("source", source, String.class);
-        Sink<String> sink = () -> {
+        Sink<String> sink = context -> {
             throw new AssertionError("Graph construction must not create a SinkWriter");
         };
         SinkTransformation<String> output = new SinkTransformation<>(input, "sink", sink);

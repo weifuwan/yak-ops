@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
+import io.yak.ops.core.api.connector.sink.WriterInitContext;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.InputStatus;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
@@ -456,7 +457,7 @@ class ExecutionGraphParallelTest {
         }
 
         @Override
-        public SinkWriter<String> createWriter() {
+        public SinkWriter<String> createWriter(WriterInitContext context) {
             List<String> rows = new CopyOnWriteArrayList<>();
             writers.add(rows);
             return new SinkWriter<>() {

@@ -148,7 +148,7 @@ class StreamPartitioningGraphTest {
     }
 
     private static SinkTransformation<String> sink(io.yak.ops.core.api.dag.Transformation<String> source, int parallelism) {
-        Sink<String> sink = () -> {
+        Sink<String> sink = context -> {
             throw new AssertionError("Graph generation must not open a SinkWriter");
         };
         return new SinkTransformation<>(source, "sink", sink, parallelism);

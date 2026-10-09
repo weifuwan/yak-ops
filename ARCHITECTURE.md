@@ -38,7 +38,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-ops-core`
 
-拥有批流共享的 Source / Sink（兼容旧接口与带 WriterInitContext 的 SinkV2）、SinkWriter/StatefulSinkWriter、Collector / KeySelector、类型化 Configuration、Transformation、含 KeyGroup 最大并行度的只读 TaskInfo，以及 `PipelineExecutor` / `JobClient`。不包含 StreamGraph、Streaming Transformation、运行时 Operator、Channel、物理 Task、线程或 Checkpoint 执行器；不得反向依赖 Runtime。
+拥有批流共享的 Source / Sink（统一由 WriterInitContext 创建每个子任务的 Writer）、SinkWriter/StatefulSinkWriter、Collector / KeySelector、类型化 Configuration、Transformation、含 KeyGroup 最大并行度的只读 TaskInfo，以及 `PipelineExecutor` / `JobClient`。不包含 StreamGraph、Streaming Transformation、运行时 Operator、Channel、物理 Task、线程或 Checkpoint 执行器；不得反向依赖 Runtime。
 
 ### `yak-flow/yak-flow-api`
 

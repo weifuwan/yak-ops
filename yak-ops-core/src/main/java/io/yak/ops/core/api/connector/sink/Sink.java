@@ -1,38 +1,17 @@
 package io.yak.ops.core.api.connector.sink;
 
 /**
- * Sink 组件的定义与 Writer 创建入口。
+ * 可复用的 Sink 定义。每个执行子任务通过运行时上下文创建独立的 SinkWriter，
+ * Sink 本身不得持有某一次执行专属的活动连接或 Writer。
  *
- * <p>Sink 可以被同一个 Pipeline 的多次执行复用，但不得作为共享的可变写入实例。
- * 连接、缓冲区和其他运行资源应由新创建的 SinkWriter 独立持有。
+ * <p>Writer 通过 WriterInitContext 获取 TaskInfo 和 Configuration 的防御性副本。
+ * Writer 状态恢复由 SupportsWriterState 等可选能力负责；基础 Sink 不承诺事务提交或 Exactly-once。
  *
- * <p>Legacy Sink keeps createWriter() for source compatibility. SinkV2 receives the
- * WriterInitContext of one physical subtask; persisted Writer State and Committer are not
- * supported by the current local quiescent checkpoint.
- *
- * @param <T> Sink 消费的记录类型
- * @author weifuwan
+ * @param <T> 输入记录类型
  */
 @FunctionalInterface
 public interface Sink<T> {
 
-    /**
-     * 为一个执行子任务创建独立的 SinkWriter。
-     *
-     * <p>每次调用必须返回新的非 null Writer，不得复用已运行或已关闭的实例。
-     * Writer 的生命周期由 Runtime 管理。
-     *
-     * @return 新创建的 Writer
-     * @throws Exception Writer 创建失败
-     */
-    SinkWriter<T> createWriter() throws Exception;
-
-    /**
-     * Construct a Writer for one physical subtask. Legacy sinks retain their no-argument factory;
-     * SinkV2 overrides this method to receive the runtime's attempt and configuration context.
-     */
-    default SinkWriter<T> createWriter(WriterInitContext context) throws Exception {
-        java.util.Objects.requireNonNull(context, "context");
-        return createWriter();
-    }
+    /** 为当前执行子任务创建 Writer；禁止返回 null 或共享活动 Writer。 */
+    SinkWriter<T> createWriter(WriterInitContext context) throws Exception;
 }

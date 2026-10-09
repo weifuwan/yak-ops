@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.api.connector.sink.Sink;
-import io.yak.ops.core.api.connector.sink.SinkV2;
 import io.yak.ops.core.api.connector.sink.StatefulSinkWriter;
 import io.yak.ops.core.api.connector.sink.SupportsWriterState;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
@@ -685,7 +684,7 @@ class CheckpointRecoveryTest {
                 new java.util.concurrent.CountDownLatch(1);
 
         @Override
-        public SinkWriter<String> createWriter() {
+        public SinkWriter<String> createWriter(WriterInitContext context) {
             return new SinkWriter<>() {
                 @Override
                 public void write(String row) {
@@ -709,7 +708,7 @@ class CheckpointRecoveryTest {
     }
 
     private static final class DurableWriterSink
-            implements SinkV2<String>, SupportsWriterState<String, Integer> {
+            implements Sink<String>, SupportsWriterState<String, Integer> {
         private final List<String> rows = new CopyOnWriteArrayList<>();
         private final AtomicInteger restoredCount = new AtomicInteger(-1);
 
@@ -769,7 +768,7 @@ class CheckpointRecoveryTest {
         }
 
         @Override
-        public SinkWriter<String> createWriter() {
+        public SinkWriter<String> createWriter(WriterInitContext context) {
             createdWriters.incrementAndGet();
             return new SinkWriter<>() {
                 @Override

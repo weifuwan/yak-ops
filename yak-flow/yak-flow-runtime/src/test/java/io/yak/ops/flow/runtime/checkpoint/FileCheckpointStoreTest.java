@@ -80,7 +80,7 @@ class FileCheckpointStoreTest {
         assertFalse(signature.isBlank());
         assertFalse(signature.equals(FileCheckpointStore.graphSignature(graph(2))));
         SourceTransformation<String> source = new SourceTransformation<>("source", new NoRuntimeSource(), String.class);
-        Sink<String> sink = () -> {
+        Sink<String> sink = context -> {
             throw new AssertionError("Graph generation must not start Writer");
         };
         StreamGraph withoutUids = new StreamGraphGenerator(
@@ -111,7 +111,7 @@ class FileCheckpointStoreTest {
     private static StreamGraph graph(int sourceParallelism) {
         SourceTransformation<String> source =
                 new SourceTransformation<>("source", new NoRuntimeSource(), String.class, sourceParallelism);
-        Sink<String> sink = () -> {
+        Sink<String> sink = context -> {
             throw new AssertionError("Graph generation must not start Writer");
         };
         SinkTransformation<String> target = new SinkTransformation<>(source, "sink", sink);
