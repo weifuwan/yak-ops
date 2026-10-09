@@ -7,11 +7,9 @@ import io.yak.ops.business.datasource.DataSourceService;
 import io.yak.ops.business.datasync.schema.catalog.SourceTableIntrospector;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
-import io.yak.ops.business.datasync.execution.executor.RealtimeSyncExecutor;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
-import io.yak.ops.common.bean.vo.datasync.DataSyncDefinitionSnapshotVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
 import io.yak.ops.common.enums.datasync.DataSyncType;
@@ -64,7 +62,6 @@ class DataSyncInstanceSyncTypeContractTest {
         inject(service, "taskRepository", taskRepository(task));
         inject(service, "instanceRepository", instanceRepository(captured));
         injectDataSourceService(service, dataSourceService(List.of(primaryKeyColumn("id")), List.of(primaryKeyColumn("name"))));
-        inject(service, "realtimeSyncExecutor", new NoopRealtimeSyncExecutor());
 
         WorkspaceContext.bind("workspace-1");
         DataSyncException exception = assertThrows(DataSyncException.class, () -> service.runTask("task-1"));
@@ -197,9 +194,4 @@ class DataSyncInstanceSyncTypeContractTest {
         field.set(target, value);
     }
 
-    private static final class NoopRealtimeSyncExecutor extends RealtimeSyncExecutor {
-
-        @Override
-        public void submit(String workspaceId, String instanceId, DataSyncDefinitionSnapshotVO snapshot) {}
-    }
 }
