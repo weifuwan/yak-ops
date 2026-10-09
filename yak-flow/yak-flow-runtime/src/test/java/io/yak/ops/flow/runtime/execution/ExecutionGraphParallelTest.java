@@ -465,7 +465,7 @@ class ExecutionGraphParallelTest {
                 public void write(String record, Context context) throws Exception {
                     if (holdWrite != null) {
                         holdWrite.countDown();
-                        // 模拟 Sink 阻塞；Job 取消应中断当前虚拟线程。
+                        // Simulate a blocked Sink; cancellation must interrupt its owning virtual thread.
                         new CountDownLatch(1).await();
                     }
                     if (record.equals(failOnValue)) {
