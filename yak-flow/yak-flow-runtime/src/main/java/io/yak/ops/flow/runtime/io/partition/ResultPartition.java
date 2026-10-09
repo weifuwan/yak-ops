@@ -1,5 +1,7 @@
 package io.yak.ops.flow.runtime.io.partition;
 
+import io.yak.ops.flow.runtime.checkpoint.CheckpointBarrier;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -54,6 +56,17 @@ public final class ResultPartition<T> {
             throw new IllegalStateException("Cannot emit after result partition finished");
         }
         subpartitions.get(channel).emitRecord(record);
+    }
+
+    /** Broadcast once to every physical channel, after all earlier records from this producer. */
+    public void broadcastBarrier(long checkpointId) {
+        if (finished) {
+            throw new IllegalStateException("Cannot emit barrier after result partition finished");
+        }
+        CheckpointBarrier barrier = new CheckpointBarrier(checkpointId);
+        for (ResultSubpartition<T> subpartition : subpartitions) {
+            subpartition.emitBarrier(barrier);
+        }
     }
 
     /** Notify every downstream gate that this producer has no more records. */
