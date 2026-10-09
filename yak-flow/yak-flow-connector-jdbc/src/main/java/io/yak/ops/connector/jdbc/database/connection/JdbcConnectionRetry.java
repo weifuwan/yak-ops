@@ -29,7 +29,9 @@ public final class JdbcConnectionRetry {
                 }
                 return connection;
             } catch (SQLException exception) {
-                if (attempt == maxAttempts || !isRetryable(exception) || Thread.currentThread().isInterrupted()) {
+                if (attempt == maxAttempts
+                        || !isRetryable(exception)
+                        || Thread.currentThread().isInterrupted()) {
                     throw exception;
                 }
             }

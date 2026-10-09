@@ -192,11 +192,10 @@ public final class JdbcSplitPlanner {
      * <p>The same vendor converter is used by the running SplitReader, so a restored split
      * detects type, nullability or column-order changes before emitting any new records.
      */
-    private String schemaFingerprint(
-            Connection connection, TableId table, List<String> columns, String key) throws SQLException {
-        String projection = columns.stream()
-                .map(dialect::quoteIdentifier)
-                .collect(java.util.stream.Collectors.joining(", "));
+    private String schemaFingerprint(Connection connection, TableId table, List<String> columns, String key)
+            throws SQLException {
+        String projection =
+                columns.stream().map(dialect::quoteIdentifier).collect(java.util.stream.Collectors.joining(", "));
         String sql = "SELECT " + projection + " FROM " + dialect.qualifiedTable(table) + " WHERE 1 = 0";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setQueryTimeout(queryTimeoutSeconds);
