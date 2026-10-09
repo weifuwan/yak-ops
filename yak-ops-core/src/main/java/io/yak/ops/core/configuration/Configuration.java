@@ -19,8 +19,8 @@ import java.util.regex.Pattern;
  * Mutable, typed configuration container for job submission and execution planning.
  *
  * <p>Values may originate from typed setters or string-valued persisted configuration.
- * Copy operations isolate the container's explicit entries. Diagnostic {@code toString(){@code 
- * masks commonly sensitive keys, while {@code toMap(){@code  exports original values.
+ * Copy operations isolate the container's explicit entries. Diagnostic {@code toString()} masks commonly sensitive keys, while {@code toMap()}
+ * exports original values.
  */
 public class Configuration implements ReadableConfig, WritableConfig, Serializable, Cloneable {
 
