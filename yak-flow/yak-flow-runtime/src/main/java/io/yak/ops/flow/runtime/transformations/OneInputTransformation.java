@@ -8,27 +8,25 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 描述将一个单输入 Operator 应用于上游 Transformation 的逻辑节点。
+ * Logical definition of a single-input operator and its upstream transformation.
  *
- * <p>本类只持有上游节点和 Operator 工厂，不创建运行时 Operator，
- * 也不负责打开连接、启动线程或执行数据处理。
+ * <p>Retains the upstream node and reusable operator factory, without creating tasks,
+ * opening connections or processing records. Inputs and factories are immutable after
+ * construction; each deployed subtask creates a new operator instance.
  *
- * <p>输入关系和工厂在构造后不可修改。Runtime 应在每次作业运行或
- * 并行子任务启动时，通过工厂创建独立的 Operator 实例。
- *
- * @param <IN> 上游 Transformation 的输出类型，即当前 Operator 的输入类型
- * @param <OUT> 当前 Operator 的输出类型
+ * @param <IN> the upstream output and this operator's input type
+ * @param <OUT> the record type produced by this operator
  * @author weifuwan
  */
 public class OneInputTransformation<IN, OUT> extends Transformation<OUT> {
 
-    /** 唯一的上游逻辑转换节点。 */
+    /** The unique upstream logical transformation. */
     private final Transformation<IN> input;
 
-    /** 创建运行时 Operator 的工厂，不保存共享的 Operator 运行实例。 */
+    /** Factory used to create independent operators, not a shared running instance. */
     private final OneInputOperatorFactory<IN, OUT> operatorFactory;
 
-    /** 此节点的输入边策略；null 表示由 GraphGenerator 根据两端并行度推断。 */
+    /** Explicit edge routing, or null to infer it from resolved parallelism. */
     private StreamPartitioning inputPartitioning;
 
     private KeySelector<IN> inputKeySelector;
@@ -52,22 +50,22 @@ public class OneInputTransformation<IN, OUT> extends Transformation<OUT> {
         this.operatorFactory = Objects.requireNonNull(operatorFactory, "operatorFactory 不能为空");
     }
 
-    /** 获取唯一的上游 Transformation。 */
+    /** Returns the single upstream transformation. */
     public final Transformation<IN> getInput() {
         return input;
     }
 
-    /** 获取当前节点的输入类型，与上游节点的输出类型一致。 */
+    /** Returns the input type inherited from the upstream transformation. */
     public final Class<IN> getInputType() {
         return input.getOutputType();
     }
 
-    /** 获取 Operator 工厂；此方法不创建运行时 Operator。 */
+    /** Returns the reusable operator factory without constructing an instance. */
     public final OneInputOperatorFactory<IN, OUT> getOperatorFactory() {
         return operatorFactory;
     }
 
-    /** 设置输入边的 FORWARD 或 REBALANCE 策略；不设置则由构图时并行度决定。 */
+    /** Selects FORWARD or REBALANCE routing; default routing depends on parallelism. */
     public final void setInputPartitioning(StreamPartitioning partitioning) {
         Objects.requireNonNull(partitioning, "partitioning 不能为空");
         if (partitioning == StreamPartitioning.KEYED) {
@@ -77,7 +75,7 @@ public class OneInputTransformation<IN, OUT> extends Transformation<OUT> {
         this.inputKeySelector = null;
     }
 
-    /** 使用稳定业务键（如 CDC 目标主键）将相同键的记录交给同一个下游 Subtask。 */
+    /** Uses a stable business key, such as a CDC primary key, for subtask affinity. */
     public final void keyBy(KeySelector<IN> keySelector) {
         this.inputKeySelector = Objects.requireNonNull(keySelector, "keySelector 不能为空");
         this.inputPartitioning = StreamPartitioning.KEYED;
@@ -91,7 +89,7 @@ public class OneInputTransformation<IN, OUT> extends Transformation<OUT> {
         return inputKeySelector;
     }
 
-    /** 返回仅包含唯一上游节点的不可修改列表。 */
+    /** Returns an immutable list containing the single upstream transformation. */
     @Override
     public final List<Transformation<?>> getInputs() {
         return List.of(input);
