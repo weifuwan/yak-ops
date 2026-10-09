@@ -7,19 +7,23 @@ import io.yak.ops.core.configuration.ConfigOptions;
 public final class JdbcSourceOptions {
 
     public static final ConfigOption<Integer> TARGET_ROWS_PER_SPLIT =
-            ConfigOptions.key("connector.jdbc.source.target-rows-per-split").intType().defaultValue(50_000);
+            option("connector.jdbc.source.target-rows-per-split", 50_000);
 
     public static final ConfigOption<Integer> MAX_SPLITS_PER_TABLE =
-            ConfigOptions.key("connector.jdbc.source.max-splits-per-table").intType().defaultValue(16);
+            option("connector.jdbc.source.max-splits-per-table", 16);
 
     public static final ConfigOption<Integer> READER_FETCH_BATCH_SIZE =
-            ConfigOptions.key("connector.jdbc.source.reader-fetch-batch-size").intType().defaultValue(500);
+            option("connector.jdbc.source.reader-fetch-batch-size", 500);
 
     public static final ConfigOption<Integer> RESULT_SET_FETCH_SIZE =
-            ConfigOptions.key("connector.jdbc.source.result-set-fetch-size").intType().defaultValue(500);
+            option("connector.jdbc.source.result-set-fetch-size", 500);
 
     public static final ConfigOption<Integer> QUERY_TIMEOUT_SECONDS =
-            ConfigOptions.key("connector.jdbc.source.query-timeout-seconds").intType().defaultValue(60);
+            option("connector.jdbc.source.query-timeout-seconds", 60);
 
     private JdbcSourceOptions() {}
+
+    private static ConfigOption<Integer> option(String name, int value) {
+        return ConfigOptions.key(name).intType().defaultValue(value);
+    }
 }

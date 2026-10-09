@@ -33,8 +33,7 @@ public final class JdbcSplitPlanner {
     private final int maxSplitsPerTable;
     private final int queryTimeoutSeconds;
 
-    public JdbcSplitPlanner(
-            JdbcConnectionOptions connectionOptions, JdbcDialect dialect, Configuration configuration) {
+    public JdbcSplitPlanner(JdbcConnectionOptions connectionOptions, JdbcDialect dialect, Configuration configuration) {
         this.connectionOptions = Objects.requireNonNull(connectionOptions, "connectionOptions");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
         Objects.requireNonNull(configuration, "configuration");
@@ -65,8 +64,8 @@ public final class JdbcSplitPlanner {
             }
 
             String column = dialect.quoteIdentifier(splitColumn);
-            String sql = "SELECT MIN(" + column + "), MAX(" + column + "), COUNT(*) FROM "
-                    + dialect.qualifiedTable(table);
+            String sql =
+                    "SELECT MIN(" + column + "), MAX(" + column + "), COUNT(*) FROM " + dialect.qualifiedTable(table);
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setQueryTimeout(queryTimeoutSeconds);
                 try (ResultSet values = statement.executeQuery()) {
@@ -110,13 +109,7 @@ public final class JdbcSplitPlanner {
                         long start = lower.longValueExact();
                         long end = exclusiveUpper.subtract(BigInteger.ONE).longValueExact();
                         result.add(new JdbcSourceSplit(
-                                splitId(tableIndex, index),
-                                table,
-                                selectedColumns,
-                                splitColumn,
-                                start,
-                                end,
-                                null));
+                                splitId(tableIndex, index), table, selectedColumns, splitColumn, start, end, null));
                     }
                     return List.copyOf(result);
                 }

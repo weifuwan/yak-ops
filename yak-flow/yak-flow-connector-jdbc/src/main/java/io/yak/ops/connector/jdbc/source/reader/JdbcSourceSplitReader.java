@@ -103,8 +103,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
             closeStatementAndResultSet();
             active = null;
         }
-        Map<String, List<JdbcRecordAndPosition>> records =
-                batch.isEmpty() ? Map.of() : Map.of(splitId, batch);
+        Map<String, List<JdbcRecordAndPosition>> records = batch.isEmpty() ? Map.of() : Map.of(splitId, batch);
         return new RecordsBySplits<>(records, complete ? Set.of(splitId) : Set.of());
     }
 

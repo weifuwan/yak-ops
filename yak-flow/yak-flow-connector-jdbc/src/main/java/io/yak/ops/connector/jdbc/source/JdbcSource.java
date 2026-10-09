@@ -113,6 +113,10 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
         }
     }
 
+    private String identifierPart(String value) {
+        return value == null ? "-" : value.length() + ":" + value;
+    }
+
     private String definitionFingerprint() {
         StringBuilder definition = new StringBuilder(connection.url())
                 .append('|')
@@ -121,17 +125,16 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
                 .append(configuration.get(JdbcSourceOptions.MAX_SPLITS_PER_TABLE));
         for (TableId table : tables) {
             definition.append('|')
-                    .append(table.catalog() == null ? "-" : table.catalog().length() + ":" + table.catalog())
+                    .append(identifierPart(table.catalog()))
                     .append('|')
-                    .append(table.schema() == null ? "-" : table.schema().length() + ":" + table.schema())
+                    .append(identifierPart(table.schema()))
                     .append('|')
-                    .append(table.table().length())
-                    .append(':')
-                    .append(table.table());
+                    .append(identifierPart(table.table()));
         }
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(definition.toString().getBytes(StandardCharsets.UTF_8)));
+            byte[] bytes = definition.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
+            return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException impossible) {
             throw new IllegalStateException("SHA-256 is required", impossible);
         }
