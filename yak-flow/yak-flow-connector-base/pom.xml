@@ -12,7 +12,7 @@
 
     <artifactId>yak-flow-connector-base</artifactId>
     <name>YakFlow Connector Base</name>
-    <description>Reusable asynchronous source reader mechanics</description>
+    <description>Reusable source-reader and synchronous sink-batch mechanics</description>
 
     <dependencies>
         <dependency>

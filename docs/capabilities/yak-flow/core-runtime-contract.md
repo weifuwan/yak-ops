@@ -8,12 +8,12 @@ Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime`。仅定义 Core-based Run
 
 | Layer | Owner |
 | --- | --- |
-| Core | Source / Sink / SinkWriter / StatefulSinkWriter、WriterInitContext、Split / Transformation、Configuration / TaskInfo、PipelineExecutor / JobClient |
+| Core | Source / Sink / SinkWriter / StatefulSinkWriter、CancellableSinkWriter、WriterInitContext / ProcessingTimeService、Split / Transformation、Configuration / TaskInfo、PipelineExecutor / JobClient |
 | Runtime Graph | StreamGraphGenerator、StreamGraph / StreamNode / StreamEdge、StreamingJobGraphGenerator |
 | Runtime Physical Job | JobGraph / JobVertex / JobEdge；JobVertex 表示可部署算子链，JobEdge 只描述跨 Task 边 |
 | Runtime Execution | ExecutionGraph / ExecutionJobVertex / ExecutionVertex / Execution；Job 状态和 Subtask / Attempt |
 | Deployment | TaskDeployment 按物理图装配、启动、收口 StreamTask、ResultPartition、InputGate、SourceCoordinator |
-| Runtime Task / IO | StreamTask、StreamTaskSourceInput / StreamTaskNetworkInput、OneInputStreamTask（包含 Sink）、SourceOperatorStreamTask、StreamOperator / OneInputStreamOperator / SinkWriterOperator、OperatorChain；TaskMailbox / MailboxExecutor / MailboxDefaultAction / MailboxProcessor |
+| Runtime Task / IO | StreamTask、StreamTaskSourceInput / StreamTaskNetworkInput、OneInputStreamTask（包含 Sink）、SourceOperatorStreamTask、StreamOperator / OneInputStreamOperator / SinkWriterOperator、OperatorChain；TaskMailbox / MailboxExecutor / MailboxDefaultAction / MailboxProcessor、TaskProcessingTimeService |
 | Runtime Transport | RecordWriterOutput、StreamPartitioner、ResultPartition / ResultSubpartition、InputGate |
 | Runtime Checkpoint | AlignedCheckpointCoordinator、CheckpointBarrier、CheckpointSnapshot、OperatorStateBackend、FileCheckpointStore |
 
@@ -59,6 +59,32 @@ StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finish
 `StreamOperator` 定义统一 open、正常结束 finish、close 生命周期；`OneInputStreamOperator` 支持单输入与同步 Collector。`OneInputOperatorFactory` 直接创建 `OneInputStreamOperator`；独立 `OneInputStreamTask` 同样运行 `SinkWriterOperator`，不再拥有独立 `SinkOperatorStreamTask`。Chained OperatorChain 和独立 Sink 使用相同 SinkWriterOperator 的 Writer 创建、write、flush 和关闭路径。
 
 Core `Sink.createWriter(WriterInitContext)` 获取 Sink 节点的 Job/Operator/Subtask/Attempt/maxParallelism 及隔离配置；旧的无参 `Sink.createWriter()` 与 `SinkV2` 已移除，`SinkWriter.write(T, Context)` 是唯一写入方法。新 `SinkWriter.Context` 提供 timestamp=null、watermark=Long.MIN_VALUE（没有时间流语义前不伪造），并作为真实 write 接口调用。实现 SupportsWriterState 的 Sink 可通过版本化 Serializer 保存 StatefulSinkWriter 快照并恢复；缺失恢复合同的 StatefulSinkWriter 在启用 Checkpoint 时继续拒绝。不实现事务 Committer。
+
+## Sink Batch / Timer / Cancellation Boundary
+
+`yak-flow-connector-base` owns only database-neutral synchronous batch triggers:
+`BatchingSinkWriterBase`, `BatchFlushPolicy`, and `BatchOutput`.
+The concrete output is the only owner of buffered records, parameter binding, retry and
+transaction state. The base does not create a second queue or a scheduling thread;
+it flushes on size, optional processing-time deadline or Runtime's checkpoint/end-of-input
+call. Flush errors fail the Writer; failed/uncertain commits are never silently retried.
+
+`WriterInitContext.getProcessingTimeService()` exposes Core's processing-time contract.
+A Runtime Task lazily creates a timer scheduler and queues due callbacks to the owning
+Mailbox; the scheduler never runs Writer I/O itself. Timer callback failure fails the
+Task. Cancellation and Task shutdown stop timer delivery. Inline Source → Sink chains
+share the same Task timer owner while preserving the logical Sink's TaskInfo.
+
+`CancellableSinkWriter` is optional. StreamTask cancellation sends an idempotent,
+non-blocking signal from outside the mailbox to a blocked Sink Writer; standalone and
+inline-chain Sinks both receive it. The hook must not flush, commit or close resources.
+Writer.close() releases resources on the Task thread without implicit final flush;
+only normal end of input calls flush(true). This is best-effort I/O cancellation rather
+than a guarantee that every JDBC driver immediately aborts a blocking call.
+
+Existing StatefulSinkWriter state and checkpoint barrier semantics are unchanged.
+This foundation provides no JDBC Sink implementation, XA/Committer, transactional
+exactly-once delivery, or product task wiring.
 
 ## Source Coordination and Event Contracts
 

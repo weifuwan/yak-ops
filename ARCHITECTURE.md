@@ -38,11 +38,11 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-ops-core`
 
-拥有批流共享的 Source / Sink、RowData 接口 / GenericRowData / TableRecord / RowKind、TableId 与 Column / TableSchema / LogicalTypeRoot / 参数化 LogicalType、SinkWriter/StatefulSinkWriter、Collector / KeySelector、类型化 Configuration、Transformation、只读 TaskInfo，以及 `PipelineExecutor` / `JobClient`。不包含 StreamGraph、Streaming Transformation、运行时 Operator、Channel、物理 Task、线程或 Checkpoint 执行器；不得反向依赖 Runtime。
+拥有批流共享的 Source / Sink、RowData 接口 / GenericRowData / TableRecord / RowKind、TableId 与 Column / TableSchema / LogicalTypeRoot / 参数化 LogicalType、SinkWriter/StatefulSinkWriter、ProcessingTimeService / CancellableSinkWriter 合同、Collector / KeySelector、类型化 Configuration、Transformation、只读 TaskInfo，以及 `PipelineExecutor` / `JobClient`。不包含 StreamGraph、Streaming Transformation、运行时 Operator、Channel、物理 Task、线程或 Checkpoint 执行器；不得反向依赖 Runtime。
 
 ### `yak-flow/yak-flow-runtime`
 
-拥有 StreamGraph / StreamGraphGenerator、StreamingJobGraphGenerator、物理 JobGraph（JobVertex / JobEdge）、ExecutionGraph（ExecutionJobVertex / ExecutionVertex / Execution）、TaskDeployment、StreamTask、StreamOperator / OneInputStreamOperator / SinkWriterOperator、OperatorChain、SourceCoordinator、StreamTaskInput / RecordWriterOutput、ResultPartition / ResultSubpartition / InputGate、StreamPartitioner 与 AlignedCheckpointCoordinator。EmbeddedPipelineExecutor 仅负责编译和提交；EmbeddedJobClient 只提供查询、取消、结果和 Checkpoint 入口，运行状态由 ExecutionGraph 唯一管理。StreamTask 使用 TaskMailbox + MailboxProcessor：控制事件排队到所属 Task 线程，输入处理是可暂停的 MailboxDefaultAction。
+拥有 StreamGraph / StreamGraphGenerator、StreamingJobGraphGenerator、物理 JobGraph（JobVertex / JobEdge）、ExecutionGraph（ExecutionJobVertex / ExecutionVertex / Execution）、TaskDeployment、StreamTask、StreamOperator / OneInputStreamOperator / SinkWriterOperator、OperatorChain、SourceCoordinator、StreamTaskInput / RecordWriterOutput、ResultPartition / ResultSubpartition / InputGate、StreamPartitioner 与 AlignedCheckpointCoordinator。EmbeddedPipelineExecutor 仅负责编译和提交；EmbeddedJobClient 只提供查询、取消、结果和 Checkpoint 入口，运行状态由 ExecutionGraph 唯一管理。StreamTask 使用 TaskMailbox + MailboxProcessor：控制事件排队到所属 Task 线程，输入处理是可暂停的 MailboxDefaultAction。TaskProcessingTimeService 将定时器回调投递到同一 Mailbox，任务取消在外部线程只通知可取消 Sink I/O，实际资源关闭仍由 Task 线程执行。
 
 当前只支持一个 Source → 零个或多个单输入 Operator → 一个 Sink 的严格线性图，保留单并行 FORWARD 内联链。跨 Task 的生产者使用 ResultPartition，消费者使用 InputGate；每个目标 Gate 的所有上游 Subpartition 共用一个有界缓存，支持 FORWARD / REBALANCE / KEYED（Murmur KeyGroup → Subtask）路由、背压、取消和失败清理。可恢复 Checkpoint 是单 JVM Source → Operator* → Sink 的 FIFO Barrier 对齐、Task Mailbox 状态 ACK 与磁盘原子提交；Operator/Writer 的命名状态使用 v2，纯 Source/Sink 无状态快照仍为兼容 v1。非 KEYED 拓扑指纹不变，KEYED 指纹绑定 KeyGroup 算法/最大并行度。仍只保证 at-least-once，不承诺 Exactly-once；多源、分叉、网络 Shuffle、动态扩缩容、远程 StateBackend 未实现。
 
@@ -53,7 +53,7 @@ Runtime 单向依赖 Core；内存 Execution / Attempt 与 Data Sync DAO 的产�
 
 ### `yak-flow/yak-flow-connector-base`
 
-Provides reusable asynchronous SourceReader mechanics over Core Source / Split interfaces: mailbox-owned split consumption state, bounded fetch handover, background SplitFetcher lifecycle, cancellation and failure wakeups. It depends only on Core, not Runtime or JDBC. Runtime continues to own Mailbox, SourceCoordinator and Checkpoint persistence; Connector Base does not create its own Job or restart protocol.
+Provides asynchronous SourceReader mechanics and a synchronous Sink batch foundation over Core contracts. The Sink side offers BatchingSinkWriterBase, BatchOutput and BatchFlushPolicy: only the concrete BatchOutput owns buffered records, while the base coordinates size/timer/checkpoint flush and terminal cancel. It depends only on Core, not Runtime or JDBC. Runtime owns Mailbox, processing-time scheduling, SourceCoordinator and Checkpoint persistence; Connector Base does not create its own scheduler thread, Job or restart protocol.
 
 ### `yak-flow/yak-flow-connector-jdbc`
 

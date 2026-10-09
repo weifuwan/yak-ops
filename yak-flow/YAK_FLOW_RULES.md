@@ -16,7 +16,7 @@ than repeating method names. The existing Backend Quality job enforces objective
 - Core 拥有 Source / Sink / Split / Transformation / Configuration / PipelineExecutor / JobClient 共享 API，不得依赖 Runtime。
 - Core owns the Source / Sink API and database-neutral RowData / TableRecord, TableId and LogicalType / TableSchema. The yak-flow-api module is removed; do not recreate duplicate row or schema contracts.
 - Runtime 拥有 StreamGraph / JobGraph / ExecutionGraph、StreamTask / StreamTaskInput、SourceCoordinator、ResultPartition / InputGate 和 Checkpoint。运行期 Execution 是内存 Attempt，不是产品 Execution。
-- Connector Base 只依赖 Core，提供非阻塞 SourceReader 消费层、有界 Future 队列与阻塞 SplitFetcher；不得依赖 Runtime、Datasource、JDBC 或产品 Task。
+- Connector Base 只依赖 Core，提供非阻塞 SourceReader 消费层、有界 Future 队列与阻塞 SplitFetcher，以及 Sink 同步批量触发合同；不得依赖 Runtime、Datasource、JDBC 或产品 Task。`BatchingSinkWriterBase` 不能另建一份缓冲；`BatchOutput` 是记录的唯一缓冲 owner。
 - JDBC Source 独立实现 Core Source API，使用 Connector Base 的异步 Reader 和 Connection 级隔离；SQL 方言只属于 JDBC Connector。The JDBC Connector owns Catalog/Dialect/Converter contracts and native SQL/DDL. Use the shared JdbcFactory SPI for vendor discovery; put concrete dialect, catalog, converter implementations under internal/{dialect,catalog,convert}. The existing Datasource Catalog is transitional and must remain untouched until a later adapter migration; do not add another Datasource dialect.
 - JDBC Source 的一个定义管理多张表；Enumerator 逐表异步发现并分配 Split。单整数主键采用不重叠的区间和已输出主键恢复，其他表采用整 Split 重放语义；只保证受限 at-least-once，不承诺变化中数据库的全局一致性快照。
 
@@ -37,8 +37,9 @@ than repeating method names. The existing Backend Quality job enforces objective
 ## StreamOperator / Sink / KeyGroups
 
 - `OneInputStreamOperator` 是唯一单输入算子接口，`OneInputOperatorFactory` 创建它，复用 `StreamOperator` 的 open / finish / close 生命周期。独立 Operator 与 Sink 均由 `OneInputStreamTask` 的 Mailbox 管理，无独立的 `SinkOperatorStreamTask`。
-- Sink 统一通过 `SinkWriterOperator` 创建 Writer、处理记录、flush 和关闭；单并行内联 `OperatorChain` 使用同一个 SinkWriterOperator，并以**Sink 节点**（不是 Source 节点）的 `RuntimeTaskInfo` 初始化 Writer。
+- Sink 统一通过 `SinkWriterOperator` 创建 Writer、处理记录、flush 和关闭；单并行内联 `OperatorChain` 使用同一个 SinkWriterOperator，并以**Sink 节点**（不是 Source 节点）的 `RuntimeTaskInfo` 初始化 Writer。Sink 定时 Flush 使用 Core `WriterInitContext.getProcessingTimeService()`，由 Runtime TaskProcessingTimeService 仅做计时，实际回调必须在同一 Mailbox 处理，失败使 Task 失败。内联链需要保留 Source Task 的定时器能力和取消信号。
 - Core 统一通过 `Sink.createWriter(WriterInitContext)` 获取实际 TaskInfo/Attempt/maxParallelism 和 Configuration 防御性副本；不保留 `SinkV2` 或旧无参 `Sink.createWriter()`。`SinkWriter.write(T, Context)` 是唯一写入方法。当前写入 Context 没有事件时间，timestamp 为 null、watermark 为 Long.MIN_VALUE。
+- `CancellableSinkWriter.cancel()` 是非阻塞终止信号，可以在 Task Mailbox 外运行，用于中断正在阻塞的 JDBC/网络 I/O；不得调用 flush、commit 或 close。Task 线程仍唯一负责关闭资源，失败、取消和 close 不允许隐式最终 Flush。
 - `StatefulSinkWriter` / `SupportsWriterState` 可由 AlignedCheckpointCoordinator 组合版本化 Writer State 快照与恢复；只有 StatefulSinkWriter 且无 SupportsWriterState 恢复合同的 Sink 仍须拒绝。不可宣称有 CommittingSinkWriter / Committer 或事务 Exactly-once。
 - `PipelineOptions.MAX_PARALLELISM` 默认 128，可配置到 32768；物理 JobVertex、RuntimeTaskInfo 和 RecordWriterOutput 读取同一值，配置不能小于有效并行度。KEYED 使用 Flink 风格的 Murmur3 hash → KeyGroup → Subtask 范围分配；**尚不支持状态 Rescale**。
 - 非 KEYED Checkpoint 指纹不变。对于 KEYED，已更新拓扑指纹以包含 KeyGroup 算法与 maxParallelism，故采用旧 hashCode % N 方案生成的 KEYED Checkpoint 不能直接恢复，需要明确迁移策略；不静默混用两套哈希。
