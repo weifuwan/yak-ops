@@ -1,4 +1,4 @@
-package io.yak.ops.core.transformations;
+package io.yak.ops.flow.runtime.transformations;
 
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.Source;

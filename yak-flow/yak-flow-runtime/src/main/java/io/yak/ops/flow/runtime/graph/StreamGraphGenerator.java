@@ -1,4 +1,4 @@
-package io.yak.ops.core.graph;
+package io.yak.ops.flow.runtime.graph;
 
 import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.dag.Transformation;
@@ -7,8 +7,8 @@ import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
-import io.yak.ops.core.transformations.OneInputTransformation;
-import io.yak.ops.core.transformations.SinkTransformation;
+import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
+import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;

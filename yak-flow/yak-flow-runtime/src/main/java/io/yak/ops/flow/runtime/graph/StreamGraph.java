@@ -1,4 +1,4 @@
-package io.yak.ops.core.graph;
+package io.yak.ops.flow.runtime.graph;
 
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.dag.Pipeline;

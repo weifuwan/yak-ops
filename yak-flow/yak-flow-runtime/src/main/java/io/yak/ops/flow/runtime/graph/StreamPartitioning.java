@@ -1,4 +1,4 @@
-package io.yak.ops.core.graph;
+package io.yak.ops.flow.runtime.graph;
 
 /** 本地 StreamEdge 的显式记录分区语义。 */
 public enum StreamPartitioning {

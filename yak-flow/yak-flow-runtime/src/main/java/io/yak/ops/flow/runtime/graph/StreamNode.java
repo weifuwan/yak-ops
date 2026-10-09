@@ -1,13 +1,13 @@
-package io.yak.ops.core.graph;
+package io.yak.ops.flow.runtime.graph;
 
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.dag.Transformation;
-import io.yak.ops.core.api.operators.OneInputOperatorFactory;
-import io.yak.ops.core.transformations.OneInputTransformation;
-import io.yak.ops.core.transformations.SinkTransformation;
-import io.yak.ops.core.transformations.SourceTransformation;
+import io.yak.ops.flow.runtime.operators.OneInputOperatorFactory;
+import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
+import io.yak.ops.flow.runtime.transformations.SinkTransformation;
+import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.util.Objects;
 import java.util.Optional;
 

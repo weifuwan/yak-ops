@@ -1,4 +1,4 @@
-package io.yak.ops.core.graph;
+package io.yak.ops.flow.runtime.graph;
 
 import io.yak.ops.core.api.operators.KeySelector;
 import java.util.Objects;

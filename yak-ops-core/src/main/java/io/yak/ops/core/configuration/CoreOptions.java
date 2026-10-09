@@ -7,9 +7,5 @@ public final class CoreOptions {
     public static final ConfigOption<Integer> DEFAULT_PARALLELISM =
             ConfigOptions.key("parallelism.default").intType().defaultValue(1);
 
-    /** 每个下游子任务的本地 Channel 最大排队记录数；超过容量时上游阻塞等待。 */
-    public static final ConfigOption<Integer> LOCAL_CHANNEL_CAPACITY =
-            ConfigOptions.key("execution.local-channel.capacity").intType().defaultValue(64);
-
     private CoreOptions() {}
 }

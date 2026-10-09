@@ -1,4 +1,4 @@
-package io.yak.ops.core.api.operators;
+package io.yak.ops.flow.runtime.operators;
 
 /**
  * 创建单输入 Operator 运行实例的工厂。
