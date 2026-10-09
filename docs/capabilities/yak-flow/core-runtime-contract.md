@@ -12,8 +12,9 @@ Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime`。仅定义 Core-based Run
 | Runtime Graph | StreamGraphGenerator、StreamGraph / StreamNode / StreamEdge、StreamingJobGraphGenerator |
 | Runtime Physical Job | JobGraph / JobVertex / JobEdge；JobVertex 表示可部署算子链，JobEdge 只描述跨 Task 边 |
 | Runtime Execution | ExecutionGraph / ExecutionJobVertex / ExecutionVertex / Execution；Job 状态和 Subtask / Attempt |
-| Deployment | TaskDeployment 按物理图装配、启动、收口 StreamTask、RecordChannel、SourceCoordinator |
-| Runtime Task / IO | StreamTask、OneInputStreamTask、SourceOperatorStreamTask、SinkOperatorStreamTask、OperatorChain、RecordChannel / RecordRouter；TaskMailbox / MailboxExecutor / MailboxDefaultAction / MailboxProcessor |
+| Deployment | TaskDeployment 按物理图装配、启动、收口 StreamTask、ResultPartition、InputGate、SourceCoordinator |
+| Runtime Task / IO | StreamTask、StreamTaskSourceInput / StreamTaskNetworkInput、OneInputStreamTask、SourceOperatorStreamTask、SinkOperatorStreamTask、OperatorChain；TaskMailbox / MailboxExecutor / MailboxDefaultAction / MailboxProcessor |
+| Runtime Transport | RecordWriterOutput、StreamPartitioner、ResultPartition / ResultSubpartition、InputGate |
 | Runtime Checkpoint | QuiescentCheckpointCoordinator、CheckpointSnapshot、FileCheckpointStore |
 
 Core 不能依赖 Runtime。Runtime 的 Execution 是当前 JVM 中一次 Subtask Attempt，不是 Data Sync 表中的业务 Execution/Attempt。
@@ -24,7 +25,7 @@ StreamingJobGraphGenerator 必须在创建 SourceReader、SinkWriter、工作线
 
 物理编译规则：当前只接受 Source → OneInputOperator* → Sink 的严格线性图。无 Checkpoint 且所有并行度均为 1、所有边均为 FORWARD 时，将整个链折叠成一个可部署 JobVertex（一个 Task Mailbox，没有跨 Task JobEdge）；其它图按节点生成 JobVertex，并在 JobEdge 上保存原 StreamEdge 的分区策略。Checkpoint 图不做算子链合并。
 
-现有上限保持：单节点并行度 1–16、逻辑 Subtask 总量不超过 64、RecordChannel 容量 1–4096。配置键仍是 `execution.local-channel.capacity`，默认 64；Core 的默认并行度由 `parallelism.default` 管理。
+现有上限保持：单节点并行度 1–16、逻辑 Subtask 总量不超过 64、InputGate 每目标缓存总容量 1–4096。配置键仍是 `execution.local-channel.capacity`，默认 64；Core 的默认并行度由 `parallelism.default` 管理。
 
 ## ExecutionGraph / Attempt
 
@@ -32,7 +33,7 @@ ExecutionJobVertex 聚合一个 JobVertex 的所有 ExecutionVertex；ExecutionV
 
 ExecutionGraph 是唯一 Job Status、取消、结果 Future 和提交 Worker 的 Owner；EmbeddedPipelineExecutor 负责编译并提交，EmbeddedJobClient 只代理 JobID、状态、取消、结果和可选 Checkpoint，不运行线程。TaskDeployment 负责资源的物理装配，不维护第二套 Job 状态。
 
-TaskDeployment 依照物理 JobVertex 倒序装配 Sink/Operator/Source，先启动消费者再启动生产者。为每个目标 Subtask 创建有界 Channel，为每个物理 Execution 创建单独的 StreamTask 和 Source/Sink/Operator 运行实例。失败时中止 Channel、取消所有 Task，再尽力关闭 Task、Coordinator 与状态存储；取消 Future 在实际退出/清理后完成。
+TaskDeployment 依照物理 JobVertex 倒序装配 Sink/Operator/Source，先启动消费者再启动生产者。每个目标 Subtask 拥有独立 InputGate，每个上游 Task 拥有 ResultPartition 并向所有目标 Gate 注册 ResultSubpartition；物理 Execution 的 Source/Sink/Operator 实例保持隔离。失败先中止所有 InputGate，再取消 Task 并最终关闭 Task、Coordinator 与 Checkpoint 存储；Cancellation Future 在资源清理后完成。
 
 只有输入自然结束才依次调用 Operator.finish 和 SinkWriter.flush(true)；失败与取消时不能补充最终 Flush。无界 Source 未被取消却完成应视为异常。StreamTask 使用 MailboxProcessor 默认动作和独立 TaskMailbox；SourceCoordinator 事件循环与 Split 交付/确认协议保持不变。
 
@@ -44,14 +45,18 @@ TaskDeployment 依照物理 JobVertex 倒序装配 Sink/Operator/Source，先启
 
 StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finishTask → closeTask。异常/取消不执行最终 finish。退出时先 QUIESCE，再 CLOSED，未执行 Mail 的 Future 必须异常完成。取消中断 Task 工作线程以退出阻塞调用，完成清理后才完成 cancellation Future。
 
-本阶段不实现 Flink 的 Mail 优先级/Batch、Watermark、InputGate 或网络邮箱，保留当前 SourceOperator、RecordChannel 和 QuiescentCheckpoint 文件协议。
+本阶段不实现 Flink 的 Mail 优先级/Batch、Watermark 或远程网络 Shuffle；保留 SourceOperator 与现有 QuiescentCheckpoint 文件协议。
 ## Transport
 
-每个 RecordChannel 是多生产者、单消费者的有限队列，FORWARD 需要上下游相同并行度，REBALANCE 在目标 Channel 上轮询，KEYED 把业务键映射到目标 Subtask。同键分区不提供跨 Reader 全序，当前 KEYED 使用 hashCode/parallelism 而非 Flink KeyGroup，因此不支持有状态 Rescale。只有全部生产者结束且队列排空才能 EOF。
+- `StreamTaskInput<T>` 统一 SourceOperator 和物理 Gate 的非阻塞输入接口；`StreamTaskSourceInput` 调用 Reader，`StreamTaskNetworkInput` 调用下游 `InputGate`，并将 getAvailableFuture 交给 Task Mailbox。当前不支持网络 InputGate 或多输入算子。
+- 每个上游 Subtask 拥有一个 `ResultPartition`，为各目标 Task 创建一条 `ResultSubpartition`；目标 `InputGate` 注册其所有上游 Subpartition，以 round-robin 轮询非空输入，避免持续偏向同一上游。
+- 一个 InputGate 的 `capacity` 是**全部上游 Subpartition 共享**的总排队上限，不随并行度放大；队列满使用可中断 Condition 等待，消费后通知生产者，无 25ms 轮询。
+- `RecordWriterOutput` 通过独立 `StreamPartitioner` 选择目标。FORWARD 同并行度，一条生产者流对应一条下游输入；REBALANCE 按生产者独立轮询；KEYED 保留当前 `Math.floorMod(key.hashCode(), downstreamParallelism)`，**不是 Flink KeyGroup，不能宣称支持状态 Rescale**。
+- 全部生产者结束并排空对应 Gate 的缓冲后才返回 END_OF_INPUT。失败/取消唤醒阻塞的发送者和等待消费者；Checkpoint 的 `drainedFuture` 不仅等待队列为空，还要等待正在执行的下游 Writer 回调结束。
 
 ## Checkpoint / Recovery
 
-只有 Source → Sink 支持 QuiescentCheckpointCoordinator 的单 JVM 静止切面：暂停 Enumerator / Reader → 快照 Split → 等待所有 Channel 排空及 Writer in-flight 结束 → Sink.flush(false) → FileCheckpointStore 持久化 → 通知 Source 完成。多输入与有状态中间算子的 Checkpoint 未实现。
+只有 Source → Sink 支持 QuiescentCheckpointCoordinator 的单 JVM 静止切面：暂停 Enumerator / Reader → 快照 Split → 等待所有 InputGate 排空及 Writer in-flight 结束 → Sink.flush(false) → FileCheckpointStore 持久化 → 通知 Source 完成。多输入与有状态中间算子的 Checkpoint 未实现。
 
 保留旧 StreamGraph 的图签名、二进制状态文件格式、CRC、版本化 Serializer、原子替换与状态目录独占锁；新物理 JobGraph 不改变已有 Source → Sink 恢复协议。语义仅是受限 at-least-once，不能声称完整 Flink Barrier Checkpoint 或 Exactly-once。
 
