@@ -7,6 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.api.connector.sink.Sink;
+import io.yak.ops.core.api.connector.sink.SinkV2;
+import io.yak.ops.core.api.connector.sink.StatefulSinkWriter;
+import io.yak.ops.core.api.connector.sink.SupportsWriterState;
+import io.yak.ops.core.api.connector.sink.WriterInitContext;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.InputStatus;
@@ -43,6 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -259,6 +264,33 @@ class CheckpointRecoveryTest {
         assertFalse(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
     }
 
+    @Test
+    void shouldRestoreStatefulSinkWriterFromDurableAlignedCheckpoint() throws Exception {
+        DurableWriterSink sink = new DurableWriterSink();
+        JobClient first = new EmbeddedPipelineExecutor().execute(
+                graph(new OffsetSource(4), sink), configuration(false)).get(5, TimeUnit.SECONDS);
+        awaitCount(sink.rows, 8);
+        CheckpointSnapshot saved = ((EmbeddedJobClient) first).checkpoint().get(5, TimeUnit.SECONDS);
+        var key = new CheckpointSnapshot.OperatorSubtask("checkpoint-stable-sink", 0);
+        assertTrue(saved.operatorStates().containsKey(key));
+        assertEquals(8, java.nio.ByteBuffer.wrap(
+                saved.operatorStates().get(key).get("operator/writer-0").bytes()).getInt());
+        first.cancel().get(5, TimeUnit.SECONDS);
+
+        OffsetSource source = new OffsetSource(4);
+        DurableWriterSink restored = new DurableWriterSink();
+        JobClient second = new EmbeddedPipelineExecutor().execute(
+                graph(source, restored), configuration(true)).get(5, TimeUnit.SECONDS);
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (restored.restoredCount.get() != 8 && System.nanoTime() < until) {
+            Thread.sleep(10);
+        }
+        assertEquals(8, restored.restoredCount.get());
+        source.setLimit(5);
+        awaitCount(restored.rows, 2);
+        second.cancel().get(5, TimeUnit.SECONDS);
+    }
+
     private Configuration configuration(boolean restore) {
         Configuration config = new Configuration();
         config.set(CoreOptions.DEFAULT_PARALLELISM, 1);
@@ -268,7 +300,7 @@ class CheckpointRecoveryTest {
         return config;
     }
 
-    private static StreamGraph graph(OffsetSource source, CapturedSink sink) {
+    private static StreamGraph graph(OffsetSource source, Sink<String> sink) {
         SourceTransformation<String> input =
                 new SourceTransformation<>("source", source, String.class, 2);
         SinkTransformation<String> output = new SinkTransformation<>(input, "sink", sink, 1);
@@ -563,6 +595,49 @@ class CheckpointRecoveryTest {
                     }
                 }
             };
+        }
+    }
+
+    private static final class DurableWriterSink
+            implements SinkV2<String>, SupportsWriterState<String, Integer> {
+        private final List<String> rows = new CopyOnWriteArrayList<>();
+        private final AtomicInteger restoredCount = new AtomicInteger(-1);
+
+        @Override
+        public StatefulSinkWriter<String, Integer> createWriter(WriterInitContext context) {
+            throw new AssertionError("Stateful writer must use restoreWriter even without saved state");
+        }
+
+        @Override
+        public StatefulSinkWriter<String, Integer> restoreWriter(
+                WriterInitContext context, Collection<Integer> state) {
+            int start = state.stream().mapToInt(Integer::intValue).sum();
+            restoredCount.set(start);
+            return new StatefulSinkWriter<>() {
+                private int written = start;
+
+                @Override
+                public void write(String value) {
+                    rows.add(value);
+                    written++;
+                }
+
+                @Override
+                public void flush(boolean endOfInput) {}
+
+                @Override
+                public List<Integer> snapshotState(long checkpointId) {
+                    return List.of(written);
+                }
+
+                @Override
+                public void close() {}
+            };
+        }
+
+        @Override
+        public SimpleVersionedSerializer<Integer> getWriterStateSerializer() {
+            return intStateSerializer();
         }
     }
 
