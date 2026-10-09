@@ -101,7 +101,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                 try {
                     performCheckpoint();
                 } catch (Throwable failure) {
-                    if (!closed.get() && !cancelled.getAsBoolean() && !anySourceFinished()) {
+                    if (!isCheckpointDeclined(failure)
+                            && !closed.get() && !cancelled.getAsBoolean() && !anySourceFinished()) {
                         onFailure.accept(failure);
                     }
                 }
@@ -122,7 +123,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                     result.complete(performCheckpoint());
                 } catch (Throwable failure) {
                     result.completeExceptionally(failure);
-                    if (!closed.get() && !cancelled.getAsBoolean() && !anySourceFinished()) {
+                    if (!isCheckpointDeclined(failure)
+                            && !closed.get() && !cancelled.getAsBoolean() && !anySourceFinished()) {
                         onFailure.accept(failure);
                     }
                 }
@@ -177,6 +179,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                 new LinkedHashMap<>();
         boolean stored = false;
         Throwable originalFailure = null;
+        // A decline in an upstream Operator must wake a checkpoint currently awaiting the Sink.
+        CompletableFuture<Void> firstFailedAcknowledgement = new CompletableFuture<>();
         try {
             await(coordinator.pauseForCheckpoint());
             coordinatorFrozen = true;
@@ -184,7 +188,14 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             // Register all ACK futures before any Source can emit the first barrier.
             for (OneInputStreamTask task : inputTasks) {
                 CheckpointSnapshot.OperatorSubtask id = task.checkpointIdentity();
-                if (acknowledgements.putIfAbsent(id, task.expectCheckpoint(checkpointId)) != null) {
+                CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> acknowledgement =
+                        task.expectCheckpoint(checkpointId);
+                acknowledgement.whenComplete((unused, error) -> {
+                    if (error != null) {
+                        firstFailedAcknowledgement.completeExceptionally(error);
+                    }
+                });
+                if (acknowledgements.putIfAbsent(id, acknowledgement) != null) {
                     throw new IllegalStateException("Duplicate operator state identity: " + id);
                 }
             }
@@ -216,6 +227,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                     operatorStates = new LinkedHashMap<>();
             for (var entry : acknowledgements.entrySet()) {
                 ensureActive();
+                await(CompletableFuture.anyOf(entry.getValue(), firstFailedAcknowledgement));
                 Map<String, CheckpointSnapshot.SerializedState> state = await(entry.getValue());
                 if (!state.isEmpty()) {
                     operatorStates.put(entry.getKey(), state);
@@ -240,8 +252,11 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             throw failure;
         } finally {
             if (!stored) {
+                Throwable reason = originalFailure == null
+                        ? new CheckpointDeclinedException(checkpointId, "checkpoint did not complete")
+                        : originalFailure;
                 for (OneInputStreamTask task : inputTasks) {
-                    task.abortCheckpoint(checkpointId, new IllegalStateException("Checkpoint aborted"));
+                    task.declineCheckpoint(checkpointId, reason);
                 }
                 try {
                     await(coordinator.notifyCheckpointAborted(checkpointId));
@@ -338,6 +353,16 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         }
     }
 
+    /** Ordinary EOF can decline a checkpoint without failing the data pipeline. */
+    private static boolean isCheckpointDeclined(Throwable failure) {
+        for (Throwable current = failure; current != null; current = current.getCause()) {
+            if (current instanceof CheckpointDeclinedException) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean anySourceFinished() {
         return sourceTasks.stream().anyMatch(task -> task.completionFuture().isDone());
     }
@@ -357,6 +382,9 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             return future.get(remainingNanos, TimeUnit.NANOSECONDS);
         } catch (ExecutionException failure) {
             Throwable cause = failure.getCause();
+            while (cause instanceof java.util.concurrent.CompletionException && cause.getCause() != null) {
+                cause = cause.getCause();
+            }
             if (cause instanceof Exception error) {
                 throw error;
             }
