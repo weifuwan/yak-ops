@@ -27,7 +27,7 @@ import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
-import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.flow.runtime.operators.OneInputOperatorFactory;
 import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
@@ -55,7 +55,7 @@ class EmbeddedExecutionLifecycleTest {
         TestSink sink = new TestSink(false, trace);
         AtomicReference<String> operatorThread = new AtomicReference<>();
         SourceTransformation<String> input = new SourceTransformation<>("source", source, String.class);
-        OneInputOperatorFactory<String, Integer> parse = () -> new OneInputOperator<>() {
+        OneInputOperatorFactory<String, Integer> parse = () -> new OneInputStreamOperator<>() {
             @Override
             public void open() {
                 trace.add("parse-open");
@@ -78,7 +78,7 @@ class EmbeddedExecutionLifecycleTest {
                 trace.add("parse-close");
             }
         };
-        OneInputOperatorFactory<Integer, String> render = () -> new OneInputOperator<>() {
+        OneInputOperatorFactory<Integer, String> render = () -> new OneInputStreamOperator<>() {
             @Override
             public void open() {
                 trace.add("render-open");
@@ -222,7 +222,7 @@ class EmbeddedExecutionLifecycleTest {
         TestSource source = new TestSource(true, List.of("one"), new CopyOnWriteArrayList<>());
         TestSink sink = new TestSink(false, new CopyOnWriteArrayList<>());
         AtomicBoolean operatorClosed = new AtomicBoolean();
-        OneInputOperatorFactory<String, String> failing = () -> new OneInputOperator<>() {
+        OneInputOperatorFactory<String, String> failing = () -> new OneInputStreamOperator<>() {
             @Override
             public void open() {
                 throw new IllegalStateException("operator open failed");

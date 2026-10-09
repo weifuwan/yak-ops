@@ -31,7 +31,7 @@ import io.yak.ops.flow.runtime.execution.EmbeddedJobClient;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
-import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.flow.runtime.operators.CheckpointedStreamOperator;
 import io.yak.ops.flow.runtime.state.OperatorStateBackend;
 import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
@@ -376,7 +376,7 @@ class CheckpointRecoveryTest {
     }
 
     private static final class DurableCounter
-            implements OneInputOperator<String, String>, CheckpointedStreamOperator {
+            implements OneInputStreamOperator<String, String>, CheckpointedStreamOperator {
         private final AtomicInteger restored;
         private OperatorStateBackend backend;
         private int count;

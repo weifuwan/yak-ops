@@ -27,7 +27,7 @@ import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
-import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.flow.runtime.operators.sink.SinkWriterOperator;
 import io.yak.ops.flow.runtime.support.TestSplitSerializers;
 import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
@@ -51,7 +51,7 @@ class SinkExecutionTest {
         SourceTransformation<String> source = new SourceTransformation<>(
                 "source", new SplitSource(), String.class, 1);
         OneInputTransformation<String, String> map = new OneInputTransformation<>(
-                source, "map", () -> new OneInputOperator<>() {
+                source, "map", () -> new OneInputStreamOperator<>() {
                     @Override
                     public void processElement(String value, Collector<String> output) throws Exception {
                         output.collect(value.toUpperCase());
@@ -117,7 +117,7 @@ class SinkExecutionTest {
             }
         };
         TaskEnvironment environment = new TaskEnvironment(
-                new RuntimeTaskInfo(JobID.generate(), 4, 0, 1, 0), configuration);
+                new RuntimeTaskInfo(JobID.generate(), 4, 0, 1, 0, 128), configuration);
         SinkWriterOperator<String> operator = new SinkWriterOperator<>(sink, environment);
         assertThrows(UnsupportedOperationException.class, operator::open);
         operator.close();
