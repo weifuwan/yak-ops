@@ -86,6 +86,43 @@ class MailboxProcessorTest {
     }
 
     @Test
+    void selfReschedulingControlMailMustNotStarveInput() throws Exception {
+        TaskMailboxImpl mailbox = new TaskMailboxImpl();
+        java.util.List<String> sequence = new java.util.ArrayList<>();
+        AtomicInteger inputSteps = new AtomicInteger();
+        MailboxProcessor processor = new MailboxProcessor(mailbox, controller -> {
+            sequence.add("input");
+            if (inputSteps.incrementAndGet() == 4) {
+                controller.allActionsCompleted();
+            }
+        }, () -> {}, () -> false);
+
+        AtomicInteger mailSteps = new AtomicInteger();
+        MailboxExecutor executor = processor.getMailboxExecutor();
+        Runnable selfReschedulingMail = new Runnable() {
+            @Override
+            public void run() {
+                sequence.add("mail");
+                if (mailSteps.incrementAndGet() < 20) {
+                    executor.submit(this);
+                }
+            }
+        };
+        executor.submit(selfReschedulingMail);
+
+        processor.runMailboxLoop();
+        processor.close(new IllegalStateException("finished"));
+
+        // Flink-style mailbox fairness: a self-enqueueing mail must not monopolize
+        // the Task thread. Every input step gets a turn, even with pending controls.
+        assertEquals(java.util.List.of(
+                "mail", "input", "mail", "input", "mail", "input", "mail", "input"), sequence);
+        assertEquals(4, inputSteps.get());
+        assertEquals(4, mailSteps.get());
+        assertEquals(TaskMailbox.State.CLOSED, mailbox.getState());
+    }
+
+    @Test
     void shouldAcknowledgeMailsOnlyAfterExecutionAndRejectPendingOnClose() throws Exception {
         TaskMailboxImpl mailbox = new TaskMailboxImpl();
         MailboxExecutor executor = new MailboxExecutorImpl(mailbox);
