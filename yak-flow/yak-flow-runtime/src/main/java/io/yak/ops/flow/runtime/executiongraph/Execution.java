@@ -52,10 +52,13 @@ public final class Execution implements AutoCloseable {
         }
         task.completionFuture().whenComplete((unused, failure) -> {
             synchronized (Execution.this) {
-                if (state == ExecutionState.CANCELLING || failure instanceof CancellationException) {
+                if (failure == null) {
+                    state = ExecutionState.FINISHED;
+                } else if (failure instanceof CancellationException) {
                     state = ExecutionState.CANCELED;
                 } else {
-                    state = failure == null ? ExecutionState.FINISHED : ExecutionState.FAILED;
+                    // An error while cancelling (including failed cleanup) remains a failed attempt.
+                    state = ExecutionState.FAILED;
                 }
             }
         });
