@@ -272,7 +272,7 @@ public final class InputGate<T> {
             if (failure != null) {
                 return CompletableFuture.failedFuture(failure);
             }
-            if (anyReadable() || (remainingProducers == 0 && !anyBuffered())) {
+            if (anyReadable() || remainingProducers == 0) {
                 return CompletableFuture.completedFuture(null);
             }
             if (available.isDone()) {
