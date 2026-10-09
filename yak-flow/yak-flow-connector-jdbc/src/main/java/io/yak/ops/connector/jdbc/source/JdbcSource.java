@@ -28,7 +28,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -42,6 +44,7 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
     private final JdbcConnectionProvider connectionProvider;
     private final String jdbcUrl;
     private final List<TableId> tables;
+    private final Map<TableId, List<String>> projections;
     private final Configuration configuration;
     private final JdbcDialect dialect;
     private final String fingerprint;
@@ -49,7 +52,15 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
     private final JdbcEnumeratorStateSerializer stateSerializer = new JdbcEnumeratorStateSerializer();
 
     public JdbcSource(JdbcConnectionOptions connection, List<TableId> tables, Configuration configuration) {
-        this(new DriverManagerJdbcConnectionProvider(connection), connection.url(), tables, configuration);
+        this(connection, tables, configuration, Map.of());
+    }
+
+    public JdbcSource(
+            JdbcConnectionOptions connection,
+            List<TableId> tables,
+            Configuration configuration,
+            Map<TableId, List<String>> projections) {
+        this(new DriverManagerJdbcConnectionProvider(connection), connection.url(), tables, configuration, projections);
     }
 
     public JdbcSource(JdbcConnectionOptions connection, List<TableId> tables) {
@@ -65,6 +76,15 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
             String jdbcUrl,
             List<TableId> tables,
             Configuration configuration) {
+        this(connectionProvider, jdbcUrl, tables, configuration, Map.of());
+    }
+
+    public JdbcSource(
+            JdbcConnectionProvider connectionProvider,
+            String jdbcUrl,
+            List<TableId> tables,
+            Configuration configuration,
+            Map<TableId, List<String>> projections) {
         this.connectionProvider = Objects.requireNonNull(connectionProvider, "connectionProvider");
         this.jdbcUrl = Objects.requireNonNull(jdbcUrl, "jdbcUrl");
         this.tables = List.copyOf(Objects.requireNonNull(tables, "tables"));
@@ -72,6 +92,19 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
         if (this.tables.isEmpty() || new HashSet<>(this.tables).size() != this.tables.size()) {
             throw new IllegalArgumentException("JDBC source tables must be nonempty and unique");
         }
+        Map<TableId, List<String>> selected = new LinkedHashMap<>();
+        for (Map.Entry<TableId, List<String>> entry :
+                Objects.requireNonNull(projections, "projections").entrySet()) {
+            List<String> columns = List.copyOf(entry.getValue());
+            if (!this.tables.contains(entry.getKey())
+                    || columns.isEmpty()
+                    || columns.stream().anyMatch(column -> column.isBlank())
+                    || new HashSet<>(columns).size() != columns.size()) {
+                throw new IllegalArgumentException("Invalid JDBC source table projection");
+            }
+            selected.put(entry.getKey(), columns);
+        }
+        this.projections = Map.copyOf(selected);
         dialect = JdbcDialects.forUrl(jdbcUrl);
         validateOptions();
         fingerprint = definitionFingerprint();
@@ -117,7 +150,7 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
             SplitEnumeratorContext<JdbcSourceSplit> context, JdbcEnumeratorState restored) {
         return new JdbcSourceEnumerator(
                 context,
-                new JdbcSplitPlanner(connectionProvider, dialect, configuration),
+                new JdbcSplitPlanner(connectionProvider, dialect, configuration, projections),
                 tables,
                 fingerprint,
                 restored);
@@ -152,6 +185,13 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
                     .append(identifierPart(table.schema()))
                     .append('|')
                     .append(identifierPart(table.table()));
+            List<String> projected = projections.get(table);
+            if (projected != null) {
+                definition.append("|projection:").append(projected.size());
+                for (String column : projected) {
+                    definition.append('|').append(identifierPart(column));
+                }
+            }
         }
         try {
             byte[] bytes = definition.toString().getBytes(StandardCharsets.UTF_8);
