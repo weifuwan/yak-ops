@@ -2,8 +2,8 @@ package io.yak.ops.business.datasync.schema.target;
 
 import io.yak.ops.business.datasync.schema.LogicalColumn;
 import io.yak.ops.business.datasync.schema.LogicalTable;
-import io.yak.ops.flow.api.row.YakColumn;
-import io.yak.ops.flow.api.row.YakTableSchema;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDdlPlan;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
@@ -35,7 +35,8 @@ public class TargetTablePlanner {
         String canonicalType = JdbcDialects.canonicalType(targetType);
         JdbcDialect dialect = JdbcDialects.forType(canonicalType);
         DataSourceTablePath targetPath = new DataSourceTablePath(normalize(database), normalize(schema), table);
-        YakTableSchema runtimeSchema = logicalTable.toRuntimeSchema();
+        TableSchema runtimeSchema = logicalTable.toTableSchema();
+        TableId targetId = new TableId(targetPath.database(), targetPath.schema(), targetPath.table());
 
         Map<String, Integer> primaryKeyPositions = primaryKeyPositions(logicalTable.primaryKeys());
         List<TargetColumnPlan> columnPlans = new ArrayList<>(runtimeSchema.columnCount());
@@ -43,7 +44,7 @@ public class TargetTablePlanner {
         List<String> unsupported = new ArrayList<>();
 
         for (int index = 0; index < runtimeSchema.columnCount(); index++) {
-            YakColumn column = runtimeSchema.column(index);
+            Column column = runtimeSchema.column(index);
             Integer primaryKeyPosition = primaryKeyPositions.get(column.name());
             boolean primaryKey = primaryKeyPosition != null;
             String nativeType = null;
