@@ -162,6 +162,24 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         });
     }
 
+    /** Capture the reader and append an ordered barrier before releasing the source mailbox. */
+    public CompletableFuture<List<SplitT>> pauseAndEmitBarrier(long checkpointId) {
+        if (recordWriter == null) {
+            return CompletableFuture.failedFuture(
+                    new UnsupportedOperationException("Checkpointed source needs a physical ResultPartition"));
+        }
+        return submitMailbox(() -> {
+            if (pausedForCheckpoint) {
+                throw new IllegalStateException("Reader is already paused for checkpoint");
+            }
+            List<SplitT> state = operator.snapshotState(checkpointId);
+            pausedForCheckpoint = true;
+            resumeFuture = new CompletableFuture<>();
+            recordWriter.broadcastBarrier(checkpointId);
+            return state;
+        });
+    }
+
     /** Checkpoint 成败后都要恢复 Source 轮询；只由 Runtime CheckpointCoordinator 调用。 */
     public CompletableFuture<Void> resumeAfterCheckpoint() {
         return submitMailbox(() -> {
