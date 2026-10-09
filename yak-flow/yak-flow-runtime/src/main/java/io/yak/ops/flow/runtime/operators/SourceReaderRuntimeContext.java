@@ -12,10 +12,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
 /**
- * SourceReader 的本地运行时上下文。
+ * Runtime context passed to one SourceReader.
  *
- * <p>身份与配置来自所属 TaskEnvironment；Split 请求经 Coordinator Gateway 异步发送，
- * 不能在 Task Mailbox 线程等待事件确认。
+ * <p>Identity and configuration come from the owning TaskEnvironment. Split requests and
+ * Source events are sent asynchronously to the coordinator; the task mailbox must not wait
+ * for the coordinator acknowledgment.
  */
 public final class SourceReaderRuntimeContext implements SourceReaderContext {
 

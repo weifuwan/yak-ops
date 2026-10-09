@@ -5,10 +5,10 @@ import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import java.util.Objects;
 
 /**
- * 一个 Source Operator 的协调侧不可变身份与实际并行度。
+ * Immutable coordinator-side identity and resolved parallelism of one Source operator.
  *
- * <p>与 TaskEnvironment 分开：Coordinator 不持有 Reader、Task 取消状态或配置容器。
- * Attempt 属于已注册的 Reader，不是整个 Coordinator 的固定属性。
+ * <p>Unlike a TaskEnvironment, this context owns no active Reader, task cancellation
+ * signal or configuration. Attempt numbers belong to registered reader attempts.
  */
 public record OperatorCoordinatorContext(JobID jobID, int operatorId, int parallelism) {
 
@@ -22,7 +22,7 @@ public record OperatorCoordinatorContext(JobID jobID, int operatorId, int parall
         }
     }
 
-    /** 拒绝属于其它作业、算子或实际并行度的 Reader。 */
+    /** Rejects readers belonging to another job, operator or resolved parallelism. */
     public void validateTask(RuntimeTaskInfo taskInfo) {
         Objects.requireNonNull(taskInfo, "taskInfo 不能为空");
         if (!jobID.equals(taskInfo.jobID())

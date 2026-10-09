@@ -16,14 +16,14 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * SourceReader 的运行时包装层，对齐 Flink SourceOperator 的职责。
+ * Task-owned wrapper around a SourceReader, following Flink's SourceOperator responsibilities.
  *
- * <p>只在所属 StreamTask 的 Mailbox 线程中创建、启动、读取和关闭 Reader；
- * 不创建工作线程，也不负责 SplitEnumerator 的生命周期。
- * SourceReaderContext 由 Runtime 单独提供；下游 ReaderOutput 的背压由上层任务执行线程承接。
+ * <p>The owning mailbox thread creates, starts, polls and closes the reader; this class does
+ * not own the SplitEnumerator or a second reader thread. Runtime context and backpressure
+ * remain owned by the surrounding task.
  *
- * @param <T> 数据记录类型
- * @param <SplitT> 分片类型
+ * @param <T> the record type emitted by the Source
+ * @param <SplitT> the reader split type
  */
 public final class SourceOperator<T, SplitT extends SourceSplit> implements OperatorEventHandler, AutoCloseable {
 
@@ -39,7 +39,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         this.readerContext = Objects.requireNonNull(readerContext, "readerContext 不能为空");
     }
 
-    /** 创建 Reader，必须在所属 Task 线程执行，并在注册 Coordinator 之前完成。 */
+    /** Initializes the reader on the owning mailbox thread before coordinator registration. */
     public void initialize() throws Exception {
         if (reader != null) {
             throw new IllegalStateException("SourceOperator 已初始化");
@@ -47,7 +47,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         reader = Objects.requireNonNull(source.createReader(readerContext), "Source 返回空 Reader");
     }
 
-    /** 在 Reader.start 之前注入从已完成 Checkpoint 反序列化的 Split 进度。 */
+    /** Delivers restored split offsets before {@link SourceReader#start()} is called. */
     public void restoreSplits(List<SplitT> splits) throws Exception {
         ensureInitialized();
         if (started) {
@@ -58,7 +58,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         }
     }
 
-    /** Reader 注册完成后启动读取组件。 */
+    /** Starts the reader after the coordinator has registered its active attempt. */
     public void start() throws Exception {
         ensureInitialized();
         if (started) {
@@ -69,11 +69,11 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
     }
 
     /**
-     * 统一处理 Coordinator 发送的控制事件；只支持分片投递与分片结束两种事件。
-     *
-     * <p>这是当前同 JVM 的类型化 SourceCoordinator 与 SourceOperator 之间的专用连接；
-     * 泛型擦除后的拆包转换被限制在本类，不允许外部任意构造异构 Split。
-     */
+ * Processes coordinator events serially with input polling on the mailbox thread.
+ *
+ * <p>Only split delivery and no-more-splits events are supported. The localized
+ * type conversion avoids exposing erased split types to external callers.
+ */
     @Override
     public void handleOperatorEvent(OperatorEvent event) throws Exception {
         Objects.requireNonNull(event, "event 不能为空");
@@ -90,7 +90,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         }
     }
 
-    /** SourceCoordinator 发送的 Split 事件，由 StreamTask 在 Mailbox 线程串行处理。 */
+    /** Decodes and delivers split events on the owning task's mailbox thread. */
     @SuppressWarnings("unchecked")
     private void handleAddSplits(AddSplitEvent<?> event) throws Exception {
         ensureInitialized();
@@ -102,7 +102,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         reader.addSplits(((AddSplitEvent<SplitT>) event).splits(source.getSplitSerializer()));
     }
 
-    /** 只通知未来不再分配 Split，不能立即视为输入结束。 */
+    /** Signals no further assignments without treating outstanding splits as finished. */
     private void handleNoMoreSplits(NoMoreSplitsEvent event) {
         ensureInitialized();
         Objects.requireNonNull(event, "event 不能为空");
@@ -113,7 +113,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         noMoreSplits = true;
     }
 
-    /** 在 Task 线程非阻塞读取下一批记录并输出到下游。 */
+    /** Polls the reader without blocking and emits its available records downstream. */
     public InputStatus emitNext(ReaderOutput<T> output) throws Exception {
         ensureStarted();
         if (finished) {
@@ -129,13 +129,13 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         return status;
     }
 
-    /** 暂无数据时提供可用性信号，由 StreamTask 决定等待方式。 */
+    /** Returns the reader's next availability future for task-mailbox suspension. */
     public CompletableFuture<Void> isAvailable() {
         ensureStarted();
         return Objects.requireNonNull(reader.isAvailable(), "isAvailable 不能返回 null");
     }
 
-    /** 获取本 Reader 的分片进度快照；不代表完整的 Job Checkpoint。 */
+    /** Returns only this reader's unfinished split progress, not a complete job checkpoint. */
     public List<SplitT> snapshotState(long checkpointId) throws Exception {
         ensureStarted();
         if (checkpointId < 0) {

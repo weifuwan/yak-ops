@@ -1,8 +1,10 @@
 package io.yak.ops.flow.runtime.operators;
 
 /**
- * Minimal Flink-style operator lifecycle. Calls are serialized on the owning StreamTask mailbox.
- * The current Runtime intentionally has no operator state or barrier snapshot callback yet.
+ * Common lifecycle of an operator confined to its owning StreamTask mailbox thread.
+ *
+ * <p>Operators with durable state implement {@link CheckpointedStreamOperator}; the basic
+ * lifecycle does not itself own snapshots or checkpoint coordination.
  */
 public interface StreamOperator extends AutoCloseable {
 

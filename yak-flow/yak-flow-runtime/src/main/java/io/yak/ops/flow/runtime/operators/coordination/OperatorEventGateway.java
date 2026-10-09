@@ -3,10 +3,10 @@ package io.yak.ops.flow.runtime.operators.coordination;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Operator 向所属 Coordinator 发送控制事件的异步通道。
+ * Asynchronous path for an operator to send control events to its coordinator.
  *
- * <p>区别于 Coordinator → Task 的 SubtaskGateway；确认只表示协调侧处理完成，
- * 不代表 Split 消费完成或 Checkpoint 成功。
+ * <p>Unlike SubtaskGateway, this direction runs from task to coordinator. Completion
+ * acknowledges coordinator processing, not consumption of split records or checkpoint success.
  */
 @FunctionalInterface
 public interface OperatorEventGateway {

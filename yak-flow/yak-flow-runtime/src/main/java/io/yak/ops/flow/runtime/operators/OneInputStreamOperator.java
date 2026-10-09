@@ -3,18 +3,32 @@ package io.yak.ops.flow.runtime.operators;
 import io.yak.ops.core.api.operators.Collector;
 
 /**
- * 处理单路输入的 StreamOperator。每个并行子任务独立创建实例，生命周期和记录处理
- * 都由所属 StreamTask 的 Mailbox 线程串行调用。
+ * Operator that consumes one input stream on its owning task's mailbox thread.
  *
- * <p>输出只能通过 Collector 同步传递，不得保存后在其它线程中使用。
- * 输入正常结束时调用 finish(Collector)，失败或取消不调用。
+ * <p>The runtime serializes lifecycle and record processing. Outputs are sent synchronously
+ * through Collector; the operator must not retain a Collector for use by another thread.
+ * Only normal input completion invokes {@link #finish(Collector)}.
+ *
+ * @param <IN> the input record type
+ * @param <OUT> the emitted record type
  */
 public interface OneInputStreamOperator<IN, OUT> extends StreamOperator {
 
-    /** 消费一条记录，同步输出零条或多条记录。 */
+    /**
+ * Processes one input record and synchronously emits zero or more output records.
+ *
+ * @param element the input record
+ * @param output the downstream output collector
+ * @throws Exception if processing or forwarding fails
+ */
     void processElement(IN element, Collector<OUT> output) throws Exception;
 
-    /** 正常结束时输出剩余缓冲记录；默认调用 StreamOperator.finish()。 */
+    /**
+ * Emits buffered records after normal end of input.
+ *
+ * <p>The default implementation invokes {@link #finish()} from StreamOperator.
+ * Failure and cancellation do not invoke this completion callback.
+ */
     default void finish(Collector<OUT> output) throws Exception {
         finish();
     }
