@@ -1568,9 +1568,9 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         DataSourceColumn targetColumn = DataSyncCatalogColumns.toColumn(target);
         if (sourceColumn == null || targetColumn == null) return false;
         try {
-            Column sourceColumn = JdbcSchemaMapper.toColumn(sourceColumn);
-            Column targetColumn = JdbcSchemaMapper.toColumn(targetColumn);
-            return JdbcSchemaCompatibility.isCompatible(sourceColumn, targetColumn);
+            Column sourceLogicalColumn = JdbcSchemaMapper.toColumn(sourceColumn);
+            Column targetLogicalColumn = JdbcSchemaMapper.toColumn(targetColumn);
+            return JdbcSchemaCompatibility.isCompatible(sourceLogicalColumn, targetLogicalColumn);
         } catch (IllegalArgumentException exception) {
             return false;
         }

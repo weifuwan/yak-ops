@@ -31,12 +31,10 @@ public interface JdbcDialect {
         return identifier;
     }
 
-    
     default JdbcNativeType nativeType(Column column) {
         throw new UnsupportedOperationException("This JDBC dialect has no target DDL type mapping");
     }
 
-    
     default String createTableSql(TableId table, TableSchema schema) {
         String definitions = schema.columns().stream()
                 .map(column -> {
@@ -54,7 +52,6 @@ public interface JdbcDialect {
         return "CREATE TABLE " + qualifiedTable(table) + " (" + definitions + ")";
     }
 
-    
     default JdbcDdlPlan createTablePlan(
             TableId table, TableSchema schema, String tableComment, Map<String, String> columnComments) {
         String createTableSql = createTableSql(table, schema);

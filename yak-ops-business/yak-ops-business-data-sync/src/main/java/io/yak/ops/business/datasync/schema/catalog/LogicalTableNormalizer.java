@@ -56,7 +56,7 @@ public final class LogicalTableNormalizer {
                 throw new IllegalArgumentException("catalog column metadata is incomplete");
             }
 
-            var runtimeColumn = JdbcSchemaMapper.toYakColumn(catalogColumn);
+            var runtimeColumn = JdbcSchemaMapper.toColumn(catalogColumn);
             jdbcColumns.add(catalogColumn);
             logicalColumns.add(new LogicalColumn(
                     runtimeColumn.name(),
