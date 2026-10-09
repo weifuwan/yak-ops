@@ -60,6 +60,9 @@ public final class TaskMailboxImpl implements TaskMailbox {
         requireMailboxThread();
         lock.lock();
         try {
+            if (state == State.CLOSED) {
+                throw new IllegalStateException("TaskMailbox is closed");
+            }
             return queue.pollFirst();
         } finally {
             lock.unlock();
@@ -74,6 +77,9 @@ public final class TaskMailboxImpl implements TaskMailbox {
         try {
             while (queue.isEmpty() && state == State.OPEN && !defaultActionAvailable.getAsBoolean()) {
                 mailAvailable.await();
+            }
+            if (state == State.CLOSED) {
+                throw new IllegalStateException("TaskMailbox is closed");
             }
             return queue.pollFirst();
         } finally {
