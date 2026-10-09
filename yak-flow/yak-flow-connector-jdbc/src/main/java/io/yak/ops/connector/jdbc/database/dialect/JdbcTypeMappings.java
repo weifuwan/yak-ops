@@ -30,12 +30,13 @@ final class JdbcTypeMappings {
     }
 
     static int precision(Column column, int maximum, String nativeName) {
-        int precision = switch (column.dataType()) {
-            case TimeType value -> value.precision();
-            case TimestampType value -> value.precision();
-            case ZonedTimestampType value -> value.precision();
-            default -> throw new IllegalArgumentException("Expected temporal logical type");
-        };
+        int precision =
+                switch (column.dataType()) {
+                    case TimeType value -> value.precision();
+                    case TimestampType value -> value.precision();
+                    case ZonedTimestampType value -> value.precision();
+                    default -> throw new IllegalArgumentException("Expected temporal logical type");
+                };
         if (precision > maximum) {
             throw new UnsupportedOperationException(nativeName + " 最大时间精度=" + maximum + "，当前为 " + precision);
         }
