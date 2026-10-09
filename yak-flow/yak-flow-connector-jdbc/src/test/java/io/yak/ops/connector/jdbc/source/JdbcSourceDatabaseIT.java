@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
+import io.yak.ops.connector.jdbc.database.catalog.factory.JdbcCatalogFactory;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
 import io.yak.ops.connector.jdbc.source.enumerator.JdbcSplitPlanner;
@@ -116,6 +118,23 @@ class JdbcSourceDatabaseIT {
                 options.set(JdbcSourceOptions.MAX_SPLITS_PER_TABLE, 6);
                 options.set(JdbcSourceOptions.READER_FETCH_BATCH_SIZE, 2);
                 options.set(JdbcSourceOptions.RESULT_SET_FETCH_SIZE, 3);
+
+                // Catalog is now owned and discovered by the Connector's SPI, not Datasource.
+                try (JdbcCatalog catalog = JdbcCatalogFactory.create(connectionOptions)) {
+                    assertTrue(!catalog.listDatabases().isEmpty());
+                    List<TableId> catalogTables = catalog.listTables(
+                            mysql ? connection.getCatalog() : null,
+                            mysql ? null : connection.getSchema());
+                    assertTrue(catalogTables.stream().anyMatch(table -> first.table().equals(table.table())));
+                    assertTrue(catalogTables.stream().anyMatch(table -> third.table().equals(table.table())));
+                    assertEquals(List.of("ID"), catalog.getTable(first).primaryKeys());
+                    assertEquals("DECIMAL(18, 2)", catalog.getTable(third)
+                            .columns()
+                            .get(1)
+                            .dataType()
+                            .asSerializableString());
+                    assertTrue(!catalog.tableExists(new TableId(first.catalog(), first.schema(), "YF_NOT_A_TABLE")));
+                }
 
                 List<JdbcSourceSplit> partitions =
                         new JdbcSplitPlanner(connectionOptions, dialect, options).plan(first, 0);

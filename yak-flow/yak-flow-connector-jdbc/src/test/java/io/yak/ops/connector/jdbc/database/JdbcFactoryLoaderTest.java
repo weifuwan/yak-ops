@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
 import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.database.dialect.MySqlJdbcDialect;
@@ -48,6 +49,19 @@ class JdbcFactoryLoaderTest {
                 new DriverManagerJdbcConnectionProvider(new JdbcConnectionOptions("jdbc:h2:mem:factory", "sa", ""));
         try (Connection first = provider.getConnection(); Connection second = provider.getConnection()) {
             assertNotSame(first, second);
+        }
+    }
+
+    @Test
+    void factoriesAlsoBuildVendorCatalogsWithoutOpeningConnections() throws Exception {
+        var options = new JdbcConnectionOptions("jdbc:h2:mem:catalog-factory", "sa", "");
+        var provider = new DriverManagerJdbcConnectionProvider(options);
+        try (JdbcCatalog mysql = JdbcFactoryLoader.loadCatalog("jdbc:mysql://localhost/db", provider);
+                JdbcCatalog postgres = JdbcFactoryLoader.loadCatalog("jdbc:postgresql://localhost/db", provider);
+                JdbcCatalog oracle = JdbcFactoryLoader.loadCatalog("jdbc:oracle:thin:@localhost/X", provider)) {
+            assertInstanceOf(io.yak.ops.connector.jdbc.database.internal.catalog.MySqlCatalog.class, mysql);
+            assertInstanceOf(io.yak.ops.connector.jdbc.database.internal.catalog.PostgresCatalog.class, postgres);
+            assertInstanceOf(io.yak.ops.connector.jdbc.database.internal.catalog.OracleCatalog.class, oracle);
         }
     }
 

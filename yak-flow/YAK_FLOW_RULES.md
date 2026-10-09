@@ -17,7 +17,7 @@ than repeating method names. The existing Backend Quality job enforces objective
 - Core owns the Source / Sink API and database-neutral RowData / TableRecord, TableId and LogicalType / TableSchema. The yak-flow-api module is removed; do not recreate duplicate row or schema contracts.
 - Runtime 拥有 StreamGraph / JobGraph / ExecutionGraph、StreamTask / StreamTaskInput、SourceCoordinator、ResultPartition / InputGate 和 Checkpoint。运行期 Execution 是内存 Attempt，不是产品 Execution。
 - Connector Base 只依赖 Core，提供非阻塞 SourceReader 消费层、有界 Future 队列与阻塞 SplitFetcher；不得依赖 Runtime、Datasource、JDBC 或产品 Task。
-- JDBC Source 独立实现 Core Source API，使用 Connector Base 的异步 Reader 和 Connection 级隔离；SQL 方言只属于 JDBC Connector。Datasource JDBC Plugin owns only connection/Catalog and the catalog-to-logical-schema mapper. Native type mapping and target DDL are owned exclusively by JDBC Connector; do not add another Datasource dialect.
+- JDBC Source 独立实现 Core Source API，使用 Connector Base 的异步 Reader 和 Connection 级隔离；SQL 方言只属于 JDBC Connector。The JDBC Connector owns Catalog/Dialect/Converter contracts and native SQL/DDL. Use the shared JdbcFactory SPI for vendor discovery; put concrete dialect, catalog, converter implementations under internal/{dialect,catalog,convert}. The existing Datasource Catalog is transitional and must remain untouched until a later adapter migration; do not add another Datasource dialect.
 - JDBC Source 的一个定义管理多张表；Enumerator 逐表异步发现并分配 Split。单整数主键采用不重叠的区间和已输出主键恢复，其他表采用整 Split 重放语义；只保证受限 at-least-once，不承诺变化中数据库的全局一致性快照。
 
 ## Graph Compilation

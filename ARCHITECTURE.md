@@ -59,7 +59,7 @@ Provides reusable asynchronous SourceReader mechanics over Core Source / Split i
 
 JDBC Source owns the vendor dialects, metadata-based split planning, bounded table scans, asynchronous reader I/O, immutable split/checkpoint codecs and consumed-key cursors. One Source manages a collection of TableIds; Core TableRecord carries physical table identity without product/DAO coupling. This module depends on Core and Connector Base, not Runtime (except test scope). Full JDBC Sink and product wiring are not implemented.
 
-The JDBC Connector is the sole owner of SQL dialects, native type mappings and generated target DDL. Datasource JDBC Plugin retains connection/Catalog and catalog-to-logical-schema mapping; the product TargetTablePlanner uses Connector dialects without coupling execution to product DTOs. The old yak-flow-api module and Datasource dialect package have been removed. JDBC Sink, Data Sync product execution wiring, and MySQL CDC Connector are not yet implemented.
+The JDBC Connector owns SQL dialects, native type mappings, generated target DDL, and the read-only JDBC Catalog API. Public Catalog/Dialect/Converter contracts and abstract implementations live in database/catalog and database/dialect; vendor specifics live in database/internal/{catalog,dialect,convert}. The existing Datasource JDBC Catalog and its product callers are deliberately retained until a later adapter migration; they are not part of the new engine architecture. The product TargetTablePlanner uses Connector dialects without coupling execution to product DTOs. The old yak-flow-api module and Datasource dialect package have been removed. JDBC Sink, Data Sync product execution wiring, and MySQL CDC Connector are not yet implemented.
 
 ### `yak-ops-business`
 

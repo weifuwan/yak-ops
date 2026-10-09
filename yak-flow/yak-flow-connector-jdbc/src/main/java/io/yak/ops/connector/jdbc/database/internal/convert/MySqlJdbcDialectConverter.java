@@ -1,13 +1,14 @@
-package io.yak.ops.connector.jdbc.database.converter;
+package io.yak.ops.connector.jdbc.database.internal.convert;
 
 import io.yak.ops.core.types.LogicalType;
 import io.yak.ops.core.types.LogicalTypes;
+import io.yak.ops.connector.jdbc.database.dialect.AbstractDialectConverter;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 
 /** MySQL-specific BIT and unsigned numeric metadata normalization. */
-public final class MySqlJdbcDialectConverter extends AbstractJdbcDialectConverter {
+public final class MySqlJdbcDialectConverter extends AbstractDialectConverter {
 
     public MySqlJdbcDialectConverter(ResultSetMetaData metadata) throws SQLException {
         super(metadata);

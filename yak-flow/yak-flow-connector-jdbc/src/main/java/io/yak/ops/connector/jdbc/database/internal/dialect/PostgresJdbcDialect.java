@@ -1,7 +1,11 @@
-package io.yak.ops.connector.jdbc.database.dialect;
+package io.yak.ops.connector.jdbc.database.internal.dialect;
 
-import io.yak.ops.connector.jdbc.database.converter.JdbcDialectConverter;
-import io.yak.ops.connector.jdbc.database.converter.PostgresJdbcDialectConverter;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialectConverter;
+import io.yak.ops.connector.jdbc.database.internal.convert.PostgresJdbcDialectConverter;
+import io.yak.ops.connector.jdbc.database.dialect.AbstractDialect;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDdlPlan;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcNativeType;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
@@ -9,7 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /** PostgreSQL quoting, native type mapping, and DDL planning. */
-public final class PostgresJdbcDialect implements JdbcDialect {
+public final class PostgresJdbcDialect extends AbstractDialect {
 
     @Override
     public JdbcDialectConverter createRowConverter(java.sql.ResultSetMetaData metadata) throws java.sql.SQLException {

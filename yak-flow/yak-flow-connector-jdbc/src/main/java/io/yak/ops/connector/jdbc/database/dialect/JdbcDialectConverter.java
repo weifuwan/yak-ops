@@ -1,4 +1,4 @@
-package io.yak.ops.connector.jdbc.database.converter;
+package io.yak.ops.connector.jdbc.database.dialect;
 
 import io.yak.ops.core.data.RowData;
 import io.yak.ops.core.types.TableSchema;

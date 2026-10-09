@@ -61,9 +61,9 @@ DECIMAL precision is explicitly `UnresolvedDecimalType`, and cannot be used by i
 array-backed implementation for now. `TableRecord` continues to own `RowKind` and physical
 table identity, so RowData does not duplicate those fields. Internal typed access follows the
 resolved logical type: Java boxed primitive values, String, byte[], BigDecimal, and java.time
-date/time values. The JDBC Source currently uses ResultSet.getObject and a detached
-GenericRowData; vendor-specific JDBC-to-internal normalization is explicitly deferred to the
-JDBC Dialect Converter PR. Do not claim all driver values already conform to typed getters.
+date/time values. The JDBC Source delegates to a vendor-specific JdbcDialectConverter, which converts
+driver objects to the resolved GenericRowData representation before emitting records.
+Unsupported driver types fail explicitly instead of silently entering RowData.
 
 Binary/columnar RowData, Flink SQL Table API, custom aggregate types, and network serializer
 implementations are outside this change. Typed getters are strict: they do not silently coerce
@@ -73,9 +73,9 @@ a vendor-specific JDBC object to the expected internal representation.
 
 `JdbcFactoryLoader` uses Java `ServiceLoader` to discover the unique `JdbcFactory`
 for a JDBC URL. Built-in providers include MySQL, PostgreSQL, Oracle, and H2/ANSI test
-support; missing and ambiguous factory matches fail explicitly. This is the database
-dialect factory, **not** a duplicate Flink SQL `JdbcCatalogFactory`. Datasource Plugin
-continues to own product Catalog and connection-definition resolution.
+support; missing and ambiguous factory matches fail explicitly. A single factory creates
+both a JdbcDialect and a Connector-owned JdbcCatalog, while Datasource's existing Catalog
+is temporarily retained for product compatibility.
 
 `JdbcConnectionProvider` is a serializable, injected capability to open an independent
 caller-owned JDBC connection. `DriverManagerJdbcConnectionProvider` is the default; an
@@ -96,6 +96,29 @@ ResultSet column count and ordering are verified against the assigned Split. Thi
 does not yet freeze a complete logical TableSchema inside checkpoints or guarantee a
 consistent snapshot of changing tables; those remain future Reader/Checkpoint work.
 
+
+## Connector-owned JDBC Catalog
+
+`database/catalog/JdbcCatalog` and `AbstractJdbcCatalog` implement a read-only
+relational Catalog inspired by Flink JDBC Catalog: list databases/schemas/tables,
+find exact table identities, resolve ordered logical columns and primary keys by
+JDBC `KEY_SEQ`, and reuse the vendor DialectConverter for types. Every metadata
+operation owns and closes its connection. A single `JdbcFactory` SPI supplies
+both Dialect and Catalog, with `JdbcCatalogFactory` as the public creation entry point.
+
+The package structure follows Flink JDBC Core's contracts: `database/dialect`
+owns `JdbcDialect`, `AbstractDialect`, `JdbcDialectConverter`,
+`AbstractDialectConverter`; `database/catalog` owns Catalog contracts and
+the shared metadata implementation. Concrete MySQL, PostgreSQL, Oracle and H2
+classes live under `database/internal/dialect`, `internal/catalog`, and
+`internal/convert`. Concrete SPI factories live directly in `database/internal`.
+
+This PR does not delete the Datasource JDBC Catalog or change current product
+metadata callers. A later adapter PR can switch those callers to Connector Catalog;
+do not create a second data-source Catalog implementation in the meantime.
+PostgreSQL Catalog lists the currently connected database (it does not
+automatically reconnect to other databases); Oracle uses owner/schema
+namespaces and exposes the current schema as the database-equivalent selector.
 
 ## JDBC Source Reliability and Checkpoint
 
@@ -135,7 +158,7 @@ concurrent cancellation and real MySQL/PostgreSQL/Oracle schema drift.
 
 For tables with exactly one signed-long-compatible integer primary key, the planner uses disjoint inclusive range splits and resumes a split with an exclusive `lastEmittedKey` seek predicate. Progress is updated only by `JdbcRecordEmitter` after successful output, never by Fetcher prefetch. No supported key or out-of-range unsigned keys means one full-table split that is replayed from the beginning on recovery; this may produce duplicates. Source definition fingerprints reject changed table sets during enumerator restoration. Versioned split/enumerator serializers contain no credentials or active connections.
 
-The JDBC reader supports MySQL, PostgreSQL and Oracle quoted identifiers and read connection policies, plus ANSI/H2 for embedded integration tests. Target-table DDL and native type mapping have a single owner in JDBC Connector; Datasource JDBC Plugin retains only connection/Catalog/metadata mapping, not a second dialect implementation. JDBC Driver availability and read cursor behavior remain database/driver dependent. The JDBC Source is a bounded table scan, not a transactionally consistent cross-table snapshot or MySQL CDC. The tests exercise real embedded H2 ResultSets through local YakFlow Runtime; they are not MySQL/PostgreSQL/Oracle acceptance results.
+The JDBC reader supports MySQL, PostgreSQL and Oracle quoted identifiers and read connection policies, plus ANSI/H2 for embedded integration tests. Target-table DDL, vendor dialects, JDBC conversions and the new read-only Catalog have one owner in JDBC Connector. Datasource's legacy Catalog and metadata mapping remain available only until a separate product adapter migration. JDBC Driver availability and read cursor behavior remain database/driver dependent. The JDBC Source is a bounded table scan, not a transactionally consistent cross-table snapshot or MySQL CDC. The tests exercise real embedded H2 ResultSets through local YakFlow Runtime; they are not MySQL/PostgreSQL/Oracle acceptance results.
 
 ## Non-Goals
 

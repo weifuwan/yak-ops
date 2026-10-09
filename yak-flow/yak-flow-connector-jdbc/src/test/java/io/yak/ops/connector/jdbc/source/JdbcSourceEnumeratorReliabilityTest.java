@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
-import io.yak.ops.connector.jdbc.database.dialect.AnsiJdbcDialect;
+import io.yak.ops.connector.jdbc.database.internal.dialect.AnsiJdbcDialect;
 import io.yak.ops.connector.jdbc.source.enumerator.JdbcEnumeratorState;
 import io.yak.ops.connector.jdbc.source.enumerator.JdbcSourceEnumerator;
 import io.yak.ops.connector.jdbc.source.enumerator.JdbcSplitPlanner;
