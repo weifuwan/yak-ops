@@ -22,7 +22,6 @@
     <properties>
         <mybatis-plus.version>3.5.16</mybatis-plus.version>
         <springdoc.version>2.6.0</springdoc.version>
-        <debezium.version>3.6.3.Final</debezium.version>
     </properties>
 
     <dependencyManagement>
@@ -55,11 +54,6 @@
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-core</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-api</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-runtime</artifactId><version>${project.version}</version></dependency>
-            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-connector-jdbc</artifactId><version>${project.version}</version></dependency>
-            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-connector-cdc-mysql</artifactId><version>${project.version}</version></dependency>
-            <dependency><groupId>io.debezium</groupId><artifactId>debezium-api</artifactId><version>${debezium.version}</version></dependency>
-            <dependency><groupId>io.debezium</groupId><artifactId>debezium-embedded</artifactId><version>${debezium.version}</version></dependency>
-            <dependency><groupId>io.debezium</groupId><artifactId>debezium-connector-mysql</artifactId><version>${debezium.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-boot</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-business-datasource</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-business-data-sync</artifactId><version>${project.version}</version></dependency>
