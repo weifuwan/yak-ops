@@ -5,6 +5,7 @@ import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
+import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
 import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
@@ -67,6 +68,14 @@ public final class StreamingJobGraphGenerator {
     }
 
     private void validateConfiguration() {
+        int maxRestarts = configuration.get(ExecutionOptions.MAX_RESTART_ATTEMPTS);
+        if (maxRestarts < 0) {
+            throw new IllegalArgumentException("execution.restart.max-attempts 不能为负数");
+        }
+        if (maxRestarts > 0 && !checkpointEnabled()) {
+            throw new UnsupportedOperationException(
+                    "自动恢复必须启用持久化 Source → Sink Checkpoint（不能从头重复启动）");
+        }
         int defaultParallelism = configuration.get(CoreOptions.DEFAULT_PARALLELISM);
         if (defaultParallelism <= 0) {
             throw new IllegalArgumentException("parallelism.default 必须为正整数");
