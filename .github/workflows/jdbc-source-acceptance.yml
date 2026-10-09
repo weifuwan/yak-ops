@@ -1,0 +1,115 @@
+name: JDBC Source Acceptance
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/jdbc-source-acceptance.yml"
+      - "yak-flow/yak-flow-connector-jdbc/**"
+      - "yak-flow/yak-flow-connector-base/**"
+      - "yak-ops-core/src/main/java/io/yak/ops/core/types/**"
+      - "yak-ops-core/src/main/java/io/yak/ops/core/data/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mysql-source:
+    name: MySQL Source IT
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: yak_it
+          MYSQL_USER: yak
+          MYSQL_PASSWORD: yakpass
+          MYSQL_ROOT_PASSWORD: rootpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Real MySQL JDBC Source IT
+        run: >
+          bash mvnw -B -ntp -pl yak-flow/yak-flow-connector-jdbc -am
+          -Dtest=JdbcSourceDatabaseIT -Dsurefire.failIfNoSpecifiedTests=false
+          -Djdbc.it.allow-write=true
+          -Djdbc.it.url="jdbc:mysql://127.0.0.1:3306/yak_it?useCursorFetch=true&useSSL=false&allowPublicKeyRetrieval=true"
+          -Djdbc.it.user=yak -Djdbc.it.password=yakpass test
+
+  postgresql-source:
+    name: PostgreSQL Source IT
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: yak_it
+          POSTGRES_USER: yak
+          POSTGRES_PASSWORD: yakpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U yak -d yak_it"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Real PostgreSQL JDBC Source IT
+        run: >
+          bash mvnw -B -ntp -pl yak-flow/yak-flow-connector-jdbc -am
+          -Dtest=JdbcSourceDatabaseIT -Dsurefire.failIfNoSpecifiedTests=false
+          -Djdbc.it.allow-write=true
+          -Djdbc.it.url=jdbc:postgresql://127.0.0.1:5432/yak_it
+          -Djdbc.it.user=yak -Djdbc.it.password=yakpass test
+
+  oracle-source:
+    name: Oracle Source IT
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      oracle:
+        image: gvenzl/oracle-free:23-slim-faststart
+        env:
+          ORACLE_PASSWORD: oraclepass
+          APP_USER: YAK_IT
+          APP_USER_PASSWORD: yakpass
+        ports:
+          - 1521:1521
+        options: >-
+          --health-cmd="healthcheck.sh"
+          --health-interval=15s
+          --health-timeout=15s
+          --health-retries=40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Real Oracle JDBC Source IT
+        run: >
+          bash mvnw -B -ntp -pl yak-flow/yak-flow-connector-jdbc -am
+          -Dtest=JdbcSourceDatabaseIT -Dsurefire.failIfNoSpecifiedTests=false
+          -Djdbc.it.allow-write=true
+          -Djdbc.it.url=jdbc:oracle:thin:@//127.0.0.1:1521/FREEPDB1
+          -Djdbc.it.user=YAK_IT -Djdbc.it.password=yakpass test

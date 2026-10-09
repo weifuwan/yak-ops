@@ -144,9 +144,23 @@ public final class JdbcSplitPlanner {
             return null;
         }
         int type = columns.get(key);
-        return type == Types.TINYINT || type == Types.SMALLINT || type == Types.INTEGER || type == Types.BIGINT
-                ? key
-                : null;
+        if (type == Types.TINYINT || type == Types.SMALLINT || type == Types.INTEGER || type == Types.BIGINT) {
+            return key;
+        }
+        if (type != Types.NUMERIC && type != Types.DECIMAL) {
+            return null;
+        }
+        // Oracle NUMBER(19,0) and similar integral NUMERIC columns may be safely split
+        // when their observed MIN/MAX fit in a signed long. Fractional keys cannot.
+        try (ResultSet result = metadata.getColumns(table.catalog(), table.schema(), table.table(), key)) {
+            while (result.next()) {
+                if (key.equals(result.getString("COLUMN_NAME"))) {
+                    int scale = result.getInt("DECIMAL_DIGITS");
+                    return !result.wasNull() && scale == 0 ? key : null;
+                }
+            }
+        }
+        return null;
     }
 
     private JdbcSourceSplit fullScan(int index, TableId table, List<String> columns, String key) {
