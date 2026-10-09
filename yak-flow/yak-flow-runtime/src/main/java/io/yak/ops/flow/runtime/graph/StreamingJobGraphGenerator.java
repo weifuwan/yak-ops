@@ -2,6 +2,7 @@ package io.yak.ops.flow.runtime.graph;
 
 import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.common.JobID;
+import io.yak.ops.core.api.connector.sink.SupportsWriterState;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
@@ -166,6 +167,11 @@ public final class StreamingJobGraphGenerator {
         }
         if (configuration.get(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS) != 1) {
             throw new UnsupportedOperationException("当前 Checkpoint 只允许一次在途快照");
+        }
+        if (streamGraph.getSinkNodes().stream()
+                .anyMatch(node -> node.getSink().orElseThrow() instanceof SupportsWriterState<?, ?>)) {
+            throw new UnsupportedOperationException(
+                    "Stateful Sink V2 needs writer-state persistence; current checkpoint is stateless Sink only");
         }
         if (streamGraph.getTopologicalNodes().stream().anyMatch(StreamNode::isOperator)) {
             throw new UnsupportedOperationException(
