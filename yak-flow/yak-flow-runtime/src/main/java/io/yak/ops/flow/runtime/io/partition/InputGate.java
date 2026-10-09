@@ -196,6 +196,8 @@ public final class InputGate<T> {
                         processingRecords++;
                         processing = true;
                         available.complete(null);
+                    } else {
+                        partialBarrier = true;
                     }
                 } else {
                     record = ((RecordElement<T>) item).value();
