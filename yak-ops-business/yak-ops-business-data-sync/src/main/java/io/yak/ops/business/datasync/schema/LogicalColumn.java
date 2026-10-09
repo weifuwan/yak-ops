@@ -1,8 +1,8 @@
 package io.yak.ops.business.datasync.schema;
 
 import io.yak.ops.core.types.LogicalType;
-import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.core.types.LogicalTypeRoot;
+import io.yak.ops.core.types.LogicalTypes;
 import java.util.Objects;
 
 /**
