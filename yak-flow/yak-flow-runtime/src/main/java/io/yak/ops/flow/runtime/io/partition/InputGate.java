@@ -208,7 +208,7 @@ public final class InputGate<T> {
                 }
                 break;
             }
-            if (!processing && completedBarrier < 0 && record == null) {
+            if (!processing && !partialBarrier && completedBarrier < 0 && record == null) {
                 if (remainingProducers == 0 && !anyBuffered() && aligningCheckpointId == -1) {
                     return InputStatus.END_OF_INPUT;
                 }
