@@ -20,6 +20,17 @@ public final class ExecutionOptions {
                     .enumType(RuntimeExecutionMode.class)
                     .defaultValue(RuntimeExecutionMode.AUTOMATIC);
 
+    /**
+     * Maximum whole-job restarts within one submission. Disabled by default.
+     *
+     * <p>Retries are only permitted from a valid, durably completed Source → Sink checkpoint.
+     * Failed task attempts are never reused; no partial Reader-only restart is claimed.
+     */
+    public static final ConfigOption<Integer> MAX_RESTART_ATTEMPTS =
+            ConfigOptions.key("execution.restart.max-attempts")
+                    .intType()
+                    .defaultValue(0);
+
     /** @deprecated 请使用 {@link CoreOptions#DEFAULT_PARALLELISM}；此字段仅作源码兼容别名。 */
     @Deprecated
     public static final ConfigOption<Integer> DEFAULT_PARALLELISM = CoreOptions.DEFAULT_PARALLELISM;

@@ -44,6 +44,9 @@ public interface SourceReader<T, SplitT extends SourceSplit> extends AutoCloseab
     /** Enumerator 不会再向这个 Reader 分配新 Split；当前 Split 可能仍在读取。 */
     void notifyNoMoreSplits();
 
+    /** Handle a connector-defined event on the Reader's mailbox thread. */
+    default void handleSourceEvents(SourceEvent event) throws Exception {}
+
     /**
      * 返回包含当前读取进度的未完成 Split 快照；结果须与后续读取状态隔离。
      * Runtime 负责在检查点中保存序列化后的快照。

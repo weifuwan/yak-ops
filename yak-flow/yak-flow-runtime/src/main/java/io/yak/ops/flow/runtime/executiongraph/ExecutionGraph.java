@@ -4,10 +4,15 @@ import io.yak.ops.core.api.common.JobExecutionResult;
 import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.configuration.CheckpointingOptions;
+import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
+import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
 import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
 import io.yak.ops.flow.runtime.jobgraph.JobVertex;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +34,8 @@ public final class ExecutionGraph {
     private final Object monitor = new Object();
     private final CompletableFuture<JobExecutionResult> result = new CompletableFuture<>();
     private final CompletableFuture<Void> cancellation = new CompletableFuture<>();
-    private final CompletableFuture<QuiescentCheckpointCoordinator> checkpointController = new CompletableFuture<>();
+    private volatile CompletableFuture<QuiescentCheckpointCoordinator> checkpointController =
+            new CompletableFuture<>();
     private final boolean checkpointConfigured;
 
     private volatile JobStatus status = JobStatus.CREATED;
@@ -110,24 +116,65 @@ public final class ExecutionGraph {
             return;
         }
 
-        long startNanos = System.nanoTime();
-        try {
-            new TaskDeployment(this).deployAndAwait();
-            if (!jobGraph.isBounded() && !cancellationRequested) {
-                completeFailed(new IllegalStateException("无界 Pipeline 未被取消却提前结束"));
+        long startedNanos = System.nanoTime();
+        int maxRestarts = jobGraph.configuration().get(ExecutionOptions.MAX_RESTART_ATTEMPTS);
+        int attempt = 0;
+        while (true) {
+            try {
+                new TaskDeployment(this, attempt > 0).deployAndAwait();
+                if (!jobGraph.isBounded() && !cancellationRequested) {
+                    completeFailed(new IllegalStateException("无界 Pipeline 未被取消却提前结束"));
+                    return;
+                }
+                completeNormally(TimeUnit.NANOSECONDS.toMillis(Math.max(0, System.nanoTime() - startedNanos)));
+                return;
+            } catch (Throwable failure) {
+                if (failure instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
+                if (cancellationRequested
+                        && (failure instanceof InterruptedException || failure instanceof CancellationException)) {
+                    completeCanceled();
+                    return;
+                }
+                if (!cancellationRequested && attempt < maxRestarts && hasCompletedCheckpoint()) {
+                    try {
+                        for (ExecutionJobVertex vertex : jobVertices) {
+                            for (ExecutionVertex subtask : vertex.getTaskVertices()) {
+                                subtask.resetForNewAttempt();
+                            }
+                        }
+                        // A checkpoint request for the old attempt must never access its closed coordinator.
+                        checkpointController = new CompletableFuture<>();
+                        attempt++;
+                        continue;
+                    } catch (Throwable resetFailure) {
+                        failure.addSuppressed(resetFailure);
+                    }
+                }
+                completeFailed(failure);
                 return;
             }
-            completeNormally(TimeUnit.NANOSECONDS.toMillis(Math.max(0, System.nanoTime() - startNanos)));
-        } catch (Throwable failure) {
-            if (failure instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            if (cancellationRequested
-                    && (failure instanceof InterruptedException || failure instanceof CancellationException)) {
-                completeCanceled();
-            } else {
-                completeFailed(failure);
-            }
+        }
+    }
+
+    /**
+     * Only a verified durable checkpoint authorizes automatic restart. Without one, fail closed:
+     * restarting the Reader from offset zero could duplicate or lose already-emitted data.
+     */
+    private boolean hasCompletedCheckpoint() {
+        String directory = jobGraph.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
+        if (directory == null || directory.isBlank()) {
+            return false;
+        }
+        Path file = Path.of(directory, "checkpoint.bin");
+        if (!Files.isRegularFile(file)) {
+            return false;
+        }
+        try (FileCheckpointStore store = new FileCheckpointStore(Path.of(directory))) {
+            return store.loadLatest(FileCheckpointStore.graphSignature(jobGraph.graph())).isPresent();
+        } catch (IOException | RuntimeException notRestorable) {
+            return false;
         }
     }
 

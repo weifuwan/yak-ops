@@ -29,7 +29,7 @@ StreamingJobGraphGenerator 必须在创建 SourceReader、SinkWriter、工作线
 
 ## ExecutionGraph / Attempt
 
-ExecutionJobVertex 聚合一个 JobVertex 的所有 ExecutionVertex；ExecutionVertex 表示固定 Subtask Index；Execution 表示该 Subtask 的单次 Attempt。每个 Execution 最多绑定和启动一次 StreamTask，当前只创建 attempt 0。Failure 后不会在原 Execution 上重启 Task；完整的 Task Failover / ExecutionVertex retry / Slot 调度暂未实现。
+ExecutionJobVertex 聚合一个 JobVertex 的所有 ExecutionVertex；ExecutionVertex 表示固定 Subtask Index；Execution 表示一次具体 Attempt。正常首次 Attempt 为 0。仅当执行配置显式设置 execution.restart.max-attempts（默认 0）且存在有效完成的本地 Source → Sink Checkpoint 时，ExecutionGraph 可以终止全部旧 Task/Coordinator/Writer/Channel，依序创建全体新的 Execution（Attempt +1），从磁盘 Reader Split + Enumerator State 恢复整个 Job。旧 StreamTask 不允许重复绑定或重新启动。**不支持局部 Reader-only Failover、无状态全量盲重启、Slot 调度或远程 Task 部署。**
 
 ExecutionGraph 是唯一 Job Status、取消、结果 Future 和提交 Worker 的 Owner；EmbeddedPipelineExecutor 负责编译并提交，EmbeddedJobClient 只代理 JobID、状态、取消、结果和可选 Checkpoint，不运行线程。TaskDeployment 负责资源的物理装配，不维护第二套 Job 状态。
 
@@ -54,6 +54,12 @@ StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finish
 - `RecordWriterOutput` 通过独立 `StreamPartitioner` 选择目标。FORWARD 同并行度，一条生产者流对应一条下游输入；REBALANCE 按生产者独立轮询；KEYED 保留当前 `Math.floorMod(key.hashCode(), downstreamParallelism)`，**不是 Flink KeyGroup，不能宣称支持状态 Rescale**。
 - 全部生产者结束并排空对应 Gate 的缓冲后才返回 END_OF_INPUT。失败/取消唤醒阻塞的发送者和等待消费者；Checkpoint 的 `drainedFuture` 不仅等待队列为空，还要等待正在执行的下游 Writer 回调结束。
 
+## Source Coordination and Event Contracts
+
+- Core 的 SourceEvent 是 Connector 自定义事件标记；SourceReaderContext.sendSourceEventToCoordinator 与 SplitEnumeratorContext.sendEventToSourceReader 使用 Runtime SourceEventWrapper 实际路由。当前同 JVM 发送的是 SourceEvent 对象，**还没有跨进程的 SourceEvent 序列化/RPC**；需要分布式时应先明确版本协议。
+- AddSplitEvent 使用 Source.getSplitSerializer() 生成版本号与独立 byte[]，Task Mailbox 只用自己的 Source Split Serializer 反序列化。SourceCoordinator 保留 Job/Operator/Subtask/Attempt 身份检查，迟到旧 Attempt 的请求不得修改当前 Enumerator。
+- Coordinator 记录 SplitAssignmentTracker 的 Checkpoint 分配快照，并在恢复时和 Reader 的最新 Split 进度一起恢复。AddSplit/NoMoreSplits 的 Mailbox ACK 不等于记录消费或持久化。Reader 失败时**全 Job 退出并重新部署**，不在旧 Coordinator 中热替换 Gateway，避免上游重试和未回滚下游混用。
+
 ## Checkpoint / Recovery
 
 只有 Source → Sink 支持 QuiescentCheckpointCoordinator 的单 JVM 静止切面：暂停 Enumerator / Reader → 快照 Split → 等待所有 InputGate 排空及 Writer in-flight 结束 → Sink.flush(false) → FileCheckpointStore 持久化 → 通知 Source 完成。多输入与有状态中间算子的 Checkpoint 未实现。
@@ -69,4 +75,4 @@ StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finish
 - [MailboxProcessor](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/streaming/runtime/tasks/mailbox/MailboxProcessor.java)
 - [TaskMailbox](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/streaming/runtime/tasks/mailbox/TaskMailbox.java)
 
-不为了匹配 Flink 名称而虚构 TaskManager、JobMaster、RPC、Slot、网络 Shuffle、自动故障恢复或完整 StateBackend；这些需要单独设计和验收。
+不为了匹配 Flink 名称而虚构 TaskManager、JobMaster、RPC、Slot、网络 Shuffle、局部 Reader Failover 或完整 StateBackend；当前仅支持显式配置且依赖完整 Checkpoint 的本地整 Job 尝试恢复，可能重放已写出的行，只有 at-least-once。

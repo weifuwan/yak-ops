@@ -18,6 +18,7 @@ import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
+import io.yak.ops.flow.runtime.support.TestSplitSerializers;
 import io.yak.ops.core.api.operators.Collector;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
@@ -437,7 +438,7 @@ class EmbeddedExecutionLifecycleTest {
 
         @Override
         public SimpleVersionedSerializer<TestSplit> getSplitSerializer() {
-            throw new AssertionError("Local source events should not be serialized");
+            return TestSplitSerializers.utf8(TestSplit::splitId, TestSplit::new);
         }
 
         @Override

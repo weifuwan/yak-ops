@@ -43,6 +43,7 @@ final class TaskDeployment {
     private final ExecutionGraph executionGraph;
     private final JobGraph jobGraph;
     private final int channelCapacity;
+    private final boolean recoverFromLatestCheckpoint;
     private final List<Execution> executions = new ArrayList<>();
     private final List<InputGate<Object>> inputGates = new ArrayList<>();
     private final List<List<InputGate<Object>>> inputGateStages = new ArrayList<>();
@@ -55,8 +56,9 @@ final class TaskDeployment {
     private FileCheckpointStore checkpointStore;
     private QuiescentCheckpointCoordinator checkpointCoordinator;
 
-    TaskDeployment(ExecutionGraph executionGraph) {
+    TaskDeployment(ExecutionGraph executionGraph, boolean recoverFromLatestCheckpoint) {
         this.executionGraph = Objects.requireNonNull(executionGraph, "executionGraph");
+        this.recoverFromLatestCheckpoint = recoverFromLatestCheckpoint;
         this.jobGraph = executionGraph.getJobGraph();
         this.channelCapacity = jobGraph.configuration().get(RuntimeOptions.CHANNEL_CAPACITY);
         if (channelCapacity <= 0) {
@@ -139,7 +141,7 @@ final class TaskDeployment {
         if (checkpointEnabled()) {
             String directory = jobGraph.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
             checkpointStore = new FileCheckpointStore(Path.of(directory));
-            if (jobGraph.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
+            if (recoverFromLatestCheckpoint || jobGraph.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
                 restoredCheckpoint = checkpointStore.loadLatest(
                                 FileCheckpointStore.graphSignature(jobGraph.graph()))
                         .orElseThrow(() -> new IllegalStateException("状态目录没有可恢复的完整 Checkpoint"));

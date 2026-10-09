@@ -22,4 +22,9 @@ public interface SourceReaderContext {
 
     /** 由 Runtime 转发一个分片请求给对应的 SplitEnumerator。 */
     void sendSplitRequest();
+
+    /** Send a connector-specific event via the Runtime's attempt-aware coordinator gateway. */
+    default void sendSourceEventToCoordinator(SourceEvent event) {
+        throw new UnsupportedOperationException("This context does not support SourceEvent transport");
+    }
 }

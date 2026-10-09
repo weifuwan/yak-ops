@@ -10,6 +10,7 @@ import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEventHandler;
 import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
 import io.yak.ops.flow.runtime.source.event.NoMoreSplitsEvent;
+import io.yak.ops.flow.runtime.source.event.SourceEventWrapper;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -81,6 +82,9 @@ public final class SourceOperator<T, SplitT extends SourceSplit>
             handleAddSplits(splitsEvent);
         } else if (event instanceof NoMoreSplitsEvent noMoreEvent) {
             handleNoMoreSplits(noMoreEvent);
+        } else if (event instanceof SourceEventWrapper wrapper) {
+            ensureInitialized();
+            reader.handleSourceEvents(wrapper.sourceEvent());
         } else {
             throw new IllegalArgumentException("SourceOperator 不支持的 OperatorEvent："
                     + event.getClass().getName());
@@ -95,8 +99,8 @@ public final class SourceOperator<T, SplitT extends SourceSplit>
         if (noMoreSplits || finished) {
             throw new IllegalStateException("NoMoreSplits 后不能再交付新 Split");
         }
-        // 类型由 SourceCoordinator<SplitT, ?> 与本 SourceOperator 的连接保证。
-        reader.addSplits((List<SplitT>) event.splits());
+        // Event carries serializer version + isolated bytes; no mutable SourceSplit crosses the gateway.
+        reader.addSplits(((AddSplitEvent<SplitT>) event).splits(source.getSplitSerializer()));
     }
 
     /** 只通知未来不再分配 Split，不能立即视为输入结束。 */

@@ -168,6 +168,9 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
             if (pausedForCheckpoint) {
                 pausedForCheckpoint = false;
                 resumeFuture.complete(null);
+                // The mailbox may still be suspended on a pre-checkpoint Reader availability Future.
+                // Explicitly recheck the input after the coordinated cut resumes.
+                resumeInputProcessing();
             }
             return null;
         });

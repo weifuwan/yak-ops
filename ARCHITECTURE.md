@@ -50,7 +50,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 当前只支持一个 Source → 零个或多个单输入 Operator → 一个 Sink 的严格线性图，保留单并行 FORWARD 内联链。跨 Task 的生产者使用 ResultPartition，消费者使用 InputGate；每个目标 Gate 的所有上游 Subpartition 共用一个有界缓存，支持 FORWARD / REBALANCE / KEYED、背压、取消和失败清理。可恢复 Checkpoint 仍为 Source → Sink 的单 JVM 静止切面，保持原有文件格式、状态目录和 at-least-once 语义，不承诺 Exactly-once；多源、分叉、网络 Shuffle、动态扩缩容和中间 Operator 状态恢复未实现。
 
-Runtime 单向依赖 Core；内存 Execution / Attempt 与 Data Sync DAO 的产品实例身份不同。当前只创建 attempt 0，不支持失败重试、分布式部署或 Slot/RPC；旧 JDBC / CDC Connector 已删除，新引擎不能依据历史跨库 E2E 声称产品能力。
+Runtime 单向依赖 Core；内存 Execution / Attempt 与 Data Sync DAO 的产品实例身份不同。默认不自动重试；显式设置 execution.restart.max-attempts 时，仅允许从校验通过的持久化 Source → Sink Checkpoint 整 Job 重新装配，并为各 ExecutionVertex 创建递增 Attempt。Reader-only 热重启、分布式部署和 Slot/RPC 均未实现。旧 JDBC / CDC Connector 已删除，不能以历史跨库 E2E 声称当前能力。
 
 新边界详见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。
 

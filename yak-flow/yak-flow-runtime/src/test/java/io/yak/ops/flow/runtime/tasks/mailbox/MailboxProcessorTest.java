@@ -38,11 +38,12 @@ class MailboxProcessorTest {
         Thread worker = Thread.ofVirtual().start(() -> {
             try {
                 processor.runMailboxLoop();
-                exited.complete(null);
             } catch (Throwable failure) {
                 exited.completeExceptionally(failure);
             } finally {
                 processor.close(new IllegalStateException("finished"));
+                // Signal the test only after the asynchronous mailbox cleanup is visible.
+                exited.complete(null);
             }
         });
 

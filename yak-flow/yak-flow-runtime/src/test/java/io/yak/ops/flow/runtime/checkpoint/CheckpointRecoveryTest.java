@@ -22,6 +22,7 @@ import io.yak.ops.core.api.operators.Collector;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
+import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.flow.runtime.execution.EmbeddedJobClient;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
@@ -85,6 +86,76 @@ class CheckpointRecoveryTest {
         assertEquals(4, resumedSink.rows.size());
         restored.cancel().get(5, TimeUnit.SECONDS);
         assertEquals(JobStatus.CANCELED, restored.getJobStatus().get(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    void shouldRestartAllSubtasksFromTheDurableCheckpointWithNewExecutionAttempts() throws Exception {
+        OffsetSource source = new OffsetSource(4, false, true, false);
+        CapturedSink sink = new CapturedSink();
+        Configuration config = configuration(false);
+        config.set(ExecutionOptions.MAX_RESTART_ATTEMPTS, 1);
+        EmbeddedJobClient job = (EmbeddedJobClient) new EmbeddedPipelineExecutor()
+                .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
+
+        awaitCount(sink.rows, 8);
+        // The injected Reader fails immediately after a *completed* checkpoint and Source resume.
+        // Its previous task must not be restarted in-place or replay from offset zero.
+        try {
+            job.checkpoint().get(5, TimeUnit.SECONDS);
+        } catch (java.util.concurrent.ExecutionException concurrentReaderFailure) {
+            // Failure may race with the final checkpoint callback; durable state is the recovery authority.
+        }
+        awaitAttempt(job, 1);
+        assertEquals(1, job.getExecutionGraph().getJobVertices().getFirst()
+                .getTaskVertex(1).getCurrentExecutionAttempt().getAttemptNumber());
+        assertEquals(1, job.getExecutionGraph().getJobVertices().getLast()
+                .getTaskVertex(0).getCurrentExecutionAttempt().getAttemptNumber());
+        // ExecutionVertex advances before the new SourceTask has finished opening its Reader.
+        long restoredDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while ((source.createdReaders.get() < 4 || !source.restoredOffsets.contains(4))
+                && System.nanoTime() < restoredDeadline) {
+            Thread.sleep(10);
+        }
+        assertTrue(source.createdReaders.get() >= 4);
+        assertTrue(source.restoredOffsets.contains(4));
+        assertTrue(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+
+        source.setLimit(6);
+        awaitCount(sink.rows, 12);
+        assertEquals(Set.of(
+                        "stream-0-0", "stream-0-1", "stream-0-2", "stream-0-3", "stream-0-4", "stream-0-5",
+                        "stream-1-0", "stream-1-1", "stream-1-2", "stream-1-3", "stream-1-4", "stream-1-5"),
+                Set.copyOf(sink.rows));
+        assertEquals(12, sink.rows.size(), "Restart must use saved split offsets, not replay from zero");
+        job.cancel().get(5, TimeUnit.SECONDS);
+    }
+
+    @Test
+    void shouldNotRetryWhenNoCompletedCheckpointExists() throws Exception {
+        OffsetSource source = new OffsetSource(3, false, false, true);
+        CapturedSink sink = new CapturedSink();
+        Configuration config = configuration(false);
+        config.set(ExecutionOptions.MAX_RESTART_ATTEMPTS, 2);
+        EmbeddedJobClient job = (EmbeddedJobClient) new EmbeddedPipelineExecutor()
+                .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
+
+        assertThrows(java.util.concurrent.ExecutionException.class,
+                () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
+        assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(0, job.getExecutionGraph().getJobVertices().getFirst()
+                .getTaskVertex(0).getCurrentExecutionAttempt().getAttemptNumber());
+        assertFalse(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+    }
+
+    private static void awaitAttempt(EmbeddedJobClient client, int expected) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (client.getExecutionGraph().getJobVertices().getFirst()
+                .getTaskVertex(0).getCurrentExecutionAttempt().getAttemptNumber() < expected
+                && System.nanoTime() < deadline) {
+            Thread.sleep(10);
+        }
+        assertEquals(expected, client.getExecutionGraph().getJobVertices().getFirst()
+                .getTaskVertex(0).getCurrentExecutionAttempt().getAttemptNumber());
     }
 
     @Test
@@ -213,16 +284,40 @@ class CheckpointRecoveryTest {
 
     private static final class OffsetSource implements Source<String, OffsetSplit, Integer> {
 
-        private final int limit;
+        private volatile int limit;
         private final boolean failSerialization;
+        private final boolean failAfterCheckpoint;
+        private final boolean failBeforeCheckpoint;
+        private final AtomicInteger createdReaders = new AtomicInteger();
+        private final List<Integer> restoredOffsets = new CopyOnWriteArrayList<>();
+        private final List<CompletableFuture<Void>> availabilityWaiters = new CopyOnWriteArrayList<>();
+        private final java.util.concurrent.atomic.AtomicBoolean checkpointNotified =
+                new java.util.concurrent.atomic.AtomicBoolean();
+        private final java.util.concurrent.atomic.AtomicBoolean faultTriggered =
+                new java.util.concurrent.atomic.AtomicBoolean();
 
         private OffsetSource(int limit) {
             this(limit, false);
         }
 
         private OffsetSource(int limit, boolean failSerialization) {
+            this(limit, failSerialization, false, false);
+        }
+
+        private OffsetSource(int limit, boolean failSerialization,
+                boolean failAfterCheckpoint, boolean failBeforeCheckpoint) {
             this.limit = limit;
             this.failSerialization = failSerialization;
+            this.failAfterCheckpoint = failAfterCheckpoint;
+            this.failBeforeCheckpoint = failBeforeCheckpoint;
+        }
+
+        private void setLimit(int limit) {
+            this.limit = limit;
+            for (CompletableFuture<Void> waiter : availabilityWaiters) {
+                waiter.complete(null);
+            }
+            availabilityWaiters.clear();
         }
 
         @Override
@@ -278,9 +373,10 @@ class CheckpointRecoveryTest {
 
         @Override
         public SourceReader<String, OffsetSplit> createReader(SourceReaderContext context) {
+            createdReaders.incrementAndGet();
             return new SourceReader<>() {
                 private OffsetSplit current;
-                private final CompletableFuture<Void> idle = new CompletableFuture<>();
+                private CompletableFuture<Void> idle = new CompletableFuture<>();
 
                 @Override
                 public void start() {
@@ -289,16 +385,27 @@ class CheckpointRecoveryTest {
 
                 @Override
                 public InputStatus pollNext(ReaderOutput<String> output) throws Exception {
+                    if (failBeforeCheckpoint && faultTriggered.compareAndSet(false, true)) {
+                        throw new IllegalStateException("reader failed before durable checkpoint");
+                    }
+                    if (failAfterCheckpoint && checkpointNotified.get()
+                            && faultTriggered.compareAndSet(false, true)) {
+                        throw new IllegalStateException("reader failed after durable checkpoint");
+                    }
                     if (current != null && current.offset() < limit) {
                         output.collect(current.splitId() + "-" + current.offset());
                         current = new OffsetSplit(current.splitId(), current.offset() + 1);
                         return InputStatus.MORE_AVAILABLE;
+                    }
+                    if (idle.isDone()) {
+                        idle = new CompletableFuture<>();
                     }
                     return InputStatus.NOTHING_AVAILABLE;
                 }
 
                 @Override
                 public CompletableFuture<Void> isAvailable() {
+                    availabilityWaiters.add(idle);
                     return idle;
                 }
 
@@ -308,6 +415,7 @@ class CheckpointRecoveryTest {
                         throw new IllegalArgumentException("Expected exactly one active split per Reader");
                     }
                     current = splits.getFirst();
+                    restoredOffsets.add(current.offset());
                 }
 
                 @Override
@@ -316,6 +424,11 @@ class CheckpointRecoveryTest {
                 @Override
                 public List<OffsetSplit> snapshotState(long checkpointId) {
                     return current == null ? List.of() : List.of(current);
+                }
+
+                @Override
+                public void notifyCheckpointComplete(long checkpointId) {
+                    checkpointNotified.set(true);
                 }
 
                 @Override

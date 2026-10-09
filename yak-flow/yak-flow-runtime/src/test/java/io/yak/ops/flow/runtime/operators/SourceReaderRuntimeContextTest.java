@@ -6,12 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.core.api.common.JobID;
+import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.source.event.RequestSplitEvent;
+import io.yak.ops.flow.runtime.source.event.SourceEventWrapper;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -44,6 +46,23 @@ class SourceReaderRuntimeContextTest {
         assertEquals(9, (int) context.getConfiguration().get(CoreOptions.DEFAULT_PARALLELISM));
         assertNull(failure.get());
     }
+
+    @Test
+    void shouldSendConnectorSourceEventThroughTheAttemptAwareGateway() {
+        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 5, 0, 1, 4);
+        AtomicReference<OperatorEvent> sent = new AtomicReference<>();
+        SourceReaderRuntimeContext context = new SourceReaderRuntimeContext(
+                new TaskEnvironment(info, new Configuration()), event -> {
+                    sent.set(event);
+                    return CompletableFuture.completedFuture(null);
+                }, failure -> { throw new AssertionError(failure); });
+
+        ProbeSourceEvent ping = new ProbeSourceEvent("hello");
+        context.sendSourceEventToCoordinator(ping);
+        assertEquals(new SourceEventWrapper(ping), sent.get());
+    }
+
+    private record ProbeSourceEvent(String message) implements SourceEvent {}
 
     @Test
     void shouldReportSynchronousAndAsynchronousGatewayFailure() {

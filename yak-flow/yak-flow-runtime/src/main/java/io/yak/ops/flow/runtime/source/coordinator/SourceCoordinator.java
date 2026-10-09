@@ -10,6 +10,7 @@ import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import io.yak.ops.flow.runtime.source.event.ReaderRegistrationEvent;
 import io.yak.ops.flow.runtime.source.event.RequestSplitEvent;
+import io.yak.ops.flow.runtime.source.event.SourceEventWrapper;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -69,8 +70,8 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         this.coordinatorContext = Objects.requireNonNull(coordinatorContext, "coordinatorContext 不能为空");
         this.restoredEnumeratorState = restoredEnumeratorState;
         this.restoring = restoring;
-        this.context = new SourceCoordinatorContext<>(coordinatorContext, eventLoop, discovery,
-                () -> eventThread, this::fail);
+        this.context = new SourceCoordinatorContext<>(coordinatorContext, source.getSplitSerializer(),
+                eventLoop, discovery, () -> eventThread, this::fail);
     }
 
     /** Source 所属的不可变运行身份；用于 Task 装配时检查 Job/Operator/Parallelism。 */
@@ -134,20 +135,30 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(failure);
         }
-        if (!(event instanceof RequestSplitEvent request)) {
+        if (event instanceof RequestSplitEvent request) {
+            if (taskInfo.subtaskIndex() != request.subtaskId()
+                    || taskInfo.attemptNumber() != request.attemptNumber()) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException(
+                        "OperatorEvent 的 Subtask / Attempt 与发送者身份不匹配"));
+            }
+        } else if (!(event instanceof SourceEventWrapper)) {
             return CompletableFuture.failedFuture(
-                    new IllegalArgumentException("Coordinator 不支持的 OperatorEvent："
-                            + event.getClass().getName()));
-        }
-        if (taskInfo.subtaskIndex() != request.subtaskId()
-                || taskInfo.attemptNumber() != request.attemptNumber()) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException(
-                    "OperatorEvent 的 Subtask / Attempt 与发送者身份不匹配"));
+                    new IllegalArgumentException("Coordinator 不支持的 OperatorEvent：" + event.getClass().getName()));
         }
         return submit(() -> {
             ensureStarted();
+            // Check the registered attempt before handling either control or connector event.
+            context.checkRegistered(taskInfo);
+            if (event instanceof SourceEventWrapper wrapper) {
+                try {
+                    enumerator.handleSourceEvent(taskInfo.subtaskIndex(), wrapper.sourceEvent());
+                } catch (Throwable failure) {
+                    fail(failure);
+                    throw failure;
+                }
+                return null;
+            }
             if (!context.canRequestSplit(taskInfo)) {
-                // 已发送 NoMoreSplits 的迟到请求不应再次触发 Enumerator。
                 return null;
             }
             if (checkpointPaused) {

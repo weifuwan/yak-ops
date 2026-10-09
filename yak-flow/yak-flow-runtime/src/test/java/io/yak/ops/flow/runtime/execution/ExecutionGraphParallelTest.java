@@ -19,6 +19,7 @@ import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
+import io.yak.ops.flow.runtime.support.TestSplitSerializers;
 import io.yak.ops.core.api.operators.Collector;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
@@ -407,7 +408,12 @@ class ExecutionGraphParallelTest {
 
         @Override
         public SimpleVersionedSerializer<TestSplit> getSplitSerializer() {
-            throw new AssertionError("No global checkpoint state serialization");
+            return TestSplitSerializers.utf8(
+                    split -> split.splitId() + "|" + split.readerIndex(),
+                    value -> {
+                        String[] parts = value.split("\\|", 2);
+                        return new TestSplit(parts[0], Integer.parseInt(parts[1]));
+                    });
         }
 
         @Override

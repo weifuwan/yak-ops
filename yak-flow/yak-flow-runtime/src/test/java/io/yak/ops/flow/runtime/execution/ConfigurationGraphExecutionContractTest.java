@@ -152,6 +152,21 @@ class ConfigurationGraphExecutionContractTest {
     }
 
     @Test
+    void shouldDisableAutomaticRestartByDefaultAndRequireCheckpointForOptIn() {
+        Configuration configuration = defaultConfig(1);
+        StreamGraph graph = graph(configuration, 1, 1, true, false);
+        assertEquals(0, (int) configuration.get(ExecutionOptions.MAX_RESTART_ATTEMPTS));
+
+        configuration.set(ExecutionOptions.MAX_RESTART_ATTEMPTS, -1);
+        assertThrows(IllegalArgumentException.class,
+                () -> new StreamingJobGraphGenerator(graph, configuration).generate());
+
+        configuration.set(ExecutionOptions.MAX_RESTART_ATTEMPTS, 1);
+        assertThrows(UnsupportedOperationException.class,
+                () -> new StreamingJobGraphGenerator(graph, configuration).generate());
+    }
+
+    @Test
     void shouldResolveModeAndRejectBatchForUnboundedSource() {
         Configuration configuration = defaultConfig(1);
         StreamGraph graph = graph(configuration, 1, 1, false, false);
