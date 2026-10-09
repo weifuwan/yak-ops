@@ -22,18 +22,17 @@ import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
-import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.graph.StreamingJobGraphGenerator;
+import io.yak.ops.flow.runtime.jobgraph.JobGraph;
+import io.yak.ops.flow.runtime.executiongraph.ExecutionGraph;
 import io.yak.ops.flow.runtime.graph.StreamNode;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.time.Duration;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class ConfigurationGraphExecutionContractTest {
@@ -79,7 +78,7 @@ class ConfigurationGraphExecutionContractTest {
     void shouldRejectSubmissionDefaultThatConflictsWithGeneratedGraph() {
         StreamGraph graph = graph(defaultConfig(4), Transformation.DEFAULT_PARALLELISM, 2, true, false);
         IllegalArgumentException failure = assertThrows(
-                IllegalArgumentException.class, () -> CompiledJobPlan.compile(graph, defaultConfig(8)));
+                IllegalArgumentException.class, () -> new StreamingJobGraphGenerator(graph, defaultConfig(8)).generate());
 
         assertTrue(failure.getMessage().contains("默认并行度与提交配置不一致"));
         assertEquals(4, graph.getSourceNodes().getFirst().getParallelism());
@@ -88,7 +87,7 @@ class ConfigurationGraphExecutionContractTest {
     @Test
     void shouldAllowDifferentSubmissionDefaultIfAllNodesUseExplicitParallelism() {
         StreamGraph graph = graph(defaultConfig(4), 2, 3, true, false);
-        CompiledJobPlan plan = CompiledJobPlan.compile(graph, defaultConfig(8));
+        JobGraph plan = new StreamingJobGraphGenerator(graph, defaultConfig(8)).generate();
 
         assertSame(graph, plan.graph());
         assertEquals(2, plan.graph().getSourceNodes().getFirst().getParallelism());
@@ -101,7 +100,7 @@ class ConfigurationGraphExecutionContractTest {
         Configuration configuration = defaultConfig(2);
         configuration.set(PipelineOptions.NAME, "first");
         StreamGraph graph = graph(configuration, Transformation.DEFAULT_PARALLELISM, 1, true, false);
-        CompiledJobPlan plan = CompiledJobPlan.compile(graph, configuration);
+        JobGraph plan = new StreamingJobGraphGenerator(graph, configuration).generate();
 
         configuration.set(PipelineOptions.NAME, "changed");
         configuration.set(ExecutionOptions.RUNTIME_MODE, RuntimeExecutionMode.STREAMING);
@@ -119,10 +118,10 @@ class ConfigurationGraphExecutionContractTest {
         StreamGraph graphWithoutUids = graph(defaultConfig(2), 2, 2, true, false);
         Configuration submit = defaultConfig(2);
         submit.set(PipelineOptions.AUTO_GENERATE_UIDS, false);
-        assertThrows(IllegalArgumentException.class, () -> CompiledJobPlan.compile(graphWithoutUids, submit));
+        assertThrows(IllegalArgumentException.class, () -> new StreamingJobGraphGenerator(graphWithoutUids, submit).generate());
 
         StreamGraph graphWithUids = graph(defaultConfig(2), 2, 2, true, true);
-        assertSame(graphWithUids, CompiledJobPlan.compile(graphWithUids, submit).graph());
+        assertSame(graphWithUids, new StreamingJobGraphGenerator(graphWithUids, submit).generate().graph());
 
         Configuration compileWithMandatoryUids = defaultConfig(2);
         compileWithMandatoryUids.set(PipelineOptions.AUTO_GENERATE_UIDS, false);
@@ -137,64 +136,75 @@ class ConfigurationGraphExecutionContractTest {
         Configuration configuration = defaultConfig(2);
 
         configuration.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofSeconds(-1));
-        assertThrows(IllegalArgumentException.class, () -> CompiledJobPlan.compile(graph, configuration));
+        assertThrows(IllegalArgumentException.class, () -> new StreamingJobGraphGenerator(graph, configuration).generate());
         configuration.removeConfig(CheckpointingOptions.CHECKPOINTING_INTERVAL);
 
         configuration.set(CheckpointingOptions.CHECKPOINTING_TIMEOUT, Duration.ZERO);
-        assertThrows(IllegalArgumentException.class, () -> CompiledJobPlan.compile(graph, configuration));
+        assertThrows(IllegalArgumentException.class, () -> new StreamingJobGraphGenerator(graph, configuration).generate());
         configuration.removeConfig(CheckpointingOptions.CHECKPOINTING_TIMEOUT);
 
         configuration.set(CheckpointingOptions.MIN_PAUSE_BETWEEN_CHECKPOINTS, Duration.ofMillis(-1));
-        assertThrows(IllegalArgumentException.class, () -> CompiledJobPlan.compile(graph, configuration));
+        assertThrows(IllegalArgumentException.class, () -> new StreamingJobGraphGenerator(graph, configuration).generate());
         configuration.removeConfig(CheckpointingOptions.MIN_PAUSE_BETWEEN_CHECKPOINTS);
 
         configuration.set(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS, 0);
-        assertThrows(IllegalArgumentException.class, () -> CompiledJobPlan.compile(graph, configuration));
+        assertThrows(IllegalArgumentException.class, () -> new StreamingJobGraphGenerator(graph, configuration).generate());
     }
 
     @Test
     void shouldResolveModeAndRejectBatchForUnboundedSource() {
         Configuration configuration = defaultConfig(1);
         StreamGraph graph = graph(configuration, 1, 1, false, false);
-        assertEquals(RuntimeExecutionMode.STREAMING, CompiledJobPlan.compile(graph, configuration).runtimeMode());
+        assertEquals(RuntimeExecutionMode.STREAMING, new StreamingJobGraphGenerator(graph, configuration).generate().runtimeMode());
 
         configuration.set(ExecutionOptions.RUNTIME_MODE, RuntimeExecutionMode.BATCH);
-        assertThrows(IllegalArgumentException.class, () -> CompiledJobPlan.compile(graph, configuration));
+        assertThrows(IllegalArgumentException.class, () -> new StreamingJobGraphGenerator(graph, configuration).generate());
     }
 
     @Test
     void shouldRejectNonpositiveDefaultEvenForExplicitNodes() {
         StreamGraph graph = graph(defaultConfig(1), 2, 3, true, false);
-        assertThrows(IllegalArgumentException.class, () -> CompiledJobPlan.compile(graph, defaultConfig(0)));
+        assertThrows(IllegalArgumentException.class, () -> new StreamingJobGraphGenerator(graph, defaultConfig(0)).generate());
     }
 
     @Test
-    void shouldPassOneFrozenPlanToRunner() throws Exception {
+    void shouldBuildPhysicalVerticesWithFrozenSubmissionConfiguration() {
         Configuration configuration = defaultConfig(3);
         configuration.set(PipelineOptions.NAME, "submitted");
         StreamGraph graph = graph(configuration, 3, 1, true, false);
-        AtomicReference<CompiledJobPlan> received = new AtomicReference<>();
-        EmbeddedPipelineExecutor executor = new EmbeddedPipelineExecutor((plan, cancellationRequested) -> received.set(plan));
-
-        JobClient job = executor.execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobGraph jobGraph = new StreamingJobGraphGenerator(graph, configuration).generate();
+        ExecutionGraph executionGraph = new ExecutionGraph(jobGraph);
         configuration.set(PipelineOptions.NAME, "modified");
-        job.getJobExecutionResult().get(5, TimeUnit.SECONDS);
 
-        CompiledJobPlan plan = received.get();
-        assertEquals(job.getJobID(), plan.jobID());
-        assertSame(graph, plan.graph());
-        assertEquals("submitted", plan.configuration().get(PipelineOptions.NAME));
-        assertEquals(RuntimeExecutionMode.BATCH, plan.runtimeMode());
+        assertEquals(executionGraph.getJobID(), jobGraph.jobID());
+        assertSame(graph, jobGraph.graph());
+        assertEquals("submitted", jobGraph.configuration().get(PipelineOptions.NAME));
+        assertEquals(RuntimeExecutionMode.BATCH, jobGraph.runtimeMode());
+        assertEquals(2, jobGraph.getVertices().size());
+        assertEquals(1, jobGraph.getEdges().size());
+        assertEquals(3, executionGraph.getJobVertices().getFirst().getTaskVertices().size());
+        assertEquals(0, executionGraph.getJobVertices().getFirst().getTaskVertex(0)
+                .getCurrentExecutionAttempt().getAttemptNumber());
     }
 
     @Test
-    void shouldFailSubmissionWithoutCallingRunnerOnParallelismConflict() {
-        StreamGraph graph = graph(defaultConfig(2), Transformation.DEFAULT_PARALLELISM, 1, true, false);
-        AtomicBoolean invoked = new AtomicBoolean();
-        EmbeddedPipelineExecutor executor = new EmbeddedPipelineExecutor((plan, cancellationRequested) -> invoked.set(true));
+    void shouldChainSingleParallelismIntoOneDeployableJobVertex() {
+        Configuration configuration = defaultConfig(1);
+        StreamGraph graph = graph(configuration, 1, 1, true, false);
+        JobGraph jobGraph = new StreamingJobGraphGenerator(graph, configuration).generate();
 
+        assertEquals(1, jobGraph.getVertices().size());
+        assertEquals(0, jobGraph.getEdges().size());
+        assertTrue(jobGraph.getVertices().getFirst().isChained());
+        assertEquals(2, jobGraph.getVertices().getFirst().getOperators().size());
+        assertEquals(1, new ExecutionGraph(jobGraph).getJobVertices().getFirst().getTaskVertices().size());
+    }
+
+    @Test
+    void shouldFailSubmissionWithoutDeployingWhenParallelismConflicts() {
+        StreamGraph graph = graph(defaultConfig(2), Transformation.DEFAULT_PARALLELISM, 1, true, false);
+        EmbeddedPipelineExecutor executor = new EmbeddedPipelineExecutor();
         assertThrows(CompletionException.class, () -> executor.execute(graph, defaultConfig(3)).join());
-        assertFalse(invoked.get());
     }
 
     private static Configuration defaultConfig(int parallelism) {

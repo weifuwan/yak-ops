@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-class ParallelJobExecutionTest {
+class ExecutionGraphParallelTest {
 
     @Test
     void shouldFanInFourSourceReadersToOneSinkWithoutLosingRecords() throws Exception {

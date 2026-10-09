@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
-class StreamJobRunnerTest {
+class EmbeddedExecutionLifecycleTest {
 
     @Test
     void shouldRunBoundedPipelineWithMultipleOperatorsAndFinalFlush() throws Exception {
