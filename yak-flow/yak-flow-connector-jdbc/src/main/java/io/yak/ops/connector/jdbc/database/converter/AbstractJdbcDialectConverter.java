@@ -179,8 +179,7 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
                 case TIMESTAMP_WITH_TIME_ZONE -> offsetDateTime(raw, resultSet, position);
             };
         } catch (ArithmeticException | ClassCastException exception) {
-            throw new SQLDataException(
-                    "JDBC value cannot be represented as " + type.asSerializableString(), exception);
+            throw new SQLDataException("JDBC value cannot be represented as " + type.asSerializableString(), exception);
         }
     }
 
