@@ -2,9 +2,13 @@ package io.yak.ops.flow.runtime.execution;
 
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
+import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.graph.StreamEdge;
 import io.yak.ops.core.graph.StreamGraph;
 import io.yak.ops.core.graph.StreamNode;
+import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointCoordinator;
+import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointState;
 import io.yak.ops.flow.runtime.io.LocalChannel;
 import io.yak.ops.flow.runtime.io.LocalResultPartition;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
@@ -13,8 +17,10 @@ import io.yak.ops.flow.runtime.tasks.OneInputOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.SinkOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.StreamTask;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +28,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * 单个 Core-based Job 的本地多 Task 装配与生命周期。
@@ -35,14 +42,24 @@ final class LocalTaskGraph {
     private final CompiledJobPlan plan;
     private final BooleanSupplier cancellationRequested;
     private final int channelCapacity;
+    private final Consumer<LocalCheckpointCoordinator> checkpointRegistration;
     private final List<StreamTask> tasks = new ArrayList<>();
     private final List<LocalChannel<Object>> channels = new ArrayList<>();
+    private final List<List<LocalChannel<Object>>> channelStages = new ArrayList<>();
+    private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks = new ArrayList<>();
+    private final List<SinkOperatorStreamTask> sinkTasks = new ArrayList<>();
     private final AtomicReference<Throwable> firstFailure = new AtomicReference<>();
 
     private SourceCoordinator<SourceSplit, Object> coordinator;
+    private LocalCheckpointState restoredCheckpoint;
+    private FileCheckpointStore checkpointStore;
+    private LocalCheckpointCoordinator checkpointCoordinator;
 
-    LocalTaskGraph(CompiledJobPlan plan, BooleanSupplier cancellationRequested, int channelCapacity) {
+    LocalTaskGraph(CompiledJobPlan plan, BooleanSupplier cancellationRequested, int channelCapacity,
+            Consumer<LocalCheckpointCoordinator> checkpointRegistration) {
         this.plan = Objects.requireNonNull(plan, "plan 不能为空");
+        this.checkpointRegistration =
+                Objects.requireNonNull(checkpointRegistration, "checkpointRegistration 不能为空");
         this.cancellationRequested = Objects.requireNonNull(cancellationRequested, "cancellationRequested 不能为空");
         if (channelCapacity <= 0) {
             throw new IllegalArgumentException("channelCapacity 必须为正整数");
@@ -54,6 +71,9 @@ final class LocalTaskGraph {
         Throwable outcome = null;
         try {
             assemble();
+            if (checkpointCoordinator != null) {
+                checkpointRegistration.accept(checkpointCoordinator);
+            }
             for (StreamTask task : tasks) {
                 task.completionFuture().whenComplete((unused, error) -> {
                     if (error != null) {
@@ -73,6 +93,9 @@ final class LocalTaskGraph {
             for (StreamTask task : tasks) {
                 ensureNotCancelled();
                 await(task.start());
+            }
+            if (checkpointCoordinator != null) {
+                checkpointCoordinator.start();
             }
             CompletableFuture<?>[] completion = tasks.stream()
                     .map(StreamTask::completionFuture)
@@ -109,8 +132,20 @@ final class LocalTaskGraph {
         }
     }
 
-    private void assemble() {
+    private void assemble() throws Exception {
         StreamGraph graph = plan.graph();
+        boolean checkpointsEnabled = !plan.configuration()
+                .get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
+                || plan.configuration().get(CheckpointingOptions.RESTORE_LATEST);
+        if (checkpointsEnabled) {
+            String directory = plan.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
+            checkpointStore = new FileCheckpointStore(Path.of(directory));
+            if (plan.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
+                restoredCheckpoint = checkpointStore.loadLatest(
+                                FileCheckpointStore.graphSignature(plan.graph()))
+                        .orElseThrow(() -> new IllegalStateException("状态目录没有可恢复的完整 Checkpoint"));
+            }
+        }
         List<StreamNode> nodes = graph.getTopologicalNodes();
         List<List<LocalChannel<Object>>> inputs = new ArrayList<>();
         for (int index = 1; index < nodes.size(); index++) {
@@ -123,6 +158,7 @@ final class LocalTaskGraph {
                 channels.add(channel);
             }
             inputs.add(List.copyOf(stageInputs));
+            channelStages.add(List.copyOf(stageInputs));
         }
 
         // 按拓扑逆序装配下游，任务中的 Connector 实例仍延迟到 openTask() 创建。
@@ -132,7 +168,10 @@ final class LocalTaskGraph {
             for (int subtask = 0; subtask < node.getParallelism(); subtask++) {
                 TaskEnvironment environment = environment(node, subtask);
                 if (node.isSink()) {
-                    tasks.add(new SinkOperatorStreamTask(node, environment, stageInputs.get(subtask)));
+                    SinkOperatorStreamTask sink = new SinkOperatorStreamTask(
+                            node, environment, stageInputs.get(subtask));
+                    sinkTasks.add(sink);
+                    tasks.add(sink);
                 } else {
                     StreamEdge downstreamEdge = graph.getOutEdges(node.getId()).getFirst();
                     LocalResultPartition<Object> partition = new LocalResultPartition<>(
@@ -147,14 +186,29 @@ final class LocalTaskGraph {
         Source<Object, SourceSplit, Object> source = castSource(sourceNode);
         OperatorCoordinatorContext coordinatorContext = new OperatorCoordinatorContext(
                 plan.jobID(), sourceNode.getId(), sourceNode.getParallelism());
-        coordinator = new SourceCoordinator<>(source, coordinatorContext);
+        Map<Integer, List<SourceSplit>> restoredReaderSplits = Map.of();
+        if (restoredCheckpoint != null) {
+            restoredReaderSplits = LocalCheckpointCoordinator.restoreSplits(restoredCheckpoint, source);
+            Object enumeratorState = LocalCheckpointCoordinator.restoreEnumerator(restoredCheckpoint, source);
+            coordinator = SourceCoordinator.restore(source, coordinatorContext, enumeratorState);
+        } else {
+            coordinator = new SourceCoordinator<>(source, coordinatorContext);
+        }
         StreamEdge outgoing = graph.getOutEdges(sourceNode.getId()).getFirst();
 
         for (int subtask = 0; subtask < sourceNode.getParallelism(); subtask++) {
             LocalResultPartition<Object> partition = new LocalResultPartition<>(
                     outgoing, subtask, sourceNode.getParallelism(), inputs.getFirst());
-            tasks.add(new SourceOperatorStreamTask<>(
-                    source, coordinator, environment(sourceNode, subtask), partition));
+            SourceOperatorStreamTask<Object, SourceSplit> readerTask = new SourceOperatorStreamTask<>(
+                    source, coordinator, environment(sourceNode, subtask), partition,
+                    null, restoredReaderSplits.getOrDefault(subtask, List.of()));
+            sourceTasks.add(readerTask);
+            tasks.add(readerTask);
+        }
+        if (checkpointStore != null) {
+            checkpointCoordinator = new LocalCheckpointCoordinator(
+                    plan, source, coordinator, sourceTasks, channelStages, sinkTasks,
+                    checkpointStore, restoredCheckpoint, cancellationRequested, this::failJob);
         }
     }
 
@@ -188,6 +242,13 @@ final class LocalTaskGraph {
 
     private Throwable closeAll() {
         Throwable failure = null;
+        if (checkpointCoordinator != null) {
+            try {
+                checkpointCoordinator.close();
+            } catch (Throwable error) {
+                failure = accumulate(failure, error);
+            }
+        }
         for (StreamTask task : tasks) {
             try {
                 task.close();
@@ -198,6 +259,13 @@ final class LocalTaskGraph {
         if (coordinator != null) {
             try {
                 coordinator.close();
+            } catch (Throwable error) {
+                failure = accumulate(failure, error);
+            }
+        }
+        if (checkpointStore != null) {
+            try {
+                checkpointStore.close();
             } catch (Throwable error) {
                 failure = accumulate(failure, error);
             }

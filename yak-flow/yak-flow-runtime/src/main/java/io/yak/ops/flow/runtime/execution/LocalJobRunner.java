@@ -1,6 +1,8 @@
 package io.yak.ops.flow.runtime.execution;
 
+import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointCoordinator;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * 单次本地作业的数据处理入口。
@@ -26,6 +28,15 @@ public interface LocalJobRunner {
      * @throws Exception 执行或清理失败
      */
     void run(CompiledJobPlan plan, BooleanSupplier cancellationRequested) throws Exception;
+
+    /**
+     * 向 JobClient 发布本次运行的 CheckpointController；默认仍兼容无检查点的测试 Runner。
+     * 每次执行只能在启动后注册属于该 Job 的独立 Controller。
+     */
+    default void run(CompiledJobPlan plan, BooleanSupplier cancellationRequested,
+            Consumer<LocalCheckpointCoordinator> registerCheckpoint) throws Exception {
+        run(plan, cancellationRequested);
+    }
 
     /** 提交线程中提前验证该 Runner 的物理执行能力，不得创建运行资源。 */
     default void validate(CompiledJobPlan plan) {}

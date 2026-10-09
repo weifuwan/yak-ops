@@ -35,13 +35,16 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
     private final StreamTaskSourceInput<T> input;
     private final LocalOperatorChain operatorChain;
     private final LocalResultPartition<?> resultPartition;
+    private final List<SplitT> restoredSplits;
+    private boolean pausedForCheckpoint;
+    private CompletableFuture<Void> resumeFuture = CompletableFuture.completedFuture(null);
 
     public SourceOperatorStreamTask(
             Source<T, SplitT, ?> source,
             SourceCoordinator<SplitT, ?> coordinator,
             TaskEnvironment environment,
             ReaderOutput<T> output) {
-        this(source, coordinator, environment, output, null);
+        this(source, coordinator, environment, output, null, List.of());
     }
 
     /** 为内联 Operator Chain 建立完整的 Task 生命周期；不创建额外任务线程。 */
@@ -51,7 +54,19 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
             TaskEnvironment environment,
             ReaderOutput<T> output,
             LocalOperatorChain operatorChain) {
+        this(source, coordinator, environment, output, operatorChain, List.of());
+    }
+
+    /** 从已完成 Checkpoint 注入未完成 Split，仍在 Task Mailbox 线程初始化 Reader。 */
+    public SourceOperatorStreamTask(
+            Source<T, SplitT, ?> source,
+            SourceCoordinator<SplitT, ?> coordinator,
+            TaskEnvironment environment,
+            ReaderOutput<T> output,
+            LocalOperatorChain operatorChain,
+            List<SplitT> restoredSplits) {
         super(environment);
+        this.restoredSplits = List.copyOf(Objects.requireNonNull(restoredSplits, "restoredSplits 不能为空"));
         this.operatorChain = operatorChain;
         this.resultPartition = output instanceof LocalResultPartition<?> partition ? partition : null;
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
@@ -68,6 +83,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
             operatorChain.open();
         }
         operator.initialize();
+        operator.restoreSplits(restoredSplits);
         // 必须先注册 Gateway，再启动可能调用 sendSplitRequest() 的 Reader。
         coordinator.registerReader(taskInfo(), this).get();
         operator.start();
@@ -75,12 +91,12 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
 
     @Override
     protected InputStatus processInput() throws Exception {
-        return input.emitNext();
+        return pausedForCheckpoint ? InputStatus.NOTHING_AVAILABLE : input.emitNext();
     }
 
     @Override
     protected CompletableFuture<Void> getAvailableFuture() {
-        return input.getAvailableFuture();
+        return pausedForCheckpoint ? resumeFuture : input.getAvailableFuture();
     }
 
     @Override
@@ -121,6 +137,33 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         Objects.requireNonNull(event, "event 不能为空");
         return submitMailbox(() -> {
             operator.handleOperatorEvent(event);
+            return null;
+        });
+    }
+
+    /**
+     * Source 侧对齐切面：Mailbox 中先快照 Reader，再阻止下一次 pollNext()。
+     * 控制事件仍会在 Mailbox 中处理，协调侧必须先冻结 Split 请求/分配。
+     */
+    public CompletableFuture<List<SplitT>> pauseForCheckpoint(long checkpointId) {
+        return submitMailbox(() -> {
+            if (pausedForCheckpoint) {
+                throw new IllegalStateException("Reader 已被另一个 Checkpoint 暂停");
+            }
+            List<SplitT> state = operator.snapshotState(checkpointId);
+            pausedForCheckpoint = true;
+            resumeFuture = new CompletableFuture<>();
+            return state;
+        });
+    }
+
+    /** Checkpoint 成败后都要恢复 Source 轮询；只由 Runtime CheckpointCoordinator 调用。 */
+    public CompletableFuture<Void> resumeAfterCheckpoint() {
+        return submitMailbox(() -> {
+            if (pausedForCheckpoint) {
+                pausedForCheckpoint = false;
+                resumeFuture.complete(null);
+            }
             return null;
         });
     }

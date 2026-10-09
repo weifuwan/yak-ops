@@ -57,5 +57,26 @@ public final class CheckpointingOptions {
                     .intType()
                     .defaultValue(1);
 
+    /**
+     * 本地已完成 Checkpoint 的持久化目录。
+     *
+     * <p>启用周期 Checkpoint 时必须显式设置。不同 Job 不应共享目录并发写入，
+     * Runtime 持有目录级独占锁并使用原子替换更新已完成状态。
+     */
+    public static final ConfigOption<String> STATE_DIRECTORY =
+            ConfigOptions.key("execution.checkpointing.state-directory")
+                    .stringType()
+                    .noDefaultValue();
+
+    /**
+     * 是否从该状态目录中最近一次已完成的 Checkpoint 恢复。
+     *
+     * <p>恢复要求稳定的算子 UID、完全兼容的拓扑和并行度。
+     */
+    public static final ConfigOption<Boolean> RESTORE_LATEST =
+            ConfigOptions.key("execution.checkpointing.restore-latest")
+                    .booleanType()
+                    .defaultValue(false);
+
     private CheckpointingOptions() {}
 }

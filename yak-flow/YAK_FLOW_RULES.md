@@ -40,7 +40,10 @@ Runtime Trace 只在 API 定义最小 Event / Listener 协议，JDBC SQL、Split
 - `LocalChannel` 对每个目标 Subtask 使用一个有界队列，多生产者、单消费者；`LocalResultPartition` 按 FORWARD、REBALANCE 或显式 KEYED 转发。全部生产者结束且队列排空才能返回 EOF；Channel 满时生产者必须阻塞并响应中断，失败/取消要中止全部 Channel 并唤醒上下游。
 - KEYED 要求稳定业务主键，同键进入同一目标 Subtask；不同 Reader 并发产生同键事件仍可能交错。不能用 REBALANCE 冒充 CDC 主键保序，也不能将 KEYED 声称为 exactly-once。
 - 单并行 `LocalOperatorChain` 在 Source 所属 Task Mailbox 中创建并打开下游算子；多并行 Task 各自拥有独立 OneInputOperator 或 SinkWriter，经 Channel 接收数据后仍在所属 Task Mailbox 串行处理。所有同步 Collector 输出不得异步保留。只有 InputStatus.END_OF_INPUT 正常结束时才依次调用 Operator.finish 与 SinkWriter.flush(true)；失败和取消时禁止补发 finish / 最终 flush。初始化失败也必须尝试关闭已创建的全部 Operator / Writer。
-- `CompiledJobPlan.jobID()` 与 JobClient / TaskInfo 保持一致；Runner 不重新生成 JobID，也不修改 Graph 已解析的并行度。全局 Checkpoint 未实现前，内置 Runner 必须拒绝非零周期 Checkpoint 配置。
+- `CompiledJobPlan.jobID()` 与 JobClient / TaskInfo 保持一致；Runner 不重新生成 JobID，也不修改 Graph 已解析的并行度。周期或手动 Checkpoint 仅允许 Source → Sink 拓扑，要求稳定 UID、独占的持久化状态目录和受控的单次在途快照；尚未有状态协议的中间 Operator 明确拒绝。
+- `LocalCheckpointCoordinator` 采用单 JVM quiescent cut：SourceCoordinator 冻结新的 Split 分配与异步发现回调，Reader Mailbox 暂停并快照；逐级等待 LocalChannel 的排队记录和 in-flight Sink 调用排空，再由各 Sink Mailbox `flush(false)`。写入 `FileCheckpointStore` 成功后才能通知 Enumerator / Reader CheckpointComplete；失败或取消必须释放暂停并向 Job 传播异常。该方案不等于事务性 Exactly-once。
+- `FileCheckpointStore` 使用 Connector 版本化序列化器、自定义二进制格式、CRC 与原子替换，状态目录独占锁禁止并行 Job 相互覆盖；恢复时比对稳定 UID / 并行度 / 边策略指纹。状态损坏、目录不支持原子提交或拓扑不兼容必须明确拒绝，不能悄悄重新全量。
+- 旧 `LocalExecutionEngine`、`LocalExecution`、`ExecutionStatus` 等根包类型仍被 Data Sync 和 JDBC / CDC 调用方使用。新旧 Source/Sink 的方法签名及状态语义不同，不允许在未迁移调用方与 Connector 的情况下删除旧类或把两种 Checkpoint 混为一套。
 - 只有完整状态持久化并获得下游确认后才能通知 Checkpoint 完成；单独的 SourceCoordinator 快照不能宣称可恢复的完整 Job Checkpoint。
 - 新旧 Source / Sink API 迁移需要独立的适配与验收，不能直接以旧 LocalExecution 的测试结果作为新 Runtime 的通过证据。
 

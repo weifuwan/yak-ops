@@ -180,4 +180,52 @@ class LocalChannelTest {
                 StreamEdge.keyed(1, 2, (String value) -> new byte[] {1}), 0, 1, channels);
         assertThrows(IllegalArgumentException.class, () -> arrayKey.collect("record"));
     }
+    @Test
+    void shouldWaitForInFlightDownstreamProcessingBeforeCheckpointDrain() throws Exception {
+        LocalChannel<String> channel = new LocalChannel<>(1, 1);
+        channel.send("row");
+        assertFalse(channel.drainedFuture().isDone());
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CompletableFuture<Void> processed = new CompletableFuture<>();
+        Thread consumer = Thread.ofVirtual().start(() -> {
+            try {
+                assertEquals(InputStatus.MORE_AVAILABLE, channel.emitNext(value -> {
+                    started.countDown();
+                    release.await();
+                }));
+                processed.complete(null);
+            } catch (Throwable error) {
+                processed.completeExceptionally(error);
+            }
+        });
+        try {
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            assertEquals(0, channel.queuedRecords());
+            assertFalse(channel.drainedFuture().isDone(),
+                    "Checkpoint 必须等已经取走但仍在 SinkWriter.write 中的记录");
+            release.countDown();
+            processed.get(5, TimeUnit.SECONDS);
+            channel.drainedFuture().get(5, TimeUnit.SECONDS);
+        } finally {
+            release.countDown();
+            consumer.join(5000);
+            assertFalse(consumer.isAlive());
+        }
+    }
+
+    @Test
+    void shouldFailCheckpointDrainOnChannelAbort() {
+        LocalChannel<String> channel = new LocalChannel<>(1, 1);
+        try {
+            channel.send("pending");
+        } catch (Exception error) {
+            throw new AssertionError(error);
+        }
+        CompletableFuture<Void> drained = channel.drainedFuture();
+        assertFalse(drained.isDone());
+        channel.abort(new IllegalStateException("sink failed"));
+        assertThrows(ExecutionException.class, () -> drained.get(5, TimeUnit.SECONDS));
+    }
+
 }

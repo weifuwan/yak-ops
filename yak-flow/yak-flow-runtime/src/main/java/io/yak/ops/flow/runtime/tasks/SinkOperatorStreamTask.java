@@ -42,6 +42,17 @@ public final class SinkOperatorStreamTask extends StreamTask {
         return input.isAvailable();
     }
 
+    /** Source 已停止输出，所有上游 Channel 排空后在 Writer 所属 Mailbox 执行非终态 flush。 */
+    public CompletableFuture<Void> flushForCheckpoint(long checkpointId) {
+        if (checkpointId <= 0) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("checkpointId 必须为正数"));
+        }
+        return submitMailbox(() -> {
+            writer.flush(false);
+            return null;
+        });
+    }
+
     @Override
     protected void finishTask() throws Exception {
         writer.flush(true);
