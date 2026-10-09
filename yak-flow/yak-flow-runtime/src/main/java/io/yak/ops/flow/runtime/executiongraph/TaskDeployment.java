@@ -9,8 +9,9 @@ import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
 import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.graph.StreamNode;
-import io.yak.ops.flow.runtime.io.RecordChannel;
-import io.yak.ops.flow.runtime.io.RecordRouter;
+import io.yak.ops.flow.runtime.io.RecordWriterOutput;
+import io.yak.ops.flow.runtime.io.partition.InputGate;
+import io.yak.ops.flow.runtime.io.partition.ResultPartition;
 import io.yak.ops.flow.runtime.jobgraph.JobEdge;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
 import io.yak.ops.flow.runtime.jobgraph.JobVertex;
@@ -33,7 +34,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Physical deployment of a JobGraph into local StreamTasks, their channels and the SourceCoordinator.
+ * Physical deployment of a JobGraph into local StreamTasks, producer ResultPartitions,
+ * consumer InputGates and the SourceCoordinator.
  * ExecutionGraph owns status and attempts; this class owns assembly and deterministic resource cleanup.
  */
 final class TaskDeployment {
@@ -42,8 +44,8 @@ final class TaskDeployment {
     private final JobGraph jobGraph;
     private final int channelCapacity;
     private final List<Execution> executions = new ArrayList<>();
-    private final List<RecordChannel<Object>> channels = new ArrayList<>();
-    private final List<List<RecordChannel<Object>>> channelStages = new ArrayList<>();
+    private final List<InputGate<Object>> inputGates = new ArrayList<>();
+    private final List<List<InputGate<Object>>> inputGateStages = new ArrayList<>();
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks = new ArrayList<>();
     private final List<SinkOperatorStreamTask> sinkTasks = new ArrayList<>();
     private final AtomicReference<Throwable> firstFailure = new AtomicReference<>();
@@ -146,24 +148,24 @@ final class TaskDeployment {
 
         List<JobVertex> vertices = jobGraph.getVertices();
         List<JobEdge> edges = jobGraph.getEdges();
-        List<List<RecordChannel<Object>>> inputs = new ArrayList<>();
+        List<List<InputGate<Object>>> inputs = new ArrayList<>();
         for (JobEdge edge : edges) {
             JobVertex previous = vertex(edge.sourceVertexId());
             JobVertex target = vertex(edge.targetVertexId());
-            List<RecordChannel<Object>> inputChannels = new ArrayList<>();
+            List<InputGate<Object>> stageGates = new ArrayList<>();
             for (int subtask = 0; subtask < target.getParallelism(); subtask++) {
-                RecordChannel<Object> channel = new RecordChannel<>(channelCapacity, previous.getParallelism());
-                inputChannels.add(channel);
-                channels.add(channel);
+                InputGate<Object> inputGate = new InputGate<>(channelCapacity, previous.getParallelism());
+                stageGates.add(inputGate);
+                inputGates.add(inputGate);
             }
-            inputs.add(List.copyOf(inputChannels));
-            channelStages.add(List.copyOf(inputChannels));
+            inputs.add(List.copyOf(stageGates));
+            inputGateStages.add(List.copyOf(stageGates));
         }
 
         for (int index = vertices.size() - 1; index >= 1; index--) {
             JobVertex vertex = vertices.get(index);
             StreamNode node = vertex.getHeadOperator();
-            List<RecordChannel<Object>> stageInputs = inputs.get(index - 1);
+            List<InputGate<Object>> stageInputs = inputs.get(index - 1);
             for (int subtask = 0; subtask < vertex.getParallelism(); subtask++) {
                 Execution execution = executionGraph.currentExecution(vertex.getId(), subtask);
                 TaskEnvironment environment = environment(execution);
@@ -175,8 +177,9 @@ final class TaskDeployment {
                     task = sink;
                 } else {
                     JobEdge outputEdge = edges.get(index);
-                    RecordRouter<Object> output = new RecordRouter<>(
-                            outputEdge.streamEdge(), subtask, vertex.getParallelism(), inputs.get(index));
+                    RecordWriterOutput<Object> output = new RecordWriterOutput<>(
+                            outputEdge.streamEdge(), subtask, vertex.getParallelism(),
+                            new ResultPartition<>(subtask, inputs.get(index)));
                     task = new OneInputStreamTask(node, environment, stageInputs.get(subtask), output);
                 }
                 bind(execution, task);
@@ -200,8 +203,9 @@ final class TaskDeployment {
         JobEdge firstEdge = edges.getFirst();
         for (int subtask = 0; subtask < sourceVertex.getParallelism(); subtask++) {
             Execution execution = executionGraph.currentExecution(sourceVertex.getId(), subtask);
-            RecordRouter<Object> output = new RecordRouter<>(
-                    firstEdge.streamEdge(), subtask, sourceVertex.getParallelism(), inputs.getFirst());
+            RecordWriterOutput<Object> output = new RecordWriterOutput<>(
+                    firstEdge.streamEdge(), subtask, sourceVertex.getParallelism(),
+                    new ResultPartition<>(subtask, inputs.getFirst()));
             SourceOperatorStreamTask<Object, SourceSplit> task = new SourceOperatorStreamTask<>(
                     source, coordinator, environment(execution), output,
                     null, restoredReaderSplits.getOrDefault(subtask, List.of()));
@@ -211,7 +215,7 @@ final class TaskDeployment {
 
         if (checkpointStore != null) {
             checkpointCoordinator = new QuiescentCheckpointCoordinator(
-                    jobGraph, source, coordinator, sourceTasks, channelStages, sinkTasks,
+                    jobGraph, source, coordinator, sourceTasks, inputGateStages, sinkTasks,
                     checkpointStore, restoredCheckpoint, executionGraph::isCancellationRequested, this::failJob);
         }
     }
@@ -275,8 +279,8 @@ final class TaskDeployment {
     }
 
     private void stopAll(Throwable cause) {
-        for (RecordChannel<Object> channel : channels) {
-            channel.abort(cause);
+        for (InputGate<Object> inputGate : inputGates) {
+            inputGate.abort(cause);
         }
         for (Execution execution : executions) {
             execution.cancelAsync();
