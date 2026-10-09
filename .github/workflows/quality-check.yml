@@ -40,21 +40,6 @@ jobs:
       - name: Backend logging rules
         run: python3 scripts/verify_logging_rules.py
 
-      # TEMPORARY diagnostic; removed after the generated formatting is committed.
-      - name: TEMP capture exact Spotless formatting
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash mvnw -q -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
-          printf '%s\n' 'YAKSPOTLESS_FILES_BEGIN'
-          git diff --name-only -- '*.java' | while IFS= read -r changed; do
-            if [[ ! -f "${changed}" ]]; then continue; fi
-            printf 'YAKSPOTLESS_FILE:%s\n' "${changed}"
-            base64 -w 192 "${changed}"
-            printf 'YAKSPOTLESS_END:%s\n' "${changed}"
-          done
-          printf '%s\n' 'YAKSPOTLESS_FILES_END'
-
       - name: Backend format
         run: >-
           bash mvnw -q -DskipTests
