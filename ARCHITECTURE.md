@@ -40,23 +40,21 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-flow/yak-flow-api`
 
-暂时保留原有 Source / Sink、Row / Schema / Logical Type、Boundedness 与 CheckpointState 契约，供尚未迁移的代码使用；新引擎以 `yak-ops-core` 契约为目标，不在一条执行链路中混用新旧 Source API。过渡期间 API 保持 JDK-only。
+暂时保留 Row、Schema、Logical Type 等值类型。旧 Source / Sink / CheckpointState / Trace 接口已删除；新的统一 Source / Sink API 以 `yak-ops-core` 为准。
 
 ### `yak-flow/yak-flow-runtime`
 
-拥有本地执行实现：`CompiledJobPlan`（JobID / 配置快照 / 执行图一致性）、`TaskInfo` / `TaskEnvironment`、`LocalPipelineExecutor`、`LocalJobClient`、`LocalStreamJobRunner`、`StreamTask`、`SourceOperatorStreamTask`、`LocalOperatorChain` 和 `source.coordinator`。新 Core-based Runtime 支持一个 Source → 零个或多个单输入 Operator → 一个 Sink 的**线性图**：单并行 FORWARD 图继续采用内联链；多并行图通过 `LocalTaskGraph` 创建 Source/Operator/Sink 子任务，`LocalChannel` 提供有界背压，`LocalResultPartition` 根据 StreamEdge 的 FORWARD / REBALANCE / KEYED 显式路由。全部上游正常结束后才 finish / flush；失败或取消中止 Channel 并释放资源。多源、分叉、动态扩缩容、网络 Shuffle 和中间 Operator 状态恢复仍未实现。新 Runtime 的 `LocalCheckpointCoordinator` 支持 Source → Sink（多 Reader / Writer）在单节点冻结分片分配、暂停 Source、等待有界 Channel 排空、Sink.flush(false)、版本化状态原子持久化及最近已完成快照恢复。没有稳定 UID / 状态目录时不允许开启可恢复检查点，且不承诺 Exactly-once。模块依赖 `yak-ops-core`，过渡期保留旧 YakFlow API；不拥有产品 Task / Execution / Attempt 持久化、Cron 或 Retry 策略。旧 `io.yak.ops.flow.runtime.LocalExecutionEngine` / `LocalExecution` 仍由现有 Data Sync / JDBC / MySQL CDC 的产品入口直接依赖；在对应旧 Source/Sink 协议和业务调用方完成迁移前不得直接删除。旧链路的 CheckpointState、指标和取消接口不由新的 CheckpointCoordinator 直接替代，也不能将旧链路的验收证明移作新 Runtime 的验收。
-
-新 Core / Runtime 的配置、执行图、Task/Coordinator 运行上下文与状态恢复的目标边界见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。该契约区分当前实现与拟引入的装配机制，不代表新 Runtime 已具备完整运行或恢复能力。
+保留以 Core API 为基础的新通用单 JVM 执行框架，包括 StreamTask、SourceCoordinator、Channel、CheckpointCoordinator 与 PipelineExecutor 的实现。尚无生产 Data Sync Connector 集成或业务执行入口，不宣称离线、实时或多表链路可运行。根包的旧 LocalExecutionEngine / LocalExecution / Checkpoint / Channel 链路已删除。新 Runtime 的 Flink 包组织另行审查，不在本轮搬类。
 
 ### `yak-flow/yak-flow-connector-jdbc`
 
-拥有同步 SQL、逻辑类型映射与兼容性、split、Reader、SinkWriter 及数据库方言。复用 Datasource Plugin API 的规范化连接和 JDBC 运行时，不复制凭证配置或 Driver 装载机制。
+保留 Maven 模块边界，不含旧 JDBC Source / Sink / Dialect / Reader / Writer 具体实现。
 
 ### `yak-flow/yak-flow-connector-cdc-mysql`
 
-拥有 MySQL CDC 到 YakRow 的转换、Debezium Engine 生命周期，以及连接器私有的 offsets / schema history。Debezium 和 Kafka Connect 类型不得进入 API / Runtime。
+保留 Maven 模块边界，不含旧 MySQL CDC Source、Debezium 及其恢复实现。
 
-上述四个模块的执行、写入、checkpoint 与续传边界统一见 [YakFlow Capability](docs/capabilities/yak-flow/README.md)，包组织与实现约束见 [YakFlow Rules](yak-flow/YAK_FLOW_RULES.md)。
+模块的当前能力边界见 [YakFlow Capability](docs/capabilities/yak-flow/README.md)，实现规范见 [YakFlow Rules](yak-flow/YAK_FLOW_RULES.md)。
 
 ### `yak-ops-business`
 
@@ -82,29 +80,9 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-ops-business/yak-ops-business-data-sync`
 
-唯一稳定产品入口为 `DataSyncService`。拥有定义、发布、Schedule 业务记录、Execution / Attempt 生命周期、产品 Retry 和 REALTIME desired-state 协调；v1.2 起同时拥有产品级 Logical Table Schema Contract。
+保留 `DataSyncService`、`ScheduleEngine`、`DataSyncScheduleFireListener` 和必要的 Schedule 契约类型；暂无任何离线或实时同步的业务实现、Service Bean、执行器、调度、恢复或诊断服务。
 
-职责划分：
-
-- `scheduler` 定义框架无关的 ScheduleEngine 与 Fire 回调；Quartz 实现在 Boot。
-- `execution/planning` 将冻结快照、Catalog 与安全连接解析为内存执行计划。
-- `execution/executor` 提交一次 Runtime 尝试并报告结果；`execution/lifecycle` 统一持久化状态、取消引用与启动 LOST 处理。
-- `execution/realtime` 拥有 CDC state identity 和进程内 serverId 分配；连接器拥有状态文件内容。
-- `schema` 拥有产品级 LogicalTable / LogicalColumn；复用 YakFlow Logical Type，但不把 Workspace、Comment、Schema Version 等产品元数据下沉到 Runtime。
-
-通过 `DataSourceService` 读取 Catalog / 解析运行连接，不绕过该接口访问 Datasource DAO 或 Plugin Registry。运行计划可以间接持有凭证，但只能存在于内存，不能进入快照、响应或日志。
-
-数据同步扩展到多表、增量和长期运行时，产品级 ownership 仍留在 Data Sync：
-
-- Task 级共享策略与每张表的稳定 Route identity 由 Data Sync 拥有。
-- 一次 Task 运行的 Root Execution、单表 Table Execution 与 Attempt 由 Data Sync 负责持久化和聚合；YakFlow 不成为产品级多任务调度器。
-- OFFLINE Incremental 的 confirmed cursor / watermark、Schema baseline / diff、Recovery budget 与 Task Health 都是产品事实，不下沉到 YakFlow。
-- YakFlow 继续接收单条已解析的 Source → Sink 执行计划并负责数据平面；连接器私有 checkpoint 不能替代产品级 Route 状态。
-- REALTIME periodic reconciliation 属于 Data Sync lifecycle；Boot 可以负责调度 / 装配入口，但不能直接查询 DAO 后自行创建 Execution。
-
-v1.3 的具体范围、兼容要求与 Non-Goals 由 [v1.3.0 Release Contract](docs/release/v1.3.0.md) 冻结；在对应实现 PR 合并前，这些规划能力不计入当前已实现 Capability。
-
-详细行为由 [Data Sync Capability](docs/capabilities/data-sync/README.md) 及其专题定义，实现约束见 [Data Sync Rules](yak-ops-business/yak-ops-business-data-sync/DATA_SYNC_RULES.md)。
+DTO / VO 和历史 Flyway Migration 保留；原有 Data Sync Entity / Mapper / Repository 实现已移除。历史迁移不回滚，避免破坏已部署数据库。Data Sync 暂不提供 HTTP 接口，前端同步页面也暂时下线；详细边界见 [Data Sync Capability](docs/capabilities/data-sync/README.md) 和 [Data Sync Rules](yak-ops-business/yak-ops-business-data-sync/DATA_SYNC_RULES.md)。
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
@@ -118,7 +96,7 @@ Descriptor 是运行时元信息，不是前端动态表单协议。内置 Provi
 
 GlobalExceptionHandler 统一映射 BusinessException 与 ErrorCode；领域模块不创建第二套 HTTP 异常出口。运行时保持单一应用 DataSource、默认事务管理器、MyBatis-Plus 会话工厂与拦截器链、OpenAPI 文档。优先使用 Spring Boot / Starter 自动配置，不手工重建已提供的基础设施 Bean。
 
-QuartzScheduleEngine、Quartz JobFactory、Job 以及启动恢复装配在 Boot。Job 只把稳定 ID 和触发时间交回业务；不直接查询 Repository 或提交 YakFlow。DAO 继续拥有 Schema，Quartz 不拥有业务状态。
+本轮移除同步专用 Quartz 装配、恢复启动器及 Data Sync Controller；未来业务实现完成后重新装配。
 
 ### `yak-ops-ui`
 
@@ -139,17 +117,16 @@ Yak Ops 不依赖外部 `yak-framework`。现有 Common 与 Platform 能力由�
 ## Dependency Direction
 
 ```text
-UI → HTTP → Boot
-             ├─ Platform → DAO / Common
-             ├─ DataSourceService → DAO / Datasource Plugin API
-             └─ DataSyncService → DAO / DataSourceService / YakFlow
+UI → HTTP → Boot → Platform / Datasource Service
+                            ├─ Common
+                            └─ DAO / Datasource Plugin
 
-YakFlow Runtime → Yak Ops Core / YakFlow API（过渡）
-YakFlow Connectors → Yak Ops Core（目标）/ YakFlow API / Datasource connection runtime（过渡）
-Boot Quartz → Data Sync Scheduler Contract
+Data Sync contracts → Common
+YakFlow Runtime → Yak Ops Core
+YakFlow Connector modules → Yak Ops Core (no implementations)
 ```
 
-产品业务与执行机制分离：Quartz 不决定产品 Retry；YakFlow 不持久化产品 Execution；连接器私有状态不冒充通用 Runtime 恢复。当前运行范围为单节点，不声明分布式 ownership 或 exactly-once。
+当前 Data Sync 没有运行入口；业务执行、调度和恢复能力不得由接口或历史发布文档的存在推断为已实现。
 
 ## Refactor Rule
 
