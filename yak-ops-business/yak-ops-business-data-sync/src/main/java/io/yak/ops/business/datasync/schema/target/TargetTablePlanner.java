@@ -2,14 +2,14 @@ package io.yak.ops.business.datasync.schema.target;
 
 import io.yak.ops.business.datasync.schema.LogicalColumn;
 import io.yak.ops.business.datasync.schema.LogicalTable;
-import io.yak.ops.core.types.Column;
-import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDdlPlan;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcNativeType;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
 import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

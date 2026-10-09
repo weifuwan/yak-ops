@@ -54,8 +54,7 @@ public final class TargetSchemaCompatibility {
                 continue;
             }
 
-            Column sourceColumn =
-                    new Column(source.name(), source.dataType(), source.nullable(), source.length());
+            Column sourceColumn = new Column(source.name(), source.dataType(), source.nullable(), source.length());
             Column targetLogicalColumn;
             try {
                 targetLogicalColumn = JdbcSchemaMapper.toColumn(targetColumn);

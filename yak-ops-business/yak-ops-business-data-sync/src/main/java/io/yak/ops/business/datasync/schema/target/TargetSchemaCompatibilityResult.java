@@ -12,8 +12,7 @@ import java.util.List;
  * @author weifuwan
  * @since 2026-10-04
  */
-public record TargetSchemaCompatibilityResult(
-        boolean compatible, TableSchema targetWriteSchema, List<String> issues) {
+public record TargetSchemaCompatibilityResult(boolean compatible, TableSchema targetWriteSchema, List<String> issues) {
 
     public TargetSchemaCompatibilityResult {
         issues = issues == null ? List.of() : List.copyOf(issues);
