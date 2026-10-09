@@ -197,6 +197,10 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             }
             SourceCoordinatorCheckpoint<SourceSplit, Object> sourceState =
                     await(coordinator.snapshotCoordinator(checkpointId));
+            // The Reader and Enumerator are paused *now*. Serialize their potentially mutable
+            // Split/Enumerator objects before either one is allowed to resume. Downstream barrier
+            // alignment may take time and must never change the recorded source offset.
+            CheckpointSnapshot frozenSource = serialize(checkpointId, sourceState, readerStates, Map.of());
 
             // Barriers follow captured source offsets, but the gates can align concurrently
             // with new records on faster producer channels.
@@ -217,7 +221,10 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                     operatorStates.put(entry.getKey(), state);
                 }
             }
-            CheckpointSnapshot snapshot = serialize(checkpointId, sourceState, readerStates, operatorStates);
+            CheckpointSnapshot snapshot = new CheckpointSnapshot(
+                    checkpointId, graphSignature, frozenSource.enumeratorState(),
+                    frozenSource.readerSplits(), frozenSource.assignments(),
+                    System.currentTimeMillis(), operatorStates);
             storage.save(snapshot);
             stored = true;
             if (System.nanoTime() >= checkpointDeadlineNanos) {
