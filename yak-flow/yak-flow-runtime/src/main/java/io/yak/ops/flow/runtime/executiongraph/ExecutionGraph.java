@@ -84,7 +84,7 @@ public final class ExecutionGraph {
         return vertex.getTaskVertex(subtask).getCurrentExecutionAttempt();
     }
 
-    void registerCheckpoint(QuiescentCheckpointCoordinator controller) {
+    void registerCheckpoint(AlignedCheckpointCoordinator controller) {
         if (!checkpointController.complete(Objects.requireNonNull(controller, "controller"))) {
             throw new IllegalStateException("A job may register a single CheckpointCoordinator");
         }
@@ -251,7 +251,7 @@ public final class ExecutionGraph {
         if (status.isTerminalState() || cancellationRequested) {
             return CompletableFuture.failedFuture(new IllegalStateException("已结束或取消中的 Job 不能触发 Checkpoint"));
         }
-        return checkpointController.thenCompose(QuiescentCheckpointCoordinator::trigger).copy();
+        return checkpointController.thenCompose(AlignedCheckpointCoordinator::trigger).copy();
     }
 
     public CompletableFuture<JobExecutionResult> getJobExecutionResult() {
