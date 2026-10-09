@@ -25,4 +25,13 @@ public interface Sink<T> {
      * @throws Exception Writer 创建失败
      */
     SinkWriter<T> createWriter() throws Exception;
+
+    /**
+     * Construct a Writer for one physical subtask. Legacy sinks retain their no-argument factory;
+     * SinkV2 overrides this method to receive the runtime's attempt and configuration context.
+     */
+    default SinkWriter<T> createWriter(WriterInitContext context) throws Exception {
+        java.util.Objects.requireNonNull(context, "context");
+        return createWriter();
+    }
 }

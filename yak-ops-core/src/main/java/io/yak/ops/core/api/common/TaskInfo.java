@@ -11,4 +11,7 @@ public interface TaskInfo {
     int getNumberOfParallelSubtasks();
 
     int getAttemptNumber();
+
+    /** The stable number of key-groups, not the currently deployed subtask count. */
+    int getMaxNumberOfParallelSubtasks();
 }

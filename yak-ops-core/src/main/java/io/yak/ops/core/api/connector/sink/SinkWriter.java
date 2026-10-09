@@ -23,6 +23,22 @@ public interface SinkWriter<T> extends AutoCloseable {
     void write(T element) throws Exception;
 
     /**
+     * Flink Sink V2-style record metadata. This Runtime has no event-time timestamp or watermark
+     * propagation yet: timestamp is null and watermark is Long.MIN_VALUE until that exists.
+     */
+    interface Context {
+        Long timestamp();
+
+        long currentWatermark();
+    }
+
+    /** Legacy writers still work; V2 writers may override this method to consume record context. */
+    default void write(T element, Context context) throws Exception {
+        java.util.Objects.requireNonNull(context, "context");
+        write(element);
+    }
+
+    /**
      * 刷出 Writer 中尚未完成的缓冲数据。
      *
      * <p>Runtime 在 Checkpoint 对齐阶段或有界输入正常结束时调用此方法。
