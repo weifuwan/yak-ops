@@ -1,14 +1,14 @@
 package io.yak.ops.core.api.connector.source;
 
 /**
- * Source 输出的数据流有界性。
+ * Describes whether a Source can produce a finite or continuously unbounded stream.
  *
- * <p>此属性描述 Source 的数据边界，不等同于作业最终选择的运行模式。
+ * <p>Boundedness is a property of the Source, not the resolved execution mode.
  */
 public enum Boundedness {
-    /** 有界数据流，例如一次全量快照读取。 */
+    /** Produces a finite stream, such as a complete table snapshot. */
     BOUNDED,
 
-    /** 持续无界数据流，例如长期运行的 CDC 订阅。 */
+    /** Produces an unbounded stream, such as a continuous CDC subscription. */
     CONTINUOUS_UNBOUNDED
 }

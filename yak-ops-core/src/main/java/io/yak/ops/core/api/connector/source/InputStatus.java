@@ -1,11 +1,11 @@
 package io.yak.ops.core.api.connector.source;
 
-/** SourceReader 一次非阻塞 pollNext() 的结果。 */
+/** Result of one non-blocking {@link SourceReader#pollNext(ReaderOutput)} call. */
 public enum InputStatus {
-    /** 当前仍有数据可立即处理。 */
+    /** More data can be consumed immediately. */
     MORE_AVAILABLE,
-    /** 当前没有数据，应等待 isAvailable()。 */
+    /** No data is ready; suspend polling until the availability future completes. */
     NOTHING_AVAILABLE,
-    /** 所有分片已处理完且不再有新分片，输入正式结束。 */
+    /** All assigned splits are exhausted and no further splits will arrive. */
     END_OF_INPUT
 }
