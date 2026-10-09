@@ -8,13 +8,11 @@ Scope: `yak-ops-ui/apps/web/**`。
 
 ## App Domain
 
-任务定义、Task Detail 与运维入口分离，复用 `app/data-sync` 的共享实现，不复制离线/实时编辑器或 Execution 展示组件。Task Detail 留在数据集成内，只读展示当前 Task 的 Execution / Attempt 运行事实；离线与实时 Task Detail 统一使用左侧 Execution 列表与右侧详情的 master-detail 布局，右侧 PageHeader 固定，详情区域独立滚动，当前 Execution 仍通过 URL 查询参数保持可恢复。OFFLINE Task 列表允许对已上线且无活动 Execution 的任务执行一次手工运行；Editor 和 Task Detail 不承载运行/停止命令，REALTIME Start / Stop 与 Schedule Runtime 也不因此迁入数据集成页面。跨 Task 观察仍由运维中心负责。任务发布与执行语义见 [Data Sync Contract](../../../docs/capabilities/data-sync/README.md)；表单遵循 [Form Rules](FORM_RULES.md)。
-
-Task Detail 的信息层级优先“执行结果 → 失败原因 → 指标 → 排障细节”：主视图不直接展示内部 Execution ID；失败原因前置到执行概览；仅在存在真实重试或等待重试时展示重试记录。选中 Execution 的前两个 Tab 统一为 `执行情况 / 配置快照`；第三个 Tab 按同步类型区分：OFFLINE 为 `执行诊断`，REALTIME 仍为 `执行日志`。OFFLINE 诊断消费 Runtime Trace Summary、Source Split 与 Sink Batch API，并将既有生命周期事件折叠为辅助审计信息；`配置快照` 必须读取该 Execution 的冻结 definitionSnapshot，而不是当前 Task 定义，并按 `数据来源 / 数据去向 / 执行策略` 分组。Source 只承载读端与 Connector Source 参数，Sink 只承载写端与 Connector Sink 参数，Execution Strategy 承载版本、Checkpoint、超时与 Retry 等运行策略；前端只基于现有 Snapshot 字段分组展示，不在本层发明新的后端配置模型。readRows / writeRows 继续遵循后端持久化指标语义。
+当前 Data Integration 仅保留数据源管理。已删除的离线、实时同步、运维页面和 HTTP 客户端不得通过占位组件假装可用。未来重新实现时，按照用户界面文案最小化与共享 Yak UI 规则重新定义交互。
 
 ## App Shell
 
-- 认证后产品复用同一参数化 AppLayout。数据集成、运维中心为 Workspace-scoped，管理中心不受当前 Workspace gate，也不显示 Workspace Switcher。
+- 认证后产品复用同一参数化 AppLayout。数据集成为 Workspace-scoped，管理中心不受当前 Workspace gate，也不显示 Workspace Switcher。
 - Workspace-scoped Outlet 按当前 Workspace 身份重建，防止列表、选择和表单状态跨空间泄漏。页面填充父容器，不自行用 `calc(100vh - ...)` 扣减 Shell 高度。
 - Router 只负责 URL 到产品入口的装配；Context 只持有应用级运行态。
 - `navigation.ts` 定义完整产品 Registry；User Preference 只存稳定 product id，不复制标签、路由和图标。

@@ -33,11 +33,8 @@ scripts/          工具与架构检查
 ## Domain Locality
 
 - `app/datasource`：数据源管理页面；就近约束见 [Datasource Rules](apps/web/app/datasource/DATASOURCE_RULES.md)。
-- `app/offline-sync`、`app/realtime-sync`：任务定义入口；共享编辑器、生命周期展示及运行态组件由 `app/data-sync` 承载。
-- `app/operations`：运维入口，复用 `app/data-sync` 的任务运行与实例组件；界面职责见 [Operations Rules](apps/web/app/operations/OPERATIONS_RULES.md)。
 - `app/management`：用户与工作空间管理；`app/login`：登录产品页面。
-
-Task、Execution、Attempt、Schedule 的业务含义由 [Data Sync Contract](../docs/capabilities/data-sync/README.md) 及其专题定义，不在前端架构中重述。共享编辑器规则见 [Task Editor Rules](apps/web/app/data-sync/DATA_SYNC_TASK_EDITOR_RULES.md)。
+- 离线 / 实时同步与运维旧页面已删除；前端当前不提交同步任务。Data Sync 的后续页面重新实现前只保留原始 TypeScript DTO 类型定义。
 
 ## Dependency Direction
 
@@ -53,13 +50,13 @@ app → @yak-ops/yak-ui → Base UI / DOM
 
 [AppLayout](apps/web/app/layout/AppLayout.tsx) 拥有视口、Launcher 开关与 Workspace-scoped Outlet 生命周期；TopBar、ProductSidebar、ProductLauncher 和 AllProductMenu 归 `app/layout`。
 
-产品 Registry 由 [navigation.ts](apps/web/app/layout/navigation.ts) 定义。数据集成与运维中心使用工作空间边界，管理中心是系统级入口；路由装配决定 `workspaceScoped`，偏好数据不定义产品标签、图标或路由。
+产品 Registry 由 [navigation.ts](apps/web/app/layout/navigation.ts) 定义。当前数据集成只提供数据源管理入口，管理中心保持原有入口；偏好数据不定义产品标签、图标或路由。
 
 Shell 的交互不变量由 [App Rules](apps/web/APP_RULES.md) 定义。页面内标题使用 [PageHeader](packages/yak-ui/docs/page-header.md)，不是第二个应用 TopBar；固定标题和局部滚动由页面布局负责。
 
 ## Service Boundary
 
-[Service Rules](SERVICE_RULES.md) 定义 HTTP、类型与导出生命周期。数据源 Service 包含只读 Catalog 调用，数据同步 Service 承载任务、发布、调度、运行与运维读模型；不按后端接口数量提前生成前端导出。
+[Service Rules](SERVICE_RULES.md) 定义 HTTP、类型与导出生命周期。数据源 Service 保留 Catalog 调用；旧数据同步 HTTP Service 已移除，当前只有 Data Sync TypeScript 类型定义。
 
 ## Architecture Enforcement
 

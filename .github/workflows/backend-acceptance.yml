@@ -1,10 +1,10 @@
-name: Backend Acceptance
+name: Backend Acceptance (implementation pending)
 
 on:
   workflow_call:
     inputs:
       full_sweep:
-        description: Run JDBC, CDC and Automation acceptance regardless of changed paths.
+        description: Require full Data Sync acceptance for a release gate.
         required: false
         type: boolean
         default: false
@@ -24,192 +24,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  detect-changes:
-    name: Detect Acceptance Changes
+  acceptance-gate:
+    name: Backend Acceptance — Not Available
     runs-on: ubuntu-latest
-    outputs:
-      jdbc: ${{ steps.changes.outputs.jdbc }}
-      cdc: ${{ steps.changes.outputs.cdc }}
-      automation: ${{ steps.changes.outputs.automation }}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Detect acceptance changes
-        id: changes
+      - name: Report acceptance status
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
           FULL_SWEEP: ${{ inputs.full_sweep }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
-          CURRENT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-
-          if [[ "${FULL_SWEEP}" == "true" || "${EVENT_NAME}" == "schedule" || "${EVENT_NAME}" == "workflow_dispatch" ]]; then
-            echo "jdbc=true" >> "${GITHUB_OUTPUT}"
-            echo "cdc=true" >> "${GITHUB_OUTPUT}"
-            echo "automation=true" >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
-
-          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
-            base_sha="${PR_BASE_SHA}"
-            head_sha="${PR_HEAD_SHA}"
-          else
-            base_sha="${PUSH_BEFORE_SHA}"
-            head_sha="${CURRENT_SHA}"
-          fi
-
-          if [[ -z "${base_sha}" || "${base_sha}" =~ ^0+$ ]]; then
-            base_sha="$(git rev-parse "${head_sha}^")"
-          fi
-
-          git diff --name-only "${base_sha}" "${head_sha}" > /tmp/backend-acceptance-changes.txt
-
-          jdbc=false
-          cdc=false
-          automation=false
-
-          while IFS= read -r file; do
-            case "${file}" in
-              pom.xml|mvnw|mvnw.cmd|.mvn/*|yak-ops-bom/*|yak-flow/yak-flow-api/*|yak-flow/yak-flow-runtime/*|yak-ops-plugins/yak-ops-plugin-datasource/*|yak-flow/yak-flow-connector-jdbc/*|yak-ops-common/src/main/java/io/yak/ops/common/bean/dto/datasync/DataSync*Mapping*|yak-ops-common/src/main/java/io/yak/ops/common/bean/vo/datasync/DataSync*Mapping*|yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/schema/*|yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/execution/planning/*|.github/workflows/backend-acceptance.yml)
-                jdbc=true
-                ;;
-            esac
-
-            case "${file}" in
-              pom.xml|mvnw|mvnw.cmd|.mvn/*|yak-ops-bom/*|yak-flow/yak-flow-api/*|yak-flow/yak-flow-runtime/*|yak-ops-plugins/yak-ops-plugin-datasource/*|yak-flow/yak-flow-connector-jdbc/*|yak-flow/yak-flow-connector-cdc-mysql/*|yak-ops-common/src/main/java/io/yak/ops/common/bean/dto/datasync/DataSync*Mapping*|yak-ops-common/src/main/java/io/yak/ops/common/bean/vo/datasync/DataSync*Mapping*|yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/schema/*|yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/execution/planning/*|.github/workflows/backend-acceptance.yml)
-                cdc=true
-                ;;
-            esac
-
-            case "${file}" in
-              pom.xml|mvnw|mvnw.cmd|.mvn/*|yak-ops-bom/*|yak-ops-common/src/main/java/io/yak/ops/common/*datasync*|yak-ops-dao/src/main/java/io/yak/ops/dao/*datasync*|yak-ops-dao/src/main/resources/db/migration/yak-ops/V*__*.sql|yak-ops-business/yak-ops-business-data-sync/*|yak-ops-business/yak-ops-business-data-sync/**/*|yak-ops-boot/src/main/java/io/yak/ops/boot/scheduler/*|yak-ops-boot/src/main/java/io/yak/ops/boot/config/*|.github/workflows/backend-acceptance.yml)
-                automation=true
-                ;;
-            esac
-          done < /tmp/backend-acceptance-changes.txt
-
-          echo "jdbc=${jdbc}" >> "${GITHUB_OUTPUT}"
-          echo "cdc=${cdc}" >> "${GITHUB_OUTPUT}"
-          echo "automation=${automation}" >> "${GITHUB_OUTPUT}"
-
-  jdbc-acceptance:
-    name: JDBC Acceptance
-    needs: detect-changes
-    if: needs.detect-changes.outputs.jdbc == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-
-      - name: Run JDBC acceptance
-        run: >-
-          bash mvnw -q
-          -pl yak-flow/yak-flow-connector-jdbc
-          -am
-          -Dtest=OfflineSyncJdbcAcceptanceIT
-          -Dsurefire.failIfNoSpecifiedTests=false
-          test
-
-  mysql-cdc-acceptance:
-    name: MySQL CDC Cross-Database Acceptance
-    needs: detect-changes
-    if: needs.detect-changes.outputs.cdc == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-
-      - name: Run MySQL CDC cross-database acceptance
-        run: >-
-          bash mvnw -q
-          -pl yak-flow/yak-flow-connector-cdc-mysql
-          -am
-          -Dtest=MySqlCdcIntegrationIT
-          -Dsurefire.failIfNoSpecifiedTests=false
-          test
-
-  automation-acceptance:
-    name: Data Sync Automation Acceptance
-    needs: detect-changes
-    if: needs.detect-changes.outputs.automation == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-
-      - name: Run Data Sync automation acceptance
-        run: >-
-          bash mvnw -q
-          -pl yak-ops-boot
-          -am
-          -Dtest=DataSyncAutomationAcceptanceIT,QuartzScheduleEngineTest
-          -Dsurefire.failIfNoSpecifiedTests=false
-          test
-
-  acceptance-gate:
-    name: Backend Acceptance Gate
-    if: always()
-    needs:
-      - detect-changes
-      - jdbc-acceptance
-      - mysql-cdc-acceptance
-      - automation-acceptance
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Verify acceptance results
-        shell: bash
-        env:
-          DETECT_RESULT: ${{ needs.detect-changes.result }}
-          JDBC_RESULT: ${{ needs.jdbc-acceptance.result }}
-          CDC_RESULT: ${{ needs.mysql-cdc-acceptance.result }}
-          AUTOMATION_RESULT: ${{ needs.automation-acceptance.result }}
-        run: |
-          set -euo pipefail
-
-          if [[ "${DETECT_RESULT}" != "success" ]]; then
-            echo "Change detection failed: ${DETECT_RESULT}"
+          echo "::warning::The old JDBC, MySQL CDC and Data Sync automation implementations and E2E tests were removed. No acceptance tests have been executed."
+          if [[ "${FULL_SWEEP}" == "true" || "${EVENT_NAME}" == "workflow_dispatch" || "${EVENT_NAME}" == "schedule" ]]; then
+            echo "::error::Full Backend Acceptance is unavailable until new implementations and tests exist. Formal release is blocked."
             exit 1
           fi
-
-          for result in "${JDBC_RESULT}" "${CDC_RESULT}" "${AUTOMATION_RESULT}"; do
-            if [[ "${result}" != "success" && "${result}" != "skipped" ]]; then
-              echo "Acceptance job failed: ${result}"
-              exit 1
-            fi
-          done
+          echo "This check only reports acceptance unavailability; it does not claim PASS."
