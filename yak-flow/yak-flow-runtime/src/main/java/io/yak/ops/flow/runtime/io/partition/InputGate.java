@@ -25,6 +25,12 @@ public final class InputGate<T> {
     private final List<ResultSubpartition<T>> subpartitions;
     private final boolean[] producerFinished;
     private final boolean[] barrierBlocked;
+    // Producer-side ordering fence: after a barrier is enqueued, post-barrier records must
+    // not fill the *shared* capacity needed by other producers' pre-barrier records.
+    private final long[] producerBarriers;
+    private long enqueuedCheckpointId = -1;
+    private long declinedCheckpointId;
+    private long pendingDeclineNotification;
     private long aligningCheckpointId = -1;
     private long lastAlignedCheckpointId;
     private int barrierCount;
@@ -45,6 +51,7 @@ public final class InputGate<T> {
         this.capacity = capacity;
         this.producerFinished = new boolean[producerCount];
         this.barrierBlocked = new boolean[producerCount];
+        this.producerBarriers = new long[producerCount];
         this.remainingProducers = producerCount;
         // The producer ResultPartition owns each subpartition and registers it before Task start.
         List<ResultSubpartition<T>> channels = new ArrayList<>(producerCount);
@@ -82,7 +89,8 @@ public final class InputGate<T> {
             if (producerFinished[producer]) {
                 throw new IllegalStateException("Producer has already finished: " + producer);
             }
-            while (queuedRecords == capacity) {
+            while (queuedRecords == capacity
+                    || producerBarriers[producer] > lastAlignedCheckpointId) {
                 spaceAvailable.await();
                 checkFailure();
                 if (producerFinished[producer]) {
@@ -115,6 +123,29 @@ public final class InputGate<T> {
             if (producerFinished[producer]) {
                 throw new IllegalStateException("Producer has already finished: " + producer);
             }
+            long id = barrier.checkpointId();
+            if (id <= lastAlignedCheckpointId) {
+                throw new IllegalStateException("Stale checkpoint barrier: " + id);
+            }
+            if (id <= declinedCheckpointId) {
+                return; // The coordinator already declined this in-flight checkpoint.
+            }
+            if (enqueuedCheckpointId != -1 && enqueuedCheckpointId != id) {
+                throw new IllegalStateException("Overlapping checkpoint barriers");
+            }
+            if (producerBarriers[producer] == id) {
+                throw new IllegalStateException("Duplicate producer checkpoint barrier: " + id);
+            }
+            enqueuedCheckpointId = id;
+            producerBarriers[producer] = id;
+            // EndOfPartition on another channel without this barrier declines the checkpoint,
+            // not the data pipeline.
+            for (int i = 0; i < producerFinished.length; i++) {
+                if (producerFinished[i] && producerBarriers[i] != id) {
+                    declineCheckpointLocked(id);
+                    return;
+                }
+            }
             subpartition.elements.addLast(barrier);
             available.complete(null);
         } finally {
@@ -133,7 +164,13 @@ public final class InputGate<T> {
                 throw new IllegalStateException("Producer finished twice: " + producer);
             }
             producerFinished[producer] = true;
-            if (--remainingProducers == 0) {
+            --remainingProducers;
+            // A finished producer cannot supply the missing alignment barrier.
+            if (enqueuedCheckpointId > 0 && producerBarriers[producer] != enqueuedCheckpointId) {
+                declineCheckpointLocked(enqueuedCheckpointId);
+            }
+            spaceAvailable.signalAll();
+            if (remainingProducers == 0) {
                 available.complete(null);
             }
         } finally {
@@ -145,6 +182,11 @@ public final class InputGate<T> {
     @FunctionalInterface
     public interface BarrierHandler {
         void onBarrier(long checkpointId) throws Exception;
+
+        /** Checkpoint-only failure: the input task must keep processing regular data. */
+        default void onCheckpointDeclined(long checkpointId) throws Exception {
+            throw new UnsupportedOperationException("Checkpoint decline handler is missing");
+        }
     }
 
     /** Compatibility overload for pure data inputs that never receive a checkpoint barrier. */
@@ -161,12 +203,17 @@ public final class InputGate<T> {
         Objects.requireNonNull(barrierHandler, "barrierHandler");
         T record = null;
         long completedBarrier = -1;
+        long declinedBarrier = -1;
         boolean processing = false;
         boolean partialBarrier = false;
         lock.lock();
         try {
             checkFailure();
-            for (int i = 0; i < subpartitions.size(); i++) {
+            if (pendingDeclineNotification > 0) {
+                declinedBarrier = pendingDeclineNotification;
+                pendingDeclineNotification = 0;
+            }
+            for (int i = 0; declinedBarrier < 0 && i < subpartitions.size(); i++) {
                 int channel = (nextInput + i) % subpartitions.size();
                 if (barrierBlocked[channel]) {
                     continue;
@@ -191,7 +238,9 @@ public final class InputGate<T> {
                         Arrays.fill(barrierBlocked, false);
                         aligningCheckpointId = -1;
                         lastAlignedCheckpointId = id;
+                        enqueuedCheckpointId = -1;
                         barrierCount = 0;
+                        spaceAvailable.signalAll();
                         completedBarrier = id;
                         processingRecords++;
                         processing = true;
@@ -208,14 +257,19 @@ public final class InputGate<T> {
                 }
                 break;
             }
-            if (!processing && !partialBarrier && completedBarrier < 0 && record == null) {
-                if (remainingProducers == 0 && !anyBuffered() && aligningCheckpointId == -1) {
+            if (!processing && !partialBarrier && completedBarrier < 0
+                    && declinedBarrier < 0 && record == null) {
+                if (remainingProducers == 0 && !anyReadable() && aligningCheckpointId > 0) {
+                    // Defensive fallback for an incomplete alignment whose producers all ended.
+                    long id = aligningCheckpointId;
+                    declineCheckpointLocked(id);
+                    declinedBarrier = pendingDeclineNotification;
+                    pendingDeclineNotification = 0;
+                } else if (remainingProducers == 0 && !anyBuffered() && aligningCheckpointId == -1) {
                     return InputStatus.END_OF_INPUT;
+                } else {
+                    return InputStatus.NOTHING_AVAILABLE;
                 }
-                if (remainingProducers == 0 && !anyReadable()) {
-                    throw new IllegalStateException("Producers finished before barrier alignment completed");
-                }
-                return InputStatus.NOTHING_AVAILABLE;
             }
         } catch (Exception | Error error) {
             abort(error);
@@ -225,7 +279,9 @@ public final class InputGate<T> {
         }
 
         try {
-            if (completedBarrier > 0) {
+            if (declinedBarrier > 0) {
+                barrierHandler.onCheckpointDeclined(declinedBarrier);
+            } else if (completedBarrier > 0) {
                 barrierHandler.onBarrier(completedBarrier);
             } else if (record != null) {
                 output.collect(record);
@@ -247,6 +303,44 @@ public final class InputGate<T> {
                 }
             }
         }
+    }
+
+    /**
+     * Drop an aborted checkpoint's control events, without dropping a single data record.
+     * Called by the coordinator on failure and by the gate on an input EndOfPartition race.
+     */
+    public void declineCheckpoint(long checkpointId) {
+        if (checkpointId <= 0) {
+            throw new IllegalArgumentException("Checkpoint ID must be positive");
+        }
+        lock.lock();
+        try {
+            declineCheckpointLocked(checkpointId);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void declineCheckpointLocked(long checkpointId) {
+        if (checkpointId <= declinedCheckpointId || checkpointId <= lastAlignedCheckpointId) {
+            return;
+        }
+        declinedCheckpointId = checkpointId;
+        pendingDeclineNotification = checkpointId;
+        enqueuedCheckpointId = -1;
+        aligningCheckpointId = -1;
+        barrierCount = 0;
+        Arrays.fill(barrierBlocked, false);
+        Arrays.fill(producerBarriers, 0);
+        // Keep all records, including those that were after a now-declined barrier.
+        for (ResultSubpartition<T> partition : subpartitions) {
+            if (partition != null) {
+                partition.elements.removeIf(item -> item instanceof CheckpointBarrier barrier
+                        && barrier.checkpointId() <= checkpointId);
+            }
+        }
+        spaceAvailable.signalAll();
+        available.complete(null);
     }
 
     private boolean anyBuffered() {
@@ -272,7 +366,7 @@ public final class InputGate<T> {
             if (failure != null) {
                 return CompletableFuture.failedFuture(failure);
             }
-            if (anyReadable() || remainingProducers == 0) {
+            if (pendingDeclineNotification > 0 || anyReadable() || remainingProducers == 0) {
                 return CompletableFuture.completedFuture(null);
             }
             if (available.isDone()) {
