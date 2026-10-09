@@ -5,11 +5,11 @@ import io.yak.ops.connector.jdbc.database.converter.StandardJdbcDialectConverter
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.util.stream.Collectors;
 
 /**

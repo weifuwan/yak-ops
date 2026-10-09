@@ -116,7 +116,11 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
     private JdbcSourceEnumerator newEnumerator(
             SplitEnumeratorContext<JdbcSourceSplit> context, JdbcEnumeratorState restored) {
         return new JdbcSourceEnumerator(
-                context, new JdbcSplitPlanner(connectionProvider, dialect, configuration), tables, fingerprint, restored);
+                context,
+                new JdbcSplitPlanner(connectionProvider, dialect, configuration),
+                tables,
+                fingerprint,
+                restored);
     }
 
     private void validateOptions() {

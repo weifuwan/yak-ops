@@ -56,8 +56,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         this(new DriverManagerJdbcConnectionProvider(connectionOptions), dialect, configuration);
     }
 
-    public JdbcSourceSplitReader(
-            JdbcConnectionProvider connections, JdbcDialect dialect, Configuration configuration) {
+    public JdbcSourceSplitReader(JdbcConnectionProvider connections, JdbcDialect dialect, Configuration configuration) {
         this.connections = Objects.requireNonNull(connections, "connections");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
         Objects.requireNonNull(configuration, "configuration");
@@ -189,7 +188,9 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
             throw new SQLException("JDBC ResultSet shape changed since split planning");
         }
         for (int index = 0; index < split.columns().size(); index++) {
-            if (!split.columns().get(index).equals(converter.schema().column(index).name())) {
+            if (!split.columns()
+                    .get(index)
+                    .equals(converter.schema().column(index).name())) {
                 throw new SQLException("JDBC ResultSet column identity changed since split planning");
             }
         }
