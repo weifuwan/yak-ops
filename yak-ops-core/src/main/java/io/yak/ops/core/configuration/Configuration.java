@@ -16,12 +16,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Mutable, typed configuration container for job submission and execution planning.
- *
- * <p>Values may originate from typed setters or string-valued persisted configuration.
- * Copy operations isolate the container's explicit entries. Diagnostic {@code toString()} masks commonly sensitive keys, while {@code toMap()}
- * exports original values.
- */
+* Mutable, typed configuration container for job submission and execution planning.
+*
+* <p>Values may originate from typed setters or string-valued persisted configuration.
+* Copy operations isolate the container's explicit entries. Diagnostic {@code toString()} masks commonly sensitive keys, while {@code toMap()}
+* exports original values.
+*/
 public class Configuration implements ReadableConfig, WritableConfig, Serializable, Cloneable {
 
     @Serial
@@ -110,10 +110,10 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
     }
 
     /**
- * Merges explicitly configured entries from another configuration.
- *
- * <p>Incoming entries with matching keys override the existing values; defaults are not copied.
- */
+    * Merges explicitly configured entries from another configuration.
+    *
+    * <p>Incoming entries with matching keys override the existing values; defaults are not copied.
+    */
     public void addAll(Configuration other) {
         Map<String, Object> incoming =
                 Objects.requireNonNull(other, "other must not be null").snapshot();
