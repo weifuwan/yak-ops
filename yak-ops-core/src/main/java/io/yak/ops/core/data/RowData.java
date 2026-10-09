@@ -116,34 +116,35 @@ public interface RowData {
         if (position < 0 || !type.isResolved()) {
             throw new IllegalArgumentException("Expected resolved type and nonnegative field position");
         }
-        FieldGetter getter = switch (type.getTypeRoot()) {
-            case BOOLEAN -> row -> row.getBoolean(position);
-            case TINYINT -> row -> row.getByte(position);
-            case SMALLINT -> row -> row.getShort(position);
-            case INTEGER -> row -> row.getInt(position);
-            case BIGINT -> row -> row.getLong(position);
-            case FLOAT -> row -> row.getFloat(position);
-            case DOUBLE -> row -> row.getDouble(position);
-            case DECIMAL -> {
-                DecimalType decimal = (DecimalType) type;
-                yield row -> row.getDecimal(position, decimal.precision(), decimal.scale());
-            }
-            case CHAR, VARCHAR -> row -> row.getString(position);
-            case BINARY, VARBINARY -> row -> row.getBinary(position);
-            case DATE -> row -> row.getDate(position);
-            case TIME_WITHOUT_TIME_ZONE -> {
-                int precision = ((TimeType) type).precision();
-                yield row -> row.getTime(position, precision);
-            }
-            case TIMESTAMP_WITHOUT_TIME_ZONE -> {
-                int precision = ((TimestampType) type).precision();
-                yield row -> row.getTimestamp(position, precision);
-            }
-            case TIMESTAMP_WITH_TIME_ZONE -> {
-                int precision = ((ZonedTimestampType) type).precision();
-                yield row -> row.getZonedTimestamp(position, precision);
-            }
-        };
+        FieldGetter getter =
+                switch (type.getTypeRoot()) {
+                    case BOOLEAN -> row -> row.getBoolean(position);
+                    case TINYINT -> row -> row.getByte(position);
+                    case SMALLINT -> row -> row.getShort(position);
+                    case INTEGER -> row -> row.getInt(position);
+                    case BIGINT -> row -> row.getLong(position);
+                    case FLOAT -> row -> row.getFloat(position);
+                    case DOUBLE -> row -> row.getDouble(position);
+                    case DECIMAL -> {
+                        DecimalType decimal = (DecimalType) type;
+                        yield row -> row.getDecimal(position, decimal.precision(), decimal.scale());
+                    }
+                    case CHAR, VARCHAR -> row -> row.getString(position);
+                    case BINARY, VARBINARY -> row -> row.getBinary(position);
+                    case DATE -> row -> row.getDate(position);
+                    case TIME_WITHOUT_TIME_ZONE -> {
+                        int precision = ((TimeType) type).precision();
+                        yield row -> row.getTime(position, precision);
+                    }
+                    case TIMESTAMP_WITHOUT_TIME_ZONE -> {
+                        int precision = ((TimestampType) type).precision();
+                        yield row -> row.getTimestamp(position, precision);
+                    }
+                    case TIMESTAMP_WITH_TIME_ZONE -> {
+                        int precision = ((ZonedTimestampType) type).precision();
+                        yield row -> row.getZonedTimestamp(position, precision);
+                    }
+                };
         return row -> row.isNullAt(position) ? null : getter.getFieldOrNull(row);
     }
 
