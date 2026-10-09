@@ -29,6 +29,9 @@ Every job still runs and reports an explicit scope decision:
   Release Gate always exercises the full quality suite, never selective checks.
 - Documentation-only changes may skip heavy jobs. The scope steps still run
   and `PR Required Checks` remains present and required.
+- Release script syntax and version metadata consistency remain lightweight
+  global checks, including for frontend-only edits to `package.json`,
+  `package-lock.json`, Compose, and `.env.example`.
 - A malformed diff or scope detection failure fails its job; it cannot result
   in a silently green required status.
 
