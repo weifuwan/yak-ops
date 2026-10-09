@@ -29,6 +29,8 @@ import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.operators.CheckpointedStreamOperator;
+import io.yak.ops.flow.runtime.state.OperatorStateBackend;
 import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
@@ -177,30 +179,33 @@ class CheckpointRecoveryTest {
     }
 
     @Test
-    void shouldRejectCheckpointForOperatorWithoutPersistedStateContract() {
+    void shouldRestoreStatefulIntermediateOperatorsAfterAlignedBarriers() throws Exception {
         CapturedSink sink = new CapturedSink();
-        Configuration config = configuration(false);
-        SourceTransformation<String> input = new SourceTransformation<>(
-                "source", new OffsetSource(2), String.class, 2);
-        OneInputTransformation<String, String> operator = new OneInputTransformation<>(
-                input, "stateful", () -> new OneInputOperator<>() {
-                    private int seen;
+        JobClient first = new EmbeddedPipelineExecutor().execute(
+                graphWithOperator(new OffsetSource(4), sink, new AtomicInteger()), configuration(false))
+                .get(5, TimeUnit.SECONDS);
+        awaitCount(sink.rows, 8);
+        CheckpointSnapshot saved = ((EmbeddedJobClient) first).checkpoint().get(5, TimeUnit.SECONDS);
+        assertEquals(2, saved.operatorStates().size());
+        assertEquals(8, saved.operatorStates().values().stream()
+                .mapToInt(state -> java.nio.ByteBuffer.wrap(state.get("operator/count").bytes()).getInt())
+                .sum());
+        first.cancel().get(5, TimeUnit.SECONDS);
 
-                    @Override
-                    public void processElement(String element, Collector<String> output) throws Exception {
-                        seen++;
-                        output.collect(element + seen);
-                    }
-                }, String.class);
-        SinkTransformation<String> end = new SinkTransformation<>(operator, "sink", sink, 1);
-        input.setUid("stable-source");
-        operator.setUid("stateful-operator");
-        end.setUid("stable-sink");
-        StreamGraph graph = new StreamGraphGenerator(end, config).generate();
-        CompletionException failure = assertThrows(CompletionException.class,
-                () -> new EmbeddedPipelineExecutor().execute(graph, config).join());
-        assertTrue(failure.getCause() instanceof UnsupportedOperationException);
-        assertEquals(0, sink.createdWriters.get());
+        OffsetSource source = new OffsetSource(4);
+        CapturedSink resumedSink = new CapturedSink();
+        AtomicInteger restored = new AtomicInteger();
+        JobClient second = new EmbeddedPipelineExecutor().execute(
+                graphWithOperator(source, resumedSink, restored), configuration(true))
+                .get(5, TimeUnit.SECONDS);
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (restored.get() != 8 && System.nanoTime() < until) {
+            Thread.sleep(10);
+        }
+        assertEquals(8, restored.get());
+        source.setLimit(6);
+        awaitCount(resumedSink.rows, 4);
+        second.cancel().get(5, TimeUnit.SECONDS);
     }
 
     @Test
@@ -270,6 +275,68 @@ class CheckpointRecoveryTest {
         input.setUid("checkpoint-stable-source");
         output.setUid("checkpoint-stable-sink");
         return new StreamGraphGenerator(output, new Configuration()).generate();
+    }
+
+    private static StreamGraph graphWithOperator(
+            OffsetSource source, CapturedSink sink, AtomicInteger restored) {
+        SourceTransformation<String> input =
+                new SourceTransformation<>("source", source, String.class, 2);
+        OneInputTransformation<String, String> counter = new OneInputTransformation<>(
+                input, "counter", () -> new DurableCounter(restored), String.class, 2);
+        SinkTransformation<String> output = new SinkTransformation<>(counter, "sink", sink, 1);
+        input.setUid("checkpoint-stable-source");
+        counter.setUid("checkpoint-stable-counter");
+        output.setUid("checkpoint-stable-sink");
+        return new StreamGraphGenerator(output, new Configuration()).generate();
+    }
+
+    private static final class DurableCounter
+            implements OneInputOperator<String, String>, CheckpointedStreamOperator {
+        private final AtomicInteger restored;
+        private OperatorStateBackend backend;
+        private int count;
+
+        private DurableCounter(AtomicInteger restored) {
+            this.restored = restored;
+        }
+
+        @Override
+        public void initializeState(OperatorStateBackend backend) throws Exception {
+            this.backend = backend;
+            this.count = backend.get("count", intStateSerializer()).orElse(0);
+            restored.addAndGet(count);
+        }
+
+        @Override
+        public void processElement(String element, Collector<String> output) throws Exception {
+            count++;
+            output.collect(element);
+        }
+
+        @Override
+        public void snapshotState(long checkpointId, OperatorStateBackend state) throws Exception {
+            state.put("count", count, intStateSerializer());
+        }
+    }
+
+    private static SimpleVersionedSerializer<Integer> intStateSerializer() {
+        return new SimpleVersionedSerializer<>() {
+            @Override
+            public int getVersion() { return 1; }
+
+            @Override
+            public byte[] serialize(Integer value) {
+                return java.nio.ByteBuffer.allocate(Integer.BYTES).putInt(value).array();
+            }
+
+            @Override
+            public Integer deserialize(int version, byte[] bytes) throws IOException {
+                if (version != 1 || bytes.length != Integer.BYTES) {
+                    throw new IOException("Invalid count state");
+                }
+                return java.nio.ByteBuffer.wrap(bytes).getInt();
+            }
+        };
     }
 
     private static void awaitCount(List<?> rows, int expected) throws Exception {
