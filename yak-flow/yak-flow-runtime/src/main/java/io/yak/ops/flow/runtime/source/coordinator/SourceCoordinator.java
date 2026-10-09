@@ -24,14 +24,12 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 运行在单独事件循环中的 Source 协调器。
+ * Event-loop-owned coordinator for a Source's enumerator and reader registrations.
  *
- * <p>只管理 Enumerator 生命周期、Reader 注册和分片请求。
- * Split 投递、分配历史与异步发现由 SourceCoordinatorContext 承担。
- * 不读取记录，不实现 Connector 特有的分片算法。
- *
- * <p>当前仅支持整个作业失败后统一恢复，单个 Reader 的新 Attempt 不可直接取代已注册 Gateway。
- * Coordinator Checkpoint 只是协调侧片段，不能替代完整作业 Checkpoint。
+ * <p>SourceCoordinatorContext owns split delivery acknowledgments, outstanding assignments
+ * and asynchronous discovery. This class does not read records or implement split algorithms.
+ * Recovery restarts the whole job, not a single Reader attempt. Coordinator state alone
+ * is not a completed job checkpoint.
  */
 public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> implements AutoCloseable {
 
@@ -57,7 +55,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         this(source, coordinatorContext, null, false);
     }
 
-    /** 从全局已完成 Checkpoint 的 Enumerator 状态恢复；Reader 状态由上层另外恢复。 */
+    /** Restores enumerator state from a completed checkpoint; reader splits are restored separately. */
     public static <SplitT extends SourceSplit, EnumStateT> SourceCoordinator<SplitT, EnumStateT> restore(
             Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext, EnumStateT state) {
         return new SourceCoordinator<>(source, coordinatorContext, Objects.requireNonNull(state, "恢复状态不能为空"), true);
@@ -76,12 +74,16 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
                 coordinatorContext, source.getSplitSerializer(), eventLoop, discovery, () -> eventThread, this::fail);
     }
 
-    /** Source 所属的不可变运行身份；用于 Task 装配时检查 Job/Operator/Parallelism。 */
+    /** Returns the identity used to validate the owning job, operator and parallelism. */
     public OperatorCoordinatorContext coordinatorContext() {
         return coordinatorContext;
     }
 
-    /** 创建 Enumerator 并调用 start()；同一个 Coordinator 不可重复启动。 */
+    /**
+ * Creates and starts the enumerator once on the coordinator event loop.
+ *
+ * @return a future completed after initialization or exceptionally on failure
+ */
     public CompletableFuture<Void> start() {
         if (!startRequested.compareAndSet(false, true)) {
             return CompletableFuture.failedFuture(new IllegalStateException("SourceCoordinator 已启动"));
@@ -103,7 +105,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         });
     }
 
-    /** Reader 已创建 SubtaskGateway 后进行注册；不会等待分片实际读取完成。 */
+    /** Registers an active Reader gateway without waiting for split consumption. */
     public CompletableFuture<Void> registerReader(RuntimeTaskInfo taskInfo, SubtaskGateway gateway) {
         Objects.requireNonNull(gateway, "gateway 不能为空");
         try {
@@ -126,11 +128,11 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     }
 
     /**
-     * 接收指定 SourceOperator 子任务发来的控制事件。
-     *
-     * <p>目前只支持 RequestSplitEvent。事件中的 Subtask 与 Attempt 身份必须匹配
-     * 已注册的 RuntimeTaskInfo，拒绝过期 Reader 请求；事件在协调器线程中处理。
-     */
+ * Processes a control event from an active SourceOperator attempt.
+ *
+ * <p>Split requests must match the registered subtask and attempt. Connector events
+ * are also validated before delivery to the enumerator; stale attempts are rejected.
+ */
     public CompletableFuture<Void> handleEventFromOperator(RuntimeTaskInfo taskInfo, OperatorEvent event) {
         Objects.requireNonNull(event, "event 不能为空");
         try {
@@ -177,7 +179,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         });
     }
 
-    /** Source 协调侧冻结新 Split 请求；现有 Gateway 确认和失败仍正常处理。 */
+    /** Pauses new split requests without discarding outstanding delivery acknowledgments. */
     public CompletableFuture<Void> pauseForCheckpoint() {
         return submit(() -> {
             ensureStarted();
@@ -190,7 +192,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         });
     }
 
-    /** 检查全部在途 Split 和 NoMoreSplits 事件均已由 Reader Mailbox 处理。 */
+    /** Waits until split and no-more-splits events are processed by reader mailboxes. */
     public CompletableFuture<Void> awaitCheckpointDeliveries() {
         return submit(() -> {
             ensureStarted();
@@ -199,7 +201,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         });
     }
 
-    /** Checkpoint 成功或失败都解冻 Reader Split 请求和 Enumerator 后台回调。 */
+    /** Resumes deferred split requests and discovery callbacks after a checkpoint attempt. */
     public CompletableFuture<Void> resumeAfterCheckpoint() {
         return submit(() -> {
             if (checkpointPaused) {
@@ -216,7 +218,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         });
     }
 
-    /** 获取 Enumerator 的局部状态快照，不构成完整 Checkpoint。 */
+    /** Captures enumerator-local state, not a complete job checkpoint. */
     public CompletableFuture<EnumStateT> snapshotEnumerator(long checkpointId) {
         validateCheckpointId(checkpointId);
         return submit(() -> {
@@ -227,9 +229,11 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     }
 
     /**
-     * 获取协调侧完整快照片段，包括 Enumerator 与未被成功确认的分片分配。
-     * 只有上层协调了 Reader/Channel/Sink 的同一 Checkpoint，并持久化成功才可提交确认。
-     */
+ * Captures coordinator state and outstanding split assignments.
+ *
+ * <p>Readers, channels and Sinks must be aligned and the entire state persisted before
+ * a checkpoint can be announced as successfully completed.
+ */
     public CompletableFuture<SourceCoordinatorCheckpoint<SplitT, EnumStateT>> snapshotCoordinator(long checkpointId) {
         validateCheckpointId(checkpointId);
         return submit(() -> {
@@ -242,7 +246,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         });
     }
 
-    /** 完整作业 Checkpoint 成功后才能调用。 */
+    /** Commits assignment history only after the complete job checkpoint is durable. */
     public CompletableFuture<Void> notifyCheckpointComplete(long checkpointId) {
         validateCheckpointId(checkpointId);
         return submit(() -> {
@@ -253,7 +257,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         });
     }
 
-    /** 清除失败的快照尝试，不丢弃分片分配历史。 */
+    /** Aborts an unsuccessful checkpoint without discarding outstanding assignments. */
     public CompletableFuture<Void> notifyCheckpointAborted(long checkpointId) {
         validateCheckpointId(checkpointId);
         return submit(() -> {
@@ -262,7 +266,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         });
     }
 
-    /** Reader 异常由 Job Runtime 执行整体恢复；此处不会盲目重新分配原始 Split。 */
+    /** Fails the coordinator so the runtime can recover the whole job, not an individual Reader. */
     public CompletableFuture<Void> readerFailed(RuntimeTaskInfo taskInfo, Throwable failure) {
         Objects.requireNonNull(failure, "failure 不能为空");
         return submit(() -> {

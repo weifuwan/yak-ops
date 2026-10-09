@@ -2,7 +2,7 @@ package io.yak.ops.flow.runtime.source.event;
 
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 
-/** Reader 向 Enumerator 请求 Split，携带当前 Subtask 与 Attempt 身份。 */
+/** Reader split request carrying its subtask index and execution-attempt identity. */
 public record RequestSplitEvent(int subtaskId, int attemptNumber) implements OperatorEvent {
 
     public RequestSplitEvent {

@@ -26,11 +26,11 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * SourceCoordinator 的分片协调上下文。
+ * Split-coordination context confined to the SourceCoordinator event loop.
  *
- * <p>Enumerator 通过本类注册 Reader、投递 Split、异步发现分片。
- * 除 callAsync() 中的阻塞查询外，全部状态只能在协调器线程访问。
- * 本类不运行 SourceReader，也不处理数据记录。
+ * <p>Manages reader registration, split delivery and asynchronous discovery.
+ * State changes run on the coordinator thread; potentially blocking discovery
+ * belongs to callAsync(). This context does not read data records.
  */
 public final class SourceCoordinatorContext<SplitT extends SourceSplit> implements SplitEnumeratorContext<SplitT> {
 
@@ -309,7 +309,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
                 }
             });
         } catch (RejectedExecutionException ignored) {
-            // 协调器已经关闭，迟到的异步回调不能改变任务状态。
+            // Late asynchronous callbacks must not mutate state after coordinator shutdown.
         }
     }
 

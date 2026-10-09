@@ -2,7 +2,7 @@ package io.yak.ops.flow.runtime.source.event;
 
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 
-/** Reader 注册身份：Subtask Index 与 Attempt Number 必须同时匹配。 */
+/** Identity of one Reader registration, including subtask and active attempt number. */
 public record ReaderRegistrationEvent(int subtaskId, int attemptNumber) implements OperatorEvent {
 
     public ReaderRegistrationEvent {
