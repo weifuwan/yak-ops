@@ -14,7 +14,7 @@ import java.util.Map;
  * <p>Concrete vendor dialects live in internal/dialect; callers depend only on this
  * interface, like Flink's core JdbcDialect contract.
  */
-public interface JdbcDialect {
+public interface JdbcDialect extends java.io.Serializable {
 
     String quoteIdentifier(String identifier);
 

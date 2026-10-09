@@ -9,6 +9,10 @@ import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.database.catalog.factory.JdbcCatalogFactory;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.LogicalTypeRoot;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -60,6 +64,24 @@ class JdbcCatalogTest {
             assertTrue(catalog.tableExists(new TableId(null, "PUBLIC", "ORDERS_%")));
             assertEquals(1, catalog.getTable(new TableId(null, "PUBLIC", "ORDERS_%")).columnCount());
             assertFalse(catalog.tableExists(new TableId(null, "PUBLIC", "ORDERS_")));
+        }
+    }
+
+
+    @Test
+    void catalogCanBeSerializedWithoutRetainingAnActiveJdbcConnection() throws Exception {
+        JdbcConnectionOptions options = new JdbcConnectionOptions("jdbc:h2:mem:yak_catalog_serial", "sa", "");
+        byte[] serialized;
+        try (JdbcCatalog catalog = JdbcCatalogFactory.create(options);
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                ObjectOutputStream output = new ObjectOutputStream(buffer)) {
+            output.writeObject(catalog);
+            output.flush();
+            serialized = buffer.toByteArray();
+        }
+        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(serialized));
+                JdbcCatalog restored = (JdbcCatalog) input.readObject()) {
+            assertTrue(restored.listDatabases().size() >= 1);
         }
     }
 
