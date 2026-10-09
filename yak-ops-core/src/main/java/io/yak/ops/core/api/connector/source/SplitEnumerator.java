@@ -26,6 +26,9 @@ public interface SplitEnumerator<SplitT extends SourceSplit, EnumStateT> extends
     /** 有 Reader 注册或重新注册时调用。 */
     void addReader(int subtaskId) throws Exception;
 
+    /** Handle an attempt-validated Reader event on the coordinator thread. */
+    default void handleSourceEvent(int subtaskId, SourceEvent event) throws Exception {}
+
     /**
      * Reader 故障时接收需要重新分配的分片。
      *

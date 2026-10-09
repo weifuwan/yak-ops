@@ -39,6 +39,11 @@ public interface SplitEnumeratorContext<SplitT extends SourceSplit> {
      */
     void signalNoMoreSplits(int subtaskId);
 
+    /** Forward a connector-defined event to the active Reader attempt. */
+    default void sendEventToSourceReader(int subtaskId, SourceEvent event) {
+        throw new UnsupportedOperationException("This context does not support SourceEvent transport");
+    }
+
     /**
      * 在后台执行潜在阻塞的发现操作，回调在协调器线程中执行。
      *
