@@ -51,7 +51,7 @@ StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finish
 - `StreamTaskInput<T>` 统一 SourceOperator 和物理 Gate 的非阻塞输入接口；`StreamTaskSourceInput` 调用 Reader，`StreamTaskNetworkInput` 调用下游 `InputGate`，并将 getAvailableFuture 交给 Task Mailbox。当前不支持网络 InputGate 或多输入算子。
 - 每个上游 Subtask 拥有一个 `ResultPartition`，为各目标 Task 创建一条 `ResultSubpartition`；目标 `InputGate` 注册其所有上游 Subpartition，以 round-robin 轮询非空输入，避免持续偏向同一上游。
 - 一个 InputGate 的 `capacity` 是**全部上游 Subpartition 共享**的总排队上限，不随并行度放大；队列满使用可中断 Condition 等待，消费后通知生产者，无 25ms 轮询。
-- `RecordWriterOutput` 通过独立 `StreamPartitioner` 选择目标。FORWARD 同并行度，一条生产者流对应一条下游输入；REBALANCE 按生产者独立轮询；KEYED 用 MurmurHash(key.hashCode()) 分配到固定 KeyGroup，再按 `keyGroup * parallelism / maxParallelism` 映射到 Subtask。KeyGroup ID 不因并行度变化；OperatorStateBackend 可持久化归属当前 Subtask 的 Keyed State，但**不支持状态 Rescale**。
+- `RecordWriterOutput` 通过独立 `StreamPartitioner` 选择目标。FORWARD 同并行度，一条生产者流对应一条下游输入；REBALANCE 按生产者独立轮询；KEYED 用 MurmurHash(key.hashCode()) 分配到固定 KeyGroup，再按 `keyGroup * parallelism / maxParallelism` 映射到 Subtask。KeyGroup ID 不因并行度变化；OperatorStateBackend 可持久化归属当前 Subtask 的 Keyed State，恢复时按逻辑状态名校验 Key Serializer 版本，不兼容就拒绝而非静默返回空；**不支持 Serializer Migration 或状态 Rescale**。
 - 全部生产者结束并排空对应 Gate 的缓冲后才返回 END_OF_INPUT。失败/取消唤醒阻塞的发送者和等待消费者；Checkpoint 不再调用全阶段 drainedFuture，单输入 Barrier 对齐与 Task Mailbox 状态 ACK 才是快照屏障；drainedFuture 仍可供独立通道观测。
 
 ## StreamOperator and Sink V2
@@ -68,7 +68,7 @@ Core `SinkV2.createWriter(WriterInitContext)` 获取 Sink 节点的 Job/Operator
 
 ## Checkpoint / Recovery
 
-支持 Source → OneInputOperator* → Sink 的单 JVM 对齐 Barrier：冻结 Enumerator / Reader → Snapshot Reader 并按 FIFO 注入 Barrier → Source 恢复 → Gate 阻止已到 Barrier 的通道继续消费，等待全部生产者 Barrier → Task Mailbox 快照 Operator/Writer State 并 ACK → FileCheckpointStore 持久化 → 通知 Source 完成。多输入与跨网络 Barrier 不支持。
+支持 Source → OneInputOperator* → Sink 的单 JVM 对齐 Barrier：冻结 Enumerator / Reader → Snapshot Reader 并按 FIFO 注入 Barrier → **在 Reader / Enumerator 恢复执行前，将所有 Source 状态序列化为不可变字节** → Source 恢复 → Gate 对各生产者对齐 Barrier → Task Mailbox 快照 Operator/Writer State 并 ACK → FileCheckpointStore 持久化 → 通知 Source 完成。Barrier 后 Producer 先等待目标 Gate 完成对齐，不能占满共享输入缓存；Producer 提前正常 EOF 时撤销 Checkpoint、保留普通数据流。多输入与跨网络 Barrier 不支持。
 
 非 KEYED 拓扑签名保留；KEYED 签名仍绑定 Murmur3 和 maxParallelism。无中间状态的 Source/Sink 快照继续写 v1，读写均支持原版；存在 Operator/Writer State 时写 v2（按稳定 UID + subtask + 状态名）。CRC、Serializer 版本、原子替换、目录锁不变。只保证本地 at-least-once，不支持 Exactly-once。
 
