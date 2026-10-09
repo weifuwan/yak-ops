@@ -13,8 +13,8 @@ import java.util.Collection;
  */
 public interface SupportsWriterState<T, StateT> {
 
-    StatefulSinkWriter<T, StateT> restoreWriter(
-            WriterInitContext context, Collection<StateT> restoredState) throws Exception;
+    StatefulSinkWriter<T, StateT> restoreWriter(WriterInitContext context, Collection<StateT> restoredState)
+            throws Exception;
 
     SimpleVersionedSerializer<StateT> getWriterStateSerializer();
 }

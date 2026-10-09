@@ -4,9 +4,9 @@ import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
+import io.yak.ops.flow.runtime.checkpoint.AlignedCheckpointCoordinator;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
-import io.yak.ops.flow.runtime.checkpoint.AlignedCheckpointCoordinator;
 import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.graph.StreamNode;
@@ -99,9 +99,8 @@ final class TaskDeployment {
                 checkpointCoordinator.start();
             }
             try {
-                await(CompletableFuture.allOf(executions.stream()
-                        .map(Execution::completionFuture)
-                        .toArray(CompletableFuture<?>[]::new)));
+                await(CompletableFuture.allOf(
+                        executions.stream().map(Execution::completionFuture).toArray(CompletableFuture<?>[]::new)));
             } catch (Exception | Error failure) {
                 Throwable original = firstFailure.get();
                 if (original != null) {
@@ -142,9 +141,9 @@ final class TaskDeployment {
             String directory = jobGraph.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
             checkpointStore = new FileCheckpointStore(Path.of(directory));
             if (recoverFromLatestCheckpoint || jobGraph.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
-                restoredCheckpoint = checkpointStore.loadLatest(
-                                FileCheckpointStore.graphSignature(
-                                        jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM)))
+                restoredCheckpoint = checkpointStore
+                        .loadLatest(FileCheckpointStore.graphSignature(
+                                jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM)))
                         .orElseThrow(() -> new IllegalStateException("状态目录没有可恢复的完整 Checkpoint"));
             }
         }
@@ -175,14 +174,17 @@ final class TaskDeployment {
                 if (!node.isSink()) {
                     JobEdge outputEdge = edges.get(index);
                     output = new RecordWriterOutput<>(
-                            outputEdge.streamEdge(), subtask, vertex.getParallelism(),
+                            outputEdge.streamEdge(),
+                            subtask,
+                            vertex.getParallelism(),
                             new ResultPartition<>(subtask, inputs.get(index)),
                             jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM));
                 }
                 Map<String, CheckpointSnapshot.SerializedState> restoredState = restoredCheckpoint == null
                         ? Map.of()
-                        : restoredCheckpoint.operatorStates().getOrDefault(
-                                new CheckpointSnapshot.OperatorSubtask(node.getUid(), subtask), Map.of());
+                        : restoredCheckpoint
+                                .operatorStates()
+                                .getOrDefault(new CheckpointSnapshot.OperatorSubtask(node.getUid(), subtask), Map.of());
                 boolean keyedInput = edges.get(index - 1).streamEdge().partitioning() == StreamPartitioning.KEYED;
                 OneInputStreamTask task = new OneInputStreamTask(
                         node, environment, stageInputs.get(subtask), output, restoredState, keyedInput);
@@ -194,8 +196,8 @@ final class TaskDeployment {
         JobVertex sourceVertex = vertices.getFirst();
         StreamNode sourceNode = sourceVertex.getHeadOperator();
         Source<Object, SourceSplit, Object> source = castSource(sourceNode);
-        OperatorCoordinatorContext coordinatorContext = new OperatorCoordinatorContext(
-                jobGraph.jobID(), sourceVertex.getId(), sourceVertex.getParallelism());
+        OperatorCoordinatorContext coordinatorContext =
+                new OperatorCoordinatorContext(jobGraph.jobID(), sourceVertex.getId(), sourceVertex.getParallelism());
         Map<Integer, List<SourceSplit>> restoredReaderSplits = Map.of();
         if (restoredCheckpoint != null) {
             restoredReaderSplits = AlignedCheckpointCoordinator.restoreSplits(restoredCheckpoint, source);
@@ -209,20 +211,33 @@ final class TaskDeployment {
         for (int subtask = 0; subtask < sourceVertex.getParallelism(); subtask++) {
             Execution execution = executionGraph.currentExecution(sourceVertex.getId(), subtask);
             RecordWriterOutput<Object> output = new RecordWriterOutput<>(
-                    firstEdge.streamEdge(), subtask, sourceVertex.getParallelism(),
+                    firstEdge.streamEdge(),
+                    subtask,
+                    sourceVertex.getParallelism(),
                     new ResultPartition<>(subtask, inputs.getFirst()),
                     jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM));
             SourceOperatorStreamTask<Object, SourceSplit> task = new SourceOperatorStreamTask<>(
-                    source, coordinator, environment(execution), output,
-                    null, restoredReaderSplits.getOrDefault(subtask, List.of()));
+                    source,
+                    coordinator,
+                    environment(execution),
+                    output,
+                    null,
+                    restoredReaderSplits.getOrDefault(subtask, List.of()));
             sourceTasks.add(task);
             bind(execution, task);
         }
 
         if (checkpointStore != null) {
             checkpointCoordinator = new AlignedCheckpointCoordinator(
-                    jobGraph, source, coordinator, sourceTasks, inputTasks,
-                    checkpointStore, restoredCheckpoint, executionGraph::isCancellationRequested, this::failJob);
+                    jobGraph,
+                    source,
+                    coordinator,
+                    sourceTasks,
+                    inputTasks,
+                    checkpointStore,
+                    restoredCheckpoint,
+                    executionGraph::isCancellationRequested,
+                    this::failJob);
         }
     }
 
@@ -232,13 +247,13 @@ final class TaskDeployment {
         StreamNode sourceNode = operators.getFirst();
         StreamNode sinkNode = operators.getLast();
         Source<Object, SourceSplit, Object> source = castSource(sourceNode);
-        OperatorCoordinatorContext context = new OperatorCoordinatorContext(
-                jobGraph.jobID(), vertex.getId(), vertex.getParallelism());
+        OperatorCoordinatorContext context =
+                new OperatorCoordinatorContext(jobGraph.jobID(), vertex.getId(), vertex.getParallelism());
         coordinator = new SourceCoordinator<>(source, context);
         OperatorChain chain = new OperatorChain(operators.subList(1, operators.size() - 1), sinkNode);
         Execution execution = executionGraph.currentExecution(vertex.getId(), 0);
-        SourceOperatorStreamTask<Object, SourceSplit> task = new SourceOperatorStreamTask<>(
-                source, coordinator, environment(execution), chain, chain);
+        SourceOperatorStreamTask<Object, SourceSplit> task =
+                new SourceOperatorStreamTask<>(source, coordinator, environment(execution), chain, chain);
         sourceTasks.add(task);
         bind(execution, task);
         // For a chained Source/Operator/Sink, preserve the StreamTask's originating failure.
@@ -268,7 +283,9 @@ final class TaskDeployment {
     }
 
     private boolean checkpointEnabled() {
-        return !jobGraph.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
+        return !jobGraph.configuration()
+                        .get(CheckpointingOptions.CHECKPOINTING_INTERVAL)
+                        .isZero()
                 || jobGraph.configuration().get(CheckpointingOptions.RESTORE_LATEST);
     }
 

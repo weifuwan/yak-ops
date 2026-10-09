@@ -94,19 +94,25 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     /** 周期触发器只运行一个 Checkpoint，前次完成后才调度下一次。 */
     public void start() {
         if (intervalMillis > 0) {
-            timer.scheduleWithFixedDelay(() -> {
-                if (closed.get() || cancelled.getAsBoolean() || anySourceFinished()) {
-                    return;
-                }
-                try {
-                    performCheckpoint();
-                } catch (Throwable failure) {
-                    if (!isCheckpointDeclined(failure)
-                            && !closed.get() && !cancelled.getAsBoolean() && !anySourceFinished()) {
-                        onFailure.accept(failure);
-                    }
-                }
-            }, intervalMillis, Math.max(intervalMillis, minPauseMillis), TimeUnit.MILLISECONDS);
+            timer.scheduleWithFixedDelay(
+                    () -> {
+                        if (closed.get() || cancelled.getAsBoolean() || anySourceFinished()) {
+                            return;
+                        }
+                        try {
+                            performCheckpoint();
+                        } catch (Throwable failure) {
+                            if (!isCheckpointDeclined(failure)
+                                    && !closed.get()
+                                    && !cancelled.getAsBoolean()
+                                    && !anySourceFinished()) {
+                                onFailure.accept(failure);
+                            }
+                        }
+                    },
+                    intervalMillis,
+                    Math.max(intervalMillis, minPauseMillis),
+                    TimeUnit.MILLISECONDS);
         }
     }
 
@@ -124,7 +130,9 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                 } catch (Throwable failure) {
                     result.completeExceptionally(failure);
                     if (!isCheckpointDeclined(failure)
-                            && !closed.get() && !cancelled.getAsBoolean() && !anySourceFinished()) {
+                            && !closed.get()
+                            && !cancelled.getAsBoolean()
+                            && !anySourceFinished()) {
                         onFailure.accept(failure);
                     }
                 }
@@ -155,9 +163,11 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         return source.getEnumeratorCheckpointSerializer().deserialize(state.version(), state.bytes());
     }
 
-    private static void deserializeInto(Map<Integer, Map<String, SourceSplit>> result,
+    private static void deserializeInto(
+            Map<Integer, Map<String, SourceSplit>> result,
             Map<Integer, List<CheckpointSnapshot.SerializedState>> sections,
-            SimpleVersionedSerializer<SourceSplit> serializer) throws IOException {
+            SimpleVersionedSerializer<SourceSplit> serializer)
+            throws IOException {
         for (var section : sections.entrySet()) {
             Map<String, SourceSplit> splits = result.computeIfAbsent(section.getKey(), id -> new LinkedHashMap<>());
             for (var state : section.getValue()) {
@@ -174,9 +184,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         checkpointDeadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
         boolean coordinatorFrozen = false;
         List<SourceOperatorStreamTask<Object, SourceSplit>> paused = new ArrayList<>();
-        Map<CheckpointSnapshot.OperatorSubtask,
-                CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>>> acknowledgements =
-                new LinkedHashMap<>();
+        Map<CheckpointSnapshot.OperatorSubtask, CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>>>
+                acknowledgements = new LinkedHashMap<>();
         boolean stored = false;
         Throwable originalFailure = null;
         // A decline in an upstream Operator must wake a checkpoint currently awaiting the Sink.
@@ -223,8 +232,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             await(coordinator.resumeAfterCheckpoint());
             coordinatorFrozen = false;
 
-            Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>>
-                    operatorStates = new LinkedHashMap<>();
+            Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> operatorStates =
+                    new LinkedHashMap<>();
             for (var entry : acknowledgements.entrySet()) {
                 ensureActive();
                 await(CompletableFuture.anyOf(entry.getValue(), firstFailedAcknowledgement));
@@ -234,9 +243,13 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                 }
             }
             CheckpointSnapshot snapshot = new CheckpointSnapshot(
-                    checkpointId, graphSignature, frozenSource.enumeratorState(),
-                    frozenSource.readerSplits(), frozenSource.assignments(),
-                    System.currentTimeMillis(), operatorStates);
+                    checkpointId,
+                    graphSignature,
+                    frozenSource.enumeratorState(),
+                    frozenSource.readerSplits(),
+                    frozenSource.assignments(),
+                    System.currentTimeMillis(),
+                    operatorStates);
             storage.save(snapshot);
             stored = true;
             if (System.nanoTime() >= checkpointDeadlineNanos) {
@@ -307,7 +320,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         return previous;
     }
 
-    private CheckpointSnapshot serialize(long checkpointId,
+    private CheckpointSnapshot serialize(
+            long checkpointId,
             SourceCoordinatorCheckpoint<SourceSplit, Object> sourceState,
             Map<Integer, List<SourceSplit>> readerStates,
             Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> operatorStates)
@@ -317,10 +331,13 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         var state = new CheckpointSnapshot.SerializedState(
                 enumerator.getVersion(), enumerator.serialize(sourceState.enumeratorState()));
         return new CheckpointSnapshot(
-                checkpointId, graphSignature, state,
+                checkpointId,
+                graphSignature,
+                state,
                 serializeSplits(readerStates, splits),
                 serializeSplits(sourceState.assignedSinceLastCompletedCheckpoint(), splits),
-                System.currentTimeMillis(), operatorStates);
+                System.currentTimeMillis(),
+                operatorStates);
     }
 
     private static Map<Integer, List<CheckpointSnapshot.SerializedState>> serializeSplits(
@@ -330,8 +347,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         for (var entry : values.entrySet()) {
             List<CheckpointSnapshot.SerializedState> states = new ArrayList<>();
             for (SourceSplit split : entry.getValue()) {
-                states.add(new CheckpointSnapshot.SerializedState(
-                        serializer.getVersion(), serializer.serialize(split)));
+                states.add(
+                        new CheckpointSnapshot.SerializedState(serializer.getVersion(), serializer.serialize(split)));
             }
             result.put(entry.getKey(), List.copyOf(states));
         }

@@ -27,8 +27,8 @@ import java.util.concurrent.CompletionStage;
  * <p>下游输出由 ReaderOutput / RecordWriterOutput 或内联 OperatorChain 承接；
  * 全局 Checkpoint 不属于该类。
  */
-public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
-        extends StreamTask implements SubtaskGateway {
+public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> extends StreamTask
+        implements SubtaskGateway {
 
     private final SourceCoordinator<SplitT, ?> coordinator;
     private final SourceOperator<T, SplitT> operator;
@@ -113,7 +113,8 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
 
     @Override
     protected void closeTask() throws Exception {
-        try (OperatorChain chain = operatorChain; SourceOperator<T, SplitT> reader = operator) {
+        try (OperatorChain chain = operatorChain;
+                SourceOperator<T, SplitT> reader = operator) {
             // 逆序关闭 Reader，然后关闭 Operator Chain；异常由 try-with-resources 聚合。
         }
     }

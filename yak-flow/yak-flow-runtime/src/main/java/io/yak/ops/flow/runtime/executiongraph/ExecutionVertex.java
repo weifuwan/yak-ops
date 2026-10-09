@@ -48,8 +48,11 @@ public final class ExecutionVertex {
 
     RuntimeTaskInfo taskInfo(JobID jobID) {
         return new RuntimeTaskInfo(
-                jobID, jobVertex.getJobVertex().getId(), subtaskIndex,
-                jobVertex.getJobVertex().getParallelism(), currentExecution.getAttemptNumber(),
+                jobID,
+                jobVertex.getJobVertex().getId(),
+                subtaskIndex,
+                jobVertex.getJobVertex().getParallelism(),
+                currentExecution.getAttemptNumber(),
                 jobVertex.getJobVertex().getMaxParallelism());
     }
 }

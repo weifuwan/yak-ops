@@ -40,8 +40,8 @@ public abstract class StreamTask implements AutoCloseable {
     private boolean readyWithoutInput;
 
     protected StreamTask(TaskEnvironment environment) {
-        this.environment = Objects.requireNonNull(environment, "environment 不能为空")
-                .withCancellation(() -> cancelRequested);
+        this.environment =
+                Objects.requireNonNull(environment, "environment 不能为空").withCancellation(() -> cancelRequested);
         mailboxProcessor = new MailboxProcessor(
                 new TaskMailboxImpl(),
                 this::processDefaultAction,
@@ -185,8 +185,8 @@ public abstract class StreamTask implements AutoCloseable {
                 controller.allActionsCompleted();
             }
             case NOTHING_AVAILABLE -> {
-                CompletableFuture<Void> availability = Objects.requireNonNull(
-                        getAvailableFuture(), "getAvailableFuture 不能返回 null");
+                CompletableFuture<Void> availability =
+                        Objects.requireNonNull(getAvailableFuture(), "getAvailableFuture 不能返回 null");
                 if (availability.isDone()) {
                     // A wakeup can race with pollNext(). Retry once, but reject a permanently
                     // completed readiness future instead of spinning with arbitrary retry limits.
@@ -231,9 +231,10 @@ public abstract class StreamTask implements AutoCloseable {
                     failure.addSuppressed(closeError);
                 }
             }
-            if (cancelRequested && (failure == null
-                    || failure instanceof InterruptedException
-                    || failure instanceof CancellationException)) {
+            if (cancelRequested
+                    && (failure == null
+                            || failure instanceof InterruptedException
+                            || failure instanceof CancellationException)) {
                 failure = new CancellationException("StreamTask 已取消");
             }
             if (failure == null && !finished) {
@@ -250,11 +251,9 @@ public abstract class StreamTask implements AutoCloseable {
                 }
             }
             if (!started.isDone()) {
-                started.completeExceptionally(failure == null
-                        ? new IllegalStateException("StreamTask 未启动") : failure);
+                started.completeExceptionally(failure == null ? new IllegalStateException("StreamTask 未启动") : failure);
             }
-            mailboxProcessor.close(failure == null
-                    ? new IllegalStateException("StreamTask 已结束") : failure);
+            mailboxProcessor.close(failure == null ? new IllegalStateException("StreamTask 已结束") : failure);
             if (failure == null) {
                 completion.complete(null);
             } else {

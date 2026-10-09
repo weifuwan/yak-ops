@@ -32,8 +32,7 @@ public final class OperatorStateBackend {
     private final boolean keyedInput;
 
     public OperatorStateBackend(
-            Map<String, CheckpointSnapshot.SerializedState> restored,
-            RuntimeTaskInfo taskInfo, boolean keyedInput) {
+            Map<String, CheckpointSnapshot.SerializedState> restored, RuntimeTaskInfo taskInfo, boolean keyedInput) {
         Objects.requireNonNull(restored, "restored");
         Objects.requireNonNull(taskInfo, "taskInfo");
         values.putAll(restored);
@@ -94,8 +93,11 @@ public final class OperatorStateBackend {
     }
 
     public <K, T> Optional<T> getKeyed(
-            String name, K key, SimpleVersionedSerializer<K> keySerializer,
-            SimpleVersionedSerializer<T> stateSerializer) throws IOException {
+            String name,
+            K key,
+            SimpleVersionedSerializer<K> keySerializer,
+            SimpleVersionedSerializer<T> stateSerializer)
+            throws IOException {
         String stateName = keyedName(name, key, keySerializer);
         CheckpointSnapshot.SerializedState state = values.get(stateName);
         if (state == null) {
@@ -106,8 +108,12 @@ public final class OperatorStateBackend {
     }
 
     public <K, T> void putKeyed(
-            String name, K key, SimpleVersionedSerializer<K> keySerializer,
-            T value, SimpleVersionedSerializer<T> stateSerializer) throws IOException {
+            String name,
+            K key,
+            SimpleVersionedSerializer<K> keySerializer,
+            T value,
+            SimpleVersionedSerializer<T> stateSerializer)
+            throws IOException {
         putSerialized(keyedName(name, key, keySerializer), value, stateSerializer);
     }
 
@@ -116,16 +122,13 @@ public final class OperatorStateBackend {
         return Map.copyOf(new LinkedHashMap<>(values));
     }
 
-    private <T> void putSerialized(
-            String name, T value, SimpleVersionedSerializer<T> serializer) throws IOException {
+    private <T> void putSerialized(String name, T value, SimpleVersionedSerializer<T> serializer) throws IOException {
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(serializer, "serializer");
-        values.put(name, new CheckpointSnapshot.SerializedState(
-                serializer.getVersion(), serializer.serialize(value)));
+        values.put(name, new CheckpointSnapshot.SerializedState(serializer.getVersion(), serializer.serialize(value)));
     }
 
-    private <K> String keyedName(String name, K key, SimpleVersionedSerializer<K> serializer)
-            throws IOException {
+    private <K> String keyedName(String name, K key, SimpleVersionedSerializer<K> serializer) throws IOException {
         if (!keyedInput) {
             throw new UnsupportedOperationException("Keyed state requires a KEYED input edge");
         }
@@ -141,8 +144,8 @@ public final class OperatorStateBackend {
         if (keyBytes.length > 4096) {
             throw new IOException("Serialized state key exceeds 4096 bytes");
         }
-        return "keyed/" + validateName(name) + "/" + group + "/" + version
-                + "/" + Base64.getUrlEncoder().withoutPadding().encodeToString(keyBytes);
+        return "keyed/" + validateName(name) + "/" + group + "/" + version + "/"
+                + Base64.getUrlEncoder().withoutPadding().encodeToString(keyBytes);
     }
 
     private void registerKeySerializer(String name, int version) {
@@ -151,8 +154,8 @@ public final class OperatorStateBackend {
         }
         Integer previous = keyedSerializerVersions.putIfAbsent(name, version);
         if (previous != null && previous != version) {
-            throw new IllegalStateException("Incompatible key serializer version for state '" + name
-                    + "': saved=" + previous + ", requested=" + version);
+            throw new IllegalStateException("Incompatible key serializer version for state '" + name + "': saved="
+                    + previous + ", requested=" + version);
         }
     }
 

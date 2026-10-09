@@ -2,8 +2,8 @@ package io.yak.ops.flow.runtime.tasks;
 
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.source.InputStatus;
-import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointDeclinedException;
+import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.graph.StreamNode;
 import io.yak.ops.flow.runtime.io.RecordWriterOutput;
@@ -40,7 +40,8 @@ public final class OneInputStreamTask extends StreamTask {
         @Override
         public void onCheckpointDeclined(long checkpointId) {
             lastDeclinedCheckpointId = Math.max(lastDeclinedCheckpointId, checkpointId);
-            abortCheckpoint(checkpointId,
+            abortCheckpoint(
+                    checkpointId,
                     new CheckpointDeclinedException(checkpointId, "a producer ended before barrier alignment"));
         }
     };
@@ -52,7 +53,9 @@ public final class OneInputStreamTask extends StreamTask {
     private OperatorStateBackend stateBackend;
 
     public OneInputStreamTask(
-            StreamNode node, TaskEnvironment environment, InputGate<Object> inputGate,
+            StreamNode node,
+            TaskEnvironment environment,
+            InputGate<Object> inputGate,
             RecordWriterOutput<Object> output) {
         this(node, environment, inputGate, output, Map.of(), false);
     }
@@ -63,14 +66,19 @@ public final class OneInputStreamTask extends StreamTask {
 
     /** Used by deployment to bind the state of this stable operator UID / subtask. */
     public OneInputStreamTask(
-            StreamNode node, TaskEnvironment environment, InputGate<Object> inputGate,
+            StreamNode node,
+            TaskEnvironment environment,
+            InputGate<Object> inputGate,
             RecordWriterOutput<Object> output,
-            Map<String, CheckpointSnapshot.SerializedState> restoredState, boolean keyedInput) {
+            Map<String, CheckpointSnapshot.SerializedState> restoredState,
+            boolean keyedInput) {
         super(environment);
         this.node = Objects.requireNonNull(node, "node");
-        if ((!node.isSink() && !node.isOperator()) || node.getId() != taskInfo().operatorId()
+        if ((!node.isSink() && !node.isOperator())
+                || node.getId() != taskInfo().operatorId()
                 || node.getParallelism() != taskInfo().parallelism()
-                || (node.isSink() && output != null) || (node.isOperator() && output == null)) {
+                || (node.isSink() && output != null)
+                || (node.isOperator() && output == null)) {
             throw new IllegalArgumentException("RuntimeTaskInfo does not match its physical operator");
         }
         this.input = new StreamTaskNetworkInput<>(Objects.requireNonNull(inputGate, "inputGate"));
@@ -89,8 +97,7 @@ public final class OneInputStreamTask extends StreamTask {
             return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid checkpoint ID"));
         }
         if (completionFuture().isDone()) {
-            return CompletableFuture.failedFuture(
-                    new CheckpointDeclinedException(id, "input already finished"));
+            return CompletableFuture.failedFuture(new CheckpointDeclinedException(id, "input already finished"));
         }
         CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> future = new CompletableFuture<>();
         if (pending.putIfAbsent(id, future) != null) {
@@ -118,8 +125,8 @@ public final class OneInputStreamTask extends StreamTask {
     protected void openTask() throws Exception {
         stateBackend = new OperatorStateBackend(restoredState, taskInfo(), keyedInput);
         if (node.isSink()) {
-            sinkOperator = new SinkWriterOperator<>(
-                    (Sink<Object>) node.getSink().orElseThrow(), taskEnvironment());
+            sinkOperator =
+                    new SinkWriterOperator<>((Sink<Object>) node.getSink().orElseThrow(), taskEnvironment());
             activeOperator = sinkOperator;
         } else {
             operator = (OneInputStreamOperator<Object, Object>) Objects.requireNonNull(
@@ -137,11 +144,9 @@ public final class OneInputStreamTask extends StreamTask {
     @Override
     protected InputStatus processInput() throws Exception {
         if (sinkOperator != null) {
-            return input.emitNext(value -> sinkOperator.processElement(value, ignored -> {}),
-                    barrierHandler);
+            return input.emitNext(value -> sinkOperator.processElement(value, ignored -> {}), barrierHandler);
         }
-        return input.emitNext(value -> operator.processElement(value, output::collect),
-                this::onCheckpointBarrier);
+        return input.emitNext(value -> operator.processElement(value, output::collect), this::onCheckpointBarrier);
     }
 
     private void onCheckpointBarrier(long checkpointId) throws Exception {

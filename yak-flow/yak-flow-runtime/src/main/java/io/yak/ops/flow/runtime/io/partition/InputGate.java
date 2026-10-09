@@ -3,8 +3,8 @@ package io.yak.ops.flow.runtime.io.partition;
 import io.yak.ops.core.api.connector.source.InputStatus;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointBarrier;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -89,8 +89,7 @@ public final class InputGate<T> {
             if (producerFinished[producer]) {
                 throw new IllegalStateException("Producer has already finished: " + producer);
             }
-            while (queuedRecords == capacity
-                    || producerBarriers[producer] > lastAlignedCheckpointId) {
+            while (queuedRecords == capacity || producerBarriers[producer] > lastAlignedCheckpointId) {
                 spaceAvailable.await();
                 checkFailure();
                 if (producerFinished[producer]) {
@@ -226,8 +225,7 @@ public final class InputGate<T> {
                 nextInput = (channel + 1) % subpartitions.size();
                 if (item instanceof CheckpointBarrier barrier) {
                     long id = barrier.checkpointId();
-                    if (id <= lastAlignedCheckpointId
-                            || (aligningCheckpointId != -1 && aligningCheckpointId != id)) {
+                    if (id <= lastAlignedCheckpointId || (aligningCheckpointId != -1 && aligningCheckpointId != id)) {
                         throw new IllegalStateException("Overlapping or stale checkpoint barrier: " + id);
                     }
                     if (aligningCheckpointId == -1) {
@@ -257,8 +255,7 @@ public final class InputGate<T> {
                 }
                 break;
             }
-            if (!processing && !partialBarrier && completedBarrier < 0
-                    && declinedBarrier < 0 && record == null) {
+            if (!processing && !partialBarrier && completedBarrier < 0 && declinedBarrier < 0 && record == null) {
                 if (remainingProducers == 0 && !anyReadable() && aligningCheckpointId > 0) {
                     // Defensive fallback for an incomplete alignment whose producers all ended.
                     long id = aligningCheckpointId;
@@ -335,8 +332,8 @@ public final class InputGate<T> {
         // Keep all records, including those that were after a now-declined barrier.
         for (ResultSubpartition<T> partition : subpartitions) {
             if (partition != null) {
-                partition.elements.removeIf(item -> item instanceof CheckpointBarrier barrier
-                        && barrier.checkpointId() <= checkpointId);
+                partition.elements.removeIf(
+                        item -> item instanceof CheckpointBarrier barrier && barrier.checkpointId() <= checkpointId);
             }
         }
         spaceAvailable.signalAll();
@@ -349,7 +346,8 @@ public final class InputGate<T> {
 
     private boolean anyReadable() {
         for (int i = 0; i < subpartitions.size(); i++) {
-            if (!barrierBlocked[i] && subpartitions.get(i) != null
+            if (!barrierBlocked[i]
+                    && subpartitions.get(i) != null
                     && !subpartitions.get(i).elements.isEmpty()) {
                 return true;
             }

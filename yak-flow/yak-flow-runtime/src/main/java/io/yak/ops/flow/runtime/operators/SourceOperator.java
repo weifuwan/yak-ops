@@ -25,8 +25,7 @@ import java.util.concurrent.CompletableFuture;
  * @param <T> 数据记录类型
  * @param <SplitT> 分片类型
  */
-public final class SourceOperator<T, SplitT extends SourceSplit>
-        implements OperatorEventHandler, AutoCloseable {
+public final class SourceOperator<T, SplitT extends SourceSplit> implements OperatorEventHandler, AutoCloseable {
 
     private final Source<T, SplitT, ?> source;
     private final SourceReaderContext readerContext;
@@ -86,8 +85,8 @@ public final class SourceOperator<T, SplitT extends SourceSplit>
             ensureInitialized();
             reader.handleSourceEvents(wrapper.sourceEvent());
         } else {
-            throw new IllegalArgumentException("SourceOperator 不支持的 OperatorEvent："
-                    + event.getClass().getName());
+            throw new IllegalArgumentException(
+                    "SourceOperator 不支持的 OperatorEvent：" + event.getClass().getName());
         }
     }
 

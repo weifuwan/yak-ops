@@ -15,10 +15,9 @@ public final class ExecutionOptions {
      * 运行模式：所有 Source 均有界时，AUTOMATIC 选择 BATCH；
      * 否则选择 STREAMING。显式使用 BATCH 时要求所有 Source 均有界。
      */
-    public static final ConfigOption<RuntimeExecutionMode> RUNTIME_MODE =
-            ConfigOptions.key("execution.runtime-mode")
-                    .enumType(RuntimeExecutionMode.class)
-                    .defaultValue(RuntimeExecutionMode.AUTOMATIC);
+    public static final ConfigOption<RuntimeExecutionMode> RUNTIME_MODE = ConfigOptions.key("execution.runtime-mode")
+            .enumType(RuntimeExecutionMode.class)
+            .defaultValue(RuntimeExecutionMode.AUTOMATIC);
 
     /**
      * Maximum whole-job restarts within one submission. Disabled by default.
@@ -27,9 +26,7 @@ public final class ExecutionOptions {
      * Failed task attempts are never reused; no partial Reader-only restart is claimed.
      */
     public static final ConfigOption<Integer> MAX_RESTART_ATTEMPTS =
-            ConfigOptions.key("execution.restart.max-attempts")
-                    .intType()
-                    .defaultValue(0);
+            ConfigOptions.key("execution.restart.max-attempts").intType().defaultValue(0);
 
     /** @deprecated 请使用 {@link CoreOptions#DEFAULT_PARALLELISM}；此字段仅作源码兼容别名。 */
     @Deprecated

@@ -6,18 +6,17 @@ import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
+import io.yak.ops.flow.runtime.checkpoint.AlignedCheckpointCoordinator;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
-import io.yak.ops.flow.runtime.checkpoint.AlignedCheckpointCoordinator;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
 import io.yak.ops.flow.runtime.jobgraph.JobVertex;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.io.IOException;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -35,8 +34,7 @@ public final class ExecutionGraph {
     private final Object monitor = new Object();
     private final CompletableFuture<JobExecutionResult> result = new CompletableFuture<>();
     private final CompletableFuture<Void> cancellation = new CompletableFuture<>();
-    private volatile CompletableFuture<AlignedCheckpointCoordinator> checkpointController =
-            new CompletableFuture<>();
+    private volatile CompletableFuture<AlignedCheckpointCoordinator> checkpointController = new CompletableFuture<>();
     private final boolean checkpointConfigured;
 
     private volatile JobStatus status = JobStatus.CREATED;
@@ -46,7 +44,8 @@ public final class ExecutionGraph {
     public ExecutionGraph(JobGraph jobGraph) {
         this.jobGraph = Objects.requireNonNull(jobGraph, "jobGraph");
         this.checkpointConfigured = !jobGraph.configuration()
-                .get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
+                        .get(CheckpointingOptions.CHECKPOINTING_INTERVAL)
+                        .isZero()
                 || jobGraph.configuration().get(CheckpointingOptions.RESTORE_LATEST);
         Map<Integer, ExecutionJobVertex> index = new LinkedHashMap<>();
         for (JobVertex vertex : jobGraph.getVertices()) {
@@ -55,9 +54,8 @@ public final class ExecutionGraph {
             }
         }
         this.byVertexId = Map.copyOf(index);
-        this.jobVertices = jobGraph.getVertices().stream()
-                .map(v -> index.get(v.getId()))
-                .toList();
+        this.jobVertices =
+                jobGraph.getVertices().stream().map(v -> index.get(v.getId())).toList();
     }
 
     public JobGraph getJobGraph() {
@@ -174,7 +172,8 @@ public final class ExecutionGraph {
         }
         try (FileCheckpointStore store = new FileCheckpointStore(Path.of(directory))) {
             return store.loadLatest(FileCheckpointStore.graphSignature(
-                    jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM))).isPresent();
+                            jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM)))
+                    .isPresent();
         } catch (IOException | RuntimeException notRestorable) {
             return false;
         }
@@ -227,8 +226,7 @@ public final class ExecutionGraph {
                 return CompletableFuture.completedFuture(null);
             }
             if (status == JobStatus.FAILED || status == JobStatus.FINISHED) {
-                return CompletableFuture.failedFuture(
-                        new IllegalStateException("Job has already finished: " + status));
+                return CompletableFuture.failedFuture(new IllegalStateException("Job has already finished: " + status));
             }
             if (cancellationRequested) {
                 return cancellation.copy();
@@ -245,13 +243,14 @@ public final class ExecutionGraph {
 
     public CompletableFuture<CheckpointSnapshot> checkpoint() {
         if (!checkpointConfigured) {
-            return CompletableFuture.failedFuture(
-                    new UnsupportedOperationException("该 Job 未启用持久化 Checkpoint"));
+            return CompletableFuture.failedFuture(new UnsupportedOperationException("该 Job 未启用持久化 Checkpoint"));
         }
         if (status.isTerminalState() || cancellationRequested) {
             return CompletableFuture.failedFuture(new IllegalStateException("已结束或取消中的 Job 不能触发 Checkpoint"));
         }
-        return checkpointController.thenCompose(AlignedCheckpointCoordinator::trigger).copy();
+        return checkpointController
+                .thenCompose(AlignedCheckpointCoordinator::trigger)
+                .copy();
     }
 
     public CompletableFuture<JobExecutionResult> getJobExecutionResult() {

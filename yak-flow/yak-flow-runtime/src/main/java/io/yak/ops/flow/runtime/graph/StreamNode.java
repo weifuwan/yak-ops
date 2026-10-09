@@ -75,8 +75,9 @@ public final class StreamNode {
                 this.operatorFactory = null;
                 this.sink = sinkTransformation.getSink();
             }
-            default -> throw new IllegalArgumentException("暂不支持的 Transformation 类型："
-                    + transformation.getClass().getName());
+            default ->
+                throw new IllegalArgumentException(
+                        "暂不支持的 Transformation 类型：" + transformation.getClass().getName());
         }
     }
 

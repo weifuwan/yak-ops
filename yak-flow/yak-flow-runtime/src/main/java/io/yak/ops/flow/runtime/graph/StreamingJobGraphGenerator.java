@@ -49,7 +49,8 @@ public final class StreamingJobGraphGenerator {
         List<JobEdge> edges = new ArrayList<>();
         boolean chainingEnabled = !checkpointEnabled()
                 && nodes.stream().allMatch(node -> node.getParallelism() == 1)
-                && streamGraph.getStreamEdges().stream().allMatch(edge -> edge.partitioning() == StreamPartitioning.FORWARD);
+                && streamGraph.getStreamEdges().stream()
+                        .allMatch(edge -> edge.partitioning() == StreamPartitioning.FORWARD);
 
         if (chainingEnabled) {
             vertices.add(new JobVertex(nodes, maxParallelism));
@@ -60,7 +61,9 @@ public final class StreamingJobGraphGenerator {
             for (int i = 1; i < vertices.size(); i++) {
                 JobVertex upstream = vertices.get(i - 1);
                 JobVertex downstream = vertices.get(i);
-                StreamEdge edge = streamGraph.getOutEdges(upstream.getTailOperator().getId()).getFirst();
+                StreamEdge edge = streamGraph
+                        .getOutEdges(upstream.getTailOperator().getId())
+                        .getFirst();
                 edges.add(new JobEdge(upstream.getId(), downstream.getId(), edge));
             }
         }
@@ -75,8 +78,7 @@ public final class StreamingJobGraphGenerator {
             throw new IllegalArgumentException("execution.restart.max-attempts 不能为负数");
         }
         if (maxRestarts > 0 && !checkpointEnabled()) {
-            throw new UnsupportedOperationException(
-                    "自动恢复必须启用持久化 Source → Sink Checkpoint（不能从头重复启动）");
+            throw new UnsupportedOperationException("自动恢复必须启用持久化 Source → Sink Checkpoint（不能从头重复启动）");
         }
         int maxParallelism = configuration.get(PipelineOptions.MAX_PARALLELISM);
         if (maxParallelism <= 0 || maxParallelism > 32768) {
@@ -92,9 +94,8 @@ public final class StreamingJobGraphGenerator {
                 throw new IllegalArgumentException("maxParallelism 不能小于算子并行度：" + node.getId());
             }
             if (node.usesDefaultParallelism() && node.getParallelism() != defaultParallelism) {
-                throw new IllegalArgumentException(
-                        "StreamNode " + node.getId() + " 的默认并行度与提交配置不一致："
-                                + node.getParallelism() + " != " + defaultParallelism);
+                throw new IllegalArgumentException("StreamNode " + node.getId() + " 的默认并行度与提交配置不一致："
+                        + node.getParallelism() + " != " + defaultParallelism);
             }
             if (!autoGenerateUids && node.getUid() == null) {
                 throw new IllegalArgumentException("关闭自动 UID 生成后，所有节点必须指定稳定 UID：" + node.getId());
@@ -104,23 +105,27 @@ public final class StreamingJobGraphGenerator {
         Duration interval = configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL);
         Duration timeout = configuration.get(CheckpointingOptions.CHECKPOINTING_TIMEOUT);
         Duration minPause = configuration.get(CheckpointingOptions.MIN_PAUSE_BETWEEN_CHECKPOINTS);
-        if (interval.isNegative() || timeout.isNegative() || timeout.isZero()
-                || minPause.isNegative() || configuration.get(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS) <= 0) {
+        if (interval.isNegative()
+                || timeout.isNegative()
+                || timeout.isZero()
+                || minPause.isNegative()
+                || configuration.get(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS) <= 0) {
             throw new IllegalArgumentException("Checkpoint 配置不合法");
         }
     }
 
     private void validateTopology() {
         List<StreamNode> nodes = streamGraph.getTopologicalNodes();
-        if (streamGraph.getSourceNodes().size() != 1 || streamGraph.getSinkNodes().size() != 1 || nodes.size() < 2) {
+        if (streamGraph.getSourceNodes().size() != 1
+                || streamGraph.getSinkNodes().size() != 1
+                || nodes.size() < 2) {
             throw new UnsupportedOperationException("当前嵌入式 Runtime 仅支持一个 Source 和一个 Sink");
         }
         int subtasks = 0;
         for (int i = 0; i < nodes.size(); i++) {
             StreamNode node = nodes.get(i);
             if (node.getParallelism() <= 0 || node.getParallelism() > MAX_PARALLELISM) {
-                throw new UnsupportedOperationException(
-                        "单个算子的并行度必须在 1 到 " + MAX_PARALLELISM + " 之间：" + node.getId());
+                throw new UnsupportedOperationException("单个算子的并行度必须在 1 到 " + MAX_PARALLELISM + " 之间：" + node.getId());
             }
             subtasks += node.getParallelism();
             if (i == 0) {
@@ -129,7 +134,8 @@ public final class StreamingJobGraphGenerator {
                 }
             } else {
                 List<StreamEdge> incoming = streamGraph.getInEdges(node.getId());
-                if (incoming.size() != 1 || incoming.getFirst().sourceId() != nodes.get(i - 1).getId()) {
+                if (incoming.size() != 1
+                        || incoming.getFirst().sourceId() != nodes.get(i - 1).getId()) {
                     throw new UnsupportedOperationException("目前不支持多输入或分叉图");
                 }
             }
@@ -139,7 +145,8 @@ public final class StreamingJobGraphGenerator {
                 }
             } else {
                 List<StreamEdge> outgoing = streamGraph.getOutEdges(node.getId());
-                if (outgoing.size() != 1 || outgoing.getFirst().targetId() != nodes.get(i + 1).getId()) {
+                if (outgoing.size() != 1
+                        || outgoing.getFirst().targetId() != nodes.get(i + 1).getId()) {
                     throw new UnsupportedOperationException("目前不支持多 Sink 或分叉数据路由");
                 }
                 if (i > 0 && !node.isOperator()) {
@@ -152,8 +159,8 @@ public final class StreamingJobGraphGenerator {
         }
         int capacity = configuration.get(RuntimeOptions.CHANNEL_CAPACITY);
         if (capacity <= 0 || capacity > MAX_CHANNEL_CAPACITY) {
-            throw new IllegalArgumentException("execution.local-channel.capacity 必须在 1 到 "
-                    + MAX_CHANNEL_CAPACITY + " 之间");
+            throw new IllegalArgumentException(
+                    "execution.local-channel.capacity 必须在 1 到 " + MAX_CHANNEL_CAPACITY + " 之间");
         }
     }
 

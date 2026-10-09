@@ -1,4 +1,3 @@
-
 package io.yak.ops.core.execution;
 
 import io.yak.ops.core.api.dag.Pipeline;
@@ -25,8 +24,5 @@ public interface PipelineExecutor {
      * @param configuration 运行配置
      * @return 对应作业的 JobClient
      */
-    CompletableFuture<JobClient> execute(
-            Pipeline pipeline,
-            Configuration configuration
-    );
+    CompletableFuture<JobClient> execute(Pipeline pipeline, Configuration configuration);
 }

@@ -1,8 +1,8 @@
 package io.yak.ops.flow.runtime.execution;
 
-import io.yak.ops.core.configuration.Configuration;
-import io.yak.ops.core.api.connector.sink.WriterInitContext;
 import io.yak.ops.core.api.common.TaskInfo;
+import io.yak.ops.core.api.connector.sink.WriterInitContext;
+import io.yak.ops.core.configuration.Configuration;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 
@@ -22,7 +22,8 @@ public final class TaskEnvironment implements WriterInitContext {
         this(taskInfo, configuration, () -> false);
     }
 
-    private TaskEnvironment(RuntimeTaskInfo taskInfo, Configuration configuration, BooleanSupplier cancellationRequested) {
+    private TaskEnvironment(
+            RuntimeTaskInfo taskInfo, Configuration configuration, BooleanSupplier cancellationRequested) {
         this.taskInfo = Objects.requireNonNull(taskInfo, "taskInfo 不能为空");
         this.configuration = new Configuration(Objects.requireNonNull(configuration, "configuration 不能为空"));
         this.cancellationRequested = Objects.requireNonNull(cancellationRequested, "cancellationRequested 不能为空");

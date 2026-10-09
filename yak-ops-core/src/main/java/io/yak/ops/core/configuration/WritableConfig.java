@@ -1,4 +1,3 @@
-
 package io.yak.ops.core.configuration;
 
 /** 修改配置项的操作接口。 */

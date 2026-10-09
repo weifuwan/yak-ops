@@ -30,6 +30,7 @@ public class OneInputTransformation<IN, OUT> extends Transformation<OUT> {
 
     /** 此节点的输入边策略；null 表示由 GraphGenerator 根据两端并行度推断。 */
     private StreamPartitioning inputPartitioning;
+
     private KeySelector<IN> inputKeySelector;
 
     public OneInputTransformation(

@@ -46,7 +46,8 @@ public final class Execution implements AutoCloseable {
                 throw new IllegalStateException("An Execution may only be deployed once");
             }
             if (task.taskInfo().subtaskIndex() != vertex.getSubtaskIndex()
-                    || task.taskInfo().operatorId() != vertex.getJobVertex().getJobVertex().getId()
+                    || task.taskInfo().operatorId()
+                            != vertex.getJobVertex().getJobVertex().getId()
                     || task.taskInfo().attemptNumber() != attemptNumber) {
                 throw new IllegalArgumentException("StreamTask identity does not match its ExecutionVertex");
             }
@@ -92,8 +93,7 @@ public final class Execution implements AutoCloseable {
     CompletableFuture<Void> completionFuture() {
         synchronized (this) {
             if (task == null) {
-                return CompletableFuture.failedFuture(
-                        new IllegalStateException("Execution has not been deployed"));
+                return CompletableFuture.failedFuture(new IllegalStateException("Execution has not been deployed"));
             }
         }
         return completion.copy();
@@ -102,7 +102,8 @@ public final class Execution implements AutoCloseable {
     CompletableFuture<Void> cancelAsync() {
         StreamTask current;
         synchronized (this) {
-            if (state == ExecutionState.FINISHED || state == ExecutionState.FAILED
+            if (state == ExecutionState.FINISHED
+                    || state == ExecutionState.FAILED
                     || state == ExecutionState.CANCELED) {
                 return CompletableFuture.completedFuture(null);
             }

@@ -20,8 +20,7 @@ import java.util.Objects;
  * together with upstream operator/source progress by the aligned checkpoint coordinator.
  * No Committer or transactional exactly-once guarantee is implied.
  */
-public final class SinkWriterOperator<T>
-        implements OneInputStreamOperator<T, Void>, CheckpointedStreamOperator {
+public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Void>, CheckpointedStreamOperator {
 
     private static final SinkWriter.Context RECORD_CONTEXT = new SinkWriter.Context() {
         @Override
@@ -63,7 +62,8 @@ public final class SinkWriterOperator<T>
         }
         opened = true;
         boolean checkpointEnabled = !context.getConfiguration()
-                .get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
+                        .get(CheckpointingOptions.CHECKPOINTING_INTERVAL)
+                        .isZero()
                 || context.getConfiguration().get(CheckpointingOptions.RESTORE_LATEST);
         if (sink instanceof SupportsWriterState<?, ?> statefulSink) {
             if (stateBackend == null) {
@@ -77,11 +77,13 @@ public final class SinkWriterOperator<T>
             }
             writer = Objects.requireNonNull(sink.createWriter(context), "Sink returned a null SinkWriter");
         }
-        if (checkpointEnabled && writer instanceof StatefulSinkWriter<?, ?>
+        if (checkpointEnabled
+                && writer instanceof StatefulSinkWriter<?, ?>
                 && !(sink instanceof SupportsWriterState<?, ?>)) {
             rejectUnsafeWriter("Stateful SinkWriter requires SupportsWriterState and a state serializer");
         }
-        if (checkpointEnabled && sink instanceof SupportsWriterState<?, ?>
+        if (checkpointEnabled
+                && sink instanceof SupportsWriterState<?, ?>
                 && !(writer instanceof StatefulSinkWriter<?, ?>)) {
             rejectUnsafeWriter("restoreWriter must return a StatefulSinkWriter");
         }
@@ -90,17 +92,18 @@ public final class SinkWriterOperator<T>
     @SuppressWarnings("unchecked")
     private SinkWriter<T> restoreWriter(SupportsWriterState<?, ?> raw) throws Exception {
         SupportsWriterState<T, Object> contract = (SupportsWriterState<T, Object>) raw;
-        SimpleVersionedSerializer<Object> serializer = Objects.requireNonNull(
-                contract.getWriterStateSerializer(), "Writer state serializer");
+        SimpleVersionedSerializer<Object> serializer =
+                Objects.requireNonNull(contract.getWriterStateSerializer(), "Writer state serializer");
         List<Object> restored = new ArrayList<>();
         // Numbered writer state must be dense; no silent partial restore of a corrupted snapshot.
         int stateCount = stateBackend.names().size();
         for (int index = 0; index < stateCount; index++) {
-            restored.add(stateBackend.get("writer-" + index, serializer)
+            restored.add(stateBackend
+                    .get("writer-" + index, serializer)
                     .orElseThrow(() -> new IllegalStateException("Incomplete restored writer state")));
         }
-        return Objects.requireNonNull(contract.restoreWriter(context, List.copyOf(restored)),
-                "restoreWriter returned null");
+        return Objects.requireNonNull(
+                contract.restoreWriter(context, List.copyOf(restored)), "restoreWriter returned null");
     }
 
     private void rejectUnsafeWriter(String reason) throws Exception {
@@ -131,8 +134,8 @@ public final class SinkWriterOperator<T>
             throw new UnsupportedOperationException("Stateful writer cannot snapshot without restore contract");
         }
         SupportsWriterState<T, Object> contract = (SupportsWriterState<T, Object>) statefulSink;
-        SimpleVersionedSerializer<Object> serializer = Objects.requireNonNull(
-                contract.getWriterStateSerializer(), "Writer state serializer");
+        SimpleVersionedSerializer<Object> serializer =
+                Objects.requireNonNull(contract.getWriterStateSerializer(), "Writer state serializer");
         List<Object> states = (List<Object>) statefulWriter.snapshotState(checkpointId);
         Objects.requireNonNull(states, "Writer snapshot state");
         backend.removeByPrefix("writer-");

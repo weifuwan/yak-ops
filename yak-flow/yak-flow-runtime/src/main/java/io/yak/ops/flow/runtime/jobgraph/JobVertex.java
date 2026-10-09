@@ -36,7 +36,8 @@ public final class JobVertex {
             }
         }
         for (int i = 1; i < this.operators.size(); i++) {
-            if (!this.operators.get(i - 1).isSource() && !this.operators.get(i - 1).isOperator()) {
+            if (!this.operators.get(i - 1).isSource()
+                    && !this.operators.get(i - 1).isOperator()) {
                 throw new IllegalArgumentException("Only Source / OneInput operators can have a chained successor");
             }
         }
