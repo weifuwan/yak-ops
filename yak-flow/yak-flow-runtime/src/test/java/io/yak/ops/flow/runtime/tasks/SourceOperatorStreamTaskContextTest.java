@@ -42,7 +42,7 @@ class SourceOperatorStreamTaskContextTest {
         Configuration configuration = new Configuration();
         // 默认并行度与执行子任务的实际并行度不同，不应被当成 Reader parallelism。
         configuration.set(CoreOptions.DEFAULT_PARALLELISM, 8);
-        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 17, 1, 2, 0);
+        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 17, 1, 2, 0, 128);
 
         OperatorCoordinatorContext coordinatorContext =
                 new OperatorCoordinatorContext(info.jobID(), info.operatorId(), info.parallelism());
@@ -72,7 +72,7 @@ class SourceOperatorStreamTaskContextTest {
     void shouldRejectMismatchedTaskBeforeOpeningReader() throws Exception {
         TestSource source = new TestSource();
         JobID jobID = JobID.generate();
-        RuntimeTaskInfo wrong = new RuntimeTaskInfo(JobID.generate(), 17, 1, 2, 0);
+        RuntimeTaskInfo wrong = new RuntimeTaskInfo(JobID.generate(), 17, 1, 2, 0, 128);
         try (SourceCoordinator<TestSplit, Integer> coordinator =
                 new SourceCoordinator<>(source, new OperatorCoordinatorContext(jobID, 17, 2))) {
             assertThrows(IllegalArgumentException.class, () -> new SourceOperatorStreamTask<>(

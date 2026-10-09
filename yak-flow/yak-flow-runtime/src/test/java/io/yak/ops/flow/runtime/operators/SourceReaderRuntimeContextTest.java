@@ -24,7 +24,7 @@ class SourceReaderRuntimeContextTest {
 
     @Test
     void shouldSendAttemptAwareRequestWithTaskParallelismAndConfigurationCopy() {
-        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 5, 1, 2, 3);
+        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 5, 1, 2, 3, 128);
         Configuration configuration = new Configuration();
         configuration.set(CoreOptions.DEFAULT_PARALLELISM, 9);
         TaskEnvironment environment = new TaskEnvironment(info, configuration);
@@ -49,7 +49,7 @@ class SourceReaderRuntimeContextTest {
 
     @Test
     void shouldSendConnectorSourceEventThroughTheAttemptAwareGateway() {
-        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 5, 0, 1, 4);
+        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 5, 0, 1, 4, 128);
         AtomicReference<OperatorEvent> sent = new AtomicReference<>();
         SourceReaderRuntimeContext context = new SourceReaderRuntimeContext(
                 new TaskEnvironment(info, new Configuration()), event -> {
@@ -67,7 +67,7 @@ class SourceReaderRuntimeContextTest {
     @Test
     void shouldReportSynchronousAndAsynchronousGatewayFailure() {
         TaskEnvironment environment = new TaskEnvironment(
-                new RuntimeTaskInfo(JobID.generate(), 5, 0, 1, 0), new Configuration());
+                new RuntimeTaskInfo(JobID.generate(), 5, 0, 1, 0, 128), new Configuration());
         AtomicReference<Throwable> synchronousFailure = new AtomicReference<>();
         SourceReaderRuntimeContext synchronous = new SourceReaderRuntimeContext(environment, event -> {
             throw new IllegalStateException("gateway closed");
@@ -91,7 +91,7 @@ class SourceReaderRuntimeContextTest {
     @Test
     void shouldIgnoreRequestAndLateFailureAfterTaskCancellation() {
         TaskEnvironment environment = new TaskEnvironment(
-                new RuntimeTaskInfo(JobID.generate(), 5, 0, 1, 1), new Configuration());
+                new RuntimeTaskInfo(JobID.generate(), 5, 0, 1, 1, 128), new Configuration());
         AtomicBoolean canceled = new AtomicBoolean();
         AtomicInteger submitted = new AtomicInteger();
         AtomicReference<Throwable> failure = new AtomicReference<>();
