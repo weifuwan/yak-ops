@@ -54,19 +54,18 @@ public final class TargetSchemaCompatibility {
                 continue;
             }
 
-            Column sourceColumn =
-                    new Column(source.name(), source.dataType(), source.nullable(), source.length());
-            Column targetColumn;
+            Column sourceColumn = new Column(source.name(), source.dataType(), source.nullable(), source.length());
+            Column targetLogicalColumn;
             try {
-                targetColumn = JdbcSchemaMapper.toColumn(targetColumn);
+                targetLogicalColumn = JdbcSchemaMapper.toColumn(targetColumn);
             } catch (IllegalArgumentException exception) {
                 issues.add("目标字段类型不支持：" + source.name() + "（" + target.getTypeName() + "）");
                 continue;
             }
 
-            if (!JdbcSchemaCompatibility.isCompatible(sourceColumn, targetColumn)) {
+            if (!JdbcSchemaCompatibility.isCompatible(sourceColumn, targetLogicalColumn)) {
                 issues.add("目标字段不兼容：" + source.name() + "（" + source.dataType().kind() + " → "
-                        + targetColumn.dataType().kind() + "）");
+                        + targetLogicalColumn.dataType().kind() + "）");
                 continue;
             }
             mappedTargetColumns.add(targetColumn);

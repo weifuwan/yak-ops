@@ -84,6 +84,7 @@ import io.yak.ops.common.util.CollectionUtils;
 import io.yak.ops.common.util.DateUtils;
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.StringUtils;
+import io.yak.ops.core.types.Column;
 import io.yak.ops.dao.entity.datasync.DataSyncAttemptEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncExecutionEventEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
@@ -107,7 +108,6 @@ import io.yak.ops.dao.repository.datasync.DataSyncTableExecutionRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
-import io.yak.ops.core.types.Column;
 import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaCompatibility;
 import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaMapper;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
@@ -1568,9 +1568,9 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         DataSourceColumn targetColumn = DataSyncCatalogColumns.toColumn(target);
         if (sourceColumn == null || targetColumn == null) return false;
         try {
-            Column sourceColumn = JdbcSchemaMapper.toColumn(sourceColumn);
-            Column targetColumn = JdbcSchemaMapper.toColumn(targetColumn);
-            return JdbcSchemaCompatibility.isCompatible(sourceColumn, targetColumn);
+            Column sourceLogicalColumn = JdbcSchemaMapper.toColumn(sourceColumn);
+            Column targetLogicalColumn = JdbcSchemaMapper.toColumn(targetColumn);
+            return JdbcSchemaCompatibility.isCompatible(sourceLogicalColumn, targetLogicalColumn);
         } catch (IllegalArgumentException exception) {
             return false;
         }
