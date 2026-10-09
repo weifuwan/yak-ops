@@ -178,3 +178,49 @@ jobs:
       - name: Verify Yak Ops distribution
         if: steps.changes.outputs.required == 'true'
         run: bash scripts/release/verify-distribution.sh
+
+  # Stable required status: the three quality jobs must ALL succeed. Do not treat a
+  # skipped, cancelled, or missing check as a pass. This job runs after failures.
+  pr-required-checks:
+    name: PR Required Checks
+    if: ${{ always() }}
+    needs:
+      - backend-quality
+      - frontend-quality
+      - distribution-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify all quality jobs
+        shell: bash
+        env:
+          BACKEND_RESULT: ${{ needs.backend-quality.result }}
+          FRONTEND_RESULT: ${{ needs.frontend-quality.result }}
+          DISTRIBUTION_RESULT: ${{ needs.distribution-quality.result }}
+        run: |
+          set -euo pipefail
+
+          echo "## PR Required Checks" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| Quality job | Result |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "| --- | --- |" >> "${GITHUB_STEP_SUMMARY}"
+
+          failed=0
+          checks=(
+            "Backend Quality:${BACKEND_RESULT}"
+            "Frontend Quality:${FRONTEND_RESULT}"
+            "Distribution Quality:${DISTRIBUTION_RESULT}"
+          )
+          for check in "${checks[@]}"; do
+            name="${check%%:*}"
+            result="${check#*:}"
+            echo "| ${name} | ${result} |" >> "${GITHUB_STEP_SUMMARY}"
+            if [[ "${result}" != "success" ]]; then
+              echo "::error::${name} was ${result}; all quality jobs must succeed."
+              failed=1
+            fi
+          done
+
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "This gate covers code quality, not JDBC/CDC runtime E2E acceptance." >> "${GITHUB_STEP_SUMMARY}"
+          exit "${failed}"
