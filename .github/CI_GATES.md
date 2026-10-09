@@ -1,63 +1,82 @@
 # Yak Ops CI Status Contracts
 
-These rules describe what a **successful GitHub Actions check** proves. They do not
-modify repository branch protection or replace the existing release procedures.
+## Pull requests: one Quality Check workflow
 
-## Pull-request quality gate
+`.github/workflows/quality-check.yml` is the **only automatic pull_request**
+workflow. It also runs on pushes to `main` and can be reused by the formal
+Release Gate via `workflow_call`.
 
-`.github/workflows/quality-check.yml` runs on every pull request and push to `main`.
-It contains three independent quality jobs:
+There are four stable jobs; no extra change-detection job:
 
-- `Backend Quality`: logging rules, format, compilation, Maven verification.
-- `Frontend Quality`: formatting, lint, type checking, architecture, build.
-- `Distribution Quality`: release distribution verification **when relevant files change**;
-  otherwise a successful result means that distribution work was not required.
+| Job | Required work when in scope |
+| --- | --- |
+| `Backend Quality` | Backend boundaries (Core does not import Runtime, deleted legacy packages stay absent), release scripts/metadata, logging, Spotless, **one Maven verify** |
+| `Frontend Quality` | npm ci, format, lint, typecheck, architecture, build |
+| `Distribution Quality` | Full distribution build and verification for release/package-related changes |
+| `PR Required Checks` | `always()` aggregate; all three preceding jobs must return `success` |
 
-The `PR Required Checks` job depends on all three and uses `always()` so it
-**fails if any upstream result is not `success`**, including `failure`,
-`cancelled` or `skipped`. It does not rerun Maven/npm.
+`scripts/ci/detect-changes.sh` runs as a **step in each existing quality job**
+and only skips the expensive setup/build/test steps for unrelated file changes.
+Every job still runs and reports an explicit scope decision:
 
-A green `PR Required Checks` is a quality check, **not JDBC/CDC E2E acceptance**.
+- Java/Backend/Core/YakFlow changes run Backend Quality including **the full
+  reactor Maven `verify`**. This also runs YakFlow Core/Runtime tests; it
+  replaces the old duplicate YakFlow and Data Sync testing workflows.
+- Frontend changes run Frontend Quality.
+- Distribution/release packaging changes run Distribution Quality.
+- Root workflow/CI script changes, unclassified file paths and non-PR/non-push
+  events run **all three** (safe fallback). A formal `workflow_call` from the
+  Release Gate always exercises the full quality suite, never selective checks.
+- Documentation-only changes may skip heavy jobs. The scope steps still run
+  and `PR Required Checks` remains present and required.
+- A malformed diff or scope detection failure fails its job; it cannot result
+  in a silently green required status.
 
-## Backend acceptance is not yet available
+The old `YakFlow Core Runtime Regression` and `Data Sync Legacy Removal
+Verification` Workflow files were removed **only after** moving their
+architecture/legacy assertions into Backend Quality. Their Maven `test`
+invocations were redundant with the existing backend `verify`; no test cases
+were removed.
 
-`.github/workflows/backend-acceptance.yml` has two mutually exclusive jobs:
+A green `PR Required Checks` means **code quality passed for the relevant
+change scope**. It does **not** mean JDBC/CDC integration E2E passed.
 
-| Trigger | Job | Expected result |
-| --- | --- | --- |
-| Ordinary pull request or push to `main` | `Runtime E2E Status (not executed)` | Success **for accurate status reporting only** |
-| Manual `workflow_dispatch` or scheduled run | `Full Runtime E2E Gate (unavailable)` | Failure |
-| Release Gate calling `full_sweep: true` | `Full Runtime E2E Gate (unavailable)` | Failure |
+## Backend acceptance and publishing
 
-The Release Gate remains fail-closed until the replacement JDBC/CDC runtime and
-real database E2E tests are restored. Its PR-triggered run may therefore be red
-when release-related workflows are edited; do not treat that red result as a
-successful E2E run or disable the full-sweep requirement to make it green.
+The backend acceptance entry point remains at
+`.github/workflows/backend-acceptance.yml`, but it **does not run on ordinary
+PRs or main pushes**. Manual dispatch and the Release Gate's
+`workflow_call(full_sweep=true)` continue to fail closed until real
+JDBC/CDC runtime integration E2E exists. The informational status job is not
+evidence of an integration test.
 
-## Enabling enforcement on `main`
+`.github/workflows/v1-release-gate.yml` now runs only via
+`workflow_dispatch`, not for changes to release scripts on ordinary PRs.
+It still reuses **full** Quality Check (no path-based skip), requires Full
+Backend Acceptance, tests distribution/Docker/Compose, checks release
+readiness and manual E2E evidence. `release-publish.yml` remains manual
+and enforces the matching formal Gate run and commit SHA.
 
-**A workflow file alone cannot enforce branch protection.** After this PR is
-merged and the new check context has appeared on GitHub Actions:
+## Enforcing the stable status check on `main`
 
-1. Open repository **Settings → Rules → Rulesets** (or **Settings → Branches**
-   for a classic branch-protection rule).
-2. Create or update a rule targeting `main`. Require a pull request before
-   merging and require status checks to pass.
-3. Select the check named **`PR Required Checks`** from the root
-   `Quality Check` workflow. Use the exact check context shown in a real PR;
-   reusable-workflow callers may have a different qualified check name.
-4. Require the branch to be up to date before merging if the repository uses
-   strict checks. Review any allowed bypass actors; exempted administrators
-   can otherwise still merge failing changes.
-5. Validate with a deliberately failing quality check on a disposable PR:
-   the check must fail and GitHub must block an unprivileged merge. Check that
-   a normal green PR is allowed.
+**A workflow file alone cannot enforce branch protection.** After this PR
+is merged, an administrator should verify the GitHub Ruleset / branch
+protection settings:
 
-Do **not** configure `Runtime E2E Status (not executed)` as an E2E success
-criterion. Path-filtered specialized workflows such as `YakFlow Core Runtime
-Regression` are not guaranteed to run on every PR, so they should not be
-blindly set as global required checks without accounting for skipped runs.
+1. In repository **Settings → Rules → Rulesets** (or **Settings → Branches**),
+   target `main`, require pull requests and passing status checks.
+2. Make **`PR Required Checks`** (from root `Quality Check`) required.
+   Use the exact GitHub check context shown on a real PR.
+3. **Remove any old required checks** that pointed to the now deleted
+   `YakFlow Core Runtime Regression` or `Data Sync Legacy Removal
+   Verification` workflows. Otherwise unrelated PRs may be stuck waiting
+   for check contexts that never run.
+4. Consider strict up-to-date checks and review bypass actors. Verify a
+   deliberate failing-check PR cannot be merged without a permitted bypass.
 
-The existing `.asf.yaml` is not evidence that GitHub branch protection is
-active. The linked GitHub integration cannot read the branch-protection
-endpoint (403); current enforcement must be checked by a repository admin.
+Do **not** require a now-removed path-filtered workflow or unavailable
+runtime-E2E status job as a global success gate. Formal release acceptance
+remains independent and strict.
+
+The linked GitHub App cannot read legacy branch protection (403); the
+current enforcement configuration must be confirmed by a repository admin.
