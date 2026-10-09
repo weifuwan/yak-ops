@@ -190,11 +190,15 @@ class ResultPartitionInputGateTest {
         assertThrows(IllegalArgumentException.class, () -> new StreamEdge(1, 2, StreamPartitioning.FORWARD,
                 (io.yak.ops.core.api.operators.KeySelector<String>) value -> value));
 
+        // A failed forwarding configuration already attached its physical partitions.
+        // Key validation uses independent gates, like separate job submissions.
         RecordWriterOutput<String> nullKey = output(
-                StreamEdge.keyed(1, 2, (String value) -> null), 0, 1, gates);
+                StreamEdge.keyed(1, 2, (String value) -> null), 0, 1,
+                List.of(new InputGate<>(2, 1), new InputGate<>(2, 1)));
         assertThrows(NullPointerException.class, () -> nullKey.collect("record"));
         RecordWriterOutput<String> arrayKey = output(
-                StreamEdge.keyed(1, 2, (String value) -> new byte[] {1}), 0, 1, gates);
+                StreamEdge.keyed(1, 2, (String value) -> new byte[] {1}), 0, 1,
+                List.of(new InputGate<>(2, 1), new InputGate<>(2, 1)));
         assertThrows(IllegalArgumentException.class, () -> arrayKey.collect("record"));
     }
 
