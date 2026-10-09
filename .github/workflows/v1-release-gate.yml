@@ -1,22 +1,7 @@
 name: Release Gate
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/v1-release-gate.yml"
-      - ".github/workflows/quality-check.yml"
-      - ".github/workflows/backend-acceptance.yml"
-      - "scripts/release/**"
-      - "yak-ops-dist/**"
-      - "Dockerfile"
-      - "docker/**"
-      - "compose.yaml"
-      - "compose.without-mysql.yaml"
-      - "release.env"
-      - ".env.example"
-      - "pom.xml"
-      - "yak-ops-ui/package.json"
-      - "yak-ops-ui/package-lock.json"
+  # Formal release validation is manually triggered; ordinary PRs use Quality Check only.
   workflow_dispatch:
     inputs:
       release_version:
