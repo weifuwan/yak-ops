@@ -50,7 +50,9 @@ Core 拥有跨 Connector / Runtime 复用的稳定接口、配置和 Transformat
 - `StreamNode.getDeclaredParallelism()` 区分继承默认值与显式设置，`getParallelism()` 保存解析结果。构图/提交必须对继承默认值的节点做一致性检查，显式并行度不因提交配置变化而被覆盖。
 - `StreamEdge` 携带 FORWARD / REBALANCE / KEYED 分区策略；并行度相同默认 FORWARD，不同默认 REBALANCE。KEYED 通过下游 Transformation 的 `keyBy(KeySelector)` 配置稳定非空业务键，不能使用数组或身份哈希；FORWARD 的两侧并行度不一致时必须拒绝。
 - Runtime 的 `RuntimeOptions.CHANNEL_CAPACITY` 定义每个下游 Subtask 的队列容量，继续使用 `execution.local-channel.capacity` 配置键和原有默认值；Core 不再定义运行方式专属队列参数。
+- Core 同时保留旧 `Sink.createWriter()` / `SinkWriter.write(T)` 和新的 `SinkV2.createWriter(WriterInitContext)` / `SinkWriter.write(T, Context)`。前者保持源码兼容，后者用于正确的 Subtask/Attempt 身份传递。StatefulSinkWriter / SupportsWriterState 只声明扩展协议；状态实际序列化、恢复和 Committer 属于后续 Checkpoint 能力，不可宣称已经支持。
+- `PipelineOptions.MAX_PARALLELISM` 默认 128、上限 32768，构图时校验不能低于实际并行度；KEYED 分区用固定 KeyGroup ID 再映射 Subtask，不与部署并行度直接哈希。改变 maxParallelism 会改变 KeyGroup 身份，必须在恢复时检验指纹；当前没有 Keyed State Rescale。
 - `CheckpointingOptions.STATE_DIRECTORY` / `RESTORE_LATEST` 只定义运行策略和恢复位置，实际版本化状态编码、目录独占锁、快照成功确认和 Task 暂停均归 `yak-flow-runtime`，不能在 Core 建立文件检查点执行器。
 - 稳定算子 UID 与单次构图 ID 必须分清。Source / Sink / Operator 的公共契约只暴露 Connector 和 Runtime 真正共同需要的语义，不加入产品任务身份。
-- Core 的 `TaskInfo` 只定义只读 Subtask/Parallelism/Attempt 元信息；Runtime 的 `RuntimeTaskInfo` 提供 JobID/OperatorID 和诊断线程名称，`TaskEnvironment`、`OperatorCoordinatorContext`、`SourceReaderRuntimeContext` 均归 Runtime。Core 的 `SourceReaderContext#getConfiguration()` 返回独立的 `Configuration` 防御性副本；Task / Coordinator 身份不放入 Core。物理 Task 装配与中间 Operator 的通用状态 Checkpoint 仍属于后续工作，按 [Core / Runtime Execution Contract](../docs/capabilities/yak-flow/core-runtime-contract.md) 审查。
+- Core 的 `TaskInfo` 只定义只读 Subtask/Parallelism/Attempt/KeyGroup maxParallelism 元信息；Runtime 的 `RuntimeTaskInfo` 提供 JobID/OperatorID 和诊断线程名称，`TaskEnvironment`、`OperatorCoordinatorContext`、`SourceReaderRuntimeContext` 均归 Runtime。Core 的 `SourceReaderContext#getConfiguration()` 返回独立的 `Configuration` 防御性副本；Task / Coordinator 身份不放入 Core。物理 Task 装配与中间 Operator 的通用状态 Checkpoint 仍属于后续工作，按 [Core / Runtime Execution Contract](../docs/capabilities/yak-flow/core-runtime-contract.md) 审查。
 
