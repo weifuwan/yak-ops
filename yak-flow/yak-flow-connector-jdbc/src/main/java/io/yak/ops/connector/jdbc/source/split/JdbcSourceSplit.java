@@ -20,7 +20,8 @@ public record JdbcSourceSplit(
         String splitColumn,
         Long lowerBound,
         Long upperBound,
-        Long lastEmittedKey)
+        Long lastEmittedKey,
+        String schemaFingerprint)
         implements SourceSplit {
 
     public JdbcSourceSplit {
@@ -28,6 +29,9 @@ public record JdbcSourceSplit(
             throw new IllegalArgumentException("Split ID must not be blank");
         }
         Objects.requireNonNull(tableId, "tableId");
+        if (schemaFingerprint == null || !schemaFingerprint.matches("[0-9a-f]{64}")) {
+            throw new IllegalArgumentException("JDBC split requires a SHA-256 schema fingerprint");
+        }
         columns = List.copyOf(Objects.requireNonNull(columns, "columns"));
         if (columns.isEmpty() || columns.stream().anyMatch(value -> value == null || value.isBlank())) {
             throw new IllegalArgumentException("A JDBC split requires nonblank column names");
@@ -53,6 +57,7 @@ public record JdbcSourceSplit(
 
     /** Returns a detached position snapshot without changing the original assigned split. */
     public JdbcSourceSplit withLastEmittedKey(Long key) {
-        return new JdbcSourceSplit(splitId, tableId, columns, splitColumn, lowerBound, upperBound, key);
+        return new JdbcSourceSplit(
+                splitId, tableId, columns, splitColumn, lowerBound, upperBound, key, schemaFingerprint);
     }
 }

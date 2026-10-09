@@ -7,6 +7,7 @@ import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.AnsiJdbcDialect;
+import io.yak.ops.connector.jdbc.source.enumerator.JdbcSplitPlanner;
 import io.yak.ops.connector.jdbc.source.reader.JdbcSourceReader;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.api.connector.sink.Sink;
@@ -113,8 +114,9 @@ class JdbcSourceRuntimeTest {
         }
 
         TableId table = new TableId(null, "PUBLIC", "ITEMS");
-        JdbcSourceSplit initial = new JdbcSourceSplit(
-                "table-0-split-0", table, List.of("ID", "NAME"), "ID", 1L, 10L, null);
+        JdbcSourceSplit initial = new JdbcSplitPlanner(connection, new AnsiJdbcDialect(), new Configuration())
+                .plan(table, 0)
+                .getFirst();
         JdbcSourceSplit checkpointed;
         try (JdbcSourceReader reader = new JdbcSourceReader(
                 connection, new AnsiJdbcDialect(), new Configuration(), new DemoContext())) {
@@ -163,14 +165,9 @@ class JdbcSourceRuntimeTest {
             sql.execute("CREATE TABLE DEMO (ID BIGINT PRIMARY KEY)");
             sql.execute("INSERT INTO DEMO VALUES (1),(2)");
         }
-        JdbcSourceSplit initial = new JdbcSourceSplit(
-                "table-0-split-0",
-                new TableId(null, "PUBLIC", "DEMO"),
-                List.of("ID"),
-                "ID",
-                1L,
-                2L,
-                null);
+        JdbcSourceSplit initial = new JdbcSplitPlanner(connection, new AnsiJdbcDialect(), new Configuration())
+                .plan(new TableId(null, "PUBLIC", "DEMO"), 0)
+                .getFirst();
         try (JdbcSourceReader reader = new JdbcSourceReader(
                 connection, new AnsiJdbcDialect(), new Configuration(), new DemoContext())) {
             reader.addSplits(List.of(initial));

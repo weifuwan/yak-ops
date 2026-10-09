@@ -22,11 +22,12 @@ class JdbcSourceStateTest {
     @Test
     void splitRoundTripRetainsTableIdentityBoundsColumnsAndProgress() throws Exception {
         JdbcSourceSplit before = new JdbcSourceSplit(
-                "table-0-split-2", table, List.of("id", "name"), "id", 10L, 20L, 13L);
+                "table-0-split-2", table, List.of("id", "name"), "id", 10L, 20L, 13L, "a".repeat(64));
         JdbcSourceSplit restored =
                 splitSerializer.deserialize(splitSerializer.getVersion(), splitSerializer.serialize(before));
         assertEquals(before, restored);
         assertThrows(IOException.class, () -> splitSerializer.deserialize(99, splitSerializer.serialize(before)));
+        assertThrows(IOException.class, () -> splitSerializer.deserialize(1, splitSerializer.serialize(before)));
     }
 
     @Test
@@ -34,9 +35,10 @@ class JdbcSourceStateTest {
         JdbcSource source = new JdbcSource(
                 new JdbcConnectionOptions("jdbc:h2:mem:snapshot", "sa", ""), List.of(table));
         JdbcEnumeratorState state = new JdbcEnumeratorState(
-                "fingerprint", 1, List.of(new JdbcSourceSplit("s", table, List.of("id"), null, null, null, null)));
+                "fingerprint", 1, List.of(new JdbcSourceSplit("s", table, List.of("id"), null, null, null, null, "b".repeat(64))));
         JdbcEnumeratorStateSerializer serializer = new JdbcEnumeratorStateSerializer();
         assertEquals(state, serializer.deserialize(serializer.getVersion(), serializer.serialize(state)));
+        assertThrows(IOException.class, () -> serializer.deserialize(1, serializer.serialize(state)));
         assertThrows(IllegalArgumentException.class, () -> source.restoreEnumerator(null, state));
     }
 
@@ -44,10 +46,10 @@ class JdbcSourceStateTest {
     void invalidStateAndUnsignedLongRangesAreNotSilentlyAccepted() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new JdbcSourceSplit("broken", table, List.of("id"), "id", 5L, 2L, null));
+                () -> new JdbcSourceSplit("broken", table, List.of("id"), "id", 5L, 2L, null, "a".repeat(64)));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new JdbcSourceSplit("broken", table, List.of("id"), null, null, null, 1L));
+                () -> new JdbcSourceSplit("broken", table, List.of("id"), null, null, null, 1L, "a".repeat(64)));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new JdbcSource(new JdbcConnectionOptions("jdbc:h2:mem:snapshot", "sa", ""), List.of(table, table)));

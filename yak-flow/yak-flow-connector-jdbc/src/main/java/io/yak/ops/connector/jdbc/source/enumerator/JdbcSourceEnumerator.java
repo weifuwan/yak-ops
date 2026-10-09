@@ -148,10 +148,15 @@ public final class JdbcSourceEnumerator implements SplitEnumerator<JdbcSourceSpl
     private void drainRequests() {
         while (!pending.isEmpty() && !waitingReaders.isEmpty()) {
             int subtaskId = waitingReaders.iterator().next();
-            waitingReaders.remove(subtaskId);
-            if (context.registeredReaders().contains(subtaskId) && !finishedReaders.contains(subtaskId)) {
-                context.assignSplit(pending.removeFirst(), subtaskId);
+            if (!context.registeredReaders().contains(subtaskId) || finishedReaders.contains(subtaskId)) {
+                waitingReaders.remove(subtaskId);
+                continue;
             }
+            // Do not lose pending work if the coordinator rejects the assignment.
+            // Assignment acknowledgement and in-flight ownership belong to Runtime.
+            context.assignSplit(pending.peekFirst(), subtaskId);
+            pending.removeFirst();
+            waitingReaders.remove(subtaskId);
         }
         signalCompletion();
     }

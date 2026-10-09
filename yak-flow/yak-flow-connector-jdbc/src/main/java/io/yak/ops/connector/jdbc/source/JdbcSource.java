@@ -128,7 +128,8 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
                 || configuration.get(JdbcSourceOptions.MAX_SPLITS_PER_TABLE) <= 0
                 || configuration.get(JdbcSourceOptions.READER_FETCH_BATCH_SIZE) <= 0
                 || configuration.get(JdbcSourceOptions.RESULT_SET_FETCH_SIZE) <= 0
-                || configuration.get(JdbcSourceOptions.QUERY_TIMEOUT_SECONDS) <= 0) {
+                || configuration.get(JdbcSourceOptions.QUERY_TIMEOUT_SECONDS) <= 0
+                || configuration.get(JdbcSourceOptions.CONNECTION_ATTEMPTS) <= 0) {
             throw new IllegalArgumentException("JDBC source options must be positive");
         }
     }

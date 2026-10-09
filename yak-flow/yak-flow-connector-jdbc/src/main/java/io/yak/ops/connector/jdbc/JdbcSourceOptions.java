@@ -21,6 +21,9 @@ public final class JdbcSourceOptions {
     public static final ConfigOption<Integer> QUERY_TIMEOUT_SECONDS =
             option("connector.jdbc.source.query-timeout-seconds", 60);
 
+    public static final ConfigOption<Integer> CONNECTION_ATTEMPTS =
+            option("connector.jdbc.source.connection-attempts", 3);
+
     private JdbcSourceOptions() {}
 
     private static ConfigOption<Integer> option(String name, int value) {
