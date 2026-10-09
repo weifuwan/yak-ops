@@ -25,13 +25,13 @@ Transformation → StreamGraphGenerator → StreamGraph
 
 `StreamTaskSourceInput` 和 `StreamTaskNetworkInput` 实现相同的非阻塞 `StreamTaskInput`。跨 JobVertex 的每个上游 StreamTask 使用 `RecordWriterOutput` 与独立 `StreamPartitioner` 写入其 `ResultPartition`；每个下游 Task 通过 `InputGate` 消费所有生产者的 `ResultSubpartition`。输入 Gate 提供轮询公平性、统一队列容量、完成通知和可中断背压，而不是以前的混合 RecordChannel / RecordRouter。
 
-FORWARD / REBALANCE / KEYED 路由保持兼容。KEYED 使用 Flink 风格的 Murmur3 KeyGroup 映射（默认 128 组），但尚未提供键控状态迁移；本地 InputGate 不是 Flink RemoteInputChannel，也不实现网络 Credit/Barrier。
+FORWARD / REBALANCE / KEYED 路由保持兼容。KEYED 使用 Flink 风格的 Murmur3 KeyGroup 映射（默认 128 组），并为同 Subtask 的版本化 Keyed State 提供 KeyGroup 归属校验，但不提供状态 Rescale；本地 InputGate 支持单输入 Barrier 对齐，不实现远程网络 Credit。
 
 ## StreamOperator, Sink V2 and KeyGroups
 
-独立 OneInput 和 Sink 的 Task 统一由 OneInputStreamTask 启动，SinkWriterOperator 封装 SinkWriter 的 open、write、checkpoint flush、finish 和 close。单并行内联 OperatorChain 也使用相同 SinkWriterOperator。Core 保留兼容旧 Sink 的无参工厂，并为新 SinkV2 提供 WriterInitContext / SinkWriter.Context；Writer State 只声明扩展接口，不提供持久化或事务 Committer。
+独立 OneInput 和 Sink 的 Task 统一由 OneInputStreamTask 启动，SinkWriterOperator 封装 SinkWriter 的 open、write、checkpoint flush、finish 和 close。单并行内联 OperatorChain 也使用相同 SinkWriterOperator。Core 保留兼容旧 Sink 的无参工厂，并为新 SinkV2 提供 WriterInitContext / SinkWriter.Context；有 SupportsWriterState 的 SinkWriter 可以随 Barrier 进行版本化状态持久化与恢复，没有恢复合同的 StatefulSinkWriter 继续拒绝；不提供事务 Committer。
 
-pipeline.max-parallelism（默认 128）决定 KEYED 的 KeyGroup 数量，任务并行度只决定组如何归属各 Subtask，未来可据此设计 State Rescale，但当前没有对应 Operator State。带 KEYED 的 Checkpoint 指纹会记录 KeyGroup 算法及最大并行度，拒绝使用旧 hashCode 路由模型的 KEYED 状态文件。
+pipeline.max-parallelism（默认 128）决定 KEYED 的 KeyGroup 数量，任务并行度只决定组如何归属各 Subtask，未来可据此设计 State Rescale，OperatorStateBackend 按固定 KeyGroup 提供命名/键控状态快照和恢复，但当前没有状态 Rescale。带 KEYED 的 Checkpoint 指纹会记录 KeyGroup 算法及最大并行度，拒绝使用旧 hashCode 路由模型的 KEYED 状态文件。
 
 ## Source Coordination
 
@@ -39,11 +39,11 @@ AddSplitEvent 使用 Connector 提供的 SimpleVersionedSerializer 生成版本�
 
 ## Checkpoint Boundary
 
-Source → Sink 支持 QuiescentCheckpointCoordinator 的单 JVM 静止切面：暂停 Source Split 分配和 Reader、等待 InputGate 缓冲与在途写入排空、Sink flush(false)、FileCheckpointStore 原子持久化、通知 Source 完成。启用 Checkpoint 时禁用整个 Job 的内联链合并。文件名、CRC、版本化 Split/Enumerator 状态仍兼容；非 KEYED 指纹保持旧值，KEYED 改用含 KeyGroup 配置的指纹以阻止错误恢复。语义是受限 at-least-once，不是 Flink Barrier Checkpoint 或 Exactly-once。
+Source → OneInputOperator* → Sink 使用 AlignedCheckpointCoordinator 的单 JVM Barrier 对齐：冻结 Split 分配，在 Source Mailbox 快照 Reader 并发出有序 Barrier；各 InputGate 等全部生产者 Barrier 到齐才让 Task 在 Mailbox 内快照 Operator/SinkWriter、转发 Barrier、ACK；全部 ACK 后 FileCheckpointStore 原子持久化并通知 Source。Source 在 Barrier 发出后即可恢复生产，不再依靠全局 InputGate 排空。无 Operator 状态的快照继续写 v1，有状态快照写 v2；旧 v1 可读，CRC/UID/KeyGroup 指纹校验保留。启用 Checkpoint 时禁用内联 Chain。语义为受限 at-least-once，不是分布式 Flink Checkpoint 或 Exactly-once。
 
 ## Non-Goals
 
-本阶段不实现 JDBC / MySQL CDC Connector、多个 Source/Sink、网络 Shuffle、Slot / RPC、局部 Reader-only Failover、动态扩缩容、中间 Operator 状态恢复或完整分布式 Checkpoint。仅新增受 Checkpoint 约束的显式本地整 Job Attempt 恢复。不能用 Runtime 单元测试或旧版 Release Evidence 宣称这些能力。
+本阶段不实现 JDBC / MySQL CDC Connector、多个 Source/Sink、网络 Shuffle、Slot / RPC、局部 Reader-only Failover、动态扩缩容、跨进程状态恢复或完整分布式 Checkpoint。仅新增受 Checkpoint 约束的显式本地整 Job Attempt 恢复。不能用 Runtime 单元测试或旧版 Release Evidence 宣称这些能力。
 
 ## Related
 
