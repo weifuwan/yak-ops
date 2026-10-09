@@ -2,9 +2,9 @@ package io.yak.ops.plugin.database.jdbc.schema;
 
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalType;
+import io.yak.ops.core.types.LogicalTypeRoot;
 import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.core.types.TableSchema;
-import io.yak.ops.core.types.LogicalTypeRoot;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -64,12 +64,8 @@ public final class JdbcSchemaMapper {
             case Types.NUMERIC, Types.DECIMAL ->
                 LogicalTypes.decimal(knownPrecision(column.size()), knownScale(column.scale()));
             case Types.CHAR, Types.NCHAR -> lengthType(column.size(), true, true);
-            case Types.VARCHAR,
-                    Types.LONGVARCHAR,
-                    Types.NVARCHAR,
-                    Types.LONGNVARCHAR,
-                    Types.CLOB,
-                    Types.NCLOB -> LogicalTypes.STRING;
+            case Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR, Types.CLOB, Types.NCLOB ->
+                LogicalTypes.STRING;
             case Types.BINARY -> lengthType(column.size(), true, false);
             case Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB -> LogicalTypes.BINARY;
             case Types.DATE -> LogicalTypes.DATE;
