@@ -5,22 +5,24 @@ import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcTableMetadata;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.source.split.JdbcSchemaFingerprint;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.DecimalType;
+import io.yak.ops.core.types.TableSchema;
 import java.math.BigInteger;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
 import java.util.Objects;
 
 /**
@@ -37,13 +39,23 @@ public final class JdbcSplitPlanner {
     private final int maxSplitsPerTable;
     private final int queryTimeoutSeconds;
     private final int connectionAttempts;
+    private final Map<TableId, List<String>> projections;
 
     public JdbcSplitPlanner(JdbcConnectionOptions connectionOptions, JdbcDialect dialect, Configuration configuration) {
         this(new DriverManagerJdbcConnectionProvider(connectionOptions), dialect, configuration);
     }
 
     public JdbcSplitPlanner(JdbcConnectionProvider connections, JdbcDialect dialect, Configuration configuration) {
+        this(connections, dialect, configuration, Map.of());
+    }
+
+    public JdbcSplitPlanner(
+            JdbcConnectionProvider connections,
+            JdbcDialect dialect,
+            Configuration configuration,
+            Map<TableId, List<String>> projections) {
         this.connections = Objects.requireNonNull(connections, "connections");
+        this.projections = Map.copyOf(Objects.requireNonNull(projections, "projections"));
         this.dialect = Objects.requireNonNull(dialect, "dialect");
         Objects.requireNonNull(configuration, "configuration");
         targetRowsPerSplit = configuration.get(JdbcSourceOptions.TARGET_ROWS_PER_SPLIT);
@@ -62,21 +74,16 @@ public final class JdbcSplitPlanner {
             throw new IllegalArgumentException("Table index must be nonnegative");
         }
         try (Connection connection = JdbcConnectionRetry.open(connections, connectionAttempts)) {
-            DatabaseMetaData metadata = connection.getMetaData();
-            Map<String, Integer> columns = discoverColumns(metadata, table);
-            if (columns.isEmpty()) {
-                throw new SQLException("The JDBC table has no discoverable columns");
-            }
-            List<String> selectedColumns = List.copyOf(columns.keySet());
-            String splitColumn = numericPrimaryKey(metadata, table, columns);
+            TableSchema schema = JdbcTableMetadata.readTable(connection, dialect, table);
+            List<String> availableColumns = schema.columns().stream().map(Column::name).toList();
+            List<String> selectedColumns = selectedColumns(availableColumns, projections.get(table));
+            String splitColumn = numericPrimaryKey(schema);
             String schemaFingerprint = schemaFingerprint(connection, table, selectedColumns, splitColumn);
             if (splitColumn == null) {
                 return List.of(fullScan(tableIndex, table, selectedColumns, null, schemaFingerprint));
             }
 
-            String column = dialect.quoteIdentifier(splitColumn);
-            String sql =
-                    "SELECT MIN(" + column + "), MAX(" + column + "), COUNT(*) FROM " + dialect.qualifiedTable(table);
+            String sql = dialect.splitStatisticsSql(table, splitColumn);
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setQueryTimeout(queryTimeoutSeconds);
                 try (ResultSet values = statement.executeQuery()) {
@@ -135,50 +142,38 @@ public final class JdbcSplitPlanner {
         }
     }
 
-    private Map<String, Integer> discoverColumns(DatabaseMetaData metadata, TableId table) throws SQLException {
-        Map<String, Integer> columns = new LinkedHashMap<>();
-        try (ResultSet result = metadata.getColumns(table.catalog(), table.schema(), table.table(), null)) {
-            while (result.next()) {
-                if (table.table().equals(result.getString("TABLE_NAME"))) {
-                    columns.put(result.getString("COLUMN_NAME"), result.getInt("DATA_TYPE"));
-                }
+    private List<String> selectedColumns(List<String> available, List<String> requested) throws SQLException {
+        if (requested == null) {
+            return available;
+        }
+        if (requested.isEmpty() || new HashSet<>(requested).size() != requested.size()) {
+            throw new IllegalArgumentException("JDBC projected columns must be nonempty and unique");
+        }
+        for (String column : requested) {
+            if (column == null || column.isBlank() || !available.contains(column)) {
+                throw new SQLException("JDBC projected column does not exist: " + column);
             }
         }
-        return columns;
+        return List.copyOf(requested);
     }
 
-    private String numericPrimaryKey(DatabaseMetaData metadata, TableId table, Map<String, Integer> columns)
-            throws SQLException {
-        String key = null;
-        try (ResultSet primaryKeys = metadata.getPrimaryKeys(table.catalog(), table.schema(), table.table())) {
-            while (primaryKeys.next()) {
-                if (key != null) {
-                    return null;
-                }
-                key = primaryKeys.getString("COLUMN_NAME");
-            }
-        }
-        if (key == null || !columns.containsKey(key)) {
+    private String numericPrimaryKey(TableSchema schema) {
+        if (schema.primaryKeys().size() != 1) {
             return null;
         }
-        int type = columns.get(key);
-        if (type == Types.TINYINT || type == Types.SMALLINT || type == Types.INTEGER || type == Types.BIGINT) {
-            return key;
-        }
-        if (type != Types.NUMERIC && type != Types.DECIMAL) {
+        String key = schema.primaryKeys().getFirst();
+        Column column = schema.columns().stream()
+                .filter(candidate -> key.equals(candidate.name()))
+                .findFirst()
+                .orElse(null);
+        if (column == null) {
             return null;
         }
-        // Oracle NUMBER(19,0) and similar integral NUMERIC columns may be safely split
-        // when their observed MIN/MAX fit in a signed long. Fractional keys cannot.
-        try (ResultSet result = metadata.getColumns(table.catalog(), table.schema(), table.table(), key)) {
-            while (result.next()) {
-                if (key.equals(result.getString("COLUMN_NAME"))) {
-                    int scale = result.getInt("DECIMAL_DIGITS");
-                    return !result.wasNull() && scale == 0 ? key : null;
-                }
-            }
-        }
-        return null;
+        return switch (column.dataType().getTypeRoot()) {
+            case TINYINT, SMALLINT, INTEGER, BIGINT -> key;
+            case DECIMAL -> ((DecimalType) column.dataType()).scale() == 0 ? key : null;
+            default -> null;
+        };
     }
 
     private JdbcSourceSplit fullScan(
@@ -194,18 +189,19 @@ public final class JdbcSplitPlanner {
      */
     private String schemaFingerprint(Connection connection, TableId table, List<String> columns, String key)
             throws SQLException {
+        List<String> readColumns = JdbcSourceSplit.readColumns(columns, key);
         String projection =
-                columns.stream().map(dialect::quoteIdentifier).collect(java.util.stream.Collectors.joining(", "));
+                readColumns.stream().map(dialect::quoteIdentifier).collect(java.util.stream.Collectors.joining(", "));
         String sql = "SELECT " + projection + " FROM " + dialect.qualifiedTable(table) + " WHERE 1 = 0";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setQueryTimeout(queryTimeoutSeconds);
             try (ResultSet results = statement.executeQuery()) {
                 var schema = dialect.createRowConverter(results.getMetaData()).schema();
-                if (schema.columnCount() != columns.size()) {
+                if (schema.columnCount() != readColumns.size()) {
                     throw new SQLException("JDBC projected column count changed during split planning");
                 }
-                for (int index = 0; index < columns.size(); index++) {
-                    if (!columns.get(index).equals(schema.column(index).name())) {
+                for (int index = 0; index < readColumns.size(); index++) {
+                    if (!readColumns.get(index).equals(schema.column(index).name())) {
                         throw new SQLException("JDBC projected column order changed during split planning");
                     }
                 }

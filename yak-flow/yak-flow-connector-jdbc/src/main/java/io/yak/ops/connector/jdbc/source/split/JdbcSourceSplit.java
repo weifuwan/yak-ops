@@ -2,6 +2,7 @@ package io.yak.ops.connector.jdbc.source.split;
 
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.data.TableId;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -53,6 +54,23 @@ public record JdbcSourceSplit(
                 && (lastEmittedKey < lowerBound || lastEmittedKey > upperBound)) {
             throw new IllegalArgumentException("Split checkpoint position is outside the range");
         }
+    }
+
+    /**
+     * Columns read by JDBC. An unselected primary key is appended solely for checkpoint progress;
+     * it must not become part of the emitted RowData.
+     */
+    public List<String> readColumns() {
+        return readColumns(columns, splitColumn);
+    }
+
+    public static List<String> readColumns(List<String> projectedColumns, String splitColumn) {
+        if (splitColumn == null || projectedColumns.contains(splitColumn)) {
+            return projectedColumns;
+        }
+        List<String> selected = new ArrayList<>(projectedColumns);
+        selected.add(splitColumn);
+        return List.copyOf(selected);
     }
 
     /** Returns a detached position snapshot without changing the original assigned split. */
