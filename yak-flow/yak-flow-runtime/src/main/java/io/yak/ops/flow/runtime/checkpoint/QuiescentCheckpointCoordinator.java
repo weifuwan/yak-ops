@@ -5,7 +5,7 @@ import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
-import io.yak.ops.flow.runtime.io.RecordChannel;
+import io.yak.ops.flow.runtime.io.partition.InputGate;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import io.yak.ops.flow.runtime.tasks.SinkOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
@@ -32,7 +32,7 @@ import java.util.function.Consumer;
  * 单节点有界 Channel 的对齐式静止切面（quiescent cut）Checkpoint。
  *
  * <p>冻结 Enumerator 新分片请求与发现回调 → 等待在途 Split 处理完成 →
- * 所有 Source Mailbox 暂停并快照 → 逐级等待 Channel 排空以及处理中记录完成 →
+ * 所有 Source Mailbox 暂停并快照 → 逐级等待 InputGate 排空以及处理中记录完成 →
  * 每个 Sink Mailbox flush(false) → 持久化版本化状态 → 回调 Checkpoint 完成 →
  * 恢复 Source 与 Enumerator。该协议不提供端到端 exactly-once。
  *
@@ -44,7 +44,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
     private final Source<?, SourceSplit, Object> source;
     private final SourceCoordinator<SourceSplit, Object> coordinator;
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks;
-    private final List<List<RecordChannel<Object>>> channelStages;
+    private final List<List<InputGate<Object>>> inputGateStages;
     private final List<SinkOperatorStreamTask> sinkTasks;
     private final FileCheckpointStore storage;
     private final String graphSignature;
@@ -64,7 +64,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
             Source<?, SourceSplit, Object> source,
             SourceCoordinator<SourceSplit, Object> coordinator,
             List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks,
-            List<List<RecordChannel<Object>>> channelStages,
+            List<List<InputGate<Object>>> inputGateStages,
             List<SinkOperatorStreamTask> sinkTasks,
             FileCheckpointStore storage,
             CheckpointSnapshot restored,
@@ -74,7 +74,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
         this.source = Objects.requireNonNull(source, "source 不能为空");
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
         this.sourceTasks = List.copyOf(sourceTasks);
-        this.channelStages = channelStages.stream().map(List::copyOf).toList();
+        this.inputGateStages = inputGateStages.stream().map(List::copyOf).toList();
         this.sinkTasks = List.copyOf(sinkTasks);
         this.storage = Objects.requireNonNull(storage, "storage 不能为空");
         this.graphSignature = FileCheckpointStore.graphSignature(plan.graph());
@@ -90,7 +90,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
             throw new IllegalArgumentException("Checkpoint 周期不能小于 1ms");
         }
         this.nextCheckpointId = new AtomicLong(restored == null ? 0 : restored.checkpointId());
-        if (timeoutMillis <= 0 || sourceTasks.isEmpty() || sinkTasks.isEmpty() || channelStages.isEmpty()) {
+        if (timeoutMillis <= 0 || sourceTasks.isEmpty() || sinkTasks.isEmpty() || inputGateStages.isEmpty()) {
             throw new IllegalArgumentException("Checkpoint 超时、Source / Sink / Channel 配置非法");
         }
     }
@@ -192,11 +192,11 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
             SourceCoordinatorCheckpoint<SourceSplit, Object> sourceState =
                     await(coordinator.snapshotCoordinator(checkpointId));
 
-            // 此时所有 Source Mailbox 均停止发送；按上游到下游的顺序等各阶段完全排空。
-            for (List<RecordChannel<Object>> stage : channelStages) {
+            // Source Mailbox 已停止发送；按阶段等 InputGate 的缓冲和正在处理的写入全部排空。
+            for (List<InputGate<Object>> stage : inputGateStages) {
                 ensureActive();
                 await(CompletableFuture.allOf(
-                        stage.stream().map(RecordChannel::drainedFuture).toArray(CompletableFuture<?>[]::new)));
+                        stage.stream().map(InputGate::drainedFuture).toArray(CompletableFuture<?>[]::new)));
             }
             for (SinkOperatorStreamTask sinkTask : sinkTasks) {
                 ensureActive();

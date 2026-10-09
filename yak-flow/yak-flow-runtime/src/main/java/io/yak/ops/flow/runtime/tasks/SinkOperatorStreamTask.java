@@ -4,25 +4,27 @@ import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.source.InputStatus;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.graph.StreamNode;
-import io.yak.ops.flow.runtime.io.RecordChannel;
+import io.yak.ops.flow.runtime.io.StreamTaskInput;
+import io.yak.ops.flow.runtime.io.StreamTaskNetworkInput;
+import io.yak.ops.flow.runtime.io.partition.InputGate;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-/** SinkWriter 的独立本地 Task。一个并行子任务拥有一个 Writer 与一个有界输入 Channel。 */
+/** SinkWriter 的独立本地 Task。一个并行子任务拥有一个 Writer，通过 StreamTaskInput 读取 InputGate。 */
 public final class SinkOperatorStreamTask extends StreamTask {
 
     private final StreamNode node;
-    private final RecordChannel<Object> input;
+    private final StreamTaskInput<Object> input;
     private SinkWriter<Object> writer;
 
-    public SinkOperatorStreamTask(StreamNode node, TaskEnvironment environment, RecordChannel<Object> input) {
+    public SinkOperatorStreamTask(StreamNode node, TaskEnvironment environment, InputGate<Object> inputGate) {
         super(environment);
         this.node = Objects.requireNonNull(node, "node 不能为空");
         if (!node.isSink() || node.getId() != taskInfo().operatorId()
                 || node.getParallelism() != taskInfo().parallelism()) {
             throw new IllegalArgumentException("RuntimeTaskInfo 与 Sink 节点不一致");
         }
-        this.input = Objects.requireNonNull(input, "input 不能为空");
+        this.input = new StreamTaskNetworkInput<>(Objects.requireNonNull(inputGate, "inputGate 不能为空"));
     }
 
     @Override
@@ -39,7 +41,7 @@ public final class SinkOperatorStreamTask extends StreamTask {
 
     @Override
     protected CompletableFuture<Void> getAvailableFuture() {
-        return input.isAvailable();
+        return input.getAvailableFuture();
     }
 
     /** Source 已停止输出，所有上游 Channel 排空后在 Writer 所属 Mailbox 执行非终态 flush。 */

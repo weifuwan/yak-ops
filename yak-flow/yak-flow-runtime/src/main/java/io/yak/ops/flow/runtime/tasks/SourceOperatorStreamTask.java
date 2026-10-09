@@ -5,7 +5,7 @@ import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
-import io.yak.ops.flow.runtime.io.RecordRouter;
+import io.yak.ops.flow.runtime.io.RecordWriterOutput;
 import io.yak.ops.flow.runtime.io.StreamTaskSourceInput;
 import io.yak.ops.flow.runtime.operators.OperatorChain;
 import io.yak.ops.flow.runtime.operators.SourceOperator;
@@ -24,7 +24,7 @@ import java.util.concurrent.CompletionStage;
  * <p>接收来自 Coordinator 的 Split 事件，事件确认发生在 SourceReader 实际处理之后。
  * 不自行创建第二条 Reader 线程；SourceReader 全部生命周期由本 Task 的线程串行执行。
  *
- * <p>下游输出由 ReaderOutput / RecordRouter 或内联 OperatorChain 承接；
+ * <p>下游输出由 ReaderOutput / RecordWriterOutput 或内联 OperatorChain 承接；
  * 全局 Checkpoint 不属于该类。
  */
 public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
@@ -33,8 +33,9 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
     private final SourceCoordinator<SplitT, ?> coordinator;
     private final SourceOperator<T, SplitT> operator;
     private final StreamTaskSourceInput<T> input;
+    private final ReaderOutput<T> output;
     private final OperatorChain operatorChain;
-    private final RecordRouter<?> resultPartition;
+    private final RecordWriterOutput<?> recordWriter;
     private final List<SplitT> restoredSplits;
     private boolean pausedForCheckpoint;
     private CompletableFuture<Void> resumeFuture = CompletableFuture.completedFuture(null);
@@ -68,13 +69,14 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         super(environment);
         this.restoredSplits = List.copyOf(Objects.requireNonNull(restoredSplits, "restoredSplits 不能为空"));
         this.operatorChain = operatorChain;
-        this.resultPartition = output instanceof RecordRouter<?> partition ? partition : null;
+        this.output = Objects.requireNonNull(output, "output 不能为空");
+        this.recordWriter = output instanceof RecordWriterOutput<?> writer ? writer : null;
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
         this.coordinator.coordinatorContext().validateTask(taskInfo());
         SourceReaderRuntimeContext readerContext = new SourceReaderRuntimeContext(
                 taskEnvironment(), event -> coordinator.handleEventFromOperator(taskInfo(), event), this::failAsync);
         this.operator = new SourceOperator<>(source, readerContext);
-        this.input = new StreamTaskSourceInput<>(operator, output);
+        this.input = new StreamTaskSourceInput<>(operator);
     }
 
     @Override
@@ -91,7 +93,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
 
     @Override
     protected InputStatus processInput() throws Exception {
-        return pausedForCheckpoint ? InputStatus.NOTHING_AVAILABLE : input.emitNext();
+        return pausedForCheckpoint ? InputStatus.NOTHING_AVAILABLE : input.emitNext(output);
     }
 
     @Override
@@ -104,8 +106,8 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         if (operatorChain != null) {
             operatorChain.finish();
         }
-        if (resultPartition != null) {
-            resultPartition.finish();
+        if (recordWriter != null) {
+            recordWriter.finish();
         }
     }
 
