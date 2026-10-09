@@ -40,7 +40,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-flow/yak-flow-api`
 
-暂时保留 Row、Schema、Logical Type 等值类型。旧 Source / Sink / CheckpointState / Trace 接口已删除；新的统一 Source / Sink API 以 `yak-ops-core` 为准。
+暂时保留 Row、Schema、Logical Type 等值类型。旧 Source / Sink / CheckpointState 接口已删除；诊断 Trace 事件契约已恢复；新的统一 Source / Sink API 以 `yak-ops-core` 为准。
 
 ### `yak-flow/yak-flow-runtime`
 
@@ -48,7 +48,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-flow/yak-flow-connector-jdbc`
 
-保留 Maven 模块边界，不含旧 JDBC Source / Sink / Dialect / Reader / Writer 具体实现。
+保留 JDBC Schema / Catalog / Dialect / DDL 预览和 Trace 辅助类型；旧 JDBC Source / Reader / Sink / Writer 数据执行实现已移除。
 
 ### `yak-flow/yak-flow-connector-cdc-mysql`
 
@@ -80,9 +80,9 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-ops-business/yak-ops-business-data-sync`
 
-保留 `DataSyncService`、`ScheduleEngine`、`DataSyncScheduleFireListener` 和必要的 Schedule 契约类型；暂无任何离线或实时同步的业务实现、Service Bean、执行器、调度、恢复或诊断服务。
+恢复 `DataSyncServiceImpl`、Task / Route / Schedule 定义与 Schema 预览、历史运维读取及所需 Lifecycle / Trace 类型。DAO 的 Entity / Mapper / Repository 和所有既有 Flyway Migration 保留，不回滚数据库结构。
 
-DTO / VO 和历史 Flyway Migration 保留；原有 Data Sync Entity / Mapper / Repository 实现已移除。历史迁移不回滚，避免破坏已部署数据库。Data Sync 暂不提供 HTTP 接口，前端同步页面也暂时下线；详细边界见 [Data Sync Capability](docs/capabilities/data-sync/README.md) 和 [Data Sync Rules](yak-ops-business/yak-ops-business-data-sync/DATA_SYNC_RULES.md)。
+旧数据执行器依然删除。运行任务或启用 Cron 会明确返回 `ENGINE_UNAVAILABLE`，不创建无法执行的实例；自动恢复和调度触发不产生新任务实例。Controller、前端任务和运维页面已恢复，详见 [Data Sync Capability](docs/capabilities/data-sync/README.md) 和 [Data Sync Rules](yak-ops-business/yak-ops-business-data-sync/DATA_SYNC_RULES.md)。
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
@@ -96,7 +96,7 @@ Descriptor 是运行时元信息，不是前端动态表单协议。内置 Provi
 
 GlobalExceptionHandler 统一映射 BusinessException 与 ErrorCode；领域模块不创建第二套 HTTP 异常出口。运行时保持单一应用 DataSource、默认事务管理器、MyBatis-Plus 会话工厂与拦截器链、OpenAPI 文档。优先使用 Spring Boot / Starter 自动配置，不手工重建已提供的基础设施 Bean。
 
-本轮移除同步专用 Quartz 装配、恢复启动器及 Data Sync Controller；未来业务实现完成后重新装配。
+保留 Data Sync Controller 与 Quartz 调度配置、Cron 预览等非执行能力；旧的引擎执行恢复启动器保持移除。
 
 ### `yak-ops-ui`
 
@@ -117,16 +117,16 @@ Yak Ops 不依赖外部 `yak-framework`。现有 Common 与 Platform 能力由�
 ## Dependency Direction
 
 ```text
-UI → HTTP → Boot → Platform / Datasource Service
-                            ├─ Common
-                            └─ DAO / Datasource Plugin
+UI → HTTP → Boot → DataSyncService / Datasource / Platform
+                          ├─ Common / DAO
+                          └─ Datasource Plugin / JDBC Metadata
 
-Data Sync contracts → Common
+DataSyncService → Task / Schedule / Instance Repository
 YakFlow Runtime → Yak Ops Core
-YakFlow Connector modules → Yak Ops Core (no implementations)
+JDBC Metadata / Dialect → YakFlow API Row + Datasource Plugin
 ```
 
-当前 Data Sync 没有运行入口；业务执行、调度和恢复能力不得由接口或历史发布文档的存在推断为已实现。
+当前 Data Sync 有业务管理入口，但没有可用的数据同步执行引擎。任务配置和历史查询的恢复不代表新 Runtime 已完成业务接入。
 
 ## Refactor Rule
 
