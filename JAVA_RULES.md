@@ -248,6 +248,13 @@ Existing names such as `AuthenticationManager`, capability-specific exception ha
 
 ## Comments and JavaDoc
 
+**Core / Runtime local override:** `yak-ops-core` and `yak-flow/yak-flow-runtime`
+follow [YakFlow Core / Runtime Javadoc Convention](docs/capabilities/yak-flow/core-runtime-comment-rules.md)
+instead of the global Chinese-comment preference and the mandatory
+`@author` / creation-date `@since` tags. Their comments are written in English;
+do not invent author or creation provenance. All other Java modules continue
+to follow the global rules below.
+
 Comments exist to explain information that code cannot express clearly by itself. They must describe responsibility, semantics, constraints, boundaries or reasons instead of translating names and syntax into prose.
 
 ### Type JavaDoc
