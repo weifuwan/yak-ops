@@ -4,6 +4,13 @@ Status: Active
 
 Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Architecture](../ARCHITECTURE.md)、[Core Rules](../yak-ops-core/CORE_RULES.md) 和 [Core / Runtime Contract](../docs/capabilities/yak-flow/core-runtime-contract.md)。
 
+## JavaDoc and Comments
+
+Core and Runtime JavaDoc and implementation comments follow
+[Core / Runtime Javadoc Convention](../docs/capabilities/yak-flow/core-runtime-comment-rules.md).
+Keep them in English and document actual API, mailbox and checkpoint contracts rather
+than repeating method names. The existing Backend Quality job enforces objective rules.
+
 ## Module Boundary
 
 - Core 拥有 Source / Sink / Split / Transformation / Configuration / PipelineExecutor / JobClient 共享 API，不得依赖 Runtime。
