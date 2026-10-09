@@ -6,10 +6,11 @@ import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
-import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
+import io.yak.ops.flow.runtime.checkpoint.AlignedCheckpointCoordinator;
 import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.graph.StreamNode;
+import io.yak.ops.flow.runtime.graph.StreamPartitioning;
 import io.yak.ops.flow.runtime.io.RecordWriterOutput;
 import io.yak.ops.flow.runtime.io.partition.InputGate;
 import io.yak.ops.flow.runtime.io.partition.ResultPartition;
@@ -46,15 +47,14 @@ final class TaskDeployment {
     private final boolean recoverFromLatestCheckpoint;
     private final List<Execution> executions = new ArrayList<>();
     private final List<InputGate<Object>> inputGates = new ArrayList<>();
-    private final List<List<InputGate<Object>>> inputGateStages = new ArrayList<>();
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks = new ArrayList<>();
-    private final List<OneInputStreamTask> sinkTasks = new ArrayList<>();
+    private final List<OneInputStreamTask> inputTasks = new ArrayList<>();
     private final AtomicReference<Throwable> firstFailure = new AtomicReference<>();
 
     private SourceCoordinator<SourceSplit, Object> coordinator;
     private CheckpointSnapshot restoredCheckpoint;
     private FileCheckpointStore checkpointStore;
-    private QuiescentCheckpointCoordinator checkpointCoordinator;
+    private AlignedCheckpointCoordinator checkpointCoordinator;
 
     TaskDeployment(ExecutionGraph executionGraph, boolean recoverFromLatestCheckpoint) {
         this.executionGraph = Objects.requireNonNull(executionGraph, "executionGraph");
@@ -162,7 +162,6 @@ final class TaskDeployment {
                 inputGates.add(inputGate);
             }
             inputs.add(List.copyOf(stageGates));
-            inputGateStages.add(List.copyOf(stageGates));
         }
 
         for (int index = vertices.size() - 1; index >= 1; index--) {
@@ -172,20 +171,22 @@ final class TaskDeployment {
             for (int subtask = 0; subtask < vertex.getParallelism(); subtask++) {
                 Execution execution = executionGraph.currentExecution(vertex.getId(), subtask);
                 TaskEnvironment environment = environment(execution);
-                StreamTask task;
-                if (node.isSink()) {
-                    OneInputStreamTask sink = new OneInputStreamTask(
-                            node, environment, stageInputs.get(subtask));
-                    sinkTasks.add(sink);
-                    task = sink;
-                } else {
+                RecordWriterOutput<Object> output = null;
+                if (!node.isSink()) {
                     JobEdge outputEdge = edges.get(index);
-                    RecordWriterOutput<Object> output = new RecordWriterOutput<>(
+                    output = new RecordWriterOutput<>(
                             outputEdge.streamEdge(), subtask, vertex.getParallelism(),
                             new ResultPartition<>(subtask, inputs.get(index)),
                             jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM));
-                    task = new OneInputStreamTask(node, environment, stageInputs.get(subtask), output);
                 }
+                Map<String, CheckpointSnapshot.SerializedState> restoredState = restoredCheckpoint == null
+                        ? Map.of()
+                        : restoredCheckpoint.operatorStates().getOrDefault(
+                                new CheckpointSnapshot.OperatorSubtask(node.getUid(), subtask), Map.of());
+                boolean keyedInput = edges.get(index - 1).streamEdge().partitioning() == StreamPartitioning.KEYED;
+                OneInputStreamTask task = new OneInputStreamTask(
+                        node, environment, stageInputs.get(subtask), output, restoredState, keyedInput);
+                inputTasks.add(task);
                 bind(execution, task);
             }
         }
@@ -197,8 +198,8 @@ final class TaskDeployment {
                 jobGraph.jobID(), sourceVertex.getId(), sourceVertex.getParallelism());
         Map<Integer, List<SourceSplit>> restoredReaderSplits = Map.of();
         if (restoredCheckpoint != null) {
-            restoredReaderSplits = QuiescentCheckpointCoordinator.restoreSplits(restoredCheckpoint, source);
-            Object enumeratorState = QuiescentCheckpointCoordinator.restoreEnumerator(restoredCheckpoint, source);
+            restoredReaderSplits = AlignedCheckpointCoordinator.restoreSplits(restoredCheckpoint, source);
+            Object enumeratorState = AlignedCheckpointCoordinator.restoreEnumerator(restoredCheckpoint, source);
             coordinator = SourceCoordinator.restore(source, coordinatorContext, enumeratorState);
         } else {
             coordinator = new SourceCoordinator<>(source, coordinatorContext);
@@ -219,8 +220,8 @@ final class TaskDeployment {
         }
 
         if (checkpointStore != null) {
-            checkpointCoordinator = new QuiescentCheckpointCoordinator(
-                    jobGraph, source, coordinator, sourceTasks, inputGateStages, sinkTasks,
+            checkpointCoordinator = new AlignedCheckpointCoordinator(
+                    jobGraph, source, coordinator, sourceTasks, inputTasks,
                     checkpointStore, restoredCheckpoint, executionGraph::isCancellationRequested, this::failJob);
         }
     }

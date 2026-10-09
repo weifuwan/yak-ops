@@ -57,6 +57,14 @@ public final class RecordWriterOutput<T> implements ReaderOutput<T> {
         partition.emitRecord(channel, record);
     }
 
+    /** Ordered checkpoint barrier bypasses partitioning, reaching every consumer subtask. */
+    public void broadcastBarrier(long checkpointId) {
+        if (finished) {
+            throw new IllegalStateException("RecordWriterOutput finished");
+        }
+        partition.broadcastBarrier(checkpointId);
+    }
+
     public void finish() {
         if (finished) {
             throw new IllegalStateException("RecordWriterOutput finished twice");

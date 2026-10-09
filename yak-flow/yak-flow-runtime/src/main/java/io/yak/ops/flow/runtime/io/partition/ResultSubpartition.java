@@ -1,5 +1,6 @@
 package io.yak.ops.flow.runtime.io.partition;
 
+import io.yak.ops.flow.runtime.checkpoint.CheckpointBarrier;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
@@ -7,7 +8,8 @@ import java.util.Objects;
 /** One producer-to-consumer physical channel. All queue access is serialized by its InputGate. */
 public final class ResultSubpartition<T> {
 
-    final Deque<T> records = new ArrayDeque<>();
+    // Ordered data and control events share the same producer-to-consumer FIFO.
+    final Deque<Object> elements = new ArrayDeque<>();
     private final InputGate<T> gate;
     private final int producerIndex;
 
@@ -22,6 +24,10 @@ public final class ResultSubpartition<T> {
 
     public void emitRecord(T record) throws Exception {
         gate.enqueue(this, record);
+    }
+
+    public void emitBarrier(CheckpointBarrier barrier) {
+        gate.enqueueBarrier(this, barrier);
     }
 
     public void finish() {

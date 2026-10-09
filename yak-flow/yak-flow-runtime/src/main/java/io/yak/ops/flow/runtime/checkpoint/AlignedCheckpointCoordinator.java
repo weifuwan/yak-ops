@@ -6,7 +6,6 @@ import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
-import io.yak.ops.flow.runtime.io.partition.InputGate;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import io.yak.ops.flow.runtime.tasks.OneInputStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
@@ -30,23 +29,20 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
- * 单节点有界 Channel 的对齐式静止切面（quiescent cut）Checkpoint。
+ * Single-JVM aligned barrier checkpoint.
  *
- * <p>冻结 Enumerator 新分片请求与发现回调 → 等待在途 Split 处理完成 →
- * 所有 Source Mailbox 暂停并快照 → 逐级等待 InputGate 排空以及处理中记录完成 →
- * 每个 Sink Mailbox flush(false) → 持久化版本化状态 → 回调 Checkpoint 完成 →
- * 恢复 Source 与 Enumerator。该协议不提供端到端 exactly-once。
+ * <p>Freeze split assignment, snapshot readers and inject ordered barriers. Source then resumes
+ * while each downstream InputGate aligns its producers. Operator/Writer state is captured by the
+ * owning Task mailbox, and durability is published only after ALL downstream acknowledgements.
  *
- * <p>中间 Operator 尚未提供状态快照接口，因此启用此协议时仅支持 Source → Sink；
- * 多 Reader 和多 Writer 仍可独立并行。
+ * <p>Only linear, single-input local graphs are supported. No distributed exactly-once.
  */
-public final class QuiescentCheckpointCoordinator implements AutoCloseable {
+public final class AlignedCheckpointCoordinator implements AutoCloseable {
 
     private final Source<?, SourceSplit, Object> source;
     private final SourceCoordinator<SourceSplit, Object> coordinator;
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks;
-    private final List<List<InputGate<Object>>> inputGateStages;
-    private final List<OneInputStreamTask> sinkTasks;
+    private final List<OneInputStreamTask> inputTasks;
     private final FileCheckpointStore storage;
     private final String graphSignature;
     private final BooleanSupplier cancelled;
@@ -60,13 +56,12 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
             Thread.ofVirtual().name("yak-local-checkpoint-", 0).factory());
     private final AtomicBoolean closed = new AtomicBoolean();
 
-    public QuiescentCheckpointCoordinator(
+    public AlignedCheckpointCoordinator(
             JobGraph plan,
             Source<?, SourceSplit, Object> source,
             SourceCoordinator<SourceSplit, Object> coordinator,
             List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks,
-            List<List<InputGate<Object>>> inputGateStages,
-            List<OneInputStreamTask> sinkTasks,
+            List<OneInputStreamTask> inputTasks,
             FileCheckpointStore storage,
             CheckpointSnapshot restored,
             BooleanSupplier cancelled,
@@ -75,8 +70,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
         this.source = Objects.requireNonNull(source, "source 不能为空");
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
         this.sourceTasks = List.copyOf(sourceTasks);
-        this.inputGateStages = inputGateStages.stream().map(List::copyOf).toList();
-        this.sinkTasks = List.copyOf(sinkTasks);
+        this.inputTasks = List.copyOf(inputTasks);
         this.storage = Objects.requireNonNull(storage, "storage 不能为空");
         this.graphSignature = FileCheckpointStore.graphSignature(
                 plan.graph(), plan.configuration().get(PipelineOptions.MAX_PARALLELISM));
@@ -92,7 +86,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
             throw new IllegalArgumentException("Checkpoint 周期不能小于 1ms");
         }
         this.nextCheckpointId = new AtomicLong(restored == null ? 0 : restored.checkpointId());
-        if (timeoutMillis <= 0 || sourceTasks.isEmpty() || sinkTasks.isEmpty() || inputGateStages.isEmpty()) {
+        if (timeoutMillis <= 0 || sourceTasks.isEmpty() || inputTasks.isEmpty()) {
             throw new IllegalArgumentException("Checkpoint 超时、Source / Sink / Channel 配置非法");
         }
     }
@@ -178,41 +172,59 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
         checkpointDeadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
         boolean coordinatorFrozen = false;
         List<SourceOperatorStreamTask<Object, SourceSplit>> paused = new ArrayList<>();
+        Map<CheckpointSnapshot.OperatorSubtask,
+                CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>>> acknowledgements =
+                new LinkedHashMap<>();
         boolean stored = false;
         Throwable originalFailure = null;
         try {
             await(coordinator.pauseForCheckpoint());
             coordinatorFrozen = true;
             waitForAssignments();
+            // Register all ACK futures before any Source can emit the first barrier.
+            for (OneInputStreamTask task : inputTasks) {
+                CheckpointSnapshot.OperatorSubtask id = task.checkpointIdentity();
+                if (acknowledgements.putIfAbsent(id, task.expectCheckpoint(checkpointId)) != null) {
+                    throw new IllegalStateException("Duplicate operator state identity: " + id);
+                }
+            }
             Map<Integer, List<SourceSplit>> readerStates = new LinkedHashMap<>();
             for (SourceOperatorStreamTask<Object, SourceSplit> sourceTask : sourceTasks) {
                 ensureActive();
-                List<SourceSplit> splits = await(sourceTask.pauseForCheckpoint(checkpointId));
+                List<SourceSplit> splits = await(sourceTask.pauseAndEmitBarrier(checkpointId));
                 paused.add(sourceTask);
                 readerStates.put(sourceTask.taskInfo().subtaskIndex(), splits);
             }
             SourceCoordinatorCheckpoint<SourceSplit, Object> sourceState =
                     await(coordinator.snapshotCoordinator(checkpointId));
 
-            // Source Mailbox 已停止发送；按阶段等 InputGate 的缓冲和正在处理的写入全部排空。
-            for (List<InputGate<Object>> stage : inputGateStages) {
+            // Barriers follow captured source offsets, but the gates can align concurrently
+            // with new records on faster producer channels.
+            for (SourceOperatorStreamTask<Object, SourceSplit> task : paused) {
                 ensureActive();
-                await(CompletableFuture.allOf(
-                        stage.stream().map(InputGate::drainedFuture).toArray(CompletableFuture<?>[]::new)));
+                await(task.resumeAfterCheckpoint());
             }
-            for (OneInputStreamTask sinkTask : sinkTasks) {
-                ensureActive();
-                await(sinkTask.flushForCheckpoint(checkpointId));
-            }
+            paused.clear();
+            await(coordinator.resumeAfterCheckpoint());
+            coordinatorFrozen = false;
 
-            CheckpointSnapshot snapshot = serialize(checkpointId, sourceState, readerStates);
+            Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>>
+                    operatorStates = new LinkedHashMap<>();
+            for (var entry : acknowledgements.entrySet()) {
+                ensureActive();
+                Map<String, CheckpointSnapshot.SerializedState> state = await(entry.getValue());
+                if (!state.isEmpty()) {
+                    operatorStates.put(entry.getKey(), state);
+                }
+            }
+            CheckpointSnapshot snapshot = serialize(checkpointId, sourceState, readerStates, operatorStates);
             storage.save(snapshot);
             stored = true;
             if (System.nanoTime() >= checkpointDeadlineNanos) {
-                throw new IllegalStateException("Checkpoint 状态落盘已超时，拒绝通知 Source 完成");
+                throw new IllegalStateException("Checkpoint persisted after deadline; refusing completion callback");
             }
             await(coordinator.notifyCheckpointComplete(checkpointId));
-            for (SourceOperatorStreamTask<Object, SourceSplit> sourceTask : paused) {
+            for (SourceOperatorStreamTask<Object, SourceSplit> sourceTask : sourceTasks) {
                 await(sourceTask.notifyCheckpointComplete(checkpointId));
             }
             return snapshot;
@@ -221,10 +233,13 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
             throw failure;
         } finally {
             if (!stored) {
+                for (OneInputStreamTask task : inputTasks) {
+                    task.abortCheckpoint(checkpointId, new IllegalStateException("Checkpoint aborted"));
+                }
                 try {
                     await(coordinator.notifyCheckpointAborted(checkpointId));
                 } catch (Exception ignored) {
-                    // Coordinator 可能已经因主故障关闭；不覆盖先前异常。
+                    // Cleanup must not hide the original failure.
                 }
             }
             Throwable resumeFailure = null;
@@ -272,7 +287,9 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
 
     private CheckpointSnapshot serialize(long checkpointId,
             SourceCoordinatorCheckpoint<SourceSplit, Object> sourceState,
-            Map<Integer, List<SourceSplit>> readerStates) throws Exception {
+            Map<Integer, List<SourceSplit>> readerStates,
+            Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> operatorStates)
+            throws Exception {
         SimpleVersionedSerializer<SourceSplit> splits = source.getSplitSerializer();
         SimpleVersionedSerializer<Object> enumerator = source.getEnumeratorCheckpointSerializer();
         var state = new CheckpointSnapshot.SerializedState(
@@ -281,7 +298,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
                 checkpointId, graphSignature, state,
                 serializeSplits(readerStates, splits),
                 serializeSplits(sourceState.assignedSinceLastCompletedCheckpoint(), splits),
-                System.currentTimeMillis());
+                System.currentTimeMillis(), operatorStates);
     }
 
     private static Map<Integer, List<CheckpointSnapshot.SerializedState>> serializeSplits(

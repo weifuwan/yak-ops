@@ -168,14 +168,11 @@ public final class StreamingJobGraphGenerator {
         if (configuration.get(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS) != 1) {
             throw new UnsupportedOperationException("当前 Checkpoint 只允许一次在途快照");
         }
-        if (streamGraph.getSinkNodes().stream()
-                .anyMatch(node -> node.getSink().orElseThrow() instanceof SupportsWriterState<?, ?>)) {
-            throw new UnsupportedOperationException(
-                    "Stateful Sink V2 needs writer-state persistence; current checkpoint is stateless Sink only");
-        }
-        if (streamGraph.getTopologicalNodes().stream().anyMatch(StreamNode::isOperator)) {
-            throw new UnsupportedOperationException(
-                    "OneInputOperator 尚未定义状态序列化/恢复接口，不允许启用 Checkpoint");
+        for (StreamNode sink : streamGraph.getSinkNodes()) {
+            if (sink.getSink().orElseThrow() instanceof SupportsWriterState<?, ?> stateful
+                    && stateful.getWriterStateSerializer() == null) {
+                throw new IllegalArgumentException("Stateful Sink requires a non-null writer state serializer");
+            }
         }
         FileCheckpointStore.graphSignature(streamGraph, configuration.get(PipelineOptions.MAX_PARALLELISM));
     }

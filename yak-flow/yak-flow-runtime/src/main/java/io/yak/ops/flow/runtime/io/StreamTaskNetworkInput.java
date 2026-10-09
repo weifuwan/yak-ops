@@ -25,6 +25,12 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
         return inputGate.emitNext(output);
     }
 
+    /** Forward both data and aligned control events on the consumer's mailbox thread. */
+    public InputStatus emitNext(ReaderOutput<T> output, InputGate.BarrierHandler barrierHandler)
+            throws Exception {
+        return inputGate.emitNext(output, barrierHandler);
+    }
+
     @Override
     public CompletableFuture<Void> getAvailableFuture() {
         return inputGate.getAvailableFuture();

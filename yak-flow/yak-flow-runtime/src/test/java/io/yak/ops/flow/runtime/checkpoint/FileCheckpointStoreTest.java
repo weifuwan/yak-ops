@@ -88,6 +88,26 @@ class FileCheckpointStoreTest {
         assertThrows(IllegalArgumentException.class, () -> FileCheckpointStore.graphSignature(withoutUids));
     }
 
+    @Test
+    void shouldDurablyPersistOperatorStateWithoutBreakingLegacyFormat() throws Exception {
+        String signature = FileCheckpointStore.graphSignature(graph(1));
+        var encoded = new CheckpointSnapshot.SerializedState(3, new byte[]{7, 9, 11});
+        var key = new CheckpointSnapshot.OperatorSubtask("stable-operator", 0);
+        var complete = new CheckpointSnapshot(5, signature, encoded, Map.of(), Map.of(),
+                123456L, Map.of(key, Map.of("operator/count", encoded)));
+        try (FileCheckpointStore store = new FileCheckpointStore(folder)) {
+            store.save(complete);
+            var recovered = store.loadLatest(signature).orElseThrow();
+            assertEquals(3, recovered.operatorStates().get(key).get("operator/count").version());
+            assertArrayEquals(new byte[]{7, 9, 11},
+                    recovered.operatorStates().get(key).get("operator/count").bytes());
+            recovered.operatorStates().get(key).get("operator/count").bytes()[0] = 50;
+            assertArrayEquals(new byte[]{7, 9, 11},
+                    store.loadLatest(signature).orElseThrow().operatorStates()
+                            .get(key).get("operator/count").bytes());
+        }
+    }
+
     private static StreamGraph graph(int sourceParallelism) {
         SourceTransformation<String> source =
                 new SourceTransformation<>("source", new NoRuntimeSource(), String.class, sourceParallelism);
