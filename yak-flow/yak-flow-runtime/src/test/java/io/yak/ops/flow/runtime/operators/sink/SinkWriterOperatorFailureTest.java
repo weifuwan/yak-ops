@@ -83,7 +83,7 @@ class SinkWriterOperatorFailureTest {
             // A later write was never checkpointed and must not appear in restored writer state.
             first.processElement("uncommitted", ignored -> {});
             assertEquals(3, firstSink.writer.count);
-            assertEquals(2, original.get("writer-0", firstSink.getWriterStateSerializer()).orElseThrow());
+            assertEquals(2, (int) original.get("writer-0", firstSink.getWriterStateSerializer()).orElseThrow());
         } finally {
             first.close();
         }
@@ -96,7 +96,7 @@ class SinkWriterOperatorFailureTest {
             assertEquals(2, restoredSink.lastRestoredCount);
             restored.processElement("c", ignored -> {});
             restored.snapshotState(8, restoredState);
-            assertEquals(3, restoredState.get("writer-0", restoredSink.getWriterStateSerializer()).orElseThrow());
+            assertEquals(3, (int) restoredState.get("writer-0", restoredSink.getWriterStateSerializer()).orElseThrow());
             restored.finish();
             assertEquals(1, restoredSink.writer.finalFlushes);
             assertThrows(IllegalStateException.class, () -> restored.processElement("after-finish", ignored -> {}));
