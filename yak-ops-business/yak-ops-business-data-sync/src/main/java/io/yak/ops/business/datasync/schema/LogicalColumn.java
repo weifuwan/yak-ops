@@ -23,7 +23,7 @@ public record LogicalColumn(String name, LogicalType dataType, boolean nullable,
     public LogicalColumn {
         Objects.requireNonNull(name, "name must not be null");
         Objects.requireNonNull(dataType, "dataType must not be null");
-        Objects.requireNonNull(dataType.getTypeRoot(), "dataType.kind must not be null");
+        Objects.requireNonNull(dataType.getTypeRoot(), "dataType.getTypeRoot must not be null");
 
         if (name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");
@@ -37,7 +37,10 @@ public record LogicalColumn(String name, LogicalType dataType, boolean nullable,
         dataType = LogicalTypes.forColumn(dataType, nullable, length);
     }
 
-    private static boolean supportsLength(TypeKind kind) {
-        return kind == LogicalTypeRoot.STRING || kind == LogicalTypeRoot.BINARY;
+    private static boolean supportsLength(LogicalTypeRoot root) {
+        return root == LogicalTypeRoot.CHAR
+                || root == LogicalTypeRoot.VARCHAR
+                || root == LogicalTypeRoot.BINARY
+                || root == LogicalTypeRoot.VARBINARY;
     }
 }
