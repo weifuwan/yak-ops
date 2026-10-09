@@ -39,6 +39,7 @@ public final class OneInputStreamTask extends StreamTask {
 
         @Override
         public void onCheckpointDeclined(long checkpointId) {
+            lastDeclinedCheckpointId = Math.max(lastDeclinedCheckpointId, checkpointId);
             abortCheckpoint(checkpointId,
                     new CheckpointDeclinedException(checkpointId, "a producer ended before barrier alignment"));
         }
@@ -84,8 +85,12 @@ public final class OneInputStreamTask extends StreamTask {
 
     /** Register before a source is allowed to emit the barrier, avoiding an ACK registration race. */
     public CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> expectCheckpoint(long id) {
-        if (id <= 0 || completionFuture().isDone()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Task cannot accept checkpoint"));
+        if (id <= 0) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid checkpoint ID"));
+        }
+        if (completionFuture().isDone()) {
+            return CompletableFuture.failedFuture(
+                    new CheckpointDeclinedException(id, "input already finished"));
         }
         CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> future = new CompletableFuture<>();
         if (pending.putIfAbsent(id, future) != null) {
