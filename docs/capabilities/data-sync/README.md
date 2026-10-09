@@ -1,13 +1,23 @@
 # Data Sync Capability
 
-Status: Interface only — offline/realtime implementations removed
+Status: Management Restored — Execution Engine Unavailable
 
-Scope: Data Sync 的产品协议及历史版本导航。
+本分支保留离线 / 实时任务的前端页面、路由、Controller、Service、DAO 和数据库表；**尚不能执行数据同步**。
 
-当前分支仅保留 `DataSyncService`、`ScheduleEngine`、`DataSyncScheduleFireListener` 等接口和必要的 DTO / VO、历史数据库 Migration。离线任务、实时任务、多表任务、调度、自动恢复、指标、执行日志、Controller 和前端任务页面均没有运行实现，不能对外宣称可用。
+## 保留
 
-`yak-ops-core` 保留通用 Source / Sink / Operator / Pipeline 接口；`yak-flow-runtime` 保留新的 Core-based 通用运行框架，但尚未接入 JDBC / CDC Connector 或产品业务入口。
+- 任务 CRUD、发布 / 下线、多表路由、Schema / 字段映射预览。
+- Cron 调度配置的保存、读取和预览，运维指标、历史执行实例 / Attempt / Trace 查询。
+- Data Sync Entity / Mapper / Repository、已有 Flyway Migration、DTO / VO；现有数据库结构不删除或回滚。
+- JDBC Schema / Catalog / Dialect / DDL 预览辅助代码、诊断 Trace 数据契约。
+- `yak-ops-core` 和新的 Core-based 通用 Runtime 框架，供后续重新接入。
 
-旧运行路径、Executor 和 Connector 实现已经移除；后续开发必须从 Core 契约出发，不重新引入旧的 `yak-flow-api.source/sink` 或 Runtime 根包 Execution 类型。
+## 暂不可用
 
-已发布版本的范围、能力和人工验收记录以 [历史发布材料](../../release/README.md) 和 [历史 E2E 文档](../../e2e/data-sync/README.md) 为准；这些材料不代表当前开发分支仍具备相同功能。
+- 旧 `LocalExecutionEngine` / `LocalExecution`、JDBC / CDC Source、Reader、Sink、Debezium 及业务 `execution.executor` 继续删除。
+- `runTask`、`enableSchedule` 返回 `ENGINE_UNAVAILABLE (42023)`；不创建无法执行的 `PENDING` 实例，也不会注册新 Cron 触发器。
+- 历史调度配置、Desired State 和执行记录继续保留，但缺少引擎时不会自动运行或恢复同步。历史 `RUNNING` 实例只能标为 `LOST`，不能假装运行时已被取消。
+
+后续实现必须使用 `yak-ops-core` 统一 Source / Sink / Pipeline 契约，不把旧 `yak-flow-api.source/sink` 和 Runtime 根包执行器引回来。
+
+已发布版本与验收记录保持原样，见 [Release](../../release/README.md) 和 [历史 E2E](../../e2e/data-sync/README.md)；不代表当前分支仍具备数据同步执行能力。
