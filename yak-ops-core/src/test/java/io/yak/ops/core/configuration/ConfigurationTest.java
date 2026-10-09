@@ -25,7 +25,7 @@ class ConfigurationTest {
     void defaultsAreNotStoredAndLegacyAliasesShareTheSameValues() {
         Configuration configuration = new Configuration();
 
-        assertEquals(1, configuration.get(CoreOptions.DEFAULT_PARALLELISM));
+        assertEquals(1, (int) configuration.get(CoreOptions.DEFAULT_PARALLELISM));
         assertEquals(Duration.ZERO, configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
         assertTrue(configuration.getOptional(CoreOptions.DEFAULT_PARALLELISM).isEmpty());
         assertTrue(configuration.getOptional(CheckpointingOptions.CHECKPOINTING_INTERVAL).isEmpty());
@@ -35,9 +35,9 @@ class ConfigurationTest {
         configuration.set(ExecutionOptions.DEFAULT_PARALLELISM, 4);
         configuration.set(ExecutionOptions.CHECKPOINT_INTERVAL, Duration.ofSeconds(5));
 
-        assertEquals(4, configuration.get(CoreOptions.DEFAULT_PARALLELISM));
+        assertEquals(4, (int) configuration.get(CoreOptions.DEFAULT_PARALLELISM));
         assertEquals(Duration.ofSeconds(5), configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
-        assertEquals(4, configuration.getOptional(CoreOptions.DEFAULT_PARALLELISM).orElseThrow());
+        assertEquals(4, (int) configuration.getOptional(CoreOptions.DEFAULT_PARALLELISM).orElseThrow());
         assertEquals(2, configuration.keySet().size());
     }
 
@@ -52,10 +52,10 @@ class ConfigurationTest {
                 "mode", " streaming ",
                 "label", "keep spaces"));
 
-        assertEquals(42, configuration.get(ConfigOptions.key("workers").intType().noDefaultValue()));
-        assertEquals(9_000_000_000L, configuration.get(ConfigOptions.key("offset").longType().noDefaultValue()));
-        assertEquals(1.25d, configuration.get(ConfigOptions.key("factor").doubleType().noDefaultValue()));
-        assertEquals(0.5f, configuration.get(ConfigOptions.key("ratio").floatType().noDefaultValue()));
+        assertEquals(42, (int) configuration.get(ConfigOptions.key("workers").intType().noDefaultValue()));
+        assertEquals(9_000_000_000L, (long) configuration.get(ConfigOptions.key("offset").longType().noDefaultValue()));
+        assertEquals(1.25d, (double) configuration.get(ConfigOptions.key("factor").doubleType().noDefaultValue()));
+        assertEquals(0.5f, (float) configuration.get(ConfigOptions.key("ratio").floatType().noDefaultValue()));
         assertTrue(configuration.get(ConfigOptions.key("enabled").booleanType().noDefaultValue()));
         assertEquals(RuntimeExecutionMode.STREAMING,
                 configuration.get(ConfigOptions.key("mode").enumType(RuntimeExecutionMode.class).noDefaultValue()));
@@ -110,12 +110,12 @@ class ConfigurationTest {
         assertEquals(original.hashCode(), copy.hashCode());
 
         original.set(workers, 4);
-        assertEquals(2, copy.get(workers));
-        assertEquals(2, clone.get(workers));
+        assertEquals(2, (int) copy.get(workers));
+        assertEquals(2, (int) clone.get(workers));
 
         copy.set(workers, 8);
         clone.setString("new-key", "clone-only");
-        assertEquals(4, original.get(workers));
+        assertEquals(4, (int) original.get(workers));
         assertFalse(original.containsKey("new-key"));
         assertNotEquals(original, copy);
         assertNotEquals(original, clone);
@@ -131,14 +131,14 @@ class ConfigurationTest {
 
         target.addAll(source);
 
-        assertEquals(3, target.get(workers));
+        assertEquals(3, (int) target.get(workers));
         assertEquals("source", target.getString("label", "missing"));
         assertEquals("BATCH", target.get(mode));
         assertFalse(target.contains(mode));
 
         source.set(workers, 9);
         source.setString("label", "changed");
-        assertEquals(3, target.get(workers));
+        assertEquals(3, (int) target.get(workers));
         assertEquals("source", target.getString("label", "missing"));
     }
 
@@ -149,7 +149,7 @@ class ConfigurationTest {
 
         assertFalse(configuration.contains(workers));
         assertFalse(configuration.removeConfig(workers));
-        assertEquals(2, configuration.get(workers));
+        assertEquals(2, (int) configuration.get(workers));
 
         configuration.set(workers, 5);
         assertTrue(configuration.containsKey(workers.key()));
@@ -157,7 +157,7 @@ class ConfigurationTest {
         assertTrue(configuration.removeConfig(workers));
         assertFalse(configuration.contains(workers));
         assertFalse(configuration.removeKey(workers.key()));
-        assertEquals(2, configuration.get(workers));
+        assertEquals(2, (int) configuration.get(workers));
 
         configuration.setString("another", "value");
         assertTrue(configuration.removeKey("another"));
@@ -218,7 +218,7 @@ class ConfigurationTest {
 
         assertEquals(original, restored);
         assertEquals(original.hashCode(), restored.hashCode());
-        assertEquals(3, restored.get(CoreOptions.DEFAULT_PARALLELISM));
+        assertEquals(3, (int) restored.get(CoreOptions.DEFAULT_PARALLELISM));
         assertEquals(Duration.ofMillis(250), restored.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
         assertEquals(RuntimeExecutionMode.STREAMING, restored.get(ExecutionOptions.RUNTIME_MODE));
     }
