@@ -2,9 +2,9 @@ package io.yak.ops.plugin.database.jdbc.schema;
 
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalType;
+import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.core.types.TypeKind;
-import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
 import java.sql.Types;
 import java.util.ArrayList;
