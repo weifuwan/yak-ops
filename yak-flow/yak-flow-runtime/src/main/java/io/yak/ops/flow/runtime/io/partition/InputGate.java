@@ -162,6 +162,7 @@ public final class InputGate<T> {
         T record = null;
         long completedBarrier = -1;
         boolean processing = false;
+        boolean partialBarrier = false;
         lock.lock();
         try {
             checkFailure();
