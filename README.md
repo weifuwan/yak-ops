@@ -6,9 +6,9 @@ Yak Ops 是一个面向数据集成与数据同步场景的数据平台项目。
 
 ## 当前分支
 
-数据源管理、用户管理、工作空间管理仍保留。离线同步与实时同步旧实现（包括 JDBC / CDC Connector、业务执行器、同步 Controller 和前端任务页面）已清理，**当前分支不提供数据同步功能**。
+数据源、用户、工作空间管理保持不变。数据同步已经恢复离线 / 实时任务页面、Controller、Service、DAO、任务 / 多表路由 / 调度配置、Schema 预览和历史执行记录查询；既有 Flyway 表结构不变。
 
-Data Sync 只保留稳定业务接口、DTO / VO、已发布数据库迁移；Yak Ops Core 与新的通用 Runtime 框架供后续重新实现。历史 V1 发布范围与验收结果见下方发布材料，不等于当前开发分支能力。
+**旧同步引擎仍然移除。** JDBC / CDC Source、Reader、Sink、Debezium、业务执行器和旧 LocalExecution 不恢复。当前可以维护任务、查看历史记录，但无法运行同步或启用调度（明确返回 `ENGINE_UNAVAILABLE`，不创建空转实例）。新的 Core-based Runtime 框架仍保留供后续接入；历史版本验收不代表当前分支同步可执行。
 
 ## 文档
 
