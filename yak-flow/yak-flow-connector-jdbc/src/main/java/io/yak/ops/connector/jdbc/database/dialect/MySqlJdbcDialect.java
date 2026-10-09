@@ -25,7 +25,7 @@ public final class MySqlJdbcDialect implements JdbcDialect {
 
     @Override
     public JdbcNativeType nativeType(Column column) {
-        return switch (column.dataType().kind()) {
+        return switch (column.dataType().getTypeRoot()) {
             case BOOLEAN -> JdbcNativeType.of("BOOLEAN");
             case TINYINT -> JdbcNativeType.of("TINYINT");
             case SMALLINT -> JdbcNativeType.of("SMALLINT");

@@ -30,7 +30,7 @@ public final class PostgresJdbcDialect implements JdbcDialect {
 
     @Override
     public JdbcNativeType nativeType(Column column) {
-        return switch (column.dataType().kind()) {
+        return switch (column.dataType().getTypeRoot()) {
             case BOOLEAN -> JdbcNativeType.of("BOOLEAN");
             case TINYINT, SMALLINT -> JdbcNativeType.of("SMALLINT");
             case INTEGER -> JdbcNativeType.of("INTEGER");

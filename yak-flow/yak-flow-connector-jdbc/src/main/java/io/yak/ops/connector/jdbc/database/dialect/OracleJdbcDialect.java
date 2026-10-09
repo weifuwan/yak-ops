@@ -24,7 +24,7 @@ public final class OracleJdbcDialect implements JdbcDialect {
 
     @Override
     public JdbcNativeType nativeType(Column column) {
-        return switch (column.dataType().kind()) {
+        return switch (column.dataType().getTypeRoot()) {
             case BOOLEAN -> JdbcNativeType.of("NUMBER(1)");
             case TINYINT -> JdbcNativeType.of("NUMBER(3)");
             case SMALLINT -> JdbcNativeType.of("NUMBER(5)");
