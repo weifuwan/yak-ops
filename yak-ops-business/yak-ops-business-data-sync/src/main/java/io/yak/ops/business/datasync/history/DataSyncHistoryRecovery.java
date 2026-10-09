@@ -73,8 +73,7 @@ public class DataSyncHistoryRecovery {
                     DataSyncTableExecutionStatus.LOST, finishedAt, errorCode, message);
         }
         LOG.warn(
-                "旧数据同步运行状态已收口，lostExecutions={}, lostAttempts={}, lostTableAttempts={}, "
-                        + "lostRetryWaiting={}",
+                "旧数据同步运行状态已收口，lostExecutions={}, lostAttempts={}, lostTableAttempts={}, lostRetryWaiting={}",
                 executions, attempts, tableAttempts, retryWaiting);
     }
 }
