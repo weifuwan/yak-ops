@@ -46,7 +46,7 @@ class JdbcSourceRuntimeTest {
                 Statement sql = opened.createStatement()) {
             sql.execute("CREATE TABLE ORDERS (ID BIGINT PRIMARY KEY, PAYLOAD VARCHAR(32))");
             sql.execute("CREATE TABLE CUSTOMERS (ID INT PRIMARY KEY, PAYLOAD VARCHAR(32))");
-            sql.execute("CREATE TABLE NOTES (VALUE VARCHAR(32))");
+            sql.execute("CREATE TABLE NOTES (CONTENT VARCHAR(32))");
             for (int index = 1; index <= 21; index++) {
                 sql.execute("INSERT INTO ORDERS VALUES (" + index + ", 'o" + index + "')");
             }

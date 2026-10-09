@@ -26,6 +26,7 @@ final class SplitFetcher<E, SplitT extends SourceSplit> implements Runnable {
 
     private final int id;
     private final SplitReader<E, SplitT> splitReader;
+    private final FutureCompletingBlockingQueue<RecordsWithSplitIds<E>> queue;
     private final FetchTask<E, SplitT> fetchTask;
     private final Consumer<Throwable> errorHandler;
     private final Runnable terminationHook;
@@ -45,6 +46,7 @@ final class SplitFetcher<E, SplitT extends SourceSplit> implements Runnable {
             Runnable terminationHook) {
         this.id = id;
         this.splitReader = Objects.requireNonNull(splitReader, "splitReader");
+        this.queue = Objects.requireNonNull(queue, "queue");
         this.fetchTask = new FetchTask<>(id, splitReader, queue);
         this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
         this.terminationHook = Objects.requireNonNull(terminationHook, "terminationHook");
@@ -121,6 +123,11 @@ final class SplitFetcher<E, SplitT extends SourceSplit> implements Runnable {
                     }
                     if (complete && task == fetchTask) {
                         fetchTask.completedSplits().forEach(assignedSplits::remove);
+                    }
+                    if (complete && assignedSplits.isEmpty() && tasks.isEmpty()) {
+                        // A final completion batch may already have been drained before this
+                        // fetcher becomes idle; wake the mailbox to re-check END_OF_INPUT.
+                        queue.notifyAvailable();
                     }
                 } finally {
                     lock.unlock();

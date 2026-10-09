@@ -33,7 +33,7 @@ class JdbcSplitPlannerTest {
             sql.execute("DROP TABLE IF EXISTS NO_KEY");
             sql.execute("DROP TABLE IF EXISTS COMPOSITE_KEY");
             sql.execute("CREATE TABLE ORDERS (ID BIGINT PRIMARY KEY, LABEL VARCHAR(40))");
-            sql.execute("CREATE TABLE NO_KEY (VALUE VARCHAR(40))");
+            sql.execute("CREATE TABLE NO_KEY (CONTENT VARCHAR(40))");
             sql.execute("CREATE TABLE COMPOSITE_KEY (A INT, B INT, PRIMARY KEY (A,B))");
             for (int i = 1; i <= 25; i++) {
                 sql.execute("INSERT INTO ORDERS VALUES (" + i + ", 'row" + i + "')");
