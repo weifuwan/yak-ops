@@ -30,20 +30,22 @@ Runtime Trace 只在 API 定义最小 Event / Listener 协议，JDBC SQL、Split
 
 ## Core-Based Runtime Target Boundary
 
+Core 不得依赖 Runtime。`StreamGraph`、`StreamGraphGenerator`、`StreamPartitioning`、Streaming Transformation、`OneInputOperator` 生命周期接口及工厂由 Runtime 拥有。默认并行度使用 Core `CoreOptions.DEFAULT_PARALLELISM`；Channel 容量使用 Runtime `RuntimeOptions.CHANNEL_CAPACITY`，配置键仍为 `execution.local-channel.capacity`。
+
 本节约束以 `yak-ops-core` 为接口的新 Runtime 迁移，**不表示已完成装配与验收**。目标契约见 [Core / Runtime Execution Contract](../docs/capabilities/yak-flow/core-runtime-contract.md)；上面的 Local Execution Engine 和 Connector 规则仍约束既有 YakFlow API 路径。
 
-- `TaskInfo` 保存当前 Job / Operator / Subtask / Attempt 身份及已解析并行度，`TaskEnvironment` 对配置做防御性复制并暴露只读取消信号。`StreamTask` 绑定取消信号并生成诊断线程名称；`SourceReaderRuntimeContext` 从 TaskEnvironment 获取 Reader 身份，`SourceOperator` 不保存额外 subtaskId / parallelism。
+- Core 的 `TaskInfo` 定义只读元信息；Runtime 的 `RuntimeTaskInfo` 保存当前 Job / Operator / Subtask / Attempt 身份及已解析并行度，`TaskEnvironment` 对配置做防御性复制并暴露只读取消信号。`StreamTask` 绑定取消信号并生成诊断线程名称；`SourceReaderRuntimeContext` 从 TaskEnvironment 获取 Reader 身份，`SourceOperator` 不保存额外 subtaskId / parallelism。
 - `SourceCoordinator` 通过 `OperatorCoordinatorContext` 获得 Job / Operator 身份和已解析并行度，内部 `SourceCoordinatorContext` 负责 Enumerator / Reader 注册、Split 投递和回调线程。`SourceOperator` 不直接实现 Core 的 `SourceReaderContext`，由独立的 `SourceReaderRuntimeContext` 提供只读配置、Subtask 信息和 Split 请求。
 - `OperatorEventGateway` 负责 Task → Coordinator，原 `SubtaskGateway` 负责 Coordinator → Task；两条通道都异步返回，不阻塞 Mailbox 或协调线程。注册与 Split 请求需要校验 Job / Operator / Subtask / Attempt，不能由新的 Attempt 原地覆盖已有 Gateway；当前只支持整个 Job 恢复。
 - Split 投递 Future 在本地 Mailbox 实际处理后确认，但不代表数据已消费；先确认 AddSplit 事件，再发送 NoMoreSplits。事件交付失败必须传播到 Coordinator 失败边界。
 - Coordinator 的事件循环与 Task 的 Mailbox 各自串行处理所属状态；事件投递、事件处理、Split 消费和 Checkpoint 成功必须分别定义确认语义。
 - `CompiledJobPlan` 在提交时冻结配置，校验已生成的 StreamGraph 并确定运行模式；Runner 只接收该计划，不能再以另一份默认配置解释节点并行度。
-- `LocalStreamJobRunner` 支持一个 Source → 零个或多个 OneInputOperator → 一个 Sink 的严格线性图；单并行 FORWARD 图采用内联链，其余合法图由 `LocalTaskGraph` 装配独立 Source/Operator/Sink Task。单节点并行度最多 16、Job 最多 64 个子任务；多源、分叉或多 Sink 必须在提交前拒绝，不能静默遗漏记录。不引入远程 RPC、分布式调度器或万能 Environment。
-- `LocalChannel` 对每个目标 Subtask 使用一个有界队列，多生产者、单消费者；`LocalResultPartition` 按 FORWARD、REBALANCE 或显式 KEYED 转发。全部生产者结束且队列排空才能返回 EOF；Channel 满时生产者必须阻塞并响应中断，失败/取消要中止全部 Channel 并唤醒上下游。
+- `StreamJobRunner` 支持一个 Source → 零个或多个 OneInputOperator → 一个 Sink 的严格线性图；单并行 FORWARD 图采用内联链，其余合法图由 `JobExecution` 装配独立 Source/Operator/Sink Task。单节点并行度最多 16、Job 最多 64 个子任务；多源、分叉或多 Sink 必须在提交前拒绝，不能静默遗漏记录。不引入远程 RPC、分布式调度器或万能 Environment。
+- `RecordChannel` 对每个目标 Subtask 使用一个有界队列，多生产者、单消费者；`RecordRouter` 按 FORWARD、REBALANCE 或显式 KEYED 转发。全部生产者结束且队列排空才能返回 EOF；Channel 满时生产者必须阻塞并响应中断，失败/取消要中止全部 Channel 并唤醒上下游。
 - KEYED 要求稳定业务主键，同键进入同一目标 Subtask；不同 Reader 并发产生同键事件仍可能交错。不能用 REBALANCE 冒充 CDC 主键保序，也不能将 KEYED 声称为 exactly-once。
-- 单并行 `LocalOperatorChain` 在 Source 所属 Task Mailbox 中创建并打开下游算子；多并行 Task 各自拥有独立 OneInputOperator 或 SinkWriter，经 Channel 接收数据后仍在所属 Task Mailbox 串行处理。所有同步 Collector 输出不得异步保留。只有 InputStatus.END_OF_INPUT 正常结束时才依次调用 Operator.finish 与 SinkWriter.flush(true)；失败和取消时禁止补发 finish / 最终 flush。初始化失败也必须尝试关闭已创建的全部 Operator / Writer。
+- 单并行 `OperatorChain` 在 Source 所属 Task Mailbox 中创建并打开下游算子；多并行 Task 各自拥有独立 OneInputOperator 或 SinkWriter，经 Channel 接收数据后仍在所属 Task Mailbox 串行处理。所有同步 Collector 输出不得异步保留。只有 InputStatus.END_OF_INPUT 正常结束时才依次调用 Operator.finish 与 SinkWriter.flush(true)；失败和取消时禁止补发 finish / 最终 flush。初始化失败也必须尝试关闭已创建的全部 Operator / Writer。
 - `CompiledJobPlan.jobID()` 与 JobClient / TaskInfo 保持一致；Runner 不重新生成 JobID，也不修改 Graph 已解析的并行度。周期或手动 Checkpoint 仅允许 Source → Sink 拓扑，要求稳定 UID、独占的持久化状态目录和受控的单次在途快照；尚未有状态协议的中间 Operator 明确拒绝。
-- `LocalCheckpointCoordinator` 采用单 JVM quiescent cut：SourceCoordinator 冻结新的 Split 分配与异步发现回调，Reader Mailbox 暂停并快照；逐级等待 LocalChannel 的排队记录和 in-flight Sink 调用排空，再由各 Sink Mailbox `flush(false)`。写入 `FileCheckpointStore` 成功后才能通知 Enumerator / Reader CheckpointComplete；失败或取消必须释放暂停并向 Job 传播异常。该方案不等于事务性 Exactly-once。
+- `QuiescentCheckpointCoordinator` 采用单 JVM quiescent cut：SourceCoordinator 冻结新的 Split 分配与异步发现回调，Reader Mailbox 暂停并快照；逐级等待 RecordChannel 的排队记录和 in-flight Sink 调用排空，再由各 Sink Mailbox `flush(false)`。写入 `FileCheckpointStore` 成功后才能通知 Enumerator / Reader CheckpointComplete；失败或取消必须释放暂停并向 Job 传播异常。该方案不等于事务性 Exactly-once。
 - `FileCheckpointStore` 使用 Connector 版本化序列化器、自定义二进制格式、CRC 与原子替换，状态目录独占锁禁止并行 Job 相互覆盖；恢复时比对稳定 UID / 并行度 / 边策略指纹。状态损坏、目录不支持原子提交或拓扑不兼容必须明确拒绝，不能悄悄重新全量。
 - 旧 `LocalExecutionEngine`、`LocalExecution`、`ExecutionStatus` 根包类型已删除；业务侧只保留最小执行句柄、状态及指标契约。JDBC / CDC Connector 仍基于旧 Source/Sink API，不能直接接入新 Core-based Runtime；不得用旧 Checkpoint 证据宣称新引擎已验收。
 - 只有完整状态持久化并获得下游确认后才能通知 Checkpoint 完成；单独的 SourceCoordinator 快照不能宣称可恢复的完整 Job Checkpoint。
