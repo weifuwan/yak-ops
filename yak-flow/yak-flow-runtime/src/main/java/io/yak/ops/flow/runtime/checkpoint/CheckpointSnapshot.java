@@ -15,7 +15,8 @@ public record CheckpointSnapshot(
         SerializedState enumeratorState,
         Map<Integer, List<SerializedState>> readerSplits,
         Map<Integer, List<SerializedState>> assignments,
-        long completedAtMillis) {
+        long completedAtMillis,
+        Map<OperatorSubtask, Map<String, SerializedState>> operatorStates) {
 
     public CheckpointSnapshot {
         if (checkpointId <= 0 || completedAtMillis <= 0) {
@@ -27,6 +28,38 @@ public record CheckpointSnapshot(
         Objects.requireNonNull(enumeratorState, "enumeratorState 不能为空");
         readerSplits = freeze(readerSplits);
         assignments = freeze(assignments);
+        Objects.requireNonNull(operatorStates, "operatorStates");
+        Map<OperatorSubtask, Map<String, SerializedState>> copy = new LinkedHashMap<>();
+        operatorStates.forEach((key, states) -> {
+            Objects.requireNonNull(key, "OperatorSubtask");
+            Objects.requireNonNull(states, "operator states");
+            if (copy.putIfAbsent(key, Map.copyOf(states)) != null) {
+                throw new IllegalArgumentException("Duplicate operator subtask");
+            }
+            states.keySet().forEach(name -> {
+                if (name == null || name.isBlank()) {
+                    throw new IllegalArgumentException("State name must not be blank");
+                }
+            });
+        });
+        operatorStates = Map.copyOf(copy);
+    }
+
+    /** Backwards compatible constructor for Source/Sink-only format v1. */
+    public CheckpointSnapshot(long checkpointId, String graphSignature, SerializedState enumeratorState,
+            Map<Integer, List<SerializedState>> readerSplits,
+            Map<Integer, List<SerializedState>> assignments, long completedAtMillis) {
+        this(checkpointId, graphSignature, enumeratorState, readerSplits,
+                assignments, completedAtMillis, Map.of());
+    }
+
+    /** Stable logical operator identity, never a graph-local numeric operator ID. */
+    public record OperatorSubtask(String uid, int subtaskIndex) {
+        public OperatorSubtask {
+            if (uid == null || uid.isBlank() || subtaskIndex < 0) {
+                throw new IllegalArgumentException("Invalid checkpoint operator identity");
+            }
+        }
     }
 
     private static Map<Integer, List<SerializedState>> freeze(Map<Integer, List<SerializedState>> input) {
