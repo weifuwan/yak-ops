@@ -11,6 +11,7 @@ import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceReader;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
+import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
@@ -29,6 +30,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class SourceOperatorStreamTaskContextTest {
@@ -61,6 +63,7 @@ class SourceOperatorStreamTaskContextTest {
             exposed.set(CoreOptions.DEFAULT_PARALLELISM, 99);
             assertEquals(8, (int) source.readerContext.getConfiguration().get(CoreOptions.DEFAULT_PARALLELISM));
             assertEquals(1, source.splitRequests.get());
+            assertEquals(new ProbeSourceEvent("hello"), source.readerSourceEvent.get());
             assertTrue(source.readerClosed.get());
         }
     }
@@ -79,11 +82,14 @@ class SourceOperatorStreamTaskContextTest {
 
     private record TestSplit(String splitId) implements SourceSplit {}
 
+    private record ProbeSourceEvent(String message) implements SourceEvent {}
+
     private static final class TestSource implements Source<String, TestSplit, Integer> {
 
         private final AtomicInteger splitRequests = new AtomicInteger();
         private final AtomicBoolean readerClosed = new AtomicBoolean();
         private volatile SourceReaderContext readerContext;
+        private final AtomicReference<SourceEvent> readerSourceEvent = new AtomicReference<>();
 
         @Override
         public Boundedness getBoundedness() {
@@ -104,7 +110,7 @@ class SourceOperatorStreamTaskContextTest {
         @Override
         public SourceReader<String, TestSplit> createReader(SourceReaderContext context) {
             readerContext = context;
-            return new TestReader(context, readerClosed);
+            return new TestReader(context, readerClosed, readerSourceEvent);
         }
 
         @Override
@@ -135,6 +141,7 @@ class SourceOperatorStreamTaskContextTest {
         public void handleSplitRequest(int subtaskId) {
             requests.incrementAndGet();
             context.assignSplit(new TestSplit("split-" + subtaskId), subtaskId);
+            context.sendEventToSourceReader(subtaskId, new ProbeSourceEvent("hello"));
             context.signalNoMoreSplits(subtaskId);
         }
 
@@ -159,13 +166,16 @@ class SourceOperatorStreamTaskContextTest {
 
         private final SourceReaderContext context;
         private final AtomicBoolean closed;
+        private final AtomicReference<SourceEvent> receivedSourceEvent;
         private final List<TestSplit> pending = new ArrayList<>();
         private CompletableFuture<Void> available = new CompletableFuture<>();
         private boolean noMoreSplits;
 
-        private TestReader(SourceReaderContext context, AtomicBoolean closed) {
+        private TestReader(SourceReaderContext context, AtomicBoolean closed,
+                AtomicReference<SourceEvent> receivedSourceEvent) {
             this.context = context;
             this.closed = closed;
+            this.receivedSourceEvent = receivedSourceEvent;
         }
 
         @Override
@@ -195,6 +205,11 @@ class SourceOperatorStreamTaskContextTest {
         public void addSplits(List<TestSplit> splits) {
             pending.addAll(splits);
             available.complete(null);
+        }
+
+        @Override
+        public void handleSourceEvents(SourceEvent event) {
+            receivedSourceEvent.set(event);
         }
 
         @Override

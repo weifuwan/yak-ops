@@ -10,6 +10,7 @@ import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceReader;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
+import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
@@ -22,6 +23,7 @@ import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
 import io.yak.ops.flow.runtime.source.event.NoMoreSplitsEvent;
 import io.yak.ops.flow.runtime.source.event.RequestSplitEvent;
+import io.yak.ops.flow.runtime.source.event.SourceEventWrapper;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -30,6 +32,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class SourceCoordinatorContractTest {
@@ -120,7 +123,9 @@ class SourceCoordinatorContractTest {
             coordinator.handleEventFromOperator(reader, new RequestSplitEvent(0, 0))
                     .get(5, TimeUnit.SECONDS);
             assertEquals(1, delivered.size());
-            assertInstanceOf(AddSplitEvent.class, delivered.getFirst());
+            AddSplitEvent<?> splitEvent = assertInstanceOf(AddSplitEvent.class, delivered.getFirst());
+            assertEquals(1, splitEvent.serializerVersion());
+            assertEquals(1, splitEvent.splitCount());
             assertFailure(coordinator.snapshotCoordinator(7));
 
             splitAcknowledged.complete(null);
@@ -180,6 +185,37 @@ class SourceCoordinatorContractTest {
         assertTrue(source.closed.get());
     }
 
+    @Test
+    void shouldRouteSourceEventInBothDirectionsAndRejectStaleReaderAttempt() throws Exception {
+        JobID jobID = JobID.generate();
+        RuntimeTaskInfo active = new RuntimeTaskInfo(jobID, 15, 0, 1, 4);
+        RecordingSource source = new RecordingSource(false);
+        AtomicReference<SourceEvent> deliveredToReader = new AtomicReference<>();
+
+        try (SourceCoordinator<TestSplit, Integer> coordinator =
+                new SourceCoordinator<>(source, new OperatorCoordinatorContext(jobID, 15, 1))) {
+            coordinator.start().get(5, TimeUnit.SECONDS);
+            coordinator.registerReader(active, event -> {
+                if (event instanceof SourceEventWrapper wrapper) {
+                    deliveredToReader.set(wrapper.sourceEvent());
+                }
+                return CompletableFuture.completedFuture(null);
+            }).get(5, TimeUnit.SECONDS);
+
+            ProbeSourceEvent ping = new ProbeSourceEvent("ping");
+            coordinator.handleEventFromOperator(active, new SourceEventWrapper(ping))
+                    .get(5, TimeUnit.SECONDS);
+            assertEquals(ping, source.lastSourceEvent.get());
+            assertEquals(ping, deliveredToReader.get());
+
+            RuntimeTaskInfo stale = new RuntimeTaskInfo(jobID, 15, 0, 1, 3);
+            assertFailure(coordinator.handleEventFromOperator(stale, new SourceEventWrapper(ping)));
+            assertEquals(ping, source.lastSourceEvent.get());
+        }
+    }
+
+    private record ProbeSourceEvent(String value) implements SourceEvent {}
+
     private static void assertFailure(CompletableFuture<?> future) {
         assertThrows(CompletionException.class, future::join);
     }
@@ -208,6 +244,7 @@ class SourceCoordinatorContractTest {
         private final boolean assignSplits;
         private final AtomicInteger registrations = new AtomicInteger();
         private final AtomicInteger requests = new AtomicInteger();
+        private final AtomicReference<SourceEvent> lastSourceEvent = new AtomicReference<>();
         private final AtomicBoolean closed = new AtomicBoolean();
 
         private RecordingSource(boolean assignSplits) {
@@ -237,6 +274,12 @@ class SourceCoordinatorContractTest {
                 @Override
                 public void addReader(int subtaskId) {
                     registrations.incrementAndGet();
+                }
+
+                @Override
+                public void handleSourceEvent(int subtaskId, SourceEvent event) {
+                    lastSourceEvent.set(event);
+                    context.sendEventToSourceReader(subtaskId, event);
                 }
 
                 @Override
