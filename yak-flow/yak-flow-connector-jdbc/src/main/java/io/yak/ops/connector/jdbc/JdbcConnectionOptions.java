@@ -13,7 +13,7 @@ import java.util.Properties;
  * <p>Connection credentials are never included in Split or Enumerator checkpoint state or
  * diagnostic strings. The caller must supply an installed JDBC driver.
  */
-public final class JdbcConnectionOptions {
+public final class JdbcConnectionOptions implements java.io.Serializable {
 
     private final String url;
     private final String username;

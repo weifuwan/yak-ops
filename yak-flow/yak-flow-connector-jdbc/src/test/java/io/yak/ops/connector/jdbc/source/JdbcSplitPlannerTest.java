@@ -81,6 +81,6 @@ class JdbcSplitPlannerTest {
         assertEquals("`a``b`", JdbcDialects.forUrl("jdbc:mysql://localhost/test").quoteIdentifier("a`b"));
         assertEquals("\"a\"\"b\"", JdbcDialects.forUrl("jdbc:postgresql://localhost/test").quoteIdentifier("a\"b"));
         assertEquals("\"TEST\"", JdbcDialects.forUrl("jdbc:oracle:thin:@localhost:1521/X").quoteIdentifier("TEST"));
-        assertThrows(IllegalArgumentException.class, () -> JdbcDialects.forUrl("jdbc:sqlserver://localhost"));
+        assertThrows(IllegalStateException.class, () -> JdbcDialects.forUrl("jdbc:sqlserver://localhost"));
     }
 }

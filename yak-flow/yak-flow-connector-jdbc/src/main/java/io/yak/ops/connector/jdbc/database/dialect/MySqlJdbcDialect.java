@@ -1,5 +1,7 @@
 package io.yak.ops.connector.jdbc.database.dialect;
 
+import io.yak.ops.connector.jdbc.database.converter.JdbcDialectConverter;
+import io.yak.ops.connector.jdbc.database.converter.MySqlJdbcDialectConverter;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
@@ -9,6 +11,11 @@ import java.util.stream.Collectors;
 
 /** MySQL quoting, native type mapping, and DDL planning. */
 public final class MySqlJdbcDialect implements JdbcDialect {
+
+    @Override
+    public JdbcDialectConverter createRowConverter(java.sql.ResultSetMetaData metadata) throws java.sql.SQLException {
+        return new MySqlJdbcDialectConverter(metadata);
+    }
 
     @Override
     public String quoteIdentifier(String identifier) {

@@ -2,6 +2,8 @@ package io.yak.ops.connector.jdbc.source.enumerator;
 
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
+import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.configuration.Configuration;
@@ -27,14 +29,18 @@ import java.util.Objects;
  */
 public final class JdbcSplitPlanner {
 
-    private final JdbcConnectionOptions connectionOptions;
+    private final JdbcConnectionProvider connections;
     private final JdbcDialect dialect;
     private final int targetRowsPerSplit;
     private final int maxSplitsPerTable;
     private final int queryTimeoutSeconds;
 
     public JdbcSplitPlanner(JdbcConnectionOptions connectionOptions, JdbcDialect dialect, Configuration configuration) {
-        this.connectionOptions = Objects.requireNonNull(connectionOptions, "connectionOptions");
+        this(new DriverManagerJdbcConnectionProvider(connectionOptions), dialect, configuration);
+    }
+
+    public JdbcSplitPlanner(JdbcConnectionProvider connections, JdbcDialect dialect, Configuration configuration) {
+        this.connections = Objects.requireNonNull(connections, "connections");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
         Objects.requireNonNull(configuration, "configuration");
         targetRowsPerSplit = configuration.get(JdbcSourceOptions.TARGET_ROWS_PER_SPLIT);
@@ -51,7 +57,7 @@ public final class JdbcSplitPlanner {
         if (tableIndex < 0) {
             throw new IllegalArgumentException("Table index must be nonnegative");
         }
-        try (Connection connection = connectionOptions.openConnection()) {
+        try (Connection connection = connections.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
             Map<String, Integer> columns = discoverColumns(metadata, table);
             if (columns.isEmpty()) {

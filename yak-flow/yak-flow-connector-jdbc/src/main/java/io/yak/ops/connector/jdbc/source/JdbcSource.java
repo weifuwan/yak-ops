@@ -2,6 +2,8 @@ package io.yak.ops.connector.jdbc.source;
 
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
+import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
 import io.yak.ops.connector.jdbc.source.enumerator.JdbcEnumeratorState;
@@ -37,7 +39,8 @@ import java.util.Objects;
  */
 public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, JdbcEnumeratorState> {
 
-    private final JdbcConnectionOptions connection;
+    private final JdbcConnectionProvider connectionProvider;
+    private final String jdbcUrl;
     private final List<TableId> tables;
     private final Configuration configuration;
     private final JdbcDialect dialect;
@@ -46,19 +49,32 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
     private final JdbcEnumeratorStateSerializer stateSerializer = new JdbcEnumeratorStateSerializer();
 
     public JdbcSource(JdbcConnectionOptions connection, List<TableId> tables, Configuration configuration) {
-        this.connection = Objects.requireNonNull(connection, "connection");
+        this(new DriverManagerJdbcConnectionProvider(connection), connection.url(), tables, configuration);
+    }
+
+    public JdbcSource(JdbcConnectionOptions connection, List<TableId> tables) {
+        this(connection, tables, new Configuration());
+    }
+
+    /**
+     * Injects a driver-isolated or tunneled connection provider without depending on
+     * Datasource Plugin or a product task model.
+     */
+    public JdbcSource(
+            JdbcConnectionProvider connectionProvider,
+            String jdbcUrl,
+            List<TableId> tables,
+            Configuration configuration) {
+        this.connectionProvider = Objects.requireNonNull(connectionProvider, "connectionProvider");
+        this.jdbcUrl = Objects.requireNonNull(jdbcUrl, "jdbcUrl");
         this.tables = List.copyOf(Objects.requireNonNull(tables, "tables"));
         this.configuration = new Configuration(Objects.requireNonNull(configuration, "configuration"));
         if (this.tables.isEmpty() || new HashSet<>(this.tables).size() != this.tables.size()) {
             throw new IllegalArgumentException("JDBC source tables must be nonempty and unique");
         }
-        dialect = JdbcDialects.forUrl(connection.url());
+        dialect = JdbcDialects.forUrl(jdbcUrl);
         validateOptions();
         fingerprint = definitionFingerprint();
-    }
-
-    public JdbcSource(JdbcConnectionOptions connection, List<TableId> tables) {
-        this(connection, tables, new Configuration());
     }
 
     @Override
@@ -84,7 +100,7 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
 
     @Override
     public SourceReader<TableRecord, JdbcSourceSplit> createReader(SourceReaderContext context) {
-        return new JdbcSourceReader(connection, dialect, configuration, context);
+        return new JdbcSourceReader(connectionProvider, dialect, configuration, context);
     }
 
     @Override
@@ -100,7 +116,11 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
     private JdbcSourceEnumerator newEnumerator(
             SplitEnumeratorContext<JdbcSourceSplit> context, JdbcEnumeratorState restored) {
         return new JdbcSourceEnumerator(
-                context, new JdbcSplitPlanner(connection, dialect, configuration), tables, fingerprint, restored);
+                context,
+                new JdbcSplitPlanner(connectionProvider, dialect, configuration),
+                tables,
+                fingerprint,
+                restored);
     }
 
     private void validateOptions() {
@@ -118,7 +138,7 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
     }
 
     private String definitionFingerprint() {
-        StringBuilder definition = new StringBuilder(connection.url())
+        StringBuilder definition = new StringBuilder(jdbcUrl)
                 .append('|')
                 .append(configuration.get(JdbcSourceOptions.TARGET_ROWS_PER_SPLIT))
                 .append('|')

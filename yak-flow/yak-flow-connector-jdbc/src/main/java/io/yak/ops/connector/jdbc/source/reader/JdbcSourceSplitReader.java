@@ -5,20 +5,19 @@ import io.yak.ops.connector.base.source.reader.RecordsWithSplitIds;
 import io.yak.ops.connector.base.source.reader.splitreader.SplitReader;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
+import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.converter.JdbcDialectConverter;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.configuration.Configuration;
-import io.yak.ops.core.data.GenericRowData;
+import io.yak.ops.core.data.RowData;
 import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableRecord;
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLXML;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -37,7 +36,7 @@ import java.util.stream.Collectors;
  */
 public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPosition, JdbcSourceSplit> {
 
-    private final JdbcConnectionOptions connectionOptions;
+    private final JdbcConnectionProvider connections;
     private final JdbcDialect dialect;
     private final int fetchBatchSize;
     private final int resultSetFetchSize;
@@ -47,13 +46,18 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
     private Connection connection;
     private PreparedStatement statement;
     private ResultSet resultSet;
+    private JdbcDialectConverter converter;
     private JdbcSourceSplit active;
     private boolean hasRow;
     private boolean closed;
 
     public JdbcSourceSplitReader(
             JdbcConnectionOptions connectionOptions, JdbcDialect dialect, Configuration configuration) {
-        this.connectionOptions = Objects.requireNonNull(connectionOptions, "connectionOptions");
+        this(new DriverManagerJdbcConnectionProvider(connectionOptions), dialect, configuration);
+    }
+
+    public JdbcSourceSplitReader(JdbcConnectionProvider connections, JdbcDialect dialect, Configuration configuration) {
+        this.connections = Objects.requireNonNull(connections, "connections");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
         Objects.requireNonNull(configuration, "configuration");
         fetchBatchSize = configuration.get(JdbcSourceOptions.READER_FETCH_BATCH_SIZE);
@@ -88,12 +92,9 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         String splitId = active.splitId();
         List<JdbcRecordAndPosition> batch = new ArrayList<>(Math.min(fetchBatchSize, 1_024));
         for (int remaining = fetchBatchSize; remaining > 0 && hasRow; remaining--) {
-            List<Object> values = new ArrayList<>(active.columns().size());
-            for (int index = 1; index <= active.columns().size(); index++) {
-                values.add(detachValue(resultSet.getObject(index)));
-            }
+            RowData values = converter.toInternal(resultSet);
             Long key = active.splitColumn() == null ? null : resultSet.getLong(active.splitColumn());
-            TableRecord record = new TableRecord(active.tableId(), RowKind.INSERT, new GenericRowData(values));
+            TableRecord record = new TableRecord(active.tableId(), RowKind.INSERT, values);
             batch.add(new JdbcRecordAndPosition(record, key));
             hasRow = resultSet.next();
         }
@@ -148,7 +149,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
 
     private void openSplit(JdbcSourceSplit split) throws SQLException {
         if (connection == null) {
-            connection = connectionOptions.openConnection();
+            connection = connections.getConnection();
             dialect.configureReadConnection(connection);
         }
         closeStatementAndResultSet();
@@ -181,10 +182,23 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
             statement.setLong(index + 1, bounds.get(index));
         }
         resultSet = statement.executeQuery();
+        converter = dialect.createRowConverter(resultSet.getMetaData());
+        // A restored split must not silently change its column order or identity.
+        if (converter.schema().columnCount() != split.columns().size()) {
+            throw new SQLException("JDBC ResultSet shape changed since split planning");
+        }
+        for (int index = 0; index < split.columns().size(); index++) {
+            if (!split.columns()
+                    .get(index)
+                    .equals(converter.schema().column(index).name())) {
+                throw new SQLException("JDBC ResultSet column identity changed since split planning");
+            }
+        }
         hasRow = resultSet.next();
     }
 
     private void closeStatementAndResultSet() throws SQLException {
+        converter = null;
         SQLException failure = null;
         if (resultSet != null) {
             try {
@@ -211,36 +225,5 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         if (failure != null) {
             throw failure;
         }
-    }
-
-    private Object detachValue(Object value) throws SQLException {
-        if (value instanceof Blob blob) {
-            long length = blob.length();
-            if (length > Integer.MAX_VALUE) {
-                throw new SQLException("JDBC binary value exceeds the supported in-memory row size");
-            }
-            return blob.getBytes(1L, (int) length);
-        }
-        if (value instanceof Clob clob) {
-            long length = clob.length();
-            if (length > Integer.MAX_VALUE) {
-                throw new SQLException("JDBC character value exceeds the supported in-memory row size");
-            }
-            return clob.getSubString(1L, (int) length);
-        }
-        if (value instanceof SQLXML xml) {
-            return xml.getString();
-        }
-        if (value instanceof Array array) {
-            try {
-                return array.getArray();
-            } finally {
-                array.free();
-            }
-        }
-        if (value instanceof byte[] bytes) {
-            return bytes.clone();
-        }
-        return value;
     }
 }
