@@ -165,7 +165,8 @@ class StreamJobRunnerTest {
         single.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofSeconds(1));
         failure = assertThrows(CompletionException.class, () -> new EmbeddedPipelineExecutor()
                 .execute(graph(source, sink, single), single).join());
-        assertTrue(failure.getCause() instanceof UnsupportedOperationException);
+        assertTrue(failure.getCause() instanceof IllegalArgumentException);
+        assertTrue(failure.getCause().getMessage().contains("状态目录"));
         assertEquals(0, sink.writerCreations.get());
         assertEquals(0, source.readerCreations.get());
     }
