@@ -1,5 +1,7 @@
 package io.yak.ops.connector.jdbc.database;
 
+import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
+import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +30,23 @@ public final class JdbcFactoryLoader {
             List<JdbcFactory> factories = new ArrayList<>();
             ServiceLoader.load(JdbcFactory.class, classLoader).forEach(factories::add);
             return resolve(jdbcUrl, factories).createDialect();
+        } catch (ServiceConfigurationError failure) {
+            throw new IllegalStateException("Could not discover JDBC factories", failure);
+        }
+    }
+
+    /** Resolves a database-specific Catalog without creating a second SPI registry. */
+    public static JdbcCatalog loadCatalog(String jdbcUrl, JdbcConnectionProvider connections) {
+        return loadCatalog(jdbcUrl, connections, contextClassLoader());
+    }
+
+    public static JdbcCatalog loadCatalog(String jdbcUrl, JdbcConnectionProvider connections, ClassLoader classLoader) {
+        Objects.requireNonNull(connections, "connections");
+        Objects.requireNonNull(classLoader, "classLoader");
+        try {
+            List<JdbcFactory> factories = new ArrayList<>();
+            ServiceLoader.load(JdbcFactory.class, classLoader).forEach(factories::add);
+            return resolve(jdbcUrl, factories).createCatalog(connections);
         } catch (ServiceConfigurationError failure) {
             throw new IllegalStateException("Could not discover JDBC factories", failure);
         }

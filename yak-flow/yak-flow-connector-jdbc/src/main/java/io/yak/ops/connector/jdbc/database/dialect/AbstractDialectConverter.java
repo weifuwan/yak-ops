@@ -1,4 +1,4 @@
-package io.yak.ops.connector.jdbc.database.converter;
+package io.yak.ops.connector.jdbc.database.dialect;
 
 import io.yak.ops.core.data.GenericRowData;
 import io.yak.ops.core.data.RowData;
@@ -30,11 +30,11 @@ import java.util.Objects;
  * <p>Vendor subclasses may resolve uncommon SQL types or override conversions. Decimal
  * precision, scale, and integer boundaries are checked without lossy rounding or truncation.
  */
-public abstract class AbstractJdbcDialectConverter implements JdbcDialectConverter {
+public abstract class AbstractDialectConverter implements JdbcDialectConverter {
 
     private final TableSchema schema;
 
-    protected AbstractJdbcDialectConverter(ResultSetMetaData metadata) throws SQLException {
+    protected AbstractDialectConverter(ResultSetMetaData metadata) throws SQLException {
         Objects.requireNonNull(metadata, "metadata");
         List<Column> columns = new ArrayList<>(metadata.getColumnCount());
         for (int index = 1; index <= metadata.getColumnCount(); index++) {

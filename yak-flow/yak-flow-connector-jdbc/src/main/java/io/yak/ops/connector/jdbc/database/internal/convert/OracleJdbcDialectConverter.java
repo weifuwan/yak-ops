@@ -1,5 +1,6 @@
-package io.yak.ops.connector.jdbc.database.converter;
+package io.yak.ops.connector.jdbc.database.internal.convert;
 
+import io.yak.ops.connector.jdbc.database.dialect.AbstractDialectConverter;
 import io.yak.ops.core.types.LogicalType;
 import io.yak.ops.core.types.LogicalTypes;
 import java.sql.ResultSetMetaData;
@@ -12,7 +13,7 @@ import java.sql.Types;
  * <p>Oracle NUMBER remains a checked decimal unless the source actually declares a JDBC
  * integer type; no lossy automatic conversion to Long or Boolean is performed.
  */
-public final class OracleJdbcDialectConverter extends AbstractJdbcDialectConverter {
+public final class OracleJdbcDialectConverter extends AbstractDialectConverter {
 
     public OracleJdbcDialectConverter(ResultSetMetaData metadata) throws SQLException {
         super(metadata);

@@ -1,7 +1,11 @@
-package io.yak.ops.connector.jdbc.database.dialect;
+package io.yak.ops.connector.jdbc.database.internal.dialect;
 
-import io.yak.ops.connector.jdbc.database.converter.JdbcDialectConverter;
-import io.yak.ops.connector.jdbc.database.converter.MySqlJdbcDialectConverter;
+import io.yak.ops.connector.jdbc.database.dialect.AbstractDialect;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDdlPlan;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialectConverter;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcNativeType;
+import io.yak.ops.connector.jdbc.database.internal.convert.MySqlJdbcDialectConverter;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
@@ -10,7 +14,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /** MySQL quoting, native type mapping, and DDL planning. */
-public final class MySqlJdbcDialect implements JdbcDialect {
+public final class MySqlJdbcDialect extends AbstractDialect {
 
     @Override
     public JdbcDialectConverter createRowConverter(java.sql.ResultSetMetaData metadata) throws java.sql.SQLException {
