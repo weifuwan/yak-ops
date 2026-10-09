@@ -6,7 +6,7 @@ Scope: 当前模块职责、代码归属与依赖方向。文档归属遵循 [En
 
 ## Principle
 
-**当前分支状态**：旧 Business execution 与 JDBC / CDC Connector 已移除；Data Sync 的前端、Controller、Service、DAO、Flyway 保留。YakFlow 具备单 JVM 的物理 JobGraph / ExecutionGraph 执行基础，但尚未连接新的 JDBC / CDC Connector，不能执行实际跨库同步。
+**当前分支状态**：旧 Business execution 已移除，Data Sync 的前端、Controller、Service、DAO、Flyway 保留。YakFlow 已具备 Core/Runtime 和独立 JDBC Source Connector；产品层尚未把离线/CDC 任务接入新 Connector，也没有 JDBC Sink，不能宣称实际跨库同步已恢复。
 
 Datasource 管资源与连接，Data Sync 管同步任务和运行语义，YakFlow 管执行机制。Platform 提供身份、工作空间和用户偏好。能力边界不等同于页面菜单或 Maven 模块数量。
 
@@ -59,9 +59,11 @@ Runtime 单向依赖 Core；内存 Execution / Attempt 与 Data Sync DAO 的产�
 
 Provides reusable asynchronous SourceReader mechanics over Core Source / Split interfaces: mailbox-owned split consumption state, bounded fetch handover, background SplitFetcher lifecycle, cancellation and failure wakeups. It depends only on Core, not Runtime or JDBC. Runtime continues to own Mailbox, SourceCoordinator and Checkpoint persistence; Connector Base does not create its own Job or restart protocol.
 
-### YakFlow Connector
+### `yak-flow/yak-flow-connector-jdbc`
 
-旧 yak-flow-connector-jdbc 与 yak-flow-connector-cdc-mysql 已删除。仍用于产品 Schema/DDL 预览的 JDBC 类型映射与方言代码归 Datasource JDBC Plugin；新的执行 Connector 需要直接实现 Core Source / Sink。
+JDBC Source owns the vendor dialects, metadata-based split planning, bounded table scans, asynchronous reader I/O, immutable split/checkpoint codecs and consumed-key cursors. One Source manages a collection of TableIds; Core TableRecord carries physical table identity without product/DAO coupling. This module depends on Core and Connector Base, not Runtime (except test scope). Full JDBC Sink and product wiring are not implemented.
+
+The earlier Datasource JDBC Plugin dialect and schema/DDL planner remain temporarily for the existing product preview; they are not reused by the new Connector. MySQL CDC Connector has not been reintroduced.
 
 ### `yak-ops-business`
 
@@ -128,6 +130,8 @@ UI → HTTP → Boot
              └─ DataSyncService → DAO / DataSourceService / YakFlow
 
 YakFlow Runtime（Graph / Operator / Execution / Checkpoint）→ Yak Ops Core（API / Configuration / Transformation）
+JDBC Connector → Connector Base + Core（Source / TableRecord / Configuration）
+Connector Base → Core（SourceReader / SourceSplit）
 YakFlow StreamGraph → JobGraph → ExecutionGraph → StreamTask
 Datasource JDBC Schema → YakFlow Row / Type API
 Boot Quartz → Data Sync Scheduler Contract

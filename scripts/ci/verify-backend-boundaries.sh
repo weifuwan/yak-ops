@@ -10,7 +10,6 @@ if grep -R -n 'io\.yak\.ops\.flow\.runtime' yak-ops-core/src/main/java; then
 fi
 
 removed_paths=(
-    yak-flow/yak-flow-connector-jdbc
     yak-flow/yak-flow-connector-cdc-mysql
     yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/execution
     yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/execution

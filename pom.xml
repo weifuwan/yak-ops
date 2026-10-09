@@ -42,6 +42,7 @@
         <module>yak-flow/yak-flow-api</module>
         <module>yak-flow/yak-flow-runtime</module>
         <module>yak-flow/yak-flow-connector-base</module>
+        <module>yak-flow/yak-flow-connector-jdbc</module>
         <module>yak-ops-business</module>
         <module>yak-ops-plugins/yak-ops-plugin-datasource</module>
         <module>yak-ops-boot</module>
