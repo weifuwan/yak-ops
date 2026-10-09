@@ -5,19 +5,6 @@ import io.yak.ops.business.datasync.DataSyncService;
 import io.yak.ops.business.datasync.catalog.DataSyncCatalogColumns;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
-import io.yak.ops.business.datasync.execution.executor.MultiTableOfflineExecutor;
-import io.yak.ops.business.datasync.execution.executor.OfflineSyncExecutor;
-import io.yak.ops.business.datasync.execution.executor.RealtimeSyncExecutor;
-import io.yak.ops.business.datasync.execution.lifecycle.DataSyncAttemptLifecycle;
-import io.yak.ops.business.datasync.execution.lifecycle.DataSyncExecutionRegistry;
-import io.yak.ops.business.datasync.execution.lifecycle.DataSyncTableAttemptLifecycle;
-import io.yak.ops.business.datasync.execution.planning.OfflineRuntimePlan;
-import io.yak.ops.business.datasync.execution.planning.OfflineRuntimePlanner;
-import io.yak.ops.business.datasync.execution.trace.ExecutionTracePage;
-import io.yak.ops.business.datasync.execution.trace.ExecutionTraceRecord;
-import io.yak.ops.business.datasync.execution.trace.ExecutionTraceSide;
-import io.yak.ops.business.datasync.execution.trace.ExecutionTraceStore;
-import io.yak.ops.business.datasync.execution.trace.ExecutionTraceSummarySnapshot;
 import io.yak.ops.business.datasync.scheduler.DataSyncScheduleDefinition;
 import io.yak.ops.business.datasync.scheduler.DataSyncScheduleFire;
 import io.yak.ops.business.datasync.scheduler.DataSyncScheduleFireListener;
@@ -80,6 +67,7 @@ import io.yak.ops.common.bean.vo.datasync.DataSyncTaskVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTracePageVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTraceSummaryVO;
 import io.yak.ops.common.context.WorkspaceContext;
+import io.yak.ops.common.enums.datasync.DataSyncAttemptStatus;
 import io.yak.ops.common.enums.datasync.DataSyncDesiredState;
 import io.yak.ops.common.enums.datasync.DataSyncInstanceStatus;
 import io.yak.ops.common.enums.datasync.DataSyncOperationsRange;
@@ -117,16 +105,16 @@ import io.yak.ops.dao.repository.datasync.DataSyncOperationsSummaryStats;
 import io.yak.ops.dao.repository.datasync.DataSyncOperationsTrendStats;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableAttemptRepository;
+
 import io.yak.ops.dao.repository.datasync.DataSyncTableExecutionRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
 import io.yak.ops.flow.api.row.YakColumn;
-import io.yak.ops.flow.connector.jdbc.JdbcSchemaCompatibility;
-import io.yak.ops.flow.connector.jdbc.JdbcSchemaMapper;
+import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaCompatibility;
+import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaMapper;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
-import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
 import jakarta.annotation.Resource;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
@@ -163,7 +151,6 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
     private static final int DEFAULT_TRACE_PAGE_SIZE = 50;
 
     private final SchemaMappingResolver schemaMappingResolver = new SchemaMappingResolver();
-    private final OfflineRuntimePlanner offlineRuntimePlanner = new OfflineRuntimePlanner();
 
     @Resource
     private DataSyncTaskRepository taskRepository;
@@ -179,6 +166,8 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
 
     @Resource
     private DataSyncTableAttemptRepository tableAttemptRepository;
+
+
 
     @Resource
     private DataSyncInstanceRepository instanceRepository;
@@ -203,28 +192,6 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
 
     @Resource
     private TargetTablePlanner targetTablePlanner;
-
-    @Resource
-    private OfflineSyncExecutor offlineSyncExecutor;
-
-    @Resource
-    private MultiTableOfflineExecutor multiTableOfflineExecutor;
-
-    @Resource
-    private RealtimeSyncExecutor realtimeSyncExecutor;
-
-    @Resource
-    private DataSyncExecutionRegistry executionRegistry;
-
-    @Resource
-    private DataSyncAttemptLifecycle attemptLifecycle;
-
-    @Resource
-    private DataSyncTableAttemptLifecycle tableAttemptLifecycle;
-
-    @Resource
-    private ExecutionTraceStore executionTraceStore;
-
     @Resource
     private ScheduleEngine scheduleEngine;
 
@@ -551,14 +518,11 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         String workspaceId = WorkspaceContext.requireWorkspaceId();
         DataSyncTaskEntity task = requireTask(workspaceId, id);
         requireTaskStatus(task, DataSyncTaskStatus.PUBLISHED, "任务尚未上线");
-        List<DataSyncTableRouteEntity> routes = validatePersistedTaskDefinition(task);
+        validatePersistedTaskDefinition(task);
         if (instanceRepository.existsActiveByTask(workspaceId, task.getId())) {
             throw new DataSyncException(DataSyncErrorCode.ACTIVE_INSTANCE_EXISTS);
         }
-        if (task.getSyncType() == DataSyncType.REALTIME) {
-            updateDesiredState(workspaceId, task, DataSyncDesiredState.RUNNING);
-        }
-        return createInstance(workspaceId, task, routes, DataSyncTriggerType.MANUAL);
+        throw runtimeUnavailable();
     }
 
     @Override
@@ -696,47 +660,13 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
 
     @Override
     public void restoreRealtimeDesiredState() {
-        for (DataSyncTaskEntity task : taskRepository.queryRealtimeDesiredRunning()) {
-            String workspaceId = task.getWorkspaceId();
-            WorkspaceContext.bind(workspaceId);
-            try {
-                if (taskDesiredState(task) != DataSyncDesiredState.RUNNING
-                        || taskStatus(task) != DataSyncTaskStatus.PUBLISHED
-                        || task.getSyncType() != DataSyncType.REALTIME) {
-                    continue;
-                }
-                if (instanceRepository.existsActiveByTask(workspaceId, task.getId())) {
-                    LOG.info("实时同步自动恢复跳过已有活动Execution，workspaceId={}, taskId={}", workspaceId, task.getId());
-                    continue;
-                }
-
-                List<DataSyncTableRouteEntity> routes = validatePersistedTaskDefinition(task);
-                DataSyncInstanceVO recovered =
-                        createInstance(workspaceId, task, routes, DataSyncTriggerType.AUTO_RECOVERY);
-                LOG.info(
-                        "实时同步自动恢复已创建新Execution，workspaceId={}, taskId={}, taskVersion={}, instanceId={}",
-                        workspaceId,
-                        task.getId(),
-                        task.getDefinitionVersion(),
-                        recovered.getId());
-            } catch (Exception exception) {
-                LOG.error(
-                        "实时同步自动恢复失败，workspaceId={}, taskId={}, taskVersion={}, error={}",
-                        workspaceId,
-                        task.getId(),
-                        task.getDefinitionVersion(),
-                        SensitiveUtils.mask(exception.getMessage()));
-            } finally {
-                WorkspaceContext.clear();
-            }
-        }
+        // 历史 desired-state 作为产品定义保留；新 Runtime 尚未接入，不自动创建 Execution。
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public synchronized void onFire(DataSyncScheduleFire fire) {
         if (fire == null) throw new DataSyncException(DataSyncErrorCode.INVALID_SCHEDULE);
-
         WorkspaceContext.bind(fire.workspaceId());
         try {
             DataSyncScheduleEntity schedule = scheduleRepository
@@ -745,44 +675,17 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
             if (schedule == null
                     || !Boolean.TRUE.equals(schedule.getEnabled())
                     || !Objects.equals(schedule.getTaskId(), fire.taskId())) {
-                LOG.info(
-                        "离线调度触发已忽略，workspaceId={}, taskId={}, scheduleId={}",
-                        fire.workspaceId(),
-                        fire.taskId(),
-                        fire.scheduleId());
                 return;
             }
-
-            DataSyncTaskEntity task =
-                    taskRepository.queryById(fire.workspaceId(), fire.taskId()).orElse(null);
+            DataSyncTaskEntity task = taskRepository.queryById(fire.workspaceId(), fire.taskId()).orElse(null);
             if (task == null
                     || task.getSyncType() != DataSyncType.OFFLINE
-                    || task.getStatus() != DataSyncTaskStatus.PUBLISHED) {
-                LOG.info(
-                        "离线调度触发因任务状态已忽略，workspaceId={}, taskId={}, scheduleId={}",
-                        fire.workspaceId(),
-                        fire.taskId(),
-                        fire.scheduleId());
+                    || task.getStatus() != DataSyncTaskStatus.PUBLISHED
+                    || instanceRepository.existsActiveByTask(fire.workspaceId(), fire.taskId())) {
                 return;
             }
-            if (instanceRepository.existsActiveByTask(fire.workspaceId(), fire.taskId())) {
-                LOG.info(
-                        "离线调度触发因已有运行实例跳过，workspaceId={}, taskId={}, scheduleId={}",
-                        fire.workspaceId(),
-                        fire.taskId(),
-                        fire.scheduleId());
-                return;
-            }
-
-            List<DataSyncTableRouteEntity> routes = validatePersistedTaskDefinition(task);
-            DataSyncInstanceVO instance =
-                    createInstance(fire.workspaceId(), task, routes, DataSyncTriggerType.SCHEDULE);
-            LOG.info(
-                    "离线调度已创建同步实例，workspaceId={}, taskId={}, scheduleId={}, instanceId={}",
-                    fire.workspaceId(),
-                    fire.taskId(),
-                    fire.scheduleId(),
-                    instance.getId());
+            validatePersistedTaskDefinition(task);
+            throw runtimeUnavailable();
         } finally {
             WorkspaceContext.clear();
         }
@@ -844,32 +747,22 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
 
     @Override
     public DataSyncTraceSummaryVO queryExecutionTraceSummary(String instanceId, Integer attemptNo) {
-        String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncInstanceEntity instance = requireOfflineTraceInstance(workspaceId, instanceId);
-        int resolvedAttemptNo = resolveTraceAttemptNo(instance, attemptNo);
-        return toTraceSummaryVO(executionTraceStore.querySummary(workspaceId, instanceId, resolvedAttemptNo));
+        requireInstance(WorkspaceContext.requireWorkspaceId(), instanceId);
+        throw new DataSyncException(DataSyncErrorCode.INVALID_QUERY, "旧同步引擎 Trace 已移除");
     }
 
     @Override
     public DataSyncTracePageVO<DataSyncSourceTraceVO> queryExecutionSourceTrace(
             String instanceId, Integer attemptNo, Integer pageSize, String cursor, String status) {
-        String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncInstanceEntity instance = requireOfflineTraceInstance(workspaceId, instanceId);
-        int resolvedAttemptNo = resolveTraceAttemptNo(instance, attemptNo);
-        ExecutionTracePage page = queryTracePage(
-                workspaceId, instanceId, resolvedAttemptNo, ExecutionTraceSide.SOURCE, pageSize, cursor, status);
-        return toSourceTracePageVO(page);
+        requireInstance(WorkspaceContext.requireWorkspaceId(), instanceId);
+        throw new DataSyncException(DataSyncErrorCode.INVALID_QUERY, "旧同步引擎 Trace 已移除");
     }
 
     @Override
     public DataSyncTracePageVO<DataSyncSinkTraceVO> queryExecutionSinkTrace(
             String instanceId, Integer attemptNo, Integer pageSize, String cursor, String status) {
-        String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncInstanceEntity instance = requireOfflineTraceInstance(workspaceId, instanceId);
-        int resolvedAttemptNo = resolveTraceAttemptNo(instance, attemptNo);
-        ExecutionTracePage page = queryTracePage(
-                workspaceId, instanceId, resolvedAttemptNo, ExecutionTraceSide.SINK, pageSize, cursor, status);
-        return toSinkTracePageVO(page);
+        requireInstance(WorkspaceContext.requireWorkspaceId(), instanceId);
+        throw new DataSyncException(DataSyncErrorCode.INVALID_QUERY, "旧同步引擎 Trace 已移除");
     }
 
     @Override
@@ -904,217 +797,58 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
     public DataSyncInstanceVO cancelInstance(String id) {
         String workspaceId = WorkspaceContext.requireWorkspaceId();
         DataSyncInstanceEntity instance = requireInstance(workspaceId, id);
-        if (instance.getStatus() == null || instance.getStatus().isTerminal()) {
+        DataSyncInstanceStatus original = instance.getStatus();
+        if (original == null || original.isTerminal()) {
             return toInstanceVO(instance, true);
         }
-        boolean multiTable = isMultiTableExecution(instance);
 
         if (instance.getSyncType() == DataSyncType.REALTIME) {
-            DataSyncTaskEntity task =
-                    taskRepository.queryById(workspaceId, instance.getTaskId()).orElse(null);
+            DataSyncTaskEntity task = taskRepository.queryById(workspaceId, instance.getTaskId()).orElse(null);
             if (task != null) updateDesiredState(workspaceId, task, DataSyncDesiredState.STOPPED);
         }
 
-        if (instance.getStatus() == DataSyncInstanceStatus.PENDING
-                || instance.getStatus() == DataSyncInstanceStatus.RETRY_WAITING) {
-            if (!instanceRepository.cancelExecution(workspaceId, id, instance.getStatus(), DateUtils.now())) {
+        LocalDateTime now = DateUtils.now();
+        DataSyncTableExecutionStatus tableStatus;
+        if (original == DataSyncInstanceStatus.PENDING || original == DataSyncInstanceStatus.RETRY_WAITING) {
+            if (!instanceRepository.cancelExecution(workspaceId, id, original, now)) {
                 throw new DataSyncException(DataSyncErrorCode.INSTANCE_NOT_CANCELABLE);
             }
-            if (multiTable) {
-                multiTableOfflineExecutor.cancel(id);
-                tableAttemptLifecycle.cancelUnfinished(workspaceId, id, DataSyncTableExecutionStatus.CANCELED);
-            } else {
-                attemptLifecycle.cancelActiveAttempt(workspaceId, id);
-            }
-            attemptLifecycle.recordExecutionCanceled(workspaceId, id);
-        } else if (instance.getStatus() == DataSyncInstanceStatus.RUNNING) {
-            boolean canceled = multiTable ? multiTableOfflineExecutor.cancel(id) : executionRegistry.cancel(id);
-            if (!canceled) {
-                if (instanceRepository.transitionStatus(
-                        workspaceId,
-                        id,
-                        DataSyncInstanceStatus.RUNNING,
-                        DataSyncInstanceStatus.LOST,
-                        null,
-                        DateUtils.now(),
-                        DataSyncErrorCode.EXECUTION_LOST.getCode(),
-                        DataSyncErrorCode.EXECUTION_LOST.getMessage())) {
-                    if (multiTable) {
-                        tableAttemptLifecycle.cancelUnfinished(workspaceId, id, DataSyncTableExecutionStatus.LOST);
-                    }
-                    attemptLifecycle.recordExecutionLost(workspaceId, id, "无法定位进程内运行句柄，Execution 已标记为 LOST");
-                }
-            } else if (!instanceRepository.cancelExecution(
-                    workspaceId, id, DataSyncInstanceStatus.RUNNING, DateUtils.now())) {
+            attemptRepository.cancelActiveByExecution(workspaceId, id, now);
+            tableStatus = DataSyncTableExecutionStatus.CANCELED;
+        } else if (original == DataSyncInstanceStatus.RUNNING) {
+            // 旧执行引擎已移除：不能假装已将运行任务取消成功，只能按遗留运行态收口 LOST。
+            if (!instanceRepository.transitionStatus(
+                    workspaceId, id, DataSyncInstanceStatus.RUNNING, DataSyncInstanceStatus.LOST, null, now,
+                    DataSyncErrorCode.EXECUTION_LOST.getCode(), DataSyncErrorCode.EXECUTION_LOST.getMessage())) {
                 throw new DataSyncException(DataSyncErrorCode.INSTANCE_NOT_CANCELABLE);
-            } else {
-                if (multiTable) {
-                    tableAttemptLifecycle.cancelUnfinished(workspaceId, id, DataSyncTableExecutionStatus.CANCELED);
-                } else {
-                    attemptLifecycle.cancelActiveAttempt(workspaceId, id);
-                }
-                attemptLifecycle.recordExecutionCanceled(workspaceId, id);
             }
+            for (DataSyncAttemptEntity attempt : attemptRepository.queryByExecution(workspaceId, id)) {
+                if (attempt.getStatus() != null && !attempt.getStatus().isTerminal()) {
+                    attemptRepository.transitionStatus(
+                            workspaceId, attempt.getId(), attempt.getStatus(), DataSyncAttemptStatus.LOST,
+                            null, now, DataSyncErrorCode.EXECUTION_LOST.getCode(),
+                            DataSyncErrorCode.EXECUTION_LOST.getMessage());
+                }
+            }
+            tableStatus = DataSyncTableExecutionStatus.LOST;
         } else {
             throw new DataSyncException(DataSyncErrorCode.INSTANCE_NOT_CANCELABLE);
         }
 
+        tableExecutionRepository.finishUnfinished(
+                workspaceId, id, tableStatus, now,
+                tableStatus == DataSyncTableExecutionStatus.LOST ? DataSyncErrorCode.EXECUTION_LOST.getCode() : null,
+                tableStatus == DataSyncTableExecutionStatus.LOST ? DataSyncErrorCode.EXECUTION_LOST.getMessage() : null);
+        for (DataSyncTableExecutionEntity table : tableExecutionRepository.queryByExecution(workspaceId, id)) {
+            if (tableStatus == DataSyncTableExecutionStatus.LOST) {
+                tableAttemptRepository.markActiveAsLost(
+                        workspaceId, table.getId(), now,
+                        DataSyncErrorCode.EXECUTION_LOST.getCode(), DataSyncErrorCode.EXECUTION_LOST.getMessage());
+            } else {
+                tableAttemptRepository.cancelActive(workspaceId, table.getId(), now);
+            }
+        }
         return toInstanceVO(requireInstance(workspaceId, id), true);
-    }
-
-    private boolean isMultiTableExecution(DataSyncInstanceEntity instance) {
-        if (instance.getSyncType() != DataSyncType.OFFLINE || StringUtils.isBlank(instance.getDefinitionSnapshot()))
-            return false;
-        DataSyncDefinitionSnapshotVO snapshot =
-                JSONUtils.parseObject(instance.getDefinitionSnapshot(), DataSyncDefinitionSnapshotVO.class);
-        return snapshot.getTableRoutes() != null && snapshot.getTableRoutes().size() > 1;
-    }
-
-    private DataSyncInstanceEntity requireOfflineTraceInstance(String workspaceId, String instanceId) {
-        DataSyncInstanceEntity instance = requireInstance(workspaceId, instanceId);
-        if (instance.getSyncType() != DataSyncType.OFFLINE) {
-            throw new DataSyncException(DataSyncErrorCode.INVALID_QUERY, "Runtime Trace 当前仅支持离线同步");
-        }
-        return instance;
-    }
-
-    private int resolveTraceAttemptNo(DataSyncInstanceEntity instance, Integer attemptNo) {
-        int currentAttempt = instance.getCurrentAttempt() == null ? 1 : Math.max(1, instance.getCurrentAttempt());
-        int resolved = attemptNo == null ? currentAttempt : attemptNo;
-        if (resolved <= 0 || resolved > currentAttempt) {
-            throw new DataSyncException(DataSyncErrorCode.INVALID_QUERY, "Attempt 序号不合法");
-        }
-        return resolved;
-    }
-
-    private ExecutionTracePage queryTracePage(
-            String workspaceId,
-            String instanceId,
-            int attemptNo,
-            ExecutionTraceSide side,
-            Integer pageSize,
-            String cursor,
-            String status) {
-        int resolvedPageSize = pageSize == null ? DEFAULT_TRACE_PAGE_SIZE : pageSize;
-        try {
-            return executionTraceStore.queryPage(
-                    workspaceId,
-                    instanceId,
-                    attemptNo,
-                    side,
-                    resolvedPageSize,
-                    StringUtils.trimToNull(cursor),
-                    StringUtils.trimToNull(status));
-        } catch (IllegalArgumentException exception) {
-            throw new DataSyncException(DataSyncErrorCode.INVALID_QUERY, exception.getMessage(), exception);
-        }
-    }
-
-    private DataSyncTraceSummaryVO toTraceSummaryVO(ExecutionTraceSummarySnapshot source) {
-        DataSyncTraceSummaryVO target = new DataSyncTraceSummaryVO();
-        target.setAttemptNo(source.attemptNo());
-        target.setAvailable(source.available());
-        target.setComplete(source.complete());
-        target.setSourceSplitCount(source.sourceSplitCount());
-        target.setSourceFinishedSplitCount(source.sourceFinishedSplitCount());
-        target.setSourceFailedSplitCount(source.sourceFailedSplitCount());
-        target.setSourceRows(source.sourceRows());
-        target.setSourceSplitDurationMillis(source.sourceSplitDurationMillis());
-        target.setSinkSql(source.sinkSql());
-        target.setSinkBatchSize(source.sinkBatchSize());
-        target.setSinkSaveMode(source.sinkSaveMode());
-        target.setSinkWriteMode(source.sinkWriteMode());
-        target.setSinkCommittedBatchCount(source.sinkCommittedBatchCount());
-        target.setSinkFailedBatchCount(source.sinkFailedBatchCount());
-        target.setSinkRows(source.sinkRows());
-        target.setSinkExecuteDurationMillis(source.sinkExecuteDurationMillis());
-        target.setSinkCommitDurationMillis(source.sinkCommitDurationMillis());
-        target.setErrorCount(source.errorCount());
-        target.setDroppedEventCount(source.droppedEventCount());
-        return target;
-    }
-
-    private DataSyncTracePageVO<DataSyncSourceTraceVO> toSourceTracePageVO(ExecutionTracePage source) {
-        DataSyncTracePageVO<DataSyncSourceTraceVO> target = new DataSyncTracePageVO<>();
-        target.setRecords(source.records().stream().map(this::toSourceTraceVO).toList());
-        target.setNextCursor(source.nextCursor());
-        target.setHasMore(source.hasMore());
-        return target;
-    }
-
-    private DataSyncTracePageVO<DataSyncSinkTraceVO> toSinkTracePageVO(ExecutionTracePage source) {
-        DataSyncTracePageVO<DataSyncSinkTraceVO> target = new DataSyncTracePageVO<>();
-        target.setRecords(source.records().stream().map(this::toSinkTraceVO).toList());
-        target.setNextCursor(source.nextCursor());
-        target.setHasMore(source.hasMore());
-        return target;
-    }
-
-    private DataSyncSourceTraceVO toSourceTraceVO(ExecutionTraceRecord source) {
-        DataSyncSourceTraceVO target = new DataSyncSourceTraceVO();
-        target.setTimestamp(source.timestamp());
-        target.setSplitId(source.splitId());
-        target.setWorkerName(source.workerName());
-        target.setSql(source.sql());
-        target.setParameters(source.parameters());
-        target.setSplitColumn(source.splitColumn());
-        target.setLowerBoundInclusive(source.lowerBoundInclusive());
-        target.setUpperBoundInclusive(source.upperBoundInclusive());
-        target.setRows(source.rows());
-        target.setDurationMillis(source.durationMillis());
-        target.setStatus(source.type().endsWith("_FAILED") ? "FAILED" : "SUCCESS");
-        target.setFailureStage(source.failureStage());
-        target.setErrorType(source.errorType());
-        target.setErrorMessage(source.errorMessage());
-        return target;
-    }
-
-    private DataSyncSinkTraceVO toSinkTraceVO(ExecutionTraceRecord source) {
-        DataSyncSinkTraceVO target = new DataSyncSinkTraceVO();
-        target.setTimestamp(source.timestamp());
-        target.setBatchNo(source.batchNo());
-        target.setRows(source.rows());
-        target.setExecuteDurationMillis(source.executeDurationMillis());
-        target.setCommitDurationMillis(source.commitDurationMillis());
-        target.setStatus(source.type().endsWith("_FAILED") ? "FAILED" : "SUCCESS");
-        target.setFailureStage(source.failureStage());
-        target.setErrorType(source.errorType());
-        target.setErrorMessage(source.errorMessage());
-        return target;
-    }
-
-    private DataSyncInstanceVO createInstance(
-            String workspaceId,
-            DataSyncTaskEntity task,
-            List<DataSyncTableRouteEntity> routes,
-            DataSyncTriggerType triggerType) {
-        ensureRuntimeAvailable();
-        DataSyncDefinitionSnapshotVO snapshot = definitionSnapshot(task, routes);
-        DataSyncInstanceEntity instance = new DataSyncInstanceEntity();
-        instance.setWorkspaceId(workspaceId);
-        instance.setTaskId(task.getId());
-        instance.setTaskName(task.getName());
-        instance.setTaskVersion(task.getDefinitionVersion());
-        instance.setSyncType(task.getSyncType());
-        instance.setTriggerType(triggerType);
-        DataSyncRetryPolicyVO retryPolicy = snapshot.getRetryPolicy();
-        instance.setMaxAttempts(retryPolicy.getMaxAttempts());
-        instance.setBackoffSeconds(retryPolicy.getBackoffSeconds());
-        instance.setCurrentAttempt(1);
-        instance.setStatus(DataSyncInstanceStatus.PENDING);
-        instance.setDefinitionSnapshot(JSONUtils.toJson(snapshot));
-        instance.setReadRows(0L);
-        instance.setWriteRows(0L);
-        instance.initCreate();
-        if (instanceRepository.add(instance) == null) {
-            throw new DataSyncException(DataSyncErrorCode.EXECUTION_FAILED, "创建同步实例失败");
-        }
-        createTableExecutions(workspaceId, instance.getId(), snapshot.getTableRoutes());
-        if (triggerType == DataSyncTriggerType.AUTO_RECOVERY) {
-            attemptLifecycle.recordAutoRecoveryStarted(workspaceId, instance.getId());
-        }
-        submitAfterCommit(workspaceId, instance.getId(), snapshot);
-        return toInstanceVO(instance, true);
     }
 
     private void requireOfflineTask(DataSyncTaskEntity task) {
@@ -1677,13 +1411,8 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         DataSourceVO target = dataSourceService.queryDataSource(task.getTargetDataSourceId());
         DataSyncRuntimeConfigVO taskRuntimeConfig =
                 task.getSyncType() == DataSyncType.OFFLINE ? toRuntimeConfigVO(task.getRuntimeConfig()) : null;
-        DataSourceConnection sourceConnection = task.getSyncType() == DataSyncType.OFFLINE
-                        && taskRuntimeConfig.getPolicy() == DataSyncRuntimePolicy.AUTO
-                ? dataSourceService.resolveRuntimeConnection(task.getSourceDataSourceId())
-                : null;
-
         List<DataSyncTableRouteSnapshotVO> routeSnapshots = routes.stream()
-                .map(route -> tableRouteSnapshot(task, route, source, target, taskRuntimeConfig, sourceConnection))
+                .map(route -> tableRouteSnapshot(task, route, source, target, taskRuntimeConfig))
                 .toList();
         DataSyncTableRouteSnapshotVO compatibilityRoute = routeSnapshots.get(0);
 
@@ -1716,8 +1445,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
             DataSyncTableRouteEntity route,
             DataSourceVO source,
             DataSourceVO target,
-            DataSyncRuntimeConfigVO taskRuntimeConfig,
-            DataSourceConnection sourceConnection) {
+            DataSyncRuntimeConfigVO taskRuntimeConfig) {
         DataSyncEndpointSnapshotVO sourceEndpoint =
                 endpointSnapshot(source, route.getSourceDatabase(), route.getSourceSchema(), route.getSourceTable());
         DataSyncEndpointSnapshotVO targetEndpoint =
@@ -1734,50 +1462,9 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         if (task.getSyncType() != DataSyncType.OFFLINE) {
             return snapshot;
         }
-        if (taskRuntimeConfig.getPolicy() != DataSyncRuntimePolicy.AUTO) {
-            snapshot.setRuntimeConfig(taskRuntimeConfig);
-            return snapshot;
-        }
-
-        LogicalTable sourceLogicalTable = sourceTableIntrospector.introspect(
-                task.getSourceDataSourceId(),
-                sourceEndpoint.getDatabase(),
-                sourceEndpoint.getSchema(),
-                sourceEndpoint.getTable());
-        ResolvedSchemaMapping resolvedMapping =
-                resolveSchemaMapping(sourceLogicalTable, mappingConfig(route.getMappingConfig()));
-        OfflineRuntimePlan runtimePlan = offlineRuntimePlanner.plan(
-                sourceConnection,
-                new DataSourceTablePath(
-                        sourceEndpoint.getDatabase(), sourceEndpoint.getSchema(), sourceEndpoint.getTable()),
-                resolvedMapping.sourceTable(),
-                target.getDbType(),
-                taskRuntimeConfig);
-        snapshot.setRuntimeConfig(runtimePlan.effectiveConfig());
-        snapshot.setOfflineRuntimePlan(runtimePlan.summary());
+        // 只有 Task 配置被保留；旧 AUTO 统计规划器属于已删除的执行链路。
+        snapshot.setRuntimeConfig(taskRuntimeConfig);
         return snapshot;
-    }
-
-    private void createTableExecutions(
-            String workspaceId, String executionId, List<DataSyncTableRouteSnapshotVO> routeSnapshots) {
-        if (routeSnapshots == null || routeSnapshots.isEmpty()) {
-            throw new DataSyncException(DataSyncErrorCode.EXECUTION_FAILED, "Execution 缺少冻结 Table Route");
-        }
-        for (DataSyncTableRouteSnapshotVO route : routeSnapshots) {
-            DataSyncTableExecutionEntity tableExecution = new DataSyncTableExecutionEntity();
-            tableExecution.setWorkspaceId(workspaceId);
-            tableExecution.setExecutionId(executionId);
-            tableExecution.setRouteId(route.getRouteId());
-            tableExecution.setRouteOrder(route.getSortOrder());
-            tableExecution.setStatus(DataSyncTableExecutionStatus.PLANNED);
-            tableExecution.setCurrentAttempt(0);
-            tableExecution.setReadRows(0L);
-            tableExecution.setWriteRows(0L);
-            tableExecution.initCreate();
-            if (tableExecutionRepository.add(tableExecution) == null) {
-                throw new DataSyncException(DataSyncErrorCode.EXECUTION_FAILED, "创建 Table Execution 失败");
-            }
-        }
     }
 
     private DataSyncEndpointSnapshotVO endpointSnapshot(
@@ -1790,19 +1477,6 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         endpoint.setSchema(schema);
         endpoint.setTable(table);
         return endpoint;
-    }
-
-    private void submitAfterCommit(String workspaceId, String instanceId, DataSyncDefinitionSnapshotVO snapshot) {
-        Runnable submit;
-        if (DataSyncType.REALTIME.name().equals(snapshot.getSyncType())) {
-            submit = () -> realtimeSyncExecutor.submit(workspaceId, instanceId, snapshot);
-        } else if (snapshot.getTableRoutes() != null
-                && snapshot.getTableRoutes().size() > 1) {
-            submit = () -> multiTableOfflineExecutor.submit(workspaceId, instanceId, snapshot);
-        } else {
-            submit = () -> offlineSyncExecutor.submit(workspaceId, instanceId, snapshot);
-        }
-        runAfterCommit(submit);
     }
 
     private void runAfterCommit(Runnable action) {
@@ -2332,9 +2006,9 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         }
         return target;
     }
-    /** 同步运行时尚未接入，拒绝创建没有实际引擎支撑的 Execution。 */
-    private void ensureRuntimeAvailable() {
-        throw new DataSyncException(DataSyncErrorCode.EXECUTION_FAILED, "同步引擎尚未接入，当前无法运行同步任务");
+    /** 不创建缺少执行引擎支撑的实例，保证任务/调度/历史查询契约仍可用。 */
+    private DataSyncException runtimeUnavailable() {
+        return new DataSyncException(DataSyncErrorCode.EXECUTION_FAILED, "同步引擎尚未接入，当前无法运行同步任务");
     }
 
 }

@@ -7,12 +7,9 @@ import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
 import io.yak.ops.business.datasource.DataSourceService;
 import io.yak.ops.business.datasync.schema.catalog.SourceTableIntrospector;
-import io.yak.ops.business.datasync.execution.executor.RealtimeSyncExecutor;
-import io.yak.ops.business.datasync.execution.lifecycle.DataSyncAttemptLifecycle;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
-import io.yak.ops.common.bean.vo.datasync.DataSyncDefinitionSnapshotVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncInstanceVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasync.DataSyncDesiredState;
@@ -21,6 +18,7 @@ import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
 import io.yak.ops.common.enums.datasync.DataSyncType;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.repository.datasync.DataSyncAttemptRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
@@ -110,10 +108,13 @@ class DataSyncRealtimeDesiredStateContractTest {
 
         inject(service, "taskRepository", taskRepository(task, updatedTask, false));
         inject(service, "instanceRepository", cancelableInstanceRepository(execution));
-        inject(service, "attemptLifecycle", new DataSyncAttemptLifecycle() {
-            @Override
-            public void cancelActiveAttempt(String workspaceId, String executionId) {}
-        });
+        inject(service, "attemptRepository", (DataSyncAttemptRepository) Proxy.newProxyInstance(
+                DataSyncAttemptRepository.class.getClassLoader(),
+                new Class<?>[] {DataSyncAttemptRepository.class},
+                (proxy, method, args) -> {
+                    if ("cancelActiveByExecution".equals(method.getName())) return 0;
+                    throw new UnsupportedOperationException(method.getName());
+                }));
 
         WorkspaceContext.bind("workspace-1");
         DataSyncInstanceVO canceled = service.cancelInstance("execution-1");
@@ -302,9 +303,4 @@ class DataSyncRealtimeDesiredStateContractTest {
         field.set(target, value);
     }
 
-    private static final class NoopRealtimeSyncExecutor extends RealtimeSyncExecutor {
-
-        @Override
-        public void submit(String workspaceId, String instanceId, DataSyncDefinitionSnapshotVO snapshot) {}
-    }
 }

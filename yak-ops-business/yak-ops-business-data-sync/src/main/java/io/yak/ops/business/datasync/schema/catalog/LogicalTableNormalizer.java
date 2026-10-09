@@ -6,7 +6,7 @@ import io.yak.ops.business.datasync.schema.LogicalTable;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
 import io.yak.ops.common.util.StringUtils;
-import io.yak.ops.flow.connector.jdbc.JdbcSchemaMapper;
+import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaMapper;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
 import java.util.ArrayList;
 import java.util.Comparator;

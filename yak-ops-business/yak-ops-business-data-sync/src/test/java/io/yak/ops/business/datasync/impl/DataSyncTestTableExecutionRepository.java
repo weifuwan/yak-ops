@@ -37,6 +37,9 @@ final class DataSyncTestTableExecutionRepository {
                         executions.put(entity.getId(), entity);
                         return entity;
                     }
+                    if ("finishUnfinished".equals(name)) {
+                        return 0;
+                    }
                     if ("queryByExecution".equals(name)) {
                         String workspaceId = (String) args[0];
                         String executionId = (String) args[1];
