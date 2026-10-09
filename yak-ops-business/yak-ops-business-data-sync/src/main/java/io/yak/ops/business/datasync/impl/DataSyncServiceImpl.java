@@ -5,11 +5,7 @@ import io.yak.ops.business.datasync.DataSyncService;
 import io.yak.ops.business.datasync.catalog.DataSyncCatalogColumns;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
-import io.yak.ops.business.datasync.execution.executor.MultiTableOfflineExecutor;
-import io.yak.ops.business.datasync.execution.executor.OfflineSyncExecutor;
-import io.yak.ops.business.datasync.execution.executor.RealtimeSyncExecutor;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncAttemptLifecycle;
-import io.yak.ops.business.datasync.execution.lifecycle.DataSyncExecutionRegistry;
 import io.yak.ops.business.datasync.execution.lifecycle.DataSyncTableAttemptLifecycle;
 import io.yak.ops.business.datasync.execution.planning.OfflineRuntimePlan;
 import io.yak.ops.business.datasync.execution.planning.OfflineRuntimePlanner;
@@ -203,18 +199,6 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
 
     @Resource
     private TargetTablePlanner targetTablePlanner;
-
-    @Resource
-    private OfflineSyncExecutor offlineSyncExecutor;
-
-    @Resource
-    private MultiTableOfflineExecutor multiTableOfflineExecutor;
-
-    @Resource
-    private RealtimeSyncExecutor realtimeSyncExecutor;
-
-    @Resource
-    private DataSyncExecutionRegistry executionRegistry;
 
     @Resource
     private DataSyncAttemptLifecycle attemptLifecycle;
@@ -551,14 +535,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         String workspaceId = WorkspaceContext.requireWorkspaceId();
         DataSyncTaskEntity task = requireTask(workspaceId, id);
         requireTaskStatus(task, DataSyncTaskStatus.PUBLISHED, "任务尚未上线");
-        List<DataSyncTableRouteEntity> routes = validatePersistedTaskDefinition(task);
-        if (instanceRepository.existsActiveByTask(workspaceId, task.getId())) {
-            throw new DataSyncException(DataSyncErrorCode.ACTIVE_INSTANCE_EXISTS);
-        }
-        if (task.getSyncType() == DataSyncType.REALTIME) {
-            updateDesiredState(workspaceId, task, DataSyncDesiredState.RUNNING);
-        }
-        return createInstance(workspaceId, task, routes, DataSyncTriggerType.MANUAL);
+        throw new DataSyncException(DataSyncErrorCode.ENGINE_UNAVAILABLE);
     }
 
     @Override
@@ -599,7 +576,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
             }
             if (Boolean.TRUE.equals(schedule.getEnabled())) {
                 requireTaskStatus(task, DataSyncTaskStatus.PUBLISHED, "启用中的调度要求任务保持上线");
-                replaceScheduleAfterCommit(schedule);
+                // 引擎缺席时保留已配置状态，但不注册实际 Cron 触发器。
             }
         }
         return toScheduleVO(schedule);
@@ -649,18 +626,8 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         DataSyncTaskEntity task = requireTask(workspaceId, taskId);
         requireOfflineTask(task);
         requireTaskStatus(task, DataSyncTaskStatus.PUBLISHED, "任务上线后才能启用调度");
-
-        DataSyncScheduleEntity schedule = requireSchedule(workspaceId, taskId);
-        validateScheduleDefinition(toScheduleDefinition(schedule));
-        if (!Boolean.TRUE.equals(schedule.getEnabled())) {
-            schedule.setEnabled(true);
-            schedule.initUpdate();
-            if (scheduleRepository.update(workspaceId, schedule) == null) {
-                throw new DataSyncException(DataSyncErrorCode.SCHEDULE_PERSIST_FAILED);
-            }
-        }
-        replaceScheduleAfterCommit(schedule);
-        return toScheduleVO(schedule);
+        requireSchedule(workspaceId, taskId);
+        throw new DataSyncException(DataSyncErrorCode.ENGINE_UNAVAILABLE);
     }
 
     @Override
@@ -682,110 +649,21 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
 
     @Override
     public void restoreScheduleRuntime() {
-        for (DataSyncScheduleEntity schedule : scheduleRepository.queryEnabled()) {
-            DataSyncTaskEntity task = taskRepository
-                    .queryById(schedule.getWorkspaceId(), schedule.getTaskId())
-                    .orElseThrow(() -> new DataSyncException(
-                            DataSyncErrorCode.SCHEDULE_RUNTIME_FAILED, "启用中的调度关联任务不存在，scheduleId=" + schedule.getId()));
-            requireOfflineTask(task);
-            requireTaskStatus(task, DataSyncTaskStatus.PUBLISHED, "启用中的调度关联任务必须保持上线");
-            validateScheduleDefinition(toScheduleDefinition(schedule));
-            replaceScheduleRuntime(schedule);
-        }
+        // 已有 Cron 配置继续保留；缺少同步引擎时不注册任何触发器。
+        LOG.info("数据同步引擎暂不可用，跳过 Cron 调度恢复");
     }
 
     @Override
     public void restoreRealtimeDesiredState() {
-        for (DataSyncTaskEntity task : taskRepository.queryRealtimeDesiredRunning()) {
-            String workspaceId = task.getWorkspaceId();
-            WorkspaceContext.bind(workspaceId);
-            try {
-                if (taskDesiredState(task) != DataSyncDesiredState.RUNNING
-                        || taskStatus(task) != DataSyncTaskStatus.PUBLISHED
-                        || task.getSyncType() != DataSyncType.REALTIME) {
-                    continue;
-                }
-                if (instanceRepository.existsActiveByTask(workspaceId, task.getId())) {
-                    LOG.info("实时同步自动恢复跳过已有活动Execution，workspaceId={}, taskId={}", workspaceId, task.getId());
-                    continue;
-                }
-
-                List<DataSyncTableRouteEntity> routes = validatePersistedTaskDefinition(task);
-                DataSyncInstanceVO recovered =
-                        createInstance(workspaceId, task, routes, DataSyncTriggerType.AUTO_RECOVERY);
-                LOG.info(
-                        "实时同步自动恢复已创建新Execution，workspaceId={}, taskId={}, taskVersion={}, instanceId={}",
-                        workspaceId,
-                        task.getId(),
-                        task.getDefinitionVersion(),
-                        recovered.getId());
-            } catch (Exception exception) {
-                LOG.error(
-                        "实时同步自动恢复失败，workspaceId={}, taskId={}, taskVersion={}, error={}",
-                        workspaceId,
-                        task.getId(),
-                        task.getDefinitionVersion(),
-                        SensitiveUtils.mask(exception.getMessage()));
-            } finally {
-                WorkspaceContext.clear();
-            }
-        }
+        // 保留 Desired State 与历史实例，不在缺少 Connector 时启动空转 Execution。
+        LOG.info("数据同步引擎暂不可用，跳过实时任务自动恢复");
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public synchronized void onFire(DataSyncScheduleFire fire) {
-        if (fire == null) throw new DataSyncException(DataSyncErrorCode.INVALID_SCHEDULE);
-
-        WorkspaceContext.bind(fire.workspaceId());
-        try {
-            DataSyncScheduleEntity schedule = scheduleRepository
-                    .queryById(fire.workspaceId(), fire.scheduleId())
-                    .orElse(null);
-            if (schedule == null
-                    || !Boolean.TRUE.equals(schedule.getEnabled())
-                    || !Objects.equals(schedule.getTaskId(), fire.taskId())) {
-                LOG.info(
-                        "离线调度触发已忽略，workspaceId={}, taskId={}, scheduleId={}",
-                        fire.workspaceId(),
-                        fire.taskId(),
-                        fire.scheduleId());
-                return;
-            }
-
-            DataSyncTaskEntity task =
-                    taskRepository.queryById(fire.workspaceId(), fire.taskId()).orElse(null);
-            if (task == null
-                    || task.getSyncType() != DataSyncType.OFFLINE
-                    || task.getStatus() != DataSyncTaskStatus.PUBLISHED) {
-                LOG.info(
-                        "离线调度触发因任务状态已忽略，workspaceId={}, taskId={}, scheduleId={}",
-                        fire.workspaceId(),
-                        fire.taskId(),
-                        fire.scheduleId());
-                return;
-            }
-            if (instanceRepository.existsActiveByTask(fire.workspaceId(), fire.taskId())) {
-                LOG.info(
-                        "离线调度触发因已有运行实例跳过，workspaceId={}, taskId={}, scheduleId={}",
-                        fire.workspaceId(),
-                        fire.taskId(),
-                        fire.scheduleId());
-                return;
-            }
-
-            List<DataSyncTableRouteEntity> routes = validatePersistedTaskDefinition(task);
-            DataSyncInstanceVO instance =
-                    createInstance(fire.workspaceId(), task, routes, DataSyncTriggerType.SCHEDULE);
-            LOG.info(
-                    "离线调度已创建同步实例，workspaceId={}, taskId={}, scheduleId={}, instanceId={}",
-                    fire.workspaceId(),
-                    fire.taskId(),
-                    fire.scheduleId(),
-                    instance.getId());
-        } finally {
-            WorkspaceContext.clear();
-        }
+        // 防御历史 Cron 触发器，禁止创建无法执行的 PENDING 实例。
+        LOG.warn("数据同步引擎暂不可用，忽略调度触发：scheduleId={}", fire == null ? null : fire.scheduleId());
     }
 
     @Override
@@ -907,12 +785,13 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         if (instance.getStatus() == null || instance.getStatus().isTerminal()) {
             return toInstanceVO(instance, true);
         }
-        boolean multiTable = isMultiTableExecution(instance);
 
+        boolean multiTable = isMultiTableExecution(instance);
         if (instance.getSyncType() == DataSyncType.REALTIME) {
-            DataSyncTaskEntity task =
-                    taskRepository.queryById(workspaceId, instance.getTaskId()).orElse(null);
-            if (task != null) updateDesiredState(workspaceId, task, DataSyncDesiredState.STOPPED);
+            DataSyncTaskEntity task = taskRepository.queryById(workspaceId, instance.getTaskId()).orElse(null);
+            if (task != null) {
+                updateDesiredState(workspaceId, task, DataSyncDesiredState.STOPPED);
+            }
         }
 
         if (instance.getStatus() == DataSyncInstanceStatus.PENDING
@@ -921,40 +800,24 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
                 throw new DataSyncException(DataSyncErrorCode.INSTANCE_NOT_CANCELABLE);
             }
             if (multiTable) {
-                multiTableOfflineExecutor.cancel(id);
                 tableAttemptLifecycle.cancelUnfinished(workspaceId, id, DataSyncTableExecutionStatus.CANCELED);
             } else {
                 attemptLifecycle.cancelActiveAttempt(workspaceId, id);
             }
             attemptLifecycle.recordExecutionCanceled(workspaceId, id);
         } else if (instance.getStatus() == DataSyncInstanceStatus.RUNNING) {
-            boolean canceled = multiTable ? multiTableOfflineExecutor.cancel(id) : executionRegistry.cancel(id);
-            if (!canceled) {
-                if (instanceRepository.transitionStatus(
-                        workspaceId,
-                        id,
-                        DataSyncInstanceStatus.RUNNING,
-                        DataSyncInstanceStatus.LOST,
-                        null,
-                        DateUtils.now(),
-                        DataSyncErrorCode.EXECUTION_LOST.getCode(),
-                        DataSyncErrorCode.EXECUTION_LOST.getMessage())) {
-                    if (multiTable) {
-                        tableAttemptLifecycle.cancelUnfinished(workspaceId, id, DataSyncTableExecutionStatus.LOST);
-                    }
-                    attemptLifecycle.recordExecutionLost(workspaceId, id, "无法定位进程内运行句柄，Execution 已标记为 LOST");
-                }
-            } else if (!instanceRepository.cancelExecution(
-                    workspaceId, id, DataSyncInstanceStatus.RUNNING, DateUtils.now())) {
+            // 原 Runtime 已移除，不能声称停止了一个不存在的进程内运行句柄。
+            if (!instanceRepository.transitionStatus(
+                    workspaceId, id, DataSyncInstanceStatus.RUNNING, DataSyncInstanceStatus.LOST,
+                    null, DateUtils.now(),
+                    DataSyncErrorCode.EXECUTION_LOST.getCode(),
+                    DataSyncErrorCode.EXECUTION_LOST.getMessage())) {
                 throw new DataSyncException(DataSyncErrorCode.INSTANCE_NOT_CANCELABLE);
-            } else {
-                if (multiTable) {
-                    tableAttemptLifecycle.cancelUnfinished(workspaceId, id, DataSyncTableExecutionStatus.CANCELED);
-                } else {
-                    attemptLifecycle.cancelActiveAttempt(workspaceId, id);
-                }
-                attemptLifecycle.recordExecutionCanceled(workspaceId, id);
             }
+            if (multiTable) {
+                tableAttemptLifecycle.cancelUnfinished(workspaceId, id, DataSyncTableExecutionStatus.LOST);
+            }
+            attemptLifecycle.recordExecutionLost(workspaceId, id, "原同步引擎已移除，运行实例标记为 LOST");
         } else {
             throw new DataSyncException(DataSyncErrorCode.INSTANCE_NOT_CANCELABLE);
         }
@@ -1088,32 +951,8 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
             DataSyncTaskEntity task,
             List<DataSyncTableRouteEntity> routes,
             DataSyncTriggerType triggerType) {
-        DataSyncDefinitionSnapshotVO snapshot = definitionSnapshot(task, routes);
-        DataSyncInstanceEntity instance = new DataSyncInstanceEntity();
-        instance.setWorkspaceId(workspaceId);
-        instance.setTaskId(task.getId());
-        instance.setTaskName(task.getName());
-        instance.setTaskVersion(task.getDefinitionVersion());
-        instance.setSyncType(task.getSyncType());
-        instance.setTriggerType(triggerType);
-        DataSyncRetryPolicyVO retryPolicy = snapshot.getRetryPolicy();
-        instance.setMaxAttempts(retryPolicy.getMaxAttempts());
-        instance.setBackoffSeconds(retryPolicy.getBackoffSeconds());
-        instance.setCurrentAttempt(1);
-        instance.setStatus(DataSyncInstanceStatus.PENDING);
-        instance.setDefinitionSnapshot(JSONUtils.toJson(snapshot));
-        instance.setReadRows(0L);
-        instance.setWriteRows(0L);
-        instance.initCreate();
-        if (instanceRepository.add(instance) == null) {
-            throw new DataSyncException(DataSyncErrorCode.EXECUTION_FAILED, "创建同步实例失败");
-        }
-        createTableExecutions(workspaceId, instance.getId(), snapshot.getTableRoutes());
-        if (triggerType == DataSyncTriggerType.AUTO_RECOVERY) {
-            attemptLifecycle.recordAutoRecoveryStarted(workspaceId, instance.getId());
-        }
-        submitAfterCommit(workspaceId, instance.getId(), snapshot);
-        return toInstanceVO(instance, true);
+        // 守卫后续调用方：引擎重接入前不创建无法执行的实例。
+        throw new DataSyncException(DataSyncErrorCode.ENGINE_UNAVAILABLE);
     }
 
     private void requireOfflineTask(DataSyncTaskEntity task) {
@@ -1792,16 +1631,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
     }
 
     private void submitAfterCommit(String workspaceId, String instanceId, DataSyncDefinitionSnapshotVO snapshot) {
-        Runnable submit;
-        if (DataSyncType.REALTIME.name().equals(snapshot.getSyncType())) {
-            submit = () -> realtimeSyncExecutor.submit(workspaceId, instanceId, snapshot);
-        } else if (snapshot.getTableRoutes() != null
-                && snapshot.getTableRoutes().size() > 1) {
-            submit = () -> multiTableOfflineExecutor.submit(workspaceId, instanceId, snapshot);
-        } else {
-            submit = () -> offlineSyncExecutor.submit(workspaceId, instanceId, snapshot);
-        }
-        runAfterCommit(submit);
+        throw new DataSyncException(DataSyncErrorCode.ENGINE_UNAVAILABLE);
     }
 
     private void runAfterCommit(Runnable action) {

@@ -11,11 +11,24 @@
     </parent>
     <artifactId>yak-flow-connector-jdbc</artifactId>
     <name>YakFlow JDBC Connector</name>
-    <description>JDBC connector module reserved for a new implementation</description>
+    <description>JDBC schema/catalog/dialect utilities (runtime Source and Sink removed)</description>
     <dependencies>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-core</artifactId>
+            <artifactId>yak-flow-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-plugin-datasource-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-plugin-datasource-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

@@ -13,7 +13,7 @@
 
     <artifactId>yak-ops-business-data-sync</artifactId>
     <name>Yak Ops Business Data Sync</name>
-    <description>Data synchronization task definition and task instance service contracts</description>
+    <description>Data Sync task definitions, persistence, scheduling and operational read models (execution disabled)</description>
 
     <dependencies>
         <dependency>
@@ -28,20 +28,11 @@
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-business-datasource</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-flow-runtime</artifactId>
-        </dependency>
-        <dependency>
+<dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-flow-connector-jdbc</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-flow-connector-cdc-mysql</artifactId>
-        </dependency>
-
-        <dependency>
+<dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>

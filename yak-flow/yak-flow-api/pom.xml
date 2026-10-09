@@ -11,5 +11,12 @@
     </parent>
     <artifactId>yak-flow-api</artifactId>
     <name>YakFlow API</name>
-    <description>Shared row and logical type contracts</description>
+    <description>Shared row, logical type and diagnostic trace contracts</description>
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
