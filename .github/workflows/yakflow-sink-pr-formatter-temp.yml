@@ -1,0 +1,38 @@
+name: Temporary Sink PR formatter
+on:
+  push:
+    branches:
+      - feature/yakflow-sink-foundation-mailbox-batch-lifecycle
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feature/yakflow-sink-foundation-mailbox-batch-lifecycle
+          persist-credentials: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Apply Palantir Java Format
+        run: >
+          bash mvnw -q -DskipTests
+          -pl yak-ops-core,yak-flow/yak-flow-runtime,yak-flow/yak-flow-connector-base
+          com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+      - name: Commit formatted Sink foundation files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -u yak-ops-core yak-flow/yak-flow-runtime yak-flow/yak-flow-connector-base
+          if ! git diff --cached --quiet; then
+            git commit -m "style(sink): apply Palantir Java Format"
+            git push origin HEAD:refs/heads/feature/yakflow-sink-foundation-mailbox-batch-lifecycle
+          fi
+
