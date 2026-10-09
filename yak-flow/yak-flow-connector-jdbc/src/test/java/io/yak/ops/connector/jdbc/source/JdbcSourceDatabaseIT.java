@@ -21,8 +21,12 @@ import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
+import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -56,8 +60,13 @@ class JdbcSourceDatabaseIT {
         String sqlNotes = "YF_SRC_IT_B";
         String qualifiedA = dialect.quoteIdentifier(sqlId);
         String qualifiedB = dialect.quoteIdentifier(sqlNotes);
+        String sqlTypes = "YF_SRC_IT_C";
+        String qualifiedC = dialect.quoteIdentifier(sqlTypes);
         String integerType = oracle ? "NUMBER(19)" : "BIGINT";
         String stringType = oracle ? "VARCHAR2(48)" : "VARCHAR(48)";
+        String decimalType = oracle ? "NUMBER(18,2)" : "DECIMAL(18,2)";
+        String binaryType = oracle ? "BLOB" : mysql ? "BLOB" : "BYTEA";
+        String timestampType = oracle ? "TIMESTAMP(6)" : mysql ? "DATETIME(6)" : "TIMESTAMP(6)";
 
         try (Connection connection = connectionOptions.openConnection();
                 Statement ddl = connection.createStatement()) {
@@ -67,6 +76,25 @@ class JdbcSourceDatabaseIT {
                         + dialect.quoteIdentifier("LABEL") + " " + stringType + ")");
                 ddl.execute("CREATE TABLE " + qualifiedB
                         + " (" + dialect.quoteIdentifier("MESSAGE") + " " + stringType + ")");
+                ddl.execute("CREATE TABLE " + qualifiedC + " ("
+                        + dialect.quoteIdentifier("ID") + " " + integerType + " PRIMARY KEY, "
+                        + dialect.quoteIdentifier("AMOUNT") + " " + decimalType + ", "
+                        + dialect.quoteIdentifier("LABEL") + " " + stringType + ", "
+                        + dialect.quoteIdentifier("PAYLOAD") + " " + binaryType + ", "
+                        + dialect.quoteIdentifier("EVENT_TS") + " " + timestampType + ", "
+                        + dialect.quoteIdentifier("EVENT_DATE") + " DATE, "
+                        + dialect.quoteIdentifier("OPTIONAL_VALUE") + " " + stringType + ")");
+                try (PreparedStatement insert = connection.prepareStatement(
+                        "INSERT INTO " + qualifiedC + " VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+                    insert.setLong(1, 101L);
+                    insert.setBigDecimal(2, new BigDecimal("123.45"));
+                    insert.setString(3, "typed record");
+                    insert.setBytes(4, new byte[] {1, 2, 3, 4});
+                    insert.setTimestamp(5, java.sql.Timestamp.valueOf("2026-10-09 12:34:56.123456"));
+                    insert.setDate(6, java.sql.Date.valueOf("2026-10-09"));
+                    insert.setNull(7, java.sql.Types.VARCHAR);
+                    insert.executeUpdate();
+                }
                 for (int id = 1; id <= 23; id++) {
                     ddl.execute("INSERT INTO " + qualifiedA + " VALUES (" + id + ", 'item" + id + "')");
                 }
@@ -77,6 +105,8 @@ class JdbcSourceDatabaseIT {
                         mysql ? connection.getCatalog() : null, mysql ? null : connection.getSchema(), sqlId);
                 TableId second = new TableId(
                         mysql ? connection.getCatalog() : null, mysql ? null : connection.getSchema(), sqlNotes);
+                TableId third = new TableId(
+                        mysql ? connection.getCatalog() : null, mysql ? null : connection.getSchema(), sqlTypes);
                 Configuration options = new Configuration();
                 options.set(JdbcSourceOptions.TARGET_ROWS_PER_SPLIT, 5);
                 options.set(JdbcSourceOptions.MAX_SPLITS_PER_TABLE, 6);
@@ -86,7 +116,7 @@ class JdbcSourceDatabaseIT {
                 List<?> partitions = new JdbcSplitPlanner(connectionOptions, dialect, options).plan(first, 0);
                 assertTrue(partitions.size() > 1, "Integral primary keys must produce multiple splits");
 
-                JdbcSource source = new JdbcSource(connectionOptions, List.of(first, second), options);
+                JdbcSource source = new JdbcSource(connectionOptions, List.of(first, second, third), options);
                 CopyOnWriteArrayList<TableRecord> received = new CopyOnWriteArrayList<>();
                 Sink<TableRecord> collector = context -> new SinkWriter<>() {
                     @Override
@@ -114,9 +144,29 @@ class JdbcSourceDatabaseIT {
 
                 Map<TableId, Long> counts = received.stream()
                         .collect(Collectors.groupingBy(TableRecord::tableId, Collectors.counting()));
-                assertEquals(25, received.size());
+                assertEquals(26, received.size());
                 assertEquals(23L, counts.get(first));
                 assertEquals(2L, counts.get(second));
+                assertEquals(1L, counts.get(third));
+                TableRecord typedRecord = received.stream()
+                        .filter(row -> row.tableId().equals(third))
+                        .findFirst()
+                        .orElseThrow();
+                assertEquals(new BigDecimal("123.45"), typedRecord.row().getDecimal(1, 18, 2));
+                assertEquals("typed record", typedRecord.row().getString(2));
+                org.junit.jupiter.api.Assertions.assertArrayEquals(
+                        new byte[] {1, 2, 3, 4}, typedRecord.row().getBinary(3));
+                assertEquals(
+                        LocalDateTime.parse("2026-10-09T12:34:56.123456"),
+                        typedRecord.row().getTimestamp(4, 6));
+                if (oracle) {
+                    assertEquals(
+                            LocalDate.of(2026, 10, 9).atStartOfDay(),
+                            typedRecord.row().getTimestamp(5, 0));
+                } else {
+                    assertEquals(LocalDate.of(2026, 10, 9), typedRecord.row().getDate(5));
+                }
+                assertTrue(typedRecord.row().isNullAt(6));
                 assertTrue(received.stream().allMatch(row -> row.rowKind() == RowKind.INSERT));
                 assertEquals(23L, received.stream()
                         .filter(row -> row.tableId().equals(first))
@@ -125,9 +175,13 @@ class JdbcSourceDatabaseIT {
                         .count());
             } finally {
                 try {
-                    ddl.execute("DROP TABLE " + qualifiedB);
+                    ddl.execute("DROP TABLE " + qualifiedC);
                 } finally {
-                    ddl.execute("DROP TABLE " + qualifiedA);
+                    try {
+                        ddl.execute("DROP TABLE " + qualifiedB);
+                    } finally {
+                        ddl.execute("DROP TABLE " + qualifiedA);
+                    }
                 }
             }
         }

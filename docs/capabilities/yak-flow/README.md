@@ -69,6 +69,33 @@ Binary/columnar RowData, Flink SQL Table API, custom aggregate types, and networ
 implementations are outside this change. Typed getters are strict: they do not silently coerce
 a vendor-specific JDBC object to the expected internal representation.
 
+## JDBC Factory and Row Conversion
+
+`JdbcFactoryLoader` uses Java `ServiceLoader` to discover the unique `JdbcFactory`
+for a JDBC URL. Built-in providers include MySQL, PostgreSQL, Oracle, and H2/ANSI test
+support; missing and ambiguous factory matches fail explicitly. This is the database
+dialect factory, **not** a duplicate Flink SQL `JdbcCatalogFactory`. Datasource Plugin
+continues to own product Catalog and connection-definition resolution.
+
+`JdbcConnectionProvider` is a serializable, injected capability to open an independent
+caller-owned JDBC connection. `DriverManagerJdbcConnectionProvider` is the default; an
+external product adapter can use the already isolated JDBC driver and SSH tunnel runtime
+without making this module depend on Datasource, Business, or DAO. Enumerators and Reader
+fetchers must not share a Connection.
+
+`JdbcDialect.createRowConverter(ResultSetMetaData)` constructs a per-query
+`JdbcDialectConverter`, which normalizes JDBC values into the Core RowData contract:
+primitive wrappers, BigDecimal, String, byte[], and java.time values. Vendors can
+override unusual SQL types (Oracle DATE as LocalDateTime, PostgreSQL JSON/JSONB/UUID
+as String, MySQL unsigned integers with checked ranges). Unsupported nested types or
+decimal precision above the engine's domain fail with an explicit SQL exception;
+raw driver objects are not silently propagated. The same converter contract supports
+binding canonical RowData to PreparedStatement for future JDBC Sink work.
+
+ResultSet column count and ordering are verified against the assigned Split. This
+does not yet freeze a complete logical TableSchema inside checkpoints or guarantee a
+consistent snapshot of changing tables; those remain future Reader/Checkpoint work.
+
 ## JDBC Source
 
 `yak-flow-connector-jdbc` implements one bounded `JdbcSource` over a frozen list of `TableId` values; a single table is the same path as many tables. A single `JdbcSourceEnumerator` discovers metadata and plans each table off the coordinator event loop; `JdbcSourceReader` uses Connector Base to read multiple independent splits per subtask, emitting `TableRecord` values with original table identity.

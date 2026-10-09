@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
+import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.AnsiJdbcDialect;
 import io.yak.ops.connector.jdbc.source.reader.JdbcSourceReader;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -188,6 +190,45 @@ class JdbcSourceRuntimeTest {
             }
             assertEquals(initial, reader.snapshotState(9).getFirst());
         }
+    }
+
+
+    @Test
+    void injectedConnectionProviderOpensSeparateEnumeratorAndFetcherConnections() throws Exception {
+        JdbcConnectionOptions settings =
+                new JdbcConnectionOptions("jdbc:h2:mem:jdbc_flow_provider;DB_CLOSE_DELAY=-1", "sa", "");
+        try (Connection connection = settings.openConnection(); Statement sql = connection.createStatement()) {
+            sql.execute("CREATE TABLE DATASET (ID BIGINT PRIMARY KEY, LABEL VARCHAR(40))");
+            sql.execute("INSERT INTO DATASET VALUES (1, 'first'), (2, 'second')");
+        }
+        AtomicInteger opened = new AtomicInteger();
+        JdbcConnectionProvider provider = () -> {
+            opened.incrementAndGet();
+            return settings.openConnection();
+        };
+        JdbcSource source = new JdbcSource(
+                provider, settings.url(), List.of(new TableId(null, "PUBLIC", "DATASET")), new Configuration());
+        List<TableRecord> rows = new CopyOnWriteArrayList<>();
+        Sink<TableRecord> sink = context -> new SinkWriter<>() {
+            @Override
+            public void write(TableRecord value, Context metadata) {
+                rows.add(value);
+            }
+
+            @Override
+            public void flush(boolean endOfInput) {}
+
+            @Override
+            public void close() {}
+        };
+        var sourceNode = new SourceTransformation<>("connection-provider", source, TableRecord.class, 1);
+        var sinkNode = new SinkTransformation<>(sourceNode, "collect-provider", sink, 1);
+        var graph = new StreamGraphGenerator(sinkNode, new Configuration()).generate();
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, new Configuration()).get(5, TimeUnit.SECONDS);
+        job.getJobExecutionResult().get(15, TimeUnit.SECONDS);
+        assertEquals(2, rows.size());
+        assertEquals("first", rows.getFirst().row().getString(1));
+        assertTrue(opened.get() >= 2, "Planner and SourceReader must own separate JDBC connections");
     }
 
     private static final class DemoContext implements SourceReaderContext {
