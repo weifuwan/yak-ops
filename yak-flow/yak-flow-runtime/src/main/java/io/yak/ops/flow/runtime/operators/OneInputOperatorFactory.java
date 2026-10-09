@@ -25,5 +25,5 @@ public interface OneInputOperatorFactory<IN, OUT> {
      * @return 新建的 Operator 实例
      * @throws Exception 创建 Operator 失败
      */
-    OneInputOperator<IN, OUT> createOperator() throws Exception;
+    OneInputStreamOperator<IN, OUT> createOperator() throws Exception;
 }

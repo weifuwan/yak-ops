@@ -1,7 +1,6 @@
 package io.yak.ops.core.configuration;
 
 import io.yak.ops.core.api.RuntimeExecutionMode;
-import java.time.Duration;
 
 /**
  * 控制已提交 Pipeline 运行方式的类型化配置项。
@@ -27,14 +26,6 @@ public final class ExecutionOptions {
      */
     public static final ConfigOption<Integer> MAX_RESTART_ATTEMPTS =
             ConfigOptions.key("execution.restart.max-attempts").intType().defaultValue(0);
-
-    /** @deprecated 请使用 {@link CoreOptions#DEFAULT_PARALLELISM}；此字段仅作源码兼容别名。 */
-    @Deprecated
-    public static final ConfigOption<Integer> DEFAULT_PARALLELISM = CoreOptions.DEFAULT_PARALLELISM;
-
-    /** @deprecated 请使用 {@link CheckpointingOptions#CHECKPOINTING_INTERVAL}；此字段仅作源码兼容别名。 */
-    @Deprecated
-    public static final ConfigOption<Duration> CHECKPOINT_INTERVAL = CheckpointingOptions.CHECKPOINTING_INTERVAL;
 
     private ExecutionOptions() {}
 }
