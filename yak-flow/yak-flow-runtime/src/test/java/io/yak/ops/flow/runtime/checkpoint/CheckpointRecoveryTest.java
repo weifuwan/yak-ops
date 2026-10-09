@@ -110,6 +110,12 @@ class CheckpointRecoveryTest {
                 .getTaskVertex(1).getCurrentExecutionAttempt().getAttemptNumber());
         assertEquals(1, job.getExecutionGraph().getJobVertices().getLast()
                 .getTaskVertex(0).getCurrentExecutionAttempt().getAttemptNumber());
+        // ExecutionVertex advances before the new SourceTask has finished opening its Reader.
+        long restoredDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while ((source.createdReaders.get() < 4 || !source.restoredOffsets.contains(4))
+                && System.nanoTime() < restoredDeadline) {
+            Thread.sleep(10);
+        }
         assertTrue(source.createdReaders.get() >= 4);
         assertTrue(source.restoredOffsets.contains(4));
         assertTrue(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
