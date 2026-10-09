@@ -21,7 +21,7 @@ class JdbcSchemaMapperTest {
                 new DataSourceColumn("amount", "DECIMAL", Types.DECIMAL, 10, 2, true, 3, false, null)));
 
         assertEquals(List.of("id", "name", "amount"), schema.columns().stream().map(column -> column.name()).toList());
-        assertEquals(List.of(LogicalTypes.BIGINT, LogicalTypes.STRING, LogicalTypes.decimal(10, 2)), schema.columns().stream()
+        assertEquals(List.of(LogicalTypes.BIGINT.copy(false), LogicalTypes.varchar(100), LogicalTypes.decimal(10, 2)), schema.columns().stream()
                 .map(column -> column.dataType())
                 .toList());
         assertEquals(List.of("id"), schema.primaryKeys());
