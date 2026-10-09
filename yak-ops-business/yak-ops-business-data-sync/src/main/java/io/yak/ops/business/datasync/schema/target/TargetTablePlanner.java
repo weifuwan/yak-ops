@@ -84,8 +84,7 @@ public class TargetTablePlanner {
         }
 
         JdbcDdlPlan ddlPlan = unsupported.isEmpty()
-                ? dialect.createTablePlan(
-                        targetId, runtimeSchema, logicalTable.comment(), columnComments(logicalTable))
+                ? dialect.createTablePlan(targetId, runtimeSchema, logicalTable.comment(), columnComments(logicalTable))
                 : null;
         return new TargetTablePlan(
                 canonicalType,
