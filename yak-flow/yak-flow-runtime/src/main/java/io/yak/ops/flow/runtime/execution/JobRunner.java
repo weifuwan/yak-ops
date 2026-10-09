@@ -1,13 +1,13 @@
 package io.yak.ops.flow.runtime.execution;
 
-import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointCoordinator;
+import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
  * 单次本地作业的数据处理入口。
  *
- * <p>内置 LocalStreamJobRunner 已支持线性单 Task 运行；后续本地 Runtime 可以按独立契约实现更复杂的图，
+ * <p>内置 StreamJobRunner 已支持线性单 Task 运行；后续本地 Runtime 可以按独立契约实现更复杂的图，
  * 运行数据流，并在返回或抛出异常前释放本次运行的资源。
  *
  * <p>调用会占用当前执行线程直至作业结束；无界数据流通常持续运行到取消或失败。
@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  * @author weifuwan
  */
 @FunctionalInterface
-public interface LocalJobRunner {
+public interface JobRunner {
 
     /**
      * 执行一次已冻结的本地作业计划。
@@ -34,7 +34,7 @@ public interface LocalJobRunner {
      * 每次执行只能在启动后注册属于该 Job 的独立 Controller。
      */
     default void run(CompiledJobPlan plan, BooleanSupplier cancellationRequested,
-            Consumer<LocalCheckpointCoordinator> registerCheckpoint) throws Exception {
+            Consumer<QuiescentCheckpointCoordinator> registerCheckpoint) throws Exception {
         run(plan, cancellationRequested);
     }
 

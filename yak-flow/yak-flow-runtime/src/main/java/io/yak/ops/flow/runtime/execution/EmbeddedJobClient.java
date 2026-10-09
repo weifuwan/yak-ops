@@ -5,8 +5,8 @@ import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.execution.JobClient;
-import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointCoordinator;
-import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointState;
+import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
+import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -20,25 +20,25 @@ import java.util.concurrent.TimeUnit;
  *
  * @author weifuwan
  */
-public final class LocalJobClient implements JobClient {
+public final class EmbeddedJobClient implements JobClient {
 
     private final JobID jobID;
     private final Object monitor = new Object();
     private final CompletableFuture<JobExecutionResult> result = new CompletableFuture<>();
     private final CompletableFuture<Void> cancellation = new CompletableFuture<>();
-    private final CompletableFuture<LocalCheckpointCoordinator> checkpointController = new CompletableFuture<>();
+    private final CompletableFuture<QuiescentCheckpointCoordinator> checkpointController = new CompletableFuture<>();
 
     private volatile JobStatus status = JobStatus.CREATED;
     private volatile boolean cancellationRequested;
     private volatile boolean checkpointConfigured;
     private Thread worker;
 
-    LocalJobClient(JobID jobID) {
+    EmbeddedJobClient(JobID jobID) {
         this.jobID = Objects.requireNonNull(jobID, "jobID 不能为空");
     }
 
-    /** 提交工作线程。该方法只允许被 LocalPipelineExecutor 调用一次。 */
-    void start(CompiledJobPlan plan, LocalJobRunner runner) {
+    /** 提交工作线程。该方法只允许被 EmbeddedPipelineExecutor 调用一次。 */
+    void start(CompiledJobPlan plan, JobRunner runner) {
         Objects.requireNonNull(plan, "plan 不能为空");
         Objects.requireNonNull(runner, "runner 不能为空");
         checkpointConfigured = !plan.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
@@ -56,7 +56,7 @@ public final class LocalJobClient implements JobClient {
         thread.start();
     }
 
-    private void runJob(CompiledJobPlan plan, LocalJobRunner runner) {
+    private void runJob(CompiledJobPlan plan, JobRunner runner) {
         synchronized (monitor) {
             if (!cancellationRequested) {
                 status = JobStatus.RUNNING;
@@ -128,7 +128,7 @@ public final class LocalJobClient implements JobClient {
         }
     }
 
-    private void registerCheckpoint(LocalCheckpointCoordinator controller) {
+    private void registerCheckpoint(QuiescentCheckpointCoordinator controller) {
         if (!checkpointController.complete(Objects.requireNonNull(controller, "controller 不能为空"))) {
             throw new IllegalStateException("本次作业重复注册 CheckpointCoordinator");
         }
@@ -138,14 +138,14 @@ public final class LocalJobClient implements JobClient {
      * 触发一次 Source → Sink 对齐式 Checkpoint；仅新 Runtime 的本地 JobClient 提供该操作。
      * 状态已持久化并收到 Source 回调后完成，取消/失败时 Future 异常完成。
      */
-    public CompletableFuture<LocalCheckpointState> checkpoint() {
+    public CompletableFuture<CheckpointSnapshot> checkpoint() {
         if (!checkpointConfigured) {
             return CompletableFuture.failedFuture(new UnsupportedOperationException("该 Job 未启用持久化 Checkpoint"));
         }
         if (status.isTerminalState() || cancellationRequested) {
             return CompletableFuture.failedFuture(new IllegalStateException("已结束或取消中的 Job 不能触发 Checkpoint"));
         }
-        return checkpointController.thenCompose(LocalCheckpointCoordinator::trigger).copy();
+        return checkpointController.thenCompose(QuiescentCheckpointCoordinator::trigger).copy();
     }
 
     @Override

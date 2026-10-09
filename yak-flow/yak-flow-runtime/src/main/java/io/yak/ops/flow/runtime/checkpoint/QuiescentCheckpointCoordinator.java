@@ -5,7 +5,7 @@ import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.flow.runtime.execution.CompiledJobPlan;
-import io.yak.ops.flow.runtime.io.LocalChannel;
+import io.yak.ops.flow.runtime.io.RecordChannel;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import io.yak.ops.flow.runtime.tasks.SinkOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
@@ -39,12 +39,12 @@ import java.util.function.Consumer;
  * <p>中间 Operator 尚未提供状态快照接口，因此启用此协议时仅支持 Source → Sink；
  * 多 Reader 和多 Writer 仍可独立并行。
  */
-public final class LocalCheckpointCoordinator implements AutoCloseable {
+public final class QuiescentCheckpointCoordinator implements AutoCloseable {
 
     private final Source<?, SourceSplit, Object> source;
     private final SourceCoordinator<SourceSplit, Object> coordinator;
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks;
-    private final List<List<LocalChannel<Object>>> channelStages;
+    private final List<List<RecordChannel<Object>>> channelStages;
     private final List<SinkOperatorStreamTask> sinkTasks;
     private final FileCheckpointStore storage;
     private final String graphSignature;
@@ -59,15 +59,15 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
             Thread.ofVirtual().name("yak-local-checkpoint-", 0).factory());
     private final AtomicBoolean closed = new AtomicBoolean();
 
-    public LocalCheckpointCoordinator(
+    public QuiescentCheckpointCoordinator(
             CompiledJobPlan plan,
             Source<?, SourceSplit, Object> source,
             SourceCoordinator<SourceSplit, Object> coordinator,
             List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks,
-            List<List<LocalChannel<Object>>> channelStages,
+            List<List<RecordChannel<Object>>> channelStages,
             List<SinkOperatorStreamTask> sinkTasks,
             FileCheckpointStore storage,
-            LocalCheckpointState restored,
+            CheckpointSnapshot restored,
             BooleanSupplier cancelled,
             Consumer<Throwable> onFailure) {
         Objects.requireNonNull(plan, "plan 不能为空");
@@ -114,8 +114,8 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
     }
 
     /** 手动触发一次完整 Checkpoint；与周期任务使用同一个串行执行器。 */
-    public CompletableFuture<LocalCheckpointState> trigger() {
-        CompletableFuture<LocalCheckpointState> result = new CompletableFuture<>();
+    public CompletableFuture<CheckpointSnapshot> trigger() {
+        CompletableFuture<CheckpointSnapshot> result = new CompletableFuture<>();
         if (closed.get()) {
             result.completeExceptionally(new IllegalStateException("CheckpointCoordinator 已关闭"));
             return result;
@@ -139,7 +139,7 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
 
     /** 恢复之前的 Split 状态，Reader 已完成的部分可能被协调侧历史重放（at-least-once）。 */
     public static Map<Integer, List<SourceSplit>> restoreSplits(
-            LocalCheckpointState snapshot, Source<?, SourceSplit, ?> source) throws IOException {
+            CheckpointSnapshot snapshot, Source<?, SourceSplit, ?> source) throws IOException {
         Objects.requireNonNull(snapshot, "snapshot 不能为空");
         SimpleVersionedSerializer<SourceSplit> serializer = source.getSplitSerializer();
         Map<Integer, Map<String, SourceSplit>> merged = new LinkedHashMap<>();
@@ -151,14 +151,14 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
         return Map.copyOf(result);
     }
 
-    public static Object restoreEnumerator(LocalCheckpointState snapshot, Source<?, SourceSplit, Object> source)
+    public static Object restoreEnumerator(CheckpointSnapshot snapshot, Source<?, SourceSplit, Object> source)
             throws IOException {
         var state = snapshot.enumeratorState();
         return source.getEnumeratorCheckpointSerializer().deserialize(state.version(), state.bytes());
     }
 
     private static void deserializeInto(Map<Integer, Map<String, SourceSplit>> result,
-            Map<Integer, List<LocalCheckpointState.SerializedState>> sections,
+            Map<Integer, List<CheckpointSnapshot.SerializedState>> sections,
             SimpleVersionedSerializer<SourceSplit> serializer) throws IOException {
         for (var section : sections.entrySet()) {
             Map<String, SourceSplit> splits = result.computeIfAbsent(section.getKey(), id -> new LinkedHashMap<>());
@@ -170,7 +170,7 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
         }
     }
 
-    private LocalCheckpointState performCheckpoint() throws Exception {
+    private CheckpointSnapshot performCheckpoint() throws Exception {
         ensureActive();
         long checkpointId = nextCheckpointId.incrementAndGet();
         checkpointDeadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
@@ -193,17 +193,17 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
                     await(coordinator.snapshotCoordinator(checkpointId));
 
             // 此时所有 Source Mailbox 均停止发送；按上游到下游的顺序等各阶段完全排空。
-            for (List<LocalChannel<Object>> stage : channelStages) {
+            for (List<RecordChannel<Object>> stage : channelStages) {
                 ensureActive();
                 await(CompletableFuture.allOf(
-                        stage.stream().map(LocalChannel::drainedFuture).toArray(CompletableFuture<?>[]::new)));
+                        stage.stream().map(RecordChannel::drainedFuture).toArray(CompletableFuture<?>[]::new)));
             }
             for (SinkOperatorStreamTask sinkTask : sinkTasks) {
                 ensureActive();
                 await(sinkTask.flushForCheckpoint(checkpointId));
             }
 
-            LocalCheckpointState snapshot = serialize(checkpointId, sourceState, readerStates);
+            CheckpointSnapshot snapshot = serialize(checkpointId, sourceState, readerStates);
             storage.save(snapshot);
             stored = true;
             if (System.nanoTime() >= checkpointDeadlineNanos) {
@@ -268,28 +268,28 @@ public final class LocalCheckpointCoordinator implements AutoCloseable {
         return previous;
     }
 
-    private LocalCheckpointState serialize(long checkpointId,
+    private CheckpointSnapshot serialize(long checkpointId,
             SourceCoordinatorCheckpoint<SourceSplit, Object> sourceState,
             Map<Integer, List<SourceSplit>> readerStates) throws Exception {
         SimpleVersionedSerializer<SourceSplit> splits = source.getSplitSerializer();
         SimpleVersionedSerializer<Object> enumerator = source.getEnumeratorCheckpointSerializer();
-        var state = new LocalCheckpointState.SerializedState(
+        var state = new CheckpointSnapshot.SerializedState(
                 enumerator.getVersion(), enumerator.serialize(sourceState.enumeratorState()));
-        return new LocalCheckpointState(
+        return new CheckpointSnapshot(
                 checkpointId, graphSignature, state,
                 serializeSplits(readerStates, splits),
                 serializeSplits(sourceState.assignedSinceLastCompletedCheckpoint(), splits),
                 System.currentTimeMillis());
     }
 
-    private static Map<Integer, List<LocalCheckpointState.SerializedState>> serializeSplits(
+    private static Map<Integer, List<CheckpointSnapshot.SerializedState>> serializeSplits(
             Map<Integer, List<SourceSplit>> values, SimpleVersionedSerializer<SourceSplit> serializer)
             throws IOException {
-        Map<Integer, List<LocalCheckpointState.SerializedState>> result = new LinkedHashMap<>();
+        Map<Integer, List<CheckpointSnapshot.SerializedState>> result = new LinkedHashMap<>();
         for (var entry : values.entrySet()) {
-            List<LocalCheckpointState.SerializedState> states = new ArrayList<>();
+            List<CheckpointSnapshot.SerializedState> states = new ArrayList<>();
             for (SourceSplit split : entry.getValue()) {
-                states.add(new LocalCheckpointState.SerializedState(
+                states.add(new CheckpointSnapshot.SerializedState(
                         serializer.getVersion(), serializer.serialize(split)));
             }
             result.put(entry.getKey(), List.copyOf(states));

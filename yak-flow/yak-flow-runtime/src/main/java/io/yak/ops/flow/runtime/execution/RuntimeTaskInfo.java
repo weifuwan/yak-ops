@@ -1,6 +1,7 @@
 package io.yak.ops.flow.runtime.execution;
 
 import io.yak.ops.core.api.common.JobID;
+import io.yak.ops.core.api.common.TaskInfo;
 import java.util.Objects;
 
 /**
@@ -9,9 +10,9 @@ import java.util.Objects;
  * <p>parallelism 是该 Operator 的已解析并行度，不是 Configuration 的默认值；
  * operatorId 是当前图内节点 ID，不代表跨版本恢复所需的稳定 UID。
  */
-public record TaskInfo(JobID jobID, int operatorId, int subtaskIndex, int parallelism, int attemptNumber) {
+public record RuntimeTaskInfo(JobID jobID, int operatorId, int subtaskIndex, int parallelism, int attemptNumber) implements TaskInfo {
 
-    public TaskInfo {
+    public RuntimeTaskInfo {
         Objects.requireNonNull(jobID, "jobID 不能为空");
         if (operatorId <= 0) {
             throw new IllegalArgumentException("operatorId 必须为正整数");
@@ -25,6 +26,21 @@ public record TaskInfo(JobID jobID, int operatorId, int subtaskIndex, int parall
         if (attemptNumber < 0) {
             throw new IllegalArgumentException("attemptNumber 不能为负数");
         }
+    }
+
+    @Override
+    public int getIndexOfThisSubtask() {
+        return subtaskIndex;
+    }
+
+    @Override
+    public int getNumberOfParallelSubtasks() {
+        return parallelism;
+    }
+
+    @Override
+    public int getAttemptNumber() {
+        return attemptNumber;
     }
 
     /** Task 线程的诊断名称，由统一运行身份生成，不从 Configuration 读取。 */

@@ -9,7 +9,7 @@ import java.util.Objects;
  * 某个本地作业已对齐的 Source/Reader 状态切面；仅记录版本化二进制状态，
  * 不持有活动 Reader、连接、Task 或未完成的 Channel 消息。
  */
-public record LocalCheckpointState(
+public record CheckpointSnapshot(
         long checkpointId,
         String graphSignature,
         SerializedState enumeratorState,
@@ -17,7 +17,7 @@ public record LocalCheckpointState(
         Map<Integer, List<SerializedState>> assignments,
         long completedAtMillis) {
 
-    public LocalCheckpointState {
+    public CheckpointSnapshot {
         if (checkpointId <= 0 || completedAtMillis <= 0) {
             throw new IllegalArgumentException("Checkpoint ID 与完成时间必须为正数");
         }

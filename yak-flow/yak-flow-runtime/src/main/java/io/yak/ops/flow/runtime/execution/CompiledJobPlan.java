@@ -6,9 +6,9 @@ import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamGraphGenerator;
-import io.yak.ops.core.graph.StreamNode;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.graph.StreamNode;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -46,7 +46,7 @@ public final class CompiledJobPlan {
         return new CompiledJobPlan(JobID.generate(), graph, mode, snapshot);
     }
 
-    /** 每次编译/提交获得独立的 JobID，与 LocalJobClient 和各 TaskInfo 一致。 */
+    /** 每次编译/提交获得独立的 JobID，与 EmbeddedJobClient 和各 RuntimeTaskInfo 一致。 */
     public JobID jobID() {
         return jobID;
     }
