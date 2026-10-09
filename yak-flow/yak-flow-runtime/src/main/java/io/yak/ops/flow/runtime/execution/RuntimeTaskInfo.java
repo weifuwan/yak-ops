@@ -10,7 +10,13 @@ import java.util.Objects;
  * <p>parallelism 是该 Operator 的已解析并行度，不是 Configuration 的默认值；
  * operatorId 是当前图内节点 ID，不代表跨版本恢复所需的稳定 UID。
  */
-public record RuntimeTaskInfo(JobID jobID, int operatorId, int subtaskIndex, int parallelism, int attemptNumber) implements TaskInfo {
+public record RuntimeTaskInfo(JobID jobID, int operatorId, int subtaskIndex, int parallelism,
+                              int attemptNumber, int maxParallelism) implements TaskInfo {
+
+    /** Compatibility constructor used by tests and existing local runtime embedders. */
+    public RuntimeTaskInfo(JobID jobID, int operatorId, int subtaskIndex, int parallelism, int attemptNumber) {
+        this(jobID, operatorId, subtaskIndex, parallelism, attemptNumber, 128);
+    }
 
     public RuntimeTaskInfo {
         Objects.requireNonNull(jobID, "jobID 不能为空");
@@ -22,6 +28,9 @@ public record RuntimeTaskInfo(JobID jobID, int operatorId, int subtaskIndex, int
         }
         if (subtaskIndex < 0 || subtaskIndex >= parallelism) {
             throw new IllegalArgumentException("subtaskIndex 超出并行度范围");
+        }
+        if (maxParallelism < parallelism || maxParallelism > 32768) {
+            throw new IllegalArgumentException("maxParallelism 必须 >= parallelism 且 <= 32768");
         }
         if (attemptNumber < 0) {
             throw new IllegalArgumentException("attemptNumber 不能为负数");
@@ -41,6 +50,11 @@ public record RuntimeTaskInfo(JobID jobID, int operatorId, int subtaskIndex, int
     @Override
     public int getAttemptNumber() {
         return attemptNumber;
+    }
+
+    @Override
+    public int getMaxNumberOfParallelSubtasks() {
+        return maxParallelism;
     }
 
     /** Task 线程的诊断名称，由统一运行身份生成，不从 Configuration 读取。 */

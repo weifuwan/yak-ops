@@ -13,14 +13,23 @@ public final class JobVertex {
     private final int id;
     private final List<StreamNode> operators;
     private final int parallelism;
+    private final int maxParallelism;
 
     public JobVertex(List<StreamNode> operators) {
+        this(operators, 128);
+    }
+
+    public JobVertex(List<StreamNode> operators, int maxParallelism) {
         this.operators = List.copyOf(Objects.requireNonNull(operators, "operators"));
         if (operators.isEmpty()) {
             throw new IllegalArgumentException("JobVertex requires at least one operator");
         }
         this.id = this.operators.getFirst().getId();
         this.parallelism = this.operators.getFirst().getParallelism();
+        if (maxParallelism < parallelism || maxParallelism > 32768) {
+            throw new IllegalArgumentException("JobVertex KeyGroup maxParallelism is out of range");
+        }
+        this.maxParallelism = maxParallelism;
         for (StreamNode node : this.operators) {
             if (node.getParallelism() != parallelism || (this.operators.size() > 1 && parallelism != 1)) {
                 throw new IllegalArgumentException("Operators in a chain must have parallelism one");
@@ -39,6 +48,10 @@ public final class JobVertex {
 
     public int getParallelism() {
         return parallelism;
+    }
+
+    public int getMaxParallelism() {
+        return maxParallelism;
     }
 
     public List<StreamNode> getOperators() {
