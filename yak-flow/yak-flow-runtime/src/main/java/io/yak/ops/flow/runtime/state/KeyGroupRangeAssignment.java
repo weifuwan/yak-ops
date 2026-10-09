@@ -17,8 +17,7 @@ public final class KeyGroupRangeAssignment {
     private KeyGroupRangeAssignment() {}
 
     public static int assignKeyToParallelOperator(Object key, int maxParallelism, int parallelism) {
-        return computeOperatorIndexForKeyGroup(
-                maxParallelism, parallelism, assignToKeyGroup(key, maxParallelism));
+        return computeOperatorIndexForKeyGroup(maxParallelism, parallelism, assignToKeyGroup(key, maxParallelism));
     }
 
     public static int assignToKeyGroup(Object key, int maxParallelism) {
@@ -78,5 +77,4 @@ public final class KeyGroupRangeAssignment {
         }
         return code == Integer.MIN_VALUE ? 0 : -code;
     }
-
 }

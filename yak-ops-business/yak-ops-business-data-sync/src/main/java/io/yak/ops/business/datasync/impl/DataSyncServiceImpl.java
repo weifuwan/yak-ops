@@ -75,7 +75,6 @@ import io.yak.ops.common.enums.datasync.DataSyncRetryPolicyMode;
 import io.yak.ops.common.enums.datasync.DataSyncRuntimePolicy;
 import io.yak.ops.common.enums.datasync.DataSyncTableExecutionStatus;
 import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
-import io.yak.ops.common.enums.datasync.DataSyncTriggerType;
 import io.yak.ops.common.enums.datasync.DataSyncType;
 import io.yak.ops.common.enums.datasync.DataSyncWriteMode;
 import io.yak.ops.common.page.PageData;
@@ -84,7 +83,6 @@ import io.yak.ops.common.util.BeanCopyUtils;
 import io.yak.ops.common.util.CollectionUtils;
 import io.yak.ops.common.util.DateUtils;
 import io.yak.ops.common.util.JSONUtils;
-import io.yak.ops.common.util.SensitiveUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncAttemptEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncExecutionEventEntity;
@@ -105,7 +103,6 @@ import io.yak.ops.dao.repository.datasync.DataSyncOperationsSummaryStats;
 import io.yak.ops.dao.repository.datasync.DataSyncOperationsTrendStats;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableAttemptRepository;
-
 import io.yak.ops.dao.repository.datasync.DataSyncTableExecutionRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
@@ -114,7 +111,6 @@ import io.yak.ops.flow.api.row.YakColumn;
 import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaCompatibility;
 import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaMapper;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
 import jakarta.annotation.Resource;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
@@ -167,8 +163,6 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
     @Resource
     private DataSyncTableAttemptRepository tableAttemptRepository;
 
-
-
     @Resource
     private DataSyncInstanceRepository instanceRepository;
 
@@ -192,6 +186,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
 
     @Resource
     private TargetTablePlanner targetTablePlanner;
+
     @Resource
     private ScheduleEngine scheduleEngine;
 
@@ -677,7 +672,8 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
                     || !Objects.equals(schedule.getTaskId(), fire.taskId())) {
                 return;
             }
-            DataSyncTaskEntity task = taskRepository.queryById(fire.workspaceId(), fire.taskId()).orElse(null);
+            DataSyncTaskEntity task =
+                    taskRepository.queryById(fire.workspaceId(), fire.taskId()).orElse(null);
             if (task == null
                     || task.getSyncType() != DataSyncType.OFFLINE
                     || task.getStatus() != DataSyncTaskStatus.PUBLISHED
@@ -803,7 +799,8 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         }
 
         if (instance.getSyncType() == DataSyncType.REALTIME) {
-            DataSyncTaskEntity task = taskRepository.queryById(workspaceId, instance.getTaskId()).orElse(null);
+            DataSyncTaskEntity task =
+                    taskRepository.queryById(workspaceId, instance.getTaskId()).orElse(null);
             if (task != null) updateDesiredState(workspaceId, task, DataSyncDesiredState.STOPPED);
         }
 
@@ -818,15 +815,26 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         } else if (original == DataSyncInstanceStatus.RUNNING) {
             // 旧执行引擎已移除：不能假装已将运行任务取消成功，只能按遗留运行态收口 LOST。
             if (!instanceRepository.transitionStatus(
-                    workspaceId, id, DataSyncInstanceStatus.RUNNING, DataSyncInstanceStatus.LOST, null, now,
-                    DataSyncErrorCode.EXECUTION_LOST.getCode(), DataSyncErrorCode.EXECUTION_LOST.getMessage())) {
+                    workspaceId,
+                    id,
+                    DataSyncInstanceStatus.RUNNING,
+                    DataSyncInstanceStatus.LOST,
+                    null,
+                    now,
+                    DataSyncErrorCode.EXECUTION_LOST.getCode(),
+                    DataSyncErrorCode.EXECUTION_LOST.getMessage())) {
                 throw new DataSyncException(DataSyncErrorCode.INSTANCE_NOT_CANCELABLE);
             }
             for (DataSyncAttemptEntity attempt : attemptRepository.queryByExecution(workspaceId, id)) {
                 if (attempt.getStatus() != null && !attempt.getStatus().isTerminal()) {
                     attemptRepository.transitionStatus(
-                            workspaceId, attempt.getId(), attempt.getStatus(), DataSyncAttemptStatus.LOST,
-                            null, now, DataSyncErrorCode.EXECUTION_LOST.getCode(),
+                            workspaceId,
+                            attempt.getId(),
+                            attempt.getStatus(),
+                            DataSyncAttemptStatus.LOST,
+                            null,
+                            now,
+                            DataSyncErrorCode.EXECUTION_LOST.getCode(),
                             DataSyncErrorCode.EXECUTION_LOST.getMessage());
                 }
             }
@@ -836,14 +844,22 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         }
 
         tableExecutionRepository.finishUnfinished(
-                workspaceId, id, tableStatus, now,
+                workspaceId,
+                id,
+                tableStatus,
+                now,
                 tableStatus == DataSyncTableExecutionStatus.LOST ? DataSyncErrorCode.EXECUTION_LOST.getCode() : null,
-                tableStatus == DataSyncTableExecutionStatus.LOST ? DataSyncErrorCode.EXECUTION_LOST.getMessage() : null);
+                tableStatus == DataSyncTableExecutionStatus.LOST
+                        ? DataSyncErrorCode.EXECUTION_LOST.getMessage()
+                        : null);
         for (DataSyncTableExecutionEntity table : tableExecutionRepository.queryByExecution(workspaceId, id)) {
             if (tableStatus == DataSyncTableExecutionStatus.LOST) {
                 tableAttemptRepository.markActiveAsLost(
-                        workspaceId, table.getId(), now,
-                        DataSyncErrorCode.EXECUTION_LOST.getCode(), DataSyncErrorCode.EXECUTION_LOST.getMessage());
+                        workspaceId,
+                        table.getId(),
+                        now,
+                        DataSyncErrorCode.EXECUTION_LOST.getCode(),
+                        DataSyncErrorCode.EXECUTION_LOST.getMessage());
             } else {
                 tableAttemptRepository.cancelActive(workspaceId, table.getId(), now);
             }
@@ -2010,5 +2026,4 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
     private DataSyncException runtimeUnavailable() {
         return new DataSyncException(DataSyncErrorCode.EXECUTION_FAILED, "同步引擎尚未接入，当前无法运行同步任务");
     }
-
 }

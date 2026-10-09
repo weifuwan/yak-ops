@@ -27,8 +27,8 @@ public final class JobID implements Serializable {
         if (!hex.matches("[0-9a-fA-F]{32}")) {
             throw new IllegalArgumentException("JobID must contain exactly 32 hexadecimal digits");
         }
-        String formatted = hex.substring(0, 8) + "-" + hex.substring(8, 12) + "-"
-                + hex.substring(12, 16) + "-" + hex.substring(16, 20) + "-" + hex.substring(20);
+        String formatted = hex.substring(0, 8) + "-" + hex.substring(8, 12) + "-" + hex.substring(12, 16) + "-"
+                + hex.substring(16, 20) + "-" + hex.substring(20);
         return new JobID(UUID.fromString(formatted));
     }
 

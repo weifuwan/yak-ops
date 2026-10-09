@@ -1,7 +1,6 @@
 package io.yak.ops.flow.runtime.io.partition;
 
 import io.yak.ops.flow.runtime.checkpoint.CheckpointBarrier;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

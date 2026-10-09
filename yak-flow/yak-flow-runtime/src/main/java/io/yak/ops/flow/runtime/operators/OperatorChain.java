@@ -51,11 +51,16 @@ public final class OperatorChain implements ReaderOutput<Object>, AutoCloseable 
         RuntimeTaskInfo sourceTask = sourceEnvironment.taskInfo();
         // Chained operators still have their own stable logical identities within the physical Task.
         TaskEnvironment sinkEnvironment = new TaskEnvironment(
-                new RuntimeTaskInfo(sourceTask.jobID(), sinkNode.getId(), sourceTask.subtaskIndex(),
-                        sinkNode.getParallelism(), sourceTask.attemptNumber(), sourceTask.maxParallelism()),
+                new RuntimeTaskInfo(
+                        sourceTask.jobID(),
+                        sinkNode.getId(),
+                        sourceTask.subtaskIndex(),
+                        sinkNode.getParallelism(),
+                        sourceTask.attemptNumber(),
+                        sourceTask.maxParallelism()),
                 sourceEnvironment.configuration());
-        sinkOperator = new SinkWriterOperator<>(
-                (Sink<Object>) sinkNode.getSink().orElseThrow(), sinkEnvironment);
+        sinkOperator =
+                new SinkWriterOperator<>((Sink<Object>) sinkNode.getSink().orElseThrow(), sinkEnvironment);
         sinkOperator.open();
         for (StreamNode node : operatorNodes) {
             operators.add((OneInputStreamOperator<Object, Object>) Objects.requireNonNull(

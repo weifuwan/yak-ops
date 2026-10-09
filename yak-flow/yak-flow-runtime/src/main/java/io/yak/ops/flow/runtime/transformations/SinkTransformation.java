@@ -29,6 +29,7 @@ public final class SinkTransformation<T> extends Transformation<Void> {
 
     /** 此节点的输入边策略；null 表示由 GraphGenerator 根据两端并行度推断。 */
     private StreamPartitioning inputPartitioning;
+
     private KeySelector<T> inputKeySelector;
 
     public SinkTransformation(Transformation<T> input, String name, Sink<T> sink) {

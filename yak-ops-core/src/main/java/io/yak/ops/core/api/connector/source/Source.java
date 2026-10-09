@@ -23,8 +23,7 @@ public interface Source<T, SplitT extends SourceSplit, EnumStateT> {
      *
      * @param context Runtime 提供的协调上下文
      */
-    SplitEnumerator<SplitT, EnumStateT> createEnumerator(
-            SplitEnumeratorContext<SplitT> context) throws Exception;
+    SplitEnumerator<SplitT, EnumStateT> createEnumerator(SplitEnumeratorContext<SplitT> context) throws Exception;
 
     /**
      * 从已完成的检查点恢复 Enumerator。

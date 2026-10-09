@@ -52,10 +52,12 @@ public final class FileCheckpointStore implements AutoCloseable {
     private boolean closed;
 
     public FileCheckpointStore(Path directory) throws IOException {
-        this.directory = Objects.requireNonNull(directory, "directory 不能为空").toAbsolutePath().normalize();
+        this.directory = Objects.requireNonNull(directory, "directory 不能为空")
+                .toAbsolutePath()
+                .normalize();
         Files.createDirectories(this.directory);
-        lockChannel = FileChannel.open(this.directory.resolve(".checkpoint.lock"),
-                StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        lockChannel = FileChannel.open(
+                this.directory.resolve(".checkpoint.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
         FileLock acquired;
         try {
             acquired = lockChannel.tryLock();
@@ -108,8 +110,8 @@ public final class FileCheckpointStore implements AutoCloseable {
             CheckpointSnapshot.SerializedState enumerator = readState(in);
             Map<Integer, List<CheckpointSnapshot.SerializedState>> readers = readGroups(in);
             Map<Integer, List<CheckpointSnapshot.SerializedState>> assignments = readGroups(in);
-            Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>>
-                    operatorStates = format == FORMAT_VERSION ? readOperatorStates(in) : Map.of();
+            Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> operatorStates =
+                    format == FORMAT_VERSION ? readOperatorStates(in) : Map.of();
             if (in.available() != 0) {
                 throw new IOException("Checkpoint 文件包含多余字节");
             }
@@ -171,8 +173,11 @@ public final class FileCheckpointStore implements AutoCloseable {
                 channel.force(true);
             }
             try {
-                Files.move(temp, directory.resolve(FILE_NAME),
-                        StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(
+                        temp,
+                        directory.resolve(FILE_NAME),
+                        StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException failure) {
                 // 非原子替换可能留下半成品；不对不支持的存储介质宣称 Durable Checkpoint。
                 throw new IOException("状态目录不支持 Checkpoint 原子提交", failure);
@@ -184,15 +189,15 @@ public final class FileCheckpointStore implements AutoCloseable {
 
     private static void makePrivate(Path file) throws IOException {
         try {
-            Files.setPosixFilePermissions(file,
-                    Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+            Files.setPosixFilePermissions(
+                    file, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
         } catch (UnsupportedOperationException ignored) {
             // 不支持 POSIX 权限的平台仍采用文件系统访问控制，不输出状态内容。
         }
     }
 
-    private static void writeGroups(DataOutputStream out,
-            Map<Integer, List<CheckpointSnapshot.SerializedState>> groups) throws IOException {
+    private static void writeGroups(DataOutputStream out, Map<Integer, List<CheckpointSnapshot.SerializedState>> groups)
+            throws IOException {
         if (groups.size() > MAX_GROUPS) {
             throw new IOException("Checkpoint 子任务数量超限");
         }
@@ -209,8 +214,8 @@ public final class FileCheckpointStore implements AutoCloseable {
         }
     }
 
-    private static Map<Integer, List<CheckpointSnapshot.SerializedState>> readGroups(
-            DataInputStream in) throws IOException {
+    private static Map<Integer, List<CheckpointSnapshot.SerializedState>> readGroups(DataInputStream in)
+            throws IOException {
         int count = in.readInt();
         if (count < 0 || count > MAX_GROUPS) {
             throw new IOException("Checkpoint 子任务数量非法");
@@ -262,8 +267,7 @@ public final class FileCheckpointStore implements AutoCloseable {
         Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> groups =
                 new LinkedHashMap<>();
         for (int i = 0; i < count; i++) {
-            CheckpointSnapshot.OperatorSubtask id =
-                    new CheckpointSnapshot.OperatorSubtask(in.readUTF(), in.readInt());
+            CheckpointSnapshot.OperatorSubtask id = new CheckpointSnapshot.OperatorSubtask(in.readUTF(), in.readInt());
             int size = in.readInt();
             if (size < 0 || size > MAX_SPLITS_PER_GROUP || groups.containsKey(id)) {
                 throw new IOException("Invalid or duplicate checkpoint operator subtask");
@@ -280,8 +284,7 @@ public final class FileCheckpointStore implements AutoCloseable {
         return Map.copyOf(groups);
     }
 
-    private static void writeState(DataOutputStream out, CheckpointSnapshot.SerializedState state)
-            throws IOException {
+    private static void writeState(DataOutputStream out, CheckpointSnapshot.SerializedState state) throws IOException {
         byte[] bytes = state.bytes();
         if (bytes.length > MAX_STATE_BYTES) {
             throw new IOException("单个 Checkpoint 状态块过大");
@@ -319,21 +322,32 @@ public final class FileCheckpointStore implements AutoCloseable {
             if (node.getUid() == null) {
                 throw new IllegalArgumentException("持久化 Checkpoint 要求所有算子指定稳定 UID");
             }
-            canonical.append('|').append(node.getUid())
-                    .append(':').append(node.isSource() ? "SOURCE" : node.isSink() ? "SINK" : "OPERATOR")
-                    .append(':').append(node.getParallelism())
-                    .append(':').append(node.getOutputType().getName());
+            canonical
+                    .append('|')
+                    .append(node.getUid())
+                    .append(':')
+                    .append(node.isSource() ? "SOURCE" : node.isSink() ? "SINK" : "OPERATOR")
+                    .append(':')
+                    .append(node.getParallelism())
+                    .append(':')
+                    .append(node.getOutputType().getName());
             if (node.isSource()) {
                 canonical.append(':').append(node.getBoundedness().orElseThrow());
             }
         }
         for (StreamEdge edge : graph.getStreamEdges()) {
-            canonical.append('|').append(graph.getStreamNode(edge.sourceId()).getUid())
-                    .append("->").append(graph.getStreamNode(edge.targetId()).getUid())
-                    .append(':').append(edge.partitioning());
+            canonical
+                    .append('|')
+                    .append(graph.getStreamNode(edge.sourceId()).getUid())
+                    .append("->")
+                    .append(graph.getStreamNode(edge.targetId()).getUid())
+                    .append(':')
+                    .append(edge.partitioning());
         }
-        if (maxParallelism > 0 && graph.getStreamEdges().stream()
-                .anyMatch(edge -> edge.partitioning() == io.yak.ops.flow.runtime.graph.StreamPartitioning.KEYED)) {
+        if (maxParallelism > 0
+                && graph.getStreamEdges().stream()
+                        .anyMatch(edge ->
+                                edge.partitioning() == io.yak.ops.flow.runtime.graph.StreamPartitioning.KEYED)) {
             canonical.append("|keygroups-murmur3-v1:").append(maxParallelism);
         }
         try {

@@ -23,11 +23,13 @@ public final class SplitAssignmentTracker<SplitT extends SourceSplit> {
 
     /** 注册尚未被完整成功 Checkpoint 覆盖的分片分配。 */
     public void recordAssignment(int subtaskId, SplitT split) {
-        if (subtaskId < 0 || split == null || split.splitId() == null || split.splitId().isBlank()) {
+        if (subtaskId < 0
+                || split == null
+                || split.splitId() == null
+                || split.splitId().isBlank()) {
             throw new IllegalArgumentException("分片分配参数无效");
         }
-        LinkedHashMap<String, SplitT> splits =
-                outstanding.computeIfAbsent(subtaskId, ignored -> new LinkedHashMap<>());
+        LinkedHashMap<String, SplitT> splits = outstanding.computeIfAbsent(subtaskId, ignored -> new LinkedHashMap<>());
         if (splits.putIfAbsent(split.splitId(), split) != null) {
             throw new IllegalArgumentException("分片尚未 Checkpoint 就发生重复分配：" + split.splitId());
         }

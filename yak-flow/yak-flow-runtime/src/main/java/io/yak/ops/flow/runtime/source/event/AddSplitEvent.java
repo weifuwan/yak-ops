@@ -32,7 +32,8 @@ public final class AddSplitEvent<SplitT extends SourceSplit> implements Operator
             if (split == null || split.splitId() == null || split.splitId().isBlank()) {
                 throw new IllegalArgumentException("Split ID cannot be blank");
             }
-            bytes.add(Objects.requireNonNull(serializer.serialize(split), "Serialized split bytes").clone());
+            bytes.add(Objects.requireNonNull(serializer.serialize(split), "Serialized split bytes")
+                    .clone());
         }
         serializedSplits = List.copyOf(bytes);
     }

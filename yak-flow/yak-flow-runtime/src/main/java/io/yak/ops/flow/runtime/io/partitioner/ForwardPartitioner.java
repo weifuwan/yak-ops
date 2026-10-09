@@ -6,8 +6,10 @@ public final class ForwardPartitioner<T> implements StreamPartitioner<T> {
     private final int sourceSubtask;
 
     public ForwardPartitioner(int sourceSubtask, int upstreamParallelism, int downstreamParallelism) {
-        if (upstreamParallelism <= 0 || downstreamParallelism != upstreamParallelism
-                || sourceSubtask < 0 || sourceSubtask >= upstreamParallelism) {
+        if (upstreamParallelism <= 0
+                || downstreamParallelism != upstreamParallelism
+                || sourceSubtask < 0
+                || sourceSubtask >= upstreamParallelism) {
             throw new IllegalArgumentException("FORWARD requires equal parallelism and a valid producer");
         }
         this.sourceSubtask = sourceSubtask;

@@ -26,11 +26,16 @@ public final class RecordWriterOutput<T> implements ReaderOutput<T> {
     }
 
     public RecordWriterOutput(
-            StreamEdge edge, int upstreamSubtask, int upstreamParallelism,
-            ResultPartition<T> partition, int maxParallelism) {
+            StreamEdge edge,
+            int upstreamSubtask,
+            int upstreamParallelism,
+            ResultPartition<T> partition,
+            int maxParallelism) {
         Objects.requireNonNull(edge, "edge");
         this.partition = Objects.requireNonNull(partition, "partition");
-        if (upstreamParallelism <= 0 || upstreamSubtask < 0 || upstreamSubtask >= upstreamParallelism
+        if (upstreamParallelism <= 0
+                || upstreamSubtask < 0
+                || upstreamSubtask >= upstreamParallelism
                 || partition.getProducerIndex() != upstreamSubtask) {
             throw new IllegalArgumentException("Invalid producer identity");
         }

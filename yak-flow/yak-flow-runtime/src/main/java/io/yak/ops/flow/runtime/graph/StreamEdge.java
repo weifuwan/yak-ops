@@ -14,8 +14,7 @@ import java.util.Objects;
  * @param partitioning 分区策略，不可隐式依赖运行时猜测
  * @param keySelector KEYED 策略必填，其他策略不允许设置
  */
-public record StreamEdge(
-        int sourceId, int targetId, StreamPartitioning partitioning, KeySelector<?> keySelector) {
+public record StreamEdge(int sourceId, int targetId, StreamPartitioning partitioning, KeySelector<?> keySelector) {
 
     /** 向后兼容原有单并行链的 FORWARD 边。 */
     public StreamEdge(int sourceId, int targetId) {
@@ -47,7 +46,6 @@ public record StreamEdge(
     /** 避免默认 record.toString() 意外展开 KeySelector 内部捕获的连接参数。 */
     @Override
     public String toString() {
-        return "StreamEdge{sourceId=" + sourceId + ", targetId=" + targetId
-                + ", partitioning=" + partitioning + "}";
+        return "StreamEdge{sourceId=" + sourceId + ", targetId=" + targetId + ", partitioning=" + partitioning + "}";
     }
 }

@@ -51,8 +51,7 @@ public final class StreamGraphGenerator {
      * @param sinks 一个或多个 Sink 逻辑节点
      * @param configuration 用于生成执行图的配置
      */
-    public StreamGraphGenerator(
-            Collection<? extends SinkTransformation<?>> sinks, Configuration configuration) {
+    public StreamGraphGenerator(Collection<? extends SinkTransformation<?>> sinks, Configuration configuration) {
         Objects.requireNonNull(sinks, "sinks 不能为空");
         if (sinks.isEmpty()) {
             throw new IllegalArgumentException("至少需要一个 SinkTransformation");
@@ -136,10 +135,8 @@ public final class StreamGraphGenerator {
         private final int defaultParallelism;
         private final boolean autoGenerateUids;
 
-        private final Set<Transformation<?>> visiting =
-                Collections.newSetFromMap(new IdentityHashMap<>());
-        private final Set<Transformation<?>> visited =
-                Collections.newSetFromMap(new IdentityHashMap<>());
+        private final Set<Transformation<?>> visiting = Collections.newSetFromMap(new IdentityHashMap<>());
+        private final Set<Transformation<?>> visited = Collections.newSetFromMap(new IdentityHashMap<>());
         private final List<StreamNode> nodes = new ArrayList<>();
         private final List<StreamEdge> edges = new ArrayList<>();
 
@@ -151,8 +148,7 @@ public final class StreamGraphGenerator {
         private void visit(Transformation<?> transformation) {
             Objects.requireNonNull(transformation, "Transformation 不能为空");
             if (visiting.contains(transformation)) {
-                throw new IllegalArgumentException(
-                        "Transformation 存在循环依赖，节点 ID=" + transformation.getId());
+                throw new IllegalArgumentException("Transformation 存在循环依赖，节点 ID=" + transformation.getId());
             }
             if (visited.contains(transformation)) {
                 return;
@@ -167,8 +163,7 @@ public final class StreamGraphGenerator {
                 }
 
                 if (!autoGenerateUids && transformation.getUid() == null) {
-                    throw new IllegalArgumentException(
-                            "关闭自动 UID 生成后，所有节点必须指定稳定 UID，节点 ID=" + transformation.getId());
+                    throw new IllegalArgumentException("关闭自动 UID 生成后，所有节点必须指定稳定 UID，节点 ID=" + transformation.getId());
                 }
 
                 int parallelism = transformation.getParallelism() == Transformation.DEFAULT_PARALLELISM
@@ -205,6 +200,5 @@ public final class StreamGraphGenerator {
                     : requested;
             return new StreamEdge(input.getId(), target.getId(), partitioning, selector);
         }
-
     }
 }

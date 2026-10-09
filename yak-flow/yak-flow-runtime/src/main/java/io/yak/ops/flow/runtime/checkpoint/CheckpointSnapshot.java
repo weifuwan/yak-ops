@@ -46,11 +46,14 @@ public record CheckpointSnapshot(
     }
 
     /** Backwards compatible constructor for Source/Sink-only format v1. */
-    public CheckpointSnapshot(long checkpointId, String graphSignature, SerializedState enumeratorState,
+    public CheckpointSnapshot(
+            long checkpointId,
+            String graphSignature,
+            SerializedState enumeratorState,
             Map<Integer, List<SerializedState>> readerSplits,
-            Map<Integer, List<SerializedState>> assignments, long completedAtMillis) {
-        this(checkpointId, graphSignature, enumeratorState, readerSplits,
-                assignments, completedAtMillis, Map.of());
+            Map<Integer, List<SerializedState>> assignments,
+            long completedAtMillis) {
+        this(checkpointId, graphSignature, enumeratorState, readerSplits, assignments, completedAtMillis, Map.of());
     }
 
     /** Stable logical operator identity, never a graph-local numeric operator ID. */

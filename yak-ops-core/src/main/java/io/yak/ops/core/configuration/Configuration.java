@@ -1,4 +1,3 @@
-
 package io.yak.ops.core.configuration;
 
 import java.io.Serial;
@@ -102,7 +101,8 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
 
     /** 合并另一份配置中显式设置的条目，同名配置由传入值覆盖。 */
     public void addAll(Configuration other) {
-        Map<String, Object> incoming = Objects.requireNonNull(other, "other must not be null").snapshot();
+        Map<String, Object> incoming =
+                Objects.requireNonNull(other, "other must not be null").snapshot();
         synchronized (this) {
             values.putAll(incoming);
         }
@@ -122,7 +122,8 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
 
     @Override
     public boolean equals(Object other) {
-        return this == other || other instanceof Configuration config && snapshot().equals(config.snapshot());
+        return this == other
+                || other instanceof Configuration config && snapshot().equals(config.snapshot());
     }
 
     @Override
@@ -150,9 +151,13 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
 
     private static boolean sensitive(String key) {
         String lower = key.toLowerCase(Locale.ROOT);
-        return lower.contains("password") || lower.contains("passwd") || lower.contains("secret")
-                || lower.contains("token") || lower.contains("credential")
-                || lower.contains("private-key") || lower.contains("access-key");
+        return lower.contains("password")
+                || lower.contains("passwd")
+                || lower.contains("secret")
+                || lower.contains("token")
+                || lower.contains("credential")
+                || lower.contains("private-key")
+                || lower.contains("access-key");
     }
 
     private static <T> T convert(Object value, ConfigOption<T> option) {

@@ -83,8 +83,8 @@ public final class StreamGraph implements Pipeline {
             }
             Class<?> expectedInput = target.getInputType().orElseThrow();
             if (!expectedInput.isAssignableFrom(source.getOutputType())) {
-                throw new IllegalArgumentException("数据类型不兼容：" + source.getOutputType().getName()
-                        + " -> " + expectedInput.getName() + "，边=" + edge);
+                throw new IllegalArgumentException("数据类型不兼容："
+                        + source.getOutputType().getName() + " -> " + expectedInput.getName() + "，边=" + edge);
             }
             checkedEdges.add(edge);
             out.get(edge.sourceId()).add(edge);
@@ -208,7 +208,6 @@ public final class StreamGraph implements Pipeline {
 
     /** 只有所有 Source 均有界，整张图才视为有界。 */
     public boolean isBounded() {
-        return sourceNodes.stream()
-                .allMatch(node -> node.getBoundedness().orElseThrow() == Boundedness.BOUNDED);
+        return sourceNodes.stream().allMatch(node -> node.getBoundedness().orElseThrow() == Boundedness.BOUNDED);
     }
 }

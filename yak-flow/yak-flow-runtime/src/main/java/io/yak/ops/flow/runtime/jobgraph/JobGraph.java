@@ -59,8 +59,10 @@ public final class JobGraph {
             JobVertex downstream = this.vertices.get(i + 1);
             if (edge.sourceVertexId() != upstream.getId()
                     || edge.targetVertexId() != downstream.getId()
-                    || edge.streamEdge().sourceId() != upstream.getTailOperator().getId()
-                    || edge.streamEdge().targetId() != downstream.getHeadOperator().getId()) {
+                    || edge.streamEdge().sourceId()
+                            != upstream.getTailOperator().getId()
+                    || edge.streamEdge().targetId()
+                            != downstream.getHeadOperator().getId()) {
                 throw new IllegalArgumentException("Invalid physical JobGraph edge ordering");
             }
         }

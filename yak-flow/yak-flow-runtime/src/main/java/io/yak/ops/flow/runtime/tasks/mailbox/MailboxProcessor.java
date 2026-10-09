@@ -52,8 +52,7 @@ public final class MailboxProcessor {
                 // At most one mail before each available input action, preserving input fairness.
                 defaultAction.runDefaultAction(controller);
             } else if (mail == null) {
-                Mail<?> next = mailbox.takeOrWait(
-                        () -> suspendedAction == null || !running || stopping.getAsBoolean());
+                Mail<?> next = mailbox.takeOrWait(() -> suspendedAction == null || !running || stopping.getAsBoolean());
                 if (next != null) {
                     next.run();
                 }

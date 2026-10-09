@@ -1,9 +1,9 @@
 package io.yak.ops.flow.runtime.source.coordinator;
 
-import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SourceEvent;
-import io.yak.ops.core.api.io.SimpleVersionedSerializer;
+import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
+import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
@@ -32,8 +32,7 @@ import java.util.function.Supplier;
  * 除 callAsync() 中的阻塞查询外，全部状态只能在协调器线程访问。
  * 本类不运行 SourceReader，也不处理数据记录。
  */
-public final class SourceCoordinatorContext<SplitT extends SourceSplit>
-        implements SplitEnumeratorContext<SplitT> {
+public final class SourceCoordinatorContext<SplitT extends SourceSplit> implements SplitEnumeratorContext<SplitT> {
 
     private final OperatorCoordinatorContext operatorContext;
     private final SimpleVersionedSerializer<SplitT> splitSerializer;
@@ -52,7 +51,8 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
     private boolean checkpointPaused;
     private volatile boolean closed;
 
-    SourceCoordinatorContext(OperatorCoordinatorContext operatorContext,
+    SourceCoordinatorContext(
+            OperatorCoordinatorContext operatorContext,
             SimpleVersionedSerializer<SplitT> splitSerializer,
             ExecutorService coordinatorExecutor,
             ExecutorService discoveryExecutor,
@@ -86,8 +86,8 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         operatorContext.validateTask(taskInfo);
         RuntimeTaskInfo active = readerIdentities.get(taskInfo.subtaskIndex());
         if (!taskInfo.equals(active)) {
-            throw new IllegalStateException("Reader 未注册或已过期，subtask="
-                    + taskInfo.subtaskIndex() + "，attempt=" + taskInfo.attemptNumber());
+            throw new IllegalStateException(
+                    "Reader 未注册或已过期，subtask=" + taskInfo.subtaskIndex() + "，attempt=" + taskInfo.attemptNumber());
         }
     }
 
@@ -170,8 +170,8 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         try {
             AddSplitEvent<SplitT> event = new AddSplitEvent<>(List.of(split), splitSerializer);
             assignments.recordAssignment(subtaskId, split);
-            CompletionStage<Void> delivered = Objects.requireNonNull(
-                    readers.get(subtaskId).sendEvent(event), "SubtaskGateway 返回了 null");
+            CompletionStage<Void> delivered =
+                    Objects.requireNonNull(readers.get(subtaskId).sendEvent(event), "SubtaskGateway 返回了 null");
             delivered.whenComplete((unused, error) -> post(() -> {
                 if (error != null) {
                     onFailure.accept(new IllegalStateException("Split 交付失败：" + splitId, error));
@@ -237,12 +237,11 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
             throw new IllegalStateException("Reader 尚未注册：" + subtaskId);
         }
         try {
-            CompletionStage<Void> delivered = Objects.requireNonNull(
-                    gateway.sendEvent(new SourceEventWrapper(event)), "SubtaskGateway 返回了 null");
+            CompletionStage<Void> delivered =
+                    Objects.requireNonNull(gateway.sendEvent(new SourceEventWrapper(event)), "SubtaskGateway 返回了 null");
             delivered.whenComplete((unused, failure) -> post(() -> {
                 if (failure != null) {
-                    onFailure.accept(new IllegalStateException(
-                            "SourceEvent 交付失败：subtask=" + subtaskId, failure));
+                    onFailure.accept(new IllegalStateException("SourceEvent 交付失败：subtask=" + subtaskId, failure));
                 }
             }));
         } catch (Throwable failure) {

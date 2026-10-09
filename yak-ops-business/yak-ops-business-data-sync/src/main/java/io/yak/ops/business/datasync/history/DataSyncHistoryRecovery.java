@@ -69,11 +69,18 @@ public class DataSyncHistoryRecovery {
                 retryWaiting++;
             }
             tableExecutionRepository.finishUnfinished(
-                    execution.getWorkspaceId(), execution.getId(),
-                    DataSyncTableExecutionStatus.LOST, finishedAt, errorCode, message);
+                    execution.getWorkspaceId(),
+                    execution.getId(),
+                    DataSyncTableExecutionStatus.LOST,
+                    finishedAt,
+                    errorCode,
+                    message);
         }
         LOG.warn(
                 "旧数据同步运行状态已收口，lostExecutions={}, lostAttempts={}, lostTableAttempts={}, lostRetryWaiting={}",
-                executions, attempts, tableAttempts, retryWaiting);
+                executions,
+                attempts,
+                tableAttempts,
+                retryWaiting);
     }
 }

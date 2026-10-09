@@ -60,18 +60,20 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     /** 从全局已完成 Checkpoint 的 Enumerator 状态恢复；Reader 状态由上层另外恢复。 */
     public static <SplitT extends SourceSplit, EnumStateT> SourceCoordinator<SplitT, EnumStateT> restore(
             Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext, EnumStateT state) {
-        return new SourceCoordinator<>(source, coordinatorContext,
-                Objects.requireNonNull(state, "恢复状态不能为空"), true);
+        return new SourceCoordinator<>(source, coordinatorContext, Objects.requireNonNull(state, "恢复状态不能为空"), true);
     }
 
-    private SourceCoordinator(Source<?, SplitT, EnumStateT> source,
-            OperatorCoordinatorContext coordinatorContext, EnumStateT restoredEnumeratorState, boolean restoring) {
+    private SourceCoordinator(
+            Source<?, SplitT, EnumStateT> source,
+            OperatorCoordinatorContext coordinatorContext,
+            EnumStateT restoredEnumeratorState,
+            boolean restoring) {
         this.source = Objects.requireNonNull(source, "source 不能为空");
         this.coordinatorContext = Objects.requireNonNull(coordinatorContext, "coordinatorContext 不能为空");
         this.restoredEnumeratorState = restoredEnumeratorState;
         this.restoring = restoring;
-        this.context = new SourceCoordinatorContext<>(coordinatorContext, source.getSplitSerializer(),
-                eventLoop, discovery, () -> eventThread, this::fail);
+        this.context = new SourceCoordinatorContext<>(
+                coordinatorContext, source.getSplitSerializer(), eventLoop, discovery, () -> eventThread, this::fail);
     }
 
     /** Source 所属的不可变运行身份；用于 Task 装配时检查 Job/Operator/Parallelism。 */
@@ -86,9 +88,11 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         }
         return submit(() -> {
             try {
-                enumerator = Objects.requireNonNull(restoring
-                        ? source.restoreEnumerator(context, restoredEnumeratorState)
-                        : source.createEnumerator(context), "Source 返回了空 Enumerator");
+                enumerator = Objects.requireNonNull(
+                        restoring
+                                ? source.restoreEnumerator(context, restoredEnumeratorState)
+                                : source.createEnumerator(context),
+                        "Source 返回了空 Enumerator");
                 enumerator.start();
                 started = true;
                 return null;
@@ -107,8 +111,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(failure);
         }
-        ReaderRegistrationEvent event =
-                new ReaderRegistrationEvent(taskInfo.subtaskIndex(), taskInfo.attemptNumber());
+        ReaderRegistrationEvent event = new ReaderRegistrationEvent(taskInfo.subtaskIndex(), taskInfo.attemptNumber());
         return submit(() -> {
             ensureStarted();
             context.registerReader(taskInfo, gateway);
@@ -136,14 +139,13 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
             return CompletableFuture.failedFuture(failure);
         }
         if (event instanceof RequestSplitEvent request) {
-            if (taskInfo.subtaskIndex() != request.subtaskId()
-                    || taskInfo.attemptNumber() != request.attemptNumber()) {
-                return CompletableFuture.failedFuture(new IllegalArgumentException(
-                        "OperatorEvent 的 Subtask / Attempt 与发送者身份不匹配"));
+            if (taskInfo.subtaskIndex() != request.subtaskId() || taskInfo.attemptNumber() != request.attemptNumber()) {
+                return CompletableFuture.failedFuture(
+                        new IllegalArgumentException("OperatorEvent 的 Subtask / Attempt 与发送者身份不匹配"));
             }
         } else if (!(event instanceof SourceEventWrapper)) {
-            return CompletableFuture.failedFuture(
-                    new IllegalArgumentException("Coordinator 不支持的 OperatorEvent：" + event.getClass().getName()));
+            return CompletableFuture.failedFuture(new IllegalArgumentException(
+                    "Coordinator 不支持的 OperatorEvent：" + event.getClass().getName()));
         }
         return submit(() -> {
             ensureStarted();
@@ -228,14 +230,12 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
      * 获取协调侧完整快照片段，包括 Enumerator 与未被成功确认的分片分配。
      * 只有上层协调了 Reader/Channel/Sink 的同一 Checkpoint，并持久化成功才可提交确认。
      */
-    public CompletableFuture<SourceCoordinatorCheckpoint<SplitT, EnumStateT>> snapshotCoordinator(
-            long checkpointId) {
+    public CompletableFuture<SourceCoordinatorCheckpoint<SplitT, EnumStateT>> snapshotCoordinator(long checkpointId) {
         validateCheckpointId(checkpointId);
         return submit(() -> {
             ensureStarted();
             context.ensureDeliveriesCompleted();
-            EnumStateT state = Objects.requireNonNull(
-                    enumerator.snapshotState(checkpointId), "Enumerator 快照不能为空");
+            EnumStateT state = Objects.requireNonNull(enumerator.snapshotState(checkpointId), "Enumerator 快照不能为空");
             Map<Integer, java.util.List<SplitT>> assignments =
                     context.assignmentTracker().snapshot(checkpointId);
             return new SourceCoordinatorCheckpoint<>(checkpointId, state, assignments);
@@ -267,8 +267,9 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         Objects.requireNonNull(failure, "failure 不能为空");
         return submit(() -> {
             context.checkRegistered(taskInfo);
-            fail(new IllegalStateException("Source Reader 故障，作业需要整体恢复："
-                    + taskInfo.subtaskIndex() + "，attempt=" + taskInfo.attemptNumber(), failure));
+            fail(new IllegalStateException(
+                    "Source Reader 故障，作业需要整体恢复：" + taskInfo.subtaskIndex() + "，attempt=" + taskInfo.attemptNumber(),
+                    failure));
             return null;
         });
     }
