@@ -1,4 +1,4 @@
-package io.yak.ops.flow.runtime.execution;
+package io.yak.ops.flow.runtime.executiongraph;
 
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
@@ -6,11 +6,15 @@ import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
 import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
-import io.yak.ops.flow.runtime.graph.StreamEdge;
-import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
+import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.graph.StreamNode;
 import io.yak.ops.flow.runtime.io.RecordChannel;
 import io.yak.ops.flow.runtime.io.RecordRouter;
+import io.yak.ops.flow.runtime.jobgraph.JobEdge;
+import io.yak.ops.flow.runtime.jobgraph.JobGraph;
+import io.yak.ops.flow.runtime.jobgraph.JobVertex;
+import io.yak.ops.flow.runtime.operators.OperatorChain;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import io.yak.ops.flow.runtime.tasks.OneInputStreamTask;
@@ -27,23 +31,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
 
 /**
- * 单个 Core-based Job 的本地多 Task 装配与生命周期。
- *
- * <p>每条线性边在目标端为每个 Subtask 创建一个有界 Channel；每个算子子任务拥有独立
- * StreamTask 和 Operator/Writer，正常 EOF 沿图向下游传播。
- * 任意失败先中止全部 Channel 再取消其它 Task，避免上游阻塞在已停止的下游上。
+ * Physical deployment of a JobGraph into local StreamTasks, their channels and the SourceCoordinator.
+ * ExecutionGraph owns status and attempts; this class owns assembly and deterministic resource cleanup.
  */
-final class JobExecution {
+final class TaskDeployment {
 
-    private final CompiledJobPlan plan;
-    private final BooleanSupplier cancellationRequested;
+    private final ExecutionGraph executionGraph;
+    private final JobGraph jobGraph;
     private final int channelCapacity;
-    private final Consumer<QuiescentCheckpointCoordinator> checkpointRegistration;
-    private final List<StreamTask> tasks = new ArrayList<>();
+    private final List<Execution> executions = new ArrayList<>();
     private final List<RecordChannel<Object>> channels = new ArrayList<>();
     private final List<List<RecordChannel<Object>>> channelStages = new ArrayList<>();
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks = new ArrayList<>();
@@ -55,53 +53,51 @@ final class JobExecution {
     private FileCheckpointStore checkpointStore;
     private QuiescentCheckpointCoordinator checkpointCoordinator;
 
-    JobExecution(CompiledJobPlan plan, BooleanSupplier cancellationRequested, int channelCapacity,
-            Consumer<QuiescentCheckpointCoordinator> checkpointRegistration) {
-        this.plan = Objects.requireNonNull(plan, "plan 不能为空");
-        this.checkpointRegistration =
-                Objects.requireNonNull(checkpointRegistration, "checkpointRegistration 不能为空");
-        this.cancellationRequested = Objects.requireNonNull(cancellationRequested, "cancellationRequested 不能为空");
+    TaskDeployment(ExecutionGraph executionGraph) {
+        this.executionGraph = Objects.requireNonNull(executionGraph, "executionGraph");
+        this.jobGraph = executionGraph.getJobGraph();
+        this.channelCapacity = jobGraph.configuration().get(RuntimeOptions.CHANNEL_CAPACITY);
         if (channelCapacity <= 0) {
-            throw new IllegalArgumentException("channelCapacity 必须为正整数");
+            throw new IllegalArgumentException("Channel capacity must be positive");
         }
-        this.channelCapacity = channelCapacity;
     }
 
-    void run() throws Exception {
+    void deployAndAwait() throws Exception {
         Throwable outcome = null;
         try {
             assemble();
             if (checkpointCoordinator != null) {
-                checkpointRegistration.accept(checkpointCoordinator);
+                executionGraph.registerCheckpoint(checkpointCoordinator);
             }
-            for (StreamTask task : tasks) {
-                task.completionFuture().whenComplete((unused, error) -> {
+            for (Execution execution : executions) {
+                execution.completionFuture().whenComplete((unused, error) -> {
                     if (error != null) {
                         failJob(unwrap(error));
                     }
                 });
             }
-            coordinator.terminationFuture().whenComplete((unused, error) -> {
-                if (error != null) {
-                    failJob(unwrap(error));
-                }
-            });
+            if (!jobGraph.isSingleChainedVertex()) {
+                coordinator.terminationFuture().whenComplete((unused, error) -> {
+                    if (error != null) {
+                        failJob(unwrap(error));
+                    }
+                });
+            }
 
             ensureNotCancelled();
             await(coordinator.start());
-            // Tasks 已按 Sink → Operators → Source 的顺序装配；先启动消费者再启动生产者。
-            for (StreamTask task : tasks) {
+            // Physical vertices are deployed in reverse order: consumers before their producers.
+            for (Execution execution : executions) {
                 ensureNotCancelled();
-                await(task.start());
+                await(execution.start());
             }
             if (checkpointCoordinator != null) {
                 checkpointCoordinator.start();
             }
-            CompletableFuture<?>[] completion = tasks.stream()
-                    .map(StreamTask::completionFuture)
-                    .toArray(CompletableFuture<?>[]::new);
             try {
-                await(CompletableFuture.allOf(completion));
+                await(CompletableFuture.allOf(executions.stream()
+                        .map(Execution::completionFuture)
+                        .toArray(CompletableFuture<?>[]::new)));
             } catch (Exception | Error failure) {
                 Throwable original = firstFailure.get();
                 if (original != null) {
@@ -113,17 +109,17 @@ final class JobExecution {
             if (failure != null) {
                 throwFailure(failure);
             }
-        } catch (Exception | Error error) {
+        } catch (Exception | Error failure) {
             Throwable original = firstFailure.get();
-            outcome = original == null ? error : original;
+            outcome = original == null ? failure : original;
             stopAll(outcome);
         } finally {
-            Throwable closeFailure = closeAll();
-            if (closeFailure != null) {
+            Throwable cleanupFailure = closeAll();
+            if (cleanupFailure != null) {
                 if (outcome == null) {
-                    outcome = closeFailure;
-                } else if (outcome != closeFailure) {
-                    outcome.addSuppressed(closeFailure);
+                    outcome = cleanupFailure;
+                } else if (outcome != cleanupFailure) {
+                    outcome.addSuppressed(cleanupFailure);
                 }
             }
         }
@@ -133,59 +129,65 @@ final class JobExecution {
     }
 
     private void assemble() throws Exception {
-        StreamGraph graph = plan.graph();
-        boolean checkpointsEnabled = !plan.configuration()
-                .get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
-                || plan.configuration().get(CheckpointingOptions.RESTORE_LATEST);
-        if (checkpointsEnabled) {
-            String directory = plan.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
+        if (jobGraph.isSingleChainedVertex()) {
+            assembleChainedVertex();
+            return;
+        }
+
+        if (checkpointEnabled()) {
+            String directory = jobGraph.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
             checkpointStore = new FileCheckpointStore(Path.of(directory));
-            if (plan.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
+            if (jobGraph.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
                 restoredCheckpoint = checkpointStore.loadLatest(
-                                FileCheckpointStore.graphSignature(plan.graph()))
+                                FileCheckpointStore.graphSignature(jobGraph.graph()))
                         .orElseThrow(() -> new IllegalStateException("状态目录没有可恢复的完整 Checkpoint"));
             }
         }
-        List<StreamNode> nodes = graph.getTopologicalNodes();
+
+        List<JobVertex> vertices = jobGraph.getVertices();
+        List<JobEdge> edges = jobGraph.getEdges();
         List<List<RecordChannel<Object>>> inputs = new ArrayList<>();
-        for (int index = 1; index < nodes.size(); index++) {
-            StreamNode previous = nodes.get(index - 1);
-            StreamNode target = nodes.get(index);
-            List<RecordChannel<Object>> stageInputs = new ArrayList<>();
+        for (JobEdge edge : edges) {
+            JobVertex previous = vertex(edge.sourceVertexId());
+            JobVertex target = vertex(edge.targetVertexId());
+            List<RecordChannel<Object>> inputChannels = new ArrayList<>();
             for (int subtask = 0; subtask < target.getParallelism(); subtask++) {
                 RecordChannel<Object> channel = new RecordChannel<>(channelCapacity, previous.getParallelism());
-                stageInputs.add(channel);
+                inputChannels.add(channel);
                 channels.add(channel);
             }
-            inputs.add(List.copyOf(stageInputs));
-            channelStages.add(List.copyOf(stageInputs));
+            inputs.add(List.copyOf(inputChannels));
+            channelStages.add(List.copyOf(inputChannels));
         }
 
-        // 按拓扑逆序装配下游，任务中的 Connector 实例仍延迟到 openTask() 创建。
-        for (int index = nodes.size() - 1; index >= 1; index--) {
-            StreamNode node = nodes.get(index);
+        for (int index = vertices.size() - 1; index >= 1; index--) {
+            JobVertex vertex = vertices.get(index);
+            StreamNode node = vertex.getHeadOperator();
             List<RecordChannel<Object>> stageInputs = inputs.get(index - 1);
-            for (int subtask = 0; subtask < node.getParallelism(); subtask++) {
-                TaskEnvironment environment = environment(node, subtask);
+            for (int subtask = 0; subtask < vertex.getParallelism(); subtask++) {
+                Execution execution = executionGraph.currentExecution(vertex.getId(), subtask);
+                TaskEnvironment environment = environment(execution);
+                StreamTask task;
                 if (node.isSink()) {
                     SinkOperatorStreamTask sink = new SinkOperatorStreamTask(
                             node, environment, stageInputs.get(subtask));
                     sinkTasks.add(sink);
-                    tasks.add(sink);
+                    task = sink;
                 } else {
-                    StreamEdge downstreamEdge = graph.getOutEdges(node.getId()).getFirst();
-                    RecordRouter<Object> partition = new RecordRouter<>(
-                            downstreamEdge, subtask, node.getParallelism(), inputs.get(index));
-                    tasks.add(new OneInputStreamTask(
-                            node, environment, stageInputs.get(subtask), partition));
+                    JobEdge outputEdge = edges.get(index);
+                    RecordRouter<Object> output = new RecordRouter<>(
+                            outputEdge.streamEdge(), subtask, vertex.getParallelism(), inputs.get(index));
+                    task = new OneInputStreamTask(node, environment, stageInputs.get(subtask), output);
                 }
+                bind(execution, task);
             }
         }
 
-        StreamNode sourceNode = nodes.getFirst();
+        JobVertex sourceVertex = vertices.getFirst();
+        StreamNode sourceNode = sourceVertex.getHeadOperator();
         Source<Object, SourceSplit, Object> source = castSource(sourceNode);
         OperatorCoordinatorContext coordinatorContext = new OperatorCoordinatorContext(
-                plan.jobID(), sourceNode.getId(), sourceNode.getParallelism());
+                jobGraph.jobID(), sourceVertex.getId(), sourceVertex.getParallelism());
         Map<Integer, List<SourceSplit>> restoredReaderSplits = Map.of();
         if (restoredCheckpoint != null) {
             restoredReaderSplits = QuiescentCheckpointCoordinator.restoreSplits(restoredCheckpoint, source);
@@ -194,32 +196,74 @@ final class JobExecution {
         } else {
             coordinator = new SourceCoordinator<>(source, coordinatorContext);
         }
-        StreamEdge outgoing = graph.getOutEdges(sourceNode.getId()).getFirst();
 
-        for (int subtask = 0; subtask < sourceNode.getParallelism(); subtask++) {
-            RecordRouter<Object> partition = new RecordRouter<>(
-                    outgoing, subtask, sourceNode.getParallelism(), inputs.getFirst());
-            SourceOperatorStreamTask<Object, SourceSplit> readerTask = new SourceOperatorStreamTask<>(
-                    source, coordinator, environment(sourceNode, subtask), partition,
+        JobEdge firstEdge = edges.getFirst();
+        for (int subtask = 0; subtask < sourceVertex.getParallelism(); subtask++) {
+            Execution execution = executionGraph.currentExecution(sourceVertex.getId(), subtask);
+            RecordRouter<Object> output = new RecordRouter<>(
+                    firstEdge.streamEdge(), subtask, sourceVertex.getParallelism(), inputs.getFirst());
+            SourceOperatorStreamTask<Object, SourceSplit> task = new SourceOperatorStreamTask<>(
+                    source, coordinator, environment(execution), output,
                     null, restoredReaderSplits.getOrDefault(subtask, List.of()));
-            sourceTasks.add(readerTask);
-            tasks.add(readerTask);
+            sourceTasks.add(task);
+            bind(execution, task);
         }
+
         if (checkpointStore != null) {
             checkpointCoordinator = new QuiescentCheckpointCoordinator(
-                    plan, source, coordinator, sourceTasks, channelStages, sinkTasks,
-                    checkpointStore, restoredCheckpoint, cancellationRequested, this::failJob);
+                    jobGraph, source, coordinator, sourceTasks, channelStages, sinkTasks,
+                    checkpointStore, restoredCheckpoint, executionGraph::isCancellationRequested, this::failJob);
         }
     }
 
-    private TaskEnvironment environment(StreamNode node, int subtask) {
-        return new TaskEnvironment(
-                new RuntimeTaskInfo(plan.jobID(), node.getId(), subtask, node.getParallelism(), 0),
-                plan.configuration());
+    private void assembleChainedVertex() throws Exception {
+        JobVertex vertex = jobGraph.getVertices().getFirst();
+        List<StreamNode> operators = vertex.getOperators();
+        StreamNode sourceNode = operators.getFirst();
+        StreamNode sinkNode = operators.getLast();
+        Source<Object, SourceSplit, Object> source = castSource(sourceNode);
+        OperatorCoordinatorContext context = new OperatorCoordinatorContext(
+                jobGraph.jobID(), vertex.getId(), vertex.getParallelism());
+        coordinator = new SourceCoordinator<>(source, context);
+        OperatorChain chain = new OperatorChain(operators.subList(1, operators.size() - 1), sinkNode);
+        Execution execution = executionGraph.currentExecution(vertex.getId(), 0);
+        SourceOperatorStreamTask<Object, SourceSplit> task = new SourceOperatorStreamTask<>(
+                source, coordinator, environment(execution), chain, chain);
+        sourceTasks.add(task);
+        bind(execution, task);
+        // For a chained Source/Operator/Sink, preserve the StreamTask's originating failure.
+        // Coordinator failures are delivered through the Task mailbox, as in the original inline path.
+        coordinator.terminationFuture().whenComplete((unused, error) -> {
+            if (error != null) {
+                task.coordinatorFailed(unwrap(error));
+            }
+        });
+    }
+
+    private void bind(Execution execution, StreamTask task) {
+        execution.deploy(task);
+        executions.add(execution);
+    }
+
+    private JobVertex vertex(int jobVertexId) {
+        return jobGraph.getVertices().stream()
+                .filter(vertex -> vertex.getId() == jobVertexId)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown JobVertex id: " + jobVertexId));
+    }
+
+    private TaskEnvironment environment(Execution execution) {
+        ExecutionVertex vertex = execution.getVertex();
+        return new TaskEnvironment(vertex.taskInfo(jobGraph.jobID()), jobGraph.configuration());
+    }
+
+    private boolean checkpointEnabled() {
+        return !jobGraph.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
+                || jobGraph.configuration().get(CheckpointingOptions.RESTORE_LATEST);
     }
 
     private void ensureNotCancelled() {
-        if (cancellationRequested.getAsBoolean() || Thread.currentThread().isInterrupted()) {
+        if (executionGraph.isCancellationRequested() || Thread.currentThread().isInterrupted()) {
             throw new CancellationException("本地 Job 已请求取消");
         }
     }
@@ -234,9 +278,8 @@ final class JobExecution {
         for (RecordChannel<Object> channel : channels) {
             channel.abort(cause);
         }
-        for (StreamTask task : tasks) {
-            // Task 可能已结束或尚未启动；取消请求仅用于唤醒与资源收敛。
-            task.cancelAsync();
+        for (Execution execution : executions) {
+            execution.cancelAsync();
         }
     }
 
@@ -249,9 +292,9 @@ final class JobExecution {
                 failure = accumulate(failure, error);
             }
         }
-        for (StreamTask task : tasks) {
+        for (Execution execution : executions) {
             try {
-                task.close();
+                execution.close();
             } catch (Throwable error) {
                 failure = accumulate(failure, error);
             }

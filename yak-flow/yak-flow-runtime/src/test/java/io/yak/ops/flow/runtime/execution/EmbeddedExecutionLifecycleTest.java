@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
-class StreamJobRunnerTest {
+class EmbeddedExecutionLifecycleTest {
 
     @Test
     void shouldRunBoundedPipelineWithMultipleOperatorsAndFinalFlush() throws Exception {
@@ -136,6 +136,9 @@ class StreamJobRunnerTest {
         second.getJobExecutionResult().get(5, TimeUnit.SECONDS);
 
         assertNotEquals(first.getJobID(), second.getJobID());
+        assertEquals(io.yak.ops.flow.runtime.executiongraph.ExecutionState.FINISHED,
+                ((EmbeddedJobClient) first).getExecutionGraph().getJobVertices().getFirst()
+                        .getTaskVertices().getFirst().getCurrentExecutionAttempt().getState());
         assertEquals(List.of("one", "two", "one", "two"), sink.rows);
         assertEquals(2, sink.finalFlushes.get());
         assertEquals(2, sink.closes.get());

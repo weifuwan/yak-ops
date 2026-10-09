@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-class ParallelJobExecutionTest {
+class ExecutionGraphParallelTest {
 
     @Test
     void shouldFanInFourSourceReadersToOneSinkWithoutLosingRecords() throws Exception {
@@ -60,6 +60,13 @@ class ParallelJobExecutionTest {
         JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
         assertEquals(job.getJobID(), job.getJobExecutionResult().get(5, TimeUnit.SECONDS).getJobID());
         assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(4, ((EmbeddedJobClient) job).getExecutionGraph().getJobVertices().getFirst()
+                .getTaskVertices().size());
+        assertEquals(0, ((EmbeddedJobClient) job).getExecutionGraph().getJobVertices().getFirst()
+                .getTaskVertex(0).getCurrentExecutionAttempt().getAttemptNumber());
+        assertEquals(io.yak.ops.flow.runtime.executiongraph.ExecutionState.FINISHED,
+                ((EmbeddedJobClient) job).getExecutionGraph().getJobVertices().getFirst()
+                        .getTaskVertex(0).getCurrentExecutionAttempt().getState());
         assertEquals(4, source.readerCreated.get());
         assertEquals(4, source.readerClosed.get());
         assertEquals(1, sink.writers.size());

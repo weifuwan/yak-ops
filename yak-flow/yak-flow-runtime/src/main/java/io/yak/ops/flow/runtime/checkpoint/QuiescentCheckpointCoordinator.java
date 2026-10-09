@@ -4,7 +4,7 @@ import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.CheckpointingOptions;
-import io.yak.ops.flow.runtime.execution.CompiledJobPlan;
+import io.yak.ops.flow.runtime.jobgraph.JobGraph;
 import io.yak.ops.flow.runtime.io.RecordChannel;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import io.yak.ops.flow.runtime.tasks.SinkOperatorStreamTask;
@@ -60,7 +60,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
     private final AtomicBoolean closed = new AtomicBoolean();
 
     public QuiescentCheckpointCoordinator(
-            CompiledJobPlan plan,
+            JobGraph plan,
             Source<?, SourceSplit, Object> source,
             SourceCoordinator<SourceSplit, Object> coordinator,
             List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks,

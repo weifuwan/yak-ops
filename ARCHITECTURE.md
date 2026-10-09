@@ -6,7 +6,7 @@ Scope: 当前模块职责、代码归属与依赖方向。文档归属遵循 [En
 
 ## Principle
 
-**当前分支状态（PR #1514 修复）**：离线/实时同步的前端、Controller、Service、DAO、Connector 和数据库结构已恢复。旧 `io.yak.ops.flow.runtime` 根包执行引擎已移除；尚未接入新的业务运行引擎，手动执行、调度触发及实时自动恢复会拒绝创建新执行实例。历史版本发布和验收材料仍按其原有版本记录理解。
+**当前分支状态**：旧 Business execution 与 JDBC / CDC Connector 已移除；Data Sync 的前端、Controller、Service、DAO、Flyway 保留。YakFlow 具备单 JVM 的物理 JobGraph / ExecutionGraph 执行基础，但尚未连接新的 JDBC / CDC Connector，不能执行实际跨库同步。
 
 Datasource 管资源与连接，Data Sync 管同步任务和运行语义，YakFlow 管执行机制。Platform 提供身份、工作空间和用户偏好。能力边界不等同于页面菜单或 Maven 模块数量。
 
@@ -42,28 +42,22 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-flow/yak-flow-api`
 
-暂时保留原有 Source / Sink、Row / Schema / Logical Type、Boundedness 与 CheckpointState 契约，供尚未迁移的代码使用；新引擎以 `yak-ops-core` 契约为目标，不在一条执行链路中混用新旧 Source API。过渡期间 API 保持 JDK-only。
+仅持有 JDK-only 的 YakRow、RowKind、YakTableSchema、YakDataType 等行/逻辑类型值对象；Source、Sink、Split 公共 API 归 Core。
 
 ### `yak-flow/yak-flow-runtime`
 
-拥有与 Flink 当前 `flink-runtime` 对齐的 Streaming 图及执行实现：`StreamGraph` / `StreamGraphGenerator` / `StreamNode` / `StreamEdge`、`SourceTransformation` / `OneInputTransformation` / `SinkTransformation`、`OneInputOperator` 及工厂、`CompiledJobPlan`、`RuntimeTaskInfo` / `TaskEnvironment`、`EmbeddedPipelineExecutor` / `EmbeddedJobClient`、`StreamJobRunner` / `JobExecution`、`StreamTask`、`OperatorChain`、`RecordChannel` / `RecordRouter`、`SourceCoordinator` 与 `QuiescentCheckpointCoordinator`。具体类不以 Local 前缀表达公共机制；单 JVM 执行入口用 Embedded 明确部署边界。
+拥有 StreamGraph / StreamGraphGenerator、StreamingJobGraphGenerator、物理 JobGraph（JobVertex / JobEdge）、ExecutionGraph（ExecutionJobVertex / ExecutionVertex / Execution）、TaskDeployment、StreamTask、OperatorChain、SourceCoordinator、RecordChannel / RecordRouter 与 QuiescentCheckpointCoordinator。EmbeddedPipelineExecutor 仅负责编译和提交；EmbeddedJobClient 只提供查询、取消、结果和 Checkpoint 入口，运行状态由 ExecutionGraph 唯一管理。
 
 当前只支持一个 Source → 零个或多个单输入 Operator → 一个 Sink 的严格线性图，保留单并行 FORWARD 内联链、多并行 Task/有界队列、FORWARD / REBALANCE / KEYED 路由、取消及失败清理语义。可恢复 Checkpoint 限于 Source → Sink 的单节点静止切面，持久化格式和状态目录保持兼容，语义仍为 at-least-once，不承诺 Exactly-once。多源、分叉、网络 Shuffle、动态扩缩容和中间 Operator 状态恢复尚未实现。
 
-Runtime 单向依赖 Core，不拥有产品 Task / Execution / Attempt 持久化或 Cron/Retry。旧 `io.yak.ops.flow.runtime.LocalExecutionEngine` / `LocalExecution` 已删除，Data Sync 的定义/管理/DAO/Connector 保留但尚未接入新执行入口；不能将旧版本验收证据当作新 Runtime 的验收。
+Runtime 单向依赖 Core；内存 Execution / Attempt 与 Data Sync DAO 的产品实例身份不同。当前只创建 attempt 0，不支持失败重试、分布式部署或 Slot/RPC；旧 JDBC / CDC Connector 已删除，新引擎不能依据历史跨库 E2E 声称产品能力。
 
 新边界详见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。
 
 
-### `yak-flow/yak-flow-connector-jdbc`
+### YakFlow Connector
 
-拥有同步 SQL、逻辑类型映射与兼容性、split、Reader、SinkWriter 及数据库方言。复用 Datasource Plugin API 的规范化连接和 JDBC 运行时，不复制凭证配置或 Driver 装载机制。
-
-### `yak-flow/yak-flow-connector-cdc-mysql`
-
-拥有 MySQL CDC 到 YakRow 的转换、Debezium Engine 生命周期，以及连接器私有的 offsets / schema history。Debezium 和 Kafka Connect 类型不得进入 API / Runtime。
-
-上述四个模块的执行、写入、checkpoint 与续传边界统一见 [YakFlow Capability](docs/capabilities/yak-flow/README.md)，包组织与实现约束见 [YakFlow Rules](yak-flow/YAK_FLOW_RULES.md)。
+旧 yak-flow-connector-jdbc 与 yak-flow-connector-cdc-mysql 已删除。仍用于产品 Schema/DDL 预览的 JDBC 类型映射与方言代码归 Datasource JDBC Plugin；新的执行 Connector 需要直接实现 Core Source / Sink。
 
 ### `yak-ops-business`
 
@@ -89,29 +83,7 @@ Runtime 单向依赖 Core，不拥有产品 Task / Execution / Attempt 持久化
 
 ### `yak-ops-business/yak-ops-business-data-sync`
 
-唯一稳定产品入口为 `DataSyncService`。拥有定义、发布、Schedule 业务记录、Execution / Attempt 生命周期、产品 Retry 和 REALTIME desired-state 协调；v1.2 起同时拥有产品级 Logical Table Schema Contract。
-
-职责划分：
-
-- `scheduler` 定义框架无关的 ScheduleEngine 与 Fire 回调；Quartz 实现在 Boot。
-- `execution/planning` 将冻结快照、Catalog 与安全连接解析为内存执行计划。
-- `execution/executor` 提交一次 Runtime 尝试并报告结果；`execution/lifecycle` 统一持久化状态、取消引用与启动 LOST 处理。
-- `execution/realtime` 拥有 CDC state identity 和进程内 serverId 分配；连接器拥有状态文件内容。
-- `schema` 拥有产品级 LogicalTable / LogicalColumn；复用 YakFlow Logical Type，但不把 Workspace、Comment、Schema Version 等产品元数据下沉到 Runtime。
-
-通过 `DataSourceService` 读取 Catalog / 解析运行连接，不绕过该接口访问 Datasource DAO 或 Plugin Registry。运行计划可以间接持有凭证，但只能存在于内存，不能进入快照、响应或日志。
-
-数据同步扩展到多表、增量和长期运行时，产品级 ownership 仍留在 Data Sync：
-
-- Task 级共享策略与每张表的稳定 Route identity 由 Data Sync 拥有。
-- 一次 Task 运行的 Root Execution、单表 Table Execution 与 Attempt 由 Data Sync 负责持久化和聚合；YakFlow 不成为产品级多任务调度器。
-- OFFLINE Incremental 的 confirmed cursor / watermark、Schema baseline / diff、Recovery budget 与 Task Health 都是产品事实，不下沉到 YakFlow。
-- YakFlow 继续接收单条已解析的 Source → Sink 执行计划并负责数据平面；连接器私有 checkpoint 不能替代产品级 Route 状态。
-- REALTIME periodic reconciliation 属于 Data Sync lifecycle；Boot 可以负责调度 / 装配入口，但不能直接查询 DAO 后自行创建 Execution。
-
-v1.3 的具体范围、兼容要求与 Non-Goals 由 [v1.3.0 Release Contract](docs/release/v1.3.0.md) 冻结；在对应实现 PR 合并前，这些规划能力不计入当前已实现 Capability。
-
-详细行为由 [Data Sync Capability](docs/capabilities/data-sync/README.md) 及其专题定义，实现约束见 [Data Sync Rules](yak-ops-business/yak-ops-business-data-sync/DATA_SYNC_RULES.md)。
+只保留 DataSyncService / DataSyncServiceImpl、Task/Route/Definition、Schema 映射和预览、Schedule、历史 Execution / Attempt 查询及运维读模型。旧 business.datasync.execution 包已删除；历史运行态由 history.DataSyncHistoryRecovery 收口，新 Connector 未接入前手动运行和有效 Cron 触发均拒绝新建执行实例。产品持久化与运行时 ExecutionGraph 内存尝试互不混淆。详细见 [Data Sync Capability](docs/capabilities/data-sync/README.md)。
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
@@ -152,7 +124,8 @@ UI → HTTP → Boot
              └─ DataSyncService → DAO / DataSourceService / YakFlow
 
 YakFlow Runtime（Graph / Operator / Execution / Checkpoint）→ Yak Ops Core（API / Configuration / Transformation）
-YakFlow Connectors → Yak Ops Core（目标）/ YakFlow API / Datasource connection runtime（过渡）
+YakFlow StreamGraph → JobGraph → ExecutionGraph → StreamTask
+Datasource JDBC Schema → YakFlow Row / Type API
 Boot Quartz → Data Sync Scheduler Contract
 ```
 
