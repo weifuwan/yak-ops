@@ -2,8 +2,7 @@ package io.yak.ops.flow.runtime.operators;
 
 import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
-import io.yak.ops.core.api.operators.OneInputOperator;
-import io.yak.ops.core.graph.StreamNode;
+import io.yak.ops.flow.runtime.graph.StreamNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -14,7 +13,7 @@ import java.util.Objects;
  * <p>只在所属 Task Mailbox 线程创建、打开、处理、finish、flush 和关闭运行实例。
  * 本类不建立额外线程或 Channel，只有线性单并行拓扑才能使用。
  */
-public final class LocalOperatorChain implements ReaderOutput<Object>, AutoCloseable {
+public final class OperatorChain implements ReaderOutput<Object>, AutoCloseable {
 
     private final List<StreamNode> operatorNodes;
     private final StreamNode sinkNode;
@@ -24,7 +23,7 @@ public final class LocalOperatorChain implements ReaderOutput<Object>, AutoClose
     private boolean finished;
     private boolean closed;
 
-    public LocalOperatorChain(List<StreamNode> operatorNodes, StreamNode sinkNode) {
+    public OperatorChain(List<StreamNode> operatorNodes, StreamNode sinkNode) {
         Objects.requireNonNull(operatorNodes, "operatorNodes 不能为空");
         for (StreamNode node : operatorNodes) {
             if (node == null || !node.isOperator()) {
