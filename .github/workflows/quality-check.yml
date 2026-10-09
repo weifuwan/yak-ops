@@ -54,11 +54,9 @@ jobs:
           cache: maven
 
       - name: Release tooling syntax
-        if: steps.scope.outputs.backend == 'true'
         run: bash -n scripts/release/*.sh
 
       - name: Release metadata consistency
-        if: steps.scope.outputs.backend == 'true'
         run: bash scripts/release/check-release-metadata.sh
 
       - name: Backend logging rules
