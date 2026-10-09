@@ -28,10 +28,13 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 ## Source / IO / Checkpoint
 
 - SourceCoordinator 的事件循环与各 StreamTask Mailbox 分离。Split 事件处理确认与 Split 数据消费/Checkpoint 确认不能混为一谈；Reader 与 Operator 只在所属 Mailbox 执行。
+- StreamTask 不再自建 Runnable 队列、固定控制 Mail 批量处理数量或 park 轮询。Mail 通过 TaskMailbox / MailboxExecutor 排队，只有 Task 线程可以执行；Future 只能在 Mail 的动作真正执行后确认。
+- MailboxDefaultAction 每次处理一个 InputStatus 步骤；NOTHING_AVAILABLE 时等待 Source/Channel 的 isAvailable Future，暂停默认输入但继续执行控制 Mail。Future 就绪或新的 Split/NoMoreSplits 控制事件可恢复输入；持续报告「已就绪但无数据」应明确报错，不能忙轮询。
+- TaskMailbox 状态 OPEN → QUIESCED → CLOSED；退出前拒绝新 Mail，关闭时未处理的控制 Future 必须异常完成。Task 取消和异步失败必须唤醒等待状态，正常 END_OF_INPUT 才执行最终 finish。
 - RecordChannel 是有界多生产者、单消费者队列；FORWARD、REBALANCE、KEYED 行为保持原有逻辑。全部上游结束且队列清空才允许 EOF；失败/取消唤醒上下游。
 - QuiescentCheckpointCoordinator 仍是单 JVM Source → Sink 静止切面：冻结分片、暂停 Reader、排空 Channel、Sink flush(false)、原子持久化，然后通知完成。
 - 文件签名、CRC、Serializer 状态格式与恢复规则不变。未提供 Operator State 快照时不能在带中间算子的图上启用 Checkpoint。当前 at-least-once，不支持 Exactly-once。
-- 这个 PR 不改 MailboxProcessor / InputGate / ResultPartition / Flink Barrier Checkpoint，也不引入 RPC、Slot、JobMaster、动态扩缩容、KeyGroup 或假 Failover。
+- 当前 MailboxProcessor 仅用于本地单 JVM Task；参考 Flink 的 DefaultAction 暂停和控制 Mail 调度，不引入 Flink Mail 优先级系统、InputGate、ResultPartition、Barrier Checkpoint、RPC、Slot、JobMaster、动态扩缩容、KeyGroup 或自动 Failover。
 
 ## Verification
 

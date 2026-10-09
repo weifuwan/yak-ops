@@ -13,7 +13,7 @@ Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime`。仅定义 Core-based Run
 | Runtime Physical Job | JobGraph / JobVertex / JobEdge；JobVertex 表示可部署算子链，JobEdge 只描述跨 Task 边 |
 | Runtime Execution | ExecutionGraph / ExecutionJobVertex / ExecutionVertex / Execution；Job 状态和 Subtask / Attempt |
 | Deployment | TaskDeployment 按物理图装配、启动、收口 StreamTask、RecordChannel、SourceCoordinator |
-| Runtime Task / IO | StreamTask、OneInputStreamTask、SourceOperatorStreamTask、SinkOperatorStreamTask、OperatorChain、RecordChannel / RecordRouter |
+| Runtime Task / IO | StreamTask、OneInputStreamTask、SourceOperatorStreamTask、SinkOperatorStreamTask、OperatorChain、RecordChannel / RecordRouter；TaskMailbox / MailboxExecutor / MailboxDefaultAction / MailboxProcessor |
 | Runtime Checkpoint | QuiescentCheckpointCoordinator、CheckpointSnapshot、FileCheckpointStore |
 
 Core 不能依赖 Runtime。Runtime 的 Execution 是当前 JVM 中一次 Subtask Attempt，不是 Data Sync 表中的业务 Execution/Attempt。
@@ -34,8 +34,17 @@ ExecutionGraph 是唯一 Job Status、取消、结果 Future 和提交 Worker �
 
 TaskDeployment 依照物理 JobVertex 倒序装配 Sink/Operator/Source，先启动消费者再启动生产者。为每个目标 Subtask 创建有界 Channel，为每个物理 Execution 创建单独的 StreamTask 和 Source/Sink/Operator 运行实例。失败时中止 Channel、取消所有 Task，再尽力关闭 Task、Coordinator 与状态存储；取消 Future 在实际退出/清理后完成。
 
-只有输入自然结束才依次调用 Operator.finish 和 SinkWriter.flush(true)；失败与取消时不能补充最终 Flush。无界 Source 未被取消却完成应视为异常。Task Mailbox/SourceCoordinator 现有线程和 Split 事件语义暂不改变。
+只有输入自然结束才依次调用 Operator.finish 和 SinkWriter.flush(true)；失败与取消时不能补充最终 Flush。无界 Source 未被取消却完成应视为异常。StreamTask 使用 MailboxProcessor 默认动作和独立 TaskMailbox；SourceCoordinator 事件循环与 Split 交付/确认协议保持不变。
 
+## StreamTask Mailbox
+
+每个 StreamTask 在一个虚拟线程上运行独立的 MailboxProcessor。TaskMailbox 允许别的线程投递 Mail，但只有所属 Task 线程可以消费它。MailboxExecutor 的 Future 必须在控制动作真正执行后成功完成；执行失败会让所属 Task 失败。
+
+输入处理是 MailboxDefaultAction，每次只执行一步 processInput()，并与控制 Mail 交替进行。NOTHING_AVAILABLE 且 isAvailable() 未完成时只暂停默认输入动作，Mailbox 仍可处理 Coordinator/Checkpoint 控制消息；Future 就绪后恢复输入。Source 收到 AddSplit/NoMoreSplits 事件时也显式重新激活默认动作，避免不主动完成旧 availability Future 的 Reader 一直挂起。连续返回「就绪但无数据」是 Source 协议问题，不能 busy-spin。
+
+StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finishTask → closeTask。异常/取消不执行最终 finish。退出时先 QUIESCE，再 CLOSED，未执行 Mail 的 Future 必须异常完成。取消中断 Task 工作线程以退出阻塞调用，完成清理后才完成 cancellation Future。
+
+本阶段不实现 Flink 的 Mail 优先级/Batch、Watermark、InputGate 或网络邮箱，保留当前 SourceOperator、RecordChannel 和 QuiescentCheckpoint 文件协议。
 ## Transport
 
 每个 RecordChannel 是多生产者、单消费者的有限队列，FORWARD 需要上下游相同并行度，REBALANCE 在目标 Channel 上轮询，KEYED 把业务键映射到目标 Subtask。同键分区不提供跨 Reader 全序，当前 KEYED 使用 hashCode/parallelism 而非 Flink KeyGroup，因此不支持有状态 Rescale。只有全部生产者结束且队列排空才能 EOF。
@@ -52,5 +61,7 @@ TaskDeployment 依照物理 JobVertex 倒序装配 Sink/Operator/Source，先启
 - [DefaultExecutionGraph](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/runtime/executiongraph/DefaultExecutionGraph.java)
 - [ExecutionVertex](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/runtime/executiongraph/ExecutionVertex.java)
 - [StreamTask](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/streaming/runtime/tasks/StreamTask.java)
+- [MailboxProcessor](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/streaming/runtime/tasks/mailbox/MailboxProcessor.java)
+- [TaskMailbox](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/streaming/runtime/tasks/mailbox/TaskMailbox.java)
 
 不为了匹配 Flink 名称而虚构 TaskManager、JobMaster、RPC、Slot、网络 Shuffle、自动故障恢复或完整 StateBackend；这些需要单独设计和验收。

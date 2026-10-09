@@ -19,6 +19,7 @@ Transformation → StreamGraphGenerator → StreamGraph
 - 无 Checkpoint、所有节点并行度 1 且 FORWARD 时，整个线性 Source → Operator* → Sink 作为单 JobVertex 链在同一 Mailbox 执行。其它合法图通过独立 JobVertex / ExecutionVertex 及有界 RecordChannel 执行。
 - ExecutionGraph 管理 Job 状态、任务提交线程与取消；Execution 是单个 Subtask 的一次 Attempt，目前只支持首次尝试（0）。EmbeddedPipelineExecutor 只提交，EmbeddedJobClient 只代理状态、取消、结果与 Checkpoint。
 - 当前拓扑只支持单 Source、任意个单输入 Operator、单 Sink 的严格线性链；FORWARD / REBALANCE / KEYED 保持已有分区行为。
+- StreamTask 通过 TaskMailbox 顺序处理控制事件，由 MailboxDefaultAction 处理 Source/Channel 输入。NOTHING_AVAILABLE 暂停输入，不阻塞 Mail；Future 就绪或 Split 事件到来后恢复。正常 EOF、失败和取消的原有生命周期不变。
 
 ## Checkpoint Boundary
 

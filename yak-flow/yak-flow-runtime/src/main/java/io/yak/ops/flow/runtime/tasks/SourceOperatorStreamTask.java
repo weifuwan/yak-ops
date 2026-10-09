@@ -137,6 +137,9 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
         Objects.requireNonNull(event, "event 不能为空");
         return submitMailbox(() -> {
             operator.handleOperatorEvent(event);
+            // Older/source-specific Reader implementations need not complete isAvailable()
+            // when a new split arrives. A coordinator event still makes input worth rechecking.
+            resumeInputProcessing();
             return null;
         });
     }
