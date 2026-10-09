@@ -34,6 +34,29 @@ class OperatorStateBackendTest {
     }
 
     @Test
+    void changedKeySerializerVersionMustNotSilentlyBecomeMissingState() throws Exception {
+        var info = new RuntimeTaskInfo(JobID.generate(), 3, 0, 1, 0, 8);
+        var writer = new OperatorStateBackend(Map.of(), info, true);
+        writer.putKeyed("counter", "account-1", STRINGS, "5", STRINGS);
+        var restored = new OperatorStateBackend(writer.snapshot(), info, true);
+        SimpleVersionedSerializer<String> upgradedKeys = new SimpleVersionedSerializer<>() {
+            @Override
+            public int getVersion() { return 2; }
+            @Override
+            public byte[] serialize(String value) { return value.getBytes(StandardCharsets.UTF_8); }
+            @Override
+            public String deserialize(int version, byte[] bytes) throws IOException {
+                return new String(bytes, StandardCharsets.UTF_8);
+            }
+        };
+        assertThrows(IllegalStateException.class,
+                () -> restored.getKeyed("counter", "account-1", upgradedKeys, STRINGS));
+        assertThrows(IllegalStateException.class,
+                () -> restored.putKeyed("counter", "account-2", upgradedKeys, "6", STRINGS));
+        assertEquals("5", restored.getKeyed("counter", "account-1", STRINGS, STRINGS).orElseThrow());
+    }
+
+    @Test
     void keyedStateRequiresTheOwningSubtask() throws Exception {
         var firstInfo = new RuntimeTaskInfo(JobID.generate(), 3, 0, 2, 0, 8);
         var first = new OperatorStateBackend(Map.of(), firstInfo, true);
