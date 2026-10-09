@@ -27,9 +27,9 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 
 ## StreamOperator / Sink / KeyGroups
 
-- `OneInputOperator` 兼容实现 `OneInputStreamOperator`，共享 `StreamOperator` 的 open / finish / close 生命周期。独立 Operator 与 Sink 均由 `OneInputStreamTask` 的 Mailbox 管理，**删除**单独的 `SinkOperatorStreamTask`。
+- `OneInputStreamOperator` 是唯一单输入算子接口，`OneInputOperatorFactory` 创建它，复用 `StreamOperator` 的 open / finish / close 生命周期。独立 Operator 与 Sink 均由 `OneInputStreamTask` 的 Mailbox 管理，无独立的 `SinkOperatorStreamTask`。
 - Sink 统一通过 `SinkWriterOperator` 创建 Writer、处理记录、flush 和关闭；单并行内联 `OperatorChain` 使用同一个 SinkWriterOperator，并以**Sink 节点**（不是 Source 节点）的 `RuntimeTaskInfo` 初始化 Writer。
-- Core 统一通过 `Sink.createWriter(WriterInitContext)` 获取实际 TaskInfo/Attempt/maxParallelism 和 Configuration 防御性副本；不保留 `SinkV2` 或旧无参 `Sink.createWriter()`。`SinkWriter.write(T)` 仍兼容。当前写入 Context 没有事件时间，timestamp 为 null、watermark 为 Long.MIN_VALUE。
+- Core 统一通过 `Sink.createWriter(WriterInitContext)` 获取实际 TaskInfo/Attempt/maxParallelism 和 Configuration 防御性副本；不保留 `SinkV2` 或旧无参 `Sink.createWriter()`。`SinkWriter.write(T, Context)` 是唯一写入方法。当前写入 Context 没有事件时间，timestamp 为 null、watermark 为 Long.MIN_VALUE。
 - `StatefulSinkWriter` / `SupportsWriterState` 可由 AlignedCheckpointCoordinator 组合版本化 Writer State 快照与恢复；只有 StatefulSinkWriter 且无 SupportsWriterState 恢复合同的 Sink 仍须拒绝。不可宣称有 CommittingSinkWriter / Committer 或事务 Exactly-once。
 - `PipelineOptions.MAX_PARALLELISM` 默认 128，可配置到 32768；物理 JobVertex、RuntimeTaskInfo 和 RecordWriterOutput 读取同一值，配置不能小于有效并行度。KEYED 使用 Flink 风格的 Murmur3 hash → KeyGroup → Subtask 范围分配；**尚不支持状态 Rescale**。
 - 非 KEYED Checkpoint 指纹不变。对于 KEYED，已更新拓扑指纹以包含 KeyGroup 算法与 maxParallelism，故采用旧 hashCode % N 方案生成的 KEYED Checkpoint 不能直接恢复，需要明确迁移策略；不静默混用两套哈希。
@@ -46,7 +46,7 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 - StreamTaskSourceInput / StreamTaskNetworkInput 统一实现 StreamTaskInput，提供非阻塞 emitNext 与 getAvailableFuture。ResultPartition 为每个上游 Task 创建其 ResultSubpartition；InputGate 为下游 Task 消费多个上游 Subpartition，轮询读取且共享单一缓存额度。生产者等待 Gate 可用容量的条件通知，不使用定时轮询。
 - RecordWriterOutput 将分区选择交给独立 StreamPartitioner：FORWARD、REBALANCE 保留现有行为，KEYED 使用固定 maxParallelism 的 Flink 式 KeyGroup 分区，但不支持 Keyed State Rescale。全部生产者结束且 Gate 缓冲清空才会 EOF；失败/取消必须唤醒阻塞的发送者、等待输入的 Task 和 Checkpoint。
 - AlignedCheckpointCoordinator 负责单 JVM Source → Operator* → Sink 对齐式 Barrier：Reader / Enumerator / 分配历史必须先序列化冻结，再解冻 Source；ResultSubpartition 保持数据/Barrier 顺序，Barrier 已入队的 Producer 在目标 InputGate 对齐前不能用后续数据占满共享缓存；InputGate 对齐后由 Task Mailbox 快照、传播 Barrier 与 ACK，全部 ACK 后原子持久化。正常 Producer EOF 缺失 Barrier 只拒绝该 Checkpoint，不应造成 Job 失败。
-- 无 Operator/Writer 状态的快照保持 v1 二进制格式和原签名；有状态快照使用 v2 UID/subtask 命名状态，旧 v1 可读；CRC/Serializer/目录独占锁保留。OneInputOperator 默认无状态；持久化状态须显式实现 CheckpointedStreamOperator。OperatorStateBackend 的键控状态只适用于 KEYED 输入归属范围，恢复时 Key Serializer 版本不匹配必须明确失败，不能当成未写过状态；不支持 Serializer Migration / Rescale。当前 at-least-once，不支持 Exactly-once。
+- 无 Operator/Writer 状态的快照保持 v1 二进制格式和原签名；有状态快照使用 v2 UID/subtask 命名状态，旧 v1 可读；CRC/Serializer/目录独占锁保留。OneInputStreamOperator 默认无状态；持久化状态须显式实现 CheckpointedStreamOperator。OperatorStateBackend 的键控状态只适用于 KEYED 输入归属范围，恢复时 Key Serializer 版本不匹配必须明确失败，不能当成未写过状态；不支持 Serializer Migration / Rescale。当前 at-least-once，不支持 Exactly-once。
 - 当前 MailboxProcessor / InputGate / ResultPartition 都是单 JVM 实现，不等于 Flink 网络数据交换。可选整 Job Checkpoint 恢复是受限的本地重建，不是 Flink 的局部 Failover 或 Exactly-once；不引入远程 InputChannel、Credit-Based Flow Control、多输入/网络 Barrier、RPC、Slot、JobMaster 或 KeyGroup Rescale。
 
 ## Verification

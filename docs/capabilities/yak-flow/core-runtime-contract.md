@@ -23,7 +23,7 @@ Core 不能依赖 Runtime。Runtime 的 Execution 是当前 JVM 中一次 Subtas
 
 StreamingJobGraphGenerator 必须在创建 SourceReader、SinkWriter、工作线程前完成拓扑/类型/并行度和 Checkpoint 策略校验。JobGraph 拥有 JobID、执行模式、Configuration 快照、JobVertex / JobEdge；不能只把 StreamGraph 当作编译结果。原 StreamGraph 仅保留供稳定 Checkpoint 签名与 Boundedness 判断。
 
-物理编译规则：当前只接受 Source → OneInputOperator* → Sink 的严格线性图。无 Checkpoint 且所有并行度均为 1、所有边均为 FORWARD 时，将整个链折叠成一个可部署 JobVertex（一个 Task Mailbox，没有跨 Task JobEdge）；其它图按节点生成 JobVertex，并在 JobEdge 上保存原 StreamEdge 的分区策略。Checkpoint 图不做算子链合并。
+物理编译规则：当前只接受 Source → OneInputStreamOperator* → Sink 的严格线性图。无 Checkpoint 且所有并行度均为 1、所有边均为 FORWARD 时，将整个链折叠成一个可部署 JobVertex（一个 Task Mailbox，没有跨 Task JobEdge）；其它图按节点生成 JobVertex，并在 JobEdge 上保存原 StreamEdge 的分区策略。Checkpoint 图不做算子链合并。
 
 现有本地执行限制保持：单节点实际并行度 1–16、逻辑 Subtask 总量最多 64、InputGate 每目标缓存总容量 1–4096；KeyGroup 最大并行度通过 pipeline.max-parallelism 配置（默认 128，上限 32768），不得小于实际并行度。配置键仍是 `execution.local-channel.capacity`，默认 64；Core 的默认并行度由 `parallelism.default` 管理。
 
@@ -56,9 +56,9 @@ StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finish
 
 ## StreamOperator and Sink
 
-`StreamOperator` 定义统一 open、正常结束 finish、close 生命周期；`OneInputStreamOperator` 支持单输入与同步 Collector。现有 `OneInputOperator` 继续兼容原先工厂，但 Runtime 独立 `OneInputStreamTask` 也运行 `SinkWriterOperator`，不再拥有独立 `SinkOperatorStreamTask`。Chained OperatorChain 和独立 Sink 使用相同 SinkWriterOperator 的 Writer 创建、write、flush 和关闭路径。
+`StreamOperator` 定义统一 open、正常结束 finish、close 生命周期；`OneInputStreamOperator` 支持单输入与同步 Collector。`OneInputOperatorFactory` 直接创建 `OneInputStreamOperator`；独立 `OneInputStreamTask` 同样运行 `SinkWriterOperator`，不再拥有独立 `SinkOperatorStreamTask`。Chained OperatorChain 和独立 Sink 使用相同 SinkWriterOperator 的 Writer 创建、write、flush 和关闭路径。
 
-Core `Sink.createWriter(WriterInitContext)` 获取 Sink 节点的 Job/Operator/Subtask/Attempt/maxParallelism 及隔离配置；旧的无参 `Sink.createWriter()` 与 `SinkV2` 已移除，`SinkWriter.write(T)` 保留兼容。新 `SinkWriter.Context` 提供 timestamp=null、watermark=Long.MIN_VALUE（没有时间流语义前不伪造），并作为真实 write 接口调用。实现 SupportsWriterState 的 Sink 可通过版本化 Serializer 保存 StatefulSinkWriter 快照并恢复；缺失恢复合同的 StatefulSinkWriter 在启用 Checkpoint 时继续拒绝。不实现事务 Committer。
+Core `Sink.createWriter(WriterInitContext)` 获取 Sink 节点的 Job/Operator/Subtask/Attempt/maxParallelism 及隔离配置；旧的无参 `Sink.createWriter()` 与 `SinkV2` 已移除，`SinkWriter.write(T, Context)` 是唯一写入方法。新 `SinkWriter.Context` 提供 timestamp=null、watermark=Long.MIN_VALUE（没有时间流语义前不伪造），并作为真实 write 接口调用。实现 SupportsWriterState 的 Sink 可通过版本化 Serializer 保存 StatefulSinkWriter 快照并恢复；缺失恢复合同的 StatefulSinkWriter 在启用 Checkpoint 时继续拒绝。不实现事务 Committer。
 
 ## Source Coordination and Event Contracts
 
@@ -68,7 +68,7 @@ Core `Sink.createWriter(WriterInitContext)` 获取 Sink 节点的 Job/Operator/S
 
 ## Checkpoint / Recovery
 
-支持 Source → OneInputOperator* → Sink 的单 JVM 对齐 Barrier：冻结 Enumerator / Reader → Snapshot Reader 并按 FIFO 注入 Barrier → **在 Reader / Enumerator 恢复执行前，将所有 Source 状态序列化为不可变字节** → Source 恢复 → Gate 对各生产者对齐 Barrier → Task Mailbox 快照 Operator/Writer State 并 ACK → FileCheckpointStore 持久化 → 通知 Source 完成。Barrier 后 Producer 先等待目标 Gate 完成对齐，不能占满共享输入缓存；Producer 提前正常 EOF 时撤销 Checkpoint、保留普通数据流。多输入与跨网络 Barrier 不支持。
+支持 Source → OneInputStreamOperator* → Sink 的单 JVM 对齐 Barrier：冻结 Enumerator / Reader → Snapshot Reader 并按 FIFO 注入 Barrier → **在 Reader / Enumerator 恢复执行前，将所有 Source 状态序列化为不可变字节** → Source 恢复 → Gate 对各生产者对齐 Barrier → Task Mailbox 快照 Operator/Writer State 并 ACK → FileCheckpointStore 持久化 → 通知 Source 完成。Barrier 后 Producer 先等待目标 Gate 完成对齐，不能占满共享输入缓存；Producer 提前正常 EOF 时撤销 Checkpoint、保留普通数据流。多输入与跨网络 Barrier 不支持。
 
 非 KEYED 拓扑签名保留；KEYED 签名仍绑定 Murmur3 和 maxParallelism。无中间状态的 Source/Sink 快照继续写 v1，读写均支持原版；存在 Operator/Writer State 时写 v2（按稳定 UID + subtask + 状态名）。CRC、Serializer 版本、原子替换、目录锁不变。只保证本地 at-least-once，不支持 Exactly-once。
 
