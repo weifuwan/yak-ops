@@ -3,15 +3,29 @@ package io.yak.ops.core.configuration;
 import java.util.Map;
 import java.util.Optional;
 
-/** 配置容器的只读操作接口。 */
+/** Read-only view of typed configuration values. */
 public interface ReadableConfig {
 
-    /** 返回存储的配置值；未设置时返回配置项默认值（可能为 null）。 */
+    /**
+ * Returns an explicitly configured value or the option's default.
+ *
+ * @return the resolved value, which may be null when the option has no default
+ */
     <T> T get(ConfigOption<T> option);
 
-    /** 仅返回显式设置的值，不考虑配置项的默认值。 */
+    /**
+ * Returns only the explicitly stored value, ignoring its default.
+ *
+ * @return the stored value if the option is present
+ */
     <T> Optional<T> getOptional(ConfigOption<T> option);
 
-    /** 导出显式设置的配置项，导出的值不会脱敏。 */
+    /**
+ * Exports explicit values as strings without masking secrets.
+ *
+ * <p>Do not log this map without applying appropriate credential redaction.
+ *
+ * @return a detached map of the stored values
+ */
     Map<String, String> toMap();
 }
