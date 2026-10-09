@@ -25,11 +25,11 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 - 已删除 JobRunner、StreamJobRunner、CompiledJobPlan、JobExecution；不能为了测试注入重新建等价平行入口。
 - 失败先中止全部 InputGate、取消 Task，最终关闭 Task、Coordinator 和 Checkpoint Store。仅正常 END_OF_INPUT 时 finish Operator 和 flush(true) Sink。无界 Source 意外结束视为失败。
 
-## StreamOperator / Sink V2 / KeyGroups
+## StreamOperator / Sink / KeyGroups
 
 - `OneInputOperator` 兼容实现 `OneInputStreamOperator`，共享 `StreamOperator` 的 open / finish / close 生命周期。独立 Operator 与 Sink 均由 `OneInputStreamTask` 的 Mailbox 管理，**删除**单独的 `SinkOperatorStreamTask`。
 - Sink 统一通过 `SinkWriterOperator` 创建 Writer、处理记录、flush 和关闭；单并行内联 `OperatorChain` 使用同一个 SinkWriterOperator，并以**Sink 节点**（不是 Source 节点）的 `RuntimeTaskInfo` 初始化 Writer。
-- Core `SinkV2` 在 `createWriter(WriterInitContext)` 获取实际 TaskInfo/Attempt/maxParallelism 和 Configuration 防御性副本；旧 `Sink.createWriter()` 和 `SinkWriter.write(T)` 仍兼容。当前写入 Context 没有事件时间，timestamp 为 null、watermark 为 Long.MIN_VALUE。
+- Core 统一通过 `Sink.createWriter(WriterInitContext)` 获取实际 TaskInfo/Attempt/maxParallelism 和 Configuration 防御性副本；不保留 `SinkV2` 或旧无参 `Sink.createWriter()`。`SinkWriter.write(T)` 仍兼容。当前写入 Context 没有事件时间，timestamp 为 null、watermark 为 Long.MIN_VALUE。
 - `StatefulSinkWriter` / `SupportsWriterState` 可由 AlignedCheckpointCoordinator 组合版本化 Writer State 快照与恢复；只有 StatefulSinkWriter 且无 SupportsWriterState 恢复合同的 Sink 仍须拒绝。不可宣称有 CommittingSinkWriter / Committer 或事务 Exactly-once。
 - `PipelineOptions.MAX_PARALLELISM` 默认 128，可配置到 32768；物理 JobVertex、RuntimeTaskInfo 和 RecordWriterOutput 读取同一值，配置不能小于有效并行度。KEYED 使用 Flink 风格的 Murmur3 hash → KeyGroup → Subtask 范围分配；**尚不支持状态 Rescale**。
 - 非 KEYED Checkpoint 指纹不变。对于 KEYED，已更新拓扑指纹以包含 KeyGroup 算法与 maxParallelism，故采用旧 hashCode % N 方案生成的 KEYED Checkpoint 不能直接恢复，需要明确迁移策略；不静默混用两套哈希。

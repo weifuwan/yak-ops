@@ -27,9 +27,9 @@ Transformation → StreamGraphGenerator → StreamGraph
 
 FORWARD / REBALANCE / KEYED 路由保持兼容。KEYED 使用 Flink 风格的 Murmur3 KeyGroup 映射（默认 128 组），并为同 Subtask 的版本化 Keyed State 提供 KeyGroup 归属校验，但不提供状态 Rescale；本地 InputGate 支持单输入 Barrier 对齐，不实现远程网络 Credit。
 
-## StreamOperator, Sink V2 and KeyGroups
+## StreamOperator, Sink and KeyGroups
 
-独立 OneInput 和 Sink 的 Task 统一由 OneInputStreamTask 启动，SinkWriterOperator 封装 SinkWriter 的 open、write、checkpoint flush、finish 和 close。单并行内联 OperatorChain 也使用相同 SinkWriterOperator。Core 保留兼容旧 Sink 的无参工厂，并为新 SinkV2 提供 WriterInitContext / SinkWriter.Context；有 SupportsWriterState 的 SinkWriter 可以随 Barrier 进行版本化状态持久化与恢复，没有恢复合同的 StatefulSinkWriter 继续拒绝；不提供事务 Committer。
+独立 OneInput 和 Sink 的 Task 统一由 OneInputStreamTask 启动，SinkWriterOperator 封装 SinkWriter 的 open、write、checkpoint flush、finish 和 close。单并行内联 OperatorChain 也使用相同 SinkWriterOperator。Core 的 Sink 统一要求 `createWriter(WriterInitContext)`，Writer 的记录上下文由 `SinkWriter.Context` 提供；有 SupportsWriterState 的 SinkWriter 可以随 Barrier 进行版本化状态持久化与恢复，没有恢复合同的 StatefulSinkWriter 继续拒绝；不提供事务 Committer。
 
 pipeline.max-parallelism（默认 128）决定 KEYED 的 KeyGroup 数量，任务并行度只决定组如何归属各 Subtask，未来可据此设计 State Rescale，OperatorStateBackend 按固定 KeyGroup 提供命名/键控状态快照和恢复，但当前没有状态 Rescale。带 KEYED 的 Checkpoint 指纹会记录 KeyGroup 算法及最大并行度，拒绝使用旧 hashCode 路由模型的 KEYED 状态文件。
 

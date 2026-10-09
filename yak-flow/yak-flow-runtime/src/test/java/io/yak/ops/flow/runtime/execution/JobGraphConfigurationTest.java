@@ -213,7 +213,7 @@ class JobGraphConfigurationTest {
         Source<String, TestSplit, Integer> source = new ContractSource(bounded);
         SourceTransformation<String> input =
                 new SourceTransformation<>("source", source, String.class, sourceParallelism);
-        Sink<String> sink = () -> {
+        Sink<String> sink = context -> {
             throw new AssertionError("Graph compilation must not create a SinkWriter");
         };
         SinkTransformation<String> output = new SinkTransformation<>(input, "sink", sink, sinkParallelism);

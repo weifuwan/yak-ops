@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.core.api.common.JobID;
-import io.yak.ops.core.api.connector.sink.SinkV2;
+import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.StatefulSinkWriter;
 import io.yak.ops.core.api.connector.sink.SupportsWriterState;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
@@ -155,7 +155,7 @@ class SinkWriterOperatorFailureTest {
         return new OperatorStateBackend(values, new RuntimeTaskInfo(JobID.generate(), 27, 0, 1, 0), false);
     }
 
-    private static final class ProbeSink implements SinkV2<String>, SupportsWriterState<String, Integer> {
+    private static final class ProbeSink implements Sink<String>, SupportsWriterState<String, Integer> {
         private final int serializerVersion;
         private boolean failCheckpointFlush;
         private boolean failFinalFlush;

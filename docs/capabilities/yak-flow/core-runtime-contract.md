@@ -8,7 +8,7 @@ Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime`。仅定义 Core-based Run
 
 | Layer | Owner |
 | --- | --- |
-| Core | Source / SinkV2 / SinkWriter / StatefulSinkWriter、WriterInitContext、Split / Transformation、Configuration / TaskInfo、PipelineExecutor / JobClient |
+| Core | Source / Sink / SinkWriter / StatefulSinkWriter、WriterInitContext、Split / Transformation、Configuration / TaskInfo、PipelineExecutor / JobClient |
 | Runtime Graph | StreamGraphGenerator、StreamGraph / StreamNode / StreamEdge、StreamingJobGraphGenerator |
 | Runtime Physical Job | JobGraph / JobVertex / JobEdge；JobVertex 表示可部署算子链，JobEdge 只描述跨 Task 边 |
 | Runtime Execution | ExecutionGraph / ExecutionJobVertex / ExecutionVertex / Execution；Job 状态和 Subtask / Attempt |
@@ -54,11 +54,11 @@ StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finish
 - `RecordWriterOutput` 通过独立 `StreamPartitioner` 选择目标。FORWARD 同并行度，一条生产者流对应一条下游输入；REBALANCE 按生产者独立轮询；KEYED 用 MurmurHash(key.hashCode()) 分配到固定 KeyGroup，再按 `keyGroup * parallelism / maxParallelism` 映射到 Subtask。KeyGroup ID 不因并行度变化；OperatorStateBackend 可持久化归属当前 Subtask 的 Keyed State，恢复时按逻辑状态名校验 Key Serializer 版本，不兼容就拒绝而非静默返回空；**不支持 Serializer Migration 或状态 Rescale**。
 - 全部生产者结束并排空对应 Gate 的缓冲后才返回 END_OF_INPUT。失败/取消唤醒阻塞的发送者和等待消费者；Checkpoint 不再调用全阶段 drainedFuture，单输入 Barrier 对齐与 Task Mailbox 状态 ACK 才是快照屏障；drainedFuture 仍可供独立通道观测。
 
-## StreamOperator and Sink V2
+## StreamOperator and Sink
 
 `StreamOperator` 定义统一 open、正常结束 finish、close 生命周期；`OneInputStreamOperator` 支持单输入与同步 Collector。现有 `OneInputOperator` 继续兼容原先工厂，但 Runtime 独立 `OneInputStreamTask` 也运行 `SinkWriterOperator`，不再拥有独立 `SinkOperatorStreamTask`。Chained OperatorChain 和独立 Sink 使用相同 SinkWriterOperator 的 Writer 创建、write、flush 和关闭路径。
 
-Core `SinkV2.createWriter(WriterInitContext)` 获取 Sink 节点的 Job/Operator/Subtask/Attempt/maxParallelism 及隔离配置；兼容 Legacy `Sink.createWriter()` / `SinkWriter.write(T)`。新 `SinkWriter.Context` 提供 timestamp=null、watermark=Long.MIN_VALUE（没有时间流语义前不伪造），并作为真实 write 接口调用。实现 SupportsWriterState 的 Sink 可通过版本化 Serializer 保存 StatefulSinkWriter 快照并恢复；缺失恢复合同的 StatefulSinkWriter 在启用 Checkpoint 时继续拒绝。不实现事务 Committer。
+Core `Sink.createWriter(WriterInitContext)` 获取 Sink 节点的 Job/Operator/Subtask/Attempt/maxParallelism 及隔离配置；旧的无参 `Sink.createWriter()` 与 `SinkV2` 已移除，`SinkWriter.write(T)` 保留兼容。新 `SinkWriter.Context` 提供 timestamp=null、watermark=Long.MIN_VALUE（没有时间流语义前不伪造），并作为真实 write 接口调用。实现 SupportsWriterState 的 Sink 可通过版本化 Serializer 保存 StatefulSinkWriter 快照并恢复；缺失恢复合同的 StatefulSinkWriter 在启用 Checkpoint 时继续拒绝。不实现事务 Committer。
 
 ## Source Coordination and Event Contracts
 
