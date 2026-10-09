@@ -9,10 +9,10 @@ import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
 import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
-import io.yak.ops.connector.jdbc.database.dialect.MySqlJdbcDialect;
-import io.yak.ops.connector.jdbc.database.dialect.OracleJdbcDialect;
-import io.yak.ops.connector.jdbc.database.dialect.PostgresJdbcDialect;
-import io.yak.ops.connector.jdbc.database.factory.MySqlJdbcFactory;
+import io.yak.ops.connector.jdbc.database.internal.MySqlJdbcFactory;
+import io.yak.ops.connector.jdbc.database.internal.dialect.MySqlJdbcDialect;
+import io.yak.ops.connector.jdbc.database.internal.dialect.OracleJdbcDialect;
+import io.yak.ops.connector.jdbc.database.internal.dialect.PostgresJdbcDialect;
 import java.sql.Connection;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ class JdbcFactoryLoaderTest {
         assertInstanceOf(PostgresJdbcDialect.class, JdbcFactoryLoader.loadDialect("jdbc:postgresql://localhost/store"));
         assertInstanceOf(OracleJdbcDialect.class, JdbcFactoryLoader.loadDialect("jdbc:oracle:thin:@localhost:1521/X"));
         assertInstanceOf(
-                io.yak.ops.connector.jdbc.database.dialect.AnsiJdbcDialect.class,
+                io.yak.ops.connector.jdbc.database.internal.dialect.AnsiJdbcDialect.class,
                 JdbcFactoryLoader.loadDialect("jdbc:h2:mem:test"));
     }
 
