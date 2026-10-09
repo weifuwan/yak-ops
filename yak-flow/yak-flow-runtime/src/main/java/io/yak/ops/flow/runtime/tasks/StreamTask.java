@@ -32,6 +32,7 @@ public abstract class StreamTask implements AutoCloseable {
     private final CompletableFuture<Void> cancellation = new CompletableFuture<>();
     private final MailboxProcessor mailboxProcessor;
     private final MailboxExecutor mailboxExecutor;
+    private final TaskProcessingTimeService processingTimeService;
 
     private volatile Thread worker;
     private volatile boolean cancelRequested;
@@ -40,14 +41,17 @@ public abstract class StreamTask implements AutoCloseable {
     private boolean readyWithoutInput;
 
     protected StreamTask(TaskEnvironment environment) {
-        this.environment =
-                Objects.requireNonNull(environment, "environment 不能为空").withCancellation(() -> cancelRequested);
+        TaskEnvironment original = Objects.requireNonNull(environment, "environment 不能为空");
         mailboxProcessor = new MailboxProcessor(
                 new TaskMailboxImpl(),
                 this::processDefaultAction,
                 this::checkStop,
                 () -> cancelRequested || asyncFailure.get() != null);
         mailboxExecutor = mailboxProcessor.getMailboxExecutor();
+        processingTimeService = new TaskProcessingTimeService(
+                mailboxExecutor, this::failAsync, () -> cancelRequested || completion.isDone());
+        this.environment = original.withCancellation(() -> cancelRequested)
+                .withProcessingTimeService(processingTimeService);
     }
 
     public final RuntimeTaskInfo taskInfo() {
@@ -128,11 +132,26 @@ public abstract class StreamTask implements AutoCloseable {
                 cancellation.complete(null);
             }
         }
+        processingTimeService.close();
         if (thread != null) {
-            thread.interrupt();
+            try {
+                onCancellationRequested();
+            } catch (Throwable cancelFailure) {
+                failAsync(cancelFailure);
+            } finally {
+                thread.interrupt();
+            }
         }
         return cancellation.copy();
     }
+
+    /**
+     * Signals active I/O from the cancellation caller thread before interrupting the Task.
+     *
+     * <p>This hook must be non-blocking, idempotent, and must not flush or close the Writer.
+     * Terminal resource release still runs on the owning Task mailbox.
+     */
+    protected void onCancellationRequested() {}
 
     /** Control mail is acknowledged after it actually executes on the Task thread. */
     protected final <R> CompletableFuture<R> submitMailbox(Callable<R> action) {
@@ -230,6 +249,7 @@ public abstract class StreamTask implements AutoCloseable {
             failure = error;
         } finally {
             mailboxProcessor.prepareClose();
+            processingTimeService.close();
             try {
                 closeTask();
             } catch (Throwable closeError) {

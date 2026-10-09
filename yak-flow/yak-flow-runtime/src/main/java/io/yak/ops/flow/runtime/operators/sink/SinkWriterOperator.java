@@ -1,5 +1,6 @@
 package io.yak.ops.flow.runtime.operators.sink;
 
+import io.yak.ops.core.api.connector.sink.CancellableSinkWriter;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.sink.StatefulSinkWriter;
@@ -37,7 +38,7 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
     private final Sink<T> sink;
     private final WriterInitContext context;
     private OperatorStateBackend stateBackend;
-    private SinkWriter<T> writer;
+    private volatile SinkWriter<T> writer;
     private boolean opened;
     private boolean finished;
     private boolean closed;
@@ -158,6 +159,18 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
     private void requireOpen() {
         if (!opened || closed || finished || writer == null) {
             throw new IllegalStateException("SinkWriterOperator is not accepting records");
+        }
+    }
+
+    /**
+     * Sends an optional terminal I/O cancellation signal from outside the mailbox thread.
+     *
+     * <p>The Writer must return immediately and must not commit, flush, or close in this call.
+     */
+    public void requestCancel() {
+        SinkWriter<T> active = writer;
+        if (active instanceof CancellableSinkWriter<?> cancellable) {
+            cancellable.cancel();
         }
     }
 

@@ -21,7 +21,7 @@ public final class OperatorChain implements ReaderOutput<Object>, AutoCloseable 
     private final List<StreamNode> operatorNodes;
     private final StreamNode sinkNode;
     private final List<OneInputStreamOperator<Object, Object>> operators = new ArrayList<>();
-    private SinkWriterOperator<Object> sinkOperator;
+    private volatile SinkWriterOperator<Object> sinkOperator;
     private boolean opened;
     private boolean finished;
     private boolean closed;
@@ -50,15 +50,13 @@ public final class OperatorChain implements ReaderOutput<Object>, AutoCloseable 
         opened = true;
         RuntimeTaskInfo sourceTask = sourceEnvironment.taskInfo();
         // Chained operators still have their own stable logical identities within the physical Task.
-        TaskEnvironment sinkEnvironment = new TaskEnvironment(
-                new RuntimeTaskInfo(
-                        sourceTask.jobID(),
-                        sinkNode.getId(),
-                        sourceTask.subtaskIndex(),
-                        sinkNode.getParallelism(),
-                        sourceTask.attemptNumber(),
-                        sourceTask.maxParallelism()),
-                sourceEnvironment.configuration());
+        TaskEnvironment sinkEnvironment = sourceEnvironment.forSubtask(new RuntimeTaskInfo(
+                sourceTask.jobID(),
+                sinkNode.getId(),
+                sourceTask.subtaskIndex(),
+                sinkNode.getParallelism(),
+                sourceTask.attemptNumber(),
+                sourceTask.maxParallelism()));
         sinkOperator =
                 new SinkWriterOperator<>((Sink<Object>) sinkNode.getSink().orElseThrow(), sinkEnvironment);
         sinkOperator.open();
@@ -97,6 +95,14 @@ public final class OperatorChain implements ReaderOutput<Object>, AutoCloseable 
         }
         sinkOperator.finish();
         finished = true;
+    }
+
+    /** Forwards a non-blocking cancellation signal to the inline Sink Writer. */
+    public void requestCancel() {
+        SinkWriterOperator<Object> active = sinkOperator;
+        if (active != null) {
+            active.requestCancel();
+        }
     }
 
     @Override

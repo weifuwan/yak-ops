@@ -113,6 +113,13 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     }
 
     @Override
+    protected void onCancellationRequested() {
+        if (operatorChain != null) {
+            operatorChain.requestCancel();
+        }
+    }
+
+    @Override
     protected void closeTask() throws Exception {
         try (OperatorChain chain = operatorChain;
                 SourceOperator<T, SplitT> reader = operator) {
