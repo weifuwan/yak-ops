@@ -8,10 +8,12 @@ import io.yak.ops.core.api.connector.source.SourceReader;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -25,8 +27,7 @@ import java.util.concurrent.CompletableFuture;
  * @param <SplitT> checkpointed split type
  * @param <StateT> mutable reader-local split state
  */
-public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, StateT>
-        implements SourceReader<T, SplitT> {
+public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, StateT> implements SourceReader<T, SplitT> {
 
     protected final SourceReaderContext context;
     private final SplitFetcherManager<E, SplitT> fetchers;
@@ -41,9 +42,7 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, StateT>
     private boolean closed;
 
     protected SourceReaderBase(
-            SplitFetcherManager<E, SplitT> fetchers,
-            RecordEmitter<E, T, StateT> emitter,
-            SourceReaderContext context) {
+            SplitFetcherManager<E, SplitT> fetchers, RecordEmitter<E, T, StateT> emitter, SourceReaderContext context) {
         this.fetchers = Objects.requireNonNull(fetchers, "fetchers");
         this.emitter = Objects.requireNonNull(emitter, "emitter");
         this.context = Objects.requireNonNull(context, "context");
@@ -105,9 +104,10 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, StateT>
         if (added.isEmpty()) {
             return;
         }
+        Set<String> seen = new HashSet<>();
         for (SplitT split : added) {
             String id = Objects.requireNonNull(split.splitId(), "splitId");
-            if (id.isBlank() || splitStates.containsKey(id)) {
+            if (id.isBlank() || !seen.add(id) || splitStates.containsKey(id)) {
                 throw new IllegalArgumentException("Duplicate or blank split ID: " + id);
             }
         }

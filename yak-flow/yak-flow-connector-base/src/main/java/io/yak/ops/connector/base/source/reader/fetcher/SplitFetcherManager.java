@@ -30,16 +30,16 @@ public abstract class SplitFetcherManager<E, SplitT extends SourceSplit> {
     private final ConcurrentHashMap<Integer, SplitFetcher<E, SplitT>> fetchers = new ConcurrentHashMap<>();
     private final AtomicReference<Throwable> fetcherError = new AtomicReference<>();
     private final AtomicInteger nextId = new AtomicInteger();
-    private final ExecutorService workers =
-            Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("yak-source-fetcher-", 0).factory());
+    private final ExecutorService workers = Executors.newThreadPerTaskExecutor(
+            Thread.ofVirtual().name("yak-source-fetcher-", 0).factory());
 
     private volatile boolean closed;
 
     protected SplitFetcherManager(
             Supplier<? extends SplitReader<E, SplitT>> splitReaderFactory, Configuration configuration) {
         this.splitReaderFactory = Objects.requireNonNull(splitReaderFactory, "splitReaderFactory");
-        int capacity = Objects.requireNonNull(configuration, "configuration")
-                .get(SourceReaderOptions.ELEMENT_QUEUE_CAPACITY);
+        int capacity =
+                Objects.requireNonNull(configuration, "configuration").get(SourceReaderOptions.ELEMENT_QUEUE_CAPACITY);
         this.queue = new FutureCompletingBlockingQueue<>(capacity);
     }
 

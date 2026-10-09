@@ -13,8 +13,7 @@ import java.util.function.Supplier;
  * <p>Parallel Source subtasks each create their own instance and independently own the
  * connector's I/O resources.
  */
-public final class SingleThreadFetcherManager<E, SplitT extends SourceSplit>
-        extends SplitFetcherManager<E, SplitT> {
+public final class SingleThreadFetcherManager<E, SplitT extends SourceSplit> extends SplitFetcherManager<E, SplitT> {
 
     public SingleThreadFetcherManager(
             Supplier<? extends SplitReader<E, SplitT>> splitReaderFactory, Configuration configuration) {
