@@ -106,13 +106,15 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
                 }
             } catch (ClassCastException | ArithmeticException exception) {
                 throw new SQLDataException(
-                        "Invalid internal JDBC value for field " + schema.column(index).name(), exception);
+                        "Invalid internal JDBC value for field "
+                                + schema.column(index).name(),
+                        exception);
             }
         }
     }
 
-    private static void bindDecimal(
-            RowData row, PreparedStatement statement, int index, int position, DecimalType type) throws SQLException {
+    private static void bindDecimal(RowData row, PreparedStatement statement, int index, int position, DecimalType type)
+            throws SQLException {
         BigDecimal amount = row.getDecimal(index, type.precision(), type.scale());
         statement.setBigDecimal(position, decimalValue(amount, type));
     }
@@ -136,11 +138,9 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
             case Types.BIGINT -> LogicalTypes.BIGINT;
             case Types.REAL, Types.FLOAT -> LogicalTypes.FLOAT;
             case Types.DOUBLE -> LogicalTypes.DOUBLE;
-            case Types.NUMERIC, Types.DECIMAL ->
-                decimalType(precision, scale, metadata.getColumnLabel(index));
+            case Types.NUMERIC, Types.DECIMAL -> decimalType(precision, scale, metadata.getColumnLabel(index));
             case Types.CHAR, Types.NCHAR -> precision > 0 ? LogicalTypes.charType(precision) : LogicalTypes.STRING;
-            case Types.VARCHAR, Types.NVARCHAR ->
-                precision > 0 ? LogicalTypes.varchar(precision) : LogicalTypes.STRING;
+            case Types.VARCHAR, Types.NVARCHAR -> precision > 0 ? LogicalTypes.varchar(precision) : LogicalTypes.STRING;
             case Types.LONGVARCHAR, Types.LONGNVARCHAR, Types.CLOB, Types.NCLOB -> LogicalTypes.STRING;
             case Types.BINARY -> precision > 0 ? LogicalTypes.fixedBinary(precision) : LogicalTypes.BINARY;
             case Types.VARBINARY -> precision > 0 ? LogicalTypes.varbinary(precision) : LogicalTypes.BINARY;
@@ -149,9 +149,9 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
             case Types.TIME -> LogicalTypes.time(temporalPrecision(scale));
             case Types.TIMESTAMP -> LogicalTypes.timestamp(temporalPrecision(scale));
             case Types.TIMESTAMP_WITH_TIMEZONE -> LogicalTypes.zonedTimestamp(temporalPrecision(scale));
-            default -> throw new SQLFeatureNotSupportedException(
-                    "Unsupported JDBC type " + metadata.getColumnTypeName(index) + " for field "
-                            + metadata.getColumnLabel(index));
+            default ->
+                throw new SQLFeatureNotSupportedException("Unsupported JDBC type " + metadata.getColumnTypeName(index)
+                        + " for field " + metadata.getColumnLabel(index));
         };
     }
 
