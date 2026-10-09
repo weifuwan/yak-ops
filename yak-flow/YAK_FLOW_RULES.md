@@ -19,7 +19,7 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 
 ## Execution Lifecycle
 
-- ExecutionJobVertex 拥有该物理 Vertex 的所有 ExecutionVertex；ExecutionVertex 是稳定 Subtask 位置；Execution 是一次实际尝试。当前仅创建 attempt 0，不实现热恢复或自动重试。
+- ExecutionJobVertex 拥有 JobVertex 的并行 ExecutionVertex；ExecutionVertex 是稳定 Subtask 位置；Execution 是一个不可复用的 Attempt。首次 Attempt 为 0。设置 Core 的 execution.restart.max-attempts（默认 0）时，允许仅从真实完成的磁盘 Checkpoint **整 Job** 重新装配所有 Task/Coordinator/Writer，Attempt 单调递增；无 Checkpoint、损坏或 UID 不兼容立即失败。绝不在同一个 StreamTask 上重新启动，也不支持局部 Reader 热恢复。
 - ExecutionGraph 唯一维护 JobStatus、提交线程、取消与结果 Future；EmbeddedJobClient 只是查询/控制句柄，不能再维护第二套状态或 Worker。
 - TaskDeployment 依据物理 JobVertex/JobEdge 创建 Task、ResultPartition、InputGate、OperatorChain、SourceCoordinator，并将每个 StreamTask 绑定到所属 Execution。它只负责装配、启动顺序、等待与资源清理，不成为另一层 Runner。
 - 已删除 JobRunner、StreamJobRunner、CompiledJobPlan、JobExecution；不能为了测试注入重新建等价平行入口。
@@ -28,6 +28,9 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 ## Source / IO / Checkpoint
 
 - SourceCoordinator 的事件循环与各 StreamTask Mailbox 分离。Split 事件处理确认与 Split 数据消费/Checkpoint 确认不能混为一谈；Reader 与 Operator 只在所属 Mailbox 执行。
+- AddSplitEvent 在 Coordinator 创建时使用 Source.getSplitSerializer() 版本化编码，每次交付只发送独立字节；SourceOperator 在 Task Mailbox 中用本地 Serializer 解码，不直接共享 Split Java 实例。坏数据/版本不兼容或投递失败会使整个 Job 失败。
+- Core SourceEvent 只定义 Connector 语义；SourceReaderContext / SplitEnumeratorContext 通过 OperatorEventGateway 与 SubtaskGateway 双向传递 SourceEventWrapper。Coordinator 在调用 handleSourceEvent 前严格比对当前注册的 Job / Operator / Subtask / Attempt，拒绝迟到的旧 Attempt 事件；Enumerator → Reader 在所属 Mailbox 执行回调。
+- SplitAssignmentTracker 保留检查点期间分配历史；全 Job 恢复时由完成快照中的 Enumerator State、Reader Split 状态和 Coordinator 分配快照共同重建分片。仅凭投递 ACK 或未完成的 Checkpoint 不允许重试。
 - StreamTask 不再自建 Runnable 队列、固定控制 Mail 批量处理数量或 park 轮询。Mail 通过 TaskMailbox / MailboxExecutor 排队，只有 Task 线程可以执行；Future 只能在 Mail 的动作真正执行后确认。
 - MailboxDefaultAction 每次处理一个 InputStatus 步骤；NOTHING_AVAILABLE 时等待 StreamTaskInput 的 getAvailableFuture，暂停默认输入但继续执行控制 Mail。Future 就绪或新的 Split/NoMoreSplits 控制事件可恢复输入；持续报告「已就绪但无数据」应明确报错，不能忙轮询。
 - TaskMailbox 状态 OPEN → QUIESCED → CLOSED；退出前拒绝新 Mail，关闭时未处理的控制 Future 必须异常完成。Task 取消和异步失败必须唤醒等待状态，正常 END_OF_INPUT 才执行最终 finish。
@@ -35,8 +38,8 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 - RecordWriterOutput 将分区选择交给独立 StreamPartitioner：FORWARD、REBALANCE、KEYED 保留现有行为；KEYED 仍非 Flink KeyGroup/Rescale。全部生产者结束且 Gate 缓冲清空才会 EOF；失败/取消必须唤醒阻塞的发送者、等待输入的 Task 和 Checkpoint。
 - QuiescentCheckpointCoordinator 保留 Source → Sink 单 JVM 静止切面：暂停 Enumerator/Reader，等待所有 InputGate 的缓冲与 Writer 回调排空，再 Sink flush(false)、原子持久化、通知完成。
 - 文件签名、CRC、Serializer 状态格式与恢复规则不变。未提供 Operator State 快照时不能在带中间算子的图上启用 Checkpoint。当前 at-least-once，不支持 Exactly-once。
-- 当前 MailboxProcessor / InputGate / ResultPartition 都是单 JVM 实现，不等于 Flink 的网络数据交换。暂不引入远程 InputChannel、Credit-Based Flow Control、Barrier Checkpoint、RPC、Slot、JobMaster、KeyGroup Rescale 或自动 Failover。
+- 当前 MailboxProcessor / InputGate / ResultPartition 都是单 JVM 实现，不等于 Flink 网络数据交换。可选整 Job Checkpoint 恢复是受限的本地重建，不是 Flink 的局部 Failover 或 Exactly-once；不引入远程 InputChannel、Credit-Based Flow Control、Barrier Checkpoint、RPC、Slot、JobMaster 或 KeyGroup Rescale。
 
 ## Verification
 
-修改物理图和生命周期必须验证：JobVertex / JobEdge、单并行 Chaining、多并行 Subtask 和 Attempt 状态、失败/取消清理、SourceCoordinator、Checkpoint/Restore。没有真实 Connector 时不能声称 JDBC/CDC E2E 通过。
+修改物理图和生命周期必须验证：JobVertex / JobEdge、单并行 Chaining、多并行 Subtask/Attempt、失败/取消清理、SourceCoordinator SourceEvent 及版本化 Split 投递、坏版本拒绝、Checkpoint 恢复、无 Checkpoint 不重试。没有真实 Connector 时不能声称 JDBC/CDC E2E 通过。
