@@ -14,6 +14,9 @@ public final class Execution implements AutoCloseable {
     private final ExecutionVertex vertex;
     private final int attemptNumber;
     private volatile ExecutionState state = ExecutionState.CREATED;
+    // Complete only AFTER the physical Execution state has reached its terminal value.
+    // Awaiting StreamTask.completionFuture directly can race with the Execution callback.
+    private final CompletableFuture<Void> completion = new CompletableFuture<>();
     private StreamTask task;
 
     Execution(ExecutionVertex vertex, int attemptNumber) {
@@ -61,6 +64,11 @@ public final class Execution implements AutoCloseable {
                     state = ExecutionState.FAILED;
                 }
             }
+            if (failure == null) {
+                completion.complete(null);
+            } else {
+                completion.completeExceptionally(failure);
+            }
         });
     }
 
@@ -82,12 +90,13 @@ public final class Execution implements AutoCloseable {
     }
 
     CompletableFuture<Void> completionFuture() {
-        StreamTask current;
         synchronized (this) {
-            current = task;
+            if (task == null) {
+                return CompletableFuture.failedFuture(
+                        new IllegalStateException("Execution has not been deployed"));
+            }
         }
-        return current == null ? CompletableFuture.failedFuture(
-                new IllegalStateException("Execution has not been deployed")) : current.completionFuture();
+        return completion.copy();
     }
 
     CompletableFuture<Void> cancelAsync() {

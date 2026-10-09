@@ -5,6 +5,7 @@ import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
+import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
 import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
@@ -172,7 +173,8 @@ public final class ExecutionGraph {
             return false;
         }
         try (FileCheckpointStore store = new FileCheckpointStore(Path.of(directory))) {
-            return store.loadLatest(FileCheckpointStore.graphSignature(jobGraph.graph())).isPresent();
+            return store.loadLatest(FileCheckpointStore.graphSignature(
+                    jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM))).isPresent();
         } catch (IOException | RuntimeException notRestorable) {
             return false;
         }

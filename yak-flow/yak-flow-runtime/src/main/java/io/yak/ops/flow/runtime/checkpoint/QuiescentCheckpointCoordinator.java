@@ -4,10 +4,11 @@ import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.CheckpointingOptions;
+import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
 import io.yak.ops.flow.runtime.io.partition.InputGate;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
-import io.yak.ops.flow.runtime.tasks.SinkOperatorStreamTask;
+import io.yak.ops.flow.runtime.tasks.OneInputStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
 import java.io.IOException;
 import java.time.Duration;
@@ -45,7 +46,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
     private final SourceCoordinator<SourceSplit, Object> coordinator;
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks;
     private final List<List<InputGate<Object>>> inputGateStages;
-    private final List<SinkOperatorStreamTask> sinkTasks;
+    private final List<OneInputStreamTask> sinkTasks;
     private final FileCheckpointStore storage;
     private final String graphSignature;
     private final BooleanSupplier cancelled;
@@ -65,7 +66,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
             SourceCoordinator<SourceSplit, Object> coordinator,
             List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks,
             List<List<InputGate<Object>>> inputGateStages,
-            List<SinkOperatorStreamTask> sinkTasks,
+            List<OneInputStreamTask> sinkTasks,
             FileCheckpointStore storage,
             CheckpointSnapshot restored,
             BooleanSupplier cancelled,
@@ -77,7 +78,8 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
         this.inputGateStages = inputGateStages.stream().map(List::copyOf).toList();
         this.sinkTasks = List.copyOf(sinkTasks);
         this.storage = Objects.requireNonNull(storage, "storage 不能为空");
-        this.graphSignature = FileCheckpointStore.graphSignature(plan.graph());
+        this.graphSignature = FileCheckpointStore.graphSignature(
+                plan.graph(), plan.configuration().get(PipelineOptions.MAX_PARALLELISM));
         this.cancelled = Objects.requireNonNull(cancelled, "cancelled 不能为空");
         this.onFailure = Objects.requireNonNull(onFailure, "onFailure 不能为空");
         Duration interval = plan.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL);
@@ -198,7 +200,7 @@ public final class QuiescentCheckpointCoordinator implements AutoCloseable {
                 await(CompletableFuture.allOf(
                         stage.stream().map(InputGate::drainedFuture).toArray(CompletableFuture<?>[]::new)));
             }
-            for (SinkOperatorStreamTask sinkTask : sinkTasks) {
+            for (OneInputStreamTask sinkTask : sinkTasks) {
                 ensureActive();
                 await(sinkTask.flushForCheckpoint(checkpointId));
             }

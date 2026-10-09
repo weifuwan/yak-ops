@@ -2,6 +2,7 @@ package io.yak.ops.flow.runtime.execution;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.yak.ops.core.api.connector.sink.Sink;
@@ -14,6 +15,9 @@ import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.Configuration;
+import io.yak.ops.core.configuration.PipelineOptions;
+import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.graph.StreamingJobGraphGenerator;
 import io.yak.ops.flow.runtime.graph.StreamEdge;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
@@ -93,6 +97,50 @@ class StreamPartitioningGraphTest {
         assertThrows(IllegalArgumentException.class, () -> new StreamEdge(1, 2, StreamPartitioning.KEYED));
         assertThrows(IllegalArgumentException.class, () -> new StreamEdge(1, 2, StreamPartitioning.REBALANCE,
                 (io.yak.ops.core.api.operators.KeySelector<String>) row -> row));
+    }
+
+    @Test
+    void shouldFingerprintKeyGroupHashAndConfiguredMaxParallelism() {
+        SourceTransformation<String> input = source(2);
+        SinkTransformation<String> destination = sink(input, 2);
+        input.setUid("stable-keyed-source");
+        destination.setUid("stable-keyed-sink");
+        destination.keyBy((String row) -> row.substring(0, 1));
+        StreamGraph keyed = new StreamGraphGenerator(destination, new Configuration()).generate();
+
+        String priorHashPartitionSignature = FileCheckpointStore.graphSignature(keyed);
+        String keyGroup128 = FileCheckpointStore.graphSignature(keyed, 128);
+        String keyGroup256 = FileCheckpointStore.graphSignature(keyed, 256);
+        assertNotEquals(priorHashPartitionSignature, keyGroup128);
+        assertNotEquals(keyGroup128, keyGroup256);
+
+        Configuration config = new Configuration();
+        config.set(PipelineOptions.MAX_PARALLELISM, 256);
+        assertEquals(256, new StreamingJobGraphGenerator(keyed, config).generate()
+                .getVertices().getLast().getMaxParallelism());
+
+        destination.setInputPartitioning(StreamPartitioning.REBALANCE);
+        StreamGraph unkeyed = new StreamGraphGenerator(destination, new Configuration()).generate();
+        assertEquals(FileCheckpointStore.graphSignature(unkeyed),
+                FileCheckpointStore.graphSignature(unkeyed, 256));
+    }
+
+    @Test
+    void shouldRejectInvalidMaxParallelismBeforeOpeningRuntimeResources() {
+        SourceTransformation<String> input = source(4);
+        SinkTransformation<String> destination = sink(input, 4);
+        StreamGraph graph = new StreamGraphGenerator(destination, new Configuration()).generate();
+        Configuration config = new Configuration();
+
+        config.set(PipelineOptions.MAX_PARALLELISM, 0);
+        assertThrows(IllegalArgumentException.class,
+                () -> new StreamingJobGraphGenerator(graph, config).generate());
+        config.set(PipelineOptions.MAX_PARALLELISM, 3);
+        assertThrows(IllegalArgumentException.class,
+                () -> new StreamingJobGraphGenerator(graph, config).generate());
+        config.set(PipelineOptions.MAX_PARALLELISM, 32769);
+        assertThrows(IllegalArgumentException.class,
+                () -> new StreamingJobGraphGenerator(graph, config).generate());
     }
 
     private static SourceTransformation<String> source(int parallelism) {

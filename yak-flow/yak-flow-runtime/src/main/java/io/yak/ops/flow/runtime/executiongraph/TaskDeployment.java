@@ -3,6 +3,7 @@ package io.yak.ops.flow.runtime.executiongraph;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.configuration.CheckpointingOptions;
+import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
 import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
@@ -19,7 +20,6 @@ import io.yak.ops.flow.runtime.operators.OperatorChain;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import io.yak.ops.flow.runtime.tasks.OneInputStreamTask;
-import io.yak.ops.flow.runtime.tasks.SinkOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.StreamTask;
 import java.nio.file.Path;
@@ -48,7 +48,7 @@ final class TaskDeployment {
     private final List<InputGate<Object>> inputGates = new ArrayList<>();
     private final List<List<InputGate<Object>>> inputGateStages = new ArrayList<>();
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks = new ArrayList<>();
-    private final List<SinkOperatorStreamTask> sinkTasks = new ArrayList<>();
+    private final List<OneInputStreamTask> sinkTasks = new ArrayList<>();
     private final AtomicReference<Throwable> firstFailure = new AtomicReference<>();
 
     private SourceCoordinator<SourceSplit, Object> coordinator;
@@ -143,7 +143,8 @@ final class TaskDeployment {
             checkpointStore = new FileCheckpointStore(Path.of(directory));
             if (recoverFromLatestCheckpoint || jobGraph.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
                 restoredCheckpoint = checkpointStore.loadLatest(
-                                FileCheckpointStore.graphSignature(jobGraph.graph()))
+                                FileCheckpointStore.graphSignature(
+                                        jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM)))
                         .orElseThrow(() -> new IllegalStateException("状态目录没有可恢复的完整 Checkpoint"));
             }
         }
@@ -173,7 +174,7 @@ final class TaskDeployment {
                 TaskEnvironment environment = environment(execution);
                 StreamTask task;
                 if (node.isSink()) {
-                    SinkOperatorStreamTask sink = new SinkOperatorStreamTask(
+                    OneInputStreamTask sink = new OneInputStreamTask(
                             node, environment, stageInputs.get(subtask));
                     sinkTasks.add(sink);
                     task = sink;
@@ -181,7 +182,8 @@ final class TaskDeployment {
                     JobEdge outputEdge = edges.get(index);
                     RecordWriterOutput<Object> output = new RecordWriterOutput<>(
                             outputEdge.streamEdge(), subtask, vertex.getParallelism(),
-                            new ResultPartition<>(subtask, inputs.get(index)));
+                            new ResultPartition<>(subtask, inputs.get(index)),
+                            jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM));
                     task = new OneInputStreamTask(node, environment, stageInputs.get(subtask), output);
                 }
                 bind(execution, task);
@@ -207,7 +209,8 @@ final class TaskDeployment {
             Execution execution = executionGraph.currentExecution(sourceVertex.getId(), subtask);
             RecordWriterOutput<Object> output = new RecordWriterOutput<>(
                     firstEdge.streamEdge(), subtask, sourceVertex.getParallelism(),
-                    new ResultPartition<>(subtask, inputs.getFirst()));
+                    new ResultPartition<>(subtask, inputs.getFirst()),
+                    jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM));
             SourceOperatorStreamTask<Object, SourceSplit> task = new SourceOperatorStreamTask<>(
                     source, coordinator, environment(execution), output,
                     null, restoredReaderSplits.getOrDefault(subtask, List.of()));

@@ -2,6 +2,7 @@ package io.yak.ops.flow.runtime.graph;
 
 import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.common.JobID;
+import io.yak.ops.core.api.connector.sink.SupportsWriterState;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
@@ -43,6 +44,7 @@ public final class StreamingJobGraphGenerator {
         validateCheckpoint();
 
         List<StreamNode> nodes = streamGraph.getTopologicalNodes();
+        int maxParallelism = configuration.get(PipelineOptions.MAX_PARALLELISM);
         List<JobVertex> vertices = new ArrayList<>();
         List<JobEdge> edges = new ArrayList<>();
         boolean chainingEnabled = !checkpointEnabled()
@@ -50,10 +52,10 @@ public final class StreamingJobGraphGenerator {
                 && streamGraph.getStreamEdges().stream().allMatch(edge -> edge.partitioning() == StreamPartitioning.FORWARD);
 
         if (chainingEnabled) {
-            vertices.add(new JobVertex(nodes));
+            vertices.add(new JobVertex(nodes, maxParallelism));
         } else {
             for (StreamNode node : nodes) {
-                vertices.add(new JobVertex(List.of(node)));
+                vertices.add(new JobVertex(List.of(node), maxParallelism));
             }
             for (int i = 1; i < vertices.size(); i++) {
                 JobVertex upstream = vertices.get(i - 1);
@@ -76,12 +78,19 @@ public final class StreamingJobGraphGenerator {
             throw new UnsupportedOperationException(
                     "自动恢复必须启用持久化 Source → Sink Checkpoint（不能从头重复启动）");
         }
+        int maxParallelism = configuration.get(PipelineOptions.MAX_PARALLELISM);
+        if (maxParallelism <= 0 || maxParallelism > 32768) {
+            throw new IllegalArgumentException("pipeline.max-parallelism 必须在 1 至 32768 之间");
+        }
         int defaultParallelism = configuration.get(CoreOptions.DEFAULT_PARALLELISM);
         if (defaultParallelism <= 0) {
             throw new IllegalArgumentException("parallelism.default 必须为正整数");
         }
         boolean autoGenerateUids = configuration.get(PipelineOptions.AUTO_GENERATE_UIDS);
         for (StreamNode node : streamGraph.getStreamNodes()) {
+            if (node.getParallelism() > maxParallelism) {
+                throw new IllegalArgumentException("maxParallelism 不能小于算子并行度：" + node.getId());
+            }
             if (node.usesDefaultParallelism() && node.getParallelism() != defaultParallelism) {
                 throw new IllegalArgumentException(
                         "StreamNode " + node.getId() + " 的默认并行度与提交配置不一致："
@@ -159,11 +168,16 @@ public final class StreamingJobGraphGenerator {
         if (configuration.get(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS) != 1) {
             throw new UnsupportedOperationException("当前 Checkpoint 只允许一次在途快照");
         }
+        if (streamGraph.getSinkNodes().stream()
+                .anyMatch(node -> node.getSink().orElseThrow() instanceof SupportsWriterState<?, ?>)) {
+            throw new UnsupportedOperationException(
+                    "Stateful Sink V2 needs writer-state persistence; current checkpoint is stateless Sink only");
+        }
         if (streamGraph.getTopologicalNodes().stream().anyMatch(StreamNode::isOperator)) {
             throw new UnsupportedOperationException(
                     "OneInputOperator 尚未定义状态序列化/恢复接口，不允许启用 Checkpoint");
         }
-        FileCheckpointStore.graphSignature(streamGraph);
+        FileCheckpointStore.graphSignature(streamGraph, configuration.get(PipelineOptions.MAX_PARALLELISM));
     }
 
     private boolean checkpointEnabled() {

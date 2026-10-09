@@ -25,6 +25,15 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 - 已删除 JobRunner、StreamJobRunner、CompiledJobPlan、JobExecution；不能为了测试注入重新建等价平行入口。
 - 失败先中止全部 InputGate、取消 Task，最终关闭 Task、Coordinator 和 Checkpoint Store。仅正常 END_OF_INPUT 时 finish Operator 和 flush(true) Sink。无界 Source 意外结束视为失败。
 
+## StreamOperator / Sink V2 / KeyGroups
+
+- `OneInputOperator` 兼容实现 `OneInputStreamOperator`，共享 `StreamOperator` 的 open / finish / close 生命周期。独立 Operator 与 Sink 均由 `OneInputStreamTask` 的 Mailbox 管理，**删除**单独的 `SinkOperatorStreamTask`。
+- Sink 统一通过 `SinkWriterOperator` 创建 Writer、处理记录、flush 和关闭；单并行内联 `OperatorChain` 使用同一个 SinkWriterOperator，并以**Sink 节点**（不是 Source 节点）的 `RuntimeTaskInfo` 初始化 Writer。
+- Core `SinkV2` 在 `createWriter(WriterInitContext)` 获取实际 TaskInfo/Attempt/maxParallelism 和 Configuration 防御性副本；旧 `Sink.createWriter()` 和 `SinkWriter.write(T)` 仍兼容。当前写入 Context 没有事件时间，timestamp 为 null、watermark 为 Long.MIN_VALUE。
+- `StatefulSinkWriter` / `SupportsWriterState` 仅定义未来 Writer 状态接口；当前 QuiescentCheckpoint **不会保存 Writer State**，所以启用 Checkpoint 的 Stateful Sink 必须显式拒绝。也不实现 CommittingSinkWriter / Committer。
+- `PipelineOptions.MAX_PARALLELISM` 默认 128，可配置到 32768；物理 JobVertex、RuntimeTaskInfo 和 RecordWriterOutput 读取同一值，配置不能小于有效并行度。KEYED 使用 Flink 风格的 Murmur3 hash → KeyGroup → Subtask 范围分配；**尚不支持状态 Rescale**。
+- 非 KEYED Checkpoint 指纹不变。对于 KEYED，已更新拓扑指纹以包含 KeyGroup 算法与 maxParallelism，故采用旧 hashCode % N 方案生成的 KEYED Checkpoint 不能直接恢复，需要明确迁移策略；不静默混用两套哈希。
+
 ## Source / IO / Checkpoint
 
 - SourceCoordinator 的事件循环与各 StreamTask Mailbox 分离。Split 事件处理确认与 Split 数据消费/Checkpoint 确认不能混为一谈；Reader 与 Operator 只在所属 Mailbox 执行。
@@ -35,7 +44,7 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 - MailboxDefaultAction 每次处理一个 InputStatus 步骤；NOTHING_AVAILABLE 时等待 StreamTaskInput 的 getAvailableFuture，暂停默认输入但继续执行控制 Mail。Future 就绪或新的 Split/NoMoreSplits 控制事件可恢复输入；持续报告「已就绪但无数据」应明确报错，不能忙轮询。
 - TaskMailbox 状态 OPEN → QUIESCED → CLOSED；退出前拒绝新 Mail，关闭时未处理的控制 Future 必须异常完成。Task 取消和异步失败必须唤醒等待状态，正常 END_OF_INPUT 才执行最终 finish。
 - StreamTaskSourceInput / StreamTaskNetworkInput 统一实现 StreamTaskInput，提供非阻塞 emitNext 与 getAvailableFuture。ResultPartition 为每个上游 Task 创建其 ResultSubpartition；InputGate 为下游 Task 消费多个上游 Subpartition，轮询读取且共享单一缓存额度。生产者等待 Gate 可用容量的条件通知，不使用定时轮询。
-- RecordWriterOutput 将分区选择交给独立 StreamPartitioner：FORWARD、REBALANCE、KEYED 保留现有行为；KEYED 仍非 Flink KeyGroup/Rescale。全部生产者结束且 Gate 缓冲清空才会 EOF；失败/取消必须唤醒阻塞的发送者、等待输入的 Task 和 Checkpoint。
+- RecordWriterOutput 将分区选择交给独立 StreamPartitioner：FORWARD、REBALANCE 保留现有行为，KEYED 使用固定 maxParallelism 的 Flink 式 KeyGroup 分区，但不支持 Keyed State Rescale。全部生产者结束且 Gate 缓冲清空才会 EOF；失败/取消必须唤醒阻塞的发送者、等待输入的 Task 和 Checkpoint。
 - QuiescentCheckpointCoordinator 保留 Source → Sink 单 JVM 静止切面：暂停 Enumerator/Reader，等待所有 InputGate 的缓冲与 Writer 回调排空，再 Sink flush(false)、原子持久化、通知完成。
 - 文件签名、CRC、Serializer 状态格式与恢复规则不变。未提供 Operator State 快照时不能在带中间算子的图上启用 Checkpoint。当前 at-least-once，不支持 Exactly-once。
 - 当前 MailboxProcessor / InputGate / ResultPartition 都是单 JVM 实现，不等于 Flink 网络数据交换。可选整 Job Checkpoint 恢复是受限的本地重建，不是 Flink 的局部 Failover 或 Exactly-once；不引入远程 InputChannel、Credit-Based Flow Control、Barrier Checkpoint、RPC、Slot、JobMaster 或 KeyGroup Rescale。

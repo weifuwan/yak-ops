@@ -8,12 +8,12 @@ Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime`。仅定义 Core-based Run
 
 | Layer | Owner |
 | --- | --- |
-| Core | Source / Sink / Split、Transformation、Configuration / TaskInfo、PipelineExecutor / JobClient |
+| Core | Source / SinkV2 / SinkWriter / StatefulSinkWriter、WriterInitContext、Split / Transformation、Configuration / TaskInfo、PipelineExecutor / JobClient |
 | Runtime Graph | StreamGraphGenerator、StreamGraph / StreamNode / StreamEdge、StreamingJobGraphGenerator |
 | Runtime Physical Job | JobGraph / JobVertex / JobEdge；JobVertex 表示可部署算子链，JobEdge 只描述跨 Task 边 |
 | Runtime Execution | ExecutionGraph / ExecutionJobVertex / ExecutionVertex / Execution；Job 状态和 Subtask / Attempt |
 | Deployment | TaskDeployment 按物理图装配、启动、收口 StreamTask、ResultPartition、InputGate、SourceCoordinator |
-| Runtime Task / IO | StreamTask、StreamTaskSourceInput / StreamTaskNetworkInput、OneInputStreamTask、SourceOperatorStreamTask、SinkOperatorStreamTask、OperatorChain；TaskMailbox / MailboxExecutor / MailboxDefaultAction / MailboxProcessor |
+| Runtime Task / IO | StreamTask、StreamTaskSourceInput / StreamTaskNetworkInput、OneInputStreamTask（包含 Sink）、SourceOperatorStreamTask、StreamOperator / OneInputStreamOperator / SinkWriterOperator、OperatorChain；TaskMailbox / MailboxExecutor / MailboxDefaultAction / MailboxProcessor |
 | Runtime Transport | RecordWriterOutput、StreamPartitioner、ResultPartition / ResultSubpartition、InputGate |
 | Runtime Checkpoint | QuiescentCheckpointCoordinator、CheckpointSnapshot、FileCheckpointStore |
 
@@ -25,7 +25,7 @@ StreamingJobGraphGenerator 必须在创建 SourceReader、SinkWriter、工作线
 
 物理编译规则：当前只接受 Source → OneInputOperator* → Sink 的严格线性图。无 Checkpoint 且所有并行度均为 1、所有边均为 FORWARD 时，将整个链折叠成一个可部署 JobVertex（一个 Task Mailbox，没有跨 Task JobEdge）；其它图按节点生成 JobVertex，并在 JobEdge 上保存原 StreamEdge 的分区策略。Checkpoint 图不做算子链合并。
 
-现有上限保持：单节点并行度 1–16、逻辑 Subtask 总量不超过 64、InputGate 每目标缓存总容量 1–4096。配置键仍是 `execution.local-channel.capacity`，默认 64；Core 的默认并行度由 `parallelism.default` 管理。
+现有本地执行限制保持：单节点实际并行度 1–16、逻辑 Subtask 总量最多 64、InputGate 每目标缓存总容量 1–4096；KeyGroup 最大并行度通过 pipeline.max-parallelism 配置（默认 128，上限 32768），不得小于实际并行度。配置键仍是 `execution.local-channel.capacity`，默认 64；Core 的默认并行度由 `parallelism.default` 管理。
 
 ## ExecutionGraph / Attempt
 
@@ -51,8 +51,14 @@ StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finish
 - `StreamTaskInput<T>` 统一 SourceOperator 和物理 Gate 的非阻塞输入接口；`StreamTaskSourceInput` 调用 Reader，`StreamTaskNetworkInput` 调用下游 `InputGate`，并将 getAvailableFuture 交给 Task Mailbox。当前不支持网络 InputGate 或多输入算子。
 - 每个上游 Subtask 拥有一个 `ResultPartition`，为各目标 Task 创建一条 `ResultSubpartition`；目标 `InputGate` 注册其所有上游 Subpartition，以 round-robin 轮询非空输入，避免持续偏向同一上游。
 - 一个 InputGate 的 `capacity` 是**全部上游 Subpartition 共享**的总排队上限，不随并行度放大；队列满使用可中断 Condition 等待，消费后通知生产者，无 25ms 轮询。
-- `RecordWriterOutput` 通过独立 `StreamPartitioner` 选择目标。FORWARD 同并行度，一条生产者流对应一条下游输入；REBALANCE 按生产者独立轮询；KEYED 保留当前 `Math.floorMod(key.hashCode(), downstreamParallelism)`，**不是 Flink KeyGroup，不能宣称支持状态 Rescale**。
+- `RecordWriterOutput` 通过独立 `StreamPartitioner` 选择目标。FORWARD 同并行度，一条生产者流对应一条下游输入；REBALANCE 按生产者独立轮询；KEYED 用 MurmurHash(key.hashCode()) 分配到固定 KeyGroup，再按 `keyGroup * parallelism / maxParallelism` 映射到 Subtask。KeyGroup ID 不因并行度变化，但**当前没有 keyed state 持久化，不能宣称支持状态 Rescale**。
 - 全部生产者结束并排空对应 Gate 的缓冲后才返回 END_OF_INPUT。失败/取消唤醒阻塞的发送者和等待消费者；Checkpoint 的 `drainedFuture` 不仅等待队列为空，还要等待正在执行的下游 Writer 回调结束。
+
+## StreamOperator and Sink V2
+
+`StreamOperator` 定义统一 open、正常结束 finish、close 生命周期；`OneInputStreamOperator` 支持单输入与同步 Collector。现有 `OneInputOperator` 继续兼容原先工厂，但 Runtime 独立 `OneInputStreamTask` 也运行 `SinkWriterOperator`，不再拥有独立 `SinkOperatorStreamTask`。Chained OperatorChain 和独立 Sink 使用相同 SinkWriterOperator 的 Writer 创建、write、flush 和关闭路径。
+
+Core `SinkV2.createWriter(WriterInitContext)` 获取 Sink 节点的 Job/Operator/Subtask/Attempt/maxParallelism 及隔离配置；兼容 Legacy `Sink.createWriter()` / `SinkWriter.write(T)`。新 `SinkWriter.Context` 提供 timestamp=null、watermark=Long.MIN_VALUE（没有时间流语义前不伪造），并作为真实 write 接口调用。当前支持 SinkWriter 状态接口的**类型定义**，不支持 Writer 状态快照、恢复或 Committer；启用 Checkpoint 时对有状态 Sink 明确拒绝。
 
 ## Source Coordination and Event Contracts
 
@@ -64,7 +70,7 @@ StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finish
 
 只有 Source → Sink 支持 QuiescentCheckpointCoordinator 的单 JVM 静止切面：暂停 Enumerator / Reader → 快照 Split → 等待所有 InputGate 排空及 Writer in-flight 结束 → Sink.flush(false) → FileCheckpointStore 持久化 → 通知 Source 完成。多输入与有状态中间算子的 Checkpoint 未实现。
 
-保留旧 StreamGraph 的图签名、二进制状态文件格式、CRC、版本化 Serializer、原子替换与状态目录独占锁；新物理 JobGraph 不改变已有 Source → Sink 恢复协议。语义仅是受限 at-least-once，不能声称完整 Flink Barrier Checkpoint 或 Exactly-once。
+非 KEYED 图签名和二进制状态文件格式、CRC、版本化 Serializer、原子替换与状态目录独占锁保持兼容；KEYED 图签名引入 KeyGroup 算法与 maxParallelism，防止以旧分区哈希重放历史状态；新物理 JobGraph 不改变已有 Source → Sink 恢复协议。语义仅是受限 at-least-once，不能声称完整 Flink Barrier Checkpoint 或 Exactly-once。
 
 ## Flink References
 
@@ -72,6 +78,8 @@ StreamTask 负责 openTask → runMailboxLoop → 自然 END_OF_INPUT 时 finish
 - [DefaultExecutionGraph](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/runtime/executiongraph/DefaultExecutionGraph.java)
 - [ExecutionVertex](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/runtime/executiongraph/ExecutionVertex.java)
 - [StreamTask](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/streaming/runtime/tasks/StreamTask.java)
+- [SinkWriterOperator](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/streaming/runtime/operators/sink/SinkWriterOperator.java)
+- [KeyGroupRangeAssignment](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/runtime/state/KeyGroupRangeAssignment.java)
 - [MailboxProcessor](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/streaming/runtime/tasks/mailbox/MailboxProcessor.java)
 - [TaskMailbox](https://github.com/apache/flink/blob/master/flink-runtime/src/main/java/org/apache/flink/streaming/runtime/tasks/mailbox/TaskMailbox.java)
 

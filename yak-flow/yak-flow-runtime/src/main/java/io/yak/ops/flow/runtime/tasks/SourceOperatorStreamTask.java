@@ -82,7 +82,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
     @Override
     protected void openTask() throws Exception {
         if (operatorChain != null) {
-            operatorChain.open();
+            operatorChain.open(taskEnvironment());
         }
         operator.initialize();
         operator.restoreSplits(restoredSplits);

@@ -22,6 +22,12 @@ public final class RecordWriterOutput<T> implements ReaderOutput<T> {
 
     public RecordWriterOutput(
             StreamEdge edge, int upstreamSubtask, int upstreamParallelism, ResultPartition<T> partition) {
+        this(edge, upstreamSubtask, upstreamParallelism, partition, 128);
+    }
+
+    public RecordWriterOutput(
+            StreamEdge edge, int upstreamSubtask, int upstreamParallelism,
+            ResultPartition<T> partition, int maxParallelism) {
         Objects.requireNonNull(edge, "edge");
         this.partition = Objects.requireNonNull(partition, "partition");
         if (upstreamParallelism <= 0 || upstreamSubtask < 0 || upstreamSubtask >= upstreamParallelism
@@ -32,7 +38,7 @@ public final class RecordWriterOutput<T> implements ReaderOutput<T> {
         this.partitioner = switch (edge.partitioning()) {
             case FORWARD -> new ForwardPartitioner<>(upstreamSubtask, upstreamParallelism, channels);
             case REBALANCE -> new RebalancePartitioner<>(upstreamSubtask, channels);
-            case KEYED -> new KeyedPartitioner<>(keySelector(edge));
+            case KEYED -> new KeyedPartitioner<>(keySelector(edge), maxParallelism);
         };
     }
 

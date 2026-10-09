@@ -61,6 +61,14 @@ class ExecutionGraphParallelTest {
         JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
         assertEquals(job.getJobID(), job.getJobExecutionResult().get(5, TimeUnit.SECONDS).getJobID());
         assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+        // The Job result must be completed only after every physical Execution is terminal.
+        var executionGraph = ((EmbeddedJobClient) job).getExecutionGraph();
+        for (var vertex : executionGraph.getJobVertices()) {
+            for (var subtask : vertex.getTaskVertices()) {
+                assertEquals(io.yak.ops.flow.runtime.executiongraph.ExecutionState.FINISHED,
+                        subtask.getCurrentExecutionAttempt().getState());
+            }
+        }
         assertEquals(4, ((EmbeddedJobClient) job).getExecutionGraph().getJobVertices().getFirst()
                 .getTaskVertices().size());
         assertEquals(0, ((EmbeddedJobClient) job).getExecutionGraph().getJobVertices().getFirst()

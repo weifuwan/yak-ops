@@ -1,94 +1,99 @@
 package io.yak.ops.flow.runtime.operators;
 
-import io.yak.ops.core.api.connector.sink.SinkWriter;
+import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
+import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
+import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.graph.StreamNode;
+import io.yak.ops.flow.runtime.operators.sink.SinkWriterOperator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * 单个 Source StreamTask 内同步执行的零个或多个 OneInputOperator 和一个 SinkWriter。
+ * Inline StreamOperator chain for a single-parallelism Source→Operator*→Sink job.
  *
- * <p>只在所属 Task Mailbox 线程创建、打开、处理、finish、flush 和关闭运行实例。
- * 本类不建立额外线程或 Channel，只有线性单并行拓扑才能使用。
+ * <p>The same SinkWriterOperator handles writer lifecycle in an inline chain and in a separate
+ * OneInputStreamTask. Open downstream first, finish upstream first, close all resources on error.
  */
 public final class OperatorChain implements ReaderOutput<Object>, AutoCloseable {
 
     private final List<StreamNode> operatorNodes;
     private final StreamNode sinkNode;
-    private final List<OneInputOperator<Object, Object>> operators = new ArrayList<>();
-    private SinkWriter<Object> writer;
+    private final List<OneInputStreamOperator<Object, Object>> operators = new ArrayList<>();
+    private SinkWriterOperator<Object> sinkOperator;
     private boolean opened;
     private boolean finished;
     private boolean closed;
 
     public OperatorChain(List<StreamNode> operatorNodes, StreamNode sinkNode) {
-        Objects.requireNonNull(operatorNodes, "operatorNodes 不能为空");
+        Objects.requireNonNull(operatorNodes, "operatorNodes");
         for (StreamNode node : operatorNodes) {
             if (node == null || !node.isOperator()) {
-                throw new IllegalArgumentException("Operator Chain 只接受 OneInputOperator 节点");
+                throw new IllegalArgumentException("OperatorChain only accepts OneInput operators");
             }
         }
         this.operatorNodes = List.copyOf(operatorNodes);
-        this.sinkNode = Objects.requireNonNull(sinkNode, "sinkNode 不能为空");
+        this.sinkNode = Objects.requireNonNull(sinkNode, "sinkNode");
         if (!sinkNode.isSink()) {
-            throw new IllegalArgumentException("Operator Chain 需要 Sink 终点");
+            throw new IllegalArgumentException("OperatorChain requires a Sink");
         }
     }
 
-    /** 先创建下游 Writer，再创建并按下游到上游顺序打开 Operator。 */
+    /** Called on the owning SourceStreamTask mailbox thread, before opening its SourceReader. */
     @SuppressWarnings("unchecked")
-    public void open() throws Exception {
+    public void open(TaskEnvironment sourceEnvironment) throws Exception {
         if (opened || closed) {
-            throw new IllegalStateException("Operator Chain 已经打开或关闭");
+            throw new IllegalStateException("OperatorChain cannot be opened again");
         }
+        Objects.requireNonNull(sourceEnvironment, "sourceEnvironment");
         opened = true;
-        writer = (SinkWriter<Object>) Objects.requireNonNull(
-                sinkNode.getSink().orElseThrow().createWriter(), "Sink 返回了空 Writer");
+        RuntimeTaskInfo sourceTask = sourceEnvironment.taskInfo();
+        // Chained operators still have their own stable logical identities within the physical Task.
+        TaskEnvironment sinkEnvironment = new TaskEnvironment(
+                new RuntimeTaskInfo(sourceTask.jobID(), sinkNode.getId(), sourceTask.subtaskIndex(),
+                        sinkNode.getParallelism(), sourceTask.attemptNumber(), sourceTask.maxParallelism()),
+                sourceEnvironment.configuration());
+        sinkOperator = new SinkWriterOperator<>(
+                (Sink<Object>) sinkNode.getSink().orElseThrow(), sinkEnvironment);
+        sinkOperator.open();
         for (StreamNode node : operatorNodes) {
-            operators.add((OneInputOperator<Object, Object>) Objects.requireNonNull(
-                    node.getOperatorFactory().orElseThrow().createOperator(), "Operator 工厂返回了 null"));
+            operators.add((OneInputStreamOperator<Object, Object>) Objects.requireNonNull(
+                    node.getOperatorFactory().orElseThrow().createOperator(), "Operator factory returned null"));
         }
         for (int i = operators.size() - 1; i >= 0; i--) {
             operators.get(i).open();
         }
     }
 
-    /** Reader 和每个 Operator 通过同步 Collector 直接调用下一环；异常原样向上游传递。 */
     @Override
-    public void collect(Object record) throws Exception {
+    public void collect(Object value) throws Exception {
         if (!opened || finished || closed) {
-            throw new IllegalStateException("Operator Chain 不是可写状态");
+            throw new IllegalStateException("OperatorChain is not accepting records");
         }
-        forward(0, record);
+        forward(0, value);
     }
 
     private void forward(int index, Object record) throws Exception {
         if (index == operators.size()) {
-            writer.write(record);
+            sinkOperator.processElement(record, ignored -> {});
             return;
         }
         operators.get(index).processElement(record, output -> forward(index + 1, output));
     }
 
-    /**
-     * 只有正常 EOF 才按上游到下游顺序通知 Operator.finish，最后调用 Sink.flush(true)。
-     * 失败和取消时只释放资源，不冒充正常输入结束。
-     */
     public void finish() throws Exception {
         if (!opened || finished || closed) {
-            throw new IllegalStateException("Operator Chain 不能重复 finish");
+            throw new IllegalStateException("OperatorChain cannot finish again");
         }
         for (int i = 0; i < operators.size(); i++) {
             int next = i + 1;
             operators.get(i).finish(output -> forward(next, output));
         }
-        writer.flush(true);
+        sinkOperator.finish();
         finished = true;
     }
 
-    /** 关闭所有已创建实例；即使部分 Operator 初始化或关闭失败，也尽力释放剩余资源。 */
     @Override
     public void close() throws Exception {
         if (closed) {
@@ -96,7 +101,7 @@ public final class OperatorChain implements ReaderOutput<Object>, AutoCloseable 
         }
         closed = true;
         Throwable failure = null;
-        for (OneInputOperator<Object, Object> operator : operators) {
+        for (OneInputStreamOperator<Object, Object> operator : operators) {
             try {
                 operator.close();
             } catch (Throwable error) {
@@ -107,9 +112,9 @@ public final class OperatorChain implements ReaderOutput<Object>, AutoCloseable 
                 }
             }
         }
-        if (writer != null) {
+        if (sinkOperator != null) {
             try {
-                writer.close();
+                sinkOperator.close();
             } catch (Throwable error) {
                 if (failure == null) {
                     failure = error;

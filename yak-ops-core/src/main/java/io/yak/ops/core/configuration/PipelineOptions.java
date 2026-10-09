@@ -19,5 +19,14 @@ public final class PipelineOptions {
                     .booleanType()
                     .defaultValue(true);
 
+    /**
+     * Stable number of KeyGroups per operator in the current embedded pipeline. This is part of
+     * keyed partitioning identity and cannot be silently changed during stateful recovery.
+     */
+    public static final ConfigOption<Integer> MAX_PARALLELISM =
+            ConfigOptions.key("pipeline.max-parallelism")
+                    .intType()
+                    .defaultValue(128);
+
     private PipelineOptions() {}
 }
