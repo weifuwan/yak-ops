@@ -7,7 +7,8 @@ import java.util.Objects;
 /**
  * Producer-side result partition owned by one upstream StreamTask.
  *
- * <p>Each downstream subtask contributes one ResultSubpartition. The consumer InputGate controls
+ * <p>Each producer allocates one ResultSubpartition for every target and registers it with the
+ * target InputGate. The consumer InputGate controls
  * their shared bounded buffer budget; the producer never owns or polls an input queue.
  */
 public final class ResultPartition<T> {
@@ -21,10 +22,20 @@ public final class ResultPartition<T> {
         if (downstreamGates.isEmpty()) {
             throw new IllegalArgumentException("ResultPartition requires at least one downstream gate");
         }
+        if (producerIndex < 0) {
+            throw new IllegalArgumentException("Invalid producer subtask index");
+        }
+        for (InputGate<T> gate : downstreamGates) {
+            if (gate == null || producerIndex >= gate.getNumberOfInputChannels()) {
+                throw new IllegalArgumentException("The producer index must exist in every downstream gate");
+            }
+        }
         this.producerIndex = producerIndex;
         List<ResultSubpartition<T>> partitions = new ArrayList<>(downstreamGates.size());
         for (InputGate<T> gate : downstreamGates) {
-            partitions.add(Objects.requireNonNull(gate, "downstream gate").getSubpartition(producerIndex));
+            ResultSubpartition<T> subpartition = new ResultSubpartition<>(gate, producerIndex);
+            gate.registerSubpartition(subpartition);
+            partitions.add(subpartition);
         }
         this.subpartitions = List.copyOf(partitions);
     }

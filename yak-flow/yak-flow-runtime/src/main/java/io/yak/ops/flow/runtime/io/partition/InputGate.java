@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Local consumer-side input gate for one downstream subtask.
  *
- * <p>Each producer has a distinct ResultSubpartition. The gate arbitrates a single bounded buffer
+ * <p>Each producer owns a distinct ResultSubpartition registered with this gate. The gate arbitrates a single bounded buffer
  * budget shared by all producers, and delivers available records round-robin on the consumer Task
  * thread. Producers block on a condition, not a timed polling loop.
  */
@@ -39,16 +39,27 @@ public final class InputGate<T> {
         this.capacity = capacity;
         this.producerFinished = new boolean[producerCount];
         this.remainingProducers = producerCount;
+        // The producer ResultPartition owns each subpartition and registers it before Task start.
         List<ResultSubpartition<T>> channels = new ArrayList<>(producerCount);
         for (int i = 0; i < producerCount; i++) {
-            channels.add(new ResultSubpartition<>(this, i));
+            channels.add(null);
         }
-        this.subpartitions = List.copyOf(channels);
+        this.subpartitions = channels;
     }
 
-    /** Return the physical input channel for exactly one upstream producer. */
-    public ResultSubpartition<T> getSubpartition(int producerIndex) {
-        return subpartitions.get(producerIndex);
+    /** Attach one producer-owned ResultSubpartition to the matching input channel. */
+    void registerSubpartition(ResultSubpartition<T> subpartition) {
+        Objects.requireNonNull(subpartition, "subpartition");
+        int producer = subpartition.getProducerIndex();
+        lock.lock();
+        try {
+            if (producer < 0 || producer >= subpartitions.size() || subpartitions.get(producer) != null) {
+                throw new IllegalArgumentException("Duplicate or invalid producer input channel: " + producer);
+            }
+            subpartitions.set(producer, subpartition);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public int getNumberOfInputChannels() {
@@ -110,7 +121,10 @@ public final class InputGate<T> {
             checkFailure();
             for (int i = 0; i < subpartitions.size(); i++) {
                 int channel = (nextInput + i) % subpartitions.size();
-                record = subpartitions.get(channel).records.pollFirst();
+                ResultSubpartition<T> partition = subpartitions.get(channel);
+                if (partition != null) {
+                    record = partition.records.pollFirst();
+                }
                 if (record != null) {
                     nextInput = (channel + 1) % subpartitions.size();
                     queuedRecords--;
