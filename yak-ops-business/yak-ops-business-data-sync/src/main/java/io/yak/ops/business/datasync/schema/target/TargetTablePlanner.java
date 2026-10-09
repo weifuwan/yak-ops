@@ -4,11 +4,12 @@ import io.yak.ops.business.datasync.schema.LogicalColumn;
 import io.yak.ops.business.datasync.schema.LogicalTable;
 import io.yak.ops.flow.api.row.YakColumn;
 import io.yak.ops.flow.api.row.YakTableSchema;
-import io.yak.ops.plugin.database.jdbc.schema.JdbcTargetTableDdlPlan;
-import io.yak.ops.plugin.database.jdbc.schema.dialect.JdbcDialect;
-import io.yak.ops.plugin.database.jdbc.schema.dialect.JdbcDialects;
-import io.yak.ops.plugin.database.jdbc.schema.dialect.JdbcNativeType;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDdlPlan;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcNativeType;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
+import io.yak.ops.core.data.TableId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,9 +82,9 @@ public class TargetTablePlanner {
                     unsupportedReason));
         }
 
-        JdbcTargetTableDdlPlan ddlPlan = unsupported.isEmpty()
+        JdbcDdlPlan ddlPlan = unsupported.isEmpty()
                 ? dialect.createTablePlan(
-                        targetPath, runtimeSchema, logicalTable.comment(), columnComments(logicalTable))
+                        targetId, runtimeSchema, logicalTable.comment(), columnComments(logicalTable))
                 : null;
         return new TargetTablePlan(
                 canonicalType,

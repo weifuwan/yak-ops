@@ -1,10 +1,10 @@
 package io.yak.ops.plugin.database.jdbc.schema;
 
-import io.yak.ops.flow.api.row.YakColumn;
-import io.yak.ops.flow.api.row.YakDataType;
-import io.yak.ops.flow.api.row.YakTableSchema;
-import io.yak.ops.flow.api.row.YakTypeKind;
-import io.yak.ops.flow.api.row.YakTypes;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.LogicalType;
+import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.core.types.TypeKind;
+import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ public final class JdbcSchemaMapper {
 
     private JdbcSchemaMapper() {}
 
-    public static YakTableSchema fromColumns(List<DataSourceColumn> sourceColumns) {
+    public static TableSchema fromColumns(List<DataSourceColumn> sourceColumns) {
         Objects.requireNonNull(sourceColumns, "sourceColumns must not be null");
         if (sourceColumns.isEmpty()) {
             throw new IllegalArgumentException("sourceColumns must not be empty");
@@ -31,9 +31,9 @@ public final class JdbcSchemaMapper {
         List<DataSourceColumn> ordered = sourceColumns.stream()
                 .sorted(Comparator.comparingInt(DataSourceColumn::ordinalPosition))
                 .toList();
-        List<YakColumn> columns = new ArrayList<>(ordered.size());
+        List<Column> columns = new ArrayList<>(ordered.size());
         for (DataSourceColumn column : ordered) {
-            columns.add(toYakColumn(column));
+            columns.add(toColumn(column));
         }
 
         List<String> primaryKeys = ordered.stream()
@@ -42,27 +42,27 @@ public final class JdbcSchemaMapper {
                         .thenComparingInt(DataSourceColumn::ordinalPosition))
                 .map(DataSourceColumn::name)
                 .toList();
-        return new YakTableSchema(columns, primaryKeys);
+        return new TableSchema(columns, primaryKeys);
     }
 
-    public static YakColumn toYakColumn(DataSourceColumn column) {
+    public static Column toColumn(DataSourceColumn column) {
         Objects.requireNonNull(column, "column must not be null");
-        YakDataType dataType = toYakType(column);
+        LogicalType dataType = toLogicalType(column);
         Integer length = isLengthType(dataType.kind()) ? column.size() : null;
-        return new YakColumn(column.name(), dataType, column.nullable(), length);
+        return new Column(column.name(), dataType, column.nullable(), length);
     }
 
-    static YakDataType toYakType(DataSourceColumn column) {
+    static LogicalType toLogicalType(DataSourceColumn column) {
         return switch (column.jdbcType()) {
-            case Types.BOOLEAN, Types.BIT -> YakTypes.BOOLEAN;
-            case Types.TINYINT -> YakTypes.TINYINT;
-            case Types.SMALLINT -> YakTypes.SMALLINT;
-            case Types.INTEGER -> YakTypes.INTEGER;
-            case Types.BIGINT -> YakTypes.BIGINT;
-            case Types.REAL, Types.FLOAT -> YakTypes.FLOAT;
-            case Types.DOUBLE -> YakTypes.DOUBLE;
+            case Types.BOOLEAN, Types.BIT -> LogicalTypes.BOOLEAN;
+            case Types.TINYINT -> LogicalTypes.TINYINT;
+            case Types.SMALLINT -> LogicalTypes.SMALLINT;
+            case Types.INTEGER -> LogicalTypes.INTEGER;
+            case Types.BIGINT -> LogicalTypes.BIGINT;
+            case Types.REAL, Types.FLOAT -> LogicalTypes.FLOAT;
+            case Types.DOUBLE -> LogicalTypes.DOUBLE;
             case Types.NUMERIC, Types.DECIMAL ->
-                YakTypes.decimal(knownPrecision(column.size()), knownScale(column.scale()));
+                LogicalTypes.decimal(knownPrecision(column.size()), knownScale(column.scale()));
             case Types.CHAR,
                     Types.VARCHAR,
                     Types.LONGVARCHAR,
@@ -70,12 +70,12 @@ public final class JdbcSchemaMapper {
                     Types.NVARCHAR,
                     Types.LONGNVARCHAR,
                     Types.CLOB,
-                    Types.NCLOB -> YakTypes.STRING;
-            case Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB -> YakTypes.BINARY;
-            case Types.DATE -> YakTypes.DATE;
-            case Types.TIME -> YakTypes.TIME;
-            case Types.TIMESTAMP -> YakTypes.TIMESTAMP;
-            case Types.TIMESTAMP_WITH_TIMEZONE -> YakTypes.TIMESTAMP_WITH_TIME_ZONE;
+                    Types.NCLOB -> LogicalTypes.STRING;
+            case Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB -> LogicalTypes.BINARY;
+            case Types.DATE -> LogicalTypes.DATE;
+            case Types.TIME -> LogicalTypes.TIME;
+            case Types.TIMESTAMP -> LogicalTypes.TIMESTAMP;
+            case Types.TIMESTAMP_WITH_TIMEZONE -> LogicalTypes.TIMESTAMP_WITH_TIME_ZONE;
             default ->
                 throw new IllegalArgumentException(
                         "暂不支持 JDBC 字段类型：" + column.typeName() + " (" + column.jdbcType() + ")");
@@ -87,8 +87,8 @@ public final class JdbcSchemaMapper {
         return position == null || position <= 0 ? Integer.MAX_VALUE : position;
     }
 
-    private static boolean isLengthType(YakTypeKind kind) {
-        return kind == YakTypeKind.STRING || kind == YakTypeKind.BINARY;
+    private static boolean isLengthType(TypeKind kind) {
+        return kind == TypeKind.STRING || kind == TypeKind.BINARY;
     }
 
     private static Integer knownPrecision(Integer precision) {

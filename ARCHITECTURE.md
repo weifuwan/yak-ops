@@ -38,11 +38,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-ops-core`
 
-拥有批流共享的 Source / Sink（统一由 WriterInitContext 创建每个子任务的 Writer）、SinkWriter/StatefulSinkWriter、Collector / KeySelector、类型化 Configuration、Transformation、含 KeyGroup 最大并行度的只读 TaskInfo，以及 `PipelineExecutor` / `JobClient`。不包含 StreamGraph、Streaming Transformation、运行时 Operator、Channel、物理 Task、线程或 Checkpoint 执行器；不得反向依赖 Runtime。
-
-### `yak-flow/yak-flow-api`
-
-仅持有 JDK-only 的 YakRow、RowKind、YakTableSchema、YakDataType 等行/逻辑类型值对象；Source、Sink、Split 公共 API 归 Core。
+拥有批流共享的 Source / Sink、RowData / TableRecord / RowKind、TableId 与 Column / TableSchema / LogicalType、SinkWriter/StatefulSinkWriter、Collector / KeySelector、类型化 Configuration、Transformation、只读 TaskInfo，以及 `PipelineExecutor` / `JobClient`。不包含 StreamGraph、Streaming Transformation、运行时 Operator、Channel、物理 Task、线程或 Checkpoint 执行器；不得反向依赖 Runtime。
 
 ### `yak-flow/yak-flow-runtime`
 
@@ -63,7 +59,7 @@ Provides reusable asynchronous SourceReader mechanics over Core Source / Split i
 
 JDBC Source owns the vendor dialects, metadata-based split planning, bounded table scans, asynchronous reader I/O, immutable split/checkpoint codecs and consumed-key cursors. One Source manages a collection of TableIds; Core TableRecord carries physical table identity without product/DAO coupling. This module depends on Core and Connector Base, not Runtime (except test scope). Full JDBC Sink and product wiring are not implemented.
 
-The earlier Datasource JDBC Plugin dialect and schema/DDL planner remain temporarily for the existing product preview; they are not reused by the new Connector. MySQL CDC Connector has not been reintroduced.
+The JDBC Connector is the sole owner of SQL dialects, native type mappings and generated target DDL. Datasource JDBC Plugin retains connection/Catalog and catalog-to-logical-schema mapping; the product TargetTablePlanner uses Connector dialects without coupling execution to product DTOs. The old yak-flow-api module and Datasource dialect package have been removed. JDBC Sink, Data Sync product execution wiring, and MySQL CDC Connector are not yet implemented.
 
 ### `yak-ops-business`
 

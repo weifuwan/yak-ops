@@ -2,7 +2,7 @@
 
 Status: Active — embedded physical JobGraph and ExecutionGraph, with restricted Source/Sink checkpoint
 
-Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime`。仅定义 Core-based Runtime 的实际执行语义，历史发布版本不追溯更改。目前没有可运行的 JDBC / CDC Connector。
+Scope: `yak-ops-core` 与 `yak-flow/yak-flow-runtime`。仅定义 Core-based Runtime 的实际执行语义，历史发布版本不追溯更改。已有 JDBC Source Connector 的独立 bounded 读取实现；没有产品级 JDBC Sink / MySQL CDC 的跨库同步。
 
 ## Ownership
 

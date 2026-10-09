@@ -71,7 +71,7 @@ mapping.columns[]
         ↓
 Source Read Schema
 保留来源字段名 / 按 mapping 顺序和子集
-        ↓ YakRow position
+        ↓ TableRecord position
 Target Logical Schema
 同一位置改为目标字段名
         ↓
@@ -95,12 +95,12 @@ Datasource Catalog
         ↓
 LogicalTable
         ↓
-YakTableSchema
+TableSchema
         ↓
 Target Table Plan
 ```
 
-LogicalTable 复用 YakFlow Logical Type，不维护第二套类型枚举；同时拥有 Runtime 不需要的 comment / schemaVersion 等产品元数据。
+LogicalTable 复用 Core Logical Type，不维护第二套类型枚举；同时拥有 Runtime 不需要的 comment / schemaVersion 等产品元数据。
 
 v1.2 当前已经完成 Source Metadata Introspection、Logical Type Normalization、Target Table Planner、Auto Create Table Runtime 与 Schema Preview UI。Task Editor 直接消费后端 Preview Contract：目标表已存在时展示真实 Target Schema Compatibility；目标表缺失且显式开启 Auto Create 时展示计划 Native Type、warning / unsupported 与只读完整 DDL。自动创建新表会保留 Source Catalog 中的 Table / Column comment，Mapping 改名后的目标字段继续继承原字段注释；MySQL 内联 Comment，PostgreSQL / Oracle 使用后续 COMMENT ON 语句。Runtime 仍会在执行前重新读取真实 Catalog，只有目标表缺失、autoCreateTable=true 且计划 supported 时才执行受控建表 DDL。Logical Table persistence 与 Catalog refresh / diff 尚未实现。
 
@@ -129,7 +129,7 @@ attempt-1/
 └── trace-000002.jsonl
 ```
 
-Trace Store 是 best-effort：队列拥塞、磁盘或 JSONL 写入失败只能增加 droppedEventCount / Server WARN，不能反向把原本成功的数据同步改成失败。Summary 记录 Source Split、Sink Batch、SQL 模板、行数与耗时汇总；详细 JSONL 不记录 YakRow 业务字段值或 Sink bind 参数，错误消息进入文件前统一经过 SensitiveUtils 脱敏。
+Trace Store 是 best-effort：队列拥塞、磁盘或 JSONL 写入失败只能增加 droppedEventCount / Server WARN，不能反向把原本成功的数据同步改成失败。Summary 记录 Source Split、Sink Batch、SQL 模板、行数与耗时汇总；详细 JSONL 不记录 TableRecord 业务字段值或 Sink bind 参数，错误消息进入文件前统一经过 SensitiveUtils 脱敏。
 
 读取接口只支持 OFFLINE Execution，并默认读取当前 Attempt；可显式指定已存在的 Attempt 序号：
 

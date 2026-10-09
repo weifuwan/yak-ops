@@ -1,8 +1,8 @@
 package io.yak.ops.plugin.database.jdbc.schema;
 
-import io.yak.ops.flow.api.row.YakColumn;
-import io.yak.ops.flow.api.row.YakDecimalType;
-import io.yak.ops.flow.api.row.YakTypeKind;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.DecimalType;
+import io.yak.ops.core.types.TypeKind;
 
 /**
  * 定义 JDBC bounded 同步在 YakFlow 逻辑字段之间的可写兼容边界。
@@ -14,50 +14,50 @@ public final class JdbcSchemaCompatibility {
 
     private JdbcSchemaCompatibility() {}
 
-    public static boolean isCompatible(YakColumn source, YakColumn target) {
+    public static boolean isCompatible(Column source, Column target) {
         if (source == null || target == null) return false;
         if (source.nullable() && !target.nullable()) return false;
 
-        YakTypeKind sourceKind = source.dataType().kind();
-        YakTypeKind targetKind = target.dataType().kind();
+        TypeKind sourceKind = source.dataType().kind();
+        TypeKind targetKind = target.dataType().kind();
         if (sourceKind == targetKind) {
             return sameTypeCompatible(source, target);
         }
         if (isInteger(sourceKind) && isInteger(targetKind)) {
             return integerRank(sourceKind) <= integerRank(targetKind);
         }
-        if (isInteger(sourceKind) && targetKind == YakTypeKind.DECIMAL) {
-            return integerToDecimalCompatible(sourceKind, (YakDecimalType) target.dataType());
+        if (isInteger(sourceKind) && targetKind == TypeKind.DECIMAL) {
+            return integerToDecimalCompatible(sourceKind, (DecimalType) target.dataType());
         }
-        if (sourceKind == YakTypeKind.BOOLEAN && isInteger(targetKind)) {
+        if (sourceKind == TypeKind.BOOLEAN && isInteger(targetKind)) {
             return true;
         }
-        if (sourceKind == YakTypeKind.BOOLEAN && targetKind == YakTypeKind.DECIMAL) {
-            return booleanToDecimalCompatible((YakDecimalType) target.dataType());
+        if (sourceKind == TypeKind.BOOLEAN && targetKind == TypeKind.DECIMAL) {
+            return booleanToDecimalCompatible((DecimalType) target.dataType());
         }
-        if (sourceKind == YakTypeKind.DATE && targetKind == YakTypeKind.TIMESTAMP) {
+        if (sourceKind == TypeKind.DATE && targetKind == TypeKind.TIMESTAMP) {
             return true;
         }
-        return sourceKind == YakTypeKind.FLOAT && targetKind == YakTypeKind.DOUBLE;
+        return sourceKind == TypeKind.FLOAT && targetKind == TypeKind.DOUBLE;
     }
 
-    private static boolean sameTypeCompatible(YakColumn source, YakColumn target) {
-        YakTypeKind kind = source.dataType().kind();
-        if (kind == YakTypeKind.STRING || kind == YakTypeKind.BINARY) {
+    private static boolean sameTypeCompatible(Column source, Column target) {
+        TypeKind kind = source.dataType().kind();
+        if (kind == TypeKind.STRING || kind == TypeKind.BINARY) {
             return capacityCompatible(source.length(), target.length());
         }
-        if (kind == YakTypeKind.DECIMAL) {
-            return decimalCompatible((YakDecimalType) source.dataType(), (YakDecimalType) target.dataType());
+        if (kind == TypeKind.DECIMAL) {
+            return decimalCompatible((DecimalType) source.dataType(), (DecimalType) target.dataType());
         }
         return true;
     }
 
-    private static boolean booleanToDecimalCompatible(YakDecimalType target) {
+    private static boolean booleanToDecimalCompatible(DecimalType target) {
         if (knownScale(target.scale()) && target.scale() != 0) return false;
         return !positive(target.precision()) || target.precision() >= 1;
     }
 
-    private static boolean integerToDecimalCompatible(YakTypeKind sourceKind, YakDecimalType target) {
+    private static boolean integerToDecimalCompatible(TypeKind sourceKind, DecimalType target) {
         if (!positive(target.precision())) return true;
 
         int targetScale = knownScale(target.scale()) ? target.scale() : 0;
@@ -65,7 +65,7 @@ public final class JdbcSchemaCompatibility {
         return targetIntegerDigits >= integerDigits(sourceKind);
     }
 
-    private static boolean decimalCompatible(YakDecimalType source, YakDecimalType target) {
+    private static boolean decimalCompatible(DecimalType source, DecimalType target) {
         if (knownScale(source.scale()) && knownScale(target.scale()) && source.scale() > target.scale()) {
             return false;
         }
@@ -83,14 +83,14 @@ public final class JdbcSchemaCompatibility {
         return !positive(sourceSize) || !positive(targetSize) || targetSize >= sourceSize;
     }
 
-    private static boolean isInteger(YakTypeKind kind) {
-        return kind == YakTypeKind.TINYINT
-                || kind == YakTypeKind.SMALLINT
-                || kind == YakTypeKind.INTEGER
-                || kind == YakTypeKind.BIGINT;
+    private static boolean isInteger(TypeKind kind) {
+        return kind == TypeKind.TINYINT
+                || kind == TypeKind.SMALLINT
+                || kind == TypeKind.INTEGER
+                || kind == TypeKind.BIGINT;
     }
 
-    private static int integerRank(YakTypeKind kind) {
+    private static int integerRank(TypeKind kind) {
         return switch (kind) {
             case TINYINT -> 1;
             case SMALLINT -> 2;
@@ -100,7 +100,7 @@ public final class JdbcSchemaCompatibility {
         };
     }
 
-    private static int integerDigits(YakTypeKind kind) {
+    private static int integerDigits(TypeKind kind) {
         return switch (kind) {
             case TINYINT -> 3;
             case SMALLINT -> 5;

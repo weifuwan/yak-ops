@@ -41,9 +41,9 @@ executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime �
 规则：
 
 - LogicalTable / LogicalColumn 是产品 Schema，不是 Datasource Catalog DTO，也不是 YakFlow Runtime Entity。
-- 逻辑类型必须复用 YakFlow `YakDataType`；禁止在 Data Sync 新建数据库类型大全或第二套 logical type enum。
+- 逻辑类型必须复用 Core `LogicalType`；禁止在 Data Sync 新建数据库类型大全或第二套 logical type enum。
 - Source `typeName / jdbcType` 只用于 Catalog import / compatibility，不作为 Logical Schema canonical type。
-- Logical Table 可以投影为 `YakTableSchema`，但 comment / schemaVersion / 产品资源身份不进入 Runtime。
+- Logical Table 可以投影为 Core `TableSchema`，但 comment / schemaVersion / 产品资源身份不进入 Runtime。
 - `SourceTableIntrospector` 只能通过 `DataSourceService.queryCatalogTable / queryCatalogColumns` 读取物理元数据，不能绕过 Service 访问 Plugin Registry 或 Runtime connection。
 - `LogicalTableNormalizer` 负责 Catalog → LogicalTable 的纯归一；JDBC 类型统一复用 `JdbcSchemaMapper`。
 - Catalog composite primary key 必须使用 `primaryKeyPosition / KEY_SEQ` 保留顺序，不能按字段 ordinal 猜测。
@@ -76,7 +76,7 @@ executor 可以依赖 planning / lifecycle / realtime；lifecycle 和 realtime �
 - Task 保存、发布、运行均按 [Task / Mapping Contract](../../docs/capabilities/data-sync/README.md#datasource-scope-and-mapping) 做服务端校验；前端值只在未绑定范围内参与选择。
 - Task `mapping_config` 为可空 JSON：NULL 表示旧行为的隐式同名映射；显式 Mapping 必须 trim 字段名，并保证 source / target 分别大小写不敏感唯一。Mapping 只保存字段身份，不保存表达式、SQL、类型转换或业务字段值。
 - SchemaMappingResolver 是显式 Mapping 的唯一 Schema 投影口径：Source Read Schema 保留来源字段名并按 Mapping 顺序 / 子集排列，Target Logical Schema 在相同位置使用目标字段名。禁止 Preview、Save Validation 与 Runtime 各自维护另一套 rename / reorder 算法。
-- 字段改名、字段子集和重排可以直接进入 Preview / Runtime，但不引入表达式、CAST、自定义 SQL 或 Transform；YakRow 值通过 Source / Target Schema 的位置对齐传递。
+- 字段改名、字段子集和重排可以直接进入 Preview / Runtime，但不引入表达式、CAST、自定义 SQL 或 Transform；表记录值通过 Source / Target Schema 的位置对齐传递。
 - Mapping 是可执行定义：变化推进 definitionVersion，创建 Execution 时冻结进 definitionSnapshot；Retry / Auto Recovery 不读取 Task 最新 Mapping 覆盖历史根 Execution。
 - TargetSchemaCompatibility 只消费已经投影成目标字段名的 LogicalTable；TargetTablePlanner / Auto Create DDL 同样消费映射后的 Target Logical Schema。继续复用 JdbcSchemaMapper / JdbcSchemaCompatibility，不在 Service 再写一套类型能力表。
 - REALTIME Mapping 必须覆盖全部 Source PK，Target PK 按 Mapping 后的目标字段名比较；UPSERT Existing Target 要求 Mapping 覆盖全部目标 PK，UPSERT Auto Create 要求 Mapping 覆盖全部 Source PK。

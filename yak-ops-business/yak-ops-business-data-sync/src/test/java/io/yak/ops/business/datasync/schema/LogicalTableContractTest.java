@@ -3,8 +3,8 @@ package io.yak.ops.business.datasync.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.yak.ops.flow.api.row.YakTypeKind;
-import io.yak.ops.flow.api.row.YakTypes;
+import io.yak.ops.core.types.TypeKind;
+import io.yak.ops.core.types.LogicalTypes;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -17,18 +17,18 @@ class LogicalTableContractTest {
                 "订单",
                 1,
                 List.of(
-                        new LogicalColumn("id", YakTypes.BIGINT, false, null, "主键"),
-                        new LogicalColumn("name", YakTypes.STRING, true, 128, "名称"),
-                        new LogicalColumn("amount", YakTypes.decimal(18, 2), true, null, "金额")),
+                        new LogicalColumn("id", LogicalTypes.BIGINT, false, null, "主键"),
+                        new LogicalColumn("name", LogicalTypes.STRING, true, 128, "名称"),
+                        new LogicalColumn("amount", LogicalTypes.decimal(18, 2), true, null, "金额")),
                 List.of("id"));
 
-        var runtime = table.toRuntimeSchema();
+        var runtime = table.toTableSchema();
 
         assertEquals(3, runtime.columnCount());
         assertEquals(List.of("id"), runtime.primaryKeys());
-        assertEquals(YakTypeKind.BIGINT, runtime.column(0).dataType().kind());
+        assertEquals(TypeKind.BIGINT, runtime.column(0).dataType().kind());
         assertEquals(128, runtime.column(1).length());
-        assertEquals(YakTypeKind.DECIMAL, runtime.column(2).dataType().kind());
+        assertEquals(TypeKind.DECIMAL, runtime.column(2).dataType().kind());
     }
 
     @Test
@@ -38,12 +38,12 @@ class LogicalTableContractTest {
                 null,
                 2,
                 List.of(
-                        new LogicalColumn("order_id", YakTypes.BIGINT, false, null, null),
-                        new LogicalColumn("item_id", YakTypes.BIGINT, false, null, null)),
+                        new LogicalColumn("order_id", LogicalTypes.BIGINT, false, null, null),
+                        new LogicalColumn("item_id", LogicalTypes.BIGINT, false, null, null)),
                 List.of("order_id", "item_id"));
 
         assertEquals(List.of("order_id", "item_id"), table.primaryKeys());
-        assertEquals(List.of("order_id", "item_id"), table.toRuntimeSchema().primaryKeys());
+        assertEquals(List.of("order_id", "item_id"), table.toTableSchema().primaryKeys());
     }
 
     @Test
@@ -54,7 +54,7 @@ class LogicalTableContractTest {
                         "orders",
                         null,
                         1,
-                        List.of(new LogicalColumn("id", YakTypes.BIGINT, false, null, null)),
+                        List.of(new LogicalColumn("id", LogicalTypes.BIGINT, false, null, null)),
                         List.of("missing")));
     }
 
@@ -67,8 +67,8 @@ class LogicalTableContractTest {
                         null,
                         1,
                         List.of(
-                                new LogicalColumn("id", YakTypes.BIGINT, false, null, null),
-                                new LogicalColumn("id", YakTypes.BIGINT, true, null, null)),
+                                new LogicalColumn("id", LogicalTypes.BIGINT, false, null, null),
+                                new LogicalColumn("id", LogicalTypes.BIGINT, true, null, null)),
                         List.of()));
     }
 
@@ -76,6 +76,6 @@ class LogicalTableContractTest {
     void shouldRejectCapacityOnNonCapacityType() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new LogicalColumn("id", YakTypes.BIGINT, false, 20, null));
+                () -> new LogicalColumn("id", LogicalTypes.BIGINT, false, 20, null));
     }
 }

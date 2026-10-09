@@ -107,7 +107,7 @@ import io.yak.ops.dao.repository.datasync.DataSyncTableExecutionRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
-import io.yak.ops.flow.api.row.YakColumn;
+import io.yak.ops.core.types.Column;
 import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaCompatibility;
 import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaMapper;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
@@ -1568,9 +1568,9 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         DataSourceColumn targetColumn = DataSyncCatalogColumns.toColumn(target);
         if (sourceColumn == null || targetColumn == null) return false;
         try {
-            YakColumn sourceYakColumn = JdbcSchemaMapper.toYakColumn(sourceColumn);
-            YakColumn targetYakColumn = JdbcSchemaMapper.toYakColumn(targetColumn);
-            return JdbcSchemaCompatibility.isCompatible(sourceYakColumn, targetYakColumn);
+            Column sourceColumn = JdbcSchemaMapper.toColumn(sourceColumn);
+            Column targetColumn = JdbcSchemaMapper.toColumn(targetColumn);
+            return JdbcSchemaCompatibility.isCompatible(sourceColumn, targetColumn);
         } catch (IllegalArgumentException exception) {
             return false;
         }

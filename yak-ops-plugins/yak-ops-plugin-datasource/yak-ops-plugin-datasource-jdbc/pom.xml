@@ -27,7 +27,7 @@
         </dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
-            <artifactId>yak-flow-api</artifactId>
+            <artifactId>yak-ops-core</artifactId>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

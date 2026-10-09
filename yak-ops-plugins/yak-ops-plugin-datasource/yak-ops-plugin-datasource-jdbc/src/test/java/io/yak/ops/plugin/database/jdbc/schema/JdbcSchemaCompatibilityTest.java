@@ -3,9 +3,9 @@ package io.yak.ops.plugin.database.jdbc.schema;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.yak.ops.flow.api.row.YakColumn;
-import io.yak.ops.flow.api.row.YakDataType;
-import io.yak.ops.flow.api.row.YakTypes;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.LogicalType;
+import io.yak.ops.core.types.LogicalTypes;
 import org.junit.jupiter.api.Test;
 
 class JdbcSchemaCompatibilityTest {
@@ -13,90 +13,90 @@ class JdbcSchemaCompatibilityTest {
     @Test
     void shouldAllowIntegerWideningAndRejectNarrowing() {
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.INTEGER), column("target", YakTypes.BIGINT)));
+                column("source", LogicalTypes.INTEGER), column("target", LogicalTypes.BIGINT)));
         assertFalse(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.BIGINT), column("target", YakTypes.SMALLINT)));
+                column("source", LogicalTypes.BIGINT), column("target", LogicalTypes.SMALLINT)));
     }
 
     @Test
     void shouldValidateIntegerToDecimalCapacity() {
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.INTEGER), column("target", YakTypes.decimal(12, 2))));
+                column("source", LogicalTypes.INTEGER), column("target", LogicalTypes.decimal(12, 2))));
         assertFalse(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.BIGINT), column("target", YakTypes.decimal(18, 0))));
+                column("source", LogicalTypes.BIGINT), column("target", LogicalTypes.decimal(18, 0))));
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.BIGINT), column("target", YakTypes.decimal(null, null))));
+                column("source", LogicalTypes.BIGINT), column("target", LogicalTypes.decimal(null, null))));
     }
 
     @Test
     void shouldRejectDecimalPrecisionOrScaleLoss() {
         assertFalse(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.decimal(10, 2)), column("target", YakTypes.decimal(9, 2))));
+                column("source", LogicalTypes.decimal(10, 2)), column("target", LogicalTypes.decimal(9, 2))));
         assertFalse(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.decimal(10, 2)), column("target", YakTypes.decimal(12, 1))));
+                column("source", LogicalTypes.decimal(10, 2)), column("target", LogicalTypes.decimal(12, 1))));
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.decimal(10, 2)), column("target", YakTypes.decimal(12, 2))));
+                column("source", LogicalTypes.decimal(10, 2)), column("target", LogicalTypes.decimal(12, 2))));
     }
 
     @Test
     void shouldPreserveUnknownDecimalCompatibility() {
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.decimal(null, null)),
-                column("target", YakTypes.decimal(12, 2))));
+                column("source", LogicalTypes.decimal(null, null)),
+                column("target", LogicalTypes.decimal(12, 2))));
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.decimal(10, null)),
-                column("target", YakTypes.decimal(12, null))));
+                column("source", LogicalTypes.decimal(10, null)),
+                column("target", LogicalTypes.decimal(12, null))));
     }
 
     @Test
     void shouldRejectSmallerStringAndBinaryCapacity() {
         assertFalse(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.STRING, 100), column("target", YakTypes.STRING, 50)));
+                column("source", LogicalTypes.STRING, 100), column("target", LogicalTypes.STRING, 50)));
         assertFalse(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.BINARY, 100), column("target", YakTypes.BINARY, 50)));
+                column("source", LogicalTypes.BINARY, 100), column("target", LogicalTypes.BINARY, 50)));
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.STRING, null), column("target", YakTypes.STRING, 50)));
+                column("source", LogicalTypes.STRING, null), column("target", LogicalTypes.STRING, 50)));
     }
 
     @Test
     void shouldRejectNullableSourceForRequiredTarget() {
         assertFalse(JdbcSchemaCompatibility.isCompatible(
-                new YakColumn("source", YakTypes.STRING, true, 100),
-                new YakColumn("target", YakTypes.STRING, false, 100)));
+                new Column("source", LogicalTypes.STRING, true, 100),
+                new Column("target", LogicalTypes.STRING, false, 100)));
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                new YakColumn("source", YakTypes.STRING, false, 100),
-                new YakColumn("target", YakTypes.STRING, true, 100)));
+                new Column("source", LogicalTypes.STRING, false, 100),
+                new Column("target", LogicalTypes.STRING, true, 100)));
     }
 
     @Test
     void shouldAllowBooleanToNumericTargetForCrossDatabasePlanning() {
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.BOOLEAN), column("target", YakTypes.INTEGER)));
+                column("source", LogicalTypes.BOOLEAN), column("target", LogicalTypes.INTEGER)));
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.BOOLEAN), column("target", YakTypes.decimal(1, 0))));
+                column("source", LogicalTypes.BOOLEAN), column("target", LogicalTypes.decimal(1, 0))));
         assertFalse(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.BOOLEAN), column("target", YakTypes.decimal(1, 1))));
+                column("source", LogicalTypes.BOOLEAN), column("target", LogicalTypes.decimal(1, 1))));
     }
 
     @Test
     void shouldAllowDateToTimestampTarget() {
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.DATE), column("target", YakTypes.TIMESTAMP)));
+                column("source", LogicalTypes.DATE), column("target", LogicalTypes.TIMESTAMP)));
     }
 
     @Test
     void shouldAllowFloatToDoubleOnly() {
         assertTrue(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.FLOAT), column("target", YakTypes.DOUBLE)));
+                column("source", LogicalTypes.FLOAT), column("target", LogicalTypes.DOUBLE)));
         assertFalse(JdbcSchemaCompatibility.isCompatible(
-                column("source", YakTypes.DOUBLE), column("target", YakTypes.FLOAT)));
+                column("source", LogicalTypes.DOUBLE), column("target", LogicalTypes.FLOAT)));
     }
 
-    private YakColumn column(String name, YakDataType type) {
+    private Column column(String name, LogicalType type) {
         return column(name, type, null);
     }
 
-    private YakColumn column(String name, YakDataType type, Integer length) {
-        return new YakColumn(name, type, true, length);
+    private Column column(String name, LogicalType type, Integer length) {
+        return new Column(name, type, true, length);
     }
 }

@@ -1,15 +1,15 @@
-package io.yak.ops.plugin.database.jdbc.schema.dialect;
+package io.yak.ops.connector.jdbc.database.dialect;
 
-import io.yak.ops.flow.api.row.YakColumn;
-import io.yak.ops.flow.api.row.YakDecimalType;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.DecimalType;
 
-/** JDBC Dialect 共用的参数化逻辑类型规划规则。 */
-final class JdbcDialectTypeMappings {
+/** Shared native numeric and length type rules across JDBC target dialects. */
+final class JdbcTypeMappings {
 
-    private JdbcDialectTypeMappings() {}
+    private JdbcTypeMappings() {}
 
-    static JdbcNativeType decimal(YakColumn column, String nativeName, int maxPrecision, int maxScale) {
-        YakDecimalType decimal = (YakDecimalType) column.dataType();
+    static JdbcNativeType decimal(Column column, String nativeName, int maxPrecision, int maxScale) {
+        DecimalType decimal = (DecimalType) column.dataType();
         Integer precision = decimal.precision();
         Integer scale = decimal.scale();
 

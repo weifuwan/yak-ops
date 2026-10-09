@@ -1,7 +1,7 @@
 package io.yak.ops.business.datasync.schema;
 
-import io.yak.ops.flow.api.row.YakColumn;
-import io.yak.ops.flow.api.row.YakTableSchema;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.TableSchema;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -11,7 +11,7 @@ import java.util.Set;
  * Data Sync 产品层的逻辑表结构定义。
  *
  * <p>LogicalTable 是可持久化产品元数据的内存契约，不等同于 Datasource Catalog 的物理表，也不等同于
- * YakFlow Runtime 的 YakTableSchema。产品资源 ID、Workspace ownership 与审计字段由后续持久化层承载。
+ * YakFlow Runtime 的 TableSchema。产品资源 ID、Workspace ownership 与审计字段由后续持久化层承载。
  *
  * @param name 逻辑表名称
  * @param comment 逻辑表业务备注；未提供时可为 null
@@ -72,10 +72,10 @@ public record LogicalTable(
      *
      * @return YakFlow 运行时表结构
      */
-    public YakTableSchema toRuntimeSchema() {
-        List<YakColumn> runtimeColumns = columns.stream()
-                .map(column -> new YakColumn(column.name(), column.dataType(), column.nullable(), column.length()))
+    public TableSchema toTableSchema() {
+        List<Column> runtimeColumns = columns.stream()
+                .map(column -> new Column(column.name(), column.dataType(), column.nullable(), column.length()))
                 .toList();
-        return new YakTableSchema(runtimeColumns, primaryKeys);
+        return new TableSchema(runtimeColumns, primaryKeys);
     }
 }

@@ -1,6 +1,6 @@
 package io.yak.ops.business.datasync.schema.target;
 
-import io.yak.ops.flow.api.row.YakDataType;
+import io.yak.ops.core.types.LogicalType;
 import java.util.Objects;
 
 /**
@@ -20,7 +20,7 @@ import java.util.Objects;
  */
 public record TargetColumnPlan(
         String name,
-        YakDataType logicalType,
+        LogicalType logicalType,
         String nativeType,
         boolean nullable,
         boolean primaryKey,

@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
-import io.yak.ops.flow.api.row.YakTypes;
+import io.yak.ops.core.types.LogicalTypes;
 import java.sql.Types;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -64,7 +64,7 @@ class TargetSchemaCompatibilityTest {
                 "orders",
                 null,
                 1,
-                List.of(new LogicalColumn("id", YakTypes.INTEGER, false, null, null)),
+                List.of(new LogicalColumn("id", LogicalTypes.INTEGER, false, null, null)),
                 List.of("id"));
         List<DataSourceCatalogColumnVO> target = List.of(
                 column("id", "DECIMAL", Types.DECIMAL, 12, 0, false, 1, true, 1));
@@ -80,8 +80,8 @@ class TargetSchemaCompatibilityTest {
                 null,
                 1,
                 List.of(
-                        new LogicalColumn("id", YakTypes.BIGINT, false, null, null),
-                        new LogicalColumn("name", YakTypes.STRING, true, 100, null)),
+                        new LogicalColumn("id", LogicalTypes.BIGINT, false, null, null),
+                        new LogicalColumn("name", LogicalTypes.STRING, true, 100, null)),
                 List.of("id"));
     }
 

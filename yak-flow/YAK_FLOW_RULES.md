@@ -2,7 +2,7 @@
 
 Status: Active
 
-Scope: `yak-flow/yak-flow-api`、`yak-flow/yak-flow-runtime` 、`yak-flow/yak-flow-connector-base` 与 `yak-flow/yak-flow-connector-jdbc`。先遵循 [Architecture](../ARCHITECTURE.md)、[Core Rules](../yak-ops-core/CORE_RULES.md) 和 [Core / Runtime Contract](../docs/capabilities/yak-flow/core-runtime-contract.md)。
+Scope: `yak-ops-core`、`yak-flow/yak-flow-runtime`、`yak-flow/yak-flow-connector-base` 与 `yak-flow/yak-flow-connector-jdbc`。先遵循 [Architecture](../ARCHITECTURE.md)、[Core Rules](../yak-ops-core/CORE_RULES.md) 和 [Core / Runtime Contract](../docs/capabilities/yak-flow/core-runtime-contract.md)。
 
 ## JavaDoc and Comments
 
@@ -14,10 +14,10 @@ than repeating method names. The existing Backend Quality job enforces objective
 ## Module Boundary
 
 - Core 拥有 Source / Sink / Split / Transformation / Configuration / PipelineExecutor / JobClient 共享 API，不得依赖 Runtime。
-- YakFlow API 只保留 YakRow / RowKind / YakTableSchema / YakDataType 等 JDK-only 值对象；旧 Source / Sink / Trace 协议和 JDBC / CDC Connector 已删除。
+- Core owns the Source / Sink API and database-neutral RowData / TableRecord, TableId and LogicalType / TableSchema. The yak-flow-api module is removed; do not recreate duplicate row or schema contracts.
 - Runtime 拥有 StreamGraph / JobGraph / ExecutionGraph、StreamTask / StreamTaskInput、SourceCoordinator、ResultPartition / InputGate 和 Checkpoint。运行期 Execution 是内存 Attempt，不是产品 Execution。
 - Connector Base 只依赖 Core，提供非阻塞 SourceReader 消费层、有界 Future 队列与阻塞 SplitFetcher；不得依赖 Runtime、Datasource、JDBC 或产品 Task。
-- JDBC Source 独立实现 Core Source API，使用 Connector Base 的异步 Reader 和 Connection 级隔离；SQL 方言只属于 JDBC Connector。旧 Datasource JDBC Plugin 的 Schema / DDL 仍作为产品预览代码保留，不能混入新 Connector。
+- JDBC Source 独立实现 Core Source API，使用 Connector Base 的异步 Reader 和 Connection 级隔离；SQL 方言只属于 JDBC Connector。Datasource JDBC Plugin owns only connection/Catalog and the catalog-to-logical-schema mapper. Native type mapping and target DDL are owned exclusively by JDBC Connector; do not add another Datasource dialect.
 - JDBC Source 的一个定义管理多张表；Enumerator 逐表异步发现并分配 Split。单整数主键采用不重叠的区间和已输出主键恢复，其他表采用整 Split 重放语义；只保证受限 at-least-once，不承诺变化中数据库的全局一致性快照。
 
 ## Graph Compilation
@@ -60,4 +60,4 @@ than repeating method names. The existing Backend Quality job enforces objective
 
 ## Verification
 
-修改物理图和生命周期必须验证：JobVertex / JobEdge、单并行 Chaining、多并行 Subtask/Attempt、失败/取消清理、SourceCoordinator SourceEvent 及版本化 Split 投递、坏版本拒绝、Checkpoint 恢复、无 Checkpoint 不重试。没有真实 Connector 时不能声称 JDBC/CDC E2E 通过。
+修改物理图和生命周期必须验证：JobVertex / JobEdge、单并行 Chaining、多并行 Subtask/Attempt、失败/取消清理、SourceCoordinator SourceEvent 及版本化 Split 投递、坏版本拒绝、Checkpoint 恢复、无 Checkpoint 不重试。JDBC Source-only integration tests do not prove cross-database Sink delivery or CDC E2E. Real MySQL/PostgreSQL/Oracle acceptance is required before claiming those environments are supported end to end.
