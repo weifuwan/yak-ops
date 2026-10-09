@@ -76,11 +76,13 @@ final class TaskDeployment {
                     }
                 });
             }
-            coordinator.terminationFuture().whenComplete((unused, error) -> {
-                if (error != null) {
-                    failJob(unwrap(error));
-                }
-            });
+            if (!jobGraph.isSingleChainedVertex()) {
+                coordinator.terminationFuture().whenComplete((unused, error) -> {
+                    if (error != null) {
+                        failJob(unwrap(error));
+                    }
+                });
+            }
 
             ensureNotCancelled();
             await(coordinator.start());
@@ -229,6 +231,13 @@ final class TaskDeployment {
                 source, coordinator, environment(execution), chain, chain);
         sourceTasks.add(task);
         bind(execution, task);
+        // For a chained Source/Operator/Sink, preserve the StreamTask's originating failure.
+        // Coordinator failures are delivered through the Task mailbox, as in the original inline path.
+        coordinator.terminationFuture().whenComplete((unused, error) -> {
+            if (error != null) {
+                task.coordinatorFailed(unwrap(error));
+            }
+        });
     }
 
     private void bind(Execution execution, StreamTask task) {
