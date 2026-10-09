@@ -7,17 +7,17 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Coordinator-side portion of one aligned Source checkpoint.
- *
- * <p>This state alone does not establish a completed job checkpoint. The runtime must
- * persist it together with Reader and downstream state at the same checkpoint boundary
- * before acknowledging completion to the Source.
- *
- * <p>Connector-defined split state must be independently serializable and restorable.
- *
- * @param <SplitT> the source split type
- * @param <EnumStateT> the enumerator checkpoint state type
- */
+* Coordinator-side portion of one aligned Source checkpoint.
+*
+* <p>This state alone does not establish a completed job checkpoint. The runtime must
+* persist it together with Reader and downstream state at the same checkpoint boundary
+* before acknowledging completion to the Source.
+*
+* <p>Connector-defined split state must be independently serializable and restorable.
+*
+* @param <SplitT> the source split type
+* @param <EnumStateT> the enumerator checkpoint state type
+*/
 public record SourceCoordinatorCheckpoint<SplitT extends SourceSplit, EnumStateT>(
         long checkpointId,
         EnumStateT enumeratorState,

@@ -18,39 +18,39 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Compiles sink-rooted logical transformations into a validated StreamGraph.
- *
- * <p>Each upstream transformation is visited before its consumer, shared upstream
- * definitions are materialized once, and dependencies become StreamEdges.
- * This stage validates configuration without creating SourceReaders, Writers or
- * task threads. Callers must not concurrently mutate the input transformations.
- *
- * @author weifuwan
- */
+* Compiles sink-rooted logical transformations into a validated StreamGraph.
+*
+* <p>Each upstream transformation is visited before its consumer, shared upstream
+* definitions are materialized once, and dependencies become StreamEdges.
+* This stage validates configuration without creating SourceReaders, Writers or
+* task threads. Callers must not concurrently mutate the input transformations.
+*
+* @author weifuwan
+*/
 public final class StreamGraphGenerator {
 
     private final List<SinkTransformation<?>> sinks;
     private final Configuration configuration;
 
     /**
- * Creates a generator for a single logical Sink.
- *
- * @param sink the output transformation
- * @param configuration the graph-planning configuration
- */
+    * Creates a generator for a single logical Sink.
+    *
+    * @param sink the output transformation
+    * @param configuration the graph-planning configuration
+    */
     public StreamGraphGenerator(SinkTransformation<?> sink, Configuration configuration) {
         this(List.of(Objects.requireNonNull(sink, "sink 不能为空")), configuration);
     }
 
     /**
- * Creates a generator for one or more logical Sinks.
- *
- * <p>The effective configuration is copied so subsequent caller changes do not
- * affect this generator.
- *
- * @param sinks the output transformations
- * @param configuration the graph-planning configuration
- */
+    * Creates a generator for one or more logical Sinks.
+    *
+    * <p>The effective configuration is copied so subsequent caller changes do not
+    * affect this generator.
+    *
+    * @param sinks the output transformations
+    * @param configuration the graph-planning configuration
+    */
     public StreamGraphGenerator(Collection<? extends SinkTransformation<?>> sinks, Configuration configuration) {
         Objects.requireNonNull(sinks, "sinks 不能为空");
         if (sinks.isEmpty()) {
@@ -68,13 +68,13 @@ public final class StreamGraphGenerator {
     }
 
     /**
- * Generates an independently validated StreamGraph without opening runtime resources.
- *
- * <p>Resolves default parallelism and checks stable UIDs, connected types,
- * fan-in/fan-out restrictions and execution mode compatibility.
- *
- * @return a new graph describing the validated pipeline
- */
+    * Generates an independently validated StreamGraph without opening runtime resources.
+    *
+    * <p>Resolves default parallelism and checks stable UIDs, connected types,
+    * fan-in/fan-out restrictions and execution mode compatibility.
+    *
+    * @return a new graph describing the validated pipeline
+    */
     public StreamGraph generate() {
         Integer defaultParallelism = configuration.get(CoreOptions.DEFAULT_PARALLELISM);
         if (defaultParallelism == null || defaultParallelism <= 0) {
@@ -96,15 +96,15 @@ public final class StreamGraphGenerator {
     }
 
     /**
- * Resolves execution mode using Source boundedness and configured preferences.
- *
- * <p>AUTOMATIC selects BATCH only for entirely bounded graphs. Explicit BATCH
- * rejects unbounded sources, while STREAMING accepts either kind.
- *
- * @param graph the already generated topology
- * @param configuration the effective execution configuration
- * @return BATCH or STREAMING for the current graph
- */
+    * Resolves execution mode using Source boundedness and configured preferences.
+    *
+    * <p>AUTOMATIC selects BATCH only for entirely bounded graphs. Explicit BATCH
+    * rejects unbounded sources, while STREAMING accepts either kind.
+    *
+    * @param graph the already generated topology
+    * @param configuration the effective execution configuration
+    * @return BATCH or STREAMING for the current graph
+    */
     public static RuntimeExecutionMode resolveRuntimeMode(StreamGraph graph, Configuration configuration) {
         Objects.requireNonNull(graph, "graph 不能为空");
         Objects.requireNonNull(configuration, "configuration 不能为空");

@@ -29,12 +29,12 @@ import java.util.Set;
 import java.util.zip.CRC32;
 
 /**
- * Exclusive local checkpoint store for a single running job.
- *
- * <p>Uses versioned binary data with CRC validation, without Java object serialization.
- * A checkpoint is published only after the file is synced and atomically replaced.
- * Corrupted or incompatible state is rejected rather than silently ignored.
- */
+* Exclusive local checkpoint store for a single running job.
+*
+* <p>Uses versioned binary data with CRC validation, without Java object serialization.
+* A checkpoint is published only after the file is synced and atomically replaced.
+* Corrupted or incompatible state is rejected rather than silently ignored.
+*/
 public final class FileCheckpointStore implements AutoCloseable {
 
     private static final int MAGIC = 0x59414B43; // YAKC
@@ -72,15 +72,15 @@ public final class FileCheckpointStore implements AutoCloseable {
     }
 
     /**
- * Loads the most recently completed checkpoint.
- *
- * <p>Rejects snapshots whose topology, stable operator UIDs or parallelism differ
- * from the current job's graph signature.
- *
- * @param expectedGraphSignature the fingerprint of the job being restored
- * @return the latest completed checkpoint if present
- * @throws IOException if the persisted data is corrupt or unreadable
- */
+    * Loads the most recently completed checkpoint.
+    *
+    * <p>Rejects snapshots whose topology, stable operator UIDs or parallelism differ
+    * from the current job's graph signature.
+    *
+    * @param expectedGraphSignature the fingerprint of the job being restored
+    * @return the latest completed checkpoint if present
+    * @throws IOException if the persisted data is corrupt or unreadable
+    */
     public Optional<CheckpointSnapshot> loadLatest(String expectedGraphSignature) throws IOException {
         ensureOpen();
         Objects.requireNonNull(expectedGraphSignature, "expectedGraphSignature 不能为空");
@@ -136,13 +136,13 @@ public final class FileCheckpointStore implements AutoCloseable {
     }
 
     /**
- * Publishes a completed checkpoint using an atomic file replacement.
- *
- * <p>Only after successful persistence may the runtime acknowledge completion
- * to the Reader and Enumerator.
- *
- * @throws IOException if durable publication fails
- */
+    * Publishes a completed checkpoint using an atomic file replacement.
+    *
+    * <p>Only after successful persistence may the runtime acknowledge completion
+    * to the Reader and Enumerator.
+    *
+    * @throws IOException if durable publication fails
+    */
     public void save(CheckpointSnapshot checkpoint) throws IOException {
         ensureOpen();
         Objects.requireNonNull(checkpoint, "checkpoint 不能为空");
@@ -320,19 +320,19 @@ public final class FileCheckpointStore implements AutoCloseable {
     }
 
     /**
- * Computes a stable graph fingerprint from operator UIDs, types, parallelism,
- * partition routing and source boundedness.
- *
- * <p>All operators must have stable UIDs for cross-job recovery.
- */
+    * Computes a stable graph fingerprint from operator UIDs, types, parallelism,
+    * partition routing and source boundedness.
+    *
+    * <p>All operators must have stable UIDs for cross-job recovery.
+    */
     public static String graphSignature(StreamGraph graph) {
         return graphSignature(graph, 0);
     }
 
     /**
-     * A keyed graph also commits to its KeyGroup hash algorithm and maxParallelism.
-     * Existing non-keyed snapshot fingerprints are byte-for-byte unchanged.
-     */
+    * A keyed graph also commits to its KeyGroup hash algorithm and maxParallelism.
+    * Existing non-keyed snapshot fingerprints are byte-for-byte unchanged.
+    */
     public static String graphSignature(StreamGraph graph, int maxParallelism) {
         Objects.requireNonNull(graph, "graph 不能为空");
         StringBuilder canonical = new StringBuilder("yak-local-v1");

@@ -7,11 +7,11 @@ import java.util.Objects;
 import java.util.function.BooleanSupplier;
 
 /**
- * Runtime environment for one local Task, exposing identity, configuration and cancellation state.
- *
- * <p>This object does not own SourceCoordinator, Reader, Gateway or database connections.
- * Source-specific event delivery is assembled by its owning Source task.
- */
+* Runtime environment for one local Task, exposing identity, configuration and cancellation state.
+*
+* <p>This object does not own SourceCoordinator, Reader, Gateway or database connections.
+* Source-specific event delivery is assembled by its owning Source task.
+*/
 public final class TaskEnvironment implements WriterInitContext {
 
     private final RuntimeTaskInfo taskInfo;
@@ -49,10 +49,10 @@ public final class TaskEnvironment implements WriterInitContext {
     }
 
     /**
- * Returns a new task environment using the supplied cancellation signal.
- *
- * <p>The original environment and its configuration snapshot remain unchanged.
- */
+    * Returns a new task environment using the supplied cancellation signal.
+    *
+    * <p>The original environment and its configuration snapshot remain unchanged.
+    */
     public TaskEnvironment withCancellation(BooleanSupplier cancellationRequested) {
         return new TaskEnvironment(taskInfo, configuration, cancellationRequested);
     }

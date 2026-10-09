@@ -5,12 +5,12 @@ import io.yak.ops.core.api.common.TaskInfo;
 import java.util.Objects;
 
 /**
- * Immutable identity and resolved execution settings for one local subtask attempt.
- *
- * <p>{@code parallelism} is the current operator's subtask count, whereas
- * {@code maxParallelism} fixes the key-group count used for keyed state.
- * The numeric operator ID is graph-local and is not a stable checkpoint UID.
- */
+* Immutable identity and resolved execution settings for one local subtask attempt.
+*
+* <p>{@code parallelism} is the current operator's subtask count, whereas
+* {@code maxParallelism} fixes the key-group count used for keyed state.
+* The numeric operator ID is graph-local and is not a stable checkpoint UID.
+*/
 public record RuntimeTaskInfo(
         JobID jobID, int operatorId, int subtaskIndex, int parallelism, int attemptNumber, int maxParallelism)
         implements TaskInfo {

@@ -6,11 +6,11 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Immutable, aligned snapshot of one local job's Source, Reader and operator state.
- *
- * <p>Contains versioned serialized state only, never live readers, task threads,
- * connections or in-flight channel messages.
- */
+* Immutable, aligned snapshot of one local job's Source, Reader and operator state.
+*
+* <p>Contains versioned serialized state only, never live readers, task threads,
+* connections or in-flight channel messages.
+*/
 public record CheckpointSnapshot(
         long checkpointId,
         String graphSignature,
