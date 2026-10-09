@@ -8,7 +8,7 @@ import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
-import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
+import io.yak.ops.flow.runtime.checkpoint.AlignedCheckpointCoordinator;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
 import io.yak.ops.flow.runtime.jobgraph.JobVertex;
 import java.nio.file.Files;
@@ -35,7 +35,7 @@ public final class ExecutionGraph {
     private final Object monitor = new Object();
     private final CompletableFuture<JobExecutionResult> result = new CompletableFuture<>();
     private final CompletableFuture<Void> cancellation = new CompletableFuture<>();
-    private volatile CompletableFuture<QuiescentCheckpointCoordinator> checkpointController =
+    private volatile CompletableFuture<AlignedCheckpointCoordinator> checkpointController =
             new CompletableFuture<>();
     private final boolean checkpointConfigured;
 
