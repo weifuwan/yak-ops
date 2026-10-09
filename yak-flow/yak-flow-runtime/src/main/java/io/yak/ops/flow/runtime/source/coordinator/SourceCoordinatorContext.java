@@ -2,7 +2,7 @@ package io.yak.ops.flow.runtime.source.coordinator;
 
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
-import io.yak.ops.flow.runtime.execution.TaskInfo;
+import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
@@ -39,7 +39,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
     private final Consumer<Throwable> onFailure;
     private final SplitAssignmentTracker<SplitT> assignments = new SplitAssignmentTracker<>();
     private final Map<Integer, SubtaskGateway> readers = new HashMap<>();
-    private final Map<Integer, TaskInfo> readerIdentities = new HashMap<>();
+    private final Map<Integer, RuntimeTaskInfo> readerIdentities = new HashMap<>();
     private final Map<String, Integer> inFlight = new HashMap<>();
     private final Set<Integer> noMoreRequested = new HashSet<>();
     private final Set<Integer> noMoreDispatched = new HashSet<>();
@@ -60,7 +60,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         this.onFailure = Objects.requireNonNull(onFailure);
     }
 
-    void registerReader(TaskInfo taskInfo, SubtaskGateway gateway) {
+    void registerReader(RuntimeTaskInfo taskInfo, SubtaskGateway gateway) {
         assertCoordinatorThread();
         if (checkpointPaused) {
             throw new IllegalStateException("Checkpoint 对齐期间不允许注册新 Reader");
@@ -75,17 +75,17 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         readerIdentities.put(subtaskId, taskInfo);
     }
 
-    void checkRegistered(TaskInfo taskInfo) {
+    void checkRegistered(RuntimeTaskInfo taskInfo) {
         assertCoordinatorThread();
         operatorContext.validateTask(taskInfo);
-        TaskInfo active = readerIdentities.get(taskInfo.subtaskIndex());
+        RuntimeTaskInfo active = readerIdentities.get(taskInfo.subtaskIndex());
         if (!taskInfo.equals(active)) {
             throw new IllegalStateException("Reader 未注册或已过期，subtask="
                     + taskInfo.subtaskIndex() + "，attempt=" + taskInfo.attemptNumber());
         }
     }
 
-    boolean canRequestSplit(TaskInfo taskInfo) {
+    boolean canRequestSplit(RuntimeTaskInfo taskInfo) {
         checkRegistered(taskInfo);
         return !noMoreRequested.contains(taskInfo.subtaskIndex());
     }

@@ -1,9 +1,9 @@
-package io.yak.ops.core.transformations;
+package io.yak.ops.flow.runtime.transformations;
 
 import io.yak.ops.core.api.dag.Transformation;
 import io.yak.ops.core.api.operators.KeySelector;
-import io.yak.ops.core.api.operators.OneInputOperatorFactory;
-import io.yak.ops.core.graph.StreamPartitioning;
+import io.yak.ops.flow.runtime.graph.StreamPartitioning;
+import io.yak.ops.flow.runtime.operators.OneInputOperatorFactory;
 import java.util.List;
 import java.util.Objects;
 

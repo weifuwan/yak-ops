@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * 在该生产者全部数据成功放入队列后调用。只有全部上游结束且队列排空才返回 END_OF_INPUT。
  * 当下游停止时，abort 让阻塞的生产者在有限时间内感知失败。
  */
-public final class LocalChannel<T> {
+public final class RecordChannel<T> {
 
     private static final long BACKPRESSURE_POLL_MILLIS = 25;
 
@@ -29,7 +29,7 @@ public final class LocalChannel<T> {
     private CompletableFuture<Void> drained = CompletableFuture.completedFuture(null);
     private int processingRecords;
 
-    public LocalChannel(int capacity, int producerCount) {
+    public RecordChannel(int capacity, int producerCount) {
         if (capacity <= 0 || producerCount <= 0) {
             throw new IllegalArgumentException("Channel 容量和生产者数量必须为正整数");
         }

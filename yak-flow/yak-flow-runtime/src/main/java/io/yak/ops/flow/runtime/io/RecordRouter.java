@@ -2,22 +2,22 @@ package io.yak.ops.flow.runtime.io;
 
 import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.core.api.operators.KeySelector;
-import io.yak.ops.core.graph.StreamEdge;
-import io.yak.ops.core.graph.StreamPartitioning;
+import io.yak.ops.flow.runtime.graph.StreamEdge;
+import io.yak.ops.flow.runtime.graph.StreamPartitioning;
 import java.util.List;
 import java.util.Objects;
 
 /** 单个上游子任务的数据出口，将记录按 StreamEdge 的明确分区策略发送到下游 Channel。 */
-public final class LocalResultPartition<T> implements ReaderOutput<T> {
+public final class RecordRouter<T> implements ReaderOutput<T> {
 
     private final StreamEdge edge;
     private final int upstreamIndex;
-    private final List<LocalChannel<T>> channels;
+    private final List<RecordChannel<T>> channels;
     private int nextTarget;
     private boolean finished;
 
-    public LocalResultPartition(StreamEdge edge, int upstreamIndex, int upstreamParallelism,
-            List<LocalChannel<T>> channels) {
+    public RecordRouter(StreamEdge edge, int upstreamIndex, int upstreamParallelism,
+            List<RecordChannel<T>> channels) {
         this.edge = Objects.requireNonNull(edge, "edge 不能为空");
         Objects.requireNonNull(channels, "channels 不能为空");
         if (upstreamIndex < 0 || upstreamIndex >= upstreamParallelism || channels.isEmpty()) {
@@ -66,7 +66,7 @@ public final class LocalResultPartition<T> implements ReaderOutput<T> {
             throw new IllegalStateException("结果分区不能重复结束");
         }
         finished = true;
-        for (LocalChannel<T> channel : channels) {
+        for (RecordChannel<T> channel : channels) {
             channel.producerFinished(upstreamIndex);
         }
     }

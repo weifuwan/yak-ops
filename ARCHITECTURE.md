@@ -38,7 +38,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-ops-core`
 
-拥有新的批流共用 Source / Sink / Operator API、类型化 Configuration、Transformation / StreamGraph 以及 `PipelineExecutor` / `JobClient` 稳定契约。只保留公共协议和逻辑拓扑，不创建本地运行线程，也不持有运行中 Job、Reader 或 Connector 连接。
+拥有批流共用的 Source / Sink 接口、Collector / KeySelector、类型化 Configuration、通用 Transformation、只读 TaskInfo 元信息契约，以及 `PipelineExecutor` / `JobClient`。不包含 StreamGraph、Streaming Transformation、运行时 Operator、Channel、物理 Task、线程或 Checkpoint 执行器；不得反向依赖 Runtime。
 
 ### `yak-flow/yak-flow-api`
 
@@ -46,9 +46,14 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-flow/yak-flow-runtime`
 
-拥有本地执行实现：`CompiledJobPlan`（JobID / 配置快照 / 执行图一致性）、`TaskInfo` / `TaskEnvironment`、`LocalPipelineExecutor`、`LocalJobClient`、`LocalStreamJobRunner`、`StreamTask`、`SourceOperatorStreamTask`、`LocalOperatorChain` 和 `source.coordinator`。新 Core-based Runtime 支持一个 Source → 零个或多个单输入 Operator → 一个 Sink 的**线性图**：单并行 FORWARD 图继续采用内联链；多并行图通过 `LocalTaskGraph` 创建 Source/Operator/Sink 子任务，`LocalChannel` 提供有界背压，`LocalResultPartition` 根据 StreamEdge 的 FORWARD / REBALANCE / KEYED 显式路由。全部上游正常结束后才 finish / flush；失败或取消中止 Channel 并释放资源。多源、分叉、动态扩缩容、网络 Shuffle 和中间 Operator 状态恢复仍未实现。新 Runtime 的 `LocalCheckpointCoordinator` 支持 Source → Sink（多 Reader / Writer）在单节点冻结分片分配、暂停 Source、等待有界 Channel 排空、Sink.flush(false)、版本化状态原子持久化及最近已完成快照恢复。没有稳定 UID / 状态目录时不允许开启可恢复检查点，且不承诺 Exactly-once。模块依赖 `yak-ops-core`，过渡期保留旧 YakFlow API；不拥有产品 Task / Execution / Attempt 持久化、Cron 或 Retry 策略。旧 `io.yak.ops.flow.runtime.LocalExecutionEngine` / `LocalExecution` 及其根包 Channel / Checkpoint 实现已删除。Data Sync 的业务定义、管理、DAO 与 Connector 代码保留，但执行启动暂时不可用；不能将旧链路的验收证据直接当作新 Runtime 的验收。
+拥有与 Flink 当前 `flink-runtime` 对齐的 Streaming 图及执行实现：`StreamGraph` / `StreamGraphGenerator` / `StreamNode` / `StreamEdge`、`SourceTransformation` / `OneInputTransformation` / `SinkTransformation`、`OneInputOperator` 及工厂、`CompiledJobPlan`、`RuntimeTaskInfo` / `TaskEnvironment`、`EmbeddedPipelineExecutor` / `EmbeddedJobClient`、`StreamJobRunner` / `JobExecution`、`StreamTask`、`OperatorChain`、`RecordChannel` / `RecordRouter`、`SourceCoordinator` 与 `QuiescentCheckpointCoordinator`。具体类不以 Local 前缀表达公共机制；单 JVM 执行入口用 Embedded 明确部署边界。
 
-新 Core / Runtime 的配置、执行图、Task/Coordinator 运行上下文与状态恢复的目标边界见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。该契约区分当前实现与拟引入的装配机制，不代表新 Runtime 已具备完整运行或恢复能力。
+当前只支持一个 Source → 零个或多个单输入 Operator → 一个 Sink 的严格线性图，保留单并行 FORWARD 内联链、多并行 Task/有界队列、FORWARD / REBALANCE / KEYED 路由、取消及失败清理语义。可恢复 Checkpoint 限于 Source → Sink 的单节点静止切面，持久化格式和状态目录保持兼容，语义仍为 at-least-once，不承诺 Exactly-once。多源、分叉、网络 Shuffle、动态扩缩容和中间 Operator 状态恢复尚未实现。
+
+Runtime 单向依赖 Core，不拥有产品 Task / Execution / Attempt 持久化或 Cron/Retry。旧 `io.yak.ops.flow.runtime.LocalExecutionEngine` / `LocalExecution` 已删除，Data Sync 的定义/管理/DAO/Connector 保留但尚未接入新执行入口；不能将旧版本验收证据当作新 Runtime 的验收。
+
+新边界详见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。
+
 
 ### `yak-flow/yak-flow-connector-jdbc`
 
@@ -146,7 +151,7 @@ UI → HTTP → Boot
              ├─ DataSourceService → DAO / Datasource Plugin API
              └─ DataSyncService → DAO / DataSourceService / YakFlow
 
-YakFlow Runtime → Yak Ops Core / YakFlow API（过渡）
+YakFlow Runtime（Graph / Operator / Execution / Checkpoint）→ Yak Ops Core（API / Configuration / Transformation）
 YakFlow Connectors → Yak Ops Core（目标）/ YakFlow API / Datasource connection runtime（过渡）
 Boot Quartz → Data Sync Scheduler Contract
 ```

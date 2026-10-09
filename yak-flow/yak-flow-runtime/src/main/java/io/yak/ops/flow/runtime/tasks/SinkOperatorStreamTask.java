@@ -2,9 +2,9 @@ package io.yak.ops.flow.runtime.tasks;
 
 import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.source.InputStatus;
-import io.yak.ops.core.graph.StreamNode;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
-import io.yak.ops.flow.runtime.io.LocalChannel;
+import io.yak.ops.flow.runtime.graph.StreamNode;
+import io.yak.ops.flow.runtime.io.RecordChannel;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -12,15 +12,15 @@ import java.util.concurrent.CompletableFuture;
 public final class SinkOperatorStreamTask extends StreamTask {
 
     private final StreamNode node;
-    private final LocalChannel<Object> input;
+    private final RecordChannel<Object> input;
     private SinkWriter<Object> writer;
 
-    public SinkOperatorStreamTask(StreamNode node, TaskEnvironment environment, LocalChannel<Object> input) {
+    public SinkOperatorStreamTask(StreamNode node, TaskEnvironment environment, RecordChannel<Object> input) {
         super(environment);
         this.node = Objects.requireNonNull(node, "node 不能为空");
         if (!node.isSink() || node.getId() != taskInfo().operatorId()
                 || node.getParallelism() != taskInfo().parallelism()) {
-            throw new IllegalArgumentException("TaskInfo 与 Sink 节点不一致");
+            throw new IllegalArgumentException("RuntimeTaskInfo 与 Sink 节点不一致");
         }
         this.input = Objects.requireNonNull(input, "input 不能为空");
     }

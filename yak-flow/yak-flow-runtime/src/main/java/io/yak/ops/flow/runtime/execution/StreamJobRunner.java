@@ -3,14 +3,14 @@ package io.yak.ops.flow.runtime.execution;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.configuration.CheckpointingOptions;
-import io.yak.ops.core.configuration.CoreOptions;
-import io.yak.ops.core.graph.StreamEdge;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamNode;
-import io.yak.ops.core.graph.StreamPartitioning;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
-import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointCoordinator;
-import io.yak.ops.flow.runtime.operators.LocalOperatorChain;
+import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
+import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
+import io.yak.ops.flow.runtime.graph.StreamEdge;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamNode;
+import io.yak.ops.flow.runtime.graph.StreamPartitioning;
+import io.yak.ops.flow.runtime.operators.OperatorChain;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
@@ -26,10 +26,10 @@ import java.util.function.Consumer;
  * Core-based 本地 Job 执行器：支持一个 Source → OneInputOperator* → Sink 的线性图。
  *
  * <p>并行度全为 1 且 FORWARD 的图沿用单 Mailbox 内联链；其它合法并行线性图由
- * LocalTaskGraph 建立独立 Operator/Sink Task、显式分区以及有界 Channel。
+ * JobExecution 建立独立 Operator/Sink Task、显式分区以及有界 Channel。
  * 不支持多源、分叉、网络 Shuffle 或尚未完成的全局 Checkpoint。
  */
-public final class LocalStreamJobRunner implements LocalJobRunner {
+public final class StreamJobRunner implements JobRunner {
 
     private static final int MAX_PARALLELISM = 16;
     private static final int MAX_JOB_SUBTASKS = 64;
@@ -78,7 +78,7 @@ public final class LocalStreamJobRunner implements LocalJobRunner {
         if (totalTasks > MAX_JOB_SUBTASKS) {
             throw new UnsupportedOperationException("单个本地 Job 子任务数量上限为 " + MAX_JOB_SUBTASKS);
         }
-        int capacity = plan.configuration().get(CoreOptions.LOCAL_CHANNEL_CAPACITY);
+        int capacity = plan.configuration().get(RuntimeOptions.CHANNEL_CAPACITY);
         if (capacity <= 0 || capacity > MAX_CHANNEL_CAPACITY) {
             throw new IllegalArgumentException("execution.local-channel.capacity 必须在 1 到 "
                     + MAX_CHANNEL_CAPACITY + " 之间");
@@ -108,7 +108,7 @@ public final class LocalStreamJobRunner implements LocalJobRunner {
 
     @Override
     public void run(CompiledJobPlan plan, BooleanSupplier cancellationRequested,
-            Consumer<LocalCheckpointCoordinator> registerCheckpoint) throws Exception {
+            Consumer<QuiescentCheckpointCoordinator> registerCheckpoint) throws Exception {
         Objects.requireNonNull(registerCheckpoint, "registerCheckpoint 不能为空");
         Objects.requireNonNull(cancellationRequested, "cancellationRequested 不能为空");
         validate(plan);
@@ -120,8 +120,8 @@ public final class LocalStreamJobRunner implements LocalJobRunner {
                 .get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()
                 || plan.configuration().get(CheckpointingOptions.RESTORE_LATEST);
         if (checkpointsEnabled || !canRunInline(plan.graph())) {
-            new LocalTaskGraph(plan, cancellationRequested,
-                    plan.configuration().get(CoreOptions.LOCAL_CHANNEL_CAPACITY), registerCheckpoint).run();
+            new JobExecution(plan, cancellationRequested,
+                    plan.configuration().get(RuntimeOptions.CHANNEL_CAPACITY), registerCheckpoint).run();
             return;
         }
 
@@ -139,9 +139,9 @@ public final class LocalStreamJobRunner implements LocalJobRunner {
         List<StreamNode> nodes = plan.graph().getTopologicalNodes();
         StreamNode sourceNode = nodes.getFirst();
         StreamNode sinkNode = nodes.getLast();
-        LocalOperatorChain chain = new LocalOperatorChain(nodes.subList(1, nodes.size() - 1), sinkNode);
+        OperatorChain chain = new OperatorChain(nodes.subList(1, nodes.size() - 1), sinkNode);
         Source<Object, SourceSplit, Object> source = castSource(sourceNode);
-        TaskInfo taskInfo = new TaskInfo(plan.jobID(), sourceNode.getId(), 0, 1, 0);
+        RuntimeTaskInfo taskInfo = new RuntimeTaskInfo(plan.jobID(), sourceNode.getId(), 0, 1, 0);
         OperatorCoordinatorContext context = new OperatorCoordinatorContext(
                 plan.jobID(), sourceNode.getId(), sourceNode.getParallelism());
 

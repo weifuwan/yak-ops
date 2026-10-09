@@ -17,8 +17,8 @@ import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
+import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
-import io.yak.ops.flow.runtime.execution.TaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import java.util.ArrayList;
@@ -39,7 +39,7 @@ class SourceOperatorStreamTaskContextTest {
         Configuration configuration = new Configuration();
         // 默认并行度与执行子任务的实际并行度不同，不应被当成 Reader parallelism。
         configuration.set(CoreOptions.DEFAULT_PARALLELISM, 8);
-        TaskInfo info = new TaskInfo(JobID.generate(), 17, 1, 2, 0);
+        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 17, 1, 2, 0);
 
         OperatorCoordinatorContext coordinatorContext =
                 new OperatorCoordinatorContext(info.jobID(), info.operatorId(), info.parallelism());
@@ -68,7 +68,7 @@ class SourceOperatorStreamTaskContextTest {
     void shouldRejectMismatchedTaskBeforeOpeningReader() throws Exception {
         TestSource source = new TestSource();
         JobID jobID = JobID.generate();
-        TaskInfo wrong = new TaskInfo(JobID.generate(), 17, 1, 2, 0);
+        RuntimeTaskInfo wrong = new RuntimeTaskInfo(JobID.generate(), 17, 1, 2, 0);
         try (SourceCoordinator<TestSplit, Integer> coordinator =
                 new SourceCoordinator<>(source, new OperatorCoordinatorContext(jobID, 17, 2))) {
             assertThrows(IllegalArgumentException.class, () -> new SourceOperatorStreamTask<>(

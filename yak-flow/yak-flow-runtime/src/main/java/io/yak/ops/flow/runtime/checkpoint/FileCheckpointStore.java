@@ -1,8 +1,8 @@
 package io.yak.ops.flow.runtime.checkpoint;
 
-import io.yak.ops.core.graph.StreamEdge;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamNode;
+import io.yak.ops.flow.runtime.graph.StreamEdge;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamNode;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -69,7 +69,7 @@ public final class FileCheckpointStore implements AutoCloseable {
     }
 
     /** 恢复最近一次完整发布的 Checkpoint；拓扑、UID 或并行度不一致必须拒绝。 */
-    public Optional<LocalCheckpointState> loadLatest(String expectedGraphSignature) throws IOException {
+    public Optional<CheckpointSnapshot> loadLatest(String expectedGraphSignature) throws IOException {
         ensureOpen();
         Objects.requireNonNull(expectedGraphSignature, "expectedGraphSignature 不能为空");
         Path file = directory.resolve(FILE_NAME);
@@ -92,7 +92,7 @@ public final class FileCheckpointStore implements AutoCloseable {
         if (checksum.getValue() != expectedCrc) {
             throw new IOException("Checkpoint 文件 CRC 校验失败");
         }
-        LocalCheckpointState snapshot;
+        CheckpointSnapshot snapshot;
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(payload))) {
             if (in.readInt() != MAGIC || in.readInt() != FORMAT_VERSION) {
                 throw new IOException("Checkpoint 格式或版本不兼容");
@@ -100,13 +100,13 @@ public final class FileCheckpointStore implements AutoCloseable {
             long checkpointId = in.readLong();
             String signature = in.readUTF();
             long completedAt = in.readLong();
-            LocalCheckpointState.SerializedState enumerator = readState(in);
-            Map<Integer, List<LocalCheckpointState.SerializedState>> readers = readGroups(in);
-            Map<Integer, List<LocalCheckpointState.SerializedState>> assignments = readGroups(in);
+            CheckpointSnapshot.SerializedState enumerator = readState(in);
+            Map<Integer, List<CheckpointSnapshot.SerializedState>> readers = readGroups(in);
+            Map<Integer, List<CheckpointSnapshot.SerializedState>> assignments = readGroups(in);
             if (in.available() != 0) {
                 throw new IOException("Checkpoint 文件包含多余字节");
             }
-            snapshot = new LocalCheckpointState(
+            snapshot = new CheckpointSnapshot(
                     checkpointId, signature, enumerator, readers, assignments, completedAt);
         } catch (IllegalArgumentException failure) {
             throw new IOException("Checkpoint 状态内容不合法", failure);
@@ -118,7 +118,7 @@ public final class FileCheckpointStore implements AutoCloseable {
     }
 
     /** 保存成功并以原子替换发布后才能向 Reader/Enumerator 宣告 Checkpoint 完成。 */
-    public void save(LocalCheckpointState checkpoint) throws IOException {
+    public void save(CheckpointSnapshot checkpoint) throws IOException {
         ensureOpen();
         Objects.requireNonNull(checkpoint, "checkpoint 不能为空");
         byte[] payload;
@@ -180,7 +180,7 @@ public final class FileCheckpointStore implements AutoCloseable {
     }
 
     private static void writeGroups(DataOutputStream out,
-            Map<Integer, List<LocalCheckpointState.SerializedState>> groups) throws IOException {
+            Map<Integer, List<CheckpointSnapshot.SerializedState>> groups) throws IOException {
         if (groups.size() > MAX_GROUPS) {
             throw new IOException("Checkpoint 子任务数量超限");
         }
@@ -197,20 +197,20 @@ public final class FileCheckpointStore implements AutoCloseable {
         }
     }
 
-    private static Map<Integer, List<LocalCheckpointState.SerializedState>> readGroups(
+    private static Map<Integer, List<CheckpointSnapshot.SerializedState>> readGroups(
             DataInputStream in) throws IOException {
         int count = in.readInt();
         if (count < 0 || count > MAX_GROUPS) {
             throw new IOException("Checkpoint 子任务数量非法");
         }
-        Map<Integer, List<LocalCheckpointState.SerializedState>> result = new LinkedHashMap<>();
+        Map<Integer, List<CheckpointSnapshot.SerializedState>> result = new LinkedHashMap<>();
         for (int i = 0; i < count; i++) {
             int index = in.readInt();
             int size = in.readInt();
             if (index < 0 || size < 0 || size > MAX_SPLITS_PER_GROUP || result.containsKey(index)) {
                 throw new IOException("Checkpoint Reader 状态非法或重复");
             }
-            var states = new java.util.ArrayList<LocalCheckpointState.SerializedState>(size);
+            var states = new java.util.ArrayList<CheckpointSnapshot.SerializedState>(size);
             for (int j = 0; j < size; j++) {
                 states.add(readState(in));
             }
@@ -219,7 +219,7 @@ public final class FileCheckpointStore implements AutoCloseable {
         return result;
     }
 
-    private static void writeState(DataOutputStream out, LocalCheckpointState.SerializedState state)
+    private static void writeState(DataOutputStream out, CheckpointSnapshot.SerializedState state)
             throws IOException {
         byte[] bytes = state.bytes();
         if (bytes.length > MAX_STATE_BYTES) {
@@ -230,13 +230,13 @@ public final class FileCheckpointStore implements AutoCloseable {
         out.write(bytes);
     }
 
-    private static LocalCheckpointState.SerializedState readState(DataInputStream in) throws IOException {
+    private static CheckpointSnapshot.SerializedState readState(DataInputStream in) throws IOException {
         int version = in.readInt();
         int count = in.readInt();
         if (version < 0 || count < 0 || count > MAX_STATE_BYTES || count > in.available()) {
             throw new IOException("Checkpoint 状态块损坏");
         }
-        return new LocalCheckpointState.SerializedState(version, in.readNBytes(count));
+        return new CheckpointSnapshot.SerializedState(version, in.readNBytes(count));
     }
 
     /**

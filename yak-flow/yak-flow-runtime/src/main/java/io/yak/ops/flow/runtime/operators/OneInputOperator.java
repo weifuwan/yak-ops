@@ -1,4 +1,6 @@
-package io.yak.ops.core.api.operators;
+package io.yak.ops.flow.runtime.operators;
+
+import io.yak.ops.core.api.operators.Collector;
 
 /**
  * 处理单路输入数据的运行时 Operator。

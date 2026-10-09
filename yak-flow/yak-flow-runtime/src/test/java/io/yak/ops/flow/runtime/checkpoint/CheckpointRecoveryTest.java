@@ -19,18 +19,18 @@ import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.api.operators.Collector;
-import io.yak.ops.core.api.operators.OneInputOperator;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.execution.JobClient;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamGraphGenerator;
-import io.yak.ops.core.transformations.OneInputTransformation;
-import io.yak.ops.core.transformations.SinkTransformation;
-import io.yak.ops.core.transformations.SourceTransformation;
-import io.yak.ops.flow.runtime.execution.LocalJobClient;
-import io.yak.ops.flow.runtime.execution.LocalPipelineExecutor;
+import io.yak.ops.flow.runtime.execution.EmbeddedJobClient;
+import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
+import io.yak.ops.flow.runtime.transformations.SinkTransformation;
+import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -59,11 +59,11 @@ class CheckpointRecoveryTest {
     void shouldCheckpointTwoSourceReadersFlushSinkThenRestoreFromSavedOffsets() throws Exception {
         Configuration firstConfig = configuration(false);
         CapturedSink initialSink = new CapturedSink();
-        JobClient first = new LocalPipelineExecutor().execute(
+        JobClient first = new EmbeddedPipelineExecutor().execute(
                 graph(new OffsetSource(4), initialSink), firstConfig).get(5, TimeUnit.SECONDS);
 
         awaitCount(initialSink.rows, 8);
-        LocalCheckpointState saved = ((LocalJobClient) first).checkpoint().get(5, TimeUnit.SECONDS);
+        CheckpointSnapshot saved = ((EmbeddedJobClient) first).checkpoint().get(5, TimeUnit.SECONDS);
         assertEquals(1, saved.checkpointId());
         assertEquals(2, saved.readerSplits().size());
         assertEquals(1, initialSink.checkpointFlushes.get());
@@ -77,7 +77,7 @@ class CheckpointRecoveryTest {
         // 使用新的 Source/JobID 与 Connector 实例，仅根据 UID/Graph 和稳定二进制 State 恢复。
         CapturedSink resumedSink = new CapturedSink();
         Configuration restoreConfig = configuration(true);
-        JobClient restored = new LocalPipelineExecutor().execute(
+        JobClient restored = new EmbeddedPipelineExecutor().execute(
                 graph(new OffsetSource(6), resumedSink), restoreConfig).get(5, TimeUnit.SECONDS);
         awaitCount(resumedSink.rows, 4);
         Set<String> actual = new HashSet<>(resumedSink.rows);
@@ -93,7 +93,7 @@ class CheckpointRecoveryTest {
         Configuration config = configuration(false);
         config.removeConfig(CheckpointingOptions.STATE_DIRECTORY);
         assertThrows(CompletionException.class,
-                () -> new LocalPipelineExecutor().execute(graph(new OffsetSource(2), sink), config).join());
+                () -> new EmbeddedPipelineExecutor().execute(graph(new OffsetSource(2), sink), config).join());
 
         Configuration withoutUids = configuration(false);
         SourceTransformation<String> input = new SourceTransformation<>(
@@ -101,7 +101,7 @@ class CheckpointRecoveryTest {
         StreamGraph graph = new StreamGraphGenerator(new SinkTransformation<>(
                 input, "sink", sink, 1), withoutUids).generate();
         assertThrows(CompletionException.class,
-                () -> new LocalPipelineExecutor().execute(graph, withoutUids).join());
+                () -> new EmbeddedPipelineExecutor().execute(graph, withoutUids).join());
         assertEquals(0, sink.createdWriters.get());
     }
 
@@ -127,7 +127,7 @@ class CheckpointRecoveryTest {
         end.setUid("stable-sink");
         StreamGraph graph = new StreamGraphGenerator(end, config).generate();
         CompletionException failure = assertThrows(CompletionException.class,
-                () -> new LocalPipelineExecutor().execute(graph, config).join());
+                () -> new EmbeddedPipelineExecutor().execute(graph, config).join());
         assertTrue(failure.getCause() instanceof UnsupportedOperationException);
         assertEquals(0, sink.createdWriters.get());
     }
@@ -137,7 +137,7 @@ class CheckpointRecoveryTest {
         CapturedSink sink = new CapturedSink();
         Configuration config = configuration(false);
         config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
-        JobClient job = new LocalPipelineExecutor().execute(
+        JobClient job = new EmbeddedPipelineExecutor().execute(
                 graph(new OffsetSource(2), sink), config).get(5, TimeUnit.SECONDS);
 
         awaitCount(sink.rows, 4);
@@ -159,7 +159,7 @@ class CheckpointRecoveryTest {
     void shouldFailRestoreWhenNoCommittedSnapshotExists() throws Exception {
         CapturedSink sink = new CapturedSink();
         Configuration restore = configuration(true);
-        JobClient job = new LocalPipelineExecutor().execute(
+        JobClient job = new EmbeddedPipelineExecutor().execute(
                 graph(new OffsetSource(3), sink), restore).get(5, TimeUnit.SECONDS);
         assertThrows(java.util.concurrent.ExecutionException.class,
                 () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
@@ -171,12 +171,12 @@ class CheckpointRecoveryTest {
     void shouldAbortFailedSnapshotWithoutPublishingCheckpoint() throws Exception {
         CapturedSink sink = new CapturedSink();
         Configuration config = configuration(false);
-        JobClient job = new LocalPipelineExecutor().execute(
+        JobClient job = new EmbeddedPipelineExecutor().execute(
                 graph(new OffsetSource(2, true), sink), config).get(5, TimeUnit.SECONDS);
         awaitCount(sink.rows, 4);
 
         assertThrows(java.util.concurrent.ExecutionException.class,
-                () -> ((LocalJobClient) job).checkpoint().get(5, TimeUnit.SECONDS));
+                () -> ((EmbeddedJobClient) job).checkpoint().get(5, TimeUnit.SECONDS));
         assertThrows(java.util.concurrent.ExecutionException.class,
                 () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
         assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));

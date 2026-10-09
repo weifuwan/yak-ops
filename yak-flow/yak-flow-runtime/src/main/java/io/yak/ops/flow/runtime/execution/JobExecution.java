@@ -3,17 +3,17 @@ package io.yak.ops.flow.runtime.execution;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.configuration.CheckpointingOptions;
-import io.yak.ops.core.graph.StreamEdge;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamNode;
+import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
 import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
-import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointCoordinator;
-import io.yak.ops.flow.runtime.checkpoint.LocalCheckpointState;
-import io.yak.ops.flow.runtime.io.LocalChannel;
-import io.yak.ops.flow.runtime.io.LocalResultPartition;
+import io.yak.ops.flow.runtime.checkpoint.QuiescentCheckpointCoordinator;
+import io.yak.ops.flow.runtime.graph.StreamEdge;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamNode;
+import io.yak.ops.flow.runtime.io.RecordChannel;
+import io.yak.ops.flow.runtime.io.RecordRouter;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
-import io.yak.ops.flow.runtime.tasks.OneInputOperatorStreamTask;
+import io.yak.ops.flow.runtime.tasks.OneInputStreamTask;
 import io.yak.ops.flow.runtime.tasks.SinkOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.StreamTask;
@@ -37,26 +37,26 @@ import java.util.function.Consumer;
  * StreamTask 和 Operator/Writer，正常 EOF 沿图向下游传播。
  * 任意失败先中止全部 Channel 再取消其它 Task，避免上游阻塞在已停止的下游上。
  */
-final class LocalTaskGraph {
+final class JobExecution {
 
     private final CompiledJobPlan plan;
     private final BooleanSupplier cancellationRequested;
     private final int channelCapacity;
-    private final Consumer<LocalCheckpointCoordinator> checkpointRegistration;
+    private final Consumer<QuiescentCheckpointCoordinator> checkpointRegistration;
     private final List<StreamTask> tasks = new ArrayList<>();
-    private final List<LocalChannel<Object>> channels = new ArrayList<>();
-    private final List<List<LocalChannel<Object>>> channelStages = new ArrayList<>();
+    private final List<RecordChannel<Object>> channels = new ArrayList<>();
+    private final List<List<RecordChannel<Object>>> channelStages = new ArrayList<>();
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks = new ArrayList<>();
     private final List<SinkOperatorStreamTask> sinkTasks = new ArrayList<>();
     private final AtomicReference<Throwable> firstFailure = new AtomicReference<>();
 
     private SourceCoordinator<SourceSplit, Object> coordinator;
-    private LocalCheckpointState restoredCheckpoint;
+    private CheckpointSnapshot restoredCheckpoint;
     private FileCheckpointStore checkpointStore;
-    private LocalCheckpointCoordinator checkpointCoordinator;
+    private QuiescentCheckpointCoordinator checkpointCoordinator;
 
-    LocalTaskGraph(CompiledJobPlan plan, BooleanSupplier cancellationRequested, int channelCapacity,
-            Consumer<LocalCheckpointCoordinator> checkpointRegistration) {
+    JobExecution(CompiledJobPlan plan, BooleanSupplier cancellationRequested, int channelCapacity,
+            Consumer<QuiescentCheckpointCoordinator> checkpointRegistration) {
         this.plan = Objects.requireNonNull(plan, "plan 不能为空");
         this.checkpointRegistration =
                 Objects.requireNonNull(checkpointRegistration, "checkpointRegistration 不能为空");
@@ -147,13 +147,13 @@ final class LocalTaskGraph {
             }
         }
         List<StreamNode> nodes = graph.getTopologicalNodes();
-        List<List<LocalChannel<Object>>> inputs = new ArrayList<>();
+        List<List<RecordChannel<Object>>> inputs = new ArrayList<>();
         for (int index = 1; index < nodes.size(); index++) {
             StreamNode previous = nodes.get(index - 1);
             StreamNode target = nodes.get(index);
-            List<LocalChannel<Object>> stageInputs = new ArrayList<>();
+            List<RecordChannel<Object>> stageInputs = new ArrayList<>();
             for (int subtask = 0; subtask < target.getParallelism(); subtask++) {
-                LocalChannel<Object> channel = new LocalChannel<>(channelCapacity, previous.getParallelism());
+                RecordChannel<Object> channel = new RecordChannel<>(channelCapacity, previous.getParallelism());
                 stageInputs.add(channel);
                 channels.add(channel);
             }
@@ -164,7 +164,7 @@ final class LocalTaskGraph {
         // 按拓扑逆序装配下游，任务中的 Connector 实例仍延迟到 openTask() 创建。
         for (int index = nodes.size() - 1; index >= 1; index--) {
             StreamNode node = nodes.get(index);
-            List<LocalChannel<Object>> stageInputs = inputs.get(index - 1);
+            List<RecordChannel<Object>> stageInputs = inputs.get(index - 1);
             for (int subtask = 0; subtask < node.getParallelism(); subtask++) {
                 TaskEnvironment environment = environment(node, subtask);
                 if (node.isSink()) {
@@ -174,9 +174,9 @@ final class LocalTaskGraph {
                     tasks.add(sink);
                 } else {
                     StreamEdge downstreamEdge = graph.getOutEdges(node.getId()).getFirst();
-                    LocalResultPartition<Object> partition = new LocalResultPartition<>(
+                    RecordRouter<Object> partition = new RecordRouter<>(
                             downstreamEdge, subtask, node.getParallelism(), inputs.get(index));
-                    tasks.add(new OneInputOperatorStreamTask(
+                    tasks.add(new OneInputStreamTask(
                             node, environment, stageInputs.get(subtask), partition));
                 }
             }
@@ -188,8 +188,8 @@ final class LocalTaskGraph {
                 plan.jobID(), sourceNode.getId(), sourceNode.getParallelism());
         Map<Integer, List<SourceSplit>> restoredReaderSplits = Map.of();
         if (restoredCheckpoint != null) {
-            restoredReaderSplits = LocalCheckpointCoordinator.restoreSplits(restoredCheckpoint, source);
-            Object enumeratorState = LocalCheckpointCoordinator.restoreEnumerator(restoredCheckpoint, source);
+            restoredReaderSplits = QuiescentCheckpointCoordinator.restoreSplits(restoredCheckpoint, source);
+            Object enumeratorState = QuiescentCheckpointCoordinator.restoreEnumerator(restoredCheckpoint, source);
             coordinator = SourceCoordinator.restore(source, coordinatorContext, enumeratorState);
         } else {
             coordinator = new SourceCoordinator<>(source, coordinatorContext);
@@ -197,7 +197,7 @@ final class LocalTaskGraph {
         StreamEdge outgoing = graph.getOutEdges(sourceNode.getId()).getFirst();
 
         for (int subtask = 0; subtask < sourceNode.getParallelism(); subtask++) {
-            LocalResultPartition<Object> partition = new LocalResultPartition<>(
+            RecordRouter<Object> partition = new RecordRouter<>(
                     outgoing, subtask, sourceNode.getParallelism(), inputs.getFirst());
             SourceOperatorStreamTask<Object, SourceSplit> readerTask = new SourceOperatorStreamTask<>(
                     source, coordinator, environment(sourceNode, subtask), partition,
@@ -206,7 +206,7 @@ final class LocalTaskGraph {
             tasks.add(readerTask);
         }
         if (checkpointStore != null) {
-            checkpointCoordinator = new LocalCheckpointCoordinator(
+            checkpointCoordinator = new QuiescentCheckpointCoordinator(
                     plan, source, coordinator, sourceTasks, channelStages, sinkTasks,
                     checkpointStore, restoredCheckpoint, cancellationRequested, this::failJob);
         }
@@ -214,7 +214,7 @@ final class LocalTaskGraph {
 
     private TaskEnvironment environment(StreamNode node, int subtask) {
         return new TaskEnvironment(
-                new TaskInfo(plan.jobID(), node.getId(), subtask, node.getParallelism(), 0),
+                new RuntimeTaskInfo(plan.jobID(), node.getId(), subtask, node.getParallelism(), 0),
                 plan.configuration());
     }
 
@@ -231,7 +231,7 @@ final class LocalTaskGraph {
     }
 
     private void stopAll(Throwable cause) {
-        for (LocalChannel<Object> channel : channels) {
+        for (RecordChannel<Object> channel : channels) {
             channel.abort(cause);
         }
         for (StreamTask task : tasks) {

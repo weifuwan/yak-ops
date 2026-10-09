@@ -1,7 +1,7 @@
 package io.yak.ops.flow.runtime.operators.coordination;
 
 import io.yak.ops.core.api.common.JobID;
-import io.yak.ops.flow.runtime.execution.TaskInfo;
+import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import java.util.Objects;
 
 /**
@@ -23,12 +23,12 @@ public record OperatorCoordinatorContext(JobID jobID, int operatorId, int parall
     }
 
     /** 拒绝属于其它作业、算子或实际并行度的 Reader。 */
-    public void validateTask(TaskInfo taskInfo) {
+    public void validateTask(RuntimeTaskInfo taskInfo) {
         Objects.requireNonNull(taskInfo, "taskInfo 不能为空");
         if (!jobID.equals(taskInfo.jobID())
                 || operatorId != taskInfo.operatorId()
                 || parallelism != taskInfo.parallelism()) {
-            throw new IllegalArgumentException("Reader TaskInfo 与 SourceCoordinator 不匹配");
+            throw new IllegalArgumentException("Reader RuntimeTaskInfo 与 SourceCoordinator 不匹配");
         }
     }
 }

@@ -12,21 +12,21 @@ import java.util.function.BooleanSupplier;
  */
 public final class TaskEnvironment {
 
-    private final TaskInfo taskInfo;
+    private final RuntimeTaskInfo taskInfo;
     private final Configuration configuration;
     private final BooleanSupplier cancellationRequested;
 
-    public TaskEnvironment(TaskInfo taskInfo, Configuration configuration) {
+    public TaskEnvironment(RuntimeTaskInfo taskInfo, Configuration configuration) {
         this(taskInfo, configuration, () -> false);
     }
 
-    private TaskEnvironment(TaskInfo taskInfo, Configuration configuration, BooleanSupplier cancellationRequested) {
+    private TaskEnvironment(RuntimeTaskInfo taskInfo, Configuration configuration, BooleanSupplier cancellationRequested) {
         this.taskInfo = Objects.requireNonNull(taskInfo, "taskInfo 不能为空");
         this.configuration = new Configuration(Objects.requireNonNull(configuration, "configuration 不能为空"));
         this.cancellationRequested = Objects.requireNonNull(cancellationRequested, "cancellationRequested 不能为空");
     }
 
-    public TaskInfo taskInfo() {
+    public RuntimeTaskInfo taskInfo() {
         return taskInfo;
     }
 
