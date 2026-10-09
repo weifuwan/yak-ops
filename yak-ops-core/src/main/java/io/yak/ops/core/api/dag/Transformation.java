@@ -5,15 +5,15 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Logical transformation node of a data-processing pipeline.
- *
- * <p>A Transformation describes an operator and its direct dependencies; it does not
- * execute records or own threads and connections. Names, parallelism and stable UIDs are
- * configured before compiling the physical graph and must not be modified afterward.
- *
- * @param <T> the record type produced by this transformation
- * @author weifuwan
- */
+* Logical transformation node of a data-processing pipeline.
+*
+* <p>A Transformation describes an operator and its direct dependencies; it does not
+* execute records or own threads and connections. Names, parallelism and stable UIDs are
+* configured before compiling the physical graph and must not be modified afterward.
+*
+* @param <T> the record type produced by this transformation
+* @author weifuwan
+*/
 public abstract class Transformation<T> {
 
     /** Sentinel indicating that the execution configuration supplies the resolved parallelism. */
@@ -97,12 +97,12 @@ public abstract class Transformation<T> {
     }
 
     /**
- * Returns the direct upstream transformations.
- *
- * <p>Sources return an empty list; single-input nodes return one entry. The returned list
- * must be immutable and must never be null.
- *
- * @return immutable direct upstream dependencies
- */
+    * Returns the direct upstream transformations.
+    *
+    * <p>Sources return an empty list; single-input nodes return one entry. The returned list
+    * must be immutable and must never be null.
+    *
+    * @return immutable direct upstream dependencies
+    */
     public abstract List<Transformation<?>> getInputs();
 }
