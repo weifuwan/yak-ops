@@ -91,7 +91,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         }
     }
 
-    /** 周期触发器只运行一个 Checkpoint，前次完成后才调度下一次。 */
+    /** Starts periodic checkpoint triggering only after the preceding attempt has completed. */
     public void start() {
         if (intervalMillis > 0) {
             timer.scheduleWithFixedDelay(
@@ -116,7 +116,12 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         }
     }
 
-    /** 手动触发一次完整 Checkpoint；与周期任务使用同一个串行执行器。 */
+    /**
+ * Requests one checkpoint on the same serialized executor used for periodic checkpoints.
+ *
+ * @return a future completed after the checkpoint is durably published, or exceptionally
+ *         if the attempt fails
+ */
     public CompletableFuture<CheckpointSnapshot> trigger() {
         CompletableFuture<CheckpointSnapshot> result = new CompletableFuture<>();
         if (closed.get()) {
@@ -143,14 +148,19 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         return result;
     }
 
-    /** 恢复之前的 Split 状态，Reader 已完成的部分可能被协调侧历史重放（at-least-once）。 */
+    /**
+ * Restores reader splits from a completed checkpoint.
+ *
+ * <p>Reader snapshots contain the latest offsets. They supersede older assignment entries
+ * with the same split ID; replay from the completed checkpoint is at-least-once.
+ */
     public static Map<Integer, List<SourceSplit>> restoreSplits(
             CheckpointSnapshot snapshot, Source<?, SourceSplit, ?> source) throws IOException {
         Objects.requireNonNull(snapshot, "snapshot 不能为空");
         SimpleVersionedSerializer<SourceSplit> serializer = source.getSplitSerializer();
         Map<Integer, Map<String, SourceSplit>> merged = new LinkedHashMap<>();
         deserializeInto(merged, snapshot.assignments(), serializer);
-        // Reader snapshot 带最新的读取进度，覆盖同 splitId 的旧分配快照。
+        // The reader snapshot takes precedence over older assignment state for the same split ID.
         deserializeInto(merged, snapshot.readerSplits(), serializer);
         Map<Integer, List<SourceSplit>> result = new LinkedHashMap<>();
         merged.forEach((index, splits) -> result.put(index, List.copyOf(splits.values())));

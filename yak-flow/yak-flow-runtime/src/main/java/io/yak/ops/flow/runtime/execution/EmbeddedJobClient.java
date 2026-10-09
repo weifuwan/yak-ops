@@ -43,6 +43,12 @@ public final class EmbeddedJobClient implements JobClient {
     }
 
     /** Retains the existing embedded Source → Sink checkpoint API and storage format. */
+    /**
+     * Requests an aligned checkpoint for the associated running job.
+     *
+     * @return a future completed with the durably saved snapshot, or exceptionally
+     *         when the checkpoint attempt fails
+     */
     public CompletableFuture<CheckpointSnapshot> checkpoint() {
         return executionGraph.checkpoint();
     }

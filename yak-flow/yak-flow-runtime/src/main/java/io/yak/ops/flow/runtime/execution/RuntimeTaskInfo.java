@@ -5,10 +5,11 @@ import io.yak.ops.core.api.common.TaskInfo;
 import java.util.Objects;
 
 /**
- * 一次本地执行子任务的不可变身份与实际运行参数。
+ * Immutable identity and resolved execution settings for one local subtask attempt.
  *
- * <p>parallelism 是该 Operator 的已解析并行度；maxParallelism 是本次物理图中
- * 固定的 KeyGroup 总数，不等于当前运行子任务数。operatorId 是图内 ID，而非稳定 UID。
+ * <p>{@code parallelism} is the current operator's subtask count, whereas
+ * {@code maxParallelism} fixes the key-group count used for keyed state.
+ * The numeric operator ID is graph-local and is not a stable checkpoint UID.
  */
 public record RuntimeTaskInfo(
         JobID jobID, int operatorId, int subtaskIndex, int parallelism, int attemptNumber, int maxParallelism)
@@ -53,7 +54,7 @@ public record RuntimeTaskInfo(
         return maxParallelism;
     }
 
-    /** Task 线程的诊断名称，由统一运行身份生成，不从 Configuration 读取。 */
+    /** Returns a diagnostic task-thread name derived from its execution identity. */
     public String threadName() {
         return "yak-stream-task-" + jobID.toHexString() + "-" + operatorId + "-" + subtaskIndex + "-attempt-"
                 + attemptNumber;

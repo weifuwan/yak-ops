@@ -7,10 +7,10 @@ import java.util.Objects;
 import java.util.function.BooleanSupplier;
 
 /**
- * 本地 Task 的运行上下文：统一提供身份、配置快照和只读取消信号。
+ * Runtime environment for one local Task, exposing identity, configuration and cancellation state.
  *
- * <p>不持有 SourceCoordinator、Reader、Gateway 或数据连接；Source 专属事件通道
- * 仍由 Source Task 装配，避免把 Connector 协调职责放进所有 Task 的 Context。
+ * <p>This object does not own SourceCoordinator, Reader, Gateway or database connections.
+ * Source-specific event delivery is assembled by its owning Source task.
  */
 public final class TaskEnvironment implements WriterInitContext {
 
@@ -43,17 +43,21 @@ public final class TaskEnvironment implements WriterInitContext {
         return configuration();
     }
 
-    /** 返回配置快照的副本，外部修改不能影响当前 Task。 */
+    /** Returns a defensive configuration copy that callers cannot use to mutate task settings. */
     public Configuration configuration() {
         return new Configuration(configuration);
     }
 
-    /** 由所属 StreamTask 绑定实际取消信号；返回新的 Context，不修改传入的实例。 */
+    /**
+ * Returns a new task environment using the supplied cancellation signal.
+ *
+ * <p>The original environment and its configuration snapshot remain unchanged.
+ */
     public TaskEnvironment withCancellation(BooleanSupplier cancellationRequested) {
         return new TaskEnvironment(taskInfo, configuration, cancellationRequested);
     }
 
-    /** 观察所属 Task 是否已收到取消请求；不允许 Connector 通过此入口取消 Task。 */
+    /** Returns whether cancellation was requested by the owning task, without changing task state. */
     public boolean isCancellationRequested() {
         return cancellationRequested.getAsBoolean();
     }

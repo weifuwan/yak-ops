@@ -29,11 +29,11 @@ import java.util.Set;
 import java.util.zip.CRC32;
 
 /**
- * 单个本地 Job 状态目录的独占检查点存储。
+ * Exclusive local checkpoint store for a single running job.
  *
- * <p>版本化自定义二进制编码与 CRC 校验，不使用 JDK 对象序列化。
- * 只以原子 rename 发布已完整写入并 fsync 的状态；损坏/不兼容状态显式拒绝。
- * 同一目录只能由一个正在运行的 Job 持有。
+ * <p>Uses versioned binary data with CRC validation, without Java object serialization.
+ * A checkpoint is published only after the file is synced and atomically replaced.
+ * Corrupted or incompatible state is rejected rather than silently ignored.
  */
 public final class FileCheckpointStore implements AutoCloseable {
 
@@ -71,7 +71,16 @@ public final class FileCheckpointStore implements AutoCloseable {
         lock = acquired;
     }
 
-    /** 恢复最近一次完整发布的 Checkpoint；拓扑、UID 或并行度不一致必须拒绝。 */
+    /**
+ * Loads the most recently completed checkpoint.
+ *
+ * <p>Rejects snapshots whose topology, stable operator UIDs or parallelism differ
+ * from the current job's graph signature.
+ *
+ * @param expectedGraphSignature the fingerprint of the job being restored
+ * @return the latest completed checkpoint if present
+ * @throws IOException if the persisted data is corrupt or unreadable
+ */
     public Optional<CheckpointSnapshot> loadLatest(String expectedGraphSignature) throws IOException {
         ensureOpen();
         Objects.requireNonNull(expectedGraphSignature, "expectedGraphSignature 不能为空");
@@ -126,7 +135,14 @@ public final class FileCheckpointStore implements AutoCloseable {
         return Optional.of(snapshot);
     }
 
-    /** 保存成功并以原子替换发布后才能向 Reader/Enumerator 宣告 Checkpoint 完成。 */
+    /**
+ * Publishes a completed checkpoint using an atomic file replacement.
+ *
+ * <p>Only after successful persistence may the runtime acknowledge completion
+ * to the Reader and Enumerator.
+ *
+ * @throws IOException if durable publication fails
+ */
     public void save(CheckpointSnapshot checkpoint) throws IOException {
         ensureOpen();
         Objects.requireNonNull(checkpoint, "checkpoint 不能为空");
@@ -179,7 +195,7 @@ public final class FileCheckpointStore implements AutoCloseable {
                         StandardCopyOption.ATOMIC_MOVE,
                         StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException failure) {
-                // 非原子替换可能留下半成品；不对不支持的存储介质宣称 Durable Checkpoint。
+                // A non-atomic replacement could expose partial state; do not claim durability on unsupported storage.
                 throw new IOException("状态目录不支持 Checkpoint 原子提交", failure);
             }
         } finally {
@@ -192,7 +208,7 @@ public final class FileCheckpointStore implements AutoCloseable {
             Files.setPosixFilePermissions(
                     file, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
         } catch (UnsupportedOperationException ignored) {
-            // 不支持 POSIX 权限的平台仍采用文件系统访问控制，不输出状态内容。
+            // Filesystems without POSIX permissions rely on their native access controls; never log state bytes.
         }
     }
 
@@ -304,9 +320,11 @@ public final class FileCheckpointStore implements AutoCloseable {
     }
 
     /**
-     * 用稳定算子 UID、算子种类、并行度、边路由及有界性计算拓扑指纹；
-     * 无 UID 的图不能用于跨作业恢复。
-     */
+ * Computes a stable graph fingerprint from operator UIDs, types, parallelism,
+ * partition routing and source boundedness.
+ *
+ * <p>All operators must have stable UIDs for cross-job recovery.
+ */
     public static String graphSignature(StreamGraph graph) {
         return graphSignature(graph, 0);
     }
