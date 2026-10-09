@@ -475,7 +475,7 @@ class EmbeddedExecutionLifecycleTest {
             writerThread.set(Thread.currentThread().getName());
             return new SinkWriter<>() {
                 @Override
-                public void write(String value) {
+                public void write(String value, Context context) {
                     if (failWrites) {
                         throw new IllegalStateException("writer failed");
                     }

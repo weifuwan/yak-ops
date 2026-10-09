@@ -462,7 +462,7 @@ class ExecutionGraphParallelTest {
             writers.add(rows);
             return new SinkWriter<>() {
                 @Override
-                public void write(String record) throws Exception {
+                public void write(String record, Context context) throws Exception {
                     if (holdWrite != null) {
                         holdWrite.countDown();
                         // 模拟 Sink 阻塞；Job 取消应中断当前虚拟线程。

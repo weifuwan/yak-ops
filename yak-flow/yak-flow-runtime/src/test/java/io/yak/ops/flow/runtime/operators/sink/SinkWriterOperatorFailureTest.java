@@ -217,7 +217,7 @@ class SinkWriterOperatorFailureTest {
             }
 
             @Override
-            public void write(String record) {
+            public void write(String record, Context context) {
                 count++;
             }
 

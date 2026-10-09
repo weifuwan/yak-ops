@@ -687,7 +687,7 @@ class CheckpointRecoveryTest {
         public SinkWriter<String> createWriter(WriterInitContext context) {
             return new SinkWriter<>() {
                 @Override
-                public void write(String row) {
+                public void write(String row, Context context) {
                     rows.add(row);
                 }
 
@@ -726,7 +726,7 @@ class CheckpointRecoveryTest {
                 private int written = start;
 
                 @Override
-                public void write(String value) {
+                public void write(String value, Context context) {
                     rows.add(value);
                     written++;
                 }
@@ -772,7 +772,7 @@ class CheckpointRecoveryTest {
             createdWriters.incrementAndGet();
             return new SinkWriter<>() {
                 @Override
-                public void write(String row) {
+                public void write(String row, Context context) {
                     rows.add(row);
                 }
 
