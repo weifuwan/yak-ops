@@ -2,13 +2,34 @@
 
 Build, move, and operate data with confidence.
 
+> 当前开发分支保留同步管理功能及 JDBC / CDC Connector 源码，但旧同步引擎已删除，暂不支持实际运行同步任务。历史已发布版本的能力与此不同。
+
 Yak Ops 是一个面向数据集成与数据同步场景的数据平台项目。当前 V1 聚焦在可部署、可验收的核心链路，而不是一次覆盖完整数据平台能力。
 
-## 当前分支
+## V1 核心能力
 
-数据源管理、用户管理、工作空间管理仍保留。离线同步与实时同步旧实现（包括 JDBC / CDC Connector、业务执行器、同步 Controller 和前端任务页面）已清理，**当前分支不提供数据同步功能**。
+```text
+Data Integration
+├── Datasource
+├── Offline Sync
+└── Realtime Sync
 
-Data Sync 只保留稳定业务接口、DTO / VO、已发布数据库迁移；Yak Ops Core 与新的通用 Runtime 框架供后续重新实现。历史 V1 发布范围与验收结果见下方发布材料，不等于当前开发分支能力。
+Operations Center
+├── Offline Task Operations
+└── Realtime Task Operations
+
+Management Center
+├── User Management
+└── Workspace Management
+```
+
+当前数据同步主路径：
+
+- Datasource：MySQL 5 / 8、PostgreSQL、Oracle。
+- Offline：MySQL → MySQL / PostgreSQL / Oracle。
+- Realtime：MySQL CDC → MySQL / PostgreSQL / Oracle。
+- Offline Write Mode：APPEND / OVERWRITE / UPSERT。
+- Realtime Recovery：at-least-once，不声称 exactly-once。
 
 ## 文档
 

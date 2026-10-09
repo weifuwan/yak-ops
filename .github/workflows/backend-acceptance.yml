@@ -1,4 +1,4 @@
-name: Backend Acceptance (implementation pending)
+name: Backend Acceptance (runtime integration pending)
 
 on:
   workflow_call:
@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   acceptance-gate:
-    name: Backend Acceptance — Not Available
+    name: Runtime E2E Acceptance — Not Available
     runs-on: ubuntu-latest
     steps:
       - name: Report acceptance status
@@ -35,9 +35,9 @@ jobs:
           FULL_SWEEP: ${{ inputs.full_sweep }}
         run: |
           set -euo pipefail
-          echo "::warning::The old JDBC, MySQL CDC and Data Sync automation implementations and E2E tests were removed. No acceptance tests have been executed."
+          echo "::warning::Data Sync UI, Controller, Service, DAO and JDBC/CDC connector code are retained, but the old execution engine was removed and no replacement is integrated. End-to-end execution is not verified."
           if [[ "${FULL_SWEEP}" == "true" || "${EVENT_NAME}" == "workflow_dispatch" || "${EVENT_NAME}" == "schedule" ]]; then
-            echo "::error::Full Backend Acceptance is unavailable until new implementations and tests exist. Formal release is blocked."
+            echo "::error::Full runtime acceptance is unavailable; new engine integration and E2E are required before release."
             exit 1
           fi
-          echo "This check only reports acceptance unavailability; it does not claim PASS."
+          echo "Only the acceptance-unavailable state is reported, not a runtime acceptance PASS."
