@@ -28,7 +28,8 @@ public interface JdbcDialect {
 
     String createTableSql(TableId table, TableSchema schema);
 
-    JdbcDdlPlan createTablePlan(TableId table, TableSchema schema, String tableComment, Map<String, String> columnComments);
+    JdbcDdlPlan createTablePlan(
+            TableId table, TableSchema schema, String tableComment, Map<String, String> columnComments);
 
     String stringLiteral(String value);
 

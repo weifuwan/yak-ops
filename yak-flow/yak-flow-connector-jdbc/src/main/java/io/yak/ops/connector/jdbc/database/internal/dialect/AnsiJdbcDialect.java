@@ -2,8 +2,6 @@ package io.yak.ops.connector.jdbc.database.internal.dialect;
 
 import io.yak.ops.connector.jdbc.database.dialect.AbstractDialect;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
-import io.yak.ops.connector.jdbc.database.dialect.JdbcDdlPlan;
-import io.yak.ops.connector.jdbc.database.dialect.JdbcNativeType;
 import io.yak.ops.core.data.TableId;
 
 /** Standard SQL quoting for the embedded H2 integration-test backend. */

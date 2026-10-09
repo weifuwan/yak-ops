@@ -35,14 +35,12 @@ public final class JdbcFactoryLoader {
         }
     }
 
-
     /** Resolves a database-specific Catalog without creating a second SPI registry. */
     public static JdbcCatalog loadCatalog(String jdbcUrl, JdbcConnectionProvider connections) {
         return loadCatalog(jdbcUrl, connections, contextClassLoader());
     }
 
-    public static JdbcCatalog loadCatalog(
-            String jdbcUrl, JdbcConnectionProvider connections, ClassLoader classLoader) {
+    public static JdbcCatalog loadCatalog(String jdbcUrl, JdbcConnectionProvider connections, ClassLoader classLoader) {
         Objects.requireNonNull(connections, "connections");
         Objects.requireNonNull(classLoader, "classLoader");
         try {

@@ -1,8 +1,8 @@
 package io.yak.ops.connector.jdbc.database.internal.convert;
 
+import io.yak.ops.connector.jdbc.database.dialect.AbstractDialectConverter;
 import io.yak.ops.core.types.LogicalType;
 import io.yak.ops.core.types.LogicalTypes;
-import io.yak.ops.connector.jdbc.database.dialect.AbstractDialectConverter;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;

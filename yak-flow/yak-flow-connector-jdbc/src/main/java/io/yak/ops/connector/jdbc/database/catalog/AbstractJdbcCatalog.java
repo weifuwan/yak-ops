@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -67,15 +66,14 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
             String catalog = effectiveCatalog(connection, database);
             String resolvedSchema = effectiveSchema(connection, schema);
             List<TableId> tables = new ArrayList<>();
-            try (ResultSet result = metadata.getTables(
-                    catalog, resolvedSchema, "%", new String[] {"TABLE", "VIEW"})) {
+            try (ResultSet result = metadata.getTables(catalog, resolvedSchema, "%", new String[] {"TABLE", "VIEW"})) {
                 while (result.next()) {
                     String actualSchema = result.getString("TABLE_SCHEM");
                     if (!includeSchema(actualSchema)) {
                         continue;
                     }
-                    tables.add(new TableId(
-                            result.getString("TABLE_CAT"), actualSchema, result.getString("TABLE_NAME")));
+                    tables.add(
+                            new TableId(result.getString("TABLE_CAT"), actualSchema, result.getString("TABLE_NAME")));
                 }
             }
             return List.copyOf(tables);
@@ -89,8 +87,8 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
             DatabaseMetaData metadata = connection.getMetaData();
             String catalog = effectiveCatalog(connection, tableId.catalog());
             String schema = effectiveSchema(connection, tableId.schema());
-            try (ResultSet tables = metadata.getTables(catalog, schema, escapePattern(metadata, tableId.table()),
-                    new String[] {"TABLE", "VIEW"})) {
+            try (ResultSet tables = metadata.getTables(
+                    catalog, schema, escapePattern(metadata, tableId.table()), new String[] {"TABLE", "VIEW"})) {
                 while (tables.next()) {
                     if (tableId.table().equals(tables.getString("TABLE_NAME"))) {
                         return true;
@@ -121,10 +119,10 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
         }
     }
 
-    private boolean tableExists(
-            DatabaseMetaData metadata, String catalog, String schema, String table) throws SQLException {
-        try (ResultSet tables = metadata.getTables(
-                catalog, schema, escapePattern(metadata, table), new String[] {"TABLE", "VIEW"})) {
+    private boolean tableExists(DatabaseMetaData metadata, String catalog, String schema, String table)
+            throws SQLException {
+        try (ResultSet tables =
+                metadata.getTables(catalog, schema, escapePattern(metadata, table), new String[] {"TABLE", "VIEW"})) {
             while (tables.next()) {
                 if (table.equals(tables.getString("TABLE_NAME"))) {
                     return true;
@@ -170,7 +168,8 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
         if (escape == null || escape.isEmpty()) {
             return identifier;
         }
-        return identifier.replace(escape, escape + escape)
+        return identifier
+                .replace(escape, escape + escape)
                 .replace("%", escape + "%")
                 .replace("_", escape + "_");
     }
