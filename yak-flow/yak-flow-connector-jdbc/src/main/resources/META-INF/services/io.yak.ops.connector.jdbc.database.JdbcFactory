@@ -1,0 +1,4 @@
+io.yak.ops.connector.jdbc.database.factory.MySqlJdbcFactory
+io.yak.ops.connector.jdbc.database.factory.PostgresJdbcFactory
+io.yak.ops.connector.jdbc.database.factory.OracleJdbcFactory
+io.yak.ops.connector.jdbc.database.factory.AnsiJdbcFactory
