@@ -219,6 +219,14 @@ public final class ExecutionGraph {
         }
     }
 
+    /**
+     * Requests cancellation of all currently running task attempts.
+     *
+     * <p>The returned future completes after cancellation and resource cleanup.
+     * Finished or failed jobs reject new cancellation requests.
+     *
+     * @return a future for the final cancellation outcome
+     */
     public CompletableFuture<Void> cancel() {
         Thread running;
         synchronized (monitor) {
@@ -241,6 +249,15 @@ public final class ExecutionGraph {
         return cancellation.copy();
     }
 
+    /**
+     * Triggers an aligned checkpoint of the running job.
+     *
+     * <p>Checkpointing must be configured and the job must not be terminal or canceling.
+     * Successful completion means the checkpoint was published durably, not that a
+     * transaction has been committed.
+     *
+     * @return the completed snapshot or an exceptionally completed future on failure
+     */
     public CompletableFuture<CheckpointSnapshot> checkpoint() {
         if (!checkpointConfigured) {
             return CompletableFuture.failedFuture(new UnsupportedOperationException("该 Job 未启用持久化 Checkpoint"));

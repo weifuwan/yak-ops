@@ -96,6 +96,14 @@ public abstract class StreamTask implements AutoCloseable {
         return started.copy();
     }
 
+    /**
+     * Returns the completion signal for this task attempt.
+     *
+     * <p>The future completes normally after a successful task shutdown or exceptionally
+     * after execution, cancellation or cleanup failure.
+     *
+     * @return a detached view of the task's terminal completion
+     */
     public final CompletableFuture<Void> completionFuture() {
         return completion.copy();
     }

@@ -195,7 +195,18 @@ public final class InputGate<T> {
         });
     }
 
-    /** One mailbox step: data record, partial alignment event, or fully aligned barrier. */
+    /**
+     * Consumes one input event on the owning task's mailbox thread.
+     *
+     * <p>Regular records are delivered through {@code output}. A checkpoint callback runs
+     * only after all producer barriers align and preceding records have been consumed.
+     * Declined checkpoints do not discard ordinary data records.
+     *
+     * @param output the receiver for regular records
+     * @param barrierHandler the aligned-barrier and declined-checkpoint callbacks
+     * @return the input availability status after this step
+     * @throws Exception if input processing or a callback fails
+     */
     @SuppressWarnings("unchecked")
     public InputStatus emitNext(ReaderOutput<T> output, BarrierHandler barrierHandler) throws Exception {
         Objects.requireNonNull(output, "output");

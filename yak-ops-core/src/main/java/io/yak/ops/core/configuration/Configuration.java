@@ -84,6 +84,11 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         return value == null ? defaultValue : String.valueOf(value);
     }
 
+    /**
+     * Returns whether an option has an explicitly stored value.
+     *
+     * <p>Its default value does not count as an explicit entry.
+     */
     public synchronized boolean contains(ConfigOption<?> option) {
         Objects.requireNonNull(option, "option must not be null");
         return values.containsKey(option.key());
@@ -105,6 +110,11 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         return values.remove(key) != null;
     }
 
+    /**
+     * Returns an immutable snapshot of explicitly configured keys.
+     *
+     * <p>Changes made after this call do not affect the returned set.
+     */
     public synchronized Set<String> keySet() {
         return Collections.unmodifiableSet(new LinkedHashSet<>(values.keySet()));
     }

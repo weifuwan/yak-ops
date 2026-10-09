@@ -36,6 +36,15 @@ public final class MailboxProcessor {
         return executor;
     }
 
+    /**
+     * Runs control mails and the input default action on the calling task thread.
+     *
+     * <p>At most one available control mail runs before each ready input step, preventing
+     * self-rescheduling control actions from starving input. Suspended input waits without
+     * blocking control-mail processing.
+     *
+     * @throws Exception if a mailbox action or input callback fails
+     */
     public void runMailboxLoop() throws Exception {
         mailbox.bindMailboxThread(Thread.currentThread());
         while (running) {
@@ -72,6 +81,11 @@ public final class MailboxProcessor {
         }
     }
 
+    /**
+     * Stops the mailbox loop and rejects new submissions without discarding queued mails.
+     *
+     * <p>Pending acknowledgments are failed by {@link #close(Throwable)}.
+     */
     public void prepareClose() {
         running = false;
         mailbox.quiesce();
