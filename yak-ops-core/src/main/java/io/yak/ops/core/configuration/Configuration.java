@@ -15,7 +15,13 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** 参考 Apache Flink 配置 API 设计的轻量级类型安全配置容器。 */
+/**
+ * Mutable, typed configuration container for job submission and execution planning.
+ *
+ * <p>Values may originate from typed setters or string-valued persisted configuration.
+ * Copy operations isolate the container's explicit entries. Diagnostic {@code toString(){@code 
+ * masks commonly sensitive keys, while {@code toMap(){@code  exports original values.
+ */
 public class Configuration implements ReadableConfig, WritableConfig, Serializable, Cloneable {
 
     @Serial
@@ -26,13 +32,15 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
 
     private final Map<String, Object> values = new LinkedHashMap<>();
 
+    /** Creates an empty configuration with no explicitly stored entries. */
     public Configuration() {}
 
-    /** 复制显式存储的配置值，避免共享内部配置容器。 */
+    /** Copies the explicitly configured entries into a new independent container. */
     public Configuration(Configuration other) {
         values.putAll(Objects.requireNonNull(other, "other must not be null").snapshot());
     }
 
+    /** Creates a configuration from explicitly stored string-valued entries. */
     public static Configuration fromMap(Map<String, String> entries) {
         Configuration config = new Configuration();
         Objects.requireNonNull(entries, "entries must not be null").forEach(config::setString);
@@ -63,11 +71,13 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         return stored == null ? Optional.empty() : Optional.of(convert(stored, option));
     }
 
+    /** Stores a raw string value under a nonblank key. */
     public synchronized void setString(String key, String value) {
         validateKey(key);
         values.put(key, Objects.requireNonNull(value, "value must not be null"));
     }
 
+    /** Returns the stored value as a string, or the supplied fallback when absent. */
     public synchronized String getString(String key, String defaultValue) {
         validateKey(key);
         Object value = values.get(key);
@@ -99,7 +109,11 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         return Collections.unmodifiableSet(new LinkedHashSet<>(values.keySet()));
     }
 
-    /** 合并另一份配置中显式设置的条目，同名配置由传入值覆盖。 */
+    /**
+ * Merges explicitly configured entries from another configuration.
+ *
+ * <p>Incoming entries with matching keys override the existing values; defaults are not copied.
+ */
     public void addAll(Configuration other) {
         Map<String, Object> incoming =
                 Objects.requireNonNull(other, "other must not be null").snapshot();
@@ -131,7 +145,7 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         return snapshot().hashCode();
     }
 
-    /** 对常见敏感配置键脱敏；日志中不要直接输出未脱敏的 toMap() 结果。 */
+    /** Masks sensitive values in diagnostics; {@link #toMap()} intentionally does not mask them. */
     @Override
     public String toString() {
         Map<String, Object> masked = new LinkedHashMap<>();
@@ -209,7 +223,7 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         try {
             return Duration.parse(value.toUpperCase(Locale.ROOT));
         } catch (DateTimeParseException ignored) {
-            // 支持 500ms、10s、2min、1h 等易读的时间长度格式。
+            // Also accept readable durations such as 500ms, 10s, 2min and 1h.
         }
         Matcher matcher = DURATION_PATTERN.matcher(value);
         if (!matcher.matches()) {

@@ -5,37 +5,35 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 数据流中的一个逻辑转换节点。
+ * Logical transformation node of a data-processing pipeline.
  *
- * <p>Transformation 只描述算子及其上游依赖，不执行数据处理，
- * 也不持有线程、连接或运行状态。具体子类负责声明输入关系。
+ * <p>A Transformation describes an operator and its direct dependencies; it does not
+ * execute records or own threads and connections. Names, parallelism and stable UIDs are
+ * configured before compiling the physical graph and must not be modified afterward.
  *
- * <p>构图期间允许配置名称、并行度和 UID；生成执行图后，
- * 调用方不得再修改该节点的配置。
- *
- * @param <T> 当前节点产生的数据类型
+ * @param <T> the record type produced by this transformation
  * @author weifuwan
  */
 public abstract class Transformation<T> {
 
-    /** 未显式指定并行度时，使用执行配置中的默认值。 */
+    /** Sentinel indicating that the execution configuration supplies the resolved parallelism. */
     public static final int DEFAULT_PARALLELISM = -1;
 
     private static final AtomicInteger ID_COUNTER = new AtomicInteger();
 
-    /** 当前 JVM 内自动分配的构图标识，不作为持久化状态的稳定标识。 */
+    /** JVM-local graph ID, not a stable identity for checkpoint recovery. */
     private final int id;
 
-    /** 算子名称，用于日志和拓扑展示。 */
+    /** Operator name used for topology display and diagnostics. */
     private String name;
 
-    /** 算子输出的 Java 类型；具体字段 Schema 由后续类型系统描述。 */
+    /** Java output type; field-level schemas are described separately. */
     private final Class<T> outputType;
 
-    /** 算子并行度，-1 表示继承默认并行度。 */
+    /** Declared parallelism, or {@link #DEFAULT_PARALLELISM} when inherited. */
     private int parallelism;
 
-    /** 用户指定的稳定算子标识，用于后续状态恢复与算子匹配。 */
+    /** Stable user-defined operator UID used to match checkpoint state across executions. */
     private String uid;
 
     protected Transformation(String name, Class<T> outputType) {
@@ -49,17 +47,17 @@ public abstract class Transformation<T> {
         setParallelism(parallelism);
     }
 
-    /** 获取构图标识。 */
+    /** Returns the graph-local identifier; it must not be used as a checkpoint UID. */
     public final int getId() {
         return id;
     }
 
-    /** 获取算子名称。 */
+    /** Returns the operator name used for display and diagnostics. */
     public final String getName() {
         return name;
     }
 
-    /** 设置算子名称。 */
+    /** Sets the name before physical graph compilation. */
     public final void setName(String name) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("name 不能为空");
@@ -67,17 +65,17 @@ public abstract class Transformation<T> {
         this.name = name;
     }
 
-    /** 获取当前节点输出的 Java 类型。 */
+    /** Returns the Java type produced by this node. */
     public final Class<T> getOutputType() {
         return outputType;
     }
 
-    /** 获取算子并行度；-1 表示使用执行配置中的默认值。 */
+    /** Returns the declared parallelism, or {@link #DEFAULT_PARALLELISM} if inherited. */
     public final int getParallelism() {
         return parallelism;
     }
 
-    /** 设置算子并行度；允许 -1 或正整数。 */
+    /** Sets an explicit positive parallelism or {@link #DEFAULT_PARALLELISM}. */
     public final void setParallelism(int parallelism) {
         if (parallelism != DEFAULT_PARALLELISM && parallelism <= 0) {
             throw new IllegalArgumentException("parallelism 必须为 -1 或正整数");
@@ -85,12 +83,12 @@ public abstract class Transformation<T> {
         this.parallelism = parallelism;
     }
 
-    /** 获取稳定算子 UID；未设置时返回 null。 */
+    /** Returns the stable operator UID, or null if it has not been assigned. */
     public final String getUid() {
         return uid;
     }
 
-    /** 设置稳定算子 UID，同一个 Pipeline 内不得重复。 */
+    /** Sets a UID that must be unique within the pipeline for stateful recovery. */
     public final void setUid(String uid) {
         if (uid == null || uid.isBlank()) {
             throw new IllegalArgumentException("uid 不能为空");
@@ -99,14 +97,12 @@ public abstract class Transformation<T> {
     }
 
     /**
-     * 返回直接上游的逻辑转换节点。
-     *
-     * <p>Source 节点返回空列表；单输入节点返回一个元素；
-     * 多输入节点返回全部直接上游。不得返回 null。
-     *
-     * <p>子类应返回不可修改的列表，避免外部破坏图结构。
-     *
-     * @return 当前节点的直接上游
-     */
+ * Returns the direct upstream transformations.
+ *
+ * <p>Sources return an empty list; single-input nodes return one entry. The returned list
+ * must be immutable and must never be null.
+ *
+ * @return immutable direct upstream dependencies
+ */
     public abstract List<Transformation<?>> getInputs();
 }
