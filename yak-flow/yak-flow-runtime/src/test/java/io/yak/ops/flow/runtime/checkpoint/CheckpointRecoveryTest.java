@@ -301,6 +301,24 @@ class CheckpointRecoveryTest {
     }
 
     @Test
+    void failedSinkCheckpointFlushMustFailTheJobWithoutPublishingDurableState() throws Exception {
+        CapturedSink sink = new CapturedSink(true);
+        JobClient job = new EmbeddedPipelineExecutor().execute(
+                graph(new OffsetSource(2), sink), configuration(false)).get(5, TimeUnit.SECONDS);
+        awaitCount(sink.rows, 4);
+
+        assertThrows(java.util.concurrent.ExecutionException.class,
+                () -> ((EmbeddedJobClient) job).checkpoint().get(5, TimeUnit.SECONDS));
+        assertThrows(java.util.concurrent.ExecutionException.class,
+                () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
+        assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(1, sink.checkpointFlushes.get());
+        assertEquals(0, sink.finalFlushes.get(), "A failed checkpoint cannot be treated as a normal finish");
+        assertEquals(1, sink.closedWriters.get());
+        assertFalse(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+    }
+
+    @Test
     void shouldRestoreStatefulSinkWriterFromDurableAlignedCheckpoint() throws Exception {
         DurableWriterSink sink = new DurableWriterSink();
         JobClient first = new EmbeddedPipelineExecutor().execute(
@@ -735,10 +753,20 @@ class CheckpointRecoveryTest {
 
     private static final class CapturedSink implements Sink<String> {
 
+        private final boolean failCheckpointFlush;
         private final List<String> rows = new CopyOnWriteArrayList<>();
         private final AtomicInteger checkpointFlushes = new AtomicInteger();
         private final AtomicInteger finalFlushes = new AtomicInteger();
         private final AtomicInteger createdWriters = new AtomicInteger();
+        private final AtomicInteger closedWriters = new AtomicInteger();
+
+        private CapturedSink() {
+            this(false);
+        }
+
+        private CapturedSink(boolean failCheckpointFlush) {
+            this.failCheckpointFlush = failCheckpointFlush;
+        }
 
         @Override
         public SinkWriter<String> createWriter() {
@@ -750,16 +778,21 @@ class CheckpointRecoveryTest {
                 }
 
                 @Override
-                public void flush(boolean endOfInput) {
+                public void flush(boolean endOfInput) throws IOException {
                     if (endOfInput) {
                         finalFlushes.incrementAndGet();
                     } else {
                         checkpointFlushes.incrementAndGet();
+                        if (failCheckpointFlush) {
+                            throw new IOException("sink checkpoint flush failed");
+                        }
                     }
                 }
 
                 @Override
-                public void close() {}
+                public void close() {
+                    closedWriters.incrementAndGet();
+                }
             };
         }
     }

@@ -214,6 +214,53 @@ class SourceCoordinatorContractTest {
         }
     }
 
+    @Test
+    void enumeratorStartFailureMustTerminateCoordinatorAndCloseCreatedEnumerator() throws Exception {
+        JobID jobID = JobID.generate();
+        RecordingSource source = new RecordingSource(false, true, false);
+        SourceCoordinator<TestSplit, Integer> coordinator =
+                new SourceCoordinator<>(source, new OperatorCoordinatorContext(jobID, 17, 1));
+
+        ExecutionException started = assertThrows(
+                ExecutionException.class, () -> coordinator.start().get(5, TimeUnit.SECONDS));
+        assertTrue(started.getCause().getMessage().contains("enumerator start failed"));
+        ExecutionException terminated = assertThrows(
+                ExecutionException.class, () -> coordinator.terminationFuture().get(5, TimeUnit.SECONDS));
+        assertTrue(terminated.getCause().getMessage().contains("enumerator start failed"));
+        assertTrue(source.closed.get(), "An enumerator that failed in start() must be closed");
+        assertFailure(coordinator.registerReader(
+                new RuntimeTaskInfo(jobID, 17, 0, 1, 0), event -> CompletableFuture.completedFuture(null)));
+    }
+
+    @Test
+    void failedEnumeratorSnapshotMustRetainAssignmentsForLaterSuccessfulCheckpoint() throws Exception {
+        JobID jobID = JobID.generate();
+        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 19, 0, 1, 0);
+        RecordingSource source = new RecordingSource(true, false, true);
+        try (SourceCoordinator<TestSplit, Integer> coordinator =
+                new SourceCoordinator<>(source, new OperatorCoordinatorContext(jobID, 19, 1))) {
+            coordinator.start().get(5, TimeUnit.SECONDS);
+            coordinator.registerReader(reader, event -> CompletableFuture.completedFuture(null))
+                    .get(5, TimeUnit.SECONDS);
+            coordinator.handleEventFromOperator(reader, new RequestSplitEvent(0, 0))
+                    .get(5, TimeUnit.SECONDS);
+
+            CompletionException failedSnapshot = assertThrows(
+                    CompletionException.class, () -> awaitCoordinatorSnapshot(coordinator, 31));
+            assertTrue(failedSnapshot.getCause().getMessage().contains("enumerator snapshot failed"));
+            coordinator.notifyCheckpointAborted(31).get(5, TimeUnit.SECONDS);
+
+            SourceCoordinatorCheckpoint<TestSplit, Integer> next = awaitCoordinatorSnapshot(coordinator, 32);
+            assertEquals(32, next.checkpointId());
+            assertEquals(List.of(new TestSplit("split-0")),
+                    next.assignedSinceLastCompletedCheckpoint().get(0));
+            coordinator.notifyCheckpointComplete(32).get(5, TimeUnit.SECONDS);
+            assertTrue(awaitCoordinatorSnapshot(coordinator, 33).assignedSinceLastCompletedCheckpoint().isEmpty());
+            assertEquals(3, source.snapshots.get());
+        }
+        assertTrue(source.closed.get());
+    }
+
     private record ProbeSourceEvent(String value) implements SourceEvent {}
 
     private static void assertFailure(CompletableFuture<?> future) {
@@ -242,13 +289,22 @@ class SourceCoordinatorContractTest {
     private static final class RecordingSource implements Source<String, TestSplit, Integer> {
 
         private final boolean assignSplits;
+        private final boolean failStart;
+        private final AtomicBoolean failNextSnapshot;
+        private final AtomicInteger snapshots = new AtomicInteger();
         private final AtomicInteger registrations = new AtomicInteger();
         private final AtomicInteger requests = new AtomicInteger();
         private final AtomicReference<SourceEvent> lastSourceEvent = new AtomicReference<>();
         private final AtomicBoolean closed = new AtomicBoolean();
 
         private RecordingSource(boolean assignSplits) {
+            this(assignSplits, false, false);
+        }
+
+        private RecordingSource(boolean assignSplits, boolean failStart, boolean failNextSnapshot) {
             this.assignSplits = assignSplits;
+            this.failStart = failStart;
+            this.failNextSnapshot = new AtomicBoolean(failNextSnapshot);
         }
 
         @Override
@@ -260,7 +316,11 @@ class SourceCoordinatorContractTest {
         public SplitEnumerator<TestSplit, Integer> createEnumerator(SplitEnumeratorContext<TestSplit> context) {
             return new SplitEnumerator<>() {
                 @Override
-                public void start() {}
+                public void start() {
+                    if (failStart) {
+                        throw new IllegalStateException("enumerator start failed");
+                    }
+                }
 
                 @Override
                 public void handleSplitRequest(int subtaskId) {
@@ -289,6 +349,10 @@ class SourceCoordinatorContractTest {
 
                 @Override
                 public Integer snapshotState(long checkpointId) {
+                    snapshots.incrementAndGet();
+                    if (failNextSnapshot.compareAndSet(true, false)) {
+                        throw new IllegalStateException("enumerator snapshot failed");
+                    }
                     return 1;
                 }
 

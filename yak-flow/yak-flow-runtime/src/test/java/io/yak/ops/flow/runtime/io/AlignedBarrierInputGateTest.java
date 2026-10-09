@@ -135,6 +135,91 @@ class AlignedBarrierInputGateTest {
         assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(ignored -> {}, id -> {}));
     }
 
+    @Test
+    void declinedCheckpointMustUnblockItsWriterAndAllowTheNextCheckpoint() throws Exception {
+        InputGate<String> gate = new InputGate<>(1, 2);
+        ResultPartition<String> first = new ResultPartition<>(0, List.of(gate));
+        ResultPartition<String> second = new ResultPartition<>(1, List.of(gate));
+        List<String> records = new ArrayList<>();
+        List<Long> completed = new ArrayList<>();
+        List<Long> declined = new ArrayList<>();
+        InputGate.BarrierHandler handler = new InputGate.BarrierHandler() {
+            @Override
+            public void onBarrier(long id) {
+                completed.add(id);
+            }
+
+            @Override
+            public void onCheckpointDeclined(long id) {
+                declined.add(id);
+            }
+        };
+
+        first.emitRecord(0, "before-aborted");
+        first.broadcastBarrier(1);
+        CountDownLatch started = new CountDownLatch(1);
+        CompletableFuture<Void> postBarrier = writeLater(first, "after-aborted", started);
+        assertTrue(started.await(2, TimeUnit.SECONDS));
+
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        assertFalse(postBarrier.isDone());
+        assertEquals(InputStatus.NOTHING_AVAILABLE, gate.emitNext(records::add, handler));
+
+        gate.declineCheckpoint(1);
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        postBarrier.get(2, TimeUnit.SECONDS);
+        assertEquals(List.of(1L), declined);
+        assertEquals(List.of(), completed);
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        assertEquals(List.of("before-aborted", "after-aborted"), records);
+
+        // The declined barrier must not poison the next alignment.
+        first.broadcastBarrier(2);
+        second.emitRecord(0, "before-second");
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        assertEquals(List.of(1L), declined);
+        second.broadcastBarrier(2);
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        assertEquals(List.of(2L), completed);
+
+        first.emitRecord(0, "after-second");
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        first.finish();
+        second.finish();
+        assertEquals(InputStatus.END_OF_INPUT, gate.emitNext(records::add, handler));
+        assertEquals(List.of("before-aborted", "after-aborted", "before-second", "after-second"), records);
+    }
+
+    @Test
+    void consecutiveAlignedCheckpointsMustRemainOrderedAcrossBothProducers() throws Exception {
+        InputGate<String> gate = new InputGate<>(2, 2);
+        ResultPartition<String> first = new ResultPartition<>(0, List.of(gate));
+        ResultPartition<String> second = new ResultPartition<>(1, List.of(gate));
+        List<String> records = new ArrayList<>();
+        List<Long> checkpoints = new ArrayList<>();
+
+        for (int checkpointId = 1; checkpointId <= 2; checkpointId++) {
+            first.emitRecord(0, "first-" + checkpointId);
+            second.emitRecord(0, "second-" + checkpointId);
+            first.broadcastBarrier(checkpointId);
+            second.broadcastBarrier(checkpointId);
+            // Each barrier follows the data from its own producer.
+            assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, checkpoints::add));
+            assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, checkpoints::add));
+            assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, checkpoints::add));
+            assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, checkpoints::add));
+        }
+        assertEquals(List.of(1L, 2L), checkpoints);
+        assertEquals(List.of("first-1", "second-1", "first-2", "second-2"), records);
+        assertThrows(IllegalStateException.class, () -> first.broadcastBarrier(1));
+
+        first.finish();
+        second.finish();
+        assertEquals(InputStatus.END_OF_INPUT, gate.emitNext(records::add, checkpoints::add));
+    }
+
     private static CompletableFuture<Void> writeLater(
             ResultPartition<String> partition, String value, CountDownLatch started) {
         return CompletableFuture.runAsync(() -> {
