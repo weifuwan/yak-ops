@@ -23,12 +23,12 @@ public final class JobID implements Serializable {
     }
 
     /**
- * Parses a hexadecimal job identifier.
- *
- * @param hex exactly 32 hexadecimal digits, without separators
- * @return the parsed job identifier
- * @throws IllegalArgumentException if the identifier is malformed
- */
+    * Parses a hexadecimal job identifier.
+    *
+    * @param hex exactly 32 hexadecimal digits, without separators
+    * @return the parsed job identifier
+    * @throws IllegalArgumentException if the identifier is malformed
+    */
     public static JobID fromHexString(String hex) {
         Objects.requireNonNull(hex, "hex must not be null");
         if (!hex.matches("[0-9a-fA-F]{32}")) {
