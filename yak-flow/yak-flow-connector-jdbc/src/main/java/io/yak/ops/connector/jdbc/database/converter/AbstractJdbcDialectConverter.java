@@ -12,8 +12,8 @@ import java.math.RoundingMode;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.sql.SQLDataException;
+import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
 import java.time.LocalDate;
@@ -62,7 +62,8 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
             LogicalType type = schema.column(index).dataType();
             Object value = readField(resultSet, index + 1, type);
             if (value == null && !type.isNullable()) {
-                throw new SQLDataException("Null value in non-null JDBC field: " + schema.column(index).name());
+                throw new SQLDataException("Null value in non-null JDBC field: "
+                        + schema.column(index).name());
             }
             row.setField(index, value);
         }
@@ -79,7 +80,8 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
             int position = index + 1;
             if (row.isNullAt(index)) {
                 if (!type.isNullable()) {
-                    throw new SQLDataException("Null value in required JDBC field: " + schema.column(index).name());
+                    throw new SQLDataException("Null value in required JDBC field: "
+                            + schema.column(index).name());
                 }
                 statement.setNull(position, sqlType(type));
                 continue;
@@ -93,9 +95,7 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
                     case BIGINT -> statement.setLong(position, row.getLong(index));
                     case FLOAT -> statement.setFloat(position, row.getFloat(index));
                     case DOUBLE -> statement.setDouble(position, row.getDouble(index));
-                    case DECIMAL -> statement.setBigDecimal(position, decimalValue(
-                            row.getDecimal(index, ((DecimalType) type).precision(), ((DecimalType) type).scale()),
-                            (DecimalType) type));
+                    case DECIMAL -> bindDecimal(row, statement, index, position, (DecimalType) type);
                     case CHAR, VARCHAR -> statement.setString(position, row.getString(index));
                     case BINARY, VARBINARY -> statement.setBytes(position, row.getBinary(index));
                     case DATE -> statement.setDate(position, java.sql.Date.valueOf(row.getDate(index)));
@@ -105,9 +105,16 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
                     case TIMESTAMP_WITH_TIME_ZONE -> statement.setObject(position, row.getZonedTimestamp(index, 9));
                 }
             } catch (ClassCastException | ArithmeticException exception) {
-                throw new SQLDataException("Invalid internal JDBC value for field " + schema.column(index).name(), exception);
+                throw new SQLDataException(
+                        "Invalid internal JDBC value for field " + schema.column(index).name(), exception);
             }
         }
+    }
+
+    private static void bindDecimal(
+            RowData row, PreparedStatement statement, int index, int position, DecimalType type) throws SQLException {
+        BigDecimal amount = row.getDecimal(index, type.precision(), type.scale());
+        statement.setBigDecimal(position, decimalValue(amount, type));
     }
 
     /**
@@ -129,7 +136,8 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
             case Types.BIGINT -> LogicalTypes.BIGINT;
             case Types.REAL, Types.FLOAT -> LogicalTypes.FLOAT;
             case Types.DOUBLE -> LogicalTypes.DOUBLE;
-            case Types.NUMERIC, Types.DECIMAL -> decimalType(precision, scale, metadata.getColumnLabel(index));
+            case Types.NUMERIC, Types.DECIMAL ->
+                decimalType(precision, scale, metadata.getColumnLabel(index));
             case Types.CHAR, Types.NCHAR -> precision > 0 ? LogicalTypes.charType(precision) : LogicalTypes.STRING;
             case Types.VARCHAR, Types.NVARCHAR ->
                 precision > 0 ? LogicalTypes.varchar(precision) : LogicalTypes.STRING;
@@ -142,7 +150,8 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
             case Types.TIMESTAMP -> LogicalTypes.timestamp(temporalPrecision(scale));
             case Types.TIMESTAMP_WITH_TIMEZONE -> LogicalTypes.zonedTimestamp(temporalPrecision(scale));
             default -> throw new SQLFeatureNotSupportedException(
-                    "Unsupported JDBC type " + metadata.getColumnTypeName(index) + " for field " + metadata.getColumnLabel(index));
+                    "Unsupported JDBC type " + metadata.getColumnTypeName(index) + " for field "
+                            + metadata.getColumnLabel(index));
         };
     }
 
@@ -170,7 +179,8 @@ public abstract class AbstractJdbcDialectConverter implements JdbcDialectConvert
                 case TIMESTAMP_WITH_TIME_ZONE -> offsetDateTime(raw, resultSet, position);
             };
         } catch (ArithmeticException | ClassCastException exception) {
-            throw new SQLDataException("JDBC value cannot be represented as " + type.asSerializableString(), exception);
+            throw new SQLDataException(
+                    "JDBC value cannot be represented as " + type.asSerializableString(), exception);
         }
     }
 
