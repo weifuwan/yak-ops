@@ -13,6 +13,7 @@ import io.yak.ops.connector.jdbc.database.dialect.JdbcDialectConverter;
 import io.yak.ops.connector.jdbc.source.split.JdbcSchemaFingerprint;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.configuration.Configuration;
+import io.yak.ops.core.data.GenericRowData;
 import io.yak.ops.core.data.RowData;
 import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableRecord;
@@ -101,7 +102,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
             if (cancellationRequested) {
                 throw new SQLException("JDBC source read was cancelled");
             }
-            RowData values = converter.toInternal(resultSet);
+            RowData values = readProjectedRow();
             Long key = active.splitColumn() == null ? null : resultSet.getLong(active.splitColumn());
             TableRecord record = new TableRecord(active.tableId(), RowKind.INSERT, values);
             batch.add(new JdbcRecordAndPosition(record, key));
@@ -172,16 +173,97 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         }
     }
 
-    private void openSplit(JdbcSourceSplit split) throws SQLException {
-        if (connection == null) {
-            connection = JdbcConnectionRetry.open(connections, connectionAttempts);
-            dialect.configureReadConnection(connection);
+    private RowData readProjectedRow() throws SQLException {
+        RowData values = converter.toInternal(resultSet);
+        if (values.getArity() == active.columns().size()) {
+            return values;
         }
+        GenericRowData projected = new GenericRowData(active.columns().size());
+        for (int index = 0; index < projected.getArity(); index++) {
+            projected.setField(index, values.getField(index));
+        }
+        return projected;
+    }
+
+    private void openSplit(JdbcSourceSplit split) throws SQLException {
+        closeStatementAndResultSet();
+        ensureConnection();
+        try {
+            openResultSet(split);
+        } catch (SQLException failure) {
+            // Reopen only before the first row of this split is fetched. A mid-fetch
+            // SQLException is propagated to Runtime for checkpoint-based recovery.
+            if (cancellationRequested || isConnectionValid()) {
+                throw failure;
+            }
+            resetConnection(failure);
+            try {
+                ensureConnection();
+                openResultSet(split);
+            } catch (SQLException retryFailure) {
+                retryFailure.addSuppressed(failure);
+                throw retryFailure;
+            }
+        }
+    }
+
+    private void ensureConnection() throws SQLException {
+        if (isConnectionValid()) {
+            return;
+        }
+        resetConnection(null);
+        Connection opened = JdbcConnectionRetry.open(connections, connectionAttempts);
+        try {
+            dialect.configureReadConnection(opened);
+        } catch (SQLException configurationFailure) {
+            try {
+                opened.close();
+            } catch (SQLException closingFailure) {
+                configurationFailure.addSuppressed(closingFailure);
+            }
+            throw configurationFailure;
+        }
+        connection = opened;
+    }
+
+    private boolean isConnectionValid() {
+        if (connection == null) {
+            return false;
+        }
+        try {
+            return !connection.isClosed() && connection.isValid(Math.min(queryTimeoutSeconds, 5));
+        } catch (SQLException failure) {
+            return false;
+        }
+    }
+
+    private void resetConnection(SQLException original) {
+        try {
+            closeStatementAndResultSet();
+        } catch (SQLException closingFailure) {
+            if (original != null) {
+                original.addSuppressed(closingFailure);
+            }
+        }
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (SQLException closingFailure) {
+                if (original != null) {
+                    original.addSuppressed(closingFailure);
+                }
+            } finally {
+                connection = null;
+            }
+        }
+    }
+
+    private void openResultSet(JdbcSourceSplit split) throws SQLException {
         if (cancellationRequested) {
             throw new SQLException("JDBC source read was cancelled");
         }
-        closeStatementAndResultSet();
-        String columns = split.columns().stream().map(dialect::quoteIdentifier).collect(Collectors.joining(", "));
+        List<String> readColumns = split.readColumns();
+        String columns = readColumns.stream().map(dialect::quoteIdentifier).collect(Collectors.joining(", "));
         String sql = "SELECT " + columns + " FROM " + dialect.qualifiedTable(split.tableId());
         List<Long> bounds = new ArrayList<>(3);
         String key = split.splitColumn();
@@ -215,14 +297,11 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         }
         resultSet = statement.executeQuery();
         converter = dialect.createRowConverter(resultSet.getMetaData());
-        // A restored split must not silently change its column order or identity.
-        if (converter.schema().columnCount() != split.columns().size()) {
+        if (converter.schema().columnCount() != readColumns.size()) {
             throw new SQLException("JDBC ResultSet shape changed since split planning");
         }
-        for (int index = 0; index < split.columns().size(); index++) {
-            if (!split.columns()
-                    .get(index)
-                    .equals(converter.schema().column(index).name())) {
+        for (int index = 0; index < readColumns.size(); index++) {
+            if (!readColumns.get(index).equals(converter.schema().column(index).name())) {
                 throw new SQLException("JDBC ResultSet column identity changed since split planning");
             }
         }
@@ -232,6 +311,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         }
         hasRow = resultSet.next();
     }
+
 
     private void closeStatementAndResultSet() throws SQLException {
         cancellableStatement = null;
