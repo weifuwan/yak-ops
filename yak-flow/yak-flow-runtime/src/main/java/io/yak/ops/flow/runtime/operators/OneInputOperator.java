@@ -14,7 +14,7 @@ import io.yak.ops.core.api.operators.Collector;
  * @param <OUT> 输出记录的数据类型
  * @author weifuwan
  */
-public interface OneInputOperator<IN, OUT> extends AutoCloseable {
+public interface OneInputOperator<IN, OUT> extends OneInputStreamOperator<IN, OUT> {
 
     /**
      * 在处理第一条记录之前初始化算子。
