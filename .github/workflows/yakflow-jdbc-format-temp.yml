@@ -22,7 +22,7 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Apply repository Spotless configuration
-        run: ./mvnw -B -ntp -pl yak-flow/yak-flow-connector-jdbc -am spotless:apply
+        run: bash mvnw -B -ntp -pl yak-flow/yak-flow-connector-jdbc -am spotless:apply
       - name: Commit only formatted JDBC Connector files
         run: |
           git config user.name "github-actions[bot]"
