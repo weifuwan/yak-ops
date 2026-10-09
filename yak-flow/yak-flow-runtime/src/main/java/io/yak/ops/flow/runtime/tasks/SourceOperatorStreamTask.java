@@ -19,13 +19,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
- * 使用 StreamTask Mailbox 运行一个 SourceOperator。
+ * StreamTask that runs one SourceOperator on its mailbox thread.
  *
- * <p>接收来自 Coordinator 的 Split 事件，事件确认发生在 SourceReader 实际处理之后。
- * 不自行创建第二条 Reader 线程；SourceReader 全部生命周期由本 Task 的线程串行执行。
+ * <p>The coordinator sends Split events and receives acknowledgment only after the
+ * SourceReader has handled them. Reader lifecycle and input processing are serialized
+ * on the owning task thread; no second reader thread is created.
  *
- * <p>下游输出由 ReaderOutput / RecordWriterOutput 或内联 OperatorChain 承接；
- * 全局 Checkpoint 不属于该类。
+ * <p>Output is sent through ReaderOutput, RecordWriterOutput or an inline OperatorChain.
+ * Global checkpoint coordination belongs to the runtime checkpoint coordinator.
  */
 public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> extends StreamTask
         implements SubtaskGateway {
@@ -48,7 +49,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
         this(source, coordinator, environment, output, null, List.of());
     }
 
-    /** 为内联 Operator Chain 建立完整的 Task 生命周期；不创建额外任务线程。 */
+    /** Initializes an inline operator chain without allocating an additional task thread. */
     public SourceOperatorStreamTask(
             Source<T, SplitT, ?> source,
             SourceCoordinator<SplitT, ?> coordinator,
@@ -58,7 +59,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
         this(source, coordinator, environment, output, operatorChain, List.of());
     }
 
-    /** 从已完成 Checkpoint 注入未完成 Split，仍在 Task Mailbox 线程初始化 Reader。 */
+    /** Restores unfinished split progress before initializing the Reader in the mailbox. */
     public SourceOperatorStreamTask(
             Source<T, SplitT, ?> source,
             SourceCoordinator<SplitT, ?> coordinator,
@@ -86,7 +87,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
         }
         operator.initialize();
         operator.restoreSplits(restoredSplits);
-        // 必须先注册 Gateway，再启动可能调用 sendSplitRequest() 的 Reader。
+        // Register the gateway before starting the Reader, which may immediately request splits.
         coordinator.registerReader(taskInfo(), this).get();
         operator.start();
     }
@@ -115,11 +116,11 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     protected void closeTask() throws Exception {
         try (OperatorChain chain = operatorChain;
                 SourceOperator<T, SplitT> reader = operator) {
-            // 逆序关闭 Reader，然后关闭 Operator Chain；异常由 try-with-resources 聚合。
+            // Close the Reader before its upstream chain; resource cleanup preserves suppressed failures.
         }
     }
 
-    /** Coordinator 异步失败时唤醒 Task Mailbox，由统一 Task 生命周期执行关闭。 */
+    /** Propagates asynchronous coordinator failure to the task mailbox for lifecycle cleanup. */
     public void coordinatorFailed(Throwable failure) {
         failAsync(failure);
     }
@@ -130,11 +131,12 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     }
 
     /**
-     * Coordinator 的统一事件入口。事件处理与 pollNext() 由 StreamTask Mailbox 串行执行。
-     *
-     * <p>Future 在 SourceOperator 真正处理事件后完成。由于当前实现仅限同 JVM，
-     * 该确认强于一般网络送达确认，但不等于数据消费完成或 Checkpoint 成功。
-     */
+ * Delivers a coordinator event on the task mailbox thread.
+ *
+ * <p>The returned stage completes after the SourceOperator processes the event, not
+ * merely after enqueueing it. This does not imply that records were consumed or a
+ * checkpoint was completed.
+ */
     @Override
     public CompletionStage<Void> sendEvent(OperatorEvent event) {
         Objects.requireNonNull(event, "event 不能为空");
@@ -148,9 +150,11 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     }
 
     /**
-     * Source 侧对齐切面：Mailbox 中先快照 Reader，再阻止下一次 pollNext()。
-     * 控制事件仍会在 Mailbox 中处理，协调侧必须先冻结 Split 请求/分配。
-     */
+ * Captures the Reader's progress and pauses input on the task mailbox.
+ *
+ * <p>The coordinator must already have frozen new split requests and assignments.
+ * Control events can still run while data polling is paused.
+ */
     public CompletableFuture<List<SplitT>> pauseForCheckpoint(long checkpointId) {
         return submitMailbox(() -> {
             if (pausedForCheckpoint) {
@@ -181,7 +185,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
         });
     }
 
-    /** Checkpoint 成败后都要恢复 Source 轮询；只由 Runtime CheckpointCoordinator 调用。 */
+    /** Resumes Source input polling after checkpoint success or failure. */
     public CompletableFuture<Void> resumeAfterCheckpoint() {
         return submitMailbox(() -> {
             if (pausedForCheckpoint) {
@@ -195,12 +199,12 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
         });
     }
 
-    /** Reader 运行线程上的进度快照；不代表全局 Checkpoint 完成。 */
+    /** Captures Reader-local progress; this is not a completed global checkpoint. */
     public CompletableFuture<List<SplitT>> snapshotState(long checkpointId) {
         return submitMailbox(() -> operator.snapshotState(checkpointId));
     }
 
-    /** 完整 Job Checkpoint 完成后才由上层调度调用。 */
+    /** Notifies the Reader only after the full job checkpoint was completed. */
     public CompletableFuture<Void> notifyCheckpointComplete(long checkpointId) {
         return submitMailbox(() -> {
             operator.notifyCheckpointComplete(checkpointId);

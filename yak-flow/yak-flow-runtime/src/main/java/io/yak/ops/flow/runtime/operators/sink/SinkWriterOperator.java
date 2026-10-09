@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Sink V2-style one-input operator. Stateful writer snapshots are versioned and restored
+ * One-input Sink writer operator shared by chained and standalone tasks. Stateful writer snapshots are versioned and restored
  * together with upstream operator/source progress by the aligned checkpoint coordinator.
  * No Committer or transactional exactly-once guarantee is implied.
  */

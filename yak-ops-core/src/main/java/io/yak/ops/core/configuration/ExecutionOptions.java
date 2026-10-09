@@ -3,27 +3,28 @@ package io.yak.ops.core.configuration;
 import io.yak.ops.core.api.RuntimeExecutionMode;
 
 /**
- * 控制已提交 Pipeline 运行方式的类型化配置项。
- *
- * <p>本类只声明配置项；运行准备阶段负责校验取值范围，
- * 并检查配置是否与 Pipeline 兼容。
- */
+* Typed options controlling how a submitted pipeline executes.
+*
+* <p>Runtime planning validates effective values and their compatibility with the topology.
+*/
 public final class ExecutionOptions {
 
     /**
-     * 运行模式：所有 Source 均有界时，AUTOMATIC 选择 BATCH；
-     * 否则选择 STREAMING。显式使用 BATCH 时要求所有 Source 均有界。
-     */
+    * Execution mode chosen during graph planning.
+    *
+    * <p>AUTOMATIC selects BATCH only when all sources are bounded; explicit BATCH rejects
+    * unbounded sources.
+    */
     public static final ConfigOption<RuntimeExecutionMode> RUNTIME_MODE = ConfigOptions.key("execution.runtime-mode")
             .enumType(RuntimeExecutionMode.class)
             .defaultValue(RuntimeExecutionMode.AUTOMATIC);
 
     /**
-     * Maximum whole-job restarts within one submission. Disabled by default.
-     *
-     * <p>Retries are only permitted from a valid, durably completed Source → Sink checkpoint.
-     * Failed task attempts are never reused; no partial Reader-only restart is claimed.
-     */
+    * Maximum whole-job restart attempts; disabled by default.
+    *
+    * <p>Restart is supported only from a durably completed Source-to-Sink checkpoint,
+    * with fresh execution attempts for all subtasks. Partial Reader-only restart is unsupported.
+    */
     public static final ConfigOption<Integer> MAX_RESTART_ATTEMPTS =
             ConfigOptions.key("execution.restart.max-attempts").intType().defaultValue(0);
 

@@ -5,7 +5,7 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
 
-/** 单次提交作业的不可变 128 位标识。 */
+/** Immutable 128-bit identity of one submitted job. */
 public final class JobID implements Serializable {
 
     @Serial
@@ -17,11 +17,18 @@ public final class JobID implements Serializable {
         this.value = Objects.requireNonNull(value, "value must not be null");
     }
 
+    /** Generates a new identifier for one job submission. */
     public static JobID generate() {
         return new JobID(UUID.randomUUID());
     }
 
-    /** 解析不含分隔符、恰好 32 位的十六进制字符串。 */
+    /**
+    * Parses a hexadecimal job identifier.
+    *
+    * @param hex exactly 32 hexadecimal digits, without separators
+    * @return the parsed job identifier
+    * @throws IllegalArgumentException if the identifier is malformed
+    */
     public static JobID fromHexString(String hex) {
         Objects.requireNonNull(hex, "hex must not be null");
         if (!hex.matches("[0-9a-fA-F]{32}")) {
@@ -32,6 +39,7 @@ public final class JobID implements Serializable {
         return new JobID(UUID.fromString(formatted));
     }
 
+    /** Returns the canonical 32-character hexadecimal form without separators. */
     public String toHexString() {
         return value.toString().replace("-", "");
     }

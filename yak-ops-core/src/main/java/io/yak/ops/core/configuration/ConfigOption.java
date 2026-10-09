@@ -4,7 +4,13 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 
-/** 具有类型信息和可选默认值的配置项。 */
+/**
+* Typed configuration-key contract with an optional default value.
+*
+* <p>The option describes how to interpret a value; it does not store runtime configuration.
+*
+* @param <T> the option's Java value type
+*/
 public final class ConfigOption<T> implements Serializable {
 
     @Serial

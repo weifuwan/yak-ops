@@ -9,19 +9,17 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 
 /**
- * 跟踪最近一次成功 Checkpoint 之后的分片分配。
+ * Records split assignments since the last successfully completed checkpoint.
  *
- * <p>所有方法必须由 SourceCoordinator 线程调用。分片进入 Reader 邮箱时记录，
- * 不以 Reader 收到事件作为 Checkpoint 成功的依据。
- *
- * <p>这里保存的是协调侧分配历史，完整恢复仍依赖 Reader 快照和数据通道状态。
+ * <p>Only the coordinator thread may mutate this state. Split delivery acknowledgement
+ * is not a completed checkpoint; recovery also depends on Reader snapshots.
  */
 public final class SplitAssignmentTracker<SplitT extends SourceSplit> {
 
     private final Map<Integer, LinkedHashMap<String, SplitT>> outstanding = new LinkedHashMap<>();
     private final NavigableMap<Long, Map<Integer, List<SplitT>>> checkpointSnapshots = new TreeMap<>();
 
-    /** 注册尚未被完整成功 Checkpoint 覆盖的分片分配。 */
+    /** Records an assignment not yet covered by a completed checkpoint. */
     public void recordAssignment(int subtaskId, SplitT split) {
         if (subtaskId < 0
                 || split == null
@@ -35,7 +33,7 @@ public final class SplitAssignmentTracker<SplitT extends SourceSplit> {
         }
     }
 
-    /** 为一个 Checkpoint 冻结截至此刻尚未被成功确认的分片分配。 */
+    /** Freezes outstanding assignments at this checkpoint boundary. */
     public Map<Integer, List<SplitT>> snapshot(long checkpointId) {
         if (checkpointId < 0 || checkpointSnapshots.containsKey(checkpointId)) {
             throw new IllegalArgumentException("checkpointId 无效或重复");
@@ -47,7 +45,7 @@ public final class SplitAssignmentTracker<SplitT extends SourceSplit> {
         return frozen;
     }
 
-    /** 只有完整 Checkpoint 成功后才移除它覆盖的分配历史。 */
+    /** Removes assignment history only after its checkpoint is durably committed. */
     public void notifyCheckpointComplete(long checkpointId) {
         Map<Integer, List<SplitT>> covered = checkpointSnapshots.get(checkpointId);
         if (covered == null) {
@@ -67,12 +65,12 @@ public final class SplitAssignmentTracker<SplitT extends SourceSplit> {
         checkpointSnapshots.headMap(checkpointId, true).clear();
     }
 
-    /** 取消一次尚未成功的 Checkpoint，保留分配历史供后续快照使用。 */
+    /** Discards a failed checkpoint attempt while retaining assignments for later snapshots. */
     public void notifyCheckpointAborted(long checkpointId) {
         checkpointSnapshots.remove(checkpointId);
     }
 
-    /** 获取只读的分配历史快照，用于诊断和后续故障恢复。 */
+    /** Returns a detached view of outstanding assignments for diagnostics and recovery. */
     public Map<Integer, List<SplitT>> outstandingAssignments() {
         Map<Integer, List<SplitT>> copy = new LinkedHashMap<>();
         outstanding.forEach((id, splits) -> copy.put(id, new ArrayList<>(splits.values())));

@@ -7,13 +7,17 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Source 协调侧的一份检查点片段，不能单独代表作业检查点成功。
- *
- * <p>Runtime 必须将本片段、所有 Reader 状态和下游状态按同一检查点边界
- * 一起持久化成功后，才能通知 Source Checkpoint 完成。
- *
- * <p>分片内容由 Connector 提供，必须是可独立序列化和恢复的状态快照。
- */
+* Coordinator-side portion of one aligned Source checkpoint.
+*
+* <p>This state alone does not establish a completed job checkpoint. The runtime must
+* persist it together with Reader and downstream state at the same checkpoint boundary
+* before acknowledging completion to the Source.
+*
+* <p>Connector-defined split state must be independently serializable and restorable.
+*
+* @param <SplitT> the source split type
+* @param <EnumStateT> the enumerator checkpoint state type
+*/
 public record SourceCoordinatorCheckpoint<SplitT extends SourceSplit, EnumStateT>(
         long checkpointId,
         EnumStateT enumeratorState,

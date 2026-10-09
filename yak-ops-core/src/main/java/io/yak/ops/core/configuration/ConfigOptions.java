@@ -3,7 +3,7 @@ package io.yak.ops.core.configuration;
 import java.time.Duration;
 import java.util.Objects;
 
-/** 用于声明类型安全 {@link ConfigOption} 的链式构建工具。 */
+/** Factory for declaring typed {@link ConfigOption} instances with an optional default. */
 public final class ConfigOptions {
 
     private ConfigOptions() {}

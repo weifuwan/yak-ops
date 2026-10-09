@@ -5,52 +5,60 @@ import java.util.concurrent.Callable;
 import java.util.function.BiConsumer;
 
 /**
- * Runtime 向 SplitEnumerator 暴露的分片协调接口。
- *
- * <p>Reader 的注册、分片投递、故障重分配和 Checkpoint 交接由 Runtime 统一管理。
- * Connector 只根据数据源特性决定应当分配哪些 Split、分配给哪个 Reader。
- *
- * <p>除 callAsync() 的后台任务外，Enumerator 回调和本 Context 的状态操作
- * 应在同一个协调器线程中串行执行；异步任务的结果必须切回协调器线程处理。
- *
- * @param <SplitT> 分片类型
- * @author weifuwan
- */
+* Runtime-owned coordination services exposed to a SplitEnumerator.
+*
+* <p>The runtime manages reader registration, split delivery acknowledgments, failed
+* assignments and checkpoint handoff. The Connector chooses which work to assign.
+*
+* <p>Enumerator callbacks and context state changes execute on the coordinator thread.
+* Asynchronous discovery results must be handed back to that thread.
+*
+* @param <SplitT> the split type being assigned
+* @author weifuwan
+*/
 public interface SplitEnumeratorContext<SplitT extends SourceSplit> {
 
-    /** 返回当前 Source Reader 的并行度。 */
+    /** Returns the resolved parallelism of the source operator. */
     int currentParallelism();
 
-    /** 返回当前已注册 Reader 的子任务 ID 的不可变快照。 */
+    /** Returns an immutable snapshot of registered reader subtask IDs. */
     Set<Integer> registeredReaders();
 
     /**
-     * 将一份 Split 交给指定 Reader。
-     *
-     * <p>Runtime 必须跟踪未完成交付与已确认交付，保证故障恢复后
-     * 分片不会在 Enumerator 和 Reader 的状态之间丢失。
-     */
+    * Assigns a split to a reader while tracking delivery and acknowledgment.
+    *
+    * <p>The runtime must retain enough assignment history to avoid losing work between
+    * Enumerator and Reader state after a failure.
+    *
+    * @param split the work unit to assign
+    * @param subtaskId the destination reader's subtask index
+    */
     void assignSplit(SplitT split, int subtaskId);
 
     /**
-     * 通知指定 Reader 以后不会收到新的 Split。
-     *
-     * <p>这不代表该 Reader 当前持有的 Split 已处理结束。
-     */
+    * Signals that a reader will not receive further splits.
+    *
+    * <p>This does not imply that previously assigned splits are finished.
+    */
     void signalNoMoreSplits(int subtaskId);
 
-    /** Forward a connector-defined event to the active Reader attempt. */
+    /** Sends a connector-defined event to the registered reader attempt. */
     default void sendEventToSourceReader(int subtaskId, SourceEvent event) {
         throw new UnsupportedOperationException("This context does not support SourceEvent transport");
     }
 
     /**
-     * 在后台执行潜在阻塞的发现操作，回调在协调器线程中执行。
-     *
-     * <p>后台任务不得修改 Enumerator 的共享状态；失败会传给 handler。
-     */
+    * Runs potentially blocking discovery off the coordinator thread.
+    *
+    * <p>The handler runs back on the coordinator thread, and background actions must not
+    * mutate shared enumerator state.
+    *
+    * @param action the background discovery action
+    * @param handler receives the result or failure on the coordinator thread
+    * @param <T> the discovery result type
+    */
     <T> void callAsync(Callable<T> action, BiConsumer<T, Throwable> handler);
 
-    /** 从外部事件切回协调器线程，任务不得长时间阻塞。 */
+    /** Schedules an external action on the coordinator thread without long blocking work. */
     void runInCoordinatorThread(Runnable action);
 }

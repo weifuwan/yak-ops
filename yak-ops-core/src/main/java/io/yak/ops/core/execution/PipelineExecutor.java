@@ -5,24 +5,20 @@ import io.yak.ops.core.configuration.Configuration;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Pipeline 统一执行入口。
- *
- * <p>负责根据运行配置提交 Pipeline，
- * 不区分批处理与流处理。
- *
- * @author weifuwan
- */
+* Unified submission entry point for bounded and unbounded pipelines.
+*
+* <p>The runtime determines the execution mode from the pipeline and its configuration.
+*
+* @author weifuwan
+*/
 public interface PipelineExecutor {
 
     /**
-     * 异步提交 Pipeline。
-     *
-     * <p>Future 完成代表作业提交成功，
-     * 不代表作业已经执行结束。
-     *
-     * @param pipeline 待执行的 Pipeline
-     * @param configuration 运行配置
-     * @return 对应作业的 JobClient
-     */
+    * Submits a pipeline asynchronously without waiting for the job to finish.
+    *
+    * @param pipeline the logical pipeline to execute
+    * @param configuration the effective submission configuration
+    * @return a future completed with the job handle after successful submission
+    */
     CompletableFuture<JobClient> execute(Pipeline pipeline, Configuration configuration);
 }

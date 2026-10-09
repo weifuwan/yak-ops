@@ -81,7 +81,7 @@ class CheckpointRecoveryTest {
         assertEquals(JobStatus.CANCELED, first.getJobStatus().get(5, TimeUnit.SECONDS));
         assertEquals(0, initialSink.finalFlushes.get());
 
-        // 使用新的 Source/JobID 与 Connector 实例，仅根据 UID/Graph 和稳定二进制 State 恢复。
+        // Restore into a fresh Source, JobID and Connector using stable UIDs and serialized state only.
         CapturedSink resumedSink = new CapturedSink();
         Configuration restoreConfig = configuration(true);
         JobClient restored = new EmbeddedPipelineExecutor().execute(

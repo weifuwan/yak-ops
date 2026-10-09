@@ -9,6 +9,7 @@ Status:
 Depends On:
 - `/ARCHITECTURE.md`
 - `/JAVA_RULES.md`
+- `/docs/capabilities/yak-flow/core-runtime-comment-rules.md`
 
 ## Current Fact
 

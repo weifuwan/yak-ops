@@ -18,39 +18,39 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * 将以 Sink 为终点的 Transformation 逻辑图转换为 StreamGraph。
- *
- * <p>从各 Sink 向上遍历，先转换上游，再为当前 Transformation 创建 StreamNode，
- * 并根据 getInputs() 自动连接 StreamEdge。共享的上游对象只转换一次。
- *
- * <p>本类只负责构图和配置校验，不启动 Source、Operator 或 SinkWriter。
- * 构图期间不得并发修改 Transformation 的名称、UID、并行度或输入关系。
- *
- * @author weifuwan
- */
+* Compiles sink-rooted logical transformations into a validated StreamGraph.
+*
+* <p>Each upstream transformation is visited before its consumer, shared upstream
+* definitions are materialized once, and dependencies become StreamEdges.
+* This stage validates configuration without creating SourceReaders, Writers or
+* task threads. Callers must not concurrently mutate the input transformations.
+*
+* @author weifuwan
+*/
 public final class StreamGraphGenerator {
 
     private final List<SinkTransformation<?>> sinks;
     private final Configuration configuration;
 
     /**
-     * 使用一个 Sink 构造执行图生成器。
-     *
-     * @param sink 数据流的终点
-     * @param configuration 用于生成执行图的配置
-     */
+    * Creates a generator for a single logical Sink.
+    *
+    * @param sink the output transformation
+    * @param configuration the graph-planning configuration
+    */
     public StreamGraphGenerator(SinkTransformation<?> sink, Configuration configuration) {
         this(List.of(Objects.requireNonNull(sink, "sink 不能为空")), configuration);
     }
 
     /**
-     * 使用一个或多个 Sink 构造执行图生成器。
-     *
-     * <p>配置在构造时复制，之后调用方修改原始 Configuration 不会影响本生成器。
-     *
-     * @param sinks 一个或多个 Sink 逻辑节点
-     * @param configuration 用于生成执行图的配置
-     */
+    * Creates a generator for one or more logical Sinks.
+    *
+    * <p>The effective configuration is copied so subsequent caller changes do not
+    * affect this generator.
+    *
+    * @param sinks the output transformations
+    * @param configuration the graph-planning configuration
+    */
     public StreamGraphGenerator(Collection<? extends SinkTransformation<?>> sinks, Configuration configuration) {
         Objects.requireNonNull(sinks, "sinks 不能为空");
         if (sinks.isEmpty()) {
@@ -68,15 +68,13 @@ public final class StreamGraphGenerator {
     }
 
     /**
-     * 生成拓扑完整、节点参数已解析的 StreamGraph。
-     *
-     * <p>按照配置解析默认并行度并校验 UID；图内部负责校验数据类型、连接数量、
-     * 重复节点和无环关系。显式使用 BATCH 时不允许存在无界 Source。
-     *
-     * <p>调用该方法不会创建任何运行资源，可重复调用并生成独立的图对象。
-     *
-     * @return 已生成的 StreamGraph
-     */
+    * Generates an independently validated StreamGraph without opening runtime resources.
+    *
+    * <p>Resolves default parallelism and checks stable UIDs, connected types,
+    * fan-in/fan-out restrictions and execution mode compatibility.
+    *
+    * @return a new graph describing the validated pipeline
+    */
     public StreamGraph generate() {
         Integer defaultParallelism = configuration.get(CoreOptions.DEFAULT_PARALLELISM);
         if (defaultParallelism == null || defaultParallelism <= 0) {
@@ -98,17 +96,15 @@ public final class StreamGraphGenerator {
     }
 
     /**
-     * 结合 Source 有界性与配置解析实际运行模式。
-     *
-     * <p>AUTOMATIC 在所有 Source 均有界时解析为 BATCH，否则为 STREAMING；
-     * 显式 BATCH 与无界 Source 不兼容；STREAMING 同时支持有界和无界 Source。
-     *
-     * <p>现阶段 StreamGraph 尚不存储运行模式，因此本方法可供后续执行准备阶段复用。
-     *
-     * @param graph 已生成的 StreamGraph
-     * @param configuration 执行配置
-     * @return 具体运行模式（BATCH 或 STREAMING）
-     */
+    * Resolves execution mode using Source boundedness and configured preferences.
+    *
+    * <p>AUTOMATIC selects BATCH only for entirely bounded graphs. Explicit BATCH
+    * rejects unbounded sources, while STREAMING accepts either kind.
+    *
+    * @param graph the already generated topology
+    * @param configuration the effective execution configuration
+    * @return BATCH or STREAMING for the current graph
+    */
     public static RuntimeExecutionMode resolveRuntimeMode(StreamGraph graph, Configuration configuration) {
         Objects.requireNonNull(graph, "graph 不能为空");
         Objects.requireNonNull(configuration, "configuration 不能为空");
@@ -129,7 +125,7 @@ public final class StreamGraphGenerator {
         };
     }
 
-    /** 单次 generate() 调用内部的遍历状态，不跨构图复用。 */
+    /** Per-invocation traversal state; never reused across graph compilations. */
     private static final class GraphVisitor {
 
         private final int defaultParallelism;
@@ -178,7 +174,7 @@ public final class StreamGraphGenerator {
                 visiting.remove(transformation);
             }
         }
-        /** 将下游声明与两端并行度解析为明确的边策略；只有用户声明 KEYED 才使用键哈希。 */
+        /** Resolves routing from explicit edge settings or the two operators' parallelism. */
         private StreamEdge createEdge(Transformation<?> input, Transformation<?> target) {
             StreamPartitioning requested = null;
             KeySelector<?> selector = null;

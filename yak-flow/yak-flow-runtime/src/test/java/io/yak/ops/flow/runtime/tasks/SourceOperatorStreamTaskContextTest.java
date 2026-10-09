@@ -40,7 +40,7 @@ class SourceOperatorStreamTaskContextTest {
         TestSource source = new TestSource();
         List<String> received = new CopyOnWriteArrayList<>();
         Configuration configuration = new Configuration();
-        // 默认并行度与执行子任务的实际并行度不同，不应被当成 Reader parallelism。
+        // The configured default differs from actual task parallelism and must not override reader identity.
         configuration.set(CoreOptions.DEFAULT_PARALLELISM, 8);
         RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 17, 1, 2, 0, 128);
 

@@ -6,9 +6,11 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 某个本地作业已对齐的 Source/Reader 状态切面；仅记录版本化二进制状态，
- * 不持有活动 Reader、连接、Task 或未完成的 Channel 消息。
- */
+* Immutable, aligned snapshot of one local job's Source, Reader and operator state.
+*
+* <p>Contains versioned serialized state only, never live readers, task threads,
+* connections or in-flight channel messages.
+*/
 public record CheckpointSnapshot(
         long checkpointId,
         String graphSignature,
@@ -77,7 +79,7 @@ public record CheckpointSnapshot(
         return Map.copyOf(copy);
     }
 
-    /** 每个状态携带独立版本和不可变字节内容；不会泄露可修改的内部数组。 */
+    /** Versioned state bytes copied on construction and on access to prevent mutation. */
     public record SerializedState(int version, byte[] bytes) {
 
         public SerializedState {

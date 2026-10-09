@@ -1,13 +1,13 @@
 package io.yak.ops.flow.runtime.graph;
 
-/** 本地 StreamEdge 的显式记录分区语义。 */
+/** Record partitioning strategies supported by local StreamEdges. */
 public enum StreamPartitioning {
-    /** 按相同 Subtask Index 一对一连接；源和目标的并行度必须相同。 */
+    /** One-to-one routing by subtask index; both sides require equal parallelism. */
     FORWARD,
 
-    /** 上游每个子任务独立按轮询把记录分发给所有目标子任务。 */
+    /** Each producer independently distributes records round-robin to downstream subtasks. */
     REBALANCE,
 
-    /** 通过下游输入记录的稳定业务键哈希分区；同键进入同一目标子任务。 */
+    /** Routes records with an equal business key to the same downstream subtask. */
     KEYED
 }

@@ -1,15 +1,17 @@
 package io.yak.ops.core.api.operators;
 
 /**
- * 为记录提供稳定的分区键。
- *
- * <p>键必须非空，equals/hashCode 必须依据业务身份稳定（不使用数组或对象默认身份哈希）。
- * 对于 CDC 应使用表主键；KEYED 仅保证同键路由到相同子任务，不提供端到端事务顺序保证。
- *
- * @param <T> 上游记录类型
- */
+* Extracts the stable business key used for keyed partitioning.
+*
+* <p>Keys must be non-null and have stable equality and hash semantics; array and
+* identity-based hashes are not supported. CDC streams should use the target primary
+* key. Keyed routing does not itself guarantee transactional ordering.
+*
+* @param <T> the upstream record type
+*/
 @FunctionalInterface
 public interface KeySelector<T> {
 
+    /** Returns a stable, non-null partition key for the supplied record. */
     Object getKey(T record) throws Exception;
 }

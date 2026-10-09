@@ -38,6 +38,13 @@ public final class StreamingJobGraphGenerator {
         this.configuration = new Configuration(Objects.requireNonNull(configuration, "configuration"));
     }
 
+    /**
+     * Compiles deployable vertices and edges after validating the graph and runtime policies.
+     *
+     * <p>Planning must finish before any Reader, Writer or Task thread is created.
+     *
+     * @return the physical execution graph definition
+     */
     public JobGraph generate() {
         validateConfiguration();
         validateTopology();

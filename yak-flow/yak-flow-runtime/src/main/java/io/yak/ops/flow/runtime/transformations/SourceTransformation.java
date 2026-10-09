@@ -7,17 +7,17 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 描述数据流中没有上游输入的 Source 节点。
+ * Logical Source node with no upstream transformations.
  *
- * <p>本类只记录 Source 组件及其逻辑属性，不负责打开连接、创建 Reader
- * 或启动读取线程。真正的运行资源由执行阶段创建和释放。
+ * <p>Stores the reusable Source definition without opening a connection, creating
+ * a Reader or starting a task. Execution owns the actual runtime resources.
  *
- * @param <T> Source 产生的数据类型
+ * @param <T> the emitted record type
  * @author weifuwan
  */
 public final class SourceTransformation<T> extends Transformation<T> {
 
-    /** Source 组件定义；不应是已启动的读取实例。 */
+    /** Reusable Source definition, not an initialized Reader. */
     private final Source<T, ?, ?> source;
 
     public SourceTransformation(String name, Source<T, ?, ?> source, Class<T> outputType) {
@@ -29,17 +29,17 @@ public final class SourceTransformation<T> extends Transformation<T> {
         this.source = Objects.requireNonNull(source, "source 不能为空");
     }
 
-    /** 获取 Source 组件定义。 */
+    /** Returns the Source definition without opening runtime resources. */
     public Source<T, ?, ?> getSource() {
         return source;
     }
 
-    /** 根据 Source 的数据有界性判断批流属性，而不是使用任务名称区分。 */
+    /** Returns the Source boundedness, independently of the selected runtime mode. */
     public Boundedness getBoundedness() {
         return Objects.requireNonNull(source.getBoundedness(), "Source 必须声明 Boundedness");
     }
 
-    /** Source 没有上游 Transformation。 */
+    /** Returns no inputs because a Source is an upstream root. */
     @Override
     public List<Transformation<?>> getInputs() {
         return List.of();

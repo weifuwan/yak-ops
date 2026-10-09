@@ -1,6 +1,6 @@
 package io.yak.ops.flow.runtime.io.partitioner;
 
-/** Producer-local round-robin, starting from the producer index as in the prior RecordRouter. */
+/** Producer-local round-robin, using a producer-specific starting offset. */
 public final class RebalancePartitioner<T> implements StreamPartitioner<T> {
 
     private int nextTarget;

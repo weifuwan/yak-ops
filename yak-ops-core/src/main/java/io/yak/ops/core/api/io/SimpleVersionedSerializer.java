@@ -3,22 +3,35 @@ package io.yak.ops.core.api.io;
 import java.io.IOException;
 
 /**
- * 用于 SourceSplit 与 Enumerator Checkpoint 状态的版本化二进制序列化协议。
- *
- * <p>Connector 负责对象的具体编码和向后兼容；Runtime 负责字节持久化。
- * 不要求对象使用 JDK Serializable，不得直接将活动连接或密钥写入状态。
- *
- * @param <T> 被序列化的状态或分片类型
- * @author weifuwan
- */
+* Versioned binary serialization contract for splits and checkpoint state.
+*
+* <p>Connectors own encoding and cross-version compatibility; the runtime owns durable
+* storage and transport. Live connections and secrets must not be serialized into state.
+*
+* @param <T> the split or state type being serialized
+* @author weifuwan
+*/
 public interface SimpleVersionedSerializer<T> {
 
-    /** 当前写出格式的版本号。 */
+    /** Returns the version of the format written by this serializer. */
     int getVersion();
 
-    /** 将对象转换为可保存的独立字节数组。 */
+    /**
+    * Serializes the value into an independent byte array.
+    *
+    * @param value the split or state value
+    * @return bytes safe to retain after this method returns
+    * @throws IOException if encoding fails
+    */
     byte[] serialize(T value) throws IOException;
 
-    /** 根据写入时的格式版本还原对象。 */
+    /**
+    * Deserializes a value using the format version stored with its bytes.
+    *
+    * @param version the version recorded when the value was written
+    * @param serialized the serialized bytes
+    * @return the restored value
+    * @throws IOException if the version or encoded data is unsupported
+    */
     T deserialize(int version, byte[] serialized) throws IOException;
 }

@@ -1,17 +1,24 @@
 package io.yak.ops.core.api.connector.sink;
 
 /**
- * 可复用的 Sink 定义。每个执行子任务通过运行时上下文创建独立的 SinkWriter，
- * Sink 本身不得持有某一次执行专属的活动连接或 Writer。
- *
- * <p>Writer 通过 WriterInitContext 获取 TaskInfo 和 Configuration 的防御性副本。
- * Writer 状态恢复由 SupportsWriterState 等可选能力负责；基础 Sink 不承诺事务提交或 Exactly-once。
- *
- * @param <T> 输入记录类型
- */
+* Reusable definition that creates a separate {@link SinkWriter} for each execution attempt.
+*
+* <p>A Sink must not retain an active Writer or connection between submissions. The
+* {@link WriterInitContext} exposes the owning subtask and its effective configuration.
+* Stateful recovery requires {@link SupportsWriterState}; this API does not promise
+* transactional commits or exactly-once delivery.
+*
+* @param <T> the input record type
+*/
 @FunctionalInterface
 public interface Sink<T> {
 
-    /** 为当前执行子任务创建 Writer；禁止返回 null 或共享活动 Writer。 */
+    /**
+    * Creates a Writer for the current subtask and attempt.
+    *
+    * @param context the owning subtask and effective execution configuration
+    * @return a new, non-null Writer that is not shared with another active task
+    * @throws Exception if Writer creation fails
+    */
     SinkWriter<T> createWriter(WriterInitContext context) throws Exception;
 }

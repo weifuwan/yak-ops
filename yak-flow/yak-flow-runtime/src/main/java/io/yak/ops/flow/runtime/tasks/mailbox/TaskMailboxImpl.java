@@ -11,7 +11,7 @@ import java.util.function.BooleanSupplier;
 
 /**
  * Single-consumer FIFO mailbox. A condition prevents lost wakeups between input availability,
- * coordinator control events and cancellation. Data backpressure remains in RecordChannel.
+ * coordinator control events and cancellation. Data backpressure remains in ResultPartition and InputGate.
  */
 public final class TaskMailboxImpl implements TaskMailbox {
 

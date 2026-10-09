@@ -6,8 +6,8 @@ import java.util.Objects;
  * Fixed KeyGroup identifiers decouple key ownership from a particular task parallelism.
  *
  * <p>Implements the same MurmurHash and key-group-to-subtask arithmetic as Flink's
- * KeyGroupRangeAssignment. State migration and rescaling are not available until operator state
- * persistence exists; the mapping is nevertheless stable across a parallelism change.
+ * KeyGroupRangeAssignment. Key-group identity is stable across parallelism changes, but rescaling
+ * and state redistribution are not supported.
  */
 public final class KeyGroupRangeAssignment {
 
