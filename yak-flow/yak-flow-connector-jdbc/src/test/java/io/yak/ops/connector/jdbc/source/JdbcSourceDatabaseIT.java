@@ -3,6 +3,7 @@ package io.yak.ops.connector.jdbc.source;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
@@ -222,6 +223,72 @@ class JdbcSourceDatabaseIT {
                         ddl.execute("DROP TABLE " + qualifiedA);
                     }
                 }
+            }
+        }
+    }
+
+
+    @Test
+    void mysqlCursorFetchReadsLargeTableInSmallBatches() throws Exception {
+        String url = requiredProperty("jdbc.it.url");
+        assumeTrue(url.startsWith("jdbc:mysql:"), "MySQL cursor fetch acceptance only");
+        if (!Boolean.getBoolean("jdbc.it.allow-write")) {
+            throw new IllegalStateException("Set -Djdbc.it.allow-write=true for disposable test databases only");
+        }
+        String user = requiredProperty("jdbc.it.user");
+        String password = System.getProperty("jdbc.it.password", "");
+        JdbcConnectionOptions connectionOptions = new JdbcConnectionOptions(url, user, password);
+        JdbcConnectionOptions cursorOptions =
+                new JdbcConnectionOptions(url, user, password, null, Map.of("useCursorFetch", "true"));
+        JdbcDialect dialect = JdbcDialects.forUrl(url);
+        String name = "YF_SRC_CURSOR_IT";
+        String tableSql = dialect.quoteIdentifier(name);
+        TableId table;
+        try (Connection setup = connectionOptions.openConnection(); Statement ddl = setup.createStatement()) {
+            ddl.execute("DROP TABLE IF EXISTS " + tableSql);
+            ddl.execute("CREATE TABLE " + tableSql + " (ID BIGINT PRIMARY KEY, LABEL VARCHAR(40))");
+            table = new TableId(setup.getCatalog(), null, name);
+            try (PreparedStatement insert = setup.prepareStatement("INSERT INTO " + tableSql + " VALUES (?, ?)")) {
+                for (int index = 1; index <= 8192; index++) {
+                    insert.setLong(1, index);
+                    insert.setString(2, "row" + index);
+                    insert.addBatch();
+                    if (index % 256 == 0) {
+                        insert.executeBatch();
+                    }
+                }
+            }
+        }
+        try {
+            Configuration config = new Configuration();
+            config.set(JdbcSourceOptions.MAX_SPLITS_PER_TABLE, 1);
+            config.set(JdbcSourceOptions.READER_FETCH_BATCH_SIZE, 64);
+            config.set(JdbcSourceOptions.RESULT_SET_FETCH_SIZE, 32);
+            JdbcSourceSplit split = new JdbcSplitPlanner(cursorOptions, dialect, config)
+                    .plan(table, 0)
+                    .getFirst();
+            int count = 0;
+            boolean finished = false;
+            try (JdbcSourceSplitReader reader = new JdbcSourceSplitReader(cursorOptions, dialect, config)) {
+                reader.addSplits(List.of(split));
+                for (int attempt = 0; attempt < 200 && !finished; attempt++) {
+                    var batch = reader.fetch();
+                    int size = 0;
+                    if (split.splitId().equals(batch.nextSplit())) {
+                        while (batch.nextRecordFromSplit() != null) {
+                            size++;
+                        }
+                    }
+                    assertTrue(size <= 64);
+                    count += size;
+                    finished = batch.finishedSplits().contains(split.splitId());
+                }
+            }
+            assertTrue(finished);
+            assertEquals(8192, count);
+        } finally {
+            try (Connection cleanup = connectionOptions.openConnection(); Statement ddl = cleanup.createStatement()) {
+                ddl.execute("DROP TABLE IF EXISTS " + tableSql);
             }
         }
     }

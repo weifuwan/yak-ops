@@ -139,9 +139,12 @@ checkpointed as consumed. Enumerator assignment removes pending work only after
 `assignSplit` succeeds, and in-flight asynchronous table planning is re-run on
 restoration when the table index has not advanced.
 
-`JdbcConnectionRetry` retries a bounded number of **connection creation** failures
-classified as transient or SQLState class 08. It never automatically restarts a query
-after ResultSet consumption; that is a Runtime failure/restart boundary.
+"JdbcConnectionRetry" retries a bounded number of **connection creation** failures
+classified as transient or SQLState class 08. The Reader also validates a reused
+connection at each split boundary and reconnects if it is no longer valid. If the
+connection drops while the next split's query is opening, it can retry before
+emitting that split's first row. It never automatically restarts a query after
+ResultSet consumption; that is a Runtime failure/restart boundary.
 `SplitReader.cancel()` now distinguishes terminal cancellation from `wakeUp()`
 used for new splits. JDBC cancellation signals the active Statement asynchronously so
 it does not block the mailbox, while fetcher shutdown still has a bounded close timeout.
@@ -156,7 +159,14 @@ concurrent cancellation and real MySQL/PostgreSQL/Oracle schema drift.
 
 `yak-flow-connector-jdbc` implements one bounded `JdbcSource` over a frozen list of `TableId` values; a single table is the same path as many tables. A single `JdbcSourceEnumerator` discovers metadata and plans each table off the coordinator event loop; `JdbcSourceReader` uses Connector Base to read multiple independent splits per subtask, emitting `TableRecord` values with original table identity.
 
-For tables with exactly one signed-long-compatible integer primary key, the planner uses disjoint inclusive range splits and resumes a split with an exclusive `lastEmittedKey` seek predicate. Progress is updated only by `JdbcRecordEmitter` after successful output, never by Fetcher prefetch. No supported key or out-of-range unsigned keys means one full-table split that is replayed from the beginning on recovery; this may produce duplicates. Source definition fingerprints reject changed table sets during enumerator restoration. Versioned split/enumerator serializers contain no credentials or active connections.
+For tables with exactly one signed-long-compatible integer primary key, the planner uses disjoint inclusive range splits and resumes a split with an exclusive `lastEmittedKey` seek predicate. Progress is updated only by `JdbcRecordEmitter` after successful output, never by Fetcher prefetch. No supported key or out-of-range unsigned keys means one full-table split that is replayed from the beginning on recovery; this may produce duplicates. Source definition fingerprints reject changed table sets or configured column projections during enumerator restoration. Versioned split/enumerator serializers contain no credentials or active connections.
+
+A caller can supply optional ordered columns per table in the JdbcSource constructor.
+The Planner validates requested columns against Catalog metadata and freezes the
+projection into each Split. When a numeric primary key is excluded from the
+projection, JDBC fetches it as a hidden final column to advance the checkpoint
+cursor, but emitted RowData contains only requested fields. The existing Split
+serializer format stays at version 2.
 
 The JDBC reader supports MySQL, PostgreSQL and Oracle quoted identifiers and read connection policies, plus ANSI/H2 for embedded integration tests. Target-table DDL, vendor dialects, JDBC conversions and the new read-only Catalog have one owner in JDBC Connector. Datasource's legacy Catalog and metadata mapping remain available only until a separate product adapter migration. JDBC Driver availability and read cursor behavior remain database/driver dependent. The JDBC Source is a bounded table scan, not a transactionally consistent cross-table snapshot or MySQL CDC. The tests exercise real embedded H2 ResultSets through local YakFlow Runtime; they are not MySQL/PostgreSQL/Oracle acceptance results.
 
