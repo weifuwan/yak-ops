@@ -1,4 +1,4 @@
-name: Backend Acceptance (runtime integration pending)
+name: Backend Acceptance Status (runtime E2E unavailable)
 
 on:
   workflow_call:
@@ -24,20 +24,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  acceptance-gate:
-    name: Runtime E2E Acceptance — Not Available
+  # On regular PRs/main pushes, a successful report means ONLY that the E2E status
+  # was reported accurately; it must never be mistaken for an acceptance PASS.
+  acceptance-status:
+    name: Runtime E2E Status (not executed)
+    if: ${{ inputs.full_sweep != true && github.event_name != 'workflow_dispatch' && github.event_name != 'schedule' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Report acceptance status
+      - name: Report runtime E2E status
         shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          FULL_SWEEP: ${{ inputs.full_sweep }}
         run: |
           set -euo pipefail
-          echo "::warning::Data Sync UI, Controller, Service, DAO and JDBC/CDC connector code are retained, but the old execution engine was removed and no replacement is integrated. End-to-end execution is not verified."
-          if [[ "${FULL_SWEEP}" == "true" || "${EVENT_NAME}" == "workflow_dispatch" || "${EVENT_NAME}" == "schedule" ]]; then
-            echo "::error::Full runtime acceptance is unavailable; new engine integration and E2E are required before release."
-            exit 1
-          fi
-          echo "Only the acceptance-unavailable state is reported, not a runtime acceptance PASS."
+          echo "::warning::Runtime E2E NOT RUN: the legacy execution engine and JDBC/CDC connectors were removed; no replacement is integrated."
+          {
+            echo "## Runtime E2E: NOT EXECUTED"
+            echo ""
+            echo "This is an informational status report, **not an acceptance pass**."
+            echo "Data Sync UI/Controller/Service/DAO remain, but JDBC/CDC runtime integration and"
+            echo "real database end-to-end tests are not available yet."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  # workflow_dispatch, schedule and Release Gate (full_sweep=true) must fail closed.
+  # Never produce green release evidence until actual database acceptance exists.
+  full-acceptance:
+    name: Full Runtime E2E Gate (unavailable)
+    if: ${{ inputs.full_sweep == true || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject unavailable full acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::error::Full Runtime E2E is unavailable. Restore JDBC/CDC connectors and real acceptance tests before release."
+          {
+            echo "## Full Runtime E2E: BLOCKED"
+            echo ""
+            echo "The real JDBC/CDC execution engine and database E2E verification are not yet integrated."
+            echo "No release acceptance evidence was produced."
+          } >> "${GITHUB_STEP_SUMMARY}"
+          exit 1
