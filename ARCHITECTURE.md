@@ -46,7 +46,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-flow/yak-flow-runtime`
 
-拥有 StreamGraph / StreamGraphGenerator、StreamingJobGraphGenerator、物理 JobGraph（JobVertex / JobEdge）、ExecutionGraph（ExecutionJobVertex / ExecutionVertex / Execution）、TaskDeployment、StreamTask、OperatorChain、SourceCoordinator、RecordChannel / RecordRouter 与 QuiescentCheckpointCoordinator。EmbeddedPipelineExecutor 仅负责编译和提交；EmbeddedJobClient 只提供查询、取消、结果和 Checkpoint 入口，运行状态由 ExecutionGraph 唯一管理。
+拥有 StreamGraph / StreamGraphGenerator、StreamingJobGraphGenerator、物理 JobGraph（JobVertex / JobEdge）、ExecutionGraph（ExecutionJobVertex / ExecutionVertex / Execution）、TaskDeployment、StreamTask、OperatorChain、SourceCoordinator、RecordChannel / RecordRouter 与 QuiescentCheckpointCoordinator。EmbeddedPipelineExecutor 仅负责编译和提交；EmbeddedJobClient 只提供查询、取消、结果和 Checkpoint 入口，运行状态由 ExecutionGraph 唯一管理。StreamTask 使用 TaskMailbox + MailboxProcessor：控制事件排队到所属 Task 线程，输入处理是可暂停的 MailboxDefaultAction。
 
 当前只支持一个 Source → 零个或多个单输入 Operator → 一个 Sink 的严格线性图，保留单并行 FORWARD 内联链、多并行 Task/有界队列、FORWARD / REBALANCE / KEYED 路由、取消及失败清理语义。可恢复 Checkpoint 限于 Source → Sink 的单节点静止切面，持久化格式和状态目录保持兼容，语义仍为 at-least-once，不承诺 Exactly-once。多源、分叉、网络 Shuffle、动态扩缩容和中间 Operator 状态恢复尚未实现。
 
