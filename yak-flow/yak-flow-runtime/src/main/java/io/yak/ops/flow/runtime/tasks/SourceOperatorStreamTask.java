@@ -203,6 +203,9 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit>
     public CompletableFuture<Void> notifyCheckpointComplete(long checkpointId) {
         return submitMailbox(() -> {
             operator.notifyCheckpointComplete(checkpointId);
+            // Completing a checkpoint can make the Reader ready even if isAvailable()
+            // was previously suspended; re-enter the mailbox input action.
+            resumeInputProcessing();
             return null;
         });
     }
