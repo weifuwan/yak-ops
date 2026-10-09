@@ -182,7 +182,13 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
             }));
         } catch (Throwable error) {
             onFailure.accept(error);
-            throw error;
+            if (error instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            if (error instanceof Error serious) {
+                throw serious;
+            }
+            throw new IllegalStateException("Split 序列化或投递失败", error);
         }
     }
 
