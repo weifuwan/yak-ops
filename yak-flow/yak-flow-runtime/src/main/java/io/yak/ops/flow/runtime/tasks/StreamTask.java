@@ -1,8 +1,8 @@
 package io.yak.ops.flow.runtime.tasks;
 
 import io.yak.ops.core.api.connector.source.InputStatus;
+import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
-import io.yak.ops.flow.runtime.execution.TaskInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -50,7 +50,7 @@ public abstract class StreamTask implements AutoCloseable {
     }
 
     /** 当前 Task 的实际运行身份（不是默认配置）。 */
-    public final TaskInfo taskInfo() {
+    public final RuntimeTaskInfo taskInfo() {
         return environment.taskInfo();
     }
 

@@ -4,7 +4,7 @@ import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.flow.runtime.checkpoint.SourceCoordinatorCheckpoint;
-import io.yak.ops.flow.runtime.execution.TaskInfo;
+import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
@@ -99,7 +99,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     }
 
     /** Reader 已创建 SubtaskGateway 后进行注册；不会等待分片实际读取完成。 */
-    public CompletableFuture<Void> registerReader(TaskInfo taskInfo, SubtaskGateway gateway) {
+    public CompletableFuture<Void> registerReader(RuntimeTaskInfo taskInfo, SubtaskGateway gateway) {
         Objects.requireNonNull(gateway, "gateway 不能为空");
         try {
             coordinatorContext.validateTask(taskInfo);
@@ -125,9 +125,9 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
      * 接收指定 SourceOperator 子任务发来的控制事件。
      *
      * <p>目前只支持 RequestSplitEvent。事件中的 Subtask 与 Attempt 身份必须匹配
-     * 已注册的 TaskInfo，拒绝过期 Reader 请求；事件在协调器线程中处理。
+     * 已注册的 RuntimeTaskInfo，拒绝过期 Reader 请求；事件在协调器线程中处理。
      */
-    public CompletableFuture<Void> handleEventFromOperator(TaskInfo taskInfo, OperatorEvent event) {
+    public CompletableFuture<Void> handleEventFromOperator(RuntimeTaskInfo taskInfo, OperatorEvent event) {
         Objects.requireNonNull(event, "event 不能为空");
         try {
             coordinatorContext.validateTask(taskInfo);
@@ -252,7 +252,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     }
 
     /** Reader 异常由 Job Runtime 执行整体恢复；此处不会盲目重新分配原始 Split。 */
-    public CompletableFuture<Void> readerFailed(TaskInfo taskInfo, Throwable failure) {
+    public CompletableFuture<Void> readerFailed(RuntimeTaskInfo taskInfo, Throwable failure) {
         Objects.requireNonNull(failure, "failure 不能为空");
         return submit(() -> {
             context.checkRegistered(taskInfo);
