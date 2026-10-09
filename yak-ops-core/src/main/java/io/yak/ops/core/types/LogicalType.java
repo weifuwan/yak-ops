@@ -11,8 +11,16 @@ import java.util.Objects;
  * decimal metadata must be resolved before the JDBC-to-RowData conversion boundary.
  */
 public abstract sealed class LogicalType implements Serializable
-        permits BasicType, DecimalType, UnresolvedDecimalType, CharType, VarCharType, BinaryType, VarBinaryType,
-                TimeType, TimestampType, ZonedTimestampType {
+        permits BasicType,
+                DecimalType,
+                UnresolvedDecimalType,
+                CharType,
+                VarCharType,
+                BinaryType,
+                VarBinaryType,
+                TimeType,
+                TimestampType,
+                ZonedTimestampType {
 
     private final boolean nullable;
     private final LogicalTypeRoot typeRoot;

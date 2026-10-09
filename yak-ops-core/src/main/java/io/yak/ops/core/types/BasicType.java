@@ -22,7 +22,8 @@ public final class BasicType extends LogicalType {
 
     @Override
     public String asSerializableString() {
-        return withNullability(getTypeRoot() == LogicalTypeRoot.INTEGER ? "INT" : getTypeRoot().name());
+        return withNullability(
+                getTypeRoot() == LogicalTypeRoot.INTEGER ? "INT" : getTypeRoot().name());
     }
 
     @Override
