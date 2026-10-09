@@ -31,6 +31,11 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
         return inputGate.emitNext(output, barrierHandler);
     }
 
+    /** Clear a declined checkpoint's barriers without aborting the regular data input. */
+    public void declineCheckpoint(long checkpointId) {
+        inputGate.declineCheckpoint(checkpointId);
+    }
+
     @Override
     public CompletableFuture<Void> getAvailableFuture() {
         return inputGate.getAvailableFuture();

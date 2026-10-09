@@ -3,6 +3,7 @@ package io.yak.ops.flow.runtime.tasks;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.source.InputStatus;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
+import io.yak.ops.flow.runtime.checkpoint.CheckpointDeclinedException;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.graph.StreamNode;
 import io.yak.ops.flow.runtime.io.RecordWriterOutput;
@@ -29,6 +30,20 @@ public final class OneInputStreamTask extends StreamTask {
     private final RecordWriterOutput<Object> output;
     private final Map<String, CheckpointSnapshot.SerializedState> restoredState;
     private final boolean keyedInput;
+    private volatile long lastDeclinedCheckpointId;
+    private final InputGate.BarrierHandler barrierHandler = new InputGate.BarrierHandler() {
+        @Override
+        public void onBarrier(long checkpointId) throws Exception {
+            onCheckpointBarrier(checkpointId);
+        }
+
+        @Override
+        public void onCheckpointDeclined(long checkpointId) {
+            lastDeclinedCheckpointId = Math.max(lastDeclinedCheckpointId, checkpointId);
+            abortCheckpoint(checkpointId,
+                    new CheckpointDeclinedException(checkpointId, "a producer ended before barrier alignment"));
+        }
+    };
     private final Map<Long, CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>>> pending =
             new ConcurrentHashMap<>();
     private OneInputStreamOperator<Object, Object> operator;
@@ -70,8 +85,12 @@ public final class OneInputStreamTask extends StreamTask {
 
     /** Register before a source is allowed to emit the barrier, avoiding an ACK registration race. */
     public CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> expectCheckpoint(long id) {
-        if (id <= 0 || completionFuture().isDone()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Task cannot accept checkpoint"));
+        if (id <= 0) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid checkpoint ID"));
+        }
+        if (completionFuture().isDone()) {
+            return CompletableFuture.failedFuture(
+                    new CheckpointDeclinedException(id, "input already finished"));
         }
         CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> future = new CompletableFuture<>();
         if (pending.putIfAbsent(id, future) != null) {
@@ -85,6 +104,13 @@ public final class OneInputStreamTask extends StreamTask {
         if (future != null) {
             future.completeExceptionally(cause);
         }
+    }
+
+    /** Cancel only the in-flight checkpoint; do not interrupt an otherwise healthy StreamTask. */
+    public void declineCheckpoint(long checkpointId, Throwable cause) {
+        lastDeclinedCheckpointId = Math.max(lastDeclinedCheckpointId, checkpointId);
+        input.declineCheckpoint(checkpointId);
+        abortCheckpoint(checkpointId, cause);
     }
 
     @Override
@@ -112,7 +138,7 @@ public final class OneInputStreamTask extends StreamTask {
     protected InputStatus processInput() throws Exception {
         if (sinkOperator != null) {
             return input.emitNext(value -> sinkOperator.processElement(value, ignored -> {}),
-                    this::onCheckpointBarrier);
+                    barrierHandler);
         }
         return input.emitNext(value -> operator.processElement(value, output::collect),
                 this::onCheckpointBarrier);
@@ -122,7 +148,10 @@ public final class OneInputStreamTask extends StreamTask {
         CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> acknowledgement =
                 pending.remove(checkpointId);
         if (acknowledgement == null) {
-            throw new IllegalStateException("Unexpected or aborted barrier: " + checkpointId);
+            if (checkpointId <= lastDeclinedCheckpointId) {
+                return; // A late barrier from an already declined checkpoint is not a task failure.
+            }
+            throw new IllegalStateException("Unexpected checkpoint barrier: " + checkpointId);
         }
         try {
             if (activeOperator instanceof CheckpointedStreamOperator checkpointed) {
@@ -176,8 +205,8 @@ public final class OneInputStreamTask extends StreamTask {
                 activeOperator.close();
             }
         } finally {
-            pending.forEach((id, future) ->
-                    future.completeExceptionally(new IllegalStateException("Task ended before checkpoint ACK")));
+            pending.forEach((id, future) -> future.completeExceptionally(
+                    new CheckpointDeclinedException(id, "input ended before checkpoint ACK")));
             pending.clear();
         }
     }

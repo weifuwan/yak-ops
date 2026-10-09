@@ -96,6 +96,42 @@ class CheckpointRecoveryTest {
     }
 
     @Test
+    void shouldFreezeMutableReaderSplitStateBeforeResumingAfterBarrier() throws Exception {
+        OffsetSource source = new OffsetSource(3);
+        WaitingSink sink = new WaitingSink();
+        JobClient job = new EmbeddedPipelineExecutor().execute(
+                graph(source, sink), configuration(false)).get(5, TimeUnit.SECONDS);
+        try {
+            awaitCount(sink.rows, 6);
+            CompletableFuture<CheckpointSnapshot> inFlight = ((EmbeddedJobClient) job).checkpoint();
+            assertTrue(sink.checkpointFlushEntered.await(5, TimeUnit.SECONDS));
+
+            // Barrier alignment reached the Sink, but its ACK has not completed. Reader
+            // resumes and mutates the same Split objects it returned to snapshotState().
+            source.setLimit(5);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (source.emittedRecords.get() < 10 && System.nanoTime() < deadline) {
+                Thread.sleep(10);
+            }
+            assertEquals(10, source.emittedRecords.get(),
+                    "Reader must progress while the Sink is still awaiting its barrier ACK");
+
+            sink.releaseCheckpoint.countDown();
+            CheckpointSnapshot saved = inFlight.get(5, TimeUnit.SECONDS);
+            assertEquals(2, saved.readerSplits().size());
+            for (var section : saved.readerSplits().values()) {
+                assertEquals(1, section.size());
+                var splitState = section.getFirst();
+                assertEquals(3, source.getSplitSerializer()
+                        .deserialize(splitState.version(), splitState.bytes()).offset());
+            }
+        } finally {
+            sink.releaseCheckpoint.countDown();
+            job.cancel().get(5, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
     void shouldRestartAllSubtasksFromTheDurableCheckpointWithNewExecutionAttempts() throws Exception {
         OffsetSource source = new OffsetSource(4, false, true, false);
         CapturedSink sink = new CapturedSink();
@@ -379,7 +415,29 @@ class CheckpointRecoveryTest {
         assertEquals(expected, rows.size(), "Timed out while waiting for test records");
     }
 
-    private record OffsetSplit(String splitId, int offset) implements SourceSplit {}
+    /** Mutable on purpose: a reader may update the same Split object after it resumes. */
+    private static final class OffsetSplit implements SourceSplit {
+        private final String splitId;
+        private int offset;
+
+        private OffsetSplit(String splitId, int offset) {
+            this.splitId = splitId;
+            this.offset = offset;
+        }
+
+        @Override
+        public String splitId() {
+            return splitId;
+        }
+
+        private int offset() {
+            return offset;
+        }
+
+        private void advance() {
+            offset++;
+        }
+    }
 
     private static final class OffsetSource implements Source<String, OffsetSplit, Integer> {
 
@@ -388,6 +446,7 @@ class CheckpointRecoveryTest {
         private final boolean failAfterCheckpoint;
         private final boolean failBeforeCheckpoint;
         private final AtomicInteger createdReaders = new AtomicInteger();
+        private final AtomicInteger emittedRecords = new AtomicInteger();
         private final List<Integer> restoredOffsets = new CopyOnWriteArrayList<>();
         private final List<CompletableFuture<Void>> availabilityWaiters = new CopyOnWriteArrayList<>();
         private final java.util.concurrent.atomic.AtomicBoolean checkpointNotified =
@@ -493,7 +552,8 @@ class CheckpointRecoveryTest {
                     }
                     if (current != null && current.offset() < limit) {
                         output.collect(current.splitId() + "-" + current.offset());
-                        current = new OffsetSplit(current.splitId(), current.offset() + 1);
+                        current.advance();
+                        emittedRecords.incrementAndGet();
                         return InputStatus.MORE_AVAILABLE;
                     }
                     if (idle.isDone()) {
@@ -594,6 +654,38 @@ class CheckpointRecoveryTest {
                         return in.readInt();
                     }
                 }
+            };
+        }
+    }
+
+    /** Holds Sink barrier ACK so the mutable Source Split can advance during alignment. */
+    private static final class WaitingSink implements Sink<String> {
+        private final List<String> rows = new CopyOnWriteArrayList<>();
+        private final java.util.concurrent.CountDownLatch checkpointFlushEntered =
+                new java.util.concurrent.CountDownLatch(1);
+        private final java.util.concurrent.CountDownLatch releaseCheckpoint =
+                new java.util.concurrent.CountDownLatch(1);
+
+        @Override
+        public SinkWriter<String> createWriter() {
+            return new SinkWriter<>() {
+                @Override
+                public void write(String row) {
+                    rows.add(row);
+                }
+
+                @Override
+                public void flush(boolean endOfInput) throws Exception {
+                    if (!endOfInput) {
+                        checkpointFlushEntered.countDown();
+                        if (!releaseCheckpoint.await(5, TimeUnit.SECONDS)) {
+                            throw new IllegalStateException("Timed out awaiting checkpoint test latch");
+                        }
+                    }
+                }
+
+                @Override
+                public void close() {}
             };
         }
     }

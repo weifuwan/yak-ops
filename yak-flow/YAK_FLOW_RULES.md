@@ -45,8 +45,8 @@ Scope: `yak-flow/yak-flow-api` 与 `yak-flow/yak-flow-runtime`。先遵循 [Arch
 - TaskMailbox 状态 OPEN → QUIESCED → CLOSED；退出前拒绝新 Mail，关闭时未处理的控制 Future 必须异常完成。Task 取消和异步失败必须唤醒等待状态，正常 END_OF_INPUT 才执行最终 finish。
 - StreamTaskSourceInput / StreamTaskNetworkInput 统一实现 StreamTaskInput，提供非阻塞 emitNext 与 getAvailableFuture。ResultPartition 为每个上游 Task 创建其 ResultSubpartition；InputGate 为下游 Task 消费多个上游 Subpartition，轮询读取且共享单一缓存额度。生产者等待 Gate 可用容量的条件通知，不使用定时轮询。
 - RecordWriterOutput 将分区选择交给独立 StreamPartitioner：FORWARD、REBALANCE 保留现有行为，KEYED 使用固定 maxParallelism 的 Flink 式 KeyGroup 分区，但不支持 Keyed State Rescale。全部生产者结束且 Gate 缓冲清空才会 EOF；失败/取消必须唤醒阻塞的发送者、等待输入的 Task 和 Checkpoint。
-- AlignedCheckpointCoordinator 负责单 JVM Source → Operator* → Sink 对齐式 Barrier：Source Mailbox 快照并广播 Barrier；ResultSubpartition FIFO 维持数据/Barrier 顺序；InputGate 阻止已到 Barrier 通道的后续记录，等待全部生产者后交由 OneInputStreamTask Mailbox 快照、向下游传播与 ACK；全部 ACK 后原子持久化。Source 发 Barrier 后可以提前恢复。
-- 无 Operator/Writer 状态的快照保持 v1 二进制格式和原签名；有状态快照使用 v2 UID/subtask 命名状态，旧 v1 可读；CRC/Serializer/目录独占锁保留。OneInputOperator 默认无状态；持久化状态须显式实现 CheckpointedStreamOperator。OperatorStateBackend 的键控状态只适用于 KEYED 输入归属范围，不支持 Rescale。当前 at-least-once，不支持 Exactly-once。
+- AlignedCheckpointCoordinator 负责单 JVM Source → Operator* → Sink 对齐式 Barrier：Reader / Enumerator / 分配历史必须先序列化冻结，再解冻 Source；ResultSubpartition 保持数据/Barrier 顺序，Barrier 已入队的 Producer 在目标 InputGate 对齐前不能用后续数据占满共享缓存；InputGate 对齐后由 Task Mailbox 快照、传播 Barrier 与 ACK，全部 ACK 后原子持久化。正常 Producer EOF 缺失 Barrier 只拒绝该 Checkpoint，不应造成 Job 失败。
+- 无 Operator/Writer 状态的快照保持 v1 二进制格式和原签名；有状态快照使用 v2 UID/subtask 命名状态，旧 v1 可读；CRC/Serializer/目录独占锁保留。OneInputOperator 默认无状态；持久化状态须显式实现 CheckpointedStreamOperator。OperatorStateBackend 的键控状态只适用于 KEYED 输入归属范围，恢复时 Key Serializer 版本不匹配必须明确失败，不能当成未写过状态；不支持 Serializer Migration / Rescale。当前 at-least-once，不支持 Exactly-once。
 - 当前 MailboxProcessor / InputGate / ResultPartition 都是单 JVM 实现，不等于 Flink 网络数据交换。可选整 Job Checkpoint 恢复是受限的本地重建，不是 Flink 的局部 Failover 或 Exactly-once；不引入远程 InputChannel、Credit-Based Flow Control、多输入/网络 Barrier、RPC、Slot、JobMaster 或 KeyGroup Rescale。
 
 ## Verification
