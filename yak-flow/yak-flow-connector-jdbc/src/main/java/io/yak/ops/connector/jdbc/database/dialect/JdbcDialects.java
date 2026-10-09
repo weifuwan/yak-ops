@@ -5,20 +5,11 @@ import java.util.Locale;
 /** Database-type resolver shared by JDBC metadata planning and bounded Source readers. */
 public final class JdbcDialects {
 
-    private static final JdbcDialect MYSQL = new MySqlJdbcDialect();
-    private static final JdbcDialect POSTGRESQL = new PostgresJdbcDialect();
-    private static final JdbcDialect ORACLE = new OracleJdbcDialect();
-
     private JdbcDialects() {}
 
-    /** Resolves the SQL dialect from the JDBC connection URL used by SourceReader. */
+    /** Selects exactly one database provider through Java SPI. */
     public static JdbcDialect forUrl(String jdbcUrl) {
-        if (jdbcUrl == null) throw new IllegalArgumentException("JDBC URL must not be null");
-        if (jdbcUrl.startsWith("jdbc:mysql:")) return MYSQL;
-        if (jdbcUrl.startsWith("jdbc:postgresql:")) return POSTGRESQL;
-        if (jdbcUrl.startsWith("jdbc:oracle:")) return ORACLE;
-        if (jdbcUrl.startsWith("jdbc:h2:")) return new AnsiJdbcDialect();
-        throw new IllegalArgumentException("Unsupported JDBC database type");
+        return io.yak.ops.connector.jdbc.database.JdbcFactoryLoader.loadDialect(jdbcUrl);
     }
 
     public static String canonicalType(String type) {
@@ -35,9 +26,9 @@ public final class JdbcDialects {
 
     public static JdbcDialect forType(String type) {
         return switch (canonicalType(type)) {
-            case "MYSQL" -> MYSQL;
-            case "POSTGRE_SQL" -> POSTGRESQL;
-            case "ORACLE" -> ORACLE;
+            case "MYSQL" -> forUrl("jdbc:mysql:");
+            case "POSTGRE_SQL" -> forUrl("jdbc:postgresql:");
+            case "ORACLE" -> forUrl("jdbc:oracle:");
             default -> throw new IllegalStateException("unreachable JDBC dialect type");
         };
     }

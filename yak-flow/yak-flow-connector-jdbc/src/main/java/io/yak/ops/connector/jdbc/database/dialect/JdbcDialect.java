@@ -1,11 +1,15 @@
 package io.yak.ops.connector.jdbc.database.dialect;
 
+import io.yak.ops.connector.jdbc.database.converter.JdbcDialectConverter;
+import io.yak.ops.connector.jdbc.database.converter.StandardJdbcDialectConverter;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.stream.Collectors;
 
 /**
@@ -18,6 +22,11 @@ public interface JdbcDialect {
     String quoteIdentifier(String identifier);
 
     String qualifiedTable(TableId table);
+
+    /** Creates the type-aware converter for one JDBC ResultSet, independent of JDBC reader state. */
+    default JdbcDialectConverter createRowConverter(ResultSetMetaData metadata) throws SQLException {
+        return new StandardJdbcDialectConverter(metadata);
+    }
 
     /** Applies JDBC cursor/connection defaults for a bounded, read-only source. */
     default void configureReadConnection(java.sql.Connection connection) throws java.sql.SQLException {

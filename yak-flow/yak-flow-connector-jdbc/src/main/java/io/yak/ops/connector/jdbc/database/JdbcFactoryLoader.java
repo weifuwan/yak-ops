@@ -19,15 +19,15 @@ public final class JdbcFactoryLoader {
     private JdbcFactoryLoader() {}
 
     public static JdbcDialect loadDialect(String jdbcUrl) {
-        return loadDialect(jdbcUrl, contextClassLoader()).createDialect();
+        return loadDialect(jdbcUrl, contextClassLoader());
     }
 
-    public static JdbcFactory loadDialect(String jdbcUrl, ClassLoader classLoader) {
+    public static JdbcDialect loadDialect(String jdbcUrl, ClassLoader classLoader) {
         Objects.requireNonNull(classLoader, "classLoader");
         try {
             List<JdbcFactory> factories = new ArrayList<>();
             ServiceLoader.load(JdbcFactory.class, classLoader).forEach(factories::add);
-            return resolve(jdbcUrl, factories);
+            return resolve(jdbcUrl, factories).createDialect();
         } catch (ServiceConfigurationError failure) {
             throw new IllegalStateException("Could not discover JDBC factories", failure);
         }

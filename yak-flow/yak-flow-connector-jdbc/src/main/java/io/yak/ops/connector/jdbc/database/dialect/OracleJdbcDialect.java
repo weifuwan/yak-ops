@@ -1,5 +1,7 @@
 package io.yak.ops.connector.jdbc.database.dialect;
 
+import io.yak.ops.connector.jdbc.database.converter.JdbcDialectConverter;
+import io.yak.ops.connector.jdbc.database.converter.OracleJdbcDialectConverter;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
@@ -8,6 +10,11 @@ import java.util.stream.Collectors;
 
 /** Oracle quoting, native type mapping, and DDL planning. */
 public final class OracleJdbcDialect implements JdbcDialect {
+
+    @Override
+    public JdbcDialectConverter createRowConverter(java.sql.ResultSetMetaData metadata) throws java.sql.SQLException {
+        return new OracleJdbcDialectConverter(metadata);
+    }
 
     @Override
     public String quoteIdentifier(String identifier) {
