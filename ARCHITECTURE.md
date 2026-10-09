@@ -46,11 +46,11 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-flow/yak-flow-runtime`
 
-拥有 StreamGraph / StreamGraphGenerator、StreamingJobGraphGenerator、物理 JobGraph（JobVertex / JobEdge）、ExecutionGraph（ExecutionJobVertex / ExecutionVertex / Execution）、TaskDeployment、StreamTask、StreamOperator / OneInputStreamOperator / SinkWriterOperator、OperatorChain、SourceCoordinator、StreamTaskInput / RecordWriterOutput、ResultPartition / ResultSubpartition / InputGate、StreamPartitioner 与 QuiescentCheckpointCoordinator。EmbeddedPipelineExecutor 仅负责编译和提交；EmbeddedJobClient 只提供查询、取消、结果和 Checkpoint 入口，运行状态由 ExecutionGraph 唯一管理。StreamTask 使用 TaskMailbox + MailboxProcessor：控制事件排队到所属 Task 线程，输入处理是可暂停的 MailboxDefaultAction。
+拥有 StreamGraph / StreamGraphGenerator、StreamingJobGraphGenerator、物理 JobGraph（JobVertex / JobEdge）、ExecutionGraph（ExecutionJobVertex / ExecutionVertex / Execution）、TaskDeployment、StreamTask、StreamOperator / OneInputStreamOperator / SinkWriterOperator、OperatorChain、SourceCoordinator、StreamTaskInput / RecordWriterOutput、ResultPartition / ResultSubpartition / InputGate、StreamPartitioner 与 AlignedCheckpointCoordinator。EmbeddedPipelineExecutor 仅负责编译和提交；EmbeddedJobClient 只提供查询、取消、结果和 Checkpoint 入口，运行状态由 ExecutionGraph 唯一管理。StreamTask 使用 TaskMailbox + MailboxProcessor：控制事件排队到所属 Task 线程，输入处理是可暂停的 MailboxDefaultAction。
 
-当前只支持一个 Source → 零个或多个单输入 Operator → 一个 Sink 的严格线性图，保留单并行 FORWARD 内联链。跨 Task 的生产者使用 ResultPartition，消费者使用 InputGate；每个目标 Gate 的所有上游 Subpartition 共用一个有界缓存，支持 FORWARD / REBALANCE / KEYED（Murmur KeyGroup → Subtask）路由、背压、取消和失败清理。可恢复 Checkpoint 仍为 Source → Sink 的单 JVM 静止切面，非 KEYED 图保留原有拓扑指纹；KEYED 图指纹增加 KeyGroup 算法/最大并行度，拒绝用旧 hashCode 路由恢复。状态文件格式、状态目录和 at-least-once 语义不变，不承诺 Exactly-once；多源、分叉、网络 Shuffle、动态扩缩容和中间 Operator 状态恢复未实现。
+当前只支持一个 Source → 零个或多个单输入 Operator → 一个 Sink 的严格线性图，保留单并行 FORWARD 内联链。跨 Task 的生产者使用 ResultPartition，消费者使用 InputGate；每个目标 Gate 的所有上游 Subpartition 共用一个有界缓存，支持 FORWARD / REBALANCE / KEYED（Murmur KeyGroup → Subtask）路由、背压、取消和失败清理。可恢复 Checkpoint 是单 JVM Source → Operator* → Sink 的 FIFO Barrier 对齐、Task Mailbox 状态 ACK 与磁盘原子提交；Operator/Writer 的命名状态使用 v2，纯 Source/Sink 无状态快照仍为兼容 v1。非 KEYED 拓扑指纹不变，KEYED 指纹绑定 KeyGroup 算法/最大并行度。仍只保证 at-least-once，不承诺 Exactly-once；多源、分叉、网络 Shuffle、动态扩缩容、远程 StateBackend 未实现。
 
-Runtime 单向依赖 Core；内存 Execution / Attempt 与 Data Sync DAO 的产品实例身份不同。默认不自动重试；显式设置 execution.restart.max-attempts 时，仅允许从校验通过的持久化 Source → Sink Checkpoint 整 Job 重新装配，并为各 ExecutionVertex 创建递增 Attempt。Reader-only 热重启、分布式部署和 Slot/RPC 均未实现。旧 JDBC / CDC Connector 已删除，不能以历史跨库 E2E 声称当前能力。
+Runtime 单向依赖 Core；内存 Execution / Attempt 与 Data Sync DAO 的产品实例身份不同。默认不自动重试；显式设置 execution.restart.max-attempts 时，仅允许从校验通过的持久化 Source / Operator / Sink Checkpoint 整 Job 重新装配，并为各 ExecutionVertex 创建递增 Attempt。Reader-only 热重启、分布式部署和 Slot/RPC 均未实现。旧 JDBC / CDC Connector 已删除，不能以历史跨库 E2E 声称当前能力。
 
 新边界详见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。
 
