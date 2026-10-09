@@ -1,0 +1,38 @@
+name: Temporary JDBC PR formatter
+on:
+  push:
+    branches:
+      - refactor/yakflow-jdbc-source-read-reliability-projection
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refactor/yakflow-jdbc-source-read-reliability-projection
+          persist-credentials: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Apply Palantir Java Format
+        run: >
+          bash mvnw -q -DskipTests
+          -pl yak-flow/yak-flow-connector-jdbc -am
+          com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+      - name: Commit formatted JDBC files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -u yak-flow/yak-flow-connector-jdbc
+          if ! git diff --cached --quiet; then
+            git commit -m "style(jdbc): apply Palantir Java Format"
+            git push origin HEAD:refs/heads/refactor/yakflow-jdbc-source-read-reliability-projection
+          fi
+
