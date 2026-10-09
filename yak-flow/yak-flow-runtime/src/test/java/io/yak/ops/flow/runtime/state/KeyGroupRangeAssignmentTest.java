@@ -31,7 +31,7 @@ class KeyGroupRangeAssignmentTest {
                         max, parallelism, target).contains(group));
             }
         }
-        assertEquals(new KeyGroupRangeAssignment.KeyGroupRange(43, 85),
+        assertEquals(new KeyGroupRange(43, 85),
                 KeyGroupRangeAssignment.computeKeyGroupRangeForOperatorIndex(128, 3, 1));
         assertNotEquals(
                 KeyGroupRangeAssignment.computeOperatorIndexForKeyGroup(128, 2, 104),

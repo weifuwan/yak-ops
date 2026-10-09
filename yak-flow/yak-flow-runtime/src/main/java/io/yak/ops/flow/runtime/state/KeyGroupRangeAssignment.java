@@ -79,15 +79,4 @@ public final class KeyGroupRangeAssignment {
         return code == Integer.MIN_VALUE ? 0 : -code;
     }
 
-    public record KeyGroupRange(int start, int end) {
-        public KeyGroupRange {
-            if (start < 0 || end < start) {
-                throw new IllegalArgumentException("Invalid key-group range");
-            }
-        }
-
-        public boolean contains(int keyGroupId) {
-            return keyGroupId >= start && keyGroupId <= end;
-        }
-    }
 }

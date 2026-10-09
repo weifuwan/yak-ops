@@ -6,8 +6,9 @@ package io.yak.ops.core.api.connector.sink;
  * <p>Sink 可以被同一个 Pipeline 的多次执行复用，但不得作为共享的可变写入实例。
  * 连接、缓冲区和其他运行资源应由新创建的 SinkWriter 独立持有。
  *
- * <p>本阶段只约定本地创建方式；运行上下文、Writer 状态恢复和分布式序列化
- * 将在相关执行协议确定后再设计。
+ * <p>Legacy Sink keeps createWriter() for source compatibility. SinkV2 receives the
+ * WriterInitContext of one physical subtask; persisted Writer State and Committer are not
+ * supported by the current local quiescent checkpoint.
  *
  * @param <T> Sink 消费的记录类型
  * @author weifuwan
