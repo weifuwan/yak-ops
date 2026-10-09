@@ -18,11 +18,11 @@ class ConfigOptionsTest {
         assertEquals("workers", option.key());
         assertEquals(Integer.class, option.getClazz());
         assertTrue(option.hasDefaultValue());
-        assertEquals(2, configuration.get(option));
+        assertEquals(2, (int) configuration.get(option));
         assertFalse(configuration.contains(option));
 
         configuration.setString("workers", "4");
-        assertEquals(4, configuration.get(option));
+        assertEquals(4, (int) configuration.get(option));
         assertTrue(configuration.contains(option));
     }
 
