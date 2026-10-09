@@ -16,12 +16,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
-* Mutable, typed configuration container for job submission and execution planning.
-*
-* <p>Values may originate from typed setters or string-valued persisted configuration.
-* Copy operations isolate the container's explicit entries. Diagnostic {@code toString()} masks commonly sensitive keys, while {@code toMap()}
-* exports original values.
-*/
+ * Mutable, typed configuration container for job submission and execution planning.
+ *
+ * <p>Values may originate from typed setters or string-valued persisted configuration.
+ * Copy operations isolate the container's explicit entries. Diagnostic {@code toString()} masks commonly sensitive keys, while {@code toMap()}
+ * exports original values.
+ */
 public class Configuration implements ReadableConfig, WritableConfig, Serializable, Cloneable {
 
     @Serial
@@ -84,6 +84,11 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         return value == null ? defaultValue : String.valueOf(value);
     }
 
+    /**
+     * Returns whether an option has an explicitly stored value.
+     *
+     * <p>Its default value does not count as an explicit entry.
+     */
     public synchronized boolean contains(ConfigOption<?> option) {
         Objects.requireNonNull(option, "option must not be null");
         return values.containsKey(option.key());
@@ -105,15 +110,20 @@ public class Configuration implements ReadableConfig, WritableConfig, Serializab
         return values.remove(key) != null;
     }
 
+    /**
+     * Returns an immutable snapshot of explicitly configured keys.
+     *
+     * <p>Changes made after this call do not affect the returned set.
+     */
     public synchronized Set<String> keySet() {
         return Collections.unmodifiableSet(new LinkedHashSet<>(values.keySet()));
     }
 
     /**
-    * Merges explicitly configured entries from another configuration.
-    *
-    * <p>Incoming entries with matching keys override the existing values; defaults are not copied.
-    */
+     * Merges explicitly configured entries from another configuration.
+     *
+     * <p>Incoming entries with matching keys override the existing values; defaults are not copied.
+     */
     public void addAll(Configuration other) {
         Map<String, Object> incoming =
                 Objects.requireNonNull(other, "other must not be null").snapshot();

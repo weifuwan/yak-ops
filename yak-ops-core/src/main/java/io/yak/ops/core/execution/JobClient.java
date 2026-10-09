@@ -15,18 +15,18 @@ public interface JobClient {
     CompletableFuture<JobStatus> getJobStatus();
 
     /**
-    * Requests cancellation of this job.
-    *
-    * @return a future completed when cancellation reaches a terminal state,
-    *         or completed exceptionally if cancellation fails
-    */
+     * Requests cancellation of this job.
+     *
+     * @return a future completed when cancellation reaches a terminal state,
+     *         or completed exceptionally if cancellation fails
+     */
     CompletableFuture<Void> cancel();
 
     /**
-    * Returns the execution result only after successful completion.
-    *
-    * @return a future completed normally only for a finished job, and exceptionally
-    *         for a failed or canceled job
-    */
+     * Returns the execution result only after successful completion.
+     *
+     * @return a future completed normally only for a finished job, and exceptionally
+     *         for a failed or canceled job
+     */
     CompletableFuture<JobExecutionResult> getJobExecutionResult();
 }

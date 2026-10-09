@@ -15,20 +15,20 @@ import io.yak.ops.core.api.operators.Collector;
 public interface OneInputStreamOperator<IN, OUT> extends StreamOperator {
 
     /**
- * Processes one input record and synchronously emits zero or more output records.
- *
- * @param element the input record
- * @param output the downstream output collector
- * @throws Exception if processing or forwarding fails
- */
+     * Processes one input record and synchronously emits zero or more output records.
+     *
+     * @param element the input record
+     * @param output the downstream output collector
+     * @throws Exception if processing or forwarding fails
+     */
     void processElement(IN element, Collector<OUT> output) throws Exception;
 
     /**
- * Emits buffered records after normal end of input.
- *
- * <p>The default implementation invokes {@link #finish()} from StreamOperator.
- * Failure and cancellation do not invoke this completion callback.
- */
+     * Emits buffered records after normal end of input.
+     *
+     * <p>The default implementation invokes {@link #finish()} from StreamOperator.
+     * Failure and cancellation do not invoke this completion callback.
+     */
     default void finish(Collector<OUT> output) throws Exception {
         finish();
     }

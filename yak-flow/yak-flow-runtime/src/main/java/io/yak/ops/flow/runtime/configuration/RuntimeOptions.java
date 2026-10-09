@@ -7,10 +7,10 @@ import io.yak.ops.core.configuration.ConfigOptions;
 public final class RuntimeOptions {
 
     /**
-    * Bounded record-buffer capacity for each downstream subtask.
-    *
-    * <p>Retains its established configuration key so persisted configuration behaves consistently.
-    */
+     * Bounded record-buffer capacity for each downstream subtask.
+     *
+     * <p>Retains its established configuration key so persisted configuration behaves consistently.
+     */
     public static final ConfigOption<Integer> CHANNEL_CAPACITY =
             ConfigOptions.key("execution.local-channel.capacity").intType().defaultValue(64);
 
