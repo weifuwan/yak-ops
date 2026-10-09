@@ -47,6 +47,20 @@ class AlignedBarrierInputGateTest {
     }
 
     @Test
+    void incompleteBarrierMustFailWhenProducersFinishWithBufferedPostBarrierData() throws Exception {
+        InputGate<String> gate = new InputGate<>(2, 2);
+        ResultPartition<String> first = new ResultPartition<>(0, List.of(gate));
+        ResultPartition<String> second = new ResultPartition<>(1, List.of(gate));
+        first.broadcastBarrier(1);
+        first.emitRecord(0, "after-barrier");
+        first.finish();
+        second.finish();
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(ignored -> {}, id -> {}));
+        assertTrue(gate.getAvailableFuture().isDone());
+        assertThrows(IllegalStateException.class, () -> gate.emitNext(ignored -> {}, id -> {}));
+    }
+
+    @Test
     void barrierCanPassFullDataBufferAndMismatchedBarriersFailClosed() throws Exception {
         InputGate<String> gate = new InputGate<>(1, 2);
         ResultPartition<String> first = new ResultPartition<>(0, List.of(gate));
