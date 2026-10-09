@@ -2,6 +2,8 @@ package io.yak.ops.flow.runtime.io.partition;
 
 import io.yak.ops.core.api.connector.source.InputStatus;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
+import io.yak.ops.flow.runtime.checkpoint.CheckpointBarrier;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -22,6 +24,10 @@ public final class InputGate<T> {
     private final Condition spaceAvailable = lock.newCondition();
     private final List<ResultSubpartition<T>> subpartitions;
     private final boolean[] producerFinished;
+    private final boolean[] barrierBlocked;
+    private long aligningCheckpointId = -1;
+    private long lastAlignedCheckpointId;
+    private int barrierCount;
     private final int capacity;
 
     private int queuedRecords;
@@ -38,6 +44,7 @@ public final class InputGate<T> {
         }
         this.capacity = capacity;
         this.producerFinished = new boolean[producerCount];
+        this.barrierBlocked = new boolean[producerCount];
         this.remainingProducers = producerCount;
         // The producer ResultPartition owns each subpartition and registers it before Task start.
         List<ResultSubpartition<T>> channels = new ArrayList<>(producerCount);
@@ -82,11 +89,33 @@ public final class InputGate<T> {
                     throw new IllegalStateException("Producer has already finished: " + producer);
                 }
             }
-            subpartition.records.addLast(record);
+            subpartition.elements.addLast(new RecordElement<>(record));
             queuedRecords++;
             if (drained.isDone()) {
                 drained = new CompletableFuture<>();
             }
+            available.complete(null);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Barriers are ordered behind preceding records but do not consume the data-buffer budget.
+     * This avoids a blocked producer preventing another producer's alignment barrier.
+     */
+    void enqueueBarrier(ResultSubpartition<T> subpartition, CheckpointBarrier barrier) {
+        Objects.requireNonNull(barrier, "barrier");
+        int producer = validateSubpartition(subpartition);
+        lock.lock();
+        try {
+            if (failure != null) {
+                throw new IllegalStateException("InputGate already failed", failure);
+            }
+            if (producerFinished[producer]) {
+                throw new IllegalStateException("Producer has already finished: " + producer);
+            }
+            subpartition.elements.addLast(barrier);
             available.complete(null);
         } finally {
             lock.unlock();
@@ -112,52 +141,126 @@ public final class InputGate<T> {
         }
     }
 
-    /** Process one record without blocking the downstream Task mailbox. */
+    /** Handle a fully aligned barrier only after all preceding records have been delivered. */
+    @FunctionalInterface
+    public interface BarrierHandler {
+        void onBarrier(long checkpointId) throws Exception;
+    }
+
+    /** Compatibility overload for pure data inputs that never receive a checkpoint barrier. */
     public InputStatus emitNext(ReaderOutput<T> output) throws Exception {
+        return emitNext(output, id -> {
+            throw new UnsupportedOperationException("Checkpoint barrier handler is missing");
+        });
+    }
+
+    /** One mailbox step: data record, partial alignment event, or fully aligned barrier. */
+    @SuppressWarnings("unchecked")
+    public InputStatus emitNext(ReaderOutput<T> output, BarrierHandler barrierHandler) throws Exception {
         Objects.requireNonNull(output, "output");
+        Objects.requireNonNull(barrierHandler, "barrierHandler");
         T record = null;
+        long completedBarrier = -1;
+        boolean processing = false;
         lock.lock();
         try {
             checkFailure();
             for (int i = 0; i < subpartitions.size(); i++) {
                 int channel = (nextInput + i) % subpartitions.size();
-                ResultSubpartition<T> partition = subpartitions.get(channel);
-                if (partition != null) {
-                    record = partition.records.pollFirst();
+                if (barrierBlocked[channel]) {
+                    continue;
                 }
-                if (record != null) {
-                    nextInput = (channel + 1) % subpartitions.size();
+                ResultSubpartition<T> partition = subpartitions.get(channel);
+                Object item = partition == null ? null : partition.elements.pollFirst();
+                if (item == null) {
+                    continue;
+                }
+                nextInput = (channel + 1) % subpartitions.size();
+                if (item instanceof CheckpointBarrier barrier) {
+                    long id = barrier.checkpointId();
+                    if (id <= lastAlignedCheckpointId
+                            || (aligningCheckpointId != -1 && aligningCheckpointId != id)) {
+                        throw new IllegalStateException("Overlapping or stale checkpoint barrier: " + id);
+                    }
+                    if (aligningCheckpointId == -1) {
+                        aligningCheckpointId = id;
+                    }
+                    barrierBlocked[channel] = true;
+                    if (++barrierCount == subpartitions.size()) {
+                        Arrays.fill(barrierBlocked, false);
+                        aligningCheckpointId = -1;
+                        lastAlignedCheckpointId = id;
+                        barrierCount = 0;
+                        completedBarrier = id;
+                        processingRecords++;
+                        processing = true;
+                        available.complete(null);
+                    }
+                } else {
+                    record = ((RecordElement<T>) item).value();
                     queuedRecords--;
                     processingRecords++;
+                    processing = true;
                     spaceAvailable.signal();
-                    break;
                 }
+                break;
             }
-            if (record == null) {
-                return remainingProducers == 0 ? InputStatus.END_OF_INPUT : InputStatus.NOTHING_AVAILABLE;
+            if (!processing && completedBarrier < 0 && record == null) {
+                if (remainingProducers == 0 && !anyBuffered()) {
+                    return InputStatus.END_OF_INPUT;
+                }
+                if (remainingProducers == 0 && !anyReadable()) {
+                    throw new IllegalStateException("Producers finished before barrier alignment completed");
+                }
+                return InputStatus.NOTHING_AVAILABLE;
             }
+        } catch (Exception | Error error) {
+            abort(error);
+            throw error;
         } finally {
             lock.unlock();
         }
 
         try {
-            output.collect(record);
+            if (completedBarrier > 0) {
+                barrierHandler.onBarrier(completedBarrier);
+            } else if (record != null) {
+                output.collect(record);
+            }
             return InputStatus.MORE_AVAILABLE;
         } catch (Exception | Error error) {
             abort(error);
             throw error;
         } finally {
-            lock.lock();
-            try {
-                processingRecords--;
-                if (queuedRecords == 0 && processingRecords == 0 && failure == null) {
-                    drained.complete(null);
+            if (processing) {
+                lock.lock();
+                try {
+                    processingRecords--;
+                    if (queuedRecords == 0 && processingRecords == 0 && failure == null) {
+                        drained.complete(null);
+                    }
+                } finally {
+                    lock.unlock();
                 }
-            } finally {
-                lock.unlock();
             }
         }
     }
+
+    private boolean anyBuffered() {
+        return subpartitions.stream().anyMatch(partition -> partition != null && !partition.elements.isEmpty());
+    }
+
+    private boolean anyReadable() {
+        for (int i = 0; i < subpartitions.size(); i++) {
+            if (!barrierBlocked[i] && subpartitions.get(i) != null
+                    && !subpartitions.get(i).elements.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private record RecordElement<T>(T value) {}
 
     /** Available when records are buffered, all producers ended, or the gate failed. */
     public CompletableFuture<Void> getAvailableFuture() {
@@ -166,7 +269,7 @@ public final class InputGate<T> {
             if (failure != null) {
                 return CompletableFuture.failedFuture(failure);
             }
-            if (queuedRecords > 0 || remainingProducers == 0) {
+            if (anyReadable() || (remainingProducers == 0 && !anyBuffered())) {
                 return CompletableFuture.completedFuture(null);
             }
             if (available.isDone()) {
