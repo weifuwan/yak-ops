@@ -171,7 +171,6 @@ final class TaskDeployment {
             for (int subtask = 0; subtask < vertex.getParallelism(); subtask++) {
                 Execution execution = executionGraph.currentExecution(vertex.getId(), subtask);
                 TaskEnvironment environment = environment(execution);
-                StreamTask task;
                 RecordWriterOutput<Object> output = null;
                 if (!node.isSink()) {
                     JobEdge outputEdge = edges.get(index);
