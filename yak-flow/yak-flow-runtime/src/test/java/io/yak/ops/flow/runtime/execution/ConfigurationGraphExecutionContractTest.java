@@ -23,11 +23,12 @@ import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.core.execution.JobClient;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamGraphGenerator;
-import io.yak.ops.core.graph.StreamNode;
-import io.yak.ops.core.transformations.SinkTransformation;
-import io.yak.ops.core.transformations.SourceTransformation;
+import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.graph.StreamNode;
+import io.yak.ops.flow.runtime.transformations.SinkTransformation;
+import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.time.Duration;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +50,15 @@ class ConfigurationGraphExecutionContractTest {
 
         configuration.set(ExecutionOptions.CHECKPOINT_INTERVAL, Duration.ofSeconds(5));
         assertEquals(Duration.ofSeconds(5), configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
+    }
+
+    @Test
+    void shouldPreserveLocalChannelKeyUnderRuntimeOptions() {
+        Configuration configuration = new Configuration();
+        assertEquals("execution.local-channel.capacity", RuntimeOptions.CHANNEL_CAPACITY.key());
+        assertEquals(64, (int) configuration.get(RuntimeOptions.CHANNEL_CAPACITY));
+        configuration.set(RuntimeOptions.CHANNEL_CAPACITY, 192);
+        assertEquals(192, (int) configuration.get(RuntimeOptions.CHANNEL_CAPACITY));
     }
 
     @Test
@@ -164,7 +174,7 @@ class ConfigurationGraphExecutionContractTest {
         configuration.set(PipelineOptions.NAME, "submitted");
         StreamGraph graph = graph(configuration, 3, 1, true, false);
         AtomicReference<CompiledJobPlan> received = new AtomicReference<>();
-        LocalPipelineExecutor executor = new LocalPipelineExecutor((plan, cancellationRequested) -> received.set(plan));
+        EmbeddedPipelineExecutor executor = new EmbeddedPipelineExecutor((plan, cancellationRequested) -> received.set(plan));
 
         JobClient job = executor.execute(graph, configuration).get(5, TimeUnit.SECONDS);
         configuration.set(PipelineOptions.NAME, "modified");
@@ -181,7 +191,7 @@ class ConfigurationGraphExecutionContractTest {
     void shouldFailSubmissionWithoutCallingRunnerOnParallelismConflict() {
         StreamGraph graph = graph(defaultConfig(2), Transformation.DEFAULT_PARALLELISM, 1, true, false);
         AtomicBoolean invoked = new AtomicBoolean();
-        LocalPipelineExecutor executor = new LocalPipelineExecutor((plan, cancellationRequested) -> invoked.set(true));
+        EmbeddedPipelineExecutor executor = new EmbeddedPipelineExecutor((plan, cancellationRequested) -> invoked.set(true));
 
         assertThrows(CompletionException.class, () -> executor.execute(graph, defaultConfig(3)).join());
         assertFalse(invoked.get());

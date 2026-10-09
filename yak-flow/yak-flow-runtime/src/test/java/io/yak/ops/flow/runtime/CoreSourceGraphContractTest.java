@@ -15,11 +15,11 @@ import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.ExecutionOptions;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamGraphGenerator;
-import io.yak.ops.core.graph.StreamNode;
-import io.yak.ops.core.transformations.SinkTransformation;
-import io.yak.ops.core.transformations.SourceTransformation;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.graph.StreamNode;
+import io.yak.ops.flow.runtime.transformations.SinkTransformation;
+import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import org.junit.jupiter.api.Test;
 
 class CoreSourceGraphContractTest {

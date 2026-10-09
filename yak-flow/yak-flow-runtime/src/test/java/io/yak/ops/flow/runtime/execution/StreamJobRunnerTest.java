@@ -19,17 +19,17 @@ import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.api.operators.Collector;
-import io.yak.ops.core.api.operators.OneInputOperator;
-import io.yak.ops.core.api.operators.OneInputOperatorFactory;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.execution.JobClient;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamGraphGenerator;
-import io.yak.ops.core.transformations.OneInputTransformation;
-import io.yak.ops.core.transformations.SinkTransformation;
-import io.yak.ops.core.transformations.SourceTransformation;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.operators.OneInputOperatorFactory;
+import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
+import io.yak.ops.flow.runtime.transformations.SinkTransformation;
+import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
-class LocalStreamJobRunnerTest {
+class StreamJobRunnerTest {
 
     @Test
     void shouldRunBoundedPipelineWithMultipleOperatorsAndFinalFlush() throws Exception {
@@ -106,7 +106,7 @@ class LocalStreamJobRunnerTest {
         StreamGraph graph = new StreamGraphGenerator(
                 new SinkTransformation<>(renderer, "sink", sink), configuration).generate();
 
-        JobClient job = new LocalPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
         assertEquals(job.getJobID(), job.getJobExecutionResult().get(5, TimeUnit.SECONDS).getJobID());
         assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
         assertEquals(List.of("v11", "v21", "v1", "tail"), sink.rows);
@@ -128,7 +128,7 @@ class LocalStreamJobRunnerTest {
         TestSink sink = new TestSink(false, new CopyOnWriteArrayList<>());
         Configuration configuration = config(1);
         StreamGraph graph = graph(source, sink, configuration);
-        LocalPipelineExecutor executor = new LocalPipelineExecutor();
+        EmbeddedPipelineExecutor executor = new EmbeddedPipelineExecutor();
 
         JobClient first = executor.execute(graph, configuration).get(5, TimeUnit.SECONDS);
         first.getJobExecutionResult().get(5, TimeUnit.SECONDS);
@@ -150,7 +150,7 @@ class LocalStreamJobRunnerTest {
         StreamGraph graph = graph(source, sink, parallel);
 
         CompletionException failure = assertThrows(
-                CompletionException.class, () -> new LocalPipelineExecutor().execute(graph, parallel).join());
+                CompletionException.class, () -> new EmbeddedPipelineExecutor().execute(graph, parallel).join());
         assertTrue(failure.getCause() instanceof UnsupportedOperationException);
 
         Configuration single = config(1);
@@ -159,11 +159,11 @@ class LocalStreamJobRunnerTest {
                 new SinkTransformation<>(input, "sink-a", sink),
                 new SinkTransformation<>(input, "sink-b", sink)), single).generate();
         failure = assertThrows(
-                CompletionException.class, () -> new LocalPipelineExecutor().execute(fork, single).join());
+                CompletionException.class, () -> new EmbeddedPipelineExecutor().execute(fork, single).join());
         assertTrue(failure.getCause() instanceof UnsupportedOperationException);
 
         single.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofSeconds(1));
-        failure = assertThrows(CompletionException.class, () -> new LocalPipelineExecutor()
+        failure = assertThrows(CompletionException.class, () -> new EmbeddedPipelineExecutor()
                 .execute(graph(source, sink, single), single).join());
         assertTrue(failure.getCause() instanceof UnsupportedOperationException);
         assertEquals(0, sink.writerCreations.get());
@@ -175,7 +175,7 @@ class LocalStreamJobRunnerTest {
         TestSource source = new TestSource(true, List.of("one"), new CopyOnWriteArrayList<>());
         TestSink sink = new TestSink(true, new CopyOnWriteArrayList<>());
         Configuration configuration = config(1);
-        JobClient job = new LocalPipelineExecutor().execute(graph(source, sink, configuration), configuration)
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph(source, sink, configuration), configuration)
                 .get(5, TimeUnit.SECONDS);
 
         ExecutionException failure = assertThrows(
@@ -193,7 +193,7 @@ class LocalStreamJobRunnerTest {
         TestSource source = new TestSource(false, List.of(), new CopyOnWriteArrayList<>());
         TestSink sink = new TestSink(false, new CopyOnWriteArrayList<>());
         Configuration configuration = config(1);
-        JobClient job = new LocalPipelineExecutor().execute(graph(source, sink, configuration), configuration)
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph(source, sink, configuration), configuration)
                 .get(5, TimeUnit.SECONDS);
 
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
@@ -239,7 +239,7 @@ class LocalStreamJobRunnerTest {
         StreamGraph graph = new StreamGraphGenerator(
                 new SinkTransformation<>(middle, "sink", sink), configuration).generate();
 
-        JobClient job = new LocalPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
         ExecutionException failure = assertThrows(
                 ExecutionException.class, () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
 
@@ -257,7 +257,7 @@ class LocalStreamJobRunnerTest {
         TestSource source = new TestSource(true, List.of("one"), new CopyOnWriteArrayList<>());
         TestSink sink = new TestSink(false, true, new CopyOnWriteArrayList<>());
         Configuration configuration = config(1);
-        JobClient job = new LocalPipelineExecutor().execute(graph(source, sink, configuration), configuration)
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph(source, sink, configuration), configuration)
                 .get(5, TimeUnit.SECONDS);
 
         ExecutionException failure = assertThrows(
@@ -274,7 +274,7 @@ class LocalStreamJobRunnerTest {
         TestSource source = new TestSource(true, List.of("one"), new CopyOnWriteArrayList<>(), true);
         TestSink sink = new TestSink(false, new CopyOnWriteArrayList<>());
         Configuration configuration = config(1);
-        JobClient job = new LocalPipelineExecutor().execute(graph(source, sink, configuration), configuration)
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph(source, sink, configuration), configuration)
                 .get(5, TimeUnit.SECONDS);
 
         ExecutionException failure = assertThrows(

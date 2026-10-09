@@ -20,17 +20,18 @@ import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.api.operators.Collector;
-import io.yak.ops.core.api.operators.OneInputOperator;
-import io.yak.ops.core.api.operators.OneInputOperatorFactory;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.execution.JobClient;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamGraphGenerator;
-import io.yak.ops.core.graph.StreamPartitioning;
-import io.yak.ops.core.transformations.OneInputTransformation;
-import io.yak.ops.core.transformations.SinkTransformation;
-import io.yak.ops.core.transformations.SourceTransformation;
+import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.graph.StreamPartitioning;
+import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.operators.OneInputOperatorFactory;
+import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
+import io.yak.ops.flow.runtime.transformations.SinkTransformation;
+import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-class ParallelLocalTaskGraphTest {
+class ParallelJobExecutionTest {
 
     @Test
     void shouldFanInFourSourceReadersToOneSinkWithoutLosingRecords() throws Exception {
@@ -56,7 +57,7 @@ class ParallelLocalTaskGraphTest {
         StreamGraph graph = graph(source, 4, sink, 1, configuration);
 
         assertEquals(StreamPartitioning.REBALANCE, graph.getStreamEdges().getFirst().partitioning());
-        JobClient job = new LocalPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
         assertEquals(job.getJobID(), job.getJobExecutionResult().get(5, TimeUnit.SECONDS).getJobID());
         assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
         assertEquals(4, source.readerCreated.get());
@@ -106,7 +107,7 @@ class ParallelLocalTaskGraphTest {
         StreamGraph graph = new StreamGraphGenerator(
                 new SinkTransformation<>(middle, "sink", sink, 2), configuration).generate();
 
-        JobClient job = new LocalPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
         job.getJobExecutionResult().get(5, TimeUnit.SECONDS);
 
         assertEquals(3, createdOperators.get());
@@ -133,7 +134,7 @@ class ParallelLocalTaskGraphTest {
         StreamGraph graph = new StreamGraphGenerator(output, configuration).generate();
         assertEquals(StreamPartitioning.KEYED, graph.getStreamEdges().getFirst().partitioning());
 
-        JobClient job = new LocalPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
         job.getJobExecutionResult().get(5, TimeUnit.SECONDS);
 
         assertEquals(2, sink.writers.size());
@@ -156,7 +157,7 @@ class ParallelLocalTaskGraphTest {
         StreamGraph graph = graph(source, 3, sink, 3, configuration);
         assertEquals(StreamPartitioning.FORWARD, graph.getStreamEdges().getFirst().partitioning());
 
-        JobClient job = new LocalPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
         job.getJobExecutionResult().get(5, TimeUnit.SECONDS);
         assertEquals(3, sink.writers.size());
         for (List<String> output : sink.writers) {
@@ -172,7 +173,7 @@ class ParallelLocalTaskGraphTest {
         ParallelSink sink = new ParallelSink("FAIL");
         Configuration configuration = config(1, 1);
         StreamGraph graph = graph(source, 4, sink, 1, configuration);
-        JobClient job = new LocalPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
 
         ExecutionException failure = assertThrows(
                 ExecutionException.class, () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
@@ -192,7 +193,7 @@ class ParallelLocalTaskGraphTest {
         ParallelSink sink = new ParallelSink(null, writeEntered);
         Configuration configuration = config(1, 1);
         StreamGraph graph = graph(source, 3, sink, 1, configuration);
-        JobClient job = new LocalPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
 
         assertTrue(writeEntered.await(5, TimeUnit.SECONDS));
         job.cancel().get(5, TimeUnit.SECONDS);
@@ -213,7 +214,7 @@ class ParallelLocalTaskGraphTest {
         StreamGraph graph = graph(source, 2, sink, 1, configuration);
 
         CompletionException failure = assertThrows(
-                CompletionException.class, () -> new LocalPipelineExecutor().execute(graph, configuration).join());
+                CompletionException.class, () -> new EmbeddedPipelineExecutor().execute(graph, configuration).join());
         assertTrue(failure.getCause() instanceof IllegalArgumentException);
         assertEquals(0, source.readerCreated.get());
         assertEquals(0, sink.writers.size());
@@ -251,7 +252,7 @@ class ParallelLocalTaskGraphTest {
         StreamGraph graph = new StreamGraphGenerator(
                 new SinkTransformation<>(middle, "sink", sink, 1), configuration).generate();
 
-        JobClient job = new LocalPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
+        JobClient job = new EmbeddedPipelineExecutor().execute(graph, configuration).get(5, TimeUnit.SECONDS);
         ExecutionException failure = assertThrows(
                 ExecutionException.class, () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
         assertTrue(failure.getCause().toString().contains("operator processing failed"));
@@ -265,7 +266,7 @@ class ParallelLocalTaskGraphTest {
     private static Configuration config(int defaultParallelism, int capacity) {
         Configuration config = new Configuration();
         config.set(CoreOptions.DEFAULT_PARALLELISM, defaultParallelism);
-        config.set(CoreOptions.LOCAL_CHANNEL_CAPACITY, capacity);
+        config.set(RuntimeOptions.CHANNEL_CAPACITY, capacity);
         return config;
     }
 

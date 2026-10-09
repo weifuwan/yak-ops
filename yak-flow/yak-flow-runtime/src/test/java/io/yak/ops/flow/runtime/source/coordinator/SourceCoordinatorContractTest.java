@@ -15,7 +15,7 @@ import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.flow.runtime.checkpoint.SourceCoordinatorCheckpoint;
-import io.yak.ops.flow.runtime.execution.TaskInfo;
+import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
 import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
@@ -42,7 +42,7 @@ class SourceCoordinatorContractTest {
 
         OperatorCoordinatorContext context = new OperatorCoordinatorContext(jobID, 5, 2);
         RecordingSource source = new RecordingSource(false);
-        TaskInfo active = new TaskInfo(jobID, 5, 1, 2, 0);
+        RuntimeTaskInfo active = new RuntimeTaskInfo(jobID, 5, 1, 2, 0);
 
         try (SourceCoordinator<TestSplit, Integer> coordinator = new SourceCoordinator<>(source, context)) {
             assertEquals(context, coordinator.coordinatorContext());
@@ -52,13 +52,13 @@ class SourceCoordinatorContractTest {
 
             assertFailure(coordinator.registerReader(active, event -> CompletableFuture.completedFuture(null)));
             assertFailure(coordinator.registerReader(
-                    new TaskInfo(jobID, 5, 1, 2, 1), event -> CompletableFuture.completedFuture(null)));
+                    new RuntimeTaskInfo(jobID, 5, 1, 2, 1), event -> CompletableFuture.completedFuture(null)));
             assertFailure(coordinator.registerReader(
-                    new TaskInfo(JobID.generate(), 5, 1, 2, 0), event -> CompletableFuture.completedFuture(null)));
+                    new RuntimeTaskInfo(JobID.generate(), 5, 1, 2, 0), event -> CompletableFuture.completedFuture(null)));
             assertFailure(coordinator.registerReader(
-                    new TaskInfo(jobID, 6, 1, 2, 0), event -> CompletableFuture.completedFuture(null)));
+                    new RuntimeTaskInfo(jobID, 6, 1, 2, 0), event -> CompletableFuture.completedFuture(null)));
             assertFailure(coordinator.registerReader(
-                    new TaskInfo(jobID, 5, 1, 3, 0), event -> CompletableFuture.completedFuture(null)));
+                    new RuntimeTaskInfo(jobID, 5, 1, 3, 0), event -> CompletableFuture.completedFuture(null)));
 
             assertEquals(1, source.registrations.get());
         }
@@ -67,7 +67,7 @@ class SourceCoordinatorContractTest {
     @Test
     void shouldRejectStaleAttemptAndMismatchedSplitEvent() throws Exception {
         JobID jobID = JobID.generate();
-        TaskInfo active = new TaskInfo(jobID, 7, 1, 2, 2);
+        RuntimeTaskInfo active = new RuntimeTaskInfo(jobID, 7, 1, 2, 2);
         RecordingSource source = new RecordingSource(false);
 
         try (SourceCoordinator<TestSplit, Integer> coordinator =
@@ -78,12 +78,12 @@ class SourceCoordinatorContractTest {
 
             assertFailure(coordinator.handleEventFromOperator(active, new RequestSplitEvent(1, 1)));
             assertFailure(coordinator.handleEventFromOperator(active, new RequestSplitEvent(0, 2)));
-            TaskInfo stale = new TaskInfo(jobID, 7, 1, 2, 1);
+            RuntimeTaskInfo stale = new RuntimeTaskInfo(jobID, 7, 1, 2, 1);
             assertFailure(coordinator.handleEventFromOperator(stale, new RequestSplitEvent(1, 1)));
             assertFailure(coordinator.readerFailed(stale, new IllegalStateException("stale attempt")));
             assertFailure(coordinator.handleEventFromOperator(active, new NoMoreSplitsEvent()));
             assertFailure(coordinator.handleEventFromOperator(
-                    new TaskInfo(JobID.generate(), 7, 1, 2, 2), new RequestSplitEvent(1, 2)));
+                    new RuntimeTaskInfo(JobID.generate(), 7, 1, 2, 2), new RequestSplitEvent(1, 2)));
 
             coordinator.handleEventFromOperator(active, new RequestSplitEvent(1, 2))
                     .get(5, TimeUnit.SECONDS);
@@ -94,7 +94,7 @@ class SourceCoordinatorContractTest {
     @Test
     void shouldDeliverNoMoreSplitsOnlyAfterSplitEventAcknowledgment() throws Exception {
         JobID jobID = JobID.generate();
-        TaskInfo reader = new TaskInfo(jobID, 9, 0, 1, 0);
+        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 9, 0, 1, 0);
         RecordingSource source = new RecordingSource(true);
         CompletableFuture<Void> splitAcknowledged = new CompletableFuture<>();
         CompletableFuture<Void> noMoreDispatched = new CompletableFuture<>();
@@ -139,7 +139,7 @@ class SourceCoordinatorContractTest {
     @Test
     void shouldFailCoordinatorWhenSplitDeliveryFails() throws Exception {
         JobID jobID = JobID.generate();
-        TaskInfo reader = new TaskInfo(jobID, 11, 0, 1, 0);
+        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 11, 0, 1, 0);
         RecordingSource source = new RecordingSource(true);
         CompletableFuture<Void> splitAck = new CompletableFuture<>();
         SourceCoordinator<TestSplit, Integer> coordinator =
@@ -163,7 +163,7 @@ class SourceCoordinatorContractTest {
     @Test
     void shouldTreatReaderFailureAsWholeCoordinatorFailure() throws Exception {
         JobID jobID = JobID.generate();
-        TaskInfo reader = new TaskInfo(jobID, 13, 0, 1, 1);
+        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 13, 0, 1, 1);
         RecordingSource source = new RecordingSource(false);
         SourceCoordinator<TestSplit, Integer> coordinator =
                 new SourceCoordinator<>(source, new OperatorCoordinatorContext(jobID, 13, 1));

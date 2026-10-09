@@ -16,10 +16,10 @@ import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.Configuration;
-import io.yak.ops.core.graph.StreamGraph;
-import io.yak.ops.core.graph.StreamGraphGenerator;
-import io.yak.ops.core.transformations.SinkTransformation;
-import io.yak.ops.core.transformations.SourceTransformation;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.transformations.SinkTransformation;
+import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,15 +37,15 @@ class FileCheckpointStoreTest {
     void shouldCommitAndRestoreImmutableVersionedState() throws Exception {
         String signature = FileCheckpointStore.graphSignature(graph(1));
         byte[] values = {3, 4, 5};
-        var state = new LocalCheckpointState.SerializedState(2, values);
-        var checkpoint = new LocalCheckpointState(
+        var state = new CheckpointSnapshot.SerializedState(2, values);
+        var checkpoint = new CheckpointSnapshot(
                 7, signature, state, Map.of(0, List.of(state)), Map.of(), 123456L);
         values[0] = 100;
 
         try (FileCheckpointStore store = new FileCheckpointStore(folder)) {
             assertTrue(store.loadLatest(signature).isEmpty());
             store.save(checkpoint);
-            LocalCheckpointState loaded = store.loadLatest(signature).orElseThrow();
+            CheckpointSnapshot loaded = store.loadLatest(signature).orElseThrow();
             assertEquals(7, loaded.checkpointId());
             assertEquals(2, loaded.enumeratorState().version());
             assertArrayEquals(new byte[] {3, 4, 5}, loaded.enumeratorState().bytes());
@@ -63,9 +63,9 @@ class FileCheckpointStoreTest {
     @Test
     void shouldRejectCorruptedSnapshotWithoutSilentlyIgnoringIt() throws Exception {
         String signature = FileCheckpointStore.graphSignature(graph(1));
-        var state = new LocalCheckpointState.SerializedState(1, new byte[] {1, 2, 3});
+        var state = new CheckpointSnapshot.SerializedState(1, new byte[] {1, 2, 3});
         try (FileCheckpointStore store = new FileCheckpointStore(folder)) {
-            store.save(new LocalCheckpointState(1, signature, state, Map.of(), Map.of(), 100L));
+            store.save(new CheckpointSnapshot(1, signature, state, Map.of(), Map.of(), 100L));
             byte[] corrupted = Files.readAllBytes(folder.resolve("checkpoint.bin"));
             corrupted[corrupted.length / 2] ^= 0x3f;
             Files.write(folder.resolve("checkpoint.bin"), corrupted);
