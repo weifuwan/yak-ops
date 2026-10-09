@@ -14,7 +14,7 @@ import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.Configuration;
-import io.yak.ops.core.configuration.ExecutionOptions;
+import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.flow.runtime.graph.StreamNode;
@@ -34,7 +34,7 @@ class StreamGraphSourceTest {
         SinkTransformation<String> output = new SinkTransformation<>(input, "sink", sink);
 
         Configuration configuration = new Configuration();
-        configuration.set(ExecutionOptions.DEFAULT_PARALLELISM, 2);
+        configuration.set(CoreOptions.DEFAULT_PARALLELISM, 2);
 
         StreamGraph graph = new StreamGraphGenerator(output, configuration).generate();
         StreamNode node = graph.getStreamNode(input.getId());

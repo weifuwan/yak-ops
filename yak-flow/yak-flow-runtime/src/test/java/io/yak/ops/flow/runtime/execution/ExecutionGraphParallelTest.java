@@ -29,7 +29,7 @@ import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.flow.runtime.graph.StreamPartitioning;
-import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.flow.runtime.operators.OneInputOperatorFactory;
 import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
@@ -98,7 +98,7 @@ class ExecutionGraphParallelTest {
         AtomicInteger closedOperators = new AtomicInteger();
         OneInputOperatorFactory<String, String> factory = () -> {
             createdOperators.incrementAndGet();
-            return new OneInputOperator<>() {
+            return new OneInputStreamOperator<>() {
                 @Override
                 public void processElement(String element, Collector<String> out) throws Exception {
                     out.collect(element.toUpperCase());
@@ -243,7 +243,7 @@ class ExecutionGraphParallelTest {
         ParallelSink sink = new ParallelSink(null);
         AtomicInteger opened = new AtomicInteger();
         AtomicInteger closed = new AtomicInteger();
-        OneInputOperatorFactory<String, String> failing = () -> new OneInputOperator<>() {
+        OneInputOperatorFactory<String, String> failing = () -> new OneInputStreamOperator<>() {
             @Override
             public void open() {
                 opened.incrementAndGet();
@@ -462,7 +462,7 @@ class ExecutionGraphParallelTest {
             writers.add(rows);
             return new SinkWriter<>() {
                 @Override
-                public void write(String record) throws Exception {
+                public void write(String record, Context context) throws Exception {
                     if (holdWrite != null) {
                         holdWrite.countDown();
                         // 模拟 Sink 阻塞；Job 取消应中断当前虚拟线程。

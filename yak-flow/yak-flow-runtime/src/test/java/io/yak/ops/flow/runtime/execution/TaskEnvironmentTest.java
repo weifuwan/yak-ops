@@ -24,15 +24,15 @@ class TaskEnvironmentTest {
     void shouldValidateTaskIdentity() {
         JobID jobID = JobID.generate();
 
-        assertThrows(NullPointerException.class, () -> new RuntimeTaskInfo(null, 1, 0, 1, 0));
-        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 0, 0, 1, 0));
-        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 1, 0, 0, 0));
-        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 1, -1, 2, 0));
-        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 1, 2, 2, 0));
-        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 1, 0, 2, -1));
+        assertThrows(NullPointerException.class, () -> new RuntimeTaskInfo(null, 1, 0, 1, 0, 128));
+        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 0, 0, 1, 0, 128));
+        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 1, 0, 0, 0, 128));
+        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 1, -1, 2, 0, 128));
+        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 1, 2, 2, 0, 128));
+        assertThrows(IllegalArgumentException.class, () -> new RuntimeTaskInfo(jobID, 1, 0, 2, -1, 128));
 
-        RuntimeTaskInfo first = new RuntimeTaskInfo(jobID, 12, 1, 3, 0);
-        RuntimeTaskInfo retry = new RuntimeTaskInfo(jobID, 12, 1, 3, 1);
+        RuntimeTaskInfo first = new RuntimeTaskInfo(jobID, 12, 1, 3, 0, 128);
+        RuntimeTaskInfo retry = new RuntimeTaskInfo(jobID, 12, 1, 3, 1, 128);
         io.yak.ops.core.api.common.TaskInfo publicView = first;
         assertEquals(1, publicView.getIndexOfThisSubtask());
         assertEquals(3, publicView.getNumberOfParallelSubtasks());
@@ -46,7 +46,7 @@ class TaskEnvironmentTest {
 
     @Test
     void shouldKeepTaskConfigurationIndependentOfExternalMutation() {
-        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 3, 1, 2, 0);
+        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 3, 1, 2, 0, 128);
         Configuration original = new Configuration();
         original.set(CoreOptions.DEFAULT_PARALLELISM, 8);
 
@@ -67,7 +67,7 @@ class TaskEnvironmentTest {
     @Test
     void shouldBindCancellationWithoutMutatingTheOriginalContext() {
         TaskEnvironment environment = new TaskEnvironment(
-                new RuntimeTaskInfo(JobID.generate(), 1, 0, 1, 0), new Configuration());
+                new RuntimeTaskInfo(JobID.generate(), 1, 0, 1, 0, 128), new Configuration());
         AtomicBoolean cancelled = new AtomicBoolean();
         TaskEnvironment scoped = environment.withCancellation(cancelled::get);
 
@@ -81,7 +81,7 @@ class TaskEnvironmentTest {
 
     @Test
     void shouldProvideTaskBoundCancellationAndDiagnosticIdentity() throws Exception {
-        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 6, 0, 2, 3);
+        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 6, 0, 2, 3, 128);
         TaskEnvironment original = new TaskEnvironment(info, new Configuration());
         ProbeTask task = new ProbeTask(original);
 

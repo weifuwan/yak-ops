@@ -15,16 +15,8 @@ package io.yak.ops.core.api.connector.sink;
 public interface SinkWriter<T> extends AutoCloseable {
 
     /**
-     * 写入一条记录，具体 Sink 可以立即写入或暂存到缓冲区。
-     *
-     * @param element 输入记录
-     * @throws Exception 写入失败
-     */
-    void write(T element) throws Exception;
-
-    /**
-     * Flink Sink V2-style record metadata. This Runtime has no event-time timestamp or watermark
-     * propagation yet: timestamp is null and watermark is Long.MIN_VALUE until that exists.
+     * 记录上下文。目前 Runtime 尚未提供事件时间和 Watermark 传播，
+     * timestamp 为 null，currentWatermark 为 Long.MIN_VALUE。
      */
     interface Context {
         Long timestamp();
@@ -32,11 +24,14 @@ public interface SinkWriter<T> extends AutoCloseable {
         long currentWatermark();
     }
 
-    /** Legacy writers still work; V2 writers may override this method to consume record context. */
-    default void write(T element, Context context) throws Exception {
-        java.util.Objects.requireNonNull(context, "context");
-        write(element);
-    }
+    /**
+     * 向 Writer 写入一条记录，可立即写入或暂存缓冲区。
+     *
+     * @param element 输入记录
+     * @param context 当前记录的运行时元信息
+     * @throws Exception 写入失败
+     */
+    void write(T element, Context context) throws Exception;
 
     /**
      * 刷出 Writer 中尚未完成的缓冲数据。

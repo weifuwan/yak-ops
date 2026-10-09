@@ -22,7 +22,7 @@ import io.yak.ops.flow.runtime.graph.StreamEdge;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.flow.runtime.graph.StreamPartitioning;
-import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
@@ -47,7 +47,7 @@ class StreamPartitioningGraphTest {
     void shouldPreserveExplicitKeySelectionAndPartitionStrategy() {
         SourceTransformation<String> source = source(4);
         OneInputTransformation<String, String> operator = new OneInputTransformation<>(
-                source, "operator", () -> new OneInputOperator<>() {
+                source, "operator", () -> new OneInputStreamOperator<>() {
                     @Override
                     public void processElement(String element, io.yak.ops.core.api.operators.Collector<String> out)
                             throws Exception {

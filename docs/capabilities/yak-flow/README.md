@@ -39,7 +39,7 @@ AddSplitEvent 使用 Connector 提供的 SimpleVersionedSerializer 生成版本�
 
 ## Checkpoint Boundary
 
-Source → OneInputOperator* → Sink 使用 AlignedCheckpointCoordinator 的单 JVM Barrier 对齐：冻结 Split 分配，在 Source Mailbox 快照 Reader 并发出有序 Barrier；各 InputGate 等全部生产者 Barrier 到齐才让 Task 在 Mailbox 内快照 Operator/SinkWriter、转发 Barrier、ACK；全部 ACK 后 FileCheckpointStore 原子持久化并通知 Source。Source 在 Barrier 发出后即可恢复生产，不再依靠全局 InputGate 排空。无 Operator 状态的快照继续写 v1，有状态快照写 v2；旧 v1 可读，CRC/UID/KeyGroup 指纹校验保留。启用 Checkpoint 时禁用内联 Chain。语义为受限 at-least-once，不是分布式 Flink Checkpoint 或 Exactly-once。
+Source → OneInputStreamOperator* → Sink 使用 AlignedCheckpointCoordinator 的单 JVM Barrier 对齐：冻结 Split 分配，在 Source Mailbox 快照 Reader 并发出有序 Barrier；各 InputGate 等全部生产者 Barrier 到齐才让 Task 在 Mailbox 内快照 Operator/SinkWriter、转发 Barrier、ACK；全部 ACK 后 FileCheckpointStore 原子持久化并通知 Source。Source 在 Barrier 发出后即可恢复生产，不再依靠全局 InputGate 排空。无 Operator 状态的快照继续写 v1，有状态快照写 v2；旧 v1 可读，CRC/UID/KeyGroup 指纹校验保留。启用 Checkpoint 时禁用内联 Chain。语义为受限 at-least-once，不是分布式 Flink Checkpoint 或 Exactly-once。
 
 ## Non-Goals
 

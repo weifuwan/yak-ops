@@ -14,11 +14,6 @@ public record RuntimeTaskInfo(
         JobID jobID, int operatorId, int subtaskIndex, int parallelism, int attemptNumber, int maxParallelism)
         implements TaskInfo {
 
-    /** Compatibility constructor used by tests and existing local runtime embedders. */
-    public RuntimeTaskInfo(JobID jobID, int operatorId, int subtaskIndex, int parallelism, int attemptNumber) {
-        this(jobID, operatorId, subtaskIndex, parallelism, attemptNumber, 128);
-    }
-
     public RuntimeTaskInfo {
         Objects.requireNonNull(jobID, "jobID 不能为空");
         if (operatorId <= 0) {

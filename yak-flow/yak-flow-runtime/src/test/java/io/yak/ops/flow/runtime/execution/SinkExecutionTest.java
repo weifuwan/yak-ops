@@ -27,7 +27,7 @@ import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
-import io.yak.ops.flow.runtime.operators.OneInputOperator;
+import io.yak.ops.flow.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.flow.runtime.operators.sink.SinkWriterOperator;
 import io.yak.ops.flow.runtime.support.TestSplitSerializers;
 import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
@@ -51,7 +51,7 @@ class SinkExecutionTest {
         SourceTransformation<String> source = new SourceTransformation<>(
                 "source", new SplitSource(), String.class, 1);
         OneInputTransformation<String, String> map = new OneInputTransformation<>(
-                source, "map", () -> new OneInputOperator<>() {
+                source, "map", () -> new OneInputStreamOperator<>() {
                     @Override
                     public void processElement(String value, Collector<String> output) throws Exception {
                         output.collect(value.toUpperCase());
@@ -101,7 +101,7 @@ class SinkExecutionTest {
         AtomicInteger closes = new AtomicInteger();
         Sink<String> sink = context -> new StatefulSinkWriter<String, String>() {
             @Override
-            public void write(String value) {}
+            public void write(String value, Context context) {}
 
             @Override
             public void flush(boolean endOfInput) {}
@@ -117,7 +117,7 @@ class SinkExecutionTest {
             }
         };
         TaskEnvironment environment = new TaskEnvironment(
-                new RuntimeTaskInfo(JobID.generate(), 4, 0, 1, 0), configuration);
+                new RuntimeTaskInfo(JobID.generate(), 4, 0, 1, 0, 128), configuration);
         SinkWriterOperator<String> operator = new SinkWriterOperator<>(sink, environment);
         assertThrows(UnsupportedOperationException.class, operator::open);
         operator.close();
@@ -252,11 +252,6 @@ class SinkExecutionTest {
             // Type-specific RuntimeTaskInfo identity is available without leaking it through Core.
             operatorIds.add(((RuntimeTaskInfo) context.getTaskInfo()).operatorId());
             return new SinkWriter<>() {
-                @Override
-                public void write(String value) {
-                    throw new AssertionError("Sink V2 context-aware write was bypassed");
-                }
-
                 @Override
                 public void write(String value, Context recordContext) {
                     assertEquals(null, recordContext.timestamp());

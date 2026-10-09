@@ -153,7 +153,7 @@ class StreamTaskMailboxTest {
 
         TestTask() {
             super(new TaskEnvironment(
-                    new RuntimeTaskInfo(JobID.generate(), 1, 0, 1, 0), new Configuration()));
+                    new RuntimeTaskInfo(JobID.generate(), 1, 0, 1, 0, 128), new Configuration()));
         }
 
         CompletableFuture<Thread> runControl() {

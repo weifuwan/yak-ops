@@ -188,21 +188,6 @@ public final class OneInputStreamTask extends StreamTask {
         }
     }
 
-    /** Backwards-compatible direct flush API for callers not yet using aligned barriers. */
-    public CompletableFuture<Void> flushForCheckpoint(long checkpointId) {
-        if (checkpointId <= 0) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException("checkpointId must be positive"));
-        }
-        if (!node.isSink()) {
-            return CompletableFuture.failedFuture(
-                    new UnsupportedOperationException("Only a SinkWriterOperator may flush for checkpoint"));
-        }
-        return submitMailbox(() -> {
-            sinkOperator.flushForCheckpoint(checkpointId);
-            return null;
-        });
-    }
-
     @Override
     protected void closeTask() throws Exception {
         try {

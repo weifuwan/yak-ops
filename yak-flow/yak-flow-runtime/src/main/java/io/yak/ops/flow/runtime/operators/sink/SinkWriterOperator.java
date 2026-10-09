@@ -126,7 +126,11 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
     @Override
     @SuppressWarnings("unchecked")
     public void snapshotState(long checkpointId, OperatorStateBackend backend) throws Exception {
-        flushForCheckpoint(checkpointId);
+        if (checkpointId <= 0) {
+            throw new IllegalArgumentException("checkpointId must be positive");
+        }
+        requireOpen();
+        writer.flush(false);
         if (!(writer instanceof StatefulSinkWriter<?, ?> statefulWriter)) {
             return;
         }
@@ -142,15 +146,6 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
         for (int i = 0; i < states.size(); i++) {
             backend.put("writer-" + i, states.get(i), serializer);
         }
-    }
-
-    /** Compatibility with the former quiescent coordinator's direct Sink mailbox flush. */
-    public void flushForCheckpoint(long checkpointId) throws Exception {
-        if (checkpointId <= 0) {
-            throw new IllegalArgumentException("checkpointId must be positive");
-        }
-        requireOpen();
-        writer.flush(false);
     }
 
     @Override

@@ -24,7 +24,7 @@ class OperatorStateBackendTest {
 
     @Test
     void namedStateIsVersionedAndDefensivelyCopied() throws Exception {
-        var info = new RuntimeTaskInfo(JobID.generate(), 2, 0, 1, 0);
+        var info = new RuntimeTaskInfo(JobID.generate(), 2, 0, 1, 0, 128);
         var backend = new OperatorStateBackend(Map.of(), info, false);
         backend.put("count", "10", STRINGS);
         var snapshot = backend.snapshot();

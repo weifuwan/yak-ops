@@ -147,12 +147,12 @@ class SinkWriterOperatorFailureTest {
     private static TaskEnvironment environment() {
         Configuration config = new Configuration();
         config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofSeconds(30));
-        return new TaskEnvironment(new RuntimeTaskInfo(JobID.generate(), 27, 0, 1, 0), config);
+        return new TaskEnvironment(new RuntimeTaskInfo(JobID.generate(), 27, 0, 1, 0, 128), config);
     }
 
     private static OperatorStateBackend newState(
             Map<String, io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot.SerializedState> values) {
-        return new OperatorStateBackend(values, new RuntimeTaskInfo(JobID.generate(), 27, 0, 1, 0), false);
+        return new OperatorStateBackend(values, new RuntimeTaskInfo(JobID.generate(), 27, 0, 1, 0, 128), false);
     }
 
     private static final class ProbeSink implements Sink<String>, SupportsWriterState<String, Integer> {
@@ -217,7 +217,7 @@ class SinkWriterOperatorFailureTest {
             }
 
             @Override
-            public void write(String record) {
+            public void write(String record, Context context) {
                 count++;
             }
 

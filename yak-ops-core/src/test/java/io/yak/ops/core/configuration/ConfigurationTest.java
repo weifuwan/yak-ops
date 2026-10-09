@@ -21,8 +21,7 @@ import org.junit.jupiter.api.Test;
 class ConfigurationTest {
 
     @Test
-    @SuppressWarnings("deprecation")
-    void defaultsAreNotStoredAndLegacyAliasesShareTheSameValues() {
+    void defaultsAreNotStoredAndExplicitValuesUseCanonicalOptions() {
         Configuration configuration = new Configuration();
 
         assertEquals(1, (int) configuration.get(CoreOptions.DEFAULT_PARALLELISM));
@@ -32,8 +31,8 @@ class ConfigurationTest {
         assertTrue(configuration.keySet().isEmpty());
         assertTrue(configuration.toMap().isEmpty());
 
-        configuration.set(ExecutionOptions.DEFAULT_PARALLELISM, 4);
-        configuration.set(ExecutionOptions.CHECKPOINT_INTERVAL, Duration.ofSeconds(5));
+        configuration.set(CoreOptions.DEFAULT_PARALLELISM, 4);
+        configuration.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofSeconds(5));
 
         assertEquals(4, (int) configuration.get(CoreOptions.DEFAULT_PARALLELISM));
         assertEquals(Duration.ofSeconds(5), configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));

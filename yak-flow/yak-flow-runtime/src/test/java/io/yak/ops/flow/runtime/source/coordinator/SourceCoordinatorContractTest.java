@@ -46,7 +46,7 @@ class SourceCoordinatorContractTest {
 
         OperatorCoordinatorContext context = new OperatorCoordinatorContext(jobID, 5, 2);
         RecordingSource source = new RecordingSource(false);
-        RuntimeTaskInfo active = new RuntimeTaskInfo(jobID, 5, 1, 2, 0);
+        RuntimeTaskInfo active = new RuntimeTaskInfo(jobID, 5, 1, 2, 0, 128);
 
         try (SourceCoordinator<TestSplit, Integer> coordinator = new SourceCoordinator<>(source, context)) {
             assertEquals(context, coordinator.coordinatorContext());
@@ -56,13 +56,13 @@ class SourceCoordinatorContractTest {
 
             assertFailure(coordinator.registerReader(active, event -> CompletableFuture.completedFuture(null)));
             assertFailure(coordinator.registerReader(
-                    new RuntimeTaskInfo(jobID, 5, 1, 2, 1), event -> CompletableFuture.completedFuture(null)));
+                    new RuntimeTaskInfo(jobID, 5, 1, 2, 1, 128), event -> CompletableFuture.completedFuture(null)));
             assertFailure(coordinator.registerReader(
-                    new RuntimeTaskInfo(JobID.generate(), 5, 1, 2, 0), event -> CompletableFuture.completedFuture(null)));
+                    new RuntimeTaskInfo(JobID.generate(), 5, 1, 2, 0, 128), event -> CompletableFuture.completedFuture(null)));
             assertFailure(coordinator.registerReader(
-                    new RuntimeTaskInfo(jobID, 6, 1, 2, 0), event -> CompletableFuture.completedFuture(null)));
+                    new RuntimeTaskInfo(jobID, 6, 1, 2, 0, 128), event -> CompletableFuture.completedFuture(null)));
             assertFailure(coordinator.registerReader(
-                    new RuntimeTaskInfo(jobID, 5, 1, 3, 0), event -> CompletableFuture.completedFuture(null)));
+                    new RuntimeTaskInfo(jobID, 5, 1, 3, 0, 128), event -> CompletableFuture.completedFuture(null)));
 
             assertEquals(1, source.registrations.get());
         }
@@ -71,7 +71,7 @@ class SourceCoordinatorContractTest {
     @Test
     void shouldRejectStaleAttemptAndMismatchedSplitEvent() throws Exception {
         JobID jobID = JobID.generate();
-        RuntimeTaskInfo active = new RuntimeTaskInfo(jobID, 7, 1, 2, 2);
+        RuntimeTaskInfo active = new RuntimeTaskInfo(jobID, 7, 1, 2, 2, 128);
         RecordingSource source = new RecordingSource(false);
 
         try (SourceCoordinator<TestSplit, Integer> coordinator =
@@ -82,12 +82,12 @@ class SourceCoordinatorContractTest {
 
             assertFailure(coordinator.handleEventFromOperator(active, new RequestSplitEvent(1, 1)));
             assertFailure(coordinator.handleEventFromOperator(active, new RequestSplitEvent(0, 2)));
-            RuntimeTaskInfo stale = new RuntimeTaskInfo(jobID, 7, 1, 2, 1);
+            RuntimeTaskInfo stale = new RuntimeTaskInfo(jobID, 7, 1, 2, 1, 128);
             assertFailure(coordinator.handleEventFromOperator(stale, new RequestSplitEvent(1, 1)));
             assertFailure(coordinator.readerFailed(stale, new IllegalStateException("stale attempt")));
             assertFailure(coordinator.handleEventFromOperator(active, new NoMoreSplitsEvent()));
             assertFailure(coordinator.handleEventFromOperator(
-                    new RuntimeTaskInfo(JobID.generate(), 7, 1, 2, 2), new RequestSplitEvent(1, 2)));
+                    new RuntimeTaskInfo(JobID.generate(), 7, 1, 2, 2, 128), new RequestSplitEvent(1, 2)));
 
             coordinator.handleEventFromOperator(active, new RequestSplitEvent(1, 2))
                     .get(5, TimeUnit.SECONDS);
@@ -98,7 +98,7 @@ class SourceCoordinatorContractTest {
     @Test
     void shouldDeliverNoMoreSplitsOnlyAfterSplitEventAcknowledgment() throws Exception {
         JobID jobID = JobID.generate();
-        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 9, 0, 1, 0);
+        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 9, 0, 1, 0, 128);
         RecordingSource source = new RecordingSource(true);
         CompletableFuture<Void> splitAcknowledged = new CompletableFuture<>();
         CompletableFuture<Void> noMoreDispatched = new CompletableFuture<>();
@@ -145,7 +145,7 @@ class SourceCoordinatorContractTest {
     @Test
     void shouldFailCoordinatorWhenSplitDeliveryFails() throws Exception {
         JobID jobID = JobID.generate();
-        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 11, 0, 1, 0);
+        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 11, 0, 1, 0, 128);
         RecordingSource source = new RecordingSource(true);
         CompletableFuture<Void> splitAck = new CompletableFuture<>();
         SourceCoordinator<TestSplit, Integer> coordinator =
@@ -169,7 +169,7 @@ class SourceCoordinatorContractTest {
     @Test
     void shouldTreatReaderFailureAsWholeCoordinatorFailure() throws Exception {
         JobID jobID = JobID.generate();
-        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 13, 0, 1, 1);
+        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 13, 0, 1, 1, 128);
         RecordingSource source = new RecordingSource(false);
         SourceCoordinator<TestSplit, Integer> coordinator =
                 new SourceCoordinator<>(source, new OperatorCoordinatorContext(jobID, 13, 1));
@@ -188,7 +188,7 @@ class SourceCoordinatorContractTest {
     @Test
     void shouldRouteSourceEventInBothDirectionsAndRejectStaleReaderAttempt() throws Exception {
         JobID jobID = JobID.generate();
-        RuntimeTaskInfo active = new RuntimeTaskInfo(jobID, 15, 0, 1, 4);
+        RuntimeTaskInfo active = new RuntimeTaskInfo(jobID, 15, 0, 1, 4, 128);
         RecordingSource source = new RecordingSource(false);
         AtomicReference<SourceEvent> deliveredToReader = new AtomicReference<>();
 
@@ -208,7 +208,7 @@ class SourceCoordinatorContractTest {
             assertEquals(ping, source.lastSourceEvent.get());
             assertEquals(ping, deliveredToReader.get());
 
-            RuntimeTaskInfo stale = new RuntimeTaskInfo(jobID, 15, 0, 1, 3);
+            RuntimeTaskInfo stale = new RuntimeTaskInfo(jobID, 15, 0, 1, 3, 128);
             assertFailure(coordinator.handleEventFromOperator(stale, new SourceEventWrapper(ping)));
             assertEquals(ping, source.lastSourceEvent.get());
         }
@@ -229,13 +229,13 @@ class SourceCoordinatorContractTest {
         assertTrue(terminated.getCause().getMessage().contains("enumerator start failed"));
         assertTrue(source.closed.get(), "An enumerator that failed in start() must be closed");
         assertFailure(coordinator.registerReader(
-                new RuntimeTaskInfo(jobID, 17, 0, 1, 0), event -> CompletableFuture.completedFuture(null)));
+                new RuntimeTaskInfo(jobID, 17, 0, 1, 0, 128), event -> CompletableFuture.completedFuture(null)));
     }
 
     @Test
     void failedEnumeratorSnapshotMustRetainAssignmentsForLaterSuccessfulCheckpoint() throws Exception {
         JobID jobID = JobID.generate();
-        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 19, 0, 1, 0);
+        RuntimeTaskInfo reader = new RuntimeTaskInfo(jobID, 19, 0, 1, 0, 128);
         RecordingSource source = new RecordingSource(true, false, true);
         try (SourceCoordinator<TestSplit, Integer> coordinator =
                 new SourceCoordinator<>(source, new OperatorCoordinatorContext(jobID, 19, 1))) {
