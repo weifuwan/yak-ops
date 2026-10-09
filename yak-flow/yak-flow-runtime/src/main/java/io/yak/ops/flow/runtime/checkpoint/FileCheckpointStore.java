@@ -38,7 +38,8 @@ import java.util.zip.CRC32;
 public final class FileCheckpointStore implements AutoCloseable {
 
     private static final int MAGIC = 0x59414B43; // YAKC
-    private static final int FORMAT_VERSION = 1;
+    private static final int FORMAT_VERSION = 2;
+    private static final int LEGACY_FORMAT_VERSION = 1;
     private static final int MAX_FILE_BYTES = 64 * 1024 * 1024;
     private static final int MAX_STATE_BYTES = 32 * 1024 * 1024;
     private static final int MAX_GROUPS = 64;
@@ -94,7 +95,11 @@ public final class FileCheckpointStore implements AutoCloseable {
         }
         CheckpointSnapshot snapshot;
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(payload))) {
-            if (in.readInt() != MAGIC || in.readInt() != FORMAT_VERSION) {
+            if (in.readInt() != MAGIC) {
+                throw new IOException("Checkpoint 魔数不合法");
+            }
+            int format = in.readInt();
+            if (format != LEGACY_FORMAT_VERSION && format != FORMAT_VERSION) {
                 throw new IOException("Checkpoint 格式或版本不兼容");
             }
             long checkpointId = in.readLong();
@@ -103,11 +108,13 @@ public final class FileCheckpointStore implements AutoCloseable {
             CheckpointSnapshot.SerializedState enumerator = readState(in);
             Map<Integer, List<CheckpointSnapshot.SerializedState>> readers = readGroups(in);
             Map<Integer, List<CheckpointSnapshot.SerializedState>> assignments = readGroups(in);
+            Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>>
+                    operatorStates = format == FORMAT_VERSION ? readOperatorStates(in) : Map.of();
             if (in.available() != 0) {
                 throw new IOException("Checkpoint 文件包含多余字节");
             }
             snapshot = new CheckpointSnapshot(
-                    checkpointId, signature, enumerator, readers, assignments, completedAt);
+                    checkpointId, signature, enumerator, readers, assignments, completedAt, operatorStates);
         } catch (IllegalArgumentException failure) {
             throw new IOException("Checkpoint 状态内容不合法", failure);
         }
@@ -125,13 +132,18 @@ public final class FileCheckpointStore implements AutoCloseable {
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream out = new DataOutputStream(bytes)) {
             out.writeInt(MAGIC);
-            out.writeInt(FORMAT_VERSION);
+            // Source/Sink stateless snapshots remain byte-for-byte format-v1 compatible.
+            boolean withOperatorState = !checkpoint.operatorStates().isEmpty();
+            out.writeInt(withOperatorState ? FORMAT_VERSION : LEGACY_FORMAT_VERSION);
             out.writeLong(checkpoint.checkpointId());
             out.writeUTF(checkpoint.graphSignature());
             out.writeLong(checkpoint.completedAtMillis());
             writeState(out, checkpoint.enumeratorState());
             writeGroups(out, checkpoint.readerSplits());
             writeGroups(out, checkpoint.assignments());
+            if (withOperatorState) {
+                writeOperatorStates(out, checkpoint.operatorStates());
+            }
             out.flush();
             payload = bytes.toByteArray();
         }
@@ -217,6 +229,55 @@ public final class FileCheckpointStore implements AutoCloseable {
             result.put(index, List.copyOf(states));
         }
         return result;
+    }
+
+    private static void writeOperatorStates(
+            DataOutputStream out,
+            Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> groups)
+            throws IOException {
+        if (groups.size() > MAX_GROUPS) {
+            throw new IOException("Checkpoint Operator subtask count exceeds limit");
+        }
+        out.writeInt(groups.size());
+        for (var entry : groups.entrySet()) {
+            out.writeUTF(entry.getKey().uid());
+            out.writeInt(entry.getKey().subtaskIndex());
+            if (entry.getValue().size() > MAX_SPLITS_PER_GROUP) {
+                throw new IOException("Checkpoint Operator state count exceeds limit");
+            }
+            out.writeInt(entry.getValue().size());
+            for (var named : entry.getValue().entrySet()) {
+                out.writeUTF(named.getKey());
+                writeState(out, named.getValue());
+            }
+        }
+    }
+
+    private static Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>>
+            readOperatorStates(DataInputStream in) throws IOException {
+        int count = in.readInt();
+        if (count < 0 || count > MAX_GROUPS) {
+            throw new IOException("Invalid checkpoint operator count");
+        }
+        Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> groups =
+                new LinkedHashMap<>();
+        for (int i = 0; i < count; i++) {
+            CheckpointSnapshot.OperatorSubtask id =
+                    new CheckpointSnapshot.OperatorSubtask(in.readUTF(), in.readInt());
+            int size = in.readInt();
+            if (size < 0 || size > MAX_SPLITS_PER_GROUP || groups.containsKey(id)) {
+                throw new IOException("Invalid or duplicate checkpoint operator subtask");
+            }
+            Map<String, CheckpointSnapshot.SerializedState> named = new LinkedHashMap<>();
+            for (int j = 0; j < size; j++) {
+                String name = in.readUTF();
+                if (name.isBlank() || named.putIfAbsent(name, readState(in)) != null) {
+                    throw new IOException("Invalid or duplicate checkpoint state name");
+                }
+            }
+            groups.put(id, Map.copyOf(named));
+        }
+        return Map.copyOf(groups);
     }
 
     private static void writeState(DataOutputStream out, CheckpointSnapshot.SerializedState state)
