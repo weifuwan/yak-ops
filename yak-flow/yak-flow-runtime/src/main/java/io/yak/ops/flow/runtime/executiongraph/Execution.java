@@ -4,7 +4,6 @@ import io.yak.ops.flow.runtime.tasks.StreamTask;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 
 /**
  * One deployment attempt of an ExecutionVertex. The initial embedded engine only creates attempt 0;

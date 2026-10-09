@@ -2,7 +2,6 @@ package io.yak.ops.flow.runtime.graph;
 
 import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.common.JobID;
-import io.yak.ops.core.api.dag.Transformation;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
