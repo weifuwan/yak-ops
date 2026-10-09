@@ -4,19 +4,20 @@ import io.yak.ops.core.api.operators.KeySelector;
 import java.util.Objects;
 
 /**
- * StreamGraph 中的有向数据边，明确声明跨并行子任务的分区策略。
+ * Directed edge of a StreamGraph with an explicit subtask partitioning strategy.
  *
- * <p>同一对节点最多有一条边。FORWARD 要求两侧并行度相同，REBALANCE 以轮询方式分发，
- * KEYED 通过稳定、非空的业务键决定目标 Subtask，保持同键记录进入同一写入序列。
+ * <p>FORWARD requires matching upstream and downstream parallelism. REBALANCE distributes
+ * records in round-robin order, and KEYED routes the same stable business key to the
+ * same destination subtask.
  *
- * @param sourceId 上游节点构图 ID
- * @param targetId 下游节点构图 ID
- * @param partitioning 分区策略，不可隐式依赖运行时猜测
- * @param keySelector KEYED 策略必填，其他策略不允许设置
+ * @param sourceId the graph-local upstream node ID
+ * @param targetId the graph-local downstream node ID
+ * @param partitioning the partition strategy for this edge
+ * @param keySelector the key extractor, required only for KEYED partitioning
  */
 public record StreamEdge(int sourceId, int targetId, StreamPartitioning partitioning, KeySelector<?> keySelector) {
 
-    /** 向后兼容原有单并行链的 FORWARD 边。 */
+    /** Creates a direct FORWARD edge for a matching-parallelism chain. */
     public StreamEdge(int sourceId, int targetId) {
         this(sourceId, targetId, StreamPartitioning.FORWARD);
     }
@@ -25,7 +26,7 @@ public record StreamEdge(int sourceId, int targetId, StreamPartitioning partitio
         this(sourceId, targetId, partitioning, null);
     }
 
-    /** 静态工厂保留 KeySelector 的源记录类型，不要求调用方进行泛型擦除转换。 */
+    /** Creates a keyed edge without erasing the selector's input-record type. */
     public static <T> StreamEdge keyed(int sourceId, int targetId, KeySelector<T> selector) {
         return new StreamEdge(sourceId, targetId, StreamPartitioning.KEYED, selector);
     }
@@ -43,7 +44,7 @@ public record StreamEdge(int sourceId, int targetId, StreamPartitioning partitio
         }
     }
 
-    /** 避免默认 record.toString() 意外展开 KeySelector 内部捕获的连接参数。 */
+    /** Omits the KeySelector to avoid leaking captured connection details in diagnostics. */
     @Override
     public String toString() {
         return "StreamEdge{sourceId=" + sourceId + ", targetId=" + targetId + ", partitioning=" + partitioning + "}";

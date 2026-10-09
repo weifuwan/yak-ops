@@ -12,13 +12,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * StreamGraph 中一个已解析执行属性的节点。
+ * Resolved node definition in a StreamGraph.
  *
- * <p>节点只保留算子定义与类型信息，不创建 Source Reader、Operator 或 SinkWriter。
- * 构造时复制 Transformation 的节点属性，后续修改 Transformation 不影响这些属性。
- *
- * <p>Source、OperatorFactory、Sink 必须作为可复用的组件定义使用，
- * 不得在其中保存某个运行子任务专属的活动连接或 Writer。
+ * <p>Copies logical transformation properties during compilation without creating
+ * SourceReaders, Operators or Writers. Factories and connectors must remain reusable
+ * definitions rather than capturing active subtask resources.
  *
  * @author weifuwan
  */
@@ -82,11 +80,12 @@ public final class StreamNode {
     }
 
     /**
-     * 将一个已支持的逻辑 Transformation 转换为执行节点快照。
-     *
-     * @param transformation 逻辑转换节点
-     * @param resolvedParallelism 已结合执行配置解析的正整数并行度
-     */
+ * Creates a resolved graph node from a logical transformation.
+ *
+ * @param transformation the validated logical operator definition
+ * @param resolvedParallelism the positive parallelism determined by graph planning
+ * @return a graph node with frozen execution properties
+ */
     public static StreamNode fromTransformation(Transformation<?> transformation, int resolvedParallelism) {
         return new StreamNode(transformation, resolvedParallelism);
     }
@@ -99,32 +98,32 @@ public final class StreamNode {
         return name;
     }
 
-    /** 稳定算子 UID；未设置时返回 null。 */
+    /** Returns the stable operator UID, or null if none was assigned. */
     public String getUid() {
         return uid;
     }
 
-    /** 返回构图时声明的并行度；-1 表示继承默认值。 */
+    /** Returns the declared parallelism, or the default sentinel if inherited. */
     public int getDeclaredParallelism() {
         return declaredParallelism;
     }
 
-    /** 返回是否继承了构图时的默认并行度。 */
+    /** Returns whether the node inherits default parallelism from configuration. */
     public boolean usesDefaultParallelism() {
         return declaredParallelism == Transformation.DEFAULT_PARALLELISM;
     }
 
-    /** 返回已经解析的算子并行度，不应在 Runtime 中再次用默认值覆盖。 */
+    /** Returns the resolved parallelism, which must not be overwritten during deployment. */
     public int getParallelism() {
         return parallelism;
     }
 
-    /** Source 没有输入类型；其他节点返回其期望的输入类型。 */
+    /** Returns the expected input type; Source nodes have no input type. */
     public Optional<Class<?>> getInputType() {
         return Optional.ofNullable(inputType);
     }
 
-    /** Sink 的逻辑输出类型为 Void。 */
+    /** Returns the Java output type; Sink nodes have Void output. */
     public Class<?> getOutputType() {
         return outputType;
     }
@@ -153,12 +152,12 @@ public final class StreamNode {
         return Optional.ofNullable(sink);
     }
 
-    /** 仅 Source 节点具有 Boundedness。 */
+    /** Returns Source boundedness, absent for non-Source nodes. */
     public Optional<Boundedness> getBoundedness() {
         return Optional.ofNullable(boundedness);
     }
 
-    /** 不输出组件定义，避免日志意外泄漏连接配置。 */
+    /** Omits connector instances and their captured configuration from diagnostics. */
     @Override
     public String toString() {
         return "StreamNode{id=" + id + ", name='" + name + "', parallelism=" + parallelism + "}";

@@ -15,13 +15,11 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * 批流统一的内存执行拓扑，实现 Pipeline 提交契约。
+ * Validated in-memory topology used as a reusable pipeline definition.
  *
- * <p>节点与边在构造时完成结构校验并冻结；不包含 JobID、运行状态、线程或连接。
- * StreamGraph 可以作为多个独立 Job 的共同执行定义。
- *
- * <p>这里只支持 Source、单输入 Operator 和 Sink。边已携带分区策略，
- * 但双输入、Union、Side Output 等能力仍不属于当前执行契约。
+ * <p>Nodes and edges are frozen at construction; the graph owns neither a JobID nor
+ * active tasks, connections or threads. The embedded runtime supports a linear
+ * Source-to-Operator-to-Sink pipeline, not union, multi-input or side output.
  *
  * @author weifuwan
  */
@@ -164,7 +162,7 @@ public final class StreamGraph implements Pipeline {
         return Collections.unmodifiableMap(copy);
     }
 
-    /** 根据节点 ID 查询执行图节点；节点不存在时返回 null。 */
+    /** Returns the graph node with this ID, or null if it does not exist. */
     public StreamNode getStreamNode(int id) {
         return nodes.get(id);
     }
@@ -201,12 +199,12 @@ public final class StreamGraph implements Pipeline {
         return sinkNodes;
     }
 
-    /** 返回从上游到下游的拓扑顺序，便于后续执行图编译。 */
+    /** Returns nodes in upstream-to-downstream topological order for physical compilation. */
     public List<StreamNode> getTopologicalNodes() {
         return topologicalNodes;
     }
 
-    /** 只有所有 Source 均有界，整张图才视为有界。 */
+    /** Returns whether every Source in the graph is bounded. */
     public boolean isBounded() {
         return sourceNodes.stream().allMatch(node -> node.getBoundedness().orElseThrow() == Boundedness.BOUNDED);
     }
