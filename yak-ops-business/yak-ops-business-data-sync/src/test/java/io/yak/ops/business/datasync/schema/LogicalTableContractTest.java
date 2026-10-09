@@ -3,7 +3,7 @@ package io.yak.ops.business.datasync.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.yak.ops.core.types.TypeKind;
+import io.yak.ops.core.types.LogicalTypeRoot;
 import io.yak.ops.core.types.LogicalTypes;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -26,9 +26,9 @@ class LogicalTableContractTest {
 
         assertEquals(3, runtime.columnCount());
         assertEquals(List.of("id"), runtime.primaryKeys());
-        assertEquals(TypeKind.BIGINT, runtime.column(0).dataType().kind());
+        assertEquals(LogicalTypeRoot.BIGINT, runtime.column(0).dataType().getTypeRoot());
         assertEquals(128, runtime.column(1).length());
-        assertEquals(TypeKind.DECIMAL, runtime.column(2).dataType().kind());
+        assertEquals(LogicalTypeRoot.DECIMAL, runtime.column(2).dataType().getTypeRoot());
     }
 
     @Test

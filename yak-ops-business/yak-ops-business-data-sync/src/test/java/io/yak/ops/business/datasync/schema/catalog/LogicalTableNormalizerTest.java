@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
 import io.yak.ops.core.types.DecimalType;
-import io.yak.ops.core.types.TypeKind;
+import io.yak.ops.core.types.LogicalTypeRoot;
 import java.sql.Types;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -33,8 +33,8 @@ class LogicalTableNormalizerTest {
                 .map(LogicalColumn::name)
                 .toList());
         assertEquals(List.of("id"), logicalTable.primaryKeys());
-        assertEquals(TypeKind.BIGINT, logicalTable.columns().get(0).dataType().kind());
-        assertEquals(TypeKind.STRING, logicalTable.columns().get(1).dataType().kind());
+        assertEquals(LogicalTypeRoot.BIGINT, logicalTable.columns().get(0).dataType().getTypeRoot());
+        assertEquals(LogicalTypeRoot.VARCHAR, logicalTable.columns().get(1).dataType().getTypeRoot());
         assertEquals(100, logicalTable.columns().get(1).length());
         assertEquals("名称", logicalTable.columns().get(1).comment());
 

@@ -38,7 +38,7 @@ Schema 位于 `yak-ops-dao/src/main/resources/db/migration/yak-ops`。迁移冻�
 
 ### `yak-ops-core`
 
-拥有批流共享的 Source / Sink、RowData / TableRecord / RowKind、TableId 与 Column / TableSchema / LogicalType、SinkWriter/StatefulSinkWriter、Collector / KeySelector、类型化 Configuration、Transformation、只读 TaskInfo，以及 `PipelineExecutor` / `JobClient`。不包含 StreamGraph、Streaming Transformation、运行时 Operator、Channel、物理 Task、线程或 Checkpoint 执行器；不得反向依赖 Runtime。
+拥有批流共享的 Source / Sink、RowData 接口 / GenericRowData / TableRecord / RowKind、TableId 与 Column / TableSchema / LogicalTypeRoot / 参数化 LogicalType、SinkWriter/StatefulSinkWriter、Collector / KeySelector、类型化 Configuration、Transformation、只读 TaskInfo，以及 `PipelineExecutor` / `JobClient`。不包含 StreamGraph、Streaming Transformation、运行时 Operator、Channel、物理 Task、线程或 Checkpoint 执行器；不得反向依赖 Runtime。
 
 ### `yak-flow/yak-flow-runtime`
 

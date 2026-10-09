@@ -4,7 +4,7 @@ import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalType;
 import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.core.types.TableSchema;
-import io.yak.ops.core.types.TypeKind;
+import io.yak.ops.core.types.LogicalTypeRoot;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -13,10 +13,10 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 把 Datasource Catalog 的 JDBC 字段元数据转换为 YakFlow 逻辑表结构。
+ * Maps JDBC Catalog metadata to Core logical types, preserving source column order and key order.
  *
- * @author weifuwan
- * @since 2026-09-27
+ * <p>Unsupported or incomplete Decimal metadata is explicit, never replaced by an invented
+ * DECIMAL(10,0). Vendor JDBC values are converted separately by the upcoming JDBC Converter.
  */
 public final class JdbcSchemaMapper {
 
@@ -48,7 +48,7 @@ public final class JdbcSchemaMapper {
     public static Column toColumn(DataSourceColumn column) {
         Objects.requireNonNull(column, "column must not be null");
         LogicalType dataType = toLogicalType(column);
-        Integer length = isLengthType(dataType.kind()) ? column.size() : null;
+        Integer length = supportsLength(dataType.getTypeRoot()) ? column.size() : null;
         return new Column(column.name(), dataType, column.nullable(), length);
     }
 
@@ -63,23 +63,30 @@ public final class JdbcSchemaMapper {
             case Types.DOUBLE -> LogicalTypes.DOUBLE;
             case Types.NUMERIC, Types.DECIMAL ->
                 LogicalTypes.decimal(knownPrecision(column.size()), knownScale(column.scale()));
-            case Types.CHAR,
-                    Types.VARCHAR,
+            case Types.CHAR, Types.NCHAR -> lengthType(column.size(), true, true);
+            case Types.VARCHAR,
                     Types.LONGVARCHAR,
-                    Types.NCHAR,
                     Types.NVARCHAR,
                     Types.LONGNVARCHAR,
                     Types.CLOB,
                     Types.NCLOB -> LogicalTypes.STRING;
-            case Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB -> LogicalTypes.BINARY;
+            case Types.BINARY -> lengthType(column.size(), true, false);
+            case Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB -> LogicalTypes.BINARY;
             case Types.DATE -> LogicalTypes.DATE;
-            case Types.TIME -> LogicalTypes.TIME;
-            case Types.TIMESTAMP -> LogicalTypes.TIMESTAMP;
-            case Types.TIMESTAMP_WITH_TIMEZONE -> LogicalTypes.TIMESTAMP_WITH_TIME_ZONE;
+            case Types.TIME -> LogicalTypes.time(temporalPrecision(column.scale()));
+            case Types.TIMESTAMP -> LogicalTypes.timestamp(temporalPrecision(column.scale()));
+            case Types.TIMESTAMP_WITH_TIMEZONE -> LogicalTypes.zonedTimestamp(temporalPrecision(column.scale()));
             default ->
                 throw new IllegalArgumentException(
                         "暂不支持 JDBC 字段类型：" + column.typeName() + " (" + column.jdbcType() + ")");
         };
+    }
+
+    private static LogicalType lengthType(Integer length, boolean fixed, boolean characters) {
+        if (length == null || length <= 0) {
+            return characters ? LogicalTypes.STRING : LogicalTypes.BINARY;
+        }
+        return characters ? LogicalTypes.charType(length) : LogicalTypes.fixedBinary(length);
     }
 
     private static int primaryKeyOrder(DataSourceColumn column) {
@@ -87,8 +94,11 @@ public final class JdbcSchemaMapper {
         return position == null || position <= 0 ? Integer.MAX_VALUE : position;
     }
 
-    private static boolean isLengthType(TypeKind kind) {
-        return kind == TypeKind.STRING || kind == TypeKind.BINARY;
+    private static boolean supportsLength(LogicalTypeRoot root) {
+        return root == LogicalTypeRoot.CHAR
+                || root == LogicalTypeRoot.VARCHAR
+                || root == LogicalTypeRoot.BINARY
+                || root == LogicalTypeRoot.VARBINARY;
     }
 
     private static Integer knownPrecision(Integer precision) {
@@ -97,5 +107,15 @@ public final class JdbcSchemaMapper {
 
     private static Integer knownScale(Integer scale) {
         return scale != null && scale >= 0 ? scale : null;
+    }
+
+    private static int temporalPrecision(Integer scale) {
+        if (scale == null || scale < 0) {
+            return 6;
+        }
+        if (scale > 9) {
+            throw new IllegalArgumentException("JDBC temporal precision exceeds nanosecond resolution");
+        }
+        return scale;
     }
 }

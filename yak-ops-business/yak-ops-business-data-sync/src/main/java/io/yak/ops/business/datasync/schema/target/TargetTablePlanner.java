@@ -60,7 +60,7 @@ public class TargetTablePlanner {
                 }
             } catch (UnsupportedOperationException exception) {
                 unsupportedReason =
-                        "字段 " + column.name() + "（" + column.dataType().kind() + "）：" + exception.getMessage();
+                        "字段 " + column.name() + "（" + column.dataType().getTypeRoot() + "）：" + exception.getMessage();
             }
 
             if (warning != null) {

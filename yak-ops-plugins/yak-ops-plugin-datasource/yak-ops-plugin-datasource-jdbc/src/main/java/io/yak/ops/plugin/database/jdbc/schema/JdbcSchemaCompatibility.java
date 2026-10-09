@@ -1,120 +1,143 @@
 package io.yak.ops.plugin.database.jdbc.schema;
 
 import io.yak.ops.core.types.Column;
-import io.yak.ops.core.types.DecimalType;
-import io.yak.ops.core.types.TypeKind;
+import io.yak.ops.core.types.LogicalType;
+import io.yak.ops.core.types.LogicalTypeRoot;
+import io.yak.ops.core.types.LogicalTypes;
+import io.yak.ops.core.types.TimeType;
+import io.yak.ops.core.types.TimestampType;
+import io.yak.ops.core.types.ZonedTimestampType;
 
 /**
- * 定义 JDBC bounded 同步在 YakFlow 逻辑字段之间的可写兼容边界。
+ * Safe JDBC source-to-target schema compatibility without a Transform.
  *
- * @author weifuwan
- * @since 2026-09-28
+ * <p>Unknown Catalog capacities retain the existing non-blocking preview policy; an execution
+ * cannot use an unresolved decimal until its runtime value representation is established.
  */
 public final class JdbcSchemaCompatibility {
 
     private JdbcSchemaCompatibility() {}
 
     public static boolean isCompatible(Column source, Column target) {
-        if (source == null || target == null) return false;
-        if (source.nullable() && !target.nullable()) return false;
+        if (source == null || target == null) {
+            return false;
+        }
+        if (source.nullable() && !target.nullable()) {
+            return false;
+        }
 
-        TypeKind sourceKind = source.dataType().kind();
-        TypeKind targetKind = target.dataType().kind();
-        if (sourceKind == targetKind) {
+        LogicalTypeRoot sourceRoot = source.dataType().getTypeRoot();
+        LogicalTypeRoot targetRoot = target.dataType().getTypeRoot();
+        if (sourceRoot == targetRoot) {
             return sameTypeCompatible(source, target);
         }
-        if (isInteger(sourceKind) && isInteger(targetKind)) {
-            return integerRank(sourceKind) <= integerRank(targetKind);
+        if (sourceRoot == LogicalTypeRoot.CHAR && targetRoot == LogicalTypeRoot.VARCHAR) {
+            return capacityCompatible(source.length(), target.length());
         }
-        if (isInteger(sourceKind) && targetKind == TypeKind.DECIMAL) {
-            return integerToDecimalCompatible(sourceKind, (DecimalType) target.dataType());
+        if (sourceRoot == LogicalTypeRoot.BINARY && targetRoot == LogicalTypeRoot.VARBINARY) {
+            return capacityCompatible(source.length(), target.length());
         }
-        if (sourceKind == TypeKind.BOOLEAN && isInteger(targetKind)) {
+        if (isInteger(sourceRoot) && isInteger(targetRoot)) {
+            return integerRank(sourceRoot) <= integerRank(targetRoot);
+        }
+        if (isInteger(sourceRoot) && targetRoot == LogicalTypeRoot.DECIMAL) {
+            return integerToDecimalCompatible(sourceRoot, target.dataType());
+        }
+        if (sourceRoot == LogicalTypeRoot.BOOLEAN && isInteger(targetRoot)) {
             return true;
         }
-        if (sourceKind == TypeKind.BOOLEAN && targetKind == TypeKind.DECIMAL) {
-            return booleanToDecimalCompatible((DecimalType) target.dataType());
+        if (sourceRoot == LogicalTypeRoot.BOOLEAN && targetRoot == LogicalTypeRoot.DECIMAL) {
+            return booleanToDecimalCompatible(target.dataType());
         }
-        if (sourceKind == TypeKind.DATE && targetKind == TypeKind.TIMESTAMP) {
+        if (sourceRoot == LogicalTypeRoot.DATE && targetRoot == LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE) {
             return true;
         }
-        return sourceKind == TypeKind.FLOAT && targetKind == TypeKind.DOUBLE;
+        return sourceRoot == LogicalTypeRoot.FLOAT && targetRoot == LogicalTypeRoot.DOUBLE;
     }
 
     private static boolean sameTypeCompatible(Column source, Column target) {
-        TypeKind kind = source.dataType().kind();
-        if (kind == TypeKind.STRING || kind == TypeKind.BINARY) {
-            return capacityCompatible(source.length(), target.length());
-        }
-        if (kind == TypeKind.DECIMAL) {
-            return decimalCompatible((DecimalType) source.dataType(), (DecimalType) target.dataType());
-        }
-        return true;
+        LogicalTypeRoot root = source.dataType().getTypeRoot();
+        return switch (root) {
+            case CHAR, VARCHAR, BINARY, VARBINARY -> capacityCompatible(source.length(), target.length());
+            case DECIMAL -> decimalCompatible(source.dataType(), target.dataType());
+            case TIME_WITHOUT_TIME_ZONE ->
+                ((TimeType) source.dataType()).precision() <= ((TimeType) target.dataType()).precision();
+            case TIMESTAMP_WITHOUT_TIME_ZONE ->
+                ((TimestampType) source.dataType()).precision() <= ((TimestampType) target.dataType()).precision();
+            case TIMESTAMP_WITH_TIME_ZONE ->
+                ((ZonedTimestampType) source.dataType()).precision()
+                        <= ((ZonedTimestampType) target.dataType()).precision();
+            default -> true;
+        };
     }
 
-    private static boolean booleanToDecimalCompatible(DecimalType target) {
-        if (knownScale(target.scale()) && target.scale() != 0) return false;
-        return !positive(target.precision()) || target.precision() >= 1;
-    }
-
-    private static boolean integerToDecimalCompatible(TypeKind sourceKind, DecimalType target) {
-        if (!positive(target.precision())) return true;
-
-        int targetScale = knownScale(target.scale()) ? target.scale() : 0;
-        int targetIntegerDigits = target.precision() - targetScale;
-        return targetIntegerDigits >= integerDigits(sourceKind);
-    }
-
-    private static boolean decimalCompatible(DecimalType source, DecimalType target) {
-        if (knownScale(source.scale()) && knownScale(target.scale()) && source.scale() > target.scale()) {
+    private static boolean booleanToDecimalCompatible(LogicalType target) {
+        Integer scale = LogicalTypes.decimalScale(target);
+        Integer precision = LogicalTypes.decimalPrecision(target);
+        if (scale != null && scale != 0) {
             return false;
         }
-        if (!positive(source.precision()) || !positive(target.precision())) return true;
+        return !positive(precision) || precision >= 1;
+    }
 
-        if (knownScale(source.scale()) && knownScale(target.scale())) {
-            int sourceIntegerDigits = source.precision() - source.scale();
-            int targetIntegerDigits = target.precision() - target.scale();
-            return targetIntegerDigits >= sourceIntegerDigits;
+    private static boolean integerToDecimalCompatible(LogicalTypeRoot source, LogicalType target) {
+        Integer precision = LogicalTypes.decimalPrecision(target);
+        if (!positive(precision)) {
+            return true;
         }
-        return target.precision() >= source.precision();
+        Integer scale = LogicalTypes.decimalScale(target);
+        return precision - (scale == null ? 0 : scale) >= integerDigits(source);
+    }
+
+    private static boolean decimalCompatible(LogicalType source, LogicalType target) {
+        Integer sourceScale = LogicalTypes.decimalScale(source);
+        Integer targetScale = LogicalTypes.decimalScale(target);
+        if (sourceScale != null && targetScale != null && sourceScale > targetScale) {
+            return false;
+        }
+        Integer sourcePrecision = LogicalTypes.decimalPrecision(source);
+        Integer targetPrecision = LogicalTypes.decimalPrecision(target);
+        if (!positive(sourcePrecision) || !positive(targetPrecision)) {
+            return true;
+        }
+        if (sourceScale != null && targetScale != null) {
+            return targetPrecision - targetScale >= sourcePrecision - sourceScale;
+        }
+        return targetPrecision >= sourcePrecision;
     }
 
     private static boolean capacityCompatible(Integer sourceSize, Integer targetSize) {
         return !positive(sourceSize) || !positive(targetSize) || targetSize >= sourceSize;
     }
 
-    private static boolean isInteger(TypeKind kind) {
-        return kind == TypeKind.TINYINT
-                || kind == TypeKind.SMALLINT
-                || kind == TypeKind.INTEGER
-                || kind == TypeKind.BIGINT;
+    private static boolean isInteger(LogicalTypeRoot kind) {
+        return kind == LogicalTypeRoot.TINYINT
+                || kind == LogicalTypeRoot.SMALLINT
+                || kind == LogicalTypeRoot.INTEGER
+                || kind == LogicalTypeRoot.BIGINT;
     }
 
-    private static int integerRank(TypeKind kind) {
+    private static int integerRank(LogicalTypeRoot kind) {
         return switch (kind) {
             case TINYINT -> 1;
             case SMALLINT -> 2;
             case INTEGER -> 3;
             case BIGINT -> 4;
-            default -> throw new IllegalArgumentException("not an integer type: " + kind);
+            default -> throw new IllegalArgumentException("Not an integer type: " + kind);
         };
     }
 
-    private static int integerDigits(TypeKind kind) {
+    private static int integerDigits(LogicalTypeRoot kind) {
         return switch (kind) {
             case TINYINT -> 3;
             case SMALLINT -> 5;
             case INTEGER -> 10;
             case BIGINT -> 19;
-            default -> throw new IllegalArgumentException("not an integer type: " + kind);
+            default -> throw new IllegalArgumentException("Not an integer type: " + kind);
         };
     }
 
     private static boolean positive(Integer value) {
         return value != null && value > 0;
-    }
-
-    private static boolean knownScale(Integer value) {
-        return value != null && value >= 0;
     }
 }

@@ -38,13 +38,25 @@ public final class PostgresJdbcDialect implements JdbcDialect {
             case FLOAT -> JdbcNativeType.of("REAL");
             case DOUBLE -> JdbcNativeType.of("DOUBLE PRECISION");
             case DECIMAL -> JdbcTypeMappings.decimal(column, "NUMERIC", 1000, 1000);
-            case STRING -> stringType(column.length());
-            case BINARY -> JdbcNativeType.of("BYTEA");
+            case CHAR -> JdbcNativeType.of("CHAR(" + column.length() + ")");
+            case VARCHAR -> stringType(column.length());
+            case BINARY, VARBINARY -> JdbcNativeType.of("BYTEA");
             case DATE -> JdbcNativeType.of("DATE");
-            case TIME -> JdbcNativeType.of("TIME");
-            case TIMESTAMP -> JdbcNativeType.of("TIMESTAMP");
-            case TIMESTAMP_WITH_TIME_ZONE -> JdbcNativeType.of("TIMESTAMP WITH TIME ZONE");
+            case TIME_WITHOUT_TIME_ZONE -> timeType(column);
+            case TIMESTAMP_WITHOUT_TIME_ZONE -> timestampType(column, false);
+            case TIMESTAMP_WITH_TIME_ZONE -> timestampType(column, true);
         };
+    }
+
+    private JdbcNativeType timeType(Column column) {
+        int precision = JdbcTypeMappings.precision(column, 6, "PostgreSQL TIME");
+        return JdbcNativeType.of(precision == 6 ? "TIME" : "TIME(" + precision + ")");
+    }
+
+    private JdbcNativeType timestampType(Column column, boolean zoned) {
+        int precision = JdbcTypeMappings.precision(column, 6, "PostgreSQL TIMESTAMP");
+        String sqlType = precision == 6 ? "TIMESTAMP" : "TIMESTAMP(" + precision + ")";
+        return JdbcNativeType.of(zoned ? sqlType + " WITH TIME ZONE" : sqlType);
     }
 
     private JdbcNativeType stringType(Integer length) {

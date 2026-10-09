@@ -54,4 +54,31 @@ class JdbcSchemaMapperTest {
 
         assertThrows(IllegalArgumentException.class, () -> JdbcSchemaMapper.toColumn(column));
     }
+
+    @Test
+    void shouldDistinguishFixedWidthAndTimestampPrecisionFromCatalog() {
+        TableSchema schema = JdbcSchemaMapper.fromColumns(List.of(
+                new DataSourceColumn("code", "CHAR", Types.CHAR, 12, null, false, 1, false, null),
+                new DataSourceColumn("raw", "BINARY", Types.BINARY, 16, null, true, 2, false, null),
+                new DataSourceColumn("updated_at", "TIMESTAMP", Types.TIMESTAMP, null, 3, true, 3, false, null),
+                new DataSourceColumn("timezone_at", "TIMESTAMPTZ", Types.TIMESTAMP_WITH_TIMEZONE, null, 6, true, 4, false, null)));
+
+        assertEquals("CHAR(12) NOT NULL", schema.column(0).dataType().asSerializableString());
+        assertEquals("BINARY(16)", schema.column(1).dataType().asSerializableString());
+        assertEquals("TIMESTAMP(3)", schema.column(2).dataType().asSerializableString());
+        assertEquals("TIMESTAMP(6) WITH TIME ZONE", schema.column(3).dataType().asSerializableString());
+    }
+
+    @Test
+    void shouldPreserveUnresolvedAndHighPrecisionDecimalMetadataWithoutLying() {
+        var missing = JdbcSchemaMapper.toColumn(
+                new DataSourceColumn("amount", "NUMERIC", Types.NUMERIC, null, null, true, 1, false, null));
+        var large = JdbcSchemaMapper.toColumn(
+                new DataSourceColumn("amount", "NUMERIC", Types.NUMERIC, 65, 30, true, 1, false, null));
+
+        assertEquals(false, missing.dataType().isResolved());
+        assertEquals("UNRESOLVED_DECIMAL(?, ?)", missing.dataType().asSerializableString());
+        assertEquals(false, large.dataType().isResolved());
+        assertEquals("UNRESOLVED_DECIMAL(65, 30)", large.dataType().asSerializableString());
+    }
 }
