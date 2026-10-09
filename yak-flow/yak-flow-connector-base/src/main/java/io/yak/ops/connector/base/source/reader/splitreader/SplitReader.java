@@ -20,6 +20,16 @@ public interface SplitReader<E, SplitT extends SourceSplit> extends AutoCloseabl
     /** Wakes an in-flight blocking fetch without making the reader unusable. */
     void wakeUp();
 
+    /**
+     * Stops active I/O when the owning fetcher is being shut down.
+     *
+     * <p>Unlike wakeUp(), this signal is not used for normal split assignment. A JDBC reader
+     * may therefore cancel its active Statement without aborting a healthy running query.
+     */
+    default void cancel() {
+        wakeUp();
+    }
+
     @Override
     void close() throws Exception;
 }

@@ -140,6 +140,24 @@ class SourceReaderBaseTest {
         }
     }
 
+
+    @Test
+    void closeUsesTerminalCancellationForBlockedSplitReader() throws Exception {
+        BlockingSplitReader io = new BlockingSplitReader();
+        io.blockFetch = true;
+        DemoReader reader = new DemoReader(() -> io, new DemoContext(new Configuration()));
+        try {
+            reader.start();
+            reader.addSplits(List.of(new DemoSplit("orders", 1, 0)));
+            assertTrue(io.fetchEntered.await(3, TimeUnit.SECONDS));
+            assertTimeoutPreemptively(Duration.ofSeconds(3), reader::close);
+            assertEquals(1, io.cancelCalls.get());
+            assertTrue(io.closed.get());
+        } finally {
+            reader.close();
+        }
+    }
+
     @Test
     void noMoreSplitsWithoutAssignmentsEndsImmediately() throws Exception {
         try (DemoReader reader = new DemoReader(BlockingSplitReader::new, new DemoContext(new Configuration()))) {
@@ -261,6 +279,7 @@ class SourceReaderBaseTest {
     private static final class BlockingSplitReader implements SplitReader<DemoRecord, DemoSplit> {
         private final Deque<DemoSplit> pending = new ArrayDeque<>();
         private final AtomicInteger fetchCalls = new AtomicInteger();
+        private final AtomicInteger cancelCalls = new AtomicInteger();
         private final AtomicBoolean closed = new AtomicBoolean();
         private final CountDownLatch fetchEntered = new CountDownLatch(1);
         private final CountDownLatch releaseFetch = new CountDownLatch(1);
@@ -304,6 +323,12 @@ class SourceReaderBaseTest {
 
         @Override
         public void wakeUp() {
+            releaseFetch.countDown();
+        }
+
+        @Override
+        public void cancel() {
+            cancelCalls.incrementAndGet();
             releaseFetch.countDown();
         }
 

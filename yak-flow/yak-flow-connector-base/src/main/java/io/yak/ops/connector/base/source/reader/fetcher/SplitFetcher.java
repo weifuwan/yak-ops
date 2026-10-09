@@ -100,7 +100,9 @@ final class SplitFetcher<E, SplitT extends SourceSplit> implements Runnable {
         } finally {
             lock.unlock();
         }
-        if (inFlight != null) {
+        if (inFlight == fetchTask) {
+            fetchTask.cancel();
+        } else if (inFlight != null) {
             inFlight.wakeUp();
         }
     }

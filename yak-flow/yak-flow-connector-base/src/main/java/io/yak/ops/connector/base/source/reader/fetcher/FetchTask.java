@@ -54,6 +54,12 @@ final class FetchTask<E, SplitT extends SourceSplit> implements SplitFetcherTask
         queue.wakeUpPuttingThread(fetcherId);
     }
 
+    /** Signals a terminal reader cancellation separately from ordinary split assignment. */
+    void cancel() {
+        queue.wakeUpPuttingThread(fetcherId);
+        splitReader.cancel();
+    }
+
     /** Discards an undelivered batch when the entire source is cancelled or failed. */
     void discard() {
         if (pendingBatch != null) {

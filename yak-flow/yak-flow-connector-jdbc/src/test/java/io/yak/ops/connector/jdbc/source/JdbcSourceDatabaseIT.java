@@ -1,6 +1,7 @@
 package io.yak.ops.connector.jdbc.source;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
@@ -8,6 +9,8 @@ import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
 import io.yak.ops.connector.jdbc.source.enumerator.JdbcSplitPlanner;
+import io.yak.ops.connector.jdbc.source.reader.JdbcSourceSplitReader;
+import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
@@ -25,6 +28,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -113,7 +117,8 @@ class JdbcSourceDatabaseIT {
                 options.set(JdbcSourceOptions.READER_FETCH_BATCH_SIZE, 2);
                 options.set(JdbcSourceOptions.RESULT_SET_FETCH_SIZE, 3);
 
-                List<?> partitions = new JdbcSplitPlanner(connectionOptions, dialect, options).plan(first, 0);
+                List<JdbcSourceSplit> partitions =
+                        new JdbcSplitPlanner(connectionOptions, dialect, options).plan(first, 0);
                 assertTrue(partitions.size() > 1, "Integral primary keys must produce multiple splits");
 
                 JdbcSource source = new JdbcSource(connectionOptions, List.of(first, second, third), options);
@@ -173,6 +178,21 @@ class JdbcSourceDatabaseIT {
                         .map(row -> ((Number) row.row().getField(0)).longValue())
                         .distinct()
                         .count());
+
+                // Reuse the originally planned split after changing the selected column type.
+                // The running Reader must reject it before emitting data, in every real driver.
+                String label = dialect.quoteIdentifier("LABEL");
+                String alteration = oracle
+                        ? "ALTER TABLE " + qualifiedA + " MODIFY (" + label + " VARCHAR2(72))"
+                        : mysql
+                                ? "ALTER TABLE " + qualifiedA + " MODIFY COLUMN " + label + " VARCHAR(72)"
+                                : "ALTER TABLE " + qualifiedA + " ALTER COLUMN " + label + " TYPE VARCHAR(72)";
+                ddl.execute(alteration);
+                try (JdbcSourceSplitReader stale = new JdbcSourceSplitReader(connectionOptions, dialect, options)) {
+                    stale.addSplits(List.of(partitions.getFirst()));
+                    SQLException failure = assertThrows(SQLException.class, stale::fetch);
+                    assertTrue(failure.getMessage().contains("schema fingerprint"));
+                }
             } finally {
                 try {
                     ddl.execute("DROP TABLE " + qualifiedC);

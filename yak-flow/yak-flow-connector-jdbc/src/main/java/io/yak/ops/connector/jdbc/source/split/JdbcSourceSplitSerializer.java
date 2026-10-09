@@ -14,7 +14,7 @@ import java.util.Objects;
 /** Versioned, credential-free codec for JDBC split transfer and checkpoint state. */
 public final class JdbcSourceSplitSerializer implements SimpleVersionedSerializer<JdbcSourceSplit> {
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
     private static final int MAX_SPLIT_BYTES = 1_048_576;
     private static final int MAX_COLUMNS = 8_192;
 
@@ -40,6 +40,7 @@ public final class JdbcSourceSplitSerializer implements SimpleVersionedSerialize
             writeNullableLong(out, split.lowerBound());
             writeNullableLong(out, split.upperBound());
             writeNullableLong(out, split.lastEmittedKey());
+            out.writeUTF(split.schemaFingerprint());
             out.flush();
             if (buffer.size() > MAX_SPLIT_BYTES) {
                 throw new IOException("JDBC split state exceeds the maximum size");
@@ -70,11 +71,12 @@ public final class JdbcSourceSplitSerializer implements SimpleVersionedSerialize
             Long lower = readNullableLong(in);
             Long upper = readNullableLong(in);
             Long position = readNullableLong(in);
+            String schemaFingerprint = in.readUTF();
             if (in.available() != 0) {
                 throw new IOException("Unexpected bytes after JDBC split state");
             }
             return new JdbcSourceSplit(
-                    id, new TableId(catalog, schema, table), columns, splitColumn, lower, upper, position);
+                    id, new TableId(catalog, schema, table), columns, splitColumn, lower, upper, position, schemaFingerprint);
         } catch (RuntimeException exception) {
             throw new IOException("Invalid JDBC split state", exception);
         }

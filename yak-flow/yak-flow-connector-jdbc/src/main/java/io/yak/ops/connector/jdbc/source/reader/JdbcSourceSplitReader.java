@@ -7,6 +7,7 @@ import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
 import io.yak.ops.connector.jdbc.database.converter.JdbcDialectConverter;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
@@ -41,10 +42,13 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
     private final int fetchBatchSize;
     private final int resultSetFetchSize;
     private final int queryTimeoutSeconds;
+    private final int connectionAttempts;
     private final Deque<JdbcSourceSplit> pending = new ArrayDeque<>();
 
     private Connection connection;
     private PreparedStatement statement;
+    private volatile PreparedStatement cancellableStatement;
+    private volatile boolean cancellationRequested;
     private ResultSet resultSet;
     private JdbcDialectConverter converter;
     private JdbcSourceSplit active;
@@ -63,7 +67,9 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         fetchBatchSize = configuration.get(JdbcSourceOptions.READER_FETCH_BATCH_SIZE);
         resultSetFetchSize = configuration.get(JdbcSourceOptions.RESULT_SET_FETCH_SIZE);
         queryTimeoutSeconds = configuration.get(JdbcSourceOptions.QUERY_TIMEOUT_SECONDS);
-        if (fetchBatchSize <= 0 || resultSetFetchSize <= 0 || queryTimeoutSeconds <= 0) {
+        connectionAttempts = configuration.get(JdbcSourceOptions.CONNECTION_ATTEMPTS);
+        if (fetchBatchSize <= 0 || resultSetFetchSize <= 0 || queryTimeoutSeconds <= 0
+                || connectionAttempts <= 0) {
             throw new IllegalArgumentException("JDBC read settings must be positive");
         }
     }
@@ -78,8 +84,8 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
 
     @Override
     public RecordsWithSplitIds<JdbcRecordAndPosition> fetch() throws Exception {
-        if (closed) {
-            throw new IllegalStateException("JDBC split reader is closed");
+        if (closed || cancellationRequested) {
+            throw new IllegalStateException("JDBC split reader is closed or cancelled");
         }
         if (active == null) {
             active = pending.pollFirst();
@@ -92,6 +98,9 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         String splitId = active.splitId();
         List<JdbcRecordAndPosition> batch = new ArrayList<>(Math.min(fetchBatchSize, 1_024));
         for (int remaining = fetchBatchSize; remaining > 0 && hasRow; remaining--) {
+            if (cancellationRequested) {
+                throw new SQLException("JDBC source read was cancelled");
+            }
             RowData values = converter.toInternal(resultSet);
             Long key = active.splitColumn() == null ? null : resultSet.getLong(active.splitColumn());
             TableRecord record = new TableRecord(active.tableId(), RowKind.INSERT, values);
@@ -110,9 +119,25 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
 
     @Override
     public void wakeUp() {
-        // AddSplits uses the same wakeup protocol as cancellation. Cancelling an active statement
-        // here would fail a healthy running split when the next split is assigned; JDBC queries
-        // instead have a bounded query timeout and run outside the mailbox.
+        // Normal split assignments must not interrupt an active JDBC query.
+    }
+
+    @Override
+    public void cancel() {
+        cancellationRequested = true;
+        PreparedStatement running = cancellableStatement;
+        if (running == null) {
+            return;
+        }
+        // Some JDBC drivers implement Statement.cancel() with blocking network I/O. The mailbox
+        // must never wait here; the fetcher close timeout still bounds shutdown of the reader.
+        Thread.ofVirtual().name("yak-jdbc-query-cancel").start(() -> {
+            try {
+                running.cancel();
+            } catch (SQLException ignored) {
+                // An already closed/failed statement still terminates through the fetcher.
+            }
+        });
     }
 
     @Override
@@ -149,8 +174,11 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
 
     private void openSplit(JdbcSourceSplit split) throws SQLException {
         if (connection == null) {
-            connection = connections.getConnection();
+            connection = JdbcConnectionRetry.open(connections, connectionAttempts);
             dialect.configureReadConnection(connection);
+        }
+        if (cancellationRequested) {
+            throw new SQLException("JDBC source read was cancelled");
         }
         closeStatementAndResultSet();
         String columns = split.columns().stream().map(dialect::quoteIdentifier).collect(Collectors.joining(", "));
@@ -176,6 +204,10 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
             sql += " ORDER BY " + quoted;
         }
         statement = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        cancellableStatement = statement;
+        if (cancellationRequested) {
+            throw new SQLException("JDBC source read was cancelled");
+        }
         statement.setFetchSize(resultSetFetchSize);
         statement.setQueryTimeout(queryTimeoutSeconds);
         for (int index = 0; index < bounds.size(); index++) {
@@ -198,6 +230,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
     }
 
     private void closeStatementAndResultSet() throws SQLException {
+        cancellableStatement = null;
         converter = null;
         SQLException failure = null;
         if (resultSet != null) {

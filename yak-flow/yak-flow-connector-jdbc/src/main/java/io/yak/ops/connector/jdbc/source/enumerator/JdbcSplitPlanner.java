@@ -4,6 +4,8 @@ import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
+import io.yak.ops.connector.jdbc.source.split.JdbcSchemaFingerprint;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.configuration.Configuration;
@@ -34,6 +36,7 @@ public final class JdbcSplitPlanner {
     private final int targetRowsPerSplit;
     private final int maxSplitsPerTable;
     private final int queryTimeoutSeconds;
+    private final int connectionAttempts;
 
     public JdbcSplitPlanner(JdbcConnectionOptions connectionOptions, JdbcDialect dialect, Configuration configuration) {
         this(new DriverManagerJdbcConnectionProvider(connectionOptions), dialect, configuration);
@@ -46,7 +49,9 @@ public final class JdbcSplitPlanner {
         targetRowsPerSplit = configuration.get(JdbcSourceOptions.TARGET_ROWS_PER_SPLIT);
         maxSplitsPerTable = configuration.get(JdbcSourceOptions.MAX_SPLITS_PER_TABLE);
         queryTimeoutSeconds = configuration.get(JdbcSourceOptions.QUERY_TIMEOUT_SECONDS);
-        if (targetRowsPerSplit <= 0 || maxSplitsPerTable <= 0 || queryTimeoutSeconds <= 0) {
+        connectionAttempts = configuration.get(JdbcSourceOptions.CONNECTION_ATTEMPTS);
+        if (targetRowsPerSplit <= 0 || maxSplitsPerTable <= 0 || queryTimeoutSeconds <= 0
+                || connectionAttempts <= 0) {
             throw new IllegalArgumentException("Invalid JDBC split planning settings");
         }
     }
@@ -57,7 +62,7 @@ public final class JdbcSplitPlanner {
         if (tableIndex < 0) {
             throw new IllegalArgumentException("Table index must be nonnegative");
         }
-        try (Connection connection = connections.getConnection()) {
+        try (Connection connection = JdbcConnectionRetry.open(connections, connectionAttempts)) {
             DatabaseMetaData metadata = connection.getMetaData();
             Map<String, Integer> columns = discoverColumns(metadata, table);
             if (columns.isEmpty()) {
@@ -65,8 +70,9 @@ public final class JdbcSplitPlanner {
             }
             List<String> selectedColumns = List.copyOf(columns.keySet());
             String splitColumn = numericPrimaryKey(metadata, table, columns);
+            String schemaFingerprint = schemaFingerprint(connection, table, selectedColumns, splitColumn);
             if (splitColumn == null) {
-                return List.of(fullScan(tableIndex, table, selectedColumns, null));
+                return List.of(fullScan(tableIndex, table, selectedColumns, null, schemaFingerprint));
             }
 
             String column = dialect.quoteIdentifier(splitColumn);
@@ -80,7 +86,7 @@ public final class JdbcSplitPlanner {
                     }
                     long rows = values.getLong(3);
                     if (rows <= 0) {
-                        return List.of(fullScan(tableIndex, table, selectedColumns, splitColumn));
+                        return List.of(fullScan(tableIndex, table, selectedColumns, splitColumn, schemaFingerprint));
                     }
 
                     final long minimum;
@@ -91,7 +97,7 @@ public final class JdbcSplitPlanner {
                     } catch (ArithmeticException | NullPointerException outOfRange) {
                         // Unsigned BIGINT values outside signed-long range cannot be checkpointed
                         // through the supported numeric cursor. Replay the complete table instead.
-                        return List.of(fullScan(tableIndex, table, selectedColumns, null));
+                        return List.of(fullScan(tableIndex, table, selectedColumns, null, schemaFingerprint));
                     }
 
                     if (minimum > maximum) {
@@ -115,7 +121,7 @@ public final class JdbcSplitPlanner {
                         long start = lower.longValueExact();
                         long end = exclusiveUpper.subtract(BigInteger.ONE).longValueExact();
                         result.add(new JdbcSourceSplit(
-                                splitId(tableIndex, index), table, selectedColumns, splitColumn, start, end, null));
+                                splitId(tableIndex, index), table, selectedColumns, splitColumn, start, end, null, schemaFingerprint));
                     }
                     return List.copyOf(result);
                 }
@@ -169,8 +175,38 @@ public final class JdbcSplitPlanner {
         return null;
     }
 
-    private JdbcSourceSplit fullScan(int index, TableId table, List<String> columns, String key) {
-        return new JdbcSourceSplit(splitId(index, 0), table, columns, key, null, null, null);
+    private JdbcSourceSplit fullScan(
+            int index, TableId table, List<String> columns, String key, String schemaFingerprint) {
+        return new JdbcSourceSplit(splitId(index, 0), table, columns, key, null, null, null, schemaFingerprint);
+    }
+
+    /**
+     * Captures the exact projected JDBC types without fetching any rows.
+     *
+     * <p>The same vendor converter is used by the running SplitReader, so a restored split
+     * detects type, nullability or column-order changes before emitting any new records.
+     */
+    private String schemaFingerprint(
+            Connection connection, TableId table, List<String> columns, String key) throws SQLException {
+        String projection = columns.stream()
+                .map(dialect::quoteIdentifier)
+                .collect(java.util.stream.Collectors.joining(", "));
+        String sql = "SELECT " + projection + " FROM " + dialect.qualifiedTable(table) + " WHERE 1 = 0";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setQueryTimeout(queryTimeoutSeconds);
+            try (ResultSet results = statement.executeQuery()) {
+                var schema = dialect.createRowConverter(results.getMetaData()).schema();
+                if (schema.columnCount() != columns.size()) {
+                    throw new SQLException("JDBC projected column count changed during split planning");
+                }
+                for (int index = 0; index < columns.size(); index++) {
+                    if (!columns.get(index).equals(schema.column(index).name())) {
+                        throw new SQLException("JDBC projected column order changed during split planning");
+                    }
+                }
+                return JdbcSchemaFingerprint.of(table, schema, key);
+            }
+        }
     }
 
     private String splitId(int tableIndex, int splitIndex) {

@@ -96,6 +96,39 @@ ResultSet column count and ordering are verified against the assigned Split. Thi
 does not yet freeze a complete logical TableSchema inside checkpoints or guarantee a
 consistent snapshot of changing tables; those remain future Reader/Checkpoint work.
 
+
+## JDBC Source Reliability and Checkpoint
+
+Every planned JDBC split freezes the selected column order, numeric key bounds and a
+SHA-256 fingerprint of `TableId`, key identity, resolved logical types and nullability.
+The Planner derives the fingerprint with a zero-row projected query using the same vendor
+converter as the Reader. The Reader compares that fingerprint before emitting records;
+changing a selected column's SQL type, scale, capacity or nullability fails the split
+instead of attempting an unsafe checkpoint restore. Adding an unselected column does not
+change the frozen query projection. Unplanned tables remain discoverable on recovery;
+a Source checkpoint is **not** a transactionally consistent multi-table snapshot.
+
+Split and Enumerator state serializers now use version 2. Version 1 checkpoints are
+explicitly rejected rather than silently interpreted without a type fingerprint.
+When migrating a prior engine checkpoint, start a fresh bounded snapshot/attempt.
+Reader progress is still updated only after output, so prefetched rows are not
+checkpointed as consumed. Enumerator assignment removes pending work only after
+`assignSplit` succeeds, and in-flight asynchronous table planning is re-run on
+restoration when the table index has not advanced.
+
+`JdbcConnectionRetry` retries a bounded number of **connection creation** failures
+classified as transient or SQLState class 08. It never automatically restarts a query
+after ResultSet consumption; that is a Runtime failure/restart boundary.
+`SplitReader.cancel()` now distinguishes terminal cancellation from `wakeUp()`
+used for new splits. JDBC cancellation signals the active Statement asynchronously so
+it does not block the mailbox, while fetcher shutdown still has a bounded close timeout.
+JDBC driver cancellation is best-effort and may fail when network I/O cannot be
+interrupted; in that case the Runtime receives the close-timeout failure.
+
+Behavior tests cover disconnected acquisition, mid-fetch SQL failure without hidden
+retry, altered database schemas, no-key split replay, pending assignment retention,
+concurrent cancellation and real MySQL/PostgreSQL/Oracle schema drift.
+
 ## JDBC Source
 
 `yak-flow-connector-jdbc` implements one bounded `JdbcSource` over a frozen list of `TableId` values; a single table is the same path as many tables. A single `JdbcSourceEnumerator` discovers metadata and plans each table off the coordinator event loop; `JdbcSourceReader` uses Connector Base to read multiple independent splits per subtask, emitting `TableRecord` values with original table identity.

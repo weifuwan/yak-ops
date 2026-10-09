@@ -15,7 +15,7 @@ import java.util.Objects;
 /** Versioned snapshot of table planning progress and unassigned JDBC splits. */
 public final class JdbcEnumeratorStateSerializer implements SimpleVersionedSerializer<JdbcEnumeratorState> {
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
     private static final int MAX_SPLITS = 100_000;
     private static final int MAX_SPLIT_SIZE = 1_048_576;
     private final JdbcSourceSplitSerializer splitSerializer = new JdbcSourceSplitSerializer();
