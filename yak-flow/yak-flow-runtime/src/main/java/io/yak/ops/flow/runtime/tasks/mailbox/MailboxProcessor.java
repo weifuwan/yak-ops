@@ -61,6 +61,10 @@ public final class MailboxProcessor {
         }
     }
 
+    public void wakeup() {
+        mailbox.wakeup();
+    }
+
     public void prepareClose() {
         running = false;
         mailbox.quiesce();
