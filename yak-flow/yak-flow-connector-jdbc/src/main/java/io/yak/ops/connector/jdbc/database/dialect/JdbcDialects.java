@@ -11,7 +11,6 @@ public final class JdbcDialects {
 
     private JdbcDialects() {}
 
-
     /** Resolves the SQL dialect from the JDBC connection URL used by SourceReader. */
     public static JdbcDialect forUrl(String jdbcUrl) {
         if (jdbcUrl == null) throw new IllegalArgumentException("JDBC URL must not be null");

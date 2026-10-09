@@ -1,13 +1,12 @@
 package io.yak.ops.connector.jdbc.database.dialect;
 
+import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
-import io.yak.ops.core.data.TableId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 
 /**
  * Database-owned SQL planning contract for bounded reading, target DDL, and write statements.

@@ -1,11 +1,10 @@
 package io.yak.ops.connector.jdbc.database.dialect;
 
+import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
-import io.yak.ops.core.data.TableId;
 import java.util.List;
 import java.util.stream.Collectors;
-
 
 /** Oracle quoting, native type mapping, and DDL planning. */
 public final class OracleJdbcDialect implements JdbcDialect {
