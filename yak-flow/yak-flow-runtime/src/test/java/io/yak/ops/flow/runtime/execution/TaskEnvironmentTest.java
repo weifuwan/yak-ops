@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
-class TaskEnvironmentContractTest {
+class TaskEnvironmentTest {
 
     @Test
     void shouldValidateTaskIdentity() {

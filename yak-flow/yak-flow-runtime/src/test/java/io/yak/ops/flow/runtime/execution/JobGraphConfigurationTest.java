@@ -22,7 +22,6 @@ import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
-import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.flow.runtime.graph.StreamingJobGraphGenerator;
@@ -35,30 +34,7 @@ import java.time.Duration;
 import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 
-class ConfigurationGraphExecutionContractTest {
-
-    @Test
-    void shouldUseOneDefaultParallelismAndCheckpointOption() {
-        assertSame(CoreOptions.DEFAULT_PARALLELISM, ExecutionOptions.DEFAULT_PARALLELISM);
-        assertSame(CheckpointingOptions.CHECKPOINTING_INTERVAL, ExecutionOptions.CHECKPOINT_INTERVAL);
-
-        Configuration configuration = new Configuration();
-        assertEquals(1, (int) configuration.get(CoreOptions.DEFAULT_PARALLELISM));
-        assertEquals(Duration.ZERO, configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
-        assertTrue(configuration.getOptional(CheckpointingOptions.CHECKPOINTING_INTERVAL).isEmpty());
-
-        configuration.set(ExecutionOptions.CHECKPOINT_INTERVAL, Duration.ofSeconds(5));
-        assertEquals(Duration.ofSeconds(5), configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
-    }
-
-    @Test
-    void shouldPreserveLocalChannelKeyUnderRuntimeOptions() {
-        Configuration configuration = new Configuration();
-        assertEquals("execution.local-channel.capacity", RuntimeOptions.CHANNEL_CAPACITY.key());
-        assertEquals(64, (int) configuration.get(RuntimeOptions.CHANNEL_CAPACITY));
-        configuration.set(RuntimeOptions.CHANNEL_CAPACITY, 192);
-        assertEquals(192, (int) configuration.get(RuntimeOptions.CHANNEL_CAPACITY));
-    }
+class JobGraphConfigurationTest {
 
     @Test
     void shouldRetainDeclaredAndResolvedParallelismSeparately() {

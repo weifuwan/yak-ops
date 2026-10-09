@@ -22,7 +22,7 @@ import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import org.junit.jupiter.api.Test;
 
-class CoreSourceGraphContractTest {
+class StreamGraphSourceTest {
 
     @Test
     void shouldRetainTypedSourceDefinitionWithoutCreatingRuntimeInstances() {
