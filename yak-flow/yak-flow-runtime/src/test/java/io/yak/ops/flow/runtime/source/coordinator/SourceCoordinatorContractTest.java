@@ -14,6 +14,7 @@ import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
+import io.yak.ops.flow.runtime.support.TestSplitSerializers;
 import io.yak.ops.flow.runtime.checkpoint.SourceCoordinatorCheckpoint;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
@@ -268,7 +269,7 @@ class SourceCoordinatorContractTest {
 
         @Override
         public SimpleVersionedSerializer<TestSplit> getSplitSerializer() {
-            throw new AssertionError("Local event delivery does not serialize Split");
+            return TestSplitSerializers.utf8(TestSplit::splitId, TestSplit::new);
         }
 
         @Override

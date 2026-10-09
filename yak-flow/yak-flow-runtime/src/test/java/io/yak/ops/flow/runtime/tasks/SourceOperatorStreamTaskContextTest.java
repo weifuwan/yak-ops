@@ -15,6 +15,7 @@ import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
+import io.yak.ops.flow.runtime.support.TestSplitSerializers;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
@@ -108,7 +109,7 @@ class SourceOperatorStreamTaskContextTest {
 
         @Override
         public SimpleVersionedSerializer<TestSplit> getSplitSerializer() {
-            throw new AssertionError("Local event delivery must not require serialization");
+            return TestSplitSerializers.utf8(TestSplit::splitId, TestSplit::new);
         }
 
         @Override
