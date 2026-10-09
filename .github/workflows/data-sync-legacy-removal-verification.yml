@@ -1,0 +1,46 @@
+name: Data Sync Legacy Removal Verification
+
+on:
+  pull_request:
+    paths:
+      - "yak-flow/**"
+      - "yak-ops-business/yak-ops-business-data-sync/**"
+      - "yak-ops-plugins/yak-ops-plugin-datasource/**"
+      - "yak-ops-boot/**"
+      - "pom.xml"
+      - "yak-ops-bom/**"
+      - ".github/workflows/data-sync-legacy-removal-verification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  backend-contracts:
+    name: Remaining Backend Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Confirm obsolete modules and execution packages are absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -d yak-flow/yak-flow-connector-jdbc
+          test ! -d yak-flow/yak-flow-connector-cdc-mysql
+          test ! -d yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/execution
+          test ! -d yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/execution
+          test ! -d yak-flow/yak-flow-api/src/main/java/io/yak/ops/flow/api/source
+          test ! -d yak-flow/yak-flow-api/src/main/java/io/yak/ops/flow/api/sink
+          test ! -d yak-flow/yak-flow-api/src/main/java/io/yak/ops/flow/api/checkpoint
+          test ! -d yak-flow/yak-flow-api/src/main/java/io/yak/ops/flow/api/trace
+          if git grep -n -E 'io\\.yak\\.ops\\.flow\\.connector\\.|io\\.yak\\.ops\\.business\\.datasync\\.execution\\.|io\\.yak\\.ops\\.flow\\.api\\.(source|sink|checkpoint|trace)\\.' -- '*.java'; then
+            echo "Legacy data-sync engine import remained"
+            exit 1
+          fi
+      - name: Compile and test remaining backend modules
+        run: bash mvnw -B -ntp -pl '!yak-ops-ui,!yak-ops-dist' test
