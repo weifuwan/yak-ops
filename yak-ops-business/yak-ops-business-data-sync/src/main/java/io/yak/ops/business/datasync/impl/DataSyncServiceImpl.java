@@ -105,7 +105,7 @@ import io.yak.ops.dao.repository.datasync.DataSyncOperationsSummaryStats;
 import io.yak.ops.dao.repository.datasync.DataSyncOperationsTrendStats;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableAttemptRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTableAttemptRepository;
+
 import io.yak.ops.dao.repository.datasync.DataSyncTableExecutionRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
@@ -167,8 +167,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
     @Resource
     private DataSyncTableAttemptRepository tableAttemptRepository;
 
-    @Resource
-    private DataSyncTableAttemptRepository tableAttemptRepository;
+
 
     @Resource
     private DataSyncInstanceRepository instanceRepository;
