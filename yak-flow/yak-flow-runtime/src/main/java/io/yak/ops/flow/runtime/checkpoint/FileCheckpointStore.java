@@ -244,6 +244,14 @@ public final class FileCheckpointStore implements AutoCloseable {
      * 无 UID 的图不能用于跨作业恢复。
      */
     public static String graphSignature(StreamGraph graph) {
+        return graphSignature(graph, 0);
+    }
+
+    /**
+     * A keyed graph also commits to its KeyGroup hash algorithm and maxParallelism.
+     * Existing non-keyed snapshot fingerprints are byte-for-byte unchanged.
+     */
+    public static String graphSignature(StreamGraph graph, int maxParallelism) {
         Objects.requireNonNull(graph, "graph 不能为空");
         StringBuilder canonical = new StringBuilder("yak-local-v1");
         for (StreamNode node : graph.getTopologicalNodes()) {
@@ -262,6 +270,10 @@ public final class FileCheckpointStore implements AutoCloseable {
             canonical.append('|').append(graph.getStreamNode(edge.sourceId()).getUid())
                     .append("->").append(graph.getStreamNode(edge.targetId()).getUid())
                     .append(':').append(edge.partitioning());
+        }
+        if (maxParallelism > 0 && graph.getStreamEdges().stream()
+                .anyMatch(edge -> edge.partitioning() == io.yak.ops.flow.runtime.graph.StreamPartitioning.KEYED)) {
+            canonical.append("|keygroups-murmur3-v1:").append(maxParallelism);
         }
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
