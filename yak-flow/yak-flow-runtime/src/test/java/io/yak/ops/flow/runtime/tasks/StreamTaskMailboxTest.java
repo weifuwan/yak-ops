@@ -70,6 +70,33 @@ class StreamTaskMailboxTest {
     }
 
     @Test
+    void shouldFailQueuedControlMailWhenAnEarlierControlActionFails() throws Exception {
+        TestTask task = new TestTask();
+        task.start().get(5, TimeUnit.SECONDS);
+        assertTrue(task.firstPoll.await(5, TimeUnit.SECONDS));
+
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        try {
+            CompletableFuture<Void> failing = task.failControl(entered, release);
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+            CompletableFuture<Thread> queued = task.runControl();
+            assertFalse(queued.isDone());
+
+            release.countDown();
+            ExecutionException failure = assertThrows(
+                    ExecutionException.class, () -> failing.get(5, TimeUnit.SECONDS));
+            assertTrue(failure.getCause().getMessage().contains("control failed"));
+            assertThrows(ExecutionException.class, () -> queued.get(5, TimeUnit.SECONDS));
+            assertThrows(ExecutionException.class, () -> task.completionFuture().get(5, TimeUnit.SECONDS));
+            assertEquals(0, task.finishes.get());
+            assertEquals(1, task.closes.get());
+        } finally {
+            release.countDown();
+        }
+    }
+
+    @Test
     void shouldFailOnAvailabilityErrorAndCloseTheTask() throws Exception {
         TestTask task = new TestTask();
         task.start().get(5, TimeUnit.SECONDS);
@@ -137,6 +164,14 @@ class StreamTaskMailboxTest {
             return submitMailbox(() -> {
                 resumeInputProcessing();
                 return null;
+            });
+        }
+
+        CompletableFuture<Void> failControl(CountDownLatch entered, CountDownLatch release) {
+            return submitMailbox(() -> {
+                entered.countDown();
+                release.await();
+                throw new IllegalStateException("control failed");
             });
         }
 
