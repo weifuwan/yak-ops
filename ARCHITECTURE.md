@@ -55,6 +55,10 @@ Runtime 单向依赖 Core；内存 Execution / Attempt 与 Data Sync DAO 的产�
 新边界详见 [Core / Runtime Execution Contract](docs/capabilities/yak-flow/core-runtime-contract.md)。
 
 
+### `yak-flow/yak-flow-connector-base`
+
+Provides reusable asynchronous SourceReader mechanics over Core Source / Split interfaces: mailbox-owned split consumption state, bounded fetch handover, background SplitFetcher lifecycle, cancellation and failure wakeups. It depends only on Core, not Runtime or JDBC. Runtime continues to own Mailbox, SourceCoordinator and Checkpoint persistence; Connector Base does not create its own Job or restart protocol.
+
 ### YakFlow Connector
 
 旧 yak-flow-connector-jdbc 与 yak-flow-connector-cdc-mysql 已删除。仍用于产品 Schema/DDL 预览的 JDBC 类型映射与方言代码归 Datasource JDBC Plugin；新的执行 Connector 需要直接实现 Core Source / Sink。

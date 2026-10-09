@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MODULES = (
     ROOT / "yak-ops-core",
     ROOT / "yak-flow" / "yak-flow-runtime",
+    ROOT / "yak-flow" / "yak-flow-connector-base",
 )
 CJK = re.compile(r"[\u3400-\u9fff]")
 JAVA_TYPE = r"(?:class|interface|enum|record)"
@@ -139,7 +140,7 @@ def main() -> int:
     if failures:
         print(f"YakFlow comment check failed: {failures} issue(s) in {checked} Java files.", file=sys.stderr)
         return 1
-    print(f"YakFlow comment conventions passed: checked {checked} Core/Runtime Java files.")
+    print(f"YakFlow comment conventions passed: checked {checked} YakFlow Java files.")
     return 0
 
 

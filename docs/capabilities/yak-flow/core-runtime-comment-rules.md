@@ -1,6 +1,6 @@
 # YakFlow Core / Runtime Javadoc Convention
 
-Scope: `yak-ops-core/src/main/java/**`, `yak-flow/yak-flow-runtime/src/main/java/**`, and their Java tests.
+Scope: `yak-ops-core/src/main/java/**`, `yak-flow/yak-flow-runtime/src/main/java/**`, `yak-flow/yak-flow-connector-base/src/main/java/**`, and their Java tests.
 
 This file is the **module-specific override** to the `Comments and JavaDoc` section of `JAVA_RULES.md`. All other Java rules, including Spotless, remain in effect. It follows Flink's `JavadocType`, `JavadocMethod`, `JavadocParagraph` and `JavadocStyle` practices without requiring filler documentation.
 

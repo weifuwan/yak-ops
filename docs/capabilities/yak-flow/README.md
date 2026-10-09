@@ -1,6 +1,6 @@
 # YakFlow Capability
 
-Status: Active — Core / Runtime execution foundation; Connector integration pending
+Status: Active — Core / Runtime execution and Connector Base reader foundation; JDBC/CDC integration pending
 
 ## Current State
 
@@ -40,6 +40,12 @@ AddSplitEvent 使用 Connector 提供的 SimpleVersionedSerializer 生成版本�
 ## Checkpoint Boundary
 
 Source → OneInputStreamOperator* → Sink 使用 AlignedCheckpointCoordinator 的单 JVM Barrier 对齐：冻结 Split 分配，在 Source Mailbox 快照 Reader 并发出有序 Barrier；各 InputGate 等全部生产者 Barrier 到齐才让 Task 在 Mailbox 内快照 Operator/SinkWriter、转发 Barrier、ACK；全部 ACK 后 FileCheckpointStore 原子持久化并通知 Source。Source 在 Barrier 发出后即可恢复生产，不再依靠全局 InputGate 排空。无 Operator 状态的快照继续写 v1，有状态快照写 v2；旧 v1 可读，CRC/UID/KeyGroup 指纹校验保留。启用 Checkpoint 时禁用内联 Chain。语义为受限 at-least-once，不是分布式 Flink Checkpoint 或 Exactly-once。
+
+## Connector Reader Foundation
+
+`yak-flow-connector-base` implements a reusable `SourceReaderBase` over Core's `SourceReader` contract. A dedicated `SplitFetcher` calls a connector-owned blocking `SplitReader`, transfers bounded record batches through a future-completing queue, and never advances mailbox-owned checkpoint state. The `RecordEmitter` runs on the mailbox after the record is delivered to `ReaderOutput`; completed split markers are applied only after all records in the fetch batch are consumed. Failure, cancellation and no-more-splits wake mailbox waiters. Each reader owns its fetcher and closes it with a configurable timeout.
+
+The base module has no JDBC/CDC connection logic and does not change Runtime's SourceCoordinator, Barrier ordering or restart policy. A concrete Connector supplies its own split, reader I/O, emitter and serializer. The current reader interface has a flat output (no per-split watermark or event-time output), and this foundation does not claim end-to-end exactly-once.
 
 ## Non-Goals
 
