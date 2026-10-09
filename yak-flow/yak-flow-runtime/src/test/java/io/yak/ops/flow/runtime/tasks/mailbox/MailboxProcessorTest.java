@@ -104,11 +104,17 @@ class MailboxProcessorTest {
             public void run() {
                 sequence.add("mail");
                 if (mailSteps.incrementAndGet() < 20) {
-                    executor.submit(this);
+                    executor.submit(() -> {
+                        run();
+                        return null;
+                    });
                 }
             }
         };
-        executor.submit(selfReschedulingMail);
+        executor.submit(() -> {
+            selfReschedulingMail.run();
+            return null;
+        });
 
         processor.runMailboxLoop();
         processor.close(new IllegalStateException("finished"));
