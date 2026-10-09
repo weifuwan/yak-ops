@@ -124,7 +124,8 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
                 .append('|')
                 .append(configuration.get(JdbcSourceOptions.MAX_SPLITS_PER_TABLE));
         for (TableId table : tables) {
-            definition.append('|')
+            definition
+                    .append('|')
                     .append(identifierPart(table.catalog()))
                     .append('|')
                     .append(identifierPart(table.schema()))
