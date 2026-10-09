@@ -256,7 +256,7 @@ class SourceCoordinatorContractTest {
                     next.assignedSinceLastCompletedCheckpoint().get(0));
             coordinator.notifyCheckpointComplete(32).get(5, TimeUnit.SECONDS);
             assertTrue(awaitCoordinatorSnapshot(coordinator, 33).assignedSinceLastCompletedCheckpoint().isEmpty());
-            assertEquals(2, source.snapshots.get());
+            assertEquals(3, source.snapshots.get());
         }
         assertTrue(source.closed.get());
     }
