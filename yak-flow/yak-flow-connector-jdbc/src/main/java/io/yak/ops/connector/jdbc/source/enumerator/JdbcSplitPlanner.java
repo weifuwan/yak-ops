@@ -5,8 +5,8 @@ import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
-import io.yak.ops.connector.jdbc.source.split.JdbcSchemaFingerprint;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
+import io.yak.ops.connector.jdbc.source.split.JdbcSchemaFingerprint;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.data.TableId;
@@ -50,8 +50,7 @@ public final class JdbcSplitPlanner {
         maxSplitsPerTable = configuration.get(JdbcSourceOptions.MAX_SPLITS_PER_TABLE);
         queryTimeoutSeconds = configuration.get(JdbcSourceOptions.QUERY_TIMEOUT_SECONDS);
         connectionAttempts = configuration.get(JdbcSourceOptions.CONNECTION_ATTEMPTS);
-        if (targetRowsPerSplit <= 0 || maxSplitsPerTable <= 0 || queryTimeoutSeconds <= 0
-                || connectionAttempts <= 0) {
+        if (targetRowsPerSplit <= 0 || maxSplitsPerTable <= 0 || queryTimeoutSeconds <= 0 || connectionAttempts <= 0) {
             throw new IllegalArgumentException("Invalid JDBC split planning settings");
         }
     }
@@ -121,7 +120,14 @@ public final class JdbcSplitPlanner {
                         long start = lower.longValueExact();
                         long end = exclusiveUpper.subtract(BigInteger.ONE).longValueExact();
                         result.add(new JdbcSourceSplit(
-                                splitId(tableIndex, index), table, selectedColumns, splitColumn, start, end, null, schemaFingerprint));
+                                splitId(tableIndex, index),
+                                table,
+                                selectedColumns,
+                                splitColumn,
+                                start,
+                                end,
+                                null,
+                                schemaFingerprint));
                     }
                     return List.copyOf(result);
                 }

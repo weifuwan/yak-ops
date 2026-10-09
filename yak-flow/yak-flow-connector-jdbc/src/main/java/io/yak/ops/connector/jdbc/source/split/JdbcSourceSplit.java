@@ -57,6 +57,7 @@ public record JdbcSourceSplit(
 
     /** Returns a detached position snapshot without changing the original assigned split. */
     public JdbcSourceSplit withLastEmittedKey(Long key) {
-        return new JdbcSourceSplit(splitId, tableId, columns, splitColumn, lowerBound, upperBound, key, schemaFingerprint);
+        return new JdbcSourceSplit(
+                splitId, tableId, columns, splitColumn, lowerBound, upperBound, key, schemaFingerprint);
     }
 }

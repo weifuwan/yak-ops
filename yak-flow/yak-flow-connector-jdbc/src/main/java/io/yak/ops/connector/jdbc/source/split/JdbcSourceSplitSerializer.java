@@ -76,7 +76,14 @@ public final class JdbcSourceSplitSerializer implements SimpleVersionedSerialize
                 throw new IOException("Unexpected bytes after JDBC split state");
             }
             return new JdbcSourceSplit(
-                    id, new TableId(catalog, schema, table), columns, splitColumn, lower, upper, position, schemaFingerprint);
+                    id,
+                    new TableId(catalog, schema, table),
+                    columns,
+                    splitColumn,
+                    lower,
+                    upper,
+                    position,
+                    schemaFingerprint);
         } catch (RuntimeException exception) {
             throw new IOException("Invalid JDBC split state", exception);
         }

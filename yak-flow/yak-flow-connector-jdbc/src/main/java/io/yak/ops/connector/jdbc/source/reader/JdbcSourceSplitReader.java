@@ -10,6 +10,7 @@ import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
 import io.yak.ops.connector.jdbc.database.converter.JdbcDialectConverter;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
+import io.yak.ops.connector.jdbc.source.split.JdbcSchemaFingerprint;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.data.RowData;
@@ -68,8 +69,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         resultSetFetchSize = configuration.get(JdbcSourceOptions.RESULT_SET_FETCH_SIZE);
         queryTimeoutSeconds = configuration.get(JdbcSourceOptions.QUERY_TIMEOUT_SECONDS);
         connectionAttempts = configuration.get(JdbcSourceOptions.CONNECTION_ATTEMPTS);
-        if (fetchBatchSize <= 0 || resultSetFetchSize <= 0 || queryTimeoutSeconds <= 0
-                || connectionAttempts <= 0) {
+        if (fetchBatchSize <= 0 || resultSetFetchSize <= 0 || queryTimeoutSeconds <= 0 || connectionAttempts <= 0) {
             throw new IllegalArgumentException("JDBC read settings must be positive");
         }
     }
@@ -225,6 +225,10 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
                     .equals(converter.schema().column(index).name())) {
                 throw new SQLException("JDBC ResultSet column identity changed since split planning");
             }
+        }
+        String actualFingerprint = JdbcSchemaFingerprint.of(split.tableId(), converter.schema(), split.splitColumn());
+        if (!split.schemaFingerprint().equals(actualFingerprint)) {
+            throw new SQLException("JDBC schema fingerprint changed since split planning");
         }
         hasRow = resultSet.next();
     }
