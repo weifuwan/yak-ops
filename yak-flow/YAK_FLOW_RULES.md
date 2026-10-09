@@ -2,7 +2,7 @@
 
 Status: Active
 
-Scope: `yak-flow/yak-flow-api`、`yak-flow/yak-flow-runtime` 与 `yak-flow/yak-flow-connector-base`。先遵循 [Architecture](../ARCHITECTURE.md)、[Core Rules](../yak-ops-core/CORE_RULES.md) 和 [Core / Runtime Contract](../docs/capabilities/yak-flow/core-runtime-contract.md)。
+Scope: `yak-flow/yak-flow-api`、`yak-flow/yak-flow-runtime` 、`yak-flow/yak-flow-connector-base` 与 `yak-flow/yak-flow-connector-jdbc`。先遵循 [Architecture](../ARCHITECTURE.md)、[Core Rules](../yak-ops-core/CORE_RULES.md) 和 [Core / Runtime Contract](../docs/capabilities/yak-flow/core-runtime-contract.md)。
 
 ## JavaDoc and Comments
 
@@ -17,7 +17,8 @@ than repeating method names. The existing Backend Quality job enforces objective
 - YakFlow API 只保留 YakRow / RowKind / YakTableSchema / YakDataType 等 JDK-only 值对象；旧 Source / Sink / Trace 协议和 JDBC / CDC Connector 已删除。
 - Runtime 拥有 StreamGraph / JobGraph / ExecutionGraph、StreamTask / StreamTaskInput、SourceCoordinator、ResultPartition / InputGate 和 Checkpoint。运行期 Execution 是内存 Attempt，不是产品 Execution。
 - Connector Base 只依赖 Core，提供非阻塞 SourceReader 消费层、有界 Future 队列与阻塞 SplitFetcher；不得依赖 Runtime、Datasource、JDBC 或产品 Task。
-- Datasource JDBC Plugin 中的 Schema / DDL 方言只做元数据规划，不意味着 JDBC Connector 已经实现。
+- JDBC Source 独立实现 Core Source API，使用 Connector Base 的异步 Reader 和 Connection 级隔离；SQL 方言只属于 JDBC Connector。旧 Datasource JDBC Plugin 的 Schema / DDL 仍作为产品预览代码保留，不能混入新 Connector。
+- JDBC Source 的一个定义管理多张表；Enumerator 逐表异步发现并分配 Split。单整数主键采用不重叠的区间和已输出主键恢复，其他表采用整 Split 重放语义；只保证受限 at-least-once，不承诺变化中数据库的全局一致性快照。
 
 ## Graph Compilation
 

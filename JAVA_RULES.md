@@ -248,7 +248,7 @@ Existing names such as `AuthenticationManager`, capability-specific exception ha
 
 ## Comments and JavaDoc
 
-**YakFlow local override:** `yak-ops-core`, `yak-flow/yak-flow-runtime` and `yak-flow/yak-flow-connector-base`
+**YakFlow local override:** `yak-ops-core`, `yak-flow/yak-flow-runtime`, `yak-flow/yak-flow-connector-base` and `yak-flow/yak-flow-connector-jdbc`
 follow [YakFlow Core / Runtime Javadoc Convention](docs/capabilities/yak-flow/core-runtime-comment-rules.md)
 instead of the global Chinese-comment preference and the mandatory
 `@author` / creation-date `@since` tags. Their comments are written in English;

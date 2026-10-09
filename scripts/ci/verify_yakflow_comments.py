@@ -13,6 +13,7 @@ MODULES = (
     ROOT / "yak-ops-core",
     ROOT / "yak-flow" / "yak-flow-runtime",
     ROOT / "yak-flow" / "yak-flow-connector-base",
+    ROOT / "yak-flow" / "yak-flow-connector-jdbc",
 )
 CJK = re.compile(r"[\u3400-\u9fff]")
 JAVA_TYPE = r"(?:class|interface|enum|record)"

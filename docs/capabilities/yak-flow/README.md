@@ -1,10 +1,10 @@
 # YakFlow Capability
 
-Status: Active — Core / Runtime execution and Connector Base reader foundation; JDBC/CDC integration pending
+Status: Active — Core / Runtime execution, Connector Base, bounded JDBC Source; product JDBC/CDC integration pending
 
 ## Current State
 
-旧 `yak-flow-connector-jdbc`、`yak-flow-connector-cdc-mysql` 与 Business 旧 execution 已删除。当前 Core 提供统一 Source/Sink 协议，YakFlow API 提供 Row/Schema/Logical Type 值对象，Runtime 提供单 JVM Streaming 执行骨架。**没有新的 JDBC / CDC Connector，不能进行实际跨库同步。**
+旧 `yak-flow-connector-cdc-mysql` 与 Business 旧 execution 已删除。Core 提供统一 Source/Sink 协议和新的通用 TableRecord；YakFlow API 的历史 Row/Schema 模型尚待清理。Runtime 具备单 JVM 执行基础，新 JDBC Source 已支持一个 Source 的多张表并行读取。**尚无对应 JDBC Sink 或产品任务接线，不能进行实际跨库同步。**
 
 ## Execution Pipeline
 
@@ -47,9 +47,17 @@ Source → OneInputStreamOperator* → Sink 使用 AlignedCheckpointCoordinator 
 
 The base module has no JDBC/CDC connection logic and does not change Runtime's SourceCoordinator, Barrier ordering or restart policy. A concrete Connector supplies its own split, reader I/O, emitter and serializer. The current reader interface has a flat output (no per-split watermark or event-time output), and this foundation does not claim end-to-end exactly-once.
 
+## JDBC Source
+
+`yak-flow-connector-jdbc` implements one bounded `JdbcSource` over a frozen list of `TableId` values; a single table is the same path as many tables. A single `JdbcSourceEnumerator` discovers metadata and plans each table off the coordinator event loop; `JdbcSourceReader` uses Connector Base to read multiple independent splits per subtask, emitting `TableRecord` values with original table identity.
+
+For tables with exactly one signed-long-compatible integer primary key, the planner uses disjoint inclusive range splits and resumes a split with an exclusive `lastEmittedKey` seek predicate. Progress is updated only by `JdbcRecordEmitter` after successful output, never by Fetcher prefetch. No supported key or out-of-range unsigned keys means one full-table split that is replayed from the beginning on recovery; this may produce duplicates. Source definition fingerprints reject changed table sets during enumerator restoration. Versioned split/enumerator serializers contain no credentials or active connections.
+
+The JDBC reader supports MySQL, PostgreSQL and Oracle quoted identifiers and read connection policies, plus ANSI/H2 for embedded integration tests. JDBC Driver availability and read cursor behavior remain database/driver dependent. The JDBC Source is a bounded table scan, not a transactionally consistent cross-table snapshot or MySQL CDC. The tests exercise real embedded H2 ResultSets through local YakFlow Runtime; they are not MySQL/PostgreSQL/Oracle acceptance results.
+
 ## Non-Goals
 
-本阶段不实现 JDBC / MySQL CDC Connector、多个 Source/Sink、网络 Shuffle、Slot / RPC、局部 Reader-only Failover、动态扩缩容、跨进程状态恢复或完整分布式 Checkpoint。仅新增受 Checkpoint 约束的显式本地整 Job Attempt 恢复。不能用 Runtime 单元测试或旧版 Release Evidence 宣称这些能力。
+本阶段不实现 JDBC Sink / MySQL CDC Connector、多个 Source/Sink、网络 Shuffle、Slot / RPC、局部 Reader-only Failover、动态扩缩容、跨进程状态恢复或完整分布式 Checkpoint。仅新增受 Checkpoint 约束的显式本地整 Job Attempt 恢复。不能用 Runtime 单元测试或旧版 Release Evidence 宣称这些能力。
 
 ## Related
 
