@@ -2,13 +2,18 @@ package io.yak.ops.core.api.common;
 
 import java.util.Objects;
 
-/** 单次作业成功完成后的结果；失败或取消的作业不产生成功结果。 */
+/** Result of a successfully finished job; failed and canceled jobs have no successful result. */
 public final class JobExecutionResult {
 
     private final JobID jobID;
     private final long netRuntime;
 
-    /** @param netRuntime 实际运行耗时（毫秒），不包含提交准备阶段 */
+    /**
+ * Creates a successful execution result.
+ *
+ * @param jobID the completed job's identity
+ * @param netRuntime execution time in milliseconds, excluding submission preparation
+ */
     public JobExecutionResult(JobID jobID, long netRuntime) {
         this.jobID = Objects.requireNonNull(jobID, "jobID must not be null");
         if (netRuntime < 0) {
@@ -17,10 +22,12 @@ public final class JobExecutionResult {
         this.netRuntime = netRuntime;
     }
 
+    /** Returns the identity of the successfully finished job. */
     public JobID getJobID() {
         return jobID;
     }
 
+    /** Returns the net execution time in milliseconds. */
     public long getNetRuntime() {
         return netRuntime;
     }

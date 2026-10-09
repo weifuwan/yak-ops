@@ -1,6 +1,6 @@
 package io.yak.ops.core.api.common;
 
-/** 单次提交作业的生命周期状态，与批处理或流处理模式无关。 */
+/** Lifecycle status of one submitted job, independent of its execution mode. */
 public enum JobStatus {
     CREATED,
     RUNNING,
@@ -10,6 +10,7 @@ public enum JobStatus {
     CANCELED,
     FINISHED;
 
+    /** Returns whether the job has reached a terminal status. */
     public boolean isTerminalState() {
         return this == FAILED || this == CANCELED || this == FINISHED;
     }

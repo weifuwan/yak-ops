@@ -1,17 +1,22 @@
 package io.yak.ops.core.api.common;
 
 /**
- * 向 Connector/Operator 暴露的只读子任务元信息；不持有线程、Mailbox 或执行图。
- * 并行度为本次执行解析后的实际值，而非 Configuration 默认并行度。
+ * Read-only metadata for a running subtask exposed to connectors and operators.
+ *
+ * <p>Parallelism is the resolved operator parallelism, not a configuration default. This
+ * contract does not expose task threads, mailboxes or execution-graph ownership.
  */
 public interface TaskInfo {
 
+    /** Returns this subtask's zero-based index within the operator parallelism. */
     int getIndexOfThisSubtask();
 
+    /** Returns the resolved parallelism of this operator. */
     int getNumberOfParallelSubtasks();
 
+    /** Returns this subtask's execution-attempt number. */
     int getAttemptNumber();
 
-    /** The stable number of key-groups, not the currently deployed subtask count. */
+    /** Returns the stable maximum number of key groups, not the current subtask count. */
     int getMaxNumberOfParallelSubtasks();
 }

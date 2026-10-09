@@ -1,58 +1,58 @@
 package io.yak.ops.core.api.connector.sink;
 
 /**
- * 单个执行子任务中的实际写入实例。
+ * Per-subtask instance that writes records and flushes its buffered output.
  *
- * <p>Runtime 必须保证同一个 Writer 的写入、Flush 和关闭方法不会并发调用。
- * 写入方法可以使用缓冲区，但不得丢弃尚未成功刷出的记录。
+ * <p>The runtime serializes calls to write, flush and close on the owning task thread.
+ * A successful flush does not imply a transactional commit or exactly-once delivery.
  *
- * <p>本协议没有定义事务提交、状态恢复或 Exactly-once 保证。
- * flush() 的成功仅表示 Writer 按自身写入协议完成了相应数据的刷出处理。
- *
- * @param <T> 输入记录类型
+ * @param <T> the input record type
  * @author weifuwan
  */
 public interface SinkWriter<T> extends AutoCloseable {
 
     /**
-     * 记录上下文。目前 Runtime 尚未提供事件时间和 Watermark 传播，
-     * timestamp 为 null，currentWatermark 为 Long.MIN_VALUE。
-     */
+ * Metadata for the current input record.
+ *
+ * <p>Until event time and watermarks are implemented, the runtime supplies a null timestamp
+ * and {@link Long#MIN_VALUE} as the watermark.
+ */
     interface Context {
+        /** Returns the record timestamp, or null when none is available. */
         Long timestamp();
 
+        /** Returns the current event-time watermark, or {@link Long#MIN_VALUE} when absent. */
         long currentWatermark();
     }
 
     /**
-     * 向 Writer 写入一条记录，可立即写入或暂存缓冲区。
-     *
-     * @param element 输入记录
-     * @param context 当前记录的运行时元信息
-     * @throws Exception 写入失败
-     */
+ * Writes or buffers a record for the current subtask.
+ *
+ * @param element the record to write
+ * @param context metadata for this record
+ * @throws Exception if writing fails
+ */
     void write(T element, Context context) throws Exception;
 
     /**
-     * 刷出 Writer 中尚未完成的缓冲数据。
-     *
-     * <p>Runtime 在 Checkpoint 对齐阶段或有界输入正常结束时调用此方法。
-     * 仅正常结束时 endOfInput 为 true；Checkpoint 时为 false。
-     * 不能将此方法的成功视为端到端 Exactly-once 提交证明。
-     *
-     * @param endOfInput 是否为正常输入结束时的最终 Flush
-     * @throws Exception 刷出失败
-     */
+ * Flushes buffered records during a checkpoint or at the normal end of input.
+ *
+ * <p>The runtime passes {@code false} at an aligned checkpoint and {@code true} only for
+ * a normal end of input. Success is not proof of an end-to-end transactional commit.
+ *
+ * @param endOfInput whether input has ended normally
+ * @throws Exception if flushing fails
+ */
     void flush(boolean endOfInput) throws Exception;
 
     /**
-     * 释放连接、缓冲区等资源，正常结束、失败与取消后都应尽力调用。
-     *
-     * <p>close() 不隐含成功 Flush 或事务提交；Runtime 必须在正常结束前
-     * 显式调用 flush(true)。
-     *
-     * @throws Exception 资源释放失败
-     */
+ * Releases resources after normal completion, cancellation or failure.
+ *
+ * <p>Closing does not imply a successful final flush; the runtime explicitly calls
+ * {@code flush(true)} before closing a normally finished Writer.
+ *
+ * @throws Exception if resource cleanup fails
+ */
     @Override
     void close() throws Exception;
 }
