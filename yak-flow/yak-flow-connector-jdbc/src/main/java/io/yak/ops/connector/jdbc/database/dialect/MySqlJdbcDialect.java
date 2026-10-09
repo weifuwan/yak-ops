@@ -25,7 +25,7 @@ public final class MySqlJdbcDialect implements JdbcDialect {
 
     @Override
     public JdbcNativeType nativeType(Column column) {
-        return switch (column.dataType().kind()) {
+        return switch (column.dataType().getTypeRoot()) {
             case BOOLEAN -> JdbcNativeType.of("BOOLEAN");
             case TINYINT -> JdbcNativeType.of("TINYINT");
             case SMALLINT -> JdbcNativeType.of("SMALLINT");
@@ -34,11 +34,15 @@ public final class MySqlJdbcDialect implements JdbcDialect {
             case FLOAT -> JdbcNativeType.of("FLOAT");
             case DOUBLE -> JdbcNativeType.of("DOUBLE");
             case DECIMAL -> JdbcTypeMappings.decimal(column, "DECIMAL", 65, 30);
-            case STRING -> stringType(column.length());
-            case BINARY -> binaryType(column.length());
+            case CHAR -> JdbcNativeType.of("CHAR(" + column.length() + ")");
+            case VARCHAR -> stringType(column.length());
+            case BINARY -> JdbcNativeType.of("BINARY(" + column.length() + ")");
+            case VARBINARY -> binaryType(column.length());
             case DATE -> JdbcNativeType.of("DATE");
-            case TIME -> JdbcNativeType.of("TIME(6)");
-            case TIMESTAMP -> JdbcNativeType.of("DATETIME(6)");
+            case TIME_WITHOUT_TIME_ZONE ->
+                JdbcNativeType.of("TIME(" + JdbcTypeMappings.precision(column, 6, "MySQL TIME") + ")");
+            case TIMESTAMP_WITHOUT_TIME_ZONE ->
+                JdbcNativeType.of("DATETIME(" + JdbcTypeMappings.precision(column, 6, "MySQL DATETIME") + ")");
             case TIMESTAMP_WITH_TIME_ZONE ->
                 throw new UnsupportedOperationException("MySQL 无法保留 TIMESTAMP_WITH_TIME_ZONE 语义");
         };

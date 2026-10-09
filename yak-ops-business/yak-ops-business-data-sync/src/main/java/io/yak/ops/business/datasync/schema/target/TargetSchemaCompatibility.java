@@ -64,8 +64,8 @@ public final class TargetSchemaCompatibility {
             }
 
             if (!JdbcSchemaCompatibility.isCompatible(sourceColumn, targetLogicalColumn)) {
-                issues.add("目标字段不兼容：" + source.name() + "（" + source.dataType().kind() + " → "
-                        + targetLogicalColumn.dataType().kind() + "）");
+                issues.add("目标字段不兼容：" + source.name() + "（" + source.dataType().getTypeRoot() + " → "
+                        + targetLogicalColumn.dataType().getTypeRoot() + "）");
                 continue;
             }
             mappedTargetColumns.add(targetColumn);

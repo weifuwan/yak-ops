@@ -24,7 +24,7 @@ public final class OracleJdbcDialect implements JdbcDialect {
 
     @Override
     public JdbcNativeType nativeType(Column column) {
-        return switch (column.dataType().kind()) {
+        return switch (column.dataType().getTypeRoot()) {
             case BOOLEAN -> JdbcNativeType.of("NUMBER(1)");
             case TINYINT -> JdbcNativeType.of("NUMBER(3)");
             case SMALLINT -> JdbcNativeType.of("NUMBER(5)");
@@ -33,12 +33,16 @@ public final class OracleJdbcDialect implements JdbcDialect {
             case FLOAT -> JdbcNativeType.of("BINARY_FLOAT");
             case DOUBLE -> JdbcNativeType.of("BINARY_DOUBLE");
             case DECIMAL -> JdbcTypeMappings.decimal(column, "NUMBER", 38, 38);
-            case STRING -> stringType(column.length());
-            case BINARY -> binaryType(column.length());
+            case CHAR -> JdbcNativeType.of("CHAR(" + column.length() + " CHAR)");
+            case VARCHAR -> stringType(column.length());
+            case BINARY, VARBINARY -> binaryType(column.length());
             case DATE -> JdbcNativeType.of("DATE");
-            case TIME -> throw new UnsupportedOperationException("Oracle 没有独立 TIME 列类型");
-            case TIMESTAMP -> JdbcNativeType.of("TIMESTAMP(6)");
-            case TIMESTAMP_WITH_TIME_ZONE -> JdbcNativeType.of("TIMESTAMP(6) WITH TIME ZONE");
+            case TIME_WITHOUT_TIME_ZONE -> throw new UnsupportedOperationException("Oracle 没有独立 TIME 列类型");
+            case TIMESTAMP_WITHOUT_TIME_ZONE ->
+                JdbcNativeType.of("TIMESTAMP(" + JdbcTypeMappings.precision(column, 9, "Oracle TIMESTAMP") + ")");
+            case TIMESTAMP_WITH_TIME_ZONE ->
+                JdbcNativeType.of(
+                        "TIMESTAMP(" + JdbcTypeMappings.precision(column, 9, "Oracle TIMESTAMP") + ") WITH TIME ZONE");
         };
     }
 

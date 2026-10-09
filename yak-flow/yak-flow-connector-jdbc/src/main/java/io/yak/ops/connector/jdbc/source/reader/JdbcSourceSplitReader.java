@@ -8,7 +8,7 @@ import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.configuration.Configuration;
-import io.yak.ops.core.data.RowData;
+import io.yak.ops.core.data.GenericRowData;
 import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableRecord;
 import java.sql.Array;
@@ -93,7 +93,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
                 values.add(detachValue(resultSet.getObject(index)));
             }
             Long key = active.splitColumn() == null ? null : resultSet.getLong(active.splitColumn());
-            TableRecord record = new TableRecord(active.tableId(), RowKind.INSERT, new RowData(values));
+            TableRecord record = new TableRecord(active.tableId(), RowKind.INSERT, new GenericRowData(values));
             batch.add(new JdbcRecordAndPosition(record, key));
             hasRow = resultSet.next();
         }

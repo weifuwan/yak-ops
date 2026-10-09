@@ -1,7 +1,8 @@
 package io.yak.ops.business.datasync.schema;
 
 import io.yak.ops.core.types.LogicalType;
-import io.yak.ops.core.types.TypeKind;
+import io.yak.ops.core.types.LogicalTypeRoot;
+import io.yak.ops.core.types.LogicalTypes;
 import java.util.Objects;
 
 /**
@@ -22,7 +23,7 @@ public record LogicalColumn(String name, LogicalType dataType, boolean nullable,
     public LogicalColumn {
         Objects.requireNonNull(name, "name must not be null");
         Objects.requireNonNull(dataType, "dataType must not be null");
-        Objects.requireNonNull(dataType.kind(), "dataType.kind must not be null");
+        Objects.requireNonNull(dataType.getTypeRoot(), "dataType.getTypeRoot must not be null");
 
         if (name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");
@@ -30,12 +31,16 @@ public record LogicalColumn(String name, LogicalType dataType, boolean nullable,
         if (length != null && length < 0) {
             throw new IllegalArgumentException("length must not be negative");
         }
-        if (length != null && !supportsLength(dataType.kind())) {
-            throw new IllegalArgumentException("length is only supported by STRING or BINARY");
+        if (length != null && !supportsLength(dataType.getTypeRoot())) {
+            throw new IllegalArgumentException("length requires a character or binary type");
         }
+        dataType = LogicalTypes.forColumn(dataType, nullable, length);
     }
 
-    private static boolean supportsLength(TypeKind kind) {
-        return kind == TypeKind.STRING || kind == TypeKind.BINARY;
+    private static boolean supportsLength(LogicalTypeRoot root) {
+        return root == LogicalTypeRoot.CHAR
+                || root == LogicalTypeRoot.VARCHAR
+                || root == LogicalTypeRoot.BINARY
+                || root == LogicalTypeRoot.VARBINARY;
     }
 }

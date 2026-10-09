@@ -47,6 +47,28 @@ Source → OneInputStreamOperator* → Sink 使用 AlignedCheckpointCoordinator 
 
 The base module has no JDBC/CDC connection logic and does not change Runtime's SourceCoordinator, Barrier ordering or restart policy. A concrete Connector supplies its own split, reader I/O, emitter and serializer. The current reader interface has a flat output (no per-split watermark or event-time output), and this foundation does not claim end-to-end exactly-once.
 
+
+## Core Logical Types and RowData
+
+`yak-ops-core` owns `LogicalTypeRoot` and immutable `LogicalType` values, including type
+nullability, character/binary lengths, decimal precision and scale, temporal precision, and stable
+`asSerializableString()` descriptions. `Column` carries a name and one type; the type owns
+column nullability and capacity. JDBC Catalog metadata with missing or out-of-engine-range
+DECIMAL precision is explicitly `UnresolvedDecimalType`, and cannot be used by internal
+`RowData.createFieldGetter` until a converter resolves it. Do not silently assign a default precision.
+
+`RowData` is the storage-neutral field-access interface; `GenericRowData` is the sole
+array-backed implementation for now. `TableRecord` continues to own `RowKind` and physical
+table identity, so RowData does not duplicate those fields. Internal typed access follows the
+resolved logical type: Java boxed primitive values, String, byte[], BigDecimal, and java.time
+date/time values. The JDBC Source currently uses ResultSet.getObject and a detached
+GenericRowData; vendor-specific JDBC-to-internal normalization is explicitly deferred to the
+JDBC Dialect Converter PR. Do not claim all driver values already conform to typed getters.
+
+Binary/columnar RowData, Flink SQL Table API, custom aggregate types, and network serializer
+implementations are outside this change. Typed getters are strict: they do not silently coerce
+a vendor-specific JDBC object to the expected internal representation.
+
 ## JDBC Source
 
 `yak-flow-connector-jdbc` implements one bounded `JdbcSource` over a frozen list of `TableId` values; a single table is the same path as many tables. A single `JdbcSourceEnumerator` discovers metadata and plans each table off the coordinator event loop; `JdbcSourceReader` uses Connector Base to read multiple independent splits per subtask, emitting `TableRecord` values with original table identity.

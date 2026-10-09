@@ -1,26 +1,58 @@
 package io.yak.ops.core.types;
 
-/**
- * Decimal logical type with optional metadata precision and scale.
- *
- * <p>Unknown database metadata remains null rather than being invented.
- */
-public record DecimalType(Integer precision, Integer scale) implements LogicalType {
+import java.math.BigDecimal;
+import java.util.List;
 
-    public DecimalType {
-        if (precision != null && precision <= 0) {
-            throw new IllegalArgumentException("precision must be positive");
+/** Resolved fixed-precision decimal in YakFlow's 38-digit internal precision domain. */
+public final class DecimalType extends LogicalType {
+
+    public static final int MAX_PRECISION = 38;
+    public static final int DEFAULT_PRECISION = 10;
+
+    private final int precision;
+    private final int scale;
+
+    public DecimalType(int precision, int scale) {
+        this(true, precision, scale);
+    }
+
+    public DecimalType(boolean nullable, int precision, int scale) {
+        super(nullable, LogicalTypeRoot.DECIMAL);
+        if (precision < 1 || precision > MAX_PRECISION) {
+            throw new IllegalArgumentException("Decimal precision must be between 1 and " + MAX_PRECISION);
         }
-        if (scale != null && scale < 0) {
-            throw new IllegalArgumentException("scale must not be negative");
+        if (scale < 0 || scale > precision) {
+            throw new IllegalArgumentException("Decimal scale must be between 0 and precision");
         }
-        if (precision != null && scale != null && scale > precision) {
-            throw new IllegalArgumentException("scale must not exceed precision");
-        }
+        this.precision = precision;
+        this.scale = scale;
+    }
+
+    public int precision() {
+        return precision;
+    }
+
+    public int scale() {
+        return scale;
     }
 
     @Override
-    public TypeKind kind() {
-        return TypeKind.DECIMAL;
+    public DecimalType copy(boolean nullable) {
+        return new DecimalType(nullable, precision, scale);
+    }
+
+    @Override
+    public String asSerializableString() {
+        return withNullability("DECIMAL(" + precision + ", " + scale + ")");
+    }
+
+    @Override
+    public Class<?> getDefaultConversion() {
+        return BigDecimal.class;
+    }
+
+    @Override
+    protected Object parameters() {
+        return List.of(precision, scale);
     }
 }

@@ -92,6 +92,27 @@ class JdbcSchemaCompatibilityTest {
                 column("source", LogicalTypes.DOUBLE), column("target", LogicalTypes.FLOAT)));
     }
 
+
+    @Test
+    void shouldRequireNoTemporalPrecisionLoss() {
+        assertTrue(JdbcSchemaCompatibility.isCompatible(
+                column("source", LogicalTypes.timestamp(3)), column("target", LogicalTypes.timestamp(6))));
+        assertFalse(JdbcSchemaCompatibility.isCompatible(
+                column("source", LogicalTypes.timestamp(9)), column("target", LogicalTypes.timestamp(6))));
+        assertFalse(JdbcSchemaCompatibility.isCompatible(
+                column("source", LogicalTypes.time(6)), column("target", LogicalTypes.time(3))));
+    }
+
+    @Test
+    void shouldAllowFixedToVariableWidthWithoutAllowingTruncation() {
+        assertTrue(JdbcSchemaCompatibility.isCompatible(
+                column("source", LogicalTypes.charType(16)), column("target", LogicalTypes.varchar(32))));
+        assertFalse(JdbcSchemaCompatibility.isCompatible(
+                column("source", LogicalTypes.charType(32)), column("target", LogicalTypes.varchar(16))));
+        assertTrue(JdbcSchemaCompatibility.isCompatible(
+                column("source", LogicalTypes.fixedBinary(8)), column("target", LogicalTypes.varbinary(16))));
+    }
+
     private Column column(String name, LogicalType type) {
         return column(name, type, null);
     }
