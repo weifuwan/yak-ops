@@ -65,6 +65,14 @@ public final class MailboxProcessor {
         mailbox.wakeup();
     }
 
+    /** A control mail changed Source/Operator input state (for example AddSplitEvent). */
+    public void resumeDefaultAction() {
+        DefaultActionSuspension current = suspendedAction;
+        if (current != null) {
+            current.resume();
+        }
+    }
+
     public void prepareClose() {
         running = false;
         mailbox.quiesce();

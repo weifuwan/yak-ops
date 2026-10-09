@@ -137,6 +137,11 @@ public abstract class StreamTask implements AutoCloseable {
         }
     }
 
+    /** Explicitly recheck input after a control mail changes its availability state. */
+    protected final void resumeInputProcessing() {
+        mailboxProcessor.resumeDefaultAction();
+    }
+
     /** Propagate asynchronous Coordinator / Reader availability failure to the owning mailbox. */
     protected final void failAsync(Throwable failure) {
         if (completion.isDone()) {
