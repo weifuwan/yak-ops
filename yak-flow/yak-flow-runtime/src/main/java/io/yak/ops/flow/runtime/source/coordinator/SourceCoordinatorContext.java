@@ -1,12 +1,15 @@
 package io.yak.ops.flow.runtime.source.coordinator;
 
 import io.yak.ops.core.api.connector.source.SourceSplit;
+import io.yak.ops.core.api.connector.source.SourceEvent;
+import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
 import io.yak.ops.flow.runtime.source.event.AddSplitEvent;
 import io.yak.ops.flow.runtime.source.event.NoMoreSplitsEvent;
+import io.yak.ops.flow.runtime.source.event.SourceEventWrapper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +36,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         implements SplitEnumeratorContext<SplitT> {
 
     private final OperatorCoordinatorContext operatorContext;
+    private final SimpleVersionedSerializer<SplitT> splitSerializer;
     private final ExecutorService coordinatorExecutor;
     private final ExecutorService discoveryExecutor;
     private final Supplier<Thread> coordinatorThread;
@@ -49,11 +53,13 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
     private volatile boolean closed;
 
     SourceCoordinatorContext(OperatorCoordinatorContext operatorContext,
+            SimpleVersionedSerializer<SplitT> splitSerializer,
             ExecutorService coordinatorExecutor,
             ExecutorService discoveryExecutor,
             Supplier<Thread> coordinatorThread,
             Consumer<Throwable> onFailure) {
         this.operatorContext = Objects.requireNonNull(operatorContext, "operatorContext 不能为空");
+        this.splitSerializer = Objects.requireNonNull(splitSerializer, "splitSerializer 不能为空");
         this.coordinatorExecutor = Objects.requireNonNull(coordinatorExecutor);
         this.discoveryExecutor = Objects.requireNonNull(discoveryExecutor);
         this.coordinatorThread = Objects.requireNonNull(coordinatorThread);
@@ -157,12 +163,12 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         if (!canAssignSplit(subtaskId)) {
             throw new IllegalStateException("不能在 NoMoreSplits 后继续分配 Split：" + subtaskId);
         }
-        AddSplitEvent<SplitT> event = new AddSplitEvent<>(List.of(split));
-        String splitId = split.splitId();
+        String splitId = Objects.requireNonNull(split, "split").splitId();
         if (inFlight.putIfAbsent(splitId, subtaskId) != null) {
             throw new IllegalArgumentException("重复交付中的 Split：" + splitId);
         }
         try {
+            AddSplitEvent<SplitT> event = new AddSplitEvent<>(List.of(split), splitSerializer);
             assignments.recordAssignment(subtaskId, split);
             CompletionStage<Void> delivered = Objects.requireNonNull(
                     readers.get(subtaskId).sendEvent(event), "SubtaskGateway 返回了 null");
@@ -212,6 +218,30 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit>
         } catch (Throwable error) {
             onFailure.accept(error);
             throw error;
+        }
+    }
+
+    @Override
+    public void sendEventToSourceReader(int subtaskId, SourceEvent event) {
+        assertCoordinatorThread();
+        checkSubtask(subtaskId);
+        Objects.requireNonNull(event, "event 不能为空");
+        SubtaskGateway gateway = readers.get(subtaskId);
+        if (gateway == null) {
+            throw new IllegalStateException("Reader 尚未注册：" + subtaskId);
+        }
+        try {
+            CompletionStage<Void> delivered = Objects.requireNonNull(
+                    gateway.sendEvent(new SourceEventWrapper(event)), "SubtaskGateway 返回了 null");
+            delivered.whenComplete((unused, failure) -> post(() -> {
+                if (failure != null) {
+                    onFailure.accept(new IllegalStateException(
+                            "SourceEvent 交付失败：subtask=" + subtaskId, failure));
+                }
+            }));
+        } catch (Throwable failure) {
+            onFailure.accept(failure);
+            throw failure;
         }
     }
 
