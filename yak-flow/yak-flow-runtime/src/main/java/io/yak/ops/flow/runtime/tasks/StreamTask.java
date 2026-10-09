@@ -50,8 +50,8 @@ public abstract class StreamTask implements AutoCloseable {
         mailboxExecutor = mailboxProcessor.getMailboxExecutor();
         processingTimeService = new TaskProcessingTimeService(
                 mailboxExecutor, this::failAsync, () -> cancelRequested || completion.isDone());
-        this.environment = original.withCancellation(() -> cancelRequested)
-                .withProcessingTimeService(processingTimeService);
+        this.environment =
+                original.withCancellation(() -> cancelRequested).withProcessingTimeService(processingTimeService);
     }
 
     public final RuntimeTaskInfo taskInfo() {

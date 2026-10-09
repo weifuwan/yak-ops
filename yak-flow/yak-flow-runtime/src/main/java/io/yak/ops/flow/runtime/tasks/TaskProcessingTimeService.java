@@ -27,8 +27,7 @@ public final class TaskProcessingTimeService implements ProcessingTimeService, A
     private ScheduledExecutorService scheduler;
     private volatile boolean closed;
 
-    public TaskProcessingTimeService(
-            MailboxExecutor mailbox, Consumer<Throwable> failTask, BooleanSupplier stopping) {
+    public TaskProcessingTimeService(MailboxExecutor mailbox, Consumer<Throwable> failTask, BooleanSupplier stopping) {
         this.mailbox = Objects.requireNonNull(mailbox, "mailbox");
         this.failTask = Objects.requireNonNull(failTask, "failTask");
         this.stopping = Objects.requireNonNull(stopping, "stopping");

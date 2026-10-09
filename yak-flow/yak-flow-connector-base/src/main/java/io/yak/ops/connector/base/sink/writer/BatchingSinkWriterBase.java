@@ -28,8 +28,7 @@ public abstract class BatchingSinkWriterBase<T> implements CancellableSinkWriter
     private boolean finished;
     private Throwable failure;
 
-    protected BatchingSinkWriterBase(
-            BatchOutput<T> output, BatchFlushPolicy policy, WriterInitContext context) {
+    protected BatchingSinkWriterBase(BatchOutput<T> output, BatchFlushPolicy policy, WriterInitContext context) {
         this.output = Objects.requireNonNull(output, "output");
         this.policy = Objects.requireNonNull(policy, "policy");
         Objects.requireNonNull(context, "context");
@@ -72,7 +71,9 @@ public abstract class BatchingSinkWriterBase<T> implements CancellableSinkWriter
 
     private void scheduleTimer() {
         timer = clock.registerTimer(
-                Math.addExact(clock.currentProcessingTime(), policy.flushInterval().toMillis()), this::onTimer);
+                Math.addExact(
+                        clock.currentProcessingTime(), policy.flushInterval().toMillis()),
+                this::onTimer);
     }
 
     private void onTimer() {
