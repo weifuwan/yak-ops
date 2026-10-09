@@ -4,7 +4,7 @@ import io.yak.ops.business.datasync.catalog.DataSyncCatalogColumns;
 import io.yak.ops.business.datasync.schema.LogicalColumn;
 import io.yak.ops.business.datasync.schema.LogicalTable;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
-import io.yak.ops.flow.api.row.YakColumn;
+import io.yak.ops.core.types.Column;
 import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaCompatibility;
 import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaMapper;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
@@ -54,19 +54,19 @@ public final class TargetSchemaCompatibility {
                 continue;
             }
 
-            YakColumn sourceColumn =
-                    new YakColumn(source.name(), source.dataType(), source.nullable(), source.length());
-            YakColumn targetYakColumn;
+            Column sourceColumn =
+                    new Column(source.name(), source.dataType(), source.nullable(), source.length());
+            Column targetColumn;
             try {
-                targetYakColumn = JdbcSchemaMapper.toYakColumn(targetColumn);
+                targetColumn = JdbcSchemaMapper.toColumn(targetColumn);
             } catch (IllegalArgumentException exception) {
                 issues.add("目标字段类型不支持：" + source.name() + "（" + target.getTypeName() + "）");
                 continue;
             }
 
-            if (!JdbcSchemaCompatibility.isCompatible(sourceColumn, targetYakColumn)) {
+            if (!JdbcSchemaCompatibility.isCompatible(sourceColumn, targetColumn)) {
                 issues.add("目标字段不兼容：" + source.name() + "（" + source.dataType().kind() + " → "
-                        + targetYakColumn.dataType().kind() + "）");
+                        + targetColumn.dataType().kind() + "）");
                 continue;
             }
             mappedTargetColumns.add(targetColumn);

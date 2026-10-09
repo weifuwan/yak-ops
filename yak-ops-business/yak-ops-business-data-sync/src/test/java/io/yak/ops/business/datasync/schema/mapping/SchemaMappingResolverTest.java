@@ -5,7 +5,7 @@ import io.yak.ops.business.datasync.schema.LogicalTable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.yak.ops.flow.api.row.YakTypes;
+import io.yak.ops.core.types.LogicalTypes;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -55,9 +55,9 @@ class SchemaMappingResolverTest {
                 "orders",
                 1,
                 List.of(
-                        new LogicalColumn("tenant_id", YakTypes.BIGINT, false, null, "tenant"),
-                        new LogicalColumn("id", YakTypes.BIGINT, false, null, "id"),
-                        new LogicalColumn("amount", YakTypes.INTEGER, true, null, "amount")),
+                        new LogicalColumn("tenant_id", LogicalTypes.BIGINT, false, null, "tenant"),
+                        new LogicalColumn("id", LogicalTypes.BIGINT, false, null, "id"),
+                        new LogicalColumn("amount", LogicalTypes.INTEGER, true, null, "amount")),
                 List.of("tenant_id", "id"));
 
         ResolvedSchemaMapping result =
@@ -93,9 +93,9 @@ class SchemaMappingResolverTest {
                 "users",
                 1,
                 List.of(
-                        new LogicalColumn("id", YakTypes.BIGINT, false, null, "id"),
-                        new LogicalColumn("name", YakTypes.STRING, true, 100, "name"),
-                        new LogicalColumn("age", YakTypes.INTEGER, true, null, "age")),
+                        new LogicalColumn("id", LogicalTypes.BIGINT, false, null, "id"),
+                        new LogicalColumn("name", LogicalTypes.STRING, true, 100, "name"),
+                        new LogicalColumn("age", LogicalTypes.INTEGER, true, null, "age")),
                 List.of("id"));
     }
 

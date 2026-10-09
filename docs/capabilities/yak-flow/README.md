@@ -4,7 +4,7 @@ Status: Active — Core / Runtime execution, Connector Base, bounded JDBC Source
 
 ## Current State
 
-旧 `yak-flow-connector-cdc-mysql` 与 Business 旧 execution 已删除。Core 提供统一 Source/Sink 协议和新的通用 TableRecord；YakFlow API 的历史 Row/Schema 模型尚待清理。Runtime 具备单 JVM 执行基础，新 JDBC Source 已支持一个 Source 的多张表并行读取。**尚无对应 JDBC Sink 或产品任务接线，不能进行实际跨库同步。**
+旧 `yak-flow-connector-cdc-mysql` 与 Business 旧 execution 已删除。Core 提供统一 Source/Sink 协议和新的通用 TableRecord；旧 yak-flow-api 已移除；通用 RowData、TableRecord、RowKind、TableId 和 LogicalType / TableSchema 均由 Core 拥有。Runtime 具备单 JVM 执行基础，新 JDBC Source 已支持一个 Source 的多张表并行读取。**尚无对应 JDBC Sink 或产品任务接线，不能进行实际跨库同步。**
 
 ## Execution Pipeline
 
@@ -53,7 +53,7 @@ The base module has no JDBC/CDC connection logic and does not change Runtime's S
 
 For tables with exactly one signed-long-compatible integer primary key, the planner uses disjoint inclusive range splits and resumes a split with an exclusive `lastEmittedKey` seek predicate. Progress is updated only by `JdbcRecordEmitter` after successful output, never by Fetcher prefetch. No supported key or out-of-range unsigned keys means one full-table split that is replayed from the beginning on recovery; this may produce duplicates. Source definition fingerprints reject changed table sets during enumerator restoration. Versioned split/enumerator serializers contain no credentials or active connections.
 
-The JDBC reader supports MySQL, PostgreSQL and Oracle quoted identifiers and read connection policies, plus ANSI/H2 for embedded integration tests. JDBC Driver availability and read cursor behavior remain database/driver dependent. The JDBC Source is a bounded table scan, not a transactionally consistent cross-table snapshot or MySQL CDC. The tests exercise real embedded H2 ResultSets through local YakFlow Runtime; they are not MySQL/PostgreSQL/Oracle acceptance results.
+The JDBC reader supports MySQL, PostgreSQL and Oracle quoted identifiers and read connection policies, plus ANSI/H2 for embedded integration tests. Target-table DDL and native type mapping have a single owner in JDBC Connector; Datasource JDBC Plugin retains only connection/Catalog/metadata mapping, not a second dialect implementation. JDBC Driver availability and read cursor behavior remain database/driver dependent. The JDBC Source is a bounded table scan, not a transactionally consistent cross-table snapshot or MySQL CDC. The tests exercise real embedded H2 ResultSets through local YakFlow Runtime; they are not MySQL/PostgreSQL/Oracle acceptance results.
 
 ## Non-Goals
 
@@ -64,4 +64,4 @@ The JDBC reader supports MySQL, PostgreSQL and Oracle quoted identifiers and rea
 - [Core / Runtime Execution Contract](core-runtime-contract.md)
 - [YakFlow Rules](../../../yak-flow/YAK_FLOW_RULES.md)
 - [Data Sync Product](../data-sync/README.md)
-- [Datasource JDBC Schema](../../../yak-ops-plugins/yak-ops-plugin-datasource/yak-ops-plugin-datasource-jdbc/src/main/java/io/yak/ops/plugin/database/jdbc/schema/)（仅用于元数据和 DDL 预览）
+- [Datasource JDBC Catalog Mapper](../../../yak-ops-plugins/yak-ops-plugin-datasource/yak-ops-plugin-datasource-jdbc/src/main/java/io/yak/ops/plugin/database/jdbc/schema/)（Catalog-to-logical-schema conversion; SQL/DDL dialects live in JDBC Connector）

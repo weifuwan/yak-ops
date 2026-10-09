@@ -1,6 +1,6 @@
 package io.yak.ops.business.datasync.schema.target;
 
-import io.yak.ops.flow.api.row.YakTableSchema;
+import io.yak.ops.core.types.TableSchema;
 import java.util.List;
 
 /**
@@ -13,7 +13,7 @@ import java.util.List;
  * @since 2026-10-04
  */
 public record TargetSchemaCompatibilityResult(
-        boolean compatible, YakTableSchema targetWriteSchema, List<String> issues) {
+        boolean compatible, TableSchema targetWriteSchema, List<String> issues) {
 
     public TargetSchemaCompatibilityResult {
         issues = issues == null ? List.of() : List.copyOf(issues);

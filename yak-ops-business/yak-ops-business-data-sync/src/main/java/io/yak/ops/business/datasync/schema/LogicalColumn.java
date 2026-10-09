@@ -1,7 +1,7 @@
 package io.yak.ops.business.datasync.schema;
 
-import io.yak.ops.flow.api.row.YakDataType;
-import io.yak.ops.flow.api.row.YakTypeKind;
+import io.yak.ops.core.types.LogicalType;
+import io.yak.ops.core.types.TypeKind;
 import java.util.Objects;
 
 /**
@@ -17,7 +17,7 @@ import java.util.Objects;
  * @author weifuwan
  * @since 2026-10-04
  */
-public record LogicalColumn(String name, YakDataType dataType, boolean nullable, Integer length, String comment) {
+public record LogicalColumn(String name, LogicalType dataType, boolean nullable, Integer length, String comment) {
 
     public LogicalColumn {
         Objects.requireNonNull(name, "name must not be null");
@@ -35,7 +35,7 @@ public record LogicalColumn(String name, YakDataType dataType, boolean nullable,
         }
     }
 
-    private static boolean supportsLength(YakTypeKind kind) {
-        return kind == YakTypeKind.STRING || kind == YakTypeKind.BINARY;
+    private static boolean supportsLength(TypeKind kind) {
+        return kind == TypeKind.STRING || kind == TypeKind.BINARY;
     }
 }

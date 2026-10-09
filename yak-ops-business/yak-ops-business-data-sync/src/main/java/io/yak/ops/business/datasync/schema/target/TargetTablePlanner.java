@@ -2,13 +2,14 @@ package io.yak.ops.business.datasync.schema.target;
 
 import io.yak.ops.business.datasync.schema.LogicalColumn;
 import io.yak.ops.business.datasync.schema.LogicalTable;
-import io.yak.ops.flow.api.row.YakColumn;
-import io.yak.ops.flow.api.row.YakTableSchema;
-import io.yak.ops.plugin.database.jdbc.schema.JdbcTargetTableDdlPlan;
-import io.yak.ops.plugin.database.jdbc.schema.dialect.JdbcDialect;
-import io.yak.ops.plugin.database.jdbc.schema.dialect.JdbcDialects;
-import io.yak.ops.plugin.database.jdbc.schema.dialect.JdbcNativeType;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDdlPlan;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcNativeType;
 import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
+import io.yak.ops.core.data.TableId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,7 +35,8 @@ public class TargetTablePlanner {
         String canonicalType = JdbcDialects.canonicalType(targetType);
         JdbcDialect dialect = JdbcDialects.forType(canonicalType);
         DataSourceTablePath targetPath = new DataSourceTablePath(normalize(database), normalize(schema), table);
-        YakTableSchema runtimeSchema = logicalTable.toRuntimeSchema();
+        TableSchema runtimeSchema = logicalTable.toTableSchema();
+        TableId targetId = new TableId(targetPath.database(), targetPath.schema(), targetPath.table());
 
         Map<String, Integer> primaryKeyPositions = primaryKeyPositions(logicalTable.primaryKeys());
         List<TargetColumnPlan> columnPlans = new ArrayList<>(runtimeSchema.columnCount());
@@ -42,7 +44,7 @@ public class TargetTablePlanner {
         List<String> unsupported = new ArrayList<>();
 
         for (int index = 0; index < runtimeSchema.columnCount(); index++) {
-            YakColumn column = runtimeSchema.column(index);
+            Column column = runtimeSchema.column(index);
             Integer primaryKeyPosition = primaryKeyPositions.get(column.name());
             boolean primaryKey = primaryKeyPosition != null;
             String nativeType = null;
@@ -81,9 +83,9 @@ public class TargetTablePlanner {
                     unsupportedReason));
         }
 
-        JdbcTargetTableDdlPlan ddlPlan = unsupported.isEmpty()
+        JdbcDdlPlan ddlPlan = unsupported.isEmpty()
                 ? dialect.createTablePlan(
-                        targetPath, runtimeSchema, logicalTable.comment(), columnComments(logicalTable))
+                        targetId, runtimeSchema, logicalTable.comment(), columnComments(logicalTable))
                 : null;
         return new TargetTablePlan(
                 canonicalType,

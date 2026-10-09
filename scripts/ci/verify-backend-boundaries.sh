@@ -11,6 +11,8 @@ fi
 
 removed_paths=(
     yak-flow/yak-flow-connector-cdc-mysql
+    yak-flow/yak-flow-api
+    yak-ops-plugins/yak-ops-plugin-datasource/yak-ops-plugin-datasource-jdbc/src/main/java/io/yak/ops/plugin/database/jdbc/schema/dialect
     yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/execution
     yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/execution
     yak-flow/yak-flow-api/src/main/java/io/yak/ops/flow/api/source
@@ -26,7 +28,7 @@ for path in "${removed_paths[@]}"; do
 done
 
 if git grep -n -E \
-    'io[.]yak[.]ops[.]flow[.]connector[.]|io[.]yak[.]ops[.]business[.]datasync[.]execution[.]|io[.]yak[.]ops[.]flow[.]api[.](source|sink|checkpoint|trace)[.]' \
+    'io[.]yak[.]ops[.]flow[.]connector[.]|io[.]yak[.]ops[.]business[.]datasync[.]execution[.]|io[.]yak[.]ops[.]flow[.]api[.]|io[.]yak[.]ops[.]plugin[.]database[.]jdbc[.]schema[.]dialect[.]' \
     -- '*.java'; then
     echo 'Legacy data-sync engine import remained' >&2
     exit 1

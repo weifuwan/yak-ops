@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.yak.ops.flow.api.row.YakTypes;
+import io.yak.ops.core.types.LogicalTypes;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -56,7 +56,7 @@ class TargetTablePlannerTest {
                 null,
                 1,
                 List.of(new LogicalColumn(
-                        "event_time", YakTypes.TIMESTAMP_WITH_TIME_ZONE, true, null, null)),
+                        "event_time", LogicalTypes.TIMESTAMP_WITH_TIME_ZONE, true, null, null)),
                 List.of());
 
         TargetTablePlan plan = planner.plan(table, "MYSQL", "yakflow", null, "events_copy");
@@ -74,7 +74,7 @@ class TargetTablePlannerTest {
                 "documents",
                 null,
                 1,
-                List.of(new LogicalColumn("document_key", YakTypes.STRING, false, null, null)),
+                List.of(new LogicalColumn("document_key", LogicalTypes.STRING, false, null, null)),
                 List.of("document_key"));
 
         TargetTablePlan plan = planner.plan(table, "ORACLE", null, "APP", "documents_copy");
@@ -93,7 +93,7 @@ class TargetTablePlannerTest {
                 "notes",
                 null,
                 1,
-                List.of(new LogicalColumn("content", YakTypes.STRING, true, null, null)),
+                List.of(new LogicalColumn("content", LogicalTypes.STRING, true, null, null)),
                 List.of());
 
         TargetTablePlan plan = planner.plan(table, "POSTGRE_SQL", null, "public", "notes_copy");
@@ -110,9 +110,9 @@ class TargetTablePlannerTest {
                 "订单表",
                 3,
                 List.of(
-                        new LogicalColumn("id", YakTypes.BIGINT, false, null, "主键"),
-                        new LogicalColumn("name", YakTypes.STRING, false, 100, "名称"),
-                        new LogicalColumn("amount", YakTypes.decimal(18, 2), true, null, "金额")),
+                        new LogicalColumn("id", LogicalTypes.BIGINT, false, null, "主键"),
+                        new LogicalColumn("name", LogicalTypes.STRING, false, 100, "名称"),
+                        new LogicalColumn("amount", LogicalTypes.decimal(18, 2), true, null, "金额")),
                 List.of("id"));
     }
 }

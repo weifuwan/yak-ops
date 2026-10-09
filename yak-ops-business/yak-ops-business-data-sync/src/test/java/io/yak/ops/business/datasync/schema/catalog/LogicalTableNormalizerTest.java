@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
-import io.yak.ops.flow.api.row.YakDecimalType;
-import io.yak.ops.flow.api.row.YakTypeKind;
+import io.yak.ops.core.types.DecimalType;
+import io.yak.ops.core.types.TypeKind;
 import java.sql.Types;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -33,12 +33,12 @@ class LogicalTableNormalizerTest {
                 .map(LogicalColumn::name)
                 .toList());
         assertEquals(List.of("id"), logicalTable.primaryKeys());
-        assertEquals(YakTypeKind.BIGINT, logicalTable.columns().get(0).dataType().kind());
-        assertEquals(YakTypeKind.STRING, logicalTable.columns().get(1).dataType().kind());
+        assertEquals(TypeKind.BIGINT, logicalTable.columns().get(0).dataType().kind());
+        assertEquals(TypeKind.STRING, logicalTable.columns().get(1).dataType().kind());
         assertEquals(100, logicalTable.columns().get(1).length());
         assertEquals("名称", logicalTable.columns().get(1).comment());
 
-        YakDecimalType amount = (YakDecimalType) logicalTable.columns().get(2).dataType();
+        DecimalType amount = (DecimalType) logicalTable.columns().get(2).dataType();
         assertEquals(18, amount.precision());
         assertEquals(2, amount.scale());
     }

@@ -1,21 +1,12 @@
-package io.yak.ops.plugin.database.jdbc.schema;
+package io.yak.ops.connector.jdbc.database.dialect;
 
 import java.util.List;
 import java.util.Objects;
 
-/**
- * JDBC 目标表受控 DDL 计划。
- *
- * <p>第一条语句必须是 CREATE TABLE；后续语句可承载表 / 字段 Comment 等由 JdbcDialect 生成的附加 DDL。
- *
- * @param createTableSql 主 CREATE TABLE SQL
- * @param statements 按执行顺序排列的完整 DDL 语句
- * @author weifuwan
- * @since 2026-10-05
- */
-public record JdbcTargetTableDdlPlan(String createTableSql, List<String> statements) {
+/** Ordered create-table and column-comment DDL statements for an existing table plan. */
+public record JdbcDdlPlan(String createTableSql, List<String> statements) {
 
-    public JdbcTargetTableDdlPlan {
+    public JdbcDdlPlan {
         Objects.requireNonNull(createTableSql, "createTableSql must not be null");
         Objects.requireNonNull(statements, "statements must not be null");
         if (createTableSql.isBlank()) {

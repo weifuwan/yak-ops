@@ -23,7 +23,7 @@ Physical Metadata
 LogicalTable
 Product Metadata
         ↓
-YakTableSchema
+TableSchema
 Runtime Contract
         ↓
 Target Table Plan
@@ -60,7 +60,7 @@ Logical Table 可以在后续 PR 中持久化为 Workspace-scoped 产品资源�
 
 ### YakFlow
 
-YakFlow 继续只拥有数据平面运行契约：YakDataType、YakColumn、YakTableSchema。
+YakFlow 继续只拥有数据平面运行契约：LogicalType、Column、TableSchema。
 
 YakFlow 不拥有 Logical Table 的产品 ID、Workspace、Comment、Schema Version、Catalog 来源关系或建模生命周期。
 
@@ -109,7 +109,7 @@ Logical Table 必须是自包含 Schema Snapshot。即使原 Datasource 或 Sour
 ~~~text
 LogicalColumn
 ├── name
-├── dataType: YakDataType
+├── dataType: LogicalType
 ├── nullable
 ├── length
 └── comment
@@ -118,7 +118,7 @@ LogicalColumn
 规则：
 
 - 字段名称保留来源标识符原始大小写，不在 Logical Model 中统一 lower-case。
-- 类型唯一标准是 YakFlow YakDataType，不再维护第二套 Data Sync 类型枚举。
+- 类型唯一标准是 YakFlow LogicalType，不再维护第二套 Data Sync 类型枚举。
 - STRING / BINARY 可以保存 length；未知容量使用 null。
 - DECIMAL 的 precision / scale 由 YakDecimalType 自己承载，不塞进通用 length。
 - comment 是产品元数据，不进入 Runtime Schema。
@@ -211,10 +211,10 @@ Catalog Refresh 不能静默覆盖一个已保存且被 Task / Model 引用的 S
 ~~~text
 LogicalTable
         ↓
-YakTableSchema
+TableSchema
 ~~~
 
-必须保留 Column order、Column name、YakDataType、nullable、STRING / BINARY capacity 与 Primary Key order。
+必须保留 Column order、Column name、LogicalType、nullable、STRING / BINARY capacity 与 Primary Key order。
 
 不会进入 Runtime：Logical Table name、comment、schemaVersion、product resource identity、workspace、audit fields。
 
@@ -233,7 +233,7 @@ schema.catalog.SourceTableIntrospector
         ↓
 LogicalTableNormalizer
         ↓
-JdbcSchemaMapper / YakDataType
+JdbcSchemaMapper / LogicalType
         ↓
 LogicalTable
 ~~~
@@ -245,7 +245,7 @@ Datasource Catalog 现在提供精确 `findTable(DataSourceTablePath)`，DataSou
 - 字段按 Catalog `ordinalPosition` 恢复稳定顺序。
 - JDBC `typeName / jdbcType / size / scale` 只作为物理输入。
 - Logical Type 唯一通过现有 `JdbcSchemaMapper` 归一，不在 Data Sync 再写 JDBC type switch。
-- STRING / BINARY capacity 继续由 YakColumn length 表达。
+- STRING / BINARY capacity 继续由 Column length 表达。
 - DECIMAL precision / scale 继续由 YakDecimalType 表达。
 - table remarks / column remarks 作为初始 comment，空白备注归一为 null。
 - Catalog 额外保留 JDBC `KEY_SEQ` 为 `primaryKeyPosition`，复合主键按 KEY_SEQ 顺序进入 LogicalTable，不按字段物理顺序猜测。
@@ -365,7 +365,7 @@ target exists?
 - 修改 `autoCreateTable` 推进 Task `definitionVersion`，Execution 创建时冻结进 `definitionSnapshot`；Retry / Auto Recovery 不读取 Task 当前值覆盖历史 Execution。
 - 保存 / 发布 / 运行都重新检查真实外部 Catalog，不依赖前端预览结果。
 - 目标表已经存在时永远不执行 CREATE、DROP 或 ALTER，只做兼容性检查。
-- 目标表不存在且开启自动建表时，只执行 YakFlow JDBC Dialect 从受控 TablePath + YakTableSchema 生成的 CREATE TABLE，不接受任意用户 SQL。
+- 目标表不存在且开启自动建表时，只执行 YakFlow JDBC Dialect 从受控 TablePath + TableSchema 生成的 CREATE TABLE，不接受任意用户 SQL。
 - CREATE TABLE 后必须重新 introspect 目标 Catalog，再做兼容性与主键校验；不能因为 DDL 执行成功就直接相信计划。
 - 并发建表时，如果本次 CREATE 失败但随后精确 Catalog 已发现目标表，按并发创建处理并继续重新校验，而不是盲目重试 DDL。
 - Target Schema 必须包含全部 Source 同名字段并满足 JdbcSchemaCompatibility。
@@ -457,7 +457,7 @@ OFFLINE / REALTIME Task 默认仍要求目标表预先存在；只有 Task Defin
 
 Contract test 至少验证：
 
-- Logical Table 可以稳定投影为 YakTableSchema。
+- Logical Table 可以稳定投影为 TableSchema。
 - Composite Primary Key 顺序保持。
 - Primary Key 不能引用不存在字段。
 - Logical Column 名称不能重复。

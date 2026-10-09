@@ -1,26 +1,25 @@
-package io.yak.ops.plugin.database.jdbc.schema.dialect;
+package io.yak.ops.connector.jdbc.database.dialect;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.yak.ops.flow.api.row.YakColumn;
-import io.yak.ops.flow.api.row.YakTableSchema;
-import io.yak.ops.flow.api.row.YakTypes;
-import io.yak.ops.plugin.database.jdbc.schema.JdbcTargetTableDdlPlan;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.core.types.LogicalTypes;
+import io.yak.ops.core.data.TableId;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class JdbcCreateTableDialectTest {
 
-    private static final YakTableSchema SCHEMA = new YakTableSchema(
+    private static final TableSchema SCHEMA = new TableSchema(
             List.of(
-                    new YakColumn("id", YakTypes.BIGINT, false, null),
-                    new YakColumn("name", YakTypes.STRING, false, 100),
-                    new YakColumn("amount", YakTypes.decimal(18, 2), true, null)),
+                    new Column("id", LogicalTypes.BIGINT, false, null),
+                    new Column("name", LogicalTypes.STRING, false, 100),
+                    new Column("amount", LogicalTypes.decimal(18, 2), true, null)),
             List.of("id"));
 
     @Test
@@ -29,7 +28,7 @@ class JdbcCreateTableDialectTest {
                 "CREATE TABLE `yakflow`.`orders` (`id` BIGINT NOT NULL, `name` VARCHAR(100) NOT NULL, "
                         + "`amount` DECIMAL(18,2), PRIMARY KEY (`id`))",
                 JdbcDialects.forType("MYSQL")
-                        .createTableSql(new DataSourceTablePath("yakflow", null, "orders"), SCHEMA));
+                        .createTableSql(new TableId("yakflow", null, "orders"), SCHEMA));
     }
 
     @Test
@@ -38,7 +37,7 @@ class JdbcCreateTableDialectTest {
                 "CREATE TABLE \"public\".\"orders\" (\"id\" BIGINT NOT NULL, \"name\" VARCHAR(100) NOT NULL, "
                         + "\"amount\" NUMERIC(18,2), PRIMARY KEY (\"id\"))",
                 JdbcDialects.forType("POSTGRE_SQL")
-                        .createTableSql(new DataSourceTablePath("yakflow", "public", "orders"), SCHEMA));
+                        .createTableSql(new TableId("yakflow", "public", "orders"), SCHEMA));
     }
 
     @Test
@@ -47,14 +46,14 @@ class JdbcCreateTableDialectTest {
                 "CREATE TABLE \"APP\".\"orders\" (\"id\" NUMBER(19) NOT NULL, "
                         + "\"name\" VARCHAR2(100 CHAR) NOT NULL, \"amount\" NUMBER(18,2), PRIMARY KEY (\"id\"))",
                 JdbcDialects.forType("ORACLE")
-                        .createTableSql(new DataSourceTablePath(null, "APP", "orders"), SCHEMA));
+                        .createTableSql(new TableId(null, "APP", "orders"), SCHEMA));
     }
 
     @Test
     void shouldGenerateMysqlCommentsInlineWithEscapedLiteral() {
-        JdbcTargetTableDdlPlan plan = JdbcDialects.forType("MYSQL")
+        JdbcDdlPlan plan = JdbcDialects.forType("MYSQL")
                 .createTablePlan(
-                        new DataSourceTablePath("yakflow", null, "orders"),
+                        new TableId("yakflow", null, "orders"),
                         SCHEMA,
                         "订单's table",
                         Map.of("id", "主键's id", "name", "订单名称"));
@@ -68,9 +67,9 @@ class JdbcCreateTableDialectTest {
 
     @Test
     void shouldGeneratePostgresqlCommentStatements() {
-        JdbcTargetTableDdlPlan plan = JdbcDialects.forType("POSTGRE_SQL")
+        JdbcDdlPlan plan = JdbcDialects.forType("POSTGRE_SQL")
                 .createTablePlan(
-                        new DataSourceTablePath("yakflow", "public", "orders"),
+                        new TableId("yakflow", "public", "orders"),
                         SCHEMA,
                         "订单表",
                         Map.of("id", "订单ID", "name", "订单名称"));
@@ -88,9 +87,9 @@ class JdbcCreateTableDialectTest {
 
     @Test
     void shouldGenerateOracleCommentStatements() {
-        JdbcTargetTableDdlPlan plan = JdbcDialects.forType("ORACLE")
+        JdbcDdlPlan plan = JdbcDialects.forType("ORACLE")
                 .createTablePlan(
-                        new DataSourceTablePath(null, "APP", "orders"),
+                        new TableId(null, "APP", "orders"),
                         SCHEMA,
                         "订单表",
                         Map.of("amount", "金额"));
@@ -107,8 +106,8 @@ class JdbcCreateTableDialectTest {
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> JdbcDialects.forType("MYSQL")
-                        .nativeType(new YakColumn(
-                                "event_time", YakTypes.TIMESTAMP_WITH_TIME_ZONE, true, null)));
+                        .nativeType(new Column(
+                                "event_time", LogicalTypes.TIMESTAMP_WITH_TIME_ZONE, true, null)));
     }
 
     @Test
@@ -116,13 +115,13 @@ class JdbcCreateTableDialectTest {
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> JdbcDialects.forType("ORACLE")
-                        .nativeType(new YakColumn("event_time", YakTypes.TIME, true, null)));
+                        .nativeType(new Column("event_time", LogicalTypes.TIME, true, null)));
     }
 
     @Test
     void shouldMarkOracleClobAsUnsupportedPrimaryKeyType() {
         JdbcNativeType type =
-                JdbcDialects.forType("ORACLE").nativeType(new YakColumn("payload", YakTypes.STRING, false, null));
+                JdbcDialects.forType("ORACLE").nativeType(new Column("payload", LogicalTypes.STRING, false, null));
 
         assertEquals("CLOB", type.ddl());
         assertFalse(type.primaryKeySupported());
