@@ -139,7 +139,7 @@ checkpointed as consumed. Enumerator assignment removes pending work only after
 `assignSplit` succeeds, and in-flight asynchronous table planning is re-run on
 restoration when the table index has not advanced.
 
-"JdbcConnectionRetry" retries a bounded number of **connection creation** failures
+`JdbcConnectionRetry` retries a bounded number of **connection creation** failures
 classified as transient or SQLState class 08. The Reader also validates a reused
 connection at each split boundary and reconnects if it is no longer valid. If the
 connection drops while the next split's query is opening, it can retry before

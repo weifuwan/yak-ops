@@ -47,14 +47,18 @@ class JdbcSourceProjectionReliabilityTest {
         JdbcSource source = new JdbcSource(database, List.of(table), options, Map.of(table, List.of("LABEL")));
         PlanningContext planning = new PlanningContext();
         List<JdbcSourceSplit> assigned;
+        JdbcEnumeratorState projectedState;
         try (var enumerator = source.createEnumerator(planning)) {
             enumerator.handleSplitRequest(0);
             enumerator.start();
             assigned = List.copyOf(planning.assigned);
+            projectedState = enumerator.snapshotState(1);
         }
         assertEquals(1, assigned.size());
         assertEquals(List.of("LABEL"), assigned.getFirst().columns());
         assertEquals(List.of("LABEL", "ID"), assigned.getFirst().readColumns());
+        JdbcSource unprojected = new JdbcSource(database, List.of(table), options);
+        assertThrows(IllegalArgumentException.class, () -> unprojected.restoreEnumerator(null, projectedState));
 
         JdbcSourceSplit saved;
         List<TableRecord> emitted = new ArrayList<>();
