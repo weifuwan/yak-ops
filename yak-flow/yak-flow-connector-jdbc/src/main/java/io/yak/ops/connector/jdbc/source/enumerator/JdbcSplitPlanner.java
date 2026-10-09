@@ -2,10 +2,10 @@ package io.yak.ops.connector.jdbc.source.enumerator;
 
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcTableMetadata;
 import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
-import io.yak.ops.connector.jdbc.database.catalog.JdbcTableMetadata;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.source.split.JdbcSchemaFingerprint;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
@@ -20,9 +20,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.HashSet;
 import java.util.Objects;
 
 /**
@@ -75,7 +75,8 @@ public final class JdbcSplitPlanner {
         }
         try (Connection connection = JdbcConnectionRetry.open(connections, connectionAttempts)) {
             TableSchema schema = JdbcTableMetadata.readTable(connection, dialect, table);
-            List<String> availableColumns = schema.columns().stream().map(Column::name).toList();
+            List<String> availableColumns =
+                    schema.columns().stream().map(Column::name).toList();
             List<String> selectedColumns = selectedColumns(availableColumns, projections.get(table));
             String splitColumn = numericPrimaryKey(schema);
             String schemaFingerprint = schemaFingerprint(connection, table, selectedColumns, splitColumn);

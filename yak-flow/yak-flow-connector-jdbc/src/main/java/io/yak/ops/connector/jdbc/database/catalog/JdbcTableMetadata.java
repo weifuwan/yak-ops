@@ -74,4 +74,3 @@ public final class JdbcTableMetadata {
         return new TableSchema(projected.columns(), List.copyOf(keys.values()));
     }
 }
-

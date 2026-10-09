@@ -312,7 +312,6 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         hasRow = resultSet.next();
     }
 
-
     private void closeStatementAndResultSet() throws SQLException {
         cancellableStatement = null;
         converter = null;

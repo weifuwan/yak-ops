@@ -27,8 +27,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -93,7 +93,8 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
             throw new IllegalArgumentException("JDBC source tables must be nonempty and unique");
         }
         Map<TableId, List<String>> selected = new LinkedHashMap<>();
-        for (Map.Entry<TableId, List<String>> entry : Objects.requireNonNull(projections, "projections").entrySet()) {
+        for (Map.Entry<TableId, List<String>> entry :
+                Objects.requireNonNull(projections, "projections").entrySet()) {
             List<String> columns = List.copyOf(entry.getValue());
             if (!this.tables.contains(entry.getKey())
                     || columns.isEmpty()
