@@ -40,6 +40,22 @@ class StreamTaskMailboxTest {
     }
 
     @Test
+    void shouldResumeInputAfterSplitEventEvenWhenReaderAvailabilityFutureStaysPending() throws Exception {
+        TestTask task = new TestTask();
+        task.start().get(5, TimeUnit.SECONDS);
+        assertTrue(task.firstPoll.await(5, TimeUnit.SECONDS));
+
+        // A Reader may not complete an old availability Future when a new split arrives.
+        // The coordinator event explicitly reactivates the mailbox default action.
+        task.deliverInputChange().get(5, TimeUnit.SECONDS);
+        task.completionFuture().get(5, TimeUnit.SECONDS);
+        assertFalse(task.available.isDone());
+        assertEquals(2, task.polls.get());
+        assertEquals(1, task.finishes.get());
+        assertEquals(1, task.closes.get());
+    }
+
+    @Test
     void shouldCancelWhileInputSuspendedWithoutPollingAgainOrFinalizing() throws Exception {
         TestTask task = new TestTask();
         task.start().get(5, TimeUnit.SECONDS);
@@ -115,6 +131,13 @@ class StreamTaskMailboxTest {
 
         CompletableFuture<Thread> runControl() {
             return submitMailbox(Thread::currentThread);
+        }
+
+        CompletableFuture<Void> deliverInputChange() {
+            return submitMailbox(() -> {
+                resumeInputProcessing();
+                return null;
+            });
         }
 
         @Override
