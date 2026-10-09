@@ -15,10 +15,10 @@ package io.yak.ops.flow.runtime.operators;
 public interface OneInputOperatorFactory<IN, OUT> {
 
     /**
- * Creates one operator instance for a task attempt.
- *
- * @return a new, non-null operator owned by the runtime
- * @throws Exception if creation fails
- */
+     * Creates one operator instance for a task attempt.
+     *
+     * @return a new, non-null operator owned by the runtime
+     * @throws Exception if creation fails
+     */
     OneInputStreamOperator<IN, OUT> createOperator() throws Exception;
 }

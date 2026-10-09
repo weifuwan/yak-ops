@@ -4,17 +4,17 @@ import io.yak.ops.core.api.operators.KeySelector;
 import java.util.Objects;
 
 /**
-* Directed edge of a StreamGraph with an explicit subtask partitioning strategy.
-*
-* <p>FORWARD requires matching upstream and downstream parallelism. REBALANCE distributes
-* records in round-robin order, and KEYED routes the same stable business key to the
-* same destination subtask.
-*
-* @param sourceId the graph-local upstream node ID
-* @param targetId the graph-local downstream node ID
-* @param partitioning the partition strategy for this edge
-* @param keySelector the key extractor, required only for KEYED partitioning
-*/
+ * Directed edge of a StreamGraph with an explicit subtask partitioning strategy.
+ *
+ * <p>FORWARD requires matching upstream and downstream parallelism. REBALANCE distributes
+ * records in round-robin order, and KEYED routes the same stable business key to the
+ * same destination subtask.
+ *
+ * @param sourceId the graph-local upstream node ID
+ * @param targetId the graph-local downstream node ID
+ * @param partitioning the partition strategy for this edge
+ * @param keySelector the key extractor, required only for KEYED partitioning
+ */
 public record StreamEdge(int sourceId, int targetId, StreamPartitioning partitioning, KeySelector<?> keySelector) {
 
     /** Creates a direct FORWARD edge for a matching-parallelism chain. */

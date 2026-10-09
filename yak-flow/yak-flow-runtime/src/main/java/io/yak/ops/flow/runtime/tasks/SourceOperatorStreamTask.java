@@ -131,12 +131,12 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     }
 
     /**
- * Delivers a coordinator event on the task mailbox thread.
- *
- * <p>The returned stage completes after the SourceOperator processes the event, not
- * merely after enqueueing it. This does not imply that records were consumed or a
- * checkpoint was completed.
- */
+     * Delivers a coordinator event on the task mailbox thread.
+     *
+     * <p>The returned stage completes after the SourceOperator processes the event, not
+     * merely after enqueueing it. This does not imply that records were consumed or a
+     * checkpoint was completed.
+     */
     @Override
     public CompletionStage<Void> sendEvent(OperatorEvent event) {
         Objects.requireNonNull(event, "event 不能为空");
@@ -150,11 +150,11 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     }
 
     /**
- * Captures the Reader's progress and pauses input on the task mailbox.
- *
- * <p>The coordinator must already have frozen new split requests and assignments.
- * Control events can still run while data polling is paused.
- */
+     * Captures the Reader's progress and pauses input on the task mailbox.
+     *
+     * <p>The coordinator must already have frozen new split requests and assignments.
+     * Control events can still run while data polling is paused.
+     */
     public CompletableFuture<List<SplitT>> pauseForCheckpoint(long checkpointId) {
         return submitMailbox(() -> {
             if (pausedForCheckpoint) {

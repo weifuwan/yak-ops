@@ -29,14 +29,14 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
-* Single-JVM aligned barrier checkpoint.
-*
-* <p>Freeze split assignment, snapshot readers and inject ordered barriers. Source then resumes
-* while each downstream InputGate aligns its producers. Operator/Writer state is captured by the
-* owning Task mailbox, and durability is published only after ALL downstream acknowledgements.
-*
-* <p>Only linear, single-input local graphs are supported. No distributed exactly-once.
-*/
+ * Single-JVM aligned barrier checkpoint.
+ *
+ * <p>Freeze split assignment, snapshot readers and inject ordered barriers. Source then resumes
+ * while each downstream InputGate aligns its producers. Operator/Writer state is captured by the
+ * owning Task mailbox, and durability is published only after ALL downstream acknowledgements.
+ *
+ * <p>Only linear, single-input local graphs are supported. No distributed exactly-once.
+ */
 public final class AlignedCheckpointCoordinator implements AutoCloseable {
 
     private final Source<?, SourceSplit, Object> source;
@@ -117,11 +117,11 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     }
 
     /**
-    * Requests one checkpoint on the same serialized executor used for periodic checkpoints.
-    *
-    * @return a future completed after the checkpoint is durably published, or exceptionally
-    *         if the attempt fails
-    */
+     * Requests one checkpoint on the same serialized executor used for periodic checkpoints.
+     *
+     * @return a future completed after the checkpoint is durably published, or exceptionally
+     *         if the attempt fails
+     */
     public CompletableFuture<CheckpointSnapshot> trigger() {
         CompletableFuture<CheckpointSnapshot> result = new CompletableFuture<>();
         if (closed.get()) {
@@ -149,11 +149,11 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     }
 
     /**
-    * Restores reader splits from a completed checkpoint.
-    *
-    * <p>Reader snapshots contain the latest offsets. They supersede older assignment entries
-    * with the same split ID; replay from the completed checkpoint is at-least-once.
-    */
+     * Restores reader splits from a completed checkpoint.
+     *
+     * <p>Reader snapshots contain the latest offsets. They supersede older assignment entries
+     * with the same split ID; replay from the completed checkpoint is at-least-once.
+     */
     public static Map<Integer, List<SourceSplit>> restoreSplits(
             CheckpointSnapshot snapshot, Source<?, SourceSplit, ?> source) throws IOException {
         Objects.requireNonNull(snapshot, "snapshot 不能为空");

@@ -80,10 +80,10 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     }
 
     /**
- * Creates and starts the enumerator once on the coordinator event loop.
- *
- * @return a future completed after initialization or exceptionally on failure
- */
+     * Creates and starts the enumerator once on the coordinator event loop.
+     *
+     * @return a future completed after initialization or exceptionally on failure
+     */
     public CompletableFuture<Void> start() {
         if (!startRequested.compareAndSet(false, true)) {
             return CompletableFuture.failedFuture(new IllegalStateException("SourceCoordinator 已启动"));
@@ -128,11 +128,11 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     }
 
     /**
- * Processes a control event from an active SourceOperator attempt.
- *
- * <p>Split requests must match the registered subtask and attempt. Connector events
- * are also validated before delivery to the enumerator; stale attempts are rejected.
- */
+     * Processes a control event from an active SourceOperator attempt.
+     *
+     * <p>Split requests must match the registered subtask and attempt. Connector events
+     * are also validated before delivery to the enumerator; stale attempts are rejected.
+     */
     public CompletableFuture<Void> handleEventFromOperator(RuntimeTaskInfo taskInfo, OperatorEvent event) {
         Objects.requireNonNull(event, "event 不能为空");
         try {
@@ -229,11 +229,11 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     }
 
     /**
- * Captures coordinator state and outstanding split assignments.
- *
- * <p>Readers, channels and Sinks must be aligned and the entire state persisted before
- * a checkpoint can be announced as successfully completed.
- */
+     * Captures coordinator state and outstanding split assignments.
+     *
+     * <p>Readers, channels and Sinks must be aligned and the entire state persisted before
+     * a checkpoint can be announced as successfully completed.
+     */
     public CompletableFuture<SourceCoordinatorCheckpoint<SplitT, EnumStateT>> snapshotCoordinator(long checkpointId) {
         validateCheckpointId(checkpointId);
         return submit(() -> {

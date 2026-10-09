@@ -1,11 +1,11 @@
 package io.yak.ops.core.api.common;
 
 /**
-* Read-only metadata for a running subtask exposed to connectors and operators.
-*
-* <p>Parallelism is the resolved operator parallelism, not a configuration default. This
-* contract does not expose task threads, mailboxes or execution-graph ownership.
-*/
+ * Read-only metadata for a running subtask exposed to connectors and operators.
+ *
+ * <p>Parallelism is the resolved operator parallelism, not a configuration default. This
+ * contract does not expose task threads, mailboxes or execution-graph ownership.
+ */
 public interface TaskInfo {
 
     /** Returns this subtask's zero-based index within the operator parallelism. */

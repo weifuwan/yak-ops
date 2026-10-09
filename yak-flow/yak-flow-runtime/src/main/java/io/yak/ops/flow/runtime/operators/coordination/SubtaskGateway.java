@@ -16,9 +16,9 @@ import java.util.concurrent.CompletionStage;
 public interface SubtaskGateway {
 
     /**
- * Delivers an event asynchronously to the registered task attempt.
- *
- * @return a stage completed after mailbox processing or exceptionally on failure
- */
+     * Delivers an event asynchronously to the registered task attempt.
+     *
+     * @return a stage completed after mailbox processing or exceptionally on failure
+     */
     CompletionStage<Void> sendEvent(OperatorEvent event);
 }

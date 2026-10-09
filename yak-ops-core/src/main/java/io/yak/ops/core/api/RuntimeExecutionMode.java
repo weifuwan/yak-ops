@@ -1,11 +1,11 @@
 package io.yak.ops.core.api;
 
 /**
-* Execution modes supported by bounded and unbounded pipelines.
-*
-* <p>The planner resolves the mode before execution and rejects {@link #BATCH} for an
-* unbounded source.
-*/
+ * Execution modes supported by bounded and unbounded pipelines.
+ *
+ * <p>The planner resolves the mode before execution and rejects {@link #BATCH} for an
+ * unbounded source.
+ */
 public enum RuntimeExecutionMode {
     /** Selects batch or streaming execution based on the sources' boundedness. */
     AUTOMATIC,

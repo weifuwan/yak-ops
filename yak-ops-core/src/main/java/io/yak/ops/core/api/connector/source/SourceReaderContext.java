@@ -3,13 +3,13 @@ package io.yak.ops.core.api.connector.source;
 import io.yak.ops.core.configuration.Configuration;
 
 /**
-* Minimal runtime context for one SourceReader.
-*
-* <p>Exposes subtask identity and effective configuration, not database connections,
-* application task metadata or particular split instances.
-*
-* @author weifuwan
-*/
+ * Minimal runtime context for one SourceReader.
+ *
+ * <p>Exposes subtask identity and effective configuration, not database connections,
+ * application task metadata or particular split instances.
+ *
+ * @author weifuwan
+ */
 public interface SourceReaderContext {
 
     /** Returns an independent copy of the effective configuration for this subtask. */
@@ -25,10 +25,10 @@ public interface SourceReaderContext {
     void sendSplitRequest();
 
     /**
-    * Sends a connector-defined event to the owning source coordinator.
-    *
-    * <p>Implementations without event routing may reject this optional operation.
-    */
+     * Sends a connector-defined event to the owning source coordinator.
+     *
+     * <p>Implementations without event routing may reject this optional operation.
+     */
     default void sendSourceEventToCoordinator(SourceEvent event) {
         throw new UnsupportedOperationException("This context does not support SourceEvent transport");
     }

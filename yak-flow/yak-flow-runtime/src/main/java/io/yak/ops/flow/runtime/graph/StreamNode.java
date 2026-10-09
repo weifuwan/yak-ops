@@ -80,12 +80,12 @@ public final class StreamNode {
     }
 
     /**
- * Creates a resolved graph node from a logical transformation.
- *
- * @param transformation the validated logical operator definition
- * @param resolvedParallelism the positive parallelism determined by graph planning
- * @return a graph node with frozen execution properties
- */
+     * Creates a resolved graph node from a logical transformation.
+     *
+     * @param transformation the validated logical operator definition
+     * @param resolvedParallelism the positive parallelism determined by graph planning
+     * @return a graph node with frozen execution properties
+     */
     public static StreamNode fromTransformation(Transformation<?> transformation, int resolvedParallelism) {
         return new StreamNode(transformation, resolvedParallelism);
     }

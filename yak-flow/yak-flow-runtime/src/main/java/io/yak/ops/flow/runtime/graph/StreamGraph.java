@@ -15,14 +15,14 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
-* Validated in-memory topology used as a reusable pipeline definition.
-*
-* <p>Nodes and edges are frozen at construction; the graph owns neither a JobID nor
-* active tasks, connections or threads. The embedded runtime supports a linear
-* Source-to-Operator-to-Sink pipeline, not union, multi-input or side output.
-*
-* @author weifuwan
-*/
+ * Validated in-memory topology used as a reusable pipeline definition.
+ *
+ * <p>Nodes and edges are frozen at construction; the graph owns neither a JobID nor
+ * active tasks, connections or threads. The embedded runtime supports a linear
+ * Source-to-Operator-to-Sink pipeline, not union, multi-input or side output.
+ *
+ * @author weifuwan
+ */
 public final class StreamGraph implements Pipeline {
 
     private final Map<Integer, StreamNode> nodes;

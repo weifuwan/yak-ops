@@ -69,11 +69,11 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
     }
 
     /**
- * Processes coordinator events serially with input polling on the mailbox thread.
- *
- * <p>Only split delivery and no-more-splits events are supported. The localized
- * type conversion avoids exposing erased split types to external callers.
- */
+     * Processes coordinator events serially with input polling on the mailbox thread.
+     *
+     * <p>Only split delivery and no-more-splits events are supported. The localized
+     * type conversion avoids exposing erased split types to external callers.
+     */
     @Override
     public void handleOperatorEvent(OperatorEvent event) throws Exception {
         Objects.requireNonNull(event, "event 不能为空");

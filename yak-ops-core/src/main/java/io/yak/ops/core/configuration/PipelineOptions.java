@@ -8,19 +8,19 @@ public final class PipelineOptions {
             ConfigOptions.key("pipeline.name").stringType().noDefaultValue();
 
     /**
-    * Whether operators without an explicit stable UID may use a generated graph-local ID.
-    *
-    * <p>Generated IDs are not safe identities for cross-version state recovery. When this
-    * option is disabled, every operator must provide a stable UID.
-    */
+     * Whether operators without an explicit stable UID may use a generated graph-local ID.
+     *
+     * <p>Generated IDs are not safe identities for cross-version state recovery. When this
+     * option is disabled, every operator must provide a stable UID.
+     */
     public static final ConfigOption<Boolean> AUTO_GENERATE_UIDS =
             ConfigOptions.key("pipeline.auto-generate-uids").booleanType().defaultValue(true);
 
     /**
-    * Stable number of key groups used for keyed partitioning.
-    *
-    * <p>This determines keyed-state identity and must not silently change on recovery.
-    */
+     * Stable number of key groups used for keyed partitioning.
+     *
+     * <p>This determines keyed-state identity and must not silently change on recovery.
+     */
     public static final ConfigOption<Integer> MAX_PARALLELISM =
             ConfigOptions.key("pipeline.max-parallelism").intType().defaultValue(128);
 

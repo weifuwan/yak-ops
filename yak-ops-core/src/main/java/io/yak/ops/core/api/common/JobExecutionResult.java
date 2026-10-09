@@ -9,11 +9,11 @@ public final class JobExecutionResult {
     private final long netRuntime;
 
     /**
-    * Creates a successful execution result.
-    *
-    * @param jobID the completed job's identity
-    * @param netRuntime execution time in milliseconds, excluding submission preparation
-    */
+     * Creates a successful execution result.
+     *
+     * @param jobID the completed job's identity
+     * @param netRuntime execution time in milliseconds, excluding submission preparation
+     */
     public JobExecutionResult(JobID jobID, long netRuntime) {
         this.jobID = Objects.requireNonNull(jobID, "jobID must not be null");
         if (netRuntime < 0) {
