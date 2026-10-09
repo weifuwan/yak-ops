@@ -65,8 +65,8 @@ class SinkV2ExecutionTest {
 
         assertEquals(List.of("ROW-0"), sink.rows);
         assertEquals(1, sink.created.size());
-        assertEquals(output.getId(), sink.created.getFirst().getTaskInfo().getIndexOfThisSubtask() == 0
-                ? sink.operatorIds.getFirst() : -1);
+        assertEquals(output.getId(), sink.operatorIds.getFirst());
+        assertEquals(0, sink.created.getFirst().getTaskInfo().getIndexOfThisSubtask());
         assertEquals(0, sink.created.getFirst().getTaskInfo().getAttemptNumber());
         assertEquals(256, sink.created.getFirst().getTaskInfo().getMaxNumberOfParallelSubtasks());
         assertEquals(1, sink.finalFlushes.get());
@@ -99,7 +99,7 @@ class SinkV2ExecutionTest {
         Configuration configuration = configuration(1, 128);
         configuration.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofSeconds(1));
         AtomicInteger closes = new AtomicInteger();
-        SinkV2<String> sink = context -> new StatefulSinkWriter<>() {
+        SinkV2<String> sink = context -> new StatefulSinkWriter<String, String>() {
             @Override
             public void write(String value) {}
 
