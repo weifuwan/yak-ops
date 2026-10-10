@@ -94,13 +94,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -894,8 +893,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
 
     private void rejectLegacyPolicies(Boolean autoCreate, String mappingJson) {
         if (Boolean.TRUE.equals(autoCreate) || StringUtils.isNotBlank(mappingJson)) {
-            throw new DataSyncException(
-                    DataSyncErrorCode.INVALID_TASK, "任务包含已下线的字段映射或自动建表配置，请重新编辑并保存后再上线");
+            throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "任务包含已下线的字段映射或自动建表配置，请重新编辑并保存后再上线");
         }
     }
 
@@ -943,8 +941,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         return resolveRouteScope(task.getSourceDataSourceId(), task.getTargetDataSourceId(), value);
     }
 
-    private DataSyncTableRouteDTO resolveRouteScope(
-            String sourceId, String targetId, DataSyncTableRouteDTO value) {
+    private DataSyncTableRouteDTO resolveRouteScope(String sourceId, String targetId, DataSyncTableRouteDTO value) {
         DataSourceVO source = dataSourceService.queryDataSource(sourceId);
         DataSourceVO target = dataSourceService.queryDataSource(targetId);
         DataSyncTableRouteDTO resolved = BeanCopyUtils.copy(value, DataSyncTableRouteDTO.class);
@@ -984,8 +981,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         return JSONUtils.readTree(left).equals(JSONUtils.readTree(right));
     }
 
-    private void applyDefinition(
-            DataSyncTaskEntity entity, DataSyncTaskDTO dto, DataSyncTableRouteDTO resolvedScope) {
+    private void applyDefinition(DataSyncTaskEntity entity, DataSyncTaskDTO dto, DataSyncTableRouteDTO resolvedScope) {
         entity.setSourceDataSourceId(dto.getSourceDataSourceId().trim());
         entity.setSourceDatabase(resolvedScope.getSourceDatabase());
         entity.setSourceSchema(resolvedScope.getSourceSchema());
@@ -1051,8 +1047,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         for (Column source : sourceSchema.columns()) {
             Column target = targetByName.get(source.name().toLowerCase(Locale.ROOT));
             if (target == null) {
-                throw new DataSyncException(
-                        DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "目标表缺少同名字段：" + source.name());
+                throw new DataSyncException(DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "目标表缺少同名字段：" + source.name());
             }
             if (!JdbcSchemaCompatibility.isCompatible(source, target)) {
                 throw new DataSyncException(
@@ -1079,8 +1074,7 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
         for (Column column : schema.columns()) {
             Column previous = columns.putIfAbsent(column.name().toLowerCase(Locale.ROOT), column);
             if (previous != null) {
-                throw new DataSyncException(
-                        DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "表结构存在大小写不敏感的重名字段");
+                throw new DataSyncException(DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "表结构存在大小写不敏感的重名字段");
             }
         }
         return columns;
@@ -1325,8 +1319,10 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
             route.setId(StringUtils.trimToNull(route.getId()));
             String sourceTable = StringUtils.trimToNull(route.getSourceTable());
             String targetTable = StringUtils.trimToNull(route.getTargetTable());
-            if (sourceTable == null || targetTable == null
-                    || sourceTable.length() > 128 || targetTable.length() > 128) {
+            if (sourceTable == null
+                    || targetTable == null
+                    || sourceTable.length() > 128
+                    || targetTable.length() > 128) {
                 throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "来源表或目标表名称不合法");
             }
             route.setSourceTable(sourceTable);
@@ -1339,7 +1335,11 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
                 throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "同一任务的来源表或目标表不能重复");
             }
             validateRouteTables(
-                    task.getSourceDataSourceId(), task.getTargetDataSourceId(), scope, task.getSyncType(), task.getWriteMode());
+                    task.getSourceDataSourceId(),
+                    task.getTargetDataSourceId(),
+                    scope,
+                    task.getSyncType(),
+                    task.getWriteMode());
             normalized.add(scope);
         }
 
