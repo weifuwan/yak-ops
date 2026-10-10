@@ -115,7 +115,17 @@ jobs:
 
       - name: Frontend format
         if: steps.scope.outputs.frontend == 'true'
-        run: npm run format:check
+        run: |
+          npx oxfmt apps/web/app/data-sync/task-editor.tsx apps/web/app/data-sync/multi-table-route-editor.tsx
+          echo BEGIN_OXFMT_TASK_EDITOR
+          base64 -w0 apps/web/app/data-sync/task-editor.tsx
+          echo
+          echo END_OXFMT_TASK_EDITOR
+          echo BEGIN_OXFMT_MULTI_ROUTE
+          base64 -w0 apps/web/app/data-sync/multi-table-route-editor.tsx
+          echo
+          echo END_OXFMT_MULTI_ROUTE
+          npm run format:check
 
       - name: Frontend lint
         if: steps.scope.outputs.frontend == 'true'
