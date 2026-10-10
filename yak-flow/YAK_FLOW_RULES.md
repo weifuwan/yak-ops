@@ -18,7 +18,9 @@ than repeating method names. The existing Backend Quality job enforces objective
 - Runtime 拥有 StreamGraph / JobGraph / ExecutionGraph、StreamTask / StreamTaskInput、SourceCoordinator、ResultPartition / InputGate 和 Checkpoint。运行期 Execution 是内存 Attempt，不是产品 Execution。
 - Connector Base 只依赖 Core，提供非阻塞 SourceReader 消费层、有界 Future 队列与阻塞 SplitFetcher，以及 Sink 同步批量触发合同；不得依赖 Runtime、Datasource、JDBC 或产品 Task。`BatchingSinkWriterBase` 不能另建一份缓冲；`BatchOutput` 是记录的唯一缓冲 owner。
 - JDBC Source 独立实现 Core Source API，使用 Connector Base 的异步 Reader 和 Connection 级隔离；SQL 方言只属于 JDBC Connector。The JDBC Connector owns Catalog/Dialect/Converter contracts and native SQL/DDL. Use the shared JdbcFactory SPI for vendor discovery; put concrete dialect, catalog, converter implementations under internal/{dialect,catalog,convert}. The existing Datasource Catalog is transitional and must remain untouched until a later adapter migration; do not add another Datasource dialect.
-- JDBC Sink 单表写入基于 Connector Base 的 BatchOutput / Mailbox Trigger：JdbcOutputFormat 持有连接和事务，TableBufferedStatementExecutor 是唯一记录缓存；JdbcWriter 不再自建批量队列、计时线程或重试执行器。只接收 INSERT，支持 APPEND / 方言原生 UPSERT；显式 Flush 才提交，close 只回滚/释放资源。失败不自动重试可能已提交的 JDBC 批次，不承诺 Exactly-once；多表路由、Changelog、XA/Committer 和跨库验收留在后续阶段。
+- JDBC Sink 基于 Connector Base 的 BatchOutput / Mailbox Trigger：JdbcOutputFormat 持有单 Writer 连接与事务；泛型 TableBufferedStatementExecutor 是唯一记录缓存，TableChangelogStatementExecutor 只管理多表预编译 Statement 和同一事务内的有序批次。JdbcWriter 不自建缓存、计时线程或重试执行器。
+- JDBC Sink 支持多个 source TableId → target TableId 的显式表路由、目标列顺序映射及匹配的 LogicalType Root；APPEND 仅接收 INSERT，UPSERT 将 INSERT/UPDATE_AFTER 执行原生 UPSERT，将 UPDATE_BEFORE/DELETE 按旧主键执行 DELETE。改变主键时必须依次提供 before/after 事件；仅保证单 Writer 记录顺序，不声明并行 Writer 全局顺序。
+- Checkpoint 仍由 Runtime 串行调用 flush(false)，正常结束才 flush(true)；显式 Flush 才提交，关闭只回滚/释放资源；失败/取消不得重试不确定的 JDBC 提交或隐式 Flush。跨库验收覆盖 MySQL→PostgreSQL、PostgreSQL→Oracle、Oracle→MySQL，但不等于产品 E2E。仍为 at-least-once，无 XA/Committer/Exactly-once。OVERWRITE/TRUNCATE 不在重启恢复路径自动执行，后续须独立定义安全合同。
 - JDBC Source 的一个定义管理多张表；Enumerator 逐表异步发现并分配 Split。单整数主键采用不重叠的区间和已输出主键恢复，其他表采用整 Split 重放语义；只保证受限 at-least-once，不承诺变化中数据库的全局一致性快照。
 
 ## Graph Compilation
