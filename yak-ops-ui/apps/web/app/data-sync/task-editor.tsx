@@ -836,61 +836,59 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
             </div>
           </CollapseSection>
 
-          <>
-            <CollapseSection id="source" title="数据来源">
-              <TableSection
-                dataSourceId={form.sourceDataSourceId}
-                boundSchema={selectedSourceDataSource?.schema}
-                database={form.sourceDatabase}
-                schema={form.sourceSchema}
-                table={form.sourceTable}
-                catalog={sourceCatalog}
-                onSchemaChange={(value) =>
-                  setForm((current) => ({
-                    ...current,
-                    sourceSchema: value,
-                    sourceTable: "",
-                  }))
-                }
-                onTableChange={(table) =>
-                  setForm((current) => ({
-                    ...current,
-                    sourceDatabase: current.sourceDatabase || table.database || "",
-                    sourceSchema: current.sourceSchema || table.schema || "",
-                    sourceTable: table.name,
-                  }))
-                }
-              >
-                {realtime ? (
-                  <Alert>
-                    实时同步依赖 ROW Binlog 和 CDC 权限；连接测试通过不代表 CDC 可用。
-                  </Alert>
-                ) : null}
-              </TableSection>
-            </CollapseSection>
+          <CollapseSection id="source" title="数据来源">
+            <TableSection
+              dataSourceId={form.sourceDataSourceId}
+              boundSchema={selectedSourceDataSource?.schema}
+              database={form.sourceDatabase}
+              schema={form.sourceSchema}
+              table={form.sourceTable}
+              catalog={sourceCatalog}
+              onSchemaChange={(value) =>
+                setForm((current) => ({
+                  ...current,
+                  sourceSchema: value,
+                  sourceTable: "",
+                }))
+              }
+              onTableChange={(table) =>
+                setForm((current) => ({
+                  ...current,
+                  sourceDatabase: current.sourceDatabase || table.database || "",
+                  sourceSchema: current.sourceSchema || table.schema || "",
+                  sourceTable: table.name,
+                }))
+              }
+            >
+              {realtime ? (
+                <Alert>
+                  实时同步依赖 ROW Binlog 和 CDC 权限；连接测试通过不代表 CDC 可用。
+                </Alert>
+              ) : null}
+            </TableSection>
+          </CollapseSection>
 
-            <CollapseSection id="target" title="数据去向">
-              <TableSection
-                dataSourceId={form.targetDataSourceId}
-                boundSchema={selectedTargetDataSource?.schema}
-                database={form.targetDatabase}
-                schema={form.targetSchema}
-                table={form.targetTable}
-                catalog={targetCatalog}
-                onSchemaChange={(value) =>
-                  setForm((current) => ({ ...current, targetSchema: value, targetTable: "" }))
-                }
-                onTableChange={(table) =>
-                  setForm((current) => ({
-                    ...current,
-                    targetDatabase: current.targetDatabase || table.database || "",
-                    targetSchema: current.targetSchema || table.schema || "",
-                    targetTable: table.name,
-                  }))
-                }
-              />
-            </CollapseSection>
-          </>
+          <CollapseSection id="target" title="数据去向">
+            <TableSection
+              dataSourceId={form.targetDataSourceId}
+              boundSchema={selectedTargetDataSource?.schema}
+              database={form.targetDatabase}
+              schema={form.targetSchema}
+              table={form.targetTable}
+              catalog={targetCatalog}
+              onSchemaChange={(value) =>
+                setForm((current) => ({ ...current, targetSchema: value, targetTable: "" }))
+              }
+              onTableChange={(table) =>
+                setForm((current) => ({
+                  ...current,
+                  targetDatabase: current.targetDatabase || table.database || "",
+                  targetSchema: current.targetSchema || table.schema || "",
+                  targetTable: table.name,
+                }))
+              }
+            />
+          </CollapseSection>
 
           {!realtime ? (
             <CollapseSection id="schedule" title="调度配置">

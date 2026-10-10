@@ -228,6 +228,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
     public boolean deleteTask(String id) {
         String workspaceId = WorkspaceContext.requireWorkspaceId();
         DataSyncTaskEntity entity = requireTask(workspaceId, id);
+        definitionValidator.requireSingleTableTask(entity);
         requireTaskStatus(entity, DataSyncTaskStatus.UNPUBLISHED, "已上线任务请先下线后再删除");
         if (instanceRepository.existsActiveByTask(workspaceId, entity.getId())) {
             throw new DataSyncException(DataSyncErrorCode.ACTIVE_INSTANCE_EXISTS);

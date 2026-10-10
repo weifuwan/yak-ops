@@ -65,8 +65,7 @@ public class DataSyncTaskDefinitionValidator {
 
     public void validatePersistedTaskDefinition(DataSyncTaskEntity task) {
         requireSingleTableTask(task);
-        DataSyncWriteMode mode =
-                task.getWriteMode() == null ? DataSyncWriteMode.APPEND : task.getWriteMode();
+        DataSyncWriteMode mode = task.getWriteMode() == null ? DataSyncWriteMode.APPEND : task.getWriteMode();
         validateWriteMode(task.getSyncType(), mode);
         rejectLegacyPolicies(task.getAutoCreateTable(), task.getMappingConfig());
         DataSyncTableRouteDTO route = new DataSyncTableRouteDTO();

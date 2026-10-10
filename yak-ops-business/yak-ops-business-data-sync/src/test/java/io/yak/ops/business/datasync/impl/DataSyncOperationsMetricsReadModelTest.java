@@ -32,8 +32,6 @@ class DataSyncOperationsMetricsReadModelTest {
     @Test
     void shouldBuildWorkspaceScopedSevenDayDashboardAndFillMissingDailyBuckets() throws Exception {
         DataSyncOperationsServiceImpl service = new DataSyncOperationsServiceImpl();
-        DataSyncTestTableRouteRepository.inject(service);
-        DataSyncTestTableExecutionRepository.inject(service);
         AtomicReference<LocalDateTime> capturedStart = new AtomicReference<>();
         AtomicReference<LocalDateTime> capturedEnd = new AtomicReference<>();
         inject(service, "operationsMetricsRepository", repository(capturedStart, capturedEnd));
