@@ -2,7 +2,6 @@ package io.yak.ops.dao.repository.datasync;
 
 import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
-import io.yak.ops.dao.repository.BaseRepository;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,7 +11,10 @@ import java.util.Optional;
  * @author weifuwan
  * @since 2026-09-27
  */
-public interface DataSyncTaskRepository extends BaseRepository<DataSyncTaskEntity> {
+public interface DataSyncTaskRepository { 
+    /** 新任务定义与插件配置在同一事务内创建，返回已初始化的投影。 */
+    DataSyncTaskEntity add(DataSyncTaskEntity entity);
+
 
     PageData<DataSyncTaskEntity> queryPage(String workspaceId, DataSyncTaskPageQuery query);
 

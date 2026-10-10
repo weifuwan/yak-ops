@@ -1,122 +1,243 @@
 package io.yak.ops.dao.repository.datasync.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.yak.ops.common.enums.datasync.DataSyncDesiredState;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
 import io.yak.ops.common.enums.datasync.DataSyncType;
+import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.common.page.PageData;
+import io.yak.ops.common.util.BeanCopyUtils;
+import io.yak.ops.common.util.JSONUtils;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.task.DefinitionEntity;
+import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.mapper.datasync.DataSyncTaskMapper;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
-import io.yak.ops.dao.repository.impl.BaseRepositoryImpl;
+import io.yak.ops.dao.repository.task.DefinitionRepository;
+import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import jakarta.annotation.Resource;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.StringUtils;
 
 /**
- * 使用 MyBatis-Plus 实现 Workspace-scoped 数据同步任务查询和名称唯一性校验。
+ * DATA_SYNC 单表配置在通用 Task Definition 下的持久化投影。
+ *
+ * <p>通用名称、发布状态和版本仅写入 Definition；插件专属字段仅写入 Data Sync 配置表。
+ * 两次写入必须由调用方的 Business 事务统一提交，不允许留下半条任务。
  *
  * @author weifuwan
  * @since 2026-09-27
  */
 @Repository
-public class DataSyncTaskRepositoryImpl extends BaseRepositoryImpl<DataSyncTaskMapper, DataSyncTaskEntity>
-        implements DataSyncTaskRepository {
+public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
+
+    private static final String DATA_SYNC = "DATA_SYNC";
 
     @Resource
     private DataSyncTaskMapper taskMapper;
 
+    @Resource
+    private DefinitionRepository definitionRepository;
+
+    @Resource
+    private DefinitionVersionRepository versionRepository;
+
     @Override
-    protected DataSyncTaskMapper mapper() {
-        return taskMapper;
+    public DataSyncTaskEntity add(DataSyncTaskEntity entity) {
+        if (entity == null || entity.getId() == null || entity.getWorkspaceId() == null) {
+            throw new IllegalArgumentException("DATA_SYNC definition requires initialized ID and workspace");
+        }
+        DefinitionEntity definition = toDefinition(entity);
+        definitionRepository.add(definition);
+        taskMapper.insert(entity);
+        versionRepository.add(toVersion(entity));
+        return entity;
     }
 
     @Override
     public PageData<DataSyncTaskEntity> queryPage(String workspaceId, DataSyncTaskPageQuery query) {
         DataSyncTaskPageQuery condition =
                 query == null ? new DataSyncTaskPageQuery(1, 10, null, null, null, null, null) : query;
-        Page<DataSyncTaskEntity> page = Page.of(Math.max(1, condition.pageNo()), Math.max(1, condition.pageSize()));
-        IPage<DataSyncTaskEntity> result = taskMapper.selectPage(
+        Page<String> page = Page.of(Math.max(1, condition.pageNo()), Math.max(1, condition.pageSize()));
+        IPage<String> matched = taskMapper.selectDefinitionPageIds(
                 page,
-                queryWrapper(workspaceId, condition)
-                        .orderByDesc(DataSyncTaskEntity::getUpdateTime)
-                        .orderByDesc(DataSyncTaskEntity::getId));
+                workspaceId,
+                condition.keyword(),
+                condition.syncType() == null ? null : condition.syncType().getValue(),
+                condition.status() == null ? null : condition.status().getValue(),
+                condition.sourceDataSourceId(),
+                condition.targetDataSourceId());
         return new PageData<>(
-                result.getRecords(), result.getTotal(), result.getPages(), result.getCurrent(), result.getSize());
+                queryByIds(workspaceId, matched.getRecords()),
+                matched.getTotal(),
+                matched.getPages(),
+                matched.getCurrent(),
+                matched.getSize());
     }
 
     @Override
     public Optional<DataSyncTaskEntity> queryById(String workspaceId, String id) {
-        if (!StringUtils.hasText(workspaceId) || !StringUtils.hasText(id)) return Optional.empty();
-        return Optional.ofNullable(taskMapper.selectOne(Wrappers.<DataSyncTaskEntity>lambdaQuery()
+        if (StringUtils.isBlank(workspaceId) || StringUtils.isBlank(id)) return Optional.empty();
+        Optional<DefinitionEntity> definition = definitionRepository.queryById(workspaceId, id);
+        if (definition.isEmpty() || !DATA_SYNC.equals(definition.get().getTaskType())) {
+            return Optional.empty();
+        }
+        DataSyncTaskEntity detail = taskMapper.selectOne(Wrappers.<DataSyncTaskEntity>lambdaQuery()
                 .eq(DataSyncTaskEntity::getWorkspaceId, workspaceId)
-                .eq(DataSyncTaskEntity::getId, id)));
+                .eq(DataSyncTaskEntity::getId, id));
+        return Optional.ofNullable(detail).map(value -> join(value, definition.get()));
     }
 
     @Override
     public List<DataSyncTaskEntity> queryRealtimeDesiredRunning() {
-        return taskMapper.selectList(Wrappers.<DataSyncTaskEntity>lambdaQuery()
-                .eq(DataSyncTaskEntity::getSyncType, DataSyncType.REALTIME)
-                .eq(DataSyncTaskEntity::getStatus, DataSyncTaskStatus.PUBLISHED)
-                .eq(DataSyncTaskEntity::getDesiredState, DataSyncDesiredState.RUNNING)
-                .orderByAsc(DataSyncTaskEntity::getWorkspaceId)
-                .orderByAsc(DataSyncTaskEntity::getId));
+        List<String> ids = taskMapper.selectRealtimeDesiredRunningIds();
+        if (ids.isEmpty()) return List.of();
+        Map<String, DefinitionEntity> definitions = index(definitionRepository.queryByIdsForRecovery(ids));
+        return taskMapper.selectBatchIds(ids).stream()
+                .map(sync -> join(sync, requireDefinition(definitions, sync.getId())))
+                .toList();
     }
 
     @Override
     public DataSyncTaskEntity update(String workspaceId, DataSyncTaskEntity entity) {
-        if (!StringUtils.hasText(workspaceId) || entity == null || !StringUtils.hasText(entity.getId())) return null;
+        if (StringUtils.isBlank(workspaceId) || entity == null || StringUtils.isBlank(entity.getId())) return null;
+        DefinitionEntity existing = definitionRepository.queryById(workspaceId, entity.getId()).orElse(null);
+        if (existing == null || !DATA_SYNC.equals(existing.getTaskType())) return null;
+        if (entity.getDefinitionVersion() == null
+                || entity.getDefinitionVersion() < existing.getDefinitionVersion()) {
+            throw new IllegalArgumentException("Stale DATA_SYNC definition version");
+        }
+
+        DefinitionEntity definition = toDefinition(entity);
+        if (definitionRepository.update(workspaceId, definition) == null) return null;
         int updated = taskMapper.update(
-                entity,
-                Wrappers.<DataSyncTaskEntity>lambdaUpdate()
+                entity, Wrappers.<DataSyncTaskEntity>lambdaUpdate()
                         .eq(DataSyncTaskEntity::getWorkspaceId, workspaceId)
                         .eq(DataSyncTaskEntity::getId, entity.getId()));
-        return updated > 0 ? entity : null;
+        if (updated <= 0) {
+            throw new IllegalStateException("Missing DATA_SYNC parameters for definition " + entity.getId());
+        }
+        if (!Objects.equals(existing.getDefinitionVersion(), entity.getDefinitionVersion())) {
+            versionRepository.add(toVersion(entity));
+        }
+        return entity;
     }
 
     @Override
     public int deleteById(String workspaceId, String id) {
-        if (!StringUtils.hasText(workspaceId) || !StringUtils.hasText(id)) return 0;
-        return taskMapper.delete(Wrappers.<DataSyncTaskEntity>lambdaQuery()
+        if (StringUtils.isBlank(workspaceId) || StringUtils.isBlank(id)) return 0;
+        int removed = taskMapper.delete(Wrappers.<DataSyncTaskEntity>lambdaQuery()
                 .eq(DataSyncTaskEntity::getWorkspaceId, workspaceId)
                 .eq(DataSyncTaskEntity::getId, id));
+        if (removed <= 0) return 0;
+        if (definitionRepository.deleteById(workspaceId, id) != 1) {
+            throw new IllegalStateException("Missing Task Definition for DATA_SYNC " + id);
+        }
+        // Immutable versions stay available for historical execution references.
+        return removed;
     }
 
     @Override
     public boolean existsByName(String workspaceId, String name, String excludeId) {
-        if (!StringUtils.hasText(workspaceId) || !StringUtils.hasText(name)) return false;
-        Long count = taskMapper.selectCount(Wrappers.<DataSyncTaskEntity>lambdaQuery()
-                .eq(DataSyncTaskEntity::getWorkspaceId, workspaceId)
-                .eq(DataSyncTaskEntity::getName, name)
-                .ne(excludeId != null, DataSyncTaskEntity::getId, excludeId));
-        return count != null && count > 0;
+        return definitionRepository.existsByName(workspaceId, name, excludeId);
     }
 
-    private LambdaQueryWrapper<DataSyncTaskEntity> queryWrapper(String workspaceId, DataSyncTaskPageQuery query) {
-        LambdaQueryWrapper<DataSyncTaskEntity> wrapper =
-                Wrappers.<DataSyncTaskEntity>lambdaQuery().eq(DataSyncTaskEntity::getWorkspaceId, workspaceId);
-        if (StringUtils.hasText(query.keyword())) {
-            wrapper.and(nested -> nested.like(DataSyncTaskEntity::getName, query.keyword())
-                    .or()
-                    .like(DataSyncTaskEntity::getSourceTable, query.keyword())
-                    .or()
-                    .like(DataSyncTaskEntity::getTargetTable, query.keyword()));
+    private List<DataSyncTaskEntity> queryByIds(String workspaceId, List<String> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        Map<String, DefinitionEntity> definitions = index(definitionRepository.queryByIds(workspaceId, ids));
+        Map<String, DataSyncTaskEntity> configurations = new HashMap<>();
+        for (DataSyncTaskEntity entity : taskMapper.selectBatchIds(ids)) {
+            configurations.put(entity.getId(), entity);
         }
-        return wrapper.eq(query.syncType() != null, DataSyncTaskEntity::getSyncType, query.syncType())
-                .eq(query.status() != null, DataSyncTaskEntity::getStatus, query.status())
-                .eq(
-                        StringUtils.hasText(query.sourceDataSourceId()),
-                        DataSyncTaskEntity::getSourceDataSourceId,
-                        query.sourceDataSourceId())
-                .eq(
-                        StringUtils.hasText(query.targetDataSourceId()),
-                        DataSyncTaskEntity::getTargetDataSourceId,
-                        query.targetDataSourceId());
+        return ids.stream()
+                .map(id -> {
+                    DataSyncTaskEntity config = configurations.get(id);
+                    if (config == null) throw new IllegalStateException("Missing DATA_SYNC parameters for " + id);
+                    return join(config, requireDefinition(definitions, id));
+                })
+                .toList();
+    }
+
+    private Map<String, DefinitionEntity> index(List<DefinitionEntity> records) {
+        Map<String, DefinitionEntity> definitions = new HashMap<>();
+        for (DefinitionEntity definition : records) {
+            definitions.put(definition.getId(), definition);
+        }
+        return definitions;
+    }
+
+    private DefinitionEntity requireDefinition(Map<String, DefinitionEntity> definitions, String id) {
+        DefinitionEntity definition = definitions.get(id);
+        if (definition == null || !DATA_SYNC.equals(definition.getTaskType())) {
+            throw new IllegalStateException("Missing Task Definition for DATA_SYNC " + id);
+        }
+        return definition;
+    }
+
+    private DataSyncTaskEntity join(DataSyncTaskEntity config, DefinitionEntity definition) {
+        config.setName(definition.getName());
+        config.setStatus(DataSyncTaskStatus.valueOf(definition.getStatus().name()));
+        config.setDefinitionVersion(definition.getDefinitionVersion());
+        config.setRemark(definition.getRemark());
+        config.setCreateTime(definition.getCreateTime());
+        config.setUpdateTime(definition.getUpdateTime());
+        config.setCreateBy(definition.getCreateBy());
+        config.setUpdateBy(definition.getUpdateBy());
+        return config;
+    }
+
+    private DefinitionEntity toDefinition(DataSyncTaskEntity sync) {
+        DefinitionEntity definition = BeanCopyUtils.copy(sync, DefinitionEntity.class, "status");
+        definition.setTaskType(DATA_SYNC);
+        definition.setStatus(DefinitionStatus.valueOf(sync.getStatus().name()));
+        return definition;
+    }
+
+    private DefinitionVersionEntity toVersion(DataSyncTaskEntity sync) {
+        DefinitionVersionEntity version = new DefinitionVersionEntity();
+        version.setWorkspaceId(sync.getWorkspaceId());
+        version.setDefinitionId(sync.getId());
+        version.setTaskType(DATA_SYNC);
+        version.setName(sync.getName());
+        version.setVersion(sync.getDefinitionVersion());
+        version.setParametersSnapshot(parametersSnapshot(sync));
+        version.initCreate(sync.getUpdateBy());
+        return version;
+    }
+
+    private String parametersSnapshot(DataSyncTaskEntity sync) {
+        ObjectNode params = JSONUtils.createObjectNode();
+        params.put("syncType", sync.getSyncType().name());
+        params.put("writeMode", sync.getWriteMode().name());
+        params.put("sourceDataSourceId", sync.getSourceDataSourceId());
+        params.put("sourceDatabase", sync.getSourceDatabase());
+        params.put("sourceSchema", sync.getSourceSchema());
+        params.put("sourceTable", sync.getSourceTable());
+        params.put("targetDataSourceId", sync.getTargetDataSourceId());
+        params.put("targetDatabase", sync.getTargetDatabase());
+        params.put("targetSchema", sync.getTargetSchema());
+        params.put("targetTable", sync.getTargetTable());
+        if (StringUtils.isNotBlank(sync.getRuntimeConfig())) {
+            String key = sync.getSyncType() == DataSyncType.REALTIME ? "realtimeConfig" : "runtimeConfig";
+            params.set(key, JSONUtils.readTree(sync.getRuntimeConfig()));
+        }
+        if (StringUtils.isNotBlank(sync.getRetryPolicy())) {
+            params.set("retryPolicy", JSONUtils.readTree(sync.getRetryPolicy()));
+        }
+        if (Boolean.TRUE.equals(sync.getAutoCreateTable())) {
+            params.put("legacyAutoCreateTable", true);
+        }
+        if (StringUtils.isNotBlank(sync.getMappingConfig())) {
+            params.put("legacyMappingConfig", sync.getMappingConfig());
+        }
+        return JSONUtils.toJson(params);
     }
 }
