@@ -31,9 +31,7 @@ class DataSyncOperationsMetricsReadModelTest {
 
     @Test
     void shouldBuildWorkspaceScopedSevenDayDashboardAndFillMissingDailyBuckets() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
-        DataSyncTestTableRouteRepository.inject(service);
-        DataSyncTestTableExecutionRepository.inject(service);
+        DataSyncOperationsServiceImpl service = new DataSyncOperationsServiceImpl();
         AtomicReference<LocalDateTime> capturedStart = new AtomicReference<>();
         AtomicReference<LocalDateTime> capturedEnd = new AtomicReference<>();
         inject(service, "operationsMetricsRepository", repository(capturedStart, capturedEnd));
@@ -150,8 +148,6 @@ class DataSyncOperationsMetricsReadModelTest {
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {
-        Field field = DataSyncServiceImpl.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+        DataSyncTestServices.inject(target, fieldName, value);
     }
 }

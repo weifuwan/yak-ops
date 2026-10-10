@@ -80,6 +80,6 @@ Schema 位于 [v1.1.0 Release Migration](../../../yak-ops-dao/src/main/resources
 
 ## Code and Verification
 
-[DataSyncServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/DataSyncServiceImpl.java) 拥有保存、启停、onFire、commit 后 Runtime 更新和启动重建；[QuartzScheduleEngine](../../../yak-ops-boot/src/main/java/io/yak/ops/boot/scheduler/QuartzScheduleEngine.java) 拥有 Cron、时区、Misfire 与 next-fire。
+[DataSyncScheduleServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/DataSyncScheduleServiceImpl.java) 拥有保存、启停、onFire、commit 后 Runtime 更新和启动重建；[QuartzScheduleEngine](../../../yak-ops-boot/src/main/java/io/yak/ops/boot/scheduler/QuartzScheduleEngine.java) 拥有 Cron、时区、Misfire 与 next-fire。
 
 [Backend Acceptance](../../../.github/workflows/backend-acceptance.yml) 执行 QuartzScheduleEngineTest 与 DataSyncAutomationAcceptanceIT；业务替身测试不代替真实 Quartz 计时语义。[手工 Automation E2E](../../e2e/data-sync/automation/README.md) 验证产品链路。这里定义方法与边界，不记录某次通过结论。

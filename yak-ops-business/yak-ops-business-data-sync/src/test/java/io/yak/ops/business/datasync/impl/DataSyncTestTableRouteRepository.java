@@ -3,7 +3,6 @@ package io.yak.ops.business.datasync.impl;
 import io.yak.ops.dao.entity.datasync.DataSyncTableRouteEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
-import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -12,17 +11,17 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 为直接构造 DataSyncServiceImpl 的 Contract Test 提供最小内存 Table Route Repository。
+ * 为直接构造 DataSyncTaskDefinitionValidator 的 Contract Test 提供最小内存 Table Route Repository。
  */
 final class DataSyncTestTableRouteRepository {
 
     private DataSyncTestTableRouteRepository() {}
 
-    static DataSyncTableRouteRepository inject(DataSyncServiceImpl service) throws Exception {
+    static DataSyncTableRouteRepository inject(Object service) throws Exception {
         return inject(service, List.of());
     }
 
-    static DataSyncTableRouteRepository inject(DataSyncServiceImpl service, DataSyncTaskEntity task) throws Exception {
+    static DataSyncTableRouteRepository inject(Object service, DataSyncTaskEntity task) throws Exception {
         if (task == null) return inject(service);
         DataSyncTableRouteEntity route = new DataSyncTableRouteEntity();
         route.setId(task.getId());
@@ -40,15 +39,13 @@ final class DataSyncTestTableRouteRepository {
         return inject(service, List.of(route));
     }
 
-    static DataSyncTableRouteRepository inject(DataSyncServiceImpl service, List<DataSyncTableRouteEntity> routes)
+    static DataSyncTableRouteRepository inject(Object service, List<DataSyncTableRouteEntity> routes)
             throws Exception {
         DataSyncTableRouteRepository repository = create();
         if (routes != null) {
             routes.forEach(repository::add);
         }
-        Field field = DataSyncServiceImpl.class.getDeclaredField("tableRouteRepository");
-        field.setAccessible(true);
-        field.set(service, repository);
+        DataSyncTestServices.inject(service, "tableRouteRepository", repository);
         return repository;
     }
 

@@ -2,14 +2,14 @@
 
 Status: Task and history management active; YakFlow product execution integration pending.
 
-**Current baseline:** OFFLINE/REALTIME Task, Table Route, publication, Quartz definition, operations queries and historical Instance/Attempt records are retained. The legacy synchronous execution engine has been removed, so manual run, scheduled execution and realtime recovery cannot submit a new Runtime job yet. Historical release evidence remains in `docs/release/`.
+**Current baseline:** OFFLINE/REALTIME single-table Task, publication, Quartz definition, operations queries and historical Instance/Attempt records are retained. The legacy synchronous execution engine has been removed, so manual run, scheduled execution and realtime recovery cannot submit a new Runtime job yet. Historical release evidence remains in `docs/release/`.
 
 ## Contract Map
 
 | Concern | Reference |
 | --- | --- |
 | Task creation, publication and version semantics | [Task Lifecycle](task-lifecycle.md) |
-| Table Route identity and multi-table definitions | [Multi-Table](multi-table.md) |
+| Historical multi-table definitions (retired from current editing) | [Multi-Table](multi-table.md) |
 | Quartz scheduling and recovery | [Scheduler](scheduler.md) |
 | Historical instance, Attempt, metrics and events | [Execution Retry / Attempt](execution-retry-attempt.md) |
 | Realtime desired state | [Realtime Desired State](realtime-desired-state.md) |
@@ -17,16 +17,15 @@ Status: Task and history management active; YakFlow product execution integratio
 
 ## Task Definition
 
-Task owns Workspace, task name, source/target Datasource IDs, sync type, write mode, status, retry/runtime policy and definition version. A Table Route owns the physical source/target `TableId` and stable order. OFFLINE allows an ordered group of up to 50 Routes, REALTIME remains single-route until the runtime contract is implemented.
+Task owns Workspace, task name, exactly one source table and one target table, Datasource IDs, sync type, write mode, status, retry/runtime policy and definition version. New/edited Tasks use Task fields only, not `tableRoutes[]`. Legacy Route rows remain untouched for historical inspection; stored multi-route Tasks are blocked from editing, publishing and running rather than silently reduced to the first route.
 
-The Task-root first-table fields are transitional; do not add new behavior that depends on two separate sources of table identity. A later persistence migration will remove those fields without rewriting published historical migrations.
 
 ## Datasource Scope and Mapping
 
 Datasource is the Workspace owner of credentials and the default connected database. Data Sync must not read Datasource DAO/Plugin Registry directly. It resolves a saved physical table through `DataSourceService.queryTableSchema(dataSourceId, path)`, which delegates to the sole `yak-flow-connector-jdbc` Catalog and dialect converter.
 
 ```text
-DataSyncService (Task / Route)
+DataSyncTaskService (single-table Task definition)
        → DataSourceService (Workspace and credentials)
        → Datasource Plugin.openConnection (isolated driver / SSH)
        → YakFlow JdbcCatalogFactory / JdbcTableMetadata

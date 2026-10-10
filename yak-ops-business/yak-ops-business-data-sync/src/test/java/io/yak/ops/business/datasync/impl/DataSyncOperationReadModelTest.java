@@ -40,9 +40,7 @@ class DataSyncOperationReadModelTest {
 
     @Test
     void shouldAggregatePublishedTaskLatestExecutionAndSchedulerNextFireTime() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
-        DataSyncTestTableRouteRepository.inject(service);
-        DataSyncTestTableExecutionRepository.inject(service);
+        DataSyncOperationsServiceImpl service = new DataSyncOperationsServiceImpl();
         DataSyncTaskEntity task = task();
         DataSyncInstanceEntity latest = latestExecution();
         DataSyncScheduleEntity schedule = schedule();
@@ -177,8 +175,6 @@ class DataSyncOperationReadModelTest {
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {
-        Field field = DataSyncServiceImpl.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+        DataSyncTestServices.inject(target, fieldName, value);
     }
 }

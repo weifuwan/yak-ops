@@ -27,8 +27,8 @@ class DataSyncMultiTableDefinitionContractTest {
     }
 
     @Test
-    void shouldRejectRealtimeMultiRouteRun() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+    void shouldRejectHistoricalMultiRouteRun() throws Exception {
+        DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
         DataSyncTaskEntity task = offlineTask();
         task.setSyncType(DataSyncType.REALTIME);
         DataSyncTestTableRouteRepository.inject(
@@ -45,7 +45,7 @@ class DataSyncMultiTableDefinitionContractTest {
 
         assertEquals(DataSyncErrorCode.INVALID_TASK, exception.getErrorCode());
         assertEquals(
-                "同步任务参数不合法：REALTIME 当前只支持单 Route",
+                "同步任务参数不合法：历史多表任务暂不支持编辑或运行",
                 exception.getUserMessage());
     }
 
@@ -95,8 +95,6 @@ class DataSyncMultiTableDefinitionContractTest {
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {
-        Field field = DataSyncServiceImpl.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+        DataSyncTestServices.inject(target, fieldName, value);
     }
 }

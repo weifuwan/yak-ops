@@ -29,7 +29,7 @@ class DataSyncUpsertContractTest {
 
     @Test
     void shouldRejectUpsertWhenTargetHasNoPrimaryKey() throws Exception {
-        DataSyncServiceImpl service = service(
+        DataSyncTaskServiceImpl service = service(
                 List.of(column("id", true), column("name", false)),
                 List.of(column("id", false), column("name", false)));
 
@@ -39,7 +39,7 @@ class DataSyncUpsertContractTest {
 
     @Test
     void shouldRejectUpsertWhenSourceMissesCompositeTargetPrimaryKey() throws Exception {
-        DataSyncServiceImpl service = service(
+        DataSyncTaskServiceImpl service = service(
                 List.of(column("id", true), column("name", false)),
                 List.of(column("id", true), column("tenant_id", true), column("name", false)));
 
@@ -47,10 +47,10 @@ class DataSyncUpsertContractTest {
         assertThrows(DataSyncException.class, () -> service.createTask(task()));
     }
 
-    private DataSyncServiceImpl service(
+    private DataSyncTaskServiceImpl service(
             List<DataSourceCatalogColumnVO> sourceColumns, List<DataSourceCatalogColumnVO> targetColumns)
             throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository());
@@ -140,14 +140,12 @@ class DataSyncUpsertContractTest {
         return column;
     }
 
-    private void injectDataSourceService(DataSyncServiceImpl service, DataSourceService dataSourceService)
+    private void injectDataSourceService(DataSyncTaskServiceImpl service, DataSourceService dataSourceService)
             throws Exception {
         inject(service, "dataSourceService", dataSourceService);
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {
-        Field field = DataSyncServiceImpl.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+        DataSyncTestServices.inject(target, fieldName, value);
     }
 }

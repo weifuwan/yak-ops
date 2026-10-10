@@ -39,7 +39,7 @@ class DataSyncRealtimeDesiredStateContractTest {
 
     @Test
     void shouldRejectManualRealtimeExecutionWhenRuntimeUnavailable() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
         DataSyncTaskEntity task = realtimeTask(DataSyncDesiredState.STOPPED);
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
@@ -58,42 +58,8 @@ class DataSyncRealtimeDesiredStateContractTest {
     }
 
     @Test
-    void shouldNotCreateAutoRecoveryExecutionWhenRuntimeUnavailable() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
-        DataSyncTaskEntity task = realtimeTask(DataSyncDesiredState.RUNNING);
-        DataSyncTestTableRouteRepository.inject(service, task);
-        DataSyncTestTableExecutionRepository.inject(service);
-        task.setDefinitionVersion(3);
-        AtomicReference<DataSyncInstanceEntity> createdExecution = new AtomicReference<>();
-
-        inject(service, "taskRepository", taskRepository(task, new AtomicReference<>(), true));
-        inject(service, "instanceRepository", instanceRepository(false, createdExecution));
-        injectDataSourceService(service, dataSourceService());
-
-        service.restoreRealtimeDesiredState();
-
-        assertEquals(null, createdExecution.get());
-    }
-
-    @Test
-    void shouldSkipAutoRecoveryWhenActiveExecutionAlreadyExists() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
-        DataSyncTaskEntity task = realtimeTask(DataSyncDesiredState.RUNNING);
-        DataSyncTestTableRouteRepository.inject(service, task);
-        DataSyncTestTableExecutionRepository.inject(service);
-        AtomicReference<DataSyncInstanceEntity> createdExecution = new AtomicReference<>();
-
-        inject(service, "taskRepository", taskRepository(task, new AtomicReference<>(), true));
-        inject(service, "instanceRepository", instanceRepository(true, createdExecution));
-
-        service.restoreRealtimeDesiredState();
-
-        assertEquals(null, createdExecution.get());
-    }
-
-    @Test
     void shouldStopDesiredStateWhenRetryWaitingExecutionIsCanceled() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
         DataSyncTaskEntity task = realtimeTask(DataSyncDesiredState.RUNNING);
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
@@ -124,7 +90,7 @@ class DataSyncRealtimeDesiredStateContractTest {
 
     @Test
     void shouldStopDesiredStateWhenRealtimeTaskIsUnpublished() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTaskEntity task = realtimeTask(DataSyncDesiredState.RUNNING);
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
@@ -132,7 +98,9 @@ class DataSyncRealtimeDesiredStateContractTest {
 
         inject(service, "taskRepository", taskRepository(task, updatedTask, false));
         inject(service, "instanceRepository", instanceRepository(false, new AtomicReference<>()));
-        inject(service, "scheduleRepository", emptyScheduleRepository());
+        DataSyncScheduleServiceImpl scheduleService = new DataSyncScheduleServiceImpl();
+        inject(scheduleService, "scheduleRepository", emptyScheduleRepository());
+        inject(service, "scheduleService", scheduleService);
 
         WorkspaceContext.bind("workspace-1");
         service.unpublishTask("task-1");
@@ -289,15 +257,13 @@ class DataSyncRealtimeDesiredStateContractTest {
         return column;
     }
 
-    private void injectDataSourceService(DataSyncServiceImpl service, DataSourceService dataSourceService)
+    private void injectDataSourceService(DataSyncInstanceServiceImpl service, DataSourceService dataSourceService)
             throws Exception {
         inject(service, "dataSourceService", dataSourceService);
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {
-        Field field = DataSyncServiceImpl.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+        DataSyncTestServices.inject(target, fieldName, value);
     }
 
 }

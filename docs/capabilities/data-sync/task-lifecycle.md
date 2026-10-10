@@ -50,9 +50,9 @@ Stop / Cancel 属于 Execution 契约。成功下线对 Schedule 和 desiredStat
 
 ## Definition Version Contract
 
-比较规范化后的可执行定义，而不是每次 PUT 都加一。后端 `executableDefinitionChanged` 比较：Source / Target 数据源 ID 与表范围、writeMode、`autoCreateTable`、任务级 **mapping**、对应 runtimeConfig，以及规范化后的 **retryPolicy**。
+比较规范化后的可执行定义，而不是每次 PUT 都加一。后端 `executableDefinitionChanged` 比较：Source / Target 数据源 ID 与表范围、writeMode、`autoCreateTable`、历史任务级 **mapping**、对应 runtimeConfig，以及规范化后的 **retryPolicy**。
 
-`mapping=null` 保持旧任务的隐式同名映射语义；显式 `mapping.columns` 按规范化后的 source / target 与数组顺序参与版本比较。Mapping 一旦冻结进 Execution definitionSnapshot，Retry / Auto Recovery 不重新读取 Task 当前 Mapping。
+当前可编辑定义使用 Task 的单表 Source / Target 字段，不再接受显式 Mapping、多表 Route 或自动建表。历史 Execution 中的 Mapping/Route 快照按原样保留，版本比较仍确保旧字段收敛时递增。
 
 name / remark、无实质变化的更新、发布 / 下线、运行 / 取消不增加版本。Schedule 单独持久化，修改 Cron / Time Zone 不调用 Task 版本比较。
 
@@ -86,6 +86,6 @@ Task status 已属于现有 [V1 baseline](../../../yak-ops-dao/src/main/resource
 
 ## Code and Verification
 
-实现入口：[DataSyncServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/DataSyncServiceImpl.java)。验证入口：[DataSyncTaskLifecycleContractTest](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncTaskLifecycleContractTest.java) 及 [Data Sync 验证导航](README.md#code-and-verification)。
+实现入口：[DataSyncTaskServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/DataSyncTaskServiceImpl.java)。验证入口：[DataSyncTaskLifecycleContractTest](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncTaskLifecycleContractTest.java) 及 [Data Sync 验证导航](README.md#code-and-verification)。
 
 重点检查命令前置条件、元数据与可执行定义的版本差异、历史快照保持以及 RETRY_WAITING 的活动状态语义。测试与手工验收的实际结果不写入当前规则正文。
