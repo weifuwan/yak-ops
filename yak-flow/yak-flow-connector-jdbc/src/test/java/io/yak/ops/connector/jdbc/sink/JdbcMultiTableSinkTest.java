@@ -185,6 +185,82 @@ class JdbcMultiTableSinkTest {
         assertEquals(0L, rowCount(url, "TARGET_A", 1L));
     }
 
+    @Test
+    void sameKeyUpdatePreservesCascadeDependentsAtBatchSizeOne() throws Exception {
+        String url = databaseUrl();
+        createTables(url);
+        try (Connection connection = open(url); Statement statement = connection.createStatement()) {
+            statement.execute("INSERT INTO TARGET_A VALUES (1, 'old')");
+            statement.execute("CREATE TABLE CHILD_ROWS (ID BIGINT PRIMARY KEY, PARENT_ID BIGINT NOT NULL,"
+                    + " FOREIGN KEY (PARENT_ID) REFERENCES TARGET_A(ID) ON DELETE CASCADE)");
+            statement.execute("INSERT INTO CHILD_ROWS VALUES (100, 1)");
+        }
+
+        try (JdbcWriter writer = sink(url, h2Dialect(), upsertPlans(), 1).createWriter(context())) {
+            writer.write(a(RowKind.UPDATE_BEFORE, "old", 1L), RECORD_CONTEXT);
+            assertEquals(1L, rowCount(url, "TARGET_A", 1L));
+            assertEquals(1L, rowCount(url, "CHILD_ROWS", 100L));
+            writer.write(a(RowKind.UPDATE_AFTER, "new", 1L), RECORD_CONTEXT);
+        }
+
+        assertEquals(1L, rowCount(url, "CHILD_ROWS", 100L));
+        try (Connection connection = open(url);
+                Statement statement = connection.createStatement();
+                var result = statement.executeQuery("SELECT MESSAGE FROM TARGET_A WHERE ID = 1")) {
+            assertTrue(result.next());
+            assertEquals("new", result.getString(1));
+        }
+    }
+
+    @Test
+    void primaryKeyMoveIsCommittedOnlyAfterItsAfterImageAtBatchSizeOne() throws Exception {
+        String url = databaseUrl();
+        createTables(url);
+        try (Connection connection = open(url); Statement statement = connection.createStatement()) {
+            statement.execute("INSERT INTO TARGET_A VALUES (1, 'old')");
+        }
+        try (JdbcWriter writer = sink(url, h2Dialect(), upsertPlans(), 1).createWriter(context())) {
+            writer.write(a(RowKind.UPDATE_BEFORE, "old", 1L), RECORD_CONTEXT);
+            assertEquals(1L, rowCount(url, "TARGET_A", 1L));
+            writer.write(a(RowKind.UPDATE_AFTER, "new", 20L), RECORD_CONTEXT);
+        }
+        assertEquals(0L, rowCount(url, "TARGET_A", 1L));
+        assertEquals(1L, rowCount(url, "TARGET_A", 20L));
+    }
+
+    @Test
+    void checkpointRejectsIncompleteUpdateAndDoesNotCommitEarlierRows() throws Exception {
+        String url = databaseUrl();
+        createTables(url);
+        try (Connection connection = open(url); Statement statement = connection.createStatement()) {
+            statement.execute("INSERT INTO TARGET_A VALUES (1, 'old')");
+        }
+        try (JdbcWriter writer = sink(url, h2Dialect(), upsertPlans(), 10).createWriter(context())) {
+            writer.write(a(RowKind.INSERT, "pending", 9L), RECORD_CONTEXT);
+            writer.write(a(RowKind.UPDATE_BEFORE, "old", 1L), RECORD_CONTEXT);
+            IllegalStateException error = assertThrows(IllegalStateException.class, () -> writer.flush(false));
+            assertTrue(error.getMessage().contains("incomplete JDBC UPDATE"));
+            assertThrows(IllegalStateException.class, () -> writer.write(a(RowKind.UPDATE_AFTER, "new", 1L), RECORD_CONTEXT));
+        }
+        assertEquals(0L, rowCount(url, "TARGET_A", 9L));
+        assertEquals(1L, rowCount(url, "TARGET_A", 1L));
+    }
+
+    @Test
+    void rejectsInterleavedBeforeAfterWithoutPartialCommit() throws Exception {
+        String url = databaseUrl();
+        createTables(url);
+        try (JdbcWriter writer = sink(url, h2Dialect(), upsertPlans(), 10).createWriter(context())) {
+            writer.write(a(RowKind.UPDATE_BEFORE, "old", 1L), RECORD_CONTEXT);
+            IllegalArgumentException error = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> writer.write(b(RowKind.INSERT, 8L, new byte[] {8}), RECORD_CONTEXT));
+            assertTrue(error.getMessage().contains("UPDATE_BEFORE must be followed"));
+            assertThrows(IllegalStateException.class, () -> writer.flush(false));
+        }
+        assertEquals(0L, rowCount(url, "TARGET_B", 8L));
+    }
+
     private static List<JdbcTableWritePlan> upsertPlans() {
         return List.of(
                 new JdbcTableWritePlan(SOURCE_A, TARGET_A, targetSchemaA(), JdbcWriteMode.UPSERT, sourceSchemaA(),

@@ -123,7 +123,7 @@ class JdbcSinkCrossDatabaseIT {
                 assertEquals(3L, countRows(targetConnection, targetDialect, targetA));
                 assertEquals(2L, countRows(targetConnection, targetDialect, targetB));
 
-                // UPDATE_BEFORE deletes the old key and UPDATE_AFTER upserts the new key.
+                // Only primary-key changes delete the old row; same-key updates use UPSERT.
                 try (JdbcWriter writer = sink.createWriter(context())) {
                     writer.write(
                             record(sourceA, RowKind.UPDATE_BEFORE, 1L, "row-1"), RECORD_CONTEXT);
