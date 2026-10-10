@@ -17,7 +17,8 @@ import java.util.Objects;
 /**
  * Table-aware statement selection with input-order preservation.
  *
- * <p>This executor retains only a transient before-image reference during synchronous flush. Consecutive writes to one statement use a JDBC
+ * <p>Only the buffer owns detached rows. This executor temporarily references a
+ * before-image during synchronous flush. Consecutive writes to one statement use a JDBC
  * driver batch; changing table or mutation kind executes the previous batch before adding
  * the next record. All statements share the OutputFormat's single transaction. This avoids
  * the reordering introduced by grouping independent table and key buffers.

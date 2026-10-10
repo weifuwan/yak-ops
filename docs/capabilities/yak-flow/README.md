@@ -1,10 +1,10 @@
 # YakFlow Capability
 
-Status: Active — Core / Runtime execution, Connector Base, bounded JDBC Source; product JDBC/CDC integration pending
+Status: Active — Core / Runtime execution, Connector Base, JDBC Source/Sink; product JDBC/CDC integration pending
 
 ## Current State
 
-旧 `yak-flow-connector-cdc-mysql` 与 Business 旧 execution 已删除。Core 提供统一 Source/Sink 协议和新的通用 TableRecord；旧 yak-flow-api 已移除；通用 RowData、TableRecord、RowKind、TableId 和 LogicalType / TableSchema 均由 Core 拥有。Runtime 具备单 JVM 执行基础，新 JDBC Source 已支持一个 Source 的多张表并行读取。**尚无对应 JDBC Sink 或产品任务接线，不能进行实际跨库同步。**
+旧 `yak-flow-connector-cdc-mysql` 与 Business 旧 execution 已删除。Core 提供统一 Source/Sink 协议和新的通用 TableRecord；旧 yak-flow-api 已移除；通用 RowData、TableRecord、RowKind、TableId 和 LogicalType / TableSchema 均由 Core 拥有。Runtime 具备单 JVM 执行基础，新 JDBC Source 已支持一个 Source 的多张表并行读取。**JDBC Sink 已支持单表/多表 APPEND 和主键 Changelog，真实跨库 Connector 验收独立存在；但业务任务执行入口与实时 CDC 尚未接入，不能宣称产品端到端同步已恢复。**
 
 ## Execution Pipeline
 
@@ -40,6 +40,12 @@ AddSplitEvent 使用 Connector 提供的 SimpleVersionedSerializer 生成版本�
 ## Checkpoint Boundary
 
 Source → OneInputStreamOperator* → Sink 使用 AlignedCheckpointCoordinator 的单 JVM Barrier 对齐：冻结 Split 分配，在 Source Mailbox 快照 Reader 并发出有序 Barrier；各 InputGate 等全部生产者 Barrier 到齐才让 Task 在 Mailbox 内快照 Operator/SinkWriter、转发 Barrier、ACK；全部 ACK 后 FileCheckpointStore 原子持久化并通知 Source。Source 在 Barrier 发出后即可恢复生产，不再依靠全局 InputGate 排空。无 Operator 状态的快照继续写 v1，有状态快照写 v2；旧 v1 可读，CRC/UID/KeyGroup 指纹校验保留。启用 Checkpoint 时禁用内联 Chain。语义为受限 at-least-once，不是分布式 Flink Checkpoint 或 Exactly-once。
+
+## JDBC Sink Changelog and Batch Lifecycle
+
+JDBC Sink 暴露 `sink/JdbcSink`、`JdbcSinkBuilder`、`JdbcTableWritePlan` 和 `JdbcWriteMode`；`sink/writer/JdbcWriter` 继承 Connector Base 的 Mailbox 批处理合同。`internal/JdbcOutputFormat` 管理连接、事务和显式 Flush；`internal/executor` 包含仅一份待写记录缓冲和多表有序 PreparedStatement 执行。
+
+当前 UPDATE_BEFORE / UPDATE_AFTER 是两个独立的 TableRecord：同一 Sink Subtask 必须连续接收同表的两半事件。主键不变时直接 UPSERT；主键改变时删除旧键再 UPSERT；完整的 DELETE 独立执行。BatchSize 与定时 Flush 不拆开半个 UPDATE，Checkpoint/正常结束在 Before 不完整时拒绝成功 Flush。未实现事件配对跨分区、XA、Exactly-once 或产品 CDC 任务自动装配；并行 CDC 需要上游保留一对更新的顺序与归属。
 
 ## Connector Reader Foundation
 
