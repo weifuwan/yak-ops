@@ -23,13 +23,13 @@ import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.util.BeanCopyUtils;
 import io.yak.ops.common.util.JSONUtils;
-import io.yak.ops.dao.entity.datasource.DataSourceEntity;
-import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
-import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
 import io.yak.ops.connector.jdbc.database.catalog.JdbcColumnInfo;
 import io.yak.ops.connector.jdbc.database.catalog.JdbcTableInfo;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.dao.entity.datasource.DataSourceEntity;
+import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
+import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
 import jakarta.annotation.Resource;
 import java.util.ArrayList;
@@ -187,9 +187,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
         DataSourceEntity entity = requireEntity(requireWorkspaceId(), id);
         TableId tablePath = new TableId(
-                normalizeNullable(dto.getDatabase()),
-                normalizeNullable(dto.getSchema()),
-                dto.getTable().trim());
+                normalizeNullable(dto.getDatabase()), normalizeNullable(dto.getSchema()), dto.getTable().trim());
         return pluginRegistry
                 .catalogTable(
                         entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds(), tablePath)
@@ -211,9 +209,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
         DataSourceEntity entity = requireEntity(requireWorkspaceId(), id);
         TableId tablePath = new TableId(
-                normalizeNullable(dto.getDatabase()),
-                normalizeNullable(dto.getSchema()),
-                dto.getTable().trim());
+                normalizeNullable(dto.getDatabase()), normalizeNullable(dto.getSchema()), dto.getTable().trim());
         return pluginRegistry
                 .catalogColumns(
                         entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds(), tablePath)
