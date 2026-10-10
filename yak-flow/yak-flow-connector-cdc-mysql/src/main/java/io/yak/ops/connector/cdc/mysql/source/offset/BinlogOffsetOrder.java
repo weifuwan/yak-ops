@@ -80,8 +80,8 @@ public final class BinlogOffsetOrder {
             if (pieces.length < 2 || pieces[0].isBlank()) {
                 throw new IllegalArgumentException("Invalid MySQL GTID set");
             }
-            List<GtidInterval> intervals = ranges.computeIfAbsent(
-                    pieces[0].toLowerCase(Locale.ROOT), ignored -> new ArrayList<>());
+            List<GtidInterval> intervals =
+                    ranges.computeIfAbsent(pieces[0].toLowerCase(Locale.ROOT), ignored -> new ArrayList<>());
             for (int i = 1; i < pieces.length; i++) {
                 String[] bounds = pieces[i].split("-", -1);
                 if (bounds.length < 1 || bounds.length > 2) {
@@ -102,8 +102,9 @@ public final class BinlogOffsetOrder {
                     GtidInterval previous = merged.getLast();
                     if (current.first() <= previous.last()
                             || (previous.last() < Long.MAX_VALUE && current.first() == previous.last() + 1)) {
-                        merged.set(merged.size() - 1, new GtidInterval(
-                                previous.first(), Math.max(previous.last(), current.last())));
+                        merged.set(
+                                merged.size() - 1,
+                                new GtidInterval(previous.first(), Math.max(previous.last(), current.last())));
                         continue;
                     }
                 }
