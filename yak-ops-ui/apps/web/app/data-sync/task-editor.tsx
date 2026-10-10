@@ -616,14 +616,14 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     form.name.trim() &&
     Boolean(
       form.sourceDataSourceId &&
-        form.sourceTable &&
-        form.targetDataSourceId &&
-        selectedTableKey(
-          targetCatalog.tables,
-          form.targetDatabase,
-          form.targetSchema,
-          form.targetTable,
-        ),
+      form.sourceTable &&
+      form.targetDataSourceId &&
+      selectedTableKey(
+        targetCatalog.tables,
+        form.targetDatabase,
+        form.targetSchema,
+        form.targetTable,
+      ),
     ) &&
     !sourceCatalog.loading &&
     !targetCatalog.loading;
@@ -861,9 +861,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
               }
             >
               {realtime ? (
-                <Alert>
-                  实时同步依赖 ROW Binlog 和 CDC 权限；连接测试通过不代表 CDC 可用。
-                </Alert>
+                <Alert>实时同步依赖 ROW Binlog 和 CDC 权限；连接测试通过不代表 CDC 可用。</Alert>
               ) : null}
             </TableSection>
           </CollapseSection>
