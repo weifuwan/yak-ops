@@ -69,8 +69,7 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
             throw new IllegalArgumentException("JDBC Sink received an unknown source table");
         }
         if (awaitingUpdateAfter != null
-                && (record.rowKind() != RowKind.UPDATE_AFTER
-                        || !awaitingUpdateAfter.equals(record.tableId()))) {
+                && (record.rowKind() != RowKind.UPDATE_AFTER || !awaitingUpdateAfter.equals(record.tableId()))) {
             throw new IllegalArgumentException("UPDATE_BEFORE must be followed by UPDATE_AFTER for the same table");
         }
         TableRecord detached =
