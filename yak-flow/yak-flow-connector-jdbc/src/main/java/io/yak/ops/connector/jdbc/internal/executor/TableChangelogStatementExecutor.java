@@ -1,8 +1,10 @@
-package io.yak.ops.connector.jdbc.sink.executor;
+package io.yak.ops.connector.jdbc.internal.executor;
 
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.sink.JdbcTableWritePlan;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
+import io.yak.ops.core.data.RowData;
+import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
 import java.sql.Connection;
@@ -15,7 +17,7 @@ import java.util.Objects;
 /**
  * Table-aware statement selection with input-order preservation.
  *
- * <p>This executor retains no records. Consecutive writes to one statement use a JDBC
+ * <p>This executor retains only a transient before-image reference during synchronous flush. Consecutive writes to one statement use a JDBC
  * driver batch; changing table or mutation kind executes the previous batch before adding
  * the next record. All statements share the OutputFormat's single transaction. This avoids
  * the reordering introduced by grouping independent table and key buffers.
@@ -66,13 +68,13 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
             throw new IllegalArgumentException("JDBC Sink received an unknown source table");
         }
         if (awaitingUpdateAfter != null
-                && (record.rowKind() != io.yak.ops.core.data.RowKind.UPDATE_AFTER
+                && (record.rowKind() != RowKind.UPDATE_AFTER
                         || !awaitingUpdateAfter.equals(record.tableId()))) {
             throw new IllegalArgumentException("UPDATE_BEFORE must be followed by UPDATE_AFTER for the same table");
         }
         TableRecord detached =
                 new TableRecord(record.tableId(), record.rowKind(), plan.project(record.row(), record.rowKind()));
-        if (record.rowKind() == io.yak.ops.core.data.RowKind.UPDATE_BEFORE) {
+        if (record.rowKind() == RowKind.UPDATE_BEFORE) {
             awaitingUpdateAfter = record.tableId();
         } else if (awaitingUpdateAfter != null) {
             awaitingUpdateAfter = null;
@@ -140,7 +142,7 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
         }
     }
 
-    private void append(TableSimpleStatementExecutor next, io.yak.ops.core.data.RowData row) throws SQLException {
+    private void append(TableSimpleStatementExecutor next, RowData row) throws SQLException {
         if (next == null) {
             throw new IllegalStateException("JDBC statement is unavailable for the record kind");
         }

@@ -1,4 +1,4 @@
-package io.yak.ops.connector.jdbc.sink.executor;
+package io.yak.ops.connector.jdbc.internal.executor;
 
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialectConverter;
 import io.yak.ops.core.data.RowData;

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.connector.base.sink.writer.BatchFlushPolicy;
+import io.yak.ops.connector.jdbc.sink.writer.JdbcWriter;
 import io.yak.ops.connector.jdbc.database.internal.dialect.AnsiJdbcDialect;
 import io.yak.ops.connector.jdbc.database.internal.dialect.MySqlJdbcDialect;
 import io.yak.ops.connector.jdbc.database.internal.dialect.OracleJdbcDialect;

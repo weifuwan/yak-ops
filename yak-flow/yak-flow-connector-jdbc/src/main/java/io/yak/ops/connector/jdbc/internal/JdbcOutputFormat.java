@@ -1,11 +1,12 @@
-package io.yak.ops.connector.jdbc.sink;
+package io.yak.ops.connector.jdbc.internal;
 
 import io.yak.ops.connector.base.sink.writer.BatchOutput;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
-import io.yak.ops.connector.jdbc.sink.executor.TableBufferedStatementExecutor;
-import io.yak.ops.connector.jdbc.sink.executor.TableChangelogStatementExecutor;
+import io.yak.ops.connector.jdbc.internal.executor.TableBufferedStatementExecutor;
+import io.yak.ops.connector.jdbc.internal.executor.TableChangelogStatementExecutor;
+import io.yak.ops.connector.jdbc.sink.JdbcTableWritePlan;
 import io.yak.ops.core.data.TableRecord;
 import java.sql.Connection;
 import java.sql.SQLException;
