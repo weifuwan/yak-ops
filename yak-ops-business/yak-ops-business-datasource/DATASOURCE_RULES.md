@@ -107,6 +107,25 @@ DataSourceService 还提供内部 `resolveRuntimeConnection(id)` 给可信执行
 
 本模块只提供 Datasource capability，不创建 `controller` package，也不依赖 Boot。
 
+## Connector Catalog Ownership (Plugin V4)
+
+Datasource is the Workspace/credential owner and public HTTP entry. DataSourcePlugin only parses connections and opens JDBC Connections; all native database/schema/table/column discovery belongs to `yak-flow-connector-jdbc`.
+
+```text
+DataSourceServiceImpl
+→ DataSourcePluginRegistry
+→ DataSourcePlugin.openConnection() (isolated MySQL driver / PostgreSQL / Oracle / SSH)
+→ JdbcCatalogFactory.create(jdbcUrl, connectionProvider)
+→ JdbcCatalog / JdbcTableMetadata
+→ TableId / TableSchema (internal) or Datasource HTTP VO (external)
+```
+
+- Saved product Datasources must use the injected connection provider, never the Connector's DriverManager-only factory overload.
+- `queryTableSchema(dataSourceId, tablePath)` is an internal Workspace-scoped read returning Connector-normalized `TableSchema`; it is not an HTTP endpoint.
+- HTTP Catalog responses retain physical type, JDBC code, size, PK order and remarks, but do not own a second metadata query or LogicalType converter.
+- Metadata errors must be translated to `DataSourceErrorCode.CATALOG_QUERY_FAILED` without exposing passwords, complete JDBC URLs or SSH secrets.
+- No Datasource `DataSourceCatalog` interface, `GenericJdbcCatalog`, native metadata switch or compatibility shim is permitted.
+
 ## JDBC Plugin Boundary
 
 后端 JDBC Plugin 体系必须保留。
