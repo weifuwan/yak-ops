@@ -2,7 +2,6 @@ package io.yak.ops.business.datasync.impl;
 
 import io.yak.ops.business.datasource.DataSourceService;
 import io.yak.ops.business.datasync.DataSyncService;
-import io.yak.ops.business.datasync.catalog.DataSyncCatalogColumns;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
 import io.yak.ops.business.datasync.scheduler.DataSyncScheduleDefinition;
@@ -20,7 +19,6 @@ import io.yak.ops.common.bean.dto.datasync.DataSyncScheduleDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTableRouteDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskQueryDTO;
-import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncAttemptVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncExecutionEventVO;
@@ -62,7 +60,9 @@ import io.yak.ops.common.util.CollectionUtils;
 import io.yak.ops.common.util.DateUtils;
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.StringUtils;
+import io.yak.ops.connector.jdbc.database.JdbcSchemaCompatibility;
 import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.dao.entity.datasync.DataSyncAttemptEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncExecutionEventEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
@@ -86,9 +86,6 @@ import io.yak.ops.dao.repository.datasync.DataSyncTableExecutionRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
-import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaCompatibility;
-import io.yak.ops.plugin.database.jdbc.schema.JdbcSchemaMapper;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
 import jakarta.annotation.Resource;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
@@ -97,6 +94,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -1045,48 +1043,55 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
             throw new DataSyncException(DataSyncErrorCode.TARGET_TABLE_NOT_FOUND);
         }
 
-        List<DataSourceCatalogColumnVO> sourceColumns =
-                dataSourceService.queryCatalogColumns(sourceDataSourceId, sourcePath);
-        List<DataSourceCatalogColumnVO> targetColumns =
-                dataSourceService.queryCatalogColumns(targetDataSourceId, targetPath);
-        if (sourceColumns.isEmpty() || targetColumns.isEmpty()) {
-            throw new DataSyncException(DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "来源表或目标表没有可用字段");
-        }
-        Map<String, DataSourceCatalogColumnVO> sourceByName = DataSyncCatalogColumns.indexByName(sourceColumns);
-        Map<String, DataSourceCatalogColumnVO> targetByName = DataSyncCatalogColumns.indexByName(targetColumns);
-        if (sourceByName.size() != sourceColumns.size() || targetByName.size() != targetColumns.size()) {
-            throw new DataSyncException(DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "表结构存在大小写不敏感的重名字段");
-        }
-        for (DataSourceCatalogColumnVO source : sourceColumns) {
-            DataSourceCatalogColumnVO target = DataSyncCatalogColumns.findByName(targetByName, source.getName());
+        TableSchema sourceSchema = dataSourceService.queryTableSchema(sourceDataSourceId, sourcePath);
+        TableSchema targetSchema = dataSourceService.queryTableSchema(targetDataSourceId, targetPath);
+        Map<String, Column> sourceByName = schemaColumns(sourceSchema);
+        Map<String, Column> targetByName = schemaColumns(targetSchema);
+
+        for (Column source : sourceSchema.columns()) {
+            Column target = targetByName.get(source.name().toLowerCase(Locale.ROOT));
             if (target == null) {
                 throw new DataSyncException(
-                        DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "目标表缺少同名字段：" + source.getName());
+                        DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "目标表缺少同名字段：" + source.name());
             }
-            DataSourceColumn sourceColumn = DataSyncCatalogColumns.toColumn(source);
-            DataSourceColumn targetColumn = DataSyncCatalogColumns.toColumn(target);
-            if (sourceColumn == null
-                    || targetColumn == null
-                    || !JdbcSchemaCompatibility.isCompatible(
-                            JdbcSchemaMapper.toColumn(sourceColumn), JdbcSchemaMapper.toColumn(targetColumn))) {
+            if (!JdbcSchemaCompatibility.isCompatible(source, target)) {
                 throw new DataSyncException(
-                        DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "来源与目标字段类型不兼容：" + source.getName());
+                        DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "来源与目标字段类型不兼容：" + source.name());
             }
         }
-        for (DataSourceCatalogColumnVO target : targetColumns) {
-            if (!sourceByName.containsKey(target.getName().toLowerCase(Locale.ROOT))
-                    && !Boolean.TRUE.equals(target.getNullable())) {
+        for (Column target : targetSchema.columns()) {
+            if (!sourceByName.containsKey(target.name().toLowerCase(Locale.ROOT)) && !target.nullable()) {
                 throw new DataSyncException(
-                        DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "目标表存在未匹配的必填字段：" + target.getName());
+                        DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "目标表存在未匹配的必填字段：" + target.name());
             }
         }
         if (syncType == DataSyncType.REALTIME || writeMode == DataSyncWriteMode.UPSERT) {
-            Set<String> sourceKeys = DataSyncCatalogColumns.primaryKeyNames(sourceColumns);
-            Set<String> targetKeys = DataSyncCatalogColumns.primaryKeyNames(targetColumns);
+            Set<String> sourceKeys = normalizedKeys(sourceSchema.primaryKeys());
+            Set<String> targetKeys = normalizedKeys(targetSchema.primaryKeys());
             if (sourceKeys.isEmpty() || !sourceKeys.equals(targetKeys)) {
                 throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "更新写入要求来源与目标表主键同名且完整");
             }
         }
+    }
+
+    private Map<String, Column> schemaColumns(TableSchema schema) {
+        Map<String, Column> columns = new LinkedHashMap<>();
+        for (Column column : schema.columns()) {
+            Column previous = columns.putIfAbsent(column.name().toLowerCase(Locale.ROOT), column);
+            if (previous != null) {
+                throw new DataSyncException(
+                        DataSyncErrorCode.TARGET_SCHEMA_INCOMPATIBLE, "表结构存在大小写不敏感的重名字段");
+            }
+        }
+        return columns;
+    }
+
+    private Set<String> normalizedKeys(List<String> keys) {
+        Set<String> normalized = new HashSet<>();
+        for (String key : keys) {
+            normalized.add(key.toLowerCase(Locale.ROOT));
+        }
+        return normalized;
     }
 
     private void materializeCreatePolicies(DataSyncType syncType, DataSyncTaskDTO dto) {
