@@ -41,7 +41,7 @@ Test Connection / Batch Test Connection
 
 Backend JDBC Plugin stays extensible, but the frontend is not a plugin platform.
 
-Plugin Descriptor V3 is runtime-only metadata: canonical type, aliases, API version, capabilities and secret field keys. Frontend labels, sections, validation rules and JDBC URL form linkage are not backend plugin contracts.
+Plugin Descriptor V4 is runtime-only metadata: canonical type, aliases, API version, capabilities and secret field keys. Frontend labels, sections, validation rules and JDBC URL form linkage are not backend plugin contracts.
 
 ## Workspace Ownership
 
@@ -87,7 +87,9 @@ Property keys are suggestions rather than a strict whitelist. Value normalizatio
 
 Datasource publishes read-only Catalog database / Schema / table / column APIs for saved Workspace-scoped datasources. Catalog access does not accept connection credentials; internal runtime connection resolution is never exposed through HTTP.
 
-For product consumers that need one exact table identity, the internal Catalog contract also provides `findTable(DataSourceTablePath)` and DataSourceService provides `queryCatalogTable(...)`. This exact lookup is not exposed as a new HTTP endpoint in v1.2 PR2; it exists so Data Sync schema introspection does not depend on fuzzy table search.
+**Current architecture (Plugin V4):** Provider owns `openConnection()` and MySQL 5/8 isolation / PostgreSQL and Oracle quirks / SSH lifetime. The Datasource Registry injects this ConnectionProvider into `JdbcCatalogFactory`; Catalog, Dialect, Converter and `JdbcTableMetadata` live only in the YakFlow JDBC Connector. A request-scoped Catalog is closed immediately and is never checkpointed.
+
+For exact table discovery, DataSourceService exposes `queryCatalogTable(...)` on the existing HTTP product contract and the internal `queryTableSchema(...)` for Data Sync planning. Both delegate to `yak-flow-connector-jdbc` Catalog. Connector returns native table/column descriptions for UI display and canonical `TableSchema` for engine/validation; Datasource never converts JDBC type codes into a second LogicalType.
 
 Column metadata now preserves JDBC composite-primary-key order through `primaryKeyPosition` / `KEY_SEQ` in addition to the existing `primaryKey` membership flag. See [DataSourceController](../../../yak-ops-boot/src/main/java/io/yak/ops/boot/controller/datasource/v1/DataSourceController.java) and [Datasource Rules](../../../yak-ops-business/yak-ops-business-datasource/DATASOURCE_RULES.md) for the backend boundary. Summary and arbitrary SQL execution APIs remain outside this capability.
 
