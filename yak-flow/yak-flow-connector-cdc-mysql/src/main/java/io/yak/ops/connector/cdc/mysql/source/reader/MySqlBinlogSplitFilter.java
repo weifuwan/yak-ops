@@ -79,7 +79,8 @@ public final class MySqlBinlogSplitFilter {
                 throw new IllegalArgumentException("Finished snapshot ranges do not cover the entire keyspace");
             }
             for (int index = 1; index < infos.size(); index++) {
-                if (!Objects.equals(infos.get(index - 1).upperExclusive(), infos.get(index).lowerInclusive())) {
+                if (!Objects.equals(
+                        infos.get(index - 1).upperExclusive(), infos.get(index).lowerInclusive())) {
                     throw new IllegalArgumentException("Finished snapshot ranges have a gap or overlap");
                 }
             }
