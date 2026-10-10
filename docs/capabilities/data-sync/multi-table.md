@@ -1,5 +1,8 @@
 # Data Sync Multi-Table Route Contract
 
+**Current implementation note:** Product field Mapping and automatic target DDL were removed in PR #1555. Current Routes identify only existing physical source/target tables; historical design details below are not executable specifications. Task execution integration with YakFlow Runtime is still pending.
+
+
 Status: Active — v1.3 PR4 Multi-Table Editor + Schema Preview
 
 Scope:
