@@ -32,6 +32,7 @@ Java 变更先读 `ARCHITECTURE.md` 和 `JAVA_RULES.md`，再按目标读取下�
 | DAO / Entity / Migration | `yak-ops-dao/DAO_RULES.md`；按修改内容读取同目录 `ENTITY_RULES.md` / `FLYWAY_RULES.md` |
 | Core / SPI | `yak-ops-core/CORE_RULES.md` / `yak-ops-spi/SPI_RULES.md` |
 | Datasource Plugin | `yak-ops-plugins/yak-ops-plugin-datasource/PLUGIN_RULES.md` |
+| Task Plugin | `yak-ops-plugins/yak-ops-plugin-task/TASK_PLUGIN_RULES.md` |
 | YakFlow | `yak-flow/YAK_FLOW_RULES.md` |
 
 ## Frontend Context
