@@ -91,7 +91,8 @@ class MySqlCdcRuntimeCrossDatabaseIT {
                 drop(targetConnection, targetDialect, targetOrders);
                 sql(sourceConnection, "DROP TABLE IF EXISTS cdc_rt_orders");
                 sql(sourceConnection, "DROP TABLE IF EXISTS cdc_rt_items");
-                sql(sourceConnection, "CREATE TABLE cdc_rt_orders (ID BIGINT NOT NULL PRIMARY KEY, NAME VARCHAR(64) NOT NULL)");
+                sql(sourceConnection, "CREATE TABLE cdc_rt_orders "
+                        + "(ID BIGINT NOT NULL PRIMARY KEY, NAME VARCHAR(64) NOT NULL)");
                 sql(sourceConnection, "CREATE TABLE cdc_rt_items "
                         + "(ID BIGINT NOT NULL PRIMARY KEY, SKU VARCHAR(64) NOT NULL, QTY BIGINT NOT NULL)");
                 sql(targetConnection, targetDialect.createTableSql(targetOrders, orderSchema));
