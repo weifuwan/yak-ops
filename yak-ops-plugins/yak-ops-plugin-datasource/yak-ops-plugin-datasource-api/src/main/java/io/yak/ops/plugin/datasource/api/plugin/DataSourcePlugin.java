@@ -1,11 +1,11 @@
 package io.yak.ops.plugin.datasource.api.plugin;
 
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
+import java.sql.Connection;
 import java.util.List;
 
 /**
- * 数据源插件稳定扩展契约，负责插件描述、连接参数、连通性和 Catalog 元数据。
+ * 数据源插件稳定扩展契约，负责连接配置、连通性和 JDBC 连接创建。
  *
  * @author weifuwan
  * @since 2026-09-24
@@ -35,12 +35,17 @@ public interface DataSourcePlugin {
     void testConnection(DataSourceConnection connection, int timeoutSeconds);
 
     /**
-     * 创建 Catalog 元数据访问入口。
+     * Opens one independent JDBC Connection through this provider's selected driver and SSH lifecycle.
      *
-     * @param connection 已解析的连接参数
-     * @param timeoutSeconds 连接与查询的默认超时时间，单位秒
+     * <p>Datasource connection ownership stays in the provider; only metadata queries run in the
+     * YakFlow Connector Catalog. The caller must close the returned Connection.
+     *
+     * @param connection resolved provider connection settings
+     * @param timeoutSeconds connection timeout in seconds
+     * @return a fresh JDBC Connection owned by the caller
+     * @throws Exception if authentication, driver loading, tunnelling or connection fails
      */
-    DataSourceCatalog createCatalog(DataSourceConnection connection, int timeoutSeconds);
+    Connection openConnection(DataSourceConnection connection, int timeoutSeconds) throws Exception;
 
     /**
      * 返回当前 Provider 可推荐给高级参数编辑器的连接属性名。

@@ -12,8 +12,5 @@ public enum DataSourcePluginOperation {
     PARAMETER,
 
     /** 驱动加载、网络连接或认证失败。 */
-    CONNECTIVITY,
-
-    /** Catalog 元数据访问失败。 */
-    CATALOG
+    CONNECTIVITY
 }

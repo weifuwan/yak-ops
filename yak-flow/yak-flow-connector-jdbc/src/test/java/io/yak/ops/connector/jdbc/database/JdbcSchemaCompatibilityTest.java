@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.database.jdbc.schema;
+package io.yak.ops.connector.jdbc.database;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

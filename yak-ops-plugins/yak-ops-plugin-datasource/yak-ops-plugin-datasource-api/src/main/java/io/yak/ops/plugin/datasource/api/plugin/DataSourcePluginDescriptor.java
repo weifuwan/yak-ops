@@ -30,7 +30,7 @@ public record DataSourcePluginDescriptor(
         Set<String> secretFieldKeys) {
 
     /** 当前运行时接受的 Datasource Plugin API 版本。 */
-    public static final String CURRENT_API_VERSION = "3";
+    public static final String CURRENT_API_VERSION = "4";
 
     public DataSourcePluginDescriptor {
         type = normalizeType(type);

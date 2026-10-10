@@ -1,4 +1,12 @@
-import { Alert, Button, Checkbox, CollapseSection, Field, FieldLabel, Input } from "@yak-ops/yak-ui";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  CollapseSection,
+  Field,
+  FieldLabel,
+  Input,
+} from "@yak-ops/yak-ui";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -85,7 +93,10 @@ export function MultiTableRouteEditor({
     [targetCatalog.tables, targetDatabase, targetSchema],
   );
 
-  const targetKeys = useMemo(() => new Set(targetOptions.map((item) => item.value)), [targetOptions]);
+  const targetKeys = useMemo(
+    () => new Set(targetOptions.map((item) => item.value)),
+    [targetOptions],
+  );
   const duplicateTargets = useMemo(() => {
     const seen = new Set<string>();
     const duplicates = new Set<string>();
@@ -135,7 +146,9 @@ export function MultiTableRouteEditor({
   };
 
   const updateRoute = (key: string, patch: Partial<DataSyncTableRoute>) =>
-    onChange(routes.map((route) => (routeSourceKey(route) === key ? { ...route, ...patch } : route)));
+    onChange(
+      routes.map((route) => (routeSourceKey(route) === key ? { ...route, ...patch } : route)),
+    );
 
   return (
     <>
@@ -215,7 +228,11 @@ export function MultiTableRouteEditor({
             <div className="space-y-2">
               {routes.map((route) => {
                 const key = routeSourceKey(route);
-                const targetKey = pathKey(route.targetDatabase, route.targetSchema, route.targetTable);
+                const targetKey = pathKey(
+                  route.targetDatabase,
+                  route.targetSchema,
+                  route.targetTable,
+                );
                 return (
                   <div
                     key={key}

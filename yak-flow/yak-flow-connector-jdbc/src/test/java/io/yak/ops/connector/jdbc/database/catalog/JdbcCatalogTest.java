@@ -17,6 +17,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 /** Tests the real H2 JDBC Catalog and Core schema/compound primary-key behavior. */
@@ -51,6 +52,43 @@ class JdbcCatalogTest {
             assertEquals(List.of(), catalog.getTable(view).primaryKeys());
             assertThrows(SQLException.class, () -> catalog.getTable(new TableId(null, "APP", "MISSING")));
         }
+    }
+
+    @Test
+    void exposesOnePhysicalMetadataSourceForSchemaAndUiDescriptions() throws Exception {
+        JdbcConnectionOptions options = new JdbcConnectionOptions("jdbc:h2:mem:yak_catalog_details;DB_CLOSE_DELAY=-1", "sa", "");
+        try (Connection connection = options.openConnection(); Statement ddl = connection.createStatement()) {
+            ddl.execute("CREATE SCHEMA APP");
+            ddl.execute("CREATE TABLE APP.PRODUCTS (TENANT INT, ID BIGINT, NAME VARCHAR(50),"
+                    + " PRIMARY KEY(ID, TENANT))");
+            ddl.execute("COMMENT ON TABLE APP.PRODUCTS IS 'product list'");
+            ddl.execute("COMMENT ON COLUMN APP.PRODUCTS.NAME IS 'display name'");
+        }
+
+        AtomicInteger opened = new AtomicInteger();
+        try (JdbcCatalog catalog = JdbcCatalogFactory.create(options.url(), () -> {
+            opened.incrementAndGet();
+            return options.openConnection();
+        })) {
+            var infos = catalog.listTableInfos(null, "APP", "prod", 10);
+            assertEquals(1, infos.size());
+            assertEquals("PRODUCTS", infos.getFirst().tableId().table());
+            assertEquals("product list", infos.getFirst().remarks());
+            TableId table = new TableId(null, "APP", "PRODUCTS");
+            assertTrue(catalog.findTable(table).isPresent());
+            assertTrue(catalog.findTable(table).orElseThrow().type().contains("TABLE"));
+            var columns = catalog.getColumns(table);
+            assertEquals(List.of("TENANT", "ID", "NAME"), columns.stream()
+                    .map(JdbcColumnInfo::name)
+                    .toList());
+            assertEquals(2, columns.get(0).primaryKeyPosition());
+            assertEquals(1, columns.get(1).primaryKeyPosition());
+            assertFalse(columns.get(2).primaryKey());
+            assertEquals("display name", columns.get(2).remarks());
+            assertEquals(List.of("ID", "TENANT"), catalog.getTable(table).primaryKeys());
+            assertThrows(IllegalArgumentException.class, () -> catalog.listTableInfos(null, "APP", null, 0));
+        }
+        assertTrue(opened.get() >= 5, "Connector Catalog must use the injected provider for every metadata query");
     }
 
     @Test

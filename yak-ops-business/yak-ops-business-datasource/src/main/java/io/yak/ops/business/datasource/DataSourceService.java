@@ -12,6 +12,7 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceConnectionPropertyKeysVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.page.PagingData;
+import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
 import java.util.List;
 import java.util.Optional;
@@ -71,6 +72,18 @@ public interface DataSourceService {
 
     /** 查询已保存数据源指定表的字段元数据。 */
     List<DataSourceCatalogColumnVO> queryCatalogColumns(String id, DataSourceTablePathDTO dto);
+
+    /**
+     * Resolves the Connector-normalized physical table schema for internal execution planning.
+     *
+     * <p>Workspace ownership and saved credentials are validated by Datasource. HTTP clients
+     * continue to use the existing column browse endpoint and never receive a Connection.
+     *
+     * @param id workspace-scoped datasource ID
+     * @param path exact physical table
+     * @return dialect-normalized ordered columns and primary keys
+     */
+    TableSchema queryTableSchema(String id, DataSourceTablePathDTO path);
 
     /**
      * 为可信内部执行能力解析已保存数据源的真实运行时连接。

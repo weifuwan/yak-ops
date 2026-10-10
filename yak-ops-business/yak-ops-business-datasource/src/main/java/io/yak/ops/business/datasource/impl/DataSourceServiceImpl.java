@@ -23,13 +23,13 @@ import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.util.BeanCopyUtils;
 import io.yak.ops.common.util.JSONUtils;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcColumnInfo;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcTableInfo;
+import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
 import io.yak.ops.dao.repository.datasource.DataSourcePageQuery;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogQuery;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceTable;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
 import jakarta.annotation.Resource;
 import java.util.ArrayList;
@@ -166,13 +166,15 @@ public class DataSourceServiceImpl implements DataSourceService {
             throw new DataSourceException(DataSourceErrorCode.CATALOG_QUERY_FAILED, "表查询参数不能为空");
         }
         DataSourceEntity entity = requireEntity(requireWorkspaceId(), id);
-        DataSourceCatalogQuery query = new DataSourceCatalogQuery(
-                normalizeNullable(dto.getDatabase()),
-                normalizeNullable(dto.getSchema()),
-                normalizeNullable(dto.getKeyword()),
-                dto.getLimit());
         return pluginRegistry
-                .catalogTables(entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds(), query)
+                .catalogTables(
+                        entity.getDbType(),
+                        entity.getConnectionParams(),
+                        connectionTestTimeoutSeconds(),
+                        normalizeNullable(dto.getDatabase()),
+                        normalizeNullable(dto.getSchema()),
+                        normalizeNullable(dto.getKeyword()),
+                        dto.getLimit())
                 .stream()
                 .map(this::toCatalogTableVO)
                 .toList();
@@ -184,7 +186,7 @@ public class DataSourceServiceImpl implements DataSourceService {
             throw new DataSourceException(DataSourceErrorCode.CATALOG_QUERY_FAILED, "表定位信息不能为空");
         }
         DataSourceEntity entity = requireEntity(requireWorkspaceId(), id);
-        DataSourceTablePath tablePath = new DataSourceTablePath(
+        TableId tablePath = new TableId(
                 normalizeNullable(dto.getDatabase()),
                 normalizeNullable(dto.getSchema()),
                 dto.getTable().trim());
@@ -208,7 +210,7 @@ public class DataSourceServiceImpl implements DataSourceService {
             throw new DataSourceException(DataSourceErrorCode.CATALOG_QUERY_FAILED, "表定位信息不能为空");
         }
         DataSourceEntity entity = requireEntity(requireWorkspaceId(), id);
-        DataSourceTablePath tablePath = new DataSourceTablePath(
+        TableId tablePath = new TableId(
                 normalizeNullable(dto.getDatabase()),
                 normalizeNullable(dto.getSchema()),
                 dto.getTable().trim());
@@ -218,6 +220,20 @@ public class DataSourceServiceImpl implements DataSourceService {
                 .stream()
                 .map(this::toCatalogColumnVO)
                 .toList();
+    }
+
+    @Override
+    public TableSchema queryTableSchema(String id, DataSourceTablePathDTO dto) {
+        if (dto == null || !StringUtils.hasText(dto.getTable())) {
+            throw new DataSourceException(DataSourceErrorCode.CATALOG_QUERY_FAILED, "表定位信息不能为空");
+        }
+        DataSourceEntity entity = requireEntity(requireWorkspaceId(), id);
+        TableId tableId = new TableId(
+                normalizeNullable(dto.getDatabase()),
+                normalizeNullable(dto.getSchema()),
+                dto.getTable().trim());
+        return pluginRegistry.catalogTableSchema(
+                entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds(), tableId);
     }
 
     @Override
@@ -453,17 +469,17 @@ public class DataSourceServiceImpl implements DataSourceService {
         return Math.max(1, properties.getConnectionTestTimeoutSeconds());
     }
 
-    private DataSourceCatalogTableVO toCatalogTableVO(DataSourceTable source) {
+    private DataSourceCatalogTableVO toCatalogTableVO(JdbcTableInfo source) {
         DataSourceCatalogTableVO target = new DataSourceCatalogTableVO();
-        target.setDatabase(source.database());
-        target.setSchema(source.schema());
-        target.setName(source.name());
+        target.setDatabase(source.tableId().catalog());
+        target.setSchema(source.tableId().schema());
+        target.setName(source.tableId().table());
         target.setType(source.type());
         target.setRemarks(source.remarks());
         return target;
     }
 
-    private DataSourceCatalogColumnVO toCatalogColumnVO(DataSourceColumn source) {
+    private DataSourceCatalogColumnVO toCatalogColumnVO(JdbcColumnInfo source) {
         DataSourceCatalogColumnVO target = new DataSourceCatalogColumnVO();
         target.setName(source.name());
         target.setTypeName(source.typeName());

@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.database.jdbc.schema;
+package io.yak.ops.connector.jdbc.database;
 
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalType;
@@ -9,7 +9,7 @@ import io.yak.ops.core.types.TimestampType;
 import io.yak.ops.core.types.ZonedTimestampType;
 
 /**
- * Safe JDBC source-to-target schema compatibility without a Transform.
+ * Safe JDBC source-to-target compatibility over Connector-normalized Core logical types.
  *
  * <p>Unknown Catalog capacities retain the existing non-blocking preview policy; an execution
  * cannot use an unresolved decimal until its runtime value representation is established.
