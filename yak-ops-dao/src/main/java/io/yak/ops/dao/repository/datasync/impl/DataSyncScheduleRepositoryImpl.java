@@ -1,8 +1,8 @@
 package io.yak.ops.dao.repository.datasync.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.common.enums.task.ScheduleTargetType;
+import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncScheduleEntity;
 import io.yak.ops.dao.mapper.datasync.DataSyncScheduleMapper;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
@@ -60,7 +60,7 @@ public class DataSyncScheduleRepositoryImpl extends BaseRepositoryImpl<DataSyncS
     @Override
     public List<DataSyncScheduleEntity> queryEnabled() {
         return scheduleMapper.selectList(Wrappers.<DataSyncScheduleEntity>lambdaQuery()
-                 .eq(DataSyncScheduleEntity::getEnabled, true)
+                .eq(DataSyncScheduleEntity::getEnabled, true)
                 .eq(DataSyncScheduleEntity::getTargetType, ScheduleTargetType.TASK)
                 .orderByAsc(DataSyncScheduleEntity::getId));
     }
@@ -72,7 +72,7 @@ public class DataSyncScheduleRepositoryImpl extends BaseRepositoryImpl<DataSyncS
                 entity,
                 Wrappers.<DataSyncScheduleEntity>lambdaUpdate()
                         .eq(DataSyncScheduleEntity::getWorkspaceId, workspaceId)
-                .eq(DataSyncScheduleEntity::getTargetType, ScheduleTargetType.TASK)
+                        .eq(DataSyncScheduleEntity::getTargetType, ScheduleTargetType.TASK)
                         .eq(DataSyncScheduleEntity::getId, entity.getId()));
         return updated > 0 ? entity : null;
     }

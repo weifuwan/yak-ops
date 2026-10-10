@@ -13,5 +13,4 @@ import io.yak.ops.common.enums.task.InstanceStatus;
  * @author weifuwan
  * @since 2026-10-10
  */
-public record InstancePageQuery(
-        int pageNo, int pageSize, String taskId, String taskType, InstanceStatus status) {}
+public record InstancePageQuery(int pageNo, int pageSize, String taskId, String taskType, InstanceStatus status) {}

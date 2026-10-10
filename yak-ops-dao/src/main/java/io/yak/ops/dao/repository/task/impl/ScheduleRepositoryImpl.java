@@ -23,8 +23,7 @@ public class ScheduleRepositoryImpl implements ScheduleRepository {
     private ScheduleMapper scheduleMapper;
 
     @Override
-    public Optional<ScheduleEntity> queryByTarget(
-            String workspaceId, ScheduleTargetType type, String targetId) {
+    public Optional<ScheduleEntity> queryByTarget(String workspaceId, ScheduleTargetType type, String targetId) {
         if (StringUtils.isBlank(workspaceId) || type == null || StringUtils.isBlank(targetId)) {
             return Optional.empty();
         }
