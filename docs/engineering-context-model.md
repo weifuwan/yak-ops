@@ -60,7 +60,8 @@ Scope: 文档归属、按需上下文加载与验证证据。
 - [Java Rules](../JAVA_RULES.md)：本地后端格式与验证命令。
 - [Frontend Rules](../yak-ops-ui/FRONTEND_RULES.md)：前端格式、Lint、类型、架构和构建门禁。
 - [Quality Check](../.github/workflows/quality-check.yml)：普通前后端质量检查。
-- [Backend Acceptance](../.github/workflows/backend-acceptance.yml)：条件触发的 JDBC、CDC 与 Automation 验收，以及完整扫描入口。
+- [JDBC Source Acceptance](../.github/workflows/jdbc-source-acceptance.yml) / [JDBC Sink Cross-Database Acceptance](../.github/workflows/jdbc-sink-cross-database-acceptance.yml)：保留真实数据库验收，普通 PR 不自动触发；按需手动运行，正式 Release Gate 复用。
+- [Backend Acceptance](../.github/workflows/backend-acceptance.yml)：产品 Runtime E2E 的状态及完整门禁；链路未恢复时明确 fail-closed，不把独立 JDBC 验收当成完整产品验收。
 - [Data Sync Manual E2E](e2e/data-sync/README.md)：可重复执行的产品级人工步骤。
 - [Version Management](release/README.md)：版本验收、发布决策及证据要求。
 

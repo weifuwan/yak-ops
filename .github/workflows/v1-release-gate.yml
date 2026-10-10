@@ -47,11 +47,22 @@ jobs:
     with:
       full_sweep: true
 
+  # Real JDBC driver/database checks run at release time, not for ordinary PRs.
+  jdbc-source-acceptance:
+    name: JDBC Source Acceptance
+    uses: ./.github/workflows/jdbc-source-acceptance.yml
+
+  jdbc-sink-acceptance:
+    name: JDBC Sink Cross-Database Acceptance
+    uses: ./.github/workflows/jdbc-sink-cross-database-acceptance.yml
+
   package-smoke:
     name: Distribution + Docker + Compose Smoke
     needs:
       - quality
       - backend-acceptance
+      - jdbc-source-acceptance
+      - jdbc-sink-acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -183,6 +194,8 @@ jobs:
             printf -- '- Frontend Image: `%s`\n' "${frontend_image}"
             printf -- '- Frontend Local Image ID: `%s`\n' "${frontend_id}"
             printf -- '- Quality Gate: PASS\n'
+            printf -- '- JDBC Source Acceptance: PASS\n'
+            printf -- '- JDBC Sink Cross-Database Acceptance: PASS\n'
             printf -- '- Full Backend Acceptance: PASS\n'
             printf -- '- Data Sync Automation Acceptance: PASS\n'
             printf -- '- Distribution Verification: PASS\n'
@@ -207,6 +220,8 @@ jobs:
     needs:
       - quality
       - backend-acceptance
+      - jdbc-source-acceptance
+      - jdbc-sink-acceptance
       - package-smoke
     runs-on: ubuntu-latest
 
@@ -216,11 +231,13 @@ jobs:
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
           ACCEPTANCE_RESULT: ${{ needs.backend-acceptance.result }}
+          JDBC_SOURCE_RESULT: ${{ needs.jdbc-source-acceptance.result }}
+          JDBC_SINK_RESULT: ${{ needs.jdbc-sink-acceptance.result }}
           PACKAGE_SMOKE_RESULT: ${{ needs.package-smoke.result }}
         run: |
           set -euo pipefail
 
-          for result in "${QUALITY_RESULT}" "${ACCEPTANCE_RESULT}" "${PACKAGE_SMOKE_RESULT}"; do
+          for result in "${QUALITY_RESULT}" "${ACCEPTANCE_RESULT}" "${JDBC_SOURCE_RESULT}" "${JDBC_SINK_RESULT}" "${PACKAGE_SMOKE_RESULT}"; do
             if [[ "${result}" != "success" ]]; then
               echo "Automated release gate failed: ${result}"
               exit 1
