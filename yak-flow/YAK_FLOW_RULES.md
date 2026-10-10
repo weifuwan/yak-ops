@@ -27,6 +27,13 @@ subject to code review.
 - MySQL Hybrid Snapshot 使用独立于 PR1 stream-only 的 Source/Split/Enumerator 状态合同；只允许单列非空 BIGINT 主键，使用 keyset Chunk 边界，Snapshot Split 按成功投递的主键恢复。Enumerator 保留待分配/已分配/已完成的状态，Reader 完成但未收到 ACK 的 Split 在快照中继续保留。Binlog Low Watermark 必须先于任何 Snapshot 规划，Snapshot 完成后捕获 High Watermark，只有完成覆盖全部 Snapshot 输出的 Checkpoint 才允许 Binlog 从 Low 开始重放。首版采用全局重放修正 Snapshot 并发变更（at-least-once），**不是 Flink CDC 逐 Chunk 的 L/H Watermark 归并算法**。Hybrid Source 必须启用周期持久化 Checkpoint，拒绝不匹配的恢复定义。
 - JDBC Source 的一个定义管理多张表；Enumerator 逐表异步发现并分配 Split。单整数主键采用不重叠的区间和已输出主键恢复，其他表采用整 Split 重放语义；只保证受限 at-least-once，不承诺变化中数据库的全局一致性快照。
 
+## MySQL CDC Runtime + JDBC Acceptance
+
+- MySQL Hybrid CDC 以 Core `TableRecord` 通过现有 `SourceTransformation → StreamGraph → ExecutionGraph → SinkTransformation` 接 JDBC Sink；不可在 Connector 新建 Runner、Executor、Checkpoint 存储或 Business Adapter。
+- 多表 CDC 每一张来源表必须显式映射到唯一目标表、冻结匹配 Schema 并采用 JDBC Native UPSERT；当前 CDC Sink 并行度固定为 1，以确保 UPDATE_BEFORE / UPDATE_AFTER 成对且同表连续处理；多 Writer 路由和主键重分区留待独立合同。
+- 使用稳定 UID + 周期持久化 Checkpoint，取消后只能从完整的已完成 Checkpoint 恢复。Snapshot → Binlog 的全局 Low/High + replay 与 Flink CDC 逐 Chunk 算法不同，仍为 At-least-once。
+- 引擎层真实集成验收为 MySQL CDC → MySQL/PostgreSQL/Oracle，多表 Snapshot、增删改、主键变更和恢复；只通过 `workflow_dispatch` 手动触发，不为普通 PR 追加跨库数据库服务，不冒充产品 E2E 或声称 Exactly-once。
+
 ## Graph Compilation
 
 - StreamGraphGenerator 负责逻辑图；StreamingJobGraphGenerator 负责拓扑、并行度、Checkpoint 能力校验，并生成含 JobVertex、JobEdge 的实际物理 JobGraph，不能以包装 StreamGraph 冒充编译。
