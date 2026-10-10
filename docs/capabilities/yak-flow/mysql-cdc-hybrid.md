@@ -42,6 +42,6 @@ Flink CDC's `MySqlSnapshotSplitReadTask` and `SnapshotSplitReader` record an ind
 
 ## Test strategy
 
-Unit tests cover sparse keyset partitioning, half-open ranges, consumed-key seek after restart, binary state codecs, phase transitions and waiting for a completed handoff checkpoint. A separate **manual** real-MySQL test should exercise writes during Snapshot and restart. Basic PR CI remains four Quality Check jobs; this PR does not install another automatic multi-database matrix.
+Unit tests cover sparse keyset partitioning, half-open ranges, consumed-key seek after restart, binary state codecs, phase transitions and waiting for a completed handoff checkpoint. A separate **manual** real-MySQL test (`MySqlHybridIT`) exercises UPDATE/DELETE/INSERT during Snapshot and asserts the Binlog remains gated until the covering Checkpoint completes, then converges to the correct final key/value state. It does not yet exercise a full durable Runtime process restart. Run `Actions → MySQL CDC Hybrid Acceptance → Run workflow` to start a disposable MySQL 8 ROW/FULL server. Basic PR CI remains four Quality Check jobs; no extra automatic database matrix is installed.
 
 Not supported here: product Task lifecycle, JDBC Sink orchestration, schema evolution, dynamic tables, historical backfill preceding the captured Low Watermark, unsupported source types or XA/Exactly-once.
