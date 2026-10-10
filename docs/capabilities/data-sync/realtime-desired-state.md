@@ -1,6 +1,8 @@
 # Realtime Desired State + Auto Recovery
 
-Status: Active
+Status: Historical runtime design; only persisted desiredState behavior is currently active
+
+**Current baseline:** The previous Business execution engine is removed. New YakFlow Runtime is not wired to product run/restore commands. The system keeps the persisted desired-state field and current Task/Instance cancel/unpublish semantics, but does not launch AUTO_RECOVERY executions on application restart. Historical recovery design below is not current executable behavior.
 
 Scope: REALTIME 运行意图、启动协调、CDC 状态 identity 与恢复边界。
 
@@ -33,7 +35,7 @@ Scope: REALTIME 运行意图、启动协调、CDC 状态 identity 与恢复边�
 
 活动集合见 [Execution Status](execution-retry-attempt.md#execution-status)。旧 LocalExecution 和根 Instance ID 不复活；新的根记录从 Attempt 1 开始，不跨进程续接旧 Attempt 序号。
 
-Boot 装配启动入口，DataSyncExecutionRecovery 清理旧进程状态，DataSyncService.restoreRealtimeDesiredState 执行业务恢复。每条恢复失败记录脱敏错误、保留 RUNNING 意图，并继续处理其他 Task；不无限创建新根记录。
+历史设计曾要求 Boot 调用业务恢复入口。当前实现未接入新的 Runtime，不触发 AUTO_RECOVERY。启动仅按照现有 HistoryRecovery/Quartz 代码处理对应历史记录和已启用的 Cron 定义，不能把历史设计当作运行中的恢复功能。
 
 这只发生在启动协调阶段，不提供常驻 watchdog。desired=RUNNING 且无活动执行应作为待处理差异展示，不当成“正常运行”或“用户已停止”。
 
@@ -73,6 +75,6 @@ PENDING / RUNNING 仍表示旧进程持有的 Runtime 已丢失，因此启动�
 
 ## Code and Verification
 
-入口：[DataSyncServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/DataSyncServiceImpl.java)。验证：[DataSyncRealtimeDesiredStateContractTest](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncRealtimeDesiredStateContractTest.java)、[DataSyncAutomationAcceptanceIT](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncAutomationAcceptanceIT.java) 和 [Automation E2E](../../e2e/data-sync/automation/README.md)。
+入口：[DataSyncTaskServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/DataSyncTaskServiceImpl.java) / [DataSyncInstanceServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/DataSyncInstanceServiceImpl.java)。验证：[DataSyncRealtimeDesiredStateContractTest](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncRealtimeDesiredStateContractTest.java)、[DataSyncAutomationAcceptanceIT](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncAutomationAcceptanceIT.java) 和 [Automation E2E](../../e2e/data-sync/automation/README.md)。
 
 状态 identity 测试不证明真实 Binlog 续传；还需 MySqlCdcIntegrationIT 的真实连接器验证和产品重启 E2E。执行结果放对应 CI / 版本证据，不写入本契约。

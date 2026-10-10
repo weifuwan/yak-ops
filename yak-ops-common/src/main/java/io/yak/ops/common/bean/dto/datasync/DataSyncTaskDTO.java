@@ -66,8 +66,8 @@ public class DataSyncTaskDTO {
     private String targetTable;
 
     /**
-     * OFFLINE Task 的有序表级定义。null 保持 v1.2 单表兼容；显式传入时必须 1-50 条，
-     * Source / Target Datasource 仍由 Task 共享。
+     * 历史多表请求字段，当前单表业务不接受显式 tableRoutes。
+     * 保留字段以便业务层明确拒绝旧客户端请求，防止被静默忽略。
      */
     @Valid
     @Size(min = 1, max = 50, message = "表级路由数量必须在 1 到 50 之间")

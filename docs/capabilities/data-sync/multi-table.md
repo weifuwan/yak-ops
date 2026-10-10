@@ -1,9 +1,9 @@
 # Data Sync Multi-Table Route Contract
 
-**Current implementation note:** Product field Mapping and automatic target DDL were removed in PR #1555. Current Routes identify only existing physical source/target tables; historical design details below are not executable specifications. Task execution integration with YakFlow Runtime is still pending.
+**当前实现说明（2026-10-10）：以下为历史多表方案，不再代表当前产品实现。** 本轮业务重构已移除 Multi-Table Editor 和 DataSyncTableRouteDefinitionService；新建/编辑任务仅支持一张来源表到一张目标表，以 Task Source/Target 字段为唯一可编辑定义。新的 `tableRoutes[]` 请求会被明确拒绝，已有多 Route Task 不允许编辑、重新发布或运行。旧 Route 数据、Table Execution 与 Execution Snapshot 继续保留作历史查询。YakFlow Runtime 的多表 E2E 与当前业务层支持多表是两个独立命题，不能混淆。
 
 
-Status: Active — v1.3 PR4 Multi-Table Editor + Schema Preview
+Status: Historical — Current business contract is single-table; archived design below
 
 Scope:
 
@@ -19,7 +19,7 @@ Depends On:
 - [Task Publication Lifecycle](./task-lifecycle.md)
 - [Schema / Logical Table](./schema-logical-table.md)
 
-## 1. Goal
+## 1. Historical Goal
 
 v1.3 不再把 Source / Target Table identity 长期绑定在 Task 根记录上。
 

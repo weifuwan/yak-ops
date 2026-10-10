@@ -56,7 +56,7 @@ public class DataSyncTaskVO {
     private String targetTable;
 
     /**
-     * 任务详情 / 写入响应返回的稳定表级 Route；v1.3 PR1 仍只有一个兼容 Route，分页列表不返回。
+     * 历史 Route 响应字段。当前单表任务不再生成 Route；旧 Execution 快照独立保留。
      */
     private List<DataSyncTableRouteVO> tableRoutes;
 
