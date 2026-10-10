@@ -269,7 +269,8 @@ public class SyncDefinitionServiceImpl implements SyncDefinitionService {
         return JSONUtils.readTree(left).equals(JSONUtils.readTree(right));
     }
 
-    private void applyDefinition(SyncDefinitionEntity entity, DataSyncTaskDTO dto, DataSyncTableRouteDTO resolvedScope) {
+    private void applyDefinition(
+            SyncDefinitionEntity entity, DataSyncTaskDTO dto, DataSyncTableRouteDTO resolvedScope) {
         entity.setSourceDataSourceId(dto.getSourceDataSourceId().trim());
         entity.setSourceDatabase(resolvedScope.getSourceDatabase());
         entity.setSourceSchema(resolvedScope.getSourceSchema());
