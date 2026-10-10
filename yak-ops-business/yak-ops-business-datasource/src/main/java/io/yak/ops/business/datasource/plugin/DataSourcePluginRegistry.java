@@ -17,14 +17,14 @@ import io.yak.ops.plugin.datasource.api.plugin.DataSourcePlugin;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourcePluginDescriptor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
-import java.sql.Connection;
-import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -191,8 +191,7 @@ public class DataSourcePluginRegistry {
         })) {
             return action.apply(catalog);
         } catch (SQLException | RuntimeException exception) {
-            throw new DataSourceException(
-                    DataSourceErrorCode.CATALOG_QUERY_FAILED, "读取数据源 Catalog 元数据失败", exception);
+            throw new DataSourceException(DataSourceErrorCode.CATALOG_QUERY_FAILED, "读取数据源 Catalog 元数据失败", exception);
         }
     }
 
