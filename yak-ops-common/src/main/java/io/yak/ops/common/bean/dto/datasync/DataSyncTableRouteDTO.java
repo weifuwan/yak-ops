@@ -1,6 +1,5 @@
 package io.yak.ops.common.bean.dto.datasync;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -45,10 +44,4 @@ public class DataSyncTableRouteDTO {
     @Size(max = 128, message = "目标表名称不能超过 128 个字符")
     private String targetTable;
 
-    /** 目标表不存在时是否允许受控自动建表。 */
-    private Boolean autoCreateTable = Boolean.FALSE;
-
-    /** 此 Route 独立的字段映射；不填写时使用默认同名映射。 */
-    @Valid
-    private DataSyncMappingDTO mapping;
 }
