@@ -13,7 +13,7 @@ import io.yak.ops.core.data.TableRecord;
 public final class MySqlCdcRecordEmitter implements RecordEmitter<BinlogEvent, TableRecord, MySqlCdcSplitState> {
 
     @Override
-    public void emitRecord(BinlogEvent event, ReaderOutput<TableRecord> output, MySqlCdcSplitState state) {
+    public void emitRecord(BinlogEvent event, ReaderOutput<TableRecord> output, MySqlCdcSplitState state) throws Exception {
         for (TableRecord record : event.records()) {
             output.collect(record);
         }

@@ -54,7 +54,7 @@ public final class MySqlDebeziumRecordConverter {
         }
         BinlogOffset progress = new BinlogOffset(asMap(partition), asMap(offset));
         Object value = source.value();
-        if (value == null || source.topic().startsWith("__debezium-heartbeat")) {
+        if (value == null || source.topic() != null && source.topic().startsWith("__debezium-heartbeat")) {
             return new BinlogEvent(List.of(), progress);
         }
         if (!(value instanceof Struct envelope)) {

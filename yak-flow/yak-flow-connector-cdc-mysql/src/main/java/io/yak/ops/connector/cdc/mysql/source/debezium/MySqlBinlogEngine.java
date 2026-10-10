@@ -11,8 +11,6 @@ import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.SQLException;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;

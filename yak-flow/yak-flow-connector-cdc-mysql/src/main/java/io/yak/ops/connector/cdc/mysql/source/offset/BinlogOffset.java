@@ -111,10 +111,10 @@ public record BinlogOffset(Map<String, Object> partition, Map<String, Object> po
                         case 8 -> in.readFloat();
                         default -> throw new IOException("Unsupported MySQL offset field encoding");
                     };
-            if (result.putIfAbsent(key, value) != null || result.containsKey(key) && value == null && index > 0
-                    && result.size() != index + 1) {
+            if (result.containsKey(key)) {
                 throw new IOException("Duplicate MySQL offset field");
             }
+            result.put(key, value);
         }
         return result;
     }
