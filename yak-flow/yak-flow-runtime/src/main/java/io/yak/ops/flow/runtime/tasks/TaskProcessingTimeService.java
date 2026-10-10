@@ -12,11 +12,12 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
- * Task-owned processing-time service that dispatches callbacks onto the task mailbox.
+ * Schedules processing-time callbacks without executing Connector code off the task mailbox.
  *
- * <p>The lazily created scheduler only measures time; it never calls a Writer or modifies
- * checkpoint state. A failed callback fails the owning task, and cancellation or task shutdown
- * prevents late timers from mutating a closed writer.
+ * <p>A lazily created timer thread only measures time and submits mailbox messages.
+ * Callback failure fails the owning task, while cancellation and task shutdown prevent
+ * stale callbacks from accessing closed Source/Sink resources. The service does not own
+ * Writer flush decisions or mutate checkpoint state.
  */
 public final class TaskProcessingTimeService implements ProcessingTimeService, AutoCloseable {
 
@@ -38,6 +39,17 @@ public final class TaskProcessingTimeService implements ProcessingTimeService, A
         return System.currentTimeMillis();
     }
 
+    /**
+     * Schedules a callback for mailbox execution at or after the requested wall-clock time.
+     *
+     * <p>The scheduling thread never invokes the callback directly. A cancelled timer
+     * prevents an unstarted callback, and failed mailbox callbacks propagate to failTask.
+     *
+     * @param timestampMillis wall-clock trigger time in Unix epoch milliseconds
+     * @param callback work to run on the owning task mailbox
+     * @return a handle for canceling a callback before it runs
+     * @throws IllegalStateException if the task is stopping or the service is closed
+     */
     @Override
     public TimerHandle registerTimer(long timestampMillis, Runnable callback) {
         Objects.requireNonNull(callback, "callback");
