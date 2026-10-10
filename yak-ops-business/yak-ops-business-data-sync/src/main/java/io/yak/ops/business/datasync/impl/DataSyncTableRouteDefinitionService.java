@@ -3,7 +3,6 @@ package io.yak.ops.business.datasync.impl;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTableRouteDTO;
-import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncTableRouteEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
@@ -126,8 +125,8 @@ public class DataSyncTableRouteDefinitionService {
         target.setTargetDatabase(source.getTargetDatabase());
         target.setTargetSchema(source.getTargetSchema());
         target.setTargetTable(source.getTargetTable());
-        target.setAutoCreateTable(Boolean.TRUE.equals(source.getAutoCreateTable()));
-        target.setMappingConfig(mappingJson(source));
+        target.setAutoCreateTable(false);
+        target.setMappingConfig(null);
         target.setSortOrder(sortOrder);
     }
 
@@ -144,21 +143,12 @@ public class DataSyncTableRouteDefinitionService {
                     || !Objects.equals(route.getTargetDatabase(), dto.getTargetDatabase())
                     || !Objects.equals(route.getTargetSchema(), dto.getTargetSchema())
                     || !Objects.equals(route.getTargetTable(), dto.getTargetTable())
-                    || Boolean.TRUE.equals(route.getAutoCreateTable()) != Boolean.TRUE.equals(dto.getAutoCreateTable())
-                    || !sameMapping(route.getMappingConfig(), mappingJson(dto))) {
+                    || Boolean.TRUE.equals(route.getAutoCreateTable())
+                    || StringUtils.isNotBlank(route.getMappingConfig())) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean sameMapping(String left, String right) {
-        if (Objects.equals(left, right)) return true;
-        if (StringUtils.isBlank(left) || StringUtils.isBlank(right)) return false;
-        return Objects.equals(JSONUtils.readTree(left), JSONUtils.readTree(right));
-    }
-
-    private String mappingJson(DataSyncTableRouteDTO dto) {
-        return dto.getMapping() == null ? null : JSONUtils.toJson(dto.getMapping());
-    }
 }
