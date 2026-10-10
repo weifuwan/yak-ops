@@ -22,8 +22,7 @@ public final class TableBufferedStatementExecutor<T> implements JdbcBatchStateme
     private final UnaryOperator<T> snapshot;
     private final List<T> pending = new ArrayList<>();
 
-    public TableBufferedStatementExecutor(
-            JdbcBatchStatementExecutor<T> statementExecutor, UnaryOperator<T> snapshot) {
+    public TableBufferedStatementExecutor(JdbcBatchStatementExecutor<T> statementExecutor, UnaryOperator<T> snapshot) {
         this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
         this.snapshot = Objects.requireNonNull(snapshot, "snapshot");
     }

@@ -149,8 +149,7 @@ public record JdbcTableWritePlan(
                 .toList();
     }
 
-    private static List<Integer> positions(
-            TableSchema target, TableSchema source, Map<String, String> mappings) {
+    private static List<Integer> positions(TableSchema target, TableSchema source, Map<String, String> mappings) {
         Objects.requireNonNull(target, "target");
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(mappings, "mappings");

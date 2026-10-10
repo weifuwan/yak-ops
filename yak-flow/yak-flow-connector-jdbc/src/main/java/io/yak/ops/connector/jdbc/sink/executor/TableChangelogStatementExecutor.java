@@ -3,7 +3,6 @@ package io.yak.ops.connector.jdbc.sink.executor;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.sink.JdbcTableWritePlan;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
-import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
 import java.sql.Connection;
@@ -82,10 +81,11 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
 
     @Override
     public void addToBatch(TableRecord record) throws SQLException {
-        TableSimpleStatementExecutor next = switch (record.rowKind()) {
-            case INSERT, UPDATE_AFTER -> writes.get(record.tableId());
-            case DELETE, UPDATE_BEFORE -> deletes.get(record.tableId());
-        };
+        TableSimpleStatementExecutor next =
+                switch (record.rowKind()) {
+                    case INSERT, UPDATE_AFTER -> writes.get(record.tableId());
+                    case DELETE, UPDATE_BEFORE -> deletes.get(record.tableId());
+                };
         if (next == null) {
             throw new IllegalStateException("JDBC statement is unavailable for the record kind");
         }
