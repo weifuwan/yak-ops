@@ -59,8 +59,6 @@ export interface DataSyncTableRoute {
   targetDatabase?: string;
   targetSchema?: string;
   targetTable: string;
-  autoCreateTable?: boolean;
-  mapping?: DataSyncMappingConfig;
 }
 
 export interface DataSyncTaskRecord {
@@ -78,8 +76,6 @@ export interface DataSyncTaskRecord {
   targetDatabase?: string;
   targetSchema?: string;
   targetTable: string;
-  autoCreateTable?: boolean;
-  mapping?: DataSyncMappingConfig;
   tableRoutes?: DataSyncTableRoute[];
   runtimeConfig?: DataSyncRuntimeConfig;
   offlineRuntimePlan?: DataSyncOfflineRuntimePlan;
@@ -159,8 +155,6 @@ interface DataSyncTaskSaveBase {
   targetDatabase?: string;
   targetSchema?: string;
   targetTable: string;
-  autoCreateTable?: boolean;
-  mapping?: DataSyncMappingConfig;
   tableRoutes?: DataSyncTableRoute[];
   retryPolicy?: DataSyncRetryPolicy;
   remark?: string;
@@ -179,39 +173,6 @@ export interface RealtimeDataSyncTaskSavePayload extends DataSyncTaskSaveBase {
 export type DataSyncTaskSavePayload =
   | OfflineDataSyncTaskSavePayload
   | RealtimeDataSyncTaskSavePayload;
-
-export interface DataSyncMappingPreviewPayload {
-  sourceDataSourceId: string;
-  sourceDatabase?: string;
-  sourceSchema?: string;
-  sourceTable: string;
-  targetDataSourceId: string;
-  targetDatabase?: string;
-  targetSchema?: string;
-  targetTable: string;
-  autoCreateTable?: boolean;
-  mapping?: DataSyncMappingConfig;
-}
-
-export interface DataSyncFieldMapping {
-  sourceName: string;
-  sourceType?: string;
-  targetName?: string;
-  targetType?: string;
-  compatible: boolean;
-  message?: string;
-}
-
-export interface DataSyncMappingPreview {
-  compatible: boolean;
-  targetTableExists: boolean;
-  autoCreateTable: boolean;
-  createTableSql?: string;
-  ddlStatements?: string[];
-  warnings: string[];
-  unsupportedReasons: string[];
-  mappings: DataSyncFieldMapping[];
-}
 
 export type DataSyncInstanceStatus =
   | "PENDING"
