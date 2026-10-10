@@ -648,14 +648,14 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     (realtime
       ? Boolean(
           form.sourceDataSourceId &&
-            form.sourceTable &&
-            form.targetDataSourceId &&
-            selectedTableKey(
-              targetCatalog.tables,
-              form.targetDatabase,
-              form.targetSchema,
-              form.targetTable,
-            ),
+          form.sourceTable &&
+          form.targetDataSourceId &&
+          selectedTableKey(
+            targetCatalog.tables,
+            form.targetDatabase,
+            form.targetSchema,
+            form.targetTable,
+          ),
         )
       : routesReady && tableRoutes.length > 0) &&
     !sourceCatalog.loading &&
@@ -938,9 +938,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                     }))
                   }
                 />
-
               </CollapseSection>
-
             </>
           ) : (
             <MultiTableRouteEditor
