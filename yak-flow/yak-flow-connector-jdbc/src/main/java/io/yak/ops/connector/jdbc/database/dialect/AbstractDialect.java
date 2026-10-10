@@ -22,6 +22,11 @@ import java.util.stream.Collectors;
 public abstract class AbstractDialect implements JdbcDialect {
 
     @Override
+    public JdbcDialectConverter createRowConverter(TableSchema schema) {
+        return new StandardJdbcDialectConverter(schema);
+    }
+
+    @Override
     public JdbcDialectConverter createRowConverter(ResultSetMetaData metadata) throws SQLException {
         return new StandardJdbcDialectConverter(metadata);
     }
