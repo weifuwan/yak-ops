@@ -45,6 +45,7 @@
         <module>yak-flow/yak-flow-connector-cdc-mysql</module>
         <module>yak-ops-business</module>
         <module>yak-ops-plugins/yak-ops-plugin-datasource</module>
+        <module>yak-ops-plugins/yak-ops-plugin-task</module>
         <module>yak-ops-boot</module>
         <module>yak-ops-ui</module>
         <module>yak-ops-dist</module>
