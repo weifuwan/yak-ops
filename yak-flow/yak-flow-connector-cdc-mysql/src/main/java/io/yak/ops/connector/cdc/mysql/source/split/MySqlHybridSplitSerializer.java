@@ -35,7 +35,10 @@ public final class MySqlHybridSplitSerializer implements SimpleVersionedSerializ
                 out.writeByte(1);
                 out.writeUTF(snapshot.splitId());
                 out.writeUTF(snapshot.fingerprint());
-                out.writeUTF(snapshot.tableId().catalog() == null ? "" : snapshot.tableId().catalog());
+                out.writeUTF(
+                        snapshot.tableId().catalog() == null
+                                ? ""
+                                : snapshot.tableId().catalog());
                 out.writeUTF(snapshot.tableId().table());
                 writeLong(out, snapshot.lowerInclusive());
                 writeLong(out, snapshot.upperExclusive());
@@ -69,13 +72,14 @@ public final class MySqlHybridSplitSerializer implements SimpleVersionedSerializ
         try (var in = new DataInputStream(new ByteArrayInputStream(serialized))) {
             MySqlHybridSplit split =
                     switch (in.readUnsignedByte()) {
-                        case 1 -> new MySqlSnapshotSplit(
-                                in.readUTF(),
-                                in.readUTF(),
-                                new TableId(in.readUTF(), null, in.readUTF()),
-                                readLong(in),
-                                readLong(in),
-                                readLong(in));
+                        case 1 ->
+                            new MySqlSnapshotSplit(
+                                    in.readUTF(),
+                                    in.readUTF(),
+                                    new TableId(in.readUTF(), null, in.readUTF()),
+                                    readLong(in),
+                                    readLong(in),
+                                    readLong(in));
                         case 2 -> {
                             int phase = in.readUnsignedByte();
                             if (phase >= MySqlHybridBinlogSplit.Phase.values().length) {

@@ -76,7 +76,8 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
                 }
                 bootstrap = false;
                 return new RecordsBySplits<>(
-                        Map.of(MySqlHybridBinlogSplit.ID,
+                        Map.of(
+                                MySqlHybridBinlogSplit.ID,
                                 List.of(new MySqlHybridFetchedRecord(List.of(), null, first.offset(), true))),
                         Set.of());
             }
@@ -96,9 +97,9 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
             BinlogEvent event = binlog.poll();
             if (event != null) {
                 return new RecordsBySplits<>(
-                        Map.of(MySqlHybridBinlogSplit.ID,
-                                List.of(new MySqlHybridFetchedRecord(
-                                        event.records(), null, event.offset(), false))),
+                        Map.of(
+                                MySqlHybridBinlogSplit.ID,
+                                List.of(new MySqlHybridFetchedRecord(event.records(), null, event.offset(), false))),
                         Set.of());
             }
         } else {

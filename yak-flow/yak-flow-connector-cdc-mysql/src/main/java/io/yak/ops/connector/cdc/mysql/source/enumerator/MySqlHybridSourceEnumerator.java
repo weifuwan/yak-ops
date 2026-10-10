@@ -33,7 +33,8 @@ import java.util.Set;
  * keeping the coordinator event loop unblocked. No Binlog data reaches the Sink until
  * every Snapshot split has been emitted and a covering checkpoint has completed.
  */
-public final class MySqlHybridSourceEnumerator implements SplitEnumerator<MySqlHybridSplit, MySqlHybridEnumeratorState> {
+public final class MySqlHybridSourceEnumerator
+        implements SplitEnumerator<MySqlHybridSplit, MySqlHybridEnumeratorState> {
 
     private final SplitEnumeratorContext<MySqlHybridSplit> context;
     private final MySqlCdcSourceConfig config;
@@ -59,8 +60,7 @@ public final class MySqlHybridSourceEnumerator implements SplitEnumerator<MySqlH
         this.fingerprint = Objects.requireNonNull(fingerprint, "fingerprint");
         splitter = new MySqlChunkSplitter(config, chunkSize);
         assigner = new MySqlHybridSplitAssigner(fingerprint, restored);
-        restoredHandoff = restored != null
-                && restored.phase() == MySqlHybridEnumeratorState.Phase.HANDOFF;
+        restoredHandoff = restored != null && restored.phase() == MySqlHybridEnumeratorState.Phase.HANDOFF;
         if (context.currentParallelism() < 1 || context.currentParallelism() > 16) {
             throw new IllegalArgumentException("MySQL hybrid Source supports 1 through 16 snapshot readers");
         }
@@ -193,18 +193,16 @@ public final class MySqlHybridSourceEnumerator implements SplitEnumerator<MySqlH
             return;
         }
         readingHigh = true;
-        context.callAsync(
-                this::readHighWatermark,
-                (high, error) -> {
-                    readingHigh = false;
-                    if (closed) {
-                        return;
-                    }
-                    if (error != null) {
-                        throw new IllegalStateException("MySQL hybrid high watermark capture failed", error);
-                    }
-                    assigner.captureHigh(high);
-                });
+        context.callAsync(this::readHighWatermark, (high, error) -> {
+            readingHigh = false;
+            if (closed) {
+                return;
+            }
+            if (error != null) {
+                throw new IllegalStateException("MySQL hybrid high watermark capture failed", error);
+            }
+            assigner.captureHigh(high);
+        });
     }
 
     /** Fences snapshot output before the Binlog replays from its saved low watermark. */
@@ -217,12 +215,12 @@ public final class MySqlHybridSourceEnumerator implements SplitEnumerator<MySqlH
             } catch (SQLException unsupported) {
                 rows = query.executeQuery("SHOW MASTER STATUS");
             }
-            try (rows) {
-                if (!rows.next()) {
+            try (ResultSet status = rows) {
+                if (!status.next()) {
                     throw new SQLException("MySQL binary logging is disabled");
                 }
-                String file = rows.getString(1);
-                long position = rows.getLong(2);
+                String file = status.getString(1);
+                long position = status.getLong(2);
                 if (file == null || file.isBlank() || position < 1) {
                     throw new SQLException("Invalid MySQL Binlog high watermark");
                 }

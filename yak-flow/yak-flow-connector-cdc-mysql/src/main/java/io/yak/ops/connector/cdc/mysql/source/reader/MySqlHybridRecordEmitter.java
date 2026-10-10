@@ -26,9 +26,7 @@ public final class MySqlHybridRecordEmitter
 
     @Override
     public void emitRecord(
-            MySqlHybridFetchedRecord event,
-            ReaderOutput<TableRecord> output,
-            MySqlHybridSplitState state)
+            MySqlHybridFetchedRecord event, ReaderOutput<TableRecord> output, MySqlHybridSplitState state)
             throws Exception {
         for (TableRecord row : event.rows()) {
             output.collect(row);

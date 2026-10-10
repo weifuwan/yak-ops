@@ -27,14 +27,14 @@ import java.util.Objects;
  * <p>This conservative global replay approach is at-least-once and is distinct from
  * Flink CDC's per-chunk Low/High watermark snapshot normalization.
  */
-public final class MySqlHybridCdcSource
-        implements Source<TableRecord, MySqlHybridSplit, MySqlHybridEnumeratorState> {
+public final class MySqlHybridCdcSource implements Source<TableRecord, MySqlHybridSplit, MySqlHybridEnumeratorState> {
 
     private final MySqlCdcSourceConfig config;
     private final String fingerprint;
     private final int chunkSize;
     private final MySqlHybridSplitSerializer splitSerializer = new MySqlHybridSplitSerializer();
-    private final MySqlHybridEnumeratorStateSerializer enumeratorSerializer = new MySqlHybridEnumeratorStateSerializer();
+    private final MySqlHybridEnumeratorStateSerializer enumeratorSerializer =
+            new MySqlHybridEnumeratorStateSerializer();
 
     MySqlHybridCdcSource(MySqlCdcSourceConfig config, String sourceFingerprint, int chunkSize) {
         this.config = Objects.requireNonNull(config, "config");
@@ -67,7 +67,9 @@ public final class MySqlHybridCdcSource
     @Override
     public SourceReader<TableRecord, MySqlHybridSplit> createReader(SourceReaderContext context) {
         Objects.requireNonNull(context, "context");
-        if (context.getConfiguration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL).isZero()) {
+        if (context.getConfiguration()
+                .get(CheckpointingOptions.CHECKPOINTING_INTERVAL)
+                .isZero()) {
             throw new IllegalArgumentException("MySQL Hybrid Snapshot requires periodic durable checkpoints");
         }
         return new MySqlHybridSourceReader(config, context);

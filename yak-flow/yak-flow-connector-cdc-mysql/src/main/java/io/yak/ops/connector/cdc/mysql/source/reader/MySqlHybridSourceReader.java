@@ -23,8 +23,9 @@ import java.util.Map;
  * the Enumerator confirms receipt of their completion. The Binlog gate opens only through
  * a coordinator event after the snapshot handoff checkpoint completes.
  */
-public final class MySqlHybridSourceReader extends SingleThreadMultiplexSourceReaderBase<
-        MySqlHybridFetchedRecord, TableRecord, MySqlHybridSplit, MySqlHybridSplitState> {
+public final class MySqlHybridSourceReader
+        extends SingleThreadMultiplexSourceReaderBase<
+                MySqlHybridFetchedRecord, TableRecord, MySqlHybridSplit, MySqlHybridSplitState> {
 
     private final MySqlHybridSplitReader splits;
     private final Map<String, MySqlSnapshotSplit> finishedUnacked = new LinkedHashMap<>();

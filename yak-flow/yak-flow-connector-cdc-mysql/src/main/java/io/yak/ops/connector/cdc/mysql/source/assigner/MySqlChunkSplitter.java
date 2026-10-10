@@ -39,10 +39,7 @@ public final class MySqlChunkSplitter {
     }
 
     public MySqlChunkSplitter(
-            JdbcConnectionProvider connections,
-            JdbcDialect dialect,
-            Map<TableId, TableSchema> schemas,
-            int chunkSize) {
+            JdbcConnectionProvider connections, JdbcDialect dialect, Map<TableId, TableSchema> schemas, int chunkSize) {
         this.connections = Objects.requireNonNull(connections, "connections");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
         this.schemas = Map.copyOf(Objects.requireNonNull(schemas, "schemas"));
@@ -80,8 +77,8 @@ public final class MySqlChunkSplitter {
                 if (ranges.size() >= MAX_CHUNKS_PER_TABLE) {
                     throw new IllegalStateException("MySQL snapshot exceeds the maximum chunk count");
                 }
-                String query = base + (lower == null ? "" : " WHERE " + quoted + " >= ?")
-                        + " ORDER BY " + quoted + " LIMIT 1 OFFSET ?";
+                String query = base + (lower == null ? "" : " WHERE " + quoted + " >= ?") + " ORDER BY " + quoted
+                        + " LIMIT 1 OFFSET ?";
                 Long upper;
                 try (PreparedStatement statement = connection.prepareStatement(query)) {
                     int parameter = 1;
@@ -100,12 +97,7 @@ public final class MySqlChunkSplitter {
                     throw new SQLException("MySQL snapshot chunk boundary is not increasing");
                 }
                 ranges.add(new MySqlSnapshotSplit(
-                        "mysql-snapshot-" + tableIndex + "-" + ranges.size(),
-                        fingerprint,
-                        table,
-                        lower,
-                        upper,
-                        null));
+                        "mysql-snapshot-" + tableIndex + "-" + ranges.size(), fingerprint, table, lower, upper, null));
                 lower = upper;
             } while (lower != null);
         }
