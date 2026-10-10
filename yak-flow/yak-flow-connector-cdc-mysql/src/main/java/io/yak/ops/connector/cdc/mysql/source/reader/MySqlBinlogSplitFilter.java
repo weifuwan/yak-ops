@@ -7,6 +7,7 @@ import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
 import io.yak.ops.core.types.TableSchema;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +69,22 @@ public final class MySqlBinlogSplitFilter {
             }
             table.add(chunk);
         }
-        completed.replaceAll((table, infos) -> List.copyOf(infos));
+        completed.replaceAll((table, infos) -> {
+            if (infos.isEmpty()) {
+                throw new IllegalArgumentException("Missing completed snapshot chunks for " + table);
+            }
+            infos.sort(Comparator.comparing(
+                    FinishedSnapshotSplitInfo::lowerInclusive, Comparator.nullsFirst(Comparator.naturalOrder())));
+            if (infos.getFirst().lowerInclusive() != null || infos.getLast().upperExclusive() != null) {
+                throw new IllegalArgumentException("Finished snapshot ranges do not cover the entire keyspace");
+            }
+            for (int index = 1; index < infos.size(); index++) {
+                if (!Objects.equals(infos.get(index - 1).upperExclusive(), infos.get(index).lowerInclusive())) {
+                    throw new IllegalArgumentException("Finished snapshot ranges have a gap or overlap");
+                }
+            }
+            return List.copyOf(infos);
+        });
     }
 
     /**
