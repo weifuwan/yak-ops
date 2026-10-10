@@ -69,6 +69,20 @@ class MySqlBinlogSplitFilterTest {
                 offset(350))));
     }
 
+    @Test
+    void refusesGapsAndOverlapsInCheckpointedSplitMetadata() {
+        assertThrows(IllegalArgumentException.class, () -> new MySqlBinlogSplitFilter(
+                Map.of(TABLE, SCHEMA),
+                List.of(
+                        new FinishedSnapshotSplitInfo(TABLE, "first", null, 100L, offset(200)),
+                        new FinishedSnapshotSplitInfo(TABLE, "gap", 110L, null, offset(300)))));
+        assertThrows(IllegalArgumentException.class, () -> new MySqlBinlogSplitFilter(
+                Map.of(TABLE, SCHEMA),
+                List.of(
+                        new FinishedSnapshotSplitInfo(TABLE, "first", null, 100L, offset(200)),
+                        new FinishedSnapshotSplitInfo(TABLE, "overlap", 90L, null, offset(300)))));
+    }
+
     private static MySqlBinlogSplitFilter filter() {
         return new MySqlBinlogSplitFilter(
                 Map.of(TABLE, SCHEMA),
