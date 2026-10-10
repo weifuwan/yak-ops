@@ -32,7 +32,7 @@ All source tables require a complete, frozen schema with exactly one non-null BI
 4. Forces a durable aligned checkpoint, cancels the Job, and starts a new ExecutionGraph with `RESTORE_LATEST=true` and the same stable UIDs.
 5. Applies additional UPDATE/DELETE/INSERT after restart and verifies both tables converge again.
 
-This test covers engine-level Snapshot-to-Binlog handoff, changelog writer integration and recovered progress. The separate `MySqlHybridIT` injects writes into **both tables after the global Low Watermark, before Snapshot planning**, and verifies the checkpoint-gated Binlog handoff and final field values. The MySQL target job in this manual workflow runs that deterministic connector harness once in addition to the Runtime IT; the other target jobs only run the Runtime IT.
+This test covers engine-level Snapshot-to-Binlog handoff, changelog writer integration and recovered progress. The separate `MySqlHybridIT` injects writes into **both tables after the global Low Watermark, before the Snapshot readers poll their splits**, and verifies the checkpoint-gated Binlog handoff and final field values. The MySQL target job in this manual workflow runs that deterministic connector harness once in addition to the Runtime IT; the other target jobs only run the Runtime IT.
 
 The JDBC Source → Sink multi-table snapshot acceptance and MySQL → MySQL two-container job are described in [MySQL Multi-Table Runtime Acceptance](mysql-multi-table-runtime-acceptance.md).
 
