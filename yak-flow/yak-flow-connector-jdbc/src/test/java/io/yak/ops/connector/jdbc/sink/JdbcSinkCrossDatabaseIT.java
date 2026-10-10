@@ -165,7 +165,7 @@ class JdbcSinkCrossDatabaseIT {
                 assertEquals(expectedOrders, rows(targetConnection, targetDialect, targetA, false));
                 assertEquals(expectedItems, rows(targetConnection, targetDialect, targetB, true));
 
-                // Replaying committed records after a completed checkpoint is at-least-once.
+                // Reapply committed records to verify writer-level UPSERT/DELETE idempotence.
                 try (JdbcWriter replay = sink.createWriter(context())) {
                     replay.write(record(sourceA, RowKind.INSERT, 101L, "renamed"), RECORD_CONTEXT);
                     replay.write(record(sourceB, RowKind.DELETE, 4L, null, "priority"), RECORD_CONTEXT);
