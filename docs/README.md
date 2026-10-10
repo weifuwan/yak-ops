@@ -15,6 +15,7 @@
 | 数据源资源与连接能力 | [Datasource](capabilities/datasource/README.md) |
 | Task 插件类型注册与配置校验 | [Task Plugin Contract](capabilities/task-plugin.md) |
 | 通用任务定义、版本与数据同步迁移 | [Task Definition Contract](capabilities/task-definition.md) |
+| Task Instance / Attempt / Schedule / Metrics / Log | [Task Instance Contract](capabilities/task-instance.md) |
 | 离线 / 实时同步 | [Data Sync 总览](capabilities/data-sync/README.md)；按任务选读 [发布生命周期](capabilities/data-sync/task-lifecycle.md)、[调度](capabilities/data-sync/scheduler.md)、[执行与重试](capabilities/data-sync/execution-retry-attempt.md)、[实时期望状态与恢复](capabilities/data-sync/realtime-desired-state.md) |
 | 执行引擎与连接器 | [YakFlow](capabilities/yak-flow/README.md)；[Core / Runtime 执行契约（提案）](capabilities/yak-flow/core-runtime-contract.md) |
 | 工作空间与成员 | [Workspace](capabilities/workspace/README.md) |

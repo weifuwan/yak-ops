@@ -10,7 +10,7 @@ Yak Ops 决定任务能否运行，Quartz 只决定何时到点。ScheduleEngine
 
 ## Schedule Definition
 
-同一 Workspace / OFFLINE Task 最多一个 Schedule，`yak_ops_data_sync_schedule` 是定义和 enabled 状态的持久化来源。Quartz 当前使用 RAMJobStore，Trigger 不是业务事实来源。
+同一 Workspace / OFFLINE Task 最多一个 Schedule，V8 起统一的 `yak_ops_schedule` 是定义和 enabled 状态的持久化来源，DATA_SYNC 使用 `target_type=TASK` 和原 Task ID。Quartz 当前使用 RAMJobStore，Trigger 不是业务事实来源。
 
 ScheduleEngine 接收 scheduleId、workspaceId、taskId、cronExpression 和显式 timeZone。JobData 仅存三个稳定 ID；不保存 Task JSON、连接信息、凭证、映射或 CDC state。
 
@@ -74,7 +74,7 @@ OFFLINE 编辑器保存 Schedule 定义；OFFLINE Task list 负责显式 Enable 
 
 ## Persistence
 
-Schema 位于 [v1.1.0 Release Migration](../../../yak-ops-dao/src/main/resources/db/migration/yak-ops/V2__v1_1_0.sql) 的 Offline Schedule section。它是现行持久化，不再是待实现目标。Draft / Release Migration 生命周期和冻结规则见 [Flyway Rules](../../../yak-ops-dao/FLYWAY_RULES.md)。
+表最初由 [v1.1.0 Release Migration](../../../yak-ops-dao/src/main/resources/db/migration/yak-ops/V2__v1_1_0.sql) 创建，当前通过 [V8 Draft Migration](../../../yak-ops-dao/src/main/resources/db/migration/yak-ops/V8__task_instance_schedule_alignment.sql) 原地迁移到 `yak_ops_schedule`，保留原 Schedule ID / Task ID 与 enabled 状态。`target_type=TASK` 过滤必须在 Data Sync Repository 和启动恢复中生效，不能把未来 WORKFLOW 目标错误恢复为 Data Sync Cron。Draft / Release Migration 生命周期和冻结规则见 [Flyway Rules](../../../yak-ops-dao/FLYWAY_RULES.md)。
 
 没有启用 Quartz JDBC JobStore 或集群。后续采用 JobStore 时仍不能把 QRTZ 表当业务数据库；生产环境不得通过 initialize-schema=always 自动重建，Schema 必须由版本迁移管理。
 

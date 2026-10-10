@@ -11,7 +11,7 @@ Status: Task and history management active; YakFlow product execution integratio
 | Task creation, publication and version semantics | [Task Lifecycle](task-lifecycle.md) |
 | Historical multi-table definitions (retired from current editing) | [Multi-Table](multi-table.md) |
 | Quartz scheduling and recovery | [Scheduler](scheduler.md) |
-| Historical instance, Attempt, metrics and events | [Execution Retry / Attempt](execution-retry-attempt.md) |
+| Historical instance, Attempt, metrics and events | [Execution Retry / Attempt](execution-retry-attempt.md) and [Shared Task Instance](../task-instance.md) |
 | Realtime desired state | [Realtime Desired State](realtime-desired-state.md) |
 | Core/Runtime/Connector | [YakFlow](../yak-flow/README.md) |
 
@@ -55,7 +55,7 @@ MySQL CDC Connector and its engine-level acceptance are independent of Product R
 
 ## Compatibility and Historical Data
 
-DATA_SYNC plugin fields for retired Mapping and Auto DDL remain in already-published database migrations and in the plugin extension for historical compatibility. They are cleared only by explicit task edit and must never silently be executed as same-name writes. Historical DefinitionSnapshot fields and published release documents remain readable without rewriting past facts.
+DATA_SYNC plugin fields for retired Mapping and Auto DDL remain in already-published database migrations and in the plugin extension for historical compatibility. They are cleared only by explicit task edit and must never silently be executed as same-name writes. Historical DefinitionSnapshot fields and published release documents remain readable without rewriting past facts. V8 migrates DATA_SYNC instance/attempt/event/schedule rows **in place** into the single shared Task storage; Data Sync Service and the frontend keep their existing routes and response shapes. The DATA_SYNC MetricsService and LogService remain specialized while generic Task read APIs expose shared history.
 
 The current version is at-least-once where Connector-specific tests prove it. Do not claim exactly-once or product end-to-end acceptance based only on individual Connector tests.
 

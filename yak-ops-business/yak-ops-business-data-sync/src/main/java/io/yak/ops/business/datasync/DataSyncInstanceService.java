@@ -2,7 +2,6 @@ package io.yak.ops.business.datasync;
 
 import io.yak.ops.common.bean.dto.datasync.DataSyncInstanceQueryDTO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncAttemptVO;
-import io.yak.ops.common.bean.vo.datasync.DataSyncExecutionEventVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncInstanceVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncSinkTraceVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncSourceTraceVO;
@@ -27,8 +26,6 @@ public interface DataSyncInstanceService {
     List<DataSyncAttemptVO> queryAttempts(String instanceId);
 
     List<DataSyncTableAttemptVO> queryTableAttempts(String instanceId, String tableExecutionId);
-
-    List<DataSyncExecutionEventVO> queryExecutionEvents(String instanceId);
 
     DataSyncTraceSummaryVO queryExecutionTraceSummary(String instanceId, Integer attemptNo);
 

@@ -116,6 +116,9 @@ public class DataSyncAttemptRepositoryImpl extends BaseRepositoryImpl<DataSyncAt
         return attemptMapper.update(
                 update,
                 Wrappers.<DataSyncAttemptEntity>lambdaUpdate()
+                        .inSql(
+                                DataSyncAttemptEntity::getExecutionId,
+                                "SELECT id FROM yak_ops_task_instance WHERE task_type = 'DATA_SYNC'")
                         .in(
                                 DataSyncAttemptEntity::getStatus,
                                 List.of(DataSyncAttemptStatus.PENDING, DataSyncAttemptStatus.RUNNING)));

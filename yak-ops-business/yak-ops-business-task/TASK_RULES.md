@@ -1,6 +1,6 @@
 # Task Business Rules
 
-Status: Active — Definition query and version history
+Status: Active — Definition plus shared Task history, Schedule and Metrics read models
 
 Scope: `yak-ops-business/yak-ops-business-task/**`
 
@@ -12,4 +12,8 @@ Depends On: [Business Rules](../BUSINESS_RULES.md), [Task Definition Contract](.
 
 A Task Definition version is immutable after creation. The DAO version repository supports only append and read; historical version IDs, snapshots and root Instance references survive DATA_SYNC task deletion.
 
-No Task business class invokes YakFlow JobClient, Quartz, MyBatis Mapper or another domain's concrete Service.
+Generic `instance.InstanceService`, `log.LogService`, `schedule.ScheduleService` and `metrics.MetricsService` are read-only and use the existing shared Task tables. No generic write API is exposed; DATA_SYNC still owns its historical lifecycle commands. Each Instance/Attempt/Event query validates the current Workspace and checks parent Instance visibility before showing children. Never include the raw definition snapshot or `log_uri` in HTTP responses.
+
+Generic Metrics use a bounded 1–31-day window and aggregate root Instance rows, not Attempt histories. DATA_SYNC-specific rows and trends remain in the DATA_SYNC metrics read model. The common Schedule query checks the Task Definition Workspace; WORKFLOW schedule execution is not active.
+
+No Task business class invokes YakFlow JobClient, Quartz, MyBatis Mapper or another domain's concrete Service. See [Task Instance Contract](../../docs/capabilities/task-instance.md).

@@ -4,7 +4,7 @@ Status: Active — plugin discovery/validation and canonical Task Definition per
 
 ## Goal and Ownership
 
-A Task is a platform-level definition that can eventually run independently or as a Workflow node. Task Plugin is the extension seam for the configuration and execution behavior of one task type. This contract currently implements only type discovery, parameter parsing and local validation; canonical TaskDefinition and its immutable version history are now implemented separately by Task Business/DAO; TaskInstance and Workflow persistence are not implemented by this contract.
+A Task is a platform-level definition that can eventually run independently or as a Workflow node. Task Plugin is the extension seam for the configuration and execution behavior of one task type. This contract currently implements only type discovery, parameter parsing and local validation; canonical TaskDefinition and its immutable version history are now implemented separately by Task Business/DAO; generic Task Instance/Attempt/Event/Schedule storage has since been introduced by Task DAO, while Workflow persistence is not implemented by this contract.
 
 - [Task Plugin API](../../yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-api/src/main/java/io/yak/ops/plugin/task/api/TaskPlugin.java): plugin-owned parsing
 - [Task Plugin Factory](../../yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-api/src/main/java/io/yak/ops/plugin/task/api/TaskPluginFactory.java): ServiceLoader registration
@@ -36,7 +36,7 @@ The current embedded YakFlow runtime is not wired into Data Sync product endpoin
 ## Planned, Not Implemented
 
 - General task-type CRUD dispatch (DATA_SYNC currently retains domain-specific schema-checked writes); see [Task Definition](task-definition.md)
-- General TaskInstance / Attempt / Log / Metrics / Schedule lifecycle
+- Generic Task Instance/Attempt/Schedule/Event read models are available ([Task Instance Contract](task-instance.md)); generic write/execute and secure log file reading are still pending
 - WorkflowDefinition, Workflow nodes/relations, WorkflowInstance or distributed Master/Worker scheduling
 - DATA_SYNC execution adapter and YakFlow Runtime integration
 

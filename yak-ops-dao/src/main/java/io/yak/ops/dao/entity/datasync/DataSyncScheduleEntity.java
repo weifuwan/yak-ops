@@ -1,13 +1,15 @@
 package io.yak.ops.dao.entity.datasync;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.yak.ops.common.enums.task.ScheduleTargetType;
 import io.yak.ops.dao.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 映射 yak_ops_data_sync_schedule 表，保存 Offline Task 的 Cron 调度定义。
+ * DATA_SYNC 离线任务在通用 Schedule 表中的兼容投影，调度类型固定为 TASK。
  *
  * @author weifuwan
  * @since 2026-09-29
@@ -15,13 +17,17 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@TableName("yak_ops_data_sync_schedule")
+@TableName("yak_ops_schedule")
 public class DataSyncScheduleEntity extends BaseEntity {
 
     /** 调度所属 Workspace ID。 */
     private String workspaceId;
 
-    /** 关联的离线同步任务 ID，同一 Workspace 内一个 Task 最多一个 Schedule。 */
+    /** 调度目标类型；数据同步只能操作 TASK，不能处理未来的 WORKFLOW 调度。 */
+    private ScheduleTargetType targetType = ScheduleTargetType.TASK;
+
+    /** Task 定义ID，映射通用调度的 target_id 列。 */
+    @TableField("target_id")
     private String taskId;
 
     /** Quartz Cron 表达式。 */

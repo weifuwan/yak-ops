@@ -11,7 +11,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 映射 yak_ops_data_sync_instance 表，承载一次数据同步 Execution 的稳定根身份与历史状态。
+ * DATA_SYNC 使用的通用 Task Instance 持久化投影；实例ID与既有执行历史保持不变。
  *
  * @author weifuwan
  * @since 2026-09-27
@@ -19,11 +19,14 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@TableName("yak_ops_data_sync_instance")
+@TableName("yak_ops_task_instance")
 public class DataSyncInstanceEntity extends BaseEntity {
 
     /** 实例所属 Workspace ID。 */
     private String workspaceId;
+
+    /** 持久化的插件类型；Data Sync 写入必须为 DATA_SYNC。 */
+    private String taskType = "DATA_SYNC";
 
     /** 来源任务 ID。 */
     private String taskId;
@@ -34,11 +37,23 @@ public class DataSyncInstanceEntity extends BaseEntity {
     /** 实例采用的任务定义版本。 */
     private Integer taskVersion;
 
+    /** 未来工作流实例ID；独立运行时为空。 */
+    private String workflowInstanceId;
+
+    /** 未来工作流节点ID；独立运行时为空。 */
+    private String workflowNodeId;
+
     /** 实例同步类型，独立固化以支持任务删除后的历史查询。 */
     private DataSyncType syncType;
 
     /** Execution 根触发方式；Retry Attempt 不改变该来源。 */
     private DataSyncTriggerType triggerType;
+
+    /** 调度定义 ID，手动运行时为空。 */
+    private String scheduleId;
+
+    /** Quartz 计划触发时间，手动运行时为空。 */
+    private LocalDateTime scheduledFireTime;
 
     /** 本次 Execution 允许的最大 Attempt 总数，包含首次执行。 */
     private Integer maxAttempts;
