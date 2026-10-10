@@ -34,7 +34,8 @@ public class ScheduleServiceImpl implements ScheduleService {
         definitionRepository
                 .queryById(workspaceId, taskId)
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
-        return scheduleRepository.queryByTarget(workspaceId, ScheduleTargetType.TASK, taskId)
+        return scheduleRepository
+                .queryByTarget(workspaceId, ScheduleTargetType.TASK, taskId)
                 .map(this::toVO)
                 .orElse(null);
     }
