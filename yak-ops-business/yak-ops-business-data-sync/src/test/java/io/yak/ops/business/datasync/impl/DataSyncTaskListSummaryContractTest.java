@@ -31,7 +31,7 @@ class DataSyncTaskListSummaryContractTest {
 
     @Test
     void shouldReturnUpdaterAndScheduleDefinitionWithOneBatchScheduleQuery() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         DataSyncTaskEntity task = task();
@@ -110,8 +110,6 @@ class DataSyncTaskListSummaryContractTest {
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {
-        Field field = DataSyncServiceImpl.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+        DataSyncTestServices.inject(target, fieldName, value);
     }
 }

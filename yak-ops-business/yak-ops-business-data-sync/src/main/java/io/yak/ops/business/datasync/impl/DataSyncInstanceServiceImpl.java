@@ -43,6 +43,7 @@ import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**

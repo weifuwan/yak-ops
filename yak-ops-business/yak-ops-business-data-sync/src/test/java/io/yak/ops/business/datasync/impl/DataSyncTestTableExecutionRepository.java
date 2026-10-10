@@ -2,7 +2,6 @@ package io.yak.ops.business.datasync.impl;
 
 import io.yak.ops.dao.entity.datasync.DataSyncTableExecutionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTableExecutionRepository;
-import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -11,17 +10,17 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 为直接构造 DataSyncServiceImpl 的 Contract Test 提供最小内存 Table Execution Repository。
+ * 为直接构造 DataSyncInstanceServiceImpl 的 Contract Test 提供最小内存 Table Execution Repository。
  */
 final class DataSyncTestTableExecutionRepository {
 
     private DataSyncTestTableExecutionRepository() {}
 
-    static DataSyncTableExecutionRepository inject(DataSyncServiceImpl service) throws Exception {
+    static DataSyncTableExecutionRepository inject(Object service) throws Exception {
         DataSyncTableExecutionRepository repository = create();
-        Field field = DataSyncServiceImpl.class.getDeclaredField("tableExecutionRepository");
-        field.setAccessible(true);
-        field.set(service, repository);
+        if (service instanceof DataSyncInstanceServiceImpl) {
+            DataSyncTestServices.inject(service, "tableExecutionRepository", repository);
+        }
         return repository;
     }
 

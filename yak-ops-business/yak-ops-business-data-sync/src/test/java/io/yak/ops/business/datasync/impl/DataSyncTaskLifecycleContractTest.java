@@ -41,7 +41,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldCreateTaskAsUnpublishedVersionOne() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
@@ -54,11 +54,8 @@ class DataSyncTaskLifecycleContractTest {
         assertEquals(DataSyncTaskStatus.UNPUBLISHED.name(), created.getStatus());
         assertEquals(1, created.getDefinitionVersion());
         assertEquals(DataSyncTaskStatus.UNPUBLISHED, captured.get().getStatus());
-        assertNotNull(created.getTableRoutes());
-        assertEquals(1, created.getTableRoutes().size());
-        assertNotNull(created.getTableRoutes().get(0).getId());
-        assertEquals("source_table", created.getTableRoutes().get(0).getSourceTable());
-        assertEquals("target_table", created.getTableRoutes().get(0).getTargetTable());
+        assertEquals("source_table", created.getSourceTable());
+        assertEquals("target_table", created.getTargetTable());
         assertEquals(500, created.getRuntimeConfig().getFetchSize());
         assertEquals(500, created.getRuntimeConfig().getReadBatchSize());
         assertEquals(500, created.getRuntimeConfig().getWriteBatchSize());
@@ -72,7 +69,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldTreatExplicitOfflineRuntimeConfigWithoutPolicyAsFixed() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
@@ -93,7 +90,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldCreateRealtimeTaskWithSystemRuntimeAndRetryDefaultsWhenOmitted() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
@@ -119,7 +116,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldRejectRunForUnpublishedTask() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task(DataSyncTaskStatus.UNPUBLISHED, 1), new AtomicReference<>()));
@@ -135,7 +132,7 @@ class DataSyncTaskLifecycleContractTest {
     void shouldPublishWithoutChangingDefinitionVersion() throws Exception {
         DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task, captured));
@@ -151,7 +148,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldRejectUnpublishWhileInstanceIsActive() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task(DataSyncTaskStatus.PUBLISHED, 2), new AtomicReference<>()));
@@ -168,7 +165,7 @@ class DataSyncTaskLifecycleContractTest {
     void shouldKeepVersionForMetadataOnlyUpdate() throws Exception {
         DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncServiceImpl service = editableService(task, captured);
+        DataSyncTaskServiceImpl service = editableService(task, captured);
         DataSyncTaskDTO dto = taskDto();
         dto.setName("renamed-task");
         dto.setRemark("metadata-only");
@@ -179,8 +176,8 @@ class DataSyncTaskLifecycleContractTest {
         assertEquals(3, updated.getDefinitionVersion());
         assertEquals("renamed-task", captured.get().getName());
         assertEquals("metadata-only", captured.get().getRemark());
-        assertEquals(1, updated.getTableRoutes().size());
-        assertEquals("task-1", updated.getTableRoutes().get(0).getId());
+        assertEquals("source_table", updated.getSourceTable());
+        assertEquals("target_table", updated.getTargetTable());
     }
 
     @Test
@@ -191,7 +188,7 @@ class DataSyncTaskLifecycleContractTest {
                         + "\"sourceParallelism\":4,\"timeoutSeconds\":45}");
         task.setRetryPolicy("{\"maxAttempts\":3,\"backoffSeconds\":90}");
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncServiceImpl service = editableService(task, captured);
+        DataSyncTaskServiceImpl service = editableService(task, captured);
 
         WorkspaceContext.bind("workspace-1");
         DataSyncTaskVO updated = service.updateTask("task-1", taskDto());
@@ -213,7 +210,7 @@ class DataSyncTaskLifecycleContractTest {
     void shouldIncrementVersionWhenExecutableDefinitionChanges() throws Exception {
         DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncServiceImpl service = editableService(task, captured);
+        DataSyncTaskServiceImpl service = editableService(task, captured);
         DataSyncTaskDTO dto = taskDto();
         DataSyncRuntimeConfigDTO runtimeConfig = new DataSyncRuntimeConfigDTO();
         runtimeConfig.setFetchSize(1000);
@@ -228,7 +225,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldTreatExplicitRetryPolicyWithoutModeAsFixed() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
@@ -254,7 +251,7 @@ class DataSyncTaskLifecycleContractTest {
         DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
         task.setRetryPolicy("{\"maxAttempts\":1,\"backoffSeconds\":60}");
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncServiceImpl service = editableService(task, captured);
+        DataSyncTaskServiceImpl service = editableService(task, captured);
         DataSyncTaskDTO dto = taskDto();
         DataSyncRetryPolicyDTO retryPolicy = new DataSyncRetryPolicyDTO();
         retryPolicy.setMaxAttempts(3);
@@ -272,7 +269,7 @@ class DataSyncTaskLifecycleContractTest {
         DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
         task.setAutoCreateTable(true);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncServiceImpl service = editableService(task, captured);
+        DataSyncTaskServiceImpl service = editableService(task, captured);
 
         WorkspaceContext.bind("workspace-1");
         DataSyncTaskVO updated = service.updateTask("task-1", taskDto());
@@ -283,7 +280,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldRejectUpdateForPublishedTask() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task(DataSyncTaskStatus.PUBLISHED, 1), new AtomicReference<>()));
@@ -297,7 +294,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldRejectSyncTypeMutation() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task(DataSyncTaskStatus.UNPUBLISHED, 1), new AtomicReference<>()));
@@ -313,7 +310,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldRejectDeleteForPublishedTask() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task(DataSyncTaskStatus.PUBLISHED, 1), new AtomicReference<>()));
@@ -325,9 +322,9 @@ class DataSyncTaskLifecycleContractTest {
         assertEquals(DataSyncErrorCode.INVALID_TASK_STATUS, exception.getErrorCode());
     }
 
-    private DataSyncServiceImpl editableService(
+    private DataSyncTaskServiceImpl editableService(
             DataSyncTaskEntity task, AtomicReference<DataSyncTaskEntity> captured) throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task, captured));
@@ -451,8 +448,6 @@ class DataSyncTaskLifecycleContractTest {
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+        DataSyncTestServices.inject(target, fieldName, value);
     }
 }

@@ -17,6 +17,7 @@ import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import jakarta.annotation.Resource;
+import org.springframework.stereotype.Component;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,6 +33,8 @@ import java.util.Set;
  */
 @Component
 public class DataSyncTaskDefinitionValidator {
+
+    private static final Set<String> REALTIME_TARGET_TYPES = Set.of("MYSQL", "POSTGRE_SQL", "ORACLE");
 
     @Resource
     private DataSourceService dataSourceService;

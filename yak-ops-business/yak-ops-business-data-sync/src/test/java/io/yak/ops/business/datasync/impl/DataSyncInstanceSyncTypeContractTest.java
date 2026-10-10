@@ -34,7 +34,7 @@ class DataSyncInstanceSyncTypeContractTest {
 
     @Test
     void shouldNotCreateRealtimeInstanceWithoutExecutionEngine() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
         DataSyncTaskEntity task = task();
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
@@ -53,7 +53,7 @@ class DataSyncInstanceSyncTypeContractTest {
 
     @Test
     void shouldRejectRealtimeRunWhenTargetPrimaryKeyDoesNotMatchSource() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
+        DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
         DataSyncTaskEntity task = task();
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
@@ -186,15 +186,13 @@ class DataSyncInstanceSyncTypeContractTest {
         return column;
     }
 
-    private void injectDataSourceService(DataSyncServiceImpl service, DataSourceService dataSourceService)
+    private void injectDataSourceService(DataSyncInstanceServiceImpl service, DataSourceService dataSourceService)
             throws Exception {
         inject(service, "dataSourceService", dataSourceService);
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {
-        Field field = DataSyncServiceImpl.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+        DataSyncTestServices.inject(target, fieldName, value);
     }
 
 }
