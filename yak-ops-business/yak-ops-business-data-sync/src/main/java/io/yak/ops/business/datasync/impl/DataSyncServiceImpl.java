@@ -972,6 +972,8 @@ public class DataSyncServiceImpl implements DataSyncService, DataSyncScheduleFir
                 || !Objects.equals(entity.getTargetSchema(), resolvedScope.getTargetSchema())
                 || !Objects.equals(entity.getTargetTable(), dto.getTargetTable().trim())
                 || taskWriteMode(entity) != requireWriteMode(dto.getWriteMode())
+                || Boolean.TRUE.equals(entity.getAutoCreateTable())
+                || StringUtils.isNotBlank(entity.getMappingConfig())
                 || !jsonEquals(
                         normalizedRuntimeConfigJson(entity.getSyncType(), entity.getRuntimeConfig()),
                         runtimeConfigJson(entity.getSyncType(), dto))
