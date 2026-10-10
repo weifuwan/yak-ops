@@ -113,6 +113,17 @@ public final class MySqlCdcSourceConfig {
     }
 
     /**
+     * Opens an independent, caller-owned JDBC connection for a hybrid Snapshot scan.
+     *
+     * <p>Never stores the connection in a Source definition or Checkpoint. This path uses
+     * the MySQL JDBC driver provided by the Connector module.
+     */
+    public java.sql.Connection openSnapshotConnection() throws java.sql.SQLException {
+        String url = "jdbc:mysql://" + hostname + ":" + port + "/";
+        return java.sql.DriverManager.getConnection(url, username, password);
+    }
+
+    /**
      * Constructs a Debezium engine that snapshots schemas only, then streams Binlog events.
      *
      * <p>A bootstrap run intentionally starts at the current offset. Older arbitrary offsets
