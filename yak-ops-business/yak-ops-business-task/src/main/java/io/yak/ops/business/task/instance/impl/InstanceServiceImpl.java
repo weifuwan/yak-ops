@@ -42,18 +42,18 @@ public class InstanceServiceImpl implements InstanceService {
 
     @Override
     public PagingData<InstanceVO> queryPage(InstanceQueryDTO dto) {
-        if (dto == null || dto.getPageNo() == null || dto.getPageSize() == null
-                || dto.getPageNo() < 1 || dto.getPageSize() < 1 || dto.getPageSize() > 100) {
+        if (dto == null
+                || dto.getPageNo() == null
+                || dto.getPageSize() == null
+                || dto.getPageNo() < 1
+                || dto.getPageSize() < 1
+                || dto.getPageSize() > 100) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
         String type = StringUtils.trimToNull(dto.getTaskType());
         if (type != null) type = type.toUpperCase(Locale.ROOT).replace('-', '_');
         InstancePageQuery query = new InstancePageQuery(
-                dto.getPageNo(),
-                dto.getPageSize(),
-                StringUtils.trimToNull(dto.getTaskId()),
-                type,
-                dto.getStatus());
+                dto.getPageNo(), dto.getPageSize(), StringUtils.trimToNull(dto.getTaskId()), type, dto.getStatus());
         return PagingData.from(instanceRepository
                 .queryPage(WorkspaceContext.requireWorkspaceId(), query)
                 .map(this::toVO));
@@ -76,13 +76,15 @@ public class InstanceServiceImpl implements InstanceService {
     private InstanceVO toVO(InstanceEntity entity) {
         InstanceVO result = BeanCopyUtils.copy(entity, InstanceVO.class, "status", "triggerType");
         result.setStatus(entity.getStatus() == null ? null : entity.getStatus().name());
-        result.setTriggerType(entity.getTriggerType() == null ? null : entity.getTriggerType().name());
+        result.setTriggerType(
+                entity.getTriggerType() == null ? null : entity.getTriggerType().name());
         return result;
     }
 
     private AttemptVO toAttemptVO(AttemptEntity attempt) {
         AttemptVO result = BeanCopyUtils.copy(attempt, AttemptVO.class, "status");
-        result.setStatus(attempt.getStatus() == null ? null : attempt.getStatus().name());
+        result.setStatus(
+                attempt.getStatus() == null ? null : attempt.getStatus().name());
         result.setLogAvailable(StringUtils.isNotBlank(attempt.getLogUri()));
         return result;
     }
