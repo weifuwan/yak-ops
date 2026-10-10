@@ -7,10 +7,12 @@ import io.yak.ops.core.api.connector.sink.WriterInitContext;
 import io.yak.ops.core.data.TableRecord;
 
 /**
- * Thin JDBC Writer over the shared mailbox-owned batching lifecycle.
+ * Bridges the shared mailbox-owned batch lifecycle to JDBC output and cancellation.
  *
- * <p>Only JdbcOutputFormat owns a connection and pending records. There is no second
- * batch list, scheduler, retry worker or implicit close-time commit in this Writer.
+ * <p>The Writer contains no independent record queue, scheduler or retry loop.
+ * {@link JdbcOutputFormat} owns the connection and the only buffered-record owner; successful
+ * checkpoint/end-of-input flushes commit synchronously, while failure, cancel and close
+ * never implicitly commit pending records.
  */
 public final class JdbcWriter extends BatchingSinkWriterBase<TableRecord> {
 

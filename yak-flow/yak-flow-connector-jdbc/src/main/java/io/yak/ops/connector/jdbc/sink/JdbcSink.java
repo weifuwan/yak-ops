@@ -15,10 +15,14 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Reusable JDBC Sink definition supporting multiple ordered table routes and Changelog.
+ * Defines one or more JDBC source-to-target table routes for a reusable Sink.
  *
- * <p>Each Writer has its own transaction and no shared mutable connection state. The Sink
- * does not promise exactly-once, XA or global ordering across parallel subtasks.
+ * <p>Each execution attempt creates its own {@link JdbcWriter} with a distinct JDBC connection
+ * and transaction. APPEND accepts only inserts; native UPSERT applies key-aware changelog
+ * records. Split UPDATE_BEFORE/UPDATE_AFTER pairs must be adjacent on the same subtask.
+ *
+ * <p>Flushes are synchronous and at-least-once; there is no XA committer, exactly-once
+ * guarantee, or global ordering across parallel Sink subtasks.
  */
 public final class JdbcSink implements Sink<TableRecord> {
 
@@ -35,6 +39,17 @@ public final class JdbcSink implements Sink<TableRecord> {
         this(connections, dialect, List.of(plan), batchPolicy);
     }
 
+    /**
+     * Validates a multi-table Sink definition before opening any JDBC connection.
+     *
+     * <p>Source and target tables must be unique. Native UPSERT and DELETE SQL support
+     * are validated through the dialect at construction time.
+     *
+     * @param connections capability that opens independent connections for each Writer
+     * @param dialect reusable vendor-specific SQL and row-conversion rules
+     * @param plans nonempty source-to-target table routes
+     * @param batchPolicy size and optional mailbox processing-time flush policy
+     */
     public JdbcSink(
             JdbcConnectionProvider connections,
             JdbcDialect dialect,
@@ -60,10 +75,17 @@ public final class JdbcSink implements Sink<TableRecord> {
         }
     }
 
+    /** Starts configuring a single-table or multi-table JDBC Sink. */
     public static JdbcSinkBuilder builder() {
         return new JdbcSinkBuilder();
     }
 
+    /**
+     * Creates an independent task-local Writer and releases its resources if initialization fails.
+     *
+     * <p>The Runtime provides the mailbox timer and the actual Sink subtask identity.
+     * This definition never caches the returned Writer across execution attempts.
+     */
     @Override
     public JdbcWriter createWriter(WriterInitContext context) throws Exception {
         Objects.requireNonNull(context, "context");

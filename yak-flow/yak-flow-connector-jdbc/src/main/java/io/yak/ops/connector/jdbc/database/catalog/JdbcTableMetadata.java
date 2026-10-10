@@ -13,15 +13,26 @@ import java.util.Objects;
 import java.util.TreeMap;
 
 /**
- * Resolves exact table metadata on a caller-owned JDBC connection.
+ * Reads an exact physical table's resolved schema using a caller-owned JDBC connection.
  *
- * <p>Catalog and Source planning share one implementation of identifier lookup, column
- * conversion, and primary-key ordering without creating additional connections.
+ * <p>Metadata discovery uses escaped table name patterns and checks exact identifier matches.
+ * The dialect converter resolves column types from a zero-row projection, while JDBC
+ * primary-key metadata determines the stable KEY_SEQ order. This utility neither opens
+ * another connection nor owns its caller's transaction.
  */
 public final class JdbcTableMetadata {
 
     private JdbcTableMetadata() {}
 
+    /**
+     * Resolves catalog and schema defaults from the supplied JDBC connection.
+     *
+     * @param connection open connection used for all metadata operations
+     * @param dialect vendor SQL quotation and type conversion rules
+     * @param tableId exact physical table ID, optionally omitting catalog/schema
+     * @return resolved column order, nullability and ordered primary keys
+     * @throws SQLException if table discovery or type resolution fails
+     */
     public static TableSchema readTable(Connection connection, JdbcDialect dialect, TableId tableId)
             throws SQLException {
         Objects.requireNonNull(connection, "connection");
@@ -31,6 +42,20 @@ public final class JdbcTableMetadata {
         return readTable(connection, dialect, tableId, catalog, schema);
     }
 
+    /**
+     * Reads a table using an explicitly resolved catalog/schema namespace.
+     *
+     * <p>The namespace fields are used for exact metadata lookup, not for a wildcard scan.
+     * Results fail when JDBC metadata is missing or returns an inconsistent key order.
+     *
+     * @param connection caller-owned JDBC connection
+     * @param dialect vendor quotation and row-conversion rules
+     * @param tableId exact table identity
+     * @param catalog resolved catalog for metadata lookup
+     * @param schema resolved schema/owner for metadata lookup
+     * @return source/target table schema with ordered primary keys
+     * @throws SQLException on missing or incompatible metadata
+     */
     public static TableSchema readTable(
             Connection connection, JdbcDialect dialect, TableId tableId, String catalog, String schema)
             throws SQLException {

@@ -31,11 +31,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Blocking JDBC I/O for bounded table splits, owned by one fetcher and one database connection.
+ * Performs blocking JDBC split reads on one source fetcher thread with task-owned connections.
  *
- * <p>Each fetch transfers a bounded batch of detached values, which remain valid after a
- * ResultSet is closed. Numeric primary-key cursors resume with an exclusive lower seek bound.
- * Without a supported key the entire split is replayed after recovery (at-least-once only).
+ * <p>Each fetch returns a bounded batch of detached row values. Numeric-key splits resume
+ * strictly after the last emitted key, while unkeyed splits replay from the beginning on
+ * recovery. A lost connection is retried only before the first fetched row of a split; an
+ * in-flight fetch failure propagates to the Runtime for checkpoint-based recovery.
  */
 public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPosition, JdbcSourceSplit> {
 
@@ -83,6 +84,15 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         pending.addAll(List.copyOf(splits));
     }
 
+    /**
+     * Fetches a bounded batch and marks a split complete only after its final row was read.
+     *
+     * <p>Fetched rows are detached from JDBC state. Split-progress checkpoint updates occur
+     * later in the mailbox-owned RecordEmitter, not when this method prefetches values.
+     *
+     * @return per-split records followed by any finished-split marker
+     * @throws Exception if the query, row converter, or driver fails
+     */
     @Override
     public RecordsWithSplitIds<JdbcRecordAndPosition> fetch() throws Exception {
         if (closed || cancellationRequested) {
@@ -123,6 +133,12 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         // Normal split assignments must not interrupt an active JDBC query.
     }
 
+    /**
+     * Signals terminal cancellation without blocking the calling task thread.
+     *
+     * <p>A virtual thread performs the driver's potentially blocking Statement.cancel().
+     * Actual ResultSet, statement and connection cleanup remains with the fetcher close.
+     */
     @Override
     public void cancel() {
         cancellationRequested = true;

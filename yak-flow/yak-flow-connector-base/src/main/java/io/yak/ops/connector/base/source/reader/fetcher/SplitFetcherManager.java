@@ -18,10 +18,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 /**
- * Owns source fetcher threads, their shared bounded handover and asynchronous error reporting.
+ * Owns per-reader fetcher threads, the bounded handover queue, and asynchronous failures.
  *
- * <p>Job failure and restart belong to Runtime; this manager only propagates fetcher errors to
- * SourceReader.pollNext() and releases the resources owned by its reader.
+ * <p>Only the owning SourceReader consumes records from the queue on its mailbox. Worker
+ * failures are surfaced on subsequent mailbox polls, while Job restart and durable checkpoint
+ * recovery remain responsibilities of the Runtime.
  */
 public abstract class SplitFetcherManager<E, SplitT extends SourceSplit> {
 
@@ -43,7 +44,11 @@ public abstract class SplitFetcherManager<E, SplitT extends SourceSplit> {
         this.queue = new FutureCompletingBlockingQueue<>(capacity);
     }
 
-    /** Distributes assigned splits to one or more fetchers without doing blocking I/O. */
+    /**
+     * Assigns split work to background fetchers without blocking the SourceReader mailbox.
+     *
+     * @param splits independently checkpointed split definitions
+     */
     public abstract void addSplits(List<SplitT> splits);
 
     public final FutureCompletingBlockingQueue<RecordsWithSplitIds<E>> getQueue() {
@@ -71,7 +76,12 @@ public abstract class SplitFetcherManager<E, SplitT extends SourceSplit> {
         return !fetchers.isEmpty();
     }
 
-    /** Cancels all fetchers and waits up to the configured bound for resource release. */
+    /**
+     * Cancels every fetcher and waits for bounded, task-owned resource cleanup.
+     *
+     * @param timeoutMillis positive maximum wait time for worker termination
+     * @throws Exception if cleanup fails, times out, or the waiting thread is interrupted
+     */
     public final synchronized void close(long timeoutMillis) throws Exception {
         if (closed) {
             return;

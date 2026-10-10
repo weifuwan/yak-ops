@@ -14,5 +14,14 @@ import java.sql.SQLException;
 @FunctionalInterface
 public interface JdbcConnectionProvider extends Serializable {
 
+    /**
+     * Opens a new JDBC connection for the caller to own and close.
+     *
+     * <p>Two invocations must not share mutable connection or transaction state; a Source
+     * enumerator, reader, and Sink Writer each own their separate connections.
+     *
+     * @return a fresh, non-null JDBC connection
+     * @throws SQLException if opening the connection fails
+     */
     Connection getConnection() throws SQLException;
 }

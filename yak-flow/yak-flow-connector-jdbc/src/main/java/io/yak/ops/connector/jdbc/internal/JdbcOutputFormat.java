@@ -15,11 +15,15 @@ import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
 /**
- * One transaction and one buffered-record owner for all routes of a JDBC Sink Writer.
+ * Owns one task-local JDBC transaction and the single buffered-record output for Sink routes.
  *
- * <p>Statement groups are executed in the source's arrival order within a transaction.
- * Only a successful explicit flush commits; close rolls back without flushing. Failed or
- * ambiguous transactions are never retried inside JDBC.
+ * <p>Detached records remain in the buffered executor until an explicit successful flush
+ * executes ordered statement groups and commits the transaction. Incomplete UPDATE pairs
+ * defer automatic batch triggers and cause explicit checkpoint flush to fail closed.
+ * Failed or ambiguous commits are not retried in the Connector.
+ *
+ * <p>Cancellation only signals running JDBC statements. Closing rolls back outstanding
+ * work and releases resources; neither operation flushes or commits data.
  */
 public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
 
@@ -35,6 +39,17 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
         this(connections, dialect, List.of(plan));
     }
 
+    /**
+     * Opens a fresh transaction and prepares statements for the requested table routes.
+     *
+     * <p>Partially prepared statements and the connection are closed on initialization
+     * failure. A new output must be created for every execution attempt.
+     *
+     * @param connections provider for an independent, task-owned JDBC connection
+     * @param dialect target database SQL and value conversion rules
+     * @param plans one or more prepared source-to-target write routes
+     * @throws SQLException if opening the connection or preparing statements fails
+     */
     public JdbcOutputFormat(JdbcConnectionProvider connections, JdbcDialect dialect, List<JdbcTableWritePlan> plans)
             throws SQLException {
         Objects.requireNonNull(connections, "connections");
@@ -74,11 +89,25 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
         return executor.bufferedRecords();
     }
 
+    /**
+     * Defers size/timer-triggered flushes while a split UPDATE_BEFORE awaits its after-image.
+     *
+     * <p>Explicit checkpoint flushes always run and reject incomplete updates instead of
+     * acknowledging a partial logical mutation.
+     */
     @Override
     public boolean canAutomaticallyFlush() {
         return statements.canAutomaticallyFlush();
     }
 
+    /**
+     * Executes buffered statements in input order and commits them as one JDBC transaction.
+     *
+     * <p>Pending records are acknowledged only after commit succeeds. Any statement or
+     * ambiguous commit failure makes this output terminal and attempts rollback without retry.
+     *
+     * @throws SQLException if a statement batch or commit fails
+     */
     @Override
     public void flush() throws SQLException {
         ensureActive();

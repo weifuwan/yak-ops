@@ -11,7 +11,13 @@ import io.yak.ops.core.types.TableSchema;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** PostgreSQL quoting, native type mapping, and DDL planning. */
+/**
+ * Implements PostgreSQL schema-qualified SQL, target types, and ON CONFLICT UPSERT.
+ *
+ * <p>Read connections disable autocommit so PostgreSQL cursor fetching can use a transaction.
+ * Unbounded text maps to TEXT and binary values to BYTEA. An UPSERT with only key
+ * fields resolves to ON CONFLICT DO NOTHING instead of an invalid empty UPDATE clause.
+ */
 public final class PostgresJdbcDialect extends AbstractDialect {
 
     @Override
@@ -32,6 +38,11 @@ public final class PostgresJdbcDialect extends AbstractDialect {
         return quoteIdentifier(table.schema()) + "." + quoteIdentifier(table.table());
     }
 
+    /**
+     * Sets a read-only, non-autocommit transaction for PostgreSQL cursor-based fetching.
+     *
+     * <p>The SourceReader continues to own the transaction and connection lifecycle.
+     */
     @Override
     public void configureReadConnection(java.sql.Connection connection) throws java.sql.SQLException {
         connection.setReadOnly(true);

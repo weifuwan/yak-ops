@@ -17,9 +17,16 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * One-input Sink writer operator shared by chained and standalone tasks. Stateful writer snapshots are versioned and restored
- * together with upstream operator/source progress by the aligned checkpoint coordinator.
- * No Committer or transactional exactly-once guarantee is implied.
+ * Owns the Sink Writer lifecycle for chained and standalone one-input StreamTasks.
+ *
+ * <p>The task mailbox serializes record writes, explicit checkpoint flushes and normal
+ * end-of-input completion. Stateful Writer snapshots are versioned and restored through
+ * the aligned Checkpoint coordinator; stateless JDBC writers rely on upstream replay for
+ * at-least-once delivery. Terminal I/O cancellation can be signaled off-mailbox, while
+ * Writer cleanup remains task-owned.
+ *
+ * <p>Checkpoint ACK is not a two-phase commit, and no XA/Committer or exactly-once
+ * guarantee is implied.
  */
 public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Void>, CheckpointedStreamOperator {
 
@@ -43,6 +50,15 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
     private boolean finished;
     private boolean closed;
 
+    /**
+     * Binds a reusable Sink definition to the actual Task's writer initialization context.
+     *
+     * <p>Writer creation remains deferred until {@link #open()}, after any state backend
+     * has been initialized or restored.
+     *
+     * @param sink reusable task-independent Sink definition
+     * @param context task identity, effective configuration and mailbox timers
+     */
     public SinkWriterOperator(Sink<T> sink, WriterInitContext context) {
         this.sink = Objects.requireNonNull(sink, "sink");
         this.context = Objects.requireNonNull(context, "context");
@@ -123,7 +139,17 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
         writer.write(element, RECORD_CONTEXT);
     }
 
-    /** The Task mailbox invokes this at the aligned barrier, before acknowledgement. */
+    /**
+     * Flushes the Writer on the mailbox before completing the aligned checkpoint snapshot.
+     *
+     * <p>Incomplete Connector input must fail here, not be acknowledged. For stateful
+     * Writers, the versioned state is stored under the operator's writer namespace;
+     * stateless Writers only flush their external output.
+     *
+     * @param checkpointId positive aligned-checkpoint identity
+     * @param backend operator-scoped state snapshot destination
+     * @throws Exception if flush, serialization or snapshot construction fails
+     */
     @Override
     @SuppressWarnings("unchecked")
     public void snapshotState(long checkpointId, OperatorStateBackend backend) throws Exception {
@@ -149,6 +175,11 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
         }
     }
 
+    /**
+     * Performs the only normal end-of-input flush; failure/cancellation never invokes it.
+     *
+     * @throws Exception if completing the Writer's pending output fails
+     */
     @Override
     public void finish() throws Exception {
         requireOpen();

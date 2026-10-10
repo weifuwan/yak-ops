@@ -15,5 +15,16 @@ import io.yak.ops.core.api.connector.source.ReaderOutput;
 @FunctionalInterface
 public interface RecordEmitter<E, T, StateT> {
 
+    /**
+     * Emits one prefetched record and only then advances its mutable split checkpoint state.
+     *
+     * <p>The method runs on the reader's task mailbox, not on a background fetcher thread.
+     * A downstream failure must leave the split cursor unadvanced for recovery.
+     *
+     * @param record fetched record, including any source-specific cursor
+     * @param output destination for the converted record
+     * @param splitState mailbox-owned progress for the assigned split
+     * @throws Exception if conversion, emission or cursor advancement fails
+     */
     void emitRecord(E record, ReaderOutput<T> output, StateT splitState) throws Exception;
 }

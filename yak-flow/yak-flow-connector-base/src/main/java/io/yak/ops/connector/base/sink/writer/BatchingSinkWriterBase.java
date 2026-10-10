@@ -8,12 +8,15 @@ import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
 /**
- * Mailbox-owned batch trigger and lifecycle for synchronous output implementations.
+ * Implements mailbox-serialized batch triggers for a single-output Sink Writer.
  *
- * <p>BatchOutput is the only owner of buffered records; this class retains no record queue.
- * Size, timed and checkpoint flushes are serialized by the task mailbox. Failed flushes do not
- * advance the Writer or silently retry uncertain external commits. Terminal cancellation is
- * signaled concurrently through BatchOutput.cancel(), while close() never flushes.
+ * <p>{@link BatchOutput} is the only owner of buffered records; this base class holds no
+ * second queue. Size and processing-time triggers call synchronous flush on the task mailbox
+ * unless an output temporarily defers an incomplete logical update. Runtime checkpoint and
+ * normal end-of-input flushes always execute and fail closed on incomplete updates.
+ *
+ * <p>An external I/O failure disables further writes without implicit retries. Terminal
+ * cancellation may be signaled off-mailbox; close never flushes or commits records.
  *
  * @param <T> input record type
  */
@@ -28,6 +31,16 @@ public abstract class BatchingSinkWriterBase<T> implements CancellableSinkWriter
     private boolean finished;
     private Throwable failure;
 
+    /**
+     * Binds an output and a flush policy to one task attempt's mailbox timer capability.
+     *
+     * <p>Timed policies require {@link WriterInitContext#getProcessingTimeService()}; an
+     * unsupported timer capability fails immediately rather than silently disabling flush.
+     *
+     * @param output sole buffered-record owner for this Writer
+     * @param policy positive batch threshold and optional flush interval
+     * @param context task-local initialization metadata and mailbox timer service
+     */
     protected BatchingSinkWriterBase(BatchOutput<T> output, BatchFlushPolicy policy, WriterInitContext context) {
         this.output = Objects.requireNonNull(output, "output");
         this.policy = Objects.requireNonNull(policy, "policy");

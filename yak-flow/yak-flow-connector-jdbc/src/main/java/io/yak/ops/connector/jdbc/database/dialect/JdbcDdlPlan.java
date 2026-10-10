@@ -3,7 +3,15 @@ package io.yak.ops.connector.jdbc.database.dialect;
 import java.util.List;
 import java.util.Objects;
 
-/** Ordered create-table and column-comment DDL statements for an existing table plan. */
+/**
+ * Carries a target CREATE TABLE statement and any subsequent vendor-specific comment DDL.
+ *
+ * <p>The first statement is always {@code createTableSql}. All statements are immutable
+ * and execute in their declared order; planning itself has no database side effects.
+ *
+ * @param createTableSql the primary CREATE TABLE statement
+ * @param statements ordered nonempty execution plan, starting with the CREATE TABLE statement
+ */
 public record JdbcDdlPlan(String createTableSql, List<String> statements) {
 
     public JdbcDdlPlan {

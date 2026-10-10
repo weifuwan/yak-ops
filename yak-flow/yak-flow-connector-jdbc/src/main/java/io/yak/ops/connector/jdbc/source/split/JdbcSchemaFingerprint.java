@@ -19,6 +19,18 @@ public final class JdbcSchemaFingerprint {
 
     private JdbcSchemaFingerprint() {}
 
+    /**
+     * Hashes the read projection and split-key identity into a stable SHA-256 fingerprint.
+     *
+     * <p>Resolved column types and order are part of the digest; data values, credentials,
+     * and transient JDBC connection state are not. It validates schema compatibility, not
+     * a transactional view of concurrent database updates.
+     *
+     * @param table physical table identity
+     * @param schema ordered and fully resolved JDBC projection
+     * @param splitColumn optional numeric progress key
+     * @return lowercase SHA-256 digest for the frozen split contract
+     */
     public static String of(TableId table, TableSchema schema, String splitColumn) {
         Objects.requireNonNull(table, "table");
         Objects.requireNonNull(schema, "schema");

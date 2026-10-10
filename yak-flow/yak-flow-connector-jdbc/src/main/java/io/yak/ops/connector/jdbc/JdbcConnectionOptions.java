@@ -8,10 +8,12 @@ import java.util.Objects;
 import java.util.Properties;
 
 /**
- * Reusable JDBC connection definition. Opening a connection always creates task-owned resources.
+ * Holds an immutable JDBC connection definition for task-local DriverManager connections.
  *
- * <p>Connection credentials are never included in Split or Enumerator checkpoint state or
- * diagnostic strings. The caller must supply an installed JDBC driver.
+ * <p>Every {@link #openConnection()} call returns a fresh caller-owned connection. Optional
+ * driver properties are copied at construction; credentials are deliberately redacted from
+ * diagnostics and must not be serialized into split/checkpoint state. Drivers are supplied
+ * by the deployment or driver-isolation runtime.
  */
 public final class JdbcConnectionOptions implements java.io.Serializable {
 
@@ -37,6 +39,15 @@ public final class JdbcConnectionOptions implements java.io.Serializable {
         this(url, username, password, null, Map.of());
     }
 
+    /**
+     * Opens a fresh JDBC connection using the configured driver and connection properties.
+     *
+     * <p>Username/password override corresponding JDBC property keys when present.
+     * The caller owns transaction configuration, cancellation and connection cleanup.
+     *
+     * @return independent, caller-owned JDBC connection
+     * @throws SQLException if the driver cannot load or opening the connection fails
+     */
     public Connection openConnection() throws SQLException {
         if (driverClass != null && !driverClass.isBlank()) {
             try {

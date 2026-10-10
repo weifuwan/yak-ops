@@ -17,10 +17,12 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Mailbox-owned consumption and checkpoint state for asynchronous SourceReader implementations.
+ * Owns mailbox-side record consumption and checkpoint progress for asynchronous SourceReaders.
  *
- * <p>The fetcher threads own blocking I/O and never mutate split checkpoint state. Only this
- * reader invokes RecordEmitter on the mailbox, thereby advancing progress after downstream output.
+ * <p>Background fetcher threads own blocking I/O and hand over bounded batches through
+ * an availability-aware queue. Only the task mailbox calls {@link RecordEmitter} to advance
+ * split state after downstream emission. Completion markers are consumed after their
+ * preceding records; they are never interpreted as early fetcher-side acknowledgements.
  *
  * @param <E> fetched record type
  * @param <T> emitted record type
@@ -56,6 +58,16 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, StateT>
     @Override
     public void start() throws Exception {}
 
+    /**
+     * Emits at most one prefetched record without blocking the task mailbox.
+     *
+     * <p>If no batch is available, the runtime waits on {@link #isAvailable()} rather than
+     * spinning. Split completion is applied only after all emitted rows in the batch.
+     *
+     * @param output downstream receiver for the next record
+     * @return input availability or end-of-input status after this mailbox step
+     * @throws Exception when conversion, handover or the asynchronous fetcher fails
+     */
     @Override
     public InputStatus pollNext(ReaderOutput<T> output) throws Exception {
         Objects.requireNonNull(output, "output");
@@ -127,6 +139,15 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, StateT>
         queue.notifyAvailable();
     }
 
+    /**
+     * Copies mailbox-owned, last-emitted split positions for an aligned checkpoint.
+     *
+     * <p>This does not checkpoint the fetcher's prefetch cursor; in-flight batches can be
+     * replayed after recovery without assuming that prefetched rows were delivered.
+     *
+     * @param checkpointId nonnegative aligned-checkpoint identity
+     * @return detached snapshots of currently assigned split progress
+     */
     @Override
     public List<SplitT> snapshotState(long checkpointId) {
         ensureOpen();

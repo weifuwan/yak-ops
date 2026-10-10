@@ -26,10 +26,11 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Turns one catalog table into disjoint bounded JDBC splits using a single numeric primary key.
+ * Plans bounded JDBC table scans as disjoint numeric-primary-key ranges when possible.
  *
- * <p>Tables without a supported key are read as one replayable split. They must not checkpoint
- * a numeric cursor, because an unordered ResultSet offset would lose records after changes.
+ * <p>Planning performs blocking catalog/statistics queries on a discovery thread and produces
+ * immutable split definitions. Tables without a supported single numeric primary key get one
+ * full-table split; an unordered ResultSet offset must never be checkpointed as a key cursor.
  */
 public final class JdbcSplitPlanner {
 
@@ -67,7 +68,18 @@ public final class JdbcSplitPlanner {
         }
     }
 
-    /** Plans a table on a discovery thread; no coordinator or reader state is accessed here. */
+    /**
+     * Resolves an ordered projection and freezes the schema fingerprint before planning splits.
+     *
+     * <p>The caller runs this operation on a discovery thread, not a task mailbox. Each split
+     * contains inclusive bounds when a supported numeric key exists; otherwise it is replayed
+     * as a complete table scan after recovery.
+     *
+     * @param table physical table to scan
+     * @param tableIndex stable index in the source's ordered table definition
+     * @return non-overlapping table splits with their schema fingerprint
+     * @throws SQLException if JDBC metadata, statistics, or schema inspection fails
+     */
     public List<JdbcSourceSplit> plan(TableId table, int tableIndex) throws SQLException {
         Objects.requireNonNull(table, "table");
         if (tableIndex < 0) {

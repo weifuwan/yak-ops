@@ -8,20 +8,34 @@ import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import java.util.Objects;
 
 /**
- * Public Catalog entry point that delegates vendor selection to the same SPI as the JDBC Source.
+ * Constructs read-only JDBC Catalog instances using the Connector's vendor factory SPI.
  *
- * <p>Unlike Flink's Table API CatalogFactory, this creates a Core-type Catalog from a JDBC
- * provider without introducing Flink dependencies or touching the existing Datasource Catalog.
+ * <p>Catalog methods return YakFlow {@code TableSchema} and {@code TableId} contracts,
+ * without a Flink Table API dependency or a duplicate Datasource Catalog implementation.
+ * Vendor lookup is shared with JDBC Source/Sink dialect resolution.
  */
 public final class JdbcCatalogFactory {
 
     private JdbcCatalogFactory() {}
 
+    /**
+     * Creates a Catalog backed by fresh DriverManager metadata connections.
+     *
+     * @param options database URL, driver and credentials for the provider
+     * @return the matching vendor read-only Catalog
+     */
     public static JdbcCatalog create(JdbcConnectionOptions options) {
         Objects.requireNonNull(options, "options");
         return create(options.url(), new DriverManagerJdbcConnectionProvider(options));
     }
 
+    /**
+     * Uses an injected connection provider, such as an isolated or tunneled driver runtime.
+     *
+     * @param jdbcUrl vendor-discovery URL
+     * @param connections capability to open independent metadata connections
+     * @return a vendor-specific, read-only Catalog
+     */
     public static JdbcCatalog create(String jdbcUrl, JdbcConnectionProvider connections) {
         return JdbcFactoryLoader.loadCatalog(jdbcUrl, Objects.requireNonNull(connections, "connections"));
     }

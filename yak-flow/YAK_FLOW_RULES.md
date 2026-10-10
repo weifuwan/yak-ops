@@ -6,10 +6,12 @@ Scope: `yak-ops-core`、`yak-flow/yak-flow-runtime`、`yak-flow/yak-flow-connect
 
 ## JavaDoc and Comments
 
-Core and Runtime JavaDoc and implementation comments follow
-[Core / Runtime Javadoc Convention](../docs/capabilities/yak-flow/core-runtime-comment-rules.md).
-Keep them in English and document actual API, mailbox and checkpoint contracts rather
-than repeating method names. The existing Backend Quality job enforces objective rules.
+Core, Runtime, Connector Base, and JDBC Connector all follow the same
+[YakFlow Javadoc and Comment Convention](../docs/capabilities/yak-flow/core-runtime-comment-rules.md).
+Use English comments, document public SPI method behavior and meaningful database, mailbox,
+checkpoint and resource-lifecycle guarantees, and avoid restating method names. The existing
+Backend Quality step checks all four modules for the objective rules; method semantics stay
+subject to code review.
 
 ## Module Boundary
 

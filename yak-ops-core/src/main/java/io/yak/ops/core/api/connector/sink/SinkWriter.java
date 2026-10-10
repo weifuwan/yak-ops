@@ -1,10 +1,11 @@
 package io.yak.ops.core.api.connector.sink;
 
 /**
- * Per-subtask instance that writes records and flushes its buffered output.
+ * Defines one Sink subtask's record-writing, checkpoint-flush, and resource lifecycle.
  *
- * <p>The runtime serializes calls to write, flush and close on the owning task thread.
- * A successful flush does not imply a transactional commit or exactly-once delivery.
+ * <p>The Runtime serializes write, flush and close on the task mailbox. A concrete Connector
+ * may own a database transaction, but the Core interface does not imply a commit protocol
+ * or exactly-once guarantee. Cancellation is an optional separate contract.
  *
  * @param <T> the input record type
  * @author weifuwan
@@ -38,7 +39,8 @@ public interface SinkWriter<T> extends AutoCloseable {
      * Flushes buffered records during a checkpoint or at the normal end of input.
      *
      * <p>The runtime passes {@code false} at an aligned checkpoint and {@code true} only for
-     * a normal end of input. Success is not proof of an end-to-end transactional commit.
+     * a normal end of input. A Connector must fail rather than acknowledge an incomplete
+     * logical mutation. Success is not proof of an end-to-end transactional commit.
      *
      * @param endOfInput whether input has ended normally
      * @throws Exception if flushing fails
