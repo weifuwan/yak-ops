@@ -32,6 +32,7 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
     private final Deque<MySqlSnapshotSplit> pending = new ArrayDeque<>();
 
     private MySqlSnapshotSplit activeSnapshot;
+    private BinlogEvent bootstrapCandidate;
     private boolean binlogAssigned;
     private boolean bootstrap;
     private volatile boolean streaming;
@@ -68,12 +69,19 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
             throw new IllegalStateException("MySQL hybrid reader has closed");
         }
         if (bootstrap && binlogAssigned) {
-            BinlogEvent first = binlog.poll();
-            if (first != null) {
+            if (bootstrapCandidate == null) {
+                bootstrapCandidate = binlog.poll();
+            }
+            if (bootstrapCandidate != null) {
                 byte[] history = binlog.snapshotHistory();
                 if (history.length == 0) {
-                    throw new IllegalStateException("Low watermark captured before Debezium Schema History");
+                    // Debezium schema discovery and the first heartbeat are asynchronous.
+                    // Keep the anchor event until its corresponding history is checkpointable.
+                    Thread.sleep(100);
+                    return new RecordsBySplits<>(Map.of(), Set.of());
                 }
+                BinlogEvent first = bootstrapCandidate;
+                bootstrapCandidate = null;
                 bootstrap = false;
                 return new RecordsBySplits<>(
                         Map.of(
