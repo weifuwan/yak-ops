@@ -10,8 +10,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -60,7 +60,9 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
 
     @Override
     public List<TableId> listTables(String database, String schema) throws SQLException {
-        return listTableInfos(database, schema, null, null).stream().map(JdbcTableInfo::tableId).toList();
+        return listTableInfos(database, schema, null, null).stream()
+                .map(JdbcTableInfo::tableId)
+                .toList();
     }
 
     @Override
@@ -70,7 +72,8 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
             throw new IllegalArgumentException("JDBC table search limit must be positive");
         }
         int maxResults = limit == null ? Integer.MAX_VALUE : Math.min(500, limit);
-        String needle = keyword == null || keyword.isBlank() ? null : keyword.trim().toLowerCase(Locale.ROOT);
+        String needle =
+                keyword == null || keyword.isBlank() ? null : keyword.trim().toLowerCase(Locale.ROOT);
         try (Connection connection = connections.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
             String catalog = effectiveCatalog(connection, database);
