@@ -17,7 +17,7 @@ Status: Task and history management active; YakFlow product execution integratio
 
 ## Task Definition
 
-Task owns Workspace, task name, exactly one source table and one target table, Datasource IDs, sync type, write mode, status, retry/runtime policy and definition version. New/edited Tasks use Task fields only, not `tableRoutes[]`. Legacy Route rows remain untouched for historical inspection; stored multi-route Tasks are blocked from editing, publishing and running rather than silently reduced to the first route.
+[Generic Task Definition](../task-definition.md) owns Workspace, task name, taskType, publish status and executable definition version. The DATA_SYNC plugin extension owns exactly one source table and target table, Datasource IDs, sync type, write mode and retry/runtime policy. The same Task ID identifies both rows, with no duplicate shared-state writes. New/edited Tasks use Task fields only, not `tableRoutes[]`. Legacy Route rows remain untouched for historical inspection; stored multi-route Tasks are blocked from editing, publishing and running rather than silently reduced to the first route.
 
 
 ## Datasource Scope and Mapping
@@ -25,7 +25,7 @@ Task owns Workspace, task name, exactly one source table and one target table, D
 Datasource is the Workspace owner of credentials and the default connected database. Data Sync must not read Datasource DAO/Plugin Registry directly. It resolves a saved physical table through `DataSourceService.queryTableSchema(dataSourceId, path)`, which delegates to the sole `yak-flow-connector-jdbc` Catalog and dialect converter.
 
 ```text
-DataSyncTaskService (single-table Task definition)
+SyncDefinitionService (DATA_SYNC definition + physical-schema validation)
        → DataSourceService (Workspace and credentials)
        → Datasource Plugin.openConnection (isolated driver / SSH)
        → YakFlow JdbcCatalogFactory / JdbcTableMetadata
@@ -55,7 +55,7 @@ MySQL CDC Connector and its engine-level acceptance are independent of Product R
 
 ## Compatibility and Historical Data
 
-Task/Route fields for retired Mapping and Auto DDL remain in already-published database migrations for historical compatibility. They are cleared only by explicit task edit and must never silently be executed as same-name writes. Historical DefinitionSnapshot fields and published release documents remain readable without rewriting past facts.
+DATA_SYNC plugin fields for retired Mapping and Auto DDL remain in already-published database migrations and in the plugin extension for historical compatibility. They are cleared only by explicit task edit and must never silently be executed as same-name writes. Historical DefinitionSnapshot fields and published release documents remain readable without rewriting past facts.
 
 The current version is at-least-once where Connector-specific tests prove it. Do not claim exactly-once or product end-to-end acceptance based only on individual Connector tests.
 

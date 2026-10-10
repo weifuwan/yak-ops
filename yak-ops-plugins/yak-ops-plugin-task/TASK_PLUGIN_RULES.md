@@ -30,7 +30,7 @@ The registry is constructed with `ServiceLoader` and can be supplied with factor
 
 ## Current Rollout Boundary
 
-The registry is discoverable at Boot startup, but existing Data Sync HTTP/Service/DAO paths are unchanged and do not call it yet. No TaskDefinition/TaskInstance migration, new runtime submission or workflow execution has been added. A successfully validated plugin configuration is **not** proof that its task can execute.
+The registry is discoverable at Boot startup. Canonical Task Definition identity and version snapshots are now persisted by DAO/Business, but the DATA_SYNC HTTP write path still uses its physical-schema-aware `SyncDefinitionService`. Plugin execution and a generic plugin-driven create/update API are not yet implemented. A successfully validated plugin configuration is **not** proof that its task can execute.
 
 ## Verification
 

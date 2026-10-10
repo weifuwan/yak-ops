@@ -27,7 +27,7 @@ Java 变更先读 `ARCHITECTURE.md` 和 `JAVA_RULES.md`，再按目标读取下�
 | 日志 | `LOGGING_RULES.md` |
 | HTTP Controller | `CONTROLLER_RULES.md` |
 | Platform | `yak-ops-platform/PLATFORM_RULES.md`；按 Security / Workspace / Preference 读取同目录的 `SECURITY_RULES.md` / `WORKSPACE_RULES.md` / `USER_PREFERENCE_RULES.md` |
-| Business | `yak-ops-business/BUSINESS_RULES.md`；数据源读 `yak-ops-business/yak-ops-business-datasource/DATASOURCE_RULES.md`，数据同步读 `yak-ops-business/yak-ops-business-data-sync/DATA_SYNC_RULES.md` |
+| Business | `yak-ops-business/BUSINESS_RULES.md`；Task 定义读 `yak-ops-business/yak-ops-business-task/TASK_RULES.md`，数据源读 `yak-ops-business/yak-ops-business-datasource/DATASOURCE_RULES.md`，数据同步读 `yak-ops-business/yak-ops-business-data-sync/DATA_SYNC_RULES.md` |
 | Common / DTO / VO | `yak-ops-common/COMMON_RULES.md`；共享 DTO / VO 另读同目录 `DTO_VO_RULES.md` |
 | DAO / Entity / Migration | `yak-ops-dao/DAO_RULES.md`；按修改内容读取同目录 `ENTITY_RULES.md` / `FLYWAY_RULES.md` |
 | Core / SPI | `yak-ops-core/CORE_RULES.md` / `yak-ops-spi/SPI_RULES.md` |
