@@ -301,10 +301,9 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
 
     private LambdaQueryWrapper<DataSyncInstanceEntity> queryWrapper(
             String workspaceId, DataSyncInstancePageQuery query) {
-        LambdaQueryWrapper<DataSyncInstanceEntity> wrapper =
-                Wrappers.<DataSyncInstanceEntity>lambdaQuery()
-                        .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
-                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC");
+        LambdaQueryWrapper<DataSyncInstanceEntity> wrapper = Wrappers.<DataSyncInstanceEntity>lambdaQuery()
+                .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC");
         return wrapper.eq(StringUtils.hasText(query.taskId()), DataSyncInstanceEntity::getTaskId, query.taskId())
                 .like(StringUtils.hasText(query.keyword()), DataSyncInstanceEntity::getTaskName, query.keyword())
                 .eq(query.syncType() != null, DataSyncInstanceEntity::getSyncType, query.syncType())
