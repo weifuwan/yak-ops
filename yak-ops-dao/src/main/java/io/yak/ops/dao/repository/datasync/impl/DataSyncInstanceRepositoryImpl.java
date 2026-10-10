@@ -56,6 +56,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
         if (!StringUtils.hasText(workspaceId) || !StringUtils.hasText(id)) return Optional.empty();
         return Optional.ofNullable(instanceMapper.selectOne(Wrappers.<DataSyncInstanceEntity>lambdaQuery()
                 .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                 .eq(DataSyncInstanceEntity::getId, id)));
     }
 
@@ -64,6 +65,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
         if (!StringUtils.hasText(workspaceId) || !StringUtils.hasText(taskId)) return Optional.empty();
         return Optional.ofNullable(instanceMapper.selectOne(Wrappers.<DataSyncInstanceEntity>lambdaQuery()
                 .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                 .eq(DataSyncInstanceEntity::getTaskId, taskId)
                 .orderByDesc(DataSyncInstanceEntity::getCreateTime)
                 .orderByDesc(DataSyncInstanceEntity::getId)
@@ -75,6 +77,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
         if (!StringUtils.hasText(workspaceId) || !StringUtils.hasText(taskId)) return false;
         Long count = instanceMapper.selectCount(Wrappers.<DataSyncInstanceEntity>lambdaQuery()
                 .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                 .eq(DataSyncInstanceEntity::getTaskId, taskId)
                 .in(
                         DataSyncInstanceEntity::getStatus,
@@ -88,6 +91,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
     @Override
     public List<DataSyncInstanceEntity> queryActive() {
         return instanceMapper.selectList(Wrappers.<DataSyncInstanceEntity>lambdaQuery()
+                .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                 .in(
                         DataSyncInstanceEntity::getStatus,
                         List.of(
@@ -111,6 +115,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
                         update,
                         Wrappers.<DataSyncInstanceEntity>lambdaUpdate()
                                 .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                                 .eq(DataSyncInstanceEntity::getId, id)
                                 .eq(DataSyncInstanceEntity::getStatus, DataSyncInstanceStatus.RUNNING))
                 > 0;
@@ -137,6 +142,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
                         update,
                         Wrappers.<DataSyncInstanceEntity>lambdaUpdate()
                                 .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                                 .eq(DataSyncInstanceEntity::getId, id)
                                 .eq(DataSyncInstanceEntity::getStatus, expectedStatus)
                                 .set(DataSyncInstanceEntity::getNextRetryTime, null)
@@ -177,6 +183,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
                         update,
                         Wrappers.<DataSyncInstanceEntity>lambdaUpdate()
                                 .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                                 .eq(DataSyncInstanceEntity::getId, id)
                                 .eq(DataSyncInstanceEntity::getStatus, expectedStatus)
                                 .set(DataSyncInstanceEntity::getFinishTime, null))
@@ -215,6 +222,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
                         update,
                         Wrappers.<DataSyncInstanceEntity>lambdaUpdate()
                                 .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                                 .eq(DataSyncInstanceEntity::getId, id)
                                 .eq(DataSyncInstanceEntity::getStatus, expectedStatus)
                                 .set(DataSyncInstanceEntity::getNextRetryTime, null))
@@ -233,6 +241,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
                         update,
                         Wrappers.<DataSyncInstanceEntity>lambdaUpdate()
                                 .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                                 .eq(DataSyncInstanceEntity::getId, id)
                                 .eq(DataSyncInstanceEntity::getStatus, expectedStatus)
                                 .set(DataSyncInstanceEntity::getNextRetryTime, null))
@@ -266,6 +275,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
                 update,
                 Wrappers.<DataSyncInstanceEntity>lambdaUpdate()
                         .eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                         .eq(DataSyncInstanceEntity::getId, id)
                         .eq(DataSyncInstanceEntity::getStatus, expectedStatus));
         return affected > 0;
@@ -282,6 +292,7 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
         return instanceMapper.update(
                 update,
                 Wrappers.<DataSyncInstanceEntity>lambdaUpdate()
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC")
                         .in(
                                 DataSyncInstanceEntity::getStatus,
                                 List.of(DataSyncInstanceStatus.PENDING, DataSyncInstanceStatus.RUNNING))
@@ -291,7 +302,8 @@ public class DataSyncInstanceRepositoryImpl extends BaseRepositoryImpl<DataSyncI
     private LambdaQueryWrapper<DataSyncInstanceEntity> queryWrapper(
             String workspaceId, DataSyncInstancePageQuery query) {
         LambdaQueryWrapper<DataSyncInstanceEntity> wrapper =
-                Wrappers.<DataSyncInstanceEntity>lambdaQuery().eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId);
+                Wrappers.<DataSyncInstanceEntity>lambdaQuery().eq(DataSyncInstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(DataSyncInstanceEntity::getTaskType, "DATA_SYNC");
         return wrapper.eq(StringUtils.hasText(query.taskId()), DataSyncInstanceEntity::getTaskId, query.taskId())
                 .like(StringUtils.hasText(query.keyword()), DataSyncInstanceEntity::getTaskName, query.keyword())
                 .eq(query.syncType() != null, DataSyncInstanceEntity::getSyncType, query.syncType())
