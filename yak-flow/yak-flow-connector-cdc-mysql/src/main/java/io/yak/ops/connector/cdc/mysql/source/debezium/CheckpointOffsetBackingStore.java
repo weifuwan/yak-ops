@@ -49,8 +49,7 @@ public final class CheckpointOffsetBackingStore extends MemoryOffsetBackingStore
             JsonConverter converter = new JsonConverter();
             converter.configure(Map.of("schemas.enable", "false"), true);
             BinlogOffset offset = session.restored();
-            byte[] part = converter.fromConnectData(
-                    session.name(), null, List.of(session.name(), offset.partition()));
+            byte[] part = converter.fromConnectData(session.name(), null, List.of(session.name(), offset.partition()));
             byte[] cursor = converter.fromConnectData(session.name(), null, offset.position());
             data.put(ByteBuffer.wrap(part), ByteBuffer.wrap(cursor));
         }

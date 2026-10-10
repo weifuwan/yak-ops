@@ -71,7 +71,8 @@ public final class MySqlBinlogEngine implements AutoCloseable {
             try {
                 engine.run();
                 if (!stopped) {
-                    failure.compareAndSet(null, new IllegalStateException("Debezium MySQL Binlog engine stopped unexpectedly"));
+                    failure.compareAndSet(
+                            null, new IllegalStateException("Debezium MySQL Binlog engine stopped unexpectedly"));
                 }
             } catch (Throwable error) {
                 if (!stopped) {
