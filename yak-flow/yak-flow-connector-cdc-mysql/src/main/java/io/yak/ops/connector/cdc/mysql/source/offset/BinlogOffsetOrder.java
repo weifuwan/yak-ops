@@ -1,6 +1,10 @@
 package io.yak.ops.connector.cdc.mysql.source.offset;
 
-import io.debezium.connector.mysql.GtidSet;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -31,13 +35,13 @@ public final class BinlogOffsetOrder {
         String leftGtids = text(left.position(), "gtids");
         String rightGtids = text(right.position(), "gtids");
         if (leftGtids != null && rightGtids != null) {
-            GtidSet leftSet = new GtidSet(leftGtids);
-            GtidSet rightSet = new GtidSet(rightGtids);
+            Map<String, List<GtidInterval>> leftSet = parseGtids(leftGtids);
+            Map<String, List<GtidInterval>> rightSet = parseGtids(rightGtids);
             if (!leftSet.equals(rightSet)) {
-                if (leftSet.isContainedWithin(rightSet)) {
+                if (isContainedWithin(leftSet, rightSet)) {
                     return -1;
                 }
-                if (rightSet.isContainedWithin(leftSet)) {
+                if (isContainedWithin(rightSet, leftSet)) {
                     return 1;
                 }
                 throw new IllegalArgumentException("Unordered MySQL GTID histories");
@@ -61,6 +65,78 @@ public final class BinlogOffsetOrder {
     /** True when a Binlog event has passed the normalized snapshot chunk's High watermark. */
     public static boolean isAfter(BinlogOffset event, BinlogOffset high) {
         return compare(event, high) > 0;
+    }
+
+    /**
+     * Normalizes comma-separated MySQL UUID:interval GTID sets.
+     *
+     * <p>Parsing here avoids binding checkpoint correctness to a Debezium-internal
+     * implementation that moved between connector versions.
+     */
+    private static Map<String, List<GtidInterval>> parseGtids(String encoded) {
+        Map<String, List<GtidInterval>> ranges = new LinkedHashMap<>();
+        for (String server : encoded.split(",", -1)) {
+            String[] pieces = server.trim().split(":", -1);
+            if (pieces.length < 2 || pieces[0].isBlank()) {
+                throw new IllegalArgumentException("Invalid MySQL GTID set");
+            }
+            List<GtidInterval> intervals = ranges.computeIfAbsent(
+                    pieces[0].toLowerCase(Locale.ROOT), ignored -> new ArrayList<>());
+            for (int i = 1; i < pieces.length; i++) {
+                String[] bounds = pieces[i].split("-", -1);
+                if (bounds.length < 1 || bounds.length > 2) {
+                    throw new IllegalArgumentException("Invalid MySQL GTID interval");
+                }
+                long first = Long.parseLong(bounds[0]);
+                long last = bounds.length == 2 ? Long.parseLong(bounds[1]) : first;
+                intervals.add(new GtidInterval(first, last));
+            }
+        }
+        Map<String, List<GtidInterval>> normalized = new LinkedHashMap<>();
+        for (Map.Entry<String, List<GtidInterval>> server : ranges.entrySet()) {
+            List<GtidInterval> sorted = new ArrayList<>(server.getValue());
+            sorted.sort(Comparator.comparingLong(GtidInterval::first));
+            List<GtidInterval> merged = new ArrayList<>();
+            for (GtidInterval current : sorted) {
+                if (!merged.isEmpty()) {
+                    GtidInterval previous = merged.getLast();
+                    if (current.first() <= previous.last()
+                            || (previous.last() < Long.MAX_VALUE && current.first() == previous.last() + 1)) {
+                        merged.set(merged.size() - 1, new GtidInterval(
+                                previous.first(), Math.max(previous.last(), current.last())));
+                        continue;
+                    }
+                }
+                merged.add(current);
+            }
+            normalized.put(server.getKey(), List.copyOf(merged));
+        }
+        return Map.copyOf(normalized);
+    }
+
+    private static boolean isContainedWithin(
+            Map<String, List<GtidInterval>> candidate, Map<String, List<GtidInterval>> enclosing) {
+        for (Map.Entry<String, List<GtidInterval>> server : candidate.entrySet()) {
+            List<GtidInterval> available = enclosing.get(server.getKey());
+            if (available == null) {
+                return false;
+            }
+            for (GtidInterval interval : server.getValue()) {
+                if (available.stream()
+                        .noneMatch(range -> range.first() <= interval.first() && range.last() >= interval.last())) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private record GtidInterval(long first, long last) {
+        private GtidInterval {
+            if (first < 1 || last < first) {
+                throw new IllegalArgumentException("Invalid MySQL GTID sequence numbers");
+            }
+        }
     }
 
     private static int compareEventRow(Map<String, Object> left, Map<String, Object> right) {
