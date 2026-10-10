@@ -43,9 +43,6 @@ public final class MySqlHybridSplitAssigner {
                     restored.finishedSnapshots(),
                     restored.totalSnapshotSplits(),
                     restored.snapshotPlanned());
-            if (phase == MySqlHybridEnumeratorState.Phase.SNAPSHOT && !snapshots.planned()) {
-                throw new IllegalArgumentException("Cannot restore an incomplete snapshot planning checkpoint");
-            }
         }
     }
 
@@ -124,9 +121,6 @@ public final class MySqlHybridSplitAssigner {
     public MySqlHybridEnumeratorState snapshot(long checkpointId) {
         if (checkpointId < 0) {
             throw new IllegalArgumentException("Checkpoint ID must not be negative");
-        }
-        if (phase == MySqlHybridEnumeratorState.Phase.SNAPSHOT && !snapshots.planned()) {
-            throw new IllegalStateException("Cannot checkpoint an unfinished MySQL snapshot plan");
         }
         if (phase == MySqlHybridEnumeratorState.Phase.HANDOFF) {
             handoffCheckpointId = checkpointId;
