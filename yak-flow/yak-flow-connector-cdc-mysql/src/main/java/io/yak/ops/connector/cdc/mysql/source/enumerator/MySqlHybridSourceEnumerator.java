@@ -75,6 +75,14 @@ public final class MySqlHybridSourceEnumerator
         if (restoredHandoff) {
             // HANDOFF snapshots are restored only from completed checkpoints.
             resumeStreaming();
+        } else if (assigner.phase() == MySqlHybridEnumeratorState.Phase.SNAPSHOT) {
+            // The asynchronous plan/high-watermark lookup has no durable side effects.
+            // A checkpoint taken while either call was in flight must restart it.
+            if (!assigner.snapshotPlanned()) {
+                planSnapshotAsync();
+            } else if (assigner.snapshotComplete()) {
+                captureHighAsync();
+            }
         }
     }
 
@@ -142,9 +150,11 @@ public final class MySqlHybridSourceEnumerator
 
     @Override
     public MySqlHybridEnumeratorState snapshotState(long checkpointId) {
-        if (!started || closed || planning || readingHigh) {
-            throw new IllegalStateException("Cannot checkpoint an in-progress MySQL hybrid metadata operation");
+        if (!started || closed) {
+            throw new IllegalStateException("Cannot checkpoint an inactive MySQL hybrid enumerator");
         }
+        // Keep the preceding durable state while JDBC metadata work is asynchronous.
+        // On restoration, start() reruns unfinished discovery/high-watermark capture.
         return assigner.snapshot(checkpointId);
     }
 
