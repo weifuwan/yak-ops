@@ -4,11 +4,12 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.util.ObjectUtils;
 import io.yak.ops.common.util.StringUtils;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalogQuery;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceColumn;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceTable;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceTablePath;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcColumnInfo;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcTableInfo;
+import io.yak.ops.connector.jdbc.database.catalog.factory.JdbcCatalogFactory;
+import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
 import io.yak.ops.plugin.datasource.api.exception.DataSourcePluginException;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
@@ -22,7 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
-import java.util.function.Function;
+import java.sql.Connection;
+import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -122,26 +124,41 @@ public class DataSourcePluginRegistry {
     }
 
     public List<String> catalogDatabases(String pluginType, String connectionJson, int timeoutSeconds) {
-        return catalogOperation(pluginType, connectionJson, timeoutSeconds, DataSourceCatalog::listDatabases);
+        return catalogOperation(pluginType, connectionJson, timeoutSeconds, JdbcCatalog::listDatabases);
     }
 
     public List<String> catalogSchemas(String pluginType, String connectionJson, int timeoutSeconds, String database) {
         return catalogOperation(pluginType, connectionJson, timeoutSeconds, catalog -> catalog.listSchemas(database));
     }
 
-    public List<DataSourceTable> catalogTables(
-            String pluginType, String connectionJson, int timeoutSeconds, DataSourceCatalogQuery query) {
-        return catalogOperation(pluginType, connectionJson, timeoutSeconds, catalog -> catalog.listTables(query));
+    public List<JdbcTableInfo> catalogTables(
+            String pluginType,
+            String connectionJson,
+            int timeoutSeconds,
+            String database,
+            String schema,
+            String keyword,
+            Integer limit) {
+        return catalogOperation(
+                pluginType,
+                connectionJson,
+                timeoutSeconds,
+                catalog -> catalog.listTableInfos(database, schema, keyword, limit));
     }
 
-    public Optional<DataSourceTable> catalogTable(
-            String pluginType, String connectionJson, int timeoutSeconds, DataSourceTablePath tablePath) {
-        return catalogOperation(pluginType, connectionJson, timeoutSeconds, catalog -> catalog.findTable(tablePath));
+    public Optional<JdbcTableInfo> catalogTable(
+            String pluginType, String connectionJson, int timeoutSeconds, TableId tableId) {
+        return catalogOperation(pluginType, connectionJson, timeoutSeconds, catalog -> catalog.findTable(tableId));
     }
 
-    public List<DataSourceColumn> catalogColumns(
-            String pluginType, String connectionJson, int timeoutSeconds, DataSourceTablePath tablePath) {
-        return catalogOperation(pluginType, connectionJson, timeoutSeconds, catalog -> catalog.listColumns(tablePath));
+    public List<JdbcColumnInfo> catalogColumns(
+            String pluginType, String connectionJson, int timeoutSeconds, TableId tableId) {
+        return catalogOperation(pluginType, connectionJson, timeoutSeconds, catalog -> catalog.getColumns(tableId));
+    }
+
+    public TableSchema catalogTableSchema(
+            String pluginType, String connectionJson, int timeoutSeconds, TableId tableId) {
+        return catalogOperation(pluginType, connectionJson, timeoutSeconds, catalog -> catalog.getTable(tableId));
     }
 
     public String maskConnectionJson(String pluginType, String connectionJson) {
@@ -153,18 +170,35 @@ public class DataSourcePluginRegistry {
     }
 
     private <T> T catalogOperation(
-            String pluginType, String connectionJson, int timeoutSeconds, Function<DataSourceCatalog, T> action) {
+            String pluginType, String connectionJson, int timeoutSeconds, CatalogAction<T> action) {
         DataSourcePlugin plugin = get(pluginType);
-        requireCapability(plugin, DataSourceCapability.CATALOG_METADATA, DataSourceErrorCode.CATALOG_QUERY_FAILED);
-        DataSourceConnection connection = parseConnection(plugin.descriptor().type(), connectionJson);
-        try {
-            DataSourceCatalog catalog = plugin.createCatalog(connection, Math.max(1, timeoutSeconds));
+        DataSourceConnection settings = parseConnection(plugin.descriptor().type(), connectionJson);
+        int safeTimeout = Math.max(1, timeoutSeconds);
+        // The request-scoped Catalog is never serialized or included in a job checkpoint.
+        // Each metadata operation obtains a fresh driver-isolated/SSH-aware Connection.
+        try (JdbcCatalog catalog = JdbcCatalogFactory.create(settings.jdbcUrl(), () -> {
+            try {
+                Connection opened = plugin.openConnection(settings, safeTimeout);
+                if (opened == null) {
+                    throw new SQLException("Datasource provider returned a null JDBC Connection");
+                }
+                return opened;
+            } catch (SQLException exception) {
+                throw exception;
+            } catch (Exception exception) {
+                throw new SQLException("Failed to open Datasource JDBC metadata connection", exception);
+            }
+        })) {
             return action.apply(catalog);
-        } catch (DataSourcePluginException exception) {
-            throw new DataSourceException(DataSourceErrorCode.CATALOG_QUERY_FAILED, exception.getMessage(), exception);
-        } catch (RuntimeException exception) {
-            throw new DataSourceException(DataSourceErrorCode.CATALOG_QUERY_FAILED, exception.getMessage(), exception);
+        } catch (SQLException | RuntimeException exception) {
+            throw new DataSourceException(
+                    DataSourceErrorCode.CATALOG_QUERY_FAILED, "读取数据源 Catalog 元数据失败", exception);
         }
+    }
+
+    @FunctionalInterface
+    private interface CatalogAction<T> {
+        T apply(JdbcCatalog catalog) throws SQLException;
     }
 
     private DataSourcePlugin get(String pluginType) {
