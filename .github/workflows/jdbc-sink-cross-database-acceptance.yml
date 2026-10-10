@@ -1,14 +1,8 @@
 name: JDBC Sink Cross-Database Acceptance
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/jdbc-sink-cross-database-acceptance.yml"
-      - "yak-flow/yak-flow-connector-jdbc/**"
-      - "yak-flow/yak-flow-connector-base/**"
-      - "yak-flow/yak-flow-runtime/**"
-      - "yak-ops-core/src/main/java/io/yak/ops/core/types/**"
-      - "yak-ops-core/src/main/java/io/yak/ops/core/data/**"
+  # Manual per-branch acceptance or reusable formal Release Gate; never run on ordinary PRs.
+  workflow_call:
   workflow_dispatch:
 
 permissions:

@@ -281,7 +281,9 @@ MySQL CDC Cross-Database Acceptance
 Data Sync Automation Acceptance
 ```
 
-日常 PR 可以按改动范围条件执行；正式 Release 必须 Full Sweep。
+日常 PR 只自动执行 Quality Check 的 4 个基础检查。JDBC Source 与 JDBC Sink 的真实数据库验收不再因 Connector 路径变化而自动触发；需要独立验收时，在 GitHub Actions 选择 `JDBC Source Acceptance` 或 `JDBC Sink Cross-Database Acceptance`，使用 `Run workflow` 选择要验证的分支。两条工作流保留全部 MySQL / PostgreSQL / Oracle 集成测试。
+
+正式 Release Gate 会复用并要求两条 JDBC 工作流全部通过，同时保留 Full Backend Acceptance 的完整产品验收门禁。当前 Full Backend Acceptance 仍在未恢复产品运行链路时 fail-closed；独立 JDBC 验收通过不等于产品 E2E 可发布。
 
 ### Gate 3 — Build & Deployment Acceptance
 
