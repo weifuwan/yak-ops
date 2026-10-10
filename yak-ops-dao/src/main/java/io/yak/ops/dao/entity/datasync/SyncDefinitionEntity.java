@@ -21,7 +21,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @TableName("yak_ops_data_sync_task")
-public class DataSyncTaskEntity extends BaseEntity {
+public class SyncDefinitionEntity extends BaseEntity {
 
     /** 任务所属 Workspace ID。 */
     private String workspaceId;

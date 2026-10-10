@@ -55,7 +55,8 @@ public class DefinitionRepositoryImpl extends BaseRepositoryImpl<DefinitionMappe
     public DefinitionEntity update(String workspaceId, DefinitionEntity entity) {
         if (StringUtils.isBlank(workspaceId) || entity == null || StringUtils.isBlank(entity.getId())) return null;
         int changed = definitionMapper.update(
-                entity, Wrappers.<DefinitionEntity>lambdaUpdate()
+                entity,
+                Wrappers.<DefinitionEntity>lambdaUpdate()
                         .eq(DefinitionEntity::getWorkspaceId, workspaceId)
                         .eq(DefinitionEntity::getId, entity.getId()));
         return changed > 0 ? entity : null;

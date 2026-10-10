@@ -3,7 +3,7 @@ package io.yak.ops.dao.mapper.datasync;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -16,7 +16,7 @@ import org.apache.ibatis.annotations.Select;
  * @since 2026-09-27
  */
 @Mapper
-public interface DataSyncTaskMapper extends BaseMapper<DataSyncTaskEntity> {
+public interface SyncDefinitionMapper extends BaseMapper<SyncDefinitionEntity> {
 
     /** 先对完整定义+专属配置联合分页，再按 ID 批量读取，避免分页偏移和 N+1。 */
     @Select("""

@@ -32,14 +32,14 @@ import io.yak.ops.dao.entity.datasync.DataSyncExecutionEventEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTableAttemptEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTableExecutionEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncAttemptRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncExecutionEventRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncInstancePageQuery;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableAttemptRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableExecutionRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -56,7 +56,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DataSyncInstanceServiceImpl implements DataSyncInstanceService {
 
     @Resource
-    private DataSyncTaskRepository taskRepository;
+    private SyncDefinitionRepository taskRepository;
 
     @Resource
     private DataSyncTableExecutionRepository tableExecutionRepository;
@@ -74,13 +74,13 @@ public class DataSyncInstanceServiceImpl implements DataSyncInstanceService {
     private DataSyncExecutionEventRepository executionEventRepository;
 
     @Resource
-    private DataSyncTaskDefinitionValidator definitionValidator;
+    private SyncDefinitionValidator definitionValidator;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public synchronized DataSyncInstanceVO runTask(String id) {
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncTaskEntity task = requireTask(workspaceId, id);
+        SyncDefinitionEntity task = requireTask(workspaceId, id);
         requireTaskStatus(task, DataSyncTaskStatus.PUBLISHED, "任务尚未上线");
         definitionValidator.validatePersistedTaskDefinition(task);
         if (instanceRepository.existsActiveByTask(workspaceId, task.getId())) {
@@ -184,7 +184,7 @@ public class DataSyncInstanceServiceImpl implements DataSyncInstanceService {
         }
 
         if (instance.getSyncType() == DataSyncType.REALTIME) {
-            DataSyncTaskEntity task =
+            SyncDefinitionEntity task =
                     taskRepository.queryById(workspaceId, instance.getTaskId()).orElse(null);
             if (task != null) updateDesiredState(workspaceId, task, DataSyncDesiredState.STOPPED);
         }
@@ -252,7 +252,7 @@ public class DataSyncInstanceServiceImpl implements DataSyncInstanceService {
         return toInstanceVO(requireInstance(workspaceId, id), true);
     }
 
-    private void updateDesiredState(String workspaceId, DataSyncTaskEntity task, DataSyncDesiredState desiredState) {
+    private void updateDesiredState(String workspaceId, SyncDefinitionEntity task, DataSyncDesiredState desiredState) {
         if (taskDesiredState(task) == desiredState) return;
         task.setDesiredState(desiredState);
         task.initUpdate();
@@ -261,21 +261,21 @@ public class DataSyncInstanceServiceImpl implements DataSyncInstanceService {
         }
     }
 
-    private DataSyncDesiredState taskDesiredState(DataSyncTaskEntity task) {
+    private DataSyncDesiredState taskDesiredState(SyncDefinitionEntity task) {
         return task.getDesiredState() == null ? DataSyncDesiredState.STOPPED : task.getDesiredState();
     }
 
-    private DataSyncTaskStatus taskStatus(DataSyncTaskEntity task) {
+    private DataSyncTaskStatus taskStatus(SyncDefinitionEntity task) {
         return task.getStatus() == null ? DataSyncTaskStatus.PUBLISHED : task.getStatus();
     }
 
-    private void requireTaskStatus(DataSyncTaskEntity task, DataSyncTaskStatus expected, String detail) {
+    private void requireTaskStatus(SyncDefinitionEntity task, DataSyncTaskStatus expected, String detail) {
         if (taskStatus(task) != expected) {
             throw new DataSyncException(DataSyncErrorCode.INVALID_TASK_STATUS, detail);
         }
     }
 
-    private DataSyncTaskEntity requireTask(String workspaceId, String id) {
+    private SyncDefinitionEntity requireTask(String workspaceId, String id) {
         if (StringUtils.isBlank(id)) throw new DataSyncException(DataSyncErrorCode.TASK_NOT_FOUND);
         return taskRepository
                 .queryById(workspaceId, id)

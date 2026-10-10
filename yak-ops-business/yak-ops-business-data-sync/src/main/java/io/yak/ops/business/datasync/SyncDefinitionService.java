@@ -6,12 +6,12 @@ import io.yak.ops.common.bean.vo.datasync.DataSyncTaskVO;
 import io.yak.ops.common.page.PagingData;
 
 /**
- * DataSyncTaskService 业务接口。
+ * SyncDefinitionService 业务接口。
  *
  * @author weifuwan
  * @since 2026-10-10
  */
-public interface DataSyncTaskService {
+public interface SyncDefinitionService {
 
     DataSyncTaskVO createTask(DataSyncTaskDTO dto);
 

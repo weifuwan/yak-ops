@@ -1,7 +1,7 @@
 package io.yak.ops.dao.repository.datasync;
 
 import io.yak.ops.common.page.PageData;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,18 +11,17 @@ import java.util.Optional;
  * @author weifuwan
  * @since 2026-09-27
  */
-public interface DataSyncTaskRepository { 
+public interface SyncDefinitionRepository {
     /** 新任务定义与插件配置在同一事务内创建，返回已初始化的投影。 */
-    DataSyncTaskEntity add(DataSyncTaskEntity entity);
+    SyncDefinitionEntity add(SyncDefinitionEntity entity);
 
+    PageData<SyncDefinitionEntity> queryPage(String workspaceId, SyncDefinitionPageQuery query);
 
-    PageData<DataSyncTaskEntity> queryPage(String workspaceId, DataSyncTaskPageQuery query);
+    Optional<SyncDefinitionEntity> queryById(String workspaceId, String id);
 
-    Optional<DataSyncTaskEntity> queryById(String workspaceId, String id);
+    List<SyncDefinitionEntity> queryRealtimeDesiredRunning();
 
-    List<DataSyncTaskEntity> queryRealtimeDesiredRunning();
-
-    DataSyncTaskEntity update(String workspaceId, DataSyncTaskEntity entity);
+    SyncDefinitionEntity update(String workspaceId, SyncDefinitionEntity entity);
 
     int deleteById(String workspaceId, String id);
 

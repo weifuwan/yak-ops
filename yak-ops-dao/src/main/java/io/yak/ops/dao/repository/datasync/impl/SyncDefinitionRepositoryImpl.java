@@ -11,12 +11,12 @@ import io.yak.ops.common.page.PageData;
 import io.yak.ops.common.util.BeanCopyUtils;
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.StringUtils;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
-import io.yak.ops.dao.mapper.datasync.DataSyncTaskMapper;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.mapper.datasync.SyncDefinitionMapper;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionPageQuery;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import jakarta.annotation.Resource;
@@ -37,12 +37,12 @@ import org.springframework.stereotype.Repository;
  * @since 2026-09-27
  */
 @Repository
-public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
+public class SyncDefinitionRepositoryImpl implements SyncDefinitionRepository {
 
     private static final String DATA_SYNC = "DATA_SYNC";
 
     @Resource
-    private DataSyncTaskMapper taskMapper;
+    private SyncDefinitionMapper taskMapper;
 
     @Resource
     private DefinitionRepository definitionRepository;
@@ -51,7 +51,7 @@ public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
     private DefinitionVersionRepository versionRepository;
 
     @Override
-    public DataSyncTaskEntity add(DataSyncTaskEntity entity) {
+    public SyncDefinitionEntity add(SyncDefinitionEntity entity) {
         if (entity == null || entity.getId() == null || entity.getWorkspaceId() == null) {
             throw new IllegalArgumentException("DATA_SYNC definition requires initialized ID and workspace");
         }
@@ -63,9 +63,9 @@ public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
     }
 
     @Override
-    public PageData<DataSyncTaskEntity> queryPage(String workspaceId, DataSyncTaskPageQuery query) {
-        DataSyncTaskPageQuery condition =
-                query == null ? new DataSyncTaskPageQuery(1, 10, null, null, null, null, null) : query;
+    public PageData<SyncDefinitionEntity> queryPage(String workspaceId, SyncDefinitionPageQuery query) {
+        SyncDefinitionPageQuery condition =
+                query == null ? new SyncDefinitionPageQuery(1, 10, null, null, null, null, null) : query;
         Page<String> page = Page.of(Math.max(1, condition.pageNo()), Math.max(1, condition.pageSize()));
         IPage<String> matched = taskMapper.selectDefinitionPageIds(
                 page,
@@ -84,20 +84,20 @@ public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
     }
 
     @Override
-    public Optional<DataSyncTaskEntity> queryById(String workspaceId, String id) {
+    public Optional<SyncDefinitionEntity> queryById(String workspaceId, String id) {
         if (StringUtils.isBlank(workspaceId) || StringUtils.isBlank(id)) return Optional.empty();
         Optional<DefinitionEntity> definition = definitionRepository.queryById(workspaceId, id);
         if (definition.isEmpty() || !DATA_SYNC.equals(definition.get().getTaskType())) {
             return Optional.empty();
         }
-        DataSyncTaskEntity detail = taskMapper.selectOne(Wrappers.<DataSyncTaskEntity>lambdaQuery()
-                .eq(DataSyncTaskEntity::getWorkspaceId, workspaceId)
-                .eq(DataSyncTaskEntity::getId, id));
+        SyncDefinitionEntity detail = taskMapper.selectOne(Wrappers.<SyncDefinitionEntity>lambdaQuery()
+                .eq(SyncDefinitionEntity::getWorkspaceId, workspaceId)
+                .eq(SyncDefinitionEntity::getId, id));
         return Optional.ofNullable(detail).map(value -> join(value, definition.get()));
     }
 
     @Override
-    public List<DataSyncTaskEntity> queryRealtimeDesiredRunning() {
+    public List<SyncDefinitionEntity> queryRealtimeDesiredRunning() {
         List<String> ids = taskMapper.selectRealtimeDesiredRunningIds();
         if (ids.isEmpty()) return List.of();
         Map<String, DefinitionEntity> definitions = index(definitionRepository.queryByIdsForRecovery(ids));
@@ -107,21 +107,22 @@ public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
     }
 
     @Override
-    public DataSyncTaskEntity update(String workspaceId, DataSyncTaskEntity entity) {
+    public SyncDefinitionEntity update(String workspaceId, SyncDefinitionEntity entity) {
         if (StringUtils.isBlank(workspaceId) || entity == null || StringUtils.isBlank(entity.getId())) return null;
-        DefinitionEntity existing = definitionRepository.queryById(workspaceId, entity.getId()).orElse(null);
+        DefinitionEntity existing =
+                definitionRepository.queryById(workspaceId, entity.getId()).orElse(null);
         if (existing == null || !DATA_SYNC.equals(existing.getTaskType())) return null;
-        if (entity.getDefinitionVersion() == null
-                || entity.getDefinitionVersion() < existing.getDefinitionVersion()) {
+        if (entity.getDefinitionVersion() == null || entity.getDefinitionVersion() < existing.getDefinitionVersion()) {
             throw new IllegalArgumentException("Stale DATA_SYNC definition version");
         }
 
         DefinitionEntity definition = toDefinition(entity);
         if (definitionRepository.update(workspaceId, definition) == null) return null;
         int updated = taskMapper.update(
-                entity, Wrappers.<DataSyncTaskEntity>lambdaUpdate()
-                        .eq(DataSyncTaskEntity::getWorkspaceId, workspaceId)
-                        .eq(DataSyncTaskEntity::getId, entity.getId()));
+                entity,
+                Wrappers.<SyncDefinitionEntity>lambdaUpdate()
+                        .eq(SyncDefinitionEntity::getWorkspaceId, workspaceId)
+                        .eq(SyncDefinitionEntity::getId, entity.getId()));
         if (updated <= 0) {
             throw new IllegalStateException("Missing DATA_SYNC parameters for definition " + entity.getId());
         }
@@ -134,9 +135,9 @@ public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
     @Override
     public int deleteById(String workspaceId, String id) {
         if (StringUtils.isBlank(workspaceId) || StringUtils.isBlank(id)) return 0;
-        int removed = taskMapper.delete(Wrappers.<DataSyncTaskEntity>lambdaQuery()
-                .eq(DataSyncTaskEntity::getWorkspaceId, workspaceId)
-                .eq(DataSyncTaskEntity::getId, id));
+        int removed = taskMapper.delete(Wrappers.<SyncDefinitionEntity>lambdaQuery()
+                .eq(SyncDefinitionEntity::getWorkspaceId, workspaceId)
+                .eq(SyncDefinitionEntity::getId, id));
         if (removed <= 0) return 0;
         if (definitionRepository.deleteById(workspaceId, id) != 1) {
             throw new IllegalStateException("Missing Task Definition for DATA_SYNC " + id);
@@ -150,16 +151,16 @@ public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
         return definitionRepository.existsByName(workspaceId, name, excludeId);
     }
 
-    private List<DataSyncTaskEntity> queryByIds(String workspaceId, List<String> ids) {
+    private List<SyncDefinitionEntity> queryByIds(String workspaceId, List<String> ids) {
         if (ids == null || ids.isEmpty()) return List.of();
         Map<String, DefinitionEntity> definitions = index(definitionRepository.queryByIds(workspaceId, ids));
-        Map<String, DataSyncTaskEntity> configurations = new HashMap<>();
-        for (DataSyncTaskEntity entity : taskMapper.selectBatchIds(ids)) {
+        Map<String, SyncDefinitionEntity> configurations = new HashMap<>();
+        for (SyncDefinitionEntity entity : taskMapper.selectBatchIds(ids)) {
             configurations.put(entity.getId(), entity);
         }
         return ids.stream()
                 .map(id -> {
-                    DataSyncTaskEntity config = configurations.get(id);
+                    SyncDefinitionEntity config = configurations.get(id);
                     if (config == null) throw new IllegalStateException("Missing DATA_SYNC parameters for " + id);
                     return join(config, requireDefinition(definitions, id));
                 })
@@ -182,7 +183,7 @@ public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
         return definition;
     }
 
-    private DataSyncTaskEntity join(DataSyncTaskEntity config, DefinitionEntity definition) {
+    private SyncDefinitionEntity join(SyncDefinitionEntity config, DefinitionEntity definition) {
         config.setName(definition.getName());
         config.setStatus(DataSyncTaskStatus.valueOf(definition.getStatus().name()));
         config.setDefinitionVersion(definition.getDefinitionVersion());
@@ -194,14 +195,14 @@ public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
         return config;
     }
 
-    private DefinitionEntity toDefinition(DataSyncTaskEntity sync) {
+    private DefinitionEntity toDefinition(SyncDefinitionEntity sync) {
         DefinitionEntity definition = BeanCopyUtils.copy(sync, DefinitionEntity.class, "status");
         definition.setTaskType(DATA_SYNC);
         definition.setStatus(DefinitionStatus.valueOf(sync.getStatus().name()));
         return definition;
     }
 
-    private DefinitionVersionEntity toVersion(DataSyncTaskEntity sync) {
+    private DefinitionVersionEntity toVersion(SyncDefinitionEntity sync) {
         DefinitionVersionEntity version = new DefinitionVersionEntity();
         version.setWorkspaceId(sync.getWorkspaceId());
         version.setDefinitionId(sync.getId());
@@ -213,7 +214,7 @@ public class DataSyncTaskRepositoryImpl implements DataSyncTaskRepository {
         return version;
     }
 
-    private String parametersSnapshot(DataSyncTaskEntity sync) {
+    private String parametersSnapshot(SyncDefinitionEntity sync) {
         ObjectNode params = JSONUtils.createObjectNode();
         params.put("syncType", sync.getSyncType().name());
         params.put("writeMode", sync.getWriteMode().name());

@@ -14,7 +14,7 @@ import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.connector.jdbc.database.JdbcSchemaCompatibility;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import jakarta.annotation.Resource;
 import java.util.HashSet;
@@ -26,13 +26,13 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * DataSyncTaskDefinitionValidator 的业务职责实现。
+ * SyncDefinitionValidator 的业务职责实现。
  *
  * @author weifuwan
  * @since 2026-10-10
  */
 @Component
-public class DataSyncTaskDefinitionValidator {
+public class SyncDefinitionValidator {
 
     private static final Set<String> REALTIME_TARGET_TYPES = Set.of("MYSQL", "POSTGRE_SQL", "ORACLE");
 
@@ -45,7 +45,7 @@ public class DataSyncTaskDefinitionValidator {
     /**
      * 拒绝历史多表任务被静默投影为首张表。旧 Route 数据只读，不再参与新任务双写。
      */
-    public void requireSingleTableTask(DataSyncTaskEntity task) {
+    public void requireSingleTableTask(SyncDefinitionEntity task) {
         if (task == null || task.getId() == null) {
             throw new DataSyncException(DataSyncErrorCode.INVALID_TASK);
         }
@@ -63,7 +63,7 @@ public class DataSyncTaskDefinitionValidator {
         }
     }
 
-    public void validatePersistedTaskDefinition(DataSyncTaskEntity task) {
+    public void validatePersistedTaskDefinition(SyncDefinitionEntity task) {
         requireSingleTableTask(task);
         DataSyncWriteMode mode = task.getWriteMode() == null ? DataSyncWriteMode.APPEND : task.getWriteMode();
         validateWriteMode(task.getSyncType(), mode);

@@ -16,7 +16,7 @@ import io.yak.ops.common.enums.datasync.DataSyncType;
  * @author weifuwan
  * @since 2026-09-27
  */
-public record DataSyncTaskPageQuery(
+public record SyncDefinitionPageQuery(
         int pageNo,
         int pageSize,
         String keyword,

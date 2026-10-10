@@ -2,7 +2,7 @@ package io.yak.ops.boot.controller.datasync.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.yak.ops.business.datasync.DataSyncTaskService;
+import io.yak.ops.business.datasync.SyncDefinitionService;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskQueryDTO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTaskVO;
@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class DefinitionController {
 
     @Resource
-    private DataSyncTaskService taskService;
+    private SyncDefinitionService taskService;
 
     @Resource
     private AuthenticationManager authenticationManager;

@@ -1,7 +1,7 @@
 package io.yak.ops.business.datasync.impl;
 
 import io.yak.ops.business.datasync.DataSyncScheduleService;
-import io.yak.ops.business.datasync.DataSyncTaskService;
+import io.yak.ops.business.datasync.SyncDefinitionService;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
 import io.yak.ops.common.bean.dto.datasync.DataSyncRealtimeConfigDTO;
@@ -28,11 +28,11 @@ import io.yak.ops.common.util.CollectionUtils;
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncScheduleEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionPageQuery;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import jakarta.annotation.Resource;
 import java.util.HashMap;
 import java.util.List;
@@ -42,16 +42,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * DataSyncTaskService 的业务职责实现。
+ * SyncDefinitionService 的业务职责实现。
  *
  * @author weifuwan
  * @since 2026-10-10
  */
 @Service
-public class DataSyncTaskServiceImpl implements DataSyncTaskService {
+public class SyncDefinitionServiceImpl implements SyncDefinitionService {
 
     @Resource
-    private DataSyncTaskRepository taskRepository;
+    private SyncDefinitionRepository taskRepository;
 
     @Resource
     private DataSyncScheduleRepository scheduleRepository;
@@ -63,7 +63,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
     private DataSyncScheduleService scheduleService;
 
     @Resource
-    private DataSyncTaskDefinitionValidator definitionValidator;
+    private SyncDefinitionValidator definitionValidator;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -85,7 +85,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
         DataSyncTableRouteDTO resolvedScope = definitionValidator.resolveTaskScope(dto);
         definitionValidator.validateTaskDefinition(syncType, dto, resolvedScope);
 
-        DataSyncTaskEntity entity = new DataSyncTaskEntity();
+        SyncDefinitionEntity entity = new SyncDefinitionEntity();
         entity.setWorkspaceId(workspaceId);
         entity.setName(name);
         entity.setSyncType(syncType);
@@ -112,7 +112,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
     public DataSyncTaskVO updateTask(String id, DataSyncTaskDTO dto, String operatorUserId) {
         if (dto == null) throw new DataSyncException(DataSyncErrorCode.INVALID_TASK);
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncTaskEntity entity = requireTask(workspaceId, id);
+        SyncDefinitionEntity entity = requireTask(workspaceId, id);
         definitionValidator.requireSingleTableTask(entity);
         requireTaskStatus(entity, DataSyncTaskStatus.UNPUBLISHED, "已上线任务请先下线后再编辑");
         String name = StringUtils.trimToNull(dto.getName());
@@ -155,7 +155,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
         }
 
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncTaskPageQuery query = new DataSyncTaskPageQuery(
+        SyncDefinitionPageQuery query = new SyncDefinitionPageQuery(
                 dto.getPageNo(),
                 dto.getPageSize(),
                 StringUtils.trimToNull(dto.getKeyword()),
@@ -163,10 +163,10 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
                 dto.getStatus(),
                 StringUtils.trimToNull(dto.getSourceDataSourceId()),
                 StringUtils.trimToNull(dto.getTargetDataSourceId()));
-        PageData<DataSyncTaskEntity> page = taskRepository.queryPage(workspaceId, query);
+        PageData<SyncDefinitionEntity> page = taskRepository.queryPage(workspaceId, query);
         List<String> offlineTaskIds = page.records().stream()
                 .filter(task -> task.getSyncType() == DataSyncType.OFFLINE)
-                .map(DataSyncTaskEntity::getId)
+                .map(SyncDefinitionEntity::getId)
                 .toList();
         Map<String, DataSyncScheduleEntity> scheduleByTask = new HashMap<>();
         if (!offlineTaskIds.isEmpty()) {
@@ -187,7 +187,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
     @Transactional(rollbackFor = Exception.class)
     public DataSyncTaskVO publishTask(String id, String operatorUserId) {
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncTaskEntity task = requireTask(workspaceId, id);
+        SyncDefinitionEntity task = requireTask(workspaceId, id);
         requireTaskStatus(task, DataSyncTaskStatus.UNPUBLISHED, "任务已经上线");
         definitionValidator.validatePersistedTaskDefinition(task);
         task.setStatus(DataSyncTaskStatus.PUBLISHED);
@@ -208,7 +208,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
     @Transactional(rollbackFor = Exception.class)
     public DataSyncTaskVO unpublishTask(String id, String operatorUserId) {
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncTaskEntity task = requireTask(workspaceId, id);
+        SyncDefinitionEntity task = requireTask(workspaceId, id);
         requireTaskStatus(task, DataSyncTaskStatus.PUBLISHED, "任务已经下线");
         if (instanceRepository.existsActiveByTask(workspaceId, task.getId())) {
             throw new DataSyncException(DataSyncErrorCode.ACTIVE_INSTANCE_EXISTS, "请先停止当前运行实例再下线任务");
@@ -227,7 +227,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteTask(String id) {
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncTaskEntity entity = requireTask(workspaceId, id);
+        SyncDefinitionEntity entity = requireTask(workspaceId, id);
         definitionValidator.requireSingleTableTask(entity);
         requireTaskStatus(entity, DataSyncTaskStatus.UNPUBLISHED, "已上线任务请先下线后再删除");
         if (instanceRepository.existsActiveByTask(workspaceId, entity.getId())) {
@@ -241,7 +241,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
     }
 
     private boolean executableDefinitionChanged(
-            DataSyncTaskEntity entity, DataSyncTaskDTO dto, DataSyncTableRouteDTO resolvedScope) {
+            SyncDefinitionEntity entity, DataSyncTaskDTO dto, DataSyncTableRouteDTO resolvedScope) {
         return !Objects.equals(
                         entity.getSourceDataSourceId(),
                         dto.getSourceDataSourceId().trim())
@@ -269,7 +269,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
         return JSONUtils.readTree(left).equals(JSONUtils.readTree(right));
     }
 
-    private void applyDefinition(DataSyncTaskEntity entity, DataSyncTaskDTO dto, DataSyncTableRouteDTO resolvedScope) {
+    private void applyDefinition(SyncDefinitionEntity entity, DataSyncTaskDTO dto, DataSyncTableRouteDTO resolvedScope) {
         entity.setSourceDataSourceId(dto.getSourceDataSourceId().trim());
         entity.setSourceDatabase(resolvedScope.getSourceDatabase());
         entity.setSourceSchema(resolvedScope.getSourceSchema());
@@ -309,7 +309,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
         normalizeRuntimePolicy(dto.getRuntimeConfig());
     }
 
-    private void materializeUpdatePolicies(DataSyncTaskEntity entity, DataSyncTaskDTO dto) {
+    private void materializeUpdatePolicies(SyncDefinitionEntity entity, DataSyncTaskDTO dto) {
         if (dto.getRetryPolicy() == null) {
             dto.setRetryPolicy(retryPolicyConfig(entity.getRetryPolicy()));
         } else {
@@ -410,25 +410,25 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
         return writeMode;
     }
 
-    private DataSyncWriteMode taskWriteMode(DataSyncTaskEntity task) {
+    private DataSyncWriteMode taskWriteMode(SyncDefinitionEntity task) {
         return task.getWriteMode() == null ? DataSyncWriteMode.APPEND : task.getWriteMode();
     }
 
-    private DataSyncTaskStatus taskStatus(DataSyncTaskEntity task) {
+    private DataSyncTaskStatus taskStatus(SyncDefinitionEntity task) {
         return task.getStatus() == null ? DataSyncTaskStatus.PUBLISHED : task.getStatus();
     }
 
-    private DataSyncDesiredState taskDesiredState(DataSyncTaskEntity task) {
+    private DataSyncDesiredState taskDesiredState(SyncDefinitionEntity task) {
         return task.getDesiredState() == null ? DataSyncDesiredState.STOPPED : task.getDesiredState();
     }
 
-    private void requireTaskStatus(DataSyncTaskEntity task, DataSyncTaskStatus expected, String detail) {
+    private void requireTaskStatus(SyncDefinitionEntity task, DataSyncTaskStatus expected, String detail) {
         if (taskStatus(task) != expected) {
             throw new DataSyncException(DataSyncErrorCode.INVALID_TASK_STATUS, detail);
         }
     }
 
-    private DataSyncTaskEntity requireTask(String workspaceId, String id) {
+    private SyncDefinitionEntity requireTask(String workspaceId, String id) {
         if (StringUtils.isBlank(id)) throw new DataSyncException(DataSyncErrorCode.TASK_NOT_FOUND);
         return taskRepository
                 .queryById(workspaceId, id)
@@ -441,7 +441,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
         }
     }
 
-    private DataSyncTaskVO toTaskListVO(DataSyncTaskEntity source, DataSyncScheduleEntity schedule) {
+    private DataSyncTaskVO toTaskListVO(SyncDefinitionEntity source, DataSyncScheduleEntity schedule) {
         DataSyncTaskVO target = toTaskVO(source);
         if (schedule != null) {
             target.setScheduleCronExpression(schedule.getCronExpression());
@@ -451,11 +451,11 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
         return target;
     }
 
-    private DataSyncTaskVO toTaskVO(DataSyncTaskEntity source) {
+    private DataSyncTaskVO toTaskVO(SyncDefinitionEntity source) {
         return toTaskVOInternal(source);
     }
 
-    private DataSyncTaskVO toTaskVOInternal(DataSyncTaskEntity source) {
+    private DataSyncTaskVO toTaskVOInternal(SyncDefinitionEntity source) {
         DataSyncTaskVO target = BeanCopyUtils.copy(
                 source,
                 DataSyncTaskVO.class,
