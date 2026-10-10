@@ -5,6 +5,7 @@ import io.yak.ops.core.types.TableSchema;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Exposes read-only database, schema and table metadata for JDBC source/sink planning.
@@ -43,6 +44,39 @@ public interface JdbcCatalog extends AutoCloseable, Serializable {
      * @throws SQLException if listing the namespace fails
      */
     List<TableId> listTables(String database, String schema) throws SQLException;
+
+    /**
+     * Lists physical tables and views with their native type and remarks.
+     *
+     * @param database optional database/catalog selector
+     * @param schema optional schema/owner selector
+     * @param keyword optional case-insensitive table-name substring
+     * @param limit optional maximum result count, capped at 500
+     * @return bounded table metadata in JDBC discovery order
+     * @throws SQLException if JDBC metadata discovery fails
+     */
+    List<JdbcTableInfo> listTableInfos(String database, String schema, String keyword, Integer limit)
+            throws SQLException;
+
+    /**
+     * Resolves a single physical table or view using exact JDBC identifiers.
+     *
+     * @param tableId source table identity
+     * @return the physical object if visible
+     * @throws SQLException if metadata discovery fails
+     */
+    Optional<JdbcTableInfo> findTable(TableId tableId) throws SQLException;
+
+    /**
+     * Lists native column descriptions and stable primary-key ordinals.
+     *
+     * <p>Use getTable(TableId) for vendor-normalized logical types.
+     *
+     * @param tableId exact physical table
+     * @return native JDBC column metadata ordered by ORDINAL_POSITION
+     * @throws SQLException when the table is absent or metadata is inconsistent
+     */
+    List<JdbcColumnInfo> getColumns(TableId tableId) throws SQLException;
 
     /**
      * Resolves a table's ordered columns and declared primary-key sequence.
