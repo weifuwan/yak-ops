@@ -88,6 +88,9 @@ class DataSyncUpsertContractTest {
                     if ("queryCatalogTable".equals(method.getName())) {
                         return "source".equals(args[0]) ? sourceTable : targetTable;
                     }
+                    if ("queryTableSchema".equals(method.getName())) {
+                        return DataSyncTestTableSchema.fromColumns("source".equals(args[0]) ? sourceColumns : targetColumns);
+                    }
                     if ("queryCatalogColumns".equals(method.getName())) {
                         return "source".equals(args[0]) ? sourceColumns : targetColumns;
                     }
