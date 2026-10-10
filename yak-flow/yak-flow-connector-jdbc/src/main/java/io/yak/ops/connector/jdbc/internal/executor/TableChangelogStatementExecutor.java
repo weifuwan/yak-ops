@@ -1,8 +1,10 @@
-package io.yak.ops.connector.jdbc.sink.executor;
+package io.yak.ops.connector.jdbc.internal.executor;
 
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.sink.JdbcTableWritePlan;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
+import io.yak.ops.core.data.RowData;
+import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
 import java.sql.Connection;
@@ -15,7 +17,8 @@ import java.util.Objects;
 /**
  * Table-aware statement selection with input-order preservation.
  *
- * <p>This executor retains no records. Consecutive writes to one statement use a JDBC
+ * <p>Only the buffer owns detached rows. This executor temporarily references a
+ * before-image during synchronous flush. Consecutive writes to one statement use a JDBC
  * driver batch; changing table or mutation kind executes the previous batch before adding
  * the next record. All statements share the OutputFormat's single transaction. This avoids
  * the reordering introduced by grouping independent table and key buffers.
@@ -26,6 +29,8 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
     private final Map<TableId, TableSimpleStatementExecutor> writes = new LinkedHashMap<>();
     private final Map<TableId, TableSimpleStatementExecutor> deletes = new LinkedHashMap<>();
     private TableSimpleStatementExecutor active;
+    private TableId awaitingUpdateAfter;
+    private TableRecord beforeInExecution;
 
     public TableChangelogStatementExecutor(JdbcDialect dialect, List<JdbcTableWritePlan> plans) {
         Objects.requireNonNull(dialect, "dialect");
@@ -50,14 +55,43 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
         }
     }
 
-    /** Validate and detach the record once, before it enters the buffered executor. */
+    /**
+     * Validates adjacent UPDATE_BEFORE / UPDATE_AFTER events before entering the sole row buffer.
+     *
+     * <p>Flink CDC carries both images in one event, while the current YakFlow TableRecord
+     * carries one RowKind. Until an atomic update contract exists, split updates must arrive
+     * consecutively on the same Sink subtask; malformed or interleaved pairs fail closed.
+     */
     public TableRecord snapshot(TableRecord record) {
         Objects.requireNonNull(record, "record");
         JdbcTableWritePlan plan = routes.get(record.tableId());
         if (plan == null) {
             throw new IllegalArgumentException("JDBC Sink received an unknown source table");
         }
-        return new TableRecord(record.tableId(), record.rowKind(), plan.project(record.row(), record.rowKind()));
+        if (awaitingUpdateAfter != null
+                && (record.rowKind() != RowKind.UPDATE_AFTER || !awaitingUpdateAfter.equals(record.tableId()))) {
+            throw new IllegalArgumentException("UPDATE_BEFORE must be followed by UPDATE_AFTER for the same table");
+        }
+        TableRecord detached =
+                new TableRecord(record.tableId(), record.rowKind(), plan.project(record.row(), record.rowKind()));
+        if (record.rowKind() == RowKind.UPDATE_BEFORE) {
+            awaitingUpdateAfter = record.tableId();
+        } else if (awaitingUpdateAfter != null) {
+            awaitingUpdateAfter = null;
+        }
+        return detached;
+    }
+
+    /** Only complete UPDATE pairs may be committed by an automatic batch trigger. */
+    public boolean canAutomaticallyFlush() {
+        return awaitingUpdateAfter == null;
+    }
+
+    /** A checkpoint must not acknowledge a partial UPDATE_BEFORE/UPDATE_AFTER pair. */
+    public void requireCompleteUpdate() {
+        if (awaitingUpdateAfter != null) {
+            throw new IllegalStateException("Cannot checkpoint or finish an incomplete JDBC UPDATE pair");
+        }
     }
 
     @Override
@@ -81,23 +115,49 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
 
     @Override
     public void addToBatch(TableRecord record) throws SQLException {
-        TableSimpleStatementExecutor next =
-                switch (record.rowKind()) {
-                    case INSERT, UPDATE_AFTER -> writes.get(record.tableId());
-                    case DELETE, UPDATE_BEFORE -> deletes.get(record.tableId());
-                };
+        switch (record.rowKind()) {
+            case UPDATE_BEFORE -> {
+                if (beforeInExecution != null) {
+                    throw new IllegalStateException("Nested JDBC UPDATE_BEFORE is not supported");
+                }
+                // Borrow a reference from the only row buffer for the duration of this flush.
+                beforeInExecution = record;
+            }
+            case UPDATE_AFTER -> {
+                if (beforeInExecution != null) {
+                    TableRecord before = beforeInExecution;
+                    beforeInExecution = null;
+                    JdbcTableWritePlan plan = routes.get(record.tableId());
+                    if (!before.tableId().equals(record.tableId())) {
+                        throw new IllegalStateException("JDBC UPDATE pair crosses source tables");
+                    }
+                    if (!plan.hasSamePrimaryKey(before.row(), record.row())) {
+                        append(deletes.get(record.tableId()), before.row());
+                    }
+                }
+                append(writes.get(record.tableId()), record.row());
+            }
+            case INSERT -> append(writes.get(record.tableId()), record.row());
+            case DELETE -> append(deletes.get(record.tableId()), record.row());
+        }
+    }
+
+    private void append(TableSimpleStatementExecutor next, RowData row) throws SQLException {
         if (next == null) {
             throw new IllegalStateException("JDBC statement is unavailable for the record kind");
         }
         if (active != null && active != next) {
             active.executeBatch();
         }
-        next.addToBatch(record.row());
+        next.addToBatch(row);
         active = next;
     }
 
     @Override
     public void executeBatch() throws SQLException {
+        if (beforeInExecution != null) {
+            throw new IllegalStateException("Cannot execute an incomplete JDBC UPDATE pair");
+        }
         if (active != null) {
             active.executeBatch();
             active = null;
@@ -107,6 +167,7 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
     @Override
     public void closeStatements() throws SQLException {
         active = null;
+        beforeInExecution = null;
         SQLException failure = null;
         for (TableSimpleStatementExecutor statement : writes.values()) {
             try {

@@ -1,4 +1,4 @@
-package io.yak.ops.connector.jdbc.sink.executor;
+package io.yak.ops.connector.jdbc.internal.executor;
 
 import java.sql.Connection;
 import java.sql.SQLException;

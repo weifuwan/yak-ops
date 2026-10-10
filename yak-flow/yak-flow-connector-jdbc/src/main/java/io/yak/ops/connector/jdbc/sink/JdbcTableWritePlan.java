@@ -91,6 +91,31 @@ public record JdbcTableWritePlan(
         };
     }
 
+    /**
+     * Compares the before-image key projection with the after-image target row.
+     *
+     * <p>Rows are already detached by project(). Key comparisons do not use SQL string
+     * rendering and also support binary primary keys.
+     */
+    public boolean hasSamePrimaryKey(RowData beforeKeys, RowData afterRow) {
+        Objects.requireNonNull(beforeKeys, "beforeKeys");
+        Objects.requireNonNull(afterRow, "afterRow");
+        if (beforeKeys.getArity() != schema.primaryKeys().size() || afterRow.getArity() != schema.columnCount()) {
+            throw new IllegalArgumentException("JDBC UPDATE row/key arity does not match the write plan");
+        }
+        for (int index = 0; index < schema.primaryKeys().size(); index++) {
+            Object oldKey = beforeKeys.getField(index);
+            Object newKey = afterRow.getField(targetIndex(schema.primaryKeys().get(index)));
+            if (oldKey == null || newKey == null) {
+                throw new IllegalArgumentException("JDBC UPDATE primary keys must not be null");
+            }
+            if (!Objects.deepEquals(oldKey, newKey)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /** Returns an immutable-schema binder for the target's ordered primary-key columns. */
     public TableSchema keySchema() {
         List<Column> keys = new ArrayList<>(schema.primaryKeys().size());
@@ -130,6 +155,13 @@ public record JdbcTableWritePlan(
         GenericRowData projected = new GenericRowData(schema.columnCount());
         for (int index = 0; index < projected.getArity(); index++) {
             projected.setField(index, row.getField(sourcePositions.get(index)));
+        }
+        if (writeMode == JdbcWriteMode.UPSERT) {
+            for (String key : schema.primaryKeys()) {
+                if (projected.isNullAt(targetIndex(key))) {
+                    throw new IllegalArgumentException("JDBC UPSERT primary keys must not be null");
+                }
+            }
         }
         return projected;
     }

@@ -1,7 +1,8 @@
-package io.yak.ops.connector.jdbc.sink;
+package io.yak.ops.connector.jdbc.sink.writer;
 
 import io.yak.ops.connector.base.sink.writer.BatchFlushPolicy;
 import io.yak.ops.connector.base.sink.writer.BatchingSinkWriterBase;
+import io.yak.ops.connector.jdbc.internal.JdbcOutputFormat;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
 import io.yak.ops.core.data.TableRecord;
 

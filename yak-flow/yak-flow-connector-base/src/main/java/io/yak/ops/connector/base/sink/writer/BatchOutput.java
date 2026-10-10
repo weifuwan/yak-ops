@@ -16,7 +16,18 @@ public interface BatchOutput<T> extends AutoCloseable {
     /** Number of records currently awaiting a successful flush. */
     int bufferedRecords();
 
-    /** Flushes the output's pending records; a failure must not silently discard them. */
+    /**
+     * Whether automatic size and processing-time triggers may flush this output.
+     *
+     * <p>An output containing the first half of an indivisible update can temporarily
+     * defer automatic flush without splitting the pair. Explicit checkpoint and end-of-input
+     * flushes still invoke flush() and must reject incomplete input, not acknowledge it.
+     */
+    default boolean canAutomaticallyFlush() {
+        return true;
+    }
+
+    /** Flushes pending records; incomplete logical updates and failed writes must be rejected. */
     void flush() throws Exception;
 
     /**

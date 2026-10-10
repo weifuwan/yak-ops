@@ -127,6 +127,38 @@ class BatchingSinkWriterBaseTest {
     }
 
     @Test
+    void defersAutomaticFlushForAnIncompleteRecordSequence() throws Exception {
+        TestClock clock = new TestClock();
+        TestOutput output = new TestOutput();
+        TestWriter writer = new TestWriter(output, new BatchFlushPolicy(1, Duration.ofMillis(25)), context(clock));
+        output.allowAutomaticFlush = false;
+        writer.write(1, RECORD_CONTEXT);
+        assertTrue(output.committed.isEmpty());
+        assertEquals(0, clock.timers.size());
+
+        output.allowAutomaticFlush = true;
+        writer.write(2, RECORD_CONTEXT);
+        assertEquals(List.of(List.of(1, 2)), output.committed);
+        writer.close();
+    }
+
+    @Test
+    void timedCallbackCannotCommitAnIncompleteRecordSequence() throws Exception {
+        TestClock clock = new TestClock();
+        TestOutput output = new TestOutput();
+        TestWriter writer = new TestWriter(output, new BatchFlushPolicy(10, Duration.ofMillis(25)), context(clock));
+        writer.write(1, RECORD_CONTEXT);
+        output.allowAutomaticFlush = false;
+        clock.fire(0);
+        assertTrue(output.committed.isEmpty());
+        output.allowAutomaticFlush = true;
+        writer.write(2, RECORD_CONTEXT);
+        clock.fire(1);
+        assertEquals(List.of(List.of(1, 2)), output.committed);
+        writer.close();
+    }
+
+    @Test
     void rejectsInvalidPolicyAndTimerlessTimedWriter() {
         assertThrows(IllegalArgumentException.class, () -> new BatchFlushPolicy(0, Duration.ZERO));
         assertThrows(IllegalArgumentException.class, () -> new BatchFlushPolicy(10, Duration.ofMillis(-1)));
@@ -188,6 +220,7 @@ class BatchingSinkWriterBaseTest {
         private final List<Integer> pending = new ArrayList<>();
         private final List<List<Integer>> committed = new ArrayList<>();
         private boolean failFlush;
+        private boolean allowAutomaticFlush = true;
         private int flushAttempts;
         private int cancelSignals;
         private int closes;
@@ -200,6 +233,11 @@ class BatchingSinkWriterBaseTest {
         @Override
         public int bufferedRecords() {
             return pending.size();
+        }
+
+        @Override
+        public boolean canAutomaticallyFlush() {
+            return allowAutomaticFlush;
         }
 
         @Override
