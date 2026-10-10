@@ -1,6 +1,6 @@
 package io.yak.ops.business.datasync.impl;
 
-import io.yak.ops.business.datasync.DataSyncLogService;
+import io.yak.ops.business.datasync.LogService;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
 import io.yak.ops.common.bean.vo.datasync.DataSyncExecutionEventVO;
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
  * @since 2026-10-10
  */
 @Service
-public class DataSyncLogServiceImpl implements DataSyncLogService {
+public class LogServiceImpl implements LogService {
 
     @Resource
     private DataSyncInstanceRepository instanceRepository;

@@ -9,7 +9,7 @@ import io.yak.ops.common.bean.vo.datasync.DataSyncOperationsDashboardVO;
  * @author weifuwan
  * @since 2026-10-10
  */
-public interface DataSyncMetricsService {
+public interface MetricsService {
 
     DataSyncOperationsDashboardVO queryOperationsDashboard(DataSyncOperationsDashboardDTO dto);
 }

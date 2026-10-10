@@ -1,6 +1,6 @@
 package io.yak.ops.business.datasync.impl;
 
-import io.yak.ops.business.datasync.DataSyncMetricsService;
+import io.yak.ops.business.datasync.MetricsService;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
 import io.yak.ops.common.bean.dto.datasync.DataSyncOperationsDashboardDTO;
@@ -35,7 +35,7 @@ import org.springframework.stereotype.Service;
  * @since 2026-10-10
  */
 @Service
-public class DataSyncMetricsServiceImpl implements DataSyncMetricsService {
+public class MetricsServiceImpl implements MetricsService {
 
     @Resource
     private DataSyncOperationsMetricsRepository operationsMetricsRepository;

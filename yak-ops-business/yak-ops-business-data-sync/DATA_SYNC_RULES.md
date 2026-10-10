@@ -10,8 +10,8 @@ Scope: `yak-ops-business/yak-ops-business-data-sync/**` and matching Common/DAO 
 - `DataSyncScheduleService`: Cron validation, saved Schedule lifecycle, Quartz registration after commit, startup registration and the `DataSyncScheduleFireListener` boundary.
 - `DataSyncInstanceService`: existing persisted Execution/Attempt history, instance queries and current cancel status handling. Manual Run explicitly rejects when the new Runtime is not connected.
 - `DataSyncOperationsService`: operations Task read model and Quartz next-fire observation.
-- `DataSyncMetricsService`: DATA_SYNC-specific aggregate metrics, buckets and failure ranking using the existing metrics repository.
-- `DataSyncLogService`: Workspace-scoped structured lifecycle event history; no Worker log file streaming.
+- `MetricsService`: DATA_SYNC-specific aggregate metrics, buckets and failure ranking using the existing metrics repository.
+- `LogService`: Workspace-scoped structured lifecycle event history; no Worker log file streaming.
 - The split Definition / Instance / Schedule / Metrics / Operations / Log Controllers inject only their own relevant Services; do not recreate a giant `DataSyncService` façade or cyclic Service dependencies.
 
 ## Single-Table Contract

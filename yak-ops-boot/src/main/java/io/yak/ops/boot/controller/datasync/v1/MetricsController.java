@@ -2,7 +2,7 @@ package io.yak.ops.boot.controller.datasync.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.yak.ops.business.datasync.DataSyncMetricsService;
+import io.yak.ops.business.datasync.MetricsService;
 import io.yak.ops.common.bean.dto.datasync.DataSyncOperationsDashboardDTO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncOperationsDashboardVO;
 import io.yak.ops.common.constant.CommonConstants;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MetricsController {
 
     @Resource
-    private DataSyncMetricsService service;
+    private MetricsService service;
 
     @Operation(summary = "查询运维中心数据同步聚合指标")
     @PostMapping("/operations/dashboard")

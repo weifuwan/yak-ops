@@ -9,7 +9,7 @@ import java.util.List;
  * @author weifuwan
  * @since 2026-10-10
  */
-public interface DataSyncLogService {
+public interface LogService {
 
     List<DataSyncExecutionEventVO> queryExecutionEvents(String instanceId);
 }

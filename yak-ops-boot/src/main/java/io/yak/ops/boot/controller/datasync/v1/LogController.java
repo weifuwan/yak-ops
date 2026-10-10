@@ -2,7 +2,7 @@ package io.yak.ops.boot.controller.datasync.v1;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.yak.ops.business.datasync.DataSyncLogService;
+import io.yak.ops.business.datasync.LogService;
 import io.yak.ops.common.bean.vo.datasync.DataSyncExecutionEventVO;
 import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.result.Result;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class LogController {
 
     @Resource
-    private DataSyncLogService service;
+    private LogService service;
 
     @Operation(summary = "查询同步Execution产品事件")
     @GetMapping("/instances/{id}/logs")
