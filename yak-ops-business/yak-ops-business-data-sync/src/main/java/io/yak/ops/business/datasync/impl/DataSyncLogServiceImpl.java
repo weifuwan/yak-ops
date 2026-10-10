@@ -45,7 +45,8 @@ public class DataSyncLogServiceImpl implements DataSyncLogService {
         DataSyncExecutionEventVO result =
                 BeanCopyUtils.copy(entity, DataSyncExecutionEventVO.class, "level", "eventType");
         result.setLevel(entity.getLevel() == null ? null : entity.getLevel().name());
-        result.setEventType(entity.getEventType() == null ? null : entity.getEventType().name());
+        result.setEventType(
+                entity.getEventType() == null ? null : entity.getEventType().name());
         return result;
     }
 }
