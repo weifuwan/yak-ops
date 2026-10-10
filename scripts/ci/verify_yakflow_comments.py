@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate objective YakFlow Core/Runtime comment conventions without rewriting Java source."""
+"""Validate objective comment rules for YakFlow Core, Runtime, Base and JDBC modules."""
 
 from __future__ import annotations
 
@@ -141,7 +141,7 @@ def main() -> int:
     if failures:
         print(f"YakFlow comment check failed: {failures} issue(s) in {checked} Java files.", file=sys.stderr)
         return 1
-    print(f"YakFlow comment conventions passed: checked {checked} YakFlow Java files.")
+    print(f"YakFlow comment conventions passed: checked {checked} Core/Runtime/Connector Java files.")
     return 0
 
 

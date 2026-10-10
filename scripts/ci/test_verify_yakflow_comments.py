@@ -3,10 +3,16 @@
 
 import unittest
 
-from verify_yakflow_comments import check_source, scan_comments
+from verify_yakflow_comments import MODULES, check_source, scan_comments
 
 
 class YakFlowCommentChecksTest(unittest.TestCase):
+    def test_all_yakflow_modules_are_scanned(self):
+        self.assertEqual(
+            ("yak-ops-core", "yak-flow-runtime", "yak-flow-connector-base", "yak-flow-connector-jdbc"),
+            tuple(path.name for path in MODULES),
+        )
+
     def test_ignores_chinese_literals_and_inline_urls(self):
         text = '''/** A documented type. */
 public class Probe {
