@@ -42,4 +42,5 @@ public class DataSyncTableRouteDTO {
     /** 目标表。 */
     @NotBlank(message = "目标表不能为空")
     @Size(max = 128, message = "目标表名称不能超过 128 个字符")
-    private String targetTable;}
+    private String targetTable;
+}
