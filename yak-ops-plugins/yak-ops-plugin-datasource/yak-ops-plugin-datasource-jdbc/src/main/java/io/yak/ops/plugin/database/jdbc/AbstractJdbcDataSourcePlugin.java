@@ -68,9 +68,7 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     }
 
     protected Set<DataSourceCapability> capabilities() {
-        return EnumSet.of(
-                DataSourceCapability.CONNECTION_TEST,
-                DataSourceCapability.SSH_TUNNEL);
+        return EnumSet.of(DataSourceCapability.CONNECTION_TEST, DataSourceCapability.SSH_TUNNEL);
     }
 
     protected Set<String> secretFieldKeys() {
