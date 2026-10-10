@@ -14,7 +14,8 @@ import java.util.Objects;
  * <p>Offsets include finer-grained Debezium event/row positions, not only the Binlog file
  * and byte position. An immutable copy is checkpointed after downstream emission.
  */
-public record BinlogOffset(Map<String, Object> partition, Map<String, Object> position) {
+public record BinlogOffset(Map<String, Object> partition, Map<String, Object> position)
+        implements java.io.Serializable {
 
     public BinlogOffset {
         partition = immutable(Objects.requireNonNull(partition, "partition"));
