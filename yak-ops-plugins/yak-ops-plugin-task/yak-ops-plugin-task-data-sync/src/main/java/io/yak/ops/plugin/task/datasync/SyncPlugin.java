@@ -29,7 +29,7 @@ public final class SyncPlugin implements TaskPlugin {
             }
             return parameters;
         } catch (IllegalArgumentException exception) {
-            throw new TaskPluginException("Invalid DATA_SYNC parameters", exception);
+            throw new TaskPluginException("Invalid DATA_SYNC parameters");
         }
     }
 }

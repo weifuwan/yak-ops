@@ -97,6 +97,10 @@ Data Sync Business 按 Task、Instance、Schedule、Operations 四个 Service �
 
 Descriptor 是运行时元信息，不是前端动态表单协议。内置 Provider 由聚合模块装配，扩展边界见 [Plugin Rules](yak-ops-plugins/yak-ops-plugin-datasource/PLUGIN_RULES.md)。
 
+### `yak-ops-plugins/yak-ops-plugin-task`
+
+Task 插件模块由 API、内置 DATA_SYNC 插件和 all 聚合模块组成。API 使用 ServiceLoader + Registry 按字符串类型发现插件并执行参数解析/校验。当前仅注册 DATA_SYNC 的单表配置，不依赖 Business、DAO、Boot 或 YakFlow Runtime；真实产品任务定义、实例与调度依旧由现有 Data Sync Business 持有，数据同步尚未对接新 YakFlow 执行引擎。Boot 在启动时构建插件 Registry，但当前的 Data Sync API 尚不消费该 Registry。边界及现状见 [Task Plugin Contract](docs/capabilities/task-plugin.md)。
+
 ### `yak-ops-boot`
 
 拥有所有 HTTP Controller / ControllerAdvice、健康入口、全局运行配置与最终应用装配。Controller 位于 `io.yak.ops.boot.controller`，只依赖稳定 Service 和共享 DTO / VO。
