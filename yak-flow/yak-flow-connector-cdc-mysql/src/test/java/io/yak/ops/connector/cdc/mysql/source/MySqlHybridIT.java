@@ -112,10 +112,12 @@ class MySqlHybridIT {
                     harness.output.stream().anyMatch(row ->
                             ORDERS.equals(row.tableId()) && row.rowKind() == RowKind.DELETE)
                             && harness.output.stream().anyMatch(row ->
+                                    ORDERS.equals(row.tableId()) && row.rowKind() == RowKind.UPDATE_AFTER)
+                            && harness.output.stream().anyMatch(row ->
                                     ITEMS.equals(row.tableId()) && row.rowKind() == RowKind.DELETE)
                             && harness.output.stream().anyMatch(row ->
                                     ITEMS.equals(row.tableId()) && row.rowKind() == RowKind.UPDATE_AFTER)
-                            && harness.output.stream().filter(row -> row.rowKind() == RowKind.INSERT).count() >= 5,
+                            && harness.output.stream().filter(row -> row.rowKind() == RowKind.INSERT).count() >= 6,
                     Duration.ofSeconds(80));
 
             Map<Long, String> orders = new LinkedHashMap<>();
