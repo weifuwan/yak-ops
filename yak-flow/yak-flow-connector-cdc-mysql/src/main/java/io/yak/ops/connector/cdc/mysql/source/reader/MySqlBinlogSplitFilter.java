@@ -31,8 +31,7 @@ public final class MySqlBinlogSplitFilter {
      * @param schemas frozen source table schemas
      * @param finished fully normalized chunks and their completed High watermarks
      */
-    public MySqlBinlogSplitFilter(
-            Map<TableId, TableSchema> schemas, List<FinishedSnapshotSplitInfo> finished) {
+    public MySqlBinlogSplitFilter(Map<TableId, TableSchema> schemas, List<FinishedSnapshotSplitInfo> finished) {
         Objects.requireNonNull(schemas, "schemas");
         Objects.requireNonNull(finished, "finished");
         if (schemas.isEmpty() || finished.isEmpty()) {
