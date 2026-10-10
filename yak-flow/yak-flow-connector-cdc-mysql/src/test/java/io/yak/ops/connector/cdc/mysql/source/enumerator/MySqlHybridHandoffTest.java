@@ -24,7 +24,7 @@ class MySqlHybridHandoffTest {
         assertEquals(MySqlHybridEnumeratorState.Phase.BOOTSTRAP, assigner.phase());
         assertEquals("mysql-binlog", assigner.nextBinlog(0).splitId());
         assigner.captureLow(low);
-        assertThrows(IllegalStateException.class, () -> assigner.snapshot(10));
+        assertFalse(assigner.snapshot(10).snapshotPlanned());
         var split = new MySqlSnapshotSplit("snap-1", "fingerprint", new TableId("shop", null, "orders"),
                 null, null, null);
         assigner.plan(List.of(split));
