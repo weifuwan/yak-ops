@@ -17,13 +17,13 @@ import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import jakarta.annotation.Resource;
-import org.springframework.stereotype.Component;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.stereotype.Component;
 
 /**
  * DataSyncTaskDefinitionValidator 的业务职责实现。
@@ -49,7 +49,10 @@ public class DataSyncTaskDefinitionValidator {
         if (task == null || task.getId() == null) {
             throw new DataSyncException(DataSyncErrorCode.INVALID_TASK);
         }
-        if (tableRouteRepository.queryByTask(task.getWorkspaceId(), task.getId()).size() > 1) {
+        if (tableRouteRepository
+                        .queryByTask(task.getWorkspaceId(), task.getId())
+                        .size()
+                > 1) {
             throw new DataSyncException(DataSyncErrorCode.INVALID_TASK, "历史多表任务暂不支持编辑或运行");
         }
     }
@@ -62,7 +65,8 @@ public class DataSyncTaskDefinitionValidator {
 
     public void validatePersistedTaskDefinition(DataSyncTaskEntity task) {
         requireSingleTableTask(task);
-        DataSyncWriteMode mode = task.getWriteMode() == null ? DataSyncWriteMode.APPEND : task.getWriteMode();
+        DataSyncWriteMode mode =
+                task.getWriteMode() == null ? DataSyncWriteMode.APPEND : task.getWriteMode();
         validateWriteMode(task.getSyncType(), mode);
         rejectLegacyPolicies(task.getAutoCreateTable(), task.getMappingConfig());
         DataSyncTableRouteDTO route = new DataSyncTableRouteDTO();
@@ -77,7 +81,8 @@ public class DataSyncTaskDefinitionValidator {
         if (task.getSyncType() == DataSyncType.REALTIME) {
             validateRealtimeDatasourceTypes(task.getSourceDataSourceId(), task.getTargetDataSourceId());
         }
-        validateRouteTables(task.getSourceDataSourceId(), task.getTargetDataSourceId(), resolved, task.getSyncType(), mode);
+        validateRouteTables(
+                task.getSourceDataSourceId(), task.getTargetDataSourceId(), resolved, task.getSyncType(), mode);
     }
 
     private void rejectLegacyPolicies(Boolean autoCreate, String mappingJson) {

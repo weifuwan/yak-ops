@@ -32,9 +32,11 @@ public interface DataSyncInstanceService {
 
     DataSyncTraceSummaryVO queryExecutionTraceSummary(String instanceId, Integer attemptNo);
 
-    DataSyncTracePageVO<DataSyncSourceTraceVO> queryExecutionSourceTrace( String instanceId, Integer attemptNo, Integer pageSize, String cursor, String status);
+    DataSyncTracePageVO<DataSyncSourceTraceVO> queryExecutionSourceTrace(
+            String instanceId, Integer attemptNo, Integer pageSize, String cursor, String status);
 
-    DataSyncTracePageVO<DataSyncSinkTraceVO> queryExecutionSinkTrace( String instanceId, Integer attemptNo, Integer pageSize, String cursor, String status);
+    DataSyncTracePageVO<DataSyncSinkTraceVO> queryExecutionSinkTrace(
+            String instanceId, Integer attemptNo, Integer pageSize, String cursor, String status);
 
     PagingData<DataSyncInstanceVO> queryInstancePage(DataSyncInstanceQueryDTO dto);
 

@@ -284,8 +284,10 @@ public class DataSyncOperationsServiceImpl implements DataSyncOperationsService 
     private DataSyncInstanceVO toInstanceSummaryVO(DataSyncInstanceEntity source) {
         DataSyncInstanceVO target = BeanCopyUtils.copy(
                 source, DataSyncInstanceVO.class, "syncType", "triggerType", "status", "definitionSnapshot");
-        target.setSyncType(source.getSyncType() == null ? null : source.getSyncType().name());
-        target.setTriggerType(source.getTriggerType() == null ? null : source.getTriggerType().name());
+        target.setSyncType(
+                source.getSyncType() == null ? null : source.getSyncType().name());
+        target.setTriggerType(
+                source.getTriggerType() == null ? null : source.getTriggerType().name());
         target.setStatus(source.getStatus() == null ? null : source.getStatus().name());
         return target;
     }
