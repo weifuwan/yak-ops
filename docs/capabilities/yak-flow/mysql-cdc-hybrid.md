@@ -1,6 +1,6 @@
 # YakFlow MySQL CDC — PR2 Hybrid Snapshot + Binlog Handoff
 
-Status: Connector implementation; real-MySQL Hybrid acceptance must pass before treating the path as verified. PR3 product/JDBC Sink integration remains separate.
+Status: Connector implementation; real-MySQL Hybrid acceptance must pass before treating the path as verified. PR3 adds opt-in engine Runtime/JDBC Sink cross-database acceptance (not Business/product task wiring). See [PR3 Runtime Acceptance](mysql-cdc-runtime-jdbc-acceptance.md).
 
 ## Boundary
 

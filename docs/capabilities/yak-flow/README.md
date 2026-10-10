@@ -14,6 +14,12 @@ PR2 新增 `MySqlCdcSource.initialSnapshot(chunkSize)`，通过 JDBC BIGINT 主�
 
 这是**全局有序重放、at-least-once** 的保守衔接方案，并非 Flink CDC 逐 Chunk L/H Watermark 归并输出算法。首版仅支持单列非空 BIGINT 主键，不支持无主键全量、Schema Evolution 或 Exactly-once。详见 [MySQL Hybrid Snapshot](mysql-cdc-hybrid.md)。
 
+## MySQL CDC → JDBC Sink Runtime Acceptance
+
+PR3 新增引擎层 `MySqlHybridCdcSource → StreamGraph / ExecutionGraph → JdbcSink` 的真实跨库验收，包含两张源表、多表 UPSERT、增删改、Checkpoint 后取消与恢复。Source 并行度 2，JDBC Sink 并行度固定为 1，保证 UPDATE_BEFORE / UPDATE_AFTER 成对进入同一个 Writer。
+
+新增手动工作流 `MySQL CDC Runtime Cross-Database Acceptance`，分别验证 MySQL、PostgreSQL、Oracle 目标库。**工作流未实际通过前，不宣称跨库验收完成**。这里只验证 YakFlow 引擎，不恢复产品侧任务执行。详见 [Runtime + JDBC Cross-Database Acceptance](mysql-cdc-runtime-jdbc-acceptance.md)。
+
 ## Execution Pipeline
 
 ```text
