@@ -6,7 +6,6 @@ import io.yak.ops.business.datasync.exception.DataSyncException;
 import io.yak.ops.common.bean.dto.datasync.DataSyncInstanceQueryDTO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncAttemptVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncDefinitionSnapshotVO;
-import io.yak.ops.common.bean.vo.datasync.DataSyncExecutionEventVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncInstanceVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncSinkTraceVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncSourceTraceVO;
@@ -28,13 +27,11 @@ import io.yak.ops.common.util.DateUtils;
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncAttemptEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncExecutionEventEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTableAttemptEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTableExecutionEntity;
 import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncAttemptRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncExecutionEventRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncInstancePageQuery;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncTableAttemptRepository;
@@ -69,9 +66,6 @@ public class DataSyncInstanceServiceImpl implements DataSyncInstanceService {
 
     @Resource
     private DataSyncAttemptRepository attemptRepository;
-
-    @Resource
-    private DataSyncExecutionEventRepository executionEventRepository;
 
     @Resource
     private SyncDefinitionValidator definitionValidator;
@@ -114,15 +108,6 @@ public class DataSyncInstanceServiceImpl implements DataSyncInstanceService {
                 .orElseThrow(() -> new DataSyncException(DataSyncErrorCode.INSTANCE_NOT_FOUND));
         return tableAttemptRepository.queryByTableExecution(workspaceId, table.getId()).stream()
                 .map(this::toTableAttemptVO)
-                .toList();
-    }
-
-    @Override
-    public List<DataSyncExecutionEventVO> queryExecutionEvents(String instanceId) {
-        String workspaceId = WorkspaceContext.requireWorkspaceId();
-        requireInstance(workspaceId, instanceId);
-        return executionEventRepository.queryByExecution(workspaceId, instanceId).stream()
-                .map(this::toExecutionEventVO)
                 .toList();
     }
 
@@ -292,15 +277,6 @@ public class DataSyncInstanceServiceImpl implements DataSyncInstanceService {
     private DataSyncAttemptVO toAttemptVO(DataSyncAttemptEntity source) {
         DataSyncAttemptVO target = BeanCopyUtils.copy(source, DataSyncAttemptVO.class, "status");
         target.setStatus(source.getStatus() == null ? null : source.getStatus().name());
-        return target;
-    }
-
-    private DataSyncExecutionEventVO toExecutionEventVO(DataSyncExecutionEventEntity source) {
-        DataSyncExecutionEventVO target =
-                BeanCopyUtils.copy(source, DataSyncExecutionEventVO.class, "level", "eventType");
-        target.setLevel(source.getLevel() == null ? null : source.getLevel().name());
-        target.setEventType(
-                source.getEventType() == null ? null : source.getEventType().name());
         return target;
     }
 
