@@ -15,7 +15,7 @@ second table router, mock Source, or direct-to-target shortcut is used for the s
 | --- | --- | --- | --- |
 | `JdbcSinkCrossDatabaseIT` | One bounded `JdbcSource` with two distinct schemas, 2 readers | One `JdbcSink`, 1 writer | Full target primary-key and field sets after snapshot, changelog mutations and idempotent writer replay |
 | `MySqlCdcRuntimeCrossDatabaseIT` | One Hybrid CDC Source with two distinct schemas, 2 snapshot readers and one Binlog owner | One `JdbcSink`, 1 writer | Initial Snapshot, INSERT / UPDATE / DELETE / primary-key relocation, completed Checkpoint, cancel / restore and post-restore data convergence |
-| `MySqlHybridIT` | Real MySQL Snapshot + Binlog, deterministic connector harness | Collected Core `TableRecord` events | Both tables change after the Low Watermark and before Snapshot planning; no Binlog replay until a completed handoff Checkpoint |
+| `MySqlHybridIT` | Real MySQL Snapshot + Binlog, deterministic connector harness | Collected Core `TableRecord` events | Both tables change after the Low Watermark and before Snapshot split consumption; no Binlog replay until a completed handoff Checkpoint |
 
 The JDBC acceptance uses different source/target column names and a third column on
 one route. The CDC acceptance uses `orders(id, name)` and
