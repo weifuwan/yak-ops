@@ -43,37 +43,37 @@ public class DefinitionController {
     public Result<DataSyncTaskVO> createTask(@Valid @RequestBody DataSyncTaskDTO dto) {
         return Result.success(taskService.createTask(dto, currentUserId()));
     }
-    
+
     @Operation(summary = "编辑数据同步任务")
     @PutMapping("/tasks/{id}")
     public Result<DataSyncTaskVO> updateTask(@PathVariable("id") String id, @Valid @RequestBody DataSyncTaskDTO dto) {
         return Result.success(taskService.updateTask(id, dto, currentUserId()));
     }
-    
+
     @Operation(summary = "查询数据同步任务详情")
     @GetMapping("/tasks/{id}")
     public Result<DataSyncTaskVO> taskDetail(@PathVariable("id") String id) {
         return Result.success(taskService.queryTask(id));
     }
-    
+
     @Operation(summary = "分页查询数据同步任务")
     @PostMapping("/tasks/page")
     public Result<PagingData<DataSyncTaskVO>> taskPage(@Valid @RequestBody DataSyncTaskQueryDTO dto) {
         return Result.success(taskService.queryTaskPage(dto));
     }
-    
+
     @Operation(summary = "上线数据同步任务")
     @PostMapping("/tasks/{id}/publish")
     public Result<DataSyncTaskVO> publishTask(@PathVariable("id") String id) {
         return Result.success(taskService.publishTask(id, currentUserId()));
     }
-    
+
     @Operation(summary = "下线数据同步任务")
     @PostMapping("/tasks/{id}/unpublish")
     public Result<DataSyncTaskVO> unpublishTask(@PathVariable("id") String id) {
         return Result.success(taskService.unpublishTask(id, currentUserId()));
     }
-    
+
     @Operation(summary = "删除数据同步任务")
     @DeleteMapping("/tasks/{id}")
     public Result<Boolean> deleteTask(@PathVariable("id") String id) {
