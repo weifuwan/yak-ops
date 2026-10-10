@@ -69,6 +69,17 @@ jobs:
           python3 scripts/ci/test_verify_yakflow_comments.py
           python3 scripts/ci/verify_yakflow_comments.py
 
+      - name: Temporary format reconciliation
+        if: steps.scope.outputs.backend == 'true'
+        run: |
+          bash mvnw -q -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+          python3 - <<'PY'
+          import subprocess, base64
+          patch = subprocess.check_output(['git', 'diff', '--no-ext-diff', '--', 'yak-ops-business/', 'yak-ops-plugins/', 'yak-flow/', 'yak-ops-common/'])
+          print('FORMAT_PATCH_BEGIN:' + base64.b64encode(patch).decode('ascii'))
+          print('FORMAT_PATCH_END')
+          PY
+
       - name: Backend format
         if: steps.scope.outputs.backend == 'true'
         run: >-
