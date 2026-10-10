@@ -50,17 +50,6 @@ export interface DataSyncMappingConfig {
   columns: DataSyncColumnMapping[];
 }
 
-/** Task 内稳定的单张 Source → Target 表映射；新 Route 不传 id。 */
-export interface DataSyncTableRoute {
-  id?: string;
-  sourceDatabase?: string;
-  sourceSchema?: string;
-  sourceTable: string;
-  targetDatabase?: string;
-  targetSchema?: string;
-  targetTable: string;
-}
-
 export interface DataSyncTaskRecord {
   id: string;
   name: string;
@@ -76,7 +65,6 @@ export interface DataSyncTaskRecord {
   targetDatabase?: string;
   targetSchema?: string;
   targetTable: string;
-  tableRoutes?: DataSyncTableRoute[];
   runtimeConfig?: DataSyncRuntimeConfig;
   offlineRuntimePlan?: DataSyncOfflineRuntimePlan;
   realtimeConfig?: DataSyncRealtimeConfig;
@@ -155,7 +143,6 @@ interface DataSyncTaskSaveBase {
   targetDatabase?: string;
   targetSchema?: string;
   targetTable: string;
-  tableRoutes?: DataSyncTableRoute[];
   retryPolicy?: DataSyncRetryPolicy;
   remark?: string;
 }

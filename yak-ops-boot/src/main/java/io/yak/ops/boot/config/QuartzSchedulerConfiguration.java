@@ -1,7 +1,7 @@
 package io.yak.ops.boot.config;
 
 import io.yak.ops.boot.scheduler.QuartzSpringBeanJobFactory;
-import io.yak.ops.business.datasync.DataSyncService;
+import io.yak.ops.business.datasync.DataSyncScheduleService;
 import jakarta.annotation.Resource;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.quartz.SchedulerFactoryBeanCustomizer;
@@ -26,7 +26,7 @@ public class QuartzSchedulerConfiguration {
     }
 
     @Bean
-    ApplicationRunner dataSyncScheduleRuntimeRestore(DataSyncService dataSyncService) {
-        return arguments -> dataSyncService.restoreScheduleRuntime();
+    ApplicationRunner dataSyncScheduleRuntimeRestore(DataSyncScheduleService scheduleService) {
+        return arguments -> scheduleService.restoreScheduleRuntime();
     }
 }

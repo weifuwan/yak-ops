@@ -89,7 +89,7 @@ The JDBC Connector owns SQL dialects, native type mappings, generated target DDL
 
 ### `yak-ops-business/yak-ops-business-data-sync`
 
-只保留 DataSyncService / DataSyncServiceImpl、Task/Route/Definition、Schema 映射和预览、Schedule、历史 Execution / Attempt 查询及运维读模型。旧 business.datasync.execution 包已删除；历史运行态由 history.DataSyncHistoryRecovery 收口，新 Connector 未接入前手动运行和有效 Cron 触发均拒绝新建执行实例。产品持久化与运行时 ExecutionGraph 内存尝试互不混淆。详细见 [Data Sync Capability](docs/capabilities/data-sync/README.md)。
+Data Sync Business 按 Task、Instance、Schedule、Operations 四个 Service 划分；当前单表定义直接归 Task，历史 Route 与 Execution 数据保留。旧 business.datasync.execution 包已删除；历史运行态由 history.DataSyncHistoryRecovery 收口，新 Connector 未接入前手动运行和有效 Cron 触发均拒绝新建执行实例。产品持久化与运行时 ExecutionGraph 内存尝试互不混淆。详细见 [Data Sync Capability](docs/capabilities/data-sync/README.md)。
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
@@ -127,7 +127,7 @@ Yak Ops 不依赖外部 `yak-framework`。现有 Common 与 Platform 能力由�
 UI → HTTP → Boot
              ├─ Platform → DAO / Common
              ├─ DataSourceService → DAO / Datasource Plugin API
-             └─ DataSyncService → DAO / DataSourceService / YakFlow
+             └─ DataSyncTask/Instance/Schedule/OperationsService → DAO / DataSourceService
 
 YakFlow Runtime（Graph / Operator / Execution / Checkpoint）→ Yak Ops Core（API / Configuration / Transformation）
 JDBC Connector → Connector Base + Core（Source / TableRecord / Configuration）

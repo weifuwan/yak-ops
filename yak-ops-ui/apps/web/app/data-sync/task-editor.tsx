@@ -22,7 +22,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { EditorAnchorStepper, type EditorAnchorItem } from "@/app/data-sync/editor-anchor-stepper";
-import { MultiTableRouteEditor } from "@/app/data-sync/multi-table-route-editor";
 import { DataSyncSearchableSelect } from "@/app/data-sync/searchable-select";
 import { getDataSourceTypeLabel } from "@/app/datasource/constants";
 import DatabaseIcons from "@/app/datasource/icons/DatabaseIcons";
@@ -43,7 +42,6 @@ import {
   updateDataSyncTask,
   type DataSyncScheduleSavePayload,
   type DataSyncTaskSavePayload,
-  type DataSyncTableRoute,
   type DataSyncTaskStatus,
   type DataSyncType,
   type DataSyncWriteMode,
@@ -437,11 +435,6 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     sourceDataSourceId: draft?.sourceDataSourceId || "",
     targetDataSourceId: draft?.targetDataSourceId || "",
   }));
-  const [tableRoutes, setTableRoutes] = useState<DataSyncTableRoute[]>([]);
-  const [routesReady, setRoutesReady] = useState(false);
-  const onRoutesChange = useCallback((routes: DataSyncTableRoute[]) => setTableRoutes(routes), []);
-  const onRoutesReadyChange = useCallback((ready: boolean) => setRoutesReady(ready), []);
-
   const [dataSources, setDataSources] = useState<DataSourceRecord[]>([]);
   const [dataSourcesLoading, setDataSourcesLoading] = useState(false);
   const [taskStatus, setTaskStatus] = useState<DataSyncTaskStatus>("UNPUBLISHED");
@@ -555,20 +548,6 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
           targetTable: task.targetTable,
         });
         if (!realtime) {
-          setTableRoutes(
-            task.tableRoutes?.length
-              ? task.tableRoutes
-              : [
-                  {
-                    sourceDatabase: task.sourceDatabase,
-                    sourceSchema: task.sourceSchema,
-                    sourceTable: task.sourceTable,
-                    targetDatabase: task.targetDatabase,
-                    targetSchema: task.targetSchema,
-                    targetTable: task.targetTable,
-                  },
-                ],
-          );
           setScheduleExists(Boolean(schedule));
           setScheduleForm(
             schedule
@@ -595,17 +574,16 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     setScheduleForm((current) => ({ ...current, [key]: value }));
 
   const payload = (): DataSyncTaskSavePayload => {
-    const firstRoute = !realtime ? tableRoutes[0] : undefined;
     const common = {
       name: form.name.trim(),
       sourceDataSourceId: form.sourceDataSourceId,
-      sourceDatabase: firstRoute?.sourceDatabase || form.sourceDatabase || undefined,
-      sourceSchema: firstRoute?.sourceSchema || form.sourceSchema || undefined,
-      sourceTable: firstRoute?.sourceTable || form.sourceTable,
+      sourceDatabase: form.sourceDatabase || undefined,
+      sourceSchema: form.sourceSchema || undefined,
+      sourceTable: form.sourceTable,
       targetDataSourceId: form.targetDataSourceId,
-      targetDatabase: firstRoute?.targetDatabase || form.targetDatabase || undefined,
-      targetSchema: firstRoute?.targetSchema || form.targetSchema || undefined,
-      targetTable: firstRoute?.targetTable || form.targetTable,
+      targetDatabase: form.targetDatabase || undefined,
+      targetSchema: form.targetSchema || undefined,
+      targetTable: form.targetTable,
       remark: form.remark.trim() || undefined,
     };
     if (realtime) {
@@ -619,15 +597,6 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
       ...common,
       writeMode: form.writeMode,
       syncType: "OFFLINE",
-      tableRoutes: tableRoutes.map((route) => ({
-        id: route.id,
-        sourceDatabase: route.sourceDatabase,
-        sourceSchema: route.sourceSchema,
-        sourceTable: route.sourceTable,
-        targetDatabase: route.targetDatabase,
-        targetSchema: route.targetSchema,
-        targetTable: route.targetTable.trim(),
-      })),
     };
   };
 
@@ -657,7 +626,17 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
             form.targetTable,
           ),
         )
-      : routesReady && tableRoutes.length > 0) &&
+      : Boolean(
+          form.sourceDataSourceId &&
+          form.sourceTable &&
+          form.targetDataSourceId &&
+          selectedTableKey(
+            targetCatalog.tables,
+            form.targetDatabase,
+            form.targetSchema,
+            form.targetTable,
+          ),
+        )) &&
     !sourceCatalog.loading &&
     !targetCatalog.loading;
 
@@ -846,10 +825,6 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                     sourceSchema: selected?.schema || "",
                     sourceTable: "",
                   }));
-                  if (!realtime) {
-                    setTableRoutes([]);
-                    setRoutesReady(false);
-                  }
                 }}
               />
               <DataSourceEndpointCard
@@ -868,24 +843,12 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                     targetSchema: selected?.schema || "",
                     targetTable: "",
                   }));
-                  if (!realtime) {
-                    setTableRoutes((current) =>
-                      current.map((route) => ({
-                        ...route,
-                        targetDatabase: selected?.database || undefined,
-                        targetSchema: selected?.schema || undefined,
-                        targetTable: "",
-                      })),
-                    );
-                    setRoutesReady(false);
-                  }
                 }}
               />
             </div>
           </CollapseSection>
 
-          {realtime ? (
-            <>
+          <>
               <CollapseSection id="source" title="数据来源">
                 <TableSection
                   dataSourceId={form.sourceDataSourceId}
@@ -939,37 +902,7 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
                   }
                 />
               </CollapseSection>
-            </>
-          ) : (
-            <MultiTableRouteEditor
-              routes={tableRoutes}
-              onChange={onRoutesChange}
-              onReadyChange={onRoutesReadyChange}
-              sourceDataSourceId={form.sourceDataSourceId}
-              targetDataSourceId={form.targetDataSourceId}
-              sourceDatabase={form.sourceDatabase}
-              sourceSchema={form.sourceSchema}
-              targetDatabase={form.targetDatabase}
-              targetSchema={form.targetSchema}
-              sourceBoundSchema={selectedSourceDataSource?.schema}
-              targetBoundSchema={selectedTargetDataSource?.schema}
-              sourceCatalog={sourceCatalog}
-              targetCatalog={targetCatalog}
-              onSourceSchemaChange={(value) =>
-                setForm((current) => ({ ...current, sourceSchema: value }))
-              }
-              onTargetSchemaChange={(value) => {
-                setForm((current) => ({ ...current, targetSchema: value }));
-                setTableRoutes((current) =>
-                  current.map((route) => ({
-                    ...route,
-                    targetSchema: value,
-                  })),
-                );
-                setRoutesReady(false);
-              }}
-            />
-          )}
+          </>
 
           {!realtime ? (
             <CollapseSection id="schedule" title="调度配置">
