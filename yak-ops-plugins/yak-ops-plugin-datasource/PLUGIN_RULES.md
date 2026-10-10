@@ -10,8 +10,7 @@ Depends On:
 Owns:
 - stable Datasource provider contract
 - provider-specific connection behavior
-- provider-specific catalog behavior
-- provider-specific SQL execution adaptation
+- driver version selection and JDBC/SSH Connection creation
 - built-in plugin assembly
 
 ## Module Ownership
@@ -31,9 +30,8 @@ yak-ops-plugin-datasource-all
 
 `yak-ops-plugin-datasource-api` must:
 - expose production API types only under `io.yak.ops.plugin.datasource.api` and its owner subpackages.
-- keep Plugin contracts under `api.plugin`, Catalog contracts/models under `api.catalog`, finite domain values under `api.enums`, and Plugin exceptions under `api.exception`.
+- keep Plugin contracts under `api.plugin`, finite domain values under `api.enums`, and Plugin exceptions under `api.exception`. Do not recreate the retired Datasource `api.catalog`.
 - keep independently meaningful API enums as top-level types; public nested enums/classes/records/interfaces are forbidden.
-- prefer records for immutable Catalog query/path/metadata carriers when validation can stay explicit.
 - never recreate the legacy `io.yak.ops.spi.datasource` namespace.
 - stay provider-neutral.
 - expose stable capability and connection contracts.
@@ -46,7 +44,9 @@ Do not add a second Datasource plugin contract in `yak-ops-spi`.
 
 ## Plugin API Version
 
-Current Datasource Plugin API version: `3`.
+Current Datasource Plugin API version: `4`.
+
+V4 removes `DataSourcePlugin.createCatalog()`, Datasource Catalog contracts and the `CATALOG_METADATA` capability. Providers expose `openConnection()` with the existing selected driver/SSH lifecycle; `yak-flow-connector-jdbc` alone implements JDBC Catalog, table metadata, dialect conversion and query planning. This is a breaking SPI upgrade; do not retain a V3 shim or accept old plugin versions.
 
 V3 removes the legacy frontend form schema from the provider contract. `DataSourcePluginDescriptor` is now runtime metadata only:
 
@@ -60,7 +60,7 @@ secretFieldKeys
 
 `ConnectionForm / FieldType / FormField / FormRule / FormSection / VisibilityCondition / JdbcUrlLinkage` are not Plugin API concepts. Frontend labels, placeholders, visibility rules and JDBC URL form linkage belong to the fixed Datasource UI, not to backend Provider metadata.
 
-`connectionPropertyKeys()` is an additive V3 runtime discovery method. It only exposes recommended connection-property names for the advanced Key / Value editor and does not turn the Plugin API back into a dynamic frontend schema.
+`connectionPropertyKeys()` remains a runtime discovery method. It only exposes recommended connection-property names for the advanced Key / Value editor and does not turn the Plugin API back into a dynamic frontend schema.
 
 ## Plugin Type Contract
 
@@ -74,7 +74,7 @@ Must:
 - duplicate canonical types or aliases fail fast during plugin discovery.
 - adding a new Provider must not require modifying Common, Service Layer code or a central database-type list.
 
-V3 的 `secretFieldKeys` 只声明 Provider 运行时需要识别的敏感字段名；通用 password / token / secret / private-key 规则仍由 Datasource secret handling 统一兜底。
+当前 `secretFieldKeys` 只声明 Provider 运行时需要识别的敏感字段名；通用 password / token / secret / private-key 规则仍由 Datasource secret handling 统一兜底。
 
 Must Not:
 - recreate runtime plugin install flags such as `installRequired` / `installHint` without an implemented installation lifecycle.
@@ -144,6 +144,15 @@ Must Not:
 - centralize MySQL / Oracle / PostgreSQL property names or allowed values in Business, Common, Boot or the frontend.
 - add generic abstractions used by only one provider without a clear boundary.
 - recreate deleted test modules or fixtures as a side effect.
+
+## JDBC Catalog Ownership
+
+- DataSourcePlugin owns connection parsing, MySQL 5/8 driver isolation, JDBC properties, SSL and optional SSH tunnelling.
+- `DataSourcePlugin.openConnection()` returns a fresh caller-owned JDBC Connection. Catalog callers must close it, releasing the SSH tunnel exactly once.
+- Product Datasource Service delegates Catalog reads to Connector `JdbcCatalogFactory.create(jdbcUrl, connectionProvider)`. Do not use `JdbcCatalogFactory.create(connectionOptions)` for saved product Datasources because it bypasses the isolated driver/SSH provider.
+- The Connector owns `JdbcCatalog`, `JdbcTableMetadata`, `JdbcTableInfo`, `JdbcColumnInfo`, and the dialect converters. Business must not recreate native SQL/JDBC type mapping.
+- Connector Catalogs created with request-scoped provider callbacks are not checkpointed or serialized; Connector jobs use their own durable, explicit connection definition.
+- Plugin API V3 Catalog types, `GenericJdbcCatalog`, duplicate JDBC ConnectionProvider, and old `JdbcSchemaMapper` must not return.
 
 ## MySQL Driver Runtime
 
