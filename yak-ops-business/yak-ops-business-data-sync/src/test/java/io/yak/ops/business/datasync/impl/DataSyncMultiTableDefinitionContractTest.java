@@ -10,8 +10,8 @@ import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
 import io.yak.ops.common.enums.datasync.DataSyncType;
 import io.yak.ops.common.enums.datasync.DataSyncWriteMode;
 import io.yak.ops.dao.entity.datasync.DataSyncTableRouteEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.util.List;
@@ -29,7 +29,7 @@ class DataSyncMultiTableDefinitionContractTest {
     @Test
     void shouldRejectHistoricalMultiRouteRun() throws Exception {
         DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
-        DataSyncTaskEntity task = offlineTask();
+        SyncDefinitionEntity task = offlineTask();
         task.setSyncType(DataSyncType.REALTIME);
         DataSyncTestTableRouteRepository.inject(
                 service,
@@ -49,8 +49,8 @@ class DataSyncMultiTableDefinitionContractTest {
                 exception.getUserMessage());
     }
 
-    private DataSyncTaskEntity offlineTask() {
-        DataSyncTaskEntity task = new DataSyncTaskEntity();
+    private SyncDefinitionEntity offlineTask() {
+        SyncDefinitionEntity task = new SyncDefinitionEntity();
         task.setId("task-1");
         task.setWorkspaceId("workspace-1");
         task.setName("multi-table");
@@ -82,10 +82,10 @@ class DataSyncMultiTableDefinitionContractTest {
         return route;
     }
 
-    private DataSyncTaskRepository taskRepository(DataSyncTaskEntity task) {
-        return (DataSyncTaskRepository) Proxy.newProxyInstance(
-                DataSyncTaskRepository.class.getClassLoader(),
-                new Class<?>[] {DataSyncTaskRepository.class},
+    private SyncDefinitionRepository taskRepository(SyncDefinitionEntity task) {
+        return (SyncDefinitionRepository) Proxy.newProxyInstance(
+                SyncDefinitionRepository.class.getClassLoader(),
+                new Class<?>[] {SyncDefinitionRepository.class},
                 (proxy, method, args) -> {
                     if ("queryById".equals(method.getName()) && args != null && args.length == 2) {
                         return Optional.of(task);

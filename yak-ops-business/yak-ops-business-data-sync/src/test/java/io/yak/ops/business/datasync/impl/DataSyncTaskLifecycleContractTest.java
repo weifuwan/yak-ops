@@ -20,9 +20,9 @@ import io.yak.ops.common.enums.datasync.DataSyncRuntimePolicy;
 import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
 import io.yak.ops.common.enums.datasync.DataSyncType;
 import io.yak.ops.common.enums.datasync.DataSyncWriteMode;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.sql.Types;
@@ -41,10 +41,10 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldCreateTaskAsUnpublishedVersionOne() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
         inject(service, "taskRepository", taskRepository(null, captured));
         inject(service, "dataSourceService", dataSourceService());
 
@@ -69,10 +69,10 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldTreatExplicitOfflineRuntimeConfigWithoutPolicyAsFixed() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
         inject(service, "taskRepository", taskRepository(null, captured));
         inject(service, "dataSourceService", dataSourceService());
 
@@ -90,10 +90,10 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldCreateRealtimeTaskWithSystemRuntimeAndRetryDefaultsWhenOmitted() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
         DataSourceService dataSourceService = dataSourceService();
         inject(service, "taskRepository", taskRepository(null, captured));
         inject(service, "dataSourceService", dataSourceService);
@@ -130,9 +130,9 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldPublishWithoutChangingDefinitionVersion() throws Exception {
-        DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task, captured));
@@ -148,7 +148,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldRejectUnpublishWhileInstanceIsActive() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task(DataSyncTaskStatus.PUBLISHED, 2), new AtomicReference<>()));
@@ -163,9 +163,9 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldKeepVersionForMetadataOnlyUpdate() throws Exception {
-        DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncTaskServiceImpl service = editableService(task, captured);
+        SyncDefinitionEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
+        SyncDefinitionServiceImpl service = editableService(task, captured);
         DataSyncTaskDTO dto = taskDto();
         dto.setName("renamed-task");
         dto.setRemark("metadata-only");
@@ -182,13 +182,13 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldPreserveExistingRuntimeAndRetryPolicyWhenUpdateOmitsThem() throws Exception {
-        DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
+        SyncDefinitionEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
         task.setRuntimeConfig(
                 "{\"fetchSize\":1200,\"readBatchSize\":700,\"writeBatchSize\":300,\"splitSize\":250000,"
                         + "\"sourceParallelism\":4,\"timeoutSeconds\":45}");
         task.setRetryPolicy("{\"maxAttempts\":3,\"backoffSeconds\":90}");
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncTaskServiceImpl service = editableService(task, captured);
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
+        SyncDefinitionServiceImpl service = editableService(task, captured);
 
         WorkspaceContext.bind("workspace-1");
         DataSyncTaskVO updated = service.updateTask("task-1", taskDto());
@@ -208,9 +208,9 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldIncrementVersionWhenExecutableDefinitionChanges() throws Exception {
-        DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncTaskServiceImpl service = editableService(task, captured);
+        SyncDefinitionEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
+        SyncDefinitionServiceImpl service = editableService(task, captured);
         DataSyncTaskDTO dto = taskDto();
         DataSyncRuntimeConfigDTO runtimeConfig = new DataSyncRuntimeConfigDTO();
         runtimeConfig.setFetchSize(1000);
@@ -225,10 +225,10 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldTreatExplicitRetryPolicyWithoutModeAsFixed() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
         inject(service, "taskRepository", taskRepository(null, captured));
         inject(service, "dataSourceService", dataSourceService());
 
@@ -248,10 +248,10 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldIncrementVersionWhenRetryPolicyChanges() throws Exception {
-        DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
+        SyncDefinitionEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
         task.setRetryPolicy("{\"maxAttempts\":1,\"backoffSeconds\":60}");
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncTaskServiceImpl service = editableService(task, captured);
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
+        SyncDefinitionServiceImpl service = editableService(task, captured);
         DataSyncTaskDTO dto = taskDto();
         DataSyncRetryPolicyDTO retryPolicy = new DataSyncRetryPolicyDTO();
         retryPolicy.setMaxAttempts(3);
@@ -266,10 +266,10 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldIncrementVersionWhenRemovingLegacyAutoCreatePolicy() throws Exception {
-        DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
+        SyncDefinitionEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
         task.setAutoCreateTable(true);
-        AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
-        DataSyncTaskServiceImpl service = editableService(task, captured);
+        AtomicReference<SyncDefinitionEntity> captured = new AtomicReference<>();
+        SyncDefinitionServiceImpl service = editableService(task, captured);
 
         WorkspaceContext.bind("workspace-1");
         DataSyncTaskVO updated = service.updateTask("task-1", taskDto());
@@ -280,7 +280,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldRejectUpdateForPublishedTask() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task(DataSyncTaskStatus.PUBLISHED, 1), new AtomicReference<>()));
@@ -294,7 +294,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldRejectSyncTypeMutation() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task(DataSyncTaskStatus.UNPUBLISHED, 1), new AtomicReference<>()));
@@ -310,7 +310,7 @@ class DataSyncTaskLifecycleContractTest {
 
     @Test
     void shouldRejectDeleteForPublishedTask() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task(DataSyncTaskStatus.PUBLISHED, 1), new AtomicReference<>()));
@@ -322,9 +322,9 @@ class DataSyncTaskLifecycleContractTest {
         assertEquals(DataSyncErrorCode.INVALID_TASK_STATUS, exception.getErrorCode());
     }
 
-    private DataSyncTaskServiceImpl editableService(
-            DataSyncTaskEntity task, AtomicReference<DataSyncTaskEntity> captured) throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+    private SyncDefinitionServiceImpl editableService(
+            SyncDefinitionEntity task, AtomicReference<SyncDefinitionEntity> captured) throws Exception {
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository(task, captured));
@@ -332,17 +332,17 @@ class DataSyncTaskLifecycleContractTest {
         return service;
     }
 
-    private DataSyncTaskRepository taskRepository(
-            DataSyncTaskEntity existing, AtomicReference<DataSyncTaskEntity> captured) {
-        return (DataSyncTaskRepository) Proxy.newProxyInstance(
-                DataSyncTaskRepository.class.getClassLoader(),
-                new Class<?>[] {DataSyncTaskRepository.class},
+    private SyncDefinitionRepository taskRepository(
+            SyncDefinitionEntity existing, AtomicReference<SyncDefinitionEntity> captured) {
+        return (SyncDefinitionRepository) Proxy.newProxyInstance(
+                SyncDefinitionRepository.class.getClassLoader(),
+                new Class<?>[] {SyncDefinitionRepository.class},
                 (proxy, method, args) -> {
                     if ("existsByName".equals(method.getName())) return false;
                     if ("queryById".equals(method.getName())) return Optional.ofNullable(existing);
                     if ("add".equals(method.getName()) || "update".equals(method.getName())) {
-                        DataSyncTaskEntity entity =
-                                (DataSyncTaskEntity) ("add".equals(method.getName()) ? args[0] : args[1]);
+                        SyncDefinitionEntity entity =
+                                (SyncDefinitionEntity) ("add".equals(method.getName()) ? args[0] : args[1]);
                         captured.set(entity);
                         return entity;
                     }
@@ -392,8 +392,8 @@ class DataSyncTaskLifecycleContractTest {
                 });
     }
 
-    private DataSyncTaskEntity task(DataSyncTaskStatus status, int version) {
-        DataSyncTaskEntity task = new DataSyncTaskEntity();
+    private SyncDefinitionEntity task(DataSyncTaskStatus status, int version) {
+        SyncDefinitionEntity task = new SyncDefinitionEntity();
         task.setId("task-1");
         task.setWorkspaceId("workspace-1");
         task.setName("task");

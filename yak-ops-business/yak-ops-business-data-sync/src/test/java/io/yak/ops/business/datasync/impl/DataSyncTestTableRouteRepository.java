@@ -1,7 +1,7 @@
 package io.yak.ops.business.datasync.impl;
 
 import io.yak.ops.dao.entity.datasync.DataSyncTableRouteEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import java.lang.reflect.Proxy;
 import java.util.Comparator;
@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 为直接构造 DataSyncTaskDefinitionValidator 的 Contract Test 提供最小内存 Table Route Repository。
+ * 为直接构造 SyncDefinitionValidator 的 Contract Test 提供最小内存 Table Route Repository。
  */
 final class DataSyncTestTableRouteRepository {
 
@@ -21,7 +21,7 @@ final class DataSyncTestTableRouteRepository {
         return inject(service, List.of());
     }
 
-    static DataSyncTableRouteRepository inject(Object service, DataSyncTaskEntity task) throws Exception {
+    static DataSyncTableRouteRepository inject(Object service, SyncDefinitionEntity task) throws Exception {
         if (task == null) return inject(service);
         DataSyncTableRouteEntity route = new DataSyncTableRouteEntity();
         route.setId(task.getId());

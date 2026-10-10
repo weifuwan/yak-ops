@@ -8,7 +8,7 @@ import io.yak.ops.business.datasync.exception.DataSyncException;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTableRouteDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskDTO;
 import io.yak.ops.dao.entity.datasync.DataSyncTableRouteEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTableRouteRepository;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ class DataSyncSingleTableDefinitionContractTest {
 
     @Test
     void shouldRejectExplicitRouteRequests() {
-        DataSyncTaskDefinitionValidator validator = new DataSyncTaskDefinitionValidator();
+        SyncDefinitionValidator validator = new SyncDefinitionValidator();
         DataSyncTaskDTO dto = new DataSyncTaskDTO();
         dto.setTableRoutes(List.of(new DataSyncTableRouteDTO()));
 
@@ -29,13 +29,13 @@ class DataSyncSingleTableDefinitionContractTest {
 
     @Test
     void shouldRejectPersistedHistoricalMultiRouteTask() throws Exception {
-        DataSyncTaskDefinitionValidator validator = new DataSyncTaskDefinitionValidator();
+        SyncDefinitionValidator validator = new SyncDefinitionValidator();
         DataSyncTableRouteRepository repository = DataSyncTestTableRouteRepository.create();
         repository.add(route("route-1", 0));
         repository.add(route("route-2", 1));
         DataSyncTestServices.inject(validator, "tableRouteRepository", repository);
 
-        DataSyncTaskEntity task = new DataSyncTaskEntity();
+        SyncDefinitionEntity task = new SyncDefinitionEntity();
         task.setId("task-1");
         task.setWorkspaceId("workspace-1");
         DataSyncException error =

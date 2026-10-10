@@ -17,11 +17,11 @@ import io.yak.ops.common.page.PageData;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncScheduleEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionPageQuery;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
@@ -41,10 +41,10 @@ class DataSyncOperationReadModelTest {
     @Test
     void shouldAggregatePublishedTaskLatestExecutionAndSchedulerNextFireTime() throws Exception {
         DataSyncOperationsServiceImpl service = new DataSyncOperationsServiceImpl();
-        DataSyncTaskEntity task = task();
+        SyncDefinitionEntity task = task();
         DataSyncInstanceEntity latest = latestExecution();
         DataSyncScheduleEntity schedule = schedule();
-        AtomicReference<DataSyncTaskPageQuery> capturedQuery = new AtomicReference<>();
+        AtomicReference<SyncDefinitionPageQuery> capturedQuery = new AtomicReference<>();
 
         inject(service, "taskRepository", taskRepository(task, capturedQuery));
         inject(service, "instanceRepository", instanceRepository(latest));
@@ -71,8 +71,8 @@ class DataSyncOperationReadModelTest {
         assertEquals("2026-10-01T02:00", row.getSchedule().getNextFireTime().toString());
     }
 
-    private DataSyncTaskEntity task() {
-        DataSyncTaskEntity task = new DataSyncTaskEntity();
+    private SyncDefinitionEntity task() {
+        SyncDefinitionEntity task = new SyncDefinitionEntity();
         task.setId("task-1");
         task.setWorkspaceId("workspace-1");
         task.setName("offline-task");
@@ -113,14 +113,14 @@ class DataSyncOperationReadModelTest {
         return schedule;
     }
 
-    private DataSyncTaskRepository taskRepository(
-            DataSyncTaskEntity task, AtomicReference<DataSyncTaskPageQuery> capturedQuery) {
-        return (DataSyncTaskRepository) Proxy.newProxyInstance(
-                DataSyncTaskRepository.class.getClassLoader(),
-                new Class<?>[] {DataSyncTaskRepository.class},
+    private SyncDefinitionRepository taskRepository(
+            SyncDefinitionEntity task, AtomicReference<SyncDefinitionPageQuery> capturedQuery) {
+        return (SyncDefinitionRepository) Proxy.newProxyInstance(
+                SyncDefinitionRepository.class.getClassLoader(),
+                new Class<?>[] {SyncDefinitionRepository.class},
                 (proxy, method, args) -> {
                     if ("queryPage".equals(method.getName())) {
-                        capturedQuery.set((DataSyncTaskPageQuery) args[1]);
+                        capturedQuery.set((SyncDefinitionPageQuery) args[1]);
                         return PageData.of(List.of(task), 1, 1, 20);
                     }
                     throw new UnsupportedOperationException(method.getName());

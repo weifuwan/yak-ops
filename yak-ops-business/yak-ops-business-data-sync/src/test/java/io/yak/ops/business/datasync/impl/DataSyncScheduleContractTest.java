@@ -25,10 +25,10 @@ import io.yak.ops.common.enums.datasync.DataSyncType;
 import io.yak.ops.common.enums.datasync.DataSyncWriteMode;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncScheduleEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.sql.Types;
@@ -148,7 +148,7 @@ class DataSyncScheduleContractTest {
     @Test
     void shouldNotCreateScheduledExecutionWithoutRuntime() throws Exception {
         DataSyncScheduleServiceImpl service = new DataSyncScheduleServiceImpl();
-        DataSyncTaskEntity task = task(DataSyncTaskStatus.PUBLISHED);
+        SyncDefinitionEntity task = task(DataSyncTaskStatus.PUBLISHED);
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
         AtomicInteger instanceAdds = new AtomicInteger();
@@ -176,7 +176,7 @@ class DataSyncScheduleContractTest {
     @Test
     void shouldClearWorkspaceContextWhenScheduledFireFails() throws Exception {
         DataSyncScheduleServiceImpl service = new DataSyncScheduleServiceImpl();
-        DataSyncTaskEntity task = task(DataSyncTaskStatus.PUBLISHED);
+        SyncDefinitionEntity task = task(DataSyncTaskStatus.PUBLISHED);
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
         AtomicInteger instanceAdds = new AtomicInteger();
@@ -224,8 +224,8 @@ class DataSyncScheduleContractTest {
         return dto;
     }
 
-    private DataSyncTaskEntity task(DataSyncTaskStatus status) {
-        DataSyncTaskEntity task = new DataSyncTaskEntity();
+    private SyncDefinitionEntity task(DataSyncTaskStatus status) {
+        SyncDefinitionEntity task = new SyncDefinitionEntity();
         task.setId("task-1");
         task.setWorkspaceId("workspace-1");
         task.setName("task");
@@ -256,10 +256,10 @@ class DataSyncScheduleContractTest {
         return schedule;
     }
 
-    private DataSyncTaskRepository taskRepository(DataSyncTaskEntity task) {
-        return (DataSyncTaskRepository) Proxy.newProxyInstance(
-                DataSyncTaskRepository.class.getClassLoader(),
-                new Class<?>[] {DataSyncTaskRepository.class},
+    private SyncDefinitionRepository taskRepository(SyncDefinitionEntity task) {
+        return (SyncDefinitionRepository) Proxy.newProxyInstance(
+                SyncDefinitionRepository.class.getClassLoader(),
+                new Class<?>[] {SyncDefinitionRepository.class},
                 (proxy, method, args) -> {
                     if ("queryById".equals(method.getName())) return Optional.ofNullable(task);
                     throw new UnsupportedOperationException(method.getName());

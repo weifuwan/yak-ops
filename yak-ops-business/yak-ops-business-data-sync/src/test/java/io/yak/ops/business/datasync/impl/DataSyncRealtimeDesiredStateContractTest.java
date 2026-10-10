@@ -16,11 +16,11 @@ import io.yak.ops.common.enums.datasync.DataSyncInstanceStatus;
 import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
 import io.yak.ops.common.enums.datasync.DataSyncType;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncAttemptRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.sql.Types;
@@ -40,10 +40,10 @@ class DataSyncRealtimeDesiredStateContractTest {
     @Test
     void shouldRejectManualRealtimeExecutionWhenRuntimeUnavailable() throws Exception {
         DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
-        DataSyncTaskEntity task = realtimeTask(DataSyncDesiredState.STOPPED);
+        SyncDefinitionEntity task = realtimeTask(DataSyncDesiredState.STOPPED);
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
-        AtomicReference<DataSyncTaskEntity> updatedTask = new AtomicReference<>();
+        AtomicReference<SyncDefinitionEntity> updatedTask = new AtomicReference<>();
         AtomicReference<DataSyncInstanceEntity> createdExecution = new AtomicReference<>();
 
         inject(service, "taskRepository", taskRepository(task, updatedTask, false));
@@ -60,10 +60,10 @@ class DataSyncRealtimeDesiredStateContractTest {
     @Test
     void shouldStopDesiredStateWhenRetryWaitingExecutionIsCanceled() throws Exception {
         DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
-        DataSyncTaskEntity task = realtimeTask(DataSyncDesiredState.RUNNING);
+        SyncDefinitionEntity task = realtimeTask(DataSyncDesiredState.RUNNING);
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
-        AtomicReference<DataSyncTaskEntity> updatedTask = new AtomicReference<>();
+        AtomicReference<SyncDefinitionEntity> updatedTask = new AtomicReference<>();
         DataSyncInstanceEntity execution = new DataSyncInstanceEntity();
         execution.setId("execution-1");
         execution.setWorkspaceId("workspace-1");
@@ -90,11 +90,11 @@ class DataSyncRealtimeDesiredStateContractTest {
 
     @Test
     void shouldStopDesiredStateWhenRealtimeTaskIsUnpublished() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
-        DataSyncTaskEntity task = realtimeTask(DataSyncDesiredState.RUNNING);
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
+        SyncDefinitionEntity task = realtimeTask(DataSyncDesiredState.RUNNING);
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
-        AtomicReference<DataSyncTaskEntity> updatedTask = new AtomicReference<>();
+        AtomicReference<SyncDefinitionEntity> updatedTask = new AtomicReference<>();
 
         inject(service, "taskRepository", taskRepository(task, updatedTask, false));
         inject(service, "instanceRepository", instanceRepository(false, new AtomicReference<>()));
@@ -109,8 +109,8 @@ class DataSyncRealtimeDesiredStateContractTest {
         assertEquals(DataSyncDesiredState.STOPPED, updatedTask.get().getDesiredState());
     }
 
-    private DataSyncTaskEntity realtimeTask(DataSyncDesiredState desiredState) {
-        DataSyncTaskEntity task = new DataSyncTaskEntity();
+    private SyncDefinitionEntity realtimeTask(DataSyncDesiredState desiredState) {
+        SyncDefinitionEntity task = new SyncDefinitionEntity();
         task.setId("task-1");
         task.setWorkspaceId("workspace-1");
         task.setName("realtime-task");
@@ -131,20 +131,20 @@ class DataSyncRealtimeDesiredStateContractTest {
         return task;
     }
 
-    private DataSyncTaskRepository taskRepository(
-            DataSyncTaskEntity task,
-            AtomicReference<DataSyncTaskEntity> updated,
+    private SyncDefinitionRepository taskRepository(
+            SyncDefinitionEntity task,
+            AtomicReference<SyncDefinitionEntity> updated,
             boolean includeDesiredRunningQuery) {
-        return (DataSyncTaskRepository) Proxy.newProxyInstance(
-                DataSyncTaskRepository.class.getClassLoader(),
-                new Class<?>[] {DataSyncTaskRepository.class},
+        return (SyncDefinitionRepository) Proxy.newProxyInstance(
+                SyncDefinitionRepository.class.getClassLoader(),
+                new Class<?>[] {SyncDefinitionRepository.class},
                 (proxy, method, args) -> {
                     if ("queryById".equals(method.getName())) return Optional.of(task);
                     if ("queryRealtimeDesiredRunning".equals(method.getName())) {
                         return includeDesiredRunningQuery ? List.of(task) : List.of();
                     }
                     if ("update".equals(method.getName())) {
-                        DataSyncTaskEntity entity = (DataSyncTaskEntity) args[1];
+                        SyncDefinitionEntity entity = (SyncDefinitionEntity) args[1];
                         updated.set(entity);
                         return entity;
                     }
