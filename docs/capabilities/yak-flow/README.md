@@ -18,7 +18,7 @@ PR2 新增 `MySqlCdcSource.initialSnapshot(chunkSize)`，通过 JDBC BIGINT 主�
 
 PR3 新增引擎层 `MySqlHybridCdcSource → StreamGraph / ExecutionGraph → JdbcSink` 的真实跨库验收，包含两张源表、多表 UPSERT、增删改、Checkpoint 后取消与恢复。Source 并行度 2，JDBC Sink 并行度固定为 1，保证 UPDATE_BEFORE / UPDATE_AFTER 成对进入同一个 Writer。
 
-新增手动工作流 `MySQL CDC Runtime Cross-Database Acceptance`，分别验证 MySQL、PostgreSQL、Oracle 目标库。**工作流未实际通过前，不宣称跨库验收完成**。这里只验证 YakFlow 引擎，不恢复产品侧任务执行。详见 [Runtime + JDBC Cross-Database Acceptance](mysql-cdc-runtime-jdbc-acceptance.md)。
+新增手动工作流 `MySQL CDC Runtime Cross-Database Acceptance`，分别验证 MySQL、PostgreSQL、Oracle 目标库；JDBC Sink 的手动跨库工作流另增 MySQL → MySQL 双容器场景。两类测试覆盖不同表结构的多表路由与完整目标行断言，CDC 另外验证并发 Snapshot 和恢复。**工作流未实际通过前，不宣称跨库验收完成**。这里只验证 YakFlow 引擎，不恢复产品侧任务执行。详见 [MySQL Multi-Table Runtime Acceptance](mysql-multi-table-runtime-acceptance.md) 和 [CDC Runtime + JDBC Cross-Database Acceptance](mysql-cdc-runtime-jdbc-acceptance.md)。
 
 ## Execution Pipeline
 
