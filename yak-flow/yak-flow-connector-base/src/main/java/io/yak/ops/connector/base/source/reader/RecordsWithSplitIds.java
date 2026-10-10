@@ -10,10 +10,28 @@ import java.util.Set;
  */
 public interface RecordsWithSplitIds<E> {
 
+    /**
+     * Advances to the next split represented in this bounded fetch batch.
+     *
+     * @return split ID, or null after all split groups are exhausted
+     */
     String nextSplit();
 
+    /**
+     * Reads the next record from the split most recently selected by {@link #nextSplit()}.
+     *
+     * @return next fetched record, or null when the current split's records are exhausted
+     */
     E nextRecordFromSplit();
 
+    /**
+     * Returns split IDs whose completion markers follow the records in this batch.
+     *
+     * <p>The mailbox must not mark a split finished until all prior records have been
+     * emitted successfully.
+     *
+     * @return split IDs eligible for completion after record consumption
+     */
     Set<String> finishedSplits();
 
     /** Releases resources belonging to a batch after the mailbox has consumed it. */
