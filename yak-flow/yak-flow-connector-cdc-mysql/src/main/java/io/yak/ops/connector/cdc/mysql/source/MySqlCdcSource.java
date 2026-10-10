@@ -53,6 +53,19 @@ public final class MySqlCdcSource implements Source<TableRecord, MySqlBinlogSpli
         return config;
     }
 
+    /**
+     * Builds an independent initial-snapshot CDC Source from this reusable Binlog definition.
+     *
+     * <p>The hybrid mode uses its own checkpoint namespace and cannot restore a stream-only
+     * Binlog checkpoint. Existing stream-only callers remain unchanged.
+     *
+     * @param chunkSize maximum approximate rows in a BIGINT-key snapshot range
+     * @return a Hybrid Snapshot/continuous Binlog source
+     */
+    public MySqlHybridCdcSource initialSnapshot(int chunkSize) {
+        return new MySqlHybridCdcSource(config, fingerprint, chunkSize);
+    }
+
     @Override
     public Boundedness getBoundedness() {
         return Boundedness.CONTINUOUS_UNBOUNDED;

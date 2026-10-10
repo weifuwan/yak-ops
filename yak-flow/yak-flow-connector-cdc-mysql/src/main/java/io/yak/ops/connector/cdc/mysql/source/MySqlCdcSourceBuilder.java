@@ -69,6 +69,11 @@ public final class MySqlCdcSourceBuilder {
         return this;
     }
 
+    /** Creates the initial Snapshot + Binlog Source from the same validated connection plan. */
+    public MySqlHybridCdcSource buildHybrid(int chunkSize) {
+        return build().initialSnapshot(chunkSize);
+    }
+
     /** Builds a reusable Source definition without opening a database connection. */
     public MySqlCdcSource build() {
         return new MySqlCdcSource(new MySqlCdcSourceConfig(

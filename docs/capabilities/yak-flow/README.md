@@ -8,6 +8,12 @@ Status: Active — Core / Runtime execution, Connector Base, JDBC Source/Sink, M
 
 MySQL CDC PR1 提供基于 Debezium 的纯 Binlog Source 和 Offset + Schema History Checkpoint，尚不支持 Initial Snapshot、Low/High Watermark、Backfill 或生产产品任务接线。详见 [MySQL Binlog Connector](mysql-cdc-binlog.md)。
 
+## MySQL Hybrid Snapshot + Binlog
+
+PR2 新增 `MySqlCdcSource.initialSnapshot(chunkSize)`，通过 JDBC BIGINT 主键分片读取全量，再在**完成的 Checkpoint** 覆盖所有分片后，释放此前暂停的 Debezium Binlog Reader。Snapshot 执行前记录全局 Low Watermark，全部分片完成后记录 High Watermark；随后从 Low 开始重放 Binlog，修正 Snapshot 过程中出现的并发变更。
+
+这是**全局有序重放、at-least-once** 的保守衔接方案，并非 Flink CDC 逐 Chunk L/H Watermark 归并输出算法。首版仅支持单列非空 BIGINT 主键，不支持无主键全量、Schema Evolution 或 Exactly-once。详见 [MySQL Hybrid Snapshot](mysql-cdc-hybrid.md)。
+
 ## Execution Pipeline
 
 ```text
