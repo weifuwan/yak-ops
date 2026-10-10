@@ -11,8 +11,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Immutable MySQL Binlog connection and schema contract independent of execution attempts.
@@ -57,7 +57,9 @@ public final class MySqlCdcSourceConfig {
         Objects.requireNonNull(schemas, "schemas").forEach((table, schema) -> {
             Objects.requireNonNull(table, "table");
             Objects.requireNonNull(schema, "schema");
-            if (table.catalog() == null || table.schema() != null || schema.primaryKeys().isEmpty()) {
+            if (table.catalog() == null
+                    || table.schema() != null
+                    || schema.primaryKeys().isEmpty()) {
                 throw new IllegalArgumentException("MySQL CDC requires database-qualified tables with primary keys");
             }
             schema.columns().forEach(column -> {
@@ -149,7 +151,9 @@ public final class MySqlCdcSourceConfig {
         properties.setProperty("yakflow.cdc.session.id", session);
         properties.setProperty("offset.flush.interval.ms", "0");
         properties.setProperty("schema.history.internal", "io.debezium.storage.file.history.FileSchemaHistory");
-        properties.setProperty("schema.history.internal.file.filename", schemaHistoryFile.toAbsolutePath().toString());
+        properties.setProperty(
+                "schema.history.internal.file.filename",
+                schemaHistoryFile.toAbsolutePath().toString());
         return properties;
     }
 

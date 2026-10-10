@@ -101,7 +101,10 @@ public final class MySqlCdcSource implements Source<TableRecord, MySqlBinlogSpli
             TableSchema schema = entry.getValue();
             definition.append('|').append(table.catalog()).append('/').append(table.table());
             for (Column column : schema.columns()) {
-                definition.append('|').append(column.name()).append(':')
+                definition
+                        .append('|')
+                        .append(column.name())
+                        .append(':')
                         .append(column.dataType().asSerializableString());
             }
             definition.append("|pk=").append(String.join(",", schema.primaryKeys()));
