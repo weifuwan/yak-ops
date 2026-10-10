@@ -42,7 +42,8 @@ import org.junit.jupiter.api.Test;
  * Opt-in real MySQL Hybrid acceptance for bounded chunks, replay and checkpoint handoff.
  *
  * <p>The fixture injects writes on both tables immediately after the Binlog low watermark
- * is captured, before snapshot planning. Real Debezium, Binlog and JDBC Snapshot I/O run
+ * is captured, before the Snapshot readers poll their assigned splits. Real Debezium,
+ * Binlog and JDBC Snapshot I/O run
  * on Connector Base fetchers under deterministic mailbox/coordinator scheduling.
  */
 class MySqlHybridIT {
@@ -117,7 +118,13 @@ class MySqlHybridIT {
                                     ITEMS.equals(row.tableId()) && row.rowKind() == RowKind.DELETE)
                             && harness.output.stream().anyMatch(row ->
                                     ITEMS.equals(row.tableId()) && row.rowKind() == RowKind.UPDATE_AFTER)
-                            && harness.output.stream().filter(row -> row.rowKind() == RowKind.INSERT).count() >= 6,
+                            && harness.output.stream().anyMatch(row ->
+                                    ORDERS.equals(row.tableId()) && row.rowKind() == RowKind.INSERT
+                                            && ((Number) row.row().getField(0)).longValue() == 5L)
+                            && harness.output.stream().anyMatch(row ->
+                                    ITEMS.equals(row.tableId()) && row.rowKind() == RowKind.INSERT
+                                            && ((Number) row.row().getField(0)).longValue() == 30L)
+                            && harness.coordinatorState().phase() == MySqlHybridEnumeratorState.Phase.STREAMING,
                     Duration.ofSeconds(80));
 
             Map<Long, String> orders = new LinkedHashMap<>();
