@@ -1,6 +1,6 @@
 # YakFlow MySQL CDC — PR1 Binlog Source
 
-Status: Connector foundation. Hybrid Snapshot/Backfill and product task integration are not implemented.
+Status: Stream-only connector foundation. PR2 adds a separate Hybrid Snapshot mode; product runtime integration is still pending.
 
 ## Implementation
 
@@ -35,7 +35,7 @@ MySQL requirements: enabled ROW Binlog, `binlog_row_image=FULL`, a distinct repl
 ## Scope and guarantees
 
 - **At-least-once**, not Exactly-once. JDBC Sink commits are independent of Source offset durability.
-- No initial full snapshot; no Low/High Watermark, ChunkSplitter or Backfill (PR2).
+- This stream-only Source does not perform a full snapshot. For BIGINT-key initial snapshot + global Binlog replay, use [MySQL Hybrid Snapshot](mysql-cdc-hybrid.md).
 - No DDL/Schema Evolution, rescale, multiple active Binlog readers, or product execution wiring.
 - The source carries split metadata and Schema History under an 8 MiB serialized size limit. Schema changes during an active stream are not a supported operation; pause or reject such changes until evolution contracts exist.
 - MySQL JDBC Source and JDBC Sink remain in their existing Connector modules. Debezium-specific state does not move to Core or Runtime.

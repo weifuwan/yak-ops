@@ -57,7 +57,7 @@ Provides asynchronous SourceReader mechanics and a synchronous Sink batch founda
 
 ### `yak-flow/yak-flow-connector-cdc-mysql`
 
-独立 MySQL Binlog Source 实现，依赖 Core 和 Connector Base，Debezium 管理 Binlog 复制与解析，SourceReader 在 Mailbox 中更新已交付 Offset，并把恢复所需 Schema History 纳入版本化 Split 快照。单 Binlog Reader、只支持从当前位点启动和完成 Checkpoint 恢复；不将其等同于 Hybrid Snapshot 或产品实际运行接线。具体合同见 [MySQL Binlog Connector](docs/capabilities/yak-flow/mysql-cdc-binlog.md)。
+独立 MySQL CDC Connector 依赖 Core、Connector Base，并复用 JDBC Connector 的 Dialect/Converter 完成 Snapshot。Debezium 负责 Binlog 协议和 Schema History；stream-only Source 延续 PR1。Hybrid Source 通过 BIGINT-key Chunk 分片、全局 Low/High Watermark 与完成 Checkpoint 后的 Binlog 重放衔接全增量，既不复制 Runtime，也不实现 Flink CDC 的逐 Chunk Snapshot 归并。全链路当前为 at-least-once，产品任务仍未接线。具体合同见 [MySQL Binlog Connector](docs/capabilities/yak-flow/mysql-cdc-binlog.md) 与 [MySQL Hybrid Snapshot](docs/capabilities/yak-flow/mysql-cdc-hybrid.md)。
 
 ### `yak-flow/yak-flow-connector-jdbc`
 
