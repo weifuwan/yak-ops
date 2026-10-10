@@ -97,6 +97,9 @@ public final class MySqlChunkBackfill {
             if (before.rowKind() != RowKind.UPDATE_BEFORE || after.rowKind() != RowKind.UPDATE_AFTER) {
                 throw new IllegalArgumentException("Backfill UPDATE images must be adjacent");
             }
+            // Validate both images before mutating the accumulator.
+            key(before);
+            key(after);
             retract(before);
             upsert(after);
         } else if (changes.size() == 1) {
