@@ -10,7 +10,8 @@ if grep -R -n 'io\.yak\.ops\.flow\.runtime' yak-ops-core/src/main/java; then
 fi
 
 removed_paths=(
-    yak-flow/yak-flow-connector-cdc-mysql
+    # The old CDC engine is still forbidden, but the new Core Source-based module is legitimate.
+    yak-flow/yak-flow-connector-cdc-mysql/src/main/java/io/yak/ops/flow/connector/cdc
     yak-flow/yak-flow-api
     yak-ops-plugins/yak-ops-plugin-datasource/yak-ops-plugin-datasource-jdbc/src/main/java/io/yak/ops/plugin/database/jdbc/schema/dialect
     yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/execution
