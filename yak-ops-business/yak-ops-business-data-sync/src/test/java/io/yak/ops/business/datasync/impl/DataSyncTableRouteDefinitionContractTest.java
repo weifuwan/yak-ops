@@ -85,6 +85,24 @@ class DataSyncTableRouteDefinitionContractTest {
         assertEquals(1, repository.ordered().size());
     }
 
+    @Test
+    void shouldClearRetiredRoutePoliciesOnExplicitReconcile() throws Exception {
+        InMemoryRoutes repository = new InMemoryRoutes();
+        DataSyncTableRouteEntity legacy = route("route-users", "users", 0);
+        legacy.setAutoCreateTable(true);
+        legacy.setMappingConfig("{\"columns\":[{\"source\":\"id\",\"target\":\"other\"}]}");
+        repository.addSeed(legacy);
+        DataSyncTableRouteDefinitionService service = service(repository);
+        List<DataSyncTableRouteDTO> request = List.of(request("route-users", "users"));
+
+        assertTrue(service.changed("ws-1", "task-1", request));
+        service.reconcile("ws-1", "task-1", request, "operator");
+        DataSyncTableRouteEntity updated = repository.ordered().getFirst();
+        assertFalse(Boolean.TRUE.equals(updated.getAutoCreateTable()));
+        assertEquals(null, updated.getMappingConfig());
+        assertFalse(service.changed("ws-1", "task-1", request));
+    }
+
     private DataSyncTableRouteDefinitionService service(InMemoryRoutes memory) throws Exception {
         DataSyncTableRouteDefinitionService service = new DataSyncTableRouteDefinitionService();
         Field field = DataSyncTableRouteDefinitionService.class.getDeclaredField("tableRouteRepository");
@@ -100,7 +118,6 @@ class DataSyncTableRouteDefinitionContractTest {
         route.setSourceTable(sourceTable);
         route.setTargetDatabase("warehouse");
         route.setTargetTable("ods_" + sourceTable);
-        route.setAutoCreateTable(true);
         return route;
     }
 
@@ -113,7 +130,7 @@ class DataSyncTableRouteDefinitionContractTest {
         entity.setSourceTable(sourceTable);
         entity.setTargetDatabase("warehouse");
         entity.setTargetTable("ods_" + sourceTable);
-        entity.setAutoCreateTable(true);
+        entity.setAutoCreateTable(false);
         entity.setSortOrder(order);
         return entity;
     }

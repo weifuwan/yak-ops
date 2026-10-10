@@ -7,8 +7,6 @@ import type {
   DataSyncInstancePageParams,
   DataSyncInstancePageResult,
   DataSyncInstanceRecord,
-  DataSyncMappingPreview,
-  DataSyncMappingPreviewPayload,
   DataSyncOperationsDashboard,
   DataSyncOperationsDashboardPayload,
   DataSyncSchedulePreview,
@@ -66,16 +64,6 @@ export const updateDataSyncTask = (
 export const deleteDataSyncTask = async (id: string): Promise<void> => {
   await HttpUtils.deleteData<boolean>(`${DATA_SYNC_API_PREFIX}/tasks/${id}`);
 };
-
-export const previewDataSyncMapping = (
-  payload: DataSyncMappingPreviewPayload,
-  options?: { silent?: boolean },
-): Promise<DataSyncMappingPreview> =>
-  HttpUtils.postData<DataSyncMappingPreview>(
-    `${DATA_SYNC_API_PREFIX}/tasks/mapping-preview`,
-    payload,
-    options?.silent ? { skipErrorHandler: true } : undefined,
-  );
 
 export const publishDataSyncTask = (id: string): Promise<DataSyncTaskRecord> =>
   HttpUtils.postData<DataSyncTaskRecord>(`${DATA_SYNC_API_PREFIX}/tasks/${id}/publish`);

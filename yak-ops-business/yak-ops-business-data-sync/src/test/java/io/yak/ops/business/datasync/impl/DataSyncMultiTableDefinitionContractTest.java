@@ -3,11 +3,8 @@ package io.yak.ops.business.datasync.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.yak.ops.business.datasource.DataSourceService;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
-import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
-import io.yak.ops.common.bean.vo.datasync.DataSyncDefinitionSnapshotVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
 import io.yak.ops.common.enums.datasync.DataSyncType;
@@ -16,7 +13,6 @@ import io.yak.ops.dao.entity.datasync.DataSyncTableRouteEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Optional;
@@ -28,35 +24,6 @@ class DataSyncMultiTableDefinitionContractTest {
     @AfterEach
     void clearWorkspace() {
         WorkspaceContext.clear();
-    }
-
-    @Test
-    void shouldFreezeAllRoutesAndKeepFirstRouteCompatibilityProjection() throws Exception {
-        DataSyncServiceImpl service = new DataSyncServiceImpl();
-        inject(service, "dataSourceService", dataSourceService());
-
-        DataSyncTaskEntity task = offlineTask();
-        List<DataSyncTableRouteEntity> routes = List.of(
-                route("route-1", 0, "users", "ods_users"),
-                route("route-2", 1, "orders", "ods_orders"));
-
-        Method method =
-                DataSyncServiceImpl.class.getDeclaredMethod("definitionSnapshot", DataSyncTaskEntity.class, List.class);
-        method.setAccessible(true);
-        DataSyncDefinitionSnapshotVO snapshot =
-                (DataSyncDefinitionSnapshotVO) method.invoke(service, task, routes);
-
-        assertEquals(2, snapshot.getTableRoutes().size());
-        assertEquals("route-1", snapshot.getTableRoutes().get(0).getRouteId());
-        assertEquals("users", snapshot.getTableRoutes().get(0).getSource().getTable());
-        assertEquals("ods_users", snapshot.getTableRoutes().get(0).getTarget().getTable());
-        assertEquals("route-2", snapshot.getTableRoutes().get(1).getRouteId());
-        assertEquals("orders", snapshot.getTableRoutes().get(1).getSource().getTable());
-        assertEquals("ods_orders", snapshot.getTableRoutes().get(1).getTarget().getTable());
-
-        assertEquals("users", snapshot.getSource().getTable());
-        assertEquals("ods_users", snapshot.getTarget().getTable());
-        assertEquals(snapshot.getTableRoutes().get(0).getRuntimeConfig(), snapshot.getRuntimeConfig());
     }
 
     @Test
@@ -125,29 +92,6 @@ class DataSyncMultiTableDefinitionContractTest {
                     }
                     throw new UnsupportedOperationException(method.getName());
                 });
-    }
-
-    private DataSourceService dataSourceService() {
-        DataSourceVO source = dataSource("source", "source_db");
-        DataSourceVO target = dataSource("target", "target_db");
-        return (DataSourceService) Proxy.newProxyInstance(
-                DataSourceService.class.getClassLoader(),
-                new Class<?>[] {DataSourceService.class},
-                (proxy, method, args) -> {
-                    if ("queryDataSource".equals(method.getName())) {
-                        return "source".equals(args[0]) ? source : target;
-                    }
-                    throw new UnsupportedOperationException(method.getName());
-                });
-    }
-
-    private DataSourceVO dataSource(String id, String database) {
-        DataSourceVO value = new DataSourceVO();
-        value.setId(id);
-        value.setName(id);
-        value.setDbType("MYSQL");
-        value.setDatabase(database);
-        return value;
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {

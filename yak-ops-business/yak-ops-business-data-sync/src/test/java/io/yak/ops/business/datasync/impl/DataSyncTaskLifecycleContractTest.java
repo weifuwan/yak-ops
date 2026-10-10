@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.yak.ops.business.datasource.DataSourceService;
 import io.yak.ops.business.datasync.exception.DataSyncErrorCode;
 import io.yak.ops.business.datasync.exception.DataSyncException;
-import io.yak.ops.business.datasync.schema.catalog.SourceTableIntrospector;
 import io.yak.ops.common.bean.dto.datasync.DataSyncRetryPolicyDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncRuntimeConfigDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskDTO;
@@ -99,11 +98,8 @@ class DataSyncTaskLifecycleContractTest {
         DataSyncTestTableExecutionRepository.inject(service);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
         DataSourceService dataSourceService = dataSourceService();
-        SourceTableIntrospector sourceTableIntrospector = new SourceTableIntrospector();
-        inject(sourceTableIntrospector, "dataSourceService", dataSourceService);
         inject(service, "taskRepository", taskRepository(null, captured));
         inject(service, "dataSourceService", dataSourceService);
-        inject(service, "sourceTableIntrospector", sourceTableIntrospector);
 
         DataSyncTaskDTO dto = taskDto();
         dto.setSyncType(DataSyncType.REALTIME);
@@ -272,20 +268,17 @@ class DataSyncTaskLifecycleContractTest {
     }
 
     @Test
-    void shouldIncrementVersionWhenAutoCreateTableChanges() throws Exception {
+    void shouldIncrementVersionWhenRemovingLegacyAutoCreatePolicy() throws Exception {
         DataSyncTaskEntity task = task(DataSyncTaskStatus.UNPUBLISHED, 3);
-        task.setAutoCreateTable(false);
+        task.setAutoCreateTable(true);
         AtomicReference<DataSyncTaskEntity> captured = new AtomicReference<>();
         DataSyncServiceImpl service = editableService(task, captured);
-        DataSyncTaskDTO dto = taskDto();
-        dto.setAutoCreateTable(true);
 
         WorkspaceContext.bind("workspace-1");
-        DataSyncTaskVO updated = service.updateTask("task-1", dto);
+        DataSyncTaskVO updated = service.updateTask("task-1", taskDto());
 
         assertEquals(4, updated.getDefinitionVersion());
-        assertEquals(true, updated.getAutoCreateTable());
-        assertEquals(true, captured.get().getAutoCreateTable());
+        assertEquals(false, captured.get().getAutoCreateTable());
     }
 
     @Test

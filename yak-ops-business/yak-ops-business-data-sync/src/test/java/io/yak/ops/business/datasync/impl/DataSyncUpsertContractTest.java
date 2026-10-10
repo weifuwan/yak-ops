@@ -3,7 +3,6 @@ package io.yak.ops.business.datasync.impl;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.yak.ops.business.datasource.DataSourceService;
-import io.yak.ops.business.datasync.schema.catalog.SourceTableIntrospector;
 import io.yak.ops.business.datasync.exception.DataSyncException;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
@@ -141,11 +140,6 @@ class DataSyncUpsertContractTest {
     private void injectDataSourceService(DataSyncServiceImpl service, DataSourceService dataSourceService)
             throws Exception {
         inject(service, "dataSourceService", dataSourceService);
-        SourceTableIntrospector sourceTableIntrospector = new SourceTableIntrospector();
-        Field field = SourceTableIntrospector.class.getDeclaredField("dataSourceService");
-        field.setAccessible(true);
-        field.set(sourceTableIntrospector, dataSourceService);
-        inject(service, "sourceTableIntrospector", sourceTableIntrospector);
     }
 
     private void inject(Object target, String fieldName, Object value) throws Exception {

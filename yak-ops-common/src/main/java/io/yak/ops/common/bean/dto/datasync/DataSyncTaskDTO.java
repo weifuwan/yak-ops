@@ -65,13 +65,6 @@ public class DataSyncTaskDTO {
     @Size(max = 128, message = "目标表名称不能超过 128 个字符")
     private String targetTable;
 
-    /** 目标表不存在时是否允许按 LogicalTable 自动建表；默认关闭。 */
-    private Boolean autoCreateTable = Boolean.FALSE;
-
-    /** 任务级显式字段映射；为空时继续使用系统默认同名映射。 */
-    @Valid
-    private DataSyncMappingDTO mapping;
-
     /**
      * OFFLINE Task 的有序表级定义。null 保持 v1.2 单表兼容；显式传入时必须 1-50 条，
      * Source / Target Datasource 仍由 Task 共享。

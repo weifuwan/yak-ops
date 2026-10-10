@@ -1,7 +1,6 @@
 package io.yak.ops.business.datasync;
 
 import io.yak.ops.common.bean.dto.datasync.DataSyncInstanceQueryDTO;
-import io.yak.ops.common.bean.dto.datasync.DataSyncMappingPreviewDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncOperationsDashboardDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncScheduleDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskDTO;
@@ -9,7 +8,6 @@ import io.yak.ops.common.bean.dto.datasync.DataSyncTaskQueryDTO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncAttemptVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncExecutionEventVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncInstanceVO;
-import io.yak.ops.common.bean.vo.datasync.DataSyncMappingPreviewVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncOperationsDashboardVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncSchedulePreviewVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncScheduleVO;
@@ -46,8 +44,6 @@ public interface DataSyncService {
     PagingData<DataSyncTaskOperationVO> queryTaskOperationPage(DataSyncTaskQueryDTO dto);
 
     DataSyncOperationsDashboardVO queryOperationsDashboard(DataSyncOperationsDashboardDTO dto);
-
-    DataSyncMappingPreviewVO previewMapping(DataSyncMappingPreviewDTO dto);
 
     DataSyncTaskVO publishTask(String id);
 

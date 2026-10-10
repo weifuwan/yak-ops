@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.business.datasync.DataSyncService;
 import io.yak.ops.common.bean.dto.datasync.DataSyncInstanceQueryDTO;
-import io.yak.ops.common.bean.dto.datasync.DataSyncMappingPreviewDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncOperationsDashboardDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncScheduleDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskDTO;
@@ -12,7 +11,6 @@ import io.yak.ops.common.bean.dto.datasync.DataSyncTaskQueryDTO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncAttemptVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncExecutionEventVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncInstanceVO;
-import io.yak.ops.common.bean.vo.datasync.DataSyncMappingPreviewVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncOperationsDashboardVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncSchedulePreviewVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncScheduleVO;
@@ -213,12 +211,6 @@ public class DataSyncController {
     @PostMapping("/instances/{id}/cancel")
     public Result<DataSyncInstanceVO> cancelInstance(@PathVariable("id") String id) {
         return Result.success(dataSyncService.cancelInstance(id));
-    }
-
-    @Operation(summary = "预览来源与目标表 Schema 映射")
-    @PostMapping("/tasks/mapping-preview")
-    public Result<DataSyncMappingPreviewVO> mappingPreview(@Valid @RequestBody DataSyncMappingPreviewDTO dto) {
-        return Result.success(dataSyncService.previewMapping(dto));
     }
 
     private String currentUserId() {
