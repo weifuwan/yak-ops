@@ -160,5 +160,4 @@ public class DataSyncMetricsServiceImpl implements DataSyncMetricsService {
     private long zero(Long value) {
         return value == null ? 0L : value;
     }
-
 }
