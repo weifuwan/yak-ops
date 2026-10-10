@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.core.api.common.JobStatus;
+import io.yak.ops.core.api.connector.sink.CancellableSinkWriter;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
@@ -37,6 +38,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
@@ -291,6 +293,71 @@ class EmbeddedExecutionLifecycleTest {
         assertEquals(1, sink.closes.get());
         assertTrue(source.readerClosed.get());
         assertTrue(source.enumeratorClosed.get());
+    }
+
+    @Test
+    void shouldCancelBlockedSinkWriterInChainedAndStandaloneLayoutsWithoutFinalFlush() throws Exception {
+        for (int sinkParallelism : List.of(1, 2)) {
+            CountDownLatch started = new CountDownLatch(1);
+            CountDownLatch cancelled = new CountDownLatch(1);
+            AtomicInteger activeCancels = new AtomicInteger();
+            AtomicInteger finalFlushes = new AtomicInteger();
+            AtomicInteger closes = new AtomicInteger();
+            TestSource source = new TestSource(true, List.of("one"), new CopyOnWriteArrayList<>());
+            Sink<String> sink = context -> new CancellableSinkWriter<>() {
+                private volatile boolean writing;
+
+                @Override
+                public void write(String record, Context metadata) {
+                    writing = true;
+                    started.countDown();
+                    while (cancelled.getCount() != 0) {
+                        try {
+                            cancelled.await();
+                        } catch (InterruptedException ignored) {
+                            // Interruption alone cannot unblock this simulated JDBC call.
+                        }
+                    }
+                }
+
+                @Override
+                public void cancel() {
+                    if (writing) {
+                        activeCancels.incrementAndGet();
+                        cancelled.countDown();
+                    }
+                }
+
+                @Override
+                public void flush(boolean endOfInput) {
+                    if (endOfInput && writing) {
+                        finalFlushes.incrementAndGet();
+                    }
+                }
+
+                @Override
+                public void close() {
+                    closes.incrementAndGet();
+                }
+            };
+            Configuration configuration = config(1);
+            var sourceNode = new SourceTransformation<>("source", source, String.class);
+            var sinkNode = new SinkTransformation<>(sourceNode, "sink", sink, sinkParallelism);
+            StreamGraph graph = new StreamGraphGenerator(sinkNode, configuration).generate();
+            JobClient job = new EmbeddedPipelineExecutor()
+                    .execute(graph, configuration)
+                    .get(5, TimeUnit.SECONDS);
+            try {
+                assertTrue(started.await(5, TimeUnit.SECONDS));
+                job.cancel().get(5, TimeUnit.SECONDS);
+                assertEquals(1, activeCancels.get());
+                assertEquals(0, finalFlushes.get());
+                assertTrue(closes.get() >= 1);
+                assertEquals(JobStatus.CANCELED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+            } finally {
+                cancelled.countDown();
+            }
+        }
     }
 
     private static Configuration config(int parallelism) {

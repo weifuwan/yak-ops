@@ -48,7 +48,7 @@ public final class OneInputStreamTask extends StreamTask {
     private final Map<Long, CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>>> pending =
             new ConcurrentHashMap<>();
     private OneInputStreamOperator<Object, Object> operator;
-    private SinkWriterOperator<Object> sinkOperator;
+    private volatile SinkWriterOperator<Object> sinkOperator;
     private StreamOperator activeOperator;
     private OperatorStateBackend stateBackend;
 
@@ -185,6 +185,14 @@ public final class OneInputStreamTask extends StreamTask {
         } else {
             operator.finish(output::collect);
             output.finish();
+        }
+    }
+
+    @Override
+    protected void onCancellationRequested() {
+        SinkWriterOperator<Object> active = sinkOperator;
+        if (active != null) {
+            active.requestCancel();
         }
     }
 
