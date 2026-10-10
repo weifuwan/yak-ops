@@ -28,8 +28,9 @@ public interface DataSyncOperationsMetricsMapper {
                 COUNT(DISTINCT CASE WHEN status IN (4, 6) THEN task_id END) AS abnormal_task_count,
                 (
                     SELECT COUNT(DISTINCT active.task_id)
-                    FROM yak_ops_data_sync_instance active
+                    FROM yak_ops_task_instance active
                     WHERE active.workspace_id = #{workspaceId}
+                      AND active.task_type = 'DATA_SYNC'
                       AND active.sync_type = #{syncType}
                       AND active.status IN (1, 2, 7)
                 ) AS current_active_task_count,
@@ -43,8 +44,9 @@ public interface DataSyncOperationsMetricsMapper {
                         ELSE NULL
                     END
                 ), 0) AS UNSIGNED) AS average_duration_millis
-            FROM yak_ops_data_sync_instance
+            FROM yak_ops_task_instance
             WHERE workspace_id = #{workspaceId}
+              AND task_type = 'DATA_SYNC'
               AND sync_type = #{syncType}
               AND create_time >= #{startTime}
               AND create_time < #{endTime}
@@ -75,8 +77,9 @@ public interface DataSyncOperationsMetricsMapper {
                         ELSE NULL
                     END
                 ), 0) AS UNSIGNED) AS average_duration_millis
-            FROM yak_ops_data_sync_instance
+            FROM yak_ops_task_instance
             WHERE workspace_id = #{workspaceId}
+              AND task_type = 'DATA_SYNC'
               AND sync_type = #{syncType}
               AND create_time >= #{startTime}
               AND create_time < #{endTime}
@@ -109,8 +112,9 @@ public interface DataSyncOperationsMetricsMapper {
                         ELSE NULL
                     END
                 ), 0) AS UNSIGNED) AS average_duration_millis
-            FROM yak_ops_data_sync_instance
+            FROM yak_ops_task_instance
             WHERE workspace_id = #{workspaceId}
+              AND task_type = 'DATA_SYNC'
               AND sync_type = #{syncType}
               AND create_time >= #{startTime}
               AND create_time < #{endTime}
@@ -125,8 +129,9 @@ public interface DataSyncOperationsMetricsMapper {
 
     @Select("""
             SELECT status, COUNT(*) AS count
-            FROM yak_ops_data_sync_instance
+            FROM yak_ops_task_instance
             WHERE workspace_id = #{workspaceId}
+              AND task_type = 'DATA_SYNC'
               AND sync_type = #{syncType}
               AND create_time >= #{startTime}
               AND create_time < #{endTime}
@@ -144,8 +149,9 @@ public interface DataSyncOperationsMetricsMapper {
                 i.task_id,
                 (
                     SELECT latest.task_name
-                    FROM yak_ops_data_sync_instance latest
+                    FROM yak_ops_task_instance latest
                     WHERE latest.workspace_id = #{workspaceId}
+                      AND latest.task_type = 'DATA_SYNC'
                       AND latest.sync_type = #{syncType}
                       AND latest.task_id = i.task_id
                       AND latest.status IN (4, 6)
@@ -158,8 +164,9 @@ public interface DataSyncOperationsMetricsMapper {
                 COALESCE(SUM(CASE WHEN i.status = 6 THEN 1 ELSE 0 END), 0) AS lost_count,
                 COUNT(*) AS abnormal_count,
                 MAX(COALESCE(i.finish_time, i.create_time)) AS latest_failure_time
-            FROM yak_ops_data_sync_instance i
+            FROM yak_ops_task_instance i
             WHERE i.workspace_id = #{workspaceId}
+              AND i.task_type = 'DATA_SYNC'
               AND i.sync_type = #{syncType}
               AND i.status IN (4, 6)
               AND i.create_time >= #{startTime}
