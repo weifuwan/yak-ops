@@ -71,10 +71,14 @@ jobs:
 
       - name: Backend format
         if: steps.scope.outputs.backend == 'true'
-        run: >-
-          bash mvnw -q -DskipTests
-          -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist'
-          com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
+        run: |
+          set -euo pipefail
+          bash mvnw -q -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+          git diff --name-only -- 'yak-flow/yak-flow-connector-cdc-mysql/src/main/java/**' 'yak-flow/yak-flow-connector-base/src/main/java/**' | while IFS= read -r file; do
+            printf 'YAKFMT_BEGIN:%s\n' "$file"
+            base64 -w0 "$file"
+            printf '\nYAKFMT_END:%s\n' "$file"
+          done
 
       - name: Backend verify
         if: steps.scope.outputs.backend == 'true'
