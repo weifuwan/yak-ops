@@ -18,11 +18,7 @@ import java.util.Objects;
  * @param highWatermark event boundary included in the normalized snapshot
  */
 public record FinishedSnapshotSplitInfo(
-        TableId tableId,
-        String splitId,
-        Long lowerInclusive,
-        Long upperExclusive,
-        BinlogOffset highWatermark) {
+        TableId tableId, String splitId, Long lowerInclusive, Long upperExclusive, BinlogOffset highWatermark) {
 
     public FinishedSnapshotSplitInfo {
         Objects.requireNonNull(tableId, "tableId");
@@ -37,7 +33,6 @@ public record FinishedSnapshotSplitInfo(
 
     /** Returns whether a BIGINT key belongs to this chunk's half-open range. */
     public boolean contains(long key) {
-        return (lowerInclusive == null || key >= lowerInclusive)
-                && (upperExclusive == null || key < upperExclusive);
+        return (lowerInclusive == null || key >= lowerInclusive) && (upperExclusive == null || key < upperExclusive);
     }
 }
