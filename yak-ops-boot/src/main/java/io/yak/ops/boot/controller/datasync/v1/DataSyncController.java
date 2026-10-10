@@ -5,11 +5,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.business.datasync.DataSyncInstanceService;
 import io.yak.ops.business.datasync.DataSyncOperationsService;
 import io.yak.ops.business.datasync.DataSyncScheduleService;
-import io.yak.ops.business.datasync.DataSyncTaskService;
 import io.yak.ops.common.bean.dto.datasync.DataSyncInstanceQueryDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncOperationsDashboardDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncScheduleDTO;
-import io.yak.ops.common.bean.dto.datasync.DataSyncTaskDTO;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskQueryDTO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncAttemptVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncExecutionEventVO;
@@ -21,17 +19,14 @@ import io.yak.ops.common.bean.vo.datasync.DataSyncSinkTraceVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncSourceTraceVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTableAttemptVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTaskOperationVO;
-import io.yak.ops.common.bean.vo.datasync.DataSyncTaskVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTracePageVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTraceSummaryVO;
 import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
-import io.yak.ops.security.authentication.AuthenticationManager;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import java.util.List;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,7 +37,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 对外提供数据同步任务定义、实例与字段映射预览 HTTP 接口。
+ * 对外提供数据同步实例、调度和运维指标 HTTP 接口。
  *
  * @author weifuwan
  * @since 2026-09-27
@@ -53,9 +48,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class DataSyncController {
 
     @Resource
-    private DataSyncTaskService taskService;
-
-    @Resource
     private DataSyncInstanceService instanceService;
 
     @Resource
@@ -63,33 +55,6 @@ public class DataSyncController {
 
     @Resource
     private DataSyncOperationsService operationsService;
-
-    @Resource
-    private AuthenticationManager authenticationManager;
-
-    @Operation(summary = "创建数据同步任务")
-    @PostMapping("/tasks")
-    public Result<DataSyncTaskVO> createTask(@Valid @RequestBody DataSyncTaskDTO dto) {
-        return Result.success(taskService.createTask(dto, currentUserId()));
-    }
-
-    @Operation(summary = "编辑数据同步任务")
-    @PutMapping("/tasks/{id}")
-    public Result<DataSyncTaskVO> updateTask(@PathVariable("id") String id, @Valid @RequestBody DataSyncTaskDTO dto) {
-        return Result.success(taskService.updateTask(id, dto, currentUserId()));
-    }
-
-    @Operation(summary = "查询数据同步任务详情")
-    @GetMapping("/tasks/{id}")
-    public Result<DataSyncTaskVO> taskDetail(@PathVariable("id") String id) {
-        return Result.success(taskService.queryTask(id));
-    }
-
-    @Operation(summary = "分页查询数据同步任务")
-    @PostMapping("/tasks/page")
-    public Result<PagingData<DataSyncTaskVO>> taskPage(@Valid @RequestBody DataSyncTaskQueryDTO dto) {
-        return Result.success(taskService.queryTaskPage(dto));
-    }
 
     @Operation(summary = "分页查询运维中心数据同步任务运行态")
     @PostMapping("/operations/tasks/page")
@@ -102,18 +67,6 @@ public class DataSyncController {
     public Result<DataSyncOperationsDashboardVO> operationsDashboard(
             @Valid @RequestBody DataSyncOperationsDashboardDTO dto) {
         return Result.success(operationsService.queryOperationsDashboard(dto));
-    }
-
-    @Operation(summary = "上线数据同步任务")
-    @PostMapping("/tasks/{id}/publish")
-    public Result<DataSyncTaskVO> publishTask(@PathVariable("id") String id) {
-        return Result.success(taskService.publishTask(id, currentUserId()));
-    }
-
-    @Operation(summary = "下线数据同步任务")
-    @PostMapping("/tasks/{id}/unpublish")
-    public Result<DataSyncTaskVO> unpublishTask(@PathVariable("id") String id) {
-        return Result.success(taskService.unpublishTask(id, currentUserId()));
     }
 
     @Operation(summary = "手动运行数据同步任务")
@@ -151,12 +104,6 @@ public class DataSyncController {
     @PostMapping("/tasks/{id}/schedule/disable")
     public Result<DataSyncScheduleVO> disableSchedule(@PathVariable("id") String id) {
         return Result.success(scheduleService.disableSchedule(id));
-    }
-
-    @Operation(summary = "删除数据同步任务")
-    @DeleteMapping("/tasks/{id}")
-    public Result<Boolean> deleteTask(@PathVariable("id") String id) {
-        return Result.success(taskService.deleteTask(id));
     }
 
     @Operation(summary = "查询同步实例详情")
@@ -223,9 +170,5 @@ public class DataSyncController {
     @PostMapping("/instances/{id}/cancel")
     public Result<DataSyncInstanceVO> cancelInstance(@PathVariable("id") String id) {
         return Result.success(instanceService.cancelInstance(id));
-    }
-
-    private String currentUserId() {
-        return authenticationManager.getLoginUserId();
     }
 }

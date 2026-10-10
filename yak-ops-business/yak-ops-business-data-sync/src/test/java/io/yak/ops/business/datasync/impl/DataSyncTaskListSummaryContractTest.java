@@ -12,9 +12,9 @@ import io.yak.ops.common.enums.datasync.DataSyncWriteMode;
 import io.yak.ops.common.page.PageData;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.dao.entity.datasync.DataSyncScheduleEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.util.List;
@@ -31,10 +31,10 @@ class DataSyncTaskListSummaryContractTest {
 
     @Test
     void shouldReturnUpdaterAndScheduleDefinitionWithOneBatchScheduleQuery() throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
-        DataSyncTaskEntity task = task();
+        SyncDefinitionEntity task = task();
         DataSyncScheduleEntity schedule = schedule();
         AtomicReference<List<String>> queriedTaskIds = new AtomicReference<>();
 
@@ -58,8 +58,8 @@ class DataSyncTaskListSummaryContractTest {
         assertEquals(true, row.getScheduleEnabled());
     }
 
-    private DataSyncTaskEntity task() {
-        DataSyncTaskEntity task = new DataSyncTaskEntity();
+    private SyncDefinitionEntity task() {
+        SyncDefinitionEntity task = new SyncDefinitionEntity();
         task.setId("task-1");
         task.setWorkspaceId("workspace-1");
         task.setName("offline-task");
@@ -84,10 +84,10 @@ class DataSyncTaskListSummaryContractTest {
         return schedule;
     }
 
-    private DataSyncTaskRepository taskRepository(DataSyncTaskEntity task) {
-        return (DataSyncTaskRepository) Proxy.newProxyInstance(
-                DataSyncTaskRepository.class.getClassLoader(),
-                new Class<?>[] {DataSyncTaskRepository.class},
+    private SyncDefinitionRepository taskRepository(SyncDefinitionEntity task) {
+        return (SyncDefinitionRepository) Proxy.newProxyInstance(
+                SyncDefinitionRepository.class.getClassLoader(),
+                new Class<?>[] {SyncDefinitionRepository.class},
                 (proxy, method, args) -> {
                     if ("queryPage".equals(method.getName())) return PageData.of(List.of(task), 1, 1, 20);
                     throw new UnsupportedOperationException(method.getName());

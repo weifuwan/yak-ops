@@ -19,7 +19,8 @@ Owns:
 - Workspace persistence through DAO-owned Workspace / WorkspaceMember Entity, Mapper and Repository
 - User Preference persistence through DAO-owned Entity / Mapper / Repository
 - Datasource persistence through DAO-owned Entity / Mapper / Repository and mapper XML
-- Data Sync persistence through DAO-owned Task / Schedule / Execution / Attempt / Execution Event Entity, Mapper and Repository；Operations 聚合读模型同样由 DAO Mapper / Repository 承载
+- 通用 Task Definition / append-only Version 属于 `dao.entity.task` 和 `dao.repository.task`。DATA_SYNC 表仅保留插件专属配置字段，`SyncDefinitionRepository` 将二者组合为现有业务查询投影，防止重复状态源。
+- Data Sync Schedule / Execution / Attempt / Execution Event 仍由各自 DAO Entity / Repository 持有；Operations 聚合读模型同样由 DAO Mapper / Repository 承载。
 
 ## Flyway
 

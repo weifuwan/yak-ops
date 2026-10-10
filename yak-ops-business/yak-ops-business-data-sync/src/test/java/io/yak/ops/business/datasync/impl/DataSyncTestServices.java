@@ -9,13 +9,13 @@ final class DataSyncTestServices {
 
     static void inject(Object target, String fieldName, Object value) throws Exception {
         if ("dataSourceService".equals(fieldName) || "tableRouteRepository".equals(fieldName)) {
-            if (!(target instanceof DataSyncTaskDefinitionValidator)) {
+            if (!(target instanceof SyncDefinitionValidator)) {
                 Field validatorField = target.getClass().getDeclaredField("definitionValidator");
                 validatorField.setAccessible(true);
-                DataSyncTaskDefinitionValidator validator =
-                        (DataSyncTaskDefinitionValidator) validatorField.get(target);
+                SyncDefinitionValidator validator =
+                        (SyncDefinitionValidator) validatorField.get(target);
                 if (validator == null) {
-                    validator = new DataSyncTaskDefinitionValidator();
+                    validator = new SyncDefinitionValidator();
                     validatorField.set(target, validator);
                 }
                 target = validator;

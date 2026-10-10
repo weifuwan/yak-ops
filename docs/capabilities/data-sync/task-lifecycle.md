@@ -84,8 +84,12 @@ Task status 已属于现有 [V1 baseline](../../../yak-ops-dao/src/main/resource
 
 本契约不拥有 Scheduler 的计时、Retry 的 Attempt 或实时自动恢复算法；这些能力有独立现行契约，并非未实现。仍不提供自动 Stop-and-Unpublish、自动重新发布、CDC stateVersion、Datasource revision / fingerprint 或分布式发布协调。
 
+## Canonical Definition Storage
+
+Task ID、name、发布 status、definitionVersion 与 remark 现在由 [Task Definition](../task-definition.md) 通用表独立持有；单表来源/目标、Desired State 及运行参数仍在 DATA_SYNC 专属配置表。可执行配置版本递增时追加不可变历史快照，已存在的旧任务只回填当时的当前版本，不假造更早配置版本。
+
 ## Code and Verification
 
-实现入口：[DataSyncTaskServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/DataSyncTaskServiceImpl.java)。验证入口：[DataSyncTaskLifecycleContractTest](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncTaskLifecycleContractTest.java) 及 [Data Sync 验证导航](README.md#code-and-verification)。
+实现入口：[SyncDefinitionServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/SyncDefinitionServiceImpl.java)。验证入口：[DataSyncTaskLifecycleContractTest](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncTaskLifecycleContractTest.java) 及 [Data Sync 验证导航](README.md#code-and-verification)。
 
 重点检查命令前置条件、元数据与可执行定义的版本差异、历史快照保持以及 RETRY_WAITING 的活动状态语义。测试与手工验收的实际结果不写入当前规则正文。

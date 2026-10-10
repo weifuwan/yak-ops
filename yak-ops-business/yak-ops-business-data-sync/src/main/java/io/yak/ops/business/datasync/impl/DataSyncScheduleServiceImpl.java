@@ -17,10 +17,10 @@ import io.yak.ops.common.enums.datasync.DataSyncType;
 import io.yak.ops.common.util.BeanCopyUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncScheduleEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import jakarta.annotation.Resource;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
@@ -42,7 +42,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class DataSyncScheduleServiceImpl implements DataSyncScheduleService, DataSyncScheduleFireListener {
 
     @Resource
-    private DataSyncTaskRepository taskRepository;
+    private SyncDefinitionRepository taskRepository;
 
     @Resource
     private DataSyncScheduleRepository scheduleRepository;
@@ -54,14 +54,14 @@ public class DataSyncScheduleServiceImpl implements DataSyncScheduleService, Dat
     private ScheduleEngine scheduleEngine;
 
     @Resource
-    private DataSyncTaskDefinitionValidator definitionValidator;
+    private SyncDefinitionValidator definitionValidator;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DataSyncScheduleVO saveSchedule(String taskId, DataSyncScheduleDTO dto) {
         if (dto == null) throw new DataSyncException(DataSyncErrorCode.INVALID_SCHEDULE);
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncTaskEntity task = requireTask(workspaceId, taskId);
+        SyncDefinitionEntity task = requireTask(workspaceId, taskId);
         requireOfflineTask(task);
 
         String cronExpression = StringUtils.trimToNull(dto.getCronExpression());
@@ -141,7 +141,7 @@ public class DataSyncScheduleServiceImpl implements DataSyncScheduleService, Dat
     @Transactional(rollbackFor = Exception.class)
     public DataSyncScheduleVO enableSchedule(String taskId) {
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncTaskEntity task = requireTask(workspaceId, taskId);
+        SyncDefinitionEntity task = requireTask(workspaceId, taskId);
         requireOfflineTask(task);
         requireTaskStatus(task, DataSyncTaskStatus.PUBLISHED, "任务上线后才能启用调度");
 
@@ -178,7 +178,7 @@ public class DataSyncScheduleServiceImpl implements DataSyncScheduleService, Dat
     @Override
     public void restoreScheduleRuntime() {
         for (DataSyncScheduleEntity schedule : scheduleRepository.queryEnabled()) {
-            DataSyncTaskEntity task = taskRepository
+            SyncDefinitionEntity task = taskRepository
                     .queryById(schedule.getWorkspaceId(), schedule.getTaskId())
                     .orElseThrow(() -> new DataSyncException(
                             DataSyncErrorCode.SCHEDULE_RUNTIME_FAILED, "启用中的调度关联任务不存在，scheduleId=" + schedule.getId()));
@@ -203,7 +203,7 @@ public class DataSyncScheduleServiceImpl implements DataSyncScheduleService, Dat
                     || !Objects.equals(schedule.getTaskId(), fire.taskId())) {
                 return;
             }
-            DataSyncTaskEntity task =
+            SyncDefinitionEntity task =
                     taskRepository.queryById(fire.workspaceId(), fire.taskId()).orElse(null);
             if (task == null
                     || task.getSyncType() != DataSyncType.OFFLINE
@@ -218,7 +218,7 @@ public class DataSyncScheduleServiceImpl implements DataSyncScheduleService, Dat
         }
     }
 
-    private void requireOfflineTask(DataSyncTaskEntity task) {
+    private void requireOfflineTask(SyncDefinitionEntity task) {
         if (task == null || task.getSyncType() != DataSyncType.OFFLINE) {
             throw new DataSyncException(DataSyncErrorCode.INVALID_SCHEDULE, "只有离线同步任务支持 Cron 调度");
         }
@@ -325,17 +325,17 @@ public class DataSyncScheduleServiceImpl implements DataSyncScheduleService, Dat
         });
     }
 
-    private DataSyncTaskStatus taskStatus(DataSyncTaskEntity task) {
+    private DataSyncTaskStatus taskStatus(SyncDefinitionEntity task) {
         return task.getStatus() == null ? DataSyncTaskStatus.PUBLISHED : task.getStatus();
     }
 
-    private void requireTaskStatus(DataSyncTaskEntity task, DataSyncTaskStatus expected, String detail) {
+    private void requireTaskStatus(SyncDefinitionEntity task, DataSyncTaskStatus expected, String detail) {
         if (taskStatus(task) != expected) {
             throw new DataSyncException(DataSyncErrorCode.INVALID_TASK_STATUS, detail);
         }
     }
 
-    private DataSyncTaskEntity requireTask(String workspaceId, String id) {
+    private SyncDefinitionEntity requireTask(String workspaceId, String id) {
         if (StringUtils.isBlank(id)) throw new DataSyncException(DataSyncErrorCode.TASK_NOT_FOUND);
         return taskRepository
                 .queryById(workspaceId, id)

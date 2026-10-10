@@ -11,7 +11,7 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasync.DataSyncType;
 import io.yak.ops.common.enums.datasync.DataSyncWriteMode;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.sql.Types;
@@ -29,7 +29,7 @@ class DataSyncUpsertContractTest {
 
     @Test
     void shouldRejectUpsertWhenTargetHasNoPrimaryKey() throws Exception {
-        DataSyncTaskServiceImpl service = service(
+        SyncDefinitionServiceImpl service = service(
                 List.of(column("id", true), column("name", false)),
                 List.of(column("id", false), column("name", false)));
 
@@ -39,7 +39,7 @@ class DataSyncUpsertContractTest {
 
     @Test
     void shouldRejectUpsertWhenSourceMissesCompositeTargetPrimaryKey() throws Exception {
-        DataSyncTaskServiceImpl service = service(
+        SyncDefinitionServiceImpl service = service(
                 List.of(column("id", true), column("name", false)),
                 List.of(column("id", true), column("tenant_id", true), column("name", false)));
 
@@ -47,10 +47,10 @@ class DataSyncUpsertContractTest {
         assertThrows(DataSyncException.class, () -> service.createTask(task()));
     }
 
-    private DataSyncTaskServiceImpl service(
+    private SyncDefinitionServiceImpl service(
             List<DataSourceCatalogColumnVO> sourceColumns, List<DataSourceCatalogColumnVO> targetColumns)
             throws Exception {
-        DataSyncTaskServiceImpl service = new DataSyncTaskServiceImpl();
+        SyncDefinitionServiceImpl service = new SyncDefinitionServiceImpl();
         DataSyncTestTableRouteRepository.inject(service);
         DataSyncTestTableExecutionRepository.inject(service);
         inject(service, "taskRepository", taskRepository());
@@ -58,10 +58,10 @@ class DataSyncUpsertContractTest {
         return service;
     }
 
-    private DataSyncTaskRepository taskRepository() {
-        return (DataSyncTaskRepository) Proxy.newProxyInstance(
-                DataSyncTaskRepository.class.getClassLoader(),
-                new Class<?>[] {DataSyncTaskRepository.class},
+    private SyncDefinitionRepository taskRepository() {
+        return (SyncDefinitionRepository) Proxy.newProxyInstance(
+                SyncDefinitionRepository.class.getClassLoader(),
+                new Class<?>[] {SyncDefinitionRepository.class},
                 (proxy, method, args) -> {
                     if ("existsByName".equals(method.getName())) return false;
                     throw new UnsupportedOperationException(method.getName());
@@ -140,7 +140,7 @@ class DataSyncUpsertContractTest {
         return column;
     }
 
-    private void injectDataSourceService(DataSyncTaskServiceImpl service, DataSourceService dataSourceService)
+    private void injectDataSourceService(SyncDefinitionServiceImpl service, DataSourceService dataSourceService)
             throws Exception {
         inject(service, "dataSourceService", dataSourceService);
     }

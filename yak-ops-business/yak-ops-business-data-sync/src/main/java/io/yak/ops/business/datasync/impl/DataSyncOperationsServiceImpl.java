@@ -32,7 +32,7 @@ import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
 import io.yak.ops.dao.entity.datasync.DataSyncScheduleEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
 import io.yak.ops.dao.repository.datasync.DataSyncOperationsFailureStats;
 import io.yak.ops.dao.repository.datasync.DataSyncOperationsMetricsRepository;
@@ -40,8 +40,8 @@ import io.yak.ops.dao.repository.datasync.DataSyncOperationsStatusStats;
 import io.yak.ops.dao.repository.datasync.DataSyncOperationsSummaryStats;
 import io.yak.ops.dao.repository.datasync.DataSyncOperationsTrendStats;
 import io.yak.ops.dao.repository.datasync.DataSyncScheduleRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskPageQuery;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionPageQuery;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -64,7 +64,7 @@ import org.springframework.stereotype.Service;
 public class DataSyncOperationsServiceImpl implements DataSyncOperationsService {
 
     @Resource
-    private DataSyncTaskRepository taskRepository;
+    private SyncDefinitionRepository taskRepository;
 
     @Resource
     private DataSyncInstanceRepository instanceRepository;
@@ -88,7 +88,7 @@ public class DataSyncOperationsServiceImpl implements DataSyncOperationsService 
         }
 
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        DataSyncTaskPageQuery query = new DataSyncTaskPageQuery(
+        SyncDefinitionPageQuery query = new SyncDefinitionPageQuery(
                 dto.getPageNo(),
                 dto.getPageSize(),
                 StringUtils.trimToNull(dto.getKeyword()),
@@ -135,7 +135,7 @@ public class DataSyncOperationsServiceImpl implements DataSyncOperationsService 
         return result;
     }
 
-    private DataSyncTaskOperationVO toTaskOperationVO(String workspaceId, DataSyncTaskEntity task) {
+    private DataSyncTaskOperationVO toTaskOperationVO(String workspaceId, SyncDefinitionEntity task) {
         DataSyncTaskOperationVO target = new DataSyncTaskOperationVO();
         target.setId(task.getId());
         target.setName(task.getName());
@@ -259,7 +259,7 @@ public class DataSyncOperationsServiceImpl implements DataSyncOperationsService 
         return value == null ? 0L : value;
     }
 
-    private DataSyncDesiredState taskDesiredState(DataSyncTaskEntity task) {
+    private DataSyncDesiredState taskDesiredState(SyncDefinitionEntity task) {
         return task.getDesiredState() == null ? DataSyncDesiredState.STOPPED : task.getDesiredState();
     }
 

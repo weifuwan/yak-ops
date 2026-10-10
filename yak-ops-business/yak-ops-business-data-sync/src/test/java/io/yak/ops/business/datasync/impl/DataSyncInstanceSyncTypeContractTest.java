@@ -13,9 +13,9 @@ import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
 import io.yak.ops.common.enums.datasync.DataSyncType;
 import io.yak.ops.dao.entity.datasync.DataSyncInstanceEntity;
-import io.yak.ops.dao.entity.datasync.DataSyncTaskEntity;
+import io.yak.ops.dao.entity.datasync.SyncDefinitionEntity;
 import io.yak.ops.dao.repository.datasync.DataSyncInstanceRepository;
-import io.yak.ops.dao.repository.datasync.DataSyncTaskRepository;
+import io.yak.ops.dao.repository.datasync.SyncDefinitionRepository;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.sql.Types;
@@ -35,7 +35,7 @@ class DataSyncInstanceSyncTypeContractTest {
     @Test
     void shouldNotCreateRealtimeInstanceWithoutExecutionEngine() throws Exception {
         DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
-        DataSyncTaskEntity task = task();
+        SyncDefinitionEntity task = task();
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
         AtomicReference<DataSyncInstanceEntity> captured = new AtomicReference<>();
@@ -54,7 +54,7 @@ class DataSyncInstanceSyncTypeContractTest {
     @Test
     void shouldRejectRealtimeRunWhenTargetPrimaryKeyDoesNotMatchSource() throws Exception {
         DataSyncInstanceServiceImpl service = new DataSyncInstanceServiceImpl();
-        DataSyncTaskEntity task = task();
+        SyncDefinitionEntity task = task();
         DataSyncTestTableRouteRepository.inject(service, task);
         DataSyncTestTableExecutionRepository.inject(service);
         AtomicReference<DataSyncInstanceEntity> captured = new AtomicReference<>();
@@ -70,10 +70,10 @@ class DataSyncInstanceSyncTypeContractTest {
         assertEquals(null, captured.get());
     }
 
-    private DataSyncTaskRepository taskRepository(DataSyncTaskEntity task) {
-        return (DataSyncTaskRepository) Proxy.newProxyInstance(
-                DataSyncTaskRepository.class.getClassLoader(),
-                new Class<?>[] {DataSyncTaskRepository.class},
+    private SyncDefinitionRepository taskRepository(SyncDefinitionEntity task) {
+        return (SyncDefinitionRepository) Proxy.newProxyInstance(
+                SyncDefinitionRepository.class.getClassLoader(),
+                new Class<?>[] {SyncDefinitionRepository.class},
                 (proxy, method, args) -> {
                     if ("queryById".equals(method.getName()) && args != null && args.length == 2) {
                         return Optional.of(task);
@@ -137,8 +137,8 @@ class DataSyncInstanceSyncTypeContractTest {
         return value;
     }
 
-    private DataSyncTaskEntity task() {
-        DataSyncTaskEntity task = new DataSyncTaskEntity();
+    private SyncDefinitionEntity task() {
+        SyncDefinitionEntity task = new SyncDefinitionEntity();
         task.setId("task-1");
         task.setWorkspaceId("workspace-1");
         task.setName("realtime-task");

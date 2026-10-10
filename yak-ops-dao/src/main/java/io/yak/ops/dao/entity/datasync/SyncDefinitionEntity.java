@@ -1,5 +1,6 @@
 package io.yak.ops.dao.entity.datasync;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.yak.ops.common.enums.datasync.DataSyncDesiredState;
 import io.yak.ops.common.enums.datasync.DataSyncTaskStatus;
@@ -11,7 +12,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * 映射 yak_ops_data_sync_task 表，承载 Workspace 内的数据同步任务定义。
+ * 映射数据同步专属配置表。Name/Status/Version/Remark 属于关联的通用 Definition，\n * 在此作为 DAO 查询投影，不参与插件配置表读写。
  *
  * @author weifuwan
  * @since 2026-09-27
@@ -20,18 +21,20 @@ import lombok.ToString;
 @Setter
 @ToString
 @TableName("yak_ops_data_sync_task")
-public class DataSyncTaskEntity extends BaseEntity {
+public class SyncDefinitionEntity extends BaseEntity {
 
     /** 任务所属 Workspace ID。 */
     private String workspaceId;
 
     /** 同一 Workspace 内唯一的任务名称。 */
+    @TableField(exist = false)
     private String name;
 
     /** 数据同步类型：OFFLINE 或 REALTIME。 */
     private DataSyncType syncType;
 
     /** 任务发布状态：UNPUBLISHED 或 PUBLISHED。 */
+    @TableField(exist = false)
     private DataSyncTaskStatus status;
 
     /** REALTIME 用户期望运行状态；OFFLINE 固定为 STOPPED。 */
@@ -77,8 +80,10 @@ public class DataSyncTaskEntity extends BaseEntity {
     private String retryPolicy;
 
     /** 当前任务定义版本，从 1 开始递增。 */
+    @TableField(exist = false)
     private Integer definitionVersion;
 
     /** 用户维护的任务备注。 */
+    @TableField(exist = false)
     private String remark;
 }

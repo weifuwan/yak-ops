@@ -6,7 +6,7 @@ Scope: REALTIME 运行意图、启动协调、CDC 状态 identity 与恢复边�
 
 ## State Ownership
 
-发布状态回答是否允许创建新 Execution；desiredState 回答用户希望运行还是停止；Execution 状态回答某次运行的实际进展。三个状态不能相互替代。
+通用 `yak_ops_task_definition.status` 发布状态回答是否允许创建新 Execution；DATA_SYNC 配置表 `desiredState` 回答用户希望运行还是停止；Execution 状态回答某次运行的实际进展。三个状态不能相互替代。
 
 `yak_ops_data_sync_task.desired_state` 保存 STOPPED / RUNNING。OFFLINE 固定 STOPPED，Cron 不复用该字段。发布规则见 [Task Lifecycle](task-lifecycle.md)，Execution / Attempt 见 [Retry Contract](execution-retry-attempt.md)。
 
@@ -73,6 +73,6 @@ PENDING / RUNNING 仍表示旧进程持有的 Runtime 已丢失，因此启动�
 
 ## Code and Verification
 
-入口：[DataSyncServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/DataSyncServiceImpl.java)。验证：[DataSyncRealtimeDesiredStateContractTest](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncRealtimeDesiredStateContractTest.java)、[DataSyncAutomationAcceptanceIT](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncAutomationAcceptanceIT.java) 和 [Automation E2E](../../e2e/data-sync/automation/README.md)。
+当前 DATA_SYNC Definition 入口：[SyncDefinitionServiceImpl](../../../yak-ops-business/yak-ops-business-data-sync/src/main/java/io/yak/ops/business/datasync/impl/SyncDefinitionServiceImpl.java)。验证：[DataSyncRealtimeDesiredStateContractTest](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncRealtimeDesiredStateContractTest.java)、[DataSyncAutomationAcceptanceIT](../../../yak-ops-business/yak-ops-business-data-sync/src/test/java/io/yak/ops/business/datasync/impl/DataSyncAutomationAcceptanceIT.java) 和 [Automation E2E](../../e2e/data-sync/automation/README.md)。
 
 状态 identity 测试不证明真实 Binlog 续传；还需 MySqlCdcIntegrationIT 的真实连接器验证和产品重启 E2E。执行结果放对应 CI / 版本证据，不写入本契约。
