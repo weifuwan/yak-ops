@@ -1,27 +1,31 @@
 package io.yak.ops.connector.jdbc.sink.executor;
 
-import io.yak.ops.core.data.GenericRowData;
-import io.yak.ops.core.data.RowData;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 /**
- * The only retained-record buffer inside JDBC's BatchOutput.
+ * Single retained-record buffer owned by JDBC's BatchOutput.
  *
- * <p>The driver receives statements only during executeBatch. Records remain available
- * until the OutputFormat confirms a successful commit; no implicit retry is attempted
- * after an ambiguous JDBC failure.
+ * <p>Records are detached and validated upon arrival. The delegate owns prepared statements
+ * but never a second row buffer. Pending records are cleared only after a confirmed commit;
+ * uncertain commits are not retried.
+ *
+ * @param <T> input record type
  */
-public final class TableBufferedStatementExecutor implements JdbcBatchStatementExecutor<RowData> {
+public final class TableBufferedStatementExecutor<T> implements JdbcBatchStatementExecutor<T> {
 
-    private final JdbcBatchStatementExecutor<RowData> statementExecutor;
-    private final List<RowData> pending = new ArrayList<>();
+    private final JdbcBatchStatementExecutor<T> statementExecutor;
+    private final UnaryOperator<T> snapshot;
+    private final List<T> pending = new ArrayList<>();
 
-    public TableBufferedStatementExecutor(JdbcBatchStatementExecutor<RowData> statementExecutor) {
+    public TableBufferedStatementExecutor(
+            JdbcBatchStatementExecutor<T> statementExecutor, UnaryOperator<T> snapshot) {
         this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
+        this.snapshot = Objects.requireNonNull(snapshot, "snapshot");
     }
 
     @Override
@@ -30,13 +34,8 @@ public final class TableBufferedStatementExecutor implements JdbcBatchStatementE
     }
 
     @Override
-    public void addToBatch(RowData record) {
-        Objects.requireNonNull(record, "record");
-        GenericRowData detached = new GenericRowData(record.getArity());
-        for (int index = 0; index < record.getArity(); index++) {
-            detached.setField(index, record.getField(index));
-        }
-        pending.add(detached);
+    public void addToBatch(T record) {
+        pending.add(Objects.requireNonNull(snapshot.apply(Objects.requireNonNull(record, "record")), "snapshot"));
     }
 
     public int bufferedRecords() {
@@ -45,13 +44,13 @@ public final class TableBufferedStatementExecutor implements JdbcBatchStatementE
 
     @Override
     public void executeBatch() throws SQLException {
-        for (RowData row : pending) {
-            statementExecutor.addToBatch(row);
+        for (T value : pending) {
+            statementExecutor.addToBatch(value);
         }
         statementExecutor.executeBatch();
     }
 
-    /** Called only after the owning JDBC connection confirms commit. */
+    /** Called only after the owning JDBC transaction has committed successfully. */
     public void acknowledgeCommit() {
         pending.clear();
     }

@@ -9,9 +9,10 @@ import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 
-/** Builder for a single-table at-least-once JDBC Sink. */
+/** Builds a single-table or multi-table JDBC Sink without product-layer dependencies. */
 public final class JdbcSinkBuilder {
 
     private JdbcConnectionOptions connectionOptions;
@@ -21,6 +22,7 @@ public final class JdbcSinkBuilder {
     private TableId targetTable;
     private TableSchema schema;
     private JdbcWriteMode mode = JdbcWriteMode.APPEND;
+    private List<JdbcTableWritePlan> tablePlans;
     private BatchFlushPolicy batchPolicy = new BatchFlushPolicy(500, Duration.ZERO);
 
     public JdbcSinkBuilder withConnectionOptions(JdbcConnectionOptions options) {
@@ -61,6 +63,15 @@ public final class JdbcSinkBuilder {
         return this;
     }
 
+    /** Replaces the single-table configuration with resolved source-to-target routes. */
+    public JdbcSinkBuilder withTablePlans(List<JdbcTableWritePlan> plans) {
+        tablePlans = List.copyOf(Objects.requireNonNull(plans, "plans"));
+        if (tablePlans.isEmpty()) {
+            throw new IllegalArgumentException("JDBC Sink table routes must not be empty");
+        }
+        return this;
+    }
+
     public JdbcSinkBuilder withBatchFlushPolicy(BatchFlushPolicy policy) {
         batchPolicy = Objects.requireNonNull(policy, "policy");
         return this;
@@ -78,6 +89,12 @@ public final class JdbcSinkBuilder {
                 throw new IllegalArgumentException("JDBC dialect is required for a custom connection provider");
             }
             resolvedDialect = JdbcFactoryLoader.loadDialect(connectionOptions.url());
+        }
+        if (tablePlans != null) {
+            if (sourceTable != null || targetTable != null || schema != null || mode != JdbcWriteMode.APPEND) {
+                throw new IllegalArgumentException("Single-table and multi-table JDBC Sink settings cannot be mixed");
+            }
+            return new JdbcSink(provider, resolvedDialect, tablePlans, batchPolicy);
         }
         TableId target = Objects.requireNonNull(targetTable, "targetTable");
         JdbcTableWritePlan plan = new JdbcTableWritePlan(
