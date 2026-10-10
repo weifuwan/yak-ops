@@ -1,10 +1,12 @@
 # YakFlow Capability
 
-Status: Active — Core / Runtime execution, Connector Base, JDBC Source/Sink; product JDBC/CDC integration pending
+Status: Active — Core / Runtime execution, Connector Base, JDBC Source/Sink, MySQL Binlog Connector foundation; product execution integration pending
 
 ## Current State
 
-旧 `yak-flow-connector-cdc-mysql` 与 Business 旧 execution 已删除。Core 提供统一 Source/Sink 协议和新的通用 TableRecord；旧 yak-flow-api 已移除；通用 RowData、TableRecord、RowKind、TableId 和 LogicalType / TableSchema 均由 Core 拥有。Runtime 具备单 JVM 执行基础，新 JDBC Source 已支持一个 Source 的多张表并行读取。**JDBC Sink 已支持单表/多表 APPEND 和主键 Changelog，真实跨库 Connector 验收独立存在；但业务任务执行入口与实时 CDC 尚未接入，不能宣称产品端到端同步已恢复。**
+旧 MySQL CDC 引擎与 Business 旧 execution 已删除，新的 `yak-flow-connector-cdc-mysql` 由 Core Source API 重新实现。Core 提供统一 Source/Sink 协议和新的通用 TableRecord；旧 yak-flow-api 已移除；通用 RowData、TableRecord、RowKind、TableId 和 LogicalType / TableSchema 均由 Core 拥有。Runtime 具备单 JVM 执行基础，新 JDBC Source 已支持一个 Source 的多张表并行读取。**JDBC Sink 已支持单表/多表 APPEND 和主键 Changelog，真实跨库 Connector 验收独立存在；但业务任务执行入口与实时 CDC 尚未接入，不能宣称产品端到端同步已恢复。**
+
+MySQL CDC PR1 提供基于 Debezium 的纯 Binlog Source 和 Offset + Schema History Checkpoint，尚不支持 Initial Snapshot、Low/High Watermark、Backfill 或生产产品任务接线。详见 [MySQL Binlog Connector](mysql-cdc-binlog.md)。
 
 ## Execution Pipeline
 

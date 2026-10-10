@@ -2,7 +2,7 @@
 
 Scope: `yak-ops-core/src/main/java/**`, `yak-flow/yak-flow-runtime/src/main/java/**`, `yak-flow/yak-flow-connector-base/src/main/java/**`, `yak-flow/yak-flow-connector-jdbc/src/main/java/**`, `yak-flow/yak-flow-connector-cdc-mysql/src/main/java/**`, and their Java tests.
 
-This file is the **YakFlow-wide override** to the `Comments and JavaDoc` section of `JAVA_RULES.md`. It applies uniformly to Core and **all three modules under `yak-flow/`**, including Connector Base, JDBC Source/Sink, and MySQL CDC. All other Java rules, including Spotless, remain in effect. It follows Flink's `JavadocType`, `JavadocMethod`, `JavadocParagraph` and `JavadocStyle` practices without requiring filler documentation.
+This file is the **YakFlow-wide override** to the `Comments and JavaDoc` section of `JAVA_RULES.md`. It applies uniformly to Core and **all modules under `yak-flow/`**, including Connector Base, JDBC Source/Sink, and MySQL CDC. All other Java rules, including Spotless, remain in effect. It follows Flink's `JavadocType`, `JavadocMethod`, `JavadocParagraph` and `JavadocStyle` practices without requiring filler documentation.
 
 The file path remains unchanged for existing references; `core-runtime` in the filename does **not** narrow its scope.
 

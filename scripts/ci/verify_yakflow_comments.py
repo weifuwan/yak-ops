@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate objective comment rules for YakFlow Core, Runtime, Base and JDBC modules."""
+"""Validate objective comment rules across all active YakFlow Core and Connector modules."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ MODULES = (
     ROOT / "yak-flow" / "yak-flow-runtime",
     ROOT / "yak-flow" / "yak-flow-connector-base",
     ROOT / "yak-flow" / "yak-flow-connector-jdbc",
+    ROOT / "yak-flow" / "yak-flow-connector-cdc-mysql",
 )
 CJK = re.compile(r"[\u3400-\u9fff]")
 JAVA_TYPE = r"(?:class|interface|enum|record)"
