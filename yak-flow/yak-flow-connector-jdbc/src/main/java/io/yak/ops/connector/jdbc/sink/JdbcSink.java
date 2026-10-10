@@ -40,6 +40,16 @@ public final class JdbcSink implements Sink<TableRecord> {
     @Override
     public JdbcWriter createWriter(WriterInitContext context) throws Exception {
         Objects.requireNonNull(context, "context");
-        return new JdbcWriter(new JdbcOutputFormat(connections, dialect, plan), batchPolicy, context);
+        JdbcOutputFormat output = new JdbcOutputFormat(connections, dialect, plan);
+        try {
+            return new JdbcWriter(output, batchPolicy, context);
+        } catch (RuntimeException | Error failure) {
+            try {
+                output.close();
+            } catch (Exception closeFailure) {
+                failure.addSuppressed(closeFailure);
+            }
+            throw failure;
+        }
     }
 }

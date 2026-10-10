@@ -28,6 +28,7 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class JdbcSinkTest {
@@ -148,6 +149,24 @@ class JdbcSinkTest {
             assertThrows(java.util.concurrent.CancellationException.class, () -> writer.flush(false));
         }
         assertEquals(0L, rowCount(url));
+    }
+
+    @Test
+    void closesConnectionWhenWriterInitContextCannotProvideTimers() throws Exception {
+        String url = databaseUrl();
+        createTable(url, "CREATE TABLE TARGET_DOCS (ID BIGINT PRIMARY KEY, TITLE VARCHAR(80))");
+        AtomicReference<Connection> opened = new AtomicReference<>();
+        JdbcSink sink = new JdbcSink(
+                () -> {
+                    Connection connection = open(url);
+                    opened.set(connection);
+                    return connection;
+                },
+                new AnsiJdbcDialect(),
+                new JdbcTableWritePlan(SOURCE, TARGET, basicSchema(), JdbcWriteMode.APPEND),
+                new BatchFlushPolicy(2, Duration.ofSeconds(1)));
+        assertThrows(UnsupportedOperationException.class, () -> sink.createWriter(context()));
+        assertTrue(opened.get().isClosed());
     }
 
     @Test
