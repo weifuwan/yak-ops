@@ -9,7 +9,7 @@ from verify_yakflow_comments import MODULES, check_source, scan_comments
 class YakFlowCommentChecksTest(unittest.TestCase):
     def test_all_yakflow_modules_are_scanned(self):
         self.assertEqual(
-            ("yak-ops-core", "yak-flow-runtime", "yak-flow-connector-base", "yak-flow-connector-jdbc"),
+            ("yak-ops-core", "yak-flow-runtime", "yak-flow-connector-base", "yak-flow-connector-jdbc", "yak-flow-connector-cdc-mysql"),
             tuple(path.name for path in MODULES),
         )
 
