@@ -9,8 +9,8 @@ import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
  *
  * <p>Factories identify compatible JDBC URL prefixes without opening connections. The
  * returned dialect is a reusable SQL definition, whereas the Catalog uses the supplied
- * provider for independent caller-owned metadata connections. Product Datasource Catalog
- * remains a separate transitional adapter.
+ * provider for independent caller-owned metadata connections. Datasource contributes
+ * only its selected Driver and optional SSH ConnectionProvider; Catalog lives here.
  */
 public interface JdbcFactory {
 
