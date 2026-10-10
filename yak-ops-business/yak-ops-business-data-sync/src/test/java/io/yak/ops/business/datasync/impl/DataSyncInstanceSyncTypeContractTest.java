@@ -60,13 +60,13 @@ class DataSyncInstanceSyncTypeContractTest {
         AtomicReference<DataSyncInstanceEntity> captured = new AtomicReference<>();
         inject(service, "taskRepository", taskRepository(task));
         inject(service, "instanceRepository", instanceRepository(captured));
-        injectDataSourceService(service, dataSourceService(List.of(primaryKeyColumn("id")), List.of(primaryKeyColumn("name"))));
+        injectDataSourceService(service, dataSourceService(List.of(primaryKeyColumn("id")), List.of(nonPrimaryKeyColumn("id"))));
 
         WorkspaceContext.bind("workspace-1");
         DataSyncException exception = assertThrows(DataSyncException.class, () -> service.runTask("task-1"));
 
         assertEquals(DataSyncErrorCode.INVALID_TASK, exception.getErrorCode());
-        assertEquals("同步任务参数不合法：实时同步目标表主键必须与来源表主键一致", exception.getUserMessage());
+        assertEquals("同步任务参数不合法：更新写入要求来源与目标表主键同名且完整", exception.getUserMessage());
         assertEquals(null, captured.get());
     }
 
@@ -177,6 +177,12 @@ class DataSyncInstanceSyncTypeContractTest {
         column.setNullable(false);
         column.setOrdinalPosition(1);
         column.setPrimaryKey(true);
+        return column;
+    }
+
+    private DataSourceCatalogColumnVO nonPrimaryKeyColumn(String name) {
+        DataSourceCatalogColumnVO column = primaryKeyColumn(name);
+        column.setPrimaryKey(false);
         return column;
     }
 
