@@ -47,6 +47,49 @@ class MySqlHybridHandoffTest {
         assertEquals(MySqlHybridEnumeratorState.Phase.STREAMING, assigner.phase());
     }
 
+
+    @Test
+    void checkpointDuringAsyncSnapshotPlanningRestartsPlanFromDurableState() throws Exception {
+        var low = new BinlogOffset(Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", 100L));
+        var assigner = new MySqlHybridSplitAssigner("fingerprint", null);
+        assigner.nextBinlog(0);
+        assigner.captureLow(low);
+
+        // The planning callback has not run yet. A periodic checkpoint must not fail the job.
+        var serializer = new MySqlHybridEnumeratorStateSerializer();
+        var saved = assigner.snapshot(21);
+        var restored = new MySqlHybridSplitAssigner(
+                "fingerprint", serializer.deserialize(serializer.getVersion(), serializer.serialize(saved)));
+        assertEquals(MySqlHybridEnumeratorState.Phase.SNAPSHOT, restored.phase());
+        assertFalse(restored.snapshotPlanned());
+        restored.plan(List.of(new MySqlSnapshotSplit(
+                "snap-1", "fingerprint", new TableId("shop", null, "orders"), null, null, null)));
+        assertTrue(restored.snapshotPlanned());
+    }
+
+    @Test
+    void checkpointDuringHighWatermarkLookupAllowsSafeRetryOnRestore() throws Exception {
+        var low = new BinlogOffset(Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", 100L));
+        var assigner = new MySqlHybridSplitAssigner("fingerprint", null);
+        assigner.nextBinlog(0);
+        assigner.captureLow(low);
+        var split = new MySqlSnapshotSplit(
+                "snap-1", "fingerprint", new TableId("shop", null, "orders"), null, null, null);
+        assigner.plan(List.of(split));
+        assigner.nextSnapshot();
+        assigner.finishSnapshot(split.splitId());
+
+        var saved = assigner.snapshot(22);
+        var serializer = new MySqlHybridEnumeratorStateSerializer();
+        var restored = new MySqlHybridSplitAssigner(
+                "fingerprint", serializer.deserialize(serializer.getVersion(), serializer.serialize(saved)));
+        assertEquals(MySqlHybridEnumeratorState.Phase.SNAPSHOT, restored.phase());
+        assertTrue(restored.snapshotComplete());
+        restored.captureHigh(
+                new BinlogOffset(Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", 200L)));
+        assertEquals(MySqlHybridEnumeratorState.Phase.HANDOFF, restored.phase());
+    }
+
     @Test
     void rejectsDifferentDefinitionOnRestore() {
         var assigner = new MySqlHybridSplitAssigner("fingerprint", null);
