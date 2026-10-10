@@ -187,7 +187,9 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
         DataSourceEntity entity = requireEntity(requireWorkspaceId(), id);
         TableId tablePath = new TableId(
-                normalizeNullable(dto.getDatabase()), normalizeNullable(dto.getSchema()), dto.getTable().trim());
+                normalizeNullable(dto.getDatabase()),
+                normalizeNullable(dto.getSchema()),
+                dto.getTable().trim());
         return pluginRegistry
                 .catalogTable(
                         entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds(), tablePath)
@@ -209,7 +211,9 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
         DataSourceEntity entity = requireEntity(requireWorkspaceId(), id);
         TableId tablePath = new TableId(
-                normalizeNullable(dto.getDatabase()), normalizeNullable(dto.getSchema()), dto.getTable().trim());
+                normalizeNullable(dto.getDatabase()),
+                normalizeNullable(dto.getSchema()),
+                dto.getTable().trim());
         return pluginRegistry
                 .catalogColumns(
                         entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds(), tablePath)
@@ -225,7 +229,9 @@ public class DataSourceServiceImpl implements DataSourceService {
         }
         DataSourceEntity entity = requireEntity(requireWorkspaceId(), id);
         TableId tableId = new TableId(
-                normalizeNullable(dto.getDatabase()), normalizeNullable(dto.getSchema()), dto.getTable().trim());
+                normalizeNullable(dto.getDatabase()),
+                normalizeNullable(dto.getSchema()),
+                dto.getTable().trim());
         return pluginRegistry.catalogTableSchema(
                 entity.getDbType(), entity.getConnectionParams(), connectionTestTimeoutSeconds(), tableId);
     }
