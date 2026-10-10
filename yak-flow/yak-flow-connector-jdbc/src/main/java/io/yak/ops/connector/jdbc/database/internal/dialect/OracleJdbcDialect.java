@@ -11,7 +11,13 @@ import io.yak.ops.core.types.TableSchema;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** Oracle quoting, native type mapping, and DDL planning. */
+/**
+ * Implements Oracle owner-qualified SQL, NUMBER-based numeric mappings, and MERGE UPSERT.
+ *
+ * <p>VARCHAR2 and RAW capacities are bounded. Oversized text/binary fields use CLOB/BLOB
+ * and cannot be used as primary keys; Oracle has no independent TIME-only column type.
+ * Native UPSERT uses MERGE with a key predicate, without emulated SELECT-then-UPDATE.
+ */
 public final class OracleJdbcDialect extends AbstractDialect {
 
     @Override
@@ -76,6 +82,12 @@ public final class OracleJdbcDialect extends AbstractDialect {
         return JdbcNativeType.nonKey("BLOB", warning);
     }
 
+    /**
+     * Renders an Oracle MERGE that matches the declared primary keys.
+     *
+     * <p>Each target column produces a positional placeholder in the USING projection.
+     * A key-only table omits WHEN MATCHED UPDATE rather than inventing a no-op assignment.
+     */
     @Override
     public String upsertSql(TableId table, TableSchema schema) {
         requirePrimaryKey(schema);

@@ -13,7 +13,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/** MySQL quoting, native type mapping, and DDL planning. */
+/**
+ * Implements MySQL SQL generation, backtick quoting, and native target type mapping.
+ *
+ * <p>Catalog-qualified table names use the database namespace. String and binary columns
+ * beyond conservative inline capacities map to LONGTEXT/LONGBLOB; these types are not
+ * suitable for primary-key columns. Native UPSERT uses ON DUPLICATE KEY UPDATE, including
+ * a no-op key assignment when no non-key columns exist.
+ */
 public final class MySqlJdbcDialect extends AbstractDialect {
 
     @Override
