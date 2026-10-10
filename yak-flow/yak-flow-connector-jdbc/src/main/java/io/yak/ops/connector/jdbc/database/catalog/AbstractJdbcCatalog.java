@@ -10,8 +10,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Metadata-driven JDBC Catalog implementation shared by all built-in database vendors.
@@ -58,19 +60,35 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
 
     @Override
     public List<TableId> listTables(String database, String schema) throws SQLException {
+        return listTableInfos(database, schema, null, null).stream().map(JdbcTableInfo::tableId).toList();
+    }
+
+    @Override
+    public List<JdbcTableInfo> listTableInfos(String database, String schema, String keyword, Integer limit)
+            throws SQLException {
+        if (limit != null && limit < 1) {
+            throw new IllegalArgumentException("JDBC table search limit must be positive");
+        }
+        int maxResults = limit == null ? Integer.MAX_VALUE : Math.min(500, limit);
+        String needle = keyword == null || keyword.isBlank() ? null : keyword.trim().toLowerCase(Locale.ROOT);
         try (Connection connection = connections.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
             String catalog = effectiveCatalog(connection, database);
             String resolvedSchema = effectiveSchema(connection, schema);
-            List<TableId> tables = new ArrayList<>();
+            List<JdbcTableInfo> tables = new ArrayList<>();
             try (ResultSet result = metadata.getTables(catalog, resolvedSchema, "%", new String[] {"TABLE", "VIEW"})) {
-                while (result.next()) {
+                while (result.next() && tables.size() < maxResults) {
+                    String name = result.getString("TABLE_NAME");
                     String actualSchema = result.getString("TABLE_SCHEM");
-                    if (!includeSchema(actualSchema)) {
+                    if (name == null
+                            || !includeSchema(actualSchema)
+                            || (needle != null && !name.toLowerCase(Locale.ROOT).contains(needle))) {
                         continue;
                     }
-                    tables.add(
-                            new TableId(result.getString("TABLE_CAT"), actualSchema, result.getString("TABLE_NAME")));
+                    tables.add(new JdbcTableInfo(
+                            new TableId(result.getString("TABLE_CAT"), actualSchema, name),
+                            result.getString("TABLE_TYPE"),
+                            result.getString("REMARKS")));
                 }
             }
             return List.copyOf(tables);
@@ -78,21 +96,31 @@ public abstract class AbstractJdbcCatalog implements JdbcCatalog {
     }
 
     @Override
-    public boolean tableExists(TableId tableId) throws SQLException {
+    public Optional<JdbcTableInfo> findTable(TableId tableId) throws SQLException {
         Objects.requireNonNull(tableId, "tableId");
         try (Connection connection = connections.getConnection()) {
-            DatabaseMetaData metadata = connection.getMetaData();
-            String catalog = effectiveCatalog(connection, tableId.catalog());
-            String schema = effectiveSchema(connection, tableId.schema());
-            try (ResultSet tables = metadata.getTables(
-                    catalog, schema, escapePattern(metadata, tableId.table()), new String[] {"TABLE", "VIEW"})) {
-                while (tables.next()) {
-                    if (tableId.table().equals(tables.getString("TABLE_NAME"))) {
-                        return true;
-                    }
-                }
-                return false;
-            }
+            return JdbcTableMetadata.findTableInfo(
+                    connection,
+                    tableId,
+                    effectiveCatalog(connection, tableId.catalog()),
+                    effectiveSchema(connection, tableId.schema()));
+        }
+    }
+
+    @Override
+    public boolean tableExists(TableId tableId) throws SQLException {
+        return findTable(tableId).isPresent();
+    }
+
+    @Override
+    public List<JdbcColumnInfo> getColumns(TableId tableId) throws SQLException {
+        Objects.requireNonNull(tableId, "tableId");
+        try (Connection connection = connections.getConnection()) {
+            return JdbcTableMetadata.readColumns(
+                    connection,
+                    tableId,
+                    effectiveCatalog(connection, tableId.catalog()),
+                    effectiveSchema(connection, tableId.schema()));
         }
     }
 
