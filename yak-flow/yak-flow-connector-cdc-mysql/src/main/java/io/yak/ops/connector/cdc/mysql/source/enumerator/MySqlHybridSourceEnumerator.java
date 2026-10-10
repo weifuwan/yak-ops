@@ -264,7 +264,7 @@ public final class MySqlHybridSourceEnumerator implements SplitEnumerator<MySqlH
     private void resumeStreaming() {
         // A restored HANDOFF state is necessarily read from a completed durable checkpoint.
         // The in-memory attempt has an equivalent transition after notifyCheckpointComplete.
-        assigner.completeCheckpoint(0);
+        assigner.resumeRestoredHandoff();
         sendResumeEvent();
     }
 

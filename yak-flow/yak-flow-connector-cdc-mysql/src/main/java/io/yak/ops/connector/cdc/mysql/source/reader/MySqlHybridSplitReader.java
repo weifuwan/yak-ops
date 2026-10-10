@@ -35,6 +35,7 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
     private boolean binlogAssigned;
     private boolean bootstrap;
     private volatile boolean streaming;
+    private volatile boolean resumeRequested;
     private boolean closed;
 
     public MySqlHybridSplitReader(MySqlCdcSourceConfig config) {
@@ -52,7 +53,7 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
                     throw new IllegalStateException("A Hybrid Reader cannot own two Binlog splits");
                 }
                 bootstrap = stream.phase() == MySqlHybridBinlogSplit.Phase.BOOTSTRAP;
-                streaming = stream.phase() == MySqlHybridBinlogSplit.Phase.STREAMING;
+                streaming = stream.phase() == MySqlHybridBinlogSplit.Phase.STREAMING || resumeRequested;
                 binlog.start(stream.binlog());
                 binlogAssigned = true;
             } else {
@@ -109,6 +110,7 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
     /** Releases the Binlog gate only after the hybrid checkpoint handoff. */
     public void resumeBinlog(BinlogOffset high) {
         Objects.requireNonNull(high, "high");
+        resumeRequested = true;
         streaming = true;
     }
 

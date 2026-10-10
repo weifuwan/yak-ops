@@ -13,6 +13,8 @@ import java.util.Objects;
 public record MySqlHybridBinlogSplit(MySqlBinlogSplit binlog, Phase phase, BinlogOffset highWatermark)
         implements MySqlHybridSplit {
 
+    public static final String ID = MySqlBinlogSplit.ID;
+
     public enum Phase {
         BOOTSTRAP,
         PAUSED,

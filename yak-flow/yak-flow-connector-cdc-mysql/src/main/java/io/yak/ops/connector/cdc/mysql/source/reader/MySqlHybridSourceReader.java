@@ -84,14 +84,12 @@ public final class MySqlHybridSourceReader extends SingleThreadMultiplexSourceRe
             finishedUnacked.remove(ack.splitId());
         } else if (event instanceof MySqlResumeBinlogEvent resume) {
             resumeHigh = resume.highWatermark();
-            splits.resumeBinlog(resumeHigh);
-            // Any already-assigned Binlog state must switch phases on its owning mailbox.
-            for (MySqlHybridSplit split : super.snapshotState(0)) {
-                if (split instanceof MySqlHybridBinlogSplit binlog
-                        && binlog.phase() != MySqlHybridBinlogSplit.Phase.STREAMING) {
-                    throw new IllegalStateException("Cannot resume MySQL Binlog before state phase transition");
+            forEachActiveSplitState(state -> {
+                if (state.binlog()) {
+                    state.resume(resumeHigh);
                 }
-            }
+            });
+            splits.resumeBinlog(resumeHigh);
         } else {
             throw new IllegalArgumentException("Unsupported MySQL hybrid Reader event");
         }

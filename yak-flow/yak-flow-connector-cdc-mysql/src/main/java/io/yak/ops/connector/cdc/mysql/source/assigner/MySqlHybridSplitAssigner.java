@@ -98,6 +98,18 @@ public final class MySqlHybridSplitAssigner {
         return phase == MySqlHybridEnumeratorState.Phase.HANDOFF && handoffCheckpointId == null;
     }
 
+    /**
+     * Resumes a HANDOFF state loaded from an already completed durable checkpoint.
+     *
+     * <p>Fresh in-memory attempts must instead wait for notifyCheckpointComplete.
+     */
+    public void resumeRestoredHandoff() {
+        if (phase != MySqlHybridEnumeratorState.Phase.HANDOFF || handoffCheckpointId != null) {
+            throw new IllegalStateException("Expected a restored completed handoff checkpoint");
+        }
+        phase = MySqlHybridEnumeratorState.Phase.STREAMING;
+    }
+
     public boolean completeCheckpoint(long checkpointId) {
         if (phase == MySqlHybridEnumeratorState.Phase.HANDOFF
                 && handoffCheckpointId != null

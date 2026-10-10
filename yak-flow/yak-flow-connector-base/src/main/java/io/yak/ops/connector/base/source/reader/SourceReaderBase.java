@@ -180,6 +180,17 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, StateT>
         }
     }
 
+    /**
+     * Visits active mailbox-owned split states for connector-specific coordination events.
+     *
+     * <p>Called only by the owning mailbox. This does not expose a second mutable state
+     * map or permit a fetcher to advance checkpoint progress.
+     */
+    protected final void forEachActiveSplitState(java.util.function.Consumer<? super StateT> visitor) {
+        Objects.requireNonNull(visitor, "visitor");
+        splitStates.values().forEach(visitor);
+    }
+
     /** Initializes the mailbox-owned mutable state of an assigned or restored split. */
     protected abstract StateT initializedState(SplitT split);
 
