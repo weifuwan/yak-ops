@@ -170,5 +170,4 @@ public class DataSyncController {
     public Result<DataSyncInstanceVO> cancelInstance(@PathVariable("id") String id) {
         return Result.success(instanceService.cancelInstance(id));
     }
-
 }
