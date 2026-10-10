@@ -6,7 +6,6 @@ import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.common.util.SensitiveUtils;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.plugin.database.jdbc.enums.SshAuthType;
-import io.yak.ops.plugin.datasource.api.catalog.DataSourceCatalog;
 import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
 import io.yak.ops.plugin.datasource.api.enums.DataSourcePluginOperation;
 import io.yak.ops.plugin.datasource.api.exception.DataSourcePluginException;
@@ -31,7 +30,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * JDBC 数据源插件基础实现，负责运行时插件元数据、连接参数、连通性、SSH 和 Catalog 元数据。
+ * JDBC 数据源插件基础实现，负责运行时插件元数据、连接参数、连通性及 SSH 驱动连接。
  *
  * @author weifuwan
  * @since 2026-09-24
@@ -71,7 +70,6 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     protected Set<DataSourceCapability> capabilities() {
         return EnumSet.of(
                 DataSourceCapability.CONNECTION_TEST,
-                DataSourceCapability.CATALOG_METADATA,
                 DataSourceCapability.SSH_TUNNEL);
     }
 
@@ -212,23 +210,8 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     }
 
     @Override
-    public DataSourceCatalog createCatalog(DataSourceConnection connection, int timeoutSeconds) {
-        int safeTimeout = Math.max(1, timeoutSeconds);
-        return createJdbcCatalog(requireJdbcConnection(connection), safeTimeout, safeTimeout);
-    }
-
-    protected DataSourceCatalog createJdbcCatalog(JdbcConnectionProperties connection, int timeoutSeconds) {
-        return createJdbcCatalog(connection, timeoutSeconds, timeoutSeconds);
-    }
-
-    protected DataSourceCatalog createJdbcCatalog(
-            JdbcConnectionProperties connection, int connectionTimeoutSeconds, int queryTimeoutSeconds) {
-        return new GenericJdbcCatalog(connection, connectionTimeoutSeconds, queryTimeoutSeconds) {
-            @Override
-            protected Connection openConnection() throws Exception {
-                return openJdbcConnection(connection, connectionTimeoutSeconds);
-            }
-        };
+    public Connection openConnection(DataSourceConnection connection, int timeoutSeconds) throws Exception {
+        return openJdbcConnection(requireJdbcConnection(connection), Math.max(1, timeoutSeconds));
     }
 
     protected Connection openJdbcConnection(JdbcConnectionProperties connection, int timeoutSeconds) throws Exception {
