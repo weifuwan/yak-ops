@@ -13,11 +13,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Shared SQL and native type planning for JDBC vendors.
+ * Provides vendor-neutral DML and DDL rendering shared by {@link JdbcDialect} implementations.
  *
- * <p>Follows Flink's AbstractDialect separation: public protocol in JdbcDialect,
- * reusable SQL building here, database-specific identifiers and statement variations
- * in internal/dialect.
+ * <p>The base quotes each identifier through the vendor contract and uses schema column
+ * order for SELECT/INSERT and primary-key order for DELETE. Vendors override native types,
+ * identifier namespaces, and UPSERT syntax. A dialect does not execute statements or manage
+ * JDBC transactions.
  */
 public abstract class AbstractDialect implements JdbcDialect {
 

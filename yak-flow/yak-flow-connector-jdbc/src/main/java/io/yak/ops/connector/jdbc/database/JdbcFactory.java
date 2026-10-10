@@ -5,17 +5,35 @@ import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 
 /**
- * JDBC vendor provider discovered through Java ServiceLoader.
+ * Discovers vendor-specific JDBC dialect and metadata catalog implementations through Java SPI.
  *
- * <p>A factory creates the vendor Dialect and Catalog in the JDBC Connector. The existing
- * Datasource Plugin Catalog is left unchanged until a separate product adapter migration.
+ * <p>Factories identify compatible JDBC URL prefixes without opening connections. The
+ * returned dialect is a reusable SQL definition, whereas the Catalog uses the supplied
+ * provider for independent caller-owned metadata connections. Product Datasource Catalog
+ * remains a separate transitional adapter.
  */
 public interface JdbcFactory {
 
+    /**
+     * Tests whether this provider owns a JDBC URL without establishing a connection.
+     *
+     * @param url database JDBC URL, potentially containing credentials
+     * @return true only when the provider recognizes its vendor's URL form
+     */
     boolean acceptsURL(String url);
 
+    /**
+     * Creates a reusable, stateless database dialect for recognized URLs.
+     *
+     * @return vendor-specific SQL, quoting, and conversion rules
+     */
     JdbcDialect createDialect();
 
-    /** Returns a fully usable Catalog with its own JDBC connection ownership. */
+    /**
+     * Creates a metadata catalog backed by independent caller-owned JDBC connections.
+     *
+     * @param connections provider used for each catalog metadata operation
+     * @return the vendor's read-only metadata catalog
+     */
     JdbcCatalog createCatalog(JdbcConnectionProvider connections);
 }
