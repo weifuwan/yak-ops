@@ -341,6 +341,10 @@ class DataSyncScheduleContractTest {
                         assertEquals("workspace-1", WorkspaceContext.requireWorkspaceId());
                         return "source".equals(args[0]) ? sourceTable : targetTable;
                     }
+                    if ("queryTableSchema".equals(method.getName())) {
+                        assertEquals("workspace-1", WorkspaceContext.requireWorkspaceId());
+                        return DataSyncTestTableSchema.fromColumns(columns);
+                    }
                     if ("queryCatalogColumns".equals(method.getName())) {
                         assertEquals("workspace-1", WorkspaceContext.requireWorkspaceId());
                         return columns;
