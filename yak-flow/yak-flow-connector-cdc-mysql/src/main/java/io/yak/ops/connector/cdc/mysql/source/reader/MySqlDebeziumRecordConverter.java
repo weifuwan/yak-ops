@@ -81,7 +81,8 @@ public final class MySqlDebeziumRecordConverter {
             case "c", "r" ->
                 rows.add(new TableRecord(table, RowKind.INSERT, convertRow(envelope.getStruct("after"), schema)));
             case "u" -> {
-                rows.add(new TableRecord(table, RowKind.UPDATE_BEFORE, convertRow(envelope.getStruct("before"), schema)));
+                rows.add(new TableRecord(
+                        table, RowKind.UPDATE_BEFORE, convertRow(envelope.getStruct("before"), schema)));
                 rows.add(new TableRecord(table, RowKind.UPDATE_AFTER, convertRow(envelope.getStruct("after"), schema)));
             }
             case "d" ->
@@ -124,9 +125,10 @@ public final class MySqlDebeziumRecordConverter {
             Object value, org.apache.kafka.connect.data.Schema connectType, LogicalType type) {
         try {
             return switch (type.getTypeRoot()) {
-                case BOOLEAN -> value instanceof Boolean booleanValue
-                        ? booleanValue
-                        : numeric(value).intValueExact() != 0;
+                case BOOLEAN ->
+                    value instanceof Boolean booleanValue
+                            ? booleanValue
+                            : numeric(value).intValueExact() != 0;
                 case TINYINT -> numeric(value).byteValueExact();
                 case SMALLINT -> numeric(value).shortValueExact();
                 case INTEGER -> numeric(value).intValueExact();
@@ -152,9 +154,8 @@ public final class MySqlDebeziumRecordConverter {
                     }
                     throw new IllegalArgumentException("MySQL CDC binary field has an unsupported value");
                 }
-                case DATE -> value instanceof LocalDate date
-                        ? date
-                        : LocalDate.ofEpochDay(((Number) value).longValue());
+                case DATE ->
+                    value instanceof LocalDate date ? date : LocalDate.ofEpochDay(((Number) value).longValue());
                 case TIME_WITHOUT_TIME_ZONE -> time(value, connectType.name());
                 case TIMESTAMP_WITHOUT_TIME_ZONE -> timestamp(value, connectType.name());
                 case TIMESTAMP_WITH_TIME_ZONE -> OffsetDateTime.parse(value.toString());
@@ -216,7 +217,8 @@ public final class MySqlDebeziumRecordConverter {
         }
         if ("io.debezium.time.NanoTimestamp".equals(schemaName)) {
             return LocalDateTime.ofInstant(
-                    Instant.ofEpochSecond(Math.floorDiv(position, 1_000_000_000), Math.floorMod(position, 1_000_000_000)),
+                    Instant.ofEpochSecond(
+                            Math.floorDiv(position, 1_000_000_000), Math.floorMod(position, 1_000_000_000)),
                     ZoneOffset.UTC);
         }
         if ("io.debezium.time.Timestamp".equals(schemaName)) {
