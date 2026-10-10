@@ -102,6 +102,16 @@ jobs:
             "-Djdbc.it.target.url=$TARGET_URL" "-Djdbc.it.target.user=$TARGET_USER" \
             "-Djdbc.it.target.password=$TARGET_PASSWORD" test
 
+      # The connector harness injects writes on both tables after the low watermark.
+      # Run it once (MySQL target) instead of repeating it for every JDBC target.
+      - name: Verify concurrent multi-table Snapshot and Binlog handoff
+        if: matrix.target == 'mysql'
+        shell: bash
+        run: >
+          bash mvnw -B -ntp -pl yak-flow/yak-flow-connector-cdc-mysql -am
+          -Dtest=MySqlHybridIT -Dsurefire.failIfNoSpecifiedTests=false
+          -Dmysql.cdc.hybrid.it.enabled=true -Dmysql.cdc.it.password=rootpass test
+
       - name: Database logs on failure
         if: failure()
         run: |

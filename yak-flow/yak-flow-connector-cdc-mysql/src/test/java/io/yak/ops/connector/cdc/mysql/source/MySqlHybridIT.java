@@ -41,16 +41,19 @@ import org.junit.jupiter.api.Test;
 /**
  * Opt-in real MySQL Hybrid acceptance for bounded chunks, replay and checkpoint handoff.
  *
- * <p>The fixture uses deterministic mailbox/coordinator scheduling while real Debezium,
- * MySQL Binlog and JDBC Snapshot I/O run on their Connector Base fetchers.
+ * <p>The fixture injects writes on both tables immediately after the Binlog low watermark
+ * is captured, before the Snapshot readers poll their assigned splits. Real Debezium,
+ * Binlog and JDBC Snapshot I/O run
+ * on Connector Base fetchers under deterministic mailbox/coordinator scheduling.
  */
 class MySqlHybridIT {
 
     private static final String DATABASE = "yak_cdc_it";
     private static final TableId ORDERS = new TableId(DATABASE, null, "hybrid_orders");
+    private static final TableId ITEMS = new TableId(DATABASE, null, "hybrid_items");
 
     @Test
-    void capturesConcurrentWritesAndDefersBinlogUntilCompletedSnapshotCheckpoint() throws Exception {
+    void capturesMultiTableConcurrentWritesAndDefersBinlogUntilCompletedSnapshotCheckpoint() throws Exception {
         if (!Boolean.getBoolean("mysql.cdc.hybrid.it.enabled")) {
             throw new IllegalStateException("Explicit -Dmysql.cdc.hybrid.it.enabled=true required");
         }
@@ -58,11 +61,21 @@ class MySqlHybridIT {
         execute(password, "DROP TABLE IF EXISTS hybrid_orders");
         execute(password, "CREATE TABLE hybrid_orders(id BIGINT PRIMARY KEY, name VARCHAR(100) NOT NULL)");
         execute(password, "INSERT INTO hybrid_orders VALUES (1,'old'),(100,'deleted')");
+        execute(password, "DROP TABLE IF EXISTS hybrid_items");
+        execute(password, "CREATE TABLE hybrid_items "
+                + "(id BIGINT PRIMARY KEY, sku VARCHAR(100) NOT NULL, qty BIGINT NOT NULL)");
+        execute(password, "INSERT INTO hybrid_items VALUES (10,'ten',2),(20,'removed',7)");
 
         TableSchema schema = new TableSchema(
                 List.of(
                         new Column("id", LogicalTypes.BIGINT.copy(false)),
                         new Column("name", LogicalTypes.varchar(100).copy(false))),
+                List.of("id"));
+        TableSchema itemSchema = new TableSchema(
+                List.of(
+                        new Column("id", LogicalTypes.BIGINT.copy(false)),
+                        new Column("sku", LogicalTypes.varchar(100).copy(false)),
+                        new Column("qty", LogicalTypes.BIGINT.copy(false))),
                 List.of("id"));
         MySqlHybridCdcSource source = MySqlCdcSource.builder()
                 .hostname("127.0.0.1")
@@ -71,6 +84,7 @@ class MySqlHybridIT {
                 .serverId(5561)
                 .topicPrefix("yak_hybrid_acceptance")
                 .table(ORDERS, schema)
+                .table(ITEMS, itemSchema)
                 .buildHybrid(1);
 
         try (Harness harness = new Harness(source, 2, password)) {
@@ -95,32 +109,72 @@ class MySqlHybridIT {
             MySqlHybridEnumeratorState beforeComplete = harness.enumerator.snapshotState(30L);
             assertEquals(MySqlHybridEnumeratorState.Phase.HANDOFF, beforeComplete.phase());
             harness.enumerator.notifyCheckpointComplete(30L);
-            harness.until(() -> harness.output.stream().anyMatch(row -> row.rowKind() == RowKind.DELETE)
-                    && harness.output.stream().anyMatch(row -> row.rowKind() == RowKind.UPDATE_AFTER)
-                    && harness.output.stream().filter(row -> row.rowKind() == RowKind.INSERT).count() >= 3,
+            harness.until(() ->
+                    harness.output.stream().anyMatch(row ->
+                            ORDERS.equals(row.tableId()) && row.rowKind() == RowKind.DELETE)
+                            && harness.output.stream().anyMatch(row ->
+                                    ORDERS.equals(row.tableId()) && row.rowKind() == RowKind.UPDATE_AFTER)
+                            && harness.output.stream().anyMatch(row ->
+                                    ITEMS.equals(row.tableId()) && row.rowKind() == RowKind.DELETE)
+                            && harness.output.stream().anyMatch(row ->
+                                    ITEMS.equals(row.tableId()) && row.rowKind() == RowKind.UPDATE_AFTER)
+                            && harness.output.stream().anyMatch(row ->
+                                    ORDERS.equals(row.tableId()) && row.rowKind() == RowKind.INSERT
+                                            && ((Number) row.row().getField(0)).longValue() == 5L)
+                            && harness.output.stream().anyMatch(row ->
+                                    ITEMS.equals(row.tableId()) && row.rowKind() == RowKind.INSERT
+                                            && ((Number) row.row().getField(0)).longValue() == 30L)
+                            && harness.coordinatorState().phase() == MySqlHybridEnumeratorState.Phase.STREAMING,
                     Duration.ofSeconds(80));
 
-            Map<Long, String> target = new LinkedHashMap<>();
-            Long beforeKey = null;
+            Map<Long, String> orders = new LinkedHashMap<>();
+            Map<Long, ItemValue> items = new LinkedHashMap<>();
+            Long orderBeforeKey = null;
+            Long itemBeforeKey = null;
             for (TableRecord record : harness.output) {
                 long key = (Long) record.row().getField(0);
-                switch (record.rowKind()) {
-                    case INSERT -> target.put(key, record.row().getString(1));
-                    case UPDATE_BEFORE -> beforeKey = key;
-                    case UPDATE_AFTER -> {
-                        if (beforeKey != null && beforeKey != key) {
-                            target.remove(beforeKey);
+                if (ORDERS.equals(record.tableId())) {
+                    switch (record.rowKind()) {
+                        case INSERT -> orders.put(key, record.row().getString(1));
+                        case UPDATE_BEFORE -> orderBeforeKey = key;
+                        case UPDATE_AFTER -> {
+                            if (orderBeforeKey != null && orderBeforeKey != key) {
+                                orders.remove(orderBeforeKey);
+                            }
+                            orderBeforeKey = null;
+                            orders.put(key, record.row().getString(1));
                         }
-                        beforeKey = null;
-                        target.put(key, record.row().getString(1));
+                        case DELETE -> orders.remove(key);
                     }
-                    case DELETE -> target.remove(key);
+                } else if (ITEMS.equals(record.tableId())) {
+                    switch (record.rowKind()) {
+                        case INSERT -> items.put(key, itemValue(record));
+                        case UPDATE_BEFORE -> itemBeforeKey = key;
+                        case UPDATE_AFTER -> {
+                            if (itemBeforeKey != null && itemBeforeKey != key) {
+                                items.remove(itemBeforeKey);
+                            }
+                            itemBeforeKey = null;
+                            items.put(key, itemValue(record));
+                        }
+                        case DELETE -> items.remove(key);
+                    }
+                } else {
+                    throw new AssertionError("Unexpected source table: " + record.tableId());
                 }
             }
-            assertEquals(Map.of(1L, "changed", 5L, "inserted"), target);
+            assertEquals(Map.of(1L, "changed", 5L, "inserted"), orders);
+            assertEquals(Map.of(10L, new ItemValue("changed-sku", 3L),
+                    30L, new ItemValue("added", 4L)), items);
             assertEquals(MySqlHybridEnumeratorState.Phase.STREAMING, harness.coordinatorState().phase());
         }
     }
+
+    private static ItemValue itemValue(TableRecord record) {
+        return new ItemValue(record.row().getString(1), (Long) record.row().getField(2));
+    }
+
+    private record ItemValue(String sku, long quantity) {}
 
     private static void execute(String password, String query) throws Exception {
         try (Connection connection = DriverManager.getConnection(
@@ -253,6 +307,9 @@ class MySqlHybridIT {
                         execute(password, "UPDATE hybrid_orders SET name='changed' WHERE id=1");
                         execute(password, "DELETE FROM hybrid_orders WHERE id=100");
                         execute(password, "INSERT INTO hybrid_orders VALUES (5,'inserted')");
+                        execute(password, "UPDATE hybrid_items SET sku='changed-sku', qty=3 WHERE id=10");
+                        execute(password, "DELETE FROM hybrid_items WHERE id=20");
+                        execute(password, "INSERT INTO hybrid_items VALUES (30,'added',4)");
                     }
                 });
             }

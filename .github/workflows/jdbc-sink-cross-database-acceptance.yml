@@ -9,6 +9,52 @@ permissions:
   contents: read
 
 jobs:
+  mysql-to-mysql:
+    name: MySQL to MySQL Multi-Table Sink IT
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mysql-source:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: yak_it
+          MYSQL_USER: yak
+          MYSQL_PASSWORD: yakpass
+          MYSQL_ROOT_PASSWORD: rootpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s --health-timeout=5s --health-retries=30
+      mysql-target:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: yak_it
+          MYSQL_USER: yak
+          MYSQL_PASSWORD: yakpass
+          MYSQL_ROOT_PASSWORD: rootpass
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --silent"
+          --health-interval=10s --health-timeout=5s --health-retries=30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Real MySQL to MySQL multi-table Sink IT
+        run: >
+          bash mvnw -B -ntp -pl yak-flow/yak-flow-connector-jdbc -am
+          -Dtest=JdbcSinkCrossDatabaseIT -Dsurefire.failIfNoSpecifiedTests=false
+          -Djdbc.it.allow-write=true
+          -Djdbc.it.source.url="jdbc:mysql://127.0.0.1:3306/yak_it?useSSL=false&allowPublicKeyRetrieval=true"
+          -Djdbc.it.source.user=yak -Djdbc.it.source.password=yakpass
+          -Djdbc.it.target.url="jdbc:mysql://127.0.0.1:3307/yak_it?useSSL=false&allowPublicKeyRetrieval=true"
+          -Djdbc.it.target.user=yak -Djdbc.it.target.password=yakpass test
+
   mysql-to-postgres:
     name: MySQL to PostgreSQL Sink IT
     runs-on: ubuntu-latest

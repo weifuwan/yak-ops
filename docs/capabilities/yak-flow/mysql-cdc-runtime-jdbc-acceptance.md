@@ -26,13 +26,15 @@ All source tables require a complete, frozen schema with exactly one non-null BI
 
 `MySqlCdcRuntimeCrossDatabaseIT` uses real MySQL 8 ROW Binlog and a real target database, executing through the existing embedded Runtime. It:
 
-1. Creates two source tables and two independent target-table routes.
-2. Verifies initial Snapshot rows reach the actual JDBC target.
+1. Creates two source tables with distinct schemas (`orders: id/name`; `items: id/sku/qty`) and two independent target-table routes.
+2. Verifies complete initial Snapshot rows, including the second table's extra column, reach the actual JDBC target.
 3. Applies UPDATE, DELETE, INSERT and primary-key relocation while Binlog is active; compares **full target key/value sets**, not just row counts.
 4. Forces a durable aligned checkpoint, cancels the Job, and starts a new ExecutionGraph with `RESTORE_LATEST=true` and the same stable UIDs.
 5. Applies additional UPDATE/DELETE/INSERT after restart and verifies both tables converge again.
 
-This test covers engine-level Snapshot-to-Binlog handoff, changelog writer integration and recovered progress. The separate `MySqlHybridIT` specifically injects concurrent changes during Snapshot and checks the checkpoint-gated handoff before replay; PR3 does not replace it.
+This test covers engine-level Snapshot-to-Binlog handoff, changelog writer integration and recovered progress. The separate `MySqlHybridIT` injects writes into **both tables after the global Low Watermark, before the Snapshot readers poll their splits**, and verifies the checkpoint-gated Binlog handoff and final field values. The MySQL target job in this manual workflow runs that deterministic connector harness once in addition to the Runtime IT; the other target jobs only run the Runtime IT.
+
+The JDBC Source → Sink multi-table snapshot acceptance and MySQL → MySQL two-container job are described in [MySQL Multi-Table Runtime Acceptance](mysql-multi-table-runtime-acceptance.md).
 
 ## Run the real database matrix
 
