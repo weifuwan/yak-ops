@@ -18,7 +18,7 @@ Versions use `(workspace_id, definition_id, version)` uniqueness. Current DATA_S
 
 Migration [V7](../../yak-ops-dao/src/main/resources/db/migration/yak-ops/V7__task_definition.sql) backfills one record for the **currently stored version** of each existing DATA_SYNC definition and preserves existing Task IDs, Schedule task references and historical Instance/Attempt IDs. Older configuration revisions not stored in legacy tables cannot be reconstructed and must not be invented. All published V1–V3 migrations remain unchanged.
 
-Deleting an unpublished Definition retains its historical version rows and existing execution records. No WorkflowInstance or TaskInstance schema is introduced by this change.
+Deleting an unpublished Definition retains its historical version rows and existing execution records. V8 extends this foundation with one shared Task Instance/Attempt/Event/Schedule model, documented in [Task Instance Contract](task-instance.md). It does not add an executable WorkflowInstance.
 
 ## HTTP Surface
 
@@ -30,6 +30,6 @@ Workspace authorization is established by Boot, and the Service/DAO apply Worksp
 
 ## Execution Boundary
 
-This PR owns only Task Definition persistence. Current instance, Attempt, Schedule, Dashboard and cancellation semantics are not migrated here. Manual Run and effective Cron fire still fail explicitly until the Data Sync → YakFlow Runtime bridge is implemented; having a Definition row or a discovered plugin is not executable proof.
+The canonical Definition model continues to own identity and versioning. [Shared Task Instance storage](task-instance.md) is now present, with read-only generic APIs; existing DATA_SYNC lifecycle, Quartz and Dashboard semantics are preserved. Manual Run and effective Cron fire still fail explicitly until the Data Sync → YakFlow Runtime bridge is implemented; having a Definition row or a discovered plugin is not executable proof.
 
 Later Workflow nodes must reference stable Definition ID plus version. They must not recreate DATA_SYNC-specific definitions or Product TaskInstances.

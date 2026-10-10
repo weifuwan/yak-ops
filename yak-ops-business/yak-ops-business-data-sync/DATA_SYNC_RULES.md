@@ -8,9 +8,11 @@ Scope: `yak-ops-business/yak-ops-business-data-sync/**` and matching Common/DAO 
 
 - `SyncDefinitionService`: shared OFFLINE/REALTIME Task CRUD, publication, definition version and single-table Source/Target definition.
 - `DataSyncScheduleService`: Cron validation, saved Schedule lifecycle, Quartz registration after commit, startup registration and the `DataSyncScheduleFireListener` boundary.
-- `DataSyncInstanceService`: existing persisted Execution/Attempt/Event history, instance queries and current cancel status handling. Manual Run explicitly rejects when the new Runtime is not connected.
-- `DataSyncOperationsService`: operations task read model, aggregate metrics, time buckets, failure ranking and Quartz next-fire observation.
-- The split Definition and DataSync Controllers inject only their own relevant Services; do not recreate a giant `DataSyncService` façade or cyclic Service dependencies.
+- `DataSyncInstanceService`: existing persisted Execution/Attempt history, instance queries and current cancel status handling. Manual Run explicitly rejects when the new Runtime is not connected.
+- `DataSyncOperationsService`: operations Task read model and Quartz next-fire observation.
+- `DataSyncMetricsService`: DATA_SYNC-specific aggregate metrics, buckets and failure ranking using the existing metrics repository.
+- `DataSyncLogService`: Workspace-scoped structured lifecycle event history; no Worker log file streaming.
+- The split Definition / Instance / Schedule / Metrics / Operations / Log Controllers inject only their own relevant Services; do not recreate a giant `DataSyncService` façade or cyclic Service dependencies.
 
 ## Single-Table Contract
 
@@ -26,6 +28,10 @@ Historical Route table/Repository and frozen Execution snapshots stay in storage
 ## Canonical Definition Persistence
 
 The generic `yak_ops_task_definition` owns shared task ID, Workspace, name, status, executable version and remark; the DATA_SYNC extension owns source/target and runtime policies. `SyncDefinitionRepository` persists both within the existing Business transaction and appends immutable versions only when executable configuration changes. No duplicate shared-column writes, hidden global Workspace fallback or re-created historical versions. See [Task Definition](../../docs/capabilities/task-definition.md).
+
+## Shared Task Instance + Schedule Storage
+
+V8 migrates DATA_SYNC Instance, Attempt, Event and Schedule rows in place to shared Task tables, retaining original IDs and historical counts. DATA_SYNC entities are compatible projections; task-neutral views live in Task Business/DAO. DATA_SYNC reads, writes and recovery must filter `task_type=DATA_SYNC` and Schedule `target_type=TASK`, never mark other task types LOST or unschedule a future Workflow. Physical `log_uri` is only an optional controlled reference and is not exposed as a public URL. See [Task Instance Contract](../../docs/capabilities/task-instance.md).
 
 ## Scheduler / Instance / Operations
 
