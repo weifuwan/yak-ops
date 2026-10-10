@@ -130,7 +130,7 @@ jobs:
           npx --no-install oxfmt apps packages scripts
           python3 - <<'PY'
           import subprocess, base64
-          patch = subprocess.check_output(['git', 'diff', '--no-ext-diff', '--', 'yak-ops-ui/'])
+          patch = subprocess.check_output(['git', 'diff', '--no-ext-diff', '--', '.'])
           print('FRONT_PATCH_BEGIN:' + base64.b64encode(patch).decode('ascii'))
           print('FRONT_PATCH_END')
           PY
