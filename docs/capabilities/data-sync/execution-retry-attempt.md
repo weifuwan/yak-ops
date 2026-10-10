@@ -127,13 +127,22 @@ Retry 不改变 [OFFLINE 写入方式](README.md#offline-execution) 或 [YakFlow
 
 历史 / 显式 FIXED Policy 继续保持原配置；新建普通任务使用 SMART Policy。SMART 的安全边界由失败分类和写入模式共同决定，不能仅因为 maxAttempts=3 就解释成无条件自动执行三次。
 
+
+## Shared Task Instance Persistence
+
+本轮通过 [V8 Draft Migration](../../../yak-ops-dao/src/main/resources/db/migration/yak-ops/V8__task_instance_schedule_alignment.sql) 将产品历史 Root Execution、Attempt、Event 原地迁移至通用 `yak_ops_task_instance`、`yak_ops_task_attempt`、`yak_ops_task_event`，ID、冻结定义版本和 Workspace 不变。Attempt / Event 的 `execution_id` 列改名为 `instance_id`，DATA_SYNC API 中现有 `executionId` 字段通过 DAO `@TableField` 映射保持兼容。历史多表 Route / TableExecution / TableAttempt 不变。
+
+通用实例有 `task_type=DATA_SYNC`，以及未来 Workflow 可用、当前为空的 `workflow_instance_id` / `workflow_node_id`。Data Sync 历史恢复与取消操作必须限制 `DATA_SYNC` 类型，禁止更改其他插件的实例状态。新 Task Business 的只读 Instance/Attempt/Event/Metrics 不会制造新的实例或业务执行状态。
+
+`yak_ops_task_attempt.log_uri` 是未来运行日志定位符，当前历史记录为空，不能认为事件日志等价于完整 Worker 文件。通用 Event 接口只返回结构化产品事件；安全的物理日志查看需要后续独立实现。见 [Task Instance Contract](../task-instance.md)。
+
 ## Persistence and Compatibility
 
 [v1.1.0 Release Migration](../../../yak-ops-dao/src/main/resources/db/migration/yak-ops/V2__v1_1_0.sql) 的 Execution Retry / Attempt section 保存 Task Retry Policy、Execution 的冻结策略 / 当前尝试 / 下次重试时间，以及 `yak_ops_data_sync_attempt`；Execution Product Event section 同时新增 `yak_ops_data_sync_execution_event`。
 
-`yak_ops_data_sync_instance` 和既有 Instance ID 保持不变。v1.1.0 以前的历史记录按单次执行解释；Migration 没有为历史 Instance 回填实体 Attempt 行，也不为历史 Execution 伪造产品事件，因此旧 attempts / logs 可以为空。
+V8 前的 `yak_ops_data_sync_instance` 在 V8 后重命名为 `yak_ops_task_instance`，既有 Instance ID 保持不变。v1.1.0 以前的历史记录按单次执行解释；Migration 没有为历史 Instance 回填实体 Attempt 行，也不为历史 Execution 伪造产品事件，因此旧 attempts / logs 可以为空。
 
-旧 Task 仍保留迁移期 maxAttempts=1、backoffSeconds=60；其 retryPolicy JSON 没有 mode 时读取为 FIXED。SMART mode 存在既有 JSON 字段中，不新增数据库列。Schema 由 DAO 维护，遵守 [Flyway Rules](../../../yak-ops-dao/FLYWAY_RULES.md)，不修改已冻结迁移或建立第二套 Task / Instance 模型。
+旧 Task 仍保留迁移期 maxAttempts=1、backoffSeconds=60；其 retryPolicy JSON 没有 mode 时读取为 FIXED。SMART mode 存在既有 JSON 字段中，不新增数据库列。Schema 由 DAO 维护，遵守 [Flyway Rules](../../../yak-ops-dao/FLYWAY_RULES.md)，不修改已冻结迁移或建立第二套 Task / Instance 模型；通用与 DATA_SYNC DAO 是同表投影。
 
 ## Operations Contract
 

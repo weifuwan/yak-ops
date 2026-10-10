@@ -89,11 +89,11 @@ The JDBC Connector owns SQL dialects, native type mappings, generated target DDL
 
 ### `yak-ops-business/yak-ops-business-task`
 
-通用任务定义身份、发布状态与可执行版本持久化由 Task DAO 统一管理。当前 DefinitionService 只提供按 Workspace 隔离的 Definition / 不可变版本读取；DATA_SYNC 的编辑与上线由其现有业务 Service 负责，同一个 Task ID 连接通用表与插件专属表。见 [Task Definition Contract](docs/capabilities/task-definition.md)。
+通用任务 Definition / Version、Instance / Attempt / Event、Schedule 和根实例 Metrics 由 Task DAO 提供唯一共享表及只读映射，Task Business 提供 Workspace-scoped 定义、执行历史、调度、指标与结构化事件读服务。当前实例创建、调度启停与执行控制仍由 DATA_SYNC Business 承担；通用 Task 不创建第二份 Instance 或独立调度器。参见 [Task Definition](docs/capabilities/task-definition.md) 与 [Task Instance Contract](docs/capabilities/task-instance.md)。
 
 ### `yak-ops-business/yak-ops-business-data-sync`
 
-Data Sync Business 按 SyncDefinition、Instance、Schedule、Operations 四个 Service 划分；SyncDefinition 只拥有插件专属的单表配置和物理 Schema 校验，通用身份/发布状态/版本在 Task Definition 表中，历史 Route 与 Execution 数据保留。旧 business.datasync.execution 包已删除；历史运行态由 history.DataSyncHistoryRecovery 收口，新 Connector 未接入前手动运行和有效 Cron 触发均拒绝新建执行实例。产品持久化与运行时 ExecutionGraph 内存尝试互不混淆。详细见 [Data Sync Capability](docs/capabilities/data-sync/README.md)。
+Data Sync Business 按 SyncDefinition、Instance、Schedule、Operations、Metrics、Log 六个 Service 划分；SyncDefinition 只拥有插件专属的单表配置和物理 Schema 校验，通用身份/发布状态/版本在 Task Definition 表中，历史 Route 与 Execution 数据保留。旧 business.datasync.execution 包已删除；历史运行态由 history.DataSyncHistoryRecovery 收口，新 Connector 未接入前手动运行和有效 Cron 触发均拒绝新建执行实例。产品持久化与运行时 ExecutionGraph 内存尝试互不混淆。详细见 [Data Sync Capability](docs/capabilities/data-sync/README.md)。
 
 ### `yak-ops-plugins/yak-ops-plugin-datasource`
 
@@ -103,7 +103,7 @@ Descriptor 是运行时元信息，不是前端动态表单协议。内置 Provi
 
 ### `yak-ops-plugins/yak-ops-plugin-task`
 
-Task 插件模块由 API、内置 DATA_SYNC 插件和 all 聚合模块组成。API 使用 ServiceLoader + Registry 按字符串类型发现插件并执行参数解析/校验。当前仅注册 DATA_SYNC 的单表配置，不依赖 Business、DAO、Boot 或 YakFlow Runtime；通用 Task Definition 身份及版本由 Task DAO 和 Business 持有，插件专属编辑、实例及调度仍由 Data Sync Business 持有，数据同步尚未对接新 YakFlow 执行引擎。Boot 在启动时构建插件 Registry，但当前的 Data Sync API 尚不消费该 Registry。边界及现状见 [Task Plugin Contract](docs/capabilities/task-plugin.md)。
+Task 插件模块由 API、内置 DATA_SYNC 插件和 all 聚合模块组成。API 使用 ServiceLoader + Registry 按字符串类型发现插件并执行参数解析/校验。当前仅注册 DATA_SYNC 的单表配置，不依赖 Business、DAO、Boot 或 YakFlow Runtime；通用 Task Definition 身份及版本由 Task DAO 和 Business 持有，插件专属编辑、执行历史写入和调度启停仍由 Data Sync Business 持有，数据同步尚未对接新 YakFlow 执行引擎。Boot 在启动时构建插件 Registry，但当前的 Data Sync API 尚不消费该 Registry。边界及现状见 [Task Plugin Contract](docs/capabilities/task-plugin.md)。
 
 ### `yak-ops-boot`
 
