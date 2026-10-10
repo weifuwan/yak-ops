@@ -24,6 +24,7 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
 
     private final Connection connection;
     private final TableBufferedStatementExecutor<TableRecord> executor;
+    private final TableChangelogStatementExecutor statements;
     private volatile boolean cancelled;
     private volatile boolean closed;
     private boolean failed;
@@ -58,6 +59,7 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
         }
         connection = opened;
         executor = buffer;
+        statements = statement;
     }
 
     @Override
@@ -72,12 +74,18 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
     }
 
     @Override
+    public boolean canAutomaticallyFlush() {
+        return statements.canAutomaticallyFlush();
+    }
+
+    @Override
     public void flush() throws SQLException {
         ensureActive();
         if (executor.bufferedRecords() == 0) {
             return;
         }
         try {
+            statements.requireCompleteUpdate();
             executor.executeBatch();
             if (cancelled) {
                 throw new CancellationException("JDBC Sink was cancelled before commit");

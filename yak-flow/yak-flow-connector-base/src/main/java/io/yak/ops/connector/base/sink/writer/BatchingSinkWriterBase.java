@@ -45,9 +45,10 @@ public abstract class BatchingSinkWriterBase<T> implements CancellableSinkWriter
             failure = error;
             throw error;
         }
-        if (output.bufferedRecords() >= policy.maxBatchSize()) {
+        int pending = output.bufferedRecords();
+        if (pending >= policy.maxBatchSize() && output.canAutomaticallyFlush()) {
             flush(false);
-        } else if (output.bufferedRecords() > 0 && policy.hasTimedFlush() && timer == null) {
+        } else if (pending > 0 && policy.hasTimedFlush() && timer == null && output.canAutomaticallyFlush()) {
             scheduleTimer();
         }
     }
@@ -78,7 +79,7 @@ public abstract class BatchingSinkWriterBase<T> implements CancellableSinkWriter
 
     private void onTimer() {
         timer = null;
-        if (cancelled || closed || finished || output.bufferedRecords() == 0) {
+        if (cancelled || closed || finished || output.bufferedRecords() == 0 || !output.canAutomaticallyFlush()) {
             return;
         }
         try {
