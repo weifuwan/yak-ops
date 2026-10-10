@@ -387,6 +387,9 @@ class DataSyncTaskLifecycleContractTest {
                         table.setType("TABLE");
                         return Optional.of(table);
                     }
+                    if ("queryTableSchema".equals(method.getName())) {
+                        return DataSyncTestTableSchema.fromColumns(columns);
+                    }
                     if ("queryCatalogColumns".equals(method.getName())) return columns;
                     throw new UnsupportedOperationException(method.getName());
                 });
