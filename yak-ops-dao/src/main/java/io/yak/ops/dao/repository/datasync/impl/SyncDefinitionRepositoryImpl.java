@@ -58,7 +58,7 @@ public class SyncDefinitionRepositoryImpl implements SyncDefinitionRepository {
         DefinitionEntity definition = toDefinition(entity);
         definitionRepository.add(definition);
         taskMapper.insert(entity);
-        versionRepository.add(toVersion(entity));
+        versionRepository.append(toVersion(entity));
         return entity;
     }
 
@@ -127,7 +127,7 @@ public class SyncDefinitionRepositoryImpl implements SyncDefinitionRepository {
             throw new IllegalStateException("Missing DATA_SYNC parameters for definition " + entity.getId());
         }
         if (!Objects.equals(existing.getDefinitionVersion(), entity.getDefinitionVersion())) {
-            versionRepository.add(toVersion(entity));
+            versionRepository.append(toVersion(entity));
         }
         return entity;
     }

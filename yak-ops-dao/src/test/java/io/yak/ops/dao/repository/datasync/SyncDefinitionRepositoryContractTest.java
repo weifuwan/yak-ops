@@ -60,7 +60,7 @@ class SyncDefinitionRepositoryContractTest {
         ArgumentCaptor<DefinitionVersionEntity> versionCaptor = ArgumentCaptor.forClass(DefinitionVersionEntity.class);
         verify(definitions).add(definitionCaptor.capture());
         verify(mapper).insert(task);
-        verify(versions).add(versionCaptor.capture());
+        verify(versions).append(versionCaptor.capture());
         assertEquals("id-1", definitionCaptor.getValue().getId());
         assertEquals("DATA_SYNC", definitionCaptor.getValue().getTaskType());
         assertEquals(DefinitionStatus.UNPUBLISHED, definitionCaptor.getValue().getStatus());
@@ -80,12 +80,12 @@ class SyncDefinitionRepositoryContractTest {
         when(mapper.update(any(), any())).thenReturn(1);
 
         repository.update("ws-1", task);
-        verify(versions, never()).add(any());
+        verify(versions, never()).append(any());
 
         task.setDefinitionVersion(2);
         repository.update("ws-1", task);
         ArgumentCaptor<DefinitionVersionEntity> versionCaptor = ArgumentCaptor.forClass(DefinitionVersionEntity.class);
-        verify(versions).add(versionCaptor.capture());
+        verify(versions).append(versionCaptor.capture());
         assertEquals(2, versionCaptor.getValue().getVersion());
         assertEquals("id-1", versionCaptor.getValue().getDefinitionId());
     }

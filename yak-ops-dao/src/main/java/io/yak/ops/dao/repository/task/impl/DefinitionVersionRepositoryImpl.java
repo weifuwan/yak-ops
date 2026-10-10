@@ -4,29 +4,27 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.mapper.task.DefinitionVersionMapper;
-import io.yak.ops.dao.repository.impl.BaseRepositoryImpl;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.stereotype.Repository;
 
 /**
- * 保存并读取任务定义历史快照，不提供更新历史快照的业务入口。
+ * 追加并读取 Task Definition 历史版本；不允许更新已发布的快照。
  *
  * @author weifuwan
  * @since 2026-10-10
  */
 @Repository
-public class DefinitionVersionRepositoryImpl
-        extends BaseRepositoryImpl<DefinitionVersionMapper, DefinitionVersionEntity>
-        implements DefinitionVersionRepository {
+public class DefinitionVersionRepositoryImpl implements DefinitionVersionRepository {
 
     @Resource
     private DefinitionVersionMapper versionMapper;
 
     @Override
-    protected DefinitionVersionMapper mapper() {
-        return versionMapper;
+    public DefinitionVersionEntity append(DefinitionVersionEntity version) {
+        versionMapper.insert(version);
+        return version;
     }
 
     @Override
