@@ -14,7 +14,7 @@
     <artifactId>yak-ops-plugin-datasource-api</artifactId>
 
     <name>Yak Ops Datasource Plugin API</name>
-    <description>Stable datasource plugin contracts, normalized connection models and catalog metadata APIs</description>
+    <description>Stable datasource plugin contracts and normalized JDBC connection models</description>
 
     <dependencies>
         <dependency>
