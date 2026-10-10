@@ -50,6 +50,15 @@ public abstract class AbstractDialectConverter implements JdbcDialectConverter {
         this.schema = new TableSchema(columns, List.of());
     }
 
+    protected AbstractDialectConverter(TableSchema schema) {
+        this.schema = Objects.requireNonNull(schema, "schema");
+        for (Column column : schema.columns()) {
+            if (!column.dataType().isResolved()) {
+                throw new IllegalArgumentException("Unresolved JDBC target column: " + column.name());
+            }
+        }
+    }
+
     @Override
     public final TableSchema schema() {
         return schema;

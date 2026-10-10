@@ -22,6 +22,9 @@ public interface JdbcDialect extends java.io.Serializable {
 
     JdbcDialectConverter createRowConverter(ResultSetMetaData metadata) throws SQLException;
 
+    /** Builds a JDBC write binder from an already resolved target schema. */
+    JdbcDialectConverter createRowConverter(TableSchema schema);
+
     void configureReadConnection(Connection connection) throws SQLException;
 
     JdbcNativeType nativeType(Column column);

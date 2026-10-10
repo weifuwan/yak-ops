@@ -6,7 +6,7 @@ Scope: 当前模块职责、代码归属与依赖方向。文档归属遵循 [En
 
 ## Principle
 
-**当前分支状态**：旧 Business execution 已移除，Data Sync 的前端、Controller、Service、DAO、Flyway 保留。YakFlow 已具备 Core/Runtime 和独立 JDBC Source Connector；产品层尚未把离线/CDC 任务接入新 Connector，也没有 JDBC Sink，不能宣称实际跨库同步已恢复。
+**当前分支状态**：旧 Business execution 已移除，Data Sync 的前端、Controller、Service、DAO、Flyway 保留。YakFlow 已具备 Core/Runtime 和独立 JDBC Source Connector；产品层尚未把离线/CDC 任务接入新 Connector。JDBC Sink 已支持单表 INSERT 批量写入和原生 UPSERT，但产品运行入口、多表 Changelog 和跨数据库端到端验收尚未完成，不能宣称跨库同步已恢复。
 
 Datasource 管资源与连接，Data Sync 管同步任务和运行语义，YakFlow 管执行机制。Platform 提供身份、工作空间和用户偏好。能力边界不等同于页面菜单或 Maven 模块数量。
 
@@ -57,9 +57,9 @@ Provides asynchronous SourceReader mechanics and a synchronous Sink batch founda
 
 ### `yak-flow/yak-flow-connector-jdbc`
 
-JDBC Source owns the vendor dialects, metadata-based split planning, bounded table scans, asynchronous reader I/O, immutable split/checkpoint codecs and consumed-key cursors. One Source manages a collection of TableIds; Core TableRecord carries physical table identity without product/DAO coupling. This module depends on Core and Connector Base, not Runtime (except test scope). Full JDBC Sink and product wiring are not implemented.
+JDBC Source owns the vendor dialects, metadata-based split planning, bounded table scans, asynchronous reader I/O, immutable split/checkpoint codecs and consumed-key cursors. One Source manages a collection of TableIds; Core TableRecord carries physical table identity without product/DAO coupling. This module depends on Core and Connector Base, not Runtime (except test scope). JDBC Sink provides single-table APPEND / native UPSERT for INSERT records using Connector Base mailbox batching. JdbcOutputFormat owns the JDBC connection and transaction; its buffered statement executor owns the only retained row batch. Flush commits synchronously without automatic retry; cancel signals statement interruption without committing, and close rolls back uncommitted data. This is at-least-once only. Multi-table Changelog / DELETE, committers, XA and product wiring are not implemented.
 
-The JDBC Connector owns SQL dialects, native type mappings, generated target DDL, and the read-only JDBC Catalog API. Public Catalog/Dialect/Converter contracts and abstract implementations live in database/catalog and database/dialect; vendor specifics live in database/internal/{catalog,dialect,convert}. The existing Datasource JDBC Catalog and its product callers are deliberately retained until a later adapter migration; they are not part of the new engine architecture. The product TargetTablePlanner uses Connector dialects without coupling execution to product DTOs. The old yak-flow-api module and Datasource dialect package have been removed. JDBC Sink, Data Sync product execution wiring, and MySQL CDC Connector are not yet implemented.
+The JDBC Connector owns SQL dialects, native type mappings, generated target DDL, and the read-only JDBC Catalog API. Public Catalog/Dialect/Converter contracts and abstract implementations live in database/catalog and database/dialect; vendor specifics live in database/internal/{catalog,dialect,convert}. The existing Datasource JDBC Catalog and its product callers are deliberately retained until a later adapter migration; they are not part of the new engine architecture. The product TargetTablePlanner uses Connector dialects without coupling execution to product DTOs. The old yak-flow-api module and Datasource dialect package have been removed. Multi-table JDBC Sink Changelog delivery, Data Sync product execution wiring, and the MySQL CDC Connector are not yet implemented.
 
 ### `yak-ops-business`
 
