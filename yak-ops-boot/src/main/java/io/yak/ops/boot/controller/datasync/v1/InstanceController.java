@@ -11,18 +11,18 @@ import io.yak.ops.common.bean.vo.datasync.DataSyncSourceTraceVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTableAttemptVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTracePageVO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTraceSummaryVO;
-import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.constant.CommonConstants;
+import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import jakarta.annotation.Resource;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.GetMapping;
-import java.util.List;
-import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.Valid;
+import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -104,5 +104,4 @@ public class InstanceController {
     public Result<DataSyncInstanceVO> cancelInstance(@PathVariable("id") String id) {
         return Result.success(service.cancelInstance(id));
     }
-
 }

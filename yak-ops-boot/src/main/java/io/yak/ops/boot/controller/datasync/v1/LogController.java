@@ -7,8 +7,8 @@ import io.yak.ops.common.bean.vo.datasync.DataSyncExecutionEventVO;
 import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.result.Result;
 import jakarta.annotation.Resource;
-import org.springframework.web.bind.annotation.GetMapping;
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,5 +32,4 @@ public class LogController {
     public Result<List<DataSyncExecutionEventVO>> executionLogs(@PathVariable("id") String id) {
         return Result.success(service.queryExecutionEvents(id));
     }
-
 }

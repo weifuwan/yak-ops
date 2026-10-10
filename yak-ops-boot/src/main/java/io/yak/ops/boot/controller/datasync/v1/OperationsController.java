@@ -5,12 +5,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.business.datasync.DataSyncOperationsService;
 import io.yak.ops.common.bean.dto.datasync.DataSyncTaskQueryDTO;
 import io.yak.ops.common.bean.vo.datasync.DataSyncTaskOperationVO;
-import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.constant.CommonConstants;
+import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import jakarta.annotation.Resource;
-import org.springframework.web.bind.annotation.PostMapping;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,5 +34,4 @@ public class OperationsController {
     public Result<PagingData<DataSyncTaskOperationVO>> taskOperationPage(@Valid @RequestBody DataSyncTaskQueryDTO dto) {
         return Result.success(service.queryTaskOperationPage(dto));
     }
-
 }
