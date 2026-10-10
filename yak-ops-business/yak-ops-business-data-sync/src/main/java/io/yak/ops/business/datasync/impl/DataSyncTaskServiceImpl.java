@@ -442,7 +442,7 @@ public class DataSyncTaskServiceImpl implements DataSyncTaskService {
     }
 
     private DataSyncTaskVO toTaskListVO(DataSyncTaskEntity source, DataSyncScheduleEntity schedule) {
-        DataSyncTaskVO target = toTaskVO(source, false);
+        DataSyncTaskVO target = toTaskVO(source);
         if (schedule != null) {
             target.setScheduleCronExpression(schedule.getCronExpression());
             target.setScheduleTimeZone(schedule.getTimeZone());
