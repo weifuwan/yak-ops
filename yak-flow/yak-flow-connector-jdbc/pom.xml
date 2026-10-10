@@ -12,7 +12,7 @@
 
     <artifactId>yak-flow-connector-jdbc</artifactId>
     <name>YakFlow JDBC Connector</name>
-    <description>Bounded JDBC Source and single-table JDBC Sink for YakFlow</description>
+    <description>Bounded multi-table JDBC Source and Changelog JDBC Sink for YakFlow</description>
 
     <dependencies>
         <dependency>
