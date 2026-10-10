@@ -1,0 +1,110 @@
+name: MySQL CDC Runtime Cross-Database Acceptance
+
+on:
+  # Explicit engine E2E only. Do not add three database services to every pull request.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cdc-to-jdbc:
+    name: MySQL CDC to ${{ matrix.target }} Sink IT
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [mysql, postgres, oracle]
+    env:
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Start disposable MySQL source with ROW Binlog
+        run: |
+          docker run -d --name yak-cdc-rt-mysql \
+            -e MYSQL_ROOT_PASSWORD=rootpass -e MYSQL_DATABASE=yak_cdc_it \
+            -p 3306:3306 mysql:8.0 \
+            --server-id=5560 --log-bin=mysql-bin --binlog-format=ROW --binlog-row-image=FULL
+          for attempt in $(seq 1 90); do
+            if docker exec yak-cdc-rt-mysql mysqladmin ping --host=127.0.0.1 --user=root --password=rootpass --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs yak-cdc-rt-mysql
+          exit 1
+
+      - name: Start disposable JDBC target
+        run: |
+          case "$TARGET" in
+            mysql)
+              exit 0
+              ;;
+            postgres)
+              docker run -d --name yak-cdc-rt-postgres \
+                -e POSTGRES_DB=yak_cdc_it -e POSTGRES_USER=yak -e POSTGRES_PASSWORD=yakpass \
+                -p 5432:5432 postgres:16
+              for attempt in $(seq 1 90); do
+                if docker exec yak-cdc-rt-postgres pg_isready -U yak -d yak_cdc_it; then
+                  exit 0
+                fi
+                sleep 2
+              done
+              docker logs yak-cdc-rt-postgres
+              exit 1
+              ;;
+            oracle)
+              docker run -d --name yak-cdc-rt-oracle \
+                -e ORACLE_PASSWORD=oraclepass -e APP_USER=YAK_IT -e APP_USER_PASSWORD=yakpass \
+                -p 1521:1521 gvenzl/oracle-free:23-slim-faststart
+              for attempt in $(seq 1 120); do
+                if docker exec yak-cdc-rt-oracle healthcheck.sh; then
+                  exit 0
+                fi
+                sleep 5
+              done
+              docker logs yak-cdc-rt-oracle
+              exit 1
+              ;;
+          esac
+
+      - name: Verify Hybrid CDC, multi-table UPSERT and durable restore
+        shell: bash
+        run: |
+          case "$TARGET" in
+            mysql)
+              TARGET_URL='jdbc:mysql://127.0.0.1:3306/yak_cdc_it?useSSL=false&allowPublicKeyRetrieval=true'
+              TARGET_USER=root
+              TARGET_PASSWORD=rootpass
+              ;;
+            postgres)
+              TARGET_URL='jdbc:postgresql://127.0.0.1:5432/yak_cdc_it'
+              TARGET_USER=yak
+              TARGET_PASSWORD=yakpass
+              ;;
+            oracle)
+              TARGET_URL='jdbc:oracle:thin:@//127.0.0.1:1521/FREEPDB1'
+              TARGET_USER=YAK_IT
+              TARGET_PASSWORD=yakpass
+              ;;
+          esac
+          bash mvnw -B -ntp -pl yak-flow/yak-flow-connector-cdc-mysql -am \
+            -Dtest=MySqlCdcRuntimePlanTest,MySqlCdcRuntimeCrossDatabaseIT \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dmysql.cdc.runtime.it.enabled=true -Dmysql.cdc.it.password=rootpass \
+            "-Djdbc.it.target.url=$TARGET_URL" "-Djdbc.it.target.user=$TARGET_USER" \
+            "-Djdbc.it.target.password=$TARGET_PASSWORD" test
+
+      - name: Database logs on failure
+        if: failure()
+        run: |
+          docker logs yak-cdc-rt-mysql || true
+          if [ "$TARGET" = "postgres" ]; then docker logs yak-cdc-rt-postgres || true; fi
+          if [ "$TARGET" = "oracle" ]; then docker logs yak-cdc-rt-oracle || true; fi
