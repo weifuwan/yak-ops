@@ -9,8 +9,7 @@ import java.util.Objects;
  * <p>An assigned split is checkpointed by its Reader and Runtime assignment tracker,
  * not duplicated into the enumerator state.
  */
-public record MySqlPendingSplitsState(
-        String sourceFingerprint, boolean splitAssigned, MySqlBinlogSplit pendingSplit) {
+public record MySqlPendingSplitsState(String sourceFingerprint, boolean splitAssigned, MySqlBinlogSplit pendingSplit) {
 
     public MySqlPendingSplitsState {
         Objects.requireNonNull(sourceFingerprint, "sourceFingerprint");

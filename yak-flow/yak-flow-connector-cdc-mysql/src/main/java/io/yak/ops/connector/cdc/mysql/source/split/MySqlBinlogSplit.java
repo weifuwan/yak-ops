@@ -25,7 +25,8 @@ public final class MySqlBinlogSplit implements SourceSplit {
             throw new IllegalArgumentException("MySQL source fingerprint must not be blank");
         }
         this.offset = offset;
-        this.schemaHistory = Objects.requireNonNull(schemaHistory, "schemaHistory").clone();
+        this.schemaHistory =
+                Objects.requireNonNull(schemaHistory, "schemaHistory").clone();
     }
 
     @Override

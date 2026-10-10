@@ -54,7 +54,7 @@ public final class MySqlDebeziumRecordConverter {
         }
         BinlogOffset progress = new BinlogOffset(asMap(partition), asMap(offset));
         Object value = source.value();
-        if (value == null || source.topic() != null && source.topic().startsWith("__debezium-heartbeat")) {
+        if (value == null || (source.topic() != null && source.topic().startsWith("__debezium-heartbeat"))) {
             return new BinlogEvent(List.of(), progress);
         }
         if (!(value instanceof Struct envelope)) {
@@ -78,16 +78,14 @@ public final class MySqlDebeziumRecordConverter {
         }
         List<TableRecord> rows = new ArrayList<>(2);
         switch (operation) {
-            case "c", "r" -> rows.add(new TableRecord(
-                    table, RowKind.INSERT, convertRow(envelope.getStruct("after"), schema)));
+            case "c", "r" ->
+                rows.add(new TableRecord(table, RowKind.INSERT, convertRow(envelope.getStruct("after"), schema)));
             case "u" -> {
-                rows.add(new TableRecord(
-                        table, RowKind.UPDATE_BEFORE, convertRow(envelope.getStruct("before"), schema)));
-                rows.add(new TableRecord(
-                        table, RowKind.UPDATE_AFTER, convertRow(envelope.getStruct("after"), schema)));
+                rows.add(new TableRecord(table, RowKind.UPDATE_BEFORE, convertRow(envelope.getStruct("before"), schema)));
+                rows.add(new TableRecord(table, RowKind.UPDATE_AFTER, convertRow(envelope.getStruct("after"), schema)));
             }
-            case "d" -> rows.add(new TableRecord(
-                    table, RowKind.DELETE, convertRow(envelope.getStruct("before"), schema)));
+            case "d" ->
+                rows.add(new TableRecord(table, RowKind.DELETE, convertRow(envelope.getStruct("before"), schema)));
             default -> throw new IllegalArgumentException("Unsupported Debezium MySQL row operation");
         }
         return new BinlogEvent(rows, progress);
@@ -162,7 +160,8 @@ public final class MySqlDebeziumRecordConverter {
                 case TIMESTAMP_WITH_TIME_ZONE -> OffsetDateTime.parse(value.toString());
             };
         } catch (ClassCastException | ArithmeticException exception) {
-            throw new IllegalArgumentException("Invalid MySQL CDC value for logical type " + type.getTypeRoot(), exception);
+            throw new IllegalArgumentException(
+                    "Invalid MySQL CDC value for logical type " + type.getTypeRoot(), exception);
         }
     }
 
@@ -210,14 +209,15 @@ public final class MySqlDebeziumRecordConverter {
         }
         long position = ((Number) value).longValue();
         if ("io.debezium.time.MicroTimestamp".equals(schemaName)) {
-            return LocalDateTime.ofInstant(Instant.ofEpochSecond(
-                    Math.floorDiv(position, 1_000_000),
-                    Math.floorMod(position, 1_000_000) * 1000), ZoneOffset.UTC);
+            return LocalDateTime.ofInstant(
+                    Instant.ofEpochSecond(
+                            Math.floorDiv(position, 1_000_000), Math.floorMod(position, 1_000_000) * 1000),
+                    ZoneOffset.UTC);
         }
         if ("io.debezium.time.NanoTimestamp".equals(schemaName)) {
-            return LocalDateTime.ofInstant(Instant.ofEpochSecond(
-                    Math.floorDiv(position, 1_000_000_000),
-                    Math.floorMod(position, 1_000_000_000)), ZoneOffset.UTC);
+            return LocalDateTime.ofInstant(
+                    Instant.ofEpochSecond(Math.floorDiv(position, 1_000_000_000), Math.floorMod(position, 1_000_000_000)),
+                    ZoneOffset.UTC);
         }
         if ("io.debezium.time.Timestamp".equals(schemaName)) {
             return LocalDateTime.ofInstant(Instant.ofEpochMilli(position), ZoneOffset.UTC);

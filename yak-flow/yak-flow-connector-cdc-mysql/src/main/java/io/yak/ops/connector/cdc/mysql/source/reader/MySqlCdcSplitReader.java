@@ -49,8 +49,7 @@ public final class MySqlCdcSplitReader implements SplitReader<BinlogEvent, MySql
             throw new IllegalStateException("MySQL Binlog reader has no live split");
         }
         BinlogEvent item = engine.poll();
-        return new RecordsBySplits<>(
-                item == null ? Map.of() : Map.of(MySqlBinlogSplit.ID, List.of(item)), Set.of());
+        return new RecordsBySplits<>(item == null ? Map.of() : Map.of(MySqlBinlogSplit.ID, List.of(item)), Set.of());
     }
 
     @Override
