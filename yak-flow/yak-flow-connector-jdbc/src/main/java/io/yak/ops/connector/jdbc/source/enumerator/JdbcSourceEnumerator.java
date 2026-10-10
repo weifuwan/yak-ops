@@ -14,11 +14,12 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Discovers one table at a time and assigns its splits to requesting readers.
+ * Coordinates asynchronous per-table split planning and assignment to registered source readers.
  *
- * <p>Expensive metadata/statistics queries run through the coordinator's asynchronous discovery
- * facility. A completed checkpoint records the next unplanned table and the unassigned splits;
- * splits already owned by readers remain in their reader/coordinator checkpoint state.
+ * <p>JDBC metadata and statistics are queried through the coordinator's asynchronous facility,
+ * not on its event loop. Checkpoints retain the next unplanned table and still-unassigned
+ * splits; assigned work is tracked by the Runtime/Reader checkpoint state. Assignments are
+ * acknowledged by the Runtime, not by the JDBC enumerator itself.
  */
 public final class JdbcSourceEnumerator implements SplitEnumerator<JdbcSourceSplit, JdbcEnumeratorState> {
 
@@ -86,6 +87,12 @@ public final class JdbcSourceEnumerator implements SplitEnumerator<JdbcSourceSpl
         signalCompletion();
     }
 
+    /**
+     * Requeues uncompleted splits for future assignment before no-more-splits is announced.
+     *
+     * <p>Returns from a previously finished reader are rejected rather than being silently
+     * lost after final completion signals.
+     */
     @Override
     public void addSplitsBack(List<JdbcSourceSplit> splits, int subtaskId) {
         if (closed) {
@@ -104,6 +111,12 @@ public final class JdbcSourceEnumerator implements SplitEnumerator<JdbcSourceSpl
         drainRequests();
     }
 
+    /**
+     * Snapshots the enumerator's planning cursor and unassigned splits on its event loop.
+     *
+     * <p>Reader-owned cursors and in-flight assignments are checkpointed separately by the
+     * Runtime; this method must not treat a delivery ACK as completed record consumption.
+     */
     @Override
     public JdbcEnumeratorState snapshotState(long checkpointId) {
         if (checkpointId < 0 || closed) {

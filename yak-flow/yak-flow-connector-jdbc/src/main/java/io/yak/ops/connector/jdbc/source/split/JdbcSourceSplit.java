@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * One independently assignable JDBC table-range query and its last emitted integer primary key.
+ * Identifies one bounded JDBC split, its frozen projection, and its optional emitted-key cursor.
  *
- * <p>A null split column means full-table replay on recovery; no result-set row offset is trusted.
- * Bounds are inclusive and disjoint between sibling splits. The table identity and column order
- * are frozen so a Reader does not depend on later Catalog changes.
+ * <p>Sibling numeric ranges have inclusive, nonoverlapping bounds. A missing split column means
+ * full-table replay rather than relying on unstable ResultSet offsets. The assigned table identity
+ * and projection remain fixed across serialization and checkpoint restoration.
  */
 public record JdbcSourceSplit(
         String splitId,
@@ -64,6 +64,13 @@ public record JdbcSourceSplit(
         return readColumns(columns, splitColumn);
     }
 
+    /**
+     * Adds a missing split-key column to the physical query without changing the emitted projection.
+     *
+     * @param projectedColumns ordered columns exposed to downstream RowData
+     * @param splitColumn optional key needed for checkpoint progress
+     * @return physical read columns, with an extra key only when necessary
+     */
     public static List<String> readColumns(List<String> projectedColumns, String splitColumn) {
         if (splitColumn == null || projectedColumns.contains(splitColumn)) {
             return projectedColumns;

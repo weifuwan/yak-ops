@@ -11,7 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Versioned, credential-free codec for JDBC split transfer and checkpoint state. */
+/**
+ * Serializes immutable JDBC split definitions for reader assignment and durable checkpoints.
+ *
+ * <p>Versioned bytes retain projected fields, inclusive range bounds, emitted-key cursor,
+ * table identity and schema fingerprint, but never embed connection credentials.
+ */
 public final class JdbcSourceSplitSerializer implements SimpleVersionedSerializer<JdbcSourceSplit> {
 
     private static final int VERSION = 2;

@@ -34,10 +34,14 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Bounded JDBC source for one or many database tables, using one shared split enumerator.
+ * Defines a bounded JDBC source for one or more tables using a shared split enumerator.
  *
- * <p>The source definition never opens or retains an active JDBC connection. A table may yield
- * multiple disjoint numeric-primary-key splits; a single table follows the same path as many.
+ * <p>Source definitions are reusable and never retain a JDBC connection. A coordinator
+ * discovers tables and numeric-key splits; independently owned fetchers perform blocking
+ * JDBC reads, while mailbox-side readers advance checkpoint positions after emission.
+ *
+ * <p>A supported numeric primary key permits per-split cursor recovery. Other tables replay
+ * an entire split, and concurrent source-table changes are not a globally consistent snapshot.
  */
 public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, JdbcEnumeratorState> {
 
@@ -79,6 +83,19 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
         this(connectionProvider, jdbcUrl, tables, configuration, Map.of());
     }
 
+    /**
+     * Creates a source with a caller-provided connection strategy and per-table projections.
+     *
+     * <p>Table IDs must be unique; projection columns must be nonempty and unique per table.
+     * Configuration is copied, and the source definition is fingerprinted for checkpoint
+     * compatibility without opening a connection.
+     *
+     * @param connectionProvider source of independent enumerator and fetcher connections
+     * @param jdbcUrl vendor URL used to resolve a JDBC dialect
+     * @param tables nonempty, ordered source-table IDs
+     * @param configuration effective source planning and reader options
+     * @param projections optional ordered columns per source table
+     */
     public JdbcSource(
             JdbcConnectionProvider connectionProvider,
             String jdbcUrl,
@@ -121,6 +138,12 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
         return newEnumerator(context, null);
     }
 
+    /**
+     * Restores split planning only when the saved source definition fingerprint still matches.
+     *
+     * <p>Incompatible tables, projections, or split policy are rejected before a reader starts;
+     * the resumed coordinator restores only unassigned work from its own snapshot.
+     */
     @Override
     public SplitEnumerator<JdbcSourceSplit, JdbcEnumeratorState> restoreEnumerator(
             SplitEnumeratorContext<JdbcSourceSplit> context, JdbcEnumeratorState state) {

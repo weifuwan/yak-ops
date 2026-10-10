@@ -12,7 +12,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Versioned snapshot of table planning progress and unassigned JDBC splits. */
+/**
+ * Serializes the enumerator's unassigned work and next-table cursor with a fixed version.
+ *
+ * <p>The codec does not serialize active JDBC connections or replace Runtime tracking of
+ * splits already assigned to readers.
+ */
 public final class JdbcEnumeratorStateSerializer implements SimpleVersionedSerializer<JdbcEnumeratorState> {
 
     private static final int VERSION = 2;
