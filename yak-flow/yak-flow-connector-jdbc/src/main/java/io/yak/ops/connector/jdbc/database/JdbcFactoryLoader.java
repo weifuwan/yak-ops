@@ -20,10 +20,26 @@ public final class JdbcFactoryLoader {
 
     private JdbcFactoryLoader() {}
 
+    /**
+     * Resolves exactly one vendor dialect using the context class loader's SPI providers.
+     *
+     * @param jdbcUrl the target or source database URL
+     * @return a matching vendor dialect
+     * @throws IllegalStateException if discovery is missing, ambiguous, or broken
+     */
     public static JdbcDialect loadDialect(String jdbcUrl) {
         return loadDialect(jdbcUrl, contextClassLoader());
     }
 
+    /**
+     * Resolves the vendor dialect against a specified SPI class loader.
+     *
+     * <p>Supplier URLs are never included in error messages because they may contain credentials.
+     *
+     * @param jdbcUrl vendor JDBC URL
+     * @param classLoader loader providing JDBC factory implementations
+     * @return a unique matching dialect
+     */
     public static JdbcDialect loadDialect(String jdbcUrl, ClassLoader classLoader) {
         Objects.requireNonNull(classLoader, "classLoader");
         try {
@@ -35,7 +51,13 @@ public final class JdbcFactoryLoader {
         }
     }
 
-    /** Resolves a database-specific Catalog without creating a second SPI registry. */
+    /**
+     * Creates a vendor catalog using the same provider discovery as dialect selection.
+     *
+     * @param jdbcUrl the database vendor URL
+     * @param connections provider for catalog-owned metadata operations
+     * @return a read-only catalog for this database
+     */
     public static JdbcCatalog loadCatalog(String jdbcUrl, JdbcConnectionProvider connections) {
         return loadCatalog(jdbcUrl, connections, contextClassLoader());
     }

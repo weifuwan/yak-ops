@@ -15,13 +15,16 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Table-aware statement selection with input-order preservation.
+ * Selects vendor statements for multi-table changelog records while preserving input order.
  *
- * <p>Only the buffer owns detached rows. This executor temporarily references a
- * before-image during synchronous flush. Consecutive writes to one statement use a JDBC
- * driver batch; changing table or mutation kind executes the previous batch before adding
- * the next record. All statements share the OutputFormat's single transaction. This avoids
- * the reordering introduced by grouping independent table and key buffers.
+ * <p>The buffered executor is the sole owner of detached records. This executor tracks only
+ * a pending table identity during row admission and a temporary before-image reference during
+ * synchronous flush. Consecutive same-statement operations use one driver batch; changing the
+ * statement executes the preceding batch on the same JDBC transaction.
+ *
+ * <p>Matching-key UPDATE_BEFORE/UPDATE_AFTER pairs issue one UPSERT, whereas key changes
+ * issue DELETE(old) then UPSERT(new). A partial or interleaved pair fails instead of
+ * committing an unsafe half-update.
  */
 public final class TableChangelogStatementExecutor implements JdbcBatchStatementExecutor<TableRecord> {
 
@@ -58,9 +61,13 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
     /**
      * Validates adjacent UPDATE_BEFORE / UPDATE_AFTER events before entering the sole row buffer.
      *
-     * <p>Flink CDC carries both images in one event, while the current YakFlow TableRecord
-     * carries one RowKind. Until an atomic update contract exists, split updates must arrive
-     * consecutively on the same Sink subtask; malformed or interleaved pairs fail closed.
+     * <p>Flink CDC carries both images in one event, while YakFlow TableRecord carries one
+     * RowKind. Until an atomic update contract exists, split updates must arrive consecutively
+     * on the same Sink subtask; malformed or interleaved pairs fail closed.
+     *
+     * @param record source table ID, mutation kind and source-ordered row values
+     * @return a validated, detached target-ordered row for the sole batch buffer
+     * @throws IllegalArgumentException if the route is unknown or an UPDATE pair is malformed
      */
     public TableRecord snapshot(TableRecord record) {
         Objects.requireNonNull(record, "record");
@@ -82,12 +89,16 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
         return detached;
     }
 
-    /** Only complete UPDATE pairs may be committed by an automatic batch trigger. */
+    /** Allows automatic flush only after all admitted UPDATE_BEFORE records have after-images. */
     public boolean canAutomaticallyFlush() {
         return awaitingUpdateAfter == null;
     }
 
-    /** A checkpoint must not acknowledge a partial UPDATE_BEFORE/UPDATE_AFTER pair. */
+    /**
+     * Rejects checkpoint/end-of-input commits when an UPDATE_BEFORE has no after-image.
+     *
+     * @throws IllegalStateException if the admitted input ends in a partial UPDATE pair
+     */
     public void requireCompleteUpdate() {
         if (awaitingUpdateAfter != null) {
             throw new IllegalStateException("Cannot checkpoint or finish an incomplete JDBC UPDATE pair");

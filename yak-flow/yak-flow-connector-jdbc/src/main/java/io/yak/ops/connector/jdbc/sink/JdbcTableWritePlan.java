@@ -16,11 +16,12 @@ import java.util.Set;
 import java.util.stream.IntStream;
 
 /**
- * A resolved route from one source table to one target table.
+ * Defines an immutable source-to-target table mapping and its resolved JDBC write contract.
  *
- * <p>Source positions are ordered by target columns. Mapping and type validation happen
- * before the Writer opens a connection; neither JDBC nor the Runtime owns schema mapping.
- * A DELETE or UPDATE_BEFORE only needs non-null key fields in the source row.
+ * <p>Target column order determines positional SQL binding. Source positions select fields
+ * without implicit type coercion; logical type roots must match. UPDATE_BEFORE/DELETE carry
+ * only the target's key values, whereas INSERT/UPDATE_AFTER carry the full target schema.
+ * Planning and projection do not open JDBC connections.
  */
 public record JdbcTableWritePlan(
         TableId sourceTable,
@@ -83,6 +84,12 @@ public record JdbcTableWritePlan(
         }
     }
 
+    /**
+     * Selects parameterized INSERT or native UPSERT SQL using the target column order.
+     *
+     * @param dialect database-specific DML implementation
+     * @return SQL for this route's configured write mode
+     */
     public String sql(JdbcDialect dialect) {
         Objects.requireNonNull(dialect, "dialect");
         return switch (writeMode) {
@@ -94,8 +101,12 @@ public record JdbcTableWritePlan(
     /**
      * Compares the before-image key projection with the after-image target row.
      *
-     * <p>Rows are already detached by project(). Key comparisons do not use SQL string
-     * rendering and also support binary primary keys.
+     * <p>Rows are already detached by {@link #project(RowData, RowKind)}. Key comparisons
+     * do not use SQL string rendering and also support binary primary keys.
+     *
+     * @param beforeKeys key projection from the UPDATE_BEFORE row
+     * @param afterRow complete target-ordered UPDATE_AFTER row
+     * @return true if all primary-key components, including binary keys, are unchanged
      */
     public boolean hasSamePrimaryKey(RowData beforeKeys, RowData afterRow) {
         Objects.requireNonNull(beforeKeys, "beforeKeys");
@@ -130,8 +141,16 @@ public record JdbcTableWritePlan(
     }
 
     /**
-     * Detaches values when records enter the unique JDBC buffer. Key retractions use only
-     * the before-image's key fields, preserving primary-key changes.
+     * Copies and maps one source row before it enters the sole JDBC batch buffer.
+     *
+     * <p>DELETE/UPDATE_BEFORE emit only non-null primary keys. INSERT/UPDATE_AFTER project
+     * all target columns and reject null UPSERT keys. Caller-owned mutable byte arrays are
+     * detached through the internal RowData representation.
+     *
+     * @param row source-ordered row values
+     * @param kind the source event's mutation kind
+     * @return a detached target-ordered row or key projection
+     * @throws IllegalArgumentException if arity, key or write-mode constraints are violated
      */
     public RowData project(RowData row, RowKind kind) {
         Objects.requireNonNull(row, "row");

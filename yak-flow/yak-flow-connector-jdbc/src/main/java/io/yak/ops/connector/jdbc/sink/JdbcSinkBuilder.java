@@ -12,7 +12,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
-/** Builds a single-table or multi-table JDBC Sink without product-layer dependencies. */
+/**
+ * Collects one-table or multi-table JDBC Sink options without opening a database connection.
+ *
+ * <p>Single-table field setters and {@link #withTablePlans(List)} are mutually exclusive.
+ * A JDBC URL selects a vendor dialect through SPI unless a custom provider supplies one;
+ * all write routes are validated when {@link #build()} is called.
+ */
 public final class JdbcSinkBuilder {
 
     private JdbcConnectionOptions connectionOptions;
@@ -25,12 +31,23 @@ public final class JdbcSinkBuilder {
     private List<JdbcTableWritePlan> tablePlans;
     private BatchFlushPolicy batchPolicy = new BatchFlushPolicy(500, Duration.ZERO);
 
+    /**
+     * Uses DriverManager connections and resolves the dialect from the supplied JDBC URL.
+     *
+     * <p>This replaces any previously configured custom connection provider.
+     */
     public JdbcSinkBuilder withConnectionOptions(JdbcConnectionOptions options) {
         connectionOptions = Objects.requireNonNull(options, "options");
         connections = null;
         return this;
     }
 
+    /**
+     * Uses caller-supplied connections, such as an isolated driver or tunneled provider.
+     *
+     * <p>A custom provider requires an explicit {@link #withDialect(JdbcDialect)} selection
+     * because no JDBC URL is available for automatic vendor discovery.
+     */
     public JdbcSinkBuilder withConnectionProvider(JdbcConnectionProvider provider) {
         connections = Objects.requireNonNull(provider, "provider");
         connectionOptions = null;
@@ -63,7 +80,15 @@ public final class JdbcSinkBuilder {
         return this;
     }
 
-    /** Replaces the single-table configuration with resolved source-to-target routes. */
+    /**
+     * Sets an immutable collection of resolved source-to-target write routes.
+     *
+     * <p>Do not combine this option with the single-table setters. Every source and target
+     * table must occur exactly once, and each plan must describe matching logical types.
+     *
+     * @param plans nonempty collection of independent table routes
+     * @return this builder
+     */
     public JdbcSinkBuilder withTablePlans(List<JdbcTableWritePlan> plans) {
         tablePlans = List.copyOf(Objects.requireNonNull(plans, "plans"));
         if (tablePlans.isEmpty()) {
@@ -77,6 +102,12 @@ public final class JdbcSinkBuilder {
         return this;
     }
 
+    /**
+     * Validates the selected connection strategy, dialect and table routes without opening I/O.
+     *
+     * @return a reusable Sink definition; each task attempt opens its own Writer connection
+     * @throws IllegalArgumentException if multi-table and single-table settings conflict
+     */
     public JdbcSink build() {
         JdbcConnectionProvider provider = connections;
         if (provider == null) {
