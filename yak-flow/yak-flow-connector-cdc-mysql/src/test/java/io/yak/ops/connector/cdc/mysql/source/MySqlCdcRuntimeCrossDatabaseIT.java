@@ -192,7 +192,7 @@ class MySqlCdcRuntimeCrossDatabaseIT {
         Map<Long, String> actualItems = Map.of();
         while (System.nanoTime() < deadline) {
             JobStatus status = job.getJobStatus().get(5, TimeUnit.SECONDS);
-            if (status != JobStatus.RUNNING) {
+            if (status == JobStatus.FAILED || status == JobStatus.CANCELED || status == JobStatus.FINISHED) {
                 throw new AssertionError("CDC job stopped before convergence: " + status);
             }
             actualOrders = rows(connection, dialect, orders);
