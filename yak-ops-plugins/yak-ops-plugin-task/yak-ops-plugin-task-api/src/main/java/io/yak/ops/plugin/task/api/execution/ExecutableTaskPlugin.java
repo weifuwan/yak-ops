@@ -22,6 +22,5 @@ public interface ExecutableTaskPlugin extends TaskPlugin {
      * <p>Implementations must validate the persisted resource binding before any
      * external execution effect, and fail without launching on a mismatch.
      */
-    CompletionStage<TaskHandle> start(
-            TaskParameters parameters, TaskExecutionPlan plan, TaskExecutionContext context);
+    CompletionStage<TaskHandle> start(TaskParameters parameters, TaskExecutionPlan plan, TaskExecutionContext context);
 }
