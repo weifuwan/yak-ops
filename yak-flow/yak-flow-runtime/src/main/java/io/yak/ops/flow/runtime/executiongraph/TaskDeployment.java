@@ -149,6 +149,12 @@ final class TaskDeployment {
                         .loadLatest(FileCheckpointStore.graphSignature(
                                 jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM)))
                         .orElseThrow(() -> new IllegalStateException("状态目录没有可恢复的完整 Checkpoint"));
+                if (restoredCheckpoint.hasFinishedOperators()) {
+                    // PR3 provides the physical finished-on-restore control Tasks.
+                    // Ordinary Reader/Writer deployment would replay finished business work.
+                    throw new UnsupportedOperationException(
+                            "Checkpoint contains finished operators; Finished-on-Restore is not yet supported");
+                }
             }
         }
 
