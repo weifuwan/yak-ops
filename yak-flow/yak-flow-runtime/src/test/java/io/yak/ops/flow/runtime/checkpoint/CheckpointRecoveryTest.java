@@ -249,7 +249,11 @@ class CheckpointRecoveryTest {
         try {
             assertTrue(sink.checkpointFlushEntered.await(5, TimeUnit.SECONDS));
             source.releaseBoundedInput();
-            awaitSourceFinished(job);
+            assertTrue(source.boundedReadersFinished.await(5, TimeUnit.SECONDS));
+            assertEquals(ExecutionState.RUNNING,
+                    job.getExecutionGraph().getJobVertices().getFirst()
+                            .getTaskVertex(0).getCurrentExecutionAttempt().getState(),
+                    "Source waits for downstream EndOfData acknowledgment before physical completion");
         } finally {
             sink.releaseCheckpoint.countDown();
         }
@@ -287,18 +291,6 @@ class CheckpointRecoveryTest {
         }
         assertEquals(expected, client.getExecutionGraph().getJobVertices().getFirst()
                 .getTaskVertex(0).getCurrentExecutionAttempt().getAttemptNumber());
-    }
-
-    private static void awaitSourceFinished(EmbeddedJobClient client) throws Exception {
-        var sourceTasks = client.getExecutionGraph().getJobVertices().getFirst().getTaskVertices();
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (sourceTasks.stream().anyMatch(task -> task.getCurrentExecutionAttempt().getState()
-                        != ExecutionState.FINISHED)
-                && System.nanoTime() < deadline) {
-            Thread.sleep(10);
-        }
-        assertTrue(sourceTasks.stream()
-                .allMatch(task -> task.getCurrentExecutionAttempt().getState() == ExecutionState.FINISHED));
     }
 
     @Test
@@ -564,6 +556,8 @@ class CheckpointRecoveryTest {
         private volatile int limit;
         private volatile boolean bounded;
         private volatile boolean finishAllowed;
+        private final java.util.concurrent.CountDownLatch boundedReadersFinished =
+                new java.util.concurrent.CountDownLatch(2);
         private final boolean failSerialization;
         private final boolean failAfterCheckpoint;
         private final boolean failBeforeCheckpoint;
@@ -578,6 +572,8 @@ class CheckpointRecoveryTest {
         private final java.util.concurrent.atomic.AtomicBoolean failEnumeratorCompletion =
                 new java.util.concurrent.atomic.AtomicBoolean();
         private final java.util.concurrent.atomic.AtomicBoolean sendEventOnCompletion =
+                new java.util.concurrent.atomic.AtomicBoolean();
+        private final java.util.concurrent.atomic.AtomicBoolean failSourceEventDelivery =
                 new java.util.concurrent.atomic.AtomicBoolean();
         private final java.util.concurrent.CountDownLatch completionNotificationEntered =
                 new java.util.concurrent.CountDownLatch(1);
@@ -614,6 +610,7 @@ class CheckpointRecoveryTest {
 
         private void sendEventOnNextCheckpoint() {
             sendEventOnCompletion.set(true);
+            failSourceEventDelivery.set(true);
         }
 
         private void enableBoundedInput() {
@@ -725,6 +722,7 @@ class CheckpointRecoveryTest {
                         return InputStatus.MORE_AVAILABLE;
                     }
                     if (bounded && noMoreSplits && finishAllowed) {
+                        boundedReadersFinished.countDown();
                         return InputStatus.END_OF_INPUT;
                     }
                     if (idle.isDone()) {
@@ -752,6 +750,13 @@ class CheckpointRecoveryTest {
                 public void notifyNoMoreSplits() {
                     noMoreSplits = true;
                     idle.complete(null);
+                }
+
+                @Override
+                public void handleSourceEvents(SourceEvent event) {
+                    if (event instanceof CheckpointSourceEvent && failSourceEventDelivery.get()) {
+                        throw new IllegalStateException("Injected SourceEvent delivery failure after EndOfData");
+                    }
                 }
 
                 @Override
