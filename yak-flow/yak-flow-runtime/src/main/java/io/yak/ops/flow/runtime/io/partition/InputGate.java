@@ -24,6 +24,8 @@ public final class InputGate<T> {
     private final Condition spaceAvailable = lock.newCondition();
     private final List<ResultSubpartition<T>> subpartitions;
     private final boolean[] producerFinished;
+    private final boolean[] producerEndOfData;
+    private final boolean[] consumedEndOfData;
     private final boolean[] barrierBlocked;
     // Producer-side ordering fence: after a barrier is enqueued, post-barrier records must
     // not fill the *shared* capacity needed by other producers' pre-barrier records.
@@ -39,6 +41,7 @@ public final class InputGate<T> {
     private int queuedRecords;
     private int processingRecords;
     private int remainingProducers;
+    private int remainingDataProducers;
     private int nextInput;
     private Throwable failure;
     private CompletableFuture<Void> available = new CompletableFuture<>();
@@ -50,9 +53,12 @@ public final class InputGate<T> {
         }
         this.capacity = capacity;
         this.producerFinished = new boolean[producerCount];
+        this.producerEndOfData = new boolean[producerCount];
+        this.consumedEndOfData = new boolean[producerCount];
         this.barrierBlocked = new boolean[producerCount];
         this.producerBarriers = new long[producerCount];
         this.remainingProducers = producerCount;
+        this.remainingDataProducers = producerCount;
         // The producer ResultPartition owns each subpartition and registers it before Task start.
         List<ResultSubpartition<T>> channels = new ArrayList<>(producerCount);
         for (int i = 0; i < producerCount; i++) {
@@ -86,8 +92,8 @@ public final class InputGate<T> {
         lock.lockInterruptibly();
         try {
             checkFailure();
-            if (producerFinished[producer]) {
-                throw new IllegalStateException("Producer has already finished: " + producer);
+            if (producerFinished[producer] || producerEndOfData[producer]) {
+                throw new IllegalStateException("Producer has already ended data: " + producer);
             }
             while (queuedRecords == capacity || producerBarriers[producer] > lastAlignedCheckpointId) {
                 spaceAvailable.await();
@@ -119,8 +125,8 @@ public final class InputGate<T> {
             if (failure != null) {
                 throw new IllegalStateException("InputGate already failed", failure);
             }
-            if (producerFinished[producer]) {
-                throw new IllegalStateException("Producer has already finished: " + producer);
+            if (producerFinished[producer] || producerEndOfData[producer]) {
+                throw new IllegalStateException("Producer has already ended data: " + producer);
             }
             long id = barrier.checkpointId();
             if (id <= lastAlignedCheckpointId) {
@@ -147,6 +153,27 @@ public final class InputGate<T> {
             }
             subpartition.elements.addLast(barrier);
             available.complete(null);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /** The ordered EndOfData event is acknowledged only by the consuming Task. */
+    CompletableFuture<Void> enqueueEndOfData(ResultSubpartition<T> subpartition) {
+        int producer = validateSubpartition(subpartition);
+        lock.lock();
+        try {
+            if (failure != null) {
+                throw new IllegalStateException("InputGate already failed", failure);
+            }
+            if (producerFinished[producer] || producerEndOfData[producer]) {
+                throw new IllegalStateException("Producer has already ended data: " + producer);
+            }
+            producerEndOfData[producer] = true;
+            EndOfData event = new EndOfData();
+            subpartition.elements.addLast(event);
+            available.complete(null);
+            return event.acknowledgment();
         } finally {
             lock.unlock();
         }
@@ -182,6 +209,9 @@ public final class InputGate<T> {
     public interface BarrierHandler {
         void onBarrier(long checkpointId) throws Exception;
 
+        /** Called once after every channel's final data record has been consumed. */
+        default void onEndOfData() throws Exception {}
+
         /** Checkpoint-only failure: the input task must keep processing regular data. */
         default void onCheckpointDeclined(long checkpointId) throws Exception {
             throw new UnsupportedOperationException("Checkpoint decline handler is missing");
@@ -212,10 +242,12 @@ public final class InputGate<T> {
         Objects.requireNonNull(output, "output");
         Objects.requireNonNull(barrierHandler, "barrierHandler");
         T record = null;
+        EndOfData endOfData = null;
         long completedBarrier = -1;
         long declinedBarrier = -1;
         boolean processing = false;
         boolean partialBarrier = false;
+        boolean allDataConsumed = false;
         lock.lock();
         try {
             checkFailure();
@@ -257,6 +289,15 @@ public final class InputGate<T> {
                     } else {
                         partialBarrier = true;
                     }
+                } else if (item instanceof EndOfData terminal) {
+                    if (consumedEndOfData[channel]) {
+                        throw new IllegalStateException("Duplicate EndOfData on channel: " + channel);
+                    }
+                    endOfData = terminal;
+                    consumedEndOfData[channel] = true;
+                    allDataConsumed = --remainingDataProducers == 0;
+                    processingRecords++;
+                    processing = true;
                 } else {
                     record = ((RecordElement<T>) item).value();
                     queuedRecords--;
@@ -291,11 +332,19 @@ public final class InputGate<T> {
                 barrierHandler.onCheckpointDeclined(declinedBarrier);
             } else if (completedBarrier > 0) {
                 barrierHandler.onBarrier(completedBarrier);
+            } else if (endOfData != null) {
+                if (allDataConsumed) {
+                    barrierHandler.onEndOfData();
+                }
+                endOfData.acknowledge();
             } else if (record != null) {
                 output.collect(record);
             }
             return InputStatus.MORE_AVAILABLE;
         } catch (Exception | Error error) {
+            if (endOfData != null) {
+                endOfData.fail(error);
+            }
             abort(error);
             throw error;
         } finally {
@@ -410,6 +459,15 @@ public final class InputGate<T> {
         try {
             if (failure == null) {
                 failure = cause;
+                for (ResultSubpartition<T> subpartition : subpartitions) {
+                    if (subpartition != null) {
+                        for (Object event : subpartition.elements) {
+                            if (event instanceof EndOfData endOfData) {
+                                endOfData.fail(cause);
+                            }
+                        }
+                    }
+                }
                 available.completeExceptionally(cause);
                 drained.completeExceptionally(cause);
                 spaceAvailable.signalAll();
