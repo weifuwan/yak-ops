@@ -41,7 +41,8 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
         Path root = Path.of(stateDirectory).toAbsolutePath().normalize();
         Files.createDirectories(root);
         root = root.toRealPath();
-        channel = FileChannel.open(root.resolve(".embedded-owner.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        channel = FileChannel.open(
+                root.resolve(".embedded-owner.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
         FileLock acquired = channel.tryLock();
         if (acquired == null) {
             channel.close();
@@ -62,16 +63,26 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
                             "INSERT INTO yak_ops_task_execution_owner"
                                     + " (id, host_id, state_root, owner_incarnation, last_seen_time, create_time, update_time)"
                                     + " VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            "embedded", host, directory, incarnation, now, now, now);
+                            "embedded",
+                            host,
+                            directory,
+                            incarnation,
+                            now,
+                            now,
+                            now);
                 } else {
                     Map<String, Object> previous = owners.getFirst();
                     if (!host.equals(previous.get("host_id")) || !directory.equals(previous.get("state_root"))) {
-                        throw new IllegalStateException("Embedded execution owner belongs to another host or state root");
+                        throw new IllegalStateException(
+                                "Embedded execution owner belongs to another host or state root");
                     }
                     jdbc.update(
                             "UPDATE yak_ops_task_execution_owner SET owner_incarnation = ?, last_seen_time = ?,"
                                     + " update_time = ? WHERE id = ?",
-                            incarnation, now, now, "embedded");
+                            incarnation,
+                            now,
+                            now,
+                            "embedded");
                 }
                 return null;
             });

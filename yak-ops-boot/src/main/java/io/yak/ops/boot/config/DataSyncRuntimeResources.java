@@ -42,8 +42,7 @@ public class DataSyncRuntimeResources implements SyncRuntimeResources {
                 choose(binding.connection.database(), database),
                 choose(binding.connection.schema(), schema),
                 Objects.requireNonNull(table, "table"));
-        try (JdbcCatalog catalog =
-                JdbcCatalogFactory.create(binding.connection.jdbcUrl(), provider(binding))) {
+        try (JdbcCatalog catalog = JdbcCatalogFactory.create(binding.connection.jdbcUrl(), provider(binding))) {
             return new SyncRuntimeTable(
                     binding.entity.getDbType(), selected, catalog.getTable(selected), binding.entity.getRevision());
         } catch (SQLException exception) {
