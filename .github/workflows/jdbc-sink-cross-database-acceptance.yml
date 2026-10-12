@@ -1,7 +1,10 @@
 name: JDBC Sink Cross-Database Acceptance
 
 on:
-  # Manual per-branch acceptance or reusable formal Release Gate; never run on ordinary PRs.
+  # Run real database acceptance only for explicit acceptance-test changes or manual release gates.
+  pull_request:
+    paths:
+      - 'yak-flow/yak-flow-connector-jdbc/src/test/java/io/yak/ops/connector/jdbc/sink/JdbcSinkCrossDatabaseIT.java'
   workflow_call:
   workflow_dispatch:
 
