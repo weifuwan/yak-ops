@@ -403,7 +403,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
 
     private boolean anySourceFinished() {
         return sourceTasks.stream()
-                .anyMatch(task -> task.hasReachedEndOfData() || task.completionFuture().isDone());
+                .anyMatch(task ->
+                        task.hasReachedEndOfData() || task.completionFuture().isDone());
     }
 
     private void ensureActive() {
