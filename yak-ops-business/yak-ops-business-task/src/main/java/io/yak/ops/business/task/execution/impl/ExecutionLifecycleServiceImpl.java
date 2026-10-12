@@ -2,6 +2,7 @@ package io.yak.ops.business.task.execution.impl;
 
 import io.yak.ops.business.task.execution.DispatchTicket;
 import io.yak.ops.business.task.execution.ExecutionLifecycleService;
+import io.yak.ops.business.task.execution.PendingRun;
 import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.task.TaskAttemptStatus;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
@@ -157,6 +158,16 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
         return instances.page(workspaceId, pageNo, pageSize);
+    }
+
+    @Override
+    public List<PendingRun> pendingRuns() {
+        return attempts.pending().stream()
+                .filter(attempt -> instances.findById(attempt.getWorkspaceId(), attempt.getInstanceId())
+                        .map(instance -> instance.getStatus() == TaskInstanceStatus.SUBMITTED)
+                        .orElse(false))
+                .map(attempt -> new PendingRun(attempt.getWorkspaceId(), attempt.getInstanceId()))
+                .toList();
     }
 
     @Override

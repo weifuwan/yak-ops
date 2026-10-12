@@ -83,6 +83,13 @@ public interface ExecutionLifecycleService {
      */
     PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize);
 
+    /**
+     * Returns committed but unclaimed submissions that can be safely dispatched after startup.
+     *
+     * @return Workspace-scoped identities of runnable PENDING Instances
+     */
+    List<PendingRun> pendingRuns();
+
     /** @param currentOwner current embedded JVM incarnation that has obtained the OS process lock */
     void reconcilePrevious(String currentOwner);
 }

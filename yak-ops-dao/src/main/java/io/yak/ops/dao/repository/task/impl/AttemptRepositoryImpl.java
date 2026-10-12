@@ -113,6 +113,13 @@ public class AttemptRepositoryImpl implements AttemptRepository {
     }
 
     @Override
+    public List<AttemptEntity> pending() {
+        return mapper.selectList(Wrappers.<AttemptEntity>lambdaQuery()
+                .eq(AttemptEntity::getStatus, TaskAttemptStatus.PENDING)
+                .orderByAsc(AttemptEntity::getCreateTime));
+    }
+
+    @Override
     public List<AttemptEntity> activeByOtherOwner(String ownerIncarnation) {
         return mapper.selectList(Wrappers.<AttemptEntity>lambdaQuery()
                 .in(AttemptEntity::getStatus, TaskAttemptStatus.LAUNCHING, TaskAttemptStatus.RUNNING)

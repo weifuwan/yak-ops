@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.yak.ops.business.task.execution.DispatchTicket;
+import io.yak.ops.business.task.execution.PendingRun;
 import io.yak.ops.common.enums.task.TaskAttemptStatus;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.dao.entity.task.AttemptEntity;
@@ -76,6 +77,15 @@ class ExecutionLifecycleServiceTest {
         service.complete(ticket(), TaskOutcome.FINISHED);
 
         verify(claims).releaseOwned("ws", "i");
+    }
+
+    @Test
+    void pendingSubmissionRemainsRecoverableAfterHttpResponseIsLost() {
+        when(attempts.pending()).thenReturn(List.of(attempt(TaskAttemptStatus.PENDING)));
+        when(instances.findById("ws", "i")).thenReturn(Optional.of(instance(TaskInstanceStatus.SUBMITTED)));
+
+        assertEquals(List.of(new PendingRun("ws", "i")), service.pendingRuns());
+        verify(attempts, never()).claimPending("ws", "a", "owner-1", "token-1");
     }
 
     @Test

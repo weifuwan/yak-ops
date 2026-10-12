@@ -71,6 +71,16 @@ public interface AttemptRepository {
             String workspaceId, String attemptId, String dispatchToken, TaskAttemptStatus status, String reason);
 
     /**
+     * Returns all unclaimed physical submissions eligible for safe dispatch recovery.
+     *
+     * <p>A PENDING Attempt cannot have launched a Job because its durable LAUNCHING
+     * claim is the sole gateway to physical execution.
+     *
+     * @return unclaimed Attempts across Workspaces for the trusted embedded owner
+     */
+    List<AttemptEntity> pending();
+
+    /**
      * @param ownerIncarnation previous owner's incarnation
      * @return physical executions that can no longer be observed by the current JVM
      */

@@ -57,6 +57,9 @@ public class TaskDispatcher implements AutoCloseable {
     @PostConstruct
     void reconcile() {
         lifecycle.reconcilePrevious(owner.incarnation());
+        for (var pending : lifecycle.pendingRuns()) {
+            dispatch(pending.workspaceId(), pending.instanceId());
+        }
     }
 
     /**
