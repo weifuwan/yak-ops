@@ -20,7 +20,6 @@ import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -122,7 +121,7 @@ public class TaskDispatcher implements AutoCloseable {
                 return;
             }
             if (lifecycle.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
-                lifecycle.uncertain(ticket);
+                lifecycle.complete(ticket, TaskOutcome.CANCELED);
                 return;
             }
             DispatchTicket launched = ticket;
@@ -141,7 +140,7 @@ public class TaskDispatcher implements AutoCloseable {
                 active.put(instanceId, handle);
                 try {
                     TaskRuntimeReference reference = handle.runtimeReference()
-                            .orElse(new TaskRuntimeReference(ticket.taskType(), ticket.attemptId()));
+                            .orElse(new TaskRuntimeReference(launched.taskType(), launched.attemptId()));
                     lifecycle.started(launched, reference);
                     if (lifecycle.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
                         handle.cancel();

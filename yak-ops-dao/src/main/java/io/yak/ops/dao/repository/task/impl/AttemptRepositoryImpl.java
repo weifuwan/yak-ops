@@ -40,7 +40,10 @@ public class AttemptRepositoryImpl implements AttemptRepository {
 
     @Override
     public boolean claimPending(String workspaceId, String attemptId, String ownerIncarnation, String dispatchToken) {
-        if (ownerIncarnation == null || ownerIncarnation.isBlank() || dispatchToken == null || dispatchToken.isBlank()) {
+        if (ownerIncarnation == null
+                || ownerIncarnation.isBlank()
+                || dispatchToken == null
+                || dispatchToken.isBlank()) {
             throw new IllegalArgumentException("Dispatcher identity is required");
         }
         return mapper.update(
@@ -70,7 +73,8 @@ public class AttemptRepositoryImpl implements AttemptRepository {
     }
 
     @Override
-    public boolean markRunning(String workspaceId, String attemptId, String dispatchToken, String engine, String runtimeId) {
+    public boolean markRunning(
+            String workspaceId, String attemptId, String dispatchToken, String engine, String runtimeId) {
         return mapper.update(
                         null,
                         Wrappers.<AttemptEntity>lambdaUpdate()
@@ -89,7 +93,8 @@ public class AttemptRepositoryImpl implements AttemptRepository {
     @Override
     public boolean markTerminal(
             String workspaceId, String attemptId, String dispatchToken, TaskAttemptStatus status, String reason) {
-        if (status != TaskAttemptStatus.FINISHED && status != TaskAttemptStatus.FAILED
+        if (status != TaskAttemptStatus.FINISHED
+                && status != TaskAttemptStatus.FAILED
                 && status != TaskAttemptStatus.CANCELED) {
             throw new IllegalArgumentException("Terminal Task Attempt status is required");
         }

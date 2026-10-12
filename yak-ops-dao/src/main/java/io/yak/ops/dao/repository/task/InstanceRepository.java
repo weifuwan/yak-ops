@@ -1,8 +1,8 @@
 package io.yak.ops.dao.repository.task;
 
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
-import io.yak.ops.common.page.PageData;
 import io.yak.ops.common.enums.task.TaskTriggerType;
+import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import java.util.List;
 import java.util.Optional;
