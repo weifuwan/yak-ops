@@ -4,6 +4,7 @@ import io.yak.ops.flow.runtime.checkpoint.CheckpointBarrier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Producer-side result partition owned by one upstream StreamTask.
@@ -16,6 +17,7 @@ public final class ResultPartition<T> {
 
     private final int producerIndex;
     private final List<ResultSubpartition<T>> subpartitions;
+    private boolean dataFinished;
     private boolean finished;
 
     public ResultPartition(int producerIndex, List<InputGate<T>> downstreamGates) {
@@ -51,8 +53,8 @@ public final class ResultPartition<T> {
 
     /** Write into exactly one target channel chosen by RecordWriterOutput's partitioner. */
     public void emitRecord(int channel, T record) throws Exception {
-        if (finished) {
-            throw new IllegalStateException("Cannot emit after result partition finished");
+        if (dataFinished || finished) {
+            throw new IllegalStateException("Cannot emit data after EndOfData or physical finish");
         }
         subpartitions.get(channel).emitRecord(record);
     }
@@ -68,7 +70,20 @@ public final class ResultPartition<T> {
         }
     }
 
-    /** Notify every downstream gate that this producer has no more records. */
+    /** Send logical end-of-data while keeping checkpoint-control channels open. */
+    public CompletableFuture<Void> endData() {
+        if (dataFinished || finished) {
+            throw new IllegalStateException("ResultPartition has already ended data or finished");
+        }
+        dataFinished = true;
+        List<CompletableFuture<Void>> acknowledgments = new ArrayList<>(subpartitions.size());
+        for (ResultSubpartition<T> subpartition : subpartitions) {
+            acknowledgments.add(subpartition.endData());
+        }
+        return CompletableFuture.allOf(acknowledgments.toArray(CompletableFuture[]::new));
+    }
+
+    /** Physically close all channels after the required EndOfData acknowledgments. */
     public void finish() {
         if (finished) {
             throw new IllegalStateException("ResultPartition finished twice");
