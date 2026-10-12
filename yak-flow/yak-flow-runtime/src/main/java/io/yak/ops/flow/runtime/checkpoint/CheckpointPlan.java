@@ -129,7 +129,8 @@ public final class CheckpointPlan {
         for (Map.Entry<String, Integer> count : finished.entrySet()) {
             if (!count.getValue().equals(total.get(count.getKey()))) {
                 throw new CheckpointDeclinedException(
-                        checkpointId, "Partially finished operator snapshot is not safely restorable: " + count.getKey());
+                        checkpointId,
+                        "Partially finished operator snapshot is not safely restorable: " + count.getKey());
             }
         }
         return Set.copyOf(finishedReports);
