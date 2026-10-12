@@ -90,6 +90,7 @@ public class TaskDispatcher implements AutoCloseable {
 
     private void launch(String workspaceId, String instanceId) {
         DispatchTicket ticket = null;
+        boolean physicalStartInvoked = false;
         try {
             String token = UUID.randomUUID().toString();
             ticket = lifecycle.claim(workspaceId, instanceId, owner.incarnation(), token);
@@ -125,6 +126,7 @@ public class TaskDispatcher implements AutoCloseable {
                 return;
             }
             DispatchTicket launched = ticket;
+            physicalStartInvoked = true;
             executable.start(parameters, plan, context).whenComplete((handle, error) -> {
                 if (error != null) {
                     Throwable cause = error instanceof java.util.concurrent.CompletionException
@@ -165,7 +167,11 @@ public class TaskDispatcher implements AutoCloseable {
             });
         } catch (RuntimeException failure) {
             if (ticket != null) {
-                lifecycle.uncertain(ticket);
+                if (physicalStartInvoked) {
+                    lifecycle.uncertain(ticket);
+                } else {
+                    lifecycle.complete(ticket, TaskOutcome.FAILED);
+                }
             }
             LOG.error("Task dispatch failed, instanceId={}, exceptionType={}",
                     instanceId, failure.getClass().getSimpleName());

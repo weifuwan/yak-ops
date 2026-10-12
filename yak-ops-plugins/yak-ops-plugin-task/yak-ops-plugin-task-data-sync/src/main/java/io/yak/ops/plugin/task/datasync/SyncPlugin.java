@@ -7,6 +7,7 @@ import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionContext;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionPlan;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.connector.jdbc.source.JdbcSource;
 import io.yak.ops.connector.jdbc.database.JdbcFactoryLoader;
 import io.yak.ops.connector.jdbc.sink.JdbcSink;
@@ -124,6 +125,7 @@ public final class SyncPlugin implements ExecutableTaskPlugin {
     @Override
     public CompletionStage<TaskHandle> start(
             TaskParameters parameters, TaskExecutionPlan plan, TaskExecutionContext context) {
+        boolean runtimeSubmissionInvoked = false;
         try {
             if (!(parameters instanceof SyncParameters pipeline) || !plan.equals(plan(parameters, context))) {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
@@ -188,8 +190,13 @@ public final class SyncPlugin implements ExecutableTaskPlugin {
             input.setUid("data-sync-source-" + context.definitionId());
             output.setUid("data-sync-sink-" + context.definitionId());
             StreamGraph graph = new StreamGraphGenerator(output, configuration).generate();
+            runtimeSubmissionInvoked = true;
             return executor.execute(graph, configuration).thenApply(client -> (TaskHandle) new SyncJobHandle(client));
         } catch (RuntimeException error) {
+            if (!runtimeSubmissionInvoked) {
+                return CompletableFuture.failedFuture(
+                        new TaskStartRejectedException("DATA_SYNC rejected before engine submission", error));
+            }
             return CompletableFuture.failedFuture(error);
         }
     }
