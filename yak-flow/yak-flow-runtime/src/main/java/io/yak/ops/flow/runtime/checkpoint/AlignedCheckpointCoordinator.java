@@ -198,6 +198,10 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     private void performCheckpoint(CompletableFuture<CheckpointSnapshot> published) throws Exception {
         ensureActive();
         long checkpointId = nextCheckpointId.incrementAndGet();
+        // Finished-operator checkpoint plans belong to Stage B's later implementation.
+        if (anySourceFinished()) {
+            throw new CheckpointDeclinedException(checkpointId, "Source already ended data");
+        }
         checkpointDeadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
         boolean coordinatorFrozen = false;
         List<SourceOperatorStreamTask<Object, SourceSplit>> paused = new ArrayList<>();
@@ -398,7 +402,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     }
 
     private boolean anySourceFinished() {
-        return sourceTasks.stream().anyMatch(task -> task.completionFuture().isDone());
+        return sourceTasks.stream()
+                .anyMatch(task -> task.hasReachedEndOfData() || task.completionFuture().isDone());
     }
 
     private void ensureActive() {
