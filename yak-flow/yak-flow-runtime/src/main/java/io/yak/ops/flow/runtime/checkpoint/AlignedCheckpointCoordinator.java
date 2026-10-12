@@ -150,9 +150,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         } catch (Throwable failure) {
             boolean checkpointPublished = published.isDone();
             published.completeExceptionally(failure);
-            if (!closed.get()
-                    && !cancelled.getAsBoolean()
-                    && (checkpointPublished || !isCheckpointDeclined(failure))) {
+            if (!closed.get() && !cancelled.getAsBoolean() && (checkpointPublished || !isCheckpointDeclined(failure))) {
                 onFailure.accept(failure);
             }
         }
@@ -233,10 +231,11 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                 }
             }
             Map<Integer, List<SourceSplit>> readerStates = new LinkedHashMap<>();
-            String sourceUid = jobGraph.getVertices().getFirst().getHeadOperator().getUid();
+            String sourceUid =
+                    jobGraph.getVertices().getFirst().getHeadOperator().getUid();
             for (SourceOperatorStreamTask<Object, SourceSplit> sourceTask : sourceTasks) {
-                CheckpointSnapshot.OperatorSubtask id =
-                        new CheckpointSnapshot.OperatorSubtask(sourceUid, sourceTask.taskInfo().subtaskIndex());
+                CheckpointSnapshot.OperatorSubtask id = new CheckpointSnapshot.OperatorSubtask(
+                        sourceUid, sourceTask.taskInfo().subtaskIndex());
                 if (!checkpointPlan.triggerTasks().contains(id)) {
                     continue;
                 }
@@ -443,7 +442,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         String sourceUid = jobGraph.getVertices().getFirst().getHeadOperator().getUid();
         for (SourceOperatorStreamTask<Object, SourceSplit> task : sourceTasks) {
             if (task.completionFuture().isDone() && !task.completionFuture().isCompletedExceptionally()) {
-                finished.add(new CheckpointSnapshot.OperatorSubtask(sourceUid, task.taskInfo().subtaskIndex()));
+                finished.add(new CheckpointSnapshot.OperatorSubtask(
+                        sourceUid, task.taskInfo().subtaskIndex()));
             }
         }
         for (OneInputStreamTask task : inputTasks) {
