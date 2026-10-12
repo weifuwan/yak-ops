@@ -212,6 +212,11 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
             if (pausedForCheckpoint) {
                 throw new IllegalStateException("Reader is already paused for checkpoint");
             }
+            if (hasReachedEndOfData()) {
+                // A completed Reader has no mutable business state to snapshot again.
+                recordWriter.broadcastBarrier(checkpointId);
+                return List.of();
+            }
             List<SplitT> state = operator.snapshotState(checkpointId);
             pausedForCheckpoint = true;
             resumeFuture = new CompletableFuture<>();
