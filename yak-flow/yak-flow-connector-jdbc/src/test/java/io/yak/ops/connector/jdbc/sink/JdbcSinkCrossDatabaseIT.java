@@ -1,19 +1,23 @@
 package io.yak.ops.connector.jdbc.sink;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.connector.base.sink.writer.BatchFlushPolicy;
 import io.yak.ops.connector.jdbc.sink.writer.JdbcWriter;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
+import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialectConverter;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
 import io.yak.ops.connector.jdbc.source.JdbcSource;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.api.common.TaskInfo;
+import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
+import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.data.GenericRowData;
 import io.yak.ops.core.data.RowKind;
@@ -23,12 +27,15 @@ import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
+import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -39,7 +46,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Cross-vendor JDBC acceptance against disposable source and target databases.
@@ -62,6 +72,139 @@ class JdbcSinkCrossDatabaseIT {
             return Long.MIN_VALUE;
         }
     };
+
+    @TempDir
+    Path checkpointDirectory;
+
+    @Test
+    void yoip1FinalCheckpointPersistsAndRestoresCompletedJdbcPipeline() throws Exception {
+        if (!Boolean.getBoolean("jdbc.it.allow-write")) {
+            throw new IllegalStateException("YOIP-1 database acceptance requires jdbc.it.allow-write=true");
+        }
+
+        JdbcConnectionOptions sourceOptions = connectionOptions("source");
+        JdbcConnectionOptions targetOptions = connectionOptions("target");
+        JdbcDialect sourceDialect = JdbcDialects.forUrl(sourceOptions.url());
+        JdbcDialect targetDialect = JdbcDialects.forUrl(targetOptions.url());
+        TableSchema schema = new TableSchema(
+                List.of(
+                        new Column("ID", LogicalTypes.decimal(18, 0).copy(false)),
+                        new Column("LABEL", LogicalTypes.varchar(48))),
+                List.of("ID"));
+
+        try (Connection sourceConnection = sourceOptions.openConnection();
+                Connection targetConnection = targetOptions.openConnection();
+                Statement sourceDdl = sourceConnection.createStatement();
+                Statement targetDdl = targetConnection.createStatement()) {
+            TableId sourceTable = tableId(sourceConnection, sourceOptions.url(), "YF_YOIP1_SRC");
+            TableId targetTable = tableId(targetConnection, targetOptions.url(), "YF_YOIP1_DST");
+            try {
+                sourceDdl.execute(sourceDialect.createTableSql(sourceTable, schema));
+                targetDdl.execute(targetDialect.createTableSql(targetTable, schema));
+                insertRows(sourceConnection, sourceDialect, schema, sourceTable, null,
+                        1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L);
+
+                AtomicBoolean restoring = new AtomicBoolean();
+                AtomicInteger openedSourceConnections = new AtomicInteger();
+                AtomicInteger createdWriters = new AtomicInteger();
+                AtomicInteger finalFlushes = new AtomicInteger();
+                JdbcConnectionProvider sourceConnections = () -> {
+                    if (restoring.get()) {
+                        throw new AssertionError("Finished-on-Restore must not open JDBC Source connections");
+                    }
+                    openedSourceConnections.incrementAndGet();
+                    return sourceOptions.openConnection();
+                };
+                Configuration configuration = new Configuration();
+                configuration.set(JdbcSourceOptions.TARGET_ROWS_PER_SPLIT, 3);
+                configuration.set(JdbcSourceOptions.MAX_SPLITS_PER_TABLE, 8);
+                configuration.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofHours(1));
+                configuration.set(CheckpointingOptions.CHECKPOINTING_TIMEOUT, Duration.ofMinutes(2));
+                configuration.set(CheckpointingOptions.STATE_DIRECTORY, checkpointDirectory.toString());
+                JdbcSource jdbcSource =
+                        new JdbcSource(sourceConnections, sourceOptions.url(), List.of(sourceTable), configuration);
+                JdbcSink jdbcSink = JdbcSink.builder()
+                        .withConnectionOptions(targetOptions)
+                        .withTablePlans(List.of(
+                                new JdbcTableWritePlan(sourceTable, targetTable, schema, JdbcWriteMode.UPSERT)))
+                        .withBatchFlushPolicy(new BatchFlushPolicy(64, Duration.ZERO))
+                        .build();
+                Sink<TableRecord> observedSink = context -> {
+                    if (restoring.get()) {
+                        throw new AssertionError("Finished-on-Restore must not create a JDBC SinkWriter");
+                    }
+                    createdWriters.incrementAndGet();
+                    JdbcWriter writer = jdbcSink.createWriter(context);
+                    return new SinkWriter<>() {
+                        @Override
+                        public void write(TableRecord record, Context metadata) throws Exception {
+                            writer.write(record, metadata);
+                        }
+
+                        @Override
+                        public void flush(boolean endOfInput) throws Exception {
+                            if (endOfInput) {
+                                finalFlushes.incrementAndGet();
+                            }
+                            writer.flush(endOfInput);
+                        }
+
+                        @Override
+                        public void close() throws Exception {
+                            writer.close();
+                        }
+                    };
+                };
+                SourceTransformation<TableRecord> sourceNode = new SourceTransformation<>(
+                        "yoip1-jdbc-source", jdbcSource, TableRecord.class, 2);
+                SinkTransformation<TableRecord> sinkNode = new SinkTransformation<>(
+                        sourceNode, "yoip1-jdbc-sink", observedSink, 1);
+                sourceNode.setUid("yoip1-jdbc-source");
+                sinkNode.setUid("yoip1-jdbc-sink");
+                StreamGraph graph = new StreamGraphGenerator(sinkNode, configuration).generate();
+
+                JobClient first = new EmbeddedPipelineExecutor()
+                        .execute(graph, configuration).get(30, TimeUnit.SECONDS);
+                first.getJobExecutionResult().get(120, TimeUnit.SECONDS);
+                assertEquals(JobStatus.FINISHED, first.getJobStatus().get(10, TimeUnit.SECONDS));
+                assertEquals(1, createdWriters.get());
+                assertEquals(1, finalFlushes.get());
+                assertTrue(openedSourceConnections.get() > 0);
+                Map<Long, List<String>> expected = new LinkedHashMap<>();
+                for (long key = 1; key <= 12; key++) {
+                    expected.put(key, List.of("row-" + key));
+                }
+                assertEquals(expected, rows(targetConnection, targetDialect, targetTable, false));
+
+                try (FileCheckpointStore store = new FileCheckpointStore(checkpointDirectory)) {
+                    CheckpointSnapshot published =
+                            store.loadLatest(FileCheckpointStore.graphSignature(graph)).orElseThrow();
+                    assertEquals(
+                            java.util.Set.of("yoip1-jdbc-source", "yoip1-jdbc-sink"),
+                            published.fullyFinishedOperators());
+                    assertTrue(published.finishedSubtasks().isEmpty());
+                }
+
+                // Data added after a completed terminal checkpoint must not be replayed on restore.
+                insertRows(sourceConnection, sourceDialect, schema, sourceTable, null, 99L);
+                restoring.set(true);
+                int priorConnections = openedSourceConnections.get();
+                Configuration recovery = new Configuration(configuration);
+                recovery.set(CheckpointingOptions.RESTORE_LATEST, true);
+                JobClient second = new EmbeddedPipelineExecutor()
+                        .execute(graph, recovery).get(30, TimeUnit.SECONDS);
+                second.getJobExecutionResult().get(120, TimeUnit.SECONDS);
+                assertEquals(JobStatus.FINISHED, second.getJobStatus().get(10, TimeUnit.SECONDS));
+                assertEquals(priorConnections, openedSourceConnections.get());
+                assertEquals(1, createdWriters.get());
+                assertEquals(1, finalFlushes.get());
+                assertEquals(expected, rows(targetConnection, targetDialect, targetTable, false));
+            } finally {
+                dropIfPresent(targetDdl, targetDialect, targetTable);
+                dropIfPresent(sourceDdl, sourceDialect, sourceTable);
+            }
+        }
+    }
 
     @Test
     void transfersMultipleTablesAndAppliesChangelogAcrossDatabaseVendors() throws Exception {
