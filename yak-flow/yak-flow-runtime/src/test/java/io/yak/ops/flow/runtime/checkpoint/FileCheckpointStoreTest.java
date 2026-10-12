@@ -21,10 +21,12 @@ import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -47,6 +49,9 @@ class FileCheckpointStoreTest {
             store.save(checkpoint);
             CheckpointSnapshot loaded = store.loadLatest(signature).orElseThrow();
             assertEquals(7, loaded.checkpointId());
+            assertTrue(loaded.fullyFinishedOperators().isEmpty());
+            assertTrue(loaded.finishedSubtasks().isEmpty());
+            assertEquals(1, ByteBuffer.wrap(Files.readAllBytes(folder.resolve("checkpoint.bin"))).getInt(4));
             assertEquals(2, loaded.enumeratorState().version());
             assertArrayEquals(new byte[] {3, 4, 5}, loaded.enumeratorState().bytes());
             loaded.enumeratorState().bytes()[0] = 99;
@@ -98,6 +103,9 @@ class FileCheckpointStoreTest {
         try (FileCheckpointStore store = new FileCheckpointStore(folder)) {
             store.save(complete);
             var recovered = store.loadLatest(signature).orElseThrow();
+            assertEquals(2, ByteBuffer.wrap(Files.readAllBytes(folder.resolve("checkpoint.bin"))).getInt(4));
+            assertTrue(recovered.fullyFinishedOperators().isEmpty());
+            assertTrue(recovered.finishedSubtasks().isEmpty());
             assertEquals(3, recovered.operatorStates().get(key).get("operator/count").version());
             assertArrayEquals(new byte[]{7, 9, 11},
                     recovered.operatorStates().get(key).get("operator/count").bytes());
@@ -106,6 +114,48 @@ class FileCheckpointStoreTest {
                     store.loadLatest(signature).orElseThrow().operatorStates()
                             .get(key).get("operator/count").bytes());
         }
+    }
+
+    @Test
+    void shouldPersistVersionThreeFinishedOperatorMarkersWithoutLosingActiveState() throws Exception {
+        String signature = FileCheckpointStore.graphSignature(graph(1));
+        var state = new CheckpointSnapshot.SerializedState(4, new byte[] {5, 6});
+        var active = new CheckpointSnapshot.OperatorSubtask("running-operator", 0);
+        var finished = new CheckpointSnapshot.OperatorSubtask("sink-stable-uid", 0);
+        var snapshot = new CheckpointSnapshot(
+                12,
+                signature,
+                state,
+                Map.of(),
+                Map.of(),
+                123456L,
+                Map.of(active, Map.of("operator/pending", state)),
+                Set.of("source-stable-uid"),
+                Set.of(finished));
+        try (FileCheckpointStore store = new FileCheckpointStore(folder)) {
+            store.save(snapshot);
+            assertEquals(3, ByteBuffer.wrap(Files.readAllBytes(folder.resolve("checkpoint.bin"))).getInt(4));
+            CheckpointSnapshot recovered = store.loadLatest(signature).orElseThrow();
+            assertEquals(Set.of("source-stable-uid"), recovered.fullyFinishedOperators());
+            assertEquals(Set.of(finished), recovered.finishedSubtasks());
+            assertEquals(4, recovered.operatorStates().get(active).get("operator/pending").version());
+        }
+    }
+
+    @Test
+    void shouldRejectFinishedMarkersConflictingWithLiveOperatorState() {
+        var state = new CheckpointSnapshot.SerializedState(1, new byte[] {1});
+        var subtask = new CheckpointSnapshot.OperatorSubtask("source-stable-uid", 0);
+        String signature = FileCheckpointStore.graphSignature(graph(1));
+        assertThrows(IllegalArgumentException.class,
+                () -> new CheckpointSnapshot(2, signature, state, Map.of(), Map.of(), 10L,
+                        Map.of(subtask, Map.of("count", state)), Set.of("source-stable-uid"), Set.of()));
+        assertThrows(IllegalArgumentException.class,
+                () -> new CheckpointSnapshot(2, signature, state, Map.of(), Map.of(), 10L,
+                        Map.of(subtask, Map.of("count", state)), Set.of(), Set.of(subtask)));
+        assertThrows(IllegalArgumentException.class,
+                () -> new CheckpointSnapshot(2, signature, state, Map.of(), Map.of(), 10L,
+                        Map.of(), Set.of("source-stable-uid"), Set.of(subtask)));
     }
 
     private static StreamGraph graph(int sourceParallelism) {
