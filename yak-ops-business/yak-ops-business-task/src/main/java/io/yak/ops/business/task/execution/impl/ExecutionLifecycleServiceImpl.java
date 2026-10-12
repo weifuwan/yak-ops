@@ -122,8 +122,7 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
             throw new IllegalStateException("Task Instance must have exactly one initial Attempt");
         }
         AttemptEntity attempt = list.getFirst();
-        if (attempt.getStatus() == TaskAttemptStatus.PENDING
-                && attempts.cancelPending(workspaceId, attempt.getId())) {
+        if (attempt.getStatus() == TaskAttemptStatus.PENDING && attempts.cancelPending(workspaceId, attempt.getId())) {
             if (!instances.markTerminal(workspaceId, instanceId, TaskInstanceStatus.CANCELED, null)) {
                 throw new IllegalStateException("Unable to complete pending cancellation");
             }
@@ -164,11 +163,13 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
     @Transactional(rollbackFor = Exception.class)
     public void reconcilePrevious(String currentOwner) {
         for (AttemptEntity attempt : attempts.activeByOtherOwner(currentOwner)) {
-            instances.findByIdForUpdate(attempt.getWorkspaceId(), attempt.getInstanceId()).ifPresent(instance -> {
-                if (!instance.getStatus().isTerminal()) {
-                    instances.markReconciling(instance.getWorkspaceId(), instance.getId());
-                }
-            });
+            instances
+                    .findByIdForUpdate(attempt.getWorkspaceId(), attempt.getInstanceId())
+                    .ifPresent(instance -> {
+                        if (!instance.getStatus().isTerminal()) {
+                            instances.markReconciling(instance.getWorkspaceId(), instance.getId());
+                        }
+                    });
         }
     }
 }
