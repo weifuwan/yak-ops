@@ -14,6 +14,9 @@ import io.yak.ops.plugin.task.api.TaskParameters;
 import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
+import io.yak.ops.core.execution.PipelineExecutor;
+import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
+import java.nio.file.Path;
 import io.yak.ops.plugin.task.api.validation.DataSourceInfo;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.source.JdbcSourceParameters;
@@ -25,17 +28,17 @@ import org.junit.jupiter.api.Test;
 /** Verifies stateless plugin discovery and independent local and physical validation boundaries. */
 class SyncPluginContractTest {
 
-    private final TaskPluginRegistry registry = new TaskPluginRegistry();
+    private final TaskPluginRegistry registry = new TaskPluginRegistry(List.of(plugin()));
 
     @Test
-    void discoversRegisteredPluginWithoutAnIntermediateFactory() {
+    void registersBootConstructedPluginWithOneRegistry() {
         assertTrue(registry.types().contains("DATA_SYNC"));
         assertInstanceOf(SyncPlugin.class, registry.get("DATA_SYNC"));
         assertEquals(2, registry.get("DATA_SYNC").parameterSchemaVersion());
         assertThrows(TaskPluginException.class, () -> registry.get("data-sync"));
         assertThrows(TaskPluginException.class, () -> registry.get("data_sync"));
         assertThrows(TaskPluginException.class, () -> registry.get("SQL"));
-        assertThrows(TaskPluginException.class, () -> new TaskPluginRegistry(List.of(new SyncPlugin(), new SyncPlugin())));
+        assertThrows(TaskPluginException.class, () -> new TaskPluginRegistry(List.of(plugin(), plugin())));
     }
 
     @Test
@@ -150,6 +153,22 @@ class SyncPluginContractTest {
         registered.validate(parameters, new Metadata());
         assertEquals(1, parses.get());
         assertEquals(1, validations.get());
+    }
+
+    private static SyncPlugin plugin() {
+        SyncRuntimeResources unsupported = new SyncRuntimeResources() {
+            @Override
+            public SyncRuntimeTable table(String workspace, String id, String database, String schema, String name) {
+                throw new UnsupportedOperationException("Physical resource access is disabled in definition tests");
+            }
+
+            @Override
+            public SyncRuntimeConnection connection(String workspace, String id) {
+                throw new UnsupportedOperationException("Physical resource access is disabled in definition tests");
+            }
+        };
+        PipelineExecutor executor = new EmbeddedPipelineExecutor();
+        return new SyncPlugin(unsupported, executor, Path.of("test-state"));
     }
 
     private TaskParameters parseAndValidate(String json, TaskValidationContext context) {
