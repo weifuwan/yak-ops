@@ -17,6 +17,7 @@ BASE = "http://127.0.0.1:18080"
 STATE_ROOT = Path("/tmp/yak-task-state")
 BOOT_LOG = Path("/tmp/yak-task-e2e-output.log")
 JAR = Path("yak-ops-boot/target/yak-ops-boot-1.2.0.jar")
+APP = None
 DB_PASSWORD = os.environ["E2E_DB_PASSWORD"]
 USER_PASSWORD = os.environ["E2E_USER_PASSWORD"]
 
@@ -82,10 +83,30 @@ def until(description, evaluate, accepted, timeout=120):
         except (OSError, urllib.error.URLError):
             pass
         time.sleep(1)
+    if "Task " in description and APP is not None and APP.poll() is None:
+        dump_threads(APP)
     raise AssertionError(f"{description} timed out; last={observed}")
 
 
+def dump_threads(app):
+    target = Path("/tmp/yak-task-e2e-threads.txt")
+    try:
+        subprocess.run(
+            ["jcmd", str(app.pid), "Thread.dump_to_file", "-overwrite",
+             "-format=text", str(target)],
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=20)
+        dump = target.read_text(encoding="utf-8")
+        for segment in dump.split("\\n\\n"):
+            if any(word in segment for word in (
+                    "yak-local-job", "yakflow", "source-coordinator", "SourceCoordinator",
+                    "StreamTask", "Debezium", "task-dispatch")):
+                print("THREAD_DUMP " + segment[:2400], flush=True)
+    except (OSError, subprocess.SubprocessError) as error:
+        print(f"Unable to capture JVM thread state: {error}", flush=True)
+
+
 def boot():
+    global APP
     environment = os.environ.copy()
     environment.update({
         "SERVER_PORT": "18080",
@@ -111,6 +132,7 @@ def boot():
         with urllib.request.urlopen(BASE + "/v3/api-docs", timeout=4) as response:
             return response.status
     until("Yak Ops readiness", ready, lambda status: status == 200, timeout=150)
+    APP = process
     return process
 
 
