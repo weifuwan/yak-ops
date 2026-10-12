@@ -12,10 +12,12 @@ import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -39,6 +41,7 @@ import java.util.function.Consumer;
  */
 public final class AlignedCheckpointCoordinator implements AutoCloseable {
 
+    private final JobGraph jobGraph;
     private final Source<?, SourceSplit, Object> source;
     private final SourceCoordinator<SourceSplit, Object> coordinator;
     private final List<SourceOperatorStreamTask<Object, SourceSplit>> sourceTasks;
@@ -66,7 +69,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             CheckpointSnapshot restored,
             BooleanSupplier cancelled,
             Consumer<Throwable> onFailure) {
-        Objects.requireNonNull(plan, "plan 不能为空");
+        this.jobGraph = Objects.requireNonNull(plan, "plan 不能为空");
         this.source = Objects.requireNonNull(source, "source 不能为空");
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
         this.sourceTasks = List.copyOf(sourceTasks);
@@ -96,7 +99,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         if (intervalMillis > 0) {
             timer.scheduleWithFixedDelay(
                     () -> {
-                        if (closed.get() || cancelled.getAsBoolean() || anySourceFinished()) {
+                        if (closed.get() || cancelled.getAsBoolean()) {
                             return;
                         }
                         runCheckpoint(new CompletableFuture<>());
@@ -149,7 +152,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             published.completeExceptionally(failure);
             if (!closed.get()
                     && !cancelled.getAsBoolean()
-                    && (checkpointPublished || (!isCheckpointDeclined(failure) && !anySourceFinished()))) {
+                    && (checkpointPublished || !isCheckpointDeclined(failure))) {
                 onFailure.accept(failure);
             }
         }
@@ -198,14 +201,11 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     private void performCheckpoint(CompletableFuture<CheckpointSnapshot> published) throws Exception {
         ensureActive();
         long checkpointId = nextCheckpointId.incrementAndGet();
-        // Finished-operator checkpoint plans belong to Stage B's later implementation.
-        if (anySourceFinished()) {
-            throw new CheckpointDeclinedException(checkpointId, "Source already ended data");
-        }
+        CheckpointPlan checkpointPlan = calculatePlan(checkpointId);
         checkpointDeadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
         boolean coordinatorFrozen = false;
         List<SourceOperatorStreamTask<Object, SourceSplit>> paused = new ArrayList<>();
-        Map<CheckpointSnapshot.OperatorSubtask, CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>>>
+        Map<CheckpointSnapshot.OperatorSubtask, CompletableFuture<OneInputStreamTask.CheckpointState>>
                 acknowledgements = new LinkedHashMap<>();
         boolean stored = false;
         Throwable originalFailure = null;
@@ -215,10 +215,13 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             await(coordinator.pauseForCheckpoint());
             coordinatorFrozen = true;
             waitForAssignments();
-            // Register all ACK futures before any Source can emit the first barrier.
+            // Register the running participants before injecting any trigger barrier.
             for (OneInputStreamTask task : inputTasks) {
                 CheckpointSnapshot.OperatorSubtask id = task.checkpointIdentity();
-                CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> acknowledgement =
+                if (!checkpointPlan.tasksToAcknowledge().contains(id)) {
+                    continue;
+                }
+                CompletableFuture<OneInputStreamTask.CheckpointState> acknowledgement =
                         task.expectCheckpoint(checkpointId);
                 acknowledgement.whenComplete((unused, error) -> {
                     if (error != null) {
@@ -230,9 +233,23 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                 }
             }
             Map<Integer, List<SourceSplit>> readerStates = new LinkedHashMap<>();
+            String sourceUid = jobGraph.getVertices().getFirst().getHeadOperator().getUid();
             for (SourceOperatorStreamTask<Object, SourceSplit> sourceTask : sourceTasks) {
+                CheckpointSnapshot.OperatorSubtask id = new CheckpointSnapshot.OperatorSubtask(
+                        sourceUid, sourceTask.taskInfo().subtaskIndex());
+                if (!checkpointPlan.triggerTasks().contains(id)) {
+                    continue;
+                }
                 ensureActive();
-                List<SourceSplit> splits = await(sourceTask.pauseAndEmitBarrier(checkpointId));
+                List<SourceSplit> splits;
+                try {
+                    splits = await(sourceTask.pauseAndEmitBarrier(checkpointId));
+                } catch (Exception error) {
+                    if (sourceTask.completionFuture().isDone()) {
+                        throw new CheckpointDeclinedException(checkpointId, "Source finished during checkpoint");
+                    }
+                    throw error;
+                }
                 paused.add(sourceTask);
                 readerStates.put(sourceTask.taskInfo().subtaskIndex(), splits);
             }
@@ -242,6 +259,11 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             // Split/Enumerator objects before either one is allowed to resume. Downstream barrier
             // alignment may take time and must never change the recorded source offset.
             CheckpointSnapshot frozenSource = serialize(checkpointId, sourceState, readerStates, Map.of());
+            for (OneInputStreamTask task : inputTasks) {
+                if (checkpointPlan.triggerTasks().contains(task.checkpointIdentity())) {
+                    await(task.triggerCheckpoint(checkpointId));
+                }
+            }
 
             // Barriers follow captured source offsets, but the gates can align concurrently
             // with new records on faster producer channels.
@@ -255,14 +277,19 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
 
             Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> operatorStates =
                     new LinkedHashMap<>();
+            Set<CheckpointSnapshot.OperatorSubtask> finishedReports = new HashSet<>();
             for (var entry : acknowledgements.entrySet()) {
                 ensureActive();
                 await(CompletableFuture.anyOf(entry.getValue(), firstFailedAcknowledgement));
-                Map<String, CheckpointSnapshot.SerializedState> state = await(entry.getValue());
-                if (!state.isEmpty()) {
-                    operatorStates.put(entry.getKey(), state);
+                OneInputStreamTask.CheckpointState state = await(entry.getValue());
+                if (state.finished()) {
+                    finishedReports.add(entry.getKey());
+                } else if (!state.operatorStates().isEmpty()) {
+                    operatorStates.put(entry.getKey(), state.operatorStates());
                 }
             }
+            Set<CheckpointSnapshot.OperatorSubtask> finishedSubtasks =
+                    checkpointPlan.finishedSubtasks(checkpointId, finishedReports, operatorStates);
             CheckpointSnapshot snapshot = new CheckpointSnapshot(
                     checkpointId,
                     graphSignature,
@@ -270,7 +297,15 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                     frozenSource.readerSplits(),
                     frozenSource.assignments(),
                     System.currentTimeMillis(),
-                    operatorStates);
+                    operatorStates,
+                    checkpointPlan.fullyFinishedOperators(),
+                    finishedSubtasks);
+            // A published Checkpoint must be recoverable. PR3 will install finished-on-restore
+            // before enabling publication of checkpoints containing finished-task markers.
+            if (snapshot.hasFinishedOperators()) {
+                throw new CheckpointDeclinedException(
+                        checkpointId, "Finished checkpoint restore is not implemented yet");
+            }
             storage.save(snapshot);
             stored = true;
             published.complete(snapshot);
@@ -279,7 +314,9 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             }
             await(coordinator.notifyCheckpointComplete(checkpointId));
             for (SourceOperatorStreamTask<Object, SourceSplit> sourceTask : sourceTasks) {
-                await(sourceTask.notifyCheckpointComplete(checkpointId));
+                if (!sourceTask.completionFuture().isDone()) {
+                    await(sourceTask.notifyCheckpointComplete(checkpointId));
+                }
             }
         } catch (Exception | Error failure) {
             originalFailure = failure;
@@ -401,10 +438,20 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         return false;
     }
 
-    private boolean anySourceFinished() {
-        return sourceTasks.stream()
-                .anyMatch(task ->
-                        task.hasReachedEndOfData() || task.completionFuture().isDone());
+    private CheckpointPlan calculatePlan(long checkpointId) throws CheckpointDeclinedException {
+        Set<CheckpointSnapshot.OperatorSubtask> finished = new HashSet<>();
+        String sourceUid = jobGraph.getVertices().getFirst().getHeadOperator().getUid();
+        for (SourceOperatorStreamTask<Object, SourceSplit> task : sourceTasks) {
+            if (task.completionFuture().isDone() && !task.completionFuture().isCompletedExceptionally()) {
+                finished.add(new CheckpointSnapshot.OperatorSubtask(sourceUid, task.taskInfo().subtaskIndex()));
+            }
+        }
+        for (OneInputStreamTask task : inputTasks) {
+            if (task.completionFuture().isDone() && !task.completionFuture().isCompletedExceptionally()) {
+                finished.add(task.checkpointIdentity());
+            }
+        }
+        return CheckpointPlan.calculate(checkpointId, jobGraph, finished);
     }
 
     private void ensureActive() {
