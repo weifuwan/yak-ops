@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -157,7 +158,7 @@ public class TaskDispatcher implements AutoCloseable {
                 return;
             }
             DispatchTicket launched = ticket;
-            java.util.concurrent.CompletionStage<TaskHandle> submitted;
+            CompletionStage<TaskHandle> submitted;
             synchronized (launchFence(instanceId)) {
                 if (lifecycle.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
                     lifecycle.complete(ticket, TaskOutcome.CANCELED);
@@ -168,37 +169,9 @@ public class TaskDispatcher implements AutoCloseable {
             }
             // Runtime completion may run on an interrupted YakFlow Job thread. Business
             // transactions must execute on a fresh thread to keep JDBC connections usable.
-            submitted.whenCompleteAsync((handle, error) -> {
-                if (error != null) {
-                    Throwable cause =
-                            error instanceof java.util.concurrent.CompletionException ? error.getCause() : error;
-                    if (cause instanceof TaskStartRejectedException) {
-                        lifecycle.complete(launched, TaskOutcome.FAILED);
-                    } else {
-                        lifecycle.uncertain(launched);
-                    }
-                    return;
-                }
-                active.put(instanceId, handle);
-                try {
-                    TaskRuntimeReference reference = handle.runtimeReference()
-                            .orElse(new TaskRuntimeReference(launched.taskType(), launched.attemptId()));
-                    lifecycle.started(launched, reference);
-                    if (lifecycle.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
-                        handle.cancel();
-                    }
-                    handle.completion().whenCompleteAsync((outcome, failure) -> {
-                        try {
-                            if (failure == null) {
-                                lifecycle.complete(launched, outcome);
-                            } else {
-                                lifecycle.uncertain(launched);
-                            }
-                        } finally {
-                            active.remove(instanceId, handle);
-                        }
-                    }, workers);
-                } catch (RuntimeException failure) {
+            submitted.whenCompleteAsync(
+                    (handle, error) -> observeSubmission(launched, handle, error), workers);
+        } catch (RuntimeException failure) {
                     lifecycle.uncertain(launched);
                     active.remove(instanceId, handle);
                     LOG.error(
@@ -219,6 +192,73 @@ public class TaskDispatcher implements AutoCloseable {
                     "Task dispatch failed, instanceId={}, exceptionType={}",
                     instanceId,
                     failure.getClass().getSimpleName());
+        }
+    }
+
+    private void observeSubmission(DispatchTicket ticket, TaskHandle handle, Throwable failure) {
+        if (failure != null) {
+            Throwable cause = failure;
+            if (cause instanceof java.util.concurrent.CompletionException && cause.getCause() != null) {
+                cause = cause.getCause();
+            }
+            try {
+                if (cause instanceof TaskStartRejectedException) {
+                    lifecycle.complete(ticket, TaskOutcome.FAILED);
+                } else {
+                    lifecycle.uncertain(ticket);
+                }
+            } catch (RuntimeException persistFailure) {
+                LOG.error(
+                        "Task submission result could not be persisted, instanceId={}, exceptionType={}",
+                        ticket.instanceId(),
+                        persistFailure.getClass().getSimpleName());
+            }
+            return;
+        }
+        String instanceId = ticket.instanceId();
+        active.put(instanceId, handle);
+        try {
+            TaskRuntimeReference reference = handle.runtimeReference()
+                    .orElse(new TaskRuntimeReference(ticket.taskType(), ticket.attemptId()));
+            lifecycle.started(ticket, reference);
+            if (lifecycle.instance(ticket.workspaceId(), instanceId).getStatus()
+                    == TaskInstanceStatus.CANCELLING) {
+                handle.cancel();
+            }
+            handle.completion().whenCompleteAsync(
+                    (outcome, error) -> observeTerminal(ticket, handle, outcome, error), workers);
+        } catch (RuntimeException observationFailure) {
+            lifecycle.uncertain(ticket);
+            active.remove(instanceId, handle);
+            LOG.error(
+                    "Unable to observe Task execution, instanceId={}, exceptionType={}",
+                    instanceId,
+                    observationFailure.getClass().getSimpleName());
+        }
+    }
+
+    private void observeTerminal(DispatchTicket ticket, TaskHandle handle, TaskOutcome outcome, Throwable failure) {
+        try {
+            if (failure == null && outcome != null) {
+                lifecycle.complete(ticket, outcome);
+            } else {
+                lifecycle.uncertain(ticket);
+            }
+        } catch (RuntimeException persistenceFailure) {
+            LOG.error(
+                    "Task terminal outcome persistence failed, instanceId={}, exceptionType={}",
+                    ticket.instanceId(),
+                    persistenceFailure.getClass().getSimpleName());
+            try {
+                lifecycle.uncertain(ticket);
+            } catch (RuntimeException reconciliationFailure) {
+                LOG.error(
+                        "Unable to protect uncertain Task execution, instanceId={}, exceptionType={}",
+                        ticket.instanceId(),
+                        reconciliationFailure.getClass().getSimpleName());
+            }
+        } finally {
+            active.remove(ticket.instanceId(), handle);
         }
     }
 
