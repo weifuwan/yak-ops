@@ -44,6 +44,7 @@ public final class InputGate<T> {
     private int remainingDataProducers;
     private int nextInput;
     private Throwable failure;
+    private EndOfData processingEndOfData;
     private CompletableFuture<Void> available = new CompletableFuture<>();
     private CompletableFuture<Void> drained = CompletableFuture.completedFuture(null);
 
@@ -294,6 +295,7 @@ public final class InputGate<T> {
                         throw new IllegalStateException("Duplicate EndOfData on channel: " + channel);
                     }
                     endOfData = terminal;
+                    processingEndOfData = terminal;
                     consumedEndOfData[channel] = true;
                     allDataConsumed = --remainingDataProducers == 0;
                     processingRecords++;
@@ -352,6 +354,9 @@ public final class InputGate<T> {
                 lock.lock();
                 try {
                     processingRecords--;
+                    if (endOfData != null) {
+                        processingEndOfData = null;
+                    }
                     if (queuedRecords == 0 && processingRecords == 0 && failure == null) {
                         drained.complete(null);
                     }
@@ -459,6 +464,9 @@ public final class InputGate<T> {
         try {
             if (failure == null) {
                 failure = cause;
+                if (processingEndOfData != null) {
+                    processingEndOfData.fail(cause);
+                }
                 for (ResultSubpartition<T> subpartition : subpartitions) {
                     if (subpartition != null) {
                         for (Object event : subpartition.elements) {
