@@ -1,0 +1,68 @@
+name: Task Execution Product Acceptance
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/task-execution-product-acceptance.yml'
+      - 'scripts/acceptance/task-execution-e2e.py'
+      - 'yak-ops-boot/**'
+      - 'yak-ops-business/yak-ops-business-task/**'
+      - 'yak-ops-dao/**'
+      - 'yak-ops-plugins/yak-ops-plugin-task/**'
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  product-e2e:
+    name: MySQL JDBC + CDC to PostgreSQL Product E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Start disposable MySQL
+        shell: bash
+        run: |
+          docker run -d --name yak-task-mysql \
+            -e MYSQL_ROOT_PASSWORD=localtestpass -e MYSQL_DATABASE=yak_security \
+            -p 3306:3306 mysql:8.0 \
+            --server-id=5577 --log-bin=mysql-bin --binlog-format=ROW --binlog-row-image=FULL
+          for attempt in $(seq 1 90); do
+            if docker exec yak-task-mysql mysqladmin ping --host=127.0.0.1 --user=root --password=localtestpass --silent; then exit 0; fi
+            sleep 2
+          done
+          docker logs yak-task-mysql
+          exit 1
+      - name: Start disposable PostgreSQL
+        shell: bash
+        run: |
+          docker run -d --name yak-task-postgres \
+            -e POSTGRES_DB=ods -e POSTGRES_USER=yak -e POSTGRES_PASSWORD=localtestpass \
+            -p 5432:5432 postgres:16
+          for attempt in $(seq 1 90); do
+            if docker exec yak-task-postgres pg_isready -U yak -d ods; then exit 0; fi
+            sleep 2
+          done
+          docker logs yak-task-postgres
+          exit 1
+      - name: Package Yak Ops executable
+        run: bash mvnw -B -ntp -pl yak-ops-boot -am -DskipTests package
+      - name: Exercise authenticated Task execution and reconciliation
+        env:
+          E2E_DB_PASSWORD: localtestpass
+          E2E_USER_PASSWORD: test-only-account-password
+        run: python3 scripts/acceptance/task-execution-e2e.py
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          tail -n 140 /tmp/yak-task-e2e-output.log || true
+          tail -n 140 /tmp/yak-task-e2e-application.log || true
+          docker logs --tail 65 yak-task-mysql || true
+          docker logs --tail 65 yak-task-postgres || true
