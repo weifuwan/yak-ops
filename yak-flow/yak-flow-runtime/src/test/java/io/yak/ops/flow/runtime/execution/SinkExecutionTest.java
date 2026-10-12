@@ -1,6 +1,7 @@
 package io.yak.ops.flow.runtime.execution;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -222,6 +223,78 @@ class SinkExecutionTest {
         assertEquals(List.of("head", "tail"), sink.rows);
         assertEquals(0, sink.finalFlushes.get());
         assertEquals(1, sink.closed.get());
+    }
+
+    @Test
+    void shouldKeepOneInputTaskAliveAfterLogicalEndUntilPhysicalInputAndOutputComplete() throws Exception {
+        SourceTransformation<String> source = new SourceTransformation<>(
+                "source", new SplitSource(), String.class, 2);
+        AtomicInteger finishes = new AtomicInteger();
+        OneInputTransformation<String, String> transform = new OneInputTransformation<>(
+                source, "middle", () -> new OneInputStreamOperator<>() {
+                    @Override
+                    public void processElement(String record, Collector<String> output) throws Exception {
+                        output.collect(record);
+                    }
+
+                    @Override
+                    public void finish(Collector<String> output) throws Exception {
+                        finishes.incrementAndGet();
+                        output.collect("tail");
+                    }
+                }, String.class, 1);
+        StreamNode node = StreamNode.fromTransformation(transform, 1);
+        InputGate<Object> input = new InputGate<>(8, 2);
+        ResultPartition<Object> first = new ResultPartition<>(0, List.of(input));
+        ResultPartition<Object> second = new ResultPartition<>(1, List.of(input));
+        InputGate<Object> downstream = new InputGate<>(8, 1);
+        RecordWriterOutput<Object> output = new RecordWriterOutput<>(
+                new StreamEdge(node.getId(), node.getId() + 1), 0, 1,
+                new ResultPartition<>(0, List.of(downstream)));
+        TaskEnvironment environment = new TaskEnvironment(
+                new RuntimeTaskInfo(JobID.generate(), node.getId(), 0, 1, 0, 128), configuration(1, 128));
+        OneInputStreamTask task = new OneInputStreamTask(node, environment, input, output);
+
+        try {
+            task.start().get(5, TimeUnit.SECONDS);
+            first.emitRecord(0, "first");
+            second.emitRecord(0, "second");
+            CompletableFuture<Void> firstEnd = first.endData();
+            CompletableFuture<Void> secondEnd = second.endData();
+            firstEnd.get(5, TimeUnit.SECONDS);
+            secondEnd.get(5, TimeUnit.SECONDS);
+
+            assertTrue(task.hasReachedEndOfData());
+            assertEquals(1, finishes.get());
+            assertFalse(task.completionFuture().isDone());
+            ExecutionException declined = assertThrows(
+                    ExecutionException.class, () -> task.expectCheckpoint(11).get(5, TimeUnit.SECONDS));
+            assertTrue(declined.getCause() instanceof CheckpointDeclinedException);
+
+            // Control events remain legal after EndOfData, but a finished Operator cannot snapshot.
+            first.broadcastBarrier(11);
+            second.broadcastBarrier(11);
+            first.finish();
+            second.finish();
+            assertFalse(task.completionFuture().isDone(), "Physical finish waits for downstream EndOfData ACK");
+
+            List<Object> rows = new java.util.ArrayList<>();
+            assertEquals(InputStatus.MORE_AVAILABLE, downstream.emitNext(rows::add));
+            assertEquals(InputStatus.MORE_AVAILABLE, downstream.emitNext(rows::add));
+            assertEquals(InputStatus.MORE_AVAILABLE, downstream.emitNext(rows::add));
+            assertEquals(InputStatus.MORE_AVAILABLE, downstream.emitNext(rows::add));
+            assertEquals(3, rows.size());
+            assertEquals("tail", rows.getLast());
+            assertTrue(rows.subList(0, 2).containsAll(List.of("first", "second")));
+
+            task.completionFuture().get(5, TimeUnit.SECONDS);
+            assertEquals(1, finishes.get());
+            assertEquals(InputStatus.END_OF_INPUT, downstream.emitNext(rows::add));
+        } finally {
+            if (!task.completionFuture().isDone()) {
+                task.cancelAsync().get(5, TimeUnit.SECONDS);
+            }
+        }
     }
 
     @Test
