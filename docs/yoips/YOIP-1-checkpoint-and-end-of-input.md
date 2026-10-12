@@ -1,12 +1,12 @@
 # YOIP-1: YakFlow Checkpoint and End-of-Input Semantics
 
-Status: Discussion
+Status: Accepted
 
 Discussion: https://github.com/weifuwan/yak-ops/pull/1577 (review fixes); https://github.com/weifuwan/yak-ops/pull/1576 (convergence); https://github.com/weifuwan/yak-ops/pull/1575 (initial)
 
-Decision: Pending
+Decision: [VOTE] Accepted — https://github.com/weifuwan/yak-ops/pull/1577#issuecomment-6117269913
 
-Implementation: N/A until accepted
+Implementation: Not started (Stage A and Stage B implementation PRs pending)
 
 Release: N/A until released
 
