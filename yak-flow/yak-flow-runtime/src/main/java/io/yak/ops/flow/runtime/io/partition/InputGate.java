@@ -99,8 +99,8 @@ public final class InputGate<T> {
             while (queuedRecords == capacity || producerBarriers[producer] > lastAlignedCheckpointId) {
                 spaceAvailable.await();
                 checkFailure();
-                if (producerFinished[producer]) {
-                    throw new IllegalStateException("Producer has already finished: " + producer);
+                if (producerFinished[producer] || producerEndOfData[producer]) {
+                    throw new IllegalStateException("Producer has already ended data: " + producer);
                 }
             }
             subpartition.elements.addLast(new RecordElement<>(record));
@@ -126,8 +126,8 @@ public final class InputGate<T> {
             if (failure != null) {
                 throw new IllegalStateException("InputGate already failed", failure);
             }
-            if (producerFinished[producer] || producerEndOfData[producer]) {
-                throw new IllegalStateException("Producer has already ended data: " + producer);
+            if (producerFinished[producer]) {
+                throw new IllegalStateException("Producer has already finished: " + producer);
             }
             long id = barrier.checkpointId();
             if (id <= lastAlignedCheckpointId) {
