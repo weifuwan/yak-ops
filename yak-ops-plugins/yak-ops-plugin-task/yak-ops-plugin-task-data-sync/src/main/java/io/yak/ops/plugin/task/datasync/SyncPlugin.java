@@ -173,8 +173,8 @@ public final class SyncPlugin implements ExecutableTaskPlugin {
                 throw new UnsupportedOperationException("Unsupported DATA_SYNC source");
             }
             JdbcWriteMode writeMode = JdbcWriteMode.valueOf(sink.writeMode().name());
-            JdbcTableWritePlan route = new JdbcTableWritePlan(
-                    from.table(), to.table(), to.schema(), writeMode, from.schema(), Map.of());
+            JdbcTableWritePlan route =
+                    new JdbcTableWritePlan(from.table(), to.table(), to.schema(), writeMode, from.schema(), Map.of());
             JdbcSink physicalSink = JdbcSink.builder()
                     .withConnectionProvider(targetConnection.provider())
                     .withDialect(JdbcFactoryLoader.loadDialect(targetConnection.jdbcUrl()))
@@ -182,8 +182,7 @@ public final class SyncPlugin implements ExecutableTaskPlugin {
                     .build();
             SourceTransformation<TableRecord> input =
                     new SourceTransformation<>("data-sync-source", physicalSource, TableRecord.class, 1);
-            SinkTransformation<TableRecord> output =
-                    new SinkTransformation<>(input, "data-sync-sink", physicalSink, 1);
+            SinkTransformation<TableRecord> output = new SinkTransformation<>(input, "data-sync-sink", physicalSink, 1);
             input.setUid("data-sync-source-" + context.definitionId());
             output.setUid("data-sync-sink-" + context.definitionId());
             StreamGraph graph = new StreamGraphGenerator(output, configuration).generate();
@@ -208,8 +207,7 @@ public final class SyncPlugin implements ExecutableTaskPlugin {
 
     private static String sha256(String value) {
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(value.getBytes(StandardCharsets.UTF_8));
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException error) {
             throw new IllegalStateException("SHA-256 is required", error);
