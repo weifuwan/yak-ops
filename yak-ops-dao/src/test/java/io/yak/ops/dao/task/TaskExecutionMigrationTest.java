@@ -24,5 +24,13 @@ class TaskExecutionMigrationTest {
         assertTrue(sql.contains("owner_incarnation VARCHAR(128)"));
         assertTrue(sql.contains("dispatch_token VARCHAR(128)"));
         assertTrue(sql.contains("yak_ops_task_execution_owner"));
+        int documented = 0;
+        for (String line : sql.split("\\R")) {
+            if (line.matches("\\s*[a-z][a-z0-9_]*\\s+(?:VARCHAR|INT|DATETIME).*")) {
+                assertTrue(line.contains(" COMMENT '"), "Missing column COMMENT: " + line);
+                documented++;
+            }
+        }
+        assertTrue(documented >= 50, "Expected execution columns to be documented");
     }
 }
