@@ -467,6 +467,35 @@ class CheckpointRecoveryTest {
     }
 
     @Test
+    void finishedOnRestoreMustSkipIntermediateOperatorFactories() throws Exception {
+        OffsetSource source = new OffsetSource(2);
+        source.enableBoundedInput();
+        CapturedSink sink = new CapturedSink();
+        AtomicInteger initialOperators = new AtomicInteger();
+        JobClient original = new EmbeddedPipelineExecutor()
+                .execute(graphWithCountingOperator(source, sink, initialOperators), configuration(false))
+                .get(5, TimeUnit.SECONDS);
+        awaitCount(sink.rows, 4);
+        source.releaseBoundedInput();
+        original.getJobExecutionResult().get(10, TimeUnit.SECONDS);
+        assertEquals(2, initialOperators.get());
+
+        OffsetSource restoredSource = new OffsetSource(100);
+        restoredSource.enableBoundedInput();
+        CapturedSink restoredSink = new CapturedSink();
+        AtomicInteger restoredOperators = new AtomicInteger();
+        JobClient restored = new EmbeddedPipelineExecutor()
+                .execute(graphWithCountingOperator(restoredSource, restoredSink, restoredOperators), configuration(true))
+                .get(5, TimeUnit.SECONDS);
+        restored.getJobExecutionResult().get(10, TimeUnit.SECONDS);
+        assertEquals(JobStatus.FINISHED, restored.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(0, restoredSource.createdReaders.get());
+        assertEquals(0, restoredOperators.get());
+        assertEquals(0, restoredSink.createdWriters.get());
+        assertTrue(restoredSink.rows.isEmpty());
+    }
+
+    @Test
     void publishedFinalCheckpointRecoversWithoutReplayingAmbiguousSinkOutput() throws Exception {
         OffsetSource source = new OffsetSource(2);
         source.enableBoundedInput();
@@ -587,6 +616,27 @@ class CheckpointRecoveryTest {
         input.setUid("checkpoint-stable-source");
         output.setUid("checkpoint-stable-sink");
         return new StreamGraphGenerator(output, new Configuration()).generate();
+    }
+
+    private static StreamGraph graphWithCountingOperator(
+            OffsetSource source, CapturedSink sink, AtomicInteger factoryCalls) {
+        SourceTransformation<String> input =
+                new SourceTransformation<>("source", source, String.class, 2);
+        OneInputTransformation<String, String> mapper = new OneInputTransformation<>(
+                input, "mapper", () -> {
+                    factoryCalls.incrementAndGet();
+                    return new OneInputStreamOperator<>() {
+                        @Override
+                        public void processElement(String value, Collector<String> output) throws Exception {
+                            output.collect(value);
+                        }
+                    };
+                }, String.class, 2);
+        SinkTransformation<String> target = new SinkTransformation<>(mapper, "sink", sink, 1);
+        input.setUid("checkpoint-stable-source");
+        mapper.setUid("checkpoint-stable-mapper");
+        target.setUid("checkpoint-stable-sink");
+        return new StreamGraphGenerator(target, new Configuration()).generate();
     }
 
     private static StreamGraph graphWithOperator(
