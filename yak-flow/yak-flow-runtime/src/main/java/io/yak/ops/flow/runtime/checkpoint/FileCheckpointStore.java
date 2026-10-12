@@ -131,8 +131,15 @@ public final class FileCheckpointStore implements AutoCloseable {
                 throw new IOException("Checkpoint 文件包含多余字节");
             }
             snapshot = new CheckpointSnapshot(
-                    checkpointId, signature, enumerator, readers, assignments, completedAt,
-                    operatorStates, fullyFinished, finishedSubtasks);
+                    checkpointId,
+                    signature,
+                    enumerator,
+                    readers,
+                    assignments,
+                    completedAt,
+                    operatorStates,
+                    fullyFinished,
+                    finishedSubtasks);
         } catch (IllegalArgumentException failure) {
             throw new IOException("Checkpoint 状态内容不合法", failure);
         }
@@ -338,8 +345,8 @@ public final class FileCheckpointStore implements AutoCloseable {
         return Set.copyOf(operators);
     }
 
-    private static void writeFinishedSubtasks(
-            DataOutputStream out, Set<CheckpointSnapshot.OperatorSubtask> subtasks) throws IOException {
+    private static void writeFinishedSubtasks(DataOutputStream out, Set<CheckpointSnapshot.OperatorSubtask> subtasks)
+            throws IOException {
         if (subtasks.size() > MAX_SPLITS_PER_GROUP) {
             throw new IOException("Too many finished operator subtasks");
         }
@@ -353,8 +360,7 @@ public final class FileCheckpointStore implements AutoCloseable {
         }
     }
 
-    private static Set<CheckpointSnapshot.OperatorSubtask> readFinishedSubtasks(DataInputStream in)
-            throws IOException {
+    private static Set<CheckpointSnapshot.OperatorSubtask> readFinishedSubtasks(DataInputStream in) throws IOException {
         int count = in.readInt();
         if (count < 0 || count > MAX_SPLITS_PER_GROUP) {
             throw new IOException("Invalid finished subtask count");
