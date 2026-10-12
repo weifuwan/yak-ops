@@ -287,7 +287,8 @@ final class TaskDeployment {
             JobVertex vertex = vertices.get(index);
             for (int subtask = 0; subtask < vertex.getParallelism(); subtask++) {
                 Execution execution = executionGraph.currentExecution(vertex.getId(), subtask);
-                InputGate<Object> input = index == 0 ? null : inputs.get(index - 1).get(subtask);
+                InputGate<Object> input =
+                        index == 0 ? null : inputs.get(index - 1).get(subtask);
                 RecordWriterOutput<Object> output = null;
                 if (index < vertices.size() - 1) {
                     output = new RecordWriterOutput<>(
