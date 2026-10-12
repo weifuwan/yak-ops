@@ -31,10 +31,16 @@ public final class OneInputStreamTask extends StreamTask {
     private final Map<String, CheckpointSnapshot.SerializedState> restoredState;
     private final boolean keyedInput;
     private volatile long lastDeclinedCheckpointId;
+    private CompletableFuture<Void> endOfDataAcknowledged = CompletableFuture.completedFuture(null);
     private final InputGate.BarrierHandler barrierHandler = new InputGate.BarrierHandler() {
         @Override
         public void onBarrier(long checkpointId) throws Exception {
             onCheckpointBarrier(checkpointId);
+        }
+
+        @Override
+        public void onEndOfData() throws Exception {
+            endData();
         }
 
         @Override
@@ -96,7 +102,7 @@ public final class OneInputStreamTask extends StreamTask {
         if (id <= 0) {
             return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid checkpoint ID"));
         }
-        if (completionFuture().isDone()) {
+        if (hasReachedEndOfData() || completionFuture().isDone()) {
             return CompletableFuture.failedFuture(new CheckpointDeclinedException(id, "input already finished"));
         }
         CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> future = new CompletableFuture<>();
@@ -150,6 +156,11 @@ public final class OneInputStreamTask extends StreamTask {
     }
 
     private void onCheckpointBarrier(long checkpointId) throws Exception {
+        if (hasReachedEndOfData()) {
+            declineCheckpoint(
+                    checkpointId, new CheckpointDeclinedException(checkpointId, "operator already ended data"));
+            return;
+        }
         CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> acknowledgement =
                 pending.remove(checkpointId);
         if (acknowledgement == null) {
@@ -184,6 +195,18 @@ public final class OneInputStreamTask extends StreamTask {
             sinkOperator.finish();
         } else {
             operator.finish(output::collect);
+            endOfDataAcknowledged = output.endData();
+        }
+    }
+
+    @Override
+    protected CompletableFuture<Void> endOfDataAcknowledgement() {
+        return endOfDataAcknowledged;
+    }
+
+    @Override
+    protected void finishOutput() {
+        if (output != null) {
             output.finish();
         }
     }
