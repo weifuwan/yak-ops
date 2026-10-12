@@ -20,12 +20,15 @@ import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -52,14 +55,40 @@ public class TaskDispatcher implements AutoCloseable {
     private ExecutionClaimRepository claims;
 
     private final ExecutorService workers = Executors.newVirtualThreadPerTaskExecutor();
+    private final ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor(
+            Thread.ofVirtual().name("task-dispatch-reconcile", 0).factory());
     private final ConcurrentHashMap<String, TaskHandle> active = new ConcurrentHashMap<>();
+    private final Object[] launchFences = new Object[256];
+
+    public TaskDispatcher() {
+        Arrays.setAll(launchFences, index -> new Object());
+    }
 
     @PostConstruct
     void reconcile() {
         lifecycle.reconcilePrevious(owner.incarnation());
+        scanPending();
+        poller.scheduleWithFixedDelay(this::scanSafely, 2, 3, TimeUnit.SECONDS);
+    }
+
+    private void scanSafely() {
+        try {
+            scanPending();
+        } catch (RuntimeException exception) {
+            LOG.error("Unable to scan pending Task submissions, exceptionType={}",
+                    exception.getClass().getSimpleName());
+        }
+    }
+
+    private void scanPending() {
+        owner.incarnation();
         for (var pending : lifecycle.pendingRuns()) {
             dispatch(pending.workspaceId(), pending.instanceId());
         }
+    }
+
+    private Object launchFence(String instanceId) {
+        return launchFences[Math.floorMod(instanceId.hashCode(), launchFences.length)];
     }
 
     /**
@@ -81,14 +110,16 @@ public class TaskDispatcher implements AutoCloseable {
      * @return current persisted business status
      */
     public TaskInstanceStatus cancel(String workspaceId, String instanceId) {
-        TaskInstanceStatus result = lifecycle.cancel(workspaceId, instanceId);
-        if (result == TaskInstanceStatus.CANCELLING) {
-            TaskHandle handle = active.get(instanceId);
-            if (handle != null) {
-                handle.cancel();
+        synchronized (launchFence(instanceId)) {
+            TaskInstanceStatus result = lifecycle.cancel(workspaceId, instanceId);
+            if (result == TaskInstanceStatus.CANCELLING) {
+                TaskHandle handle = active.get(instanceId);
+                if (handle != null) {
+                    handle.cancel();
+                }
             }
+            return result;
         }
-        return result;
     }
 
     private void launch(String workspaceId, String instanceId) {
@@ -124,13 +155,17 @@ public class TaskDispatcher implements AutoCloseable {
                 lifecycle.complete(ticket, TaskOutcome.FAILED);
                 return;
             }
-            if (lifecycle.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
-                lifecycle.complete(ticket, TaskOutcome.CANCELED);
-                return;
-            }
             DispatchTicket launched = ticket;
-            physicalStartInvoked = true;
-            executable.start(parameters, plan, context).whenComplete((handle, error) -> {
+            java.util.concurrent.CompletionStage<TaskHandle> submitted;
+            synchronized (launchFence(instanceId)) {
+                if (lifecycle.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
+                    lifecycle.complete(ticket, TaskOutcome.CANCELED);
+                    return;
+                }
+                physicalStartInvoked = true;
+                submitted = executable.start(parameters, plan, context);
+            }
+            submitted.whenComplete((handle, error) -> {
                 if (error != null) {
                     Throwable cause =
                             error instanceof java.util.concurrent.CompletionException ? error.getCause() : error;
@@ -191,6 +226,17 @@ public class TaskDispatcher implements AutoCloseable {
     @PreDestroy
     @Override
     public void close() {
+        poller.shutdownNow();
+        active.forEach((instanceId, handle) -> {
+            try {
+                handle.cancel();
+            } catch (RuntimeException exception) {
+                LOG.warn(
+                        "Unable to request Task shutdown cancellation, instanceId={}, exceptionType={}",
+                        instanceId,
+                        exception.getClass().getSimpleName());
+            }
+        });
         workers.shutdown();
     }
 }
