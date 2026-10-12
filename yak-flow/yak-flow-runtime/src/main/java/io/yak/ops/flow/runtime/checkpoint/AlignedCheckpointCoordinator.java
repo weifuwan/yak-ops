@@ -235,8 +235,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             Map<Integer, List<SourceSplit>> readerStates = new LinkedHashMap<>();
             String sourceUid = jobGraph.getVertices().getFirst().getHeadOperator().getUid();
             for (SourceOperatorStreamTask<Object, SourceSplit> sourceTask : sourceTasks) {
-                CheckpointSnapshot.OperatorSubtask id = new CheckpointSnapshot.OperatorSubtask(
-                        sourceUid, sourceTask.taskInfo().subtaskIndex());
+                CheckpointSnapshot.OperatorSubtask id =
+                        new CheckpointSnapshot.OperatorSubtask(sourceUid, sourceTask.taskInfo().subtaskIndex());
                 if (!checkpointPlan.triggerTasks().contains(id)) {
                     continue;
                 }
