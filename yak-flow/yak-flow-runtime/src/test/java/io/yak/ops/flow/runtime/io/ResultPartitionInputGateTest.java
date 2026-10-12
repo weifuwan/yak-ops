@@ -67,6 +67,7 @@ class ResultPartitionInputGateTest {
         producer.emitRecord(0, "last-record");
         CompletableFuture<Void> acknowledged = producer.endData();
         assertFalse(acknowledged.isDone());
+        assertThrows(IllegalStateException.class, producer::finish);
         assertThrows(IllegalStateException.class, () -> producer.emitRecord(0, "late-record"));
         assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
         assertFalse(acknowledged.isDone(), "Enqueuing EndOfData must not acknowledge it");
@@ -132,6 +133,7 @@ class ResultPartitionInputGateTest {
 
         gate.abort(new IllegalStateException("downstream failed"));
         assertThrows(ExecutionException.class, () -> acknowledged.get(5, TimeUnit.SECONDS));
+        assertThrows(IllegalStateException.class, producer::finish);
         assertThrows(IllegalStateException.class, () -> gate.emitNext(ignored -> {}));
     }
 
@@ -192,6 +194,7 @@ class ResultPartitionInputGateTest {
                 IllegalStateException.class, () -> gate.emitNext(ignored -> {}, handler));
         assertEquals("downstream finish failed", failure.getMessage());
         assertThrows(ExecutionException.class, () -> acknowledged.get(5, TimeUnit.SECONDS));
+        assertThrows(IllegalStateException.class, producer::finish);
     }
 
     @Test
