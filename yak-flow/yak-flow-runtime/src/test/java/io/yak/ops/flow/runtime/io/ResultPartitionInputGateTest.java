@@ -46,6 +46,117 @@ class ResultPartitionInputGateTest {
     }
 
     @Test
+    void shouldKeepControlChannelOpenAfterEndOfDataUntilPhysicalFinish() throws Exception {
+        InputGate<String> gate = new InputGate<>(4, 1);
+        ResultPartition<String> producer = new ResultPartition<>(0, List.of(gate));
+        List<String> records = new ArrayList<>();
+        List<Long> barriers = new ArrayList<>();
+        java.util.concurrent.atomic.AtomicInteger ended = new java.util.concurrent.atomic.AtomicInteger();
+        InputGate.BarrierHandler handler = new InputGate.BarrierHandler() {
+            @Override
+            public void onBarrier(long checkpointId) {
+                barriers.add(checkpointId);
+            }
+
+            @Override
+            public void onEndOfData() {
+                ended.incrementAndGet();
+            }
+        };
+
+        producer.emitRecord(0, "last-record");
+        CompletableFuture<Void> acknowledged = producer.endData();
+        assertFalse(acknowledged.isDone());
+        assertThrows(IllegalStateException.class, () -> producer.emitRecord(0, "late-record"));
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        assertFalse(acknowledged.isDone(), "Enqueuing EndOfData must not acknowledge it");
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        assertTrue(acknowledged.isDone());
+        assertEquals(List.of("last-record"), records);
+        assertEquals(1, ended.get());
+
+        assertEquals(InputStatus.NOTHING_AVAILABLE, gate.emitNext(records::add, handler));
+        producer.broadcastBarrier(10);
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(records::add, handler));
+        assertEquals(List.of(10L), barriers);
+
+        producer.finish();
+        assertEquals(InputStatus.END_OF_INPUT, gate.emitNext(records::add, handler));
+        assertEquals(1, ended.get());
+    }
+
+    @Test
+    void shouldFinishLogicalInputOnlyAfterAllProducersEndData() throws Exception {
+        InputGate<String> gate = new InputGate<>(4, 2);
+        ResultPartition<String> first = new ResultPartition<>(0, List.of(gate));
+        ResultPartition<String> second = new ResultPartition<>(1, List.of(gate));
+        List<String> received = new ArrayList<>();
+        java.util.concurrent.atomic.AtomicInteger ended = new java.util.concurrent.atomic.AtomicInteger();
+        InputGate.BarrierHandler handler = new InputGate.BarrierHandler() {
+            @Override
+            public void onBarrier(long checkpointId) {}
+
+            @Override
+            public void onEndOfData() {
+                ended.incrementAndGet();
+            }
+        };
+
+        first.emitRecord(0, "first");
+        CompletableFuture<Void> firstAcknowledged = first.endData();
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(received::add, handler));
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(received::add, handler));
+        assertTrue(firstAcknowledged.isDone());
+        assertEquals(0, ended.get(), "One finished producer is not an ended input");
+
+        second.emitRecord(0, "second");
+        CompletableFuture<Void> secondAcknowledged = second.endData();
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(received::add, handler));
+        assertEquals(InputStatus.MORE_AVAILABLE, gate.emitNext(received::add, handler));
+        assertTrue(secondAcknowledged.isDone());
+        assertEquals(1, ended.get());
+        assertEquals(List.of("first", "second"), received);
+        assertEquals(InputStatus.NOTHING_AVAILABLE, gate.emitNext(received::add, handler));
+
+        first.finish();
+        second.finish();
+        assertEquals(InputStatus.END_OF_INPUT, gate.emitNext(received::add, handler));
+    }
+
+    @Test
+    void shouldFailUnacknowledgedEndOfDataWhenConsumerAborts() throws Exception {
+        InputGate<String> gate = new InputGate<>(2, 1);
+        ResultPartition<String> producer = new ResultPartition<>(0, List.of(gate));
+        producer.emitRecord(0, "pending");
+        CompletableFuture<Void> acknowledged = producer.endData();
+
+        gate.abort(new IllegalStateException("downstream failed"));
+        assertThrows(ExecutionException.class, () -> acknowledged.get(5, TimeUnit.SECONDS));
+        assertThrows(IllegalStateException.class, () -> gate.emitNext(ignored -> {}));
+    }
+
+    @Test
+    void shouldFailEndOfDataAcknowledgmentWhenDownstreamFinishFails() throws Exception {
+        InputGate<String> gate = new InputGate<>(2, 1);
+        ResultPartition<String> producer = new ResultPartition<>(0, List.of(gate));
+        CompletableFuture<Void> acknowledged = producer.endData();
+        InputGate.BarrierHandler handler = new InputGate.BarrierHandler() {
+            @Override
+            public void onBarrier(long checkpointId) {}
+
+            @Override
+            public void onEndOfData() {
+                throw new IllegalStateException("downstream finish failed");
+            }
+        };
+
+        IllegalStateException failure = assertThrows(
+                IllegalStateException.class, () -> gate.emitNext(ignored -> {}, handler));
+        assertEquals("downstream finish failed", failure.getMessage());
+        assertThrows(ExecutionException.class, () -> acknowledged.get(5, TimeUnit.SECONDS));
+    }
+
+    @Test
     void shouldShareOneBoundedBufferBudgetAcrossAllProducerSubpartitions() throws Exception {
         InputGate<String> gate = new InputGate<>(1, 2);
         RecordWriterOutput<String> first = output(new StreamEdge(1, 2, StreamPartitioning.REBALANCE), 0, 2,
