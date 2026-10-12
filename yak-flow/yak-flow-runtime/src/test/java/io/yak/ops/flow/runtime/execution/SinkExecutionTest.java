@@ -155,14 +155,20 @@ class SinkExecutionTest {
             ExecutionException declined = assertThrows(
                     ExecutionException.class, () -> checkpoint.get(5, TimeUnit.SECONDS));
             assertTrue(declined.getCause() instanceof CheckpointDeclinedException);
+            List<Object> records = new java.util.ArrayList<>();
+            while (true) {
+                InputStatus status = downstream.emitNext(records::add);
+                if (status == InputStatus.END_OF_INPUT) {
+                    break;
+                }
+                if (status == InputStatus.NOTHING_AVAILABLE) {
+                    downstream.getAvailableFuture().get(5, TimeUnit.SECONDS);
+                }
+                assertTrue(records.size() <= 3);
+            }
             task.completionFuture().get(5, TimeUnit.SECONDS);
             assertEquals(1, finishes.get());
             assertEquals(1, closes.get());
-
-            List<Object> records = new java.util.ArrayList<>();
-            while (downstream.emitNext(records::add) != InputStatus.END_OF_INPUT) {
-                assertTrue(records.size() <= 3);
-            }
             assertEquals(3, records.size());
             assertEquals("tail", records.getLast());
             assertTrue(records.subList(0, 2).containsAll(List.of("before-eof", "after-decline")));
