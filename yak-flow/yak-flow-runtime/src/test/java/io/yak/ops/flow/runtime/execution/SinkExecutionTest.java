@@ -144,8 +144,7 @@ class SinkExecutionTest {
 
         try {
             task.start().get(5, TimeUnit.SECONDS);
-            CompletableFuture<Map<String, io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot.SerializedState>>
-                    checkpoint = task.expectCheckpoint(7);
+            CompletableFuture<OneInputStreamTask.CheckpointState> checkpoint = task.expectCheckpoint(7);
             first.broadcastBarrier(7);
             second.emitRecord(0, "before-eof");
             second.finish(); // Producer ends without the matching barrier; only CP-7 is declined.
@@ -273,22 +272,24 @@ class SinkExecutionTest {
             assertTrue(task.hasReachedEndOfData());
             assertEquals(1, finishes.get());
             assertFalse(task.completionFuture().isDone());
-            ExecutionException declined = assertThrows(
-                    ExecutionException.class, () -> task.expectCheckpoint(11).get(5, TimeUnit.SECONDS));
-            assertTrue(declined.getCause() instanceof CheckpointDeclinedException);
+            CompletableFuture<OneInputStreamTask.CheckpointState> checkpoint = task.expectCheckpoint(11);
 
-            // Control events remain legal after EndOfData, but a finished Operator cannot snapshot.
+            // A finished Operator acknowledges the barrier without rerunning its business snapshot.
             first.broadcastBarrier(11);
             second.broadcastBarrier(11);
+            OneInputStreamTask.CheckpointState finished = checkpoint.get(5, TimeUnit.SECONDS);
+            assertTrue(finished.finished());
+            assertTrue(finished.operatorStates().isEmpty());
             first.finish();
             second.finish();
             assertFalse(task.completionFuture().isDone(), "Physical finish waits for downstream EndOfData ACK");
 
             List<Object> rows = new java.util.ArrayList<>();
-            assertEquals(InputStatus.MORE_AVAILABLE, downstream.emitNext(rows::add));
-            assertEquals(InputStatus.MORE_AVAILABLE, downstream.emitNext(rows::add));
-            assertEquals(InputStatus.MORE_AVAILABLE, downstream.emitNext(rows::add));
-            assertEquals(InputStatus.MORE_AVAILABLE, downstream.emitNext(rows::add));
+            List<Long> checkpointBarriers = new java.util.ArrayList<>();
+            for (int index = 0; index < 5; index++) {
+                assertEquals(InputStatus.MORE_AVAILABLE, downstream.emitNext(rows::add, checkpointBarriers::add));
+            }
+            assertEquals(List.of(11L), checkpointBarriers);
             assertEquals(3, rows.size());
             assertEquals("tail", rows.getLast());
             assertTrue(rows.subList(0, 2).containsAll(List.of("first", "second")));
