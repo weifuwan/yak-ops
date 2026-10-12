@@ -13,7 +13,13 @@ import java.util.concurrent.CompletionStage;
  */
 public interface ExecutableTaskPlugin extends TaskPlugin {
 
-    /** Declares canonical exclusive resources and a non-secret binding revision. */
+    /**
+     * Declares canonical exclusive resources and a non-secret binding revision.
+     *
+     * @param parameters validated, immutable Task configuration
+     * @param context authorized execution identity and pinned Definition version
+     * @return a read-only execution plan to be admitted by the platform
+     */
     TaskExecutionPlan plan(TaskParameters parameters, TaskExecutionContext context);
 
     /**
@@ -21,6 +27,11 @@ public interface ExecutableTaskPlugin extends TaskPlugin {
      *
      * <p>Implementations must validate the persisted resource binding before any
      * external execution effect, and fail without launching on a mismatch.
+     *
+     * @param parameters validated Task configuration pinned to the Definition version
+     * @param plan resource plan whose claims have been durably admitted
+     * @param context identity of the authorized Instance and Attempt
+     * @return an asynchronous handle to the physical execution
      */
     CompletionStage<TaskHandle> start(TaskParameters parameters, TaskExecutionPlan plan, TaskExecutionContext context);
 }

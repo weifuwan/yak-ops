@@ -11,12 +11,24 @@ import java.util.concurrent.CompletionStage;
  */
 public interface TaskHandle {
 
-    /** Returns the physical Job identity, when the execution engine provides one. */
+    /**
+     * Returns the physical Job identity, when provided by the execution engine.
+     *
+     * @return the known runtime identity, or empty before it is available
+     */
     Optional<TaskRuntimeReference> runtimeReference();
 
-    /** Returns the terminal outcome; unexpected execution errors complete exceptionally. */
+    /**
+     * Observes the terminal outcome of one launched Task.
+     *
+     * @return eventual terminal result, or exceptional completion on execution error
+     */
     CompletionStage<TaskOutcome> completion();
 
-    /** Requests cancellation without declaring the business Instance canceled. */
+    /**
+     * Requests physical cancellation without declaring the business Instance canceled.
+     *
+     * @return completion of the physical cancellation request
+     */
     CompletionStage<Void> cancel();
 }
