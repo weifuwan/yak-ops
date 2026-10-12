@@ -1,7 +1,10 @@
 name: MySQL CDC Runtime Cross-Database Acceptance
 
 on:
-  # Explicit engine E2E only. Do not add three database services to every pull request.
+  # Scope real CDC Runtime E2E to the YOIP-1 acceptance test or explicit manual runs.
+  pull_request:
+    paths:
+      - 'yak-flow/yak-flow-connector-jdbc/src/test/java/io/yak/ops/connector/jdbc/sink/JdbcSinkCrossDatabaseIT.java'
   workflow_dispatch:
 
 permissions:
