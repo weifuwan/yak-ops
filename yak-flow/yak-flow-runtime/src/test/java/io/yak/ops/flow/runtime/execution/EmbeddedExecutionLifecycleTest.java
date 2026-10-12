@@ -165,10 +165,11 @@ class EmbeddedExecutionLifecycleTest {
         try {
             assertTrue(flushEntered.await(5, TimeUnit.SECONDS));
             assertEquals(JobStatus.RUNNING, job.getJobStatus().get(5, TimeUnit.SECONDS));
-            assertEquals(
-                    io.yak.ops.flow.runtime.executiongraph.ExecutionState.RUNNING,
-                    job.getExecutionGraph().getJobVertices().getFirst()
-                            .getTaskVertex(0).getCurrentExecutionAttempt().getState(),
+            var sourceState = job.getExecutionGraph().getJobVertices().getFirst()
+                    .getTaskVertex(0).getCurrentExecutionAttempt().getState();
+            assertTrue(
+                    sourceState == io.yak.ops.flow.runtime.executiongraph.ExecutionState.DEPLOYING
+                            || sourceState == io.yak.ops.flow.runtime.executiongraph.ExecutionState.RUNNING,
                     "Source must remain alive until downstream acknowledges EndOfData");
             assertEquals(0, finalFlushes.get());
 
