@@ -281,8 +281,9 @@ def acceptance():
         assert claim_count(interrupted_id) == 1
         shutdown(app, force=True)
         app = boot()
-        client = Client(workspace)
+        client = Client()
         client.login()
+        client.workspace = workspace
         wait_status(client, interrupted_id, {"RECONCILING"}, timeout=70)
         assert claim_count(interrupted_id) == 1
         conflict, _ = submit(client, cdc, expected=409)
