@@ -244,7 +244,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                 try {
                     splits = await(sourceTask.pauseAndEmitBarrier(checkpointId));
                 } catch (Exception error) {
-                    if (sourceTask.completionFuture().isDone()) {
+                    if (sourceTask.hasFinishedOutput() || sourceTask.completionFuture().isDone()) {
                         throw new CheckpointDeclinedException(checkpointId, "Source finished during checkpoint");
                     }
                     throw error;
