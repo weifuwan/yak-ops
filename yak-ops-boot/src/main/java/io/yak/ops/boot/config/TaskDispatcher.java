@@ -75,7 +75,8 @@ public class TaskDispatcher implements AutoCloseable {
         try {
             scanPending();
         } catch (RuntimeException exception) {
-            LOG.error("Unable to scan pending Task submissions, exceptionType={}",
+            LOG.error(
+                    "Unable to scan pending Task submissions, exceptionType={}",
                     exception.getClass().getSimpleName());
         }
     }
