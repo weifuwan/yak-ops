@@ -2,7 +2,7 @@
 
 Status: Discussion
 
-Discussion: https://github.com/weifuwan/yak-ops/pull/1576 (convergence); https://github.com/weifuwan/yak-ops/pull/1575 (initial)
+Discussion: https://github.com/weifuwan/yak-ops/pull/1577 (review fixes); https://github.com/weifuwan/yak-ops/pull/1576 (convergence); https://github.com/weifuwan/yak-ops/pull/1575 (initial)
 
 Decision: Pending
 
