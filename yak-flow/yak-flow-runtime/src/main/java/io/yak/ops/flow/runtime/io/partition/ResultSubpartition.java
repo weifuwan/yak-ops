@@ -4,6 +4,7 @@ import io.yak.ops.flow.runtime.checkpoint.CheckpointBarrier;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /** One producer-to-consumer physical channel. All queue access is serialized by its InputGate. */
 public final class ResultSubpartition<T> {
@@ -28,6 +29,10 @@ public final class ResultSubpartition<T> {
 
     public void emitBarrier(CheckpointBarrier barrier) {
         gate.enqueueBarrier(this, barrier);
+    }
+
+    public CompletableFuture<Void> endData() {
+        return gate.enqueueEndOfData(this);
     }
 
     public void finish() {
