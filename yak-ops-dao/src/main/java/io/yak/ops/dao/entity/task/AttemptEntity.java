@@ -19,8 +19,10 @@ public class AttemptEntity extends BaseEntity {
     private Integer attemptNumber;
     private TaskAttemptStatus status;
     private String ownerIncarnation;
+
     @ToString.Exclude
     private String dispatchToken;
+
     private String runtimeEngine;
     private String runtimeId;
     private String logReference;
