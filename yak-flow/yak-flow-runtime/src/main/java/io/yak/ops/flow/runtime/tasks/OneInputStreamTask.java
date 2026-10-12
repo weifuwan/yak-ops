@@ -51,8 +51,17 @@ public final class OneInputStreamTask extends StreamTask {
                     new CheckpointDeclinedException(checkpointId, "a producer ended before barrier alignment"));
         }
     };
-    private final Map<Long, CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>>> pending =
-            new ConcurrentHashMap<>();
+    private final Map<Long, CompletableFuture<CheckpointState>> pending = new ConcurrentHashMap<>();
+
+    /** Operator state and its finished flag are captured in the same mailbox barrier cut. */
+    public record CheckpointState(Map<String, CheckpointSnapshot.SerializedState> operatorStates, boolean finished) {
+        public CheckpointState {
+            operatorStates = Map.copyOf(Objects.requireNonNull(operatorStates, "operatorStates"));
+            if (finished && !operatorStates.isEmpty()) {
+                throw new IllegalArgumentException("Finished operator cannot snapshot mutable state");
+            }
+        }
+    }
     private OneInputStreamOperator<Object, Object> operator;
     private volatile SinkWriterOperator<Object> sinkOperator;
     private StreamOperator activeOperator;
@@ -98,14 +107,14 @@ public final class OneInputStreamTask extends StreamTask {
     }
 
     /** Register before a source is allowed to emit the barrier, avoiding an ACK registration race. */
-    public CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> expectCheckpoint(long id) {
+    public CompletableFuture<CheckpointState> expectCheckpoint(long id) {
         if (id <= 0) {
             return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid checkpoint ID"));
         }
-        if (hasReachedEndOfData() || completionFuture().isDone()) {
+        if (completionFuture().isDone()) {
             return CompletableFuture.failedFuture(new CheckpointDeclinedException(id, "input already finished"));
         }
-        CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> future = new CompletableFuture<>();
+        CompletableFuture<CheckpointState> future = new CompletableFuture<>();
         if (pending.putIfAbsent(id, future) != null) {
             return CompletableFuture.failedFuture(new IllegalStateException("Duplicate checkpoint registration"));
         }
@@ -113,7 +122,7 @@ public final class OneInputStreamTask extends StreamTask {
     }
 
     public void abortCheckpoint(long id, Throwable cause) {
-        CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> future = pending.remove(id);
+        CompletableFuture<CheckpointState> future = pending.remove(id);
         if (future != null) {
             future.completeExceptionally(cause);
         }
@@ -155,14 +164,16 @@ public final class OneInputStreamTask extends StreamTask {
         return input.emitNext(value -> operator.processElement(value, output::collect), barrierHandler);
     }
 
+    /** Starts a checkpoint at an input Task with no running upstream producer. */
+    public CompletableFuture<Void> triggerCheckpoint(long checkpointId) {
+        return submitMailbox(() -> {
+            onCheckpointBarrier(checkpointId);
+            return null;
+        });
+    }
+
     private void onCheckpointBarrier(long checkpointId) throws Exception {
-        if (hasReachedEndOfData()) {
-            declineCheckpoint(
-                    checkpointId, new CheckpointDeclinedException(checkpointId, "operator already ended data"));
-            return;
-        }
-        CompletableFuture<Map<String, CheckpointSnapshot.SerializedState>> acknowledgement =
-                pending.remove(checkpointId);
+        CompletableFuture<CheckpointState> acknowledgement = pending.remove(checkpointId);
         if (acknowledgement == null) {
             if (checkpointId <= lastDeclinedCheckpointId) {
                 return; // A late barrier from an already declined checkpoint is not a task failure.
@@ -170,14 +181,18 @@ public final class OneInputStreamTask extends StreamTask {
             throw new IllegalStateException("Unexpected checkpoint barrier: " + checkpointId);
         }
         try {
-            if (activeOperator instanceof CheckpointedStreamOperator checkpointed) {
-                checkpointed.snapshotState(checkpointId, stateBackend);
+            boolean finished = hasReachedEndOfData();
+            Map<String, CheckpointSnapshot.SerializedState> snapshot = Map.of();
+            if (!finished) {
+                if (activeOperator instanceof CheckpointedStreamOperator checkpointed) {
+                    checkpointed.snapshotState(checkpointId, stateBackend);
+                }
+                snapshot = stateBackend.snapshot();
             }
-            Map<String, CheckpointSnapshot.SerializedState> snapshot = stateBackend.snapshot();
             if (output != null) {
                 output.broadcastBarrier(checkpointId);
             }
-            acknowledgement.complete(snapshot);
+            acknowledgement.complete(new CheckpointState(snapshot, finished));
         } catch (Exception | Error failure) {
             acknowledgement.completeExceptionally(failure);
             throw failure;
