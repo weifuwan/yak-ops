@@ -136,6 +136,44 @@ class ResultPartitionInputGateTest {
     }
 
     @Test
+    void shouldFailInFlightEndOfDataAcknowledgmentOnConsumerAbort() throws Exception {
+        InputGate<String> gate = new InputGate<>(2, 1);
+        ResultPartition<String> producer = new ResultPartition<>(0, List.of(gate));
+        CompletableFuture<Void> acknowledged = producer.endData();
+        CountDownLatch consuming = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        InputGate.BarrierHandler handler = new InputGate.BarrierHandler() {
+            @Override
+            public void onBarrier(long checkpointId) {}
+
+            @Override
+            public void onEndOfData() throws Exception {
+                consuming.countDown();
+                if (!release.await(5, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("Consumer did not resume");
+                }
+            }
+        };
+        Thread reader = Thread.ofVirtual().start(() -> {
+            try {
+                gate.emitNext(ignored -> {}, handler);
+            } catch (Exception failure) {
+                throw new IllegalStateException(failure);
+            }
+        });
+        try {
+            assertTrue(consuming.await(5, TimeUnit.SECONDS));
+            assertFalse(acknowledged.isDone());
+            gate.abort(new IllegalStateException("consumer cancelled during EndOfData"));
+            assertThrows(ExecutionException.class, () -> acknowledged.get(5, TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            reader.join(5000);
+            assertFalse(reader.isAlive());
+        }
+    }
+
+    @Test
     void shouldFailEndOfDataAcknowledgmentWhenDownstreamFinishFails() throws Exception {
         InputGate<String> gate = new InputGate<>(2, 1);
         ResultPartition<String> producer = new ResultPartition<>(0, List.of(gate));
