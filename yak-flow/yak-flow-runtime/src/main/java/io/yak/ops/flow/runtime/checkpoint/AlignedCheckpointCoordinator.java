@@ -117,18 +117,17 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             for (OneInputStreamTask task : inputTasks) {
                 ready.add(task.allDataProcessedFuture());
             }
-            CompletableFuture.allOf(ready.toArray(CompletableFuture[]::new))
-                    .whenComplete((unused, failure) -> {
-                        if (failure != null) {
-                            failFinalCheckpoint(failure);
-                        } else {
-                            try {
-                                timer.execute(this::runFinalCheckpoint);
-                            } catch (java.util.concurrent.RejectedExecutionException error) {
-                                failFinalCheckpoint(error);
-                            }
-                        }
-                    });
+            CompletableFuture.allOf(ready.toArray(CompletableFuture[]::new)).whenComplete((unused, failure) -> {
+                if (failure != null) {
+                    failFinalCheckpoint(failure);
+                } else {
+                    try {
+                        timer.execute(this::runFinalCheckpoint);
+                    } catch (java.util.concurrent.RejectedExecutionException error) {
+                        failFinalCheckpoint(error);
+                    }
+                }
+            });
         }
         if (intervalMillis > 0) {
             timer.scheduleWithFixedDelay(
@@ -270,8 +269,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         }
     }
 
-    private void performCheckpoint(CompletableFuture<CheckpointSnapshot> published, boolean terminal)
-            throws Exception {
+    private void performCheckpoint(CompletableFuture<CheckpointSnapshot> published, boolean terminal) throws Exception {
         ensureActive();
         long checkpointId = nextCheckpointId.incrementAndGet();
         if (!terminal && anySourceFinished()) {
@@ -385,8 +383,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                     }
                     terminalOperators.add(task.checkpointIdentity().uid());
                 }
-                if (!operatorStates.isEmpty()
-                        || terminalOperators.size() != jobGraph.getVertices().size()) {
+                if (!operatorStates.isEmpty() || terminalOperators.size() != jobGraph.getVertices().size()) {
                     throw new CheckpointDeclinedException(checkpointId, "Terminal checkpoint has incomplete operators");
                 }
                 fullyFinished = Set.copyOf(terminalOperators);
