@@ -166,7 +166,9 @@ public class TaskDispatcher implements AutoCloseable {
                 physicalStartInvoked = true;
                 submitted = executable.start(parameters, plan, context);
             }
-            submitted.whenComplete((handle, error) -> {
+            // Runtime completion may run on an interrupted YakFlow Job thread. Business
+            // transactions must execute on a fresh thread to keep JDBC connections usable.
+            submitted.whenCompleteAsync((handle, error) -> {
                 if (error != null) {
                     Throwable cause =
                             error instanceof java.util.concurrent.CompletionException ? error.getCause() : error;
@@ -185,7 +187,7 @@ public class TaskDispatcher implements AutoCloseable {
                     if (lifecycle.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
                         handle.cancel();
                     }
-                    handle.completion().whenComplete((outcome, failure) -> {
+                    handle.completion().whenCompleteAsync((outcome, failure) -> {
                         try {
                             if (failure == null) {
                                 lifecycle.complete(launched, outcome);
@@ -195,7 +197,7 @@ public class TaskDispatcher implements AutoCloseable {
                         } finally {
                             active.remove(instanceId, handle);
                         }
-                    });
+                    }, workers);
                 } catch (RuntimeException failure) {
                     lifecycle.uncertain(launched);
                     active.remove(instanceId, handle);
@@ -204,7 +206,7 @@ public class TaskDispatcher implements AutoCloseable {
                             instanceId,
                             failure.getClass().getSimpleName());
                 }
-            });
+            }, workers);
         } catch (RuntimeException failure) {
             if (ticket != null) {
                 if (physicalStartInvoked) {
