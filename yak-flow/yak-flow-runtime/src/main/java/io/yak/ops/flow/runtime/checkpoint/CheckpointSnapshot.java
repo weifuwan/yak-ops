@@ -88,8 +88,16 @@ public record CheckpointSnapshot(
             Map<Integer, List<SerializedState>> assignments,
             long completedAtMillis,
             Map<OperatorSubtask, Map<String, SerializedState>> operatorStates) {
-        this(checkpointId, graphSignature, enumeratorState, readerSplits, assignments, completedAtMillis,
-                operatorStates, Set.of(), Set.of());
+        this(
+                checkpointId,
+                graphSignature,
+                enumeratorState,
+                readerSplits,
+                assignments,
+                completedAtMillis,
+                operatorStates,
+                Set.of(),
+                Set.of());
     }
 
     public boolean hasFinishedOperators() {
