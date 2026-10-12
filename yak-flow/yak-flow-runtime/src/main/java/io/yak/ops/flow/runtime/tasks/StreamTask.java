@@ -37,8 +37,11 @@ public abstract class StreamTask implements AutoCloseable {
     private volatile Thread worker;
     private volatile boolean cancelRequested;
     private boolean startRequested;
+    private volatile boolean dataFinished;
+    private boolean inputFinished;
     private boolean finished;
     private boolean readyWithoutInput;
+    private CompletableFuture<Void> dataAcknowledged = CompletableFuture.completedFuture(null);
 
     protected StreamTask(TaskEnvironment environment) {
         TaskEnvironment original = Objects.requireNonNull(environment, "environment 不能为空");
@@ -70,8 +73,33 @@ public abstract class StreamTask implements AutoCloseable {
 
     protected abstract CompletableFuture<Void> getAvailableFuture();
 
-    /** Invoked exclusively on normal END_OF_INPUT, never after failure or cancellation. */
+    /** Finishes business logic once, without closing the physical output channel. */
     protected void finishTask() throws Exception {}
+
+    /** Returns downstream consumption acknowledgement after the task's final records. */
+    protected CompletableFuture<Void> endOfDataAcknowledgement() {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    /** Closes the physical output channel after downstream data acknowledgement. */
+    protected void finishOutput() throws Exception {}
+
+    /** True once the normal business finish succeeded; checkpoint coordination may still be active. */
+    public final boolean hasReachedEndOfData() {
+        return dataFinished;
+    }
+
+    /** Completes business input on the mailbox thread, without shutting down control processing. */
+    protected final void endData() throws Exception {
+        if (dataFinished) {
+            throw new IllegalStateException("Task has already ended data");
+        }
+        checkStop();
+        finishTask();
+        checkStop();
+        dataAcknowledged = Objects.requireNonNull(endOfDataAcknowledgement(), "Missing EndOfData acknowledgment");
+        dataFinished = true;
+    }
 
     /** Close every resource acquired by openTask or input processing. */
     protected abstract void closeTask() throws Exception;
@@ -201,15 +229,19 @@ public abstract class StreamTask implements AutoCloseable {
     /** Input processing is the mailbox's default action, not a separate polling loop. */
     private void processDefaultAction(MailboxDefaultAction.Controller controller) throws Exception {
         checkStop();
+        if (inputFinished) {
+            finishPhysicalTask(controller);
+            return;
+        }
         InputStatus status = Objects.requireNonNull(processInput(), "processInput 不能返回 null");
         switch (status) {
             case MORE_AVAILABLE -> readyWithoutInput = false;
             case END_OF_INPUT -> {
-                checkStop();
-                finishTask();
-                checkStop();
-                finished = true;
-                controller.allActionsCompleted();
+                if (!dataFinished) {
+                    endData();
+                }
+                inputFinished = true;
+                finishPhysicalTask(controller);
             }
             case NOTHING_AVAILABLE -> {
                 CompletableFuture<Void> availability =
@@ -234,6 +266,25 @@ public abstract class StreamTask implements AutoCloseable {
                 });
             }
         }
+    }
+
+    private void finishPhysicalTask(MailboxDefaultAction.Controller controller) throws Exception {
+        if (!dataAcknowledged.isDone()) {
+            MailboxDefaultAction.Suspension suspension = controller.suspendDefaultAction();
+            dataAcknowledged.whenComplete((unused, error) -> {
+                if (error != null) {
+                    failAsync(error);
+                }
+                suspension.resume();
+            });
+            return;
+        }
+        dataAcknowledged.join();
+        checkStop();
+        finishOutput();
+        checkStop();
+        finished = true;
+        controller.allActionsCompleted();
     }
 
     private void run() {
