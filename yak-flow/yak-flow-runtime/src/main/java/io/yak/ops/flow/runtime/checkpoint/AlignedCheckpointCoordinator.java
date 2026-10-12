@@ -57,6 +57,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     private final boolean finalCheckpointRequired;
     private final CompletableFuture<Void> finalCheckpointCompleted = new CompletableFuture<>();
     private long checkpointDeadlineNanos;
+    private long finalCheckpointDeadlineNanos;
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(
             Thread.ofVirtual().name("yak-local-checkpoint-", 0).factory());
     private final AtomicBoolean closed = new AtomicBoolean();
@@ -190,6 +191,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     }
 
     private void runFinalCheckpoint() {
+        long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+        finalCheckpointDeadlineNanos = System.nanoTime() + timeoutNanos * 2;
         for (int attempt = 0; attempt < 2; attempt++) {
             if (closed.get() || cancelled.getAsBoolean()) {
                 return;
@@ -277,6 +280,9 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         }
         CheckpointPlan checkpointPlan = calculatePlan(checkpointId);
         checkpointDeadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+        if (terminal) {
+            checkpointDeadlineNanos = Math.min(checkpointDeadlineNanos, finalCheckpointDeadlineNanos);
+        }
         boolean coordinatorFrozen = false;
         List<SourceOperatorStreamTask<Object, SourceSplit>> paused = new ArrayList<>();
         Map<CheckpointSnapshot.OperatorSubtask, CompletableFuture<OneInputStreamTask.CheckpointState>>
