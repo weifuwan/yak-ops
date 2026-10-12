@@ -35,12 +35,14 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DispatchTicket claim(String workspaceId, String instanceId, String ownerIncarnation, String dispatchToken) {
-        InstanceEntity instance = instances.findByIdForUpdate(workspaceId, instanceId).orElse(null);
+        InstanceEntity instance =
+                instances.findByIdForUpdate(workspaceId, instanceId).orElse(null);
         if (instance == null || instance.getStatus() != TaskInstanceStatus.SUBMITTED) {
             return null;
         }
         List<AttemptEntity> list = attempts.findByInstance(workspaceId, instanceId);
-        if (list.size() != 1 || !attempts.claimPending(workspaceId, list.getFirst().getId(), ownerIncarnation, dispatchToken)) {
+        if (list.size() != 1
+                || !attempts.claimPending(workspaceId, list.getFirst().getId(), ownerIncarnation, dispatchToken)) {
             return null;
         }
         return new DispatchTicket(
@@ -73,16 +75,18 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
         if (instance.getStatus().isTerminal() || instance.getStatus() == TaskInstanceStatus.RECONCILING) {
             return;
         }
-        TaskAttemptStatus attemptStatus = switch (outcome) {
-            case FINISHED -> TaskAttemptStatus.FINISHED;
-            case FAILED -> TaskAttemptStatus.FAILED;
-            case CANCELED -> TaskAttemptStatus.CANCELED;
-        };
-        TaskInstanceStatus instanceStatus = switch (outcome) {
-            case FINISHED -> TaskInstanceStatus.FINISHED;
-            case FAILED -> TaskInstanceStatus.FAILED;
-            case CANCELED -> TaskInstanceStatus.CANCELED;
-        };
+        TaskAttemptStatus attemptStatus =
+                switch (outcome) {
+                    case FINISHED -> TaskAttemptStatus.FINISHED;
+                    case FAILED -> TaskAttemptStatus.FAILED;
+                    case CANCELED -> TaskAttemptStatus.CANCELED;
+                };
+        TaskInstanceStatus instanceStatus =
+                switch (outcome) {
+                    case FINISHED -> TaskInstanceStatus.FINISHED;
+                    case FAILED -> TaskInstanceStatus.FAILED;
+                    case CANCELED -> TaskInstanceStatus.CANCELED;
+                };
         String reason = outcome == TaskOutcome.FAILED ? "RUNTIME_FAILED" : null;
         if (!attempts.markTerminal(
                 ticket.workspaceId(), ticket.attemptId(), ticket.dispatchToken(), attemptStatus, reason)) {
