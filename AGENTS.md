@@ -61,6 +61,14 @@ Inspect the current code, direct callers, tests and Maven dependencies before ch
 - For documentation, change published user guidance when behavior changes, not when an implementation detail changes. Do not create descriptive Capability/Contract/Architecture copies for a routine PR.
 - Keep one issue or coherent change per PR and explain purpose, tests, public impact and any YOIP in the PR body.
 
+## Persistence and Public Contract Documentation
+
+- Document every newly introduced or changed persisted Entity field with concise English JavaDoc explaining its meaning, ownership, and lifecycle or safety semantics where relevant. Inherited audit fields retain their BaseEntity documentation.
+- For new Flyway CREATE TABLE statements, include meaningful SQL COMMENT descriptions on every table and column. Explain identity, ownership, state, and null semantics where they matter. Do not modify an applied migration merely to add descriptions.
+- Each declared Repository interface method needs JavaDoc for its contract, `@param` for every formal parameter, and `@return` for every non-void return type. Document atomic updates, Workspace scoping and conflict behavior when relevant. Implementations inherit those method contracts and document only additional non-obvious behavior, rather than duplicating JavaDoc.
+- Business service boundaries with independent callers use an interface and a corresponding Impl class, with transactional annotations on the managed implementation. Do not introduce interfaces for private helpers without independent contracts.
+- Review these comments when adding Entities, Repository APIs, Service boundaries or Flyway migrations. Follow the existing formatting checks and do not create parallel comment-rules files.
+
 ## Current-State Comments and Documentation
 
 - Describe current responsibilities, behavior, ownership, lifecycle, and invariants in the present tense. Comments and active rules must be understandable without implementation history or an upstream reference.
