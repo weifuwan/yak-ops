@@ -127,6 +127,66 @@ class EmbeddedExecutionLifecycleTest {
     }
 
     @Test
+    void sourceMustWaitForDownstreamEndOfDataProcessingBeforePhysicalCompletion() throws Exception {
+        List<String> trace = new CopyOnWriteArrayList<>();
+        TestSource source = new TestSource(true, List.of("row"), trace);
+        CountDownLatch flushEntered = new CountDownLatch(1);
+        CountDownLatch releaseFlush = new CountDownLatch(1);
+        AtomicInteger finalFlushes = new AtomicInteger();
+        AtomicInteger closedWriters = new AtomicInteger();
+        Sink<String> sink = context -> new SinkWriter<>() {
+            @Override
+            public void write(String value, Context recordContext) {}
+
+            @Override
+            public void flush(boolean endOfInput) throws Exception {
+                if (endOfInput) {
+                    flushEntered.countDown();
+                    if (!releaseFlush.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("Timed out waiting for Sink finish");
+                    }
+                    finalFlushes.incrementAndGet();
+                }
+            }
+
+            @Override
+            public void close() {
+                closedWriters.incrementAndGet();
+            }
+        };
+        Configuration configuration = config(1);
+        SourceTransformation<String> input = new SourceTransformation<>(
+                "source", source, String.class, 1);
+        StreamGraph graph = new StreamGraphGenerator(
+                new SinkTransformation<>(input, "sink", sink, 2), configuration).generate();
+        EmbeddedJobClient job = (EmbeddedJobClient) new EmbeddedPipelineExecutor()
+                .execute(graph, configuration).get(5, TimeUnit.SECONDS);
+
+        try {
+            assertTrue(flushEntered.await(5, TimeUnit.SECONDS));
+            assertEquals(JobStatus.RUNNING, job.getJobStatus().get(5, TimeUnit.SECONDS));
+            assertEquals(
+                    io.yak.ops.flow.runtime.executiongraph.ExecutionState.RUNNING,
+                    job.getExecutionGraph().getJobVertices().getFirst()
+                            .getTaskVertex(0).getCurrentExecutionAttempt().getState(),
+                    "Source must remain alive until downstream acknowledges EndOfData");
+            assertEquals(0, finalFlushes.get());
+
+            releaseFlush.countDown();
+            job.getJobExecutionResult().get(5, TimeUnit.SECONDS);
+            assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+            assertEquals(2, finalFlushes.get());
+            assertEquals(2, closedWriters.get());
+            assertTrue(source.readerClosed.get());
+        } finally {
+            releaseFlush.countDown();
+            if (!job.getJobExecutionResult().isDone()) {
+                job.cancel().get(5, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Test
     void shouldSupportDirectSourceSinkAndIndependentJobSubmissions() throws Exception {
         TestSource source = new TestSource(true, List.of("one", "two"), new CopyOnWriteArrayList<>());
         TestSink sink = new TestSink(false, new CopyOnWriteArrayList<>());
