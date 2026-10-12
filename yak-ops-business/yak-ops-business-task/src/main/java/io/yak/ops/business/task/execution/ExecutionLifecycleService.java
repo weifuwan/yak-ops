@@ -1,6 +1,7 @@
 package io.yak.ops.business.task.execution;
 
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
+import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.task.AttemptEntity;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
@@ -73,6 +74,14 @@ public interface ExecutionLifecycleService {
      * @return recent Workspace-owned runs
      */
     List<InstanceEntity> recent(String workspaceId, int limit);
+
+    /**
+     * @param workspaceId authorized Workspace
+     * @param pageNo one-based page number
+     * @param pageSize bounded page size
+     * @return Workspace-owned Instance page
+     */
+    PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize);
 
     /** @param currentOwner current embedded JVM incarnation that has obtained the OS process lock */
     void reconcilePrevious(String currentOwner);

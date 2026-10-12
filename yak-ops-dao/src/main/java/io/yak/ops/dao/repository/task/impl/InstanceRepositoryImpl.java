@@ -1,8 +1,10 @@
 package io.yak.ops.dao.repository.task.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.common.enums.task.TaskTriggerType;
+import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.dao.mapper.task.InstanceMapper;
 import io.yak.ops.dao.repository.task.InstanceRepository;
@@ -53,6 +55,22 @@ public class InstanceRepositoryImpl implements InstanceRepository {
                 .eq(InstanceEntity::getWorkspaceId, workspaceId)
                 .orderByDesc(InstanceEntity::getCreateTime)
                 .last("LIMIT " + Math.max(1, Math.min(200, limit))));
+    }
+
+    @Override
+    public PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize) {
+        Page<InstanceEntity> page = new Page<>(pageNo, pageSize);
+        var selected = mapper.selectPage(
+                page,
+                Wrappers.<InstanceEntity>lambdaQuery()
+                        .eq(InstanceEntity::getWorkspaceId, workspaceId)
+                        .orderByDesc(InstanceEntity::getCreateTime));
+        return new PageData<>(
+                selected.getRecords(),
+                selected.getTotal(),
+                selected.getPages(),
+                selected.getCurrent(),
+                selected.getSize());
     }
 
     @Override

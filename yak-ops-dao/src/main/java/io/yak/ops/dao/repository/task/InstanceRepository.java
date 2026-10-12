@@ -1,6 +1,7 @@
 package io.yak.ops.dao.repository.task;
 
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
+import io.yak.ops.common.page.PageData;
 import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import java.util.List;
@@ -42,6 +43,14 @@ public interface InstanceRepository {
      * @return recent Instances ordered by creation time
      */
     List<InstanceEntity> recent(String workspaceId, int limit);
+
+    /**
+     * @param workspaceId authorized Workspace
+     * @param pageNo one-based page number
+     * @param pageSize maximum page size
+     * @return Workspace-owned Task Instance page
+     */
+    PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize);
 
     /**
      * Transitions only an admitted SUBMITTED Instance to RUNNING.
