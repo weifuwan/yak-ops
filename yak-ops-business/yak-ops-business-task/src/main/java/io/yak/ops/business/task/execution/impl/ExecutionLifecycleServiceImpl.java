@@ -163,7 +163,8 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
     @Override
     public List<PendingRun> pendingRuns() {
         return attempts.pending().stream()
-                .filter(attempt -> instances.findById(attempt.getWorkspaceId(), attempt.getInstanceId())
+                .filter(attempt -> instances
+                        .findById(attempt.getWorkspaceId(), attempt.getInstanceId())
                         .map(instance -> instance.getStatus() == TaskInstanceStatus.SUBMITTED)
                         .orElse(false))
                 .map(attempt -> new PendingRun(attempt.getWorkspaceId(), attempt.getInstanceId()))
