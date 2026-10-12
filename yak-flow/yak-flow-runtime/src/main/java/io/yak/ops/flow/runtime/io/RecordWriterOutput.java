@@ -9,6 +9,7 @@ import io.yak.ops.flow.runtime.io.partitioner.KeyedPartitioner;
 import io.yak.ops.flow.runtime.io.partitioner.RebalancePartitioner;
 import io.yak.ops.flow.runtime.io.partitioner.StreamPartitioner;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * StreamTask's output adapter. Chooses a target with a StreamPartitioner, then sends the record to
@@ -18,6 +19,7 @@ public final class RecordWriterOutput<T> implements ReaderOutput<T> {
 
     private final ResultPartition<T> partition;
     private final StreamPartitioner<T> partitioner;
+    private boolean dataFinished;
     private boolean finished;
 
     public RecordWriterOutput(
@@ -54,8 +56,8 @@ public final class RecordWriterOutput<T> implements ReaderOutput<T> {
 
     @Override
     public void collect(T record) throws Exception {
-        if (finished) {
-            throw new IllegalStateException("RecordWriterOutput finished");
+        if (dataFinished || finished) {
+            throw new IllegalStateException("Cannot emit data after EndOfData or physical finish");
         }
         Objects.requireNonNull(record, "record");
         int channel = partitioner.selectChannel(record, partition.getNumberOfSubpartitions());
@@ -68,6 +70,15 @@ public final class RecordWriterOutput<T> implements ReaderOutput<T> {
             throw new IllegalStateException("RecordWriterOutput finished");
         }
         partition.broadcastBarrier(checkpointId);
+    }
+
+    /** Stops emitting records, but keeps the channel open for checkpoint control events. */
+    public CompletableFuture<Void> endData() {
+        if (dataFinished || finished) {
+            throw new IllegalStateException("RecordWriterOutput has already ended data or finished");
+        }
+        dataFinished = true;
+        return partition.endData();
     }
 
     public void finish() {
