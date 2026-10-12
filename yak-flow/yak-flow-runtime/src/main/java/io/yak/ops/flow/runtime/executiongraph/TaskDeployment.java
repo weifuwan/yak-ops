@@ -20,6 +20,7 @@ import io.yak.ops.flow.runtime.jobgraph.JobVertex;
 import io.yak.ops.flow.runtime.operators.OperatorChain;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
+import io.yak.ops.flow.runtime.tasks.FinishedOnRestoreStreamTask;
 import io.yak.ops.flow.runtime.tasks.OneInputStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
 import io.yak.ops.flow.runtime.tasks.StreamTask;
@@ -28,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -80,7 +82,7 @@ final class TaskDeployment {
                     }
                 });
             }
-            if (!jobGraph.isSingleChainedVertex()) {
+            if (coordinator != null && !jobGraph.isSingleChainedVertex()) {
                 coordinator.terminationFuture().whenComplete((unused, error) -> {
                     if (error != null) {
                         failJob(unwrap(error));
@@ -89,7 +91,9 @@ final class TaskDeployment {
             }
 
             ensureNotCancelled();
-            await(coordinator.start());
+            if (coordinator != null) {
+                await(coordinator.start());
+            }
             // Physical vertices are deployed in reverse order: consumers before their producers.
             for (Execution execution : executions) {
                 ensureNotCancelled();
@@ -111,7 +115,9 @@ final class TaskDeployment {
             if (checkpointCoordinator != null) {
                 await(checkpointCoordinator.awaitPendingCheckpoints());
             }
-            await(coordinator.awaitSourceEventDeliveries());
+            if (coordinator != null) {
+                await(coordinator.awaitSourceEventDeliveries());
+            }
             Throwable failure = firstFailure.get();
             if (failure != null) {
                 throwFailure(failure);
@@ -150,10 +156,7 @@ final class TaskDeployment {
                                 jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM)))
                         .orElseThrow(() -> new IllegalStateException("状态目录没有可恢复的完整 Checkpoint"));
                 if (restoredCheckpoint.hasFinishedOperators()) {
-                    // PR3 provides the physical finished-on-restore control Tasks.
-                    // Ordinary Reader/Writer deployment would replay finished business work.
-                    throw new UnsupportedOperationException(
-                            "Checkpoint contains finished operators; Finished-on-Restore is not yet supported");
+                    validateFinishedRestore(restoredCheckpoint);
                 }
             }
         }
@@ -171,6 +174,11 @@ final class TaskDeployment {
                 inputGates.add(inputGate);
             }
             inputs.add(List.copyOf(stageGates));
+        }
+
+        if (restoredCheckpoint != null && restoredCheckpoint.hasFinishedOperators()) {
+            assembleFinishedOnRestore(vertices, edges, inputs);
+            return;
         }
 
         for (int index = vertices.size() - 1; index >= 1; index--) {
@@ -248,6 +256,49 @@ final class TaskDeployment {
                     restoredCheckpoint,
                     executionGraph::isCancellationRequested,
                     this::failJob);
+            if (checkpointCoordinator.requiresFinalCheckpoint()) {
+                CompletableFuture<Void> completed = checkpointCoordinator.finalCheckpointFuture();
+                for (SourceOperatorStreamTask<Object, SourceSplit> task : sourceTasks) {
+                    task.requireFinalCheckpoint(completed);
+                }
+                for (OneInputStreamTask task : inputTasks) {
+                    task.requireFinalCheckpoint(completed);
+                }
+            }
+        }
+    }
+
+    private void validateFinishedRestore(CheckpointSnapshot snapshot) {
+        Set<String> expected = jobGraph.getVertices().stream()
+                .map(vertex -> vertex.getHeadOperator().getUid())
+                .collect(java.util.stream.Collectors.toSet());
+        if (!snapshot.fullyFinishedOperators().equals(expected)
+                || !snapshot.finishedSubtasks().isEmpty()
+                || !snapshot.operatorStates().isEmpty()) {
+            throw new UnsupportedOperationException(
+                    "Finished-on-Restore requires a completely finished terminal checkpoint");
+        }
+    }
+
+    /** Recreates only the network termination protocol of an already completed bounded job. */
+    private void assembleFinishedOnRestore(
+            List<JobVertex> vertices, List<JobEdge> edges, List<List<InputGate<Object>>> inputs) {
+        for (int index = vertices.size() - 1; index >= 0; index--) {
+            JobVertex vertex = vertices.get(index);
+            for (int subtask = 0; subtask < vertex.getParallelism(); subtask++) {
+                Execution execution = executionGraph.currentExecution(vertex.getId(), subtask);
+                InputGate<Object> input = index == 0 ? null : inputs.get(index - 1).get(subtask);
+                RecordWriterOutput<Object> output = null;
+                if (index < vertices.size() - 1) {
+                    output = new RecordWriterOutput<>(
+                            edges.get(index).streamEdge(),
+                            subtask,
+                            vertex.getParallelism(),
+                            new ResultPartition<>(subtask, inputs.get(index)),
+                            jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM));
+                }
+                bind(execution, new FinishedOnRestoreStreamTask(environment(execution), input, output));
+            }
         }
     }
 
