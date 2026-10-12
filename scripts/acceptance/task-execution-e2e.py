@@ -54,7 +54,7 @@ class Client:
     def login(self):
         self.call(
             "POST", "/yak-security/api/v1/account/login",
-            {"userName": "task-e2e", "pw": USER_PASSWORD})
+            {"userName": "taske2e", "pw": USER_PASSWORD})
 
 
 def query_mysql(sql):
@@ -94,7 +94,7 @@ def boot():
             "?useSSL=false&allowPublicKeyRetrieval=true"),
         "YAK_DATABASE_USERNAME": "root",
         "YAK_DATABASE_PASSWORD": DB_PASSWORD,
-        "YAK_SECURITY_BOOTSTRAP_USERNAME": "task-e2e",
+        "YAK_SECURITY_BOOTSTRAP_USERNAME": "taske2e",
         "YAK_SECURITY_BOOTSTRAP_PASSWORD": USER_PASSWORD,
         "YAK_SECURITY_BOOTSTRAP_REAL_NAME": "Task acceptance",
         "YAK_LOG_FILE": "/tmp/yak-task-e2e-application.log",
