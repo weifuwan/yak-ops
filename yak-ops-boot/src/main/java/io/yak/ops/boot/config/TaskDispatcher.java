@@ -172,15 +172,6 @@ public class TaskDispatcher implements AutoCloseable {
             submitted.whenCompleteAsync(
                     (handle, error) -> observeSubmission(launched, handle, error), workers);
         } catch (RuntimeException failure) {
-                    lifecycle.uncertain(launched);
-                    active.remove(instanceId, handle);
-                    LOG.error(
-                            "Unable to observe Task execution, instanceId={}, exceptionType={}",
-                            instanceId,
-                            failure.getClass().getSimpleName());
-                }
-            }, workers);
-        } catch (RuntimeException failure) {
             if (ticket != null) {
                 if (physicalStartInvoked) {
                     lifecycle.uncertain(ticket);
