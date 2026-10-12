@@ -41,7 +41,9 @@ public abstract class StreamTask implements AutoCloseable {
     private boolean inputFinished;
     private boolean finished;
     private boolean readyWithoutInput;
+    private final CompletableFuture<Void> endOfDataReached = new CompletableFuture<>();
     private CompletableFuture<Void> dataAcknowledged = CompletableFuture.completedFuture(null);
+    private CompletableFuture<Void> finalCheckpointCompleted = CompletableFuture.completedFuture(null);
 
     protected StreamTask(TaskEnvironment environment) {
         TaskEnvironment original = Objects.requireNonNull(environment, "environment 不能为空");
@@ -89,6 +91,26 @@ public abstract class StreamTask implements AutoCloseable {
         return dataFinished;
     }
 
+    /** Invoked before starting a bounded Task whose physical exit requires a terminal checkpoint. */
+    public final void requireFinalCheckpoint(CompletableFuture<Void> completed) {
+        synchronized (lifecycleLock) {
+            if (startRequested) {
+                throw new IllegalStateException("Final checkpoint fence must be set before task start");
+            }
+            finalCheckpointCompleted = Objects.requireNonNull(completed, "completed");
+        }
+    }
+
+    /** Signals successful logical operator completion, independently of physical task termination. */
+    public final CompletableFuture<Void> endOfDataFuture() {
+        return endOfDataReached.copy();
+    }
+
+    /** Includes downstream acknowledgment of every final record emitted by this Task. */
+    public final CompletableFuture<Void> allDataProcessedFuture() {
+        return endOfDataReached.thenCompose(unused -> dataAcknowledged).copy();
+    }
+
     /** Completes business input on the mailbox thread, without shutting down control processing. */
     protected final void endData() throws Exception {
         if (dataFinished) {
@@ -99,6 +121,7 @@ public abstract class StreamTask implements AutoCloseable {
         checkStop();
         dataAcknowledged = Objects.requireNonNull(endOfDataAcknowledgement(), "Missing EndOfData acknowledgment");
         dataFinished = true;
+        endOfDataReached.complete(null);
     }
 
     /** Close every resource acquired by openTask or input processing. */
@@ -269,9 +292,10 @@ public abstract class StreamTask implements AutoCloseable {
     }
 
     private void finishPhysicalTask(MailboxDefaultAction.Controller controller) throws Exception {
-        if (!dataAcknowledged.isDone()) {
+        CompletableFuture<Void> ready = CompletableFuture.allOf(dataAcknowledged, finalCheckpointCompleted);
+        if (!ready.isDone()) {
             MailboxDefaultAction.Suspension suspension = controller.suspendDefaultAction();
-            dataAcknowledged.whenComplete((unused, error) -> {
+            ready.whenComplete((unused, error) -> {
                 if (error != null) {
                     failAsync(error);
                 }
@@ -279,7 +303,7 @@ public abstract class StreamTask implements AutoCloseable {
             });
             return;
         }
-        dataAcknowledged.join();
+        ready.join();
         checkStop();
         finishOutput();
         checkStop();
