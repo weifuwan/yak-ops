@@ -62,6 +62,7 @@ public final class OneInputStreamTask extends StreamTask {
             }
         }
     }
+
     private OneInputStreamOperator<Object, Object> operator;
     private volatile SinkWriterOperator<Object> sinkOperator;
     private StreamOperator activeOperator;
