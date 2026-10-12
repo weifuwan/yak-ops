@@ -59,7 +59,8 @@ public class DataSourceEntityRepositoryImpl extends BaseRepositoryImpl<DataSourc
                 entity,
                 Wrappers.<DataSourceEntity>lambdaUpdate()
                         .eq(DataSourceEntity::getWorkspaceId, workspaceId)
-                        .eq(DataSourceEntity::getId, entity.getId()));
+                        .eq(DataSourceEntity::getId, entity.getId())
+                        .setSql("revision = revision + 1"));
         return updated > 0 ? entity : null;
     }
 

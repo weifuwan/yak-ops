@@ -1,5 +1,7 @@
 package io.yak.ops.dao.entity.datasource;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.yak.ops.common.enums.datasource.DataSourceConnStatus;
 import io.yak.ops.common.enums.datasource.DataSourceEnvironment;
@@ -28,6 +30,10 @@ public class DataSourceEntity extends BaseEntity {
 
     /** JDBC connection URL. */
     private String jdbcUrl;
+
+    /** Monotonic binding revision incremented on every datasource update. */
+    @TableField(updateStrategy = FieldStrategy.NEVER)
+    private Long revision;
 
     /** Environment assigned to the datasource. */
     private DataSourceEnvironment environment;
