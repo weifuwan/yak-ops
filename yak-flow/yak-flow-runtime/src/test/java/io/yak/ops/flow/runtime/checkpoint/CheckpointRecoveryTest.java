@@ -417,7 +417,6 @@ class CheckpointRecoveryTest {
         source.enableBoundedInput();
         CapturedSink sink = new CapturedSink();
         Configuration config = configuration(false);
-        config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
         EmbeddedJobClient job = (EmbeddedJobClient) new EmbeddedPipelineExecutor()
                 .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
         awaitCount(sink.rows, 6);
@@ -444,7 +443,6 @@ class CheckpointRecoveryTest {
         source.enableBoundedInput();
         CapturedSink sink = new CapturedSink();
         Configuration config = configuration(false);
-        config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
         JobClient first = new EmbeddedPipelineExecutor()
                 .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
         awaitCount(sink.rows, 4);
@@ -456,7 +454,6 @@ class CheckpointRecoveryTest {
         restoredSource.enableBoundedInput();
         CapturedSink restoredSink = new CapturedSink();
         Configuration restore = configuration(true);
-        restore.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
         JobClient second = new EmbeddedPipelineExecutor()
                 .execute(graph(restoredSource, restoredSink), restore).get(5, TimeUnit.SECONDS);
         second.getJobExecutionResult().get(10, TimeUnit.SECONDS);
@@ -476,7 +473,6 @@ class CheckpointRecoveryTest {
         source.failNextEnumeratorCompletion();
         CapturedSink sink = new CapturedSink();
         Configuration config = configuration(false);
-        config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
         config.set(ExecutionOptions.MAX_RESTART_ATTEMPTS, 1);
         JobClient job = new EmbeddedPipelineExecutor()
                 .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
@@ -503,7 +499,6 @@ class CheckpointRecoveryTest {
         source.enableBoundedInput();
         CapturedSink sink = new CapturedSink();
         Configuration config = configuration(false);
-        config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
         JobClient job = new EmbeddedPipelineExecutor()
                 .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
         awaitCount(sink.rows, 4);
