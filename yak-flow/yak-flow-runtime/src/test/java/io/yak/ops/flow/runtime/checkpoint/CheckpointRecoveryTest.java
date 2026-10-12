@@ -523,6 +523,28 @@ class CheckpointRecoveryTest {
     }
 
     @Test
+    void transientFinalCheckpointDeclineRetriesOnceWithoutRepeatingSinkFinish() throws Exception {
+        OffsetSource source = new OffsetSource(2);
+        source.enableBoundedInput();
+        source.declineNextEnumeratorSnapshot();
+        CapturedSink sink = new CapturedSink();
+        JobClient job = new EmbeddedPipelineExecutor()
+                .execute(graph(source, sink), configuration(false)).get(5, TimeUnit.SECONDS);
+        awaitCount(sink.rows, 4);
+        source.releaseBoundedInput();
+        job.getJobExecutionResult().get(10, TimeUnit.SECONDS);
+
+        assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(2, source.enumeratorSnapshots.get(), "One safe in-attempt retry is allowed");
+        assertEquals(1, sink.finalFlushes.get(), "A checkpoint retry must not repeat final Sink flush");
+        try (FileCheckpointStore store = new FileCheckpointStore(checkpointDirectory)) {
+            assertEquals(2,
+                    store.loadLatest(FileCheckpointStore.graphSignature(graph(source, sink)))
+                            .orElseThrow().checkpointId());
+        }
+    }
+
+    @Test
     void failedRequiredFinalCheckpointMustNotFinishTheJobOrOverwriteAnOlderSnapshot() throws Exception {
         OffsetSource source = new OffsetSource(2, true);
         source.enableBoundedInput();
@@ -747,6 +769,9 @@ class CheckpointRecoveryTest {
         private final boolean failBeforeCheckpoint;
         private final AtomicInteger createdReaders = new AtomicInteger();
         private final AtomicInteger emittedRecords = new AtomicInteger();
+        private final AtomicInteger enumeratorSnapshots = new AtomicInteger();
+        private final java.util.concurrent.atomic.AtomicBoolean declineEnumeratorSnapshot =
+                new java.util.concurrent.atomic.AtomicBoolean();
         private final List<Integer> restoredOffsets = new CopyOnWriteArrayList<>();
         private final List<CompletableFuture<Void>> availabilityWaiters = new CopyOnWriteArrayList<>();
         private final java.util.concurrent.atomic.AtomicBoolean checkpointNotified =
@@ -790,6 +815,10 @@ class CheckpointRecoveryTest {
 
         private void failNextEnumeratorCompletion() {
             failEnumeratorCompletion.set(true);
+        }
+
+        private void declineNextEnumeratorSnapshot() {
+            declineEnumeratorSnapshot.set(true);
         }
 
         private void sendEventOnNextCheckpoint() {
@@ -854,7 +883,11 @@ class CheckpointRecoveryTest {
                 }
 
                 @Override
-                public Integer snapshotState(long checkpointId) {
+                public Integer snapshotState(long checkpointId) throws Exception {
+                    enumeratorSnapshots.incrementAndGet();
+                    if (declineEnumeratorSnapshot.compareAndSet(true, false)) {
+                        throw new CheckpointDeclinedException(checkpointId, "transient Enumerator snapshot decline");
+                    }
                     return assignedMask;
                 }
 
