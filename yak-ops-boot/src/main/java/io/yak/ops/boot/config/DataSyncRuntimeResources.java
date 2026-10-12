@@ -109,13 +109,15 @@ public class DataSyncRuntimeResources implements SyncRuntimeResources {
     }
 
     private String choose(String bound, String requested) {
-        if (bound != null && !bound.isBlank() && requested != null && !requested.isBlank()
+        if (bound != null
+                && !bound.isBlank()
+                && requested != null
+                && !requested.isBlank()
                 && !bound.equals(requested)) {
             throw new IllegalArgumentException("Selected namespace differs from datasource binding");
         }
         return requested == null || requested.isBlank() ? bound : requested;
     }
 
-    private record Binding(
-            DataSourceEntity entity, DataSourcePlugin plugin, DataSourceConnection connection) {}
+    private record Binding(DataSourceEntity entity, DataSourcePlugin plugin, DataSourceConnection connection) {}
 }

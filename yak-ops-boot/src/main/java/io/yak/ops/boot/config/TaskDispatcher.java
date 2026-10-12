@@ -129,9 +129,8 @@ public class TaskDispatcher implements AutoCloseable {
             physicalStartInvoked = true;
             executable.start(parameters, plan, context).whenComplete((handle, error) -> {
                 if (error != null) {
-                    Throwable cause = error instanceof java.util.concurrent.CompletionException
-                            ? error.getCause()
-                            : error;
+                    Throwable cause =
+                            error instanceof java.util.concurrent.CompletionException ? error.getCause() : error;
                     if (cause instanceof TaskStartRejectedException) {
                         lifecycle.complete(launched, TaskOutcome.FAILED);
                     } else {
@@ -161,8 +160,10 @@ public class TaskDispatcher implements AutoCloseable {
                 } catch (RuntimeException failure) {
                     lifecycle.uncertain(launched);
                     active.remove(instanceId, handle);
-                    LOG.error("Unable to observe Task execution, instanceId={}, exceptionType={}",
-                            instanceId, failure.getClass().getSimpleName());
+                    LOG.error(
+                            "Unable to observe Task execution, instanceId={}, exceptionType={}",
+                            instanceId,
+                            failure.getClass().getSimpleName());
                 }
             });
         } catch (RuntimeException failure) {
@@ -173,8 +174,10 @@ public class TaskDispatcher implements AutoCloseable {
                     lifecycle.complete(ticket, TaskOutcome.FAILED);
                 }
             }
-            LOG.error("Task dispatch failed, instanceId={}, exceptionType={}",
-                    instanceId, failure.getClass().getSimpleName());
+            LOG.error(
+                    "Task dispatch failed, instanceId={}, exceptionType={}",
+                    instanceId,
+                    failure.getClass().getSimpleName());
         }
     }
 
