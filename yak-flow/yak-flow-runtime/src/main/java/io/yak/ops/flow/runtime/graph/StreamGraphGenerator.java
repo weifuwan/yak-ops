@@ -39,7 +39,7 @@ public final class StreamGraphGenerator {
      * @param configuration the graph-planning configuration
      */
     public StreamGraphGenerator(SinkTransformation<?> sink, Configuration configuration) {
-        this(List.of(Objects.requireNonNull(sink, "sink 不能为空")), configuration);
+        this(List.of(Objects.requireNonNull(sink, "sink must not be null")), configuration);
     }
 
     /**
@@ -52,19 +52,19 @@ public final class StreamGraphGenerator {
      * @param configuration the graph-planning configuration
      */
     public StreamGraphGenerator(Collection<? extends SinkTransformation<?>> sinks, Configuration configuration) {
-        Objects.requireNonNull(sinks, "sinks 不能为空");
+        Objects.requireNonNull(sinks, "sinks must not be null");
         if (sinks.isEmpty()) {
-            throw new IllegalArgumentException("至少需要一个 SinkTransformation");
+            throw new IllegalArgumentException("At least one SinkTransformation is required");
         }
         List<SinkTransformation<?>> checkedSinks = new ArrayList<>();
         for (SinkTransformation<?> sink : sinks) {
             if (sink == null) {
-                throw new IllegalArgumentException("SinkTransformation 不能为空");
+                throw new IllegalArgumentException("SinkTransformation must not be null");
             }
             checkedSinks.add(sink);
         }
         this.sinks = List.copyOf(checkedSinks);
-        this.configuration = new Configuration(Objects.requireNonNull(configuration, "configuration 不能为空"));
+        this.configuration = new Configuration(Objects.requireNonNull(configuration, "configuration must not be null"));
     }
 
     /**
@@ -78,11 +78,11 @@ public final class StreamGraphGenerator {
     public StreamGraph generate() {
         Integer defaultParallelism = configuration.get(CoreOptions.DEFAULT_PARALLELISM);
         if (defaultParallelism == null || defaultParallelism <= 0) {
-            throw new IllegalArgumentException("parallelism.default 必须为正整数");
+            throw new IllegalArgumentException("parallelism.default must be positive");
         }
         Boolean generateUids = configuration.get(PipelineOptions.AUTO_GENERATE_UIDS);
         if (generateUids == null) {
-            throw new IllegalArgumentException("pipeline.auto-generate-uids 不能为空");
+            throw new IllegalArgumentException("pipeline.auto-generate-uids must not be null");
         }
 
         GraphVisitor visitor = new GraphVisitor(defaultParallelism, generateUids);
@@ -106,18 +106,18 @@ public final class StreamGraphGenerator {
      * @return BATCH or STREAMING for the current graph
      */
     public static RuntimeExecutionMode resolveRuntimeMode(StreamGraph graph, Configuration configuration) {
-        Objects.requireNonNull(graph, "graph 不能为空");
-        Objects.requireNonNull(configuration, "configuration 不能为空");
+        Objects.requireNonNull(graph, "graph must not be null");
+        Objects.requireNonNull(configuration, "configuration must not be null");
 
         RuntimeExecutionMode configured = configuration.get(ExecutionOptions.RUNTIME_MODE);
         if (configured == null) {
-            throw new IllegalArgumentException("execution.runtime-mode 不能为空");
+            throw new IllegalArgumentException("execution.runtime-mode must not be null");
         }
         return switch (configured) {
             case AUTOMATIC -> graph.isBounded() ? RuntimeExecutionMode.BATCH : RuntimeExecutionMode.STREAMING;
             case BATCH -> {
                 if (!graph.isBounded()) {
-                    throw new IllegalArgumentException("BATCH 模式不支持无界 Source");
+                    throw new IllegalArgumentException("BATCH execution mode does not support unbounded Sources");
                 }
                 yield RuntimeExecutionMode.BATCH;
             }
@@ -142,9 +142,10 @@ public final class StreamGraphGenerator {
         }
 
         private void visit(Transformation<?> transformation) {
-            Objects.requireNonNull(transformation, "Transformation 不能为空");
+            Objects.requireNonNull(transformation, "Transformation must not be null");
             if (visiting.contains(transformation)) {
-                throw new IllegalArgumentException("Transformation 存在循环依赖，节点 ID=" + transformation.getId());
+                throw new IllegalArgumentException(
+                        "Transformation contains a cycle, node ID=" + transformation.getId());
             }
             if (visited.contains(transformation)) {
                 return;
@@ -153,13 +154,15 @@ public final class StreamGraphGenerator {
             visiting.add(transformation);
             try {
                 List<Transformation<?>> inputs =
-                        Objects.requireNonNull(transformation.getInputs(), "getInputs() 不能返回 null");
+                        Objects.requireNonNull(transformation.getInputs(), "getInputs() must not return null");
                 for (Transformation<?> input : inputs) {
-                    visit(Objects.requireNonNull(input, "上游 Transformation 不能为空"));
+                    visit(Objects.requireNonNull(input, "Upstream Transformation must not be null"));
                 }
 
                 if (!autoGenerateUids && transformation.getUid() == null) {
-                    throw new IllegalArgumentException("关闭自动 UID 生成后，所有节点必须指定稳定 UID，节点 ID=" + transformation.getId());
+                    throw new IllegalArgumentException(
+                            "Stable operator UID is required when automatic UID generation is disabled, node ID="
+                                    + transformation.getId());
                 }
 
                 int parallelism = transformation.getParallelism() == Transformation.DEFAULT_PARALLELISM

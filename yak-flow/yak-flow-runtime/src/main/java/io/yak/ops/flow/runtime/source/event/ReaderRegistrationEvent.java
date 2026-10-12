@@ -7,7 +7,7 @@ public record ReaderRegistrationEvent(int subtaskId, int attemptNumber) implemen
 
     public ReaderRegistrationEvent {
         if (subtaskId < 0 || attemptNumber < 0) {
-            throw new IllegalArgumentException("Reader 注册身份不能为负数");
+            throw new IllegalArgumentException("Reader registration identity must not be negative");
         }
     }
 }

@@ -36,8 +36,8 @@ public final class SinkTransformation<T> extends Transformation<Void> {
 
     public SinkTransformation(Transformation<T> input, String name, Sink<T> sink, int parallelism) {
         super(name, Void.class, parallelism);
-        this.input = Objects.requireNonNull(input, "input 不能为空");
-        this.sink = Objects.requireNonNull(sink, "sink 不能为空");
+        this.input = Objects.requireNonNull(input, "input must not be null");
+        this.sink = Objects.requireNonNull(sink, "sink must not be null");
     }
 
     /** Returns the single upstream transformation. */
@@ -57,9 +57,9 @@ public final class SinkTransformation<T> extends Transformation<Void> {
 
     /** Selects FORWARD or REBALANCE routing; default routing depends on parallelism. */
     public final void setInputPartitioning(StreamPartitioning partitioning) {
-        Objects.requireNonNull(partitioning, "partitioning 不能为空");
+        Objects.requireNonNull(partitioning, "partitioning must not be null");
         if (partitioning == StreamPartitioning.KEYED) {
-            throw new IllegalArgumentException("KEYED 分区必须通过 keyBy() 提供稳定主键");
+            throw new IllegalArgumentException("KEYED partitioning requires a stable key provided through keyBy()");
         }
         this.inputPartitioning = partitioning;
         this.inputKeySelector = null;
@@ -67,7 +67,7 @@ public final class SinkTransformation<T> extends Transformation<Void> {
 
     /** Uses a stable business key, such as a CDC primary key, for subtask affinity. */
     public final void keyBy(KeySelector<T> keySelector) {
-        this.inputKeySelector = Objects.requireNonNull(keySelector, "keySelector 不能为空");
+        this.inputKeySelector = Objects.requireNonNull(keySelector, "keySelector must not be null");
         this.inputPartitioning = StreamPartitioning.KEYED;
     }
 

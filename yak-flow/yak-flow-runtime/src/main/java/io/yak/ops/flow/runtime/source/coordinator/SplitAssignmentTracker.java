@@ -25,18 +25,19 @@ public final class SplitAssignmentTracker<SplitT extends SourceSplit> {
                 || split == null
                 || split.splitId() == null
                 || split.splitId().isBlank()) {
-            throw new IllegalArgumentException("分片分配参数无效");
+            throw new IllegalArgumentException("Invalid split assignment parameters");
         }
         LinkedHashMap<String, SplitT> splits = outstanding.computeIfAbsent(subtaskId, ignored -> new LinkedHashMap<>());
         if (splits.putIfAbsent(split.splitId(), split) != null) {
-            throw new IllegalArgumentException("分片尚未 Checkpoint 就发生重复分配：" + split.splitId());
+            throw new IllegalArgumentException(
+                    "Split was reassigned before its checkpoint completed: " + split.splitId());
         }
     }
 
     /** Freezes outstanding assignments at this checkpoint boundary. */
     public Map<Integer, List<SplitT>> snapshot(long checkpointId) {
         if (checkpointId < 0 || checkpointSnapshots.containsKey(checkpointId)) {
-            throw new IllegalArgumentException("checkpointId 无效或重复");
+            throw new IllegalArgumentException("Invalid or duplicate checkpoint ID");
         }
         Map<Integer, List<SplitT>> snapshot = new LinkedHashMap<>();
         outstanding.forEach((id, splits) -> snapshot.put(id, List.copyOf(splits.values())));
@@ -49,7 +50,7 @@ public final class SplitAssignmentTracker<SplitT extends SourceSplit> {
     public void notifyCheckpointComplete(long checkpointId) {
         Map<Integer, List<SplitT>> covered = checkpointSnapshots.get(checkpointId);
         if (covered == null) {
-            throw new IllegalArgumentException("未知的 Coordinator Checkpoint：" + checkpointId);
+            throw new IllegalArgumentException("Unknown coordinator checkpoint: " + checkpointId);
         }
         covered.forEach((id, splits) -> {
             Map<String, SplitT> current = outstanding.get(id);

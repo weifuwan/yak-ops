@@ -59,7 +59,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         owner.initCreate(operatorId);
         workspaceMemberRepository.add(owner);
 
-        LOG.info("工作空间创建完成，workspaceId={}, ownerUserId={}", workspace.getId(), operatorId);
+        LOG.info("Workspace created, workspaceId={}, ownerUserId={}", workspace.getId(), operatorId);
         return toWorkspaceVO(workspace, owner.getRole());
     }
 
@@ -116,7 +116,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         workspaceMemberRepository.add(member);
 
         LOG.info(
-                "工作空间成员添加完成，workspaceId={}, userId={}, role={}, operatorUserId={}",
+                "Workspace member added, workspaceId={}, userId={}, role={}, operatorUserId={}",
                 workspaceId,
                 memberUserId,
                 targetRole,
@@ -142,7 +142,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         workspaceMemberRepository.update(target);
 
         LOG.info(
-                "工作空间成员角色更新完成，workspaceId={}, userId={}, role={}, operatorUserId={}",
+                "Workspace member role updated, workspaceId={}, userId={}, role={}, operatorUserId={}",
                 workspaceId,
                 target.getUserId(),
                 targetRole,
@@ -167,7 +167,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         }
 
         LOG.info(
-                "工作空间成员移除完成，workspaceId={}, userId={}, operatorUserId={}",
+                "Workspace member removed, workspaceId={}, userId={}, operatorUserId={}",
                 workspaceId,
                 target.getUserId(),
                 operatorUserId);

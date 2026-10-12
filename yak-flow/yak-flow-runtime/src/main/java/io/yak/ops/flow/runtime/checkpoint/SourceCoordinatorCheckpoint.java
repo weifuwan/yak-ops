@@ -25,14 +25,15 @@ public record SourceCoordinatorCheckpoint<SplitT extends SourceSplit, EnumStateT
 
     public SourceCoordinatorCheckpoint {
         if (checkpointId < 0) {
-            throw new IllegalArgumentException("checkpointId 不能为负数");
+            throw new IllegalArgumentException("checkpointId must not be negative");
         }
-        Objects.requireNonNull(enumeratorState, "enumeratorState 不能为空");
-        Objects.requireNonNull(assignedSinceLastCompletedCheckpoint, "assignedSinceLastCompletedCheckpoint 不能为空");
+        Objects.requireNonNull(enumeratorState, "enumeratorState must not be null");
+        Objects.requireNonNull(
+                assignedSinceLastCompletedCheckpoint, "assignedSinceLastCompletedCheckpoint must not be null");
         Map<Integer, List<SplitT>> copy = new LinkedHashMap<>();
         assignedSinceLastCompletedCheckpoint.forEach((id, splits) -> {
             if (id == null || id < 0) {
-                throw new IllegalArgumentException("子任务编号无效");
+                throw new IllegalArgumentException("Invalid subtask index");
             }
             copy.put(id, List.copyOf(splits));
         });

@@ -85,7 +85,11 @@ public class DataSourceServiceImpl implements DataSourceService {
         if (repository.add(entity) == null) {
             throw new DataSourceException(DataSourceErrorCode.CREATE_FAILED);
         }
-        LOG.info("数据源创建完成，workspaceId={}, dataSourceId={}, type={}", workspaceId, entity.getId(), entity.getDbType());
+        LOG.info(
+                "Datasource created, workspaceId={}, dataSourceId={}, type={}",
+                workspaceId,
+                entity.getId(),
+                entity.getDbType());
         return true;
     }
 
@@ -119,7 +123,7 @@ public class DataSourceServiceImpl implements DataSourceService {
             throw new DataSourceException(DataSourceErrorCode.UPDATE_FAILED);
         }
         LOG.info(
-                "数据源更新完成，workspaceId={}, dataSourceId={}, type={}",
+                "Datasource updated, workspaceId={}, dataSourceId={}, type={}",
                 workspaceId,
                 existing.getId(),
                 existing.getDbType());
@@ -248,7 +252,7 @@ public class DataSourceServiceImpl implements DataSourceService {
             throw new DataSourceException(DataSourceErrorCode.DELETE_FAILED);
         }
         LOG.info(
-                "数据源删除完成，workspaceId={}, dataSourceId={}, type={}",
+                "Datasource deleted, workspaceId={}, dataSourceId={}, type={}",
                 workspaceId,
                 existing.getId(),
                 existing.getDbType());
@@ -265,7 +269,7 @@ public class DataSourceServiceImpl implements DataSourceService {
                 throw new DataSourceException(DataSourceErrorCode.DELETE_FAILED);
             }
         }
-        LOG.info("数据源批量删除完成，workspaceId={}, count={}", workspaceId, entities.size());
+        LOG.info("Datasource batch deletion completed, workspaceId={}, count={}", workspaceId, entities.size());
         return true;
     }
 
@@ -312,7 +316,7 @@ public class DataSourceServiceImpl implements DataSourceService {
             results.add(toBatchConnectTestResult(entity.getId(), connected));
         }
         LOG.info(
-                "数据源批量连接测试完成，workspaceId={}, total={}, success={}, failed={}",
+                "Datasource batch connection tests completed, workspaceId={}, total={}, success={}, failed={}",
                 workspaceId,
                 entities.size(),
                 successCount,

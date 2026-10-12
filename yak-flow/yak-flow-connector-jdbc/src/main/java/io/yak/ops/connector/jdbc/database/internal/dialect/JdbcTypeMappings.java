@@ -19,10 +19,11 @@ final class JdbcTypeMappings {
         Integer scale = LogicalTypes.decimalScale(decimal);
 
         if (precision != null && precision > maxPrecision) {
-            throw new UnsupportedOperationException(nativeName + " 最大 precision=" + maxPrecision + "，当前为 " + precision);
+            throw new UnsupportedOperationException(
+                    nativeName + " maximum precision=" + maxPrecision + ", actual=" + precision);
         }
         if (scale != null && scale > maxScale) {
-            throw new UnsupportedOperationException(nativeName + " 最大 scale=" + maxScale + "，当前为 " + scale);
+            throw new UnsupportedOperationException(nativeName + " maximum scale=" + maxScale + ", actual=" + scale);
         }
         if (precision != null && scale != null) {
             return JdbcNativeType.of(nativeName + "(" + precision + "," + scale + ")");
@@ -39,7 +40,8 @@ final class JdbcTypeMappings {
                     default -> throw new IllegalArgumentException("Expected temporal logical type");
                 };
         if (precision > maximum) {
-            throw new UnsupportedOperationException(nativeName + " 最大时间精度=" + maximum + "，当前为 " + precision);
+            throw new UnsupportedOperationException(
+                    nativeName + " maximum temporal precision=" + maximum + ", actual=" + precision);
         }
         return precision;
     }

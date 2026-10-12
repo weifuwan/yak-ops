@@ -34,22 +34,22 @@ public final class StreamGraph implements Pipeline {
     private final List<StreamNode> topologicalNodes;
 
     public StreamGraph(Collection<StreamNode> streamNodes, Collection<StreamEdge> streamEdges) {
-        Objects.requireNonNull(streamNodes, "streamNodes 不能为空");
-        Objects.requireNonNull(streamEdges, "streamEdges 不能为空");
+        Objects.requireNonNull(streamNodes, "streamNodes must not be null");
+        Objects.requireNonNull(streamEdges, "streamEdges must not be null");
 
         Map<Integer, StreamNode> byId = new LinkedHashMap<>();
         Set<String> uids = new HashSet<>();
         for (StreamNode node : streamNodes) {
-            Objects.requireNonNull(node, "StreamNode 不能为空");
+            Objects.requireNonNull(node, "StreamNode must not be null");
             if (byId.putIfAbsent(node.getId(), node) != null) {
-                throw new IllegalArgumentException("StreamNode ID 重复：" + node.getId());
+                throw new IllegalArgumentException("Duplicate StreamNode ID: " + node.getId());
             }
             if (node.getUid() != null && !uids.add(node.getUid())) {
-                throw new IllegalArgumentException("稳定算子 UID 重复：" + node.getUid());
+                throw new IllegalArgumentException("Duplicate stable operator UID: " + node.getUid());
             }
         }
         if (byId.isEmpty()) {
-            throw new IllegalArgumentException("StreamGraph 至少需要一个节点");
+            throw new IllegalArgumentException("StreamGraph requires at least one node");
         }
 
         Map<Integer, List<StreamEdge>> in = new LinkedHashMap<>();
@@ -62,27 +62,29 @@ public final class StreamGraph implements Pipeline {
         Set<Long> seen = new HashSet<>();
         List<StreamEdge> checkedEdges = new ArrayList<>();
         for (StreamEdge edge : streamEdges) {
-            Objects.requireNonNull(edge, "StreamEdge 不能为空");
+            Objects.requireNonNull(edge, "StreamEdge must not be null");
             StreamNode source = byId.get(edge.sourceId());
             StreamNode target = byId.get(edge.targetId());
             if (source == null || target == null) {
-                throw new IllegalArgumentException("StreamEdge 引用了不存在的节点：" + edge);
+                throw new IllegalArgumentException("StreamEdge references a missing node: " + edge);
             }
             long edgeIdentity = ((long) edge.sourceId() << 32) | (edge.targetId() & 0xffffffffL);
             if (!seen.add(edgeIdentity)) {
-                throw new IllegalArgumentException("相同 Source/Target 不允许重复连接：" + edge);
+                throw new IllegalArgumentException("Duplicate source-to-target edge: " + edge);
             }
             if (edge.partitioning() == StreamPartitioning.FORWARD
                     && source.getParallelism() != target.getParallelism()) {
-                throw new IllegalArgumentException("FORWARD 要求上下游并行度相同：" + edge);
+                throw new IllegalArgumentException(
+                        "FORWARD partitioning requires equal upstream and downstream parallelism: " + edge);
             }
             if (source.isSink() || target.isSource()) {
-                throw new IllegalArgumentException("不允许从 Sink 输出或向 Source 输入：" + edge);
+                throw new IllegalArgumentException(
+                        "Edges cannot originate from Sinks or terminate at Sources: " + edge);
             }
             Class<?> expectedInput = target.getInputType().orElseThrow();
             if (!expectedInput.isAssignableFrom(source.getOutputType())) {
-                throw new IllegalArgumentException("数据类型不兼容："
-                        + source.getOutputType().getName() + " -> " + expectedInput.getName() + "，边=" + edge);
+                throw new IllegalArgumentException("Incompatible data types: "
+                        + source.getOutputType().getName() + " -> " + expectedInput.getName() + ", edge=" + edge);
             }
             checkedEdges.add(edge);
             out.get(edge.sourceId()).add(edge);
@@ -96,24 +98,26 @@ public final class StreamGraph implements Pipeline {
             int outDegree = out.get(node.getId()).size();
             if (node.isSource()) {
                 if (inDegree != 0 || outDegree == 0) {
-                    throw new IllegalArgumentException("Source 必须没有输入且至少有一个输出：" + node.getId());
+                    throw new IllegalArgumentException(
+                            "Source must have no inputs and at least one output: " + node.getId());
                 }
                 sources.add(node);
             } else if (node.isOperator()) {
                 if (inDegree != 1 || outDegree == 0) {
-                    throw new IllegalArgumentException("单输入 Operator 必须有一个输入且至少有一个输出：" + node.getId());
+                    throw new IllegalArgumentException(
+                            "One-input operator must have one input and at least one output: " + node.getId());
                 }
             } else if (node.isSink()) {
                 if (inDegree != 1 || outDegree != 0) {
-                    throw new IllegalArgumentException("Sink 必须有一个输入且没有输出：" + node.getId());
+                    throw new IllegalArgumentException("Sink must have one input and no outputs: " + node.getId());
                 }
                 sinks.add(node);
             } else {
-                throw new IllegalArgumentException("不支持的节点类型：" + node.getId());
+                throw new IllegalArgumentException("Unsupported node type: " + node.getId());
             }
         }
         if (sources.isEmpty() || sinks.isEmpty()) {
-            throw new IllegalArgumentException("StreamGraph 至少需要一个 Source 和一个 Sink");
+            throw new IllegalArgumentException("StreamGraph requires at least one Source and one Sink");
         }
 
         this.topologicalNodes = List.copyOf(topologicalSort(byId, in, out));
@@ -151,7 +155,7 @@ public final class StreamGraph implements Pipeline {
             }
         }
         if (order.size() != byId.size()) {
-            throw new IllegalArgumentException("StreamGraph 存在环路或不可拓扑排序的节点");
+            throw new IllegalArgumentException("StreamGraph contains a cycle or cannot be topologically sorted");
         }
         return order;
     }
@@ -186,7 +190,7 @@ public final class StreamGraph implements Pipeline {
     private static List<StreamEdge> requireEdges(Map<Integer, List<StreamEdge>> index, int nodeId) {
         List<StreamEdge> result = index.get(nodeId);
         if (result == null) {
-            throw new IllegalArgumentException("StreamNode 不存在：" + nodeId);
+            throw new IllegalArgumentException("StreamNode does not exist: " + nodeId);
         }
         return result;
     }

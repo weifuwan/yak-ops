@@ -62,7 +62,7 @@ public final class MySqlJdbcDialect extends AbstractDialect {
             case TIMESTAMP_WITHOUT_TIME_ZONE ->
                 JdbcNativeType.of("DATETIME(" + JdbcTypeMappings.precision(column, 6, "MySQL DATETIME") + ")");
             case TIMESTAMP_WITH_TIME_ZONE ->
-                throw new UnsupportedOperationException("MySQL 无法保留 TIMESTAMP_WITH_TIME_ZONE 语义");
+                throw new UnsupportedOperationException("MySQL cannot preserve TIMESTAMP_WITH_TIME_ZONE semantics");
         };
     }
 

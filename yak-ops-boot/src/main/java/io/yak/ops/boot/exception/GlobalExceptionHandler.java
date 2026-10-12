@@ -42,7 +42,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleBusinessException(BusinessException exception) {
         ErrorCode errorCode = exception.getErrorCode();
         if (errorCode == null) {
-            LOG.warn("业务异常缺少 ErrorCode，exceptionType={}", exception.getClass().getSimpleName());
+            LOG.warn(
+                    "Business exception has no error code, exceptionType={}",
+                    exception.getClass().getSimpleName());
             String message = exception.getMessage();
             Result<Void> body = message == null || message.isBlank()
                     ? Result.fail(CommonErrorCode.PARAM_NOT_VALID)
@@ -51,7 +53,8 @@ public class GlobalExceptionHandler {
         }
 
         HttpStatus status = businessStatus(errorCode);
-        if (status.is5xxServerError()) LOG.error("业务请求处理失败，errorCode={}", errorCode.getCode(), exception);
+        if (status.is5xxServerError())
+            LOG.error("Business request failed, errorCode={}", errorCode.getCode(), exception);
         Result<Void> body = exception instanceof DataSourceException dataSourceException
                 ? Result.fail(errorCode.getCode(), dataSourceException.getUserMessage())
                 : Result.fail(errorCode);
@@ -68,7 +71,9 @@ public class GlobalExceptionHandler {
         IllegalArgumentException.class
     })
     public ResponseEntity<Result<Void>> handleInvalidRequest(Exception exception) {
-        LOG.debug("请求参数校验失败，exceptionType={}", exception.getClass().getSimpleName());
+        LOG.debug(
+                "Request validation failed, exceptionType={}",
+                exception.getClass().getSimpleName());
         return ResponseEntity.badRequest().body(Result.fail(CommonErrorCode.PARAM_NOT_VALID));
     }
 
@@ -84,14 +89,14 @@ public class GlobalExceptionHandler {
                         resolved.is4xxClientError() ? CommonErrorCode.PARAM_NOT_VALID : CommonErrorCode.COMMON_FAIL;
                 };
         if (resolved.is5xxServerError()) {
-            LOG.error("HTTP 状态异常处理失败，status={}", resolved.value(), exception);
+            LOG.error("HTTP status exception handling failed, status={}", resolved.value(), exception);
         }
         return ResponseEntity.status(resolved).body(Result.fail(errorCode));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<Void>> handleUnexpectedException(Exception exception) {
-        LOG.error("请求处理发生未预期异常", exception);
+        LOG.error("Unexpected exception while processing request", exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Result.fail(CommonErrorCode.COMMON_FAIL));
     }
 

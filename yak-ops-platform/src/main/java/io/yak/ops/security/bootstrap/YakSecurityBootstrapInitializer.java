@@ -36,7 +36,8 @@ public class YakSecurityBootstrapInitializer implements ApplicationRunner {
     @Transactional(rollbackFor = Exception.class)
     public void run(ApplicationArguments args) {
         if (!userService.getAllUserBriefList().isEmpty()) {
-            LOG.warn("安全模块 Bootstrap 配置仍处于开启状态，请关闭初始化配置，config=yak.security.bootstrap.enabled");
+            LOG.warn(
+                    "Security bootstrap remains enabled; disable initialization, config=yak.security.bootstrap.enabled");
             return;
         }
 
@@ -55,7 +56,8 @@ public class YakSecurityBootstrapInitializer implements ApplicationRunner {
             throw new IllegalStateException("Cannot bootstrap Yak Security user: " + result.getMessage());
         }
 
-        LOG.warn("已创建安全模块 Bootstrap 管理员，请关闭初始化配置，config=yak.security.bootstrap.enabled");
+        LOG.warn(
+                "Security bootstrap administrator created; disable initialization, config=yak.security.bootstrap.enabled");
     }
 
     private static void requireText(String value, String property) {

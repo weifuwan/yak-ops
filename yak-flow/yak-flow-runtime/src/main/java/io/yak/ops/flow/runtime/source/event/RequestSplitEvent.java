@@ -7,7 +7,7 @@ public record RequestSplitEvent(int subtaskId, int attemptNumber) implements Ope
 
     public RequestSplitEvent {
         if (subtaskId < 0 || attemptNumber < 0) {
-            throw new IllegalArgumentException("Split 请求身份不能为负数");
+            throw new IllegalArgumentException("Split request identity must not be negative");
         }
     }
 }

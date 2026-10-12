@@ -137,7 +137,7 @@ public class LoginServiceImpl implements LoginService {
         if (ObjectUtils.isNull(user)
                 || UserStatus.DISABLED.equals(user.getStatus())
                 || !Objects.equals(loginUserId, user.getId())) {
-            LOG.warn("登录态失效，loginUserId={}", loginUserId);
+            LOG.warn("Login session is invalid, loginUserId={}", loginUserId);
             authenticationManager.logout();
             return handleUnauthorized(response);
         }

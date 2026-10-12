@@ -56,7 +56,7 @@ class JobGraphConfigurationTest {
         IllegalArgumentException failure = assertThrows(
                 IllegalArgumentException.class, () -> new StreamingJobGraphGenerator(graph, defaultConfig(8)).generate());
 
-        assertTrue(failure.getMessage().contains("默认并行度与提交配置不一致"));
+        assertTrue(failure.getMessage().contains("default parallelism differs from the submitted configuration"));
         assertEquals(4, graph.getSourceNodes().getFirst().getParallelism());
     }
 

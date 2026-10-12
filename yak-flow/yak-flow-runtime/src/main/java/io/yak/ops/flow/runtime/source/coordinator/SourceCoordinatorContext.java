@@ -60,8 +60,8 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
             ExecutorService discoveryExecutor,
             Supplier<Thread> coordinatorThread,
             Consumer<Throwable> onFailure) {
-        this.operatorContext = Objects.requireNonNull(operatorContext, "operatorContext 不能为空");
-        this.splitSerializer = Objects.requireNonNull(splitSerializer, "splitSerializer 不能为空");
+        this.operatorContext = Objects.requireNonNull(operatorContext, "operatorContext must not be null");
+        this.splitSerializer = Objects.requireNonNull(splitSerializer, "splitSerializer must not be null");
         this.coordinatorExecutor = Objects.requireNonNull(coordinatorExecutor);
         this.discoveryExecutor = Objects.requireNonNull(discoveryExecutor);
         this.coordinatorThread = Objects.requireNonNull(coordinatorThread);
@@ -71,14 +71,16 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
     void registerReader(RuntimeTaskInfo taskInfo, SubtaskGateway gateway) {
         assertCoordinatorThread();
         if (checkpointPaused) {
-            throw new IllegalStateException("Checkpoint 对齐期间不允许注册新 Reader");
+            throw new IllegalStateException("Cannot register readers during checkpoint alignment");
         }
         operatorContext.validateTask(taskInfo);
         int subtaskId = taskInfo.subtaskIndex();
         checkSubtask(subtaskId);
-        Objects.requireNonNull(gateway, "gateway 不能为空");
+        Objects.requireNonNull(gateway, "gateway must not be null");
         if (readers.putIfAbsent(subtaskId, gateway) != null) {
-            throw new IllegalArgumentException("Reader 已注册，不支持单个 Reader 的 Attempt 热替换：" + subtaskId);
+            throw new IllegalArgumentException(
+                    "Reader is already registered; replacing an individual reader attempt is unsupported: "
+                            + subtaskId);
         }
         readerIdentities.put(subtaskId, taskInfo);
     }
@@ -88,8 +90,8 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
         operatorContext.validateTask(taskInfo);
         RuntimeTaskInfo active = readerIdentities.get(taskInfo.subtaskIndex());
         if (!taskInfo.equals(active)) {
-            throw new IllegalStateException(
-                    "Reader 未注册或已过期，subtask=" + taskInfo.subtaskIndex() + "，attempt=" + taskInfo.attemptNumber());
+            throw new IllegalStateException("Reader is unregistered or stale, subtask=" + taskInfo.subtaskIndex()
+                    + ", attempt=" + taskInfo.attemptNumber());
         }
     }
 
@@ -101,7 +103,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
     private boolean canAssignSplit(int subtaskId) {
         checkSubtask(subtaskId);
         if (!readerIdentities.containsKey(subtaskId)) {
-            throw new IllegalStateException("Reader 尚未注册：" + subtaskId);
+            throw new IllegalStateException("Reader is not registered: " + subtaskId);
         }
         return !noMoreRequested.contains(subtaskId);
     }
@@ -109,7 +111,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
     void pauseForCheckpoint() {
         assertCoordinatorThread();
         if (checkpointPaused) {
-            throw new IllegalStateException("Coordinator Context 已暂停");
+            throw new IllegalStateException("Coordinator context is paused");
         }
         checkpointPaused = true;
     }
@@ -127,7 +129,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
     void ensureDeliveriesCompleted() {
         assertCoordinatorThread();
         if (!inFlight.isEmpty() || !pendingNoMore.isEmpty()) {
-            throw new IllegalStateException("仍有尚未确认的分片/结束事件，不能快照 Enumerator");
+            throw new PendingCheckpointDeliveriesException();
         }
     }
 
@@ -172,20 +174,20 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
     public void assignSplit(SplitT split, int subtaskId) {
         assertCoordinatorThread();
         if (!canAssignSplit(subtaskId)) {
-            throw new IllegalStateException("不能在 NoMoreSplits 后继续分配 Split：" + subtaskId);
+            throw new IllegalStateException("Cannot assign splits after NoMoreSplits: " + subtaskId);
         }
         String splitId = Objects.requireNonNull(split, "split").splitId();
         if (inFlight.putIfAbsent(splitId, subtaskId) != null) {
-            throw new IllegalArgumentException("重复交付中的 Split：" + splitId);
+            throw new IllegalArgumentException("Duplicate in-flight split delivery: " + splitId);
         }
         try {
             AddSplitEvent<SplitT> event = new AddSplitEvent<>(List.of(split), splitSerializer);
             assignments.recordAssignment(subtaskId, split);
             CompletionStage<Void> delivered =
-                    Objects.requireNonNull(readers.get(subtaskId).sendEvent(event), "SubtaskGateway 返回了 null");
+                    Objects.requireNonNull(readers.get(subtaskId).sendEvent(event), "SubtaskGateway returned null");
             delivered.whenComplete((unused, error) -> post(() -> {
                 if (error != null) {
-                    onFailure.accept(new IllegalStateException("Split 交付失败：" + splitId, error));
+                    onFailure.accept(new IllegalStateException("Split delivery failed: " + splitId, error));
                 } else {
                     inFlight.remove(splitId);
                     maybeSendNoMore(subtaskId);
@@ -199,7 +201,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
             if (error instanceof Error serious) {
                 throw serious;
             }
-            throw new IllegalStateException("Split 序列化或投递失败", error);
+            throw new IllegalStateException("Split serialization or delivery failed", error);
         }
     }
 
@@ -208,7 +210,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
         assertCoordinatorThread();
         checkSubtask(subtaskId);
         if (!readers.containsKey(subtaskId)) {
-            throw new IllegalArgumentException("Reader 尚未注册：" + subtaskId);
+            throw new IllegalArgumentException("Reader is not registered: " + subtaskId);
         }
         noMoreRequested.add(subtaskId);
         maybeSendNoMore(subtaskId);
@@ -224,10 +226,10 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
         pendingNoMore.add(subtaskId);
         try {
             CompletionStage<Void> delivered = Objects.requireNonNull(
-                    readers.get(subtaskId).sendEvent(new NoMoreSplitsEvent()), "SubtaskGateway 返回了 null");
+                    readers.get(subtaskId).sendEvent(new NoMoreSplitsEvent()), "SubtaskGateway returned null");
             delivered.whenComplete((unused, error) -> post(() -> {
                 if (error != null) {
-                    onFailure.accept(new IllegalStateException("NoMoreSplits 交付失败：" + subtaskId, error));
+                    onFailure.accept(new IllegalStateException("NoMoreSplits delivery failed: " + subtaskId, error));
                 } else {
                     pendingNoMore.remove(subtaskId);
                 }
@@ -242,19 +244,20 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
     public void sendEventToSourceReader(int subtaskId, SourceEvent event) {
         assertCoordinatorThread();
         checkSubtask(subtaskId);
-        Objects.requireNonNull(event, "event 不能为空");
+        Objects.requireNonNull(event, "event must not be null");
         SubtaskGateway gateway = readers.get(subtaskId);
         if (gateway == null) {
-            throw new IllegalStateException("Reader 尚未注册：" + subtaskId);
+            throw new IllegalStateException("Reader is not registered: " + subtaskId);
         }
         try {
-            CompletionStage<Void> delivered =
-                    Objects.requireNonNull(gateway.sendEvent(new SourceEventWrapper(event)), "SubtaskGateway 返回了 null");
+            CompletionStage<Void> delivered = Objects.requireNonNull(
+                    gateway.sendEvent(new SourceEventWrapper(event)), "SubtaskGateway returned null");
             pendingSourceEvents.add(delivered);
             delivered.whenComplete((unused, failure) -> post(() -> {
                 pendingSourceEvents.remove(delivered);
                 if (failure != null) {
-                    onFailure.accept(new IllegalStateException("SourceEvent 交付失败：subtask=" + subtaskId, failure));
+                    onFailure.accept(
+                            new IllegalStateException("SourceEvent delivery failed: subtask=" + subtaskId, failure));
                 }
             }));
         } catch (Throwable failure) {
@@ -266,8 +269,8 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
     @Override
     public <T> void callAsync(Callable<T> action, BiConsumer<T, Throwable> handler) {
         assertCoordinatorThread();
-        Objects.requireNonNull(action, "action 不能为空");
-        Objects.requireNonNull(handler, "handler 不能为空");
+        Objects.requireNonNull(action, "action must not be null");
+        Objects.requireNonNull(handler, "handler must not be null");
         discoveryExecutor.execute(() -> {
             T value = null;
             Throwable error = null;
@@ -291,7 +294,7 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
 
     @Override
     public void runInCoordinatorThread(Runnable action) {
-        Objects.requireNonNull(action, "action 不能为空");
+        Objects.requireNonNull(action, "action must not be null");
         Runnable guarded = () -> {
             if (checkpointPaused) {
                 postponedDiscoveryCallbacks.add(action);
@@ -328,13 +331,13 @@ public final class SourceCoordinatorContext<SplitT extends SourceSplit> implemen
 
     private void checkSubtask(int subtaskId) {
         if (subtaskId < 0 || subtaskId >= currentParallelism()) {
-            throw new IllegalArgumentException("Reader 子任务编号越界：" + subtaskId);
+            throw new IllegalArgumentException("Reader subtask index is out of range: " + subtaskId);
         }
     }
 
     private void assertCoordinatorThread() {
         if (Thread.currentThread() != coordinatorThread.get()) {
-            throw new IllegalStateException("SourceCoordinatorContext 只能在协调器线程使用");
+            throw new IllegalStateException("SourceCoordinatorContext must be accessed on the coordinator thread");
         }
     }
 }

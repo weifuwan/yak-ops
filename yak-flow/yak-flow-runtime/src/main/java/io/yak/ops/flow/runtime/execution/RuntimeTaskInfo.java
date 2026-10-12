@@ -16,21 +16,21 @@ public record RuntimeTaskInfo(
         implements TaskInfo {
 
     public RuntimeTaskInfo {
-        Objects.requireNonNull(jobID, "jobID 不能为空");
+        Objects.requireNonNull(jobID, "jobID must not be null");
         if (operatorId <= 0) {
-            throw new IllegalArgumentException("operatorId 必须为正整数");
+            throw new IllegalArgumentException("operatorId must be positive");
         }
         if (parallelism <= 0) {
-            throw new IllegalArgumentException("parallelism 必须为正整数");
+            throw new IllegalArgumentException("parallelism must be positive");
         }
         if (subtaskIndex < 0 || subtaskIndex >= parallelism) {
-            throw new IllegalArgumentException("subtaskIndex 超出并行度范围");
+            throw new IllegalArgumentException("subtaskIndex is outside the parallelism range");
         }
         if (maxParallelism < parallelism || maxParallelism > 32768) {
-            throw new IllegalArgumentException("maxParallelism 必须 >= parallelism 且 <= 32768");
+            throw new IllegalArgumentException("maxParallelism must be at least parallelism and at most 32768");
         }
         if (attemptNumber < 0) {
-            throw new IllegalArgumentException("attemptNumber 不能为负数");
+            throw new IllegalArgumentException("attemptNumber must not be negative");
         }
     }
 

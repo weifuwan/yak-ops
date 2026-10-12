@@ -27,13 +27,13 @@ public final class JdbcDialects {
      */
     public static String canonicalType(String type) {
         if (type == null || type.isBlank()) {
-            throw new IllegalArgumentException("JDBC 数据源类型不能为空");
+            throw new IllegalArgumentException("JDBC data source type must not be blank");
         }
         return switch (type.trim().toUpperCase(Locale.ROOT)) {
             case "MYSQL" -> "MYSQL";
             case "POSTGRE_SQL", "POSTGRESQL", "POSTGRES" -> "POSTGRE_SQL";
             case "ORACLE" -> "ORACLE";
-            default -> throw new IllegalArgumentException("YakFlow JDBC 暂不支持数据源类型：" + type);
+            default -> throw new IllegalArgumentException("Unsupported JDBC data source type: " + type);
         };
     }
 

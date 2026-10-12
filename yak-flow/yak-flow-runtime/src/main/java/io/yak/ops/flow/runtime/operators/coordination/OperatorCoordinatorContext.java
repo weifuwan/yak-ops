@@ -13,22 +13,22 @@ import java.util.Objects;
 public record OperatorCoordinatorContext(JobID jobID, int operatorId, int parallelism) {
 
     public OperatorCoordinatorContext {
-        Objects.requireNonNull(jobID, "jobID 不能为空");
+        Objects.requireNonNull(jobID, "jobID must not be null");
         if (operatorId <= 0) {
-            throw new IllegalArgumentException("operatorId 必须为正整数");
+            throw new IllegalArgumentException("operatorId must be positive");
         }
         if (parallelism <= 0) {
-            throw new IllegalArgumentException("parallelism 必须为正整数");
+            throw new IllegalArgumentException("parallelism must be positive");
         }
     }
 
     /** Rejects readers belonging to another job, operator or resolved parallelism. */
     public void validateTask(RuntimeTaskInfo taskInfo) {
-        Objects.requireNonNull(taskInfo, "taskInfo 不能为空");
+        Objects.requireNonNull(taskInfo, "taskInfo must not be null");
         if (!jobID.equals(taskInfo.jobID())
                 || operatorId != taskInfo.operatorId()
                 || parallelism != taskInfo.parallelism()) {
-            throw new IllegalArgumentException("Reader RuntimeTaskInfo 与 SourceCoordinator 不匹配");
+            throw new IllegalArgumentException("Reader task identity does not match the SourceCoordinator");
         }
     }
 }

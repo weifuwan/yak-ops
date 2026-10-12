@@ -234,7 +234,7 @@ class EmbeddedExecutionLifecycleTest {
         failure = assertThrows(CompletionException.class, () -> new EmbeddedPipelineExecutor()
                 .execute(graph(source, sink, single), single).join());
         assertTrue(failure.getCause() instanceof IllegalArgumentException);
-        assertTrue(failure.getCause().getMessage().contains("状态目录"));
+        assertTrue(failure.getCause().getMessage().contains("state directory"));
         assertEquals(0, sink.writerCreations.get());
         assertEquals(0, source.readerCreations.get());
     }

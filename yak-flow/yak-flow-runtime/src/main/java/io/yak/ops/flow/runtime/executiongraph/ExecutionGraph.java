@@ -122,7 +122,7 @@ public final class ExecutionGraph {
             try {
                 new TaskDeployment(this, attempt > 0).deployAndAwait();
                 if (!jobGraph.isBounded() && !cancellationRequested) {
-                    completeFailed(new IllegalStateException("无界 Pipeline 未被取消却提前结束"));
+                    completeFailed(new IllegalStateException("Unbounded pipeline terminated without cancellation"));
                     return;
                 }
                 completeNormally(TimeUnit.NANOSECONDS.toMillis(Math.max(0, System.nanoTime() - startedNanos)));
@@ -260,10 +260,12 @@ public final class ExecutionGraph {
      */
     public CompletableFuture<CheckpointSnapshot> checkpoint() {
         if (!checkpointConfigured) {
-            return CompletableFuture.failedFuture(new UnsupportedOperationException("该 Job 未启用持久化 Checkpoint"));
+            return CompletableFuture.failedFuture(
+                    new UnsupportedOperationException("Persistent checkpoints are not enabled for this job"));
         }
         if (status.isTerminalState() || cancellationRequested) {
-            return CompletableFuture.failedFuture(new IllegalStateException("已结束或取消中的 Job 不能触发 Checkpoint"));
+            return CompletableFuture.failedFuture(
+                    new IllegalStateException("Cannot trigger a checkpoint for a terminal or cancelling job"));
         }
         return checkpointController
                 .thenCompose(AlignedCheckpointCoordinator::trigger)

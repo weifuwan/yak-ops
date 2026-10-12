@@ -23,7 +23,7 @@ public final class EmbeddedPipelineExecutor implements PipelineExecutor {
             Objects.requireNonNull(pipeline, "pipeline");
             Objects.requireNonNull(configuration, "configuration");
             if (!(pipeline instanceof StreamGraph streamGraph)) {
-                throw new IllegalArgumentException("EmbeddedPipelineExecutor 只支持 StreamGraph");
+                throw new IllegalArgumentException("EmbeddedPipelineExecutor requires a StreamGraph");
             }
 
             JobGraph jobGraph = new StreamingJobGraphGenerator(streamGraph, configuration).generate();

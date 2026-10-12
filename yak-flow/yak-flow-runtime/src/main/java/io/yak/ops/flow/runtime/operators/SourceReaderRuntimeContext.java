@@ -26,9 +26,9 @@ public final class SourceReaderRuntimeContext implements SourceReaderContext {
 
     public SourceReaderRuntimeContext(
             TaskEnvironment environment, OperatorEventGateway eventGateway, Consumer<Throwable> asyncFailureHandler) {
-        this.environment = Objects.requireNonNull(environment, "environment 不能为空");
-        this.eventGateway = Objects.requireNonNull(eventGateway, "eventGateway 不能为空");
-        this.asyncFailureHandler = Objects.requireNonNull(asyncFailureHandler, "asyncFailureHandler 不能为空");
+        this.environment = Objects.requireNonNull(environment, "environment must not be null");
+        this.eventGateway = Objects.requireNonNull(eventGateway, "eventGateway must not be null");
+        this.asyncFailureHandler = Objects.requireNonNull(asyncFailureHandler, "asyncFailureHandler must not be null");
     }
 
     @Override
@@ -62,8 +62,8 @@ public final class SourceReaderRuntimeContext implements SourceReaderContext {
         }
         CompletionStage<Void> response;
         try {
-            response =
-                    Objects.requireNonNull(eventGateway.sendEventToCoordinator(event), "OperatorEventGateway 返回了 null");
+            response = Objects.requireNonNull(
+                    eventGateway.sendEventToCoordinator(event), "OperatorEventGateway returned null");
         } catch (Throwable failure) {
             asyncFailureHandler.accept(failure);
             return;

@@ -29,9 +29,10 @@ public final class KeyedPartitioner<T> implements StreamPartitioner<T> {
         if (numberOfChannels <= 0 || numberOfChannels > maxParallelism) {
             throw new IllegalArgumentException("KeyGroup parallelism is out of range");
         }
-        Object key = Objects.requireNonNull(keySelector.getKey(record), "KEYED 路由不能使用 null 键");
+        Object key = Objects.requireNonNull(keySelector.getKey(record), "KEYED partitioning requires a non-null key");
         if (key.getClass().isArray()) {
-            throw new IllegalArgumentException("KEYED 不允许数组键（默认数组哈希与业务键不一致）");
+            throw new IllegalArgumentException(
+                    "KEYED partitioning does not support array keys because their default hash is identity-based");
         }
         return KeyGroupRangeAssignment.assignKeyToParallelOperator(key, maxParallelism, numberOfChannels);
     }

@@ -58,7 +58,8 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     /** Restores enumerator state from a completed checkpoint; reader splits are restored separately. */
     public static <SplitT extends SourceSplit, EnumStateT> SourceCoordinator<SplitT, EnumStateT> restore(
             Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext, EnumStateT state) {
-        return new SourceCoordinator<>(source, coordinatorContext, Objects.requireNonNull(state, "恢复状态不能为空"), true);
+        return new SourceCoordinator<>(
+                source, coordinatorContext, Objects.requireNonNull(state, "Restored state must not be null"), true);
     }
 
     private SourceCoordinator(
@@ -66,8 +67,8 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
             OperatorCoordinatorContext coordinatorContext,
             EnumStateT restoredEnumeratorState,
             boolean restoring) {
-        this.source = Objects.requireNonNull(source, "source 不能为空");
-        this.coordinatorContext = Objects.requireNonNull(coordinatorContext, "coordinatorContext 不能为空");
+        this.source = Objects.requireNonNull(source, "source must not be null");
+        this.coordinatorContext = Objects.requireNonNull(coordinatorContext, "coordinatorContext must not be null");
         this.restoredEnumeratorState = restoredEnumeratorState;
         this.restoring = restoring;
         this.context = new SourceCoordinatorContext<>(
@@ -86,7 +87,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
      */
     public CompletableFuture<Void> start() {
         if (!startRequested.compareAndSet(false, true)) {
-            return CompletableFuture.failedFuture(new IllegalStateException("SourceCoordinator 已启动"));
+            return CompletableFuture.failedFuture(new IllegalStateException("SourceCoordinator is already started"));
         }
         return submit(() -> {
             try {
@@ -94,7 +95,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
                         restoring
                                 ? source.restoreEnumerator(context, restoredEnumeratorState)
                                 : source.createEnumerator(context),
-                        "Source 返回了空 Enumerator");
+                        "Source returned a null enumerator");
                 enumerator.start();
                 started = true;
                 return null;
@@ -107,7 +108,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
 
     /** Registers an active Reader gateway without waiting for split consumption. */
     public CompletableFuture<Void> registerReader(RuntimeTaskInfo taskInfo, SubtaskGateway gateway) {
-        Objects.requireNonNull(gateway, "gateway 不能为空");
+        Objects.requireNonNull(gateway, "gateway must not be null");
         try {
             coordinatorContext.validateTask(taskInfo);
         } catch (RuntimeException failure) {
@@ -134,7 +135,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
      * are also validated before delivery to the enumerator; stale attempts are rejected.
      */
     public CompletableFuture<Void> handleEventFromOperator(RuntimeTaskInfo taskInfo, OperatorEvent event) {
-        Objects.requireNonNull(event, "event 不能为空");
+        Objects.requireNonNull(event, "event must not be null");
         try {
             coordinatorContext.validateTask(taskInfo);
         } catch (RuntimeException failure) {
@@ -143,11 +144,12 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         if (event instanceof RequestSplitEvent request) {
             if (taskInfo.subtaskIndex() != request.subtaskId() || taskInfo.attemptNumber() != request.attemptNumber()) {
                 return CompletableFuture.failedFuture(
-                        new IllegalArgumentException("OperatorEvent 的 Subtask / Attempt 与发送者身份不匹配"));
+                        new IllegalArgumentException("Operator event subtask or attempt does not match the sender"));
             }
         } else if (!(event instanceof SourceEventWrapper)) {
-            return CompletableFuture.failedFuture(new IllegalArgumentException(
-                    "Coordinator 不支持的 OperatorEvent：" + event.getClass().getName()));
+            return CompletableFuture.failedFuture(
+                    new IllegalArgumentException("Unsupported operator event for coordinator: "
+                            + event.getClass().getName()));
         }
         return submit(() -> {
             ensureStarted();
@@ -184,7 +186,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         return submit(() -> {
             ensureStarted();
             if (checkpointPaused) {
-                throw new IllegalStateException("SourceCoordinator 已暂停");
+                throw new IllegalStateException("SourceCoordinator is paused");
             }
             checkpointPaused = true;
             context.pauseForCheckpoint();
@@ -224,7 +226,8 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         return submit(() -> {
             ensureStarted();
             context.ensureDeliveriesCompleted();
-            return Objects.requireNonNull(enumerator.snapshotState(checkpointId), "Enumerator 快照不能为空");
+            return Objects.requireNonNull(
+                    enumerator.snapshotState(checkpointId), "Enumerator snapshot must not be null");
         });
     }
 
@@ -239,7 +242,8 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         return submit(() -> {
             ensureStarted();
             context.ensureDeliveriesCompleted();
-            EnumStateT state = Objects.requireNonNull(enumerator.snapshotState(checkpointId), "Enumerator 快照不能为空");
+            EnumStateT state = Objects.requireNonNull(
+                    enumerator.snapshotState(checkpointId), "Enumerator snapshot must not be null");
             Map<Integer, java.util.List<SplitT>> assignments =
                     context.assignmentTracker().snapshot(checkpointId);
             return new SourceCoordinatorCheckpoint<>(checkpointId, state, assignments);
@@ -274,11 +278,12 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
 
     /** Fails the coordinator so the runtime can recover the whole job, not an individual Reader. */
     public CompletableFuture<Void> readerFailed(RuntimeTaskInfo taskInfo, Throwable failure) {
-        Objects.requireNonNull(failure, "failure 不能为空");
+        Objects.requireNonNull(failure, "failure must not be null");
         return submit(() -> {
             context.checkRegistered(taskInfo);
             fail(new IllegalStateException(
-                    "Source Reader 故障，作业需要整体恢复：" + taskInfo.subtaskIndex() + "，attempt=" + taskInfo.attemptNumber(),
+                    "Source reader failure requires full job recovery: " + taskInfo.subtaskIndex() + ", attempt="
+                            + taskInfo.attemptNumber(),
                     failure));
             return null;
         });
@@ -314,32 +319,32 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
             Thread.currentThread().interrupt();
             throw failure;
         } catch (ExecutionException failure) {
-            throw new Exception("SourceCoordinator 关闭失败", failure.getCause());
+            throw new Exception("Failed to close SourceCoordinator", failure.getCause());
         }
     }
 
     private void ensureStarted() {
         if (!started || enumerator == null) {
-            throw new IllegalStateException("Enumerator 尚未启动");
+            throw new IllegalStateException("Enumerator is not started");
         }
     }
 
     private static void validateCheckpointId(long checkpointId) {
         if (checkpointId < 0) {
-            throw new IllegalArgumentException("checkpointId 不能为负数");
+            throw new IllegalArgumentException("checkpointId must not be negative");
         }
     }
 
     private <V> CompletableFuture<V> submit(Callable<V> action) {
         if (closing.get()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("SourceCoordinator 已关闭"));
+            return CompletableFuture.failedFuture(new IllegalStateException("SourceCoordinator is closed"));
         }
         CompletableFuture<V> reply = new CompletableFuture<>();
         try {
             eventLoop.execute(() -> {
                 eventThread = Thread.currentThread();
                 if (closing.get()) {
-                    reply.completeExceptionally(new IllegalStateException("SourceCoordinator 已关闭"));
+                    reply.completeExceptionally(new IllegalStateException("SourceCoordinator is closed"));
                     return;
                 }
                 try {

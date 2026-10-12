@@ -25,12 +25,12 @@ public record CheckpointSnapshot(
 
     public CheckpointSnapshot {
         if (checkpointId <= 0 || completedAtMillis <= 0) {
-            throw new IllegalArgumentException("Checkpoint ID 与完成时间必须为正数");
+            throw new IllegalArgumentException("Checkpoint ID and completion timestamp must be positive");
         }
         if (graphSignature == null || graphSignature.isBlank()) {
-            throw new IllegalArgumentException("Checkpoint 拓扑指纹不能为空");
+            throw new IllegalArgumentException("Checkpoint graph signature must not be blank");
         }
-        Objects.requireNonNull(enumeratorState, "enumeratorState 不能为空");
+        Objects.requireNonNull(enumeratorState, "enumeratorState must not be null");
         readerSplits = freeze(readerSplits);
         assignments = freeze(assignments);
         Objects.requireNonNull(operatorStates, "operatorStates");
@@ -114,11 +114,11 @@ public record CheckpointSnapshot(
     }
 
     private static Map<Integer, List<SerializedState>> freeze(Map<Integer, List<SerializedState>> input) {
-        Objects.requireNonNull(input, "Checkpoint 子任务状态不能为空");
+        Objects.requireNonNull(input, "Checkpoint subtask state must not be null");
         Map<Integer, List<SerializedState>> copy = new LinkedHashMap<>();
         input.forEach((index, splits) -> {
             if (index == null || index < 0) {
-                throw new IllegalArgumentException("Checkpoint subtaskIndex 无效");
+                throw new IllegalArgumentException("Invalid checkpoint subtask index");
             }
             copy.put(index, List.copyOf(splits));
         });
@@ -130,9 +130,10 @@ public record CheckpointSnapshot(
 
         public SerializedState {
             if (version < 0) {
-                throw new IllegalArgumentException("State serializer version 不能为负数");
+                throw new IllegalArgumentException("State serializer version must not be negative");
             }
-            bytes = Objects.requireNonNull(bytes, "状态字节不能为空").clone();
+            bytes = Objects.requireNonNull(bytes, "Serialized state bytes must not be null")
+                    .clone();
         }
 
         @Override

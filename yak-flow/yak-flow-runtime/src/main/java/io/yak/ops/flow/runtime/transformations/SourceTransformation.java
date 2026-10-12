@@ -26,7 +26,7 @@ public final class SourceTransformation<T> extends Transformation<T> {
 
     public SourceTransformation(String name, Source<T, ?, ?> source, Class<T> outputType, int parallelism) {
         super(name, outputType, parallelism);
-        this.source = Objects.requireNonNull(source, "source 不能为空");
+        this.source = Objects.requireNonNull(source, "source must not be null");
     }
 
     /** Returns the Source definition without opening runtime resources. */
@@ -36,7 +36,7 @@ public final class SourceTransformation<T> extends Transformation<T> {
 
     /** Returns the Source boundedness, independently of the selected runtime mode. */
     public Boundedness getBoundedness() {
-        return Objects.requireNonNull(source.getBoundedness(), "Source 必须声明 Boundedness");
+        return Objects.requireNonNull(source.getBoundedness(), "Source must declare its boundedness");
     }
 
     /** Returns no inputs because a Source is an upstream root. */

@@ -127,7 +127,7 @@ class StreamTaskMailboxTest {
         task.start().get(5, TimeUnit.SECONDS);
         ExecutionException failure = assertThrows(
                 ExecutionException.class, () -> task.completionFuture().get(5, TimeUnit.SECONDS));
-        assertTrue(failure.getCause().getMessage().contains("持续已完成"));
+        assertTrue(failure.getCause().getMessage().contains("remains completed without readable input"));
         assertEquals(2, task.polls.get());
         assertEquals(1, task.closes.get());
     }

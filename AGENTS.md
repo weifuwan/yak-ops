@@ -47,7 +47,9 @@ Inspect the current code, direct callers, tests and Maven dependencies before ch
 - Keep task-definition identity, Workspace authorization and immutable definition versions in the business/persistence boundary. Plugin validation must not access credentials or silently rewrite requested parameters; accepted task configuration is JSON.
 - Core owns Source/Sink and value contracts; Runtime owns physical graphs, tasks, mailbox scheduling and checkpoint execution. Connectors must not couple their runtime implementations to product Controllers/DAO.
 - Keep published Flyway migrations frozen; draft migrations must be reconciled before the release migration gate. The release scripts verify names and sequence, not the semantic safety of SQL.
-- Logging must not expose credentials or sensitive data. JavaDoc and implementation comments use English; logs may use the language appropriate to the product.
+- Internal SLF4J log templates and Core / YakFlow technical diagnostics use English. Preserve exception types, causes and contextual fields; execution decisions must not parse exception message text.
+- Product-facing ErrorCode descriptions, Bean Validation messages and other user messages remain localized at their owning boundary. Never expose raw internal diagnostics or credentials to users.
+- Logging must not expose credentials or sensitive data. JavaDoc and implementation comments use English.
 - Use meaningful top-level API contracts and explicit ownership; avoid redundant null-checking, normalization and compatibility layers. Current code, tests, and accepted public contracts determine supported behavior.
 
 ## Code Quality and Review

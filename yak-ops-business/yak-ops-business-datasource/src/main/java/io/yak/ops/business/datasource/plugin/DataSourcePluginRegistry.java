@@ -61,7 +61,7 @@ public class DataSourcePluginRegistry {
                 register(discovered, alias, plugin);
             }
             LOG.info(
-                    "数据源插件注册完成，type={}, aliases={}, apiVersion={}, capabilities={}, implementation={}",
+                    "Datasource plugin registered, type={}, aliases={}, apiVersion={}, capabilities={}, implementation={}",
                     plugin.descriptor().type(),
                     plugin.descriptor().aliases(),
                     plugin.descriptor().apiVersion(),
@@ -69,7 +69,7 @@ public class DataSourcePluginRegistry {
                     plugin.getClass().getName());
         }
         if (discovered.isEmpty()) {
-            LOG.warn("未发现可用数据源插件，数据源连接能力不可用");
+            LOG.warn("No datasource plugins registered; datasource connections are unavailable");
         }
         plugins = Collections.unmodifiableMap(discovered);
     }

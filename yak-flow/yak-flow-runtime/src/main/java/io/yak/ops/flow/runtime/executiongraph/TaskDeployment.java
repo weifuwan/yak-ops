@@ -154,7 +154,8 @@ final class TaskDeployment {
                 restoredCheckpoint = checkpointStore
                         .loadLatest(FileCheckpointStore.graphSignature(
                                 jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM)))
-                        .orElseThrow(() -> new IllegalStateException("状态目录没有可恢复的完整 Checkpoint"));
+                        .orElseThrow(() -> new IllegalStateException(
+                                "No complete recoverable checkpoint exists in the state directory"));
                 if (restoredCheckpoint.hasFinishedOperators()) {
                     validateFinishedRestore(restoredCheckpoint);
                 }
@@ -353,12 +354,12 @@ final class TaskDeployment {
 
     private void ensureNotCancelled() {
         if (executionGraph.isCancellationRequested() || Thread.currentThread().isInterrupted()) {
-            throw new CancellationException("本地 Job 已请求取消");
+            throw new CancellationException("Local job cancellation has been requested");
         }
     }
 
     private void failJob(Throwable cause) {
-        if (firstFailure.compareAndSet(null, Objects.requireNonNull(cause, "cause 不能为空"))) {
+        if (firstFailure.compareAndSet(null, Objects.requireNonNull(cause, "cause must not be null"))) {
             stopAll(cause);
         }
     }

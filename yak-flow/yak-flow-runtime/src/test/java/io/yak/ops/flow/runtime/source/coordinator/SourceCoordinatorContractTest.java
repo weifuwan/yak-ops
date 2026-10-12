@@ -126,7 +126,9 @@ class SourceCoordinatorContractTest {
             AddSplitEvent<?> splitEvent = assertInstanceOf(AddSplitEvent.class, delivered.getFirst());
             assertEquals(1, splitEvent.serializerVersion());
             assertEquals(1, splitEvent.splitCount());
-            assertFailure(coordinator.snapshotCoordinator(7));
+            CompletionException pending = assertThrows(
+                    CompletionException.class, () -> coordinator.snapshotCoordinator(7).join());
+            assertInstanceOf(PendingCheckpointDeliveriesException.class, pending.getCause());
 
             splitAcknowledged.complete(null);
             noMoreDispatched.get(5, TimeUnit.SECONDS);
@@ -162,7 +164,7 @@ class SourceCoordinatorContractTest {
         splitAck.completeExceptionally(new IllegalStateException("delivery failed"));
         ExecutionException thrown = assertThrows(
                 ExecutionException.class, () -> coordinator.terminationFuture().get(5, TimeUnit.SECONDS));
-        assertTrue(thrown.getCause().getMessage().contains("Split 交付失败"));
+        assertTrue(thrown.getCause().getMessage().contains("Split delivery failed"));
         assertTrue(source.closed.get());
     }
 
@@ -274,8 +276,7 @@ class SourceCoordinatorContractTest {
             try {
                 return coordinator.snapshotCoordinator(checkpointId).join();
             } catch (CompletionException failure) {
-                if (!(failure.getCause() instanceof IllegalStateException)
-                        || !failure.getCause().getMessage().contains("尚未确认")
+                if (!(failure.getCause() instanceof PendingCheckpointDeliveriesException)
                         || System.nanoTime() >= deadline) {
                     throw failure;
                 }

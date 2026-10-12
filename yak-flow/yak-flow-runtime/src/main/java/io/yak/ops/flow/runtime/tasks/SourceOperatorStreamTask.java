@@ -71,11 +71,11 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
             OperatorChain operatorChain,
             List<SplitT> restoredSplits) {
         super(environment);
-        this.restoredSplits = List.copyOf(Objects.requireNonNull(restoredSplits, "restoredSplits 不能为空"));
+        this.restoredSplits = List.copyOf(Objects.requireNonNull(restoredSplits, "restoredSplits must not be null"));
         this.operatorChain = operatorChain;
-        this.output = Objects.requireNonNull(output, "output 不能为空");
+        this.output = Objects.requireNonNull(output, "output must not be null");
         this.recordWriter = output instanceof RecordWriterOutput<?> writer ? writer : null;
-        this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
+        this.coordinator = Objects.requireNonNull(coordinator, "coordinator must not be null");
         this.coordinator.coordinatorContext().validateTask(taskInfo());
         SourceReaderRuntimeContext readerContext = new SourceReaderRuntimeContext(
                 taskEnvironment(), event -> coordinator.handleEventFromOperator(taskInfo(), event), this::failAsync);
@@ -167,7 +167,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
      */
     @Override
     public CompletionStage<Void> sendEvent(OperatorEvent event) {
-        Objects.requireNonNull(event, "event 不能为空");
+        Objects.requireNonNull(event, "event must not be null");
         return submitMailbox(() -> {
             operator.handleOperatorEvent(event);
             // Older/source-specific Reader implementations need not complete isAvailable()
@@ -186,7 +186,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     public CompletableFuture<List<SplitT>> pauseForCheckpoint(long checkpointId) {
         return submitMailbox(() -> {
             if (pausedForCheckpoint) {
-                throw new IllegalStateException("Reader 已被另一个 Checkpoint 暂停");
+                throw new IllegalStateException("Reader is paused by another checkpoint");
             }
             List<SplitT> state = operator.snapshotState(checkpointId);
             pausedForCheckpoint = true;

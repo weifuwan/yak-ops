@@ -42,7 +42,7 @@ public abstract class Transformation<T> {
 
     protected Transformation(String name, Class<T> outputType, int parallelism) {
         this.id = ID_COUNTER.incrementAndGet();
-        this.outputType = Objects.requireNonNull(outputType, "outputType 不能为空");
+        this.outputType = Objects.requireNonNull(outputType, "outputType must not be null");
         setName(name);
         setParallelism(parallelism);
     }
@@ -60,7 +60,7 @@ public abstract class Transformation<T> {
     /** Sets the name before physical graph compilation. */
     public final void setName(String name) {
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("name 不能为空");
+            throw new IllegalArgumentException("name must not be blank");
         }
         this.name = name;
     }
@@ -78,7 +78,7 @@ public abstract class Transformation<T> {
     /** Sets an explicit positive parallelism or {@link #DEFAULT_PARALLELISM}. */
     public final void setParallelism(int parallelism) {
         if (parallelism != DEFAULT_PARALLELISM && parallelism <= 0) {
-            throw new IllegalArgumentException("parallelism 必须为 -1 或正整数");
+            throw new IllegalArgumentException("parallelism must be -1 or a positive integer");
         }
         this.parallelism = parallelism;
     }
@@ -91,7 +91,7 @@ public abstract class Transformation<T> {
     /** Sets a UID that must be unique within the pipeline for stateful recovery. */
     public final void setUid(String uid) {
         if (uid == null || uid.isBlank()) {
-            throw new IllegalArgumentException("uid 不能为空");
+            throw new IllegalArgumentException("uid must not be blank");
         }
         this.uid = uid;
     }

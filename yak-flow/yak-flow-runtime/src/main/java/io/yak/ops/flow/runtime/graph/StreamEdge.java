@@ -33,14 +33,14 @@ public record StreamEdge(int sourceId, int targetId, StreamPartitioning partitio
 
     public StreamEdge {
         if (sourceId <= 0 || targetId <= 0) {
-            throw new IllegalArgumentException("StreamEdge 的节点 ID 必须为正整数");
+            throw new IllegalArgumentException("StreamEdge node IDs must be positive");
         }
         if (sourceId == targetId) {
-            throw new IllegalArgumentException("StreamEdge 不允许节点直接连接自身");
+            throw new IllegalArgumentException("StreamEdge must not connect a node to itself");
         }
-        Objects.requireNonNull(partitioning, "partitioning 不能为空");
+        Objects.requireNonNull(partitioning, "partitioning must not be null");
         if ((partitioning == StreamPartitioning.KEYED) != (keySelector != null)) {
-            throw new IllegalArgumentException("仅 KEYED 分区允许并必须提供 KeySelector");
+            throw new IllegalArgumentException("KeySelector is required only for KEYED partitioning");
         }
     }
 

@@ -53,7 +53,7 @@ public final class FileCheckpointStore implements AutoCloseable {
     private boolean closed;
 
     public FileCheckpointStore(Path directory) throws IOException {
-        this.directory = Objects.requireNonNull(directory, "directory 不能为空")
+        this.directory = Objects.requireNonNull(directory, "directory must not be null")
                 .toAbsolutePath()
                 .normalize();
         Files.createDirectories(this.directory);
@@ -67,7 +67,7 @@ public final class FileCheckpointStore implements AutoCloseable {
         }
         if (acquired == null) {
             lockChannel.close();
-            throw new IllegalStateException("Checkpoint 状态目录正在被其它 Job 使用");
+            throw new IllegalStateException("Checkpoint state directory is locked by another job");
         }
         lock = acquired;
     }
@@ -84,14 +84,14 @@ public final class FileCheckpointStore implements AutoCloseable {
      */
     public Optional<CheckpointSnapshot> loadLatest(String expectedGraphSignature) throws IOException {
         ensureOpen();
-        Objects.requireNonNull(expectedGraphSignature, "expectedGraphSignature 不能为空");
+        Objects.requireNonNull(expectedGraphSignature, "expectedGraphSignature must not be null");
         Path file = directory.resolve(FILE_NAME);
         if (!Files.exists(file)) {
             return Optional.empty();
         }
         long fileSize = Files.size(file);
         if (fileSize < 16 || fileSize > MAX_FILE_BYTES) {
-            throw new IOException("Checkpoint 文件大小非法");
+            throw new IOException("Invalid checkpoint file size");
         }
         byte[] fileBytes = Files.readAllBytes(file);
         long expectedCrc;
@@ -103,18 +103,18 @@ public final class FileCheckpointStore implements AutoCloseable {
         CRC32 checksum = new CRC32();
         checksum.update(payload);
         if (checksum.getValue() != expectedCrc) {
-            throw new IOException("Checkpoint 文件 CRC 校验失败");
+            throw new IOException("Checkpoint file CRC verification failed");
         }
         CheckpointSnapshot snapshot;
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(payload))) {
             if (in.readInt() != MAGIC) {
-                throw new IOException("Checkpoint 魔数不合法");
+                throw new IOException("Invalid checkpoint file magic number");
             }
             int format = in.readInt();
             if (format != LEGACY_FORMAT_VERSION
                     && format != OPERATOR_STATE_FORMAT_VERSION
                     && format != FORMAT_VERSION) {
-                throw new IOException("Checkpoint 格式或版本不兼容");
+                throw new IOException("Unsupported checkpoint file format or version");
             }
             long checkpointId = in.readLong();
             String signature = in.readUTF();
@@ -128,7 +128,7 @@ public final class FileCheckpointStore implements AutoCloseable {
             Set<CheckpointSnapshot.OperatorSubtask> finishedSubtasks =
                     format == FORMAT_VERSION ? readFinishedSubtasks(in) : Set.of();
             if (in.available() != 0) {
-                throw new IOException("Checkpoint 文件包含多余字节");
+                throw new IOException("Checkpoint file contains trailing bytes");
             }
             snapshot = new CheckpointSnapshot(
                     checkpointId,
@@ -141,10 +141,11 @@ public final class FileCheckpointStore implements AutoCloseable {
                     fullyFinished,
                     finishedSubtasks);
         } catch (IllegalArgumentException failure) {
-            throw new IOException("Checkpoint 状态内容不合法", failure);
+            throw new IOException("Invalid checkpoint state contents", failure);
         }
         if (!expectedGraphSignature.equals(snapshot.graphSignature())) {
-            throw new IllegalStateException("Checkpoint 拓扑/算子 UID/并行度与当前作业不匹配");
+            throw new IllegalStateException(
+                    "Checkpoint graph, operator UID or parallelism does not match the current job");
         }
         return Optional.of(snapshot);
     }
@@ -159,7 +160,7 @@ public final class FileCheckpointStore implements AutoCloseable {
      */
     public void save(CheckpointSnapshot checkpoint) throws IOException {
         ensureOpen();
-        Objects.requireNonNull(checkpoint, "checkpoint 不能为空");
+        Objects.requireNonNull(checkpoint, "checkpoint must not be null");
         byte[] payload;
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream out = new DataOutputStream(bytes)) {
@@ -190,7 +191,7 @@ public final class FileCheckpointStore implements AutoCloseable {
             payload = bytes.toByteArray();
         }
         if (payload.length + Long.BYTES > MAX_FILE_BYTES) {
-            throw new IOException("Checkpoint 超出状态文件上限");
+            throw new IOException("Checkpoint exceeds the state file size limit");
         }
         CRC32 crc = new CRC32();
         crc.update(payload);
@@ -220,7 +221,7 @@ public final class FileCheckpointStore implements AutoCloseable {
                         StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException failure) {
                 // A non-atomic replacement could expose partial state; do not claim durability on unsupported storage.
-                throw new IOException("状态目录不支持 Checkpoint 原子提交", failure);
+                throw new IOException("Checkpoint state directory does not support atomic publication", failure);
             }
         } finally {
             Files.deleteIfExists(temp);
@@ -239,13 +240,13 @@ public final class FileCheckpointStore implements AutoCloseable {
     private static void writeGroups(DataOutputStream out, Map<Integer, List<CheckpointSnapshot.SerializedState>> groups)
             throws IOException {
         if (groups.size() > MAX_GROUPS) {
-            throw new IOException("Checkpoint 子任务数量超限");
+            throw new IOException("Checkpoint subtask count exceeds the limit");
         }
         out.writeInt(groups.size());
         for (var group : groups.entrySet()) {
             out.writeInt(group.getKey());
             if (group.getValue().size() > MAX_SPLITS_PER_GROUP) {
-                throw new IOException("Checkpoint Split 数量超限");
+                throw new IOException("Checkpoint split count exceeds the limit");
             }
             out.writeInt(group.getValue().size());
             for (var state : group.getValue()) {
@@ -258,14 +259,14 @@ public final class FileCheckpointStore implements AutoCloseable {
             throws IOException {
         int count = in.readInt();
         if (count < 0 || count > MAX_GROUPS) {
-            throw new IOException("Checkpoint 子任务数量非法");
+            throw new IOException("Invalid checkpoint subtask count");
         }
         Map<Integer, List<CheckpointSnapshot.SerializedState>> result = new LinkedHashMap<>();
         for (int i = 0; i < count; i++) {
             int index = in.readInt();
             int size = in.readInt();
             if (index < 0 || size < 0 || size > MAX_SPLITS_PER_GROUP || result.containsKey(index)) {
-                throw new IOException("Checkpoint Reader 状态非法或重复");
+                throw new IOException("Invalid or duplicate checkpoint reader state");
             }
             var states = new java.util.ArrayList<CheckpointSnapshot.SerializedState>(size);
             for (int j = 0; j < size; j++) {
@@ -383,7 +384,7 @@ public final class FileCheckpointStore implements AutoCloseable {
     private static void writeState(DataOutputStream out, CheckpointSnapshot.SerializedState state) throws IOException {
         byte[] bytes = state.bytes();
         if (bytes.length > MAX_STATE_BYTES) {
-            throw new IOException("单个 Checkpoint 状态块过大");
+            throw new IOException("Checkpoint state block exceeds the size limit");
         }
         out.writeInt(state.version());
         out.writeInt(bytes.length);
@@ -394,7 +395,7 @@ public final class FileCheckpointStore implements AutoCloseable {
         int version = in.readInt();
         int count = in.readInt();
         if (version < 0 || count < 0 || count > MAX_STATE_BYTES || count > in.available()) {
-            throw new IOException("Checkpoint 状态块损坏");
+            throw new IOException("Corrupted checkpoint state block");
         }
         return new CheckpointSnapshot.SerializedState(version, in.readNBytes(count));
     }
@@ -414,11 +415,11 @@ public final class FileCheckpointStore implements AutoCloseable {
      * Existing non-keyed snapshot fingerprints are byte-for-byte unchanged.
      */
     public static String graphSignature(StreamGraph graph, int maxParallelism) {
-        Objects.requireNonNull(graph, "graph 不能为空");
+        Objects.requireNonNull(graph, "graph must not be null");
         StringBuilder canonical = new StringBuilder("yak-local-v1");
         for (StreamNode node : graph.getTopologicalNodes()) {
             if (node.getUid() == null) {
-                throw new IllegalArgumentException("持久化 Checkpoint 要求所有算子指定稳定 UID");
+                throw new IllegalArgumentException("Persistent checkpoints require stable UIDs for all operators");
             }
             canonical
                     .append('|')
@@ -453,13 +454,13 @@ public final class FileCheckpointStore implements AutoCloseable {
                     .digest(canonical.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException impossible) {
-            throw new IllegalStateException("JVM 不支持 SHA-256", impossible);
+            throw new IllegalStateException("SHA-256 is not supported by this JVM", impossible);
         }
     }
 
     private void ensureOpen() {
         if (closed) {
-            throw new IllegalStateException("CheckpointStore 已关闭");
+            throw new IllegalStateException("Checkpoint store is closed");
         }
     }
 

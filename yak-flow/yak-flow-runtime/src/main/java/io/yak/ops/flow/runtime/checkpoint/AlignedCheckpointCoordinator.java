@@ -6,6 +6,7 @@ import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
+import io.yak.ops.flow.runtime.source.coordinator.PendingCheckpointDeliveriesException;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import io.yak.ops.flow.runtime.tasks.OneInputStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
@@ -72,16 +73,16 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             CheckpointSnapshot restored,
             BooleanSupplier cancelled,
             Consumer<Throwable> onFailure) {
-        this.jobGraph = Objects.requireNonNull(plan, "plan 不能为空");
-        this.source = Objects.requireNonNull(source, "source 不能为空");
-        this.coordinator = Objects.requireNonNull(coordinator, "coordinator 不能为空");
+        this.jobGraph = Objects.requireNonNull(plan, "plan must not be null");
+        this.source = Objects.requireNonNull(source, "source must not be null");
+        this.coordinator = Objects.requireNonNull(coordinator, "coordinator must not be null");
         this.sourceTasks = List.copyOf(sourceTasks);
         this.inputTasks = List.copyOf(inputTasks);
-        this.storage = Objects.requireNonNull(storage, "storage 不能为空");
+        this.storage = Objects.requireNonNull(storage, "storage must not be null");
         this.graphSignature = FileCheckpointStore.graphSignature(
                 plan.graph(), plan.configuration().get(PipelineOptions.MAX_PARALLELISM));
-        this.cancelled = Objects.requireNonNull(cancelled, "cancelled 不能为空");
-        this.onFailure = Objects.requireNonNull(onFailure, "onFailure 不能为空");
+        this.cancelled = Objects.requireNonNull(cancelled, "cancelled must not be null");
+        this.onFailure = Objects.requireNonNull(onFailure, "onFailure must not be null");
         Duration interval = plan.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL);
         Duration timeout = plan.configuration().get(CheckpointingOptions.CHECKPOINTING_TIMEOUT);
         Duration minPause = plan.configuration().get(CheckpointingOptions.MIN_PAUSE_BETWEEN_CHECKPOINTS);
@@ -90,11 +91,11 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         this.minPauseMillis = minPause.toMillis();
         this.timeoutMillis = timeout.toMillis();
         if (!interval.isZero() && intervalMillis <= 0) {
-            throw new IllegalArgumentException("Checkpoint 周期不能小于 1ms");
+            throw new IllegalArgumentException("Checkpoint interval must be at least 1 ms");
         }
         this.nextCheckpointId = new AtomicLong(restored == null ? 0 : restored.checkpointId());
         if (timeoutMillis <= 0 || sourceTasks.isEmpty() || inputTasks.isEmpty()) {
-            throw new IllegalArgumentException("Checkpoint 超时、Source / Sink / Channel 配置非法");
+            throw new IllegalArgumentException("Invalid checkpoint timeout, source tasks or input tasks");
         }
     }
 
@@ -152,7 +153,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     public CompletableFuture<CheckpointSnapshot> trigger() {
         CompletableFuture<CheckpointSnapshot> result = new CompletableFuture<>();
         if (closed.get()) {
-            result.completeExceptionally(new IllegalStateException("CheckpointCoordinator 已关闭"));
+            result.completeExceptionally(new IllegalStateException("Checkpoint coordinator is closed"));
             return result;
         }
         try {
@@ -240,7 +241,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
      */
     public static Map<Integer, List<SourceSplit>> restoreSplits(
             CheckpointSnapshot snapshot, Source<?, SourceSplit, ?> source) throws IOException {
-        Objects.requireNonNull(snapshot, "snapshot 不能为空");
+        Objects.requireNonNull(snapshot, "snapshot must not be null");
         SimpleVersionedSerializer<SourceSplit> serializer = source.getSplitSerializer();
         Map<Integer, Map<String, SourceSplit>> merged = new LinkedHashMap<>();
         deserializeInto(merged, snapshot.assignments(), serializer);
@@ -266,7 +267,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             Map<String, SourceSplit> splits = result.computeIfAbsent(section.getKey(), id -> new LinkedHashMap<>());
             for (var state : section.getValue()) {
                 SourceSplit split = Objects.requireNonNull(
-                        serializer.deserialize(state.version(), state.bytes()), "Source Split 反序列化为空");
+                        serializer.deserialize(state.version(), state.bytes()),
+                        "Deserialized source split must not be null");
                 splits.put(split.splitId(), split);
             }
         }
@@ -524,8 +526,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             try {
                 await(coordinator.awaitCheckpointDeliveries());
                 return;
-            } catch (IllegalStateException pending) {
-                if (!pending.getMessage().contains("尚未确认") || System.nanoTime() >= checkpointDeadlineNanos) {
+            } catch (PendingCheckpointDeliveriesException pending) {
+                if (System.nanoTime() >= checkpointDeadlineNanos) {
                     throw pending;
                 }
                 Thread.sleep(10);
@@ -566,7 +568,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
 
     private void ensureActive() {
         if (closed.get() || cancelled.getAsBoolean() || Thread.currentThread().isInterrupted()) {
-            throw new CancellationException("Checkpoint 已取消");
+            throw new CancellationException("Checkpoint was cancelled");
         }
     }
 
@@ -574,7 +576,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         try {
             long remainingNanos = checkpointDeadlineNanos - System.nanoTime();
             if (remainingNanos <= 0) {
-                throw new IllegalStateException("整个 Checkpoint 已经超过超时时间");
+                throw new IllegalStateException("Checkpoint deadline exceeded");
             }
             return future.get(remainingNanos, TimeUnit.NANOSECONDS);
         } catch (ExecutionException failure) {
@@ -590,7 +592,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             }
             throw new IllegalStateException(cause);
         } catch (TimeoutException failure) {
-            throw new IllegalStateException("Checkpoint 等待 Task/Coordinator 响应超时", failure);
+            throw new IllegalStateException("Checkpoint timed out waiting for task or coordinator responses", failure);
         }
     }
 

@@ -35,13 +35,14 @@ public final class StreamNode {
     private final Boundedness boundedness;
 
     private StreamNode(Transformation<?> transformation, int resolvedParallelism) {
-        Objects.requireNonNull(transformation, "transformation 不能为空");
+        Objects.requireNonNull(transformation, "transformation must not be null");
         if (resolvedParallelism <= 0) {
-            throw new IllegalArgumentException("已解析的并行度必须大于 0");
+            throw new IllegalArgumentException("Resolved parallelism must be positive");
         }
         if (transformation.getParallelism() != Transformation.DEFAULT_PARALLELISM
                 && transformation.getParallelism() != resolvedParallelism) {
-            throw new IllegalArgumentException("已解析的并行度与 Transformation 显式并行度不一致");
+            throw new IllegalArgumentException(
+                    "Resolved parallelism does not match the Transformation's declared parallelism");
         }
 
         this.id = transformation.getId();
@@ -74,8 +75,8 @@ public final class StreamNode {
                 this.sink = sinkTransformation.getSink();
             }
             default ->
-                throw new IllegalArgumentException(
-                        "暂不支持的 Transformation 类型：" + transformation.getClass().getName());
+                throw new IllegalArgumentException("Unsupported Transformation type: "
+                        + transformation.getClass().getName());
         }
     }
 

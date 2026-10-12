@@ -35,23 +35,23 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
     private boolean finished;
 
     public SourceOperator(Source<T, SplitT, ?> source, SourceReaderContext readerContext) {
-        this.source = Objects.requireNonNull(source, "source 不能为空");
-        this.readerContext = Objects.requireNonNull(readerContext, "readerContext 不能为空");
+        this.source = Objects.requireNonNull(source, "source must not be null");
+        this.readerContext = Objects.requireNonNull(readerContext, "readerContext must not be null");
     }
 
     /** Initializes the reader on the owning mailbox thread before coordinator registration. */
     public void initialize() throws Exception {
         if (reader != null) {
-            throw new IllegalStateException("SourceOperator 已初始化");
+            throw new IllegalStateException("SourceOperator is already initialized");
         }
-        reader = Objects.requireNonNull(source.createReader(readerContext), "Source 返回空 Reader");
+        reader = Objects.requireNonNull(source.createReader(readerContext), "Source returned a null reader");
     }
 
     /** Delivers restored split offsets before {@link SourceReader#start()} is called. */
     public void restoreSplits(List<SplitT> splits) throws Exception {
         ensureInitialized();
         if (started) {
-            throw new IllegalStateException("已经启动的 Reader 不允许直接恢复 Split");
+            throw new IllegalStateException("Cannot restore splits directly into a started reader");
         }
         if (!splits.isEmpty()) {
             reader.addSplits(List.copyOf(splits));
@@ -62,7 +62,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
     public void start() throws Exception {
         ensureInitialized();
         if (started) {
-            throw new IllegalStateException("SourceReader 已启动");
+            throw new IllegalStateException("SourceReader is already started");
         }
         started = true;
         reader.start();
@@ -76,7 +76,7 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
      */
     @Override
     public void handleOperatorEvent(OperatorEvent event) throws Exception {
-        Objects.requireNonNull(event, "event 不能为空");
+        Objects.requireNonNull(event, "event must not be null");
         if (event instanceof AddSplitEvent<?> splitsEvent) {
             handleAddSplits(splitsEvent);
         } else if (event instanceof NoMoreSplitsEvent noMoreEvent) {
@@ -85,8 +85,8 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
             ensureInitialized();
             reader.handleSourceEvents(wrapper.sourceEvent());
         } else {
-            throw new IllegalArgumentException(
-                    "SourceOperator 不支持的 OperatorEvent：" + event.getClass().getName());
+            throw new IllegalArgumentException("Unsupported operator event for SourceOperator: "
+                    + event.getClass().getName());
         }
     }
 
@@ -94,9 +94,9 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
     @SuppressWarnings("unchecked")
     private void handleAddSplits(AddSplitEvent<?> event) throws Exception {
         ensureInitialized();
-        Objects.requireNonNull(event, "event 不能为空");
+        Objects.requireNonNull(event, "event must not be null");
         if (noMoreSplits || finished) {
-            throw new IllegalStateException("NoMoreSplits 后不能再交付新 Split");
+            throw new IllegalStateException("Cannot deliver splits after NoMoreSplits");
         }
         // Event carries serializer version + isolated bytes; no mutable SourceSplit crosses the gateway.
         reader.addSplits(((AddSplitEvent<SplitT>) event).splits(source.getSplitSerializer()));
@@ -105,9 +105,9 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
     /** Signals no further assignments without treating outstanding splits as finished. */
     private void handleNoMoreSplits(NoMoreSplitsEvent event) {
         ensureInitialized();
-        Objects.requireNonNull(event, "event 不能为空");
+        Objects.requireNonNull(event, "event must not be null");
         if (noMoreSplits) {
-            throw new IllegalStateException("NoMoreSplits 重复交付");
+            throw new IllegalStateException("NoMoreSplits was delivered more than once");
         }
         reader.notifyNoMoreSplits();
         noMoreSplits = true;
@@ -119,10 +119,10 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         if (finished) {
             return InputStatus.END_OF_INPUT;
         }
-        InputStatus status = Objects.requireNonNull(reader.pollNext(output), "pollNext 不能返回 null");
+        InputStatus status = Objects.requireNonNull(reader.pollNext(output), "pollNext must not return null");
         if (status == InputStatus.END_OF_INPUT) {
             if (!noMoreSplits) {
-                throw new IllegalStateException("Reader 未收到 NoMoreSplits 却报告 END_OF_INPUT");
+                throw new IllegalStateException("Reader reported END_OF_INPUT before receiving NoMoreSplits");
             }
             finished = true;
         }
@@ -132,16 +132,17 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
     /** Returns the reader's next availability future for task-mailbox suspension. */
     public CompletableFuture<Void> isAvailable() {
         ensureStarted();
-        return Objects.requireNonNull(reader.isAvailable(), "isAvailable 不能返回 null");
+        return Objects.requireNonNull(reader.isAvailable(), "isAvailable must not return null");
     }
 
     /** Returns only this reader's unfinished split progress, not a complete job checkpoint. */
     public List<SplitT> snapshotState(long checkpointId) throws Exception {
         ensureStarted();
         if (checkpointId < 0) {
-            throw new IllegalArgumentException("checkpointId 不能为负数");
+            throw new IllegalArgumentException("checkpointId must not be negative");
         }
-        return List.copyOf(Objects.requireNonNull(reader.snapshotState(checkpointId), "Reader 快照不能为空"));
+        return List.copyOf(
+                Objects.requireNonNull(reader.snapshotState(checkpointId), "Reader snapshot must not be null"));
     }
 
     public void notifyCheckpointComplete(long checkpointId) throws Exception {
@@ -162,14 +163,14 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
 
     private void ensureInitialized() {
         if (reader == null) {
-            throw new IllegalStateException("SourceReader 尚未初始化");
+            throw new IllegalStateException("SourceReader is not initialized");
         }
     }
 
     private void ensureStarted() {
         ensureInitialized();
         if (!started) {
-            throw new IllegalStateException("SourceReader 尚未启动");
+            throw new IllegalStateException("SourceReader is not started");
         }
     }
 }

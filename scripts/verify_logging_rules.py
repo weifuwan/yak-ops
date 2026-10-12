@@ -37,6 +37,52 @@ SENSITIVE_LOG_TERM = re.compile(
 )
 
 
+HAN_TEXT = re.compile(r"[\u3400-\u9fff]")
+JAVA_TOKENS = re.compile(
+    r'//[^\n]*|/\*[\s\S]*?\*/|"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|'
+    r"'(?:\\.|[^'\\])*'",
+    re.S,
+)
+DIAGNOSTIC_CONSTRUCTOR = re.compile(
+    r"\bnew\s+[\w$.]*(?:Exception|Error)\s*\(|\bObjects\.requireNonNull\s*\("
+)
+
+
+def java_string_literals(text):
+    """Returns Java string literals without interpreting comments or character literals."""
+    for match in JAVA_TOKENS.finditer(text):
+        raw = match.group()
+        if raw.startswith('"""'):
+            yield match.start(), raw[3:-3]
+        elif raw.startswith('"'):
+            yield match.start(), raw[1:-1]
+
+
+def chinese_engine_literals(text):
+    """Core and Runtime string literals are internal diagnostics, not UI copy."""
+    return [(offset, value) for offset, value in java_string_literals(text) if HAN_TEXT.search(value)]
+
+
+def chinese_connector_exceptions(text):
+    """Checks technical exception arguments without flagging JDBC schema-preview warnings."""
+    code = JAVA_TOKENS.sub(lambda match: " " * len(match.group()), text)
+    found = []
+    for match in DIAGNOSTIC_CONSTRUCTOR.finditer(code):
+        depth = 1
+        end = match.end()
+        while end < len(code) and depth > 0:
+            if code[end] == "(":
+                depth += 1
+            elif code[end] == ")":
+                depth -= 1
+            end += 1
+        call = text[match.start():end]
+        for offset, value in java_string_literals(call):
+            if HAN_TEXT.search(value):
+                found.append((match.start() + offset, value))
+    return found
+
+
 def production_java_files():
     files = []
     for path in ROOT.rglob("*.java"):
@@ -168,6 +214,8 @@ def verify_file(path):
         message = first_string_literal(call)
         if message is None:
             violations.append((line, "日志首个参数必须是直接字符串字面量，保持事件文本稳定可检索"))
+        elif HAN_TEXT.search(message):
+            violations.append((line, "Internal SLF4J log templates must be written in English"))
 
         if re.search(r'LOG\.(?:trace|debug|info|warn|error)\s*\(\s*String\.format\s*\(', call, re.S):
             violations.append((line, "日志禁止使用 String.format，统一使用 SLF4J {} 占位符"))
@@ -177,6 +225,14 @@ def verify_file(path):
         sensitive = SENSITIVE_LOG_TERM.search(call)
         if sensitive:
             violations.append((line, f"日志调用疑似直接引用敏感字段：{sensitive.group(0)}"))
+
+    file_name = relative.as_posix()
+    if file_name.startswith(("yak-ops-core/src/main/java/", "yak-flow/yak-flow-runtime/src/main/java/")):
+        for offset, _message in chinese_engine_literals(text):
+            violations.append((line_number(text, offset), "Core and Runtime diagnostics must be written in English"))
+    elif file_name.startswith("yak-flow/yak-flow-connector-") and "/src/main/java/" in file_name:
+        for offset, _message in chinese_connector_exceptions(text):
+            violations.append((line_number(text, offset), "Connector technical exception messages must be in English"))
 
     return [(relative.as_posix(), line, reason) for line, reason in violations]
 
