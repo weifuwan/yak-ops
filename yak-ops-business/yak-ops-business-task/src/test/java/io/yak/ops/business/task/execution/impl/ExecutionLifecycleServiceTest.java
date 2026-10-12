@@ -2,6 +2,7 @@ package io.yak.ops.business.task.execution.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -97,6 +98,59 @@ class ExecutionLifecycleServiceTest {
 
         verify(instances).markReconciling("ws", "i");
         verify(claims, never()).releaseOwned("ws", "i");
+    }
+
+    @Test
+    void cancelAfterLaunchRetainsClaimsUntilPhysicalCompletion() {
+        when(instances.findByIdForUpdate("ws", "i"))
+                .thenReturn(Optional.of(instance(TaskInstanceStatus.RUNNING)));
+        when(attempts.findByInstance("ws", "i"))
+                .thenReturn(List.of(attempt(TaskAttemptStatus.RUNNING)));
+        when(instances.findById("ws", "i"))
+                .thenReturn(Optional.of(instance(TaskInstanceStatus.CANCELLING)));
+
+        assertEquals(TaskInstanceStatus.CANCELLING, service.cancel("ws", "i"));
+
+        verify(instances).markCancelling("ws", "i");
+        verify(claims, never()).releaseOwned("ws", "i");
+    }
+
+    @Test
+    void staleTerminalCallbackCannotReleaseAnotherLaunchersResources() {
+        when(instances.findByIdForUpdate("ws", "i"))
+                .thenReturn(Optional.of(instance(TaskInstanceStatus.RUNNING)));
+
+        assertThrows(IllegalStateException.class, () -> service.complete(ticket(), TaskOutcome.FINISHED));
+
+        verify(claims, never()).releaseOwned("ws", "i");
+        verify(instances, never()).markTerminal("ws", "i", TaskInstanceStatus.FINISHED, null);
+    }
+
+    @Test
+    void startupDoesNotReplayActiveAttemptFromPreviousOwner() {
+        AttemptEntity previous = attempt(TaskAttemptStatus.RUNNING);
+        previous.setOwnerIncarnation("previous-owner");
+        when(attempts.activeByOtherOwner("new-owner")).thenReturn(List.of(previous));
+        when(instances.findByIdForUpdate("ws", "i"))
+                .thenReturn(Optional.of(instance(TaskInstanceStatus.RUNNING)));
+
+        service.reconcilePrevious("new-owner");
+
+        verify(instances).markReconciling("ws", "i");
+        verify(attempts, never()).claimPending("ws", "a", "new-owner", "new-token");
+        verify(claims, never()).releaseOwned("ws", "i");
+    }
+
+    @Test
+    void repeatedTerminalNotificationPreservesImmutableOutcome() {
+        when(instances.findByIdForUpdate("ws", "i"))
+                .thenReturn(Optional.of(instance(TaskInstanceStatus.FINISHED)));
+
+        service.complete(ticket(), TaskOutcome.CANCELED);
+
+        verify(claims, never()).releaseOwned("ws", "i");
+        verify(attempts, never())
+                .markTerminal("ws", "a", "token-1", TaskAttemptStatus.CANCELED, null);
     }
 
     private static InstanceEntity instance(TaskInstanceStatus status) {
