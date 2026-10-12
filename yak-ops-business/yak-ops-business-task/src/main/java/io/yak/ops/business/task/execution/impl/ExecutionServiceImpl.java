@@ -100,18 +100,6 @@ public class ExecutionServiceImpl implements ExecutionService {
         }
     }
 
-    @Override
-    public InstanceEntity instance(String instanceId) {
-        return instances
-                .findById(WorkspaceContext.requireWorkspaceId(), instanceId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
-    }
-
-    @Override
-    public List<AttemptEntity> attempts(String instanceId) {
-        InstanceEntity instance = instance(instanceId);
-        return attempts.findByInstance(instance.getWorkspaceId(), instance.getId());
-    }
 
     private SubmissionResult replay(InstanceEntity instance, String fingerprint) {
         if (!fingerprint.equals(instance.getRequestFingerprint())) {
