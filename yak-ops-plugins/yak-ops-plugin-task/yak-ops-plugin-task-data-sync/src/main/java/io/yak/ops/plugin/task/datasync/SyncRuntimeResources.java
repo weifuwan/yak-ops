@@ -1,8 +1,5 @@
 package io.yak.ops.plugin.task.datasync;
 
-import io.yak.ops.core.data.TableId;
-import io.yak.ops.core.types.TableSchema;
-
 /** Trusted Workspace-scoped datasource and metadata access for DATA_SYNC execution. */
 public interface SyncRuntimeResources {
 

@@ -1,19 +1,12 @@
 package io.yak.ops.plugin.task.datasync;
 
 import io.yak.ops.common.util.JSONUtils;
-import io.yak.ops.plugin.task.api.TaskParameters;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
-import io.yak.ops.plugin.task.api.execution.ExecutionResource;
-import io.yak.ops.plugin.task.api.execution.TaskExecutionContext;
-import io.yak.ops.plugin.task.api.execution.TaskExecutionPlan;
-import io.yak.ops.plugin.task.api.execution.TaskHandle;
-import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
-import io.yak.ops.connector.jdbc.source.JdbcSource;
+import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSource;
 import io.yak.ops.connector.jdbc.database.JdbcFactoryLoader;
 import io.yak.ops.connector.jdbc.sink.JdbcSink;
 import io.yak.ops.connector.jdbc.sink.JdbcTableWritePlan;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
-import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSource;
+import io.yak.ops.connector.jdbc.source.JdbcSource;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.PipelineOptions;
@@ -24,6 +17,15 @@ import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
+import io.yak.ops.plugin.task.api.TaskParameters;
+import io.yak.ops.plugin.task.api.TaskPluginException;
+import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.execution.ExecutionResource;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionContext;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
+import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.sink.JdbcSinkParameters;
 import io.yak.ops.plugin.task.datasync.source.JdbcSourceParameters;
 import io.yak.ops.plugin.task.datasync.source.MySqlCdcSourceParameters;
@@ -39,8 +41,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import io.yak.ops.plugin.task.api.TaskPluginException;
-import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 
 /**
  * DATA_SYNC definition and optional execution capability backed by YakFlow.
