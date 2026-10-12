@@ -77,7 +77,8 @@ class AdmissionService {
         if (definition.getStatus() != DefinitionStatus.PUBLISHED
                 || !definition.getCurrentVersion().equals(context.definitionVersion())
                 || !definition.getTaskType().equals(request.plugin().type())
-                || versions.queryCurrent(workspaceId, definition.getId(), context.definitionVersion()).isEmpty()) {
+                || versions.queryCurrent(workspaceId, definition.getId(), context.definitionVersion())
+                        .isEmpty()) {
             throw new BusinessException(CommonErrorCode.RESOURCE_DUPLICATION);
         }
 
@@ -120,6 +121,10 @@ class AdmissionService {
             claims.add(claim);
         }
         return new SubmissionResult(
-                context.instanceId(), context.attemptId(), context.definitionVersion(), TaskInstanceStatus.SUBMITTED, false);
+                context.instanceId(),
+                context.attemptId(),
+                context.definitionVersion(),
+                TaskInstanceStatus.SUBMITTED,
+                false);
     }
 }
