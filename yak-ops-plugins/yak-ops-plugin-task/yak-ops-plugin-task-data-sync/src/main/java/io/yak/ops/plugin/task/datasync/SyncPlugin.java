@@ -58,7 +58,8 @@ public final class SyncPlugin implements ExecutableTaskPlugin {
     public SyncPlugin(SyncRuntimeResources resources, PipelineExecutor executor, Path stateRoot) {
         this.resources = Objects.requireNonNull(resources, "resources");
         this.executor = Objects.requireNonNull(executor, "executor");
-        this.stateRoot = Objects.requireNonNull(stateRoot, "stateRoot").toAbsolutePath().normalize();
+        this.stateRoot =
+                Objects.requireNonNull(stateRoot, "stateRoot").toAbsolutePath().normalize();
     }
 
     @Override
@@ -118,8 +119,7 @@ public final class SyncPlugin implements ExecutableTaskPlugin {
         String binding = context.workspaceId()
                 + "|" + source.datasourceId() + "|" + from.revision() + "|" + encodeTable(from.table())
                 + "|" + sink.datasourceId() + "|" + to.revision() + "|" + encodeTable(to.table());
-        return new TaskExecutionPlan(
-                List.of(new ExecutionResource("DATA_SYNC_TARGET", target)), sha256(binding));
+        return new TaskExecutionPlan(List.of(new ExecutionResource("DATA_SYNC_TARGET", target)), sha256(binding));
     }
 
     @Override
@@ -136,10 +136,8 @@ public final class SyncPlugin implements ExecutableTaskPlugin {
                     context.workspaceId(), source.datasourceId(), source.database(), source.schema(), source.table());
             SyncRuntimeTable to = resources.table(
                     context.workspaceId(), sink.datasourceId(), sink.database(), sink.schema(), sink.table());
-            SyncRuntimeConnection sourceConnection =
-                    resources.connection(context.workspaceId(), source.datasourceId());
-            SyncRuntimeConnection targetConnection =
-                    resources.connection(context.workspaceId(), sink.datasourceId());
+            SyncRuntimeConnection sourceConnection = resources.connection(context.workspaceId(), source.datasourceId());
+            SyncRuntimeConnection targetConnection = resources.connection(context.workspaceId(), sink.datasourceId());
             if (sourceConnection.revision() != from.revision()
                     || targetConnection.revision() != to.revision()
                     || !plan.equals(plan(parameters, context))) {
@@ -147,14 +145,13 @@ public final class SyncPlugin implements ExecutableTaskPlugin {
             }
             Configuration configuration = new Configuration()
                     .set(PipelineOptions.AUTO_GENERATE_UIDS, false)
-                    .set(CheckpointingOptions.STATE_DIRECTORY, stateRoot.resolve(context.instanceId()).toString());
+                    .set(
+                            CheckpointingOptions.STATE_DIRECTORY,
+                            stateRoot.resolve(context.instanceId()).toString());
             io.yak.ops.core.api.connector.source.Source<TableRecord, ?, ?> physicalSource;
             if (source instanceof JdbcSourceParameters) {
                 physicalSource = new JdbcSource(
-                        sourceConnection.provider(),
-                        sourceConnection.jdbcUrl(),
-                        List.of(from.table()),
-                        configuration);
+                        sourceConnection.provider(), sourceConnection.jdbcUrl(), List.of(from.table()), configuration);
             } else if (source instanceof MySqlCdcSourceParameters) {
                 if (sourceConnection.tunneled()
                         || sourceConnection.host() == null
