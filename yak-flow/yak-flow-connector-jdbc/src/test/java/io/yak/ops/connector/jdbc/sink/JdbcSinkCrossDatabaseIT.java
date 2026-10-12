@@ -86,10 +86,15 @@ class JdbcSinkCrossDatabaseIT {
         JdbcConnectionOptions targetOptions = connectionOptions("target");
         JdbcDialect sourceDialect = JdbcDialects.forUrl(sourceOptions.url());
         JdbcDialect targetDialect = JdbcDialects.forUrl(targetOptions.url());
-        TableSchema schema = new TableSchema(
+        TableSchema sourceSchema = new TableSchema(
                 List.of(
                         new Column("ID", LogicalTypes.decimal(18, 0).copy(false)),
                         new Column("LABEL", LogicalTypes.varchar(48))),
+                List.of("ID"));
+        TableSchema targetSchema = new TableSchema(
+                List.of(
+                        new Column("ID", LogicalTypes.decimal(18, 0).copy(false)),
+                        new Column("MESSAGE", LogicalTypes.varchar(48))),
                 List.of("ID"));
 
         try (Connection sourceConnection = sourceOptions.openConnection();
@@ -99,9 +104,9 @@ class JdbcSinkCrossDatabaseIT {
             TableId sourceTable = tableId(sourceConnection, sourceOptions.url(), "YF_YOIP1_SRC");
             TableId targetTable = tableId(targetConnection, targetOptions.url(), "YF_YOIP1_DST");
             try {
-                sourceDdl.execute(sourceDialect.createTableSql(sourceTable, schema));
-                targetDdl.execute(targetDialect.createTableSql(targetTable, schema));
-                insertRows(sourceConnection, sourceDialect, schema, sourceTable, null,
+                sourceDdl.execute(sourceDialect.createTableSql(sourceTable, sourceSchema));
+                targetDdl.execute(targetDialect.createTableSql(targetTable, targetSchema));
+                insertRows(sourceConnection, sourceDialect, sourceSchema, sourceTable, null,
                         1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L);
 
                 AtomicBoolean restoring = new AtomicBoolean();
@@ -126,7 +131,9 @@ class JdbcSinkCrossDatabaseIT {
                 JdbcSink jdbcSink = JdbcSink.builder()
                         .withConnectionOptions(targetOptions)
                         .withTablePlans(List.of(
-                                new JdbcTableWritePlan(sourceTable, targetTable, schema, JdbcWriteMode.UPSERT)))
+                                new JdbcTableWritePlan(
+                                        sourceTable, targetTable, targetSchema, JdbcWriteMode.UPSERT,
+                                        sourceSchema, Map.of("MESSAGE", "LABEL"))))
                         .withBatchFlushPolicy(new BatchFlushPolicy(64, Duration.ZERO))
                         .build();
                 Sink<TableRecord> observedSink = context -> {
@@ -186,7 +193,7 @@ class JdbcSinkCrossDatabaseIT {
                 }
 
                 // Data added after a completed terminal checkpoint must not be replayed on restore.
-                insertRows(sourceConnection, sourceDialect, schema, sourceTable, null, 99L);
+                insertRows(sourceConnection, sourceDialect, sourceSchema, sourceTable, null, 99L);
                 restoring.set(true);
                 int priorConnections = openedSourceConnections.get();
                 Configuration recovery = new Configuration(configuration);
