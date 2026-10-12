@@ -54,6 +54,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     private final long intervalMillis;
     private final long minPauseMillis;
     private final AtomicLong nextCheckpointId;
+    private final boolean finalCheckpointRequired;
+    private final CompletableFuture<Void> finalCheckpointCompleted = new CompletableFuture<>();
     private long checkpointDeadlineNanos;
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(
             Thread.ofVirtual().name("yak-local-checkpoint-", 0).factory());
@@ -83,6 +85,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         Duration timeout = plan.configuration().get(CheckpointingOptions.CHECKPOINTING_TIMEOUT);
         Duration minPause = plan.configuration().get(CheckpointingOptions.MIN_PAUSE_BETWEEN_CHECKPOINTS);
         this.intervalMillis = interval.toMillis();
+        this.finalCheckpointRequired = plan.isBounded() && intervalMillis > 0;
         this.minPauseMillis = minPause.toMillis();
         this.timeoutMillis = timeout.toMillis();
         if (!interval.isZero() && intervalMillis <= 0) {
@@ -94,12 +97,43 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         }
     }
 
-    /** Starts periodic checkpoint triggering only after the preceding attempt has completed. */
+    /** True only for supported bounded jobs with periodic checkpointing enabled. */
+    public boolean requiresFinalCheckpoint() {
+        return finalCheckpointRequired;
+    }
+
+    /** A terminal Job cannot physically finish until the final checkpoint and its listeners succeed. */
+    public CompletableFuture<Void> finalCheckpointFuture() {
+        return finalCheckpointCompleted.copy();
+    }
+
+    /** Starts periodic triggering and arranges the final checkpoint after all data is processed. */
     public void start() {
+        if (finalCheckpointRequired) {
+            List<CompletableFuture<Void>> ready = new ArrayList<>();
+            for (SourceOperatorStreamTask<Object, SourceSplit> task : sourceTasks) {
+                ready.add(task.allDataProcessedFuture());
+            }
+            for (OneInputStreamTask task : inputTasks) {
+                ready.add(task.allDataProcessedFuture());
+            }
+            CompletableFuture.allOf(ready.toArray(CompletableFuture[]::new))
+                    .whenComplete((unused, failure) -> {
+                        if (failure != null) {
+                            failFinalCheckpoint(failure);
+                        } else {
+                            try {
+                                timer.execute(this::runFinalCheckpoint);
+                            } catch (java.util.concurrent.RejectedExecutionException error) {
+                                failFinalCheckpoint(error);
+                            }
+                        }
+                    });
+        }
         if (intervalMillis > 0) {
             timer.scheduleWithFixedDelay(
                     () -> {
-                        if (closed.get() || cancelled.getAsBoolean()) {
+                        if (closed.get() || cancelled.getAsBoolean() || anySourceFinished()) {
                             return;
                         }
                         runCheckpoint(new CompletableFuture<>());
@@ -146,7 +180,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
 
     private void runCheckpoint(CompletableFuture<CheckpointSnapshot> published) {
         try {
-            performCheckpoint(published);
+            performCheckpoint(published, false);
         } catch (Throwable failure) {
             boolean checkpointPublished = published.isDone();
             published.completeExceptionally(failure);
@@ -154,6 +188,46 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                 onFailure.accept(failure);
             }
         }
+    }
+
+    private void runFinalCheckpoint() {
+        for (int attempt = 0; attempt < 2; attempt++) {
+            if (closed.get() || cancelled.getAsBoolean()) {
+                return;
+            }
+            CompletableFuture<CheckpointSnapshot> published = new CompletableFuture<>();
+            try {
+                performCheckpoint(published, true);
+                finalCheckpointCompleted.complete(null);
+                return;
+            } catch (Throwable failure) {
+                boolean publishedDurably = published.isDone() && !published.isCompletedExceptionally();
+                if (!publishedDurably && attempt == 0 && isRetryableFinalFailure(failure)) {
+                    continue;
+                }
+                failFinalCheckpoint(failure);
+                return;
+            }
+        }
+    }
+
+    private void failFinalCheckpoint(Throwable failure) {
+        finalCheckpointCompleted.completeExceptionally(failure);
+        if (!closed.get() && !cancelled.getAsBoolean()) {
+            onFailure.accept(failure);
+        }
+    }
+
+    private static boolean isRetryableFinalFailure(Throwable failure) {
+        if (isCheckpointDeclined(failure)) {
+            return true;
+        }
+        for (Throwable error = failure; error != null; error = error.getCause()) {
+            if (error instanceof TimeoutException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -196,9 +270,13 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         }
     }
 
-    private void performCheckpoint(CompletableFuture<CheckpointSnapshot> published) throws Exception {
+    private void performCheckpoint(CompletableFuture<CheckpointSnapshot> published, boolean terminal)
+            throws Exception {
         ensureActive();
         long checkpointId = nextCheckpointId.incrementAndGet();
+        if (!terminal && anySourceFinished()) {
+            throw new CheckpointDeclinedException(checkpointId, "Source has already reached EndOfData");
+        }
         CheckpointPlan checkpointPlan = calculatePlan(checkpointId);
         checkpointDeadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
         boolean coordinatorFrozen = false;
@@ -290,6 +368,30 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             }
             Set<CheckpointSnapshot.OperatorSubtask> finishedSubtasks =
                     checkpointPlan.finishedSubtasks(checkpointId, finishedReports, operatorStates);
+            Set<String> fullyFinished = checkpointPlan.fullyFinishedOperators();
+            if (terminal) {
+                // All last records and Sink final flushes have been acknowledged by downstream.
+                // The complete terminal cut is restorable by control-only finished Tasks.
+                Set<String> terminalOperators = new HashSet<>(fullyFinished);
+                for (SourceOperatorStreamTask<Object, SourceSplit> task : sourceTasks) {
+                    if (!task.hasReachedEndOfData() || !task.allDataProcessedFuture().isDone()) {
+                        throw new CheckpointDeclinedException(checkpointId, "Source EndOfData not acknowledged");
+                    }
+                }
+                terminalOperators.add(jobGraph.getVertices().getFirst().getHeadOperator().getUid());
+                for (OneInputStreamTask task : inputTasks) {
+                    if (!finishedReports.contains(task.checkpointIdentity())) {
+                        throw new CheckpointDeclinedException(checkpointId, "Operator final output not checkpointed");
+                    }
+                    terminalOperators.add(task.checkpointIdentity().uid());
+                }
+                if (!operatorStates.isEmpty()
+                        || terminalOperators.size() != jobGraph.getVertices().size()) {
+                    throw new CheckpointDeclinedException(checkpointId, "Terminal checkpoint has incomplete operators");
+                }
+                fullyFinished = Set.copyOf(terminalOperators);
+                finishedSubtasks = Set.of();
+            }
             CheckpointSnapshot snapshot = new CheckpointSnapshot(
                     checkpointId,
                     graphSignature,
@@ -298,13 +400,10 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                     frozenSource.assignments(),
                     System.currentTimeMillis(),
                     operatorStates,
-                    checkpointPlan.fullyFinishedOperators(),
+                    fullyFinished,
                     finishedSubtasks);
-            // A published Checkpoint must be recoverable. PR3 will install finished-on-restore
-            // before enabling publication of checkpoints containing finished-task markers.
-            if (snapshot.hasFinishedOperators()) {
-                throw new CheckpointDeclinedException(
-                        checkpointId, "Finished checkpoint restore is not implemented yet");
+            if (snapshot.hasFinishedOperators() && !terminal) {
+                throw new CheckpointDeclinedException(checkpointId, "Finished state requires a terminal checkpoint");
             }
             storage.save(snapshot);
             stored = true;
@@ -436,6 +535,10 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             }
         }
         return false;
+    }
+
+    private boolean anySourceFinished() {
+        return sourceTasks.stream().anyMatch(SourceOperatorStreamTask::hasReachedEndOfData);
     }
 
     private CheckpointPlan calculatePlan(long checkpointId) throws CheckpointDeclinedException {
