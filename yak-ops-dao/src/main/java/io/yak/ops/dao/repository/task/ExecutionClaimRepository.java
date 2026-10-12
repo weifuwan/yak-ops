@@ -1,26 +1,27 @@
 package io.yak.ops.dao.repository.task;
 
 import io.yak.ops.dao.entity.task.ExecutionClaimEntity;
+import java.util.List;
 
 /** Owns database-enforced exclusive execution resources. */
 public interface ExecutionClaimRepository {
 
-    /**
-     * Acquires one canonical resource, rejecting conflicting owners by unique key.
-     *
-     * @param claim resource and owning Instance persisted during admission
-     */
+    /** @param claim canonical exclusive claim to persist during admission */
     void add(ExecutionClaimEntity claim);
 
     /**
-     * Releases claims belonging to one conclusively terminal Instance.
+     * @param workspaceId authorized Workspace
+     * @param instanceId owning Instance
+     * @return canonical resource claims held by the Instance
+     */
+    List<ExecutionClaimEntity> findByInstance(String workspaceId, String instanceId);
+
+    /**
+     * Releases claims after authoritative terminal completion and writer quiescence.
      *
-     * <p>The caller must prove external writes have stopped and release claims
-     * atomically with the Instance terminal transition.
-     *
-     * @param workspaceId authorized Workspace identifier
-     * @param instanceId Instance that currently owns the claims
-     * @return number of resource claims removed for the owner
+     * @param workspaceId authorized Workspace
+     * @param instanceId conclusively terminal claim owner
+     * @return number of released claims
      */
     int releaseOwned(String workspaceId, String instanceId);
 }
