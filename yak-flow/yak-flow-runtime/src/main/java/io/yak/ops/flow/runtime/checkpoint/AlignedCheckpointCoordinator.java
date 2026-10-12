@@ -372,18 +372,21 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
                 // The complete terminal cut is restorable by control-only finished Tasks.
                 Set<String> terminalOperators = new HashSet<>(fullyFinished);
                 for (SourceOperatorStreamTask<Object, SourceSplit> task : sourceTasks) {
-                    if (!task.hasReachedEndOfData() || !task.allDataProcessedFuture().isDone()) {
+                    if (!task.hasReachedEndOfData()
+                            || !task.allDataProcessedFuture().isDone()) {
                         throw new CheckpointDeclinedException(checkpointId, "Source EndOfData not acknowledged");
                     }
                 }
-                terminalOperators.add(jobGraph.getVertices().getFirst().getHeadOperator().getUid());
+                terminalOperators.add(
+                        jobGraph.getVertices().getFirst().getHeadOperator().getUid());
                 for (OneInputStreamTask task : inputTasks) {
                     if (!finishedReports.contains(task.checkpointIdentity())) {
                         throw new CheckpointDeclinedException(checkpointId, "Operator final output not checkpointed");
                     }
                     terminalOperators.add(task.checkpointIdentity().uid());
                 }
-                if (!operatorStates.isEmpty() || terminalOperators.size() != jobGraph.getVertices().size()) {
+                if (!operatorStates.isEmpty()
+                        || terminalOperators.size() != jobGraph.getVertices().size()) {
                     throw new CheckpointDeclinedException(checkpointId, "Terminal checkpoint has incomplete operators");
                 }
                 fullyFinished = Set.copyOf(terminalOperators);
