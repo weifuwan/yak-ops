@@ -81,8 +81,7 @@ public class ExecutionServiceImpl implements ExecutionService {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
         int version = definition.getCurrentVersion();
-        var snapshot = versions
-                .queryCurrent(workspaceId, definitionId, version)
+        var snapshot = versions.queryCurrent(workspaceId, definitionId, version)
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
         TaskParameters parameters = executable.parse(snapshot.getParameters());
         executable.validate(parameters, validationContext);
@@ -94,7 +93,8 @@ public class ExecutionServiceImpl implements ExecutionService {
         try {
             return admission.admit(request);
         } catch (DuplicateKeyException duplicate) {
-            return instances.findByRequest(workspaceId, TaskTriggerType.MANUAL, requestId)
+            return instances
+                    .findByRequest(workspaceId, TaskTriggerType.MANUAL, requestId)
                     .map(instance -> replay(instance, fingerprint))
                     .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_DUPLICATION));
         }
