@@ -19,6 +19,7 @@ public final class ResultPartition<T> {
     private final List<ResultSubpartition<T>> subpartitions;
     private boolean dataFinished;
     private boolean finished;
+    private CompletableFuture<Void> endOfDataAcknowledged;
 
     public ResultPartition(int producerIndex, List<InputGate<T>> downstreamGates) {
         Objects.requireNonNull(downstreamGates, "downstreamGates");
@@ -80,13 +81,20 @@ public final class ResultPartition<T> {
         for (ResultSubpartition<T> subpartition : subpartitions) {
             acknowledgments.add(subpartition.endData());
         }
-        return CompletableFuture.allOf(acknowledgments.toArray(CompletableFuture[]::new));
+        endOfDataAcknowledged = CompletableFuture.allOf(acknowledgments.toArray(CompletableFuture[]::new));
+        return endOfDataAcknowledged.copy();
     }
 
     /** Physically close all channels after the required EndOfData acknowledgments. */
     public void finish() {
         if (finished) {
             throw new IllegalStateException("ResultPartition finished twice");
+        }
+        if (dataFinished
+                && (endOfDataAcknowledged == null
+                        || !endOfDataAcknowledged.isDone()
+                        || endOfDataAcknowledged.isCompletedExceptionally())) {
+            throw new IllegalStateException("ResultPartition cannot finish before successful EndOfData ACK");
         }
         finished = true;
         for (ResultSubpartition<T> subpartition : subpartitions) {
