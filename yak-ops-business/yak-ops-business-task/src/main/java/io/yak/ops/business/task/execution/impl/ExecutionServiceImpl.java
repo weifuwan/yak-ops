@@ -100,7 +100,6 @@ public class ExecutionServiceImpl implements ExecutionService {
         }
     }
 
-
     private SubmissionResult replay(InstanceEntity instance, String fingerprint) {
         if (!fingerprint.equals(instance.getRequestFingerprint())) {
             throw new BusinessException(CommonErrorCode.RESOURCE_DUPLICATION);
