@@ -4,6 +4,7 @@ import io.yak.ops.core.api.connector.source.InputStatus;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
+import io.yak.ops.flow.runtime.checkpoint.CheckpointDeclinedException;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.io.RecordWriterOutput;
 import io.yak.ops.flow.runtime.io.StreamTaskSourceInput;
@@ -39,6 +40,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     private final RecordWriterOutput<?> recordWriter;
     private final List<SplitT> restoredSplits;
     private CompletableFuture<Void> endOfDataAcknowledged = CompletableFuture.completedFuture(null);
+    private volatile boolean outputFinished;
     private boolean pausedForCheckpoint;
     private CompletableFuture<Void> resumeFuture = CompletableFuture.completedFuture(null);
 
@@ -121,8 +123,14 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     @Override
     protected void finishOutput() {
         if (recordWriter != null) {
+            outputFinished = true;
             recordWriter.finish();
         }
+    }
+
+    /** Whether the physical output can no longer forward checkpoint-control events. */
+    public boolean hasFinishedOutput() {
+        return outputFinished;
     }
 
     @Override
@@ -193,7 +201,14 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
             return CompletableFuture.failedFuture(
                     new UnsupportedOperationException("Checkpointed source needs a physical ResultPartition"));
         }
+        if (outputFinished) {
+            return CompletableFuture.failedFuture(
+                    new CheckpointDeclinedException(checkpointId, "Source output already finished"));
+        }
         return submitMailbox(() -> {
+            if (outputFinished) {
+                throw new CheckpointDeclinedException(checkpointId, "Source output already finished");
+            }
             if (pausedForCheckpoint) {
                 throw new IllegalStateException("Reader is already paused for checkpoint");
             }
