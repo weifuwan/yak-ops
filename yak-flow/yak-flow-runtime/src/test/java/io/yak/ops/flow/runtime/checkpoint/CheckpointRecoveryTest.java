@@ -378,7 +378,7 @@ class CheckpointRecoveryTest {
     }
 
     @Test
-    void shouldRejectFinishedCheckpointRestoreBeforeFinishedOnRestoreExists() throws Exception {
+    void shouldRejectPartialFinishedCheckpointRestoreWithoutReplayingBusinessWork() throws Exception {
         OffsetSource source = new OffsetSource(4);
         CapturedSink sink = new CapturedSink();
         String signature = FileCheckpointStore.graphSignature(graph(source, sink));
@@ -405,10 +405,114 @@ class CheckpointRecoveryTest {
         java.util.concurrent.ExecutionException failure = assertThrows(
                 java.util.concurrent.ExecutionException.class,
                 () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
-        assertTrue(failure.getCause().toString().contains("Finished-on-Restore"));
+        assertTrue(failure.getCause().toString().contains("completely finished terminal checkpoint"));
         assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));
         assertEquals(0, source.createdReaders.get());
         assertEquals(0, sink.createdWriters.get());
+    }
+
+    @Test
+    void shouldRequireFinalCheckpointAfterAllBoundedRecordsAndSinkFlush() throws Exception {
+        OffsetSource source = new OffsetSource(3);
+        source.enableBoundedInput();
+        CapturedSink sink = new CapturedSink();
+        Configuration config = configuration(false);
+        config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
+        EmbeddedJobClient job = (EmbeddedJobClient) new EmbeddedPipelineExecutor()
+                .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
+        awaitCount(sink.rows, 6);
+        source.releaseBoundedInput();
+        job.getJobExecutionResult().get(10, TimeUnit.SECONDS);
+
+        assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(1, sink.finalFlushes.get());
+        assertEquals(6, sink.rows.size());
+        try (FileCheckpointStore store = new FileCheckpointStore(checkpointDirectory)) {
+            CheckpointSnapshot snapshot = store.loadLatest(FileCheckpointStore.graphSignature(graph(source, sink)))
+                    .orElseThrow();
+            assertTrue(snapshot.hasFinishedOperators());
+            assertEquals(Set.of("checkpoint-stable-source", "checkpoint-stable-sink"),
+                    snapshot.fullyFinishedOperators());
+            assertTrue(snapshot.finishedSubtasks().isEmpty());
+            assertTrue(snapshot.operatorStates().isEmpty());
+        }
+    }
+
+    @Test
+    void finishedOnRestoreMustNotCreateReadersOrWritersOrRepeatFinalFlush() throws Exception {
+        OffsetSource source = new OffsetSource(2);
+        source.enableBoundedInput();
+        CapturedSink sink = new CapturedSink();
+        Configuration config = configuration(false);
+        config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
+        JobClient first = new EmbeddedPipelineExecutor()
+                .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
+        awaitCount(sink.rows, 4);
+        source.releaseBoundedInput();
+        first.getJobExecutionResult().get(10, TimeUnit.SECONDS);
+        assertEquals(1, sink.finalFlushes.get());
+
+        OffsetSource restoredSource = new OffsetSource(8);
+        restoredSource.enableBoundedInput();
+        CapturedSink restoredSink = new CapturedSink();
+        Configuration restore = configuration(true);
+        restore.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
+        JobClient second = new EmbeddedPipelineExecutor()
+                .execute(graph(restoredSource, restoredSink), restore).get(5, TimeUnit.SECONDS);
+        second.getJobExecutionResult().get(10, TimeUnit.SECONDS);
+
+        assertEquals(JobStatus.FINISHED, second.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(0, restoredSource.createdReaders.get());
+        assertEquals(0, restoredSink.createdWriters.get());
+        assertEquals(0, restoredSink.finalFlushes.get());
+        assertTrue(restoredSink.rows.isEmpty());
+        assertEquals(4, sink.rows.size());
+    }
+
+    @Test
+    void publishedFinalCheckpointRecoversWithoutReplayingAmbiguousSinkOutput() throws Exception {
+        OffsetSource source = new OffsetSource(2);
+        source.enableBoundedInput();
+        source.failNextEnumeratorCompletion();
+        CapturedSink sink = new CapturedSink();
+        Configuration config = configuration(false);
+        config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
+        config.set(ExecutionOptions.MAX_RESTART_ATTEMPTS, 1);
+        JobClient job = new EmbeddedPipelineExecutor()
+                .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
+        awaitCount(sink.rows, 4);
+        source.releaseBoundedInput();
+
+        try {
+            assertTrue(source.completionNotificationEntered.await(10, TimeUnit.SECONDS));
+            assertEquals(1, sink.finalFlushes.get());
+        } finally {
+            source.releaseCompletionNotification.countDown();
+        }
+        job.getJobExecutionResult().get(10, TimeUnit.SECONDS);
+        assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(2, source.createdReaders.get(), "Finished recovery cannot create additional SourceReaders");
+        assertEquals(1, sink.createdWriters.get(), "Finished recovery cannot recreate the SinkWriter");
+        assertEquals(1, sink.finalFlushes.get());
+        assertEquals(4, sink.rows.size());
+    }
+
+    @Test
+    void failedRequiredFinalCheckpointMustNotFinishTheJobOrOverwriteAnOlderSnapshot() throws Exception {
+        OffsetSource source = new OffsetSource(2, true);
+        source.enableBoundedInput();
+        CapturedSink sink = new CapturedSink();
+        Configuration config = configuration(false);
+        config.set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofMillis(100));
+        JobClient job = new EmbeddedPipelineExecutor()
+                .execute(graph(source, sink), config).get(5, TimeUnit.SECONDS);
+        awaitCount(sink.rows, 4);
+        source.releaseBoundedInput();
+        assertThrows(java.util.concurrent.ExecutionException.class,
+                () -> job.getJobExecutionResult().get(10, TimeUnit.SECONDS));
+        assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(1, sink.finalFlushes.get());
+        assertFalse(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
     }
 
     @Test
