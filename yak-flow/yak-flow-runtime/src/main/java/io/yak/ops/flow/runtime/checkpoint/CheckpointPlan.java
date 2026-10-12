@@ -46,7 +46,8 @@ public final class CheckpointPlan {
 
     /** Creates the plan from physical Task completion facts, never from a Reader's END_OF_INPUT. */
     public static CheckpointPlan calculate(
-            JobGraph graph, Set<CheckpointSnapshot.OperatorSubtask> physicallyFinished) throws CheckpointDeclinedException {
+            long checkpointId, JobGraph graph, Set<CheckpointSnapshot.OperatorSubtask> physicallyFinished)
+            throws CheckpointDeclinedException {
         Objects.requireNonNull(graph, "graph");
         Objects.requireNonNull(physicallyFinished, "physicallyFinished");
         if (graph.isSingleChainedVertex()) {
@@ -72,9 +73,14 @@ public final class CheckpointPlan {
                 }
             }
             if (finishedCount > 0 && finishedCount < vertex.getParallelism()) {
-                throw new CheckpointDeclinedException(0, "Partially finished vertex is not safely restorable: " + uid);
+                throw new CheckpointDeclinedException(
+                        checkpointId, "Partially finished vertex is not safely restorable: " + uid);
             }
             if (finishedCount == vertex.getParallelism()) {
+                if (rootSelected) {
+                    throw new CheckpointDeclinedException(
+                            checkpointId, "Downstream vertex finished before its running upstream: " + uid);
+                }
                 fullyFinished.add(uid);
                 continue;
             }
@@ -88,7 +94,7 @@ public final class CheckpointPlan {
             throw new IllegalArgumentException("Finished checkpoint task does not belong to the JobGraph");
         }
         if (roots.isEmpty()) {
-            throw new CheckpointDeclinedException(0, "All checkpoint participants have finished");
+            throw new CheckpointDeclinedException(checkpointId, "All checkpoint participants have finished");
         }
         return new CheckpointPlan(fullyFinished, roots, waitFor);
     }
@@ -100,6 +106,7 @@ public final class CheckpointPlan {
      * Partial logical finishes remain unsupported until their state redistribution is defined.
      */
     public Set<CheckpointSnapshot.OperatorSubtask> finishedSubtasks(
+            long checkpointId,
             Set<CheckpointSnapshot.OperatorSubtask> finishedReports,
             Map<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> operatorStates)
             throws CheckpointDeclinedException {
@@ -122,7 +129,7 @@ public final class CheckpointPlan {
         for (Map.Entry<String, Integer> count : finished.entrySet()) {
             if (!count.getValue().equals(total.get(count.getKey()))) {
                 throw new CheckpointDeclinedException(
-                        0, "Partially finished operator snapshot is not safely restorable: " + count.getKey());
+                        checkpointId, "Partially finished operator snapshot is not safely restorable: " + count.getKey());
             }
         }
         return Set.copyOf(finishedReports);
