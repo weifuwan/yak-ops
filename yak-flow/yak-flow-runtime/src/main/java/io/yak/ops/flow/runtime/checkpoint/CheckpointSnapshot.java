@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Immutable, aligned snapshot of one local job's Source, Reader and operator state.
@@ -18,7 +19,9 @@ public record CheckpointSnapshot(
         Map<Integer, List<SerializedState>> readerSplits,
         Map<Integer, List<SerializedState>> assignments,
         long completedAtMillis,
-        Map<OperatorSubtask, Map<String, SerializedState>> operatorStates) {
+        Map<OperatorSubtask, Map<String, SerializedState>> operatorStates,
+        Set<String> fullyFinishedOperators,
+        Set<OperatorSubtask> finishedSubtasks) {
 
     public CheckpointSnapshot {
         if (checkpointId <= 0 || completedAtMillis <= 0) {
@@ -45,6 +48,24 @@ public record CheckpointSnapshot(
             });
         });
         operatorStates = Map.copyOf(copy);
+        Objects.requireNonNull(fullyFinishedOperators, "fullyFinishedOperators");
+        for (String uid : fullyFinishedOperators) {
+            if (uid == null || uid.isBlank()) {
+                throw new IllegalArgumentException("Invalid fully finished operator UID");
+            }
+        }
+        fullyFinishedOperators = Set.copyOf(fullyFinishedOperators);
+        finishedSubtasks = Set.copyOf(Objects.requireNonNull(finishedSubtasks, "finishedSubtasks"));
+        for (OperatorSubtask subtask : finishedSubtasks) {
+            if (fullyFinishedOperators.contains(subtask.uid()) || operatorStates.containsKey(subtask)) {
+                throw new IllegalArgumentException("Finished subtask conflicts with checkpoint state");
+            }
+        }
+        for (OperatorSubtask subtask : operatorStates.keySet()) {
+            if (fullyFinishedOperators.contains(subtask.uid())) {
+                throw new IllegalArgumentException("Fully finished operator cannot contain subtask state");
+            }
+        }
     }
 
     /** Creates a snapshot from format v1 Source and Sink state, with empty operator state. */
@@ -56,6 +77,23 @@ public record CheckpointSnapshot(
             Map<Integer, List<SerializedState>> assignments,
             long completedAtMillis) {
         this(checkpointId, graphSignature, enumeratorState, readerSplits, assignments, completedAtMillis, Map.of());
+    }
+
+    /** Retains the original source/operator state constructor without inferred finish markers. */
+    public CheckpointSnapshot(
+            long checkpointId,
+            String graphSignature,
+            SerializedState enumeratorState,
+            Map<Integer, List<SerializedState>> readerSplits,
+            Map<Integer, List<SerializedState>> assignments,
+            long completedAtMillis,
+            Map<OperatorSubtask, Map<String, SerializedState>> operatorStates) {
+        this(checkpointId, graphSignature, enumeratorState, readerSplits, assignments, completedAtMillis,
+                operatorStates, Set.of(), Set.of());
+    }
+
+    public boolean hasFinishedOperators() {
+        return !fullyFinishedOperators.isEmpty() || !finishedSubtasks.isEmpty();
     }
 
     /** Stable logical operator identity, never a graph-local numeric operator ID. */
