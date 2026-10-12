@@ -1,6 +1,7 @@
 package io.yak.ops.flow.runtime.tasks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,16 +17,23 @@ import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
+import io.yak.ops.flow.runtime.checkpoint.CheckpointDeclinedException;
 import io.yak.ops.flow.runtime.support.TestSplitSerializers;
 import io.yak.ops.core.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
+import io.yak.ops.flow.runtime.graph.StreamEdge;
+import io.yak.ops.flow.runtime.io.RecordWriterOutput;
+import io.yak.ops.flow.runtime.io.partition.InputGate;
+import io.yak.ops.flow.runtime.io.partition.ResultPartition;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -69,6 +77,47 @@ class SourceOperatorStreamTaskContextTest {
     }
 
     @Test
+    void finishedPhysicalSourceOutputDeclinesCheckpointWhileReaderIsClosing() throws Exception {
+        TestSource source = new TestSource();
+        source.holdReaderClose();
+        Configuration configuration = new Configuration();
+        RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 17, 0, 1, 0, 128);
+        InputGate<String> gate = new InputGate<>(4, 1);
+        RecordWriterOutput<String> writer = new RecordWriterOutput<>(
+                new StreamEdge(17, 18), 0, 1, new ResultPartition<>(0, List.of(gate)));
+        OperatorCoordinatorContext context = new OperatorCoordinatorContext(info.jobID(), 17, 1);
+
+        try (SourceCoordinator<TestSplit, Integer> coordinator = new SourceCoordinator<>(source, context)) {
+            coordinator.start().get(5, TimeUnit.SECONDS);
+            SourceOperatorStreamTask<String, TestSplit> task = new SourceOperatorStreamTask<>(
+                    source, coordinator, new TaskEnvironment(info, configuration), writer);
+            task.start().get(5, TimeUnit.SECONDS);
+            List<String> rows = new ArrayList<>();
+            try {
+                while (true) {
+                    InputStatus status = gate.emitNext(rows::add);
+                    if (status == InputStatus.END_OF_INPUT) {
+                        break;
+                    }
+                    if (status == InputStatus.NOTHING_AVAILABLE) {
+                        gate.getAvailableFuture().get(5, TimeUnit.SECONDS);
+                    }
+                }
+                assertTrue(source.readerCloseEntered.await(5, TimeUnit.SECONDS));
+                assertTrue(task.hasFinishedOutput());
+                assertFalse(task.completionFuture().isDone());
+                ExecutionException declined = assertThrows(ExecutionException.class,
+                        () -> task.pauseAndEmitBarrier(17).get(5, TimeUnit.SECONDS));
+                assertTrue(declined.getCause() instanceof CheckpointDeclinedException);
+                assertEquals(List.of("split-0"), rows);
+            } finally {
+                source.releaseReaderClose.countDown();
+            }
+            task.completionFuture().get(5, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
     void shouldRejectMismatchedTaskBeforeOpeningReader() throws Exception {
         TestSource source = new TestSource();
         JobID jobID = JobID.generate();
@@ -88,7 +137,14 @@ class SourceOperatorStreamTaskContextTest {
 
         private final AtomicInteger splitRequests = new AtomicInteger();
         private final AtomicBoolean readerClosed = new AtomicBoolean();
+        private CountDownLatch readerCloseEntered = new CountDownLatch(0);
+        private CountDownLatch releaseReaderClose = new CountDownLatch(0);
         private volatile SourceReaderContext readerContext;
+
+        private void holdReaderClose() {
+            readerCloseEntered = new CountDownLatch(1);
+            releaseReaderClose = new CountDownLatch(1);
+        }
         private final AtomicReference<SourceEvent> readerSourceEvent = new AtomicReference<>();
 
         @Override
@@ -110,7 +166,8 @@ class SourceOperatorStreamTaskContextTest {
         @Override
         public SourceReader<String, TestSplit> createReader(SourceReaderContext context) {
             readerContext = context;
-            return new TestReader(context, readerClosed, readerSourceEvent);
+            return new TestReader(context, readerClosed, readerSourceEvent,
+                    readerCloseEntered, releaseReaderClose);
         }
 
         @Override
@@ -167,15 +224,23 @@ class SourceOperatorStreamTaskContextTest {
         private final SourceReaderContext context;
         private final AtomicBoolean closed;
         private final AtomicReference<SourceEvent> receivedSourceEvent;
+        private final CountDownLatch readerCloseEntered;
+        private final CountDownLatch releaseReaderClose;
         private final List<TestSplit> pending = new ArrayList<>();
         private CompletableFuture<Void> available = new CompletableFuture<>();
         private boolean noMoreSplits;
 
-        private TestReader(SourceReaderContext context, AtomicBoolean closed,
-                AtomicReference<SourceEvent> receivedSourceEvent) {
+        private TestReader(
+                SourceReaderContext context,
+                AtomicBoolean closed,
+                AtomicReference<SourceEvent> receivedSourceEvent,
+                CountDownLatch readerCloseEntered,
+                CountDownLatch releaseReaderClose) {
             this.context = context;
             this.closed = closed;
             this.receivedSourceEvent = receivedSourceEvent;
+            this.readerCloseEntered = readerCloseEntered;
+            this.releaseReaderClose = releaseReaderClose;
         }
 
         @Override
@@ -224,7 +289,9 @@ class SourceOperatorStreamTaskContextTest {
         }
 
         @Override
-        public void close() {
+        public void close() throws Exception {
+            readerCloseEntered.countDown();
+            releaseReaderClose.await();
             closed.set(true);
         }
     }
