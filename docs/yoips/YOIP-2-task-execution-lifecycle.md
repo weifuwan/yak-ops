@@ -1,12 +1,12 @@
 # YOIP-2: Task Execution Lifecycle and YakFlow Integration
 
-Status: Discussion
+Status: Accepted
 
 Discussion: https://github.com/weifuwan/yak-ops/pull/1588
 
-Decision: Pending
+Decision: [VOTE] Accepted — https://github.com/weifuwan/yak-ops/pull/1588#issuecomment-6121532796
 
-Implementation: N/A until accepted
+Implementation: Planned (Stage 1 Task Execution + YakFlow Integration)
 
 Release: N/A until released
 
