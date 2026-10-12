@@ -111,7 +111,7 @@ final class SyncValidator {
         return bound;
     }
 
-    private static void checkSchemaCompatibility(TableSchema source, TableSchema target, boolean requireKeys) {
+    static void checkSchemaCompatibility(TableSchema source, TableSchema target, boolean requireKeys) {
         Map<String, Column> sourceColumns = columns(source);
         Map<String, Column> targetColumns = columns(target);
         for (var entry : sourceColumns.entrySet()) {

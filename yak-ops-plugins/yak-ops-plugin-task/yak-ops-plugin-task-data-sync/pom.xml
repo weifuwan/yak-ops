@@ -27,6 +27,8 @@
         </dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-core</artifactId></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-connector-jdbc</artifactId></dependency>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-runtime</artifactId></dependency>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-connector-cdc-mysql</artifactId></dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
