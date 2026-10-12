@@ -165,9 +165,13 @@ public final class FileCheckpointStore implements AutoCloseable {
                 DataOutputStream out = new DataOutputStream(bytes)) {
             out.writeInt(MAGIC);
             // Preserve v1/v2 layouts until an explicit finished state requires format v3.
-            int format = checkpoint.hasFinishedOperators()
-                    ? FORMAT_VERSION
-                    : checkpoint.operatorStates().isEmpty() ? LEGACY_FORMAT_VERSION : OPERATOR_STATE_FORMAT_VERSION;
+            int format = LEGACY_FORMAT_VERSION;
+            if (!checkpoint.operatorStates().isEmpty()) {
+                format = OPERATOR_STATE_FORMAT_VERSION;
+            }
+            if (checkpoint.hasFinishedOperators()) {
+                format = FORMAT_VERSION;
+            }
             out.writeInt(format);
             out.writeLong(checkpoint.checkpointId());
             out.writeUTF(checkpoint.graphSignature());
