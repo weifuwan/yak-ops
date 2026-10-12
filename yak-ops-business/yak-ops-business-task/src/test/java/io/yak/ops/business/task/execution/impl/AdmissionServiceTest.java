@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.yak.ops.business.task.execution.AdmissionRequest;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.common.enums.task.TaskAttemptStatus;
@@ -38,7 +39,7 @@ import org.mockito.ArgumentCaptor;
 
 /** Checks read-only revalidation and atomic admission inputs. */
 class AdmissionServiceTest {
-    private final AdmissionService service = new AdmissionService();
+    private final AdmissionServiceImpl service = new AdmissionServiceImpl();
     private final DefinitionRepository definitions = mock(DefinitionRepository.class);
     private final DefinitionVersionRepository versions = mock(DefinitionVersionRepository.class);
     private final InstanceRepository instances = mock(InstanceRepository.class);
@@ -137,7 +138,7 @@ class AdmissionServiceTest {
 
     private void inject(String name, Object dependency) {
         try {
-            Field field = AdmissionService.class.getDeclaredField(name);
+            Field field = AdmissionServiceImpl.class.getDeclaredField(name);
             field.setAccessible(true);
             field.set(service, dependency);
         } catch (ReflectiveOperationException error) {

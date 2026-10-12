@@ -1,5 +1,7 @@
 package io.yak.ops.business.task.execution.impl;
 
+import io.yak.ops.business.task.execution.AdmissionRequest;
+import io.yak.ops.business.task.execution.AdmissionService;
 import io.yak.ops.business.task.execution.SubmissionResult;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.common.CommonErrorCode;
@@ -30,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
  * declared resources. Physical execution must occur after this transaction commits.
  */
 @Service
-class AdmissionService {
+public class AdmissionServiceImpl implements AdmissionService {
     @Resource
     private DefinitionRepository definitions;
 
@@ -46,6 +48,7 @@ class AdmissionService {
     @Resource
     private ExecutionClaimRepository claims;
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public SubmissionResult admit(AdmissionRequest request) {
         TaskExecutionContext context = request.context();
