@@ -24,10 +24,10 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -169,8 +169,7 @@ public class TaskDispatcher implements AutoCloseable {
             }
             // Runtime completion may run on an interrupted YakFlow Job thread. Business
             // transactions must execute on a fresh thread to keep JDBC connections usable.
-            submitted.whenCompleteAsync(
-                    (handle, error) -> observeSubmission(launched, handle, error), workers);
+            submitted.whenCompleteAsync((handle, error) -> observeSubmission(launched, handle, error), workers);
         } catch (RuntimeException failure) {
             if (ticket != null) {
                 if (physicalStartInvoked) {
@@ -209,15 +208,14 @@ public class TaskDispatcher implements AutoCloseable {
         String instanceId = ticket.instanceId();
         active.put(instanceId, handle);
         try {
-            TaskRuntimeReference reference = handle.runtimeReference()
-                    .orElse(new TaskRuntimeReference(ticket.taskType(), ticket.attemptId()));
+            TaskRuntimeReference reference =
+                    handle.runtimeReference().orElse(new TaskRuntimeReference(ticket.taskType(), ticket.attemptId()));
             lifecycle.started(ticket, reference);
-            if (lifecycle.instance(ticket.workspaceId(), instanceId).getStatus()
-                    == TaskInstanceStatus.CANCELLING) {
+            if (lifecycle.instance(ticket.workspaceId(), instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
                 handle.cancel();
             }
-            handle.completion().whenCompleteAsync(
-                    (outcome, error) -> observeTerminal(ticket, handle, outcome, error), workers);
+            handle.completion()
+                    .whenCompleteAsync((outcome, error) -> observeTerminal(ticket, handle, outcome, error), workers);
         } catch (RuntimeException observationFailure) {
             lifecycle.uncertain(ticket);
             active.remove(instanceId, handle);
