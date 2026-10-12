@@ -38,6 +38,7 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
     private final OperatorChain operatorChain;
     private final RecordWriterOutput<?> recordWriter;
     private final List<SplitT> restoredSplits;
+    private CompletableFuture<Void> endOfDataAcknowledged = CompletableFuture.completedFuture(null);
     private boolean pausedForCheckpoint;
     private CompletableFuture<Void> resumeFuture = CompletableFuture.completedFuture(null);
 
@@ -107,6 +108,18 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
         if (operatorChain != null) {
             operatorChain.finish();
         }
+        if (recordWriter != null) {
+            endOfDataAcknowledged = recordWriter.endData();
+        }
+    }
+
+    @Override
+    protected CompletableFuture<Void> endOfDataAcknowledgement() {
+        return endOfDataAcknowledged;
+    }
+
+    @Override
+    protected void finishOutput() {
         if (recordWriter != null) {
             recordWriter.finish();
         }
