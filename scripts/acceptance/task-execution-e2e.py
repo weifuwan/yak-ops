@@ -96,7 +96,7 @@ def dump_threads(app):
              "-format=text", str(target)],
             check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=20)
         dump = target.read_text(encoding="utf-8")
-        for segment in dump.split("\\n\\n"):
+        for segment in dump.split("\n\n"):
             if any(word in segment for word in (
                     "yak-local-job", "yakflow", "source-coordinator", "SourceCoordinator",
                     "StreamTask", "Debezium", "task-dispatch")):
@@ -272,7 +272,7 @@ def acceptance():
             lambda count: count == "3", timeout=160)
         client.call(
             "POST", f"/api/v1/task-instances/{running}/cancel")
-        wait_status(client, running, {"CANCELED"})
+        wait_status(client, running, {"CANCELED"}, timeout=35)
         assert claim_count(running) == 0
 
         interrupted, _ = submit(client, cdc)
