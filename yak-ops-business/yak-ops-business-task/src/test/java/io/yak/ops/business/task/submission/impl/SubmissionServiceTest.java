@@ -1,4 +1,4 @@
-package io.yak.ops.business.task.execution.impl;
+package io.yak.ops.business.task.submission.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,8 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.yak.ops.business.task.execution.AdmissionService;
-import io.yak.ops.business.task.execution.SubmissionResult;
+import io.yak.ops.business.task.submission.AdmissionService;
+import io.yak.ops.business.task.submission.SubmissionResult;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
@@ -36,8 +36,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DuplicateKeyException;
 
 /** Validates request replay and admission without physical runtime submission. */
-class ExecutionServiceTest {
-    private final ExecutionServiceImpl service = new ExecutionServiceImpl();
+class SubmissionServiceTest {
+    private final SubmissionServiceImpl service = new SubmissionServiceImpl();
     private final DefinitionRepository definitions = mock(DefinitionRepository.class);
     private final DefinitionVersionRepository versions = mock(DefinitionVersionRepository.class);
     private final InstanceRepository instances = mock(InstanceRepository.class);
@@ -48,7 +48,7 @@ class ExecutionServiceTest {
     private final ExecutableTaskPlugin plugin = mock(ExecutableTaskPlugin.class);
     private final TaskParameters params = mock(TaskParameters.class);
 
-    ExecutionServiceTest() {
+    SubmissionServiceTest() {
         inject("definitions", definitions);
         inject("versions", versions);
         inject("instances", instances);
@@ -144,7 +144,7 @@ class ExecutionServiceTest {
 
     private void inject(String name, Object dependency) {
         try {
-            Field field = ExecutionServiceImpl.class.getDeclaredField(name);
+            Field field = SubmissionServiceImpl.class.getDeclaredField(name);
             field.setAccessible(true);
             field.set(service, dependency);
         } catch (ReflectiveOperationException error) {

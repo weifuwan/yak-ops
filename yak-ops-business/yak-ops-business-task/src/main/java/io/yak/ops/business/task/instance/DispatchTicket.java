@@ -1,4 +1,4 @@
-package io.yak.ops.business.task.execution;
+package io.yak.ops.business.task.instance;
 
 /** Durable one-time dispatch ownership and pinned Task Definition identity. */
 public record DispatchTicket(

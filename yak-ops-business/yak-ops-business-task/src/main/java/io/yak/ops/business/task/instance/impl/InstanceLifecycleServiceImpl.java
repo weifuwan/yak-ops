@@ -1,13 +1,12 @@
-package io.yak.ops.business.task.execution.impl;
+package io.yak.ops.business.task.instance.impl;
 
-import io.yak.ops.business.task.execution.DispatchTicket;
-import io.yak.ops.business.task.execution.ExecutionLifecycleService;
-import io.yak.ops.business.task.execution.PendingRun;
+import io.yak.ops.business.task.instance.DispatchTicket;
+import io.yak.ops.business.task.instance.InstanceLifecycleService;
+import io.yak.ops.business.task.instance.PendingRun;
 import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.task.TaskAttemptStatus;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.common.exception.BusinessException;
-import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.task.AttemptEntity;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.dao.repository.task.AttemptRepository;
@@ -22,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** Atomic business lifecycle transitions that fence cancellation against dispatch. */
 @Service
-public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService {
+public class InstanceLifecycleServiceImpl implements InstanceLifecycleService {
 
     @Resource
     private InstanceRepository instances;
@@ -132,32 +131,6 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
         }
         instances.markCancelling(workspaceId, instanceId);
         return instances.findById(workspaceId, instanceId).orElseThrow().getStatus();
-    }
-
-    @Override
-    public InstanceEntity instance(String workspaceId, String instanceId) {
-        return instances
-                .findById(workspaceId, instanceId)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
-    }
-
-    @Override
-    public List<AttemptEntity> attempts(String workspaceId, String instanceId) {
-        instance(workspaceId, instanceId);
-        return attempts.findByInstance(workspaceId, instanceId);
-    }
-
-    @Override
-    public List<InstanceEntity> recent(String workspaceId, int limit) {
-        return instances.recent(workspaceId, limit);
-    }
-
-    @Override
-    public PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize) {
-        if (pageNo < 1 || pageSize < 1 || pageSize > 200) {
-            throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
-        }
-        return instances.page(workspaceId, pageNo, pageSize);
     }
 
     @Override

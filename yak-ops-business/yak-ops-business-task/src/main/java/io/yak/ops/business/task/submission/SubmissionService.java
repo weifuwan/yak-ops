@@ -1,7 +1,7 @@
-package io.yak.ops.business.task.execution;
+package io.yak.ops.business.task.submission;
 
-/** Manages durable business submissions independently of an execution engine. */
-public interface ExecutionService {
+/** Admits manual Task submissions independently of the physical execution engine. */
+public interface SubmissionService {
 
     /**
      * Admits an authorized manual run or returns its original idempotent submission.

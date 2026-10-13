@@ -1,4 +1,4 @@
-package io.yak.ops.business.task.execution.impl;
+package io.yak.ops.business.task.instance.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -8,8 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.yak.ops.business.task.execution.DispatchTicket;
-import io.yak.ops.business.task.execution.PendingRun;
+import io.yak.ops.business.task.instance.DispatchTicket;
+import io.yak.ops.business.task.instance.PendingRun;
 import io.yak.ops.common.enums.task.TaskAttemptStatus;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.dao.entity.task.AttemptEntity;
@@ -24,14 +24,14 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /** Verifies transactional dispatch fencing and terminal claim release semantics. */
-class ExecutionLifecycleServiceTest {
+class InstanceLifecycleServiceTest {
 
-    private final ExecutionLifecycleServiceImpl service = new ExecutionLifecycleServiceImpl();
+    private final InstanceLifecycleServiceImpl service = new InstanceLifecycleServiceImpl();
     private final InstanceRepository instances = mock(InstanceRepository.class);
     private final AttemptRepository attempts = mock(AttemptRepository.class);
     private final ExecutionClaimRepository claims = mock(ExecutionClaimRepository.class);
 
-    ExecutionLifecycleServiceTest() {
+    InstanceLifecycleServiceTest() {
         inject("instances", instances);
         inject("attempts", attempts);
         inject("claims", claims);
@@ -181,7 +181,7 @@ class ExecutionLifecycleServiceTest {
 
     private void inject(String fieldName, Object dependency) {
         try {
-            Field field = ExecutionLifecycleServiceImpl.class.getDeclaredField(fieldName);
+            Field field = InstanceLifecycleServiceImpl.class.getDeclaredField(fieldName);
             field.setAccessible(true);
             field.set(service, dependency);
         } catch (ReflectiveOperationException error) {

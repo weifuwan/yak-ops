@@ -1,9 +1,9 @@
-package io.yak.ops.business.task.execution.impl;
+package io.yak.ops.business.task.submission.impl;
 
-import io.yak.ops.business.task.execution.AdmissionRequest;
-import io.yak.ops.business.task.execution.AdmissionService;
-import io.yak.ops.business.task.execution.ExecutionService;
-import io.yak.ops.business.task.execution.SubmissionResult;
+import io.yak.ops.business.task.submission.AdmissionRequest;
+import io.yak.ops.business.task.submission.AdmissionService;
+import io.yak.ops.business.task.submission.SubmissionService;
+import io.yak.ops.business.task.submission.SubmissionResult;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.task.DefinitionStatus;
@@ -32,10 +32,10 @@ import org.springframework.stereotype.Service;
 /**
  * Validates a request and prepares a read-only execution plan before durable admission.
  *
- * <p>Does not submit a physical Job; dispatch belongs to the next implementation stage.
+ * <p>Does not submit a physical Job; dispatch follows durable admission.
  */
 @Service
-public class ExecutionServiceImpl implements ExecutionService {
+public class SubmissionServiceImpl implements SubmissionService {
     @Resource
     private DefinitionRepository definitions;
 

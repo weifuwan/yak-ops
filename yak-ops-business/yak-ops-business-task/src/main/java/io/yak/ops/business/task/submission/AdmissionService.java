@@ -1,4 +1,4 @@
-package io.yak.ops.business.task.execution;
+package io.yak.ops.business.task.submission;
 
 /** Owns atomic admission of one authorized Task execution request. */
 public interface AdmissionService {

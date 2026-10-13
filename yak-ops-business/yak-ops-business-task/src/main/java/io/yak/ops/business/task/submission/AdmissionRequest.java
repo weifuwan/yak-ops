@@ -1,4 +1,4 @@
-package io.yak.ops.business.task.execution;
+package io.yak.ops.business.task.submission;
 
 import io.yak.ops.plugin.task.api.TaskParameters;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;

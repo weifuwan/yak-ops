@@ -1,4 +1,4 @@
-package io.yak.ops.business.task.execution.impl;
+package io.yak.ops.business.task.submission.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,7 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.yak.ops.business.task.execution.AdmissionRequest;
+import io.yak.ops.business.task.submission.AdmissionRequest;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.common.enums.task.TaskAttemptStatus;

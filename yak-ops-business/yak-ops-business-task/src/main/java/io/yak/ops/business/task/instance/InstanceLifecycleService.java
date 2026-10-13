@@ -1,15 +1,12 @@
-package io.yak.ops.business.task.execution;
+package io.yak.ops.business.task.instance;
 
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
-import io.yak.ops.common.page.PageData;
-import io.yak.ops.dao.entity.task.AttemptEntity;
-import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;
 import java.util.List;
 
 /** Owns transactional launch arbitration, cancellation intent and business outcomes. */
-public interface ExecutionLifecycleService {
+public interface InstanceLifecycleService {
 
     /**
      * Acquires one committed PENDING Attempt under the locked Instance.
@@ -53,35 +50,6 @@ public interface ExecutionLifecycleService {
      * @return updated, authoritative business Instance status
      */
     TaskInstanceStatus cancel(String workspaceId, String instanceId);
-
-    /**
-     * @param workspaceId authorized Workspace
-     * @param instanceId logical run
-     * @return Workspace-owned Instance
-     */
-    InstanceEntity instance(String workspaceId, String instanceId);
-
-    /**
-     * @param workspaceId authorized Workspace
-     * @param instanceId logical run
-     * @return physical submissions belonging to this run
-     */
-    List<AttemptEntity> attempts(String workspaceId, String instanceId);
-
-    /**
-     * @param workspaceId authorized Workspace
-     * @param limit requested maximum number of recent runs
-     * @return recent Workspace-owned runs
-     */
-    List<InstanceEntity> recent(String workspaceId, int limit);
-
-    /**
-     * @param workspaceId authorized Workspace
-     * @param pageNo one-based page number
-     * @param pageSize bounded page size
-     * @return Workspace-owned Instance page
-     */
-    PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize);
 
     /**
      * Returns committed but unclaimed submissions that can be safely dispatched after startup.
