@@ -1,35 +1,35 @@
 package io.yak.ops.task.execution.log;
 
 import io.yak.ops.business.task.instance.InstanceService;
-import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.common.bean.vo.task.TaskLogPageVO;
 import io.yak.ops.dao.entity.task.InstanceEntity;
+import io.yak.ops.dao.repository.task.InstanceRepository;
 import jakarta.annotation.Resource;
 import java.io.BufferedReader;
-import java.time.Duration;
-import java.time.Instant;
-import java.nio.file.DirectoryNotEmptyException;
-import java.util.Optional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 
 /** Reads Workspace-authorized execution logs without accepting client-selected file paths. */
 @Service

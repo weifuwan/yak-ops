@@ -4,10 +4,6 @@ import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.flow.runtime.checkpoint.SourceCoordinatorCheckpoint;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-import java.util.concurrent.ThreadFactory;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
@@ -25,7 +21,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Event-loop-owned coordinator for a Source's enumerator and reader registrations.
@@ -74,9 +74,16 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
 
     /** Restores a Source coordinator while retaining the owning Job's log identity. */
     public static <SplitT extends SourceSplit, EnumStateT> SourceCoordinator<SplitT, EnumStateT> restore(
-            Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext, EnumStateT state, String logId) {
+            Source<?, SplitT, EnumStateT> source,
+            OperatorCoordinatorContext coordinatorContext,
+            EnumStateT state,
+            String logId) {
         return new SourceCoordinator<>(
-                source, coordinatorContext, Objects.requireNonNull(state, "Restored state must not be null"), true, logId);
+                source,
+                coordinatorContext,
+                Objects.requireNonNull(state, "Restored state must not be null"),
+                true,
+                logId);
     }
 
     private SourceCoordinator(

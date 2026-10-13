@@ -1,9 +1,9 @@
 package io.yak.ops.flow.runtime.tasks;
 
 import io.yak.ops.core.api.connector.source.InputStatus;
+import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
-import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.flow.runtime.tasks.mailbox.MailboxDefaultAction;
 import io.yak.ops.flow.runtime.tasks.mailbox.MailboxExecutor;
 import io.yak.ops.flow.runtime.tasks.mailbox.MailboxProcessor;

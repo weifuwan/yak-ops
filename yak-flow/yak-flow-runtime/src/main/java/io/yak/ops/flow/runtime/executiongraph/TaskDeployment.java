@@ -223,7 +223,10 @@ final class TaskDeployment {
             restoredReaderSplits = AlignedCheckpointCoordinator.restoreSplits(restoredCheckpoint, source);
             Object enumeratorState = AlignedCheckpointCoordinator.restoreEnumerator(restoredCheckpoint, source);
             coordinator = SourceCoordinator.restore(
-                    source, coordinatorContext, enumeratorState, jobGraph.configuration().get(ExecutionOptions.LOG_ID));
+                    source,
+                coordinatorContext,
+                enumeratorState,
+                jobGraph.configuration().get(ExecutionOptions.LOG_ID));
         } else {
             coordinator = new SourceCoordinator<>(
                     source, coordinatorContext, jobGraph.configuration().get(ExecutionOptions.LOG_ID));
@@ -315,7 +318,8 @@ final class TaskDeployment {
         Source<Object, SourceSplit, Object> source = castSource(sourceNode);
         OperatorCoordinatorContext context =
                 new OperatorCoordinatorContext(jobGraph.jobID(), vertex.getId(), vertex.getParallelism());
-        coordinator = new SourceCoordinator<>(source, context, jobGraph.configuration().get(ExecutionOptions.LOG_ID));
+        coordinator = new SourceCoordinator<>(
+                source, context, jobGraph.configuration().get(ExecutionOptions.LOG_ID));
         OperatorChain chain = new OperatorChain(operators.subList(1, operators.size() - 1), sinkNode);
         Execution execution = executionGraph.currentExecution(vertex.getId(), 0);
         SourceOperatorStreamTask<Object, SourceSplit> task =
