@@ -4,6 +4,7 @@ import io.yak.ops.plugin.datasource.api.plugin.DataSourcePluginRegistry;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Yak Ops application entry point.
@@ -16,6 +17,7 @@ import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
  * MongoDB driver on the assembled application classpath does not create a default localhost
  * client during startup.
  */
+@EnableScheduling
 @SpringBootApplication(scanBasePackages = "io.yak.ops", exclude = MongoAutoConfiguration.class)
 public class YakOpsApplication {
 

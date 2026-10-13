@@ -1,10 +1,15 @@
 package io.yak.ops.task.execution.log;
 
 import io.yak.ops.business.task.instance.InstanceService;
+import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.common.bean.vo.task.TaskLogPageVO;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import jakarta.annotation.Resource;
 import java.io.BufferedReader;
+import java.time.Duration;
+import java.time.Instant;
+import java.nio.file.DirectoryNotEmptyException;
+import java.util.Optional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,10 +27,15 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Reads Workspace-authorized execution logs without accepting client-selected file paths. */
 @Service
 public class TaskLogService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TaskLogService.class);
 
     private static final int MAX_LINES = 500;
     private static final int MAX_PAGE_BYTES = 65536;
@@ -35,8 +45,14 @@ public class TaskLogService {
     @Resource
     private InstanceService instances;
 
+    @Resource
+    private InstanceRepository repository;
+
     @Value("${yak.task.logging.directory:logs/tasks}")
     private String directory;
+
+    @Value("${yak.task.logging.max-history-days:7}")
+    private int retentionDays;
 
     /**
      * Reads a bounded page including retained archives.
@@ -106,6 +122,65 @@ public class TaskLogService {
             try (InputStream in = open(segment)) {
                 in.transferTo(target);
             }
+        }
+    }
+
+    /**
+     * Removes old local log files only after their owning Instance reaches a terminal state.
+     *
+     * <p>Active CDC Instances retain their current log and Logback enforces archive rolling limits.
+     */
+    @Scheduled(cron = "0 0 4 * * *")
+    public void cleanupExpired() {
+        if (retentionDays < 1) {
+            return;
+        }
+        Path root = Path.of(directory).toAbsolutePath().normalize();
+        if (Files.isSymbolicLink(root) || !Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
+            return;
+        }
+        Instant cutoff = Instant.now().minus(Duration.ofDays(retentionDays));
+        try (var directories = Files.list(root)) {
+            for (Path task : directories.toList()) {
+                String id = task.getFileName().toString();
+                if (!id.matches("[A-Za-z0-9_-]{1,128}")
+                        || !Files.isDirectory(task, LinkOption.NOFOLLOW_LINKS)
+                        || Files.isSymbolicLink(task)) {
+                    continue;
+                }
+                Optional<InstanceEntity> instance = repository.findByIdForLogCleanup(id);
+                if (instance.isEmpty()
+                        || instance.orElseThrow().getStatus() == null
+                        || !instance.orElseThrow().getStatus().isTerminal()
+                        || !("tasks/" + id + "/task.log").equals(instance.orElseThrow().getLogPath())) {
+                    continue;
+                }
+                List<Path> files = segments(task);
+                if (files.isEmpty()) {
+                    continue;
+                }
+                boolean expired = true;
+                for (Path file : files) {
+                    if (!Files.getLastModifiedTime(file, LinkOption.NOFOLLOW_LINKS)
+                            .toInstant()
+                            .isBefore(cutoff)) {
+                        expired = false;
+                        break;
+                    }
+                }
+                if (expired) {
+                    for (Path file : files) {
+                        Files.delete(file);
+                    }
+                    try {
+                        Files.delete(task);
+                    } catch (DirectoryNotEmptyException ignored) {
+                        // Only Task log segments are managed; unrelated files stay untouched.
+                    }
+                }
+            }
+        } catch (IOException failure) {
+            LOG.warn("Task log retention cleanup failed, exceptionType={}", failure.getClass().getSimpleName());
         }
     }
 

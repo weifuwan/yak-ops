@@ -6,6 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import io.yak.ops.common.enums.task.TaskInstanceStatus;
+import io.yak.ops.dao.repository.task.InstanceRepository;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.time.Duration;
+import java.util.Optional;
 
 import io.yak.ops.business.task.instance.InstanceService;
 import io.yak.ops.dao.entity.task.InstanceEntity;
@@ -28,9 +34,11 @@ class TaskLogServiceTest {
 
     private final InstanceService instances = mock(InstanceService.class);
     private final TaskLogService logs = new TaskLogService();
+    private final InstanceRepository repository = mock(InstanceRepository.class);
 
     TaskLogServiceTest() {
         inject("instances", instances);
+        inject("repository", repository);
     }
 
     @Test
@@ -93,6 +101,30 @@ class TaskLogServiceTest {
         instance.setLogPath("tasks/task-one/task.log");
         Files.createSymbolicLink(directory.resolve("task-one"), Files.createDirectories(directory.resolve("elsewhere")));
         assertThrows(IllegalStateException.class, () -> logs.read("workspace", "task-one", null, 200));
+    }
+
+    @Test
+    void removesExpiredTerminalLogsWithoutDeletingActiveInstances() throws Exception {
+        inject("directory", directory.toString());
+        inject("retentionDays", 7);
+        InstanceEntity finished = instance("finished");
+        finished.setStatus(TaskInstanceStatus.FINISHED);
+        InstanceEntity running = instance("running");
+        running.setStatus(TaskInstanceStatus.RUNNING);
+        when(repository.findByIdForLogCleanup("finished")).thenReturn(Optional.of(finished));
+        when(repository.findByIdForLogCleanup("running")).thenReturn(Optional.of(running));
+
+        Path completedLog = Files.createDirectories(directory.resolve("finished")).resolve("task.log");
+        Path activeLog = Files.createDirectories(directory.resolve("running")).resolve("task.log");
+        Files.writeString(completedLog, "done\n");
+        Files.writeString(activeLog, "active\n");
+        FileTime expired = FileTime.from(Instant.now().minus(Duration.ofDays(9)));
+        Files.setLastModifiedTime(completedLog, expired);
+        Files.setLastModifiedTime(activeLog, expired);
+
+        logs.cleanupExpired();
+        assertFalse(Files.exists(completedLog));
+        assertTrue(Files.exists(activeLog));
     }
 
     private static InstanceEntity instance(String id) {

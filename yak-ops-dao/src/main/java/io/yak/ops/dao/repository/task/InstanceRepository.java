@@ -21,6 +21,14 @@ public interface InstanceRepository {
     Optional<InstanceEntity> findById(String workspaceId, String instanceId);
 
     /**
+     * Looks up an Instance for internal terminal log-file retention checks.
+     *
+     * @param instanceId stable Instance ID
+     * @return persisted Instance if present
+     */
+    Optional<InstanceEntity> findByIdForLogCleanup(String instanceId);
+
+    /**
      * Locks one Instance for mutually exclusive admission, cancel and dispatch.
      *
      * @param workspaceId authorized Workspace

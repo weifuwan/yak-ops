@@ -34,6 +34,11 @@ public class InstanceRepositoryImpl implements InstanceRepository {
     }
 
     @Override
+    public Optional<InstanceEntity> findByIdForLogCleanup(String instanceId) {
+        return Optional.ofNullable(mapper.selectById(instanceId));
+    }
+
+    @Override
     public Optional<InstanceEntity> findByIdForUpdate(String workspaceId, String instanceId) {
         return Optional.ofNullable(mapper.selectOne(Wrappers.<InstanceEntity>lambdaQuery()
                 .eq(InstanceEntity::getWorkspaceId, workspaceId)
