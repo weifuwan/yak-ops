@@ -218,6 +218,16 @@ def verify_file(path):
     for _level, start, call in extract_log_calls(text):
         line = line_number(text, start)
         message = first_string_literal(call)
+        for marker in (
+            "TaskLogMarkers.includeInTaskLog()",
+            "TaskLogMarkers.excludeInTaskLog()",
+        ):
+            marker_index = call.find(marker)
+            if marker_index >= 0 and not call[call.find("(") + 1:marker_index].strip():
+                rest = call[marker_index + len(marker):].lstrip()
+                if rest.startswith(","):
+                    message = first_string_literal("LOG.info(" + rest[1:].lstrip())
+                break
         if message is None:
             violations.append((line, "日志首个参数必须是直接字符串字面量，保持事件文本稳定可检索"))
         elif HAN_TEXT.search(message):
