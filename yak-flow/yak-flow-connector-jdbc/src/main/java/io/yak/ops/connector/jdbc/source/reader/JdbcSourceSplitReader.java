@@ -29,6 +29,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Performs blocking JDBC split reads on one source fetcher thread with task-owned connections.
@@ -39,6 +42,8 @@ import java.util.stream.Collectors;
  * in-flight fetch failure propagates to the Runtime for checkpoint-based recovery.
  */
 public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPosition, JdbcSourceSplit> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcSourceSplitReader.class);
 
     private final JdbcConnectionProvider connections;
     private final JdbcDialect dialect;
@@ -57,6 +62,9 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
     private JdbcSourceSplit active;
     private boolean hasRow;
     private boolean closed;
+    private long splitStartedNanos;
+    private long splitRows;
+    private long fetchBatchId;
 
     public JdbcSourceSplitReader(
             JdbcConnectionOptions connectionOptions, JdbcDialect dialect, Configuration configuration) {
@@ -107,6 +115,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         }
 
         String splitId = active.splitId();
+        long fetchStartedNanos = System.nanoTime();
         List<JdbcRecordAndPosition> batch = new ArrayList<>(Math.min(fetchBatchSize, 1_024));
         for (int remaining = fetchBatchSize; remaining > 0 && hasRow; remaining--) {
             if (cancellationRequested) {
@@ -120,8 +129,17 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         }
 
         boolean complete = !hasRow;
+        splitRows += batch.size();
+        if ("true".equals(MDC.get("taskLogDebug"))) {
+            LOG.debug("JDBC fetch completed, split={}, batch={}, batchRows={}, fetchMs={}",
+                    splitId, ++fetchBatchId, batch.size(), (System.nanoTime() - fetchStartedNanos) / 1_000_000);
+        }
         if (complete) {
             closeStatementAndResultSet();
+            if ("true".equals(MDC.get("taskLogDebug"))) {
+                LOG.debug("JDBC split finished, split={}, fetchedRows={}, durationMs={}",
+                        splitId, splitRows, (System.nanoTime() - splitStartedNanos) / 1_000_000);
+            }
             active = null;
         }
         Map<String, List<JdbcRecordAndPosition>> records = batch.isEmpty() ? Map.of() : Map.of(splitId, batch);
@@ -203,6 +221,9 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
 
     private void openSplit(JdbcSourceSplit split) throws SQLException {
         closeStatementAndResultSet();
+        splitStartedNanos = System.nanoTime();
+        splitRows = 0;
+        fetchBatchId = 0;
         ensureConnection();
         try {
             openResultSet(split);
@@ -311,7 +332,12 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         for (int index = 0; index < bounds.size(); index++) {
             statement.setLong(index + 1, bounds.get(index));
         }
+        long queryStartedNanos = System.nanoTime();
         resultSet = statement.executeQuery();
+        if ("true".equals(MDC.get("taskLogDebug"))) {
+            LOG.debug("JDBC query executed, split={}, sql={}, executeQueryMs={}",
+                    split.splitId(), sql, (System.nanoTime() - queryStartedNanos) / 1_000_000);
+        }
         converter = dialect.createRowConverter(resultSet.getMetaData());
         if (converter.schema().columnCount() != readColumns.size()) {
             throw new SQLException("JDBC ResultSet shape changed since split planning");
