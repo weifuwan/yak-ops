@@ -34,7 +34,8 @@ class BackendArchitectureTest {
             "io.yak.ops.task.execution.",
             "io.yak.ops.boot."
         }) {
-            assertTrue(PRODUCTION.stream().anyMatch(type -> type.getPackageName().startsWith(prefix)), prefix);
+            assertTrue(
+                    PRODUCTION.stream().anyMatch(type -> type.getPackageName().startsWith(prefix)), prefix);
         }
     }
 
@@ -46,8 +47,10 @@ class BackendArchitectureTest {
     @Test
     void runtimeCannotDependOnProductCode() {
         noClasses()
-                .that().resideInAPackage("io.yak.ops.flow.runtime..")
-                .should().dependOnClassesThat()
+                .that()
+                .resideInAPackage("io.yak.ops.flow.runtime..")
+                .should()
+                .dependOnClassesThat()
                 .resideInAnyPackage("io.yak.ops.business..", "io.yak.ops.dao..", "io.yak.ops.boot..")
                 .check(PRODUCTION);
     }
@@ -55,18 +58,27 @@ class BackendArchitectureTest {
     @Test
     void connectorsCannotDependOnProductCode() {
         noClasses()
-                .that().resideInAPackage("io.yak.ops.connector..")
-                .should().dependOnClassesThat()
-                .resideInAnyPackage("io.yak.ops.business..", "io.yak.ops.dao..", "io.yak.ops.boot..", "io.yak.ops.plugin.task..",
-                        "io.yak.ops.plugin.datasource..", "io.yak.ops.plugin.database..")
+                .that()
+                .resideInAPackage("io.yak.ops.connector..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "io.yak.ops.business..",
+                        "io.yak.ops.dao..",
+                        "io.yak.ops.boot..",
+                        "io.yak.ops.plugin.task..",
+                        "io.yak.ops.plugin.datasource..",
+                        "io.yak.ops.plugin.database..")
                 .check(PRODUCTION);
     }
 
     @Test
     void businessCannotDependOnBoot() {
         noClasses()
-                .that().resideInAPackage("io.yak.ops.business..")
-                .should().dependOnClassesThat()
+                .that()
+                .resideInAPackage("io.yak.ops.business..")
+                .should()
+                .dependOnClassesThat()
                 .resideInAPackage("io.yak.ops.boot..")
                 .check(PRODUCTION);
     }
@@ -74,8 +86,10 @@ class BackendArchitectureTest {
     @Test
     void taskExecutionCannotDependOnBootOrYakFlowRuntime() {
         noClasses()
-                .that().resideInAPackage("io.yak.ops.task.execution..")
-                .should().dependOnClassesThat()
+                .that()
+                .resideInAPackage("io.yak.ops.task.execution..")
+                .should()
+                .dependOnClassesThat()
                 .resideInAnyPackage("io.yak.ops.boot..", "io.yak.ops.flow.runtime..", "io.yak.ops.connector..")
                 .check(PRODUCTION);
     }
@@ -83,8 +97,10 @@ class BackendArchitectureTest {
     @Test
     void businessCannotDependOnTaskExecutionCoordination() {
         noClasses()
-                .that().resideInAPackage("io.yak.ops.business..")
-                .should().dependOnClassesThat()
+                .that()
+                .resideInAPackage("io.yak.ops.business..")
+                .should()
+                .dependOnClassesThat()
                 .resideInAPackage("io.yak.ops.task.execution..")
                 .check(PRODUCTION);
     }
@@ -92,8 +108,10 @@ class BackendArchitectureTest {
     @Test
     void taskPluginsDoNotDependOnProductBusinessServices() {
         noClasses()
-                .that().resideInAPackage("io.yak.ops.plugin.task.datasync..")
-                .should().dependOnClassesThat()
+                .that()
+                .resideInAPackage("io.yak.ops.plugin.task.datasync..")
+                .should()
+                .dependOnClassesThat()
                 .resideInAnyPackage("io.yak.ops.business..", "io.yak.ops.dao..", "io.yak.ops.boot..")
                 .check(PRODUCTION);
     }
@@ -101,9 +119,31 @@ class BackendArchitectureTest {
     @Test
     void datasourceBusinessDoesNotDependOnTaskPlugins() {
         noClasses()
-                .that().resideInAPackage("io.yak.ops.business.datasource..")
-                .should().dependOnClassesThat()
+                .that()
+                .resideInAPackage("io.yak.ops.business.datasource..")
+                .should()
+                .dependOnClassesThat()
                 .resideInAPackage("io.yak.ops.plugin.task..")
+                .check(PRODUCTION);
+    }
+
+    @Test
+    void quartzStaysInsideItsPluginAndTaskBusinessDoesNotDependOnScheduleBusiness() {
+        assertTrue(PRODUCTION.stream()
+                .anyMatch(type -> type.getName().equals("io.yak.ops.plugin.scheduler.quartz.QuartzCronService")));
+        noClasses()
+                .that()
+                .resideOutsideOfPackage("io.yak.ops.plugin.scheduler.quartz..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("org.quartz..")
+                .check(PRODUCTION);
+        noClasses()
+                .that()
+                .resideInAPackage("io.yak.ops.business.task..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("io.yak.ops.business.schedule..", "org.quartz..")
                 .check(PRODUCTION);
     }
 

@@ -251,6 +251,61 @@ def claim_count(identity):
         + f"WHERE instance_id = '{identity}'"))
 
 
+def verify_schedule_configuration(client, definition):
+    """Exercise the real Schedule service and MySQL schema without activating a scheduler."""
+    base = "/api/v1/schedules"
+    payload = {"targetType": "TASK", "targetId": definition,
+               "cronExpression": "0 * * * * ?", "timeZone": "UTC"}
+    created = client.call("POST", base, payload)
+    identity = created["id"]
+    assert created["enabled"] is False and created["revision"] == 1
+    assert created["schedulable"] is True
+    assert created["registrationStatus"] == "PENDING"
+    assert created.get("nextFireTime") is None
+    client.call("POST", base, payload, status=409)
+    client.call("POST", base, dict(payload, targetType="WORKFLOW"), status=400)
+    preview = client.call("POST", base + "/preview", {
+        "cronExpression": "0 0 8 * * ?", "timeZone": "Asia/Shanghai",
+        "after": "2026-10-13T00:00:00Z"})
+    assert preview["nextFireTimes"][0] == "2026-10-14T00:00:00Z"
+    assert len(preview["nextFireTimes"]) == 5
+    client.call("POST", base + "/preview", {
+        "cronExpression": "0 * * * * ?", "timeZone": "Asia/Invalid"}, status=400)
+    page = client.call("POST", base + "/page", {"targetId": definition, "pageNo": 1, "pageSize": 20})
+    assert page["pagination"]["total"] == 1 and page["bizData"][0]["id"] == identity
+    same = client.call("PUT", base + "/" + identity, {
+        "revision": 1, "cronExpression": payload["cronExpression"], "timeZone": "UTC"})
+    assert same["revision"] == 1
+    changed = client.call("PUT", base + "/" + identity, {
+        "revision": 1, "cronExpression": "0 0 8 * * ?", "timeZone": "Asia/Shanghai"})
+    assert changed["revision"] == 2 and changed["enabled"] is False
+    client.call("PUT", base + "/" + identity, {
+        "revision": 1, "cronExpression": payload["cronExpression"], "timeZone": "UTC"}, status=409)
+    workspace = client.workspace
+    client.workspace = client.call("POST", "/api/v1/workspaces", {"name": "schedule-" + uuid.uuid4().hex[:8]})["id"]
+    try:
+        client.call("GET", base + "/" + identity, status=404)
+        client.call("DELETE", base + "/" + identity + "?revision=2", status=404)
+        client.call("POST", base, payload, status=404)
+    finally:
+        client.workspace = workspace
+    client.call("DELETE", base + "/" + identity + "?revision=2")
+    restored = client.call("POST", base, payload)
+    assert restored["id"] != identity and restored["enabled"] is False
+    assert query_mysql("SELECT COUNT(*) FROM yak_security.yak_ops_schedule WHERE id='" + identity + "' AND deleted_at IS NOT NULL") == "1"
+    # The database, not just a pre-insert service query, owns target uniqueness.
+    duplicate_sql = ("INSERT INTO yak_security.yak_ops_schedule (id,workspace_id,target_type,target_id,cron_expression,time_zone,"
+                     "create_time,update_time,create_by,update_by) SELECT 'duplicate-schedule',workspace_id,target_type,target_id,"
+                     "cron_expression,time_zone,create_time,update_time,create_by,update_by FROM yak_security.yak_ops_schedule WHERE id='" + restored["id"] + "'")
+    try:
+        query_mysql(duplicate_sql)
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        raise AssertionError("MySQL allowed duplicate live schedule target")
+    return restored["id"]
+
+
 def acceptance():
     STATE_ROOT.mkdir(parents=True, exist_ok=True)
     query_mysql(
@@ -279,6 +334,7 @@ def acceptance():
 
         jdbc = create_task(client, "jdbc-" + uuid.uuid4().hex[:8],
                            source, target, False, debug=True)
+        schedule_id = verify_schedule_configuration(client, jdbc)
         accepted, key = submit(client, jdbc)
         first = accepted["instanceId"]
         assert not accepted["replayed"]
@@ -356,12 +412,21 @@ def acceptance():
         assert excluded["pagination"]["total"] == 0
 
         # A soft-deleted Definition cannot remove a historical Instance's pinned version.
+        query_mysql("UPDATE yak_security.yak_ops_schedule SET enabled=1,enabled_at=UTC_TIMESTAMP(3),enabled_by=create_by WHERE id='" + schedule_id + "'")
         client.call("POST", f"/api/v1/task-definitions/{jdbc}/unpublish")
+        stopped = client.call("GET", f"/api/v1/schedules/{schedule_id}")
+        assert stopped["enabled"] is False and stopped["revision"] == 2
+        assert stopped["eligibilityReason"] == "TARGET_UNPUBLISHED"
         client.call("DELETE", f"/api/v1/task-definitions/{jdbc}")
         assert client.call("GET", f"/api/v1/task-instances/{first}/definition") == snapshot
+        assert client.call("GET", f"/api/v1/schedules/{schedule_id}")["eligibilityReason"] == "TARGET_DELETED"
+        client.call("DELETE", f"/api/v1/schedules/{schedule_id}?revision=2")
 
         cdc = create_task(client, "cdc-" + uuid.uuid4().hex[:8],
                           source, target, True)
+        cdc_schedule = client.call("POST", "/api/v1/schedules", {
+            "targetType": "TASK", "targetId": cdc, "cronExpression": "0 * * * * ?", "timeZone": "UTC"})
+        assert not cdc_schedule["schedulable"] and cdc_schedule["eligibilityReason"] == "NOT_SCHEDULABLE"
         continuous, _ = submit(client, cdc)
         running = continuous["instanceId"]
         wait_status(client, running, {"RUNNING"})

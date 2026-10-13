@@ -20,5 +20,6 @@
     <modules>
         <module>yak-ops-business-datasource</module>
         <module>yak-ops-business-task</module>
+        <module>yak-ops-business-schedule</module>
     </modules>
 </project>

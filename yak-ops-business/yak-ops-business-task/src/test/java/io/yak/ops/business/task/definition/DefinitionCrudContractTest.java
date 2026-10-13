@@ -13,12 +13,14 @@ import io.yak.ops.business.task.definition.impl.DefinitionServiceImpl;
 import io.yak.ops.common.bean.dto.task.CreateDefinitionDTO;
 import io.yak.ops.common.bean.dto.task.UpdateDefinitionDTO;
 import io.yak.ops.common.context.WorkspaceContext;
+import io.yak.ops.common.enums.schedule.ScheduleTargetType;
 import io.yak.ops.common.exception.BusinessException;
+import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
+import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
-import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
@@ -37,9 +39,9 @@ class DefinitionCrudContractTest {
     private final TaskPluginRegistry registry = mock(TaskPluginRegistry.class);
     private final TaskValidationContext context = mock(TaskValidationContext.class);
     private final PublicationService publication = mock(PublicationService.class);
+    private final ScheduleRepository schedules = mock(ScheduleRepository.class);
     private final Map<Integer, DefinitionVersionEntity> snapshots = new HashMap<>();
     private DefinitionEntity stored;
-
 
     DefinitionCrudContractTest() {
         inject("definitionRepository", definitions);
@@ -47,6 +49,7 @@ class DefinitionCrudContractTest {
         inject("pluginRegistry", registry);
         inject("validationContext", context);
         inject("publicationService", publication);
+        inject("schedules", schedules);
         TaskPlugin plugin = mock(TaskPlugin.class);
         when(plugin.parameterSchemaVersion()).thenReturn(1);
         when(registry.get("DATA_SYNC")).thenReturn(plugin);
@@ -58,7 +61,7 @@ class DefinitionCrudContractTest {
             return stored;
         });
         when(plugin.parse(anyString()))
-                 .thenAnswer(args -> ReadonlyConfig.fromMap(Map.of(
+                .thenAnswer(args -> ReadonlyConfig.fromMap(Map.of(
                         "sourceTable",
                         io.yak.ops.common.util.JSONUtils.readTree(args.getArgument(0))
                                 .path("sourceTable")
@@ -67,10 +70,8 @@ class DefinitionCrudContractTest {
             stored = args.getArgument(0);
             return stored;
         });
-        when(definitions.queryByIdForUpdate(eq("ws"), anyString()))
-                .thenAnswer(args -> Optional.ofNullable(stored));
-        when(definitions.queryById(eq("ws"), anyString()))
-                .thenAnswer(args -> Optional.ofNullable(stored));
+        when(definitions.queryByIdForUpdate(eq("ws"), anyString())).thenAnswer(args -> Optional.ofNullable(stored));
+        when(definitions.queryById(eq("ws"), anyString())).thenAnswer(args -> Optional.ofNullable(stored));
         when(definitions.update(eq("ws"), any())).thenAnswer(args -> args.getArgument(1));
         when(versions.append(any())).thenAnswer(args -> {
             DefinitionVersionEntity version = args.getArgument(0);
@@ -109,13 +110,18 @@ class DefinitionCrudContractTest {
         change.setName("orders renamed");
         change.setParameters("{\"sourceTable\":\"orders_new\"}");
         assertEquals(2, service.update(stored.getId(), change, "user-1").getDefinitionVersion());
-        assertEquals("orders", io.yak.ops.common.util.JSONUtils
-                .readTree(snapshots.get(1).getParameters()).path("sourceTable").asText());
+        assertEquals(
+                "orders",
+                io.yak.ops.common.util.JSONUtils.readTree(snapshots.get(1).getParameters())
+                        .path("sourceTable")
+                        .asText());
         assertEquals(2, snapshots.size());
 
         assertEquals(2, service.publish(stored.getId(), "user-1").getDefinitionVersion());
         assertThrows(BusinessException.class, () -> service.update(stored.getId(), change, "user-1"));
         assertEquals(2, service.unpublish(stored.getId(), "user-1").getDefinitionVersion());
+        org.mockito.Mockito.verify(schedules)
+                .disableForTarget(eq("ws"), eq(ScheduleTargetType.TASK), eq(stored.getId()), any(), eq("user-1"));
     }
 
     @Test

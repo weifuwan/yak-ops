@@ -37,6 +37,14 @@ public interface DefinitionRepository extends BaseRepository<DefinitionEntity> {
     Optional<DefinitionEntity> queryByIdForUpdate(String workspaceId, String id);
 
     /**
+     * Locks retained Definition identity for authorized schedule cleanup.
+     * @param workspaceId owning Workspace
+     * @param id retained Definition identifier
+     * @return locked identity, including logically deleted definitions
+     */
+    Optional<DefinitionEntity> queryByIdIncludingDeletedForUpdate(String workspaceId, String id);
+
+    /**
      * Finds a Workspace-scoped page of Definitions matching validated filters.
      *
      * @param query Workspace identity, filters, and pagination

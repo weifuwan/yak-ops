@@ -9,6 +9,7 @@ import io.yak.ops.common.bean.vo.task.DefinitionVO;
 import io.yak.ops.common.bean.vo.task.DefinitionVersionVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.common.CommonErrorCode;
+import io.yak.ops.common.enums.schedule.ScheduleTargetType;
 import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.page.PagingData;
@@ -19,6 +20,7 @@ import io.yak.ops.configuration.ConfigParser;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
+import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionPageQuery;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
@@ -48,6 +50,9 @@ public class DefinitionServiceImpl implements DefinitionService {
 
     @Resource
     private PublicationService publicationService;
+
+    @Resource
+    private ScheduleRepository schedules;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -114,6 +119,8 @@ public class DefinitionServiceImpl implements DefinitionService {
         DefinitionEntity definition = requireDefinition(id, true);
         definition.setStatus(DefinitionStatus.UNPUBLISHED);
         definition.initUpdate(operatorId);
+        schedules.disableForTarget(
+                definition.getWorkspaceId(), ScheduleTargetType.TASK, id, definition.getUpdateTime(), operatorId);
         definitionRepository.update(definition.getWorkspaceId(), definition);
         return toVO(definition);
     }
@@ -127,6 +134,7 @@ public class DefinitionServiceImpl implements DefinitionService {
         if (StringUtils.isBlank(operator)) {
             operator = "system";
         }
+        schedules.disableForTarget(definition.getWorkspaceId(), ScheduleTargetType.TASK, id, DateUtils.now(), operator);
         if (!definitionRepository.softDelete(definition.getWorkspaceId(), id, DateUtils.now(), operator)) {
             throw new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS);
         }

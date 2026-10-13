@@ -50,6 +50,14 @@ public class DefinitionRepositoryImpl extends BaseRepositoryImpl<DefinitionMappe
     }
 
     @Override
+    public Optional<DefinitionEntity> queryByIdIncludingDeletedForUpdate(String workspaceId, String id) {
+        return Optional.ofNullable(definitionMapper.selectOne(Wrappers.<DefinitionEntity>lambdaQuery()
+                .eq(DefinitionEntity::getWorkspaceId, workspaceId)
+                .eq(DefinitionEntity::getId, id)
+                .last("FOR UPDATE")));
+    }
+
+    @Override
     public PageData<DefinitionEntity> queryPage(DefinitionPageQuery filter) {
         var page = definitionMapper.selectDefinitionPage(new Page<>(filter.pageNo(), filter.pageSize()), filter);
         return new PageData<>(page.getRecords(), page.getTotal(), page.getPages(), page.getCurrent(), page.getSize());

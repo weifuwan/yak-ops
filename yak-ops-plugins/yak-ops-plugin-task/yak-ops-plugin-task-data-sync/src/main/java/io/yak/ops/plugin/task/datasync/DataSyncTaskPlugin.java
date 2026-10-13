@@ -4,12 +4,14 @@ import io.yak.ops.configuration.ConfigParser;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.base.factory.FactoryUtil;
+import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
 import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
+import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.config.JobOptions;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
@@ -65,6 +67,12 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
     @Override
     public void validate(ReadonlyConfig parameters, TaskValidationContext context) {
         JobConfigValidator.validateResources(parameters, context, factories);
+    }
+
+    @Override
+    public boolean supportsScheduling(ReadonlyConfig parameters) {
+        String identifier = JobConfig.from(parameters).source().get(JobOptions.TYPE);
+        return factories.source(identifier).boundedness() == Boundedness.BOUNDED;
     }
 
     @Override
