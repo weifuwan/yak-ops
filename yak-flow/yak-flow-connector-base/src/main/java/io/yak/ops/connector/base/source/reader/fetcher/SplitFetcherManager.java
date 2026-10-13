@@ -45,13 +45,15 @@ public abstract class SplitFetcherManager<E, SplitT extends SourceSplit> {
                 Objects.requireNonNull(configuration, "configuration").get(SourceReaderOptions.ELEMENT_QUEUE_CAPACITY);
         this.queue = new FutureCompletingBlockingQueue<>(capacity);
         String logId = configuration.get(ExecutionOptions.LOG_ID);
+        boolean debug = configuration.get(ExecutionOptions.DEBUG);
         ThreadFactory threads =
                 Thread.ofVirtual().name("yak-source-fetcher-", 0).factory();
         this.workers = Executors.newThreadPerTaskExecutor(action -> threads.newThread(() -> {
             if (logId == null || logId.isBlank()) {
                 action.run();
             } else {
-                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId)) {
+                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId);
+                        MDC.MDCCloseable details = MDC.putCloseable("taskLogDebug", Boolean.toString(debug))) {
                     action.run();
                 }
             }

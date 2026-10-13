@@ -81,13 +81,15 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             Consumer<Throwable> onFailure) {
         this.jobGraph = Objects.requireNonNull(plan, "plan must not be null");
         String logId = plan.configuration().get(ExecutionOptions.LOG_ID);
+        boolean debug = plan.configuration().get(ExecutionOptions.DEBUG);
         ThreadFactory threads =
                 Thread.ofVirtual().name("yak-local-checkpoint-", 0).factory();
         this.timer = Executors.newSingleThreadScheduledExecutor(action -> threads.newThread(() -> {
             if (logId == null || logId.isBlank()) {
                 action.run();
             } else {
-                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId)) {
+                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId);
+                        MDC.MDCCloseable details = MDC.putCloseable("taskLogDebug", Boolean.toString(debug))) {
                     action.run();
                 }
             }

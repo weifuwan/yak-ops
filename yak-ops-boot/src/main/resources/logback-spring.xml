@@ -11,6 +11,7 @@
     <conversionRule conversionWord="safeEvent" converterClass="io.yak.ops.boot.log.SensitiveDataConverter"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter"><level>INFO</level></filter>
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %safeEvent%n%nopex</pattern>
             <charset>UTF-8</charset>
@@ -18,6 +19,7 @@
     </appender>
 
     <appender name="APPLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter"><level>INFO</level></filter>
         <file>${applicationLog}</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>${applicationArchive}</fileNamePattern>
@@ -57,6 +59,13 @@
             </appender>
         </sift>
     </appender>
+
+    <logger name="io.yak.ops.connector.jdbc.source.reader.JdbcSourceSplitReader" level="DEBUG"/>
+    <logger name="io.yak.ops.connector.jdbc.internal.JdbcOutputFormat" level="DEBUG"/>
+    <logger name="io.yak.ops.connector.jdbc.internal.executor.TableSimpleStatementExecutor" level="DEBUG"/>
+    <logger name="io.yak.ops.connector.cdc.mysql.source.reader.MySqlSnapshotSplitReader" level="DEBUG"/>
+    <logger name="io.yak.ops.connector.cdc.mysql.source.reader.MySqlHybridSplitReader" level="DEBUG"/>
+    <logger name="io.yak.ops.connector.cdc.mysql.source.reader.MySqlCdcSplitReader" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

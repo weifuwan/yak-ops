@@ -1,5 +1,6 @@
 package io.yak.ops.boot.log;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
@@ -14,6 +15,11 @@ public final class TaskLogFilter extends Filter<ILoggingEvent> {
     public FilterReply decide(ILoggingEvent event) {
         String id = event.getMDCPropertyMap().get("taskLogId");
         if (id == null || !id.matches("[A-Za-z0-9_-]{1,128}")) {
+            return FilterReply.DENY;
+        }
+        if (event.getLevel() != null
+                && event.getLevel().toInt() < Level.INFO_INT
+                && !"true".equals(event.getMDCPropertyMap().get("taskLogDebug"))) {
             return FilterReply.DENY;
         }
         List<Marker> markers = event.getMarkerList();

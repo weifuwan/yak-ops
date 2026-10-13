@@ -2,6 +2,7 @@ package io.yak.ops.boot.log;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.spi.FilterReply;
 import io.yak.ops.plugin.task.api.log.TaskLogMarkers;
@@ -22,6 +23,24 @@ class TaskLogFilterTest {
         LoggingEvent unsafe = new LoggingEvent();
         unsafe.setMDCPropertyMap(Map.of("taskLogId", "../secrets"));
         assertEquals(FilterReply.DENY, filter.decide(unsafe));
+    }
+
+    @Test
+    void debugEventsRequireInstanceDebugFlag() {
+        LoggingEvent suppressed = new LoggingEvent();
+        suppressed.setLevel(Level.DEBUG);
+        suppressed.setMDCPropertyMap(Map.of("taskLogId", "task-a", "taskLogDebug", "false"));
+        assertEquals(FilterReply.DENY, filter.decide(suppressed));
+
+        LoggingEvent accepted = new LoggingEvent();
+        accepted.setLevel(Level.DEBUG);
+        accepted.setMDCPropertyMap(Map.of("taskLogId", "task-b", "taskLogDebug", "true"));
+        assertEquals(FilterReply.NEUTRAL, filter.decide(accepted));
+
+        LoggingEvent info = new LoggingEvent();
+        info.setLevel(Level.INFO);
+        info.setMDCPropertyMap(Map.of("taskLogId", "task-a", "taskLogDebug", "false"));
+        assertEquals(FilterReply.NEUTRAL, filter.decide(info));
     }
 
     @Test

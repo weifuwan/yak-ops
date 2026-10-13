@@ -144,11 +144,13 @@ public abstract class StreamTask implements AutoCloseable {
             }
             startRequested = true;
             String logId = environment.configuration().get(ExecutionOptions.LOG_ID);
+            boolean debug = environment.configuration().get(ExecutionOptions.DEBUG);
             Thread thread = Thread.ofVirtual().name(taskInfo().threadName()).unstarted(() -> {
                 if (logId == null || logId.isBlank()) {
                     run();
                 } else {
-                    try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId)) {
+                    try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId);
+                            MDC.MDCCloseable details = MDC.putCloseable("taskLogDebug", Boolean.toString(debug))) {
                         run();
                     }
                 }

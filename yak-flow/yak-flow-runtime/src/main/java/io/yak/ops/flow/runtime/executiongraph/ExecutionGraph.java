@@ -100,11 +100,13 @@ public final class ExecutionGraph {
     /** Submits this Job exactly once; the worker is owned by the ExecutionGraph, not the JobClient. */
     public void start() {
         String logId = jobGraph.configuration().get(ExecutionOptions.LOG_ID);
+        boolean debug = jobGraph.configuration().get(ExecutionOptions.DEBUG);
         Thread thread = Thread.ofVirtual().name("yak-local-job-" + getJobID()).unstarted(() -> {
             if (logId == null || logId.isBlank()) {
                 run();
             } else {
-                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId)) {
+                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId);
+                        MDC.MDCCloseable details = MDC.putCloseable("taskLogDebug", Boolean.toString(debug))) {
                     run();
                 }
             }
