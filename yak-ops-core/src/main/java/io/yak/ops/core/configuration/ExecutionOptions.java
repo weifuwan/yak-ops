@@ -30,5 +30,9 @@ public final class ExecutionOptions {
     public static final Option<Integer> MAX_RESTART_ATTEMPTS =
             Options.key("execution.restart.max-attempts").intType().defaultValue(0);
 
+    /** Stable, application-supplied identity for Job logging; empty outside task execution. */
+    public static final Option<String> LOG_ID =
+            Options.key("execution.log-id").stringType().defaultValue("");
+
     private ExecutionOptions() {}
 }

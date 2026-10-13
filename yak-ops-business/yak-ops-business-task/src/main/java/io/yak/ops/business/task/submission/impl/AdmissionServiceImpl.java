@@ -79,6 +79,7 @@ public class AdmissionServiceImpl implements AdmissionService {
         instance.setRequestId(request.requestId());
         instance.setRequestFingerprint(request.requestFingerprint());
         instance.setResourceRevision(currentPlan.resourceRevision());
+        instance.setLogPath("tasks/" + context.instanceId() + "/task.log");
         instance.setStatus(TaskInstanceStatus.SUBMITTED);
         instance.setStateVersion(0);
         instance.initCreate(request.operatorId());

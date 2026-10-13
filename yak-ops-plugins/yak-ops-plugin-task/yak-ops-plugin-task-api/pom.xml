@@ -17,6 +17,7 @@
     <description>Task-type discovery and validated parameter contracts</description>
 
     <dependencies>
+        <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-configuration</artifactId></dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>

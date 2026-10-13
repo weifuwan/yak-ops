@@ -56,6 +56,11 @@ yak:
       password: ${YAK_SECURITY_BOOTSTRAP_PASSWORD:Root@123456}
       real-name: ${YAK_SECURITY_BOOTSTRAP_REAL_NAME:系统管理员}
 
+  task:
+    logging:
+      directory: ${YAK_TASK_LOG_DIRECTORY:logs/tasks}
+      max-history-days: ${YAK_TASK_LOG_RETENTION_DAYS:7}
+
   datasource:
     connection-test-timeout-seconds: ${YAK_DATASOURCE_CONNECT_TIMEOUT_SECONDS:5}
 

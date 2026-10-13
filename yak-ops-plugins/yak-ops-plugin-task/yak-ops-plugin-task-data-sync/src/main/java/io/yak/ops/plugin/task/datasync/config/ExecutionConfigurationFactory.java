@@ -54,6 +54,7 @@ public final class ExecutionConfigurationFactory {
         Configuration configuration = new Configuration(connectorConfiguration)
                 .set(PipelineOptions.AUTO_GENERATE_UIDS, false)
                 .set(CheckpointingOptions.STATE_DIRECTORY, stateDirectory.toString())
+                .set(ExecutionOptions.LOG_ID, identity.instanceId())
                 .set(CheckpointingOptions.RESTORE_LATEST, false);
 
         if (boundedness == Boundedness.BOUNDED) {

@@ -42,6 +42,8 @@ public class InstanceEntity extends BaseEntity {
     private String runtimeEngine;
     /** Engine-assigned Job identifier. */
     private String runtimeId;
+    /** Relative path to this Instance's execution log file. */
+    private String logPath;
     /** Optimistic version guarding competing state transitions. */
     private Integer stateVersion;
     /** Observed start time, absent until execution begins. */
