@@ -16,7 +16,8 @@ For environment setup and test scope, see [DEVELOPMENT.md](DEVELOPMENT.md). Only
 
 - `yak-ops-core`: public, database-neutral flow contracts; must not depend on Runtime.
 - `yak-flow`: local execution runtime and JDBC/CDC connectors.
-- `yak-ops-business`: datasource and task-definition business operations.
+- `yak-ops-business`: datasource and task business operations, including persisted execution lifecycle.
+- `yak-ops-task-execution`: process-owned Task dispatch, observation, cancellation and embedded execution ownership.
 - `yak-ops-plugins`: plugin APIs and implementations.
 - `yak-ops-dao`: persistence, repositories and Flyway migrations.
 - `yak-ops-platform`: security, workspace and user preferences.

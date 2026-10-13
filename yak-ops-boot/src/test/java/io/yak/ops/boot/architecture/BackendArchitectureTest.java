@@ -31,6 +31,7 @@ class BackendArchitectureTest {
             "io.yak.ops.flow.runtime.",
             "io.yak.ops.connector.",
             "io.yak.ops.business.",
+            "io.yak.ops.task.execution.",
             "io.yak.ops.boot."
         }) {
             assertTrue(PRODUCTION.stream().anyMatch(type -> type.getPackageName().startsWith(prefix)), prefix);
@@ -66,6 +67,24 @@ class BackendArchitectureTest {
                 .that().resideInAPackage("io.yak.ops.business..")
                 .should().dependOnClassesThat()
                 .resideInAPackage("io.yak.ops.boot..")
+                .check(PRODUCTION);
+    }
+
+    @Test
+    void taskExecutionCannotDependOnBootOrYakFlowRuntime() {
+        noClasses()
+                .that().resideInAPackage("io.yak.ops.task.execution..")
+                .should().dependOnClassesThat()
+                .resideInAnyPackage("io.yak.ops.boot..", "io.yak.ops.flow.runtime..", "io.yak.ops.connector..")
+                .check(PRODUCTION);
+    }
+
+    @Test
+    void businessCannotDependOnTaskExecutionCoordination() {
+        noClasses()
+                .that().resideInAPackage("io.yak.ops.business..")
+                .should().dependOnClassesThat()
+                .resideInAPackage("io.yak.ops.task.execution..")
                 .check(PRODUCTION);
     }
 

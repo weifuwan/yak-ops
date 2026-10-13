@@ -13,6 +13,7 @@ on:
       - 'yak-ops-common/**'
       - 'yak-ops-boot/**'
       - 'yak-ops-business/yak-ops-business-task/**'
+      - 'yak-ops-task-execution/**'
       - 'yak-ops-dao/**'
       - 'yak-ops-plugins/yak-ops-plugin-task/**'
   workflow_call:
