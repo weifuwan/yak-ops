@@ -1,4 +1,4 @@
-package io.yak.ops.boot.config;
+package io.yak.ops.boot.integration.task;
 
 import io.yak.ops.business.datasource.DataSourceCatalogService;
 import io.yak.ops.business.datasource.DataSourceService;

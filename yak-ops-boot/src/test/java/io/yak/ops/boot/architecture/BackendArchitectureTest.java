@@ -89,6 +89,24 @@ class BackendArchitectureTest {
     }
 
     @Test
+    void taskPluginsDoNotDependOnProductBusinessServices() {
+        noClasses()
+                .that().resideInAPackage("io.yak.ops.plugin.task.datasync..")
+                .should().dependOnClassesThat()
+                .resideInAnyPackage("io.yak.ops.business..", "io.yak.ops.dao..", "io.yak.ops.boot..")
+                .check(PRODUCTION);
+    }
+
+    @Test
+    void datasourceBusinessDoesNotDependOnTaskPlugins() {
+        noClasses()
+                .that().resideInAPackage("io.yak.ops.business.datasource..")
+                .should().dependOnClassesThat()
+                .resideInAPackage("io.yak.ops.plugin.task..")
+                .check(PRODUCTION);
+    }
+
+    @Test
     void catchesAnActualForbiddenDependency() {
         JavaClasses invalid = new ClassFileImporter().importClasses(IllegalCoreDependency.class);
         assertTrue(CORE_ISOLATION.evaluate(invalid).hasViolation());

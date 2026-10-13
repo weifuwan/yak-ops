@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync;
+package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.execution.JobClient;

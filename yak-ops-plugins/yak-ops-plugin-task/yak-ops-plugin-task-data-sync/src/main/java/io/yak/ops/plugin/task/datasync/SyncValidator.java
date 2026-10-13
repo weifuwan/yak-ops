@@ -24,11 +24,11 @@ import java.util.Set;
  * <p>Structure is checked once during parsing. Physical checks use Workspace-authorized
  * Datasource metadata and do not silently replace an explicit database or schema.
  */
-final class SyncValidator {
+public final class SyncValidator {
 
     private SyncValidator() {}
 
-    static void checkParameters(SyncParameters parameters) {
+    public static void checkParameters(SyncParameters parameters) {
         if (parameters == null || parameters.source() == null || parameters.sink() == null) {
             throw new TaskPluginException("DATA_SYNC requires one source and one sink");
         }
@@ -111,7 +111,7 @@ final class SyncValidator {
         return bound;
     }
 
-    static void checkSchemaCompatibility(TableSchema source, TableSchema target, boolean requireKeys) {
+    public static void checkSchemaCompatibility(TableSchema source, TableSchema target, boolean requireKeys) {
         Map<String, Column> sourceColumns = columns(source);
         Map<String, Column> targetColumns = columns(target);
         for (var entry : sourceColumns.entrySet()) {

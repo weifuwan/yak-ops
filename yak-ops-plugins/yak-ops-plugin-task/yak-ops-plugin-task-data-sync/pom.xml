@@ -14,7 +14,7 @@
     <artifactId>yak-ops-plugin-task-data-sync</artifactId>
 
     <name>Yak Ops Data Sync Task Plugin</name>
-    <description>Data Sync task parameter parsing and validation</description>
+    <description>DATA_SYNC definition, planning and YakFlow execution</description>
 
     <dependencies>
         <dependency>

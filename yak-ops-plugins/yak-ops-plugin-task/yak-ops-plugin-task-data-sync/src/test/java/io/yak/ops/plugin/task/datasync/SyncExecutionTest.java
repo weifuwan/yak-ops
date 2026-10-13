@@ -22,6 +22,11 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionContext;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionPlan;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
+import io.yak.ops.plugin.task.datasync.execution.SyncExecutionPlanner;
+import io.yak.ops.plugin.task.datasync.execution.SyncTaskExecutor;
+import io.yak.ops.plugin.task.datasync.resource.SyncRuntimeConnection;
+import io.yak.ops.plugin.task.datasync.resource.SyncRuntimeResources;
+import io.yak.ops.plugin.task.datasync.resource.SyncRuntimeTable;
 import io.yak.ops.plugin.task.datasync.sink.JdbcSinkParameters;
 import io.yak.ops.plugin.task.datasync.source.JdbcSourceParameters;
 import io.yak.ops.plugin.task.datasync.source.MySqlCdcSourceParameters;
@@ -47,7 +52,7 @@ class SyncExecutionTest {
     void boundedJdbcRunsThroughExistingPipelineExecutor() {
         Resources resources = new Resources();
         AtomicInteger submissions = new AtomicInteger();
-        SyncPlugin plugin = new SyncPlugin(resources, finishedExecutor(submissions), Path.of("target/data-sync"));
+        SyncTaskPlugin plugin = plugin(resources, finishedExecutor(submissions));
         SyncParameters parameters = parameters(false);
         TaskExecutionPlan plan = plugin.plan(parameters, CONTEXT);
         assertEquals(1, plan.exclusiveResources().size());
@@ -59,13 +64,15 @@ class SyncExecutionTest {
         assertEquals("YAKFLOW", handle.runtimeReference().orElseThrow().engine());
         assertEquals(TaskOutcome.FINISHED, handle.completion().toCompletableFuture().join());
         assertEquals(0, resources.openedConnections.get());
+        assertEquals(4, resources.tables.get());
+        assertEquals(2, resources.connections.get());
     }
 
     @Test
     void refusesChangedDatasourceRevisionBeforeLaunching() {
         Resources resources = new Resources();
         AtomicInteger submissions = new AtomicInteger();
-        SyncPlugin plugin = new SyncPlugin(resources, finishedExecutor(submissions), Path.of("target/data-sync"));
+        SyncTaskPlugin plugin = plugin(resources, finishedExecutor(submissions));
         SyncParameters parameters = parameters(false);
         TaskExecutionPlan admitted = plugin.plan(parameters, CONTEXT);
         resources.targetRevision++;
@@ -75,13 +82,14 @@ class SyncExecutionTest {
         assertInstanceOf(TaskStartRejectedException.class, failure.getCause());
         assertEquals(0, submissions.get());
         assertEquals(0, resources.connections.get());
+        assertEquals(4, resources.tables.get());
     }
 
     @Test
     void mySqlCdcBuildsHybridSnapshotPipeline() {
         Resources resources = new Resources();
         AtomicInteger submissions = new AtomicInteger();
-        SyncPlugin plugin = new SyncPlugin(resources, finishedExecutor(submissions), Path.of("target/data-sync"));
+        SyncTaskPlugin plugin = plugin(resources, finishedExecutor(submissions));
         SyncParameters parameters = parameters(true);
         TaskExecutionPlan plan = plugin.plan(parameters, CONTEXT);
         assertTrue(plan.resourceRevision().length() <= 128);
@@ -89,6 +97,12 @@ class SyncExecutionTest {
         assertEquals("YAKFLOW", handle.runtimeReference().orElseThrow().engine());
         assertEquals(1, submissions.get());
         assertEquals(0, resources.openedConnections.get());
+    }
+
+    private static SyncTaskPlugin plugin(SyncRuntimeResources resources, PipelineExecutor executor) {
+        SyncExecutionPlanner planner = new SyncExecutionPlanner(resources);
+        return new SyncTaskPlugin(
+                planner, new SyncTaskExecutor(resources, planner, executor, Path.of("target/data-sync")));
     }
 
     private static SyncParameters parameters(boolean cdc) {
@@ -133,6 +147,7 @@ class SyncExecutionTest {
 
     private static final class Resources implements SyncRuntimeResources {
         private final AtomicInteger connections = new AtomicInteger();
+        private final AtomicInteger tables = new AtomicInteger();
         private final AtomicInteger openedConnections = new AtomicInteger();
         private long targetRevision = 1;
 
@@ -140,6 +155,7 @@ class SyncExecutionTest {
         public SyncRuntimeTable table(
                 String workspace, String datasource, String database, String schema, String table) {
             assertEquals("ws", workspace);
+            tables.incrementAndGet();
             if ("source".equals(datasource)) {
                 return new SyncRuntimeTable("MYSQL", new TableId("app", null, "orders"), SCHEMA, 1);
             }

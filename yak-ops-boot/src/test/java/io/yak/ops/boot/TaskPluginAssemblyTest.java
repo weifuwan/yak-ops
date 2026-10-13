@@ -6,10 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import io.yak.ops.boot.config.TaskPluginConfiguration;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
-import io.yak.ops.plugin.task.datasync.SyncPlugin;
-import io.yak.ops.plugin.task.datasync.SyncRuntimeConnection;
-import io.yak.ops.plugin.task.datasync.SyncRuntimeResources;
-import io.yak.ops.plugin.task.datasync.SyncRuntimeTable;
+import io.yak.ops.plugin.task.datasync.SyncTaskPlugin;
+import io.yak.ops.plugin.task.datasync.resource.SyncRuntimeConnection;
+import io.yak.ops.plugin.task.datasync.resource.SyncRuntimeResources;
+import io.yak.ops.plugin.task.datasync.resource.SyncRuntimeTable;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -24,7 +24,7 @@ class TaskPluginAssemblyTest {
                 TaskPluginConfiguration.class, TestRuntimeResources.class)) {
             TaskPluginRegistry registry = context.getBean(TaskPluginRegistry.class);
             assertEquals(1, registry.types().size());
-            assertInstanceOf(ExecutableTaskPlugin.class, registry.get(SyncPlugin.TYPE));
+            assertInstanceOf(ExecutableTaskPlugin.class, registry.get(SyncTaskPlugin.TYPE));
         }
     }
 

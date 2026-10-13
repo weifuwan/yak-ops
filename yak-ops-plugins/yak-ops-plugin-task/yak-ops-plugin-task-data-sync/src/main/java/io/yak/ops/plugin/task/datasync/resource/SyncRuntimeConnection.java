@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync;
+package io.yak.ops.plugin.task.datasync.resource;
 
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import java.util.Objects;

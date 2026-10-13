@@ -1,8 +1,9 @@
 package io.yak.ops.business.datasource.impl;
 
 import io.yak.ops.business.datasource.DataSourceCatalogService;
-import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.exception.DataSourceException;
+import io.yak.ops.business.datasource.runtime.DataSourceRuntimeConnection;
+import io.yak.ops.business.datasource.runtime.DataSourceRuntimeService;
 import io.yak.ops.common.bean.dto.datasource.DataSourceCatalogQueryDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceTablePathDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
@@ -14,16 +15,9 @@ import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
 import io.yak.ops.connector.jdbc.database.catalog.factory.JdbcCatalogFactory;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
-import io.yak.ops.dao.entity.datasource.DataSourceEntity;
-import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
-import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
-import io.yak.ops.plugin.datasource.api.plugin.DataSourcePlugin;
-import io.yak.ops.plugin.datasource.api.plugin.DataSourcePluginRegistry;
 import jakarta.annotation.Resource;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.NoSuchElementException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -36,10 +30,7 @@ import org.springframework.stereotype.Service;
 public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
 
     @Resource
-    private DataSourceEntityRepository repository;
-
-    @Resource
-    private DataSourceProperties properties;
+    private DataSourceRuntimeService resources;
 
     @Override
     public List<String> listDatabases(String datasourceId) {
@@ -104,40 +95,8 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
     }
 
     private <T> T query(String datasourceId, CatalogAction<T> action) {
-        DataSourceEntity entity = repository
-                .queryById(WorkspaceContext.requireWorkspaceId(), datasourceId)
-                .orElseThrow(() -> new DataSourceException(DataSourceErrorCode.NOT_FOUND));
-
-        DataSourcePlugin plugin;
-        try {
-            plugin = DataSourcePluginRegistry.get(entity.getDbType());
-        } catch (IllegalArgumentException exception) {
-            throw new DataSourceException(DataSourceErrorCode.INVALID_DB_TYPE, null, exception);
-        } catch (NoSuchElementException exception) {
-            throw new DataSourceException(DataSourceErrorCode.PLUGIN_NOT_FOUND, null, exception);
-        }
-
-        DataSourceConnection connection;
-        try {
-            connection = plugin.parseConnection(entity.getConnectionParams());
-        } catch (RuntimeException exception) {
-            throw new DataSourceException(DataSourceErrorCode.INVALID_CONNECTION_PARAMS, null, exception);
-        }
-
-        int timeoutSeconds = Math.max(1, properties.getConnectionTestTimeoutSeconds());
-        try (JdbcCatalog catalog = JdbcCatalogFactory.create(connection.jdbcUrl(), () -> {
-            try {
-                Connection opened = plugin.openConnection(connection, timeoutSeconds);
-                if (opened == null) {
-                    throw new SQLException("Datasource provider returned a null JDBC connection");
-                }
-                return opened;
-            } catch (SQLException exception) {
-                throw exception;
-            } catch (Exception exception) {
-                throw new SQLException("Failed to open JDBC metadata connection", exception);
-            }
-        })) {
+        DataSourceRuntimeConnection binding = resources.connection(WorkspaceContext.requireWorkspaceId(), datasourceId);
+        try (JdbcCatalog catalog = JdbcCatalogFactory.create(binding.jdbcUrl(), binding.provider())) {
             return action.execute(catalog);
         } catch (SQLException | RuntimeException exception) {
             throw new DataSourceException(DataSourceErrorCode.CATALOG_QUERY_FAILED, null, exception);

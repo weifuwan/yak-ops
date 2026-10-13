@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync;
+package io.yak.ops.plugin.task.datasync.resource;
 
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;

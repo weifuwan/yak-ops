@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.yak.ops.business.datasource.DataSourceCatalogService;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.exception.DataSourceException;
+import io.yak.ops.business.datasource.runtime.impl.DataSourceRuntimeServiceImpl;
 import io.yak.ops.common.bean.dto.datasource.DataSourceCatalogQueryDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceTablePathDTO;
 import io.yak.ops.common.context.WorkspaceContext;
@@ -42,6 +43,7 @@ class DataSourceCatalogServiceImplTest {
         datasource.setWorkspaceId("workspace-1");
         datasource.setDbType("TEST_H2");
         datasource.setConnectionParams("{}");
+        datasource.setRevision(1L);
 
         DataSourceEntityRepository repository = (DataSourceEntityRepository) Proxy.newProxyInstance(
                 DataSourceEntityRepository.class.getClassLoader(),
@@ -58,6 +60,7 @@ class DataSourceCatalogServiceImplTest {
 
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
             context.registerBean(DataSourceCatalogServiceImpl.class);
+            context.registerBean(DataSourceRuntimeServiceImpl.class);
             context.registerBean(DataSourceEntityRepository.class, () -> repository);
             context.registerBean(DataSourceProperties.class);
             context.refresh();

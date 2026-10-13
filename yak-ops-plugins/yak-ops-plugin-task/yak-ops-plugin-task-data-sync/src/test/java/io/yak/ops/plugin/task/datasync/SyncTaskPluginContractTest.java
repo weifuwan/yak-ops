@@ -11,6 +11,11 @@ import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.plugin.task.api.TaskParameters;
+import io.yak.ops.plugin.task.datasync.execution.SyncExecutionPlanner;
+import io.yak.ops.plugin.task.datasync.execution.SyncTaskExecutor;
+import io.yak.ops.plugin.task.datasync.resource.SyncRuntimeConnection;
+import io.yak.ops.plugin.task.datasync.resource.SyncRuntimeResources;
+import io.yak.ops.plugin.task.datasync.resource.SyncRuntimeTable;
 import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
@@ -26,14 +31,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 /** Verifies stateless plugin discovery and independent local and physical validation boundaries. */
-class SyncPluginContractTest {
+class SyncTaskPluginContractTest {
 
     private final TaskPluginRegistry registry = new TaskPluginRegistry(List.of(plugin()));
 
     @Test
     void registersBootConstructedPluginWithOneRegistry() {
         assertTrue(registry.types().contains("DATA_SYNC"));
-        assertInstanceOf(SyncPlugin.class, registry.get("DATA_SYNC"));
+        assertInstanceOf(SyncTaskPlugin.class, registry.get("DATA_SYNC"));
         assertEquals(2, registry.get("DATA_SYNC").parameterSchemaVersion());
         assertThrows(TaskPluginException.class, () -> registry.get("data-sync"));
         assertThrows(TaskPluginException.class, () -> registry.get("data_sync"));
@@ -155,7 +160,7 @@ class SyncPluginContractTest {
         assertEquals(1, validations.get());
     }
 
-    private static SyncPlugin plugin() {
+    private static SyncTaskPlugin plugin() {
         SyncRuntimeResources unsupported = new SyncRuntimeResources() {
             @Override
             public SyncRuntimeTable table(String workspace, String id, String database, String schema, String name) {
@@ -168,7 +173,8 @@ class SyncPluginContractTest {
             }
         };
         PipelineExecutor executor = new EmbeddedPipelineExecutor();
-        return new SyncPlugin(unsupported, executor, Path.of("test-state"));
+        SyncExecutionPlanner planner = new SyncExecutionPlanner(unsupported);
+        return new SyncTaskPlugin(planner, new SyncTaskExecutor(unsupported, planner, executor, Path.of("test-state")));
     }
 
     private TaskParameters parseAndValidate(String json, TaskValidationContext context) {

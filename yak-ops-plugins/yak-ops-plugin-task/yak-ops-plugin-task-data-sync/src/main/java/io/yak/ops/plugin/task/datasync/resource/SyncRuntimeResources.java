@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync;
+package io.yak.ops.plugin.task.datasync.resource;
 
 /** Trusted Workspace-scoped datasource and metadata access for DATA_SYNC execution. */
 public interface SyncRuntimeResources {
