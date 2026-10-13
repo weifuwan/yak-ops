@@ -58,9 +58,18 @@ assert.equal(canCancelTaskInstance("CANCELLING"), false);
 assert.equal(isTaskInstanceActive("FINISHED"), false);
 assert.equal(isTaskInstanceActive("CANCELED"), false);
 
-assert.equal(matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, syncType: "REALTIME" }), true);
-assert.equal(matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, syncType: "OFFLINE" }), false);
-assert.equal(matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, status: "RUNNING" }), false);
+assert.equal(
+  matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, syncType: "REALTIME" }),
+  true,
+);
+assert.equal(
+  matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, syncType: "OFFLINE" }),
+  false,
+);
+assert.equal(
+  matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, status: "RUNNING" }),
+  false,
+);
 assert.equal(matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, activeOnly: true }), true);
 assert.equal(matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, keyword: "orders" }), true);
 

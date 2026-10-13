@@ -25,7 +25,9 @@ export const submitTaskInstance = (
     { headers: { "Idempotency-Key": idempotencyKey } },
   );
 
-export const listTaskInstances = (params: TaskInstancePageParams): Promise<TaskInstancePageResult> =>
+export const listTaskInstances = (
+  params: TaskInstancePageParams,
+): Promise<TaskInstancePageResult> =>
   HttpUtils.postData<TaskInstancePageResult>(`${TASK_INSTANCES_API}/page`, params);
 
 export const getTaskInstance = (id: string): Promise<TaskInstanceRecord> =>

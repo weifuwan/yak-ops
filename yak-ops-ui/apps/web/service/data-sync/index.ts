@@ -137,7 +137,9 @@ export const runDataSyncTask = (
 const TASK_INSTANCE_BATCH_SIZE = 200;
 
 // InstanceVO is engine-neutral; the pinned Definition version determines DATA_SYNC's source kind.
-async function projectDataSyncInstances(instances: TaskInstanceRecord[]): Promise<DataSyncInstanceRecord[]> {
+async function projectDataSyncInstances(
+  instances: TaskInstanceRecord[],
+): Promise<DataSyncInstanceRecord[]> {
   const definitions = new Map<
     string,
     Promise<{ name: string; versions: TaskDefinitionVersionRecord[] }>

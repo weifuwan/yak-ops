@@ -1,8 +1,6 @@
 import { Badge, Button, type BadgeProps } from "@yak-ops/yak-ui";
 import { Fragment, useCallback, useEffect, useState } from "react";
 
-import { isTaskInstanceActive } from "@/service/data-sync/execution";
-
 import {
   listDataSyncInstances,
   type DataSyncInstanceRecord,
@@ -49,7 +47,7 @@ export function useActiveTaskInstances(syncType: DataSyncType, enabled: boolean)
       activeOnly: true,
     });
     const next = new Map<string, DataSyncInstanceRecord>();
-    result.bizData.filter((record) => isTaskInstanceActive(record.status)).forEach((record) => {
+    result.bizData.forEach((record) => {
       if (!next.has(record.taskId)) next.set(record.taskId, record);
     });
     setActiveByTask(next);
