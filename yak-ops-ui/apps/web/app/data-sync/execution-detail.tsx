@@ -366,7 +366,10 @@ export function DataSyncExecutionDetailContent({
                 width: 140,
                 align: "right",
                 render: (_value, attempt) =>
-                  [attempt.readRows?.toLocaleString() ?? "-", attempt.writeRows?.toLocaleString() ?? "-"].join(" / "),
+                  [
+                    attempt.readRows?.toLocaleString() ?? "-",
+                    attempt.writeRows?.toLocaleString() ?? "-",
+                  ].join(" / "),
               },
               {
                 key: "error",
