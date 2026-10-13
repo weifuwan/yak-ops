@@ -354,9 +354,9 @@ export function DataSyncInstanceDetailPage({
         </div>
         <div className="mt-4">
           <TaskInstanceLogPanel
-              instanceId={record.id}
-              active={canCancelTaskInstance(record.status)}
-            />
+            instanceId={record.id}
+            active={canCancelTaskInstance(record.status)}
+          />
         </div>
       </div>
     </div>
