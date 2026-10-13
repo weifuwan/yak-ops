@@ -80,7 +80,8 @@ public class TaskLogService {
         boolean more = false;
         reading:
         for (Path segment : segments(taskDirectory)) {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(open(segment), StandardCharsets.UTF_8))) {
+            try (BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(open(segment), StandardCharsets.UTF_8))) {
                 String raw;
                 while ((raw = reader.readLine()) != null) {
                     if (position < skipped) {
