@@ -4,10 +4,10 @@ import {
   cancelTaskInstance,
   createTaskRunIdempotencyKey,
   getTaskInstance,
+  getTaskInstanceDefinition,
   listTaskAttempts,
   listTaskInstances,
   submitTaskInstance,
-  type TaskDefinitionVersionRecord,
   type TaskInstanceRecord,
   type TaskInstanceStatus,
   type TaskSubmissionResult,
@@ -136,39 +136,13 @@ export const runDataSyncTask = (
 
 const TASK_INSTANCE_BATCH_SIZE = 200;
 
-// InstanceVO is engine-neutral; the pinned Definition version determines DATA_SYNC's source kind.
-async function projectDataSyncInstances(
-  instances: TaskInstanceRecord[],
-): Promise<DataSyncInstanceRecord[]> {
-  const definitions = new Map<
-    string,
-    Promise<{ name: string; versions: TaskDefinitionVersionRecord[] }>
-  >();
-
+async function projectDataSyncInstances(instances: TaskInstanceRecord[]): Promise<DataSyncInstanceRecord[]> {
   return Promise.all(
     instances
       .filter((instance) => instance.taskType === "DATA_SYNC")
-      .map(async (instance) => {
-        let definition = definitions.get(instance.definitionId);
-        if (!definition) {
-          definition = Promise.all([
-            HttpUtils.getData<TaskDefinitionRecord>(
-              `${TASK_DEFINITION_API_PREFIX}/${instance.definitionId}`,
-            ),
-            HttpUtils.getData<TaskDefinitionVersionRecord[]>(
-              `${TASK_DEFINITION_API_PREFIX}/${instance.definitionId}/versions`,
-            ),
-          ]).then(([current, versions]) => ({ name: current.name, versions }));
-          definitions.set(instance.definitionId, definition);
-        }
-
-        const { name, versions } = await definition;
-        const version = versions.find((item) => item.version === instance.definitionVersion);
-        if (!version) {
-          throw new Error("Task Instance Definition version is missing");
-        }
-        return toDataSyncInstanceRecord(instance, version, name);
-      }),
+      .map(async (instance) =>
+        toDataSyncInstanceRecord(instance, await getTaskInstanceDefinition(instance.id)),
+      ),
   );
 }
 
@@ -180,20 +154,22 @@ export const getDataSyncInstance = async (id: string): Promise<DataSyncInstanceR
   return records[0];
 };
 
-// The Stage 1 /task-instances/page contract is workspace-paged only.
-// Filter after reading all workspace pages; do not send unsupported filters to Boot.
+// Only the source kind and optional task-name filter are resolved by the frontend.
+// Definition, Task type, and lifecycle filters are applied by the Workspace-scoped repository.
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
 ): Promise<DataSyncInstancePageResult> => {
-  if (params.triggerType) {
-    throw new Error("Task Instance API does not expose trigger-type filtering");
-  }
-
   const instances: TaskInstanceRecord[] = [];
   let pageNo = 1;
   let pages = 1;
   do {
-    const result = await listTaskInstances({ pageNo, pageSize: TASK_INSTANCE_BATCH_SIZE });
+    const result = await listTaskInstances({
+      pageNo,
+      pageSize: TASK_INSTANCE_BATCH_SIZE,
+      definitionId: params.taskId,
+      taskType: "DATA_SYNC",
+      status: params.status,
+    });
     instances.push(...result.bizData);
     pages = result.pagination.pages;
     pageNo += 1;

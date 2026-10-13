@@ -1,6 +1,6 @@
 import type {
   TaskAttemptRecord,
-  TaskDefinitionVersionRecord,
+  TaskInstanceDefinitionRecord,
   TaskInstanceRecord,
   TaskInstanceStatus,
 } from "../task-execution/types";
@@ -23,16 +23,21 @@ export const canCancelTaskInstance = (status: TaskInstanceStatus): boolean =>
 
 export function toDataSyncInstanceRecord(
   instance: TaskInstanceRecord,
-  version: TaskDefinitionVersionRecord,
-  taskName: string = instance.definitionId,
+  version: TaskInstanceDefinitionRecord,
 ): DataSyncInstanceRecord {
-  if (instance.taskType !== "DATA_SYNC" || version.version !== instance.definitionVersion) {
+  if (
+    instance.taskType !== "DATA_SYNC" ||
+    version.taskType !== instance.taskType ||
+    version.definitionId !== instance.definitionId ||
+    version.version !== instance.definitionVersion
+  ) {
     throw new Error("Task Instance Definition version mismatch");
   }
 
   const parameters = JSON.parse(version.parameters) as SyncPipelineParameters;
   const { source, sink } = parameters;
   const syncType: DataSyncType = source.type === "MYSQL_CDC" ? "REALTIME" : "OFFLINE";
+  const taskName = version.name;
 
   return {
     id: instance.id,
@@ -40,6 +45,7 @@ export function toDataSyncInstanceRecord(
     taskName,
     taskVersion: instance.definitionVersion,
     syncType,
+    triggerType: instance.triggerType,
     status: instance.status,
     startTime: instance.startTime ?? undefined,
     finishTime: instance.endTime ?? undefined,
@@ -94,6 +100,7 @@ export function matchesDataSyncInstance(
   if (params.syncType && instance.syncType !== params.syncType) return false;
   if (params.status && instance.status !== params.status) return false;
   if (params.activeOnly && !isTaskInstanceActive(instance.status)) return false;
+  if (params.triggerType && instance.triggerType !== params.triggerType) return false;
   if (params.keyword) {
     const keyword = params.keyword.trim().toLowerCase();
     if (

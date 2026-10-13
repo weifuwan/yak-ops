@@ -16,6 +16,8 @@ assert.notEqual(key, createTaskRunIdempotencyKey());
 const version = {
   definitionId: "definition-1",
   version: 2,
+  name: "orders",
+  taskType: "DATA_SYNC",
   parameterSchemaVersion: 2,
   parameters: JSON.stringify({
     source: { type: "MYSQL_CDC", datasourceId: "mysql-source", table: "orders" },
@@ -34,11 +36,12 @@ const instance = {
   definitionId: "definition-1",
   definitionVersion: 2,
   taskType: "DATA_SYNC",
+  triggerType: "MANUAL",
   status: "RECONCILING",
   createTime: "2026-10-13T09:00:00",
   failureCode: "EXECUTION_OWNER_UNCERTAIN",
 };
-const mapped = toDataSyncInstanceRecord(instance, version, "orders");
+const mapped = toDataSyncInstanceRecord(instance, version);
 assert.equal(mapped.id, instance.id);
 assert.equal(mapped.taskId, "definition-1");
 assert.equal(mapped.taskVersion, 2);
@@ -49,7 +52,7 @@ assert.equal(mapped.definitionSnapshot.source.dataSourceId, "mysql-source");
 assert.equal(mapped.definitionSnapshot.target.schema, "public");
 assert.equal(mapped.readRows, undefined);
 assert.equal(mapped.writeRows, undefined);
-assert.equal(mapped.triggerType, undefined);
+assert.equal(mapped.triggerType, "MANUAL");
 assert.equal(isTaskInstanceActive(mapped.status), true);
 assert.equal(canCancelTaskInstance(mapped.status), false);
 assert.equal(canCancelTaskInstance("SUBMITTED"), true);
@@ -72,10 +75,18 @@ assert.equal(
 );
 assert.equal(matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, activeOnly: true }), true);
 assert.equal(matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, keyword: "orders" }), true);
+assert.equal(
+  matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, triggerType: "MANUAL" }),
+  true,
+);
+assert.equal(
+  matchesDataSyncInstance(mapped, { pageNo: 1, pageSize: 20, triggerType: "WORKFLOW" }),
+  false,
+);
 
-assert.throws(() => toDataSyncInstanceRecord(instance, { ...version, version: 3 }, "orders"));
+assert.throws(() => toDataSyncInstanceRecord(instance, { ...version, version: 3 }));
 assert.throws(() =>
-  toDataSyncInstanceRecord({ ...instance, taskType: "UNKNOWN" }, version, "orders"),
+  toDataSyncInstanceRecord({ ...instance, taskType: "UNKNOWN" }, version),
 );
 
 const attempt = toDataSyncAttemptRecord(

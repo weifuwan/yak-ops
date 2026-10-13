@@ -30,6 +30,7 @@ export interface TaskInstanceRecord {
   definitionId: string;
   definitionVersion: number;
   taskType: string;
+  triggerType: "MANUAL" | "SCHEDULE" | "WORKFLOW";
   status: TaskInstanceStatus;
   startTime?: string | null;
   endTime?: string | null;
@@ -49,12 +50,13 @@ export interface TaskAttemptRecord {
   endTime?: string | null;
 }
 
-export interface TaskDefinitionVersionRecord {
+export interface TaskInstanceDefinitionRecord {
   definitionId: string;
   version: number;
+  name: string;
+  taskType: string;
   parameterSchemaVersion: number;
   parameters: string;
-  createTime?: string | null;
 }
 
 export interface TaskInstancePageResult {
@@ -70,4 +72,7 @@ export interface TaskInstancePageResult {
 export interface TaskInstancePageParams {
   pageNo: number;
   pageSize: number;
+  definitionId?: string;
+  status?: TaskInstanceStatus;
+  taskType?: string;
 }
