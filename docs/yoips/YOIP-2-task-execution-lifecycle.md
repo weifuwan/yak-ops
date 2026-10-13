@@ -184,3 +184,26 @@ completed Tasks retain their files according to the configured local storage pol
 
 Task logs are per-Instance diagnostic information. The platform does not introduce a Task
 Attempt table, a remote logging RPC, or a second Runtime recovery policy for log delivery.
+
+
+## Task execution diagnostics
+
+Each Task Definition has a `debug` boolean, defaulting to `false`. A Task Instance
+captures this value at admission. Changing the Definition's diagnostics mode updates
+metadata without changing the executable plugin parameters or Definition version.
+Running Instances continue using their admitted diagnostics setting.
+
+YakFlow receives the setting through `ExecutionOptions.DEBUG` and carries its
+`taskLogDebug` value alongside `taskLogId` on owned execution, coordinator, fetcher,
+and checkpoint threads. Task log routing accepts DEBUG events only for Instances
+explicitly configured for detailed diagnostics. Application and console appenders
+retain their INFO threshold.
+
+JDBC Source reports SQL templates at query execution and bounded ResultSet fetch
+batch sizes and durations separately. JDBC Sink reports statement batches and
+transaction flush/commit durations without logging bound values or rows.
+MySQL CDC Snapshot reports query/fetch details; Binlog readers report only
+non-empty event fetches. INFO events report successful Source emissions and
+committed JDBC Sink records per physical task attempt, with periodic window
+rates and terminal summaries. These diagnostic counters do not imply
+exactly-once delivery or a cross-attempt business total.

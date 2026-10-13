@@ -201,7 +201,7 @@ def create_datasource(client, name, kind, database, username, port):
     return found[0]
 
 
-def create_task(client, name, source, target, streaming):
+def create_task(client, name, source, target, streaming, debug=False):
     params = {
         "source": {
             "type": "MYSQL_CDC" if streaming else "JDBC",
@@ -215,7 +215,7 @@ def create_task(client, name, source, target, streaming):
         },
     }
     definition = client.call("POST", "/api/v1/task-definitions", {
-        "name": name, "taskType": "DATA_SYNC",
+        "name": name, "taskType": "DATA_SYNC", "debug": debug,
         "parameters": json.dumps(params, separators=(",", ":")),
     })["id"]
     client.call("POST", f"/api/v1/task-definitions/{definition}/publish")
@@ -278,7 +278,7 @@ def acceptance():
             "POSTGRE_SQL", "ods", "yak", 5432)
 
         jdbc = create_task(client, "jdbc-" + uuid.uuid4().hex[:8],
-                           source, target, False)
+                           source, target, False, debug=True)
         accepted, key = submit(client, jdbc)
         first = accepted["instanceId"]
         assert not accepted["replayed"]
@@ -295,14 +295,19 @@ def acceptance():
         assert instance["triggerType"] == "MANUAL"
         assert instance["status"] == "FINISHED"
         assert instance["runtimeEngine"] == "YAKFLOW"
+        assert instance["debug"] is True
         assert instance["runtimeId"]
         log_page = until(
             "JDBC task log",
             lambda: client.call("GET", f"/api/v1/task-instances/{first}/logs?limit=200"),
             lambda page: "YakFlow Job started" in page["content"], timeout=35)
         assert log_page["nextCursor"]
-        assert "YakFlow Job started" in client.download(
-            f"/api/v1/task-instances/{first}/logs/download").decode("utf-8")
+        jdbc_log = client.download(f"/api/v1/task-instances/{first}/logs/download").decode("utf-8")
+        for event in ("YakFlow Job started", "JDBC query executed", "JDBC fetch completed",
+                      "JDBC statement batch executed", "JDBC flush completed",
+                      "Source summary", "JDBC sink summary"):
+            assert event in jdbc_log, f"Missing JDBC diagnostic event: {event}"
+        assert DB_PASSWORD not in jdbc_log
         assert client.call("GET", f"/api/v1/task-instances/{first}/logs?cursor=bad!!", status=400) is None
         snapshot = client.call("GET", f"/api/v1/task-instances/{first}/definition")
         assert snapshot["definitionId"] == jdbc
@@ -332,6 +337,7 @@ def acceptance():
         running = continuous["instanceId"]
         wait_status(client, running, {"RUNNING"})
         assert claim_count(running) == 2
+        assert client.call("GET", f"/api/v1/task-instances/{running}")["debug"] is False
         until(
             "CDC task log",
             lambda: client.call("GET", f"/api/v1/task-instances/{running}/logs?limit=200"),
