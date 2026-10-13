@@ -37,7 +37,6 @@ import {
   DATA_SYNC_TASK_STATUS_ITEMS,
   DataSyncTaskLifecycleActions,
   DataSyncTaskStatusBadge,
-  isPublishedTask,
   useActiveTaskInstances,
 } from "@/app/data-sync/task-lifecycle";
 

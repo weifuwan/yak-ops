@@ -6,13 +6,6 @@ import {
   FieldLabel,
   Input,
   PageHeader,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  SelectTrigger,
-  SelectValue,
   Textarea,
   toast,
 } from "@yak-ops/yak-ui";
