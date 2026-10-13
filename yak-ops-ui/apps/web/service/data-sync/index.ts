@@ -41,7 +41,6 @@ import type {
 
 export type * from "./types";
 
-const DATA_SYNC_API_PREFIX = "/api/v1/data-sync";
 const TASK_DEFINITION_API_PREFIX = "/api/v1/task-definitions";
 
 export const listDataSyncTasks = async (
