@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Multiplexes JDBC Snapshot scans and a paused Debezium Binlog on one Connector Base fetcher.
@@ -26,6 +29,8 @@ import java.util.Set;
  * coordinator confirms a checkpoint covering all Snapshot splits.
  */
 public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetchedRecord, MySqlHybridSplit> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MySqlHybridSplitReader.class);
 
     private final MySqlSnapshotSplitReader snapshots;
     private final MySqlBinlogEngine binlog;
@@ -102,8 +107,13 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
             return batch;
         }
         if (binlogAssigned && streaming) {
+            long pollStartedNanos = System.nanoTime();
             BinlogEvent event = binlog.poll();
             if (event != null) {
+                if ("true".equals(MDC.get("taskLogDebug"))) {
+                    LOG.debug("CDC binlog batch fetched, events={}, pollMs={}",
+                            event.records().size(), (System.nanoTime() - pollStartedNanos) / 1_000_000);
+                }
                 return new RecordsBySplits<>(
                         Map.of(
                                 MySqlHybridBinlogSplit.ID,
@@ -121,6 +131,7 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
         Objects.requireNonNull(high, "high");
         resumeRequested = true;
         streaming = true;
+        LOG.info("CDC binlog streaming resumed after snapshot checkpoint");
     }
 
     public byte[] snapshotHistory() {

@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Fetcher-owned Debezium Binlog I/O exposed through the shared Connector Base SplitReader.
@@ -19,6 +22,8 @@ import java.util.Set;
  * The Debezium engine enqueues bounded detached changes; a fetch only transfers them.
  */
 public final class MySqlCdcSplitReader implements SplitReader<BinlogEvent, MySqlBinlogSplit> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MySqlCdcSplitReader.class);
 
     private final MySqlBinlogEngine engine;
     private final String fingerprint;
@@ -48,7 +53,12 @@ public final class MySqlCdcSplitReader implements SplitReader<BinlogEvent, MySql
         if (closed || !assigned) {
             throw new IllegalStateException("MySQL Binlog reader has no live split");
         }
+        long pollStartedNanos = System.nanoTime();
         BinlogEvent item = engine.poll();
+        if (item != null && "true".equals(MDC.get("taskLogDebug"))) {
+            LOG.debug("CDC binlog batch fetched, events={}, pollMs={}",
+                    item.records().size(), (System.nanoTime() - pollStartedNanos) / 1_000_000);
+        }
         return new RecordsBySplits<>(item == null ? Map.of() : Map.of(MySqlBinlogSplit.ID, List.of(item)), Set.of());
     }
 

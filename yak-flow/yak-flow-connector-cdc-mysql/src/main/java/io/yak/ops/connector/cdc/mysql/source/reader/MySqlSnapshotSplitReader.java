@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Performs bounded JDBC snapshot scanning on the owning Connector Base fetcher thread.
@@ -32,6 +35,8 @@ import java.util.stream.Collectors;
  * only by the mailbox RecordEmitter, not by this prefetcher.
  */
 public final class MySqlSnapshotSplitReader implements AutoCloseable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MySqlSnapshotSplitReader.class);
 
     private static final int FETCH_BATCH = 256;
 
@@ -45,6 +50,9 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
     private JdbcDialectConverter converter;
     private MySqlSnapshotSplit active;
     private boolean hasRow;
+    private long splitStartedNanos;
+    private long fetchedRows;
+    private long batchId;
 
     public MySqlSnapshotSplitReader(MySqlCdcSourceConfig config) {
         this(config::openSnapshotConnection, JdbcDialects.forUrl("jdbc:mysql:"), config.schemas());
@@ -62,6 +70,9 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
         if (active != null) {
             throw new IllegalStateException("Snapshot reader already has a running split");
         }
+        splitStartedNanos = System.nanoTime();
+        fetchedRows = 0;
+        batchId = 0;
         TableSchema schema = Objects.requireNonNull(schemas.get(split.tableId()), "snapshot table schema");
         String key = MySqlChunkSplitter.splitKey(schema);
         String quoted = dialect.quoteIdentifier(key);
@@ -93,7 +104,12 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
             for (int index = 0; index < bounds.size(); index++) {
                 statement.setLong(index + 1, bounds.get(index));
             }
+            long executeStartedNanos = System.nanoTime();
             results = statement.executeQuery();
+            if ("true".equals(MDC.get("taskLogDebug"))) {
+                LOG.debug("CDC snapshot query executed, split={}, sql={}, executeQueryMs={}",
+                        split.splitId(), sql, (System.nanoTime() - executeStartedNanos) / 1_000_000);
+            }
             converter = dialect.createRowConverter(results.getMetaData());
             TableSchema actual = converter.schema();
             if (actual.columnCount() != schema.columnCount()) {
@@ -128,6 +144,7 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
             throw new IllegalStateException("No active MySQL snapshot split");
         }
         MySqlSnapshotSplit split = active;
+        long fetchStartedNanos = System.nanoTime();
         String key = MySqlChunkSplitter.splitKey(schemas.get(split.tableId()));
         List<MySqlHybridFetchedRecord> batch = new ArrayList<>();
         for (int remaining = FETCH_BATCH; hasRow && remaining > 0; remaining--) {
@@ -141,7 +158,16 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
             hasRow = results.next();
         }
         boolean completed = !hasRow;
+        fetchedRows += batch.size();
+        if ("true".equals(MDC.get("taskLogDebug"))) {
+            LOG.debug("CDC snapshot fetch completed, split={}, batch={}, batchRows={}, fetchMs={}",
+                    split.splitId(), ++batchId, batch.size(), (System.nanoTime() - fetchStartedNanos) / 1_000_000);
+        }
         if (completed) {
+            if ("true".equals(MDC.get("taskLogDebug"))) {
+                LOG.debug("CDC snapshot split finished, split={}, fetchedRows={}, durationMs={}",
+                        split.splitId(), fetchedRows, (System.nanoTime() - splitStartedNanos) / 1_000_000);
+            }
             close();
         }
         return new RecordsBySplits<>(
