@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <springProperty scope="context" name="applicationLog" source="logging.file.name" defaultValue="logs/yak-ops.log"/>
+    <springProperty scope="context" name="applicationArchive" source="logging.logback.rollingpolicy.file-name-pattern" defaultValue="logs/yak-ops.%d{yyyy-MM-dd}.%i.log.gz"/>
+    <springProperty scope="context" name="applicationMaxSize" source="logging.logback.rollingpolicy.max-file-size" defaultValue="100MB"/>
+    <springProperty scope="context" name="applicationHistory" source="logging.logback.rollingpolicy.max-history" defaultValue="7"/>
+    <springProperty scope="context" name="applicationTotalSize" source="logging.logback.rollingpolicy.total-size-cap" defaultValue="5GB"/>
+    <springProperty scope="context" name="taskLogDirectory" source="yak.task.logging.directory" defaultValue="logs/tasks"/>
+    <springProperty scope="context" name="taskLogHistory" source="yak.task.logging.max-history-days" defaultValue="7"/>
+    <conversionRule conversionWord="safeEvent" converterClass="io.yak.ops.boot.log.SensitiveDataConverter"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %safeEvent%n%nopex</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="APPLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${applicationLog}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${applicationArchive}</fileNamePattern>
+            <maxFileSize>${applicationMaxSize}</maxFileSize>
+            <maxHistory>${applicationHistory}</maxHistory>
+            <totalSizeCap>${applicationTotalSize}</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %safeEvent%n%nopex</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="TASKLOGFILE" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <filter class="io.yak.ops.boot.log.TaskLogFilter"/>
+        <timeout>15 minutes</timeout>
+        <maxAppenderCount>128</maxAppenderCount>
+        <discriminator class="ch.qos.logback.classic.sift.MDCBasedDiscriminator">
+            <key>taskLogId</key>
+            <defaultValue>unassigned</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="TASK-${taskLogId}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${taskLogDirectory}/${taskLogId}/task.log</file>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <fileNamePattern>${taskLogDirectory}/${taskLogId}/task.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                    <maxFileSize>20MB</maxFileSize>
+                    <maxHistory>${taskLogHistory}</maxHistory>
+                    <totalSizeCap>200MB</totalSizeCap>
+                    <cleanHistoryOnStart>true</cleanHistoryOnStart>
+                </rollingPolicy>
+                <encoder>
+                    <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %safeEvent%n%nopex</pattern>
+                    <charset>UTF-8</charset>
+                </encoder>
+            </appender>
+        </sift>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="APPLOG"/>
+        <appender-ref ref="TASKLOGFILE"/>
+    </root>
+</configuration>
