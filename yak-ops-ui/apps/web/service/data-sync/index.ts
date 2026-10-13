@@ -131,22 +131,38 @@ export const getDataSyncInstance = async (id: string): Promise<DataSyncInstanceR
 export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
 ): Promise<DataSyncInstancePageResult> => {
-  const instances: TaskInstanceRecord[] = [];
-  let pageNo = 1;
-  let pages = 1;
-  do {
-    const result = await listTaskInstances({
-      pageNo,
-      pageSize: TASK_INSTANCE_BATCH_SIZE,
-      definitionId: params.taskId,
-      taskType: "DATA_SYNC",
-      status: params.status,
-    });
-    instances.push(...result.bizData);
-    pages = result.pagination.pages;
-    pageNo += 1;
-  } while (pageNo <= pages);
+  // Active views query only nonterminal states instead of scanning all execution history.
+  const statuses: Array<TaskInstanceStatus | undefined> =
+    params.activeOnly && !params.status
+      ? ["SUBMITTED", "RUNNING", "CANCELLING", "RECONCILING"]
+      : [params.status];
 
+  const batches = await Promise.all(
+    statuses.map(async (status) => {
+      const items: TaskInstanceRecord[] = [];
+      let pageNo = 1;
+      let pages = 1;
+      do {
+        const result = await listTaskInstances({
+          pageNo,
+          pageSize: TASK_INSTANCE_BATCH_SIZE,
+          definitionId: params.taskId,
+          taskType: "DATA_SYNC",
+          status,
+        });
+        items.push(...result.bizData);
+        pages = result.pagination.pages;
+        pageNo += 1;
+      } while (pageNo <= pages);
+      return items;
+    }),
+  );
+  const instances = batches.flat();
+  if (statuses.length > 1) {
+    instances.sort((first, second) =>
+      (second.createTime ?? "").localeCompare(first.createTime ?? ""),
+    );
+  }
   const records = (await projectDataSyncInstances(instances)).filter((instance) =>
     matchesDataSyncInstance(instance, params),
   );
