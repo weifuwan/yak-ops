@@ -81,7 +81,8 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             Consumer<Throwable> onFailure) {
         this.jobGraph = Objects.requireNonNull(plan, "plan must not be null");
         String logId = plan.configuration().get(ExecutionOptions.LOG_ID);
-        ThreadFactory threads = Thread.ofVirtual().name("yak-local-checkpoint-", 0).factory();
+        ThreadFactory threads =
+                Thread.ofVirtual().name("yak-local-checkpoint-", 0).factory();
         this.timer = Executors.newSingleThreadScheduledExecutor(action -> threads.newThread(() -> {
             if (logId == null || logId.isBlank()) {
                 action.run();
