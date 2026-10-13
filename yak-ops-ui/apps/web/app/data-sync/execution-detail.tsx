@@ -2,7 +2,11 @@ import { Badge, SectionCard, Table, type BadgeProps, type TableColumns } from "@
 import type { ReactNode } from "react";
 
 import { canCancelTaskInstance, isTaskInstanceActive } from "@/service/data-sync/execution";
-import type { DataSyncAttemptRecord, DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
+import type {
+  DataSyncAttemptRecord,
+  DataSyncInstanceRecord,
+  DataSyncInstanceStatus,
+} from "@/service/data-sync";
 import type { TaskAttemptStatus } from "@/service/task-execution";
 
 export const isActiveDataSyncInstance = (record?: DataSyncInstanceRecord): boolean =>
@@ -86,13 +90,17 @@ export function DataSyncExecutionConfigContent({ record }: ConfigProps) {
     <SectionCard title="配置快照">
       <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
         <div className="space-y-4">
-          <Value label="来源数据源">{snapshot.source.dataSourceName || snapshot.source.dataSourceId}</Value>
+          <Value label="来源数据源">
+            {snapshot.source.dataSourceName || snapshot.source.dataSourceId}
+          </Value>
           <Value label="来源表">
             {tablePath(snapshot.source.database, snapshot.source.schema, snapshot.source.table)}
           </Value>
         </div>
         <div className="space-y-4">
-          <Value label="去向数据源">{snapshot.target.dataSourceName || snapshot.target.dataSourceId}</Value>
+          <Value label="去向数据源">
+            {snapshot.target.dataSourceName || snapshot.target.dataSourceId}
+          </Value>
           <Value label="去向表">
             {tablePath(snapshot.target.database, snapshot.target.schema, snapshot.target.table)}
           </Value>
@@ -111,11 +119,7 @@ interface DetailProps {
   sectionCard?: boolean;
 }
 
-export function DataSyncExecutionDetailContent({
-  record,
-  attempts,
-  realtime,
-}: DetailProps) {
+export function DataSyncExecutionDetailContent({ record, attempts, realtime }: DetailProps) {
   const columns: TableColumns<DataSyncAttemptRecord> = [
     {
       key: "attemptNo",
@@ -176,9 +180,7 @@ export function DataSyncExecutionDetailContent({
           <div className="mt-4 text-sm text-[#b42318]">{record.errorMessage}</div>
         ) : null}
         {record.status === "RECONCILING" ? (
-          <div className="mt-4 text-sm text-[#b54708]">
-            执行所有权尚未确认，目标资源仍受保护
-          </div>
+          <div className="mt-4 text-sm text-[#b54708]">执行所有权尚未确认，目标资源仍受保护</div>
         ) : null}
         {canCancelTaskInstance(record.status) && realtime ? (
           <div className="mt-4 text-xs text-[#667085]">停止不会自动恢复；重新运行会创建新实例</div>

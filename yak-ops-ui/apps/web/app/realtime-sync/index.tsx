@@ -365,9 +365,7 @@ export function RealtimeSyncPage() {
             runtimeAction={{
               label: runtimeLabel,
               loading: runtimeLoading,
-              disabled: activeInstance
-                ? !canCancelTaskInstance(activeInstance.status)
-                : !published,
+              disabled: activeInstance ? !canCancelTaskInstance(activeInstance.status) : !published,
               className: runtimeClassName,
               onClick: () => {
                 if (activeInstance) void stopTask(record, activeInstance);

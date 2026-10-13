@@ -253,4 +253,3 @@ export interface DataSyncAttemptRecord {
   createTime?: string;
   updateTime?: string;
 }
-

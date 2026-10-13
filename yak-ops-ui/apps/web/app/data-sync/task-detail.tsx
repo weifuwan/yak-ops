@@ -41,11 +41,7 @@ interface Props {
   localScroll?: boolean;
 }
 
-export function DataSyncTaskDetailPage({
-  syncType,
-  basePath,
-  localScroll = false,
-}: Props) {
+export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false }: Props) {
   const realtime = syncType === "REALTIME";
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
@@ -108,12 +104,13 @@ export function DataSyncTaskDetailPage({
     const timer = window.setInterval(() => {
       void loadInstances();
       if (executionId) {
-        void Promise.all([getDataSyncInstance(executionId), listDataSyncAttempts(executionId)]).then(
-          ([instance, records]) => {
-            setSelected(instance);
-            setAttempts(records);
-          },
-        );
+        void Promise.all([
+          getDataSyncInstance(executionId),
+          listDataSyncAttempts(executionId),
+        ]).then(([instance, records]) => {
+          setSelected(instance);
+          setAttempts(records);
+        });
       }
     }, POLL_MILLIS);
     return () => window.clearInterval(timer);
@@ -154,7 +151,11 @@ export function DataSyncTaskDetailPage({
       title: "实例 ID",
       minWidth: 190,
       render: (_value, record) => (
-        <Button variant="ghost" size="small" onClick={() => setSearchParams({ executionId: record.id })}>
+        <Button
+          variant="ghost"
+          size="small"
+          onClick={() => setSearchParams({ executionId: record.id })}
+        >
           {record.id}
         </Button>
       ),
@@ -189,14 +190,18 @@ export function DataSyncTaskDetailPage({
   ];
 
   return (
-    <div className={localScroll ? "h-full overflow-y-auto bg-[#f6f6f6]" : "min-h-full bg-[#f6f6f6]"}>
+    <div
+      className={localScroll ? "h-full overflow-y-auto bg-[#f6f6f6]" : "min-h-full bg-[#f6f6f6]"}
+    >
       <PageHeader
         title={task.name}
         bordered
         className="bg-white px-6 max-md:px-4"
         extra={
           <div className="flex gap-2">
-            <Button size="small" onClick={() => navigate(basePath)}>返回任务列表</Button>
+            <Button size="small" onClick={() => navigate(basePath)}>
+              返回任务列表
+            </Button>
             {task.status === "PUBLISHED" ? (
               <Button size="small" loading={running} onClick={() => void run()}>
                 运行
@@ -245,12 +250,21 @@ export function DataSyncTaskDetailPage({
           <>
             {canCancelTaskInstance(selected.status) ? (
               <div className="flex justify-end">
-                <Button size="small" variant="danger" loading={canceling} onClick={() => void cancel()}>
+                <Button
+                  size="small"
+                  variant="danger"
+                  loading={canceling}
+                  onClick={() => void cancel()}
+                >
                   停止
                 </Button>
               </div>
             ) : null}
-            <DataSyncExecutionDetailContent record={selected} attempts={attempts} realtime={realtime} />
+            <DataSyncExecutionDetailContent
+              record={selected}
+              attempts={attempts}
+              realtime={realtime}
+            />
             <DataSyncExecutionConfigContent record={selected} realtime={realtime} />
           </>
         ) : null}

@@ -353,11 +353,7 @@ export function DataSyncInstanceDetailPage({
       />
 
       <div className="px-6 pb-8 pt-5 max-md:px-4">
-        <DataSyncExecutionDetailContent
-          record={record}
-          attempts={attempts}
-          realtime={realtime}
-        />
+        <DataSyncExecutionDetailContent record={record} attempts={attempts} realtime={realtime} />
         <div className="mt-4">
           <DataSyncExecutionConfigContent record={record} realtime={realtime} />
         </div>

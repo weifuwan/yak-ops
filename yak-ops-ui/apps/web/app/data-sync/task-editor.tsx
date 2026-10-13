@@ -746,7 +746,6 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
               }}
             />
           </CollapseSection>
-
         </main>
 
         <aside

@@ -85,9 +85,7 @@ assert.equal(
 );
 
 assert.throws(() => toDataSyncInstanceRecord(instance, { ...version, version: 3 }));
-assert.throws(() =>
-  toDataSyncInstanceRecord({ ...instance, taskType: "UNKNOWN" }, version),
-);
+assert.throws(() => toDataSyncInstanceRecord({ ...instance, taskType: "UNKNOWN" }, version));
 
 const attempt = toDataSyncAttemptRecord(
   {

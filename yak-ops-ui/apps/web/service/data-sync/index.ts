@@ -106,7 +106,9 @@ export const runDataSyncTask = (
 
 const TASK_INSTANCE_BATCH_SIZE = 200;
 
-async function projectDataSyncInstances(instances: TaskInstanceRecord[]): Promise<DataSyncInstanceRecord[]> {
+async function projectDataSyncInstances(
+  instances: TaskInstanceRecord[],
+): Promise<DataSyncInstanceRecord[]> {
   return Promise.all(
     instances
       .filter((instance) => instance.taskType === "DATA_SYNC")
@@ -165,4 +167,3 @@ export const cancelDataSyncInstance = (id: string): Promise<TaskInstanceStatus> 
 
 export const listDataSyncAttempts = async (id: string): Promise<DataSyncAttemptRecord[]> =>
   (await listTaskAttempts(id)).map((attempt) => toDataSyncAttemptRecord(attempt, id));
-
