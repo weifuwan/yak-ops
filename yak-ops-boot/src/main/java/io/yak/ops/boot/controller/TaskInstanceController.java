@@ -1,7 +1,6 @@
 package io.yak.ops.boot.controller;
 
 import io.yak.ops.business.task.instance.InstanceService;
-import io.yak.ops.task.execution.TaskExecutionService;
 import io.yak.ops.common.bean.dto.task.InstancePageDTO;
 import io.yak.ops.common.bean.vo.task.AttemptVO;
 import io.yak.ops.common.bean.vo.task.InstanceVO;
@@ -11,6 +10,7 @@ import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
 import io.yak.ops.dao.entity.task.AttemptEntity;
 import io.yak.ops.dao.entity.task.InstanceEntity;
+import io.yak.ops.task.execution.TaskExecutionService;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -42,7 +42,7 @@ public class TaskInstanceController {
         if (!query.getSorts().isEmpty()) {
             throw new IllegalArgumentException("Custom Task Instance sorting is not supported");
         }
-        return Result.success(PagingData.from(lifecycle
+        return Result.success(PagingData.from(instances
                 .page(WorkspaceContext.requireWorkspaceId(), query.getPageNo(), query.getPageSize())
                 .map(this::toInstance)));
     }

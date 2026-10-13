@@ -16,6 +16,7 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionContext;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionPlan;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
+import io.yak.ops.task.execution.owner.EmbeddedExecutionOwner;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;

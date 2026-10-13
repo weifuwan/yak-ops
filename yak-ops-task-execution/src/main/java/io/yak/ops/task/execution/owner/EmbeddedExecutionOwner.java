@@ -51,7 +51,7 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
         lock = acquired;
         try {
             owners.register(InetAddress.getLocalHost().getHostName(), root.toString(), incarnation);
-        } catch (RuntimeException | Error failure) {
+        } catch (IOException | RuntimeException | Error failure) {
             try {
                 close();
             } catch (IOException closeFailure) {
