@@ -1,0 +1,25 @@
+name: YOIP-4 Implementation Workbench
+on:
+  push:
+    branches: [feat/yoip-4-schedule-definition-foundation]
+permissions:
+  contents: read
+concurrency:
+  group: yoip4-foundation-workbench
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Export source baseline
+        run: |
+          mkdir -p /tmp/yoip4-review
+          git archive --format=tar HEAD -o /tmp/yoip4-review/head.tar
+          git rev-parse HEAD > /tmp/yoip4-review/revision.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yoip4-source-baseline
+          path: /tmp/yoip4-review/
+          retention-days: 2
