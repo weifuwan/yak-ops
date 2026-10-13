@@ -1,7 +1,7 @@
 import { Alert, Badge, SectionCard, Table, type BadgeProps } from "@yak-ops/yak-ui";
 import type { ReactNode } from "react";
 
-import { isTaskInstanceActive } from "@/service/data-sync/execution";
+import { canCancelTaskInstance, isTaskInstanceActive } from "@/service/data-sync/execution";
 import type { TaskAttemptStatus } from "@/service/task-execution";
 
 import type {
@@ -45,8 +45,7 @@ export const dataSyncInstanceStatusMeta = (
 export const dataSyncTriggerText = (triggerType?: string) => {
   if (triggerType === "MANUAL") return "手动运行";
   if (triggerType === "SCHEDULE") return "调度触发";
-  if (triggerType === "AUTO_RECOVERY") return "自动恢复";
-  if (triggerType === "RETRY") return "重试";
+  if (triggerType === "WORKFLOW") return "工作流触发";
   return triggerType || "-";
 };
 
@@ -284,7 +283,7 @@ export function DataSyncExecutionDetailContent({
 
   return (
     <div className="space-y-4">
-      {showRealtimeStopCaution && realtime && isActiveDataSyncInstance(record) ? (
+      {showRealtimeStopCaution && realtime && canCancelTaskInstance(record.status) ? (
         <Alert>停止后不会自动恢复，重新运行会创建新的实例。</Alert>
       ) : null}
 

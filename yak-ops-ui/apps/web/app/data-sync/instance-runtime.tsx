@@ -138,14 +138,7 @@ export function DataSyncInstances({ syncType, basePath, taskId }: DataSyncInstan
       key: "triggerType",
       title: "启动方式",
       width: 100,
-      render: (_value, record) =>
-        record.triggerType === "MANUAL"
-          ? "手动"
-          : record.triggerType === "SCHEDULE"
-            ? "调度"
-            : record.triggerType === "AUTO_RECOVERY"
-              ? "自动恢复"
-              : record.triggerType || "-",
+      render: (_value, record) => dataSyncTriggerText(record.triggerType),
     },
     {
       key: "readRows",
