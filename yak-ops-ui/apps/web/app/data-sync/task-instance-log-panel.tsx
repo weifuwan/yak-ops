@@ -19,6 +19,7 @@ export function TaskInstanceLogPanel({ instanceId, active }: Props) {
     let disposed = false;
     let position: string | undefined;
     let loading = false;
+    let more = true;
 
     const load = async () => {
       if (loading || disposed) return;
@@ -36,6 +37,7 @@ export function TaskInstanceLogPanel({ instanceId, active }: Props) {
           hasMore = page.hasMore;
           pages += 1;
         } while (hasMore && pages < 5);
+        more = hasMore;
         setError(false);
       } catch {
         if (!disposed) setError(true);
@@ -47,10 +49,12 @@ export function TaskInstanceLogPanel({ instanceId, active }: Props) {
     setContent("");
     setError(false);
     void load();
-    const refresh = active ? window.setInterval(() => void load(), 2000) : undefined;
+    const refresh = window.setInterval(() => {
+      if (active || more) void load();
+    }, 2000);
     return () => {
       disposed = true;
-      if (refresh !== undefined) window.clearInterval(refresh);
+      window.clearInterval(refresh);
     };
   }, [instanceId, active, revision]);
 
