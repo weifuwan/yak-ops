@@ -52,6 +52,15 @@ class Client:
             raise AssertionError(f"{method} {path}: rejected response={result}")
         return result.get("data")
 
+    def download(self, path):
+        headers = {}
+        if self.workspace:
+            headers["X-Workspace-Id"] = self.workspace
+        request = urllib.request.Request(BASE + path, headers=headers)
+        with self.opener.open(request, timeout=30) as response:
+            assert response.status == 200
+            return response.read()
+
     def login(self):
         self.call(
             "POST", "/yak-security/api/v1/account/login",
@@ -287,6 +296,14 @@ def acceptance():
         assert instance["status"] == "FINISHED"
         assert instance["runtimeEngine"] == "YAKFLOW"
         assert instance["runtimeId"]
+        log_page = until(
+            "JDBC task log",
+            lambda: client.call("GET", f"/api/v1/task-instances/{first}/logs?limit=200"),
+            lambda page: "YakFlow Job started" in page["content"], timeout=35)
+        assert log_page["nextCursor"]
+        assert "YakFlow Job started" in client.download(
+            f"/api/v1/task-instances/{first}/logs/download").decode("utf-8")
+        assert client.call("GET", f"/api/v1/task-instances/{first}/logs?cursor=bad!!", status=400) is None
         snapshot = client.call("GET", f"/api/v1/task-instances/{first}/definition")
         assert snapshot["definitionId"] == jdbc
         assert snapshot["version"] == accepted["definitionVersion"]
@@ -315,6 +332,10 @@ def acceptance():
         running = continuous["instanceId"]
         wait_status(client, running, {"RUNNING"})
         assert claim_count(running) == 2
+        until(
+            "CDC task log",
+            lambda: client.call("GET", f"/api/v1/task-instances/{running}/logs?limit=200"),
+            lambda page: "YakFlow Job started" in page["content"], timeout=35)
         claim_types = query_mysql(
             "SELECT GROUP_CONCAT(resource_type ORDER BY resource_type) "
             + "FROM yak_security.yak_ops_task_execution_claim "
@@ -356,6 +377,8 @@ def acceptance():
         uncertain = client.call("GET", f"/api/v1/task-instances/{interrupted_id}")
         assert uncertain["runtimeId"]
         assert uncertain["failureCode"] == "EXECUTION_OWNER_UNCERTAIN"
+        assert "YakFlow Job started" in client.call(
+            "GET", f"/api/v1/task-instances/{interrupted_id}/logs?limit=200")["content"]
         print(
             "PRODUCT E2E PASS: JDBC, CDC, idempotency, resource exclusion, "
             "cancellation and restart reconciliation")

@@ -25,6 +25,12 @@ class LoggingChecksTest(unittest.TestCase):
             )
             return verify_file(source)
 
+    def test_marker_log_templates_follow_the_same_language_rules(self):
+        self.assertEqual([], self.check(
+            'LOG.info(TaskLogMarkers.excludeInTaskLog(), "Execution accepted");'))
+        self.assertTrue(self.check(
+            'LOG.info(TaskLogMarkers.includeInTaskLog(), "密码错误");'))
+
     def test_trace_and_english_message_are_allowed(self):
         self.assertEqual([], self.check('LOG.trace("Trace event");'))
 

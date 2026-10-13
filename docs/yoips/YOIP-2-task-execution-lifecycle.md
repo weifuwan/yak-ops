@@ -155,3 +155,32 @@ Acceptance covers:
 8. Runtime internal restart and checkpoint recovery do not create another business Instance.
 9. Independent Instances use distinct checkpoint directories and cannot steal target claims.
 10. Public endpoints and UI expose Instance state and the engine Job ID directly.
+
+## Task Instance execution logs
+
+Every admitted Task Instance owns one stable execution log path. The path is relative to the
+application-controlled Task log root and is persisted with the Instance, independently of its
+YakFlow Job ID. An idempotent replay does not create another log identity. Historical Instances
+without a log path return empty content.
+
+Task execution binds the Instance ID as the `taskLogId` SLF4J MDC key. YakFlow carries the ID as
+`ExecutionOptions.LOG_ID`, so its Job, StreamTask, Source and Checkpoint threads write to the
+same Task log across runtime-internal retries. Source fetchers and asynchronous platform
+callbacks bind the identity within their own worker threads and clear it when their thread
+exits. Embedded task execution remains the sole physical Job submission for an Instance.
+
+Logback routes task-owned events through `SiftingAppender` and `MDCBasedDiscriminator`. A
+TaskLogFilter rejects events without a valid Instance ID and honors
+`TaskLogMarkers.excludeInTaskLog()`. SensitiveDataConverter masks credentials in both ordinary
+messages and exception stacks before they reach user-visible files. These diagnostic rules
+coexist with the application's rolling `yak-ops.log` and static logging checks.
+
+A Workspace-authorized caller reads bounded log segments via
+`GET /api/v1/task-instances/{id}/logs` with an optional opaque cursor and a page size. The
+`/logs/download` endpoint streams retained archives and the current log without buffering
+all bytes. Paths are resolved by the service from persisted Instance identity; callers cannot
+supply absolute file paths. Active tasks remain readable as new records arrive, while
+completed Tasks retain their files according to the configured local storage policy.
+
+Task logs are per-Instance diagnostic information. The platform does not introduce a Task
+Attempt table, a remote logging RPC, or a second Runtime recovery policy for log delivery.
