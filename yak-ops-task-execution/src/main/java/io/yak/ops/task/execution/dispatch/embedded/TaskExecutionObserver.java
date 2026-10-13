@@ -42,11 +42,13 @@ public class TaskExecutionObserver implements AutoCloseable {
      * @param submission pending physical execution handle
      */
     public void observe(DispatchTicket ticket, CompletionStage<TaskHandle> submission) {
-        submission.whenCompleteAsync((handle, failure) -> {
-            try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
-                observeSubmission(ticket, handle, failure);
-            }
-        }, callbacks);
+        submission.whenCompleteAsync(
+                (handle, failure) -> {
+                    try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
+                        observeSubmission(ticket, handle, failure);
+                    }
+                },
+                callbacks);
     }
 
     /**
@@ -106,11 +108,13 @@ public class TaskExecutionObserver implements AutoCloseable {
                 handle.cancel();
             }
             handle.completion()
-                    .whenCompleteAsync((outcome, error) -> {
-                        try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
-                            observeTerminal(ticket, handle, outcome, error);
-                        }
-                    }, callbacks);
+                    .whenCompleteAsync(
+                            (outcome, error) -> {
+                                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
+                                    observeTerminal(ticket, handle, outcome, error);
+                                }
+                            },
+                            callbacks);
         } catch (RuntimeException observationFailure) {
             lifecycle.uncertain(ticket);
             active.remove(instanceId, handle);
