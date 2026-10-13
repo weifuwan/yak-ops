@@ -1,5 +1,23 @@
 import HttpUtils from "@/service/http/HttpUtils";
 import { BizError } from "@/service/http/request";
+import {
+  cancelTaskInstance,
+  createTaskRunIdempotencyKey,
+  getTaskInstance,
+  listTaskAttempts,
+  listTaskInstances,
+  submitTaskInstance,
+  type TaskDefinitionVersionRecord,
+  type TaskInstanceRecord,
+  type TaskInstanceStatus,
+  type TaskSubmissionResult,
+} from "@/service/task-execution";
+
+import {
+  matchesDataSyncInstance,
+  toDataSyncAttemptRecord,
+  toDataSyncInstanceRecord,
+} from "./execution";
 
 import {
   createDefinitionRequest,
@@ -111,22 +129,94 @@ export const unpublishDataSyncTask = async (id: string): Promise<DataSyncTaskRec
   return toSyncTaskRecord(definition);
 };
 
-export const runDataSyncTask = (id: string): Promise<DataSyncInstanceRecord> =>
-  HttpUtils.postData<DataSyncInstanceRecord>(`${DATA_SYNC_API_PREFIX}/tasks/${id}/run`);
+export const runDataSyncTask = (
+  id: string,
+  idempotencyKey: string = createTaskRunIdempotencyKey(),
+): Promise<TaskSubmissionResult> => submitTaskInstance(id, idempotencyKey);
 
-export const listDataSyncInstances = (
+const TASK_INSTANCE_BATCH_SIZE = 200;
+
+// InstanceVO is engine-neutral; the pinned Definition version determines DATA_SYNC's source kind.
+async function projectDataSyncInstances(instances: TaskInstanceRecord[]): Promise<DataSyncInstanceRecord[]> {
+  const definitions = new Map<
+    string,
+    Promise<{ name: string; versions: TaskDefinitionVersionRecord[] }>
+  >();
+
+  return Promise.all(
+    instances
+      .filter((instance) => instance.taskType === "DATA_SYNC")
+      .map(async (instance) => {
+        let definition = definitions.get(instance.definitionId);
+        if (!definition) {
+          definition = Promise.all([
+            HttpUtils.getData<TaskDefinitionRecord>(
+              `${TASK_DEFINITION_API_PREFIX}/${instance.definitionId}`,
+            ),
+            HttpUtils.getData<TaskDefinitionVersionRecord[]>(
+              `${TASK_DEFINITION_API_PREFIX}/${instance.definitionId}/versions`,
+            ),
+          ]).then(([current, versions]) => ({ name: current.name, versions }));
+          definitions.set(instance.definitionId, definition);
+        }
+
+        const { name, versions } = await definition;
+        const version = versions.find((item) => item.version === instance.definitionVersion);
+        if (!version) {
+          throw new Error("Task Instance Definition version is missing");
+        }
+        return toDataSyncInstanceRecord(instance, version, name);
+      }),
+  );
+}
+
+export const getDataSyncInstance = async (id: string): Promise<DataSyncInstanceRecord> => {
+  const records = await projectDataSyncInstances([await getTaskInstance(id)]);
+  if (records.length !== 1) {
+    throw new Error("Task Instance is not a DATA_SYNC task");
+  }
+  return records[0];
+};
+
+// The Stage 1 /task-instances/page contract is workspace-paged only.
+// Filter after reading all workspace pages; do not send unsupported filters to Boot.
+export const listDataSyncInstances = async (
   params: DataSyncInstancePageParams,
-): Promise<DataSyncInstancePageResult> =>
-  HttpUtils.postData<DataSyncInstancePageResult>(`${DATA_SYNC_API_PREFIX}/instances/page`, params);
+): Promise<DataSyncInstancePageResult> => {
+  if (params.triggerType) {
+    throw new Error("Task Instance API does not expose trigger-type filtering");
+  }
 
-export const getDataSyncInstance = (id: string): Promise<DataSyncInstanceRecord> =>
-  HttpUtils.getData<DataSyncInstanceRecord>(`${DATA_SYNC_API_PREFIX}/instances/${id}`);
+  const instances: TaskInstanceRecord[] = [];
+  let pageNo = 1;
+  let pages = 1;
+  do {
+    const result = await listTaskInstances({ pageNo, pageSize: TASK_INSTANCE_BATCH_SIZE });
+    instances.push(...result.bizData);
+    pages = result.pagination.pages;
+    pageNo += 1;
+  } while (pageNo <= pages);
 
-export const cancelDataSyncInstance = (id: string): Promise<DataSyncInstanceRecord> =>
-  HttpUtils.postData<DataSyncInstanceRecord>(`${DATA_SYNC_API_PREFIX}/instances/${id}/cancel`);
+  const records = (await projectDataSyncInstances(instances)).filter((instance) =>
+    matchesDataSyncInstance(instance, params),
+  );
+  const offset = (params.pageNo - 1) * params.pageSize;
+  return {
+    bizData: records.slice(offset, offset + params.pageSize),
+    pagination: {
+      pageNo: params.pageNo,
+      pageSize: params.pageSize,
+      total: records.length,
+      pages: Math.ceil(records.length / params.pageSize),
+    },
+  };
+};
 
-export const listDataSyncAttempts = (id: string): Promise<DataSyncAttemptRecord[]> =>
-  HttpUtils.getData<DataSyncAttemptRecord[]>(`${DATA_SYNC_API_PREFIX}/instances/${id}/attempts`);
+export const cancelDataSyncInstance = (id: string): Promise<TaskInstanceStatus> =>
+  cancelTaskInstance(id);
+
+export const listDataSyncAttempts = async (id: string): Promise<DataSyncAttemptRecord[]> =>
+  (await listTaskAttempts(id)).map((attempt) => toDataSyncAttemptRecord(attempt, id));
 
 export const listDataSyncExecutionEvents = (id: string): Promise<DataSyncExecutionEventRecord[]> =>
   HttpUtils.getData<DataSyncExecutionEventRecord[]>(`${DATA_SYNC_API_PREFIX}/instances/${id}/logs`);

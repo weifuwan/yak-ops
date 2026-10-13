@@ -1,3 +1,5 @@
+import type { TaskAttemptStatus, TaskInstanceStatus } from "../task-execution/types";
+
 export type DataSyncWriteMode = "APPEND" | "OVERWRITE" | "UPSERT";
 
 export interface PaginationInfo {
@@ -200,15 +202,7 @@ export interface SyncPipelineParameters {
   };
 }
 
-export type DataSyncInstanceStatus =
-  | "PENDING"
-  | "RUNNING"
-  | "RETRY_WAITING"
-  | "SUCCEEDED"
-  | "FAILED"
-  | "CANCELED"
-  | "LOST"
-  | string;
+export type DataSyncInstanceStatus = TaskInstanceStatus;
 
 export interface DataSyncEndpointSnapshot {
   dataSourceId: string;
@@ -250,14 +244,14 @@ export interface DataSyncInstanceRecord {
   taskName: string;
   taskVersion: number;
   syncType: DataSyncType | string;
-  triggerType: "MANUAL" | "SCHEDULE" | "RETRY" | "AUTO_RECOVERY" | string;
+  triggerType?: "MANUAL" | "SCHEDULE" | "WORKFLOW";
   status: DataSyncInstanceStatus;
   maxAttempts?: number;
   backoffSeconds?: number;
   currentAttempt?: number;
   nextRetryTime?: string;
-  readRows: number;
-  writeRows: number;
+  readRows?: number;
+  writeRows?: number;
   startTime?: string;
   finishTime?: string;
   errorCode?: number;
@@ -274,6 +268,7 @@ export interface DataSyncInstancePageParams {
   syncType?: DataSyncType;
   keyword?: string;
   status?: DataSyncInstanceStatus;
+  activeOnly?: boolean;
   triggerType?: string;
   startTimeStart?: string;
   startTimeEnd?: string;
@@ -288,9 +283,13 @@ export interface DataSyncAttemptRecord {
   id: string;
   executionId: string;
   attemptNo: number;
-  status: "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELED" | "LOST" | string;
-  readRows: number;
-  writeRows: number;
+  status: TaskAttemptStatus;
+  runtimeEngine?: string;
+  runtimeId?: string;
+  logReference?: string;
+  failureCode?: string;
+  readRows?: number;
+  writeRows?: number;
   startTime?: string;
   finishTime?: string;
   errorCode?: number;
