@@ -45,8 +45,7 @@ public class InstanceServiceImpl implements InstanceService {
         var definition = definitions
                 .queryByIdIncludingDeleted(workspaceId, instance.getDefinitionId())
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
-        var version = versions
-                .queryCurrent(workspaceId, instance.getDefinitionId(), instance.getDefinitionVersion())
+        var version = versions.queryCurrent(workspaceId, instance.getDefinitionId(), instance.getDefinitionVersion())
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
         return new InstanceDefinitionVO(
                 instance.getDefinitionId(),
