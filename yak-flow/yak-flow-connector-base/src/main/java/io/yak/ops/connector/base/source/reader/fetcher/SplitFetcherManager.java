@@ -45,7 +45,8 @@ public abstract class SplitFetcherManager<E, SplitT extends SourceSplit> {
                 Objects.requireNonNull(configuration, "configuration").get(SourceReaderOptions.ELEMENT_QUEUE_CAPACITY);
         this.queue = new FutureCompletingBlockingQueue<>(capacity);
         String logId = configuration.get(ExecutionOptions.LOG_ID);
-        ThreadFactory threads = Thread.ofVirtual().name("yak-source-fetcher-", 0).factory();
+        ThreadFactory threads =
+                Thread.ofVirtual().name("yak-source-fetcher-", 0).factory();
         this.workers = Executors.newThreadPerTaskExecutor(action -> threads.newThread(() -> {
             if (logId == null || logId.isBlank()) {
                 action.run();
