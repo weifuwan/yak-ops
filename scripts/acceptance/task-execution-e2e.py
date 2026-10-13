@@ -270,6 +270,13 @@ def acceptance():
             lambda: query_postgres(
                 "SELECT COUNT(*) FROM public.ods_orders"),
             lambda count: count == "3", timeout=160)
+        assert (STATE_ROOT / first).resolve() != (STATE_ROOT / running).resolve()
+        checkpoint = STATE_ROOT / running / "checkpoint.bin"
+        until(
+            "CDC durable checkpoint",
+            lambda: checkpoint.stat().st_size if checkpoint.is_file() else 0,
+            lambda size: size > 32,
+            timeout=100)
         client.call(
             "POST", f"/api/v1/task-instances/{running}/cancel")
         wait_status(client, running, {"CANCELED"}, timeout=35)
