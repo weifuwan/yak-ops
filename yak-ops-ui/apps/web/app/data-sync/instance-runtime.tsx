@@ -28,6 +28,8 @@ import {
   type DataSyncType,
 } from "@/service/data-sync";
 
+import { canCancelTaskInstance } from "@/service/data-sync/execution";
+
 import {
   DataSyncExecutionDetailContent,
   dataSyncDurationText,
@@ -90,7 +92,7 @@ export function DataSyncInstances({ syncType, basePath, taskId }: DataSyncInstan
     setCancelingId(record.id);
     try {
       await cancelDataSyncInstance(record.id);
-      toast.success(realtime ? "实时同步实例已停止" : "同步实例已停止");
+      toast.success("已发送停止请求");
       await loadInstances();
     } finally {
       setCancelingId(undefined);
@@ -143,21 +145,21 @@ export function DataSyncInstances({ syncType, basePath, taskId }: DataSyncInstan
             ? "调度"
             : record.triggerType === "AUTO_RECOVERY"
               ? "自动恢复"
-              : record.triggerType,
+              : record.triggerType || "-",
     },
     {
       key: "readRows",
       title: realtime ? "读取事件" : "读取",
       width: 110,
       align: "right",
-      render: (_value, record) => (record.readRows ?? 0).toLocaleString(),
+      render: (_value, record) => record.readRows?.toLocaleString() ?? "-",
     },
     {
       key: "writeRows",
       title: realtime ? "写入事件" : "写入",
       width: 110,
       align: "right",
-      render: (_value, record) => (record.writeRows ?? 0).toLocaleString(),
+      render: (_value, record) => record.writeRows?.toLocaleString() ?? "-",
     },
     {
       key: "startTime",
@@ -177,7 +179,7 @@ export function DataSyncInstances({ syncType, basePath, taskId }: DataSyncInstan
       width: 130,
       align: "center",
       render: (_value, record) =>
-        isActiveDataSyncInstance(record) ? (
+        canCancelTaskInstance(record.status) ? (
           <Button
             size="small"
             variant="ghost"
@@ -203,13 +205,13 @@ export function DataSyncInstances({ syncType, basePath, taskId }: DataSyncInstan
   const canceledLabel = realtime ? "已停止" : "已取消";
   const statusOptions: Array<[DataSyncInstanceStatus | "ALL", string]> = [
     ["ALL", "全部状态"],
-    ["PENDING", "等待"],
+    ["SUBMITTED", "等待"],
     ["RUNNING", "运行中"],
-    ["RETRY_WAITING", "等待重试"],
-    ["SUCCEEDED", "成功"],
+    ["CANCELLING", "正在停止"],
+    ["RECONCILING", "待确认"],
+    ["FINISHED", "成功"],
     ["FAILED", "失败"],
     ["CANCELED", canceledLabel],
-    ["LOST", "已丢失"],
   ];
   const statusItems = Object.fromEntries(statusOptions);
 
@@ -333,7 +335,8 @@ export function DataSyncInstanceDetailPage({
     if (!record || canceling) return;
     setCanceling(true);
     try {
-      setRecord(await cancelDataSyncInstance(record.id));
+      await cancelDataSyncInstance(record.id);
+      await load();
     } finally {
       setCanceling(false);
     }
@@ -352,7 +355,7 @@ export function DataSyncInstanceDetailPage({
         className="bg-white px-6 max-md:px-4"
         extra={
           <>
-            {isActiveDataSyncInstance(record) ? (
+            {canCancelTaskInstance(record.status) ? (
               <Button
                 size="small"
                 variant="danger"

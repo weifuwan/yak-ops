@@ -188,7 +188,7 @@ export function OfflineSyncPage() {
     setActionKey(`${record.id}:run`);
     try {
       await runDataSyncTask(record.id);
-      toast.success("同步任务已开始运行");
+      toast.success("运行请求已提交");
       await Promise.all([loadTasks(), refreshActiveInstances()]);
     } finally {
       setActionKey(undefined);

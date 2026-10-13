@@ -1,6 +1,8 @@
 import { Badge, Button, type BadgeProps } from "@yak-ops/yak-ui";
 import { Fragment, useCallback, useEffect, useState } from "react";
 
+import { isTaskInstanceActive } from "@/service/data-sync/execution";
+
 import {
   listDataSyncInstances,
   type DataSyncInstanceRecord,
@@ -40,33 +42,14 @@ export function useActiveTaskInstances(syncType: DataSyncType, enabled: boolean)
       return;
     }
 
-    const [pending, running, retryWaiting] = await Promise.all([
-      listDataSyncInstances({
-        pageNo: 1,
-        pageSize: 200,
-        syncType,
-        status: "PENDING",
-      }),
-      listDataSyncInstances({
-        pageNo: 1,
-        pageSize: 200,
-        syncType,
-        status: "RUNNING",
-      }),
-      listDataSyncInstances({
-        pageNo: 1,
-        pageSize: 200,
-        syncType,
-        status: "RETRY_WAITING",
-      }),
-    ]);
-
+    const result = await listDataSyncInstances({
+      pageNo: 1,
+      pageSize: 200,
+      syncType,
+      activeOnly: true,
+    });
     const next = new Map<string, DataSyncInstanceRecord>();
-    [
-      ...(pending?.bizData || []),
-      ...(running?.bizData || []),
-      ...(retryWaiting?.bizData || []),
-    ].forEach((record) => {
+    result.bizData.filter((record) => isTaskInstanceActive(record.status)).forEach((record) => {
       if (!next.has(record.taskId)) next.set(record.taskId, record);
     });
     setActiveByTask(next);

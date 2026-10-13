@@ -9,6 +9,8 @@ import {
 } from "@yak-ops/yak-ui";
 import { useCallback, useEffect, useState } from "react";
 
+import { isTaskInstanceActive } from "@/service/data-sync/execution";
+
 import {
   cancelDataSyncInstance,
   listDataSyncOperationTasks,
@@ -22,9 +24,7 @@ const PAGE_SIZE = 20;
 const POLL_INTERVAL_MILLIS = 2000;
 
 const isActive = (instance?: DataSyncInstanceRecord) =>
-  instance?.status === "PENDING" ||
-  instance?.status === "RUNNING" ||
-  instance?.status === "RETRY_WAITING";
+  instance ? isTaskInstanceActive(instance.status) : false;
 
 const triggerText = (triggerType?: string) => {
   if (triggerType === "MANUAL") return "手动";
@@ -48,20 +48,20 @@ const instanceStatusMeta = (
     return { label: "待处理", tone: "warning" };
   }
   switch (latest.status) {
-    case "PENDING":
+    case "SUBMITTED":
       return { label: "等待", tone: "neutral" };
     case "RUNNING":
       return { label: "运行中", tone: "info" };
-    case "RETRY_WAITING":
-      return { label: "等待重试", tone: "warning" };
-    case "SUCCEEDED":
+    case "CANCELLING":
+      return { label: "正在停止", tone: "warning" };
+    case "RECONCILING":
+      return { label: "待确认", tone: "warning" };
+    case "FINISHED":
       return { label: "成功", tone: "success" };
     case "FAILED":
       return { label: "失败", tone: "danger" };
     case "CANCELED":
       return { label: record.syncType === "REALTIME" ? "已停止" : "已取消", tone: "neutral" };
-    case "LOST":
-      return { label: "已丢失", tone: "warning" };
     default:
       return { label: latest.status || "-", tone: "neutral" };
   }
@@ -137,9 +137,9 @@ export function DataSyncTaskOperations({
     setActionKey(`${record.id}:run`);
     try {
       const instance = await runDataSyncTask(record.id);
-      toast.success(realtime ? "实时同步任务已启动" : "同步任务已启动");
+      toast.success("运行请求已提交");
       await loadTasks();
-      onOpenInstanceDetail(instance.id);
+      onOpenInstanceDetail(instance.instanceId);
     } finally {
       setActionKey(undefined);
     }
@@ -151,7 +151,7 @@ export function DataSyncTaskOperations({
     setActionKey(`${record.id}:stop`);
     try {
       await cancelDataSyncInstance(activeInstance.id);
-      toast.success(realtime ? "实时同步实例已停止" : "同步实例已停止");
+      toast.success("已发送停止请求");
       await loadTasks();
     } finally {
       setActionKey(undefined);
@@ -267,7 +267,7 @@ export function DataSyncTaskOperations({
             <div className="text-xs font-medium text-[#475467]">
               {current} / {max}
             </div>
-            {latest.status === "RETRY_WAITING" ? (
+            {false ? (
               <div className="mt-1 text-xs text-[#b54708]">
                 {latest.nextRetryTime ? `${latest.nextRetryTime} 重试` : "等待重试"}
               </div>

@@ -49,11 +49,11 @@ import { DataSyncTaskStatusBadge } from "./task-lifecycle";
 const EXECUTION_PAGE_SIZE = 20;
 const POLL_INTERVAL_MILLIS = 2000;
 
-type ExecutionStatusFilter = "ALL" | "SUCCEEDED" | "FAILED" | "RUNNING";
+type ExecutionStatusFilter = "ALL" | "FINISHED" | "FAILED" | "RUNNING";
 
 const EXECUTION_STATUS_ITEMS = {
   ALL: "全部状态",
-  SUCCEEDED: "成功",
+  FINISHED: "成功",
   FAILED: "失败",
   RUNNING: "运行中",
 };

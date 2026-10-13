@@ -215,11 +215,10 @@ export function RealtimeSyncPage() {
 
   const startTask = async (record: DataSyncTaskRecord) => {
     if (actionKey) return;
-    const restarting = record.desiredState === "RUNNING";
     setActionKey(`${record.id}:start`);
     try {
       await runDataSyncTask(record.id);
-      toast.success(restarting ? "实时同步任务已重新启动" : "实时同步任务已启动");
+      toast.success("运行请求已提交");
       await Promise.all([loadTasks(), refreshActiveInstances()]);
     } finally {
       setActionKey(undefined);
@@ -231,7 +230,7 @@ export function RealtimeSyncPage() {
     setActionKey(`${record.id}:stop`);
     try {
       await cancelDataSyncInstance(activeInstance.id);
-      toast.success("实时同步任务已停止");
+      toast.success("已发送停止请求");
       await Promise.all([loadTasks(), refreshActiveInstances()]);
     } finally {
       setActionKey(undefined);
