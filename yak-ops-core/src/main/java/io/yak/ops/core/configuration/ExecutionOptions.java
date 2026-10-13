@@ -34,5 +34,9 @@ public final class ExecutionOptions {
     public static final Option<String> LOG_ID =
             Options.key("execution.log-id").stringType().defaultValue("");
 
+    /** Per-job detailed diagnostics, independent of the application logging level. */
+    public static final Option<Boolean> DEBUG =
+            Options.key("execution.debug").booleanType().defaultValue(false);
+
     private ExecutionOptions() {}
 }

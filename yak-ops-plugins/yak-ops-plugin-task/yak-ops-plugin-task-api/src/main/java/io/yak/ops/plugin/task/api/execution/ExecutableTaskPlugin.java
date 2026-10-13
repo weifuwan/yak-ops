@@ -22,7 +22,9 @@ public interface ExecutableTaskPlugin extends TaskPlugin {
      * @param parameters pinned Task configuration
      * @param plan admitted resource claims and binding revision
      * @param context authorized Instance and Attempt identity
+     * @param debug detailed diagnostics captured for this Instance
      * @return execution handle
      */
-    CompletionStage<TaskHandle> start(ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity context);
+    CompletionStage<TaskHandle> start(
+            ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity context, boolean debug);
 }

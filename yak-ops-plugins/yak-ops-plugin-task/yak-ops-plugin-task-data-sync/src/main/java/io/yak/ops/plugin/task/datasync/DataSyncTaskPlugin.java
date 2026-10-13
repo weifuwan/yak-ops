@@ -74,7 +74,7 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public CompletionStage<TaskHandle> start(
-            ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity context) {
-        return executor.start(parameters, plan, context);
+            ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity context, boolean debug) {
+        return executor.start(parameters, plan, context, debug);
     }
 }

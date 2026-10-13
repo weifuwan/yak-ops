@@ -37,9 +37,10 @@ public final class ExecutionConfigurationFactory {
      *
      * @param identity trusted Task Instance identity
      * @param boundedness Source boundedness declared by its factory
+     * @param debug detailed diagnostics for the submitted Instance
      * @return independently mutable YakFlow configuration
      */
-    public Configuration create(TaskExecutionIdentity identity, Boundedness boundedness) {
+    public Configuration create(TaskExecutionIdentity identity, Boundedness boundedness, boolean debug) {
         Objects.requireNonNull(identity, "identity");
         Objects.requireNonNull(boundedness, "boundedness");
         Path stateDirectory = stateDirectory(identity.instanceId());
@@ -47,6 +48,7 @@ public final class ExecutionConfigurationFactory {
                 .set(PipelineOptions.AUTO_GENERATE_UIDS, false)
                 .set(CheckpointingOptions.STATE_DIRECTORY, stateDirectory.toString())
                 .set(ExecutionOptions.LOG_ID, identity.instanceId())
+                .set(ExecutionOptions.DEBUG, debug)
                 .set(CheckpointingOptions.RESTORE_LATEST, false);
 
         if (boundedness == Boundedness.BOUNDED) {

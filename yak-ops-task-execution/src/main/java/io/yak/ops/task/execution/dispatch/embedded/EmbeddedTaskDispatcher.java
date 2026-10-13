@@ -171,7 +171,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
                     return;
                 }
                 physicalStartInvoked = true;
-                submitted = executable.start(parameters, plan, context);
+                submitted = executable.start(parameters, plan, context, ticket.debug());
             }
             // Runtime completion may run on an interrupted YakFlow Job thread. Business
             // transactions must execute on a fresh thread to keep JDBC connections usable.

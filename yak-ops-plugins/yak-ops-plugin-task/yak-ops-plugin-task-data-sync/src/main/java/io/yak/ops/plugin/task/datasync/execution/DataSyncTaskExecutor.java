@@ -33,17 +33,18 @@ public final class DataSyncTaskExecutor {
      * @param parameters pinned Task parameters
      * @param plan admitted resource claims and revision fingerprint
      * @param identity trusted Task execution identity
+     * @param debug diagnostics mode captured for the admitted Instance
      * @return asynchronous execution handle or pre-submission rejection
      */
     public CompletionStage<TaskHandle> start(
-            ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity identity) {
+            ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity identity, boolean debug) {
         CompiledPipeline pipeline;
         try {
             JobPlan prepared = planner.plan(parameters, identity);
             if (!plan.equals(prepared.admissionPlan())) {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
             }
-            pipeline = builder.build(prepared, identity);
+            pipeline = builder.build(prepared, identity, debug);
         } catch (RuntimeException error) {
             return CompletableFuture.failedFuture(
                     new TaskStartRejectedException("DATA_SYNC rejected before engine submission", error));

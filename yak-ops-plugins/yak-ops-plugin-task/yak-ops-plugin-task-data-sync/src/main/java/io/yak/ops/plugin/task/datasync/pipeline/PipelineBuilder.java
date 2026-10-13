@@ -83,9 +83,10 @@ public final class PipelineBuilder {
      *
      * @param plan authorized logical Job plan
      * @param identity trusted Task Instance identity
+     * @param debug whether to enable detailed execution diagnostics
      * @return compiled topology and execution configuration
      */
-    public CompiledPipeline build(JobPlan plan, TaskExecutionIdentity identity) {
+    public CompiledPipeline build(JobPlan plan, TaskExecutionIdentity identity, boolean debug) {
         Objects.requireNonNull(plan, "plan");
         Objects.requireNonNull(identity, "identity");
         var sourceFactory = factories.source(plan.sourceParameters().get(JobOptions.TYPE));
@@ -96,7 +97,7 @@ public final class PipelineBuilder {
             throw new UnsupportedOperationException(
                     "DATA_SYNC changelog requires a single Sink writer until keyed routing is configured");
         }
-        Configuration configuration = configurationFactory.create(identity, sourceFactory.boundedness());
+        Configuration configuration = configurationFactory.create(identity, sourceFactory.boundedness(), debug);
         String sourceId = plan.sourceParameters().get(JobOptions.DATASOURCE_ID);
         String sinkId = plan.sinkParameters().get(JobOptions.DATASOURCE_ID);
         ReadonlyConfig sourceConnection = resources.connectionOptions(

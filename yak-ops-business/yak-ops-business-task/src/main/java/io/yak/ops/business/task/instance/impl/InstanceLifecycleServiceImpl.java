@@ -44,7 +44,8 @@ public class InstanceLifecycleServiceImpl implements InstanceLifecycleService {
                 instance.getDefinitionVersion(),
                 instance.getTaskType(),
                 instance.getResourceRevision(),
-                dispatchToken);
+                dispatchToken,
+                instance.isDebug());
     }
 
     @Override
