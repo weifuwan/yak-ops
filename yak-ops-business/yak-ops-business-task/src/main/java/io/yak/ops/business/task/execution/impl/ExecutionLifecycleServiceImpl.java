@@ -3,6 +3,7 @@ package io.yak.ops.business.task.execution.impl;
 import io.yak.ops.business.task.execution.DispatchTicket;
 import io.yak.ops.business.task.execution.ExecutionLifecycleService;
 import io.yak.ops.business.task.execution.PendingRun;
+import io.yak.ops.common.bean.vo.task.InstanceDefinitionVO;
 import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.task.TaskAttemptStatus;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
@@ -11,6 +12,8 @@ import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.task.AttemptEntity;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.dao.repository.task.AttemptRepository;
+import io.yak.ops.dao.repository.task.DefinitionRepository;
+import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
@@ -32,6 +35,12 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
 
     @Resource
     private ExecutionClaimRepository claims;
+
+    @Resource
+    private DefinitionRepository definitions;
+
+    @Resource
+    private DefinitionVersionRepository versions;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -142,6 +151,24 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
     }
 
     @Override
+    public InstanceDefinitionVO definition(String workspaceId, String instanceId) {
+        InstanceEntity instance = instance(workspaceId, instanceId);
+        var definition = definitions
+                .queryByIdIncludingDeleted(workspaceId, instance.getDefinitionId())
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
+        var version = versions
+                .queryCurrent(workspaceId, instance.getDefinitionId(), instance.getDefinitionVersion())
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
+        return new InstanceDefinitionVO(
+                instance.getDefinitionId(),
+                instance.getDefinitionVersion(),
+                definition.getName(),
+                instance.getTaskType(),
+                version.getParameterSchemaVersion(),
+                version.getParameters());
+    }
+
+    @Override
     public List<AttemptEntity> attempts(String workspaceId, String instanceId) {
         instance(workspaceId, instanceId);
         return attempts.findByInstance(workspaceId, instanceId);
@@ -153,11 +180,12 @@ public class ExecutionLifecycleServiceImpl implements ExecutionLifecycleService 
     }
 
     @Override
-    public PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize) {
+    public PageData<InstanceEntity> page(
+            String workspaceId, long pageNo, long pageSize, String definitionId, TaskInstanceStatus status, String taskType) {
         if (pageNo < 1 || pageSize < 1 || pageSize > 200) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
-        return instances.page(workspaceId, pageNo, pageSize);
+        return instances.page(workspaceId, pageNo, pageSize, definitionId, status, taskType);
     }
 
     @Override

@@ -8,6 +8,7 @@ public record InstanceVO(
         String definitionId,
         int definitionVersion,
         String taskType,
+        String triggerType,
         String status,
         LocalDateTime startTime,
         LocalDateTime endTime,

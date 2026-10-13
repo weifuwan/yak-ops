@@ -34,6 +34,13 @@ public class DefinitionRepositoryImpl extends BaseRepositoryImpl<DefinitionMappe
     }
 
     @Override
+    public Optional<DefinitionEntity> queryByIdIncludingDeleted(String workspaceId, String id) {
+        return Optional.ofNullable(definitionMapper.selectOne(Wrappers.<DefinitionEntity>lambdaQuery()
+                .eq(DefinitionEntity::getWorkspaceId, workspaceId)
+                .eq(DefinitionEntity::getId, id)));
+    }
+
+    @Override
     public Optional<DefinitionEntity> queryByIdForUpdate(String workspaceId, String id) {
         return Optional.ofNullable(definitionMapper.selectOne(Wrappers.<DefinitionEntity>lambdaQuery()
                 .eq(DefinitionEntity::getWorkspaceId, workspaceId)

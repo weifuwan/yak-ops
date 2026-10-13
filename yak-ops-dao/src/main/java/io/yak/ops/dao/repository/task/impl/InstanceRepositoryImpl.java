@@ -58,12 +58,16 @@ public class InstanceRepositoryImpl implements InstanceRepository {
     }
 
     @Override
-    public PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize) {
+    public PageData<InstanceEntity> page(
+            String workspaceId, long pageNo, long pageSize, String definitionId, TaskInstanceStatus status, String taskType) {
         Page<InstanceEntity> page = new Page<>(pageNo, pageSize);
         var selected = mapper.selectPage(
                 page,
                 Wrappers.<InstanceEntity>lambdaQuery()
                         .eq(InstanceEntity::getWorkspaceId, workspaceId)
+                        .eq(definitionId != null, InstanceEntity::getDefinitionId, definitionId)
+                        .eq(status != null, InstanceEntity::getStatus, status)
+                        .eq(taskType != null, InstanceEntity::getTaskType, taskType)
                         .orderByDesc(InstanceEntity::getCreateTime));
         return new PageData<>(
                 selected.getRecords(),

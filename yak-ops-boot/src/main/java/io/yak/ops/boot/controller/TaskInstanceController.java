@@ -4,6 +4,7 @@ import io.yak.ops.boot.config.TaskDispatcher;
 import io.yak.ops.business.task.execution.ExecutionLifecycleService;
 import io.yak.ops.common.bean.dto.task.InstancePageDTO;
 import io.yak.ops.common.bean.vo.task.AttemptVO;
+import io.yak.ops.common.bean.vo.task.InstanceDefinitionVO;
 import io.yak.ops.common.bean.vo.task.InstanceVO;
 import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.context.WorkspaceContext;
@@ -37,13 +38,24 @@ public class TaskInstanceController {
         return Result.success(toInstance(lifecycle.instance(WorkspaceContext.requireWorkspaceId(), id)));
     }
 
+    @GetMapping("/{id}/definition")
+    public Result<InstanceDefinitionVO> definition(@PathVariable String id) {
+        return Result.success(lifecycle.definition(WorkspaceContext.requireWorkspaceId(), id));
+    }
+
     @PostMapping("/page")
     public Result<PagingData<InstanceVO>> page(@Valid @RequestBody InstancePageDTO query) {
         if (!query.getSorts().isEmpty()) {
             throw new IllegalArgumentException("Custom Task Instance sorting is not supported");
         }
         return Result.success(PagingData.from(lifecycle
-                .page(WorkspaceContext.requireWorkspaceId(), query.getPageNo(), query.getPageSize())
+                .page(
+                        WorkspaceContext.requireWorkspaceId(),
+                        query.getPageNo(),
+                        query.getPageSize(),
+                        query.getDefinitionId(),
+                        query.getStatus(),
+                        query.getTaskType())
                 .map(this::toInstance)));
     }
 
@@ -66,6 +78,7 @@ public class TaskInstanceController {
                 value.getDefinitionId(),
                 value.getDefinitionVersion(),
                 value.getTaskType(),
+                value.getTriggerType().name(),
                 value.getStatus().name(),
                 value.getStartTime(),
                 value.getEndTime(),

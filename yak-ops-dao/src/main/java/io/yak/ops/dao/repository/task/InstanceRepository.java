@@ -48,9 +48,13 @@ public interface InstanceRepository {
      * @param workspaceId authorized Workspace
      * @param pageNo one-based page number
      * @param pageSize maximum page size
+     * @param definitionId optional Definition filter
+     * @param status optional lifecycle filter
+     * @param taskType optional registered plugin type
      * @return Workspace-owned Task Instance page
      */
-    PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize);
+    PageData<InstanceEntity> page(
+            String workspaceId, long pageNo, long pageSize, String definitionId, TaskInstanceStatus status, String taskType);
 
     /**
      * Transitions only an admitted SUBMITTED Instance to RUNNING.

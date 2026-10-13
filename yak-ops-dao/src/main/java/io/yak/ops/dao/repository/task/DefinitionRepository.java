@@ -19,6 +19,15 @@ public interface DefinitionRepository extends BaseRepository<DefinitionEntity> {
     Optional<DefinitionEntity> queryById(String workspaceId, String id);
 
     /**
+     * Reads Definition identity for a historical Instance regardless of publication or deletion.
+     *
+     * @param workspaceId authorized Workspace
+     * @param id pinned Definition identifier
+     * @return historical Definition in this Workspace, if present
+     */
+    Optional<DefinitionEntity> queryByIdIncludingDeleted(String workspaceId, String id);
+
+    /**
      * Locks an active Definition for version pinning and publication changes.
      *
      * @param workspaceId authorized Workspace identifier

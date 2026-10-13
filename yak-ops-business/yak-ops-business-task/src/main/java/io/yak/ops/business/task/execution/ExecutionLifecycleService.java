@@ -1,5 +1,6 @@
 package io.yak.ops.business.task.execution;
 
+import io.yak.ops.common.bean.vo.task.InstanceDefinitionVO;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.task.AttemptEntity;
@@ -62,6 +63,15 @@ public interface ExecutionLifecycleService {
     InstanceEntity instance(String workspaceId, String instanceId);
 
     /**
+     * Reads the immutable Definition version pinned by a Workspace-owned Instance.
+     *
+     * @param workspaceId authorized Workspace
+     * @param instanceId logical run
+     * @return version snapshot available throughout the Instance's history
+     */
+    InstanceDefinitionVO definition(String workspaceId, String instanceId);
+
+    /**
      * @param workspaceId authorized Workspace
      * @param instanceId logical run
      * @return physical submissions belonging to this run
@@ -79,9 +89,13 @@ public interface ExecutionLifecycleService {
      * @param workspaceId authorized Workspace
      * @param pageNo one-based page number
      * @param pageSize bounded page size
+     * @param definitionId optional Definition identifier
+     * @param status optional business lifecycle status
+     * @param taskType optional Task plugin identifier
      * @return Workspace-owned Instance page
      */
-    PageData<InstanceEntity> page(String workspaceId, long pageNo, long pageSize);
+    PageData<InstanceEntity> page(
+            String workspaceId, long pageNo, long pageSize, String definitionId, TaskInstanceStatus status, String taskType);
 
     /**
      * Returns committed but unclaimed submissions that can be safely dispatched after startup.
