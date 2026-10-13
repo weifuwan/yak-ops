@@ -4,6 +4,10 @@ import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.flow.runtime.checkpoint.SourceCoordinatorCheckpoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import java.util.concurrent.ThreadFactory;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorEvent;
@@ -33,14 +37,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> implements AutoCloseable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SourceCoordinator.class);
+
     private final Source<?, SplitT, EnumStateT> source;
     private final OperatorCoordinatorContext coordinatorContext;
     private final EnumStateT restoredEnumeratorState;
     private final boolean restoring;
-    private final ExecutorService eventLoop = Executors.newSingleThreadExecutor(
-            Thread.ofVirtual().name("yak-source-coordinator-", 0).factory());
-    private final ExecutorService discovery = Executors.newSingleThreadExecutor(
-            Thread.ofVirtual().name("yak-source-discovery-", 0).factory());
+    private final ExecutorService eventLoop;
+    private final ExecutorService discovery;
     private final SourceCoordinatorContext<SplitT> context;
     private final AtomicBoolean startRequested = new AtomicBoolean();
     private final AtomicBoolean closing = new AtomicBoolean();
@@ -52,27 +56,59 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
     private final Set<Integer> deferredSplitRequests = new LinkedHashSet<>();
 
     public SourceCoordinator(Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext) {
-        this(source, coordinatorContext, null, false);
+        this(source, coordinatorContext, null, false, "");
+    }
+
+    /** Creates a Source coordinator with an optional Job execution log identity. */
+    public SourceCoordinator(
+            Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext, String logId) {
+        this(source, coordinatorContext, null, false, logId);
     }
 
     /** Restores enumerator state from a completed checkpoint; reader splits are restored separately. */
     public static <SplitT extends SourceSplit, EnumStateT> SourceCoordinator<SplitT, EnumStateT> restore(
             Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext, EnumStateT state) {
         return new SourceCoordinator<>(
-                source, coordinatorContext, Objects.requireNonNull(state, "Restored state must not be null"), true);
+                source, coordinatorContext, Objects.requireNonNull(state, "Restored state must not be null"), true, "");
+    }
+
+    /** Restores a Source coordinator while retaining the owning Job's log identity. */
+    public static <SplitT extends SourceSplit, EnumStateT> SourceCoordinator<SplitT, EnumStateT> restore(
+            Source<?, SplitT, EnumStateT> source, OperatorCoordinatorContext coordinatorContext, EnumStateT state, String logId) {
+        return new SourceCoordinator<>(
+                source, coordinatorContext, Objects.requireNonNull(state, "Restored state must not be null"), true, logId);
     }
 
     private SourceCoordinator(
             Source<?, SplitT, EnumStateT> source,
             OperatorCoordinatorContext coordinatorContext,
             EnumStateT restoredEnumeratorState,
-            boolean restoring) {
+            boolean restoring,
+            String logId) {
         this.source = Objects.requireNonNull(source, "source must not be null");
         this.coordinatorContext = Objects.requireNonNull(coordinatorContext, "coordinatorContext must not be null");
         this.restoredEnumeratorState = restoredEnumeratorState;
         this.restoring = restoring;
+        ThreadFactory coordinatorThreads = Thread.ofVirtual().name("yak-source-coordinator-", 0).factory();
+        ThreadFactory discoveryThreads = Thread.ofVirtual().name("yak-source-discovery-", 0).factory();
+        this.eventLoop = Executors.newSingleThreadExecutor(
+                action -> coordinatorThreads.newThread(withLogId(logId, action)));
+        this.discovery = Executors.newSingleThreadExecutor(
+                action -> discoveryThreads.newThread(withLogId(logId, action)));
         this.context = new SourceCoordinatorContext<>(
                 coordinatorContext, source.getSplitSerializer(), eventLoop, discovery, () -> eventThread, this::fail);
+    }
+
+    private static Runnable withLogId(String logId, Runnable action) {
+        return () -> {
+            if (logId == null || logId.isBlank()) {
+                action.run();
+            } else {
+                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId)) {
+                    action.run();
+                }
+            }
+        };
     }
 
     /** Returns the identity used to validate the owning job, operator and parallelism. */
@@ -98,6 +134,7 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
                         "Source returned a null enumerator");
                 enumerator.start();
                 started = true;
+                LOG.info("YakFlow Source coordinator started, jobId={}", coordinatorContext.jobID());
                 return null;
             } catch (Throwable failure) {
                 fail(failure);

@@ -3,6 +3,7 @@ package io.yak.ops.flow.runtime.executiongraph;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.configuration.CheckpointingOptions;
+import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.checkpoint.AlignedCheckpointCoordinator;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
@@ -221,9 +222,11 @@ final class TaskDeployment {
         if (restoredCheckpoint != null) {
             restoredReaderSplits = AlignedCheckpointCoordinator.restoreSplits(restoredCheckpoint, source);
             Object enumeratorState = AlignedCheckpointCoordinator.restoreEnumerator(restoredCheckpoint, source);
-            coordinator = SourceCoordinator.restore(source, coordinatorContext, enumeratorState);
+            coordinator = SourceCoordinator.restore(
+                    source, coordinatorContext, enumeratorState, jobGraph.configuration().get(ExecutionOptions.LOG_ID));
         } else {
-            coordinator = new SourceCoordinator<>(source, coordinatorContext);
+            coordinator = new SourceCoordinator<>(
+                    source, coordinatorContext, jobGraph.configuration().get(ExecutionOptions.LOG_ID));
         }
 
         JobEdge firstEdge = edges.getFirst();
@@ -312,7 +315,7 @@ final class TaskDeployment {
         Source<Object, SourceSplit, Object> source = castSource(sourceNode);
         OperatorCoordinatorContext context =
                 new OperatorCoordinatorContext(jobGraph.jobID(), vertex.getId(), vertex.getParallelism());
-        coordinator = new SourceCoordinator<>(source, context);
+        coordinator = new SourceCoordinator<>(source, context, jobGraph.configuration().get(ExecutionOptions.LOG_ID));
         OperatorChain chain = new OperatorChain(operators.subList(1, operators.size() - 1), sinkNode);
         Execution execution = executionGraph.currentExecution(vertex.getId(), 0);
         SourceOperatorStreamTask<Object, SourceSplit> task =
