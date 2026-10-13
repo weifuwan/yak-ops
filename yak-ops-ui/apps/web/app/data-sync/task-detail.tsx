@@ -250,7 +250,10 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
             ) : null}
             <DataSyncExecutionDetailContent record={selected} realtime={realtime} />
             <DataSyncExecutionConfigContent record={selected} realtime={realtime} />
-            <TaskInstanceLogPanel instanceId={selected.id} active={canCancelTaskInstance(selected.status)} />
+            <TaskInstanceLogPanel
+              instanceId={selected.id}
+              active={canCancelTaskInstance(selected.status)}
+            />
           </>
         ) : null}
       </div>
