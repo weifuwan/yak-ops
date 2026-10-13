@@ -11,8 +11,7 @@ public final class SensitiveDataConverter extends ClassicConverter {
 
     private static final Pattern KEY_VALUE = Pattern.compile(
             "(?i)(\\b(?:password|passwd|pwd|token|secret|authorization|api[_-]?key|access[_-]?key|secret[_-]?key)\\b[\\\"']?\\s*[:=]\\s*[\\\"']?)([^\\\"'\\s&,;}]+)");
-    private static final Pattern USER_INFO =
-            Pattern.compile("(?i)(\\b(?:jdbc:)?[a-z]+://[^:/@\\s]+:)([^@/\\s]+)(@)");
+    private static final Pattern USER_INFO = Pattern.compile("(?i)(\\b(?:jdbc:)?[a-z]+://[^:/@\\s]+:)([^@/\\s]+)(@)");
 
     @Override
     public String convert(ILoggingEvent event) {
