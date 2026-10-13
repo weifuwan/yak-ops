@@ -212,7 +212,7 @@ jobs:
             printf -- '- JDBC Source Acceptance: PASS\n'
             printf -- '- JDBC Sink Cross-Database Acceptance: PASS\n'
             printf -- '- Full Backend Acceptance: PASS\n'
-            printf -- '- Data Sync Automation Acceptance: PASS\n'
+            printf -- '- Task Execution Product Acceptance: PASS\n'
             printf -- '- Distribution Verification: PASS\n'
             printf -- '- Docker Image Identity: PASS\n'
             printf -- '- Compose Login Smoke: PASS\n\n'

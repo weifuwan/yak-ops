@@ -4,7 +4,13 @@ on:
   pull_request:
     paths:
       - '.github/workflows/task-execution-product-acceptance.yml'
+      - '.github/workflows/backend-acceptance.yml'
+      - '.github/workflows/v1-release-gate.yml'
       - 'scripts/acceptance/task-execution-e2e.py'
+      - 'yak-flow/**'
+      - 'yak-ops-core/**'
+      - 'yak-ops-platform/**'
+      - 'yak-ops-common/**'
       - 'yak-ops-boot/**'
       - 'yak-ops-business/yak-ops-business-task/**'
       - 'yak-ops-dao/**'
