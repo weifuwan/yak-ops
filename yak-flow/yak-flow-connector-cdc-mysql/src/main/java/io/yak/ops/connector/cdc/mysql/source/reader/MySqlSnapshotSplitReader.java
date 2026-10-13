@@ -107,8 +107,11 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
             long executeStartedNanos = System.nanoTime();
             results = statement.executeQuery();
             if ("true".equals(MDC.get("taskLogDebug"))) {
-                LOG.debug("CDC snapshot query executed, split={}, sql={}, executeQueryMs={}",
-                        split.splitId(), sql, (System.nanoTime() - executeStartedNanos) / 1_000_000);
+                LOG.debug(
+                        "CDC snapshot query executed, split={}, sql={}, executeQueryMs={}",
+                        split.splitId(),
+                        sql,
+                        (System.nanoTime() - executeStartedNanos) / 1_000_000);
             }
             converter = dialect.createRowConverter(results.getMetaData());
             TableSchema actual = converter.schema();
@@ -160,13 +163,20 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
         boolean completed = !hasRow;
         fetchedRows += batch.size();
         if ("true".equals(MDC.get("taskLogDebug"))) {
-            LOG.debug("CDC snapshot fetch completed, split={}, batch={}, batchRows={}, fetchMs={}",
-                    split.splitId(), ++batchId, batch.size(), (System.nanoTime() - fetchStartedNanos) / 1_000_000);
+            LOG.debug(
+                    "CDC snapshot fetch completed, split={}, batch={}, batchRows={}, fetchMs={}",
+                    split.splitId(),
+                    ++batchId,
+                    batch.size(),
+                    (System.nanoTime() - fetchStartedNanos) / 1_000_000);
         }
         if (completed) {
             if ("true".equals(MDC.get("taskLogDebug"))) {
-                LOG.debug("CDC snapshot split finished, split={}, fetchedRows={}, durationMs={}",
-                        split.splitId(), fetchedRows, (System.nanoTime() - splitStartedNanos) / 1_000_000);
+                LOG.debug(
+                        "CDC snapshot split finished, split={}, fetchedRows={}, durationMs={}",
+                        split.splitId(),
+                        fetchedRows,
+                        (System.nanoTime() - splitStartedNanos) / 1_000_000);
             }
             close();
         }

@@ -3,6 +3,7 @@ package io.yak.ops.business.task.submission.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -80,7 +81,7 @@ class SubmissionServiceTest {
                 new SubmissionResult("instance-1", 2, TaskInstanceStatus.SUBMITTED, false);
         when(admission.admit(any())).thenReturn(accepted);
         assertEquals(accepted, service.submit(manual("request-123")));
-        verify(plugin, never()).start(any(), any(), any());
+        verify(plugin, never()).start(any(), any(), any(), anyBoolean());
     }
 
     @Test

@@ -56,8 +56,10 @@ public final class MySqlCdcSplitReader implements SplitReader<BinlogEvent, MySql
         long pollStartedNanos = System.nanoTime();
         BinlogEvent item = engine.poll();
         if (item != null && "true".equals(MDC.get("taskLogDebug"))) {
-            LOG.debug("CDC binlog batch fetched, events={}, pollMs={}",
-                    item.records().size(), (System.nanoTime() - pollStartedNanos) / 1_000_000);
+            LOG.debug(
+                    "CDC binlog batch fetched, events={}, pollMs={}",
+                    item.records().size(),
+                    (System.nanoTime() - pollStartedNanos) / 1_000_000);
         }
         return new RecordsBySplits<>(item == null ? Map.of() : Map.of(MySqlBinlogSplit.ID, List.of(item)), Set.of());
     }

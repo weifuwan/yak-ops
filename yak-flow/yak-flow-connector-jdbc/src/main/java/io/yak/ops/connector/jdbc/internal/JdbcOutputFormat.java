@@ -141,8 +141,12 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
             executor.acknowledgeCommit();
             committedRecords += batchRows;
             if ("true".equals(MDC.get("taskLogDebug"))) {
-                LOG.debug("JDBC flush completed, batchRows={}, statementMs={}, commitMs={}, totalMs={}",
-                        batchRows, statementMs, commitMs, (System.nanoTime() - flushStartedNanos) / 1_000_000);
+                LOG.debug(
+                        "JDBC flush completed, batchRows={}, statementMs={}, commitMs={}, totalMs={}",
+                        batchRows,
+                        statementMs,
+                        commitMs,
+                        (System.nanoTime() - flushStartedNanos) / 1_000_000);
             }
             reportProgress(false);
         } catch (SQLException | RuntimeException failure) {
@@ -219,8 +223,12 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
         long committed = committedRecords - reportedRecords;
         long rate = elapsed > 0 ? Math.round(committed * 1_000_000_000.0 / elapsed) : 0;
         if (terminal) {
-            LOG.info("JDBC sink summary, committedRecords={}, durationMs={}, failed={}, cancelled={}",
-                    committedRecords, (now - startedNanos) / 1_000_000, failed, cancelled);
+            LOG.info(
+                    "JDBC sink summary, committedRecords={}, durationMs={}, failed={}, cancelled={}",
+                    committedRecords,
+                    (now - startedNanos) / 1_000_000,
+                    failed,
+                    cancelled);
         } else {
             LOG.info("JDBC sink progress, committedRecords={}, writeRate={}", committedRecords, rate);
         }

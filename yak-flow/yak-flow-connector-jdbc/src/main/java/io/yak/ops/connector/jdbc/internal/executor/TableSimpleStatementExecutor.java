@@ -53,8 +53,11 @@ public final class TableSimpleStatementExecutor implements JdbcBatchStatementExe
         requireStatement().executeBatch();
         pendingRows = 0;
         if ("true".equals(MDC.get("taskLogDebug"))) {
-            LOG.debug("JDBC statement batch executed, sql={}, statementRows={}, executeMs={}",
-                    sql, rows, (System.nanoTime() - startedNanos) / 1_000_000);
+            LOG.debug(
+                    "JDBC statement batch executed, sql={}, statementRows={}, executeMs={}",
+                    sql,
+                    rows,
+                    (System.nanoTime() - startedNanos) / 1_000_000);
         }
     }
 

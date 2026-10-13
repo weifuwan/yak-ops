@@ -111,8 +111,10 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
             BinlogEvent event = binlog.poll();
             if (event != null) {
                 if ("true".equals(MDC.get("taskLogDebug"))) {
-                    LOG.debug("CDC binlog batch fetched, events={}, pollMs={}",
-                            event.records().size(), (System.nanoTime() - pollStartedNanos) / 1_000_000);
+                    LOG.debug(
+                            "CDC binlog batch fetched, events={}, pollMs={}",
+                            event.records().size(),
+                            (System.nanoTime() - pollStartedNanos) / 1_000_000);
                 }
                 return new RecordsBySplits<>(
                         Map.of(

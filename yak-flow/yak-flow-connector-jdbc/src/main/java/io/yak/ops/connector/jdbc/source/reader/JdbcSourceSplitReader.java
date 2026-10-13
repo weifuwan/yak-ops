@@ -131,14 +131,21 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         boolean complete = !hasRow;
         splitRows += batch.size();
         if ("true".equals(MDC.get("taskLogDebug"))) {
-            LOG.debug("JDBC fetch completed, split={}, batch={}, batchRows={}, fetchMs={}",
-                    splitId, ++fetchBatchId, batch.size(), (System.nanoTime() - fetchStartedNanos) / 1_000_000);
+            LOG.debug(
+                    "JDBC fetch completed, split={}, batch={}, batchRows={}, fetchMs={}",
+                    splitId,
+                    ++fetchBatchId,
+                    batch.size(),
+                    (System.nanoTime() - fetchStartedNanos) / 1_000_000);
         }
         if (complete) {
             closeStatementAndResultSet();
             if ("true".equals(MDC.get("taskLogDebug"))) {
-                LOG.debug("JDBC split finished, split={}, fetchedRows={}, durationMs={}",
-                        splitId, splitRows, (System.nanoTime() - splitStartedNanos) / 1_000_000);
+                LOG.debug(
+                        "JDBC split finished, split={}, fetchedRows={}, durationMs={}",
+                        splitId,
+                        splitRows,
+                        (System.nanoTime() - splitStartedNanos) / 1_000_000);
             }
             active = null;
         }
@@ -335,8 +342,11 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         long queryStartedNanos = System.nanoTime();
         resultSet = statement.executeQuery();
         if ("true".equals(MDC.get("taskLogDebug"))) {
-            LOG.debug("JDBC query executed, split={}, sql={}, executeQueryMs={}",
-                    split.splitId(), sql, (System.nanoTime() - queryStartedNanos) / 1_000_000);
+            LOG.debug(
+                    "JDBC query executed, split={}, sql={}, executeQueryMs={}",
+                    split.splitId(),
+                    sql,
+                    (System.nanoTime() - queryStartedNanos) / 1_000_000);
         }
         converter = dialect.createRowConverter(resultSet.getMetaData());
         if (converter.schema().columnCount() != readColumns.size()) {
