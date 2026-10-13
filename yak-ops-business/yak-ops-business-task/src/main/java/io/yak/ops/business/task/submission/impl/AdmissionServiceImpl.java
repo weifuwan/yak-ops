@@ -74,6 +74,7 @@ public class AdmissionServiceImpl implements AdmissionService {
         instance.setWorkspaceId(workspaceId);
         instance.setDefinitionId(context.definitionId());
         instance.setDefinitionVersion(context.definitionVersion());
+        instance.setDebug(definition.isDebug());
         instance.setTaskType(definition.getTaskType());
         instance.setTriggerType(request.triggerType());
         instance.setRequestId(request.requestId());

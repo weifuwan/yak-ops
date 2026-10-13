@@ -100,6 +100,7 @@ public class TaskInstanceController {
                 value.getId(),
                 value.getDefinitionId(),
                 value.getDefinitionVersion(),
+                value.isDebug(),
                 value.getTaskType(),
                 value.getTriggerType().name(),
                 value.getStatus().name(),

@@ -64,6 +64,7 @@ public class DefinitionServiceImpl implements DefinitionService {
         definition.setTaskType(type);
         definition.setStatus(DefinitionStatus.UNPUBLISHED);
         definition.setCurrentVersion(1);
+        definition.setDebug(Boolean.TRUE.equals(dto.getDebug()));
         definition.setRemark(dto.getRemark());
         definition.initCreate(operatorId);
         definitionRepository.add(definition);
@@ -89,6 +90,9 @@ public class DefinitionServiceImpl implements DefinitionService {
         }
         definition.setName(name);
         definition.setRemark(dto.getRemark());
+        if (dto.getDebug() != null) {
+            definition.setDebug(dto.getDebug());
+        }
         definition.initUpdate(operatorId);
         if (definitionRepository.update(definition.getWorkspaceId(), definition) == null) {
             throw new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS);

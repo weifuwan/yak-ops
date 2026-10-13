@@ -21,6 +21,9 @@ public class CreateDefinitionDTO {
     @NotBlank
     private String parameters;
 
+    /** Detailed diagnostics for future submissions, disabled by default. */
+    private Boolean debug;
+
     /** Optional human-readable description. */
     @Size(max = 500)
     private String remark;

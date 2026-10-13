@@ -7,6 +7,7 @@ public record InstanceVO(
         String id,
         String definitionId,
         int definitionVersion,
+        boolean debug,
         String taskType,
         String triggerType,
         String status,

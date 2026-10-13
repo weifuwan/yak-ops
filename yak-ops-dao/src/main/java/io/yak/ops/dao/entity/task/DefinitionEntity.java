@@ -24,6 +24,8 @@ public class DefinitionEntity extends BaseEntity {
     private DefinitionStatus status;
     /** Latest immutable version number of this definition. */
     private Integer currentVersion;
+    /** Task-level detailed diagnostics, independent of executable plugin parameters. */
+    private boolean debug;
     /** Optional user-maintained description. */
     private String remark;
     /** Logical deletion timestamp; null while the definition remains active. */

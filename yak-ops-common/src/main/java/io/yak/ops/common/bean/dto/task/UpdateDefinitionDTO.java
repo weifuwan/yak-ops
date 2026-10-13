@@ -15,6 +15,9 @@ public class UpdateDefinitionDTO {
     /** Optional plugin-specific JSON; omitting it retains the current parameters. */
     private String parameters;
 
+    /** Optional diagnostics toggle; omitting preserves the existing setting. */
+    private Boolean debug;
+
     /** Optional human-readable description. */
     @Size(max = 500)
     private String remark;

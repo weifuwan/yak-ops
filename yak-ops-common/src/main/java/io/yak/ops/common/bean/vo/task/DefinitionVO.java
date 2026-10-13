@@ -20,6 +20,8 @@ public class DefinitionVO {
     private Integer parameterSchemaVersion;
     /** Validated plugin-specific JSON for the current definition version. */
     private String parameters;
+    /** Detailed diagnostics for newly submitted Instances. */
+    private boolean debug;
     /** Optional human-readable description. */
     private String remark;
     /** Definition creation timestamp. */

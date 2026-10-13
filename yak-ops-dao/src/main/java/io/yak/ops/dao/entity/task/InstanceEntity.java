@@ -23,6 +23,8 @@ public class InstanceEntity extends BaseEntity {
     private Integer definitionVersion;
     /** Registered Task type captured from the pinned Definition. */
     private String taskType;
+    /** Debug diagnostics captured when this Instance was admitted. */
+    private boolean debug;
     /** Submission namespace for the idempotency key. */
     private TaskTriggerType triggerType;
     /** Caller-stable identity of this execution request. */
