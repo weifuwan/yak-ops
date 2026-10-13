@@ -140,6 +140,10 @@ jobs:
         if: steps.scope.outputs.frontend == 'true'
         run: npm run architecture:check
 
+      - name: Frontend contract
+        if: steps.scope.outputs.frontend == 'true'
+        run: npm run contract:check
+
       - name: Frontend build
         if: steps.scope.outputs.frontend == 'true'
         run: npm run build
