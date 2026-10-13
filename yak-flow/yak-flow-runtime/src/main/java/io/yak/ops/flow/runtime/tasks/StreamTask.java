@@ -230,7 +230,7 @@ public abstract class StreamTask implements AutoCloseable {
     protected final <R> CompletableFuture<R> submitMailbox(Callable<R> action) {
         Objects.requireNonNull(action, "action must not be null");
         synchronized (lifecycleLock) {
-            if (terminationFailure != null) {
+            if (terminationFailure != null && !(terminationFailure instanceof CancellationException)) {
                 return CompletableFuture.failedFuture(terminationFailure);
             }
             if (!startRequested || cancelRequested || completion.isDone()) {
