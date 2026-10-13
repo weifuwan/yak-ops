@@ -356,8 +356,7 @@ export function DataSyncExecutionDetailContent({
                 minWidth: 260,
                 render: (_value, attempt) => (
                   <div className="text-xs text-[#667085]">
-                    {attempt.startTime || attempt.createTime || "-"} →{" "}
-                    {attempt.finishTime || "-"}
+                    {attempt.startTime || attempt.createTime || "-"} → {attempt.finishTime || "-"}
                   </div>
                 ),
               },

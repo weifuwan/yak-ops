@@ -15,7 +15,7 @@
     "lint": "oxlint apps packages scripts --deny-warnings",
     "lint:fix": "oxlint apps packages scripts --fix",
     "format": "oxfmt apps packages scripts",
-    "format:check": "oxfmt --check apps packages scripts || (oxfmt apps/web/app/data-sync/execution-detail.tsx && git diff -- apps/web/app/data-sync/execution-detail.tsx && exit 1)",
+    "format:check": "oxfmt --check apps packages scripts",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run architecture:check && npm run contract:check",
     "contract:check": "node scripts/verify-data-sync-definition.mjs && node scripts/verify-task-execution-contract.mjs"
   },
