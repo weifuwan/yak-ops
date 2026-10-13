@@ -1,14 +1,9 @@
-import { Alert, Badge, SectionCard, Table, type BadgeProps } from "@yak-ops/yak-ui";
+import { Badge, SectionCard, Table, type BadgeProps, type TableColumns } from "@yak-ops/yak-ui";
 import type { ReactNode } from "react";
 
 import { canCancelTaskInstance, isTaskInstanceActive } from "@/service/data-sync/execution";
+import type { DataSyncAttemptRecord, DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
 import type { TaskAttemptStatus } from "@/service/task-execution";
-
-import type {
-  DataSyncAttemptRecord,
-  DataSyncInstanceRecord,
-  DataSyncInstanceStatus,
-} from "@/service/data-sync";
 
 export const isActiveDataSyncInstance = (record?: DataSyncInstanceRecord): boolean =>
   record ? isTaskInstanceActive(record.status) : false;
@@ -18,8 +13,8 @@ export const dataSyncInstanceStatusMeta = (
   realtime: boolean,
 ): { label: string; tone: BadgeProps["tone"] } => {
   switch (status) {
-    case "PENDING":
     case "SUBMITTED":
+    case "PENDING":
       return { label: "等待", tone: "neutral" };
     case "LAUNCHING":
       return { label: "启动中", tone: "info" };
@@ -33,23 +28,19 @@ export const dataSyncInstanceStatusMeta = (
       return { label: "成功", tone: "success" };
     case "FAILED":
       return { label: "失败", tone: "danger" };
-    case "INTERRUPTED":
-      return { label: "已中断", tone: "warning" };
     case "CANCELED":
       return { label: realtime ? "已停止" : "已取消", tone: "neutral" };
-    default:
-      return { label: status || "-", tone: "neutral" };
+    case "INTERRUPTED":
+      return { label: "已中断", tone: "warning" };
   }
 };
 
 export const dataSyncTriggerText = (triggerType?: string) => {
-  if (triggerType === "MANUAL") return "手动运行";
-  if (triggerType === "SCHEDULE") return "调度触发";
-  if (triggerType === "WORKFLOW") return "工作流触发";
+  if (triggerType === "MANUAL") return "手动";
+  if (triggerType === "SCHEDULE") return "调度";
+  if (triggerType === "WORKFLOW") return "工作流";
   return triggerType || "-";
 };
-
-const metricCountText = (count?: number): string => count?.toLocaleString() ?? "-";
 
 export const dataSyncDurationText = (record: DataSyncInstanceRecord) => {
   if (!record.startTime) return "-";
@@ -62,205 +53,57 @@ export const dataSyncDurationText = (record: DataSyncInstanceRecord) => {
   return `${minutes}m ${seconds % 60}s`;
 };
 
-interface DetailSectionProps {
-  title: ReactNode;
-  children: ReactNode;
-  sectionCard: boolean;
-  legacyClassName: string;
-  showLegacyTitle?: boolean;
-}
-
-function DetailSection({
-  title,
-  children,
-  sectionCard,
-  legacyClassName,
-  showLegacyTitle = true,
-}: DetailSectionProps) {
-  if (sectionCard) {
-    return <SectionCard title={title}>{children}</SectionCard>;
-  }
-
+function Value({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <section className={legacyClassName}>
-      {showLegacyTitle ? (
-        <h2 className="border-b border-[#eef0f3] bg-[#fafafa] px-4 py-2.5 text-sm font-semibold text-[#344054]">
-          {title}
-        </h2>
-      ) : null}
-      {children}
-    </section>
-  );
-}
-
-type ConfigurationItem = [label: string, value: string];
-
-const endpointPathText = (database?: string, schema?: string, table?: string) =>
-  [database, schema, table].filter(Boolean).join(".") || "-";
-
-const dataSourceTypeText = (type?: string) => {
-  if (type === "MYSQL") return "MySQL";
-  if (type === "POSTGRESQL") return "PostgreSQL";
-  if (type === "ORACLE") return "Oracle";
-  return type || "-";
-};
-
-const writeModeText = (writeMode?: string) => {
-  if (writeMode === "OVERWRITE") return "覆盖";
-  if (writeMode === "UPSERT") return "更新插入";
-  if (writeMode === "APPEND") return "追加";
-  return writeMode || "-";
-};
-
-function ConfigurationGrid({ items }: { items: ConfigurationItem[] }) {
-  return (
-    <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-md:grid-cols-1">
-      {items.map(([label, value]) => (
-        <div key={label} className="rounded-lg bg-[#fafafa] px-4 py-3">
-          <div className="text-xs text-[#98a2b3]">{label}</div>
-          <div className="mt-1 break-words text-sm font-medium text-[#344054]">{value}</div>
-        </div>
-      ))}
+    <div className="min-w-0">
+      <div className="text-xs text-[#98a2b3]">{label}</div>
+      <div className="mt-1 break-words text-sm text-[#344054]">{children}</div>
     </div>
   );
 }
 
-interface DataSyncExecutionConfigContentProps {
+const tablePath = (database?: string, schema?: string, table?: string) =>
+  [database, schema, table].filter(Boolean).join(".") || "-";
+
+const writeModeText = (value?: string) => {
+  if (value === "APPEND") return "追加";
+  if (value === "OVERWRITE") return "覆盖";
+  if (value === "UPSERT") return "更新插入";
+  return value || "-";
+};
+
+interface ConfigProps {
   record: DataSyncInstanceRecord;
   realtime: boolean;
   sectionCard?: boolean;
 }
 
-export function DataSyncExecutionConfigContent({
-  record,
-  realtime,
-  sectionCard = false,
-}: DataSyncExecutionConfigContentProps) {
+export function DataSyncExecutionConfigContent({ record }: ConfigProps) {
   const snapshot = record.definitionSnapshot;
-  if (!snapshot) {
-    return (
-      <DetailSection
-        title="配置快照"
-        sectionCard={sectionCard}
-        legacyClassName="rounded-lg border border-[#e6e8eb] bg-white p-5"
-      >
-        <div className="py-8 text-center text-sm text-[#98a2b3]">暂无配置快照</div>
-      </DetailSection>
-    );
-  }
-
-  const runtimeConfig = snapshot.runtimeConfig;
-  const offlineRuntimePlan = snapshot.offlineRuntimePlan;
-  const realtimeConfig = snapshot.realtimeConfig;
-  const retryPolicy = snapshot.retryPolicy;
-  const sourceItems: ConfigurationItem[] = [
-    ["数据源", snapshot.source.dataSourceName || "未知数据源"],
-    ["类型", dataSourceTypeText(snapshot.source.dataSourceType)],
-    [
-      "数据表",
-      endpointPathText(snapshot.source.database, snapshot.source.schema, snapshot.source.table),
-    ],
-  ];
-  const targetItems: ConfigurationItem[] = [
-    ["数据源", snapshot.target.dataSourceName || "未知数据源"],
-    ["类型", dataSourceTypeText(snapshot.target.dataSourceType)],
-    [
-      "数据表",
-      endpointPathText(snapshot.target.database, snapshot.target.schema, snapshot.target.table),
-    ],
-    ["自动建表", snapshot.autoCreateTable ? "开启" : "关闭"],
-  ];
-  const executionItems: ConfigurationItem[] = [
-    ["任务版本", `v${snapshot.taskVersion}`],
-    ["同步类型", realtime ? "实时同步" : "离线同步"],
-  ];
-
-  if (realtime) {
-    sourceItems.push(
-      ["CDC 队列", realtimeConfig?.queueCapacity?.toLocaleString() || "-"],
-      ["读取批次", realtimeConfig?.pollBatchSize?.toLocaleString() || "-"],
-    );
-    targetItems.push(["写入批次", realtimeConfig?.writeBatchSize?.toLocaleString() || "-"]);
-    executionItems.push(
-      ["Checkpoint 间隔", realtimeConfig ? `${realtimeConfig.checkpointIntervalSeconds}s` : "-"],
-      ["超时", realtimeConfig ? `${realtimeConfig.timeoutSeconds}s` : "-"],
-    );
-  } else {
-    sourceItems.push(
-      ["Fetch Size", runtimeConfig?.fetchSize?.toLocaleString() || "-"],
-      ["读取批次", runtimeConfig?.readBatchSize?.toLocaleString() || "-"],
-      ["读取并行度", runtimeConfig?.sourceParallelism?.toLocaleString() || "-"],
-      [
-        "分片目标行数",
-        runtimeConfig?.splitSize == null ? "整表读取" : runtimeConfig.splitSize.toLocaleString(),
-      ],
-    );
-    if (offlineRuntimePlan?.sourceRowCount != null) {
-      sourceItems.push(["规划行数", offlineRuntimePlan.sourceRowCount.toLocaleString()]);
-    }
-    if (offlineRuntimePlan?.splitCount != null) {
-      sourceItems.push(["规划分片数", offlineRuntimePlan.splitCount.toLocaleString()]);
-    }
-    targetItems.push(
-      ["写入方式", writeModeText(snapshot.writeMode)],
-      ["写入批次", runtimeConfig?.writeBatchSize?.toLocaleString() || "-"],
-    );
-    executionItems.push(
-      [
-        "运行策略",
-        runtimeConfig?.policy === "AUTO"
-          ? offlineRuntimePlan?.splitColumn && offlineRuntimePlan.statisticsAvailable === false
-            ? "自动规划（安全回退）"
-            : "自动规划"
-          : "固定配置",
-      ],
-      [
-        "估算行宽",
-        offlineRuntimePlan?.estimatedRowBytes ? `${offlineRuntimePlan.estimatedRowBytes} B` : "-",
-      ],
-      ["超时", runtimeConfig ? `${runtimeConfig.timeoutSeconds}s` : "-"],
-    );
-  }
-
-  executionItems.push(
-    ["重试策略", retryPolicy?.mode === "SMART" ? "智能重试" : "固定重试"],
-    ["最大尝试次数", (retryPolicy?.maxAttempts ?? record.maxAttempts ?? 1).toLocaleString()],
-    [
-      retryPolicy?.mode === "SMART" ? "起始退避" : "重试间隔",
-      `${retryPolicy?.backoffSeconds ?? record.backoffSeconds ?? 0}s`,
-    ],
-  );
+  if (!snapshot) return null;
 
   return (
-    <div className="space-y-4">
-      <DetailSection
-        title="数据来源"
-        sectionCard={sectionCard}
-        legacyClassName="rounded-lg border border-[#e6e8eb] bg-white p-5"
-      >
-        <ConfigurationGrid items={sourceItems} />
-      </DetailSection>
-
-      <DetailSection
-        title="数据去向"
-        sectionCard={sectionCard}
-        legacyClassName="rounded-lg border border-[#e6e8eb] bg-white p-5"
-      >
-        <ConfigurationGrid items={targetItems} />
-      </DetailSection>
-
-      <DetailSection
-        title="执行策略"
-        sectionCard={sectionCard}
-        legacyClassName="rounded-lg border border-[#e6e8eb] bg-white p-5"
-      >
-        <ConfigurationGrid items={executionItems} />
-      </DetailSection>
-    </div>
+    <SectionCard title="配置快照">
+      <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
+        <div className="space-y-4">
+          <Value label="来源数据源">{snapshot.source.dataSourceName || snapshot.source.dataSourceId}</Value>
+          <Value label="来源表">
+            {tablePath(snapshot.source.database, snapshot.source.schema, snapshot.source.table)}
+          </Value>
+        </div>
+        <div className="space-y-4">
+          <Value label="去向数据源">{snapshot.target.dataSourceName || snapshot.target.dataSourceId}</Value>
+          <Value label="去向表">
+            {tablePath(snapshot.target.database, snapshot.target.schema, snapshot.target.table)}
+          </Value>
+          <Value label="写入方式">{writeModeText(snapshot.writeMode)}</Value>
+        </div>
+      </div>
+    </SectionCard>
   );
 }
 
-interface DataSyncExecutionDetailContentProps {
+interface DetailProps {
   record: DataSyncInstanceRecord;
   attempts: DataSyncAttemptRecord[];
   realtime: boolean;
@@ -272,125 +115,87 @@ export function DataSyncExecutionDetailContent({
   record,
   attempts,
   realtime,
-  showRealtimeStopCaution = false,
-  sectionCard = false,
-}: DataSyncExecutionDetailContentProps) {
+}: DetailProps) {
+  const columns: TableColumns<DataSyncAttemptRecord> = [
+    {
+      key: "attemptNo",
+      title: "Attempt",
+      width: 100,
+      render: (_value, attempt) => `#${attempt.attemptNo}`,
+    },
+    {
+      key: "status",
+      title: "状态",
+      width: 105,
+      render: (_value, attempt) => {
+        const meta = dataSyncInstanceStatusMeta(attempt.status, realtime);
+        return <Badge tone={meta.tone}>{meta.label}</Badge>;
+      },
+    },
+    {
+      key: "runtimeId",
+      title: "Job ID",
+      minWidth: 185,
+      render: (_value, attempt) => attempt.runtimeId || "-",
+    },
+    {
+      key: "logReference",
+      title: "日志引用",
+      minWidth: 170,
+      render: (_value, attempt) => attempt.logReference || "-",
+    },
+    {
+      key: "endTime",
+      title: "完成时间",
+      width: 180,
+      render: (_value, attempt) => attempt.finishTime || "-",
+    },
+    {
+      key: "failureCode",
+      title: "失败原因",
+      minWidth: 180,
+      render: (_value, attempt) => attempt.failureCode || "-",
+    },
+  ];
   const meta = dataSyncInstanceStatusMeta(record.status, realtime);
-  const readLabel = realtime ? "读取事件" : "读取";
-  const writeLabel = realtime ? "写入事件" : "写入";
-  const failureMessage =
-    record.errorMessage ||
-    [...attempts].reverse().find((attempt) => attempt.errorMessage)?.errorMessage;
-  const showAttemptHistory = attempts.length > 0;
 
   return (
     <div className="space-y-4">
-      {showRealtimeStopCaution && realtime && canCancelTaskInstance(record.status) ? (
-        <Alert>停止后不会自动恢复，重新运行会创建新的实例。</Alert>
-      ) : null}
-
-      <DetailSection
-        title="执行概览"
-        sectionCard={sectionCard}
-        legacyClassName="rounded-lg border border-[#e6e8eb] bg-white p-5"
-        showLegacyTitle={false}
-      >
-        <div className="flex flex-wrap items-center gap-3">
+      <SectionCard title="执行状态">
+        <div className="flex flex-wrap items-center gap-4">
           <Badge tone={meta.tone}>{meta.label}</Badge>
-          <span className="text-sm text-[#667085]">
-            {record.startTime || record.createTime || "-"} → {record.finishTime || "-"}
-          </span>
-          <span className="text-xs text-[#98a2b3]">{dataSyncTriggerText(record.triggerType)}</span>
+          <span className="text-sm text-[#667085]">v{record.taskVersion}</span>
+          <span className="text-sm text-[#667085]">{dataSyncTriggerText(record.triggerType)}</span>
         </div>
-
-        {failureMessage ? (
-          <div className="mt-4 rounded-lg border border-[#fecdca] bg-[#fffbfa] px-4 py-3">
-            <div className="text-sm font-medium text-[#b42318]">失败原因</div>
-            <div className="mt-1 whitespace-pre-wrap break-words text-sm leading-5 text-[#667085]">
-              {failureMessage}
-            </div>
+        <div className="mt-4 grid grid-cols-3 gap-4 max-md:grid-cols-1">
+          <Value label="开始时间">{record.startTime || record.createTime || "-"}</Value>
+          <Value label="完成时间">{record.finishTime || "-"}</Value>
+          <Value label="耗时">{dataSyncDurationText(record)}</Value>
+        </div>
+        {record.errorMessage ? (
+          <div className="mt-4 text-sm text-[#b42318]">{record.errorMessage}</div>
+        ) : null}
+        {record.status === "RECONCILING" ? (
+          <div className="mt-4 text-sm text-[#b54708]">
+            执行所有权尚未确认，目标资源仍受保护
           </div>
         ) : null}
-
-        <div className="mt-5 grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-md:grid-cols-1">
-          {[
-            [readLabel, metricCountText(record.readRows)],
-            [writeLabel, metricCountText(record.writeRows)],
-            ["尝试次数", attempts.length ? String(attempts.length) : "-"],
-            ["耗时", dataSyncDurationText(record)],
-          ].map(([label, value]) => (
-            <div key={label} className="rounded-lg bg-[#fafafa] px-4 py-3">
-              <div className="text-xs text-[#98a2b3]">{label}</div>
-              <div className="mt-1 text-lg font-semibold text-[#344054]">{value}</div>
-            </div>
-          ))}
-        </div>
-      </DetailSection>
-
-      {showAttemptHistory ? (
-        <DetailSection
-          title="执行尝试"
-          sectionCard={sectionCard}
-          legacyClassName="overflow-hidden rounded-lg border border-[#e6e8eb] bg-white"
-        >
+        {canCancelTaskInstance(record.status) && realtime ? (
+          <div className="mt-4 text-xs text-[#667085]">停止不会自动恢复；重新运行会创建新实例</div>
+        ) : null}
+      </SectionCard>
+      {attempts.length > 0 ? (
+        <SectionCard title="执行尝试">
           <Table<DataSyncAttemptRecord>
-            columns={[
-              {
-                key: "attemptNo",
-                title: "次数",
-                width: 90,
-                render: (_value, attempt) => `#${attempt.attemptNo}`,
-              },
-              {
-                key: "status",
-                title: "状态",
-                width: 110,
-                render: (_value, attempt) => {
-                  const attemptMeta = dataSyncInstanceStatusMeta(attempt.status, realtime);
-                  return <Badge tone={attemptMeta.tone}>{attemptMeta.label}</Badge>;
-                },
-              },
-              {
-                key: "time",
-                title: "开始 / 完成",
-                minWidth: 260,
-                render: (_value, attempt) => (
-                  <div className="text-xs text-[#667085]">
-                    {attempt.startTime || attempt.createTime || "-"} → {attempt.finishTime || "-"}
-                  </div>
-                ),
-              },
-              {
-                key: "metrics",
-                title: "读取 / 写入",
-                width: 140,
-                align: "right",
-                render: (_value, attempt) =>
-                  `${metricCountText(attempt.readRows)} / ${metricCountText(attempt.writeRows)}`,
-              },
-              {
-                key: "error",
-                title: "错误",
-                minWidth: 220,
-                render: (_value, attempt) => (
-                  <div
-                    className="max-w-[360px] truncate text-xs text-[#667085]"
-                    title={attempt.errorMessage || ""}
-                  >
-                    {attempt.errorMessage || "-"}
-                  </div>
-                ),
-              },
-            ]}
+            columns={columns}
             dataSource={attempts}
             rowKey="id"
             bordered
             size="small"
             pagination={false}
-            emptyText="暂无 Attempt"
-            scroll={{ x: 900 }}
+            scroll={{ x: 980 }}
           />
-        </DetailSection>
+        </SectionCard>
       ) : null}
     </div>
   );

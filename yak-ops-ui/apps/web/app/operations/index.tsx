@@ -1,14 +1,27 @@
-import { DataSyncInstanceDetailPage } from "@/app/data-sync/instance-runtime";
+import { PageHeader } from "@yak-ops/yak-ui";
 
-import { OfflineOperationsDashboard } from "./offline-dashboard";
-import { RealtimeOperationsDashboard } from "./realtime-dashboard";
+import { DataSyncInstanceDetailPage, DataSyncInstances } from "@/app/data-sync/instance-runtime";
 
 export function OfflineTaskOperationsPage() {
-  return <OfflineOperationsDashboard />;
+  return (
+    <div className="min-h-full bg-[#f6f6f6]">
+      <PageHeader title="离线同步运维" bordered className="bg-white px-6 max-md:px-4" />
+      <div className="px-6 pb-8 pt-5 max-md:px-4">
+        <DataSyncInstances syncType="OFFLINE" basePath="/operations/offline-tasks" />
+      </div>
+    </div>
+  );
 }
 
 export function RealtimeTaskOperationsPage() {
-  return <RealtimeOperationsDashboard />;
+  return (
+    <div className="min-h-full bg-[#f6f6f6]">
+      <PageHeader title="实时同步运维" bordered className="bg-white px-6 max-md:px-4" />
+      <div className="px-6 pb-8 pt-5 max-md:px-4">
+        <DataSyncInstances syncType="REALTIME" basePath="/operations/realtime-tasks" />
+      </div>
+    </div>
+  );
 }
 
 export function OfflineTaskOperationsInstanceDetailPage() {
