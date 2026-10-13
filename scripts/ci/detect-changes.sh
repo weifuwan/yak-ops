@@ -74,7 +74,7 @@ for file in "${changed[@]}"; do
             backend=true
             distribution=true
             ;;
-        yak-flow/*|yak-ops-bom/*|yak-ops-core/*|yak-ops-common/*|yak-ops-platform/*|yak-ops-dao/*|yak-ops-spi/*|yak-ops-business/*|yak-ops-plugins/*|yak-ops-boot/*|.mvn/*|mvnw|mvnw.cmd|scripts/verify_logging_rules.py)
+        yak-flow/*|yak-ops-bom/*|yak-ops-core/*|yak-ops-common/*|yak-ops-platform/*|yak-ops-dao/*|yak-ops-spi/*|yak-ops-business/*|yak-ops-task-execution/*|yak-ops-plugins/*|yak-ops-boot/*|.mvn/*|mvnw|mvnw.cmd|scripts/verify_logging_rules.py)
             backend=true
             ;;
         docs/*|*.md|.gitignore|.asf.yaml|LICENSE)

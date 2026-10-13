@@ -27,6 +27,7 @@ expect_scope "${all_false}" DEVELOPMENT.md
 expect_scope "${all_false}" README.md
 expect_scope "${backend_only}" yak-flow/yak-flow-runtime/src/main/java/StreamTask.java
 expect_scope "${backend_only}" yak-ops-business/yak-ops-business-task/src/main/java/DefinitionService.java
+expect_scope "${backend_only}" yak-ops-task-execution/src/main/java/io/yak/ops/task/execution/TaskExecutionService.java
 expect_scope "${frontend_only}" yak-ops-ui/apps/web/app/layout/ProductSidebar.tsx
 expect_scope "${all_false}" yak-ops-ui/FRONTEND_RULES.md
 expect_scope "${all_false}" yak-ops-ui/docs/tooling.md
