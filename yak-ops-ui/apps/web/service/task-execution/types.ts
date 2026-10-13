@@ -31,6 +31,12 @@ export interface TaskInstanceRecord {
   createTime?: string | null;
 }
 
+export interface TaskLogPageRecord {
+  content: string;
+  nextCursor: string;
+  hasMore: boolean;
+}
+
 export interface TaskInstanceDefinitionRecord {
   definitionId: string;
   version: number;

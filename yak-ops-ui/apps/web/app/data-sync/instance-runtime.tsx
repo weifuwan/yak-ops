@@ -27,6 +27,7 @@ import {
 } from "@/service/data-sync";
 
 import { canCancelTaskInstance } from "@/service/data-sync/execution";
+import { TaskInstanceLogPanel } from "./task-instance-log-panel";
 
 import {
   DataSyncExecutionConfigContent,
@@ -350,6 +351,9 @@ export function DataSyncInstanceDetailPage({
         <DataSyncExecutionDetailContent record={record} realtime={realtime} />
         <div className="mt-4">
           <DataSyncExecutionConfigContent record={record} realtime={realtime} />
+        </div>
+        <div className="mt-4">
+          <TaskInstanceLogPanel instanceId={record.id} active={canCancelTaskInstance(record.status)} />
         </div>
       </div>
     </div>

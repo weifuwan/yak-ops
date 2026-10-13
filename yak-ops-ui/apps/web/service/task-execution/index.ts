@@ -5,6 +5,7 @@ import type {
   TaskInstancePageParams,
   TaskInstancePageResult,
   TaskInstanceRecord,
+  TaskLogPageRecord,
   TaskInstanceStatus,
   TaskSubmissionResult,
 } from "./types";
@@ -38,3 +39,16 @@ export const getTaskInstanceDefinition = (id: string): Promise<TaskInstanceDefin
 
 export const cancelTaskInstance = (id: string): Promise<TaskInstanceStatus> =>
   HttpUtils.postData<TaskInstanceStatus>(`${TASK_INSTANCES_API}/${id}/cancel`);
+
+export const getTaskInstanceLogs = (
+  id: string,
+  cursor?: string,
+  limit = 200,
+): Promise<TaskLogPageRecord> => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set("cursor", cursor);
+  return HttpUtils.getData<TaskLogPageRecord>(`${TASK_INSTANCES_API}/${id}/logs?${params}`);
+};
+
+export const downloadTaskInstanceLogs = (id: string): Promise<Blob> =>
+  HttpUtils.download(`${TASK_INSTANCES_API}/${id}/logs/download`);
