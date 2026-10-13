@@ -488,12 +488,14 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
     setSaving(true);
     try {
       const request = payload();
+      const metadataRequest = {
+        name: request.name,
+        remark: request.remark,
+        debug: request.debug,
+      };
       const saved =
         editing && id
-          ? await updateDataSyncTask(
-              id,
-              parametersDirty ? request : { name: request.name, remark: request.remark, debug: request.debug },
-            )
+          ? await updateDataSyncTask(id, parametersDirty ? request : metadataRequest)
           : await createDataSyncTask(request);
 
       if (publishAfterSave) {

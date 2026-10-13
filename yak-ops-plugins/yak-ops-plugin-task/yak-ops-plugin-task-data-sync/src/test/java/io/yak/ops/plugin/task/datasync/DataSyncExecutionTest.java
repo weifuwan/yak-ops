@@ -168,7 +168,7 @@ class DataSyncExecutionTest {
         };
         DataSyncTaskPlugin plugin = plugin(resources, capture);
         ReadonlyConfig jdbc = parameters(false);
-        plugin.start(jdbc, plugin.plan(jdbc, CONTEXT, false), CONTEXT)
+        plugin.start(jdbc, plugin.plan(jdbc, CONTEXT), CONTEXT, false)
                 .toCompletableFuture()
                 .join();
         StreamGraph bounded = lastGraph.get();
@@ -185,7 +185,7 @@ class DataSyncExecutionTest {
                 "data-sync-sink-definition", bounded.getSinkNodes().getFirst().getUid());
         assertEquals(java.time.Duration.ZERO, lastConfiguration.get().get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
         ReadonlyConfig cdc = parameters(true);
-        plugin.start(cdc, plugin.plan(cdc, CONTEXT, false), CONTEXT)
+        plugin.start(cdc, plugin.plan(cdc, CONTEXT), CONTEXT, false)
                 .toCompletableFuture()
                 .join();
         StreamGraph continuous = lastGraph.get();
@@ -272,7 +272,7 @@ class DataSyncExecutionTest {
                                 .toReadonlyConfig()),
                 Map.of());
         ReadonlyConfig parameters = parameters(true);
-        var compiled = builder.build(planner.plan(parameters, CONTEXT, false), CONTEXT);
+        var compiled = builder.build(planner.plan(parameters, CONTEXT), CONTEXT, false);
         assertEquals(2, compiled.graph().getSourceNodes().getFirst().getParallelism());
         assertEquals(1, compiled.graph().getSinkNodes().getFirst().getParallelism());
         assertEquals(Duration.ofMillis(750), compiled.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
@@ -304,7 +304,8 @@ class DataSyncExecutionTest {
                 new ExecutionConfigurationFactory(settings, Path.of("target/data-sync")));
         ReadonlyConfig parameters = parameters(true);
         assertThrows(
-                UnsupportedOperationException.class, () -> builder.build(planner.plan(parameters, CONTEXT, false), CONTEXT));
+                UnsupportedOperationException.class,
+                () -> builder.build(planner.plan(parameters, CONTEXT), CONTEXT, false));
         assertEquals(0, resources.connections.get());
         assertEquals(0, resources.openedConnections.get());
     }
@@ -325,7 +326,7 @@ class DataSyncExecutionTest {
                 Map.of("JDBC", sourceSettings),
                 Map.of());
 
-        var compiled = builder.build(planner.plan(parameters(false), CONTEXT, false), CONTEXT);
+        var compiled = builder.build(planner.plan(parameters(false), CONTEXT), CONTEXT, false);
         Object source = compiled.graph().getSourceNodes().getFirst().getSource().orElseThrow();
         Configuration sourceConfiguration = (Configuration) field(source, "configuration");
         assertEquals(1000, sourceConfiguration.get(JdbcSourceOptions.RESULT_SET_FETCH_SIZE));
