@@ -17,6 +17,7 @@
     <description>DATA_SYNC definition, planning and YakFlow execution</description>
 
     <dependencies>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-datasource-api</artifactId></dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-configuration</artifactId>

@@ -2,8 +2,6 @@ package io.yak.ops.business.datasource.impl;
 
 import io.yak.ops.business.datasource.DataSourceCatalogService;
 import io.yak.ops.business.datasource.exception.DataSourceException;
-import io.yak.ops.business.datasource.runtime.DataSourceRuntimeConnection;
-import io.yak.ops.business.datasource.runtime.DataSourceRuntimeService;
 import io.yak.ops.common.bean.dto.datasource.DataSourceCatalogQueryDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceTablePathDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
@@ -11,10 +9,13 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.util.StringUtils;
+import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
 import io.yak.ops.connector.jdbc.database.catalog.factory.JdbcCatalogFactory;
+import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import jakarta.annotation.Resource;
 import java.sql.SQLException;
 import java.util.List;
@@ -23,14 +24,14 @@ import org.springframework.stereotype.Service;
 /**
  * Resolves authorized datasource connections and executes metadata queries through JDBC Catalog.
  *
- * <p>Each query owns one Catalog lifecycle. Datasource plugins create and close their physical
- * connections, including the SSH resources associated with those connections.
+ * <p>Each query owns one Catalog lifecycle. The shared JDBC provider creates physical
+ * connections and releases associated SSH resources when the caller closes them.
  */
 @Service
 public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
 
     @Resource
-    private DataSourceRuntimeService resources;
+    private DataSourceLookupService resources;
 
     @Override
     public List<String> listDatabases(String datasourceId) {
@@ -95,8 +96,10 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
     }
 
     private <T> T query(String datasourceId, CatalogAction<T> action) {
-        DataSourceRuntimeConnection binding = resources.connection(WorkspaceContext.requireWorkspaceId(), datasourceId);
-        try (JdbcCatalog catalog = JdbcCatalogFactory.create(binding.jdbcUrl(), binding.provider())) {
+        JdbcConnectionOptions binding = new JdbcConnectionOptions(
+                resources.connectionOptions(WorkspaceContext.requireWorkspaceId(), datasourceId));
+        try (JdbcCatalog catalog =
+                JdbcCatalogFactory.create(binding.url(), new DefaultJdbcConnectionProvider(binding))) {
             return action.execute(catalog);
         } catch (SQLException | RuntimeException exception) {
             throw new DataSourceException(DataSourceErrorCode.CATALOG_QUERY_FAILED, null, exception);

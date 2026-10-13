@@ -3,88 +3,66 @@ package io.yak.ops.connector.base.factory;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.configuration.rule.OptionRule;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import io.yak.ops.spi.SpiRegistry;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.ServiceLoader;
 
-/**
- * Discovers Connector factories through Java SPI and validates their declared options.
- *
- * <p>Registered factories are stateless. A factory identifier is unique within one Source
- * or Sink kind, and is matched exactly to persisted configuration.
- */
+/** Discovers stateless Connector factories and validates operation and creation inputs. */
 public final class FactoryUtil {
+    private final SpiRegistry<TableSourceFactory> sources;
+    private final SpiRegistry<TableSinkFactory> sinks;
 
-    private final Map<String, TableSourceFactory> sources;
-    private final Map<String, TableSinkFactory> sinks;
-
-    /** Discovers all registered sources and sinks on the application classpath. */
     public FactoryUtil() {
-        this(ServiceLoader.load(TableSourceFactory.class), ServiceLoader.load(TableSinkFactory.class));
+        sources = SpiRegistry.load(TableSourceFactory.class, FactoryUtil::identifiers);
+        sinks = SpiRegistry.load(TableSinkFactory.class, FactoryUtil::identifiers);
     }
 
-    /** Registers explicit providers for deterministic tests and embedded applications. */
     public FactoryUtil(Iterable<? extends TableSourceFactory> sources, Iterable<? extends TableSinkFactory> sinks) {
-        this.sources = sourceFactories(sources);
-        this.sinks = sinkFactories(sinks);
+        this.sources = SpiRegistry.of(sources, FactoryUtil::identifiers);
+        this.sinks = SpiRegistry.of(sinks, FactoryUtil::identifiers);
     }
 
     public TableSourceFactory source(String identifier) {
-        TableSourceFactory factory = sources.get(identifier);
-        if (factory == null) {
-            throw new IllegalArgumentException("Unknown Source factory identifier");
+        try {
+            return sources.get(identifier);
+        } catch (NoSuchElementException failure) {
+            throw new IllegalArgumentException("Unknown Source factory identifier", failure);
         }
-        return factory;
     }
 
     public TableSinkFactory sink(String identifier) {
-        TableSinkFactory factory = sinks.get(identifier);
-        if (factory == null) {
-            throw new IllegalArgumentException("Unknown Sink factory identifier");
+        try {
+            return sinks.get(identifier);
+        } catch (NoSuchElementException failure) {
+            throw new IllegalArgumentException("Unknown Sink factory identifier", failure);
         }
-        return factory;
     }
 
-    /**
-     * Validates declared Connector options together with a caller's shared endpoint options.
-     *
-     * <p>Unknown keys are rejected against the combined rule so a Connector cannot silently
-     * consume undeclared task-definition fields.
-     */
+    /** Validates caller-supplied operation options before connection settings are resolved. */
     public static void validate(ReadonlyConfig config, Factory factory, OptionRule common) {
         OptionRule rule = OptionRule.builder()
                 .include(Objects.requireNonNull(common, "common"))
-                .include(Objects.requireNonNull(factory, "factory").optionRule())
+                .include(factory.optionRule())
                 .build();
+        validate(config, rule, factory.factoryIdentifier());
+    }
+
+    /** Validates complete effective inputs before a Connector is constructed. */
+    public static void validateCreation(ReadonlyConfig config, Factory factory) {
+        validate(config, factory.creationOptionRule(), factory.factoryIdentifier());
+    }
+
+    private static void validate(ReadonlyConfig config, OptionRule rule, String identifier) {
         ConfigValidator.of(config).validate(rule);
-        ConfigValidator.validateUnknownKeys(config, rule, factory.factoryIdentifier());
+        ConfigValidator.validateUnknownKeys(config, rule, identifier);
     }
 
-    private static Map<String, TableSourceFactory> sourceFactories(Iterable<? extends TableSourceFactory> factories) {
-        Map<String, TableSourceFactory> result = new LinkedHashMap<>();
-        for (TableSourceFactory factory : factories) {
-            register(result, factory);
+    private static Collection<String> identifiers(Factory factory) {
+        if (factory.optionRule() == null || factory.creationOptionRule() == null) {
+            throw new IllegalStateException("Connector Factory must declare option rules");
         }
-        return Map.copyOf(result);
-    }
-
-    private static Map<String, TableSinkFactory> sinkFactories(Iterable<? extends TableSinkFactory> factories) {
-        Map<String, TableSinkFactory> result = new LinkedHashMap<>();
-        for (TableSinkFactory factory : factories) {
-            register(result, factory);
-        }
-        return Map.copyOf(result);
-    }
-
-    private static <T extends Factory> void register(Map<String, T> factories, T factory) {
-        Objects.requireNonNull(factory, "factory");
-        String identifier = factory.factoryIdentifier();
-        if (identifier == null || identifier.isBlank() || factory.optionRule() == null) {
-            throw new IllegalStateException("Connector Factory must declare identifier and option rules");
-        }
-        if (factories.putIfAbsent(identifier, factory) != null) {
-            throw new IllegalStateException("Duplicate Connector Factory identifier: " + identifier);
-        }
+        return Collections.singletonList(factory.factoryIdentifier());
     }
 }

@@ -10,4 +10,16 @@ public interface Factory {
 
     /** Declares options accepted by this Connector. */
     OptionRule optionRule();
+
+    /**
+     * Declares the complete inputs required to construct this Connector.
+     *
+     * <p>Includes operation options and resolved connection or system-supplied settings.
+     * Callers validate operation options before resolving sensitive connection settings.
+     *
+     * @return complete creation rules, reusing the operation rules
+     */
+    default OptionRule creationOptionRule() {
+        return optionRule();
+    }
 }

@@ -38,7 +38,7 @@ class JdbcSourceReliabilityTest {
     void typeChangeAfterSplitPlanningIsRejectedBeforeEmittingRecords() throws Exception {
         JdbcConnectionOptions db = createTable("jdbc:h2:mem:schema_change;DB_CLOSE_DELAY=-1", true);
         JdbcSourceSplit split = plan(db, "DATASET");
-        try (Connection connection = db.openConnection(); Statement sql = connection.createStatement()) {
+        try (Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(db).getConnection(); Statement sql = connection.createStatement()) {
             sql.execute("ALTER TABLE DATASET ALTER COLUMN LABEL VARCHAR(80)");
         }
 
@@ -53,7 +53,7 @@ class JdbcSourceReliabilityTest {
     void addingAnUnselectedColumnDoesNotChangeTheFrozenReadProjection() throws Exception {
         JdbcConnectionOptions db = createTable("jdbc:h2:mem:schema_extra;DB_CLOSE_DELAY=-1", true);
         JdbcSourceSplit split = plan(db, "DATASET");
-        try (Connection connection = db.openConnection(); Statement sql = connection.createStatement()) {
+        try (Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(db).getConnection(); Statement sql = connection.createStatement()) {
             sql.execute("ALTER TABLE DATASET ADD EXTRA VARCHAR(50)");
         }
         try (JdbcSourceSplitReader reader = new JdbcSourceSplitReader(db, new AnsiJdbcDialect(), new Configuration())) {
@@ -93,7 +93,7 @@ class JdbcSourceReliabilityTest {
             if (opened.incrementAndGet() <= 2) {
                 throw new SQLTransientConnectionException("temporary network failure", "08001");
             }
-            return db.openConnection();
+            return new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(db).getConnection();
         };
         try (Connection connection = JdbcConnectionRetry.open(transientProvider, 3)) {
             assertTrue(!connection.isClosed());
@@ -124,7 +124,7 @@ class JdbcSourceReliabilityTest {
         AtomicInteger connections = new AtomicInteger();
         JdbcConnectionProvider failedRead = () -> {
             connections.incrementAndGet();
-            return intercept(db.openConnection(), null, null, new AtomicInteger(1));
+            return intercept(new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(db).getConnection(), null, null, new AtomicInteger(1));
         };
         try (JdbcSourceSplitReader reader =
                 new JdbcSourceSplitReader(failedRead, new AnsiJdbcDialect(), new Configuration())) {
@@ -142,7 +142,7 @@ class JdbcSourceReliabilityTest {
         CountDownLatch reading = new CountDownLatch(1);
         CountDownLatch cancelled = new CountDownLatch(1);
         AtomicInteger cancels = new AtomicInteger();
-        JdbcConnectionProvider blocked = () -> intercept(db.openConnection(), reading, cancelled, cancels);
+        JdbcConnectionProvider blocked = () -> intercept(new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(db).getConnection(), reading, cancelled, cancels);
 
         try (JdbcSourceSplitReader reader = new JdbcSourceSplitReader(blocked, new AnsiJdbcDialect(), new Configuration())) {
             reader.addSplits(List.of(split));
@@ -167,7 +167,7 @@ class JdbcSourceReliabilityTest {
 
     private JdbcConnectionOptions createTable(String url, boolean primaryKey) throws Exception {
         JdbcConnectionOptions db = new JdbcConnectionOptions(url, "sa", "");
-        try (Connection conn = db.openConnection(); Statement sql = conn.createStatement()) {
+        try (Connection conn = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(db).getConnection(); Statement sql = conn.createStatement()) {
             sql.execute("CREATE TABLE DATASET (ID BIGINT " + (primaryKey ? "PRIMARY KEY" : "") + ", LABEL VARCHAR(40))");
             sql.execute("INSERT INTO DATASET VALUES (1, 'first'), (2, 'second')");
         }

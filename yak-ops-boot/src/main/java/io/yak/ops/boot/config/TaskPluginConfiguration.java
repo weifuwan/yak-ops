@@ -6,6 +6,7 @@ import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceOptions;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.datasync.DataSyncTaskPlugin;
 import io.yak.ops.plugin.task.datasync.config.ExecutionConfigurationFactory;
@@ -13,10 +14,10 @@ import io.yak.ops.plugin.task.datasync.config.JobOptions;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
 import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
-import io.yak.ops.plugin.task.datasync.resource.RuntimeResources;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,7 +37,7 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    JobPlanner jobPlanner(RuntimeResources resources, FactoryUtil factories) {
+    JobPlanner jobPlanner(DataSourceLookupService resources, FactoryUtil factories) {
         return new JobPlanner(resources, factories);
     }
 
@@ -68,18 +69,23 @@ public class TaskPluginConfiguration {
     @Bean
     ExecutionConfigurationFactory executionConfigurationFactory(
             ReadonlyConfig runtimeOptions,
-            io.yak.ops.configuration.Configuration connectorConfiguration,
             @Value("${yak.task.execution.state-directory:./data/task-state}") String stateDirectory) {
-        return new ExecutionConfigurationFactory(runtimeOptions, Path.of(stateDirectory), connectorConfiguration);
+        return new ExecutionConfigurationFactory(runtimeOptions, Path.of(stateDirectory));
     }
 
     @Bean
     PipelineBuilder pipelineBuilder(
-            RuntimeResources resources,
+            DataSourceLookupService resources,
             FactoryUtil factories,
             ReadonlyConfig runtimeOptions,
-            ExecutionConfigurationFactory configurationFactory) {
-        return new PipelineBuilder(resources, factories, runtimeOptions, configurationFactory);
+            ExecutionConfigurationFactory configurationFactory,
+            io.yak.ops.configuration.Configuration connectorConfiguration) {
+        return new PipelineBuilder(
+                resources,
+                factories,
+                runtimeOptions,
+                configurationFactory,
+                Map.of("MYSQL_CDC", connectorConfiguration.toReadonlyConfig()));
     }
 
     @Bean

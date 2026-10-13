@@ -1,10 +1,9 @@
 package io.yak.ops.boot.integration.task;
 
-import io.yak.ops.business.datasource.runtime.DataSourceRuntimeConnection;
-import io.yak.ops.business.datasource.runtime.DataSourceRuntimeService;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
-import io.yak.ops.plugin.task.api.validation.DataSourceInfo;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import java.util.Objects;
 
@@ -12,17 +11,16 @@ import java.util.Objects;
 final class WorkspaceTaskValidationContext implements TaskValidationContext {
 
     private final String workspaceId;
-    private final DataSourceRuntimeService resources;
+    private final DataSourceLookupService resources;
 
-    WorkspaceTaskValidationContext(String workspaceId, DataSourceRuntimeService resources) {
+    WorkspaceTaskValidationContext(String workspaceId, DataSourceLookupService resources) {
         this.workspaceId = Objects.requireNonNull(workspaceId, "workspaceId");
         this.resources = Objects.requireNonNull(resources, "resources");
     }
 
     @Override
     public DataSourceInfo dataSource(String id) {
-        DataSourceRuntimeConnection connection = resources.connection(workspaceId, id);
-        return new DataSourceInfo(connection.datasourceType(), connection.database(), connection.schema());
+        return resources.dataSource(workspaceId, id);
     }
 
     @Override

@@ -1,6 +1,6 @@
 package io.yak.ops.boot.integration.task;
 
-import io.yak.ops.business.datasource.runtime.DataSourceRuntimeService;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
 import jakarta.annotation.Resource;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 public class DataSourceTaskValidationContextFactory implements TaskValidationContextFactory {
 
     @Resource
-    private DataSourceRuntimeService resources;
+    private DataSourceLookupService resources;
 
     @Override
     public TaskValidationContext forWorkspace(String workspaceId) {

@@ -25,7 +25,7 @@ For environment setup and test scope, see [DEVELOPMENT.md](DEVELOPMENT.md). Only
 - `yak-ops-boot`: HTTP boundary and application assembly.
 - `yak-ops-ui`: frontend application and shared UI components.
 
-Inspect the current code, direct callers, tests and Maven dependencies before changing a boundary. Derive current functionality from code, tests and supported public interfaces.
+Inspect the current code, direct callers, tests and Maven dependencies before changing a boundary. Derive current functionality from code, tests, and supported public interfaces.
 
 ## Architecture Boundaries
 
@@ -57,6 +57,9 @@ Inspect the current code, direct callers, tests and Maven dependencies before ch
 
 - Organize packages by functional ownership, such as `source`, `reader`, `writer`, `state`, `execution`, and `repository`, not by whether a type is a record, class, or interface. Keep a public contract and its directly related value types together when they share ownership.
 - Reserve `domain` for business domain concepts and behavior. Introduce `model` only for a cohesive, independently owned set of models; do not create generic buckets or one-type packages without a meaningful boundary.
+- Context types carry inputs or capabilities for one stage; do not use them as cross-layer service containers. Connector creation must not require Task platform identity or admission claims.
+- Resource types express a real capability or ownership lifecycle. Avoid marker wrappers whose consumers immediately recover a concrete type with casts.
+- Cross-layer models require a distinct semantic contract. Reuse existing values when a mapping only copies fields; do not create synonym DTO chains. Runtime names require actual execution ownership.
 - Introduce interfaces for distinct implementation or caller contracts and abstract classes only for shared behavior or state. Keep resource-owning and lifecycle-managed implementations in concrete classes.
 - Prefer records for shallowly immutable value carriers with intentional component-wise equality. Prefer classes for mutable runtime state, connection and resource ownership, identity-driven lifecycles, and sensitive credentials or execution tokens. Do not change a type solely to match its upstream spelling.
 - Defensively copy mutable arrays and collections at ownership boundaries. Review record equality and hashing explicitly: arrays compare by reference in generated `equals` and `hashCode`, even when their contents are copied.

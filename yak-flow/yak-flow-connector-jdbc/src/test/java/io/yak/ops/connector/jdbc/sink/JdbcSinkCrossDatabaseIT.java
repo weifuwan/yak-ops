@@ -97,8 +97,8 @@ class JdbcSinkCrossDatabaseIT {
                         new Column("MESSAGE", LogicalTypes.varchar(48))),
                 List.of("ID"));
 
-        try (Connection sourceConnection = sourceOptions.openConnection();
-                Connection targetConnection = targetOptions.openConnection();
+        try (Connection sourceConnection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(sourceOptions).getConnection();
+                Connection targetConnection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(targetOptions).getConnection();
                 Statement sourceDdl = sourceConnection.createStatement();
                 Statement targetDdl = targetConnection.createStatement()) {
             TableId sourceTable = tableId(sourceConnection, sourceOptions.url(), "YF_YOIP1_SRC");
@@ -118,7 +118,7 @@ class JdbcSinkCrossDatabaseIT {
                         throw new AssertionError("Finished-on-Restore must not open JDBC Source connections");
                     }
                     openedSourceConnections.incrementAndGet();
-                    return sourceOptions.openConnection();
+                    return new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(sourceOptions).getConnection();
                 };
                 Configuration configuration = new Configuration();
                 configuration.set(JdbcSourceOptions.TARGET_ROWS_PER_SPLIT, 3);
@@ -246,8 +246,8 @@ class JdbcSinkCrossDatabaseIT {
                         new Column("CATEGORY", LogicalTypes.varchar(24))),
                 List.of("ID"));
 
-        try (Connection sourceConnection = sourceOptions.openConnection();
-                Connection targetConnection = targetOptions.openConnection();
+        try (Connection sourceConnection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(sourceOptions).getConnection();
+                Connection targetConnection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(targetOptions).getConnection();
                 Statement sourceDdl = sourceConnection.createStatement();
                 Statement targetDdl = targetConnection.createStatement()) {
             TableId sourceA = tableId(sourceConnection, sourceOptions.url(), "YF_SINK_SRC_A");

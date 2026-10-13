@@ -54,6 +54,15 @@ public interface DataSourcePlugin {
     Connection openConnection(DataSourceConnection connection, int timeoutSeconds) throws Exception;
 
     /**
+     * Prepares connection settings for Catalog and Connector creation without opening a connection.
+     *
+     * @param connection parsed provider connection
+     * @param timeoutSeconds connection timeout in seconds
+     * @return immutable execution inputs; never persist them in task definitions or diagnostics
+     */
+    ReadonlyConfig connectionOptions(DataSourceConnection connection, int timeoutSeconds);
+
+    /**
      * Lists provider-recommended connection properties for the advanced editor.
      *
      * <p>The list is discovery guidance, not a form schema or strict allowlist; the provider still validates unknown properties.

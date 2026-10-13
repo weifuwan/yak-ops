@@ -3,7 +3,7 @@ package io.yak.ops.connector.jdbc.database.catalog.factory;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.database.JdbcFactoryLoader;
 import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
-import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import java.util.Objects;
 
@@ -25,7 +25,7 @@ public final class JdbcCatalogFactory {
      */
     public static JdbcCatalog create(JdbcConnectionOptions options) {
         Objects.requireNonNull(options, "options");
-        return create(options.url(), new DriverManagerJdbcConnectionProvider(options));
+        return create(options.url(), new DefaultJdbcConnectionProvider(options));
     }
 
     /**

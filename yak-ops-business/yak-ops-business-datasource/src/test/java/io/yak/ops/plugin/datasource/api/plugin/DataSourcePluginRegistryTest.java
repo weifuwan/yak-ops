@@ -82,6 +82,11 @@ class DataSourcePluginRegistryTest {
             }
 
             @Override
+            public ReadonlyConfig connectionOptions(DataSourceConnection connection, int timeoutSeconds) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             public Connection openConnection(DataSourceConnection connection, int timeoutSeconds) {
                 throw new UnsupportedOperationException();
             }
@@ -114,6 +119,11 @@ class DataSourcePluginRegistryTest {
 
             @Override
             public void testConnection(DataSourceConnection connection, int timeoutSeconds) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public ReadonlyConfig connectionOptions(DataSourceConnection connection, int timeoutSeconds) {
                 throw new UnsupportedOperationException();
             }
 

@@ -3,7 +3,7 @@ package io.yak.ops.boot.integration.task;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
-import io.yak.ops.plugin.task.api.validation.DataSourceInfo;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
 import jakarta.annotation.Resource;

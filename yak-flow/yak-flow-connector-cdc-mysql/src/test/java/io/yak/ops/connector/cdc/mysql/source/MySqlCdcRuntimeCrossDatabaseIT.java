@@ -82,8 +82,8 @@ class MySqlCdcRuntimeCrossDatabaseIT {
                         new Column("QTY", LogicalTypes.BIGINT.copy(false))),
                 List.of("ID"));
 
-        try (Connection sourceConnection = sourceOptions.openConnection();
-                Connection targetConnection = targetOptions.openConnection()) {
+        try (Connection sourceConnection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(sourceOptions).getConnection();
+                Connection targetConnection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(targetOptions).getConnection()) {
             TableId targetOrders = targetTable(targetConnection, targetOptions.url(), "YF_CDC_RT_ORDERS");
             TableId targetItems = targetTable(targetConnection, targetOptions.url(), "YF_CDC_RT_ITEMS");
             try {

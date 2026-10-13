@@ -17,6 +17,7 @@
     <description>Stable datasource plugin contracts and normalized JDBC connection models</description>
 
     <dependencies>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-core</artifactId></dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-configuration</artifactId>

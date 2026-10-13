@@ -18,9 +18,8 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Verifies the execution configuration, Connector options and checkpoint ownership. */
+/** Verifies execution settings and checkpoint ownership independently of Connector settings. */
 class ExecutionConfigurationFactoryTest {
-
     @TempDir
     Path stateRoot;
 
@@ -31,36 +30,27 @@ class ExecutionConfigurationFactoryTest {
     void boundedSourceRunsWithoutPeriodicCheckpointsOrAutomaticRestarts() {
         ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(JobOptions.defaults(), stateRoot);
         var configuration = factory.create(FIRST, Boundedness.BOUNDED);
-
         assertEquals(RuntimeExecutionMode.BATCH, configuration.get(ExecutionOptions.RUNTIME_MODE));
         assertEquals(Duration.ZERO, configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
         assertEquals(0, configuration.get(ExecutionOptions.MAX_RESTART_ATTEMPTS));
         assertEquals(false, configuration.get(CheckpointingOptions.RESTORE_LATEST));
-        assertEquals(
-                stateRoot.resolve(FIRST.instanceId()).toAbsolutePath().toString(),
-                configuration.get(CheckpointingOptions.STATE_DIRECTORY));
+        assertEquals(stateRoot.resolve(FIRST.instanceId()).toAbsolutePath().toString(), configuration.get(CheckpointingOptions.STATE_DIRECTORY));
     }
-
     @Test
-    void continuousSourceUsesCheckpointGatedSameJobRestartsAndTypedCdcOptions() {
+    void continuousSourceUsesCheckpointGatedSameJobRestartsWithoutConnectorSettings() {
         ReadonlyConfig options = runtimeOptions(2, 1, Duration.ofMillis(500), 3);
-        var cdc = new Configuration()
-                .set(MySqlCdcSourceOptions.SNAPSHOT_CHUNK_SIZE, 512)
-                .set(MySqlCdcSourceOptions.QUEUE_CAPACITY, 64);
-        ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(options, stateRoot, cdc);
+        ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(options, stateRoot);
         var configuration = factory.create(FIRST, Boundedness.CONTINUOUS_UNBOUNDED);
-
         assertEquals(RuntimeExecutionMode.STREAMING, configuration.get(ExecutionOptions.RUNTIME_MODE));
         assertEquals(Duration.ofMillis(500), configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
         assertEquals(1, configuration.get(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS));
         assertEquals(3, configuration.get(ExecutionOptions.MAX_RESTART_ATTEMPTS));
         assertEquals(false, configuration.get(CheckpointingOptions.RESTORE_LATEST));
-        assertEquals(512, configuration.get(MySqlCdcSourceOptions.SNAPSHOT_CHUNK_SIZE));
-        assertEquals(64, configuration.get(MySqlCdcSourceOptions.QUEUE_CAPACITY));
+        assertEquals(false, configuration.contains(MySqlCdcSourceOptions.SNAPSHOT_CHUNK_SIZE));
+        assertEquals(false, configuration.contains(MySqlCdcSourceOptions.QUEUE_CAPACITY));
         assertEquals(2, options.get(JobOptions.SOURCE_PARALLELISM));
         assertEquals(1, options.get(JobOptions.SINK_PARALLELISM));
     }
-
     @Test
     void isolatesDifferentInstancesAndKeepsStateDirectoryStable() {
         ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(JobOptions.defaults(), stateRoot);
@@ -78,10 +68,8 @@ class ExecutionConfigurationFactoryTest {
 
         assertEquals(first, resumed);
         assertNotEquals(first, next);
-        assertEquals(false, factory.create(nextInstance, Boundedness.CONTINUOUS_UNBOUNDED)
-                .get(CheckpointingOptions.RESTORE_LATEST));
+        assertEquals(false, factory.create(nextInstance, Boundedness.CONTINUOUS_UNBOUNDED).get(CheckpointingOptions.RESTORE_LATEST));
     }
-
     @Test
     void rejectsUnsafeInstanceIdentifiers() {
         ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(JobOptions.defaults(), stateRoot);
@@ -90,27 +78,16 @@ class ExecutionConfigurationFactoryTest {
 
         assertThrows(IllegalArgumentException.class, () -> factory.create(unsafe, Boundedness.CONTINUOUS_UNBOUNDED));
     }
-
     @Test
-    void rejectsInvalidSystemOwnedAndConnectorSettings() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new ExecutionConfigurationFactory(runtimeOptions(0, 1, Duration.ofSeconds(10), 1), stateRoot));
-        assertThrows(IllegalArgumentException.class,
-                () -> new ExecutionConfigurationFactory(runtimeOptions(1, 17, Duration.ofSeconds(10), 1), stateRoot));
-        assertThrows(IllegalArgumentException.class,
-                () -> new ExecutionConfigurationFactory(runtimeOptions(1, 1, Duration.ZERO, 1), stateRoot));
-        assertThrows(IllegalArgumentException.class,
-                () -> new ExecutionConfigurationFactory(runtimeOptions(1, 1, Duration.ofSeconds(10), -1), stateRoot));
+    void rejectsInvalidSystemOwnedSettings() {
+        assertThrows(IllegalArgumentException.class, () -> new ExecutionConfigurationFactory(runtimeOptions(0, 1, Duration.ofSeconds(10), 1), stateRoot));
+        assertThrows(IllegalArgumentException.class, () -> new ExecutionConfigurationFactory(runtimeOptions(1, 17, Duration.ofSeconds(10), 1), stateRoot));
+        assertThrows(IllegalArgumentException.class, () -> new ExecutionConfigurationFactory(runtimeOptions(1, 1, Duration.ZERO, 1), stateRoot));
+        assertThrows(IllegalArgumentException.class, () -> new ExecutionConfigurationFactory(runtimeOptions(1, 1, Duration.ofSeconds(10), -1), stateRoot));
         assertTrue(JobOptions.defaults().get(JobOptions.MAX_RESTARTS) > 0);
     }
-
-    private static ReadonlyConfig runtimeOptions(
-            int sourceParallelism, int sinkParallelism, Duration interval, int maxRestarts) {
-        return new Configuration()
-                .set(JobOptions.SOURCE_PARALLELISM, sourceParallelism)
-                .set(JobOptions.SINK_PARALLELISM, sinkParallelism)
-                .set(JobOptions.CHECKPOINT_INTERVAL, interval)
-                .set(JobOptions.MAX_RESTARTS, maxRestarts)
-                .toReadonlyConfig();
+    private static ReadonlyConfig runtimeOptions(int sourceParallelism, int sinkParallelism, Duration interval, int maxRestarts) {
+        return new Configuration().set(JobOptions.SOURCE_PARALLELISM, sourceParallelism).set(JobOptions.SINK_PARALLELISM, sinkParallelism)
+                .set(JobOptions.CHECKPOINT_INTERVAL, interval).set(JobOptions.MAX_RESTARTS, maxRestarts).toReadonlyConfig();
     }
 }

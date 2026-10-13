@@ -27,7 +27,7 @@ class JdbcSplitPlannerTest {
 
     @BeforeEach
     void createTables() throws Exception {
-        try (Connection opened = connection.openConnection();
+        try (Connection opened = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connection).getConnection();
                 Statement sql = opened.createStatement()) {
             sql.execute("DROP TABLE IF EXISTS ORDERS");
             sql.execute("DROP TABLE IF EXISTS NO_KEY");

@@ -45,7 +45,7 @@ class JdbcSourceRuntimeTest {
     @Test
     void threeTablesShareOneSourceAndRunThroughParallelRuntime() throws Exception {
         JdbcConnectionOptions connection = new JdbcConnectionOptions("jdbc:h2:mem:jdbc_flow_multi;DB_CLOSE_DELAY=-1", "sa", "");
-        try (Connection opened = connection.openConnection();
+        try (Connection opened = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connection).getConnection();
                 Statement sql = opened.createStatement()) {
             sql.execute("CREATE TABLE ORDERS (ID BIGINT PRIMARY KEY, PAYLOAD VARCHAR(32))");
             sql.execute("CREATE TABLE CUSTOMERS (ID INT PRIMARY KEY, PAYLOAD VARCHAR(32))");
@@ -105,7 +105,7 @@ class JdbcSourceRuntimeTest {
     @Test
     void readerSnapshotResumesFromLastSuccessfullyEmittedPrimaryKey() throws Exception {
         JdbcConnectionOptions connection = new JdbcConnectionOptions("jdbc:h2:mem:jdbc_flow_resume;DB_CLOSE_DELAY=-1", "sa", "");
-        try (Connection opened = connection.openConnection();
+        try (Connection opened = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connection).getConnection();
                 Statement sql = opened.createStatement()) {
             sql.execute("CREATE TABLE ITEMS (ID BIGINT PRIMARY KEY, NAME VARCHAR(32))");
             for (int id = 1; id <= 10; id++) {
@@ -160,7 +160,7 @@ class JdbcSourceRuntimeTest {
     @Test
     void failedEmissionDoesNotAdvanceCheckpointPosition() throws Exception {
         JdbcConnectionOptions connection = new JdbcConnectionOptions("jdbc:h2:mem:jdbc_flow_fail;DB_CLOSE_DELAY=-1", "sa", "");
-        try (Connection opened = connection.openConnection();
+        try (Connection opened = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connection).getConnection();
                 Statement sql = opened.createStatement()) {
             sql.execute("CREATE TABLE DEMO (ID BIGINT PRIMARY KEY)");
             sql.execute("INSERT INTO DEMO VALUES (1),(2)");
@@ -194,14 +194,14 @@ class JdbcSourceRuntimeTest {
     void injectedConnectionProviderOpensSeparateEnumeratorAndFetcherConnections() throws Exception {
         JdbcConnectionOptions settings =
                 new JdbcConnectionOptions("jdbc:h2:mem:jdbc_flow_provider;DB_CLOSE_DELAY=-1", "sa", "");
-        try (Connection connection = settings.openConnection(); Statement sql = connection.createStatement()) {
+        try (Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(settings).getConnection(); Statement sql = connection.createStatement()) {
             sql.execute("CREATE TABLE DATASET (ID BIGINT PRIMARY KEY, LABEL VARCHAR(40))");
             sql.execute("INSERT INTO DATASET VALUES (1, 'first'), (2, 'second')");
         }
         AtomicInteger opened = new AtomicInteger();
         JdbcConnectionProvider provider = () -> {
             opened.incrementAndGet();
-            return settings.openConnection();
+            return new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(settings).getConnection();
         };
         JdbcSource source = new JdbcSource(
                 provider, settings.url(), List.of(new TableId(null, "PUBLIC", "DATASET")), new Configuration());

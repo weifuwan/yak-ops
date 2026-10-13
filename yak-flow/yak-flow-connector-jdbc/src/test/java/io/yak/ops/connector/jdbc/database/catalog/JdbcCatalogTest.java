@@ -26,7 +26,7 @@ class JdbcCatalogTest {
     @Test
     void discoversTablesAndSchemasWithTheFactorySelectedCatalog() throws Exception {
         JdbcConnectionOptions options = new JdbcConnectionOptions("jdbc:h2:mem:yak_catalog;DB_CLOSE_DELAY=-1", "sa", "");
-        try (Connection connection = options.openConnection(); Statement ddl = connection.createStatement()) {
+        try (Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(options).getConnection(); Statement ddl = connection.createStatement()) {
             ddl.execute("CREATE SCHEMA IF NOT EXISTS APP");
             ddl.execute("CREATE TABLE APP.ORDERS (TENANT INTEGER, ID BIGINT, AMOUNT DECIMAL(12,2), "
                     + "LABEL VARCHAR(80), PRIMARY KEY (ID, TENANT))");
@@ -57,7 +57,7 @@ class JdbcCatalogTest {
     @Test
     void exposesOnePhysicalMetadataSourceForSchemaAndUiDescriptions() throws Exception {
         JdbcConnectionOptions options = new JdbcConnectionOptions("jdbc:h2:mem:yak_catalog_details;DB_CLOSE_DELAY=-1", "sa", "");
-        try (Connection connection = options.openConnection(); Statement ddl = connection.createStatement()) {
+        try (Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(options).getConnection(); Statement ddl = connection.createStatement()) {
             ddl.execute("CREATE SCHEMA APP");
             ddl.execute("CREATE TABLE APP.PRODUCTS (TENANT INT, ID BIGINT, NAME VARCHAR(50),"
                     + " PRIMARY KEY(ID, TENANT))");
@@ -68,7 +68,7 @@ class JdbcCatalogTest {
         AtomicInteger opened = new AtomicInteger();
         try (JdbcCatalog catalog = JdbcCatalogFactory.create(options.url(), () -> {
             opened.incrementAndGet();
-            return options.openConnection();
+            return new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(options).getConnection();
         })) {
             var infos = catalog.listTableInfos(null, "APP", "prod", 10);
             assertEquals(1, infos.size());
@@ -94,7 +94,7 @@ class JdbcCatalogTest {
     @Test
     void quotedIdentifierPatternsAreEscapedForExactLookup() throws Exception {
         JdbcConnectionOptions options = new JdbcConnectionOptions("jdbc:h2:mem:yak_catalog_escape;DB_CLOSE_DELAY=-1", "sa", "");
-        try (Connection connection = options.openConnection(); Statement ddl = connection.createStatement()) {
+        try (Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(options).getConnection(); Statement ddl = connection.createStatement()) {
             ddl.execute("CREATE TABLE \"ORDERS_%\" (ID BIGINT PRIMARY KEY)");
             ddl.execute("CREATE TABLE ORDERS_XYZ (ID BIGINT PRIMARY KEY)");
         }
@@ -126,7 +126,7 @@ class JdbcCatalogTest {
     @Test
     void nullabilityAndColumnTypesUseExistingDialectConverter() throws Exception {
         JdbcConnectionOptions options = new JdbcConnectionOptions("jdbc:h2:mem:yak_catalog_types;DB_CLOSE_DELAY=-1", "sa", "");
-        try (Connection connection = options.openConnection(); Statement ddl = connection.createStatement()) {
+        try (Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(options).getConnection(); Statement ddl = connection.createStatement()) {
             ddl.execute("CREATE TABLE METADATA_SAMPLE (ID BIGINT NOT NULL PRIMARY KEY, "
                     + "AMOUNT DECIMAL(16,4), CREATED_ON DATE, CONTENT VARCHAR(64))");
         }

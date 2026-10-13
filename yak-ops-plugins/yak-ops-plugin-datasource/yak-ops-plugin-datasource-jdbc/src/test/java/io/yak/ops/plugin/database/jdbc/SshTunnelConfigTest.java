@@ -1,10 +1,11 @@
 package io.yak.ops.plugin.database.jdbc;
 
+import io.yak.ops.connector.jdbc.database.connection.SshTunnelConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.yak.ops.plugin.database.jdbc.enums.SshAuthType;
+import io.yak.ops.connector.jdbc.database.connection.SshAuthType;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

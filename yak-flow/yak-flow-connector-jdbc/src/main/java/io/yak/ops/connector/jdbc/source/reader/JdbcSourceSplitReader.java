@@ -6,7 +6,7 @@ import io.yak.ops.connector.base.source.reader.RecordsWithSplitIds;
 import io.yak.ops.connector.base.source.reader.splitreader.SplitReader;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
-import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
@@ -60,7 +60,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
 
     public JdbcSourceSplitReader(
             JdbcConnectionOptions connectionOptions, JdbcDialect dialect, Configuration configuration) {
-        this(new DriverManagerJdbcConnectionProvider(connectionOptions), dialect, configuration);
+        this(new DefaultJdbcConnectionProvider(connectionOptions), dialect, configuration);
     }
 
     public JdbcSourceSplitReader(JdbcConnectionProvider connections, JdbcDialect dialect, Configuration configuration) {

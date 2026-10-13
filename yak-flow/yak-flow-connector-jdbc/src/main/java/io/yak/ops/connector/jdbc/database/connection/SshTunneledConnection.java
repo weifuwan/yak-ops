@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.database.jdbc;
+package io.yak.ops.connector.jdbc.database.connection;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -15,7 +15,7 @@ final class SshTunneledConnection {
 
     private SshTunneledConnection() {}
 
-    static Connection wrap(Connection delegate, SshTunnel tunnel) {
+    static Connection wrap(Connection delegate, AutoCloseable tunnel) {
         AtomicBoolean closed = new AtomicBoolean(false);
         return (Connection) Proxy.newProxyInstance(
                 SshTunneledConnection.class.getClassLoader(),
@@ -24,14 +24,12 @@ final class SshTunneledConnection {
     }
 
     private static Object invoke(
-            Connection delegate, SshTunnel tunnel, AtomicBoolean closed, Method method, Object[] args)
+            Connection delegate, AutoCloseable tunnel, AtomicBoolean closed, Method method, Object[] args)
             throws Throwable {
         if ("close".equals(method.getName()) && method.getParameterCount() == 0) {
             if (closed.compareAndSet(false, true)) {
-                try {
+                try (AutoCloseable ownedTunnel = tunnel) {
                     delegate.close();
-                } finally {
-                    tunnel.close();
                 }
             }
             return null;

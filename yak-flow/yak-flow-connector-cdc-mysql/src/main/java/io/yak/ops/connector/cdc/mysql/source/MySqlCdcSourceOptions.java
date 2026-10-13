@@ -8,6 +8,11 @@ import io.yak.ops.configuration.rule.OptionRule;
 /** Physical MySQL CDC snapshot and backpressure settings owned by the Connector. */
 public final class MySqlCdcSourceOptions {
 
+    public static final Option<Integer> SERVER_ID =
+            Options.key("connector.mysql-cdc.server-id").intType().noDefaultValue();
+    public static final Option<String> TOPIC_PREFIX =
+            Options.key("connector.mysql-cdc.topic-prefix").stringType().noDefaultValue();
+
     public static final Option<Integer> SNAPSHOT_CHUNK_SIZE =
             Options.key("data-sync.mysql-cdc.snapshot-chunk-size").intType().defaultValue(1024);
 

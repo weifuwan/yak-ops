@@ -5,8 +5,8 @@ import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.task.api.TaskPluginException;
-import io.yak.ops.plugin.task.api.validation.DataSourceInfo;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.config.JobOptions;
@@ -82,15 +82,7 @@ public final class JobConfigValidator {
 
     /** Uses explicitly selected namespace values without changing saved configuration. */
     public static TableId tablePath(DataSourceInfo info, ReadonlyConfig options) {
-        String database = namespace(info.database(), options.get(JobOptions.DATABASE));
-        String schema = namespace(info.schema(), options.get(JobOptions.SCHEMA));
-        return new TableId(database, schema, options.get(JobOptions.TABLE));
-    }
-
-    private static String namespace(String bound, String selected) {
-        if (bound != null && !bound.isBlank() && selected != null && !selected.isBlank() && !bound.equals(selected)) {
-            throw new TaskPluginException("Selected namespace differs from the authorized Datasource");
-        }
-        return selected == null || selected.isBlank() ? bound : selected;
+        return info.resolveTable(
+                options.get(JobOptions.DATABASE), options.get(JobOptions.SCHEMA), options.get(JobOptions.TABLE));
     }
 }

@@ -3,7 +3,7 @@ package io.yak.ops.connector.jdbc.source.reader;
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.connector.base.source.reader.SingleThreadMultiplexSourceReaderBase;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
-import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
@@ -27,7 +27,7 @@ public final class JdbcSourceReader
             JdbcDialect dialect,
             Configuration configuration,
             SourceReaderContext context) {
-        this(new DriverManagerJdbcConnectionProvider(connection), dialect, configuration, context);
+        this(new DefaultJdbcConnectionProvider(connection), dialect, configuration, context);
     }
 
     public JdbcSourceReader(

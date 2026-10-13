@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.exception.DataSourceException;
-import io.yak.ops.business.datasource.runtime.DataSourceRuntimeService;
-import io.yak.ops.business.datasource.runtime.impl.DataSourceRuntimeServiceImpl;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
+import io.yak.ops.business.datasource.impl.DataSourceLookupServiceImpl;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
@@ -16,8 +16,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-/** Checks trusted Workspace ownership and datasource revision propagation for runtime bindings. */
-class DataSourceRuntimeServiceImplTest {
+/** Checks Workspace ownership and revision-checked connection preparation. */
+class DataSourceLookupServiceImplTest {
 
     @Test
     void resolvesRegisteredDatasourceAndRejectsAnotherWorkspace() {
@@ -42,20 +42,21 @@ class DataSourceRuntimeServiceImplTest {
                 });
 
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
-            context.registerBean(DataSourceRuntimeServiceImpl.class);
+            context.registerBean(DataSourceLookupServiceImpl.class);
             context.registerBean(DataSourceEntityRepository.class, () -> repository);
             context.registerBean(DataSourceProperties.class);
             context.refresh();
 
-            DataSourceRuntimeService service = context.getBean(DataSourceRuntimeService.class);
-            var resolved = service.connection("workspace-1", "h2-source");
-            assertEquals("TEST_H2", resolved.datasourceType());
-            assertEquals(7, resolved.revision());
-            assertEquals(H2TestDataSourcePlugin.JDBC_URL, resolved.jdbcUrl());
-            assertTrue(resolved.toString().contains("credentials=redacted"));
+            DataSourceLookupService service = context.getBean(DataSourceLookupService.class);
+            var resolved = service.connectionOptions("workspace-1", "h2-source", 7);
+            assertEquals("TEST_H2", service.dataSource("workspace-1", "h2-source").type());
+            assertThrows(IllegalStateException.class, () -> service.connectionOptions("workspace-1", "h2-source", 6));
+            assertThrows(IllegalStateException.class, () -> service.connectionOptions("workspace-1", "h2-source", 0));
+            assertEquals(H2TestDataSourcePlugin.JDBC_URL, resolved.get(io.yak.ops.connector.jdbc.JdbcConnectionOptions.URL));
+            assertTrue(!resolved.toString().contains(H2TestDataSourcePlugin.JDBC_URL));
 
             DataSourceException unavailable = assertThrows(
-                    DataSourceException.class, () -> service.connection("other-workspace", "h2-source"));
+                    DataSourceException.class, () -> service.connectionOptions("other-workspace", "h2-source", 7));
             assertEquals(DataSourceErrorCode.NOT_FOUND, unavailable.getErrorCode());
         }
     }

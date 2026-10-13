@@ -57,7 +57,8 @@ class BackendArchitectureTest {
         noClasses()
                 .that().resideInAPackage("io.yak.ops.connector..")
                 .should().dependOnClassesThat()
-                .resideInAnyPackage("io.yak.ops.business..", "io.yak.ops.dao..", "io.yak.ops.boot..")
+                .resideInAnyPackage("io.yak.ops.business..", "io.yak.ops.dao..", "io.yak.ops.boot..", "io.yak.ops.plugin.task..",
+                        "io.yak.ops.plugin.datasource..", "io.yak.ops.plugin.database..")
                 .check(PRODUCTION);
     }
 

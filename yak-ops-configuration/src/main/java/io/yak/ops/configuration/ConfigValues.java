@@ -70,7 +70,10 @@ final class ConfigValues {
         Map<String, Object> result = new LinkedHashMap<>();
         values.forEach((key, value) -> {
             String name = key.toLowerCase(Locale.ROOT);
-            boolean sensitive = name.contains("password")
+            boolean sensitive = name.equals("connection")
+                    || name.startsWith("connection.")
+                    || name.contains("passphrase")
+                    || name.contains("password")
                     || name.contains("passwd")
                     || name.contains("secret")
                     || name.contains("token")

@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.database.jdbc.enums;
+package io.yak.ops.connector.jdbc.database.connection;
 
 /**
  * Identifies the authentication mechanism for an SSH tunnel.

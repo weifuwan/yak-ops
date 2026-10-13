@@ -1,5 +1,6 @@
 package io.yak.ops.plugin.database.jdbc;
 
+import io.yak.ops.connector.jdbc.database.connection.SshTunnelConfig;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
 import java.util.Collections;
 import java.util.LinkedHashMap;

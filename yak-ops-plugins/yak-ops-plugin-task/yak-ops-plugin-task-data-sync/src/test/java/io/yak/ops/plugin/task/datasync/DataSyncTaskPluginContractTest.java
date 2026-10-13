@@ -19,16 +19,15 @@ import io.yak.ops.plugin.task.datasync.config.JobOptions;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
 import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
-import io.yak.ops.plugin.task.datasync.resource.RuntimeConnection;
-import io.yak.ops.plugin.task.datasync.resource.RuntimeResources;
-import io.yak.ops.plugin.task.datasync.resource.RuntimeTable;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import java.nio.file.Path;
-import io.yak.ops.plugin.task.api.validation.DataSourceInfo;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +35,6 @@ import org.junit.jupiter.api.Test;
 
 /** Verifies stateless plugin discovery and independent local and physical validation boundaries. */
 class DataSyncTaskPluginContractTest {
-
     private final TaskPluginRegistry registry = new TaskPluginRegistry(List.of(plugin()));
 
     @Test
@@ -52,8 +50,8 @@ class DataSyncTaskPluginContractTest {
 
     @Test
     void parsesJDBCAndMySqlCdcWithoutAddingExecutionState() {
-        ReadonlyConfig jdbc = (ReadonlyConfig) registry.get("DATA_SYNC").parse(offlineJson());
-        ReadonlyConfig cdc = (ReadonlyConfig) registry.get("DATA_SYNC").parse(realtimeJson());
+        ReadonlyConfig jdbc = registry.get("DATA_SYNC").parse(offlineJson());
+        ReadonlyConfig cdc = registry.get("DATA_SYNC").parse(realtimeJson());
         assertEquals("JDBC", JobConfig.from(jdbc).source().get(JobOptions.TYPE));
         assertEquals("MYSQL_CDC", JobConfig.from(cdc).source().get(JobOptions.TYPE));
         assertEquals("JDBC", JSONUtils.readTree(ConfigParser.toJson(jdbc)).path("source").path("type").asText());
@@ -64,26 +62,28 @@ class DataSyncTaskPluginContractTest {
 
     @Test
     void rejectsUnsupportedModesAndUndeclaredParametersOnParse() {
-        for (String json : List.of(
-                "{}",
-                "[]",
-                "{",
-                offlineJson().replace("JDBC", "KAFKA"),
+        for (String json : List.of("{}", "[]", "{", offlineJson().replace("JDBC", "KAFKA"),
                 offlineJson().replace("\"transform\": []", "\"transform\": [{}]"),
                 offlineJson().replace("\"transform\": []", "\"runtimeConfig\": {}"),
-                offlineJson().replace("APPEND", "OVERWRITE"),
-                realtimeJson().replace("UPSERT", "APPEND"))) {
+                offlineJson().replace("APPEND", "OVERWRITE"), realtimeJson().replace("UPSERT", "APPEND"))) {
             assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(json));
         }
     }
 
     @Test
     void rejectsSecretFieldsWithoutEchoingTheirValues() {
-        String json = offlineJson().replace(
-                "\"table\":\"orders\"", "\"table\":\"orders\",\"password\":\"private-value\"");
-        TaskPluginException exception = assertThrows(
-                TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(json));
+        String json = offlineJson().replace("\"table\":\"orders\"", "\"table\":\"orders\",\"password\":\"private-value\"");
+        TaskPluginException exception = assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(json));
         assertEquals("Invalid DATA_SYNC pipeline JSON", exception.getMessage());
+    }
+
+    @Test
+    void rejectsConnectionAndPreparedReplicationFieldsInDefinitions() {
+        for (String key : List.of("connection.url", "connection.password", "connector.mysql-cdc.server-id", "connector.mysql-cdc.topic-prefix")) {
+            String json = offlineJson().replace("\"table\":\"orders\"", "\"table\":\"orders\",\"" + key + "\":\"private-value\"");
+            TaskPluginException failure = assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(json));
+            assertTrue(!failure.toString().contains("private-value"));
+        }
     }
 
     @Test
@@ -93,19 +93,14 @@ class DataSyncTaskPluginContractTest {
         TaskValidationContext context = new TaskValidationContext() {
             @Override
             public DataSourceInfo dataSource(String id) {
-                return "source".equals(id)
-                        ? new DataSourceInfo("MYSQL", "app", null)
-                        : new DataSourceInfo("POSTGRE_SQL", null, "ods");
+                return "source".equals(id) ? new DataSourceInfo("MYSQL", "app", null) : new DataSourceInfo("POSTGRE_SQL", null, "ods");
             }
-
             @Override
             public TableSchema tableSchema(String datasourceId, TableId tableId) {
                 throw new AssertionError("Draft validation must not request external table metadata");
             }
         };
-
         plugin.validateReferences(parameters, context);
-
         assertEquals(null, JobConfig.from(parameters).source().get(JobOptions.DATABASE));
         assertEquals(null, JobConfig.from(parameters).sink().get(JobOptions.SCHEMA));
     }
@@ -113,31 +108,23 @@ class DataSyncTaskPluginContractTest {
     @Test
     void validatesAuthorizedMetadataWithoutRewritingExplicitTablePaths() {
         Metadata context = new Metadata();
-        ReadonlyConfig parameters =
-                (ReadonlyConfig) parseAndValidate(realtimeJson(), context);
+        ReadonlyConfig parameters = parseAndValidate(realtimeJson(), context);
         assertEquals("MYSQL_CDC", JobConfig.from(parameters).source().get(JobOptions.TYPE));
         assertEquals(null, JobConfig.from(parameters).source().get(JobOptions.DATABASE));
         assertEquals(null, JobConfig.from(parameters).sink().get(JobOptions.SCHEMA));
         assertEquals("app", context.lastSourceTable.catalog());
         assertEquals("ods", context.lastTargetTable.schema());
-
-        ReadonlyConfig bounded =
-                (ReadonlyConfig) parseAndValidate(offlineJson(), context);
+        ReadonlyConfig bounded = parseAndValidate(offlineJson(), context);
         assertEquals("JDBC", JobConfig.from(bounded).source().get(JobOptions.TYPE));
     }
 
     @Test
     void rejectsConflictsWithDatasourceBoundDatabaseAndSchema() {
         Metadata context = new Metadata();
-        String otherDatabase = offlineJson().replace(
-                "\"datasourceId\":\"source\",\"table\"", "\"datasourceId\":\"source\",\"database\":\"wrong_db\",\"table\"");
-        assertThrows(TaskPluginException.class,
-                () -> parseAndValidate(otherDatabase, context));
-
-        String otherSchema = offlineJson().replace(
-                "\"datasourceId\":\"target\",\"table\"", "\"datasourceId\":\"target\",\"schema\":\"wrong_schema\",\"table\"");
-        assertThrows(TaskPluginException.class,
-                () -> parseAndValidate(otherSchema, context));
+        String otherDatabase = offlineJson().replace("\"datasourceId\":\"source\",\"table\"", "\"datasourceId\":\"source\",\"database\":\"wrong_db\",\"table\"");
+        assertThrows(TaskPluginException.class, () -> parseAndValidate(otherDatabase, context));
+        String otherSchema = offlineJson().replace("\"datasourceId\":\"target\",\"table\"", "\"datasourceId\":\"target\",\"schema\":\"wrong_schema\",\"table\"");
+        assertThrows(TaskPluginException.class, () -> parseAndValidate(otherSchema, context));
     }
 
     @Test
@@ -151,8 +138,7 @@ class DataSyncTaskPluginContractTest {
                 return super.tableSchema(id, tableId);
             }
         };
-        assertThrows(TaskPluginException.class,
-                () -> parseAndValidate(realtimeJson(), wrong));
+        assertThrows(TaskPluginException.class, () -> parseAndValidate(realtimeJson(), wrong));
     }
 
     @Test
@@ -161,33 +147,20 @@ class DataSyncTaskPluginContractTest {
         AtomicInteger validations = new AtomicInteger();
         TaskPlugin plugin = new TaskPlugin() {
             @Override
-            public String type() {
-                return "TEST";
-            }
-
+            public String type() { return "TEST"; }
             @Override
-            public int parameterSchemaVersion() {
-                return 1;
-            }
-
+            public int parameterSchemaVersion() { return 1; }
             @Override
-            public OptionRule optionRule() {
-                return OptionRule.builder().build();
-            }
-
+            public OptionRule optionRule() { return OptionRule.builder().build(); }
             @Override
             public ReadonlyConfig parse(String content) {
                 parses.incrementAndGet();
                 return ReadonlyConfig.fromMap(java.util.Map.of());
             }
-
             @Override
             public void validateReferences(ReadonlyConfig parameters, TaskValidationContext context) {}
-
             @Override
-            public void validate(ReadonlyConfig parameters, TaskValidationContext context) {
-                validations.incrementAndGet();
-            }
+            public void validate(ReadonlyConfig parameters, TaskValidationContext context) { validations.incrementAndGet(); }
         };
         TaskPlugin registered = new TaskPluginRegistry(List.of(plugin)).get("TEST");
         ReadonlyConfig parameters = registered.parse("{}");
@@ -197,15 +170,22 @@ class DataSyncTaskPluginContractTest {
     }
 
     private static DataSyncTaskPlugin plugin() {
-        RuntimeResources unsupported = new RuntimeResources() {
+        DataSourceLookupService unsupported = new DataSourceLookupService() {
             @Override
-            public RuntimeTable table(String workspace, String id, String database, String schema, String name) {
+            public DataSourceTable table(String workspace, String id, String database, String schema, String name) {
                 throw new UnsupportedOperationException("Physical resource access is disabled in definition tests");
             }
-
             @Override
-            public RuntimeConnection connection(String workspace, String id) {
+            public ReadonlyConfig connectionOptions(String workspace, String id) {
                 throw new UnsupportedOperationException("Physical resource access is disabled in definition tests");
+            }
+            @Override
+            public ReadonlyConfig connectionOptions(String workspaceId, String datasourceId, long expectedRevision) {
+                throw new AssertionError("Connection settings are not used by this test");
+            }
+            @Override
+            public DataSourceInfo dataSource(String workspaceId, String datasourceId) {
+                throw new AssertionError("Datasource lookup is not used by this test");
             }
         };
         PipelineExecutor executor = new EmbeddedPipelineExecutor();
@@ -231,7 +211,6 @@ class DataSyncTaskPluginContractTest {
                 }
                 """;
     }
-
     static String realtimeJson() {
         return """
                 {
@@ -241,29 +220,18 @@ class DataSyncTaskPluginContractTest {
                 }
                 """;
     }
-
     static class Metadata implements TaskValidationContext {
         TableId lastSourceTable;
         TableId lastTargetTable;
-
         @Override
         public DataSourceInfo dataSource(String id) {
-            if ("source".equals(id)) {
-                return new DataSourceInfo("MYSQL", "app", null);
-            }
+            if ("source".equals(id)) { return new DataSourceInfo("MYSQL", "app", null); }
             return new DataSourceInfo("POSTGRE_SQL", null, "ods");
         }
-
         @Override
         public TableSchema tableSchema(String id, TableId tableId) {
-            if ("source".equals(id)) {
-                lastSourceTable = tableId;
-            } else {
-                lastTargetTable = tableId;
-            }
-            return new TableSchema(
-                    List.of(new Column("id", LogicalTypes.BIGINT), new Column("name", LogicalTypes.STRING)),
-                    List.of("id"));
+            if ("source".equals(id)) { lastSourceTable = tableId; } else { lastTargetTable = tableId; }
+            return new TableSchema(List.of(new Column("id", LogicalTypes.BIGINT), new Column("name", LogicalTypes.STRING)), List.of("id"));
         }
     }
 }

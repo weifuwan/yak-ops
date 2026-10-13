@@ -7,13 +7,11 @@ import io.yak.ops.configuration.Option;
 import io.yak.ops.configuration.Options;
 import io.yak.ops.configuration.rule.Conditions;
 import io.yak.ops.configuration.rule.OptionRule;
+import io.yak.ops.connector.jdbc.database.connection.JdbcDriverLoader;
+import io.yak.ops.connector.jdbc.database.connection.MySqlDriverId;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
-import io.yak.ops.plugin.database.jdbc.JdbcConnectionProperties;
-import io.yak.ops.plugin.database.jdbc.mysql.enums.MySqlDriverId;
-import io.yak.ops.plugin.database.jdbc.runtime.IsolatedJdbcDriverRuntime;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourcePlugin;
-import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
 import java.util.Map;
 import java.util.Properties;
@@ -76,7 +74,7 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
                 .build();
     }
 
-    private static final IsolatedJdbcDriverRuntime DRIVER_RUNTIME = IsolatedJdbcDriverRuntime.getInstance();
+    private static final JdbcDriverLoader DRIVER_RUNTIME = JdbcDriverLoader.getInstance();
 
     private static final Map<String, String> PROPERTY_KEYS = Map.ofEntries(
             Map.entry("useunicode", "useUnicode"),
@@ -142,16 +140,6 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
     @Override
     protected String normalizeDriverClassName(JsonNode connectionJson, String driverId) {
         return MySqlDriverId.parse(driverId).driverClassName();
-    }
-
-    @Override
-    protected Connection connectJdbc(JdbcConnectionProperties connection, String jdbcUrl, int timeoutSeconds)
-            throws Exception {
-        MySqlDriverId driverId = MySqlDriverId.parse(connection.driverId());
-        Properties properties = connectionProperties(connection);
-        properties.putIfAbsent("connectTimeout", String.valueOf(Math.max(1, timeoutSeconds) * 1000));
-        return DRIVER_RUNTIME.connect(
-                driverId.runtimeId(), driverId.driverDirectory(), driverId.driverClassName(), jdbcUrl, properties);
     }
 
     @Override

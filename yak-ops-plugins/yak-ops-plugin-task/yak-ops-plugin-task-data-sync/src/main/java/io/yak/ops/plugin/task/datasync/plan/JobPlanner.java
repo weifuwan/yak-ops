@@ -1,34 +1,36 @@
 package io.yak.ops.plugin.task.datasync.plan;
 
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.connector.base.factory.ConnectorExecutionIdentity;
 import io.yak.ops.connector.base.factory.FactoryUtil;
+import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceOptions;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.config.JobOptions;
-import io.yak.ops.plugin.task.datasync.resource.RuntimeResources;
-import io.yak.ops.plugin.task.datasync.resource.RuntimeTable;
 import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /** Resolves authorized DATA_SYNC metadata and constructs the logical Job and admission plans. */
 public final class JobPlanner {
 
-    private final RuntimeResources resources;
+    private final DataSourceLookupService resources;
     private final FactoryUtil factories;
 
-    public JobPlanner(RuntimeResources resources, FactoryUtil factories) {
+    public JobPlanner(DataSourceLookupService resources, FactoryUtil factories) {
         this.resources = Objects.requireNonNull(resources, "resources");
         this.factories = Objects.requireNonNull(factories, "factories");
     }
@@ -47,7 +49,7 @@ public final class JobPlanner {
     /**
      * Resolves source and target metadata and validates the executable JDBC Sink projection.
      *
-     * <p>Planning does not resolve connection credentials, open connections or submit jobs.
+     * <p>Planning reads authorized metadata; it does not export connection settings or submit jobs.
      *
      * @param parameters pinned DATA_SYNC definition
      * @param context trusted Task execution identity
@@ -61,13 +63,13 @@ public final class JobPlanner {
         String sinkId = sink.get(JobOptions.DATASOURCE_ID);
         var sourceFactory = factories.source(source.get(JobOptions.TYPE));
         var sinkFactory = factories.sink(sink.get(JobOptions.TYPE));
-        RuntimeTable from = resources.table(
+        DataSourceTable from = resources.table(
                 context.workspaceId(),
                 sourceId,
                 source.get(JobOptions.DATABASE),
                 source.get(JobOptions.SCHEMA),
                 source.get(JobOptions.TABLE));
-        RuntimeTable to = resources.table(
+        DataSourceTable to = resources.table(
                 context.workspaceId(),
                 sinkId,
                 sink.get(JobOptions.DATABASE),
@@ -89,13 +91,16 @@ public final class JobPlanner {
                 + encodeSchema(to.schema());
         List<ExecutionResource> claims = new ArrayList<>();
         claims.add(new ExecutionResource("DATA_SYNC_TARGET", target));
-        ConnectorExecutionIdentity identity =
-                new ConnectorExecutionIdentity(context.workspaceId(), context.definitionId(), context.instanceId());
-        for (var claim : sourceFactory.exclusiveResources(source, identity)) {
-            claims.add(new ExecutionResource(claim.type(), claim.key()));
+        Map<String, Object> prepared =
+                new LinkedHashMap<>(JobOptions.connectorOptions(source).getSourceMap());
+        if ("MYSQL_CDC".equals(sourceFactory.factoryIdentifier())) {
+            String instanceId = context.instanceId();
+            prepared.put(MySqlCdcSourceOptions.SERVER_ID.key(), MySqlCdcReplicationIdentity.serverId(instanceId));
+            prepared.put(MySqlCdcSourceOptions.TOPIC_PREFIX.key(), MySqlCdcReplicationIdentity.topicPrefix(instanceId));
+            claims.add(MySqlCdcReplicationIdentity.exclusiveResource(instanceId));
         }
         TaskAdmissionPlan admission = new TaskAdmissionPlan(claims, sha256(binding));
-        return new JobPlan(source, sink, from, to, admission);
+        return new JobPlan(source, sink, from, to, admission, ReadonlyConfig.fromMap(prepared));
     }
 
     private static String encodeTable(TableId table) {

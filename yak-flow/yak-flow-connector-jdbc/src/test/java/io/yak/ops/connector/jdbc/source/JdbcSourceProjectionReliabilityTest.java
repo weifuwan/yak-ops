@@ -110,7 +110,7 @@ class JdbcSourceProjectionReliabilityTest {
         AtomicInteger opened = new AtomicInteger();
         AtomicReference<Connection> firstConnection = new AtomicReference<>();
         JdbcConnectionProvider provider = () -> {
-            Connection connection = database.openConnection();
+            Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(database).getConnection();
             if (opened.incrementAndGet() == 1) {
                 firstConnection.set(connection);
             }
@@ -145,7 +145,7 @@ class JdbcSourceProjectionReliabilityTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new JdbcSource(database, List.of(table), new Configuration(), Map.of(table, List.of())));
-        JdbcConnectionProvider provider = database::openConnection;
+        JdbcConnectionProvider provider = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(database);
         JdbcSplitPlanner planner = new JdbcSplitPlanner(
                 provider, new AnsiJdbcDialect(), new Configuration(), Map.of(table, List.of("UNKNOWN")));
         assertThrows(SQLException.class, () -> planner.plan(table, 0));
@@ -196,7 +196,7 @@ class JdbcSourceProjectionReliabilityTest {
 
     private static JdbcConnectionOptions createRows(String url, int count) throws Exception {
         JdbcConnectionOptions database = new JdbcConnectionOptions(url, "sa", "");
-        try (Connection connection = database.openConnection(); Statement statement = connection.createStatement()) {
+        try (Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(database).getConnection(); Statement statement = connection.createStatement()) {
             statement.execute("CREATE TABLE DATASET (ID BIGINT PRIMARY KEY, LABEL VARCHAR(40))");
             try (PreparedStatement insert = connection.prepareStatement("INSERT INTO DATASET VALUES (?, ?)")) {
                 for (int index = 1; index <= count; index++) {

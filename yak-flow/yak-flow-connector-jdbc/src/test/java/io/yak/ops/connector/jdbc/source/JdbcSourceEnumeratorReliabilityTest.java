@@ -75,7 +75,7 @@ class JdbcSourceEnumeratorReliabilityTest {
 
     private JdbcConnectionOptions database(String url) throws Exception {
         JdbcConnectionOptions db = new JdbcConnectionOptions(url, "sa", "");
-        try (Connection conn = db.openConnection(); Statement sql = conn.createStatement()) {
+        try (Connection conn = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(db).getConnection(); Statement sql = conn.createStatement()) {
             sql.execute("CREATE TABLE DATASET (ID BIGINT PRIMARY KEY, LABEL VARCHAR(40))");
             sql.execute("INSERT INTO DATASET VALUES (1, 'first')");
         }

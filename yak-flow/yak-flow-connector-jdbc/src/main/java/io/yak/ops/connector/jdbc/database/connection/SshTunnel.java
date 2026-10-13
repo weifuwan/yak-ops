@@ -1,10 +1,8 @@
-package io.yak.ops.plugin.database.jdbc;
+package io.yak.ops.connector.jdbc.database.connection;
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import io.yak.ops.common.util.StringUtils;
-import io.yak.ops.plugin.database.jdbc.enums.SshAuthType;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -67,7 +65,7 @@ final class SshTunnel implements AutoCloseable {
 
     private static void configureIdentity(JSch jsch, SshTunnelConfig config) throws JSchException {
         if (config.authType() != SshAuthType.PRIVATE_KEY) return;
-        byte[] passphrase = StringUtils.isBlank(config.passphrase())
+        byte[] passphrase = (config.passphrase() == null || config.passphrase().isBlank())
                 ? null
                 : config.passphrase().getBytes(StandardCharsets.UTF_8);
         jsch.addIdentity("yak-ops-datasource", config.privateKey().getBytes(StandardCharsets.UTF_8), null, passphrase);

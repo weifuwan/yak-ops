@@ -4,7 +4,7 @@ import io.yak.ops.configuration.Configuration;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.catalog.JdbcTableMetadata;
-import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
@@ -43,7 +43,7 @@ public final class JdbcSplitPlanner {
     private final Map<TableId, List<String>> projections;
 
     public JdbcSplitPlanner(JdbcConnectionOptions connectionOptions, JdbcDialect dialect, Configuration configuration) {
-        this(new DriverManagerJdbcConnectionProvider(connectionOptions), dialect, configuration);
+        this(new DefaultJdbcConnectionProvider(connectionOptions), dialect, configuration);
     }
 
     public JdbcSplitPlanner(JdbcConnectionProvider connections, JdbcDialect dialect, Configuration configuration) {

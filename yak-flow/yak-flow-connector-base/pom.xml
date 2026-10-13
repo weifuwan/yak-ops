@@ -16,6 +16,7 @@
 
     <dependencies>
         <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId></dependency>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-spi</artifactId></dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-configuration</artifactId>

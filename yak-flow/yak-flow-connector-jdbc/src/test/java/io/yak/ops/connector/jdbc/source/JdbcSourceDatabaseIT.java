@@ -75,7 +75,7 @@ class JdbcSourceDatabaseIT {
         String binaryType = oracle ? "BLOB" : mysql ? "BLOB" : "BYTEA";
         String timestampType = oracle ? "TIMESTAMP(6)" : mysql ? "DATETIME(6)" : "TIMESTAMP(6)";
 
-        try (Connection connection = connectionOptions.openConnection();
+        try (Connection connection = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connectionOptions).getConnection();
                 Statement ddl = connection.createStatement()) {
             try {
                 ddl.execute("CREATE TABLE " + qualifiedA
@@ -244,7 +244,7 @@ class JdbcSourceDatabaseIT {
         String name = "YF_SRC_CURSOR_IT";
         String tableSql = dialect.quoteIdentifier(name);
         TableId table;
-        try (Connection setup = connectionOptions.openConnection(); Statement ddl = setup.createStatement()) {
+        try (Connection setup = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connectionOptions).getConnection(); Statement ddl = setup.createStatement()) {
             ddl.execute("DROP TABLE IF EXISTS " + tableSql);
             ddl.execute("CREATE TABLE " + tableSql + " (ID BIGINT PRIMARY KEY, LABEL VARCHAR(40))");
             table = new TableId(setup.getCatalog(), null, name);
@@ -287,7 +287,7 @@ class JdbcSourceDatabaseIT {
             assertTrue(finished);
             assertEquals(8192, count);
         } finally {
-            try (Connection cleanup = connectionOptions.openConnection(); Statement ddl = cleanup.createStatement()) {
+            try (Connection cleanup = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connectionOptions).getConnection(); Statement ddl = cleanup.createStatement()) {
                 ddl.execute("DROP TABLE IF EXISTS " + tableSql);
             }
         }

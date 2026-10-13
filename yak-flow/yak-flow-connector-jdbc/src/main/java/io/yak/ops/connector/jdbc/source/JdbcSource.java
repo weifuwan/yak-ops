@@ -3,7 +3,7 @@ package io.yak.ops.connector.jdbc.source;
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
-import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
@@ -64,7 +64,7 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
             List<TableId> tables,
             Configuration configuration,
             Map<TableId, List<String>> projections) {
-        this(new DriverManagerJdbcConnectionProvider(connection), connection.url(), tables, configuration, projections);
+        this(new DefaultJdbcConnectionProvider(connection), connection.url(), tables, configuration, projections);
     }
 
     public JdbcSource(JdbcConnectionOptions connection, List<TableId> tables) {

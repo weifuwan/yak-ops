@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.database.jdbc.mysql.enums;
+package io.yak.ops.connector.jdbc.database.connection;
 
 import java.util.Locale;
 

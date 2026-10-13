@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.database.jdbc.runtime;
+package io.yak.ops.connector.jdbc.database.connection;
 
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -18,26 +18,26 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>Each runtimeId loads once per application lifetime; driver class loaders inherit only the JDK platform loader, not the Yak Ops application loader.
  */
-public final class IsolatedJdbcDriverRuntime {
+public final class JdbcDriverLoader {
 
     private static final String DRIVER_DIR_PROPERTY = "yak.ops.jdbc-driver-dir";
     private static final String HOME_PROPERTY = "yak.ops.home";
-    private static final IsolatedJdbcDriverRuntime INSTANCE = new IsolatedJdbcDriverRuntime(resolveDriverRoot());
+    private static final JdbcDriverLoader INSTANCE = new JdbcDriverLoader(resolveDriverRoot());
 
     private final Path driverRoot;
     private final Map<String, Driver> drivers = new ConcurrentHashMap<>();
 
-    private IsolatedJdbcDriverRuntime(Path driverRoot) {
+    private JdbcDriverLoader(Path driverRoot) {
         this.driverRoot = driverRoot.toAbsolutePath().normalize();
     }
 
-    public static IsolatedJdbcDriverRuntime getInstance() {
+    public static JdbcDriverLoader getInstance() {
         return INSTANCE;
     }
 
     public Driver driver(String runtimeId, String relativeDirectory, String driverClassName) {
         if (runtimeId == null || runtimeId.isBlank()) {
-            throw new IllegalArgumentException("JDBC Driver runtimeId 不能为空");
+            throw new IllegalArgumentException("JDBC driver identifier must not be blank");
         }
         return drivers.computeIfAbsent(runtimeId, ignored -> loadDriver(relativeDirectory, driverClassName));
     }
@@ -51,7 +51,7 @@ public final class IsolatedJdbcDriverRuntime {
             Thread.currentThread().setContextClassLoader(driver.getClass().getClassLoader());
             Connection connection = driver.connect(jdbcUrl, properties);
             if (connection == null) {
-                throw new SQLException("JDBC Driver 不支持当前连接地址");
+                throw new SQLException("JDBC driver does not accept the connection URL");
             }
             return connection;
         } finally {
@@ -75,10 +75,10 @@ public final class IsolatedJdbcDriverRuntime {
     private Driver loadDriver(String relativeDirectory, String driverClassName) {
         Path directory = driverRoot.resolve(relativeDirectory).normalize();
         if (!directory.startsWith(driverRoot)) {
-            throw new IllegalArgumentException("JDBC Driver 目录必须位于驱动根目录下");
+            throw new IllegalArgumentException("JDBC driver directory must be inside the driver root");
         }
         if (!Files.isDirectory(directory)) {
-            throw new IllegalStateException("JDBC Driver 目录不存在：" + directory);
+            throw new IllegalStateException("JDBC driver directory does not exist: " + directory);
         }
 
         try {
@@ -91,7 +91,7 @@ public final class IsolatedJdbcDriverRuntime {
                         .toArray(URL[]::new);
             }
             if (urls.length == 0) {
-                throw new IllegalStateException("JDBC Driver 目录中没有 Jar：" + directory);
+                throw new IllegalStateException("JDBC driver directory contains no JAR files: " + directory);
             }
 
             URLClassLoader classLoader = new URLClassLoader(urls, ClassLoader.getPlatformClassLoader());
@@ -102,7 +102,8 @@ public final class IsolatedJdbcDriverRuntime {
                     return driver;
                 }
                 classLoader.close();
-                throw new IllegalStateException("JDBC Driver 类未实现 java.sql.Driver：" + driverClassName);
+                throw new IllegalStateException(
+                        "JDBC driver class does not implement java.sql.Driver: " + driverClassName);
             } catch (Exception exception) {
                 classLoader.close();
                 throw exception;
@@ -110,7 +111,8 @@ public final class IsolatedJdbcDriverRuntime {
         } catch (RuntimeException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw new IllegalStateException("JDBC Driver 加载失败：" + driverClassName + "，目录：" + directory, exception);
+            throw new IllegalStateException(
+                    "Unable to load JDBC driver: " + driverClassName + ", directory: " + directory, exception);
         }
     }
 
@@ -118,7 +120,7 @@ public final class IsolatedJdbcDriverRuntime {
         try {
             return path.toUri().toURL();
         } catch (Exception exception) {
-            throw new IllegalStateException("JDBC Driver Jar 地址无效：" + path, exception);
+            throw new IllegalStateException("Invalid JDBC driver JAR location: " + path, exception);
         }
     }
 

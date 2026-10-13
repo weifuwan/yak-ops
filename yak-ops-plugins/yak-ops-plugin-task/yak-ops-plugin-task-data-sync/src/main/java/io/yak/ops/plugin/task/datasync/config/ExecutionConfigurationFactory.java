@@ -23,21 +23,13 @@ public final class ExecutionConfigurationFactory {
 
     private final ReadonlyConfig options;
     private final Path stateRoot;
-    private final Configuration connectorConfiguration;
 
-    /** Creates a factory with Connector defaults. */
+    /** Creates an engine configuration factory with application-owned execution settings. */
     public ExecutionConfigurationFactory(ReadonlyConfig options, Path stateRoot) {
-        this(options, stateRoot, new Configuration());
-    }
-
-    /** Creates a factory with application-owned Connector options. */
-    public ExecutionConfigurationFactory(ReadonlyConfig options, Path stateRoot, Configuration connectorConfiguration) {
         this.options = Objects.requireNonNull(options, "options");
         ConfigValidator.of(options).validate(JobOptions.RUNTIME_RULE);
         this.stateRoot =
                 Objects.requireNonNull(stateRoot, "stateRoot").toAbsolutePath().normalize();
-        this.connectorConfiguration =
-                new Configuration(Objects.requireNonNull(connectorConfiguration, "connectorConfiguration"));
     }
 
     /**
@@ -51,7 +43,7 @@ public final class ExecutionConfigurationFactory {
         Objects.requireNonNull(identity, "identity");
         Objects.requireNonNull(boundedness, "boundedness");
         Path stateDirectory = stateDirectory(identity.instanceId());
-        Configuration configuration = new Configuration(connectorConfiguration)
+        Configuration configuration = new Configuration()
                 .set(PipelineOptions.AUTO_GENERATE_UIDS, false)
                 .set(CheckpointingOptions.STATE_DIRECTORY, stateDirectory.toString())
                 .set(ExecutionOptions.LOG_ID, identity.instanceId())

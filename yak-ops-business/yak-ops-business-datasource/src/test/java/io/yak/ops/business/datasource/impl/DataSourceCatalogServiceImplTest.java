@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.yak.ops.business.datasource.DataSourceCatalogService;
 import io.yak.ops.business.datasource.config.DataSourceProperties;
 import io.yak.ops.business.datasource.exception.DataSourceException;
-import io.yak.ops.business.datasource.runtime.impl.DataSourceRuntimeServiceImpl;
+import io.yak.ops.business.datasource.impl.DataSourceLookupServiceImpl;
 import io.yak.ops.common.bean.dto.datasource.DataSourceCatalogQueryDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceTablePathDTO;
 import io.yak.ops.common.context.WorkspaceContext;
@@ -29,7 +29,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 class DataSourceCatalogServiceImplTest {
 
     @Test
-    void spiProviderOwnsPhysicalMetadataConnectionsAndEnforcesWorkspace() throws Exception {
+    void sharedJdbcProviderReadsPhysicalMetadataAndEnforcesWorkspace() throws Exception {
         try (Connection connection = DriverManager.getConnection(H2TestDataSourcePlugin.JDBC_URL, "sa", "");
                 Statement ddl = connection.createStatement()) {
             ddl.execute("CREATE SCHEMA APP");
@@ -60,7 +60,7 @@ class DataSourceCatalogServiceImplTest {
 
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
             context.registerBean(DataSourceCatalogServiceImpl.class);
-            context.registerBean(DataSourceRuntimeServiceImpl.class);
+            context.registerBean(DataSourceLookupServiceImpl.class);
             context.registerBean(DataSourceEntityRepository.class, () -> repository);
             context.registerBean(DataSourceProperties.class);
             context.refresh();
@@ -87,9 +87,8 @@ class DataSourceCatalogServiceImplTest {
                 var schema = catalog.getTableSchema("h2-source", table);
                 assertEquals(3, schema.columnCount());
                 assertEquals(List.of("ID", "TENANT"), schema.primaryKeys());
-                assertTrue(
-                        H2TestDataSourcePlugin.CONNECTION_OPENS.get() >= 3,
-                        "Catalog queries must use SPI provider connections");
+                assertEquals(0, H2TestDataSourcePlugin.CONNECTION_OPENS.get(),
+                        "Catalog connections are opened by the shared JDBC implementation");
 
                 WorkspaceContext.bind("another-workspace");
                 DataSourceException exception = assertThrows(

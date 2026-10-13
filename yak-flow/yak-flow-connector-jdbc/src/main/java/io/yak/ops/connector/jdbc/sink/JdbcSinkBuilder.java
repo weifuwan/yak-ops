@@ -3,7 +3,7 @@ package io.yak.ops.connector.jdbc.sink;
 import io.yak.ops.connector.base.sink.writer.BatchFlushPolicy;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.database.JdbcFactoryLoader;
-import io.yak.ops.connector.jdbc.database.connection.DriverManagerJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.core.data.TableId;
@@ -113,7 +113,7 @@ public final class JdbcSinkBuilder {
         JdbcConnectionProvider provider = connections;
         if (provider == null) {
             JdbcConnectionOptions options = Objects.requireNonNull(connectionOptions, "connectionOptions");
-            provider = new DriverManagerJdbcConnectionProvider(options);
+            provider = new DefaultJdbcConnectionProvider(options);
         }
         JdbcDialect resolvedDialect = dialect;
         if (resolvedDialect == null) {
