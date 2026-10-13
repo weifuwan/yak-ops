@@ -70,7 +70,12 @@ public class InstanceServiceImpl implements InstanceService {
 
     @Override
     public PageData<InstanceEntity> page(
-            String workspaceId, long pageNo, long pageSize, String definitionId, TaskInstanceStatus status, String taskType) {
+            String workspaceId,
+            long pageNo,
+            long pageSize,
+            String definitionId,
+            TaskInstanceStatus status,
+            String taskType) {
         if (pageNo < 1 || pageSize < 1 || pageSize > 200) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }

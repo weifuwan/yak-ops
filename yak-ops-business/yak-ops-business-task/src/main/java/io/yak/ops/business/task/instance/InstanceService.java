@@ -58,5 +58,10 @@ public interface InstanceService {
      * @return ordered page of persisted Instances
      */
     PageData<InstanceEntity> page(
-            String workspaceId, long pageNo, long pageSize, String definitionId, TaskInstanceStatus status, String taskType);
+            String workspaceId,
+            long pageNo,
+            long pageSize,
+            String definitionId,
+            TaskInstanceStatus status,
+            String taskType);
 }

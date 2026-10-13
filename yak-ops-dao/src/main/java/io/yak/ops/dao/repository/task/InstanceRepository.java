@@ -54,7 +54,12 @@ public interface InstanceRepository {
      * @return Workspace-owned Task Instance page
      */
     PageData<InstanceEntity> page(
-            String workspaceId, long pageNo, long pageSize, String definitionId, TaskInstanceStatus status, String taskType);
+            String workspaceId,
+            long pageNo,
+            long pageSize,
+            String definitionId,
+            TaskInstanceStatus status,
+            String taskType);
 
     /**
      * Transitions only an admitted SUBMITTED Instance to RUNNING.
