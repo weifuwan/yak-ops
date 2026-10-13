@@ -10,6 +10,18 @@ import org.junit.jupiter.api.Test;
 class TaskExecutionMigrationTest {
 
     @Test
+    void addsAnInstanceScopedRelativeLogPath() throws IOException {
+        String sql;
+        try (var stream = getClass().getResourceAsStream("/db/migration/yak-ops/V8__task_instance_logging.sql")) {
+            assertTrue(stream != null);
+            sql = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        assertTrue(sql.contains("ALTER TABLE yak_ops_task_instance"));
+        assertTrue(sql.contains("log_path VARCHAR(512)"));
+        assertTrue(sql.contains("COMMENT 'Relative task execution log path'"));
+    }
+
+    @Test
     void movesPhysicalDispatchIntoTheSingleInstanceRecord() throws IOException {
         String sql;
         try (var resource =
