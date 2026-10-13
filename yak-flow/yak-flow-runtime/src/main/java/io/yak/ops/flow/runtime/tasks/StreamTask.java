@@ -3,6 +3,7 @@ package io.yak.ops.flow.runtime.tasks;
 import io.yak.ops.core.api.connector.source.InputStatus;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
+import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.flow.runtime.tasks.mailbox.MailboxDefaultAction;
 import io.yak.ops.flow.runtime.tasks.mailbox.MailboxExecutor;
 import io.yak.ops.flow.runtime.tasks.mailbox.MailboxProcessor;
@@ -14,6 +15,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * StreamTask owns one execution thread and an independent MailboxProcessor.
@@ -23,6 +27,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * control thread, fixed polling interval or arbitrary mail-draining budget is involved.
  */
 public abstract class StreamTask implements AutoCloseable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StreamTask.class);
 
     private final TaskEnvironment environment;
     private final Object lifecycleLock = new Object();
@@ -137,7 +143,16 @@ public abstract class StreamTask implements AutoCloseable {
                         new IllegalStateException("StreamTask cannot start more than once or after cancellation"));
             }
             startRequested = true;
-            Thread thread = Thread.ofVirtual().name(taskInfo().threadName()).unstarted(this::run);
+            String logId = environment.configuration().get(ExecutionOptions.LOG_ID);
+            Thread thread = Thread.ofVirtual().name(taskInfo().threadName()).unstarted(() -> {
+                if (logId == null || logId.isBlank()) {
+                    run();
+                } else {
+                    try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId)) {
+                        run();
+                    }
+                }
+            });
             worker = thread;
             try {
                 thread.start();
@@ -350,6 +365,7 @@ public abstract class StreamTask implements AutoCloseable {
                 failure = asyncFailure.get();
             }
             if (failure != null && !(failure instanceof CancellationException)) {
+                LOG.error("YakFlow StreamTask failed, task={}", taskInfo().threadName(), failure);
                 try {
                     taskFailed(failure);
                 } catch (Throwable callbackFailure) {

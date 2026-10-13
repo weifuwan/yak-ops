@@ -32,6 +32,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 /** Executes already-admitted Tasks on the verified single embedded execution owner. */
@@ -107,7 +108,11 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     @Override
     public void dispatch(String workspaceId, String instanceId) {
         owner.incarnation();
-        workers.execute(() -> launch(workspaceId, instanceId));
+        workers.execute(() -> {
+            try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", instanceId)) {
+                launch(workspaceId, instanceId);
+            }
+        });
     }
 
     /**
@@ -137,6 +142,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             if (ticket == null) {
                 return;
             }
+            LOG.info("Task Instance launch claimed, instanceId={}", instanceId);
             TaskExecutionIdentity context = new TaskExecutionIdentity(
                     ticket.workspaceId(), ticket.definitionId(), ticket.definitionVersion(), ticket.instanceId());
             TaskPlugin plugin = registry.get(ticket.taskType());
@@ -178,10 +184,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
                     lifecycle.complete(ticket, TaskOutcome.FAILED);
                 }
             }
-            LOG.error(
-                    "Task dispatch failed, instanceId={}, exceptionType={}",
-                    instanceId,
-                    failure.getClass().getSimpleName());
+            LOG.error("Task dispatch failed, instanceId={}", instanceId, failure);
         }
     }
 

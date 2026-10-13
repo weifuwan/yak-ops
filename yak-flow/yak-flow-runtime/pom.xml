@@ -16,6 +16,7 @@
     <description>Single-node local execution runtime for YakFlow</description>
 
     <dependencies>
+        <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId></dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-configuration</artifactId>

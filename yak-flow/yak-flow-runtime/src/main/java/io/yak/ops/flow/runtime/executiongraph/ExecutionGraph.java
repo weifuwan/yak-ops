@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -27,6 +30,8 @@ import java.util.concurrent.TimeUnit;
  * Task deployment and local channels are delegated to TaskDeployment; JobClient is only a handle.
  */
 public final class ExecutionGraph {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ExecutionGraph.class);
 
     private final JobGraph jobGraph;
     private final List<ExecutionJobVertex> jobVertices;
@@ -94,7 +99,16 @@ public final class ExecutionGraph {
 
     /** Submits this Job exactly once; the worker is owned by the ExecutionGraph, not the JobClient. */
     public void start() {
-        Thread thread = Thread.ofVirtual().name("yak-local-job-" + getJobID()).unstarted(this::run);
+        String logId = jobGraph.configuration().get(ExecutionOptions.LOG_ID);
+        Thread thread = Thread.ofVirtual().name("yak-local-job-" + getJobID()).unstarted(() -> {
+            if (logId == null || logId.isBlank()) {
+                run();
+            } else {
+                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId)) {
+                    run();
+                }
+            }
+        });
         synchronized (monitor) {
             if (worker != null) {
                 throw new IllegalStateException("Job has already been started");
@@ -115,6 +129,7 @@ public final class ExecutionGraph {
             return;
         }
 
+        LOG.info("YakFlow Job started, jobId={}", getJobID());
         long startedNanos = System.nanoTime();
         int maxRestarts = jobGraph.configuration().get(ExecutionOptions.MAX_RESTART_ATTEMPTS);
         int attempt = 0;
@@ -146,6 +161,7 @@ public final class ExecutionGraph {
                         // A checkpoint request for the old attempt must never access its closed coordinator.
                         checkpointController = new CompletableFuture<>();
                         attempt++;
+                        LOG.warn("YakFlow Job restarting from checkpoint, jobId={}, restart={}", getJobID(), attempt);
                         continue;
                     } catch (Throwable resetFailure) {
                         failure.addSuppressed(resetFailure);
@@ -189,6 +205,7 @@ public final class ExecutionGraph {
         if (canceled) {
             notifyCanceled();
         } else {
+            LOG.info("YakFlow Job finished, jobId={}, durationMs={}", getJobID(), durationMillis);
             result.complete(new JobExecutionResult(getJobID(), durationMillis));
         }
     }
@@ -202,6 +219,7 @@ public final class ExecutionGraph {
     }
 
     private void notifyCanceled() {
+        LOG.info("YakFlow Job canceled, jobId={}", getJobID());
         result.completeExceptionally(new CancellationException("Job was cancelled: " + getJobID()));
         cancellation.complete(null);
     }
@@ -213,6 +231,7 @@ public final class ExecutionGraph {
             status = JobStatus.FAILED;
             wasCancellationRequested = cancellationRequested;
         }
+        LOG.error("YakFlow Job failed, jobId={}", getJobID(), failure);
         result.completeExceptionally(failure);
         if (wasCancellationRequested) {
             cancellation.completeExceptionally(failure);

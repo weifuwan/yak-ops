@@ -6,6 +6,7 @@ import io.yak.ops.connector.base.source.reader.SourceReaderOptions;
 import io.yak.ops.connector.base.source.reader.splitreader.SplitReader;
 import io.yak.ops.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
 import io.yak.ops.core.api.connector.source.SourceSplit;
+import io.yak.ops.core.configuration.ExecutionOptions;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -13,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadFactory;
+import org.slf4j.MDC;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -31,8 +34,7 @@ public abstract class SplitFetcherManager<E, SplitT extends SourceSplit> {
     private final ConcurrentHashMap<Integer, SplitFetcher<E, SplitT>> fetchers = new ConcurrentHashMap<>();
     private final AtomicReference<Throwable> fetcherError = new AtomicReference<>();
     private final AtomicInteger nextId = new AtomicInteger();
-    private final ExecutorService workers = Executors.newThreadPerTaskExecutor(
-            Thread.ofVirtual().name("yak-source-fetcher-", 0).factory());
+    private final ExecutorService workers;
 
     private volatile boolean closed;
 
@@ -42,6 +44,17 @@ public abstract class SplitFetcherManager<E, SplitT extends SourceSplit> {
         int capacity =
                 Objects.requireNonNull(configuration, "configuration").get(SourceReaderOptions.ELEMENT_QUEUE_CAPACITY);
         this.queue = new FutureCompletingBlockingQueue<>(capacity);
+        String logId = configuration.get(ExecutionOptions.LOG_ID);
+        ThreadFactory threads = Thread.ofVirtual().name("yak-source-fetcher-", 0).factory();
+        this.workers = Executors.newThreadPerTaskExecutor(action -> threads.newThread(() -> {
+            if (logId == null || logId.isBlank()) {
+                action.run();
+            } else {
+                try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", logId)) {
+                    action.run();
+                }
+            }
+        }));
     }
 
     /**

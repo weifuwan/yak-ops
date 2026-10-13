@@ -17,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 /** Observes submitted physical Jobs and commits their authoritative business outcomes. */
@@ -41,7 +42,11 @@ public class TaskExecutionObserver implements AutoCloseable {
      * @param submission pending physical execution handle
      */
     public void observe(DispatchTicket ticket, CompletionStage<TaskHandle> submission) {
-        submission.whenCompleteAsync((handle, failure) -> observeSubmission(ticket, handle, failure), callbacks);
+        submission.whenCompleteAsync((handle, failure) -> {
+            try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
+                observeSubmission(ticket, handle, failure);
+            }
+        }, callbacks);
     }
 
     /**
@@ -96,11 +101,16 @@ public class TaskExecutionObserver implements AutoCloseable {
             TaskRuntimeReference reference =
                     handle.runtimeReference().orElse(new TaskRuntimeReference(ticket.taskType(), ticket.instanceId()));
             lifecycle.started(ticket, reference);
+            LOG.info("Task Instance Job started, instanceId={}, jobId={}", instanceId, reference.id());
             if (instances.instance(ticket.workspaceId(), instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
                 handle.cancel();
             }
             handle.completion()
-                    .whenCompleteAsync((outcome, error) -> observeTerminal(ticket, handle, outcome, error), callbacks);
+                    .whenCompleteAsync((outcome, error) -> {
+                        try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
+                            observeTerminal(ticket, handle, outcome, error);
+                        }
+                    }, callbacks);
         } catch (RuntimeException observationFailure) {
             lifecycle.uncertain(ticket);
             active.remove(instanceId, handle);
@@ -115,6 +125,7 @@ public class TaskExecutionObserver implements AutoCloseable {
         try {
             if (failure == null && outcome != null) {
                 lifecycle.complete(ticket, outcome);
+                LOG.info("Task Instance completed, instanceId={}, outcome={}", ticket.instanceId(), outcome);
             } else {
                 lifecycle.uncertain(ticket);
             }
