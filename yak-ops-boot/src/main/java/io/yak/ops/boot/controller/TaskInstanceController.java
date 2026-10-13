@@ -1,7 +1,7 @@
 package io.yak.ops.boot.controller;
 
-import io.yak.ops.boot.config.TaskDispatcher;
-import io.yak.ops.business.task.execution.ExecutionLifecycleService;
+import io.yak.ops.business.task.instance.InstanceService;
+import io.yak.ops.task.execution.TaskExecutionService;
 import io.yak.ops.common.bean.dto.task.InstancePageDTO;
 import io.yak.ops.common.bean.vo.task.AttemptVO;
 import io.yak.ops.common.bean.vo.task.InstanceVO;
@@ -27,14 +27,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class TaskInstanceController {
 
     @Resource
-    private ExecutionLifecycleService lifecycle;
+    private InstanceService instances;
 
     @Resource
-    private TaskDispatcher dispatcher;
+    private TaskExecutionService execution;
 
     @GetMapping("/{id}")
     public Result<InstanceVO> detail(@PathVariable String id) {
-        return Result.success(toInstance(lifecycle.instance(WorkspaceContext.requireWorkspaceId(), id)));
+        return Result.success(toInstance(instances.instance(WorkspaceContext.requireWorkspaceId(), id)));
     }
 
     @PostMapping("/page")
@@ -49,7 +49,7 @@ public class TaskInstanceController {
 
     @GetMapping("/{id}/attempts")
     public Result<List<AttemptVO>> attempts(@PathVariable String id) {
-        return Result.success(lifecycle.attempts(WorkspaceContext.requireWorkspaceId(), id).stream()
+        return Result.success(instances.attempts(WorkspaceContext.requireWorkspaceId(), id).stream()
                 .map(this::toAttempt)
                 .toList());
     }
@@ -57,7 +57,7 @@ public class TaskInstanceController {
     @PostMapping("/{id}/cancel")
     public Result<String> cancel(@PathVariable String id) {
         String workspaceId = WorkspaceContext.requireWorkspaceId();
-        return Result.success(dispatcher.cancel(workspaceId, id).name());
+        return Result.success(execution.cancel(workspaceId, id).name());
     }
 
     private InstanceVO toInstance(InstanceEntity value) {

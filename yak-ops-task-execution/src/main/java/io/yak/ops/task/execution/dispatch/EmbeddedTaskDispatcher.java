@@ -1,7 +1,8 @@
-package io.yak.ops.boot.config;
+package io.yak.ops.task.execution.dispatch;
 
-import io.yak.ops.business.task.execution.DispatchTicket;
-import io.yak.ops.business.task.execution.ExecutionLifecycleService;
+import io.yak.ops.business.task.instance.DispatchTicket;
+import io.yak.ops.business.task.instance.InstanceLifecycleService;
+import io.yak.ops.business.task.instance.InstanceService;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.dao.entity.task.ExecutionClaimEntity;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
@@ -15,8 +16,6 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionContext;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionPlan;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
-import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;
-import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
@@ -25,7 +24,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,15 +34,21 @@ import org.springframework.stereotype.Component;
 
 /** Executes already-admitted Tasks on the verified single embedded execution owner. */
 @Component
-public class TaskDispatcher implements AutoCloseable {
+public class EmbeddedTaskDispatcher implements AutoCloseable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(TaskDispatcher.class);
+    private static final Logger LOG = LoggerFactory.getLogger(EmbeddedTaskDispatcher.class);
 
     @Resource
     private EmbeddedExecutionOwner owner;
 
     @Resource
-    private ExecutionLifecycleService lifecycle;
+    private InstanceLifecycleService lifecycle;
+
+    @Resource
+    private InstanceService instances;
+
+    @Resource
+    private TaskExecutionObserver observer;
 
     @Resource
     private TaskPluginRegistry registry;
@@ -58,10 +62,9 @@ public class TaskDispatcher implements AutoCloseable {
     private final ExecutorService workers = Executors.newVirtualThreadPerTaskExecutor();
     private final ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor(
             Thread.ofVirtual().name("task-dispatch-reconcile", 0).factory());
-    private final ConcurrentHashMap<String, TaskHandle> active = new ConcurrentHashMap<>();
     private final Object[] launchFences = new Object[256];
 
-    public TaskDispatcher() {
+    public EmbeddedTaskDispatcher() {
         Arrays.setAll(launchFences, index -> new Object());
     }
 
@@ -115,10 +118,7 @@ public class TaskDispatcher implements AutoCloseable {
         synchronized (launchFence(instanceId)) {
             TaskInstanceStatus result = lifecycle.cancel(workspaceId, instanceId);
             if (result == TaskInstanceStatus.CANCELLING) {
-                TaskHandle handle = active.get(instanceId);
-                if (handle != null) {
-                    handle.cancel();
-                }
+                observer.cancel(instanceId);
             }
             return result;
         }
@@ -160,7 +160,7 @@ public class TaskDispatcher implements AutoCloseable {
             DispatchTicket launched = ticket;
             CompletionStage<TaskHandle> submitted;
             synchronized (launchFence(instanceId)) {
-                if (lifecycle.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
+                if (instances.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
                     lifecycle.complete(ticket, TaskOutcome.CANCELED);
                     return;
                 }
@@ -169,7 +169,7 @@ public class TaskDispatcher implements AutoCloseable {
             }
             // Runtime completion may run on an interrupted YakFlow Job thread. Business
             // transactions must execute on a fresh thread to keep JDBC connections usable.
-            submitted.whenCompleteAsync((handle, error) -> observeSubmission(launched, handle, error), workers);
+            observer.observe(launched, submitted);
         } catch (RuntimeException failure) {
             if (ticket != null) {
                 if (physicalStartInvoked) {
@@ -185,72 +185,6 @@ public class TaskDispatcher implements AutoCloseable {
         }
     }
 
-    private void observeSubmission(DispatchTicket ticket, TaskHandle handle, Throwable failure) {
-        if (failure != null) {
-            Throwable cause = failure;
-            if (cause instanceof java.util.concurrent.CompletionException && cause.getCause() != null) {
-                cause = cause.getCause();
-            }
-            try {
-                if (cause instanceof TaskStartRejectedException) {
-                    lifecycle.complete(ticket, TaskOutcome.FAILED);
-                } else {
-                    lifecycle.uncertain(ticket);
-                }
-            } catch (RuntimeException persistFailure) {
-                LOG.error(
-                        "Task submission result could not be persisted, instanceId={}, exceptionType={}",
-                        ticket.instanceId(),
-                        persistFailure.getClass().getSimpleName());
-            }
-            return;
-        }
-        String instanceId = ticket.instanceId();
-        active.put(instanceId, handle);
-        try {
-            TaskRuntimeReference reference =
-                    handle.runtimeReference().orElse(new TaskRuntimeReference(ticket.taskType(), ticket.attemptId()));
-            lifecycle.started(ticket, reference);
-            if (lifecycle.instance(ticket.workspaceId(), instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
-                handle.cancel();
-            }
-            handle.completion()
-                    .whenCompleteAsync((outcome, error) -> observeTerminal(ticket, handle, outcome, error), workers);
-        } catch (RuntimeException observationFailure) {
-            lifecycle.uncertain(ticket);
-            active.remove(instanceId, handle);
-            LOG.error(
-                    "Unable to observe Task execution, instanceId={}, exceptionType={}",
-                    instanceId,
-                    observationFailure.getClass().getSimpleName());
-        }
-    }
-
-    private void observeTerminal(DispatchTicket ticket, TaskHandle handle, TaskOutcome outcome, Throwable failure) {
-        try {
-            if (failure == null && outcome != null) {
-                lifecycle.complete(ticket, outcome);
-            } else {
-                lifecycle.uncertain(ticket);
-            }
-        } catch (RuntimeException persistenceFailure) {
-            LOG.error(
-                    "Task terminal outcome persistence failed, instanceId={}, exceptionType={}",
-                    ticket.instanceId(),
-                    persistenceFailure.getClass().getSimpleName());
-            try {
-                lifecycle.uncertain(ticket);
-            } catch (RuntimeException reconciliationFailure) {
-                LOG.error(
-                        "Unable to protect uncertain Task execution, instanceId={}, exceptionType={}",
-                        ticket.instanceId(),
-                        reconciliationFailure.getClass().getSimpleName());
-            }
-        } finally {
-            active.remove(ticket.instanceId(), handle);
-        }
-    }
-
     private ExecutionResource resource(ExecutionClaimEntity claim) {
         return new ExecutionResource(claim.getResourceType(), claim.getResourceKey());
     }
@@ -259,16 +193,7 @@ public class TaskDispatcher implements AutoCloseable {
     @Override
     public void close() {
         poller.shutdownNow();
-        active.forEach((instanceId, handle) -> {
-            try {
-                handle.cancel();
-            } catch (RuntimeException exception) {
-                LOG.warn(
-                        "Unable to request Task shutdown cancellation, instanceId={}, exceptionType={}",
-                        instanceId,
-                        exception.getClass().getSimpleName());
-            }
-        });
+        observer.cancelActive();
         workers.shutdown();
     }
 }

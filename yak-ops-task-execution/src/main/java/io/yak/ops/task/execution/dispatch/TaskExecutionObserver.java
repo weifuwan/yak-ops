@@ -1,0 +1,144 @@
+package io.yak.ops.task.execution.dispatch;
+
+import io.yak.ops.business.task.instance.DispatchTicket;
+import io.yak.ops.business.task.instance.InstanceLifecycleService;
+import io.yak.ops.business.task.instance.InstanceService;
+import io.yak.ops.common.enums.task.TaskInstanceStatus;
+import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import io.yak.ops.plugin.task.api.execution.TaskOutcome;
+import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;
+import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+/** Observes submitted physical Jobs and commits their authoritative business outcomes. */
+@Component
+public class TaskExecutionObserver implements AutoCloseable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TaskExecutionObserver.class);
+
+    @Resource
+    private InstanceLifecycleService lifecycle;
+
+    @Resource
+    private InstanceService instances;
+
+    private final ConcurrentHashMap<String, TaskHandle> active = new ConcurrentHashMap<>();
+    private final ExecutorService callbacks = Executors.newVirtualThreadPerTaskExecutor();
+
+    /**
+     * Attaches submission and terminal callbacks to a physically started Task.
+     *
+     * @param ticket durable launch ownership token
+     * @param submission pending physical execution handle
+     */
+    public void observe(DispatchTicket ticket, CompletionStage<TaskHandle> submission) {
+        submission.whenCompleteAsync((handle, failure) -> observeSubmission(ticket, handle, failure), callbacks);
+    }
+
+    /**
+     * Requests cancellation of one active physical execution.
+     *
+     * @param instanceId active Task Instance identity
+     */
+    public void cancel(String instanceId) {
+        TaskHandle handle = active.get(instanceId);
+        if (handle != null) {
+            handle.cancel();
+        }
+    }
+
+    /** Requests cancellation for all active physical executions during process shutdown. */
+    public void cancelActive() {
+        active.forEach((instanceId, handle) -> {
+            try {
+                handle.cancel();
+            } catch (RuntimeException failure) {
+                LOG.warn(
+                        "Unable to request Task shutdown cancellation, instanceId={}, exceptionType={}",
+                        instanceId,
+                        failure.getClass().getSimpleName());
+            }
+        });
+    }
+
+    private void observeSubmission(DispatchTicket ticket, TaskHandle handle, Throwable failure) {
+        if (failure != null) {
+            Throwable cause = failure;
+            if (cause instanceof CompletionException && cause.getCause() != null) {
+                cause = cause.getCause();
+            }
+            try {
+                if (cause instanceof TaskStartRejectedException) {
+                    lifecycle.complete(ticket, TaskOutcome.FAILED);
+                } else {
+                    lifecycle.uncertain(ticket);
+                }
+            } catch (RuntimeException persistFailure) {
+                LOG.error(
+                        "Task submission result could not be persisted, instanceId={}, exceptionType={}",
+                        ticket.instanceId(),
+                        persistFailure.getClass().getSimpleName());
+            }
+            return;
+        }
+        String instanceId = ticket.instanceId();
+        active.put(instanceId, handle);
+        try {
+            TaskRuntimeReference reference =
+                    handle.runtimeReference().orElse(new TaskRuntimeReference(ticket.taskType(), ticket.attemptId()));
+            lifecycle.started(ticket, reference);
+            if (instances.instance(ticket.workspaceId(), instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
+                handle.cancel();
+            }
+            handle.completion()
+                    .whenCompleteAsync((outcome, error) -> observeTerminal(ticket, handle, outcome, error), callbacks);
+        } catch (RuntimeException observationFailure) {
+            lifecycle.uncertain(ticket);
+            active.remove(instanceId, handle);
+            LOG.error(
+                    "Unable to observe Task execution, instanceId={}, exceptionType={}",
+                    instanceId,
+                    observationFailure.getClass().getSimpleName());
+        }
+    }
+
+    private void observeTerminal(DispatchTicket ticket, TaskHandle handle, TaskOutcome outcome, Throwable failure) {
+        try {
+            if (failure == null && outcome != null) {
+                lifecycle.complete(ticket, outcome);
+            } else {
+                lifecycle.uncertain(ticket);
+            }
+        } catch (RuntimeException persistenceFailure) {
+            LOG.error(
+                    "Task terminal outcome persistence failed, instanceId={}, exceptionType={}",
+                    ticket.instanceId(),
+                    persistenceFailure.getClass().getSimpleName());
+            try {
+                lifecycle.uncertain(ticket);
+            } catch (RuntimeException reconciliationFailure) {
+                LOG.error(
+                        "Unable to protect uncertain Task execution, instanceId={}, exceptionType={}",
+                        ticket.instanceId(),
+                        reconciliationFailure.getClass().getSimpleName());
+            }
+        } finally {
+            active.remove(ticket.instanceId(), handle);
+        }
+    }
+
+    @PreDestroy
+    @Override
+    public void close() {
+        callbacks.shutdown();
+    }
+}
