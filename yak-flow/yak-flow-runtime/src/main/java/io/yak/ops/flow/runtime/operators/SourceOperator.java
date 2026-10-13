@@ -14,6 +14,9 @@ import io.yak.ops.flow.runtime.source.event.SourceEventWrapper;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Task-owned operator that manages a SourceReader's execution and control events.
@@ -27,12 +30,19 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class SourceOperator<T, SplitT extends SourceSplit> implements OperatorEventHandler, AutoCloseable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SourceOperator.class);
+    private static final long REPORT_INTERVAL_NANOS = TimeUnit.SECONDS.toNanos(30);
+
     private final Source<T, SplitT, ?> source;
     private final SourceReaderContext readerContext;
     private SourceReader<T, SplitT> reader;
     private boolean started;
     private boolean noMoreSplits;
     private boolean finished;
+    private long recordsOut;
+    private long lastReportedRows;
+    private final long startedNanos = System.nanoTime();
+    private long lastReportNanos = startedNanos;
 
     public SourceOperator(Source<T, SplitT, ?> source, SourceReaderContext readerContext) {
         this.source = Objects.requireNonNull(source, "source must not be null");
@@ -119,14 +129,39 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         if (finished) {
             return InputStatus.END_OF_INPUT;
         }
-        InputStatus status = Objects.requireNonNull(reader.pollNext(output), "pollNext must not return null");
+        InputStatus status = Objects.requireNonNull(reader.pollNext(record -> {
+            output.collect(record);
+            recordsOut++;
+        }), "pollNext must not return null");
+        reportProgress(false);
         if (status == InputStatus.END_OF_INPUT) {
             if (!noMoreSplits) {
                 throw new IllegalStateException("Reader reported END_OF_INPUT before receiving NoMoreSplits");
             }
             finished = true;
+            reportProgress(true);
         }
         return status;
+    }
+
+    /** Reports successful downstream emissions for this Source subtask and physical attempt. */
+    private void reportProgress(boolean terminal) {
+        long now = System.nanoTime();
+        long elapsed = now - lastReportNanos;
+        if (!terminal && elapsed < REPORT_INTERVAL_NANOS) {
+            return;
+        }
+        long emitted = recordsOut - lastReportedRows;
+        long rate = elapsed > 0 ? Math.round(emitted * 1_000_000_000.0 / elapsed) : 0;
+        if (terminal) {
+            LOG.info("Source summary, subtask={}, recordsOut={}, durationMs={}",
+                    readerContext.getIndexOfSubtask(), recordsOut, (now - startedNanos) / 1_000_000);
+        } else {
+            LOG.info("Source progress, subtask={}, recordsOut={}, readRate={}",
+                    readerContext.getIndexOfSubtask(), recordsOut, rate);
+        }
+        lastReportedRows = recordsOut;
+        lastReportNanos = now;
     }
 
     /** Returns the reader's next availability future for task-mailbox suspension. */
