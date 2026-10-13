@@ -49,6 +49,8 @@ export const dataSyncTriggerText = (triggerType?: string) => {
   return triggerType || "-";
 };
 
+const metricCountText = (count?: number): string => count?.toLocaleString() ?? "-";
+
 export const dataSyncDurationText = (record: DataSyncInstanceRecord) => {
   if (!record.startTime) return "-";
   const start = Date.parse(record.startTime);
@@ -312,8 +314,8 @@ export function DataSyncExecutionDetailContent({
 
         <div className="mt-5 grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-md:grid-cols-1">
           {[
-            [readLabel, record.readRows == null ? "-" : record.readRows.toLocaleString()],
-            [writeLabel, record.writeRows == null ? "-" : record.writeRows.toLocaleString()],
+            [readLabel, metricCountText(record.readRows)],
+            [writeLabel, metricCountText(record.writeRows)],
             ["尝试次数", attempts.length ? String(attempts.length) : "-"],
             ["耗时", dataSyncDurationText(record)],
           ].map(([label, value]) => (
@@ -365,10 +367,7 @@ export function DataSyncExecutionDetailContent({
                 width: 140,
                 align: "right",
                 render: (_value, attempt) =>
-                  [
-                    attempt.readRows?.toLocaleString() ?? "-",
-                    attempt.writeRows?.toLocaleString() ?? "-",
-                  ].join(" / "),
+                  `${metricCountText(attempt.readRows)} / ${metricCountText(attempt.writeRows)}`,
               },
               {
                 key: "error",
