@@ -105,11 +105,10 @@ def dump_threads(app):
         print(f"Unable to capture JVM thread state: {error}", flush=True)
 
 
-def boot():
-    global APP
+def boot_environment(port):
     environment = os.environ.copy()
     environment.update({
-        "SERVER_PORT": "18080",
+        "SERVER_PORT": str(port),
         "YAK_DATABASE_URL": (
             "jdbc:mysql://127.0.0.1:3306/yak_security"
             "?useSSL=false&allowPublicKeyRetrieval=true"),
@@ -120,6 +119,12 @@ def boot():
         "YAK_SECURITY_BOOTSTRAP_REAL_NAME": "Task acceptance",
         "YAK_LOG_FILE": "/tmp/yak-task-e2e-application.log",
     })
+    return environment
+
+
+def boot():
+    global APP
+    environment = boot_environment(18080)
     with BOOT_LOG.open("a", encoding="utf-8") as output:
         process = subprocess.Popen(
             ["java", "-jar", str(JAR),
@@ -148,6 +153,27 @@ def shutdown(process, force=False):
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait(timeout=10)
+
+
+def verify_single_embedded_owner():
+    log = Path("/tmp/yak-task-e2e-rejected-owner.log")
+    with log.open("w", encoding="utf-8") as output:
+        contender = subprocess.Popen(
+            ["java", "-jar", str(JAR),
+             "--yak.task.execution.state-directory=" + str(STATE_ROOT)],
+            stdout=output, stderr=subprocess.STDOUT,
+            env=boot_environment(18081))
+    try:
+        until(
+            "Concurrent embedded execution owner rejected",
+            contender.poll,
+            lambda code: code is not None,
+            timeout=40)
+        evidence = log.read_text(encoding="utf-8")
+        if "Another Yak Ops embedded executor owns the local state directory" not in evidence:
+            raise AssertionError("Second Boot process was not rejected by its state-root owner lock")
+    finally:
+        shutdown(contender, force=True)
 
 
 def create_datasource(client, name, kind, database, username, port):
@@ -228,6 +254,7 @@ def acceptance():
         "(id BIGINT PRIMARY KEY, name VARCHAR(32) NOT NULL)")
     app = boot()
     try:
+        verify_single_embedded_owner()
         client = Client()
         client.login()
         workspace = client.call(
