@@ -88,9 +88,10 @@ public class TaskLogService {
                         position++;
                         continue;
                     }
-                    String line = raw.length() > MAX_LINE_LENGTH
-                            ? raw.substring(0, MAX_LINE_LENGTH) + " [truncated]"
-                            : raw;
+                    String line = raw;
+                    if (raw.length() > MAX_LINE_LENGTH) {
+                        line = raw.substring(0, MAX_LINE_LENGTH) + " [truncated]";
+                    }
                     int length = line.getBytes(StandardCharsets.UTF_8).length + 1;
                     if (lines >= limit || (lines > 0 && bytes + length > MAX_PAGE_BYTES)) {
                         more = true;
@@ -153,7 +154,8 @@ public class TaskLogService {
                 if (instance.isEmpty()
                         || instance.orElseThrow().getStatus() == null
                         || !instance.orElseThrow().getStatus().isTerminal()
-                        || !("tasks/" + id + "/task.log").equals(instance.orElseThrow().getLogPath())) {
+                        || !("tasks/" + id + "/task.log")
+                                .equals(instance.orElseThrow().getLogPath())) {
                     continue;
                 }
                 List<Path> files = segments(task);
@@ -181,7 +183,9 @@ public class TaskLogService {
                 }
             }
         } catch (IOException failure) {
-            LOG.warn("Task log retention cleanup failed, exceptionType={}", failure.getClass().getSimpleName());
+            LOG.warn(
+                    "Task log retention cleanup failed, exceptionType={}",
+                    failure.getClass().getSimpleName());
         }
     }
 
@@ -207,8 +211,8 @@ public class TaskLogService {
             return List.of();
         }
         try (var files = Files.list(taskDirectory)) {
-            List<Path> ordered = new ArrayList<>(files
-                    .filter(file -> Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS))
+            List<Path> ordered = new ArrayList<>(files.filter(
+                            file -> Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS))
                     .filter(file -> {
                         String name = file.getFileName().toString();
                         return name.equals("task.log") || ARCHIVE.matcher(name).matches();
