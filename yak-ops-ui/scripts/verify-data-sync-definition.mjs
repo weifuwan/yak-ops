@@ -42,7 +42,11 @@ assert.equal("parametersFormat" in created, false);
 assert.equal(typeof created.parameters, "string");
 assert.equal(JSON.parse(created.parameters).sink.writeMode, "UPSERT");
 
-const metadataOnly = updateDefinitionRequest({ name: "renamed", remark: "new remark", debug: true });
+const metadataOnly = updateDefinitionRequest({
+  name: "renamed",
+  remark: "new remark",
+  debug: true,
+});
 assert.equal(metadataOnly.debug, true);
 assert.equal(metadataOnly.parameters, undefined);
 assert.equal(JSON.parse(updateDefinitionRequest(offline).parameters).source.table, "orders");

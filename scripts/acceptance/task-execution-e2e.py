@@ -289,6 +289,35 @@ def acceptance():
             "SELECT COUNT(*) FROM public.ods_orders") == "2"
         assert claim_count(first) == 0
 
+        # Dashboard metrics read the pinned version rather than scanning Instance pages.
+        dashboard_path = "/api/v1/data-sync/operations/dashboard"
+        offline_metrics = client.call("GET", dashboard_path + "?syncType=OFFLINE&range=LAST_7_DAYS")
+        assert offline_metrics["summary"]["executionCount"] == 1
+        assert offline_metrics["summary"]["succeededCount"] == 1
+        assert offline_metrics["summary"]["failedCount"] == 0
+        assert offline_metrics["summary"]["runningCount"] == 0
+        assert len(offline_metrics["trend"]) == 7
+        assert sum(point["executionCount"] for point in offline_metrics["trend"]) == 1
+        assert offline_metrics["recentFailures"] == []
+        assert client.call(
+            "GET", dashboard_path + "?syncType=REALTIME&range=LAST_7_DAYS"
+        )["summary"]["executionCount"] == 0
+        assert client.call("GET", dashboard_path + "?syncType=OTHER", status=400) is None
+        assert client.call(
+            "GET", dashboard_path + "?syncType=OFFLINE&range=FOREVER", status=400
+        ) is None
+
+        # Another Workspace cannot observe this Task's metrics.
+        second_workspace = client.call(
+            "POST", "/api/v1/workspaces",
+            {"name": "metrics-" + uuid.uuid4().hex[:10]})["id"]
+        client.workspace = second_workspace
+        empty_metrics = client.call(
+            "GET", dashboard_path + "?syncType=OFFLINE&range=LAST_7_DAYS")
+        assert empty_metrics["summary"]["executionCount"] == 0
+        assert empty_metrics["summary"]["runningCount"] == 0
+        client.workspace = workspace
+
         # Public operations must reflect the admitted Definition version and lifecycle.
         instance = client.call("GET", f"/api/v1/task-instances/{first}")
         assert instance["definitionId"] == jdbc
@@ -338,6 +367,10 @@ def acceptance():
         wait_status(client, running, {"RUNNING"})
         assert claim_count(running) == 2
         assert client.call("GET", f"/api/v1/task-instances/{running}")["debug"] is False
+        live_metrics = client.call(
+            "GET", dashboard_path + "?syncType=REALTIME&range=LAST_7_DAYS")
+        assert live_metrics["summary"]["executionCount"] == 1
+        assert live_metrics["summary"]["runningCount"] == 1
         until(
             "CDC task log",
             lambda: client.call("GET", f"/api/v1/task-instances/{running}/logs?limit=200"),
@@ -366,6 +399,10 @@ def acceptance():
             "POST", f"/api/v1/task-instances/{running}/cancel")
         wait_status(client, running, {"CANCELED"}, timeout=35)
         assert claim_count(running) == 0
+        stopped_metrics = client.call(
+            "GET", dashboard_path + "?syncType=REALTIME&range=LAST_7_DAYS")
+        assert stopped_metrics["summary"]["canceledCount"] == 1
+        assert stopped_metrics["summary"]["runningCount"] == 0
 
         interrupted, _ = submit(client, cdc)
         interrupted_id = interrupted["instanceId"]
