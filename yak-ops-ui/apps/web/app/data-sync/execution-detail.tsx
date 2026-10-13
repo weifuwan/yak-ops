@@ -323,7 +323,6 @@ export function DataSyncExecutionDetailContent({
             </div>
           ))}
         </div>
-
       </DetailSection>
 
       {showAttemptHistory ? (
@@ -393,7 +392,6 @@ export function DataSyncExecutionDetailContent({
             emptyText="暂无 Attempt"
             scroll={{ x: 900 }}
           />
-
         </DetailSection>
       ) : null}
     </div>
