@@ -44,7 +44,6 @@ interface Props {
 export function DataSyncTaskDetailPage({
   syncType,
   basePath,
-  title,
   localScroll = false,
 }: Props) {
   const realtime = syncType === "REALTIME";
@@ -260,6 +259,35 @@ export function DataSyncTaskDetailPage({
   );
 }
 
-export function DataSyncLegacyInstanceDetailRedirect() {
-  return null;
+interface DataSyncLegacyInstanceDetailRedirectProps {
+  syncType: DataSyncType;
+  basePath: string;
+}
+
+export function DataSyncLegacyInstanceDetailRedirect({
+  syncType,
+  basePath,
+}: DataSyncLegacyInstanceDetailRedirectProps) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!id) {
+      navigate(basePath, { replace: true });
+      return;
+    }
+    void getDataSyncInstance(id)
+      .then((record) => {
+        if (record.syncType !== syncType) {
+          navigate(basePath, { replace: true });
+          return;
+        }
+        navigate(`${basePath}/${record.taskId}/detail?executionId=${record.id}`, {
+          replace: true,
+        });
+      })
+      .catch(() => navigate(basePath, { replace: true }));
+  }, [basePath, id, navigate, syncType]);
+
+  return <div className="p-6 text-sm text-[#667085]">加载中...</div>;
 }

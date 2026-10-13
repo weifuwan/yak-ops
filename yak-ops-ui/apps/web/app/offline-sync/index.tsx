@@ -1,5 +1,4 @@
 import {
-  Badge,
   Button,
   Field,
   FieldLabel,
@@ -25,8 +24,6 @@ import { listDataSources, type DataSourceRecord } from "@/service/datasource";
 import { getUsersByIds, type UserRecord } from "@/service/user";
 import {
   deleteDataSyncTask,
-  disableDataSyncSchedule,
-  enableDataSyncSchedule,
   listDataSyncTasks,
   publishDataSyncTask,
   runDataSyncTask,
@@ -219,30 +216,6 @@ export function OfflineSyncPage() {
     }
   };
 
-  const enableSchedule = async (record: DataSyncTaskRecord) => {
-    if (actionKey || !record.scheduleCronExpression || !isPublishedTask(record)) return;
-    setActionKey(`${record.id}:schedule-enable`);
-    try {
-      await enableDataSyncSchedule(record.id);
-      toast.success("离线调度已启动");
-      await loadTasks();
-    } finally {
-      setActionKey(undefined);
-    }
-  };
-
-  const disableSchedule = async (record: DataSyncTaskRecord) => {
-    if (actionKey || !record.scheduleCronExpression) return;
-    setActionKey(`${record.id}:schedule-disable`);
-    try {
-      await disableDataSyncSchedule(record.id);
-      toast.success("离线调度已停止");
-      await loadTasks();
-    } finally {
-      setActionKey(undefined);
-    }
-  };
-
   const columns: TableColumns<DataSyncTaskRecord> = [
     {
       key: "name",
@@ -282,53 +255,6 @@ export function OfflineSyncPage() {
             <span className="min-w-0 truncate" title={targetText}>
               {targetText}
             </span>
-          </div>
-        );
-      },
-    },
-    {
-      key: "schedule",
-      title: "调度",
-      width: 240,
-      render: (_value, record) => {
-        if (!record.scheduleCronExpression) {
-          return <span className="text-xs text-[#98a2b3]">手动</span>;
-        }
-
-        const enabled = Boolean(record.scheduleEnabled);
-        const published = isPublishedTask(record);
-        const enableLoading = actionKey === `${record.id}:schedule-enable`;
-        const disableLoading = actionKey === `${record.id}:schedule-disable`;
-        const scheduleLoading = enableLoading || disableLoading;
-
-        return (
-          <div className="min-w-0">
-            <div
-              className="truncate text-xs font-medium text-[#475467]"
-              title={record.scheduleCronExpression}
-            >
-              Cron: {record.scheduleCronExpression}
-            </div>
-            <div className="mt-1 flex items-center gap-1.5">
-              <Badge tone={enabled ? "success" : "neutral"}>{enabled ? "已启动" : "未启动"}</Badge>
-              <Button
-                variant="ghost"
-                size="small"
-                loading={scheduleLoading}
-                disabled={(Boolean(actionKey) && !scheduleLoading) || (!enabled && !published)}
-                className={
-                  enabled
-                    ? "px-1 text-xs font-normal text-[#d92d20]"
-                    : "px-1 text-xs font-normal text-[var(--yak-color-primary)]"
-                }
-                onClick={() => {
-                  if (enabled) void disableSchedule(record);
-                  else void enableSchedule(record);
-                }}
-              >
-                {enabled ? "停止" : "启动"}
-              </Button>
-            </div>
           </div>
         );
       },

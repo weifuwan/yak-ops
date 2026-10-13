@@ -31,6 +31,7 @@ import {
 import { canCancelTaskInstance } from "@/service/data-sync/execution";
 
 import {
+  DataSyncExecutionConfigContent,
   DataSyncExecutionDetailContent,
   dataSyncDurationText,
   dataSyncInstanceStatusMeta,
@@ -139,20 +140,6 @@ export function DataSyncInstances({ syncType, basePath, taskId }: DataSyncInstan
       title: "启动方式",
       width: 100,
       render: (_value, record) => dataSyncTriggerText(record.triggerType),
-    },
-    {
-      key: "readRows",
-      title: realtime ? "读取事件" : "读取",
-      width: 110,
-      align: "right",
-      render: (_value, record) => record.readRows?.toLocaleString() ?? "-",
-    },
-    {
-      key: "writeRows",
-      title: realtime ? "写入事件" : "写入",
-      width: 110,
-      align: "right",
-      render: (_value, record) => record.writeRows?.toLocaleString() ?? "-",
     },
     {
       key: "startTime",
@@ -370,8 +357,10 @@ export function DataSyncInstanceDetailPage({
           record={record}
           attempts={attempts}
           realtime={realtime}
-          showRealtimeStopCaution
         />
+        <div className="mt-4">
+          <DataSyncExecutionConfigContent record={record} realtime={realtime} />
+        </div>
       </div>
     </div>
   );

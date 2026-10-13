@@ -1,5 +1,4 @@
 import HttpUtils from "@/service/http/HttpUtils";
-import { BizError } from "@/service/http/request";
 import {
   cancelTaskInstance,
   createTaskRunIdempotencyKey,
@@ -28,26 +27,14 @@ import {
 
 import type {
   DataSyncAttemptRecord,
-  DataSyncExecutionEventRecord,
   DataSyncInstancePageParams,
   DataSyncInstancePageResult,
   DataSyncInstanceRecord,
-  DataSyncOperationsDashboard,
-  DataSyncOperationsDashboardPayload,
-  DataSyncSchedulePreview,
-  DataSyncScheduleRecord,
-  DataSyncScheduleSavePayload,
-  DataSyncSinkTraceRecord,
-  DataSyncSourceTraceRecord,
-  DataSyncTaskOperationPageResult,
   DataSyncTaskPageParams,
   DataSyncTaskPageResult,
   DataSyncTaskRecord,
   DataSyncTaskSavePayload,
   DataSyncTaskUpdatePayload,
-  DataSyncTracePage,
-  DataSyncTraceQuery,
-  DataSyncTraceSummary,
   TaskDefinitionPageResult,
   TaskDefinitionRecord,
 } from "./types";
@@ -66,22 +53,6 @@ export const listDataSyncTasks = async (
   );
   return { ...page, bizData: page.bizData.map(toSyncTaskRecord) };
 };
-
-export const listDataSyncOperationTasks = (
-  params: DataSyncTaskPageParams,
-): Promise<DataSyncTaskOperationPageResult> =>
-  HttpUtils.postData<DataSyncTaskOperationPageResult>(
-    `${DATA_SYNC_API_PREFIX}/operations/tasks/page`,
-    params,
-  );
-
-export const getDataSyncOperationsDashboard = (
-  payload: DataSyncOperationsDashboardPayload,
-): Promise<DataSyncOperationsDashboard> =>
-  HttpUtils.postData<DataSyncOperationsDashboard>(
-    `${DATA_SYNC_API_PREFIX}/operations/dashboard`,
-    payload,
-  );
 
 export const getDataSyncTask = async (id: string): Promise<DataSyncTaskRecord> => {
   const definition = await HttpUtils.getData<TaskDefinitionRecord>(
@@ -196,84 +167,3 @@ export const cancelDataSyncInstance = (id: string): Promise<TaskInstanceStatus> 
 export const listDataSyncAttempts = async (id: string): Promise<DataSyncAttemptRecord[]> =>
   (await listTaskAttempts(id)).map((attempt) => toDataSyncAttemptRecord(attempt, id));
 
-export const listDataSyncExecutionEvents = (id: string): Promise<DataSyncExecutionEventRecord[]> =>
-  HttpUtils.getData<DataSyncExecutionEventRecord[]>(`${DATA_SYNC_API_PREFIX}/instances/${id}/logs`);
-
-const traceQuery = (query?: DataSyncTraceQuery) => {
-  const params = new URLSearchParams();
-  if (query?.attemptNo) params.set("attemptNo", String(query.attemptNo));
-  if (query?.pageSize) params.set("pageSize", String(query.pageSize));
-  if (query?.cursor) params.set("cursor", query.cursor);
-  if (query?.status) params.set("status", query.status);
-  const value = params.toString();
-  return value ? `?${value}` : "";
-};
-
-export const getDataSyncTraceSummary = (
-  id: string,
-  attemptNo?: number,
-): Promise<DataSyncTraceSummary> =>
-  HttpUtils.getData<DataSyncTraceSummary>(
-    `${DATA_SYNC_API_PREFIX}/instances/${id}/trace/summary${traceQuery({ attemptNo })}`,
-  );
-
-export const listDataSyncSourceTrace = (
-  id: string,
-  query?: DataSyncTraceQuery,
-): Promise<DataSyncTracePage<DataSyncSourceTraceRecord>> =>
-  HttpUtils.getData<DataSyncTracePage<DataSyncSourceTraceRecord>>(
-    `${DATA_SYNC_API_PREFIX}/instances/${id}/trace/source${traceQuery(query)}`,
-  );
-
-export const listDataSyncSinkTrace = (
-  id: string,
-  query?: DataSyncTraceQuery,
-): Promise<DataSyncTracePage<DataSyncSinkTraceRecord>> =>
-  HttpUtils.getData<DataSyncTracePage<DataSyncSinkTraceRecord>>(
-    `${DATA_SYNC_API_PREFIX}/instances/${id}/trace/sink${traceQuery(query)}`,
-  );
-
-const DATA_SYNC_SCHEDULE_NOT_FOUND_CODE = 42015;
-
-export const getDataSyncSchedule = async (
-  id: string,
-): Promise<DataSyncScheduleRecord | undefined> => {
-  try {
-    const schedule = await HttpUtils.getData<DataSyncScheduleRecord | null>(
-      `${DATA_SYNC_API_PREFIX}/tasks/${id}/schedule`,
-      { skipErrorHandler: true },
-    );
-    return schedule || undefined;
-  } catch (error) {
-    if (error instanceof BizError && error.code === DATA_SYNC_SCHEDULE_NOT_FOUND_CODE) {
-      return undefined;
-    }
-    throw error;
-  }
-};
-
-export const saveDataSyncSchedule = (
-  id: string,
-  payload: DataSyncScheduleSavePayload,
-): Promise<DataSyncScheduleRecord> =>
-  HttpUtils.putData<DataSyncScheduleRecord>(
-    `${DATA_SYNC_API_PREFIX}/tasks/${id}/schedule`,
-    payload,
-  );
-
-export const previewDataSyncSchedule = (
-  payload: DataSyncScheduleSavePayload,
-): Promise<DataSyncSchedulePreview> =>
-  HttpUtils.postData<DataSyncSchedulePreview>(
-    `${DATA_SYNC_API_PREFIX}/schedules/preview`,
-    payload,
-    { skipErrorHandler: true },
-  );
-
-export const enableDataSyncSchedule = (id: string): Promise<DataSyncScheduleRecord> =>
-  HttpUtils.postData<DataSyncScheduleRecord>(`${DATA_SYNC_API_PREFIX}/tasks/${id}/schedule/enable`);
-
-export const disableDataSyncSchedule = (id: string): Promise<DataSyncScheduleRecord> =>
-  HttpUtils.postData<DataSyncScheduleRecord>(
-    `${DATA_SYNC_API_PREFIX}/tasks/${id}/schedule/disable`,
-  );

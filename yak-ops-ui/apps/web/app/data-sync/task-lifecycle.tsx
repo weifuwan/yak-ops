@@ -115,7 +115,7 @@ export function DataSyncTaskLifecycleActions({
       key: "lifecycle",
       label: published ? "下线" : "上线",
       className: "text-[var(--yak-color-primary)]",
-      disabled: published && Boolean(activeInstance),
+
       loading: actionKey === `${record.id}:${lifecycleAction}`,
       onClick: () => (published ? onUnpublish(record) : onPublish(record)),
     },

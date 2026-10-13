@@ -22,6 +22,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { listDataSources, type DataSourceRecord } from "@/service/datasource";
 import { getUsersByIds, type UserRecord } from "@/service/user";
+import { canCancelTaskInstance } from "@/service/data-sync/execution";
+
 import {
   cancelDataSyncInstance,
   deleteDataSyncTask,
@@ -226,7 +228,7 @@ export function RealtimeSyncPage() {
   };
 
   const stopTask = async (record: DataSyncTaskRecord, activeInstance: DataSyncInstanceRecord) => {
-    if (actionKey) return;
+    if (actionKey || !canCancelTaskInstance(activeInstance.status)) return;
     setActionKey(`${record.id}:stop`);
     try {
       await cancelDataSyncInstance(activeInstance.id);
@@ -348,17 +350,12 @@ export function RealtimeSyncPage() {
         const stopping = Boolean(activeInstance);
         const runtimeActionKey = `${record.id}:${stopping ? "stop" : "start"}`;
         const runtimeLoading = actionKey === runtimeActionKey;
-        let runtimeLabel = "启动";
-        let runtimeClassName = "text-[#667085]";
-        if (stopping) {
-          runtimeLabel = "停止";
-          runtimeClassName = "text-[#d92d20]";
-        } else if (record.desiredState === "RUNNING") {
-          runtimeLabel = "重新启动";
-          runtimeClassName = published ? "text-[var(--yak-color-primary)]" : "text-[#667085]";
-        } else if (published) {
-          runtimeClassName = "text-[var(--yak-color-primary)]";
-        }
+        const runtimeLabel = stopping ? "停止" : "启动";
+        const runtimeClassName = stopping
+          ? "text-[#d92d20]"
+          : published
+            ? "text-[var(--yak-color-primary)]"
+            : "text-[#667085]";
 
         return (
           <DataSyncTaskLifecycleActions
@@ -368,7 +365,9 @@ export function RealtimeSyncPage() {
             runtimeAction={{
               label: runtimeLabel,
               loading: runtimeLoading,
-              disabled: !stopping && !published,
+              disabled: activeInstance
+                ? !canCancelTaskInstance(activeInstance.status)
+                : !published,
               className: runtimeClassName,
               onClick: () => {
                 if (activeInstance) void stopTask(record, activeInstance);
