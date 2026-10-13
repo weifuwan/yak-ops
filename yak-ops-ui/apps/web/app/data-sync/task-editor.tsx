@@ -642,7 +642,11 @@ export function DataSyncTaskEditorPage({ syncType }: DataSyncTaskEditorPageProps
               </Field>
               <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
                 <FieldLabel>Debug</FieldLabel>
-                <Switch size="small" checked={form.debug} onCheckedChange={(checked) => patch("debug", checked)} />
+                <Switch
+                  size="small"
+                  checked={form.debug}
+                  onCheckedChange={(checked) => patch("debug", checked)}
+                />
               </Field>
             </div>
           </CollapseSection>

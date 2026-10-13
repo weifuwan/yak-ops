@@ -96,15 +96,15 @@ public final class SourceCoordinator<SplitT extends SourceSplit, EnumStateT> imp
         this.coordinatorContext = Objects.requireNonNull(coordinatorContext, "coordinatorContext must not be null");
         this.restoredEnumeratorState = restoredEnumeratorState;
         this.restoring = restoring;
-        String logDebug = MDC.get("taskLogDebug");
+        String logDebug = Boolean.toString("true".equals(MDC.get("taskLogDebug")));
         ThreadFactory coordinatorThreads =
                 Thread.ofVirtual().name("yak-source-coordinator-", 0).factory();
         ThreadFactory discoveryThreads =
                 Thread.ofVirtual().name("yak-source-discovery-", 0).factory();
-        this.eventLoop =
-                Executors.newSingleThreadExecutor(action -> coordinatorThreads.newThread(withLogId(logId, logDebug, action)));
-        this.discovery =
-                Executors.newSingleThreadExecutor(action -> discoveryThreads.newThread(withLogId(logId, action)));
+        this.eventLoop = Executors.newSingleThreadExecutor(
+                action -> coordinatorThreads.newThread(withLogId(logId, logDebug, action)));
+        this.discovery = Executors.newSingleThreadExecutor(
+                action -> discoveryThreads.newThread(withLogId(logId, logDebug, action)));
         this.context = new SourceCoordinatorContext<>(
                 coordinatorContext, source.getSplitSerializer(), eventLoop, discovery, () -> eventThread, this::fail);
     }

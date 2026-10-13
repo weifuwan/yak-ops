@@ -129,10 +129,12 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         if (finished) {
             return InputStatus.END_OF_INPUT;
         }
-        InputStatus status = Objects.requireNonNull(reader.pollNext(record -> {
-            output.collect(record);
-            recordsOut++;
-        }), "pollNext must not return null");
+        InputStatus status = Objects.requireNonNull(
+                reader.pollNext(record -> {
+                    output.collect(record);
+                    recordsOut++;
+                }),
+                "pollNext must not return null");
         reportProgress(false);
         if (status == InputStatus.END_OF_INPUT) {
             if (!noMoreSplits) {
@@ -154,11 +156,17 @@ public final class SourceOperator<T, SplitT extends SourceSplit> implements Oper
         long emitted = recordsOut - lastReportedRows;
         long rate = elapsed > 0 ? Math.round(emitted * 1_000_000_000.0 / elapsed) : 0;
         if (terminal) {
-            LOG.info("Source summary, subtask={}, recordsOut={}, durationMs={}",
-                    readerContext.getIndexOfSubtask(), recordsOut, (now - startedNanos) / 1_000_000);
+            LOG.info(
+                    "Source summary, subtask={}, recordsOut={}, durationMs={}",
+                    readerContext.getIndexOfSubtask(),
+                    recordsOut,
+                    (now - startedNanos) / 1_000_000);
         } else {
-            LOG.info("Source progress, subtask={}, recordsOut={}, readRate={}",
-                    readerContext.getIndexOfSubtask(), recordsOut, rate);
+            LOG.info(
+                    "Source progress, subtask={}, recordsOut={}, readRate={}",
+                    readerContext.getIndexOfSubtask(),
+                    recordsOut,
+                    rate);
         }
         lastReportedRows = recordsOut;
         lastReportNanos = now;
