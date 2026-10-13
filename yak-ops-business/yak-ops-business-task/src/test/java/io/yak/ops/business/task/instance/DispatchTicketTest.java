@@ -38,6 +38,7 @@ class DispatchTicketTest {
                 2,
                 "DATA_SYNC",
                 "revision-one",
-                "opaque-dispatch-token");
+                "opaque-dispatch-token",
+                false);
     }
 }

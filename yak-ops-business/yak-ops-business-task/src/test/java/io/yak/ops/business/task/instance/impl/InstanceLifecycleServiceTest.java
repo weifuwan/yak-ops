@@ -165,7 +165,7 @@ class InstanceLifecycleServiceTest {
     }
 
     private static DispatchTicket ticket() {
-        return new DispatchTicket("ws", "i", "d", 1, "DATA_SYNC", "r", "token-1");
+        return new DispatchTicket("ws", "i", "d", 1, "DATA_SYNC", "r", "token-1", false);
     }
 
     private void inject(String fieldName, Object dependency) {

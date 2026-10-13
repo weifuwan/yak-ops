@@ -73,7 +73,7 @@ class DataSyncExecutionTest {
         assertEquals(0, resources.connections.get());
 
         var handle =
-                plugin.start(parameters, plan, CONTEXT).toCompletableFuture().join();
+                plugin.start(parameters, plan, CONTEXT, false).toCompletableFuture().join();
         assertEquals(1, submissions.get());
         assertEquals("YAKFLOW", handle.runtimeReference().orElseThrow().engine());
         assertEquals(
@@ -112,7 +112,7 @@ class DataSyncExecutionTest {
                 List.of("id"));
         CompletionException failure = assertThrows(
                 CompletionException.class,
-                () -> plugin.start(parameters, admitted, CONTEXT)
+                () -> plugin.start(parameters, admitted, CONTEXT, false)
                         .toCompletableFuture()
                         .join());
         assertInstanceOf(TaskStartRejectedException.class, failure.getCause());
@@ -131,7 +131,7 @@ class DataSyncExecutionTest {
         resources.targetRevision++;
         CompletionException failure = assertThrows(
                 CompletionException.class,
-                () -> plugin.start(parameters, admitted, CONTEXT)
+                () -> plugin.start(parameters, admitted, CONTEXT, false)
                         .toCompletableFuture()
                         .join());
         assertInstanceOf(TaskStartRejectedException.class, failure.getCause());
@@ -149,7 +149,7 @@ class DataSyncExecutionTest {
         TaskAdmissionPlan plan = plugin.plan(parameters, CONTEXT);
         assertTrue(plan.resourceRevision().length() <= 128);
         var handle =
-                plugin.start(parameters, plan, CONTEXT).toCompletableFuture().join();
+                plugin.start(parameters, plan, CONTEXT, false).toCompletableFuture().join();
         assertEquals("YAKFLOW", handle.runtimeReference().orElseThrow().engine());
         assertEquals(1, submissions.get());
         assertEquals(0, resources.openedConnections.get());
@@ -168,7 +168,7 @@ class DataSyncExecutionTest {
         };
         DataSyncTaskPlugin plugin = plugin(resources, capture);
         ReadonlyConfig jdbc = parameters(false);
-        plugin.start(jdbc, plugin.plan(jdbc, CONTEXT), CONTEXT)
+        plugin.start(jdbc, plugin.plan(jdbc, CONTEXT, false), CONTEXT)
                 .toCompletableFuture()
                 .join();
         StreamGraph bounded = lastGraph.get();
@@ -185,7 +185,7 @@ class DataSyncExecutionTest {
                 "data-sync-sink-definition", bounded.getSinkNodes().getFirst().getUid());
         assertEquals(java.time.Duration.ZERO, lastConfiguration.get().get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
         ReadonlyConfig cdc = parameters(true);
-        plugin.start(cdc, plugin.plan(cdc, CONTEXT), CONTEXT)
+        plugin.start(cdc, plugin.plan(cdc, CONTEXT, false), CONTEXT)
                 .toCompletableFuture()
                 .join();
         StreamGraph continuous = lastGraph.get();
@@ -210,7 +210,7 @@ class DataSyncExecutionTest {
         resources.sourceConnectionRevision = 2;
         CompletionException failure = assertThrows(
                 CompletionException.class,
-                () -> plugin.start(parameters, plan, CONTEXT)
+                () -> plugin.start(parameters, plan, CONTEXT, false)
                         .toCompletableFuture()
                         .join());
         assertInstanceOf(TaskStartRejectedException.class, failure.getCause());
@@ -228,7 +228,7 @@ class DataSyncExecutionTest {
         TaskAdmissionPlan plan = plugin.plan(parameters, CONTEXT);
         CompletionException failure = assertThrows(
                 CompletionException.class,
-                () -> plugin.start(parameters, plan, CONTEXT)
+                () -> plugin.start(parameters, plan, CONTEXT, false)
                         .toCompletableFuture()
                         .join());
         assertInstanceOf(TaskStartRejectedException.class, failure.getCause());
@@ -272,7 +272,7 @@ class DataSyncExecutionTest {
                                 .toReadonlyConfig()),
                 Map.of());
         ReadonlyConfig parameters = parameters(true);
-        var compiled = builder.build(planner.plan(parameters, CONTEXT), CONTEXT);
+        var compiled = builder.build(planner.plan(parameters, CONTEXT, false), CONTEXT);
         assertEquals(2, compiled.graph().getSourceNodes().getFirst().getParallelism());
         assertEquals(1, compiled.graph().getSinkNodes().getFirst().getParallelism());
         assertEquals(Duration.ofMillis(750), compiled.configuration().get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
@@ -304,7 +304,7 @@ class DataSyncExecutionTest {
                 new ExecutionConfigurationFactory(settings, Path.of("target/data-sync")));
         ReadonlyConfig parameters = parameters(true);
         assertThrows(
-                UnsupportedOperationException.class, () -> builder.build(planner.plan(parameters, CONTEXT), CONTEXT));
+                UnsupportedOperationException.class, () -> builder.build(planner.plan(parameters, CONTEXT, false), CONTEXT));
         assertEquals(0, resources.connections.get());
         assertEquals(0, resources.openedConnections.get());
     }
@@ -325,7 +325,7 @@ class DataSyncExecutionTest {
                 Map.of("JDBC", sourceSettings),
                 Map.of());
 
-        var compiled = builder.build(planner.plan(parameters(false), CONTEXT), CONTEXT);
+        var compiled = builder.build(planner.plan(parameters(false), CONTEXT, false), CONTEXT);
         Object source = compiled.graph().getSourceNodes().getFirst().getSource().orElseThrow();
         Configuration sourceConfiguration = (Configuration) field(source, "configuration");
         assertEquals(1000, sourceConfiguration.get(JdbcSourceOptions.RESULT_SET_FETCH_SIZE));
@@ -355,7 +355,7 @@ class DataSyncExecutionTest {
                 Map.of("JDBC", sinkSettings));
 
         var plan = new JobPlanner(resources, factories).plan(parameters(false), CONTEXT);
-        var compiled = builder.build(plan, CONTEXT);
+        var compiled = builder.build(plan, CONTEXT, false);
         Object source = compiled.graph().getSourceNodes().getFirst().getSource().orElseThrow();
         Object sink = compiled.graph().getSinkNodes().getFirst().getSink().orElseThrow();
         JdbcConnectionOptions sourceConnection =
@@ -387,7 +387,7 @@ class DataSyncExecutionTest {
                 new ExecutionConfigurationFactory(JobOptions.defaults(), Path.of("target/data-sync")),
                 Map.of("JDBC", unknown),
                 Map.of());
-        assertThrows(IllegalArgumentException.class, () -> invalidSource.build(plan, CONTEXT));
+        assertThrows(IllegalArgumentException.class, () -> invalidSource.build(plan, CONTEXT, false));
         for (ReadonlyConfig invalidSink : List.of(unknown, sourceOnly)) {
             PipelineBuilder builder = new PipelineBuilder(
                     resources,
@@ -396,7 +396,7 @@ class DataSyncExecutionTest {
                     new ExecutionConfigurationFactory(JobOptions.defaults(), Path.of("target/data-sync")),
                     Map.of(),
                     Map.of("JDBC", invalidSink));
-            assertThrows(IllegalArgumentException.class, () -> builder.build(plan, CONTEXT));
+            assertThrows(IllegalArgumentException.class, () -> builder.build(plan, CONTEXT, false));
         }
         assertEquals(0, resources.openedConnections.get());
     }

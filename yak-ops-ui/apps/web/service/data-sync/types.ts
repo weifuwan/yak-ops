@@ -55,6 +55,7 @@ export interface DataSyncTaskRecord {
   name: string;
   syncType: DataSyncType | string;
   status: DataSyncTaskStatus | string;
+  debug: boolean;
   writeMode: DataSyncWriteMode | string;
   sourceDataSourceId: string;
   sourceDatabase?: string;
@@ -98,6 +99,7 @@ export interface TaskDefinitionRecord {
   definitionVersion: number;
   parameterSchemaVersion: number;
   parameters: string;
+  debug: boolean;
   remark?: string;
   createTime?: string;
   updateTime?: string;
@@ -111,6 +113,7 @@ export interface TaskDefinitionPageResult {
 
 interface DataSyncTaskSaveBase {
   name: string;
+  debug: boolean;
   sourceDataSourceId: string;
   sourceDatabase?: string;
   sourceSchema?: string;
@@ -137,7 +140,7 @@ export type DataSyncTaskSavePayload =
 
 export type DataSyncTaskUpdatePayload =
   | DataSyncTaskSavePayload
-  | Pick<DataSyncTaskSaveBase, "name" | "remark">;
+  | Pick<DataSyncTaskSaveBase, "name" | "remark" | "debug">;
 
 export interface SyncPipelineParameters {
   source: {

@@ -33,6 +33,7 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
   return {
     name: task.name,
     taskType: "DATA_SYNC",
+    debug: task.debug,
     remark: task.remark,
     parameters: JSON.stringify(buildSyncParameters(task)),
   };
@@ -40,9 +41,10 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
 
 /** Omitting parameters edits only definition metadata and does not create a new version. */
 export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload) {
-  const request: { name: string; remark?: string; parameters?: string } = {
+  const request: { name: string; remark?: string; parameters?: string; debug?: boolean } = {
     name: task.name,
     remark: task.remark,
+    debug: task.debug,
   };
   if ("syncType" in task) {
     request.parameters = JSON.stringify(buildSyncParameters(task));
@@ -81,6 +83,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     name: definition.name,
     syncType,
     status: definition.status,
+    debug: definition.debug ?? false,
     writeMode: sink.writeMode,
     sourceDataSourceId: source.datasourceId,
     sourceDatabase: source.database ?? undefined,

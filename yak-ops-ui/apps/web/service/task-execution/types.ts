@@ -20,6 +20,7 @@ export interface TaskInstanceRecord {
   id: string;
   definitionId: string;
   definitionVersion: number;
+  debug: boolean;
   taskType: string;
   triggerType: "MANUAL" | "SCHEDULE" | "WORKFLOW";
   status: TaskInstanceStatus;

@@ -29,8 +29,9 @@ class ExecutionConfigurationFactoryTest {
     @Test
     void boundedSourceRunsWithoutPeriodicCheckpointsOrAutomaticRestarts() {
         ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(JobOptions.defaults(), stateRoot);
-        var configuration = factory.create(FIRST, Boundedness.BOUNDED);
+        var configuration = factory.create(FIRST, Boundedness.BOUNDED, false);
         assertEquals(RuntimeExecutionMode.BATCH, configuration.get(ExecutionOptions.RUNTIME_MODE));
+        assertEquals(false, configuration.get(ExecutionOptions.DEBUG));
         assertEquals(Duration.ZERO, configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
         assertEquals(0, configuration.get(ExecutionOptions.MAX_RESTART_ATTEMPTS));
         assertEquals(false, configuration.get(CheckpointingOptions.RESTORE_LATEST));
@@ -40,7 +41,7 @@ class ExecutionConfigurationFactoryTest {
     void continuousSourceUsesCheckpointGatedSameJobRestartsWithoutConnectorSettings() {
         ReadonlyConfig options = runtimeOptions(2, 1, Duration.ofMillis(500), 3);
         ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(options, stateRoot);
-        var configuration = factory.create(FIRST, Boundedness.CONTINUOUS_UNBOUNDED);
+        var configuration = factory.create(FIRST, Boundedness.CONTINUOUS_UNBOUNDED, false);
         assertEquals(RuntimeExecutionMode.STREAMING, configuration.get(ExecutionOptions.RUNTIME_MODE));
         assertEquals(Duration.ofMillis(500), configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
         assertEquals(1, configuration.get(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS));
@@ -59,16 +60,16 @@ class ExecutionConfigurationFactoryTest {
         TaskExecutionIdentity nextInstance =
                 new TaskExecutionIdentity("ws", "definition", 1, "instance-101");
 
-        String first = factory.create(FIRST, Boundedness.CONTINUOUS_UNBOUNDED)
+        String first = factory.create(FIRST, Boundedness.CONTINUOUS_UNBOUNDED, false)
                 .get(CheckpointingOptions.STATE_DIRECTORY);
-        String resumed = factory.create(sameInstance, Boundedness.CONTINUOUS_UNBOUNDED)
+        String resumed = factory.create(sameInstance, Boundedness.CONTINUOUS_UNBOUNDED, false)
                 .get(CheckpointingOptions.STATE_DIRECTORY);
-        String next = factory.create(nextInstance, Boundedness.CONTINUOUS_UNBOUNDED)
+        String next = factory.create(nextInstance, Boundedness.CONTINUOUS_UNBOUNDED, false)
                 .get(CheckpointingOptions.STATE_DIRECTORY);
 
         assertEquals(first, resumed);
         assertNotEquals(first, next);
-        assertEquals(false, factory.create(nextInstance, Boundedness.CONTINUOUS_UNBOUNDED).get(CheckpointingOptions.RESTORE_LATEST));
+        assertEquals(false, factory.create(nextInstance, Boundedness.CONTINUOUS_UNBOUNDED, false).get(CheckpointingOptions.RESTORE_LATEST));
     }
     @Test
     void rejectsUnsafeInstanceIdentifiers() {
@@ -76,7 +77,7 @@ class ExecutionConfigurationFactoryTest {
         TaskExecutionIdentity unsafe =
                 new TaskExecutionIdentity("ws", "definition", 1, "../outside");
 
-        assertThrows(IllegalArgumentException.class, () -> factory.create(unsafe, Boundedness.CONTINUOUS_UNBOUNDED));
+        assertThrows(IllegalArgumentException.class, () -> factory.create(unsafe, Boundedness.CONTINUOUS_UNBOUNDED, false));
     }
     @Test
     void rejectsInvalidSystemOwnedSettings() {
