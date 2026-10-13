@@ -224,9 +224,9 @@ final class TaskDeployment {
             Object enumeratorState = AlignedCheckpointCoordinator.restoreEnumerator(restoredCheckpoint, source);
             coordinator = SourceCoordinator.restore(
                     source,
-                coordinatorContext,
-                enumeratorState,
-                jobGraph.configuration().get(ExecutionOptions.LOG_ID));
+                    coordinatorContext,
+                    enumeratorState,
+                    jobGraph.configuration().get(ExecutionOptions.LOG_ID));
         } else {
             coordinator = new SourceCoordinator<>(
                     source, coordinatorContext, jobGraph.configuration().get(ExecutionOptions.LOG_ID));
