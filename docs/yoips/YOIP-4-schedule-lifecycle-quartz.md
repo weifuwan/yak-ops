@@ -1,12 +1,12 @@
 # YOIP-4: Schedule Lifecycle + Quartz Integration
 
-Status: Discussion
+Status: Accepted
 
 Discussion: https://github.com/weifuwan/yak-ops/pull/1626
 
-Decision: Pending
+Decision: [VOTE] Accepted — https://github.com/weifuwan/yak-ops/pull/1626#issuecomment-6144063389
 
-Implementation: N/A until accepted
+Implementation: Pending
 
 Release: N/A until released
 
@@ -29,7 +29,7 @@ Quartz determines when a submission is due. Task submission determines whether t
 Task plugins and YakFlow determine how it executes. A later Workflow engine owns dependency
 progression, node retries, and node submission. None of those operations is a Quartz Job.
 
-All contracts below are proposed behavior, subject to an explicit decision on this PR.
+The contracts below are accepted by the maintainer decision linked above.
 The Test Plan is an implementation acceptance requirement, not executed verification evidence.
 
 ## Public Interfaces
@@ -403,10 +403,10 @@ do not create fake Task logs for skipped fires or expose raw Quartz data/databas
 
 ## Compatibility, Deprecation, and Migration Plan
 
-This is a proposal-only PR adding one Markdown file. It creates no Maven modules, Java classes,
-frontend code, dependencies, SQL, CI workflows, or enabled schedules, and records no acceptance.
+This accepted design is recorded by a documentation-only PR. The proposal commit creates no
+Maven modules, Java classes, frontend code, dependencies, SQL, CI workflows, or enabled schedules.
 
-After acceptance, implementation adds the schedule API/Quartz modules and business module,
+Implementation adds the schedule API/Quartz modules and business module,
 forward-only schedule/fire migrations, nullable Instance provenance fields, and the pinned
 Quartz vendor schema. Keep published migrations/checksums immutable; allocate actual migration
 numbers against the then-current main branch. Existing Task definitions, datasource JSON,
