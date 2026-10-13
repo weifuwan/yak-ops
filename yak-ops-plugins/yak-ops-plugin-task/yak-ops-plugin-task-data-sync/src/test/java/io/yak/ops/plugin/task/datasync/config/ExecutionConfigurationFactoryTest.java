@@ -32,6 +32,7 @@ class ExecutionConfigurationFactoryTest {
         var configuration = factory.create(FIRST, Boundedness.BOUNDED, false);
         assertEquals(RuntimeExecutionMode.BATCH, configuration.get(ExecutionOptions.RUNTIME_MODE));
         assertEquals(false, configuration.get(ExecutionOptions.DEBUG));
+        assertEquals(true, factory.create(FIRST, Boundedness.BOUNDED, true).get(ExecutionOptions.DEBUG));
         assertEquals(Duration.ZERO, configuration.get(CheckpointingOptions.CHECKPOINTING_INTERVAL));
         assertEquals(0, configuration.get(ExecutionOptions.MAX_RESTART_ATTEMPTS));
         assertEquals(false, configuration.get(CheckpointingOptions.RESTORE_LATEST));

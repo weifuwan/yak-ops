@@ -96,10 +96,14 @@ class DefinitionCrudContractTest {
         create.setTaskType("DATA_SYNC");
         create.setParameters(io.yak.ops.common.util.JSONUtils.toJson(java.util.Map.of("sourceTable", "orders")));
         assertEquals(1, service.create(create, "user-1").getDefinitionVersion());
+        assertEquals(false, stored.isDebug());
 
         UpdateDefinitionDTO rename = new UpdateDefinitionDTO();
         rename.setName("orders renamed");
+        rename.setDebug(true);
         assertEquals(1, service.update(stored.getId(), rename, "user-1").getDefinitionVersion());
+        assertEquals(true, stored.isDebug());
+        assertEquals(1, snapshots.size());
 
         UpdateDefinitionDTO change = new UpdateDefinitionDTO();
         change.setName("orders renamed");

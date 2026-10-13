@@ -10,6 +10,7 @@ import {
 
 const common = {
   name: "orders",
+  debug: false,
   sourceDataSourceId: "mysql-source",
   sourceTable: "orders",
   targetDataSourceId: "pg-target",
@@ -17,7 +18,7 @@ const common = {
   targetTable: "ods_orders",
 };
 const offline = { ...common, syncType: "OFFLINE", writeMode: "APPEND" };
-const realtime = { ...common, syncType: "REALTIME" };
+const realtime = { ...common, debug: true, syncType: "REALTIME" };
 
 assert.deepEqual(buildSyncParameters(offline), {
   source: { type: "JDBC", datasourceId: "mysql-source", table: "orders" },
@@ -35,11 +36,14 @@ assert.equal(buildSyncParameters(realtime).sink.writeMode, "UPSERT");
 
 const created = createDefinitionRequest(realtime);
 assert.equal(created.taskType, "DATA_SYNC");
+assert.equal(created.debug, true);
+assert.equal(JSON.parse(created.parameters).debug, undefined);
 assert.equal("parametersFormat" in created, false);
 assert.equal(typeof created.parameters, "string");
 assert.equal(JSON.parse(created.parameters).sink.writeMode, "UPSERT");
 
-const metadataOnly = updateDefinitionRequest({ name: "renamed", remark: "new remark" });
+const metadataOnly = updateDefinitionRequest({ name: "renamed", remark: "new remark", debug: true });
+assert.equal(metadataOnly.debug, true);
 assert.equal(metadataOnly.parameters, undefined);
 assert.equal(JSON.parse(updateDefinitionRequest(offline).parameters).source.table, "orders");
 
@@ -74,6 +78,7 @@ const result = toSyncTaskRecord({
   parameters: created.parameters,
 });
 assert.equal(result.syncType, "REALTIME");
+assert.equal(result.debug, false);
 assert.equal(result.targetSchema, "public");
 assert.equal(result.definitionVersion, 2);
 

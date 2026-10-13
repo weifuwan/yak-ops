@@ -10,6 +10,19 @@ import org.junit.jupiter.api.Test;
 class TaskExecutionMigrationTest {
 
     @Test
+    void persistsDefinitionAndInstanceDebugFlags() throws IOException {
+        String sql;
+        try (var stream = getClass().getResourceAsStream(
+                "/db/migration/yak-ops/V9__task_debug_diagnostics.sql")) {
+            assertTrue(stream != null);
+            sql = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        assertTrue(sql.contains("ALTER TABLE yak_ops_task_definition"));
+        assertTrue(sql.contains("ALTER TABLE yak_ops_task_instance"));
+        assertTrue(sql.contains("debug TINYINT(1) NOT NULL DEFAULT 0"));
+    }
+
+    @Test
     void addsAnInstanceScopedRelativeLogPath() throws IOException {
         String sql;
         try (var stream = getClass().getResourceAsStream("/db/migration/yak-ops/V8__task_instance_logging.sql")) {

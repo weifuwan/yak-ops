@@ -18,6 +18,7 @@ class DispatchTicketTest {
         assertEquals("DATA_SYNC", ticket.taskType());
         assertEquals("revision-one", ticket.resourceRevision());
         assertEquals("opaque-dispatch-token", ticket.dispatchToken());
+        assertEquals(false, ticket.debug());
         assertEquals(ticket, ticket());
         assertEquals(ticket.hashCode(), ticket().hashCode());
     }

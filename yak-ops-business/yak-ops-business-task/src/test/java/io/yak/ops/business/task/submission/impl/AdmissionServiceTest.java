@@ -3,6 +3,7 @@ package io.yak.ops.business.task.submission.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,6 +59,7 @@ class AdmissionServiceTest {
         definition.setCurrentVersion(2);
         definition.setStatus(DefinitionStatus.PUBLISHED);
         definition.setTaskType("DATA_SYNC");
+        definition.setDebug(true);
         when(definitions.queryByIdForUpdate("ws", "definition-1")).thenReturn(Optional.of(definition));
         when(versions.queryCurrent("ws", "definition-1", 2))
                 .thenReturn(Optional.of(new DefinitionVersionEntity()));
@@ -78,10 +80,11 @@ class AdmissionServiceTest {
 
         assertEquals(TaskTriggerType.MANUAL, instance.getValue().getTriggerType());
         assertEquals(2, instance.getValue().getDefinitionVersion());
+        assertEquals(true, instance.getValue().isDebug());
         assertEquals("resource-v1", instance.getValue().getResourceRevision());
         assertEquals("instance-1", claim.getValue().getInstanceId());
         assertEquals("source/table", claim.getValue().getResourceKey());
-        verify(plugin, never()).start(any(), any(), any());
+        verify(plugin, never()).start(any(), any(), any(), anyBoolean());
     }
 
     @Test
