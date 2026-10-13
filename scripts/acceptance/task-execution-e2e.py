@@ -283,6 +283,33 @@ def acceptance():
             "GET", f"/api/v1/task-instances/{first}/attempts")
         assert len(attempts) == 1 and attempts[0]["status"] == "FINISHED"
 
+        # Public operations must reflect the admitted Definition version and lifecycle.
+        instance = client.call("GET", f"/api/v1/task-instances/{first}")
+        assert instance["definitionId"] == jdbc
+        assert instance["triggerType"] == "MANUAL"
+        assert instance["status"] == "FINISHED"
+        snapshot = client.call("GET", f"/api/v1/task-instances/{first}/definition")
+        assert snapshot["definitionId"] == jdbc
+        assert snapshot["version"] == accepted["definitionVersion"]
+        assert snapshot["taskType"] == "DATA_SYNC"
+        assert json.loads(snapshot["parameters"])["source"]["type"] == "JDBC"
+
+        filtered = client.call("POST", "/api/v1/task-instances/page", {
+            "pageNo": 1, "pageSize": 20, "definitionId": jdbc,
+            "taskType": "DATA_SYNC", "status": "FINISHED"})
+        assert filtered["pagination"]["total"] == 1
+        assert len(filtered["bizData"]) == 1
+        assert filtered["bizData"][0]["id"] == first
+        excluded = client.call("POST", "/api/v1/task-instances/page", {
+            "pageNo": 1, "pageSize": 20, "definitionId": jdbc,
+            "status": "RUNNING"})
+        assert excluded["pagination"]["total"] == 0
+
+        # A soft-deleted Definition cannot remove a historical Instance's pinned version.
+        client.call("POST", f"/api/v1/task-definitions/{jdbc}/unpublish")
+        client.call("DELETE", f"/api/v1/task-definitions/{jdbc}")
+        assert client.call("GET", f"/api/v1/task-instances/{first}/definition") == snapshot
+
         cdc = create_task(client, "cdc-" + uuid.uuid4().hex[:8],
                           source, target, True)
         continuous, _ = submit(client, cdc)
