@@ -247,6 +247,7 @@ def verify_parameter_versions(client, source, target, existing_v3):
     first, _ = submit(client, identity)
     wait_status(client, first["instanceId"], {"FINISHED"})
     snapshot = client.call("GET", f"/api/v1/task-instances/{first['instanceId']}/definition")
+    assert snapshot["name"] == definition["name"]
     assert snapshot["parameterSchemaVersion"] == 2 and json.loads(snapshot["parameters"]) == old
     filtered = client.call("POST", "/api/v1/task-definitions/page", {
         "taskType": "DATA_SYNC", "pageNo": 1, "pageSize": 200,
@@ -258,7 +259,9 @@ def verify_parameter_versions(client, source, target, existing_v3):
     migrated = client.call("PUT", f"/api/v1/task-definitions/{identity}", {
         "name": metadata["name"], "debug": True, "parameters": json.dumps(payload)})
     assert migrated["definitionVersion"] == 2 and migrated["parameterSchemaVersion"] == 3
-    assert client.call("GET", f"/api/v1/task-instances/{first['instanceId']}/definition") == snapshot
+    # The display name follows current metadata; every pinned execution field remains unchanged.
+    historical = client.call("GET", f"/api/v1/task-instances/{first['instanceId']}/definition")
+    assert historical == {**snapshot, "name": metadata["name"]}
     client.call("POST", f"/api/v1/task-definitions/{identity}/publish")
     second, _ = submit(client, identity)
     wait_status(client, second["instanceId"], {"FINISHED"})
