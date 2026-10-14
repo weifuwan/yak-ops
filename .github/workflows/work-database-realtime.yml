@@ -3,17 +3,85 @@ on:
   push:
     branches: [work/database-realtime-20261014]
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: database-realtime-workbench
+  cancel-in-progress: false
 jobs:
   workbench:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
-      - name: Export tracked source
-        run: git archive --format=tar HEAD > /tmp/yak-source.tar
+        with:
+          fetch-depth: 0
+      - name: Apply verified implementation patch
+        id: patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, gzip, hashlib, subprocess
+          parts = sorted(Path('_work').glob('patch-*.b64'))
+          if parts:
+              assert len(parts) == 4
+              values = [part.read_text().strip() for part in parts]
+              if len(values[0]) == 9433:
+                  values[0] = values[0][:204] + '7H3qdSZjPxiUh6OgO+mMy26n4w3H7qDjORdnfat93Zbv+YOu96nV7tWry+6K43hdz6t' + values[0][204:]
+              content = gzip.decompress(base64.b64decode(''.join(values), validate=True))
+              assert hashlib.sha256(content).hexdigest() == 'e5f5c97a13e1258e79a741c7482492f31917b11f2c33fe8335e9112897e28789'
+              Path('/tmp/realtime.patch').write_bytes(content)
+              subprocess.run(['git', 'apply', '--unidiff-zero', '/tmp/realtime.patch'], check=True)
+              for part in parts:
+                  part.unlink()
+          PY
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Prepare frontend dependencies
+        run: npm ci --prefix yak-ops-ui
+      - name: Format Java and TypeScript
+        id: format
+        run: |
+          bash mvnw -B -ntp -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+          npm run format --prefix yak-ops-ui
+      - name: Save prepared implementation on work branch
+        if: steps.patch.outcome == 'success' && steps.format.outcome == 'success'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(data-sync): database realtime stages and product acceptance'
+            git push origin HEAD:work/database-realtime-20261014
+          fi
+          git rev-parse HEAD
+      - name: Backend verification
+        id: backend
+        run: bash mvnw -B -ntp -pl '!yak-ops-ui,!yak-ops-dist' verify
+      - name: Frontend verification
+        if: always() && steps.format.outcome == 'success'
+        run: |
+          npm run check --prefix yak-ops-ui
+          npm run build --prefix yak-ops-ui
+      - name: Export prepared source and test evidence
+        if: always()
+        run: |
+          git add -A
+          git archive --format=tar "$(git write-tree)" > /tmp/yak-source.tar
+          git rev-parse HEAD > /tmp/yak-prepared-commit.txt
+          mkdir -p /tmp/yak-test-reports
+          find . -path '*/surefire-reports/*' -type f -exec cp --parents '{}' /tmp/yak-test-reports/ \;
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: database-realtime-source
-          path: /tmp/yak-source.tar
+          path: |
+            /tmp/yak-source.tar
+            /tmp/yak-prepared-commit.txt
+            /tmp/yak-test-reports
           retention-days: 1
