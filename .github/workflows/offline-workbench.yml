@@ -1,0 +1,45 @@
+name: Offline Incremental Workbench
+on:
+  push:
+    branches: [workbench/offline-incremental-20261014]
+    paths: [.github/workflows/offline-workbench.yml, .workbench/trigger]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 043ffca91a829f035742ff556fc5679b607d68a8
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Verify baseline backend
+        run: bash mvnw -B -pl '!yak-ops-ui,!yak-ops-dist' verify
+      - name: Prepare frontend dependencies
+        if: always()
+        working-directory: yak-ops-ui
+        run: npm ci
+      - name: Archive source and non-secret build dependencies
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/offline-workbench
+          git archive --format=zip HEAD -o /tmp/offline-workbench/source.zip
+          tar -czf /tmp/offline-workbench/maven.tar.gz -C "$HOME/.m2" repository wrapper
+          tar -czf /tmp/offline-workbench/frontend.tar.gz -C yak-ops-ui node_modules
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: offline-workspace
+          path: /tmp/offline-workbench/
+          retention-days: 1
