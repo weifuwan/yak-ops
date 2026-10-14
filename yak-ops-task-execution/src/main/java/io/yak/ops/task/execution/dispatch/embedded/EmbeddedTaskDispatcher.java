@@ -153,7 +153,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             var version = definitions
                     .queryCurrent(workspaceId, ticket.definitionId(), ticket.definitionVersion())
                     .orElseThrow(() -> new IllegalStateException("Pinned Task version is not available"));
-            ReadonlyConfig parameters = executable.parse(version.getParameters());
+            ReadonlyConfig parameters = executable.parse(version.getParameterSchemaVersion(), version.getParameters());
             TaskAdmissionPlan plan = executable.plan(parameters, context);
             Set<ExecutionResource> owned = claims.findByInstance(workspaceId, instanceId).stream()
                     .map(this::resource)

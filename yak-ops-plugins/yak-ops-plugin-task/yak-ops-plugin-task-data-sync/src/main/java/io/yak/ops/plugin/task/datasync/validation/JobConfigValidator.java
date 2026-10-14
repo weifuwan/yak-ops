@@ -1,7 +1,6 @@
 package io.yak.ops.plugin.task.datasync.validation;
 
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
@@ -10,6 +9,7 @@ import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.config.JobOptions;
+import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
 import java.util.Objects;
 
 /**
@@ -26,8 +26,6 @@ public final class JobConfigValidator {
     public static JobConfig validateConfig(ReadonlyConfig parameters, FactoryUtil factories) {
         Objects.requireNonNull(factories, "factories");
         try {
-            ConfigValidator.of(parameters).validate(JobOptions.PIPELINE_RULE);
-            ConfigValidator.validateUnknownKeys(parameters, JobOptions.PIPELINE_RULE, "DATA_SYNC");
             JobConfig job = JobConfig.from(parameters);
             var sourceFactory = factories.source(job.source().get(JobOptions.TYPE));
             var sinkFactory = factories.sink(job.sink().get(JobOptions.TYPE));
@@ -51,6 +49,7 @@ public final class JobConfigValidator {
             DataSourceInfo sourceInfo = context.dataSource(job.source().get(JobOptions.DATASOURCE_ID));
             DataSourceInfo sinkInfo = context.dataSource(job.sink().get(JobOptions.DATASOURCE_ID));
             factories.source(job.source().get(JobOptions.TYPE)).validateDatasource(sourceInfo.type());
+            SolutionCatalog.validate(job.solutionType(), sourceInfo.type(), sinkInfo.type());
             tablePath(sourceInfo, job.source());
             tablePath(sinkInfo, job.sink());
         } catch (RuntimeException failure) {
@@ -70,6 +69,7 @@ public final class JobConfigValidator {
             var sourceFactory = factories.source(job.source().get(JobOptions.TYPE));
             var sinkFactory = factories.sink(job.sink().get(JobOptions.TYPE));
             sourceFactory.validateDatasource(sourceInfo.type());
+            SolutionCatalog.validate(job.solutionType(), sourceInfo.type(), sinkInfo.type());
             TableId sourceTable = tablePath(sourceInfo, job.source());
             TableId sinkTable = tablePath(sinkInfo, job.sink());
             TableSchema sourceSchema = context.tableSchema(sourceId, sourceTable);

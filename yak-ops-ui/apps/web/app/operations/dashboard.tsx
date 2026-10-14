@@ -179,7 +179,7 @@ export function DataSyncOperationsDashboard({ syncType }: Props) {
     ],
   };
 
-  const basePath = realtime ? "/realtime-sync" : "/offline-sync";
+  const basePath = "/data-sync";
 
   return (
     <div className="min-h-full bg-[#f6f6f6] text-[#242731]">

@@ -3,12 +3,9 @@ import type {
   TaskInstanceRecord,
   TaskInstanceStatus,
 } from "../task-execution/types";
-import type {
-  DataSyncInstancePageParams,
-  DataSyncInstanceRecord,
-  DataSyncType,
-  SyncPipelineParameters,
-} from "./types";
+import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
+
+import { readSyncParameters, solutionSyncType } from "./parameters.ts";
 
 export const isTaskInstanceActive = (status: TaskInstanceStatus): boolean =>
   status === "SUBMITTED" ||
@@ -33,13 +30,20 @@ export function toDataSyncInstanceRecord(
     throw new Error("Task Instance Definition version mismatch");
   }
 
-  const parameters = JSON.parse(version.parameters) as SyncPipelineParameters;
-  const { source, sink } = parameters;
-  const syncType: DataSyncType = source.type === "MYSQL_CDC" ? "REALTIME" : "OFFLINE";
+  const parameters = readSyncParameters(version.parameterSchemaVersion, version.parameters);
+  const source = { ...parameters.source, ...parameters.tableMappings[0].source };
+  const sink = {
+    ...parameters.sink,
+    ...parameters.tableMappings[0].target,
+    writeMode: parameters.tableMappings[0].writeMode,
+  };
+  const syncType = solutionSyncType(parameters.solutionType);
   const taskName = version.name;
 
   return {
     id: instance.id,
+    solutionType: parameters.solutionType,
+    steps: parameters.steps,
     taskId: instance.definitionId,
     taskName,
     taskVersion: instance.definitionVersion,
@@ -57,6 +61,8 @@ export function toDataSyncInstanceRecord(
     errorMessage: instance.failureCode ?? undefined,
     createTime: instance.createTime ?? undefined,
     definitionSnapshot: {
+      solutionType: parameters.solutionType,
+      steps: parameters.steps,
       taskId: instance.definitionId,
       taskName,
       taskVersion: instance.definitionVersion,

@@ -1,5 +1,7 @@
 import { createContext, useEffect, useState, type ReactNode } from "react";
 
+import { clearTaskDrafts } from "@/service/data-sync/draft";
+
 import { getCurrentUser, type AuthUser } from "@/service/auth";
 
 export interface AuthContextValue {
@@ -22,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const clearCurrentUser = () => {
+    clearTaskDrafts();
     setCurrentUser(undefined);
   };
 

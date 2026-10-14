@@ -18,13 +18,12 @@ for (const status of ["CANCELLING", "RECONCILING", "CANCELED"]) {
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const detail = read("../apps/web/app/data-sync/execution-detail.tsx");
 const progressBar = read("../apps/web/app/data-sync/execution-progress-bar.tsx");
-const offlineList = read("../apps/web/app/offline-sync/index.tsx");
-const realtimeList = read("../apps/web/app/realtime-sync/index.tsx");
+const taskList = read("../apps/web/app/data-sync/index.tsx");
+const router = read("../apps/web/app/router/AppRouter.tsx");
 const page = read("../apps/web/app/data-sync/task-detail.tsx");
 const css = read("../apps/web/app/data-sync/execution-detail.css");
-const instancePage = read("../apps/web/app/data-sync/instance-runtime.tsx");
 
-for (const source of [detail, page, instancePage]) {
+for (const source of [detail, page]) {
   assert.doesNotMatch(source, /DataSyncExecutionConfigContent|本次运行配置|配置快照/);
 }
 assert.doesNotMatch(page, /DataSyncTaskStatusBadge|写入方式|调试模式/);
@@ -34,7 +33,7 @@ assert.match(progressBar, /role="progressbar"/);
 assert.match(progressBar, /aria-valuenow=\{progress.value \?\? undefined\}/);
 assert.match(detail, /<ExecutionProgressBar/);
 assert.match(progressBar, /sync-execution-progress-fill/);
-for (const list of [offlineList, realtimeList]) {
+for (const list of [taskList]) {
   assert.match(list, /title: "执行概况"/);
   assert.match(list, /latestByTask\.get\(record\.id\)/);
   assert.doesNotMatch(list, /syncEndpointText/);
@@ -50,9 +49,14 @@ assert.match(page, /!autoRefresh \|\| \(!hasActiveInstance && !hasEnabledSchedul
 assert.match(page, /hasEnabledSchedule,/);
 assert.match(page, /window.clearInterval\(timer\)/);
 assert.match(page, /request !== detailRequest.current/);
-assert.match(page, /<ExecutionStatusIcon status=\{instance.status\}/);
+assert.match(page, /<ExecutionStatusIcon\s+status=\{instance.status\}/);
 assert.match(page, /key=\{selectedInstance.id\}/);
 assert.match(page, /<TaskInstanceLogPanel/);
 assert.equal((page.match(/<TabsTab\s/g) || []).length, 2);
 
-console.log("Data Sync execution progress and presentation checks passed");
+assert.match(router, /path="\/data-sync"/);
+assert.match(router, /path="\/data-sync\/:id\/edit"/);
+assert.match(router, /path="\/data-sync\/:id\/detail"/);
+assert.doesNotMatch(router, /from "@\/app\/(offline-sync|realtime-sync)"/);
+assert.match(page, /selectedInstance.syncType === "REALTIME"/);
+console.log("Unified Data Sync execution progress and presentation checks passed");

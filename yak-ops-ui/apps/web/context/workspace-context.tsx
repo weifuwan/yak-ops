@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState, type ReactNode } from "react";
 
 import { WORKSPACE_STORAGE_KEY, workspacePreferenceStorageKey } from "@/constants/workspace";
+import { clearTaskDrafts } from "@/service/data-sync/draft";
 import { useAuth } from "@/hooks/use-auth";
 import {
   createWorkspace as createWorkspaceRequest,
@@ -70,6 +71,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const clearWorkspace = () => {
+    clearTaskDrafts();
     persistActiveWorkspace(undefined);
     setWorkspaces([]);
     setCurrentWorkspace(undefined);
@@ -94,12 +96,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const selectWorkspace = (workspaceId: string) => {
     const nextWorkspace = workspaces.find((workspace) => workspace.id === workspaceId);
     if (!nextWorkspace || nextWorkspace.id === currentWorkspace?.id) return;
+    clearTaskDrafts();
     persistWorkspaceSelection(nextWorkspace, currentUser?.id);
     setCurrentWorkspace(nextWorkspace);
   };
 
   const createWorkspace = async (payload: WorkspaceCreatePayload) => {
     const workspace = await createWorkspaceRequest(payload);
+    clearTaskDrafts();
     setWorkspaces((current) => [workspace, ...current.filter((item) => item.id !== workspace.id)]);
     persistWorkspaceSelection(workspace, currentUser?.id);
     setCurrentWorkspace(workspace);

@@ -108,9 +108,10 @@ class ScheduleServiceTest {
         when(definitions.queryByIdIncludingDeletedForUpdate("ws", "task")).thenReturn(Optional.of(definition));
         DefinitionVersionEntity version = new DefinitionVersionEntity();
         version.setParameters("{}");
+        version.setParameterSchemaVersion(2);
         when(versions.queryCurrent("ws", "task", 1)).thenReturn(Optional.of(version));
         when(plugins.get("TEST")).thenReturn(plugin);
-        when(plugin.parse("{}")).thenReturn(ReadonlyConfig.fromMap(Map.of()));
+        when(plugin.parse(2, "{}")).thenReturn(ReadonlyConfig.fromMap(Map.of()));
         when(plugin.supportsScheduling(any())).thenReturn(true);
         schedule.setId("schedule");
         schedule.setWorkspaceId("ws");

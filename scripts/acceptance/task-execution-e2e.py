@@ -204,16 +204,14 @@ def create_datasource(client, name, kind, database, username, port):
 
 def create_task(client, name, source, target, streaming, debug=False, sink_table="ods_orders"):
     params = {
-        "source": {
-            "type": "MYSQL_CDC" if streaming else "JDBC",
-            "datasourceId": source, "table": "orders",
-        },
-        "transform": [],
-        "sink": {
-            "type": "JDBC", "datasourceId": target,
-            "schema": "public", "table": sink_table,
-            "writeMode": "UPSERT" if streaming else "APPEND",
-        },
+        "solutionType": "SINGLE_TABLE_REALTIME" if streaming else "SINGLE_TABLE_OFFLINE",
+        "steps": ["FULL", "INCREMENTAL"] if streaming else ["FULL"],
+        "source": {"datasourceId": source},
+        "sink": {"datasourceId": target},
+        "tableSelection": {"mode": "EXPLICIT"},
+        "tableMappings": [{"source": {"table": "orders"},
+                           "target": {"schema": "public", "table": sink_table},
+                           "writeMode": "UPSERT" if streaming else "APPEND"}],
     }
     definition = client.call("POST", "/api/v1/task-definitions", {
         "name": name, "taskType": "DATA_SYNC", "debug": debug,
@@ -221,6 +219,58 @@ def create_task(client, name, source, target, streaming, debug=False, sink_table
     })["id"]
     client.call("POST", f"/api/v1/task-definitions/{definition}/publish")
     return definition
+
+
+def verify_parameter_versions(client, source, target, existing_v3):
+    """Seed a historical version-two fixture in disposable storage, then use real public operations."""
+    query_postgres("CREATE TABLE public.version_orders (id BIGINT PRIMARY KEY, name VARCHAR(32) NOT NULL)")
+    payload = {
+        "solutionType": "SINGLE_TABLE_OFFLINE", "steps": ["FULL"],
+        "source": {"datasourceId": source}, "sink": {"datasourceId": target},
+        "tableSelection": {"mode": "EXPLICIT"}, "tableMappings": [{
+            "source": {"table": "orders"}, "target": {"schema": "public", "table": "version_orders"},
+            "writeMode": "UPSERT"}],
+    }
+    old = {"source": {"type": "JDBC", "datasourceId": source, "table": "orders"}, "transform": [],
+           "sink": {"type": "JDBC", "datasourceId": target, "schema": "public", "table": "version_orders", "writeMode": "UPSERT"}}
+    definition = client.call("POST", "/api/v1/task-definitions", {
+        "name": "version-contract-" + uuid.uuid4().hex[:8], "taskType": "DATA_SYNC",
+        "parameters": json.dumps(payload)})
+    identity = definition["id"]
+    assert re.fullmatch(r"[A-Za-z0-9_-]{8,64}", identity)
+    # Only fixture setup writes historical storage; no production endpoint can mutate a Version.
+    encoded = json.dumps(old, separators=(",", ":")).encode().hex()
+    query_mysql("UPDATE yak_ops.yak_ops_task_definition_version SET parameter_schema_version=2, parameters=CONVERT(0x"
+                + encoded + " USING utf8mb4) WHERE definition_id='" + identity + "' AND version=1")
+    assert client.call("GET", "/api/v1/task-definitions/" + identity)["parameterSchemaVersion"] == 2
+    client.call("POST", f"/api/v1/task-definitions/{identity}/publish")
+    first, _ = submit(client, identity)
+    wait_status(client, first["instanceId"], {"FINISHED"})
+    snapshot = client.call("GET", f"/api/v1/task-instances/{first['instanceId']}/definition")
+    assert snapshot["parameterSchemaVersion"] == 2 and json.loads(snapshot["parameters"]) == old
+    filtered = client.call("POST", "/api/v1/task-definitions/page", {
+        "taskType": "DATA_SYNC", "pageNo": 1, "pageSize": 200,
+        "parameterFilters": {"solutionType": "SINGLE_TABLE_OFFLINE"}})
+    assert {identity, existing_v3}.issubset({row["id"] for row in filtered["bizData"]})
+    client.call("POST", f"/api/v1/task-definitions/{identity}/unpublish")
+    metadata = client.call("PUT", f"/api/v1/task-definitions/{identity}", {"name": definition["name"] + "-renamed", "debug": True})
+    assert metadata["definitionVersion"] == 1 and metadata["parameterSchemaVersion"] == 2
+    migrated = client.call("PUT", f"/api/v1/task-definitions/{identity}", {
+        "name": metadata["name"], "debug": True, "parameters": json.dumps(payload)})
+    assert migrated["definitionVersion"] == 2 and migrated["parameterSchemaVersion"] == 3
+    assert client.call("GET", f"/api/v1/task-instances/{first['instanceId']}/definition") == snapshot
+    client.call("POST", f"/api/v1/task-definitions/{identity}/publish")
+    second, _ = submit(client, identity)
+    wait_status(client, second["instanceId"], {"FINISHED"})
+    assert query_postgres("SELECT COUNT(*) FROM public.version_orders") == "2"
+    # New-write and step constraints are enforced by the backend, not only by disabled checkboxes.
+    client.call("POST", "/api/v1/task-definitions", {
+        "name": "reject-v2-" + uuid.uuid4().hex[:8], "taskType": "DATA_SYNC", "parameters": json.dumps(old)}, status=400)
+    for changes in ({"steps": []}, {"steps": ["SCHEMA", "FULL"]}, {"tableMappings": []},
+                    {"source": {"datasourceId": source, "type": "JDBC"}}):
+        client.call("POST", "/api/v1/task-definitions", {
+            "name": "reject-solution-" + uuid.uuid4().hex[:8], "taskType": "DATA_SYNC",
+            "parameters": json.dumps({**payload, **changes})}, status=400)
 
 
 def submit(client, definition, key=None, expected=202):
@@ -402,6 +452,11 @@ def acceptance():
             client, "postgres-" + uuid.uuid4().hex[:8],
             "POSTGRE_SQL", "ods", "yak", 5432)
 
+        choices = client.call("GET", "/api/v1/data-sync/solutions?sourceType=MYSQL&targetType=POSTGRE_SQL")
+        assert [choice["solutionType"] for choice in choices] == ["SINGLE_TABLE_OFFLINE", "SINGLE_TABLE_REALTIME"]
+        assert choices[1]["defaultSteps"] == ["FULL", "INCREMENTAL"]
+        assert len(client.call("GET", "/api/v1/data-sync/solutions?sourceType=POSTGRE_SQL&targetType=MYSQL")) == 1
+        client.call("GET", "/api/v1/data-sync/solutions?sourceType=JDBC&targetType=MYSQL", status=400)
         jdbc = create_task(client, "jdbc-" + uuid.uuid4().hex[:8],
                            source, target, False, debug=True)
         schedule_id = verify_schedule_configuration(client, jdbc)
@@ -475,7 +530,8 @@ def acceptance():
         assert snapshot["definitionId"] == jdbc
         assert snapshot["version"] == accepted["definitionVersion"]
         assert snapshot["taskType"] == "DATA_SYNC"
-        assert json.loads(snapshot["parameters"])["source"]["type"] == "JDBC"
+        assert snapshot["parameterSchemaVersion"] == 3
+        assert json.loads(snapshot["parameters"])["solutionType"] == "SINGLE_TABLE_OFFLINE"
 
         filtered = client.call("POST", "/api/v1/task-instances/page", {
             "pageNo": 1, "pageSize": 20, "definitionId": jdbc,
@@ -488,6 +544,7 @@ def acceptance():
             "status": "RUNNING"})
         assert excluded["pagination"]["total"] == 0
 
+        verify_parameter_versions(client, source, target, jdbc)
         verify_periodic_jdbc(client, source, target)
         if os.environ.get("E2E_BROWSER") == "true":
             from task_schedule_browser import verify_schedule_browser

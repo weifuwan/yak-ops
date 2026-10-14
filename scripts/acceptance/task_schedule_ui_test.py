@@ -2,8 +2,9 @@
 
 import asyncio
 import json
+import os
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 
@@ -73,6 +74,8 @@ state = {
     "fail_batch": False,
     "conflict": False,
     "fires": [],
+    "fail_solutions": False,
+    "solution_requests": [],
     "task": task,
 }
 
@@ -109,6 +112,21 @@ async def mock(route):
         data = []
     elif "/users/" in p or p.endswith("/user/batch") or p == "/api/v1/user":
         data = []
+    elif p == "/api/v1/data-sync/solutions":
+        query = parse_qs(urlparse(r.url).query)
+        state["solution_requests"].append(query)
+        choices = [{"solutionType": "SINGLE_TABLE_OFFLINE", "displayName": "单表离线", "steps": ["FULL"],
+                    "defaultSteps": ["FULL"], "allowedCombinations": [{"steps": ["FULL"], "supportsScheduling": True,
+                                                                      "writeModes": ["APPEND", "UPSERT"]}]}]
+        if query.get("sourceType") == ["MYSQL"]:
+            choices.append({"solutionType": "SINGLE_TABLE_REALTIME", "displayName": "单表实时",
+                            "steps": ["FULL", "INCREMENTAL"], "defaultSteps": ["FULL", "INCREMENTAL"],
+                            "allowedCombinations": [{"steps": ["FULL", "INCREMENTAL"], "supportsScheduling": False,
+                                                     "writeModes": ["UPSERT"]}]})
+        if state["fail_solutions"]:
+            status, code = 503, 500
+        else:
+            data = choices
     elif p == "/api/v1/data-source/page":
         data = paging(sources)
     elif "/catalog/schemas" in p:
@@ -133,12 +151,12 @@ async def mock(route):
         data = paging([state["task"]])
     elif p == "/api/v1/task-definitions" and method == "POST":
         state["created_tasks"] += 1
-        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED"}
+        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED", "parameterSchemaVersion": 3}
         data = state["task"]
     elif p.startswith("/api/v1/task-definitions/"):
         if method == "PUT":
             state["updated_tasks"] += 1
-            state["task"] = {**state["task"], **b}
+            state["task"] = {**state["task"], **b, **({"parameterSchemaVersion": 3} if "parameters" in b else {})}
         data = state["task"]
     elif p == "/api/v1/task-instances/latest":
         data = (
@@ -241,6 +259,76 @@ async def mock(route):
     )
 
 
+async def choose_solution(page, kind, name):
+    dialog = page.get_by_role("dialog", name="新建同步任务", exact=True)
+    await expect(dialog).to_be_visible()
+    await dialog.get_by_role("combobox").nth(0).click()
+    await page.get_by_role("option", name="MySQL", exact=True).click()
+    await dialog.get_by_role("combobox").nth(1).click()
+    await page.get_by_role("option", name="PostgreSQL", exact=True).click()
+    await dialog.get_by_role("combobox").nth(2).click()
+    await page.get_by_role("option", name=kind, exact=True).click()
+    await dialog.get_by_role("textbox", name="名称", exact=True).fill(name)
+    for checkbox in await dialog.get_by_role("checkbox").all():
+        await expect(checkbox).to_be_checked()
+        await expect(checkbox).to_be_disabled()
+    await dialog.get_by_role("button", name="下一步", exact=True).click()
+
+
+async def verify_solution_creation(page):
+    await page.goto("http://127.0.0.1:5173/data-sync")
+    await page.get_by_role("button", name="新建同步任务", exact=True).click()
+    dialog = page.get_by_role("dialog", name="新建同步任务", exact=True)
+    await dialog.get_by_role("combobox").nth(0).click()
+    await page.get_by_role("option", name="MySQL", exact=True).click()
+    await dialog.get_by_role("combobox").nth(1).click()
+    await page.get_by_role("option", name="PostgreSQL", exact=True).click()
+    await dialog.get_by_role("combobox").nth(2).click()
+    await expect(page.get_by_role("option", name="单表实时", exact=True)).to_be_visible()
+    await page.get_by_role("option", name="单表实时", exact=True).click()
+    await dialog.get_by_role("textbox", name="名称", exact=True).fill("User chosen name")
+    await dialog.get_by_role("combobox").nth(0).click()
+    await page.get_by_role("option", name="PostgreSQL", exact=True).click()
+    await expect(dialog.get_by_role("button", name="下一步", exact=True)).to_be_disabled()
+    await dialog.get_by_role("combobox").nth(2).click()
+    await expect(page.get_by_role("option", name="单表实时", exact=True)).to_have_count(0)
+    await page.get_by_role("option", name="单表离线", exact=True).click()
+    await expect(dialog.get_by_role("textbox", name="名称", exact=True)).to_have_value("User chosen name")
+    state["fail_solutions"] = True
+    await dialog.get_by_role("combobox").nth(1).click()
+    await page.get_by_role("option", name="Oracle", exact=True).click()
+    await expect(dialog.get_by_text("同步方案加载失败，请重试", exact=True)).to_be_visible()
+    await expect(dialog.get_by_role("button", name="下一步", exact=True)).to_be_disabled()
+    state["fail_solutions"] = False
+    await dialog.get_by_role("button", name="重试", exact=True).click()
+    await expect(dialog.get_by_role("combobox").nth(2)).to_be_enabled()
+    await dialog.get_by_role("button", name="取消", exact=True).click()
+    assert state["created_tasks"] == 0
+    await page.goto("http://127.0.0.1:5173/data-sync?create=1")
+    await choose_solution(page, "单表实时", "CDC draft")
+    await expect(page).to_have_url(re.compile("/data-sync/new$"))
+    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("CDC draft")
+    await expect(page.locator("#schedule")).to_have_count(0)
+    await page.get_by_role("textbox", name="任务名称", exact=True).fill("Restored draft")
+    await page.reload()
+    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("Restored draft")
+    await expect(page.locator("#target").get_by_role("combobox").last).to_be_disabled()
+    await page.screenshot(path="/tmp/yak-schedule-browser/solution-editor-desktop.png", full_page=True)
+    await page.get_by_role("button", name="取消", exact=True).click()
+    await page.get_by_role("button", name="新建同步任务", exact=True).click()
+    dialog = page.get_by_role("dialog", name="新建同步任务", exact=True)
+    await dialog.get_by_role("combobox").nth(2).click()
+    await page.get_by_role("option", name="单表离线", exact=True).click()
+    await dialog.get_by_role("button", name="下一步", exact=True).click()
+    confirm = page.get_by_role("dialog", name="更改同步方案", exact=True)
+    await expect(confirm).to_be_visible()
+    await confirm.get_by_role("button", name="取消", exact=True).click()
+    assert await page.evaluate("Object.values(sessionStorage).some(v => v.includes('Restored draft'))")
+    await dialog.get_by_role("button", name="取消", exact=True).click()
+    # Discard the test draft explicitly so the following schedule case starts with its own new draft.
+    await page.evaluate("Object.keys(sessionStorage).filter(k => k.startsWith('yak.data-sync.draft:')).forEach(k => sessionStorage.removeItem(k))")
+
+
 async def configure_cron(page, expression):
     await page.get_by_role("button", name="打开 Cron 调度配置", exact=True).click()
     await page.get_by_role("tab", name="高级 Cron", exact=True).click()
@@ -269,17 +357,21 @@ async def verify_partial_task_save(page):
     state["schedule"] = None
     state["fail_schedule"] = True
     await page.goto("http://127.0.0.1:5173/offline-sync/new")
-    await page.get_by_role("textbox", name="任务名称", exact=True).fill("Partial save")
+    await choose_solution(page, "单表离线", "Partial save")
+    await expect(page).to_have_url(re.compile("/data-sync/new$"))
+    assert state["created_tasks"] == 0
+    await page.reload()
+    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("Partial save")
     for index, name in enumerate(["MySQL source", "PostgreSQL target"]):
         await page.locator("#datasource").get_by_role("combobox").nth(index).click()
         await page.get_by_role("option", name=name, exact=True).click()
     await page.locator("#source").get_by_role("combobox").click()
     await page.get_by_role("option", name="orders", exact=True).click()
-    await page.locator("#target").get_by_role("combobox").click()
+    await page.locator("#target").get_by_role("combobox").first.click()
     await page.get_by_role("option", name="public.ods_orders", exact=True).click()
     await configure_cron(page, "0 0 6 * * ?")
     await page.get_by_role("button", name="保存", exact=True).click()
-    await expect(page).to_have_url(re.compile("/offline-sync/new-task$"))
+    await expect(page).to_have_url(re.compile("/data-sync/new-task/edit$"))
     await expect(page.get_by_text(re.compile("任务已保存，调度未确认保存"))).to_be_visible()
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
     assert state["created_tasks"] == 1
@@ -297,7 +389,7 @@ async def verify_partial_task_save(page):
 async def main():
     Path("/tmp/yak-schedule-browser").mkdir(parents=True, exist_ok=True)
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=True, executable_path=os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE"))
         ctx = await browser.new_context(viewport={"width": 1440, "height": 1000})
         await ctx.add_init_script(
             "localStorage.setItem('yak-ops.current-workspace-id','ws1');"
@@ -384,7 +476,7 @@ async def main():
                 full_page=True,
             )
             await dialog.get_by_role("button", name="查看实例").click()
-            await expect(page).to_have_url(re.compile("executionId=i1"))
+            await expect(page).to_have_url(re.compile(r"/data-sync/task1/detail\?executionId=i1"))
             await expect(page.get_by_text("调度版本：2")).to_be_visible()
             await page.get_by_role("tab", name="运行日志", exact=True).click()
             await expect(
@@ -405,6 +497,7 @@ async def main():
             await expect(page.get_by_role("dialog")).to_have_count(0)
             await page.set_viewport_size({"width": 1440, "height": 1000})
             await verify_revision_conflict(page)
+            await verify_solution_creation(page)
             await verify_partial_task_save(page)
             state["fail_batch"] = True
             await page.goto("http://127.0.0.1:5173/offline-sync")

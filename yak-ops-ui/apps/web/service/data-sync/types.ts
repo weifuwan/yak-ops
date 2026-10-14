@@ -11,6 +11,49 @@ export interface PaginationInfo {
 
 export type DataSyncType = "OFFLINE" | "REALTIME";
 
+export type DataSyncSolutionType = "SINGLE_TABLE_OFFLINE" | "SINGLE_TABLE_REALTIME";
+export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
+
+export interface DataSyncSolution {
+  solutionType: DataSyncSolutionType;
+  displayName: string;
+  steps: DataSyncStep[];
+  defaultSteps: DataSyncStep[];
+  allowedCombinations: Array<{
+    steps: DataSyncStep[];
+    supportsScheduling: boolean;
+    writeModes: DataSyncWriteMode[];
+  }>;
+}
+
+export interface DataSyncDraft {
+  sourceType: string;
+  targetType: string;
+  solutionType: DataSyncSolutionType;
+  steps: DataSyncStep[];
+  name: string;
+  form?: DataSyncTaskSavePayload;
+}
+
+export interface DataSyncTablePath {
+  database?: string;
+  schema?: string;
+  table: string;
+}
+
+export interface DataSyncParameters {
+  solutionType: DataSyncSolutionType;
+  steps: DataSyncStep[];
+  source: { datasourceId: string };
+  sink: { datasourceId: string };
+  tableSelection: { mode: "EXPLICIT" };
+  tableMappings: Array<{
+    source: DataSyncTablePath;
+    target: DataSyncTablePath;
+    writeMode: DataSyncWriteMode;
+  }>;
+}
+
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";
 
 export type DataSyncRuntimePolicy = "AUTO" | "FIXED";
@@ -52,6 +95,8 @@ export interface DataSyncMappingConfig {
 
 export interface DataSyncTaskRecord {
   id: string;
+  solutionType: DataSyncSolutionType;
+  steps: DataSyncStep[];
   name: string;
   syncType: DataSyncType | string;
   status: DataSyncTaskStatus | string;
@@ -81,6 +126,7 @@ export interface DataSyncTaskPageParams {
   pageSize: number;
   keyword?: string;
   syncType?: DataSyncType;
+  solutionType?: DataSyncSolutionType;
   status?: DataSyncTaskStatus;
   sourceDataSourceId?: string;
   targetDataSourceId?: string;
@@ -125,18 +171,11 @@ interface DataSyncTaskSaveBase {
   remark?: string;
 }
 
-export interface OfflineDataSyncTaskSavePayload extends DataSyncTaskSaveBase {
-  syncType: "OFFLINE";
-  writeMode?: DataSyncWriteMode;
+export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
+  solutionType: DataSyncSolutionType;
+  steps: DataSyncStep[];
+  writeMode: DataSyncWriteMode;
 }
-
-export interface RealtimeDataSyncTaskSavePayload extends DataSyncTaskSaveBase {
-  syncType: "REALTIME";
-}
-
-export type DataSyncTaskSavePayload =
-  | OfflineDataSyncTaskSavePayload
-  | RealtimeDataSyncTaskSavePayload;
 
 export type DataSyncTaskUpdatePayload =
   | DataSyncTaskSavePayload
@@ -183,6 +222,8 @@ export interface DataSyncOfflineRuntimePlan {
 
 export interface DataSyncDefinitionSnapshot {
   taskId: string;
+  solutionType?: DataSyncSolutionType;
+  steps?: DataSyncStep[];
   taskName: string;
   taskVersion: number;
   syncType?: DataSyncType | string;
@@ -199,6 +240,8 @@ export interface DataSyncDefinitionSnapshot {
 
 export interface DataSyncInstanceRecord {
   id: string;
+  solutionType: DataSyncSolutionType;
+  steps: DataSyncStep[];
   taskId: string;
   taskName: string;
   taskVersion: number;

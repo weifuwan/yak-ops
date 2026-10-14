@@ -1,7 +1,5 @@
 import {
   Button,
-  Field,
-  FieldLabel,
   Input,
   Modal,
   PageHeader,
@@ -27,6 +25,7 @@ import { scheduleErrorMessage, setScheduleEnabled } from "@/service/schedule";
 import { listDataSources, type DataSourceRecord } from "@/service/datasource";
 import { getUsersByIds, type UserRecord } from "@/service/user";
 import {
+  cancelDataSyncInstance,
   deleteDataSyncTask,
   listDataSyncTasks,
   publishDataSyncTask,
@@ -34,10 +33,14 @@ import {
   unpublishDataSyncTask,
   type DataSyncTaskRecord,
   type DataSyncTaskStatus,
+  type DataSyncSolutionType,
 } from "@/service/data-sync";
 
 import { ExecutionProgressBar } from "@/app/data-sync/execution-progress-bar";
-import { DataSyncSearchableSelect } from "@/app/data-sync/searchable-select";
+import { CreateSyncTaskDialog } from "./create-dialog";
+import { SOLUTION_LABELS, solutionSummary } from "./solution-presentation";
+import { canCancelTaskInstance } from "@/service/data-sync/execution";
+import type { TaskInstanceRecord } from "@/service/task-execution";
 import { TaskRoute } from "@/app/data-sync/task-route";
 import {
   DATA_SYNC_TASK_STATUS_ITEMS,
@@ -48,46 +51,33 @@ import {
 
 const PAGE_SIZE = 20;
 
-interface CreateDraft {
-  name: string;
-  sourceDataSourceId: string;
-  targetDataSourceId: string;
-}
-
-const emptyDraft = (): CreateDraft => ({
-  name: "",
-  sourceDataSourceId: "",
-  targetDataSourceId: "",
-});
-
-export function OfflineSyncPage() {
+export function DataSyncPage() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("tab") !== "instances") return;
-
-    const taskId = params.get("taskId");
-    navigate(taskId ? `/offline-sync/${taskId}/detail` : "/offline-sync", { replace: true });
-  }, [location.search, navigate]);
 
   const [records, setRecords] = useState<DataSyncTaskRecord[]>([]);
   const [updateUsers, setUpdateUsers] = useState<UserRecord[]>([]);
   const [dataSources, setDataSources] = useState<DataSourceRecord[]>([]);
-  const [dataSourcesLoading, setDataSourcesLoading] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [pageNo, setPageNo] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [taskStatus, setTaskStatus] = useState<DataSyncTaskStatus | "ALL">("ALL");
   const [actionKey, setActionKey] = useState<string>();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [draft, setDraft] = useState<CreateDraft>(emptyDraft());
+  const [createOpen, setCreateOpen] = useState(
+    new URLSearchParams(location.search).get("create") === "1",
+  );
+  const [solutionType, setSolutionType] = useState<DataSyncSolutionType | "ALL">(() => {
+    const initial = new URLSearchParams(location.search).get("solutionType");
+    if (initial === "SINGLE_TABLE_OFFLINE" || initial === "SINGLE_TABLE_REALTIME") return initial;
+    return "ALL";
+  });
   const [pendingDelete, setPendingDelete] = useState<DataSyncTaskRecord>();
   const [deleting, setDeleting] = useState(false);
   const [scheduleTask, setScheduleTask] = useState<DataSyncTaskRecord>();
-  const schedules = useTaskSchedules(records.map((record) => record.id));
+  const schedules = useTaskSchedules(
+    records.filter((record) => record.syncType === "OFFLINE").map((record) => record.id),
+  );
   const scheduleSession = useRef<AbortController>();
   useEffect(() => {
     const controller = new AbortController();
@@ -128,29 +118,12 @@ export function OfflineSyncPage() {
     () => new Map(updateUsers.map((user) => [user.id, user] as const)),
     [updateUsers],
   );
-  const dataSourceOptions = useMemo(
-    () =>
-      dataSources.flatMap((item) =>
-        item.id
-          ? [
-              {
-                value: item.id,
-                label: item.name || item.id,
-                searchText: [item.dbType, item.database, item.schema].filter(Boolean).join(" "),
-              },
-            ]
-          : [],
-      ),
-    [dataSources],
-  );
-
   const loadDataSources = useCallback(async () => {
-    setDataSourcesLoading(true);
     try {
       const result = await listDataSources({ pageNo: 1, pageSize: 200 });
       setDataSources(result?.bizData || []);
-    } finally {
-      setDataSourcesLoading(false);
+    } catch {
+      // Keep existing endpoint labels while transport reports an unavailable catalog.
     }
   }, []);
 
@@ -158,26 +131,39 @@ export function OfflineSyncPage() {
     void loadDataSources();
   }, [loadDataSources]);
 
+  const taskRequest = useRef<AbortController>();
   const loadTasks = useCallback(async () => {
+    taskRequest.current?.abort();
+    const controller = new AbortController();
+    taskRequest.current = controller;
     setLoading(true);
     try {
-      const result = await listDataSyncTasks({
-        pageNo,
-        pageSize: PAGE_SIZE,
-        keyword: keyword.trim() || undefined,
-        syncType: "OFFLINE",
-        status: taskStatus === "ALL" ? undefined : taskStatus,
-      });
+      const result = await listDataSyncTasks(
+        {
+          pageNo,
+          pageSize: PAGE_SIZE,
+          keyword: keyword.trim() || undefined,
+          solutionType: solutionType === "ALL" ? undefined : solutionType,
+          status: taskStatus === "ALL" ? undefined : taskStatus,
+        },
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
       setRecords(result?.bizData || []);
       setTotal(result?.pagination?.total || 0);
+    } catch {
+      // The previous page is retained when a request fails; no successful empty page is fabricated.
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
-  }, [keyword, pageNo, taskStatus]);
+  }, [keyword, pageNo, taskStatus, solutionType]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadTasks(), keyword.trim() ? 250 : 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      taskRequest.current?.abort();
+    };
   }, [keyword, loadTasks]);
 
   useEffect(() => {
@@ -220,6 +206,18 @@ export function OfflineSyncPage() {
       await runDataSyncTask(record.id);
       toast.success("运行请求已提交");
       schedules.refresh();
+      await Promise.all([loadTasks(), refreshActiveInstances()]);
+    } finally {
+      setActionKey(undefined);
+    }
+  };
+
+  const stopTask = async (record: DataSyncTaskRecord, instance: TaskInstanceRecord) => {
+    if (actionKey || !canCancelTaskInstance(instance.status)) return;
+    setActionKey(`${record.id}:stop`);
+    try {
+      await cancelDataSyncInstance(instance.id);
+      toast.success("已发送停止请求");
       await Promise.all([loadTasks(), refreshActiveInstances()]);
     } finally {
       setActionKey(undefined);
@@ -276,21 +274,34 @@ export function OfflineSyncPage() {
       ),
     },
     {
+      key: "solution",
+      title: "同步方案",
+      minWidth: 205,
+      render: (_value, record) => (
+        <span className="text-xs text-[#475467]">
+          {solutionSummary(record.solutionType, record.steps)}
+        </span>
+      ),
+    },
+    {
       key: "schedule",
       title: "调度",
       width: 230,
-      render: (_value, record) => (
-        <TaskScheduleCell
-          schedule={schedules.records.get(record.id)}
-          name={record.name}
-          published={record.status === "PUBLISHED"}
-          loading={schedules.loading}
-          error={schedules.error}
-          pending={Boolean(actionKey)}
-          onConfigure={() => setScheduleTask(record)}
-          onToggle={(enabled) => void toggleSchedule(record, enabled)}
-        />
-      ),
+      render: (_value, record) =>
+        record.syncType === "OFFLINE" ? (
+          <TaskScheduleCell
+            schedule={schedules.records.get(record.id)}
+            name={record.name}
+            published={record.status === "PUBLISHED"}
+            loading={schedules.loading}
+            error={schedules.error}
+            pending={Boolean(actionKey)}
+            onConfigure={() => setScheduleTask(record)}
+            onToggle={(enabled) => void toggleSchedule(record, enabled)}
+          />
+        ) : (
+          <span className="text-[#98a2b3]">—</span>
+        ),
     },
     {
       key: "status",
@@ -305,19 +316,19 @@ export function OfflineSyncPage() {
       render: (_value, record) => {
         const instance = latestByTask.get(record.id);
         if (!instance) {
-          return <ExecutionProgressBar realtime={false} />;
+          return <ExecutionProgressBar realtime={record.syncType === "REALTIME"} />;
         }
         return (
           <button
             type="button"
             className="block w-full cursor-pointer text-left"
             title="查看本次执行"
-            onClick={() => navigate(`/offline-sync/${record.id}/detail?executionId=${instance.id}`)}
+            onClick={() => navigate(`/data-sync/${record.id}/detail?executionId=${instance.id}`)}
           >
             <ExecutionProgressBar
               status={instance.status}
               percent={instance.progressPercent}
-              realtime={false}
+              realtime={record.syncType === "REALTIME"}
             />
           </button>
         );
@@ -347,11 +358,29 @@ export function OfflineSyncPage() {
           record={record}
           activeInstance={activeByTask.get(record.id)}
           actionKey={actionKey}
-          onRun={(value) => void runTask(value)}
+          runtimeAction={{
+            label: activeByTask.has(record.id)
+              ? "停止"
+              : record.syncType === "REALTIME"
+                ? "启动"
+                : "运行",
+            className: activeByTask.has(record.id)
+              ? "text-[#d92d20]"
+              : "text-[var(--yak-color-primary)]",
+            loading: actionKey === `${record.id}:run` || actionKey === `${record.id}:stop`,
+            disabled: activeByTask.has(record.id)
+              ? !canCancelTaskInstance(activeByTask.get(record.id)!.status)
+              : record.status !== "PUBLISHED",
+            onClick: () => {
+              const active = activeByTask.get(record.id);
+              if (active) void stopTask(record, active);
+              else void runTask(record);
+            },
+          }}
           onPublish={(value) => void publishTask(value)}
           onUnpublish={(value) => void unpublishTask(value)}
-          onEdit={(value) => navigate(`/offline-sync/${value.id}`)}
-          onDetail={(value) => navigate(`/offline-sync/${value.id}/detail`)}
+          onEdit={(value) => navigate(`/data-sync/${value.id}/edit`)}
+          onDetail={(value) => navigate(`/data-sync/${value.id}/detail`)}
           onDelete={setPendingDelete}
         />
       ),
@@ -375,7 +404,7 @@ export function OfflineSyncPage() {
   return (
     <>
       <div className="flex min-h-full flex-col bg-[#f6f6f6] text-[#242731]">
-        <PageHeader title="离线同步" bordered className="bg-white px-6 max-md:px-4" />
+        <PageHeader title="数据同步" bordered className="bg-white px-6 max-md:px-4" />
 
         <div className="flex min-h-0 flex-1 px-6 pb-4 pt-5 max-md:px-4">
           <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
@@ -384,7 +413,6 @@ export function OfflineSyncPage() {
                 size="small"
                 variant="primary"
                 onClick={() => {
-                  setDraft(emptyDraft());
                   setCreateOpen(true);
                 }}
               >
@@ -402,6 +430,33 @@ export function OfflineSyncPage() {
                     setPageNo(1);
                   }}
                 />
+              </div>
+              <div className="w-[165px]">
+                <Select
+                  size="small"
+                  items={{ ALL: "全部同步类型", ...SOLUTION_LABELS }}
+                  value={solutionType}
+                  onValueChange={(value) => {
+                    setSolutionType(String(value) as DataSyncSolutionType | "ALL");
+                    setPageNo(1);
+                  }}
+                >
+                  <SelectTrigger variant="outlined">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">
+                      <SelectItemText>全部同步类型</SelectItemText>
+                      <SelectItemIndicator />
+                    </SelectItem>
+                    {Object.entries(SOLUTION_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        <SelectItemText>{label}</SelectItemText>
+                        <SelectItemIndicator />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="w-[150px]">
                 <Select
@@ -444,7 +499,7 @@ export function OfflineSyncPage() {
                 bordered
                 size="medium"
                 scroll={{ x: 1480 }}
-                emptyText="还没有离线同步任务"
+                emptyText="还没有同步任务"
                 pagination={
                   total > 0
                     ? {
@@ -473,107 +528,19 @@ export function OfflineSyncPage() {
           onClose={() => setScheduleTask(undefined)}
           onChanged={schedules.refresh}
           onViewInstance={(id) =>
-            navigate(
-              `/offline-sync/${scheduleTask.id}/detail?executionId=${encodeURIComponent(id)}`,
-            )
+            navigate(`/data-sync/${scheduleTask.id}/detail?executionId=${encodeURIComponent(id)}`)
           }
         />
       ) : null}
-      <Modal
-        open={createOpen}
-        centered
-        width={560}
-        title="新建离线同步任务"
-        onClose={() => setCreateOpen(false)}
-        footer={
-          <>
-            <Button size="small" onClick={() => setCreateOpen(false)}>
-              取消
-            </Button>
-            <Button
-              size="small"
-              variant="primary"
-              disabled={
-                !draft.name.trim() || !draft.sourceDataSourceId || !draft.targetDataSourceId
-              }
-              onClick={() => {
-                setCreateOpen(false);
-                navigate("/offline-sync/new", { state: { draft } });
-              }}
-            >
-              下一步
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <Field className="grid grid-cols-[110px_minmax(0,1fr)] items-center !gap-3">
-            <FieldLabel required>名称</FieldLabel>
-            <Input
-              size="small"
-              variant="outlined"
-              value={draft.name}
-              maxLength={128}
-              placeholder="请输入同步任务名称"
-              onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))}
-            />
-          </Field>
-
-          <Field className="grid grid-cols-[110px_minmax(0,1fr)] items-center !gap-3">
-            <FieldLabel required>来源数据源</FieldLabel>
-            <DataSyncSearchableSelect
-              value={draft.sourceDataSourceId || null}
-              options={dataSourceOptions}
-              placeholder="请选择来源数据源"
-              searchPlaceholder="搜索来源数据源"
-              emptyText="暂无数据源"
-              refreshing={dataSourcesLoading}
-              onRefresh={loadDataSources}
-              footer={
-                <Button
-                  size="small"
-                  variant="ghost"
-                  className="px-1 text-xs font-normal text-[var(--yak-color-primary)]"
-                  onClick={() => navigate("/data-source?create=1")}
-                >
-                  <Plus size={14} />
-                  新增数据源
-                </Button>
-              }
-              onValueChange={(value) =>
-                setDraft((current) => ({ ...current, sourceDataSourceId: value }))
-              }
-            />
-          </Field>
-
-          <Field className="grid grid-cols-[110px_minmax(0,1fr)] items-center !gap-3">
-            <FieldLabel required>目标数据源</FieldLabel>
-            <DataSyncSearchableSelect
-              value={draft.targetDataSourceId || null}
-              options={dataSourceOptions}
-              placeholder="请选择目标数据源"
-              searchPlaceholder="搜索目标数据源"
-              emptyText="暂无数据源"
-              refreshing={dataSourcesLoading}
-              onRefresh={loadDataSources}
-              footer={
-                <Button
-                  size="small"
-                  variant="ghost"
-                  className="px-1 text-xs font-normal text-[var(--yak-color-primary)]"
-                  onClick={() => navigate("/data-source?create=1")}
-                >
-                  <Plus size={14} />
-                  新增数据源
-                </Button>
-              }
-              onValueChange={(value) =>
-                setDraft((current) => ({ ...current, targetDataSourceId: value }))
-              }
-            />
-          </Field>
-        </div>
-      </Modal>
+      {createOpen ? (
+        <CreateSyncTaskDialog
+          onClose={() => {
+            setCreateOpen(false);
+            if (new URLSearchParams(location.search).has("create"))
+              navigate("/data-sync", { replace: true });
+          }}
+        />
+      ) : null}
 
       <Modal
         open={Boolean(pendingDelete)}
@@ -607,7 +574,4 @@ export function OfflineSyncPage() {
   );
 }
 
-export { OfflineSyncEditorPage } from "./editor";
-export { OfflineSyncInstanceDetailPage } from "./instance-detail";
-export { OfflineSyncTaskDetailPage } from "./task-detail";
-export default OfflineSyncPage;
+export default DataSyncPage;

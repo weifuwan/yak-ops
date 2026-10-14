@@ -34,27 +34,36 @@ export function useActiveTaskInstances(enabled: boolean, taskIds: string[]) {
   const [latestByTask, setLatestByTask] = useState<Map<string, TaskInstanceRecord>>(new Map());
   const [activeByTask, setActiveByTask] = useState<Map<string, TaskInstanceRecord>>(new Map());
   const requestId = useRef(0);
+  const pendingRequest = useRef<AbortController>();
 
   const refresh = useCallback(async () => {
+    pendingRequest.current?.abort();
+    const controller = new AbortController();
+    pendingRequest.current = controller;
     const request = ++requestId.current;
     if (!enabled || taskIds.length === 0) {
       setLatestByTask(new Map());
       setActiveByTask(new Map());
       return;
     }
-    const [latest, active] = await Promise.all([
-      listLatestTaskInstances(taskIds),
-      listLatestTaskInstances(taskIds, true),
-    ]);
-    if (request !== requestId.current) return;
-    setLatestByTask(new Map(latest.map((record) => [record.definitionId, record])));
-    setActiveByTask(new Map(active.map((record) => [record.definitionId, record])));
+    try {
+      const [latest, active] = await Promise.all([
+        listLatestTaskInstances(taskIds, false, controller.signal),
+        listLatestTaskInstances(taskIds, true, controller.signal),
+      ]);
+      if (controller.signal.aborted || request !== requestId.current) return;
+      setLatestByTask(new Map(latest.map((record) => [record.definitionId, record])));
+      setActiveByTask(new Map(active.map((record) => [record.definitionId, record])));
+    } catch {
+      // Keep the last observation. Authorization and transport errors are reported centrally.
+    }
   }, [enabled, taskIds]);
 
   useEffect(() => {
     void refresh();
     return () => {
       requestId.current += 1;
+      pendingRequest.current?.abort();
     };
   }, [refresh]);
 

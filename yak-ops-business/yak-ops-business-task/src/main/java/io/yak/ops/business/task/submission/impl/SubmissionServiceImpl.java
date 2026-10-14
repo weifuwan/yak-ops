@@ -132,7 +132,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         int version = definition.getCurrentVersion();
         var snapshot = versions.queryCurrent(workspaceId, definitionId, version)
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
-        ReadonlyConfig parameters = executable.parse(snapshot.getParameters());
+        ReadonlyConfig parameters = executable.parse(snapshot.getParameterSchemaVersion(), snapshot.getParameters());
         if (command.triggerType() == TaskTriggerType.SCHEDULE && !executable.supportsScheduling(parameters)) {
             throw new BusinessException(ScheduleErrorCode.NOT_SCHEDULABLE);
         }

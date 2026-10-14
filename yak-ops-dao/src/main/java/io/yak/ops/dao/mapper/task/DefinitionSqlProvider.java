@@ -5,8 +5,36 @@ import java.util.Map;
 
 /** Typed product filters target nested canonical JSON paths; bound filter values remain parameters. */
 public final class DefinitionSqlProvider {
+    /** Connector projection for recognized parameter formats; unknown shapes remain unclassified. */
+    public static final String SOURCE_TYPE = """
+            (CASE
+              WHEN v.parameter_schema_version = 3 THEN
+                CASE JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.solutionType'))
+                  WHEN 'SINGLE_TABLE_OFFLINE' THEN 'JDBC'
+                  WHEN 'SINGLE_TABLE_REALTIME' THEN 'MYSQL_CDC'
+                END
+              WHEN v.parameter_schema_version = 2
+                AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.sink.type')) = 'JDBC'
+                AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type')) IN ('JDBC', 'MYSQL_CDC')
+              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type'))
+            END)
+            """;
+
+    /** Product projection used before paging, including retained version-two definitions. */
+    public static final String SOLUTION_TYPE = """
+            (CASE
+              WHEN v.parameter_schema_version = 3
+                THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.solutionType'))
+              WHEN v.parameter_schema_version = 2
+                AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.sink.type')) = 'JDBC'
+              THEN CASE JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type'))
+                WHEN 'JDBC' THEN 'SINGLE_TABLE_OFFLINE'
+                WHEN 'MYSQL_CDC' THEN 'SINGLE_TABLE_REALTIME'
+              END
+            END)
+            """;
+
     private static final Map<String, String> JSON_FILTER_PATHS = Map.of(
-            "sourceType", "$.source.type",
             "sourceDataSourceId", "$.source.datasourceId",
             "targetDataSourceId", "$.sink.datasourceId");
 
@@ -28,6 +56,14 @@ public final class DefinitionSqlProvider {
             sql.append(" OR v.parameters LIKE CONCAT('%', #{filter.keyword}, '%'))");
         }
         for (String key : filter.parameterFilters().keySet()) {
+            if ("sourceType".equals(key)) {
+                sql.append(" AND ").append(SOURCE_TYPE).append(" = #{filter.parameterFilters.sourceType}");
+                continue;
+            }
+            if ("solutionType".equals(key)) {
+                sql.append(" AND ").append(SOLUTION_TYPE).append(" = #{filter.parameterFilters.solutionType}");
+                continue;
+            }
             String path = JSON_FILTER_PATHS.get(key);
             if (path == null) throw new IllegalArgumentException("Unsupported definition parameter filter");
             sql.append(" AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '")

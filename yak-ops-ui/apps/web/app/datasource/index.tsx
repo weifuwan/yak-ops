@@ -17,7 +17,7 @@ import {
 } from "@yak-ops/yak-ui";
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   batchDeleteDataSources,
@@ -38,6 +38,12 @@ const MAX_BATCH_SELECTION = 100;
 const DataSourcePage = () => {
   const intl = useIntl();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const requestedReturn = searchParams.get("returnTo");
+  const returnTo =
+    requestedReturn && /^\/data-sync\/(?:new|[A-Za-z0-9_-]+\/edit)$/.test(requestedReturn)
+      ? requestedReturn
+      : undefined;
   const dbTypeItems = [
     {
       label: intl.formatMessage({ id: "pages.datasource.toolbar.allTypes" }),
@@ -218,6 +224,13 @@ const DataSourcePage = () => {
       <div className="flex min-h-full flex-col bg-[#F6F6F6] text-[#242731]">
         <PageHeader
           title={intl.formatMessage({ id: "pages.datasource.page.title" })}
+          extra={
+            returnTo ? (
+              <Button size="small" onClick={() => navigate(returnTo)}>
+                返回同步任务
+              </Button>
+            ) : undefined
+          }
           bordered
           className="bg-white px-6 max-md:px-4"
         />

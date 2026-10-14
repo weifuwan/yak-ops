@@ -25,6 +25,29 @@ public interface TaskPlugin {
     ReadonlyConfig parse(String content);
 
     /**
+     * Parses an immutable persisted definition using its recorded parameter schema version.
+     *
+     * @param schemaVersion version recorded on the Definition Version
+     * @param content persisted parameter JSON
+     * @return statically validated, immutable configuration
+     */
+    default ReadonlyConfig parse(int schemaVersion, String content) {
+        if (schemaVersion != parameterSchemaVersion()) {
+            throw new TaskPluginException("Unsupported Task parameter schema version");
+        }
+        return parse(content);
+    }
+
+    /**
+     * Validates a change between two already parsed versions before a new version is appended.
+     *
+     * @param previous stored configuration interpreted with its own schema version
+     * @param updated new configuration using the current schema version
+     * @param context authorized Workspace resource view
+     */
+    default void validateUpdate(ReadonlyConfig previous, ReadonlyConfig updated, TaskValidationContext context) {}
+
+    /**
      * Checks Workspace-authorized resource references without reading external table schemas.
      *
      * @param parameters locally validated configuration

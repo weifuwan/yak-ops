@@ -34,11 +34,14 @@ export const datasourceValidationErrors = (error: unknown): DataSourceValidation
   );
 };
 
-export const listDataSources = (params: DataSourcePageParams): Promise<DataSourcePageResult> =>
-  HttpUtils.postData<DataSourcePageResult>(`${DATA_SOURCE_API_PREFIX}/page`, params);
+export const listDataSources = (
+  params: DataSourcePageParams,
+  signal?: AbortSignal,
+): Promise<DataSourcePageResult> =>
+  HttpUtils.postData<DataSourcePageResult>(`${DATA_SOURCE_API_PREFIX}/page`, params, { signal });
 
-export const getDataSource = (id: DataSourceId): Promise<DataSourceRecord> =>
-  HttpUtils.getData<DataSourceRecord>(`${DATA_SOURCE_API_PREFIX}/${id}`);
+export const getDataSource = (id: DataSourceId, signal?: AbortSignal): Promise<DataSourceRecord> =>
+  HttpUtils.getData<DataSourceRecord>(`${DATA_SOURCE_API_PREFIX}/${id}`, { signal });
 
 export const getDataSourceConnectionPropertyKeys = (
   dbType: string,

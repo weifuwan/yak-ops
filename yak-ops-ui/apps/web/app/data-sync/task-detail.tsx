@@ -35,7 +35,6 @@ import {
   type DataSyncInstanceRecord,
   type DataSyncInstanceStatus,
   type DataSyncTaskRecord,
-  type DataSyncType,
 } from "@/service/data-sync";
 import { canCancelTaskInstance } from "@/service/data-sync/execution";
 
@@ -47,6 +46,7 @@ import {
   isActiveDataSyncInstance,
 } from "./execution-detail";
 import { TaskInstanceLogPanel } from "./task-instance-log-panel";
+import { solutionSummary } from "./solution-presentation";
 
 const PAGE_SIZE = 20;
 const POLL_MILLIS = 2000;
@@ -72,19 +72,10 @@ const INSTANCE_STATUS_ITEMS: Record<DataSyncInstanceStatus | "ALL", string> = {
   CANCELED: "已停止",
 };
 
-interface Props {
-  syncType: DataSyncType;
-  basePath: string;
-  localScroll?: boolean;
-}
-
-export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false }: Props) {
-  const realtime = syncType === "REALTIME";
-  const statusItems = {
-    ...INSTANCE_STATUS_ITEMS,
-    CANCELED: realtime ? "已停止" : "已取消",
-  };
-  const { taskId } = useParams<{ taskId: string }>();
+export function DataSyncTaskDetailPage() {
+  const basePath = "/data-sync";
+  const localScroll = true;
+  const { id: taskId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const executionId = searchParams.get("executionId");
@@ -92,6 +83,8 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
   const activeTab = tab === "log" ? "log" : "status";
 
   const [task, setTask] = useState<DataSyncTaskRecord>();
+  const realtime = task?.syncType === "REALTIME";
+  const statusItems = { ...INSTANCE_STATUS_ITEMS, CANCELED: realtime ? "已停止" : "已取消" };
   const [taskLoading, setTaskLoading] = useState(true);
   const [dataSources, setDataSources] = useState<{
     source?: DataSourceRecord;
@@ -117,9 +110,7 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
   const detailRequest = useRef(0);
   const searchParamsSetter = useRef(setSearchParams);
   const selectedInstance =
-    selected?.id === executionId && selected?.taskId === taskId && selected?.syncType === syncType
-      ? selected
-      : undefined;
+    selected?.id === executionId && selected?.taskId === taskId ? selected : undefined;
   const hasActiveInstance =
     instances.some(isActiveDataSyncInstance) || isActiveDataSyncInstance(selectedInstance);
 
@@ -136,16 +127,17 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
         pageNo,
         pageSize: PAGE_SIZE,
         taskId,
-        syncType,
         status: status === "ALL" ? undefined : status,
       });
       if (request !== listRequest.current) return;
       setInstances(result.bizData);
       setTotal(result.pagination.total);
+    } catch {
+      // A failed refresh retains the last observation; the transport reports the failure.
     } finally {
       if (request === listRequest.current) setInstancesLoading(false);
     }
-  }, [pageNo, status, syncType, taskId]);
+  }, [pageNo, status, taskId]);
 
   useEffect(() => {
     if (!taskId) return;
@@ -155,10 +147,6 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
     void getDataSyncTask(taskId)
       .then((value) => {
         if (disposed) return;
-        if (value.syncType !== syncType) {
-          navigate(basePath, { replace: true });
-          return;
-        }
         setTask(value);
       })
       .catch(() => {
@@ -170,7 +158,7 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
     return () => {
       disposed = true;
     };
-  }, [basePath, navigate, syncType, taskId]);
+  }, [basePath, navigate, taskId]);
 
   useEffect(() => {
     const sourceId = task?.sourceDataSourceId;
@@ -214,6 +202,9 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
 
   useEffect(() => {
     void loadInstances();
+    return () => {
+      listRequest.current += 1;
+    };
   }, [loadInstances]);
 
   useEffect(() => {
@@ -243,7 +234,7 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
     void getDataSyncInstance(executionId)
       .then((value) => {
         if (disposed || request !== detailRequest.current) return;
-        if (value.taskId !== taskId || value.syncType !== syncType) {
+        if (value.taskId !== taskId) {
           searchParamsSetter.current(
             (previous) => {
               if (previous.get("executionId") !== executionId) return previous;
@@ -277,7 +268,7 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
       disposed = true;
       detailRequest.current += 1;
     };
-  }, [executionId, syncType, taskId]);
+  }, [executionId, taskId]);
 
   useEffect(() => {
     if (!autoRefresh || (!hasActiveInstance && !hasEnabledSchedule) || selectedLoading) return;
@@ -292,7 +283,7 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
         if (!executionId || disposed) return;
         const value = await getDataSyncInstance(executionId);
         if (disposed || request !== detailRequest.current) return;
-        if (value.taskId === taskId && value.syncType === syncType) setSelected(value);
+        if (value.taskId === taskId) setSelected(value);
       } catch {
         // Keep the last observation; the HTTP boundary reports request failures.
       } finally {
@@ -310,7 +301,6 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
     hasEnabledSchedule,
     loadInstances,
     selectedLoading,
-    syncType,
     taskId,
   ]);
 
@@ -323,7 +313,7 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
       if (!executionId || request !== detailRequest.current) return;
       const value = await getDataSyncInstance(executionId);
       if (request !== detailRequest.current) return;
-      if (value.taskId === taskId && value.syncType === syncType) setSelected(value);
+      if (value.taskId === taskId) setSelected(value);
     } finally {
       setRefreshing(false);
     }
@@ -495,7 +485,10 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
                     onClick={() => selectInstance(instance.id)}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <ExecutionStatusIcon status={instance.status} realtime={realtime} />
+                      <ExecutionStatusIcon
+                        status={instance.status}
+                        realtime={instance.syncType === "REALTIME"}
+                      />
                       <span className="truncate text-xs text-[#98a2b3]">
                         {instance.startTime || instance.createTime || "-"}
                       </span>
@@ -559,7 +552,7 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
                   运行
                 </Button>
               ) : (
-                <Button size="small" onClick={() => navigate(basePath + "/" + task.id)}>
+                <Button size="small" onClick={() => navigate(basePath + "/" + task.id + "/edit")}>
                   编辑
                 </Button>
               )}
@@ -604,7 +597,7 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
                   </div>
                 </BasicInfoField>
                 <BasicInfoField label="同步方案">
-                  {realtime ? "实时同步" : "离线同步"}
+                  {solutionSummary(task.solutionType, task.steps)}
                 </BasicInfoField>
                 <BasicInfoField label="创建时间">{task.createTime || "-"}</BasicInfoField>
                 <BasicInfoField label="更新时间">{task.updateTime || "-"}</BasicInfoField>
@@ -627,7 +620,7 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
                       setHistoryScheduleId(selectedInstance.scheduleId || undefined);
                       setScheduleOpen(true);
                     }}
-                    realtime={realtime}
+                    realtime={selectedInstance.syncType === "REALTIME"}
                     controls={
                       <>
                         <label className="flex items-center gap-2 text-xs text-[#667085]">
@@ -715,38 +708,4 @@ export function DataSyncTaskDetailPage({ syncType, basePath, localScroll = false
       ) : null}
     </div>
   );
-}
-
-interface DataSyncLegacyInstanceDetailRedirectProps {
-  syncType: DataSyncType;
-  basePath: string;
-}
-
-export function DataSyncLegacyInstanceDetailRedirect({
-  syncType,
-  basePath,
-}: DataSyncLegacyInstanceDetailRedirectProps) {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!id) {
-      navigate(basePath, { replace: true });
-      return;
-    }
-    void getDataSyncInstance(id)
-      .then((record) => {
-        if (record.syncType !== syncType) {
-          navigate(basePath, { replace: true });
-          return;
-        }
-        navigate(
-          basePath + "/" + record.taskId + "/detail?executionId=" + encodeURIComponent(record.id),
-          { replace: true },
-        );
-      })
-      .catch(() => navigate(basePath, { replace: true }));
-  }, [basePath, id, navigate, syncType]);
-
-  return <div className="p-6 text-sm text-[#667085]">加载中...</div>;
 }

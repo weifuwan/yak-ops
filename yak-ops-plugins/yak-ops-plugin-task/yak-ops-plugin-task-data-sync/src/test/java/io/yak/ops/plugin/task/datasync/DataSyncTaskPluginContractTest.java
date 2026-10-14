@@ -40,15 +40,15 @@ class DataSyncTaskPluginContractTest {
     @Test
     void periodicEligibilityIsPureAndKeepsContinuousJobsManual() {
         DataSyncTaskPlugin plugin = plugin();
-        assertTrue(plugin.supportsScheduling(plugin.parse(offlineJson())));
-        assertEquals(false, plugin.supportsScheduling(plugin.parse(realtimeJson())));
+        assertTrue(plugin.supportsScheduling(plugin.parse(2, offlineJson())));
+        assertEquals(false, plugin.supportsScheduling(plugin.parse(2, realtimeJson())));
     }
 
     @Test
     void registersBootConstructedPluginWithOneRegistry() {
         assertTrue(registry.types().contains("DATA_SYNC"));
         assertInstanceOf(DataSyncTaskPlugin.class, registry.get("DATA_SYNC"));
-        assertEquals(2, registry.get("DATA_SYNC").parameterSchemaVersion());
+        assertEquals(3, registry.get("DATA_SYNC").parameterSchemaVersion());
         assertThrows(TaskPluginException.class, () -> registry.get("data-sync"));
         assertThrows(TaskPluginException.class, () -> registry.get("data_sync"));
         assertThrows(TaskPluginException.class, () -> registry.get("SQL"));
@@ -57,8 +57,8 @@ class DataSyncTaskPluginContractTest {
 
     @Test
     void parsesJDBCAndMySqlCdcWithoutAddingExecutionState() {
-        ReadonlyConfig jdbc = registry.get("DATA_SYNC").parse(offlineJson());
-        ReadonlyConfig cdc = registry.get("DATA_SYNC").parse(realtimeJson());
+        ReadonlyConfig jdbc = registry.get("DATA_SYNC").parse(2, offlineJson());
+        ReadonlyConfig cdc = registry.get("DATA_SYNC").parse(2, realtimeJson());
         assertEquals("JDBC", JobConfig.from(jdbc).source().get(JobOptions.TYPE));
         assertEquals("MYSQL_CDC", JobConfig.from(cdc).source().get(JobOptions.TYPE));
         assertEquals(
@@ -74,7 +74,7 @@ class DataSyncTaskPluginContractTest {
                         .path("type")
                         .asText());
         assertEquals(3, JSONUtils.readTree(ConfigParser.toJson(jdbc)).size());
-        assertEquals(jdbc, registry.get("DATA_SYNC").parse(ConfigParser.toJson(jdbc)));
+        assertEquals(jdbc, registry.get("DATA_SYNC").parse(2, ConfigParser.toJson(jdbc)));
     }
 
     @Test
@@ -89,7 +89,7 @@ class DataSyncTaskPluginContractTest {
                 offlineJson().replace("APPEND", "OVERWRITE"),
                 realtimeJson().replace("UPSERT", "APPEND"))) {
             assertThrows(
-                    TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(json));
+                    TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(2, json));
         }
     }
 
@@ -98,7 +98,7 @@ class DataSyncTaskPluginContractTest {
         String json =
                 offlineJson().replace("\"table\":\"orders\"", "\"table\":\"orders\",\"password\":\"private-value\"");
         TaskPluginException exception = assertThrows(
-                TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(json));
+                TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(2, json));
         assertEquals("Invalid DATA_SYNC pipeline JSON", exception.getMessage());
     }
 
@@ -112,7 +112,7 @@ class DataSyncTaskPluginContractTest {
             String json = offlineJson()
                     .replace("\"table\":\"orders\"", "\"table\":\"orders\",\"" + key + "\":\"private-value\"");
             TaskPluginException failure = assertThrows(
-                    TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(json));
+                    TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(2, json));
             assertTrue(!failure.toString().contains("private-value"));
         }
     }
@@ -120,7 +120,7 @@ class DataSyncTaskPluginContractTest {
     @Test
     void draftValidationChecksAuthorizedReferencesWithoutReadingTableSchemas() {
         TaskPlugin plugin = registry.get("DATA_SYNC");
-        ReadonlyConfig parameters = plugin.parse(realtimeJson());
+        ReadonlyConfig parameters = plugin.parse(2, realtimeJson());
         TaskValidationContext context = new TaskValidationContext() {
             @Override
             public DataSourceInfo dataSource(String id) {
@@ -222,7 +222,7 @@ class DataSyncTaskPluginContractTest {
         assertEquals(1, validations.get());
     }
 
-    private static DataSyncTaskPlugin plugin() {
+    static DataSyncTaskPlugin plugin() {
         DataSourceLookupService unsupported = new DataSourceLookupService() {
             @Override
             public DataSourceTable table(String workspace, String id, String database, String schema, String name) {
@@ -253,7 +253,7 @@ class DataSyncTaskPluginContractTest {
 
     private ReadonlyConfig parseAndValidate(String json, TaskValidationContext context) {
         TaskPlugin plugin = registry.get("DATA_SYNC");
-        ReadonlyConfig parameters = plugin.parse(json);
+        ReadonlyConfig parameters = plugin.parse(2, json);
         plugin.validate(parameters, context);
         return parameters;
     }

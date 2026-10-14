@@ -40,14 +40,9 @@ export const DATA_INTEGRATION_NAVIGATION: ProductNavigationItem[] = [
     icon: Database,
   },
   {
-    label: "离线同步",
-    path: "/offline-sync",
+    label: "数据同步",
+    path: "/data-sync",
     icon: ArrowRightLeft,
-  },
-  {
-    label: "实时同步",
-    path: "/realtime-sync",
-    icon: Activity,
   },
 ];
 

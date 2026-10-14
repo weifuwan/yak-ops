@@ -20,8 +20,23 @@ export function ExecutionProgressBar({
   const progress = status
     ? getExecutionProgress(status, percent, realtime)
     : { mode: "idle", value: null };
-  const progressText =
-    progress.value === null ? (status ? "运行中" : "暂无执行") : `${progress.value}%`;
+  const statusLabel = status
+    ? {
+        SUBMITTED: "等待",
+        LAUNCHING: "启动中",
+        RUNNING: "运行中",
+        CANCELLING: "正在停止",
+        RECONCILING: "待确认",
+        FINISHED: "成功",
+        FAILED: "失败",
+        CANCELED: "已停止",
+      }[status]
+    : "暂无执行";
+  let progressText = statusLabel;
+  if (progress.value !== null) progressText += ` · ${progress.value}%`;
+  if (status === "FAILED" && (percent === null || percent === undefined)) {
+    progressText += "（未取得进度数据）";
+  }
   const label = realtime ? "实时同步" : "离线同步";
 
   return (

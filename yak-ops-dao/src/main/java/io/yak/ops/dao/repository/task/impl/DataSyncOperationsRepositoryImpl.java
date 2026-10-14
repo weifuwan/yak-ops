@@ -1,6 +1,7 @@
 package io.yak.ops.dao.repository.task.impl;
 
 import io.yak.ops.common.bean.vo.task.DataSyncOperationsVO;
+import io.yak.ops.dao.mapper.task.DefinitionSqlProvider;
 import io.yak.ops.dao.repository.task.DataSyncOperationsRepository;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
@@ -23,8 +24,7 @@ public class DataSyncOperationsRepositoryImpl implements DataSyncOperationsRepos
     private static final String INSTANCE_FILTER = """
             WHERE i.workspace_id = ?
               AND i.task_type = 'DATA_SYNC'
-              AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type')) = ?
-            """;
+            """ + " AND " + DefinitionSqlProvider.SOURCE_TYPE + " = ? ";
 
     private static final String INSTANCE_SCOPE = INSTANCE_JOIN + INSTANCE_FILTER;
 

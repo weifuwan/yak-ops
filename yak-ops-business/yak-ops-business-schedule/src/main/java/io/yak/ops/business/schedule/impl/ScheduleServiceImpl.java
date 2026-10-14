@@ -390,7 +390,8 @@ public class ScheduleServiceImpl implements ScheduleService {
         }
         var version = versions.queryCurrent(entity.getWorkspaceId(), definition.getId(), definition.getCurrentVersion())
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
-        boolean eligible = executable.supportsScheduling(executable.parse(version.getParameters()));
+        boolean eligible = executable.supportsScheduling(
+                executable.parse(version.getParameterSchemaVersion(), version.getParameters()));
         result.setSchedulable(eligible);
         if (!eligible) {
             result.setEligibilityReason("NOT_SCHEDULABLE");

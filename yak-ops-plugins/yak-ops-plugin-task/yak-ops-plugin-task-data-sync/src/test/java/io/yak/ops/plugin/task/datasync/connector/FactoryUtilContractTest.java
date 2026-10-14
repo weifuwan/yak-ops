@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.configuration.ConfigParser;
+import io.yak.ops.configuration.ReadonlyConfig;
+import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.base.factory.TableSourceFactory;
@@ -40,18 +42,19 @@ class FactoryUtilContractTest {
         FactoryUtil factories = new FactoryUtil(
                 List.of(new JdbcSourceFactory(), new ExternalSourceFactory()),
                 List.of(new JdbcSinkFactory()));
-        var job = JobConfigValidator.validateConfig(
+        var source = ReadonlyConfig.fromMap(java.util.Map.of(
+                "type", "EXTERNAL", "datasourceId", "source", "table", "orders"));
+        FactoryUtil.validate(source, factories.source("EXTERNAL"), JobOptions.ENDPOINT_RULE);
+        assertEquals("EXTERNAL", factories.source(source.get(JobOptions.TYPE)).factoryIdentifier());
+        // A registered Connector is not an automatically enabled product solution.
+        assertThrows(TaskPluginException.class, () -> JobConfigValidator.validateConfig(
                 ConfigParser.parseJson("""
                     {
                       "source":{"type":"EXTERNAL","datasourceId":"source","table":"orders"},
                       "transform":[],
                       "sink":{"type":"JDBC","datasourceId":"target","table":"copy","writeMode":"APPEND"}
                     }
-                    """),
-                factories);
-
-        assertEquals("EXTERNAL", job.source().get(JobOptions.TYPE));
-        assertEquals("EXTERNAL", factories.source(job.source().get(JobOptions.TYPE)).factoryIdentifier());
+                    """), factories));
     }
 
     @Test

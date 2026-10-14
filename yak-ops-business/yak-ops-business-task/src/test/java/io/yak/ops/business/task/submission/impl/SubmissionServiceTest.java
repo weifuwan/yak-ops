@@ -69,7 +69,7 @@ class SubmissionServiceTest {
         when(plugin.parameterSchemaVersion()).thenReturn(2);
         when(versions.queryCurrent("ws", "definition-1", 2)).thenReturn(Optional.of(version));
         when(registry.get("DATA_SYNC")).thenReturn(plugin);
-        when(plugin.parse("{}")).thenReturn(params);
+        when(plugin.parse(2, "{}")).thenReturn(params);
         when(plugin.plan(any(), any())).thenReturn(new TaskAdmissionPlan(List.of(), "config-v1"));
     }
 

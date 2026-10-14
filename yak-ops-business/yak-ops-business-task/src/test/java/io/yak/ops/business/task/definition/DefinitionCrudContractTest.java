@@ -66,6 +66,12 @@ class DefinitionCrudContractTest {
                         io.yak.ops.common.util.JSONUtils.readTree(args.getArgument(0))
                                 .path("sourceTable")
                                 .asText())));
+        when(plugin.parse(org.mockito.ArgumentMatchers.anyInt(), anyString()))
+                .thenAnswer(args -> ReadonlyConfig.fromMap(Map.of(
+                        "sourceTable",
+                        io.yak.ops.common.util.JSONUtils.readTree(args.getArgument(1))
+                                .path("sourceTable")
+                                .asText())));
         when(definitions.add(any())).thenAnswer(args -> {
             stored = args.getArgument(0);
             return stored;

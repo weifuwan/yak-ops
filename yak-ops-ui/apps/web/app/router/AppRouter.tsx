@@ -3,24 +3,16 @@ import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react
 import { DataSourcePage } from "@/app/datasource";
 import LoginPage from "@/app/login";
 import { UserManagementPage, WorkspaceManagementPage } from "@/app/management";
-import {
-  OfflineSyncEditorPage,
-  OfflineSyncInstanceDetailPage,
-  OfflineSyncPage,
-  OfflineSyncTaskDetailPage,
-} from "@/app/offline-sync";
+import { DataSyncPage } from "@/app/data-sync";
+import { DataSyncTaskEditorPage } from "@/app/data-sync/task-editor";
+import { DataSyncTaskDetailPage } from "@/app/data-sync/task-detail";
+import { DataSyncRouteRedirect, DataSyncInstanceRedirect } from "@/app/data-sync/redirects";
 import {
   OfflineTaskOperationsInstanceDetailPage,
   OfflineTaskOperationsPage,
   RealtimeTaskOperationsInstanceDetailPage,
   RealtimeTaskOperationsPage,
 } from "@/app/operations";
-import {
-  RealtimeSyncEditorPage,
-  RealtimeSyncInstanceDetailPage,
-  RealtimeSyncPage,
-  RealtimeSyncTaskDetailPage,
-} from "@/app/realtime-sync";
 import { useAuth } from "@/hooks/use-auth";
 
 import AppLayout from "../layout/AppLayout";
@@ -37,6 +29,8 @@ import AppLoading from "./AppLoading";
 const DEFAULT_AUTHENTICATED_PATH = "/data-source";
 const AUTHENTICATED_PATHS = new Set([
   "/data-source",
+  "/data-sync",
+  "/data-sync/new",
   "/offline-sync",
   "/offline-sync/new",
   "/realtime-sync",
@@ -50,6 +44,7 @@ const AUTHENTICATED_PATHS = new Set([
 
 const isAuthenticatedPath = (pathname: string) =>
   AUTHENTICATED_PATHS.has(pathname) ||
+  pathname.startsWith("/data-sync/") ||
   pathname.startsWith("/offline-sync/") ||
   pathname.startsWith("/realtime-sync/") ||
   pathname.startsWith("/operations/");
@@ -126,16 +121,26 @@ export default function AppRouter() {
           }
         >
           <Route path="/data-source" element={<DataSourcePage />} />
-          <Route path="/offline-sync" element={<OfflineSyncPage />} />
-          <Route path="/offline-sync/new" element={<OfflineSyncEditorPage />} />
-          <Route path="/offline-sync/instances/:id" element={<OfflineSyncInstanceDetailPage />} />
-          <Route path="/offline-sync/:taskId/detail" element={<OfflineSyncTaskDetailPage />} />
-          <Route path="/offline-sync/:id" element={<OfflineSyncEditorPage />} />
-          <Route path="/realtime-sync" element={<RealtimeSyncPage />} />
-          <Route path="/realtime-sync/new" element={<RealtimeSyncEditorPage />} />
-          <Route path="/realtime-sync/instances/:id" element={<RealtimeSyncInstanceDetailPage />} />
-          <Route path="/realtime-sync/:taskId/detail" element={<RealtimeSyncTaskDetailPage />} />
-          <Route path="/realtime-sync/:id" element={<RealtimeSyncEditorPage />} />
+          <Route path="/data-sync" element={<DataSyncPage />} />
+          <Route path="/data-sync/new" element={<DataSyncTaskEditorPage />} />
+          <Route path="/data-sync/:id/edit" element={<DataSyncTaskEditorPage />} />
+          <Route path="/data-sync/:id/detail" element={<DataSyncTaskDetailPage />} />
+          <Route path="/offline-sync" element={<DataSyncRouteRedirect kind="list" />} />
+          <Route path="/offline-sync/new" element={<DataSyncRouteRedirect kind="new" />} />
+          <Route path="/offline-sync/instances/:id" element={<DataSyncInstanceRedirect />} />
+          <Route
+            path="/offline-sync/:taskId/detail"
+            element={<DataSyncRouteRedirect kind="detail" />}
+          />
+          <Route path="/offline-sync/:id" element={<DataSyncRouteRedirect kind="edit" />} />
+          <Route path="/realtime-sync" element={<DataSyncRouteRedirect kind="list" />} />
+          <Route path="/realtime-sync/new" element={<DataSyncRouteRedirect kind="new" />} />
+          <Route path="/realtime-sync/instances/:id" element={<DataSyncInstanceRedirect />} />
+          <Route
+            path="/realtime-sync/:taskId/detail"
+            element={<DataSyncRouteRedirect kind="detail" />}
+          />
+          <Route path="/realtime-sync/:id" element={<DataSyncRouteRedirect kind="edit" />} />
         </Route>
 
         <Route

@@ -1,4 +1,4 @@
-import { DataSyncLegacyInstanceDetailRedirect } from "@/app/data-sync/task-detail";
+import { DataSyncInstanceRedirect } from "@/app/data-sync/redirects";
 
 import { DataSyncOperationsDashboard } from "./dashboard";
 
@@ -12,10 +12,10 @@ export function RealtimeTaskOperationsPage() {
 
 /** Existing Operations links now open the owning Task in Data Integration. */
 export function OfflineTaskOperationsInstanceDetailPage() {
-  return <DataSyncLegacyInstanceDetailRedirect syncType="OFFLINE" basePath="/offline-sync" />;
+  return <DataSyncInstanceRedirect />;
 }
 
 /** Existing Operations links now open the owning Task in Data Integration. */
 export function RealtimeTaskOperationsInstanceDetailPage() {
-  return <DataSyncLegacyInstanceDetailRedirect syncType="REALTIME" basePath="/realtime-sync" />;
+  return <DataSyncInstanceRedirect />;
 }

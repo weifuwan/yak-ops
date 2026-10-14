@@ -87,7 +87,13 @@ public class DefinitionServiceImpl implements DefinitionService {
         checkNameAvailable(definition.getWorkspaceId(), name, id);
         if (StringUtils.isNotBlank(dto.getParameters())) {
             String updated = validatedParameters(definition.getTaskType(), dto.getParameters());
-            String existing = currentVersion(definition).getParameters();
+            DefinitionVersionEntity stored = currentVersion(definition);
+            TaskPlugin plugin = pluginRegistry.get(definition.getTaskType());
+            plugin.validateUpdate(
+                    plugin.parse(stored.getParameterSchemaVersion(), stored.getParameters()),
+                    plugin.parse(updated),
+                    validationContext);
+            String existing = stored.getParameters();
             if (!updated.equals(existing)) {
                 definition.setCurrentVersion(definition.getCurrentVersion() + 1);
                 appendVersion(definition, updated, operatorId);
@@ -109,7 +115,7 @@ public class DefinitionServiceImpl implements DefinitionService {
     public DefinitionVO publish(String id, String operatorId) {
         DefinitionEntity definition = requireDefinition(id, false);
         int expectedVersion = definition.getCurrentVersion();
-        validatePublication(definition.getTaskType(), currentVersion(definition).getParameters());
+        validatePublication(definition.getTaskType(), currentVersion(definition));
         return toVO(publicationService.publish(id, expectedVersion, operatorId));
     }
 
@@ -163,7 +169,11 @@ public class DefinitionServiceImpl implements DefinitionService {
         if (filters.size() > 16
                 || filters.keySet().stream()
                         .anyMatch(k -> k == null
-                                || !java.util.Set.of("sourceType", "sourceDataSourceId", "targetDataSourceId")
+                                || !java.util.Set.of(
+                                                "sourceType",
+                                                "solutionType",
+                                                "sourceDataSourceId",
+                                                "targetDataSourceId")
                                         .contains(k))) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
@@ -235,9 +245,9 @@ public class DefinitionServiceImpl implements DefinitionService {
         return ConfigParser.toJson(parsed);
     }
 
-    private void validatePublication(String type, String parameters) {
+    private void validatePublication(String type, DefinitionVersionEntity version) {
         TaskPlugin plugin = pluginRegistry.get(type);
-        ReadonlyConfig parsed = plugin.parse(parameters);
+        ReadonlyConfig parsed = plugin.parse(version.getParameterSchemaVersion(), version.getParameters());
         plugin.validateReferences(parsed, validationContext);
         plugin.validate(parsed, validationContext);
     }
