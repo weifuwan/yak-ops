@@ -479,7 +479,7 @@ export function DataSyncTaskDetailPage() {
                     aria-current={isSelected ? "true" : undefined}
                     className={
                       isSelected
-                        ? "w-full cursor-pointer rounded-md bg-[#f2f5ff] px-3 py-2.5 text-left"
+                        ? "w-full cursor-pointer rounded-md bg-[var(--yak-color-primary-subtle)] px-3 py-2.5 text-left"
                         : "w-full cursor-pointer rounded-md bg-white px-3 py-2.5 text-left hover:bg-[#f6f6f6]"
                     }
                     onClick={() => selectInstance(instance.id)}
@@ -606,7 +606,7 @@ export function DataSyncTaskDetailPage() {
               </div>
             </section>
 
-            <Tabs value={activeTab} onValueChange={changeTab} className="sync-execution-tabs">
+            <Tabs value={activeTab} onValueChange={changeTab}>
               <TabsList>
                 <TabsTab value="status">执行状态</TabsTab>
                 <TabsTab value="log">运行日志</TabsTab>

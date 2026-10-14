@@ -151,7 +151,7 @@ export default function TopBar({
                               ) : null}
                             </span>
                             {workspace.id === currentWorkspace?.id ? (
-                              <Check className="h-4 w-4 shrink-0 text-[#1645d1]" />
+                              <Check className="h-4 w-4 shrink-0 text-[var(--yak-color-primary)]" />
                             ) : null}
                           </DropdownMenuItem>
                         ))

@@ -31,7 +31,7 @@ export default function ProductSidebar({ productLabel, navigation }: ProductSide
                   [
                     "flex h-8 items-center gap-3.5 border-r-2 px-[14px] text-[13px] text-[#26282c] transition-colors",
                     isActive
-                      ? "border-[#1544d1] bg-[#dbe3fb] font-semibold"
+                      ? "border-[var(--yak-color-primary)] bg-[var(--yak-color-primary-subtle)] font-semibold"
                       : "border-transparent font-normal hover:bg-[#f2f2f2]",
                   ].join(" ")
                 }
@@ -40,7 +40,7 @@ export default function ProductSidebar({ productLabel, navigation }: ProductSide
                   <>
                     <Icon
                       className={`h-4 w-4 shrink-0 transition-colors ${
-                        isActive ? "text-[#1544d1]" : "text-[#26282c]"
+                        isActive ? "text-[var(--yak-color-primary)]" : "text-[#26282c]"
                       }`}
                       strokeWidth={1.8}
                     />

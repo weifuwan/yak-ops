@@ -1,7 +1,17 @@
 @import "./input/floating-label.css";
 
 :root {
+  /* Standalone Yak UI default; the product theme supplies the primary color. */
   --yak-color-primary: #0033ff;
+  --yak-color-primary-hover: color-mix(in srgb, var(--yak-color-primary) 90%, #000);
+  --yak-color-primary-active: color-mix(in srgb, var(--yak-color-primary) 82%, #000);
+  --yak-color-primary-subtle: color-mix(
+    in srgb,
+    var(--yak-color-primary) 10%,
+    var(--yak-color-background, #fff)
+  );
+  --yak-color-primary-ring: color-mix(in srgb, var(--yak-color-primary) 20%, transparent);
+  --yak-color-primary-halo: color-mix(in srgb, var(--yak-color-primary) 12%, transparent);
   --yak-color-hover: #f6f6f6;
 
   --yak-components-collapse-section-bg: #fafafa;
@@ -19,8 +29,8 @@
   --yak-font-size-control-large: 14px;
 
   --yak-components-button-primary-bg: var(--yak-color-primary);
-  --yak-components-button-primary-bg-hover: color-mix(in srgb, var(--yak-color-primary) 90%, #000);
-  --yak-components-button-primary-bg-active: color-mix(in srgb, var(--yak-color-primary) 82%, #000);
+  --yak-components-button-primary-bg-hover: var(--yak-color-primary-hover);
+  --yak-components-button-primary-bg-active: var(--yak-color-primary-active);
   --yak-components-button-primary-text: #ffffff;
 
   --yak-components-button-secondary-bg: #f4f4f6;
@@ -36,7 +46,7 @@
   --yak-components-button-danger-bg-active: #ffdadd;
   --yak-components-button-danger-text: #d92d20;
 
-  --yak-components-button-focus-ring: rgba(37, 40, 50, 0.12);
+  --yak-components-button-focus-ring: var(--yak-color-primary-ring);
 
   --yak-components-input-bg: #f6f7f9;
   --yak-components-input-bg-hover: #f2f3f5;
@@ -50,21 +60,21 @@
   --yak-components-input-border-hover: #e2e4e8;
   --yak-components-input-border-focus: var(--yak-color-primary);
   --yak-components-input-border-danger: #d92d20;
-  --yak-components-input-focus-ring: rgba(37, 40, 50, 0.09);
+  --yak-components-input-focus-ring: var(--yak-color-primary-ring);
   --yak-components-input-danger-ring: rgba(217, 45, 32, 0.1);
 
   --yak-components-checkbox-bg: #ffffff;
   --yak-components-checkbox-border: #c9cdd4;
   --yak-components-checkbox-border-hover: #8f949e;
   --yak-components-checkbox-bg-checked: var(--yak-color-primary);
-  --yak-components-checkbox-focus-ring: rgba(37, 40, 50, 0.12);
+  --yak-components-checkbox-focus-ring: var(--yak-color-primary-ring);
 
   --yak-components-select-bg: #ffffff;
   --yak-components-select-border: #e7e9ed;
   --yak-components-select-shadow: 0 10px 30px rgba(31, 35, 41, 0.14);
   --yak-components-select-item-text: #343841;
   --yak-components-select-item-bg-hover: #f5f6f8;
-  --yak-components-select-indicator: #252832;
+  --yak-components-select-indicator: var(--yak-color-primary);
   --yak-components-control-border: #eef0f3;
   --yak-components-muted-text: #98a2b3;
   --yak-components-danger-text: #d92d20;
@@ -86,13 +96,13 @@
 
   --yak-components-switch-bg: #d9dde3;
   --yak-components-switch-bg-hover: #cfd4dc;
-  --yak-components-switch-bg-checked: #292c35;
-  --yak-components-switch-bg-checked-hover: #1f222a;
+  --yak-components-switch-bg-checked: var(--yak-color-primary);
+  --yak-components-switch-bg-checked-hover: var(--yak-color-primary-hover);
 
   --yak-components-tab-text: #8c919b;
   --yak-components-tab-text-hover: #555b66;
-  --yak-components-tab-text-active: #292c35;
-  --yak-components-tab-active: #252832;
+  --yak-components-tab-text-active: var(--yak-color-primary);
+  --yak-components-tab-active: var(--yak-color-primary);
 
   --yak-components-spinner: #667085;
 
@@ -112,11 +122,11 @@
   --yak-components-table-border: #eceef2;
   --yak-components-table-border-strong: #e4e7ec;
   --yak-components-table-loading-bg: rgba(255, 255, 255, 0.72);
-  --yak-components-table-focus-ring: rgba(37, 40, 50, 0.12);
+  --yak-components-table-focus-ring: var(--yak-color-primary-ring);
   --yak-components-table-sorter-inactive: #b8bdc6;
-  --yak-components-table-sorter-active: #292c35;
+  --yak-components-table-sorter-active: var(--yak-color-primary);
   --yak-components-table-filter-inactive: #8f949e;
-  --yak-components-table-filter-active: #292c35;
+  --yak-components-table-filter-active: var(--yak-color-primary);
   --yak-components-table-filter-bg-hover: #eef0f3;
 
   --yak-components-pagination-bg: #ffffff;
@@ -159,5 +169,5 @@
   --yak-components-toast-success-halo: rgba(18, 183, 106, 0.14);
   --yak-components-toast-error-halo: rgba(240, 68, 56, 0.14);
   --yak-components-toast-warning-halo: rgba(247, 144, 9, 0.14);
-  --yak-components-toast-info-halo: rgba(0, 51, 255, 0.12);
+  --yak-components-toast-info-halo: var(--yak-color-primary-halo);
 }

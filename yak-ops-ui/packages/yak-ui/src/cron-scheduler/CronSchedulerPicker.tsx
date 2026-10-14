@@ -174,7 +174,7 @@ function ToggleChip({
         "flex h-7 min-w-7 cursor-pointer items-center justify-center rounded-[var(--yak-radius-control-small)] border px-2 text-xs outline-none transition-[background-color,border-color,color]",
         "focus-visible:ring-[3px] focus-visible:ring-[var(--yak-components-button-focus-ring)] disabled:cursor-not-allowed disabled:opacity-45",
         active
-          ? "border-[var(--yak-color-primary)] bg-[color-mix(in_srgb,var(--yak-color-primary)_8%,white)] text-[var(--yak-color-primary)]"
+          ? "border-[var(--yak-color-primary)] bg-[var(--yak-color-primary-subtle)] text-[var(--yak-color-primary)]"
           : "border-[var(--yak-components-input-border)] bg-white text-[var(--yak-components-input-text)] hover:bg-[var(--yak-components-input-bg-hover)]",
       )}
       onClick={onClick}
