@@ -1,12 +1,12 @@
 # YOIP-5: Data Integration Synchronization Model + Product Interaction
 
-Status: Discussion
+Status: Accepted
 
 Discussion: https://github.com/weifuwan/yak-ops/pull/1636
 
-Decision: Pending
+Decision: [VOTE] Accepted — https://github.com/weifuwan/yak-ops/pull/1636#issuecomment-6160395888
 
-Implementation: N/A until accepted
+Implementation: Pending
 
 Release: N/A until released
 
