@@ -26,9 +26,11 @@ def verify_multitable_browser(api, client, source, target):
             dialog = page.get_by_role("dialog", name="新建同步任务", exact=True)
             def select_option(trigger, name):
                 trigger.click()
-                list_id = trigger.get_attribute("aria-controls")
-                assert list_id, "Select trigger is missing its listbox association"
-                page.locator(f'[id="{list_id}"]').get_by_role("option", name=name, exact=True).click()
+                popup = page.locator('[data-base-ui-portal] [role="presentation"][data-side][data-open]').last
+                listbox = popup.get_by_role("listbox")
+                list_id = listbox.get_attribute("id")
+                assert list_id, "Select listbox is missing its identifier"
+                listbox.get_by_role("option", name=name, exact=True).click()
                 expect(page.locator(f'[id="{list_id}"]')).to_be_hidden()
                 # Wait for the previous select portal before opening another dropdown.
                 expect(page.locator('[data-base-ui-portal] [role="presentation"][data-side][data-open]')).to_have_count(0)
