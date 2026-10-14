@@ -14,6 +14,10 @@ assert.equal(
 );
 assert.match(sharedTokens, /--yak-color-primary:\s*#0033ff;/);
 assert.match(
+  sharedTokens,
+  /--yak-color-primary-subtle:\s*color-mix\(in srgb, var\(--yak-color-primary\) 10%, #fff\);/,
+);
+assert.match(
   appEntry,
   /import "\.\/app\/styles\/global\.css";\s*import "\.\/themes\/index\.css";/,
   "Product theme is imported after the Yak UI defaults",
