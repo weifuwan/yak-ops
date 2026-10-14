@@ -1,5 +1,6 @@
 package io.yak.ops.connector.cdc.mysql.source.reader;
 
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.base.source.reader.SingleThreadMultiplexSourceReaderBase;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceConfig;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlResumeBinlogEvent;
@@ -28,15 +29,24 @@ public final class MySqlHybridSourceReader
                 MySqlHybridFetchedRecord, TableRecord, MySqlHybridSplit, MySqlHybridSplitState> {
 
     private final MySqlHybridSplitReader splits;
+    private final TableMetrics metrics;
+    private final long generation;
     private final Map<String, MySqlSnapshotSplit> finishedUnacked = new LinkedHashMap<>();
     private io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset resumeHigh;
 
     public MySqlHybridSourceReader(MySqlCdcSourceConfig config, SourceReaderContext context) {
-        this(new MySqlHybridSplitReader(config), context);
+        this(config, context, new TableMetrics());
     }
 
-    private MySqlHybridSourceReader(MySqlHybridSplitReader splits, SourceReaderContext context) {
-        super(() -> splits, new MySqlHybridRecordEmitter(context, splits), context);
+    /** Creates a Reader bound to the generation opened by its source coordinator. */
+    public MySqlHybridSourceReader(MySqlCdcSourceConfig config, SourceReaderContext context, TableMetrics metrics) {
+        this(new MySqlHybridSplitReader(config, metrics), context, metrics);
+    }
+
+    private MySqlHybridSourceReader(MySqlHybridSplitReader splits, SourceReaderContext context, TableMetrics metrics) {
+        super(() -> splits, new MySqlHybridRecordEmitter(context, splits, metrics), context);
+        this.metrics = metrics;
+        generation = metrics.generation();
         this.splits = splits;
     }
 
@@ -90,6 +100,7 @@ public final class MySqlHybridSourceReader
                     state.resume(resumeHigh);
                 }
             });
+            metrics.streaming(generation);
             splits.resumeBinlog(resumeHigh);
         } else {
             throw new IllegalArgumentException("Unsupported MySQL hybrid Reader event");

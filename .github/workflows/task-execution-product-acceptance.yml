@@ -8,6 +8,8 @@ on:
       - '.github/workflows/v1-release-gate.yml'
       - 'scripts/acceptance/task-execution-e2e.py'
       - 'scripts/acceptance/task_schedule_*.py'
+      - 'scripts/acceptance/multitable_*.py'
+      - 'scripts/acceptance/database_realtime*.py'
       - 'yak-ops-ui/apps/web/**'
       - 'yak-ops-ui/packages/yak-ui/src/cron-scheduler/**'
       - 'yak-ops-ui/package*.json'
@@ -31,7 +33,7 @@ permissions:
 
 jobs:
   product-e2e:
-    name: MySQL JDBC + CDC to PostgreSQL Product E2E
+    name: MySQL JDBC + Multi-Table CDC Product E2E
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:

@@ -1,5 +1,6 @@
 package io.yak.ops.connector.cdc.mysql.source.reader;
 
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.base.source.reader.RecordEmitter;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlLowWatermarkEvent;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
@@ -18,8 +19,17 @@ public final class MySqlHybridRecordEmitter
 
     private final SourceReaderContext context;
     private final MySqlHybridSplitReader splits;
+    private final TableMetrics metrics;
+    private final long generation;
 
     public MySqlHybridRecordEmitter(SourceReaderContext context, MySqlHybridSplitReader splits) {
+        this(context, splits, new TableMetrics());
+    }
+
+    /** Creates the mailbox emitter with phase-aware, generation-fenced record measurements. */
+    public MySqlHybridRecordEmitter(SourceReaderContext context, MySqlHybridSplitReader splits, TableMetrics metrics) {
+        this.metrics = metrics;
+        generation = metrics.generation();
         this.context = Objects.requireNonNull(context, "context");
         this.splits = Objects.requireNonNull(splits, "splits");
     }
@@ -30,7 +40,9 @@ public final class MySqlHybridRecordEmitter
             throws Exception {
         for (TableRecord row : event.rows()) {
             output.collect(row);
+            metrics.read(generation, row.tableId(), state.binlog());
         }
+        metrics.observed(generation);
         if (event.snapshotKey() != null) {
             state.emitSnapshotKey(event.snapshotKey());
         } else if (event.lowWatermark()) {

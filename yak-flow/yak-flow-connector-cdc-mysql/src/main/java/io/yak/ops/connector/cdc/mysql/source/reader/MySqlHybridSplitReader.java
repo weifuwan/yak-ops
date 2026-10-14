@@ -1,5 +1,6 @@
 package io.yak.ops.connector.cdc.mysql.source.reader;
 
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.base.source.reader.RecordsBySplits;
 import io.yak.ops.connector.base.source.reader.RecordsWithSplitIds;
 import io.yak.ops.connector.base.source.reader.splitreader.SplitReader;
@@ -9,6 +10,7 @@ import io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridBinlogSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit;
+import io.yak.ops.core.data.TableId;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -34,6 +36,10 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
 
     private final MySqlSnapshotSplitReader snapshots;
     private final MySqlBinlogEngine binlog;
+    private final TableMetrics metrics;
+    private final long generation;
+    private final Set<TableId> tables;
+    private volatile boolean cancelled;
     private final Deque<MySqlSnapshotSplit> pending = new ArrayDeque<>();
 
     private MySqlSnapshotSplit activeSnapshot;
@@ -45,6 +51,14 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
     private boolean closed;
 
     public MySqlHybridSplitReader(MySqlCdcSourceConfig config) {
+        this(config, new TableMetrics());
+    }
+
+    /** Binds fetch failures and liveness to the Reader generation without retaining row values. */
+    public MySqlHybridSplitReader(MySqlCdcSourceConfig config, TableMetrics metrics) {
+        this.metrics = metrics;
+        generation = metrics.generation();
+        tables = Set.copyOf(config.schemas().keySet());
         snapshots = new MySqlSnapshotSplitReader(Objects.requireNonNull(config, "config"));
         binlog = new MySqlBinlogEngine(config);
     }
@@ -70,6 +84,20 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
 
     @Override
     public RecordsWithSplitIds<MySqlHybridFetchedRecord> fetch() throws Exception {
+        try {
+            var result = fetchRecords();
+            metrics.observed(generation);
+            return result;
+        } catch (Exception failure) {
+            if (!cancelled && !(failure instanceof InterruptedException)) {
+                if (activeSnapshot != null) metrics.readFailed(generation, activeSnapshot.tableId(), false);
+                else tables.forEach(table -> metrics.readFailed(generation, table, streaming));
+            }
+            throw failure;
+        }
+    }
+
+    private RecordsWithSplitIds<MySqlHybridFetchedRecord> fetchRecords() throws Exception {
         if (closed) {
             throw new IllegalStateException("MySQL hybrid reader has closed");
         }
@@ -151,6 +179,7 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
 
     @Override
     public void cancel() {
+        cancelled = true;
         binlog.requestStop();
     }
 

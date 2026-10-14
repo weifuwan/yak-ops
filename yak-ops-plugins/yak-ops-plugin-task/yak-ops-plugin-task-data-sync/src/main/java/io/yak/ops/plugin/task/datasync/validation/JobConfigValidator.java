@@ -68,9 +68,11 @@ public final class JobConfigValidator {
                     throw new IllegalArgumentException("Duplicate resolved source or destination table");
                 }
                 if (schemas) {
+                    var sourceSchema = context.tableSchema(sourceId, source);
+                    sourceFactory.validateSchema(sourceSchema);
                     sinkFactory.validateSchema(
                             table.sink(),
-                            context.tableSchema(sourceId, source),
+                            sourceSchema,
                             context.tableSchema(sinkId, target),
                             sourceFactory.producesChangelog());
                 }

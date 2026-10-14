@@ -16,6 +16,9 @@ public interface TableSourceFactory extends Factory {
     /** Checks whether the physical datasource type is supported. */
     default void validateDatasource(String datasourceType) {}
 
+    /** Validates source schema requirements before admission without opening a reader. */
+    default void validateSchema(io.yak.ops.core.types.TableSchema schema) {}
+
     /** Constructs one reusable Source definition without starting its readers. */
     Source<TableRecord, ?, ?> createSource(TableSourceFactoryContext context);
 

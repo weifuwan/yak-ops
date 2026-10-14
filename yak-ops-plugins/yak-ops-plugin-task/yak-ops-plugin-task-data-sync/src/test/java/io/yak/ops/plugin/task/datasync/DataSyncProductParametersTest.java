@@ -37,9 +37,9 @@ class DataSyncProductParametersTest {
     }
 
     @Test
-    void onlyTheTwoCurrentDirectedSolutionsAreAdvertisedWithLegalDefaults() {
+    void onlyAcceptedDirectedSolutionsAreAdvertisedWithLegalDefaults() {
         var mysql = plugin.solutions("MYSQL", "POSTGRE_SQL");
-        assertEquals(List.of(SolutionType.SINGLE_TABLE_OFFLINE, SolutionType.SINGLE_TABLE_REALTIME, SolutionType.DATABASE_OFFLINE),
+        assertEquals(List.of(SolutionType.SINGLE_TABLE_OFFLINE, SolutionType.SINGLE_TABLE_REALTIME, SolutionType.DATABASE_OFFLINE, SolutionType.DATABASE_REALTIME),
                 mysql.stream().map(value -> value.solutionType()).toList());
         assertEquals(List.of(Step.FULL, Step.INCREMENTAL), mysql.get(1).defaultSteps());
         assertEquals(List.of("UPSERT"), mysql.get(1).allowedCombinations().getFirst().writeModes());
@@ -47,6 +47,8 @@ class DataSyncProductParametersTest {
         assertEquals(List.of(SolutionType.SINGLE_TABLE_OFFLINE, SolutionType.DATABASE_OFFLINE), plugin.solutions("POSTGRE_SQL", "MYSQL")
                 .stream().map(value -> value.solutionType()).toList());
         assertEquals(2, plugin.solutions("ORACLE", "ORACLE").size());
+        assertFalse(plugin.solutions("MYSQL", "ORACLE").stream()
+                .anyMatch(value -> value.solutionType() == SolutionType.DATABASE_REALTIME));
         assertThrows(IllegalArgumentException.class, () -> plugin.solutions("JDBC", "MYSQL"));
         assertThrows(IllegalArgumentException.class, () -> plugin.solutions("MYSQL", ""));
         assertThrows(UnsupportedOperationException.class, () -> mysql.clear());
@@ -73,7 +75,7 @@ class DataSyncProductParametersTest {
                 realtime.replace("[\"FULL\",\"INCREMENTAL\"]", "[\"FULL\",\"FULL\"]"),
                 realtime.replace("[\"FULL\",\"INCREMENTAL\"]", "[\"SCHEMA\",\"FULL\",\"INCREMENTAL\"]"),
                 realtime.replace("EXPLICIT", "PATTERN"),
-                realtime.replace("SINGLE_TABLE_REALTIME", "DATABASE_REALTIME"),
+                realtime.replace("SINGLE_TABLE_REALTIME", "UNSUPPORTED_SOLUTION"),
                 realtime.replace("UPSERT", "APPEND"),
                 realtime.replace("UPSERT", "OVERWRITE"),
                 realtime.replace("\"source\":{\"datasourceId\"", "\"source\":{\"type\":\"JDBC\",\"datasourceId\""),

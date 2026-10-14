@@ -32,11 +32,22 @@ public final class MySqlHybridCdcSource implements Source<TableRecord, MySqlHybr
     private final MySqlCdcSourceConfig config;
     private final String fingerprint;
     private final int chunkSize;
+    private final io.yak.ops.connector.base.metrics.TableMetrics metrics;
     private final MySqlHybridSplitSerializer splitSerializer = new MySqlHybridSplitSerializer();
     private final MySqlHybridEnumeratorStateSerializer enumeratorSerializer =
             new MySqlHybridEnumeratorStateSerializer();
 
     MySqlHybridCdcSource(MySqlCdcSourceConfig config, String sourceFingerprint, int chunkSize) {
+        this(config, sourceFingerprint, chunkSize, new io.yak.ops.connector.base.metrics.TableMetrics());
+    }
+
+    MySqlHybridCdcSource(
+            MySqlCdcSourceConfig config,
+            String sourceFingerprint,
+            int chunkSize,
+            io.yak.ops.connector.base.metrics.TableMetrics metrics) {
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
+        config.schemas().keySet().forEach(metrics::register);
         this.config = Objects.requireNonNull(config, "config");
         if (chunkSize < 1 || chunkSize > 100_000) {
             throw new IllegalArgumentException("Hybrid snapshot chunk size must be between 1 and 100000");
@@ -54,14 +65,14 @@ public final class MySqlHybridCdcSource implements Source<TableRecord, MySqlHybr
     @Override
     public SplitEnumerator<MySqlHybridSplit, MySqlHybridEnumeratorState> createEnumerator(
             SplitEnumeratorContext<MySqlHybridSplit> context) {
-        return new MySqlHybridSourceEnumerator(context, config, fingerprint, chunkSize, null);
+        return new MySqlHybridSourceEnumerator(context, config, fingerprint, chunkSize, null, metrics);
     }
 
     @Override
     public SplitEnumerator<MySqlHybridSplit, MySqlHybridEnumeratorState> restoreEnumerator(
             SplitEnumeratorContext<MySqlHybridSplit> context, MySqlHybridEnumeratorState state) {
         return new MySqlHybridSourceEnumerator(
-                context, config, fingerprint, chunkSize, Objects.requireNonNull(state, "checkpoint state"));
+                context, config, fingerprint, chunkSize, Objects.requireNonNull(state, "checkpoint state"), metrics);
     }
 
     @Override
@@ -72,7 +83,7 @@ public final class MySqlHybridCdcSource implements Source<TableRecord, MySqlHybr
                 .isZero()) {
             throw new IllegalArgumentException("MySQL Hybrid Snapshot requires periodic durable checkpoints");
         }
-        return new MySqlHybridSourceReader(config, context);
+        return new MySqlHybridSourceReader(config, context, metrics);
     }
 
     @Override

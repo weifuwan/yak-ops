@@ -1,114 +1,133 @@
 import { Table, type TableColumns } from "@yak-ops/yak-ui";
-import { useEffect, useState } from "react";
-import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
-import { ExecutionProgressBar } from "./execution-progress-bar";
+import type { DataSyncInstanceRecord, DataSyncStageResult } from "@/service/data-sync/types";
+import { StageProgress, useObservationStale } from "./execution-stages";
 
-const STATE_LABELS = {
-  WAITING: "等待",
-  RUNNING: "运行中",
-  FINISHED: "成功",
-  FAILED: "失败",
-  CANCELED: "已停止",
-  UNKNOWN: "未取得状态",
-};
-const INSTANCE_STATES: Record<string, DataSyncInstanceStatus> = {
-  WAITING: "SUBMITTED",
-  RUNNING: "RUNNING",
-  FINISHED: "FINISHED",
-  FAILED: "FAILED",
-  CANCELED: "CANCELED",
-};
 const pathText = (table: { database?: string; schema?: string; table?: string }) =>
   [table.database, table.schema, table.table].filter(Boolean).join(".");
+const countText = (value?: number | null) => value?.toLocaleString("zh-CN") ?? "—";
 
 export function TableExecutionResults({ record }: { record: DataSyncInstanceRecord }) {
-  const [now, setNow] = useState(Date.now());
-  const active = ["RUNNING", "LAUNCHING", "CANCELLING", "RECONCILING"].includes(record.status);
-  useEffect(() => {
-    if (!active) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 2000);
-    return () => window.clearInterval(timer);
-  }, [active]);
   const report = record.executionReport;
-  const stale =
-    active &&
-    (!report || now - Date.parse(report.observedAt) > 10000 || record.status === "RECONCILING");
+  const stale = useObservationStale(record.status, report?.observedAt);
+  const realtime = record.steps.includes("INCREMENTAL");
   const mappings = record.definitionSnapshot?.tableMappings || [];
   const rows = mappings.map((mapping, index) => {
-    const result = report?.tables.find((table) => table.mappingIndex === index);
-    let status: keyof typeof STATE_LABELS = result?.status || "UNKNOWN";
-    if (stale) status = "UNKNOWN";
+    let full: DataSyncStageResult | undefined;
+    let incremental: DataSyncStageResult | undefined;
+    if (report?.version === 2) {
+      const result = report.tables.find((table) => table.mappingIndex === index);
+      full = result?.stages.find((stage) => stage.step === "FULL");
+      incremental = result?.stages.find((stage) => stage.step === "INCREMENTAL");
+    } else {
+      full = report?.tables.find((table) => table.mappingIndex === index);
+    }
     return {
       id: String(index),
       source: pathText(mapping.source),
       target: pathText(mapping.target),
-      status,
-      result,
+      full,
+      incremental,
     };
   });
   const columns: TableColumns<(typeof rows)[number]> = [
     {
       key: "source",
       title: "来源表",
-      minWidth: 190,
+      minWidth: 180,
       render: (_value, row) => <span className="break-all">{row.source}</span>,
     },
     {
       key: "target",
       title: "去向表",
-      minWidth: 190,
+      minWidth: 180,
       render: (_value, row) => <span className="break-all">{row.target}</span>,
     },
     {
-      key: "progress",
+      key: "full",
       title: "全量进度",
-      width: 170,
-      render: (_value, row) =>
-        row.status === "UNKNOWN" ? (
-          <span title={stale ? "观测已过期" : "未取得表级观测"}>—</span>
-        ) : (
-          <ExecutionProgressBar
-            status={INSTANCE_STATES[row.status]}
-            percent={row.result?.progressPercent}
-            realtime={false}
-            ariaLabel={`${row.source} 全量进度`}
-          />
-        ),
+      width: 160,
+      render: (_value, row) => (
+        <StageProgress
+          stage={row.full}
+          status={record.status}
+          stale={stale}
+          label={`${row.source} 全量进度`}
+        />
+      ),
     },
-    { key: "status", title: "状态", width: 90, render: (_value, row) => STATE_LABELS[row.status] },
+  ];
+  if (realtime)
+    columns.push({
+      key: "incremental",
+      title: "增量状态",
+      width: 160,
+      render: (_value, row) => (
+        <StageProgress
+          stage={row.incremental}
+          status={record.status}
+          stale={stale}
+          label={`${row.source} 增量状态`}
+        />
+      ),
+    });
+  columns.push(
     {
       key: "read",
-      title: "读取条数",
-      width: 100,
+      title: realtime ? "全量读取" : "读取条数",
+      width: 105,
       align: "right",
-      render: (_value, row) => row.result?.readRows.toLocaleString("zh-CN") ?? "—",
+      render: (_value, row) => countText(row.full?.readRows),
     },
     {
       key: "written",
-      title: "已提交条数",
-      width: 110,
+      title: realtime ? "全量提交" : "已提交条数",
+      width: 105,
       align: "right",
-      render: (_value, row) => row.result?.committedRows.toLocaleString("zh-CN") ?? "—",
+      render: (_value, row) => countText(row.full?.committedRows),
     },
-    {
-      key: "failure",
-      title: "失败原因",
-      minWidth: 120,
-      render: (_value, row) =>
-        row.result?.failureCode === "READ_FAILED"
-          ? "来源读取失败"
-          : row.result?.failureCode === "WRITE_FAILED"
-            ? "目标写入失败"
-            : "—",
+  );
+  if (realtime) {
+    const scope =
+      report?.version === 2
+        ? `执行代次 ${report.generation} 的变更记录数，非 SQL 影响行数`
+        : "变更记录数";
+    columns.push(
+      {
+        key: "incrementalRead",
+        title: "增量读取",
+        width: 105,
+        align: "right",
+        render: (_value, row) => <span title={scope}>{countText(row.incremental?.readRows)}</span>,
+      },
+      {
+        key: "incrementalWritten",
+        title: "增量提交",
+        width: 105,
+        align: "right",
+        render: (_value, row) => (
+          <span title={scope}>{countText(row.incremental?.committedRows)}</span>
+        ),
+      },
+    );
+  }
+  columns.push({
+    key: "failure",
+    title: "失败原因",
+    minWidth: 120,
+    render: (_value, row) => {
+      const failure = row.incremental?.failureCode || row.full?.failureCode;
+      if (failure === "READ_FAILED") return "来源读取失败";
+      if (failure === "WRITE_FAILED") return "目标写入失败";
+      return "—";
     },
-  ];
+  });
   return (
     <Table
       columns={columns}
       dataSource={rows}
       rowKey="id"
       size="small"
-      scroll={{ x: 1000 }}
+      scroll={{ x: realtime ? 1400 : 950 }}
       pagination={false}
       emptyText="暂无表映射"
     />

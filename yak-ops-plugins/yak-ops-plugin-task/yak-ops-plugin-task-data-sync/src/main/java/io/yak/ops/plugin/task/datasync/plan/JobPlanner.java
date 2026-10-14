@@ -83,6 +83,7 @@ public final class JobPlanner {
                     sink.get(JobOptions.TABLE));
 
             sourceFactory.validateDatasource(from.datasourceType());
+            sourceFactory.validateSchema(from.schema());
             io.yak.ops.plugin.task.datasync.solution.SolutionCatalog.validate(
                     job.solutionType(), from.datasourceType(), to.datasourceType());
             if (!sources.add(from.table()) || !targets.add(to.table())) {
@@ -113,7 +114,9 @@ public final class JobPlanner {
                 prepared.put(MySqlCdcSourceOptions.SERVER_ID.key(), MySqlCdcReplicationIdentity.serverId(instanceId));
                 prepared.put(
                         MySqlCdcSourceOptions.TOPIC_PREFIX.key(), MySqlCdcReplicationIdentity.topicPrefix(instanceId));
-                claims.add(MySqlCdcReplicationIdentity.exclusiveResource(instanceId));
+                if (tables.isEmpty()) {
+                    claims.add(MySqlCdcReplicationIdentity.exclusiveResource(instanceId));
+                }
             }
             bindings.append(binding);
             tables.add(new TablePlan(source, sink, from, to, ReadonlyConfig.fromMap(prepared)));

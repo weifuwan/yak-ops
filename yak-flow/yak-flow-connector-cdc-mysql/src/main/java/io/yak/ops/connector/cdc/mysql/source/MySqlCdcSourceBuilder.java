@@ -74,6 +74,12 @@ public final class MySqlCdcSourceBuilder {
         return build().initialSnapshot(chunkSize);
     }
 
+    /** Builds the shared snapshot and Binlog source with generation-scoped measurements. */
+    public MySqlHybridCdcSource buildHybrid(int chunkSize, io.yak.ops.connector.base.metrics.TableMetrics metrics) {
+        MySqlCdcSource source = build();
+        return source.initialSnapshot(chunkSize, metrics);
+    }
+
     /** Builds a reusable Source definition without opening a database connection. */
     public MySqlCdcSource build() {
         return new MySqlCdcSource(new MySqlCdcSourceConfig(

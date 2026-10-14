@@ -31,6 +31,9 @@ public final class SolutionCatalog {
             choices.add(solution(SolutionType.SINGLE_TABLE_REALTIME));
         }
         choices.add(solution(SolutionType.DATABASE_OFFLINE));
+        if ("MYSQL".equals(sourceType) && !"ORACLE".equals(targetType)) {
+            choices.add(solution(SolutionType.DATABASE_REALTIME));
+        }
         return List.copyOf(choices);
     }
 
@@ -43,7 +46,11 @@ public final class SolutionCatalog {
      */
     public static void validate(SolutionType type, String sourceType, String targetType) {
         validateTypes(sourceType, targetType);
-        if (type == SolutionType.SINGLE_TABLE_REALTIME && !"MYSQL".equals(sourceType)) {
+        if (type == SolutionType.DATABASE_REALTIME && "ORACLE".equals(targetType)) {
+            throw new IllegalArgumentException(
+                    "Database realtime requires a target with a compatible BIGINT snapshot key");
+        }
+        if (type.steps().contains(Step.INCREMENTAL) && !"MYSQL".equals(sourceType)) {
             throw new IllegalArgumentException("Realtime synchronization requires a MySQL source");
         }
     }

@@ -4,12 +4,14 @@ import io.yak.ops.business.task.instance.DispatchTicket;
 import io.yak.ops.business.task.instance.InstanceLifecycleService;
 import io.yak.ops.business.task.instance.InstanceService;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
+import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -74,7 +76,33 @@ public class TaskExecutionObserver implements AutoCloseable {
     public java.util.Optional<String> executionReport(String instanceId) {
         TaskHandle handle = active.get(instanceId);
         if (handle == null) return java.util.Optional.empty();
-        return handle.executionReport();
+        return publicObservation(instanceId, handle, false);
+    }
+
+    /** Returns a compact observation for an owned active Instance without table detail. */
+    public Optional<String> executionSummary(String instanceId) {
+        TaskHandle handle = active.get(instanceId);
+        if (handle == null) return Optional.empty();
+        return publicObservation(instanceId, handle, true);
+    }
+
+    private Optional<String> publicObservation(String instanceId, TaskHandle handle, boolean summary) {
+        try {
+            var report = summary ? handle.executionSummary() : handle.executionReport();
+            int limit = summary ? 16384 : 262144;
+            if (report.isEmpty()) return Optional.empty();
+            if (report.get().length() > limit
+                    || !JSONUtils.readTree(report.get()).isObject()) {
+                throw new IllegalArgumentException("Invalid public Task execution observation");
+            }
+            return report;
+        } catch (RuntimeException failure) {
+            LOG.warn(
+                    "Task observation is unavailable, instanceId={}, exceptionType={}",
+                    instanceId,
+                    failure.getClass().getSimpleName());
+            return Optional.empty();
+        }
     }
 
     /** Requests cancellation for all active physical executions during process shutdown. */
@@ -153,7 +181,7 @@ public class TaskExecutionObserver implements AutoCloseable {
                             ticket.instanceId(),
                             metricsFailure.getClass().getSimpleName());
                 }
-                var report = handle.executionReport();
+                var report = publicObservation(ticket.instanceId(), handle, false);
                 if (report.isPresent()) lifecycle.complete(ticket, outcome, report.get());
                 else lifecycle.complete(ticket, outcome);
                 LOG.info("Task Instance completed, instanceId={}, outcome={}", ticket.instanceId(), outcome);

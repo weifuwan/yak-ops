@@ -143,10 +143,10 @@ public final class PipelineBuilder {
         input.setUid("data-sync-source-" + identity.definitionId());
         output.setUid("data-sync-sink-" + identity.definitionId());
         StreamGraph graph = new StreamGraphGenerator(output, configuration).generate();
-        TableExecutionProgress progress = null;
-        if (source.getBoundedness() == io.yak.ops.core.api.connector.source.Boundedness.BOUNDED) {
-            progress = new TableExecutionProgress(plan.tables(), metrics);
-        }
+        TableExecutionProgress progress = new TableExecutionProgress(
+                plan.tables(),
+                metrics,
+                source.getBoundedness() != io.yak.ops.core.api.connector.source.Boundedness.BOUNDED);
         return new CompiledPipeline(graph, configuration, progress);
     }
 

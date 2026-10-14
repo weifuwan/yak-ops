@@ -16,10 +16,21 @@ public interface TaskHandle {
      * Returns a plugin-owned public JSON observation of the current physical attempt.
      * No credentials, row values, checkpoint bytes or raw exception messages may be included.
      * The platform persists the final report atomically with the Instance outcome.
+     * An optional object-valued {@code summary} contains the compact observation for historical list queries.
      *
      * @return immutable JSON snapshot up to 262144 characters, or empty when unavailable
      */
     default Optional<String> executionReport() {
+        return Optional.empty();
+    }
+
+    /**
+     * Returns a compact public JSON observation for batch Instance queries.
+     * This object matches the full report's optional {@code summary} and excludes per-item detail.
+     *
+     * @return an immutable JSON object up to 16384 characters, or empty when unavailable
+     */
+    default Optional<String> executionSummary() {
         return Optional.empty();
     }
 

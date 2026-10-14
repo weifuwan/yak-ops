@@ -13,6 +13,7 @@ public final class DefinitionSqlProvider {
                   WHEN 'SINGLE_TABLE_OFFLINE' THEN 'JDBC'
                   WHEN 'DATABASE_OFFLINE' THEN 'JDBC'
                   WHEN 'SINGLE_TABLE_REALTIME' THEN 'MYSQL_CDC'
+                  WHEN 'DATABASE_REALTIME' THEN 'MYSQL_CDC'
                 END
               WHEN v.parameter_schema_version = 2
                 AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.sink.type')) = 'JDBC'

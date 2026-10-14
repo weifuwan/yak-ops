@@ -7,7 +7,7 @@ import type {
   DataSyncTableMapping,
   TaskDefinitionRecord,
 } from "./types";
-import { readSyncParameters, solutionSyncType } from "./parameters.ts";
+import { readSyncParameters, solutionSyncType, supportsMultipleTables } from "./parameters.ts";
 
 /** Writes the single public product configuration; connector identifiers are resolved by the backend. */
 export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncParameters {
@@ -18,7 +18,7 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
       writeMode: task.writeMode,
     },
   ];
-  if (task.solutionType === "DATABASE_OFFLINE") {
+  if (supportsMultipleTables(task.solutionType)) {
     if (!task.tableMappings?.length) throw new Error("请选择同步表");
     tableMappings = task.tableMappings.map((mapping) => ({
       source: { ...mapping.source },

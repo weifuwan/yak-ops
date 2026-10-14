@@ -1,5 +1,6 @@
 package io.yak.ops.connector.cdc.mysql.source.enumerator;
 
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceConfig;
 import io.yak.ops.connector.cdc.mysql.source.assigner.MySqlChunkSplitter;
 import io.yak.ops.connector.cdc.mysql.source.assigner.MySqlHybridSplitAssigner;
@@ -20,8 +21,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -43,6 +46,9 @@ public final class MySqlHybridSourceEnumerator
     private final String fingerprint;
     private final Set<Integer> waitingReaders = new LinkedHashSet<>();
     private final boolean restoredHandoff;
+    private final TableMetrics metrics;
+    private final long generation;
+    private final Map<String, TableId> snapshotTables = new LinkedHashMap<>();
 
     private boolean started;
     private boolean closed;
@@ -55,6 +61,32 @@ public final class MySqlHybridSourceEnumerator
             String fingerprint,
             int chunkSize,
             MySqlHybridEnumeratorState restored) {
+        this(context, config, fingerprint, chunkSize, restored, new TableMetrics());
+    }
+
+    /** Creates an enumerator whose measurements are fenced to this execution generation. */
+    public MySqlHybridSourceEnumerator(
+            SplitEnumeratorContext<MySqlHybridSplit> context,
+            MySqlCdcSourceConfig config,
+            String fingerprint,
+            int chunkSize,
+            MySqlHybridEnumeratorState restored,
+            TableMetrics metrics) {
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
+        config.schemas().keySet().forEach(metrics::register);
+        generation = metrics.beginSnapshot(restored != null);
+        if (restored != null) {
+            boolean complete = restored.phase() == MySqlHybridEnumeratorState.Phase.HANDOFF
+                    || restored.phase() == MySqlHybridEnumeratorState.Phase.STREAMING;
+            TableMetrics.Phase phase = TableMetrics.Phase.INITIALIZING;
+            if (restored.phase() == MySqlHybridEnumeratorState.Phase.SNAPSHOT) phase = TableMetrics.Phase.SNAPSHOT;
+            if (complete) phase = TableMetrics.Phase.HANDOFF;
+            metrics.phase(generation, phase, complete);
+            restored.pendingSnapshots().forEach(split -> snapshotTables.put(split.splitId(), split.tableId()));
+            restored.assignedSnapshots()
+                    .values()
+                    .forEach(split -> snapshotTables.put(split.splitId(), split.tableId()));
+        }
         this.context = Objects.requireNonNull(context, "context");
         this.config = Objects.requireNonNull(config, "config");
         this.fingerprint = Objects.requireNonNull(fingerprint, "fingerprint");
@@ -114,12 +146,15 @@ public final class MySqlHybridSourceEnumerator
             }
             if (assigner.phase() == MySqlHybridEnumeratorState.Phase.BOOTSTRAP) {
                 assigner.captureLow(low.offset());
+                metrics.phase(generation, TableMetrics.Phase.SNAPSHOT, false);
                 planSnapshotAsync();
             } else if (!assigner.low().equals(low.offset())) {
                 throw new IllegalStateException("Conflicting restored MySQL low watermark");
             }
         } else if (event instanceof MySqlSnapshotFinishedEvent finished) {
             assigner.finishSnapshot(finished.splitId());
+            TableId table = snapshotTables.get(finished.splitId());
+            if (table != null) metrics.splitFinished(generation, finished.splitId(), table);
             context.sendEventToSourceReader(subtaskId, new MySqlSnapshotFinishedAckEvent(finished.splitId()));
             if (assigner.snapshotComplete()) {
                 captureHighAsync();
@@ -160,7 +195,9 @@ public final class MySqlHybridSourceEnumerator
 
     @Override
     public void notifyCheckpointComplete(long checkpointId) {
-        if (assigner.completeCheckpoint(checkpointId)) {
+        boolean handoff = assigner.completeCheckpoint(checkpointId);
+        metrics.checkpointCompleted(generation, checkpointId, handoff);
+        if (handoff) {
             sendResumeEvent();
         }
     }
@@ -168,6 +205,7 @@ public final class MySqlHybridSourceEnumerator
     @Override
     public void close() {
         closed = true;
+        metrics.sourceClosed(generation);
         waitingReaders.clear();
     }
 
@@ -181,7 +219,12 @@ public final class MySqlHybridSourceEnumerator
                     List<MySqlSnapshotSplit> ranges = new ArrayList<>();
                     int index = 0;
                     for (TableId table : config.schemas().keySet()) {
-                        ranges.addAll(splitter.plan(table, fingerprint, index++));
+                        try {
+                            ranges.addAll(splitter.plan(table, fingerprint, index++));
+                        } catch (Exception failure) {
+                            metrics.readFailed(generation, table, false);
+                            throw failure;
+                        }
                     }
                     return List.copyOf(ranges);
                 },
@@ -193,6 +236,13 @@ public final class MySqlHybridSourceEnumerator
                     if (error != null) {
                         throw new IllegalStateException("MySQL hybrid snapshot chunk planning failed", error);
                     }
+                    Map<TableId, Integer> counts = new LinkedHashMap<>();
+                    config.schemas().keySet().forEach(table -> counts.put(table, 0));
+                    for (var split : splits) {
+                        snapshotTables.put(split.splitId(), split.tableId());
+                        counts.merge(split.tableId(), 1, Integer::sum);
+                    }
+                    counts.forEach((table, count) -> metrics.planned(generation, table, count));
                     assigner.plan(splits);
                     assignAvailable();
                 });
@@ -212,6 +262,7 @@ public final class MySqlHybridSourceEnumerator
                 throw new IllegalStateException("MySQL hybrid high watermark capture failed", error);
             }
             assigner.captureHigh(high);
+            metrics.phase(generation, TableMetrics.Phase.HANDOFF, false);
         });
     }
 

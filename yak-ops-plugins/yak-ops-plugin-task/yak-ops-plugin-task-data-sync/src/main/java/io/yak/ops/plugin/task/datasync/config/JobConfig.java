@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Immutable task parameters and their executable single-table Connector projection. */
+/** Immutable task parameters and their executable table Connector projections. */
 public final class JobConfig {
     private final ReadonlyConfig parameters;
     private final SolutionType solutionType;
@@ -63,7 +63,7 @@ public final class JobConfig {
         List<Object> mappings = parameters.get(SolutionOptions.TABLE_MAPPINGS);
         if (mappings.isEmpty()
                 || mappings.size() > MAX_TABLES
-                || (type != SolutionType.DATABASE_OFFLINE && mappings.size() != 1)) {
+                || (!type.supportsMultipleTables() && mappings.size() != 1)) {
             throw new IllegalArgumentException("Unsupported explicit table mapping count");
         }
         List<TableConfig> tables = new java.util.ArrayList<>();

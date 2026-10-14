@@ -44,6 +44,14 @@ final class YakFlowTaskHandle implements TaskHandle {
     }
 
     @Override
+    public Optional<String> executionSummary() {
+        if (progress == null) return Optional.empty();
+        var status = client.getJobStatus().getNow(null);
+        if (status == null) return Optional.empty();
+        return Optional.ofNullable(progress.summary(status));
+    }
+
+    @Override
     public CompletionStage<TaskOutcome> completion() {
         return client.getJobExecutionResult()
                 .handle((result, failure) -> failure)

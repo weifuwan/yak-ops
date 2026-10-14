@@ -16,6 +16,8 @@ import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
 
 import { ExecutionProgressBar } from "./execution-progress-bar";
+import { ExecutionStages } from "./execution-stages";
+import { supportsMultipleTables } from "@/service/data-sync/parameters";
 import { TableExecutionResults } from "./table-execution-results";
 import "./execution-detail.css";
 
@@ -109,11 +111,19 @@ function ExecutionProgressCard({ record, realtime }: DetailProps) {
 
   return (
     <div className="border border-[#eef0f3] bg-white px-3 py-3 text-center">
-      <ExecutionProgressBar
-        status={record.status}
-        percent={record.progressPercent}
-        realtime={realtime}
-      />
+      {realtime ? (
+        <ExecutionStages
+          status={record.status}
+          summary={record.executionReport?.version === 2 ? record.executionReport : undefined}
+        />
+      ) : (
+        <ExecutionProgressBar
+          status={record.status}
+          percent={record.progressPercent}
+          realtime={false}
+        />
+      )}
+
       <h3 className="mt-2 text-sm font-semibold text-[#344054]">{label}</h3>
       <div className="mt-1 text-xs text-[#98a2b3]">
         v{record.taskVersion} · {dataSyncTriggerText(record.triggerType)}
@@ -255,7 +265,7 @@ export function DataSyncExecutionDetailContent({
       ) : null}
       <ExecutionProgressCard record={record} realtime={realtime} />
       <div className="min-w-0 pt-4">
-        {record.solutionType === "DATABASE_OFFLINE" || record.executionReport ? (
+        {supportsMultipleTables(record.solutionType) || record.executionReport ? (
           <TableExecutionResults record={record} />
         ) : (
           <Table<TableExecutionRow>
