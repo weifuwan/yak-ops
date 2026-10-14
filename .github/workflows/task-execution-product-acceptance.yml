@@ -94,6 +94,14 @@ jobs:
         run: |
           docker exec yak-task-mysql mysql -uroot -plocaltestpass -e 'CREATE DATABASE yak_schedule_contract'
           bash mvnw -B -ntp -pl yak-ops-boot -am -Dtest=ScheduleAdmissionIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test
+      - name: Verify Flyway baseline against versioned MySQL schema
+        env:
+          E2E_DB_PASSWORD: localtestpass
+          BASELINE_TEST_DB_URL: jdbc:mysql://127.0.0.1:3306/yak_baseline_contract?useSSL=false&allowPublicKeyRetrieval=true
+          HISTORY_TEST_DB_URL: jdbc:mysql://127.0.0.1:3306/yak_history_contract?useSSL=false&allowPublicKeyRetrieval=true
+        run: |
+          docker exec yak-task-mysql mysql -uroot -plocaltestpass -e 'CREATE DATABASE yak_baseline_contract; CREATE DATABASE yak_history_contract;'
+          bash mvnw -B -ntp -pl yak-ops-dao -am -Dtest=FlywayBaselineIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test
       - name: Package Yak Ops executable
         run: bash mvnw -B -ntp -pl yak-ops-boot -am -DskipTests package
       - name: Exercise authenticated Task execution and reconciliation
