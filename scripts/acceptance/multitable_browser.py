@@ -27,6 +27,9 @@ def verify_multitable_browser(api, client, source, target):
             for index, name in enumerate(["MySQL", "PostgreSQL", "整库离线"]):
                 dialog.get_by_role("combobox").nth(index).click()
                 page.get_by_role("option", name=name, exact=True).click()
+                expect(dialog.get_by_role("combobox").nth(index)).to_contain_text(name)
+                # A closing select portal can briefly cover the next dropdown in Chromium.
+                expect(page.locator('[data-base-ui-portal] [role="presentation"][data-side][data-open]')).to_have_count(0)
             dialog.get_by_role("textbox", name="名称", exact=True).fill("browser-batch-" + uuid.uuid4().hex[:8])
             dialog.get_by_role("button", name="下一步", exact=True).click()
             for index, name in enumerate([source_name, target_name]):
