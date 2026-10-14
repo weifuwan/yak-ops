@@ -22,7 +22,7 @@ jobs:
           node-version: '22.13.0'
           cache: npm
           cache-dependency-path: yak-ops-ui/package-lock.json
-      - name: Reconstruct clean candidate
+      - name: Reconstruct clean code candidate
         shell: bash
         run: |
           set -euo pipefail
@@ -31,6 +31,8 @@ jobs:
           git worktree add --detach /tmp/yak-candidate 21c22c9eea4f5f87033714363dd11f6b88d6179c
           cd /tmp/yak-candidate
           git apply --unidiff-zero /tmp/schema.patch
+          # Workflow changes are submitted separately through the authorized maintainer connector.
+          git restore --source=21c22c9eea4f5f87033714363dd11f6b88d6179c .github/workflows/task-execution-product-acceptance.yml
           git diff --check
           test ! -d .workbench
           test ! -f .github/workflows/schema-workbench.yml
@@ -41,7 +43,7 @@ jobs:
           npm ci --prefix yak-ops-ui --no-audit --no-fund
           npm run format --prefix yak-ops-ui
           python3 -m py_compile scripts/acceptance/schema_migration_e2e.py scripts/acceptance/schema_migration_browser.py
-      - name: Preserve reviewed implementation for PR CI
+      - name: Preserve implementation for PR CI
         working-directory: /tmp/yak-candidate
         env:
           CANDIDATE_BRANCH: workbench/schema-1643-candidate-${{ github.run_id }}
