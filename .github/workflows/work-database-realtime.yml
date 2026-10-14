@@ -33,6 +33,14 @@ jobs:
               subprocess.run(['git', 'apply', '--unidiff-zero', '/tmp/realtime.patch'], check=True)
               for part in parts:
                   part.unlink()
+              report = Path('yak-ops-ui/apps/web/service/data-sync/report.ts')
+              text = report.read_text()
+              start = text.index('    if (report?.version === 2) {')
+              end = text.index('    if (\n', start)
+              block = text[start:end]
+              block = block.replace('      if (!validSummary(report)', '      const tables: unknown = report.tables;\n      if (!validSummary(report)')
+              block = block.replace('Array.isArray(report.tables)', 'Array.isArray(tables)').replace('report.tables.length', 'tables.length').replace('of report.tables', 'of tables').replace('return report;', 'return { ...report, tables };')
+              report.write_text(text[:start] + block + text[end:])
           PY
       - uses: actions/setup-java@v5
         with:
@@ -52,6 +60,8 @@ jobs:
       - name: Save prepared implementation on work branch
         if: steps.patch.outcome == 'success' && steps.format.outcome == 'success'
         run: |
+          cp .github/workflows/task-execution-product-acceptance.yml /tmp/product-acceptance.yml
+          git restore --source=HEAD --staged --worktree .github/workflows/task-execution-product-acceptance.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
@@ -59,9 +69,11 @@ jobs:
             git commit -m 'feat(data-sync): database realtime stages and product acceptance'
             git push origin HEAD:work/database-realtime-20261014
           fi
+          cp /tmp/product-acceptance.yml .github/workflows/task-execution-product-acceptance.yml
           git rev-parse HEAD
       - name: Backend verification
         id: backend
+        if: always() && steps.format.outcome == 'success'
         run: bash mvnw -B -ntp -pl '!yak-ops-ui,!yak-ops-dist' verify
       - name: Frontend verification
         if: always() && steps.format.outcome == 'success'
