@@ -5,9 +5,9 @@ on:
 permissions:
   contents: write
 jobs:
-  verify:
+  candidate:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
         with:
@@ -22,80 +22,42 @@ jobs:
           node-version: '22.13.0'
           cache: npm
           cache-dependency-path: yak-ops-ui/package-lock.json
-      - name: Reconstruct isolated candidate
-        id: patch
+      - name: Reconstruct clean candidate
         shell: bash
         run: |
           set -euo pipefail
-          cat .workbench/schema.patch.* | gzip -d > /tmp/schema.patch
-          echo '5222c06dc82d412d522ca7077ce95e4156ec7c9777f055ab74bc61ae9c74ce94  /tmp/schema.patch' | sha256sum -c -
-          git worktree add --detach /tmp/yak-candidate 55a0434c584271af0a794517632011a283f4e9e8
+          cat .workbench/schema.delta2.* | gzip -d > /tmp/schema.patch
+          echo 'deb6fb857387cff3ce6ecd5e623a2dcbe4c82dcd559c55ecb5eadc1f3dc09ba1  /tmp/schema.patch' | sha256sum -c -
+          git worktree add --detach /tmp/yak-candidate 21c22c9eea4f5f87033714363dd11f6b88d6179c
           cd /tmp/yak-candidate
           git apply --unidiff-zero /tmp/schema.patch
           git diff --check
-      - name: Install frontend dependencies
-        if: steps.patch.outcome == 'success'
-        working-directory: /tmp/yak-candidate/yak-ops-ui
-        run: npm ci --no-audit --no-fund
-      - name: Format candidate with repository tools
-        id: format
+          test ! -d .workbench
+          test ! -f .github/workflows/schema-workbench.yml
+      - name: Format using repository tools
         working-directory: /tmp/yak-candidate
         run: |
-          bash mvnw -B -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
-          cd yak-ops-ui
-          npm run format
-      - name: Preserve clean implementation commit
-        if: steps.format.outcome == 'success'
+          bash mvnw -B -ntp -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+          npm ci --prefix yak-ops-ui --no-audit --no-fund
+          npm run format --prefix yak-ops-ui
+          python3 -m py_compile scripts/acceptance/schema_migration_e2e.py scripts/acceptance/schema_migration_browser.py
+      - name: Preserve reviewed implementation for PR CI
         working-directory: /tmp/yak-candidate
         env:
           CANDIDATE_BRANCH: workbench/schema-1643-candidate-${{ github.run_id }}
         run: |
           set -euo pipefail
-          test ! -d .workbench
-          test ! -f .github/workflows/schema-workbench.yml
           git config user.name 'ChatGPT'
           git config user.email 'chatgpt@users.noreply.github.com'
           git add -A
-          git commit -m 'feat(data-sync): connect schema planning, task lifecycle and product views'
+          git commit -m 'feat(data-sync): complete schema cancellation, observations and end-to-end acceptance'
           git push origin HEAD:refs/heads/$CANDIDATE_BRANCH
           git rev-parse HEAD | tee /tmp/candidate-sha.txt
           git archive --format=zip HEAD -o /tmp/candidate-source.zip
-      - name: Backend verification
-        id: backend
-        working-directory: /tmp/yak-candidate
-        run: |
-          set -o pipefail
-          bash mvnw -B -pl '!yak-ops-ui,!yak-ops-dist' verify 2>&1 | tee /tmp/backend-verify.log
-      - name: Frontend verification
-        if: always() && steps.format.outcome == 'success'
-        working-directory: /tmp/yak-candidate/yak-ops-ui
-        run: |
-          set -o pipefail
-          (npm run check && npm run build) 2>&1 | tee /tmp/frontend-verify.log
-      - name: Export public dependency caches for offline verification
-        if: always() && steps.patch.outcome == 'success'
-        shell: bash
-        run: |
-          mkdir -p /tmp/dependency-cache/maven /tmp/dependency-cache/frontend
-          cp -a "$HOME/.m2/repository" /tmp/dependency-cache/maven/ || true
-          cp -a "$HOME/.m2/wrapper" /tmp/dependency-cache/maven/ || true
-          cp /tmp/yak-candidate/.mvn/wrapper/maven-wrapper.jar /tmp/dependency-cache/maven/ || true
-          cp -a /tmp/yak-candidate/yak-ops-ui/node_modules /tmp/dependency-cache/frontend/ || true
-          tar -czf /tmp/dependency-cache.tgz -C /tmp/dependency-cache .
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: schema-workbench-results
+          name: schema-completion-candidate
           path: |
             /tmp/candidate-source.zip
             /tmp/candidate-sha.txt
-            /tmp/backend-verify.log
-            /tmp/frontend-verify.log
-            /tmp/yak-candidate/**/target/surefire-reports/*
-          retention-days: 1
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: schema-public-dependency-cache
-          path: /tmp/dependency-cache.tgz
           retention-days: 1
