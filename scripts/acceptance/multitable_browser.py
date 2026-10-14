@@ -24,29 +24,34 @@ def verify_multitable_browser(api, client, source, target):
         try:
             page.goto(frontend + "/data-sync?create=1")
             dialog = page.get_by_role("dialog", name="新建同步任务", exact=True)
-            for index, name in enumerate(["MySQL", "PostgreSQL", "整库离线"]):
-                dialog.get_by_role("combobox").nth(index).click()
-                page.get_by_role("option", name=name, exact=True).click()
-                expect(dialog.get_by_role("combobox").nth(index)).to_contain_text(name)
-                # A closing select portal can briefly cover the next dropdown in Chromium.
+            def select_option(trigger, name):
+                trigger.click()
+                list_id = trigger.get_attribute("aria-controls")
+                assert list_id, "Select trigger is missing its listbox association"
+                page.locator(f'[id="{list_id}"]').get_by_role("option", name=name, exact=True).click()
+                expect(page.locator(f'[id="{list_id}"]')).to_be_hidden()
+                # Wait for the previous select portal before opening another dropdown.
                 expect(page.locator('[data-base-ui-portal] [role="presentation"][data-side][data-open]')).to_have_count(0)
+
+            for index, name in enumerate(["MySQL", "PostgreSQL", "整库离线"]):
+                select_option(dialog.get_by_role("combobox").nth(index), name)
             dialog.get_by_role("textbox", name="名称", exact=True).fill("browser-batch-" + uuid.uuid4().hex[:8])
             dialog.get_by_role("button", name="下一步", exact=True).click()
             for index, name in enumerate([source_name, target_name]):
-                page.locator("#datasource").get_by_role("combobox").nth(index).click()
-                page.get_by_role("option", name=name, exact=True).click()
+                select_option(page.locator("#datasource").get_by_role("combobox").nth(index), name)
             for table in ("batch_a", "batch_b"):
                 page.get_by_role("checkbox", name=re.compile(r"选择 (.*\.)?" + table + r"$")).check()
             def choose(source_table, target_table):
-                page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?" + source_table + r"$")).click()
-                page.get_by_role("option", name=re.compile(r"(.*\.)?" + target_table + r"$")).click()
+                select_option(
+                    page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?" + source_table + r"$")),
+                    re.compile(r"(.*\.)?" + target_table + r"$"),
+                )
             choose("batch_a", "batch_a_copy")
             choose("batch_b", "batch_a_copy")
             expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
             expect(page.get_by_text("去向表不能重复", exact=True).first).to_be_visible()
             choose("batch_b", "batch_b_copy")
-            page.locator("#target").get_by_role("combobox").first.click()
-            page.get_by_role("option", name="按主键更新", exact=True).click()
+            select_option(page.locator("#target").get_by_role("combobox").first, "按主键更新")
             page.reload()
             expect(page.get_by_text("已选 2 / 100", exact=True)).to_be_visible()
             page.get_by_role("button", name="保存", exact=True).click()
