@@ -1,0 +1,22 @@
+name: Schema Migration Workbench
+on:
+  push:
+    branches: [workbench/schema-1643-20261014]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Archive reviewed source
+        run: git archive --format=zip 55a0434c584271af0a794517632011a283f4e9e8 -o /tmp/schema-1643-source.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: schema-1643-source
+          path: /tmp/schema-1643-source.zip
+          retention-days: 1
