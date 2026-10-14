@@ -71,11 +71,28 @@ public class InstanceLifecycleServiceImpl implements InstanceLifecycleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void complete(DispatchTicket ticket, TaskOutcome outcome) {
+        complete(ticket, outcome, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void complete(DispatchTicket ticket, TaskOutcome outcome, String executionReport) {
         InstanceEntity instance = instances
                 .findByIdForUpdate(ticket.workspaceId(), ticket.instanceId())
                 .orElseThrow(() -> new IllegalStateException("Task Instance is missing"));
         if (instance.getStatus().isTerminal() || instance.getStatus() == TaskInstanceStatus.RECONCILING) {
             return;
+        }
+        if (executionReport != null) {
+            if (executionReport.length() > 262144
+                    || !io.yak.ops.common.util.JSONUtils.readTree(executionReport)
+                            .isObject()) {
+                throw new IllegalArgumentException("Invalid public Task execution report");
+            }
+            if (!instances.updateExecutionReport(
+                    ticket.workspaceId(), ticket.instanceId(), ticket.dispatchToken(), executionReport)) {
+                throw new IllegalStateException("Task execution report ownership changed");
+            }
         }
         TaskInstanceStatus status =
                 switch (outcome) {

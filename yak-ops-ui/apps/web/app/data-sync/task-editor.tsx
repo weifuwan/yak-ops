@@ -25,6 +25,12 @@ import {
 import { solutionSyncType } from "@/service/data-sync/parameters";
 import { findStepCombination, solutionSummary } from "./solution-presentation";
 import { useSolutions } from "./use-solutions";
+import {
+  ExplicitTableSelection,
+  TableMappingEditor,
+  validTableMappings,
+} from "./table-mapping-editor";
+import { Modal } from "@yak-ops/yak-ui";
 
 import { EditorAnchorStepper, type EditorAnchorItem } from "@/app/data-sync/editor-anchor-stepper";
 import { DataSyncSearchableSelect } from "@/app/data-sync/searchable-select";
@@ -58,6 +64,7 @@ import {
   type DataSyncTaskSavePayload,
   type DataSyncTaskStatus,
   type DataSyncDraft,
+  type DataSyncTableMapping,
   type DataSyncWriteMode,
 } from "@/service/data-sync";
 
@@ -405,6 +412,14 @@ export function DataSyncTaskEditorPage() {
 }
 
 function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorInput) {
+  const batch = draft.solutionType === "DATABASE_OFFLINE";
+  const [mappings, setMappings] = useState<DataSyncTableMapping[]>(
+    initialTask?.tableMappings || draft.form?.tableMappings || [],
+  );
+  const [pendingConnection, setPendingConnection] = useState<{
+    side: "source" | "target";
+    value: string;
+  }>();
   const localScroll = true;
   const basePath = "/data-sync";
   const { id } = useParams<{ id: string }>();
@@ -575,14 +590,65 @@ function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorIn
       solutionType: draft.solutionType,
       steps: draft.steps,
       name: form.name,
-      form: { ...form, solutionType: draft.solutionType, steps: draft.steps },
+      form: {
+        ...form,
+        solutionType: draft.solutionType,
+        steps: draft.steps,
+        tableMappings: batch ? mappings : undefined,
+      },
     });
-  }, [id, draftKey, draft.sourceType, draft.targetType, draft.solutionType, draft.steps, form]);
+  }, [
+    id,
+    draftKey,
+    draft.sourceType,
+    draft.targetType,
+    draft.solutionType,
+    draft.steps,
+    form,
+    batch,
+    mappings,
+  ]);
 
   const patch = <K extends keyof EditorForm>(key: K, value: EditorForm[K]) => {
     setTaskDirty(true);
     if (key !== "name" && key !== "remark" && key !== "debug") setParametersDirty(true);
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateMappings = (value: DataSyncTableMapping[]) => {
+    setMappings(value);
+    setTaskDirty(true);
+    setParametersDirty(true);
+  };
+  const changeConnection = (side: "source" | "target", value: string) => {
+    setMappings([]);
+    if (side === "source") {
+      const selected = dataSources.find((item) => item.id === value);
+      setTaskDirty(true);
+      setParametersDirty(true);
+      setForm((current) => ({
+        ...current,
+        sourceDataSourceId: value,
+        sourceDatabase: selected?.database || "",
+        sourceSchema: selected?.schema || "",
+        sourceTable: "",
+      }));
+    } else {
+      const selected = dataSources.find((item) => item.id === value);
+      setTaskDirty(true);
+      setParametersDirty(true);
+      setForm((current) => ({
+        ...current,
+        targetDataSourceId: value,
+        targetDatabase: selected?.database || "",
+        targetSchema: selected?.schema || "",
+        targetTable: "",
+      }));
+    }
+  };
+  const requestConnectionChange = (side: "source" | "target", value: string) => {
+    if (batch && mappings.length) setPendingConnection({ side, value });
+    else changeConnection(side, value);
   };
 
   const payload = (): DataSyncTaskSavePayload => {
@@ -604,6 +670,7 @@ function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorIn
       solutionType: draft.solutionType,
       steps: draft.steps,
       writeMode: form.writeMode,
+      tableMappings: batch ? mappings : undefined,
     };
   };
 
@@ -621,17 +688,18 @@ function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorIn
         !scheduleNeedsReload &&
         (!schedule?.enabled || sameScheduleRule(scheduleForm, schedule)))) &&
     form.name.trim() &&
-    Boolean(
-      form.sourceDataSourceId &&
-      form.sourceTable &&
-      form.targetDataSourceId &&
-      selectedTableKey(
-        targetCatalog.tables,
-        form.targetDatabase,
-        form.targetSchema,
-        form.targetTable,
-      ),
-    ) &&
+    Boolean(form.sourceDataSourceId && form.targetDataSourceId) &&
+    (batch
+      ? validTableMappings(mappings, targetCatalog.tables)
+      : Boolean(
+          form.sourceTable &&
+          selectedTableKey(
+            targetCatalog.tables,
+            form.targetDatabase,
+            form.targetSchema,
+            form.targetTable,
+          ),
+        )) &&
     !sourceCatalog.loading &&
     !targetCatalog.loading &&
     !sourceCatalog.error &&
@@ -857,18 +925,7 @@ function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorIn
                       encodeURIComponent(id ? `/data-sync/${id}/edit` : "/data-sync/new"),
                   )
                 }
-                onDataSourceChange={(value) => {
-                  const selected = dataSources.find((item) => item.id === value);
-                  setTaskDirty(true);
-                  setParametersDirty(true);
-                  setForm((current) => ({
-                    ...current,
-                    sourceDataSourceId: value,
-                    sourceDatabase: selected?.database || "",
-                    sourceSchema: selected?.schema || "",
-                    sourceTable: "",
-                  }));
-                }}
+                onDataSourceChange={(value) => requestConnectionChange("source", value)}
               />
               <DataSourceEndpointCard
                 title="去向"
@@ -883,94 +940,106 @@ function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorIn
                       encodeURIComponent(id ? `/data-sync/${id}/edit` : "/data-sync/new"),
                   )
                 }
-                onDataSourceChange={(value) => {
-                  const selected = dataSources.find((item) => item.id === value);
-                  setTaskDirty(true);
-                  setParametersDirty(true);
-                  setForm((current) => ({
-                    ...current,
-                    targetDataSourceId: value,
-                    targetDatabase: selected?.database || "",
-                    targetSchema: selected?.schema || "",
-                    targetTable: "",
-                  }));
-                }}
+                onDataSourceChange={(value) => requestConnectionChange("target", value)}
               />
             </div>
           </CollapseSection>
 
           <CollapseSection id="source" title="数据来源">
-            <TableSection
-              dataSourceId={form.sourceDataSourceId}
-              boundSchema={selectedSourceDataSource?.schema}
-              database={form.sourceDatabase}
-              schema={form.sourceSchema}
-              table={form.sourceTable}
-              catalog={sourceCatalog}
-              onSchemaChange={(value) => {
-                setTaskDirty(true);
-                setParametersDirty(true);
-                setForm((current) => ({
-                  ...current,
-                  sourceSchema: value,
-                  sourceTable: "",
-                }));
-              }}
-              onTableChange={(table) => {
-                setTaskDirty(true);
-                setParametersDirty(true);
-                setForm((current) => ({
-                  ...current,
-                  sourceDatabase: current.sourceDatabase || table.database || "",
-                  sourceSchema: current.sourceSchema || table.schema || "",
-                  sourceTable: table.name,
-                }));
-              }}
-            >
-              {usesChangelog ? (
-                <Alert>实时同步依赖 ROW Binlog 和 CDC 权限；连接测试通过不代表 CDC 可用。</Alert>
-              ) : null}
-            </TableSection>
+            {batch ? (
+              <ExplicitTableSelection
+                sourceTables={sourceCatalog.tables}
+                targetTables={targetCatalog.tables}
+                mappings={mappings}
+                loading={sourceCatalog.loading}
+                error={sourceCatalog.error}
+                refresh={sourceCatalog.refresh}
+                onChange={updateMappings}
+              />
+            ) : (
+              <TableSection
+                dataSourceId={form.sourceDataSourceId}
+                boundSchema={selectedSourceDataSource?.schema}
+                database={form.sourceDatabase}
+                schema={form.sourceSchema}
+                table={form.sourceTable}
+                catalog={sourceCatalog}
+                onSchemaChange={(value) => {
+                  setTaskDirty(true);
+                  setParametersDirty(true);
+                  setForm((current) => ({
+                    ...current,
+                    sourceSchema: value,
+                    sourceTable: "",
+                  }));
+                }}
+                onTableChange={(table) => {
+                  setTaskDirty(true);
+                  setParametersDirty(true);
+                  setForm((current) => ({
+                    ...current,
+                    sourceDatabase: current.sourceDatabase || table.database || "",
+                    sourceSchema: current.sourceSchema || table.schema || "",
+                    sourceTable: table.name,
+                  }));
+                }}
+              >
+                {usesChangelog ? (
+                  <Alert>实时同步依赖 ROW Binlog 和 CDC 权限；连接测试通过不代表 CDC 可用。</Alert>
+                ) : null}
+              </TableSection>
+            )}
           </CollapseSection>
 
           <CollapseSection id="target" title="目标表映射">
-            <TableSection
-              dataSourceId={form.targetDataSourceId}
-              boundSchema={selectedTargetDataSource?.schema}
-              database={form.targetDatabase}
-              schema={form.targetSchema}
-              table={form.targetTable}
-              catalog={targetCatalog}
-              onSchemaChange={(value) => {
-                setTaskDirty(true);
-                setParametersDirty(true);
-                setForm((current) => ({ ...current, targetSchema: value, targetTable: "" }));
-              }}
-              onTableChange={(table) => {
-                setTaskDirty(true);
-                setParametersDirty(true);
-                setForm((current) => ({
-                  ...current,
-                  targetDatabase: current.targetDatabase || table.database || "",
-                  targetSchema: current.targetSchema || table.schema || "",
-                  targetTable: table.name,
-                }));
-              }}
-            >
-              <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
-                <FieldLabel required>写入方式</FieldLabel>
-                <DataSyncSearchableSelect
-                  placeholder="请选择写入方式"
-                  value={form.writeMode}
-                  disabled={!combination || combination.writeModes.length === 1}
-                  options={(combination?.writeModes || []).map((mode) => ({
-                    value: mode,
-                    label: mode === "UPSERT" ? "按主键更新" : "追加写入",
-                  }))}
-                  onValueChange={(value) => patch("writeMode", value as DataSyncWriteMode)}
-                />
-              </Field>
-            </TableSection>
+            {batch ? (
+              <TableMappingEditor
+                mappings={mappings}
+                targetTables={targetCatalog.tables}
+                loading={targetCatalog.loading}
+                error={targetCatalog.error}
+                refresh={targetCatalog.refresh}
+                onChange={updateMappings}
+              />
+            ) : (
+              <TableSection
+                dataSourceId={form.targetDataSourceId}
+                boundSchema={selectedTargetDataSource?.schema}
+                database={form.targetDatabase}
+                schema={form.targetSchema}
+                table={form.targetTable}
+                catalog={targetCatalog}
+                onSchemaChange={(value) => {
+                  setTaskDirty(true);
+                  setParametersDirty(true);
+                  setForm((current) => ({ ...current, targetSchema: value, targetTable: "" }));
+                }}
+                onTableChange={(table) => {
+                  setTaskDirty(true);
+                  setParametersDirty(true);
+                  setForm((current) => ({
+                    ...current,
+                    targetDatabase: current.targetDatabase || table.database || "",
+                    targetSchema: current.targetSchema || table.schema || "",
+                    targetTable: table.name,
+                  }));
+                }}
+              >
+                <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
+                  <FieldLabel required>写入方式</FieldLabel>
+                  <DataSyncSearchableSelect
+                    placeholder="请选择写入方式"
+                    value={form.writeMode}
+                    disabled={!combination || combination.writeModes.length === 1}
+                    options={(combination?.writeModes || []).map((mode) => ({
+                      value: mode,
+                      label: mode === "UPSERT" ? "按主键更新" : "追加写入",
+                    }))}
+                    onValueChange={(value) => patch("writeMode", value as DataSyncWriteMode)}
+                  />
+                </Field>
+              </TableSection>
+            )}
           </CollapseSection>
           {supportsScheduling ? (
             <CollapseSection id="schedule" title="调度配置">
@@ -1029,6 +1098,34 @@ function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorIn
           />
         </aside>
       </div>
+      {pendingConnection ? (
+        <Modal
+          open
+          centered
+          width={420}
+          title="更换数据源"
+          onClose={() => setPendingConnection(undefined)}
+          footer={
+            <>
+              <Button size="small" onClick={() => setPendingConnection(undefined)}>
+                取消
+              </Button>
+              <Button
+                size="small"
+                variant="primary"
+                onClick={() => {
+                  changeConnection(pendingConnection.side, pendingConnection.value);
+                  setPendingConnection(undefined);
+                }}
+              >
+                确认
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm">更换数据源将清除已选择的表映射。</p>
+        </Modal>
+      ) : null}
     </div>
   );
 }

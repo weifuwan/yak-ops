@@ -1,6 +1,7 @@
 package io.yak.ops.connector.base.factory;
 
 import io.yak.ops.configuration.ReadonlyConfig;
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
 import java.util.Objects;
@@ -8,6 +9,7 @@ import java.util.Objects;
 /** Immutable table and configuration inputs used to construct a Sink. */
 public final class TableSinkFactoryContext {
     private final ReadonlyConfig options;
+    private final TableMetrics metrics;
     private final TableId sourceTable;
     private final TableSchema sourceSchema;
     private final TableId targetTable;
@@ -27,11 +29,28 @@ public final class TableSinkFactoryContext {
             TableSchema sourceSchema,
             TableId targetTable,
             TableSchema targetSchema) {
+        this(options, sourceTable, sourceSchema, targetTable, targetSchema, new TableMetrics());
+    }
+
+    /** Creates resolved Sink inputs with the physical attempt's table observations. */
+    public TableSinkFactoryContext(
+            ReadonlyConfig options,
+            TableId sourceTable,
+            TableSchema sourceSchema,
+            TableId targetTable,
+            TableSchema targetSchema,
+            TableMetrics metrics) {
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
         this.options = Objects.requireNonNull(options, "options");
         this.sourceTable = Objects.requireNonNull(sourceTable, "sourceTable");
         this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
         this.targetTable = Objects.requireNonNull(targetTable, "targetTable");
         this.targetSchema = Objects.requireNonNull(targetSchema, "targetSchema");
+    }
+
+    /** Returns the non-secret attempt-local measurement collector. */
+    public TableMetrics metrics() {
+        return metrics;
     }
 
     public ReadonlyConfig options() {

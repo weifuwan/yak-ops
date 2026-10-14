@@ -1,5 +1,6 @@
 package io.yak.ops.connector.jdbc.source.reader;
 
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.base.source.reader.RecordEmitter;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.core.data.TableRecord;
@@ -13,11 +14,22 @@ import io.yak.ops.core.data.TableRecord;
 public final class JdbcRecordEmitter
         implements RecordEmitter<JdbcRecordAndPosition, TableRecord, JdbcSourceSplitState> {
 
+    private final TableMetrics metrics;
+
+    public JdbcRecordEmitter() {
+        this(new TableMetrics());
+    }
+
+    public JdbcRecordEmitter(TableMetrics metrics) {
+        this.metrics = java.util.Objects.requireNonNull(metrics);
+    }
+
     @Override
     public void emitRecord(
             JdbcRecordAndPosition element, ReaderOutput<TableRecord> output, JdbcSourceSplitState splitState)
             throws Exception {
         output.collect(element.record());
         splitState.onRecordEmitted(element.lastKey());
+        metrics.read(element.record().tableId());
     }
 }

@@ -28,6 +28,7 @@ export interface TaskInstanceRecord {
   scheduledTime?: string | null;
   status: TaskInstanceStatus;
   progressPercent?: number | null;
+  executionReport?: string | null;
   runtimeEngine?: string | null;
   runtimeId?: string | null;
   startTime?: string | null;

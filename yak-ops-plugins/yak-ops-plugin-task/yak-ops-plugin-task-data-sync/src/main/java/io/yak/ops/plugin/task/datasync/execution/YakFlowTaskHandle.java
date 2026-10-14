@@ -13,9 +13,15 @@ import java.util.concurrent.CompletionStage;
 final class YakFlowTaskHandle implements TaskHandle {
 
     private final JobClient client;
+    private final TableExecutionProgress progress;
 
     YakFlowTaskHandle(JobClient client) {
+        this(client, null);
+    }
+
+    YakFlowTaskHandle(JobClient client, TableExecutionProgress progress) {
         this.client = client;
+        this.progress = progress;
     }
 
     @Override
@@ -25,7 +31,16 @@ final class YakFlowTaskHandle implements TaskHandle {
 
     @Override
     public OptionalInt progressPercent() {
+        if (progress != null) return progress.percent();
         return client.getProgressPercent();
+    }
+
+    @Override
+    public Optional<String> executionReport() {
+        if (progress == null) return Optional.empty();
+        var status = client.getJobStatus().getNow(null);
+        if (status == null) return Optional.empty();
+        return Optional.of(progress.report(status));
     }
 
     @Override

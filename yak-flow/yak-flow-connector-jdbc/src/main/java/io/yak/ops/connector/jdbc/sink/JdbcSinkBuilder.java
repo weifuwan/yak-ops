@@ -21,6 +21,8 @@ import java.util.Objects;
  */
 public final class JdbcSinkBuilder {
 
+    private io.yak.ops.connector.base.metrics.TableMetrics metrics =
+            new io.yak.ops.connector.base.metrics.TableMetrics();
     private JdbcConnectionOptions connectionOptions;
     private JdbcConnectionProvider connections;
     private JdbcDialect dialect;
@@ -98,6 +100,12 @@ public final class JdbcSinkBuilder {
         return this;
     }
 
+    /** Attaches the attempt-local measurement collector without affecting write or checkpoint behavior. */
+    public JdbcSinkBuilder withTableMetrics(io.yak.ops.connector.base.metrics.TableMetrics metrics) {
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
+        return this;
+    }
+
     public JdbcSinkBuilder withBatchFlushPolicy(BatchFlushPolicy policy) {
         batchPolicy = Objects.requireNonNull(policy, "policy");
         return this;
@@ -126,11 +134,11 @@ public final class JdbcSinkBuilder {
             if (sourceTable != null || targetTable != null || schema != null || mode != JdbcWriteMode.APPEND) {
                 throw new IllegalArgumentException("Single-table and multi-table JDBC Sink settings cannot be mixed");
             }
-            return new JdbcSink(provider, resolvedDialect, tablePlans, batchPolicy);
+            return new JdbcSink(provider, resolvedDialect, tablePlans, batchPolicy, metrics);
         }
         TableId target = Objects.requireNonNull(targetTable, "targetTable");
         JdbcTableWritePlan plan = new JdbcTableWritePlan(
                 sourceTable == null ? target : sourceTable, target, Objects.requireNonNull(schema, "schema"), mode);
-        return new JdbcSink(provider, resolvedDialect, plan, batchPolicy);
+        return new JdbcSink(provider, resolvedDialect, List.of(plan), batchPolicy, metrics);
     }
 }

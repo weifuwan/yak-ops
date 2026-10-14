@@ -121,3 +121,34 @@ for (const patch of [
   assert.throws(() => readSyncParameters(3, JSON.stringify({ ...json, ...patch })));
 assert.throws(() => toSyncTaskRecord({ ...definition, taskType: "UNKNOWN" }));
 console.log("Data Sync v3 and pinned-v2 definition contracts passed");
+
+const batch = {
+  ...offline,
+  solutionType: "DATABASE_OFFLINE",
+  tableMappings: [
+    {
+      source: { table: "orders" },
+      target: { schema: "public", table: "orders_copy" },
+      writeMode: "APPEND",
+    },
+    {
+      source: { table: "users" },
+      target: { schema: "public", table: "users_copy" },
+      writeMode: "UPSERT",
+    },
+  ],
+};
+const batchJson = createDefinitionRequest(batch).parameters;
+assert.equal(readSyncParameters(3, batchJson).tableMappings.length, 2);
+assert.deepEqual(
+  toSyncTaskRecord({ ...definition, parameters: batchJson }).tableMappings.map(
+    (row) => row.target.table,
+  ),
+  ["orders_copy", "users_copy"],
+);
+assert.throws(() => buildSyncParameters({ ...batch, tableMappings: [] }));
+assert.throws(() => readSyncParameters(3, batchJson.replace("users_copy", "orders_copy")));
+assert.throws(() =>
+  readSyncParameters(3, batchJson.replace("DATABASE_OFFLINE", "SINGLE_TABLE_OFFLINE")),
+);
+console.log("Explicit multi-table parameter and complete projection contracts passed");

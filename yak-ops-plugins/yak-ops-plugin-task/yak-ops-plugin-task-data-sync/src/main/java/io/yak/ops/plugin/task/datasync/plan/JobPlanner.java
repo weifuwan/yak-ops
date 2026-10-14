@@ -57,50 +57,73 @@ public final class JobPlanner {
      */
     public JobPlan plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
         JobConfig job = JobConfigValidator.validateConfig(parameters, factories);
-        ReadonlyConfig source = job.source();
-        ReadonlyConfig sink = job.sink();
-        String sourceId = source.get(JobOptions.DATASOURCE_ID);
-        String sinkId = sink.get(JobOptions.DATASOURCE_ID);
-        var sourceFactory = factories.source(source.get(JobOptions.TYPE));
-        var sinkFactory = factories.sink(sink.get(JobOptions.TYPE));
-        DataSourceTable from = resources.table(
-                context.workspaceId(),
-                sourceId,
-                source.get(JobOptions.DATABASE),
-                source.get(JobOptions.SCHEMA),
-                source.get(JobOptions.TABLE));
-        DataSourceTable to = resources.table(
-                context.workspaceId(),
-                sinkId,
-                sink.get(JobOptions.DATABASE),
-                sink.get(JobOptions.SCHEMA),
-                sink.get(JobOptions.TABLE));
-
-        sourceFactory.validateDatasource(from.datasourceType());
-        sinkFactory.validateSchema(sink, from.schema(), to.schema(), sourceFactory.producesChangelog());
-
-        String target = encodePart(sinkId) + encodeTable(to.table());
-        String binding = encodePart(context.workspaceId())
-                + encodePart(sourceId)
-                + encodePart(Long.toString(from.revision()))
-                + encodeTable(from.table())
-                + encodeSchema(from.schema())
-                + encodePart(sinkId)
-                + encodePart(Long.toString(to.revision()))
-                + encodeTable(to.table())
-                + encodeSchema(to.schema());
+        List<TablePlan> tables = new ArrayList<>();
         List<ExecutionResource> claims = new ArrayList<>();
-        claims.add(new ExecutionResource("DATA_SYNC_TARGET", target));
-        Map<String, Object> prepared =
-                new LinkedHashMap<>(JobOptions.connectorOptions(source).getSourceMap());
-        if ("MYSQL_CDC".equals(sourceFactory.factoryIdentifier())) {
-            String instanceId = context.instanceId();
-            prepared.put(MySqlCdcSourceOptions.SERVER_ID.key(), MySqlCdcReplicationIdentity.serverId(instanceId));
-            prepared.put(MySqlCdcSourceOptions.TOPIC_PREFIX.key(), MySqlCdcReplicationIdentity.topicPrefix(instanceId));
-            claims.add(MySqlCdcReplicationIdentity.exclusiveResource(instanceId));
+        java.util.Set<TableId> sources = new java.util.HashSet<>();
+        java.util.Set<TableId> targets = new java.util.HashSet<>();
+        StringBuilder bindings = new StringBuilder();
+        for (var mapping : job.tables()) {
+            ReadonlyConfig source = mapping.source();
+            ReadonlyConfig sink = mapping.sink();
+            String sourceId = source.get(JobOptions.DATASOURCE_ID);
+            String sinkId = sink.get(JobOptions.DATASOURCE_ID);
+            var sourceFactory = factories.source(source.get(JobOptions.TYPE));
+            var sinkFactory = factories.sink(sink.get(JobOptions.TYPE));
+            DataSourceTable from = resources.table(
+                    context.workspaceId(),
+                    sourceId,
+                    source.get(JobOptions.DATABASE),
+                    source.get(JobOptions.SCHEMA),
+                    source.get(JobOptions.TABLE));
+            DataSourceTable to = resources.table(
+                    context.workspaceId(),
+                    sinkId,
+                    sink.get(JobOptions.DATABASE),
+                    sink.get(JobOptions.SCHEMA),
+                    sink.get(JobOptions.TABLE));
+
+            sourceFactory.validateDatasource(from.datasourceType());
+            io.yak.ops.plugin.task.datasync.solution.SolutionCatalog.validate(
+                    job.solutionType(), from.datasourceType(), to.datasourceType());
+            if (!sources.add(from.table()) || !targets.add(to.table())) {
+                throw new IllegalArgumentException("Duplicate resolved source or destination table");
+            }
+            if (!tables.isEmpty()
+                    && (from.revision() != tables.getFirst().source().revision()
+                            || to.revision() != tables.getFirst().target().revision())) {
+                throw new IllegalStateException("Datasource revision changed while planning the table collection");
+            }
+            sinkFactory.validateSchema(sink, from.schema(), to.schema(), sourceFactory.producesChangelog());
+
+            String target = encodePart(sinkId) + encodeTable(to.table());
+            String binding = encodePart(context.workspaceId())
+                    + encodePart(sourceId)
+                    + encodePart(Long.toString(from.revision()))
+                    + encodeTable(from.table())
+                    + encodeSchema(from.schema())
+                    + encodePart(sinkId)
+                    + encodePart(Long.toString(to.revision()))
+                    + encodeTable(to.table())
+                    + encodeSchema(to.schema());
+            claims.add(new ExecutionResource("DATA_SYNC_TARGET", target));
+            Map<String, Object> prepared =
+                    new LinkedHashMap<>(JobOptions.connectorOptions(source).getSourceMap());
+            if ("MYSQL_CDC".equals(sourceFactory.factoryIdentifier())) {
+                String instanceId = context.instanceId();
+                prepared.put(MySqlCdcSourceOptions.SERVER_ID.key(), MySqlCdcReplicationIdentity.serverId(instanceId));
+                prepared.put(
+                        MySqlCdcSourceOptions.TOPIC_PREFIX.key(), MySqlCdcReplicationIdentity.topicPrefix(instanceId));
+                claims.add(MySqlCdcReplicationIdentity.exclusiveResource(instanceId));
+            }
+            bindings.append(binding);
+            tables.add(new TablePlan(source, sink, from, to, ReadonlyConfig.fromMap(prepared)));
         }
-        TaskAdmissionPlan admission = new TaskAdmissionPlan(claims, sha256(binding));
-        return new JobPlan(source, sink, from, to, admission, ReadonlyConfig.fromMap(prepared));
+        if (tables.size() > 1
+                && job.sourceDataSourceId().equals(job.targetDataSourceId())
+                && sources.stream().anyMatch(targets::contains)) {
+            throw new IllegalArgumentException("Batch destinations overlap their source tables");
+        }
+        return new JobPlan(tables, new TaskAdmissionPlan(claims, sha256(bindings.toString())));
     }
 
     private static String encodeTable(TableId table) {

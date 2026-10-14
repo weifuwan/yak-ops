@@ -3,84 +3,89 @@ package io.yak.ops.plugin.task.datasync.validation;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.data.TableId;
-import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.config.JobOptions;
 import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
-/**
- * Validates pipeline structure and authorized table metadata.
- *
- * <p>Connector Factory option rules are authoritative for vendor-specific fields. Metadata
- * lookup does not resolve credentials, mutate the selected namespace, or create jobs.
- */
+/** Validates every explicit table mapping before publication or physical admission. */
 public final class JobConfigValidator {
-
     private JobConfigValidator() {}
 
-    /** Checks task, endpoint, and Connector static rules without external access. */
+    /** Checks all Connector options without external access or connection credentials. */
     public static JobConfig validateConfig(ReadonlyConfig parameters, FactoryUtil factories) {
         Objects.requireNonNull(factories, "factories");
         try {
             JobConfig job = JobConfig.from(parameters);
-            var sourceFactory = factories.source(job.source().get(JobOptions.TYPE));
-            var sinkFactory = factories.sink(job.sink().get(JobOptions.TYPE));
-            FactoryUtil.validate(job.source(), sourceFactory, JobOptions.ENDPOINT_RULE);
-            FactoryUtil.validate(job.sink(), sinkFactory, JobOptions.ENDPOINT_RULE);
-            sinkFactory.validate(job.sink(), sourceFactory.producesChangelog());
+            for (var table : job.tables()) {
+                var sourceFactory = factories.source(table.source().get(JobOptions.TYPE));
+                var sinkFactory = factories.sink(table.sink().get(JobOptions.TYPE));
+                FactoryUtil.validate(table.source(), sourceFactory, JobOptions.ENDPOINT_RULE);
+                FactoryUtil.validate(table.sink(), sinkFactory, JobOptions.ENDPOINT_RULE);
+                sinkFactory.validate(table.sink(), sourceFactory.producesChangelog());
+            }
             return job;
         } catch (RuntimeException failure) {
             throw new TaskPluginException("Invalid DATA_SYNC configuration", failure);
         }
     }
 
-    /**
-     * Checks authorized Datasource identities and explicit namespace bindings without
-     * opening tables or reading schema metadata.
-     */
+    /** Resolves authorized namespaces and rejects aliases of duplicate tables without opening tables. */
     public static void validateReferences(
             ReadonlyConfig parameters, TaskValidationContext context, FactoryUtil factories) {
-        JobConfig job = validateConfig(parameters, factories);
-        try {
-            DataSourceInfo sourceInfo = context.dataSource(job.source().get(JobOptions.DATASOURCE_ID));
-            DataSourceInfo sinkInfo = context.dataSource(job.sink().get(JobOptions.DATASOURCE_ID));
-            factories.source(job.source().get(JobOptions.TYPE)).validateDatasource(sourceInfo.type());
-            SolutionCatalog.validate(job.solutionType(), sourceInfo.type(), sinkInfo.type());
-            tablePath(sourceInfo, job.source());
-            tablePath(sinkInfo, job.sink());
-        } catch (RuntimeException failure) {
-            throw new TaskPluginException("Invalid DATA_SYNC Datasource reference", failure);
-        }
+        validateBindings(parameters, context, factories, false);
     }
 
-    /** Checks authorized resource bindings and executable source-to-target Schema. */
+    /** Validates all authorized source/target schemas; no DDL or writes are performed. */
     public static void validateResources(
             ReadonlyConfig parameters, TaskValidationContext context, FactoryUtil factories) {
+        validateBindings(parameters, context, factories, true);
+    }
+
+    private static void validateBindings(
+            ReadonlyConfig parameters, TaskValidationContext context, FactoryUtil factories, boolean schemas) {
         JobConfig job = validateConfig(parameters, factories);
         try {
-            String sourceId = job.source().get(JobOptions.DATASOURCE_ID);
-            String sinkId = job.sink().get(JobOptions.DATASOURCE_ID);
-            DataSourceInfo sourceInfo = context.dataSource(sourceId);
-            DataSourceInfo sinkInfo = context.dataSource(sinkId);
-            var sourceFactory = factories.source(job.source().get(JobOptions.TYPE));
-            var sinkFactory = factories.sink(job.sink().get(JobOptions.TYPE));
-            sourceFactory.validateDatasource(sourceInfo.type());
-            SolutionCatalog.validate(job.solutionType(), sourceInfo.type(), sinkInfo.type());
-            TableId sourceTable = tablePath(sourceInfo, job.source());
-            TableId sinkTable = tablePath(sinkInfo, job.sink());
-            TableSchema sourceSchema = context.tableSchema(sourceId, sourceTable);
-            TableSchema sinkSchema = context.tableSchema(sinkId, sinkTable);
-            sinkFactory.validateSchema(job.sink(), sourceSchema, sinkSchema, sourceFactory.producesChangelog());
+            String sourceId = job.sourceDataSourceId();
+            String sinkId = job.targetDataSourceId();
+            DataSourceInfo from = context.dataSource(sourceId);
+            DataSourceInfo to = context.dataSource(sinkId);
+            SolutionCatalog.validate(job.solutionType(), from.type(), to.type());
+            Set<TableId> sources = new HashSet<>();
+            Set<TableId> targets = new HashSet<>();
+            for (var table : job.tables()) {
+                var sourceFactory = factories.source(table.source().get(JobOptions.TYPE));
+                var sinkFactory = factories.sink(table.sink().get(JobOptions.TYPE));
+                sourceFactory.validateDatasource(from.type());
+                TableId source = tablePath(from, table.source());
+                TableId target = tablePath(to, table.sink());
+                if (!sources.add(source) || !targets.add(target)) {
+                    throw new IllegalArgumentException("Duplicate resolved source or destination table");
+                }
+                if (schemas) {
+                    sinkFactory.validateSchema(
+                            table.sink(),
+                            context.tableSchema(sourceId, source),
+                            context.tableSchema(sinkId, target),
+                            sourceFactory.producesChangelog());
+                }
+            }
+            if (job.tables().size() > 1
+                    && sourceId.equals(sinkId)
+                    && sources.stream().anyMatch(targets::contains)) {
+                throw new IllegalArgumentException("Batch destinations overlap their source tables");
+            }
         } catch (RuntimeException failure) {
             throw new TaskPluginException("Invalid DATA_SYNC resource binding or Schema", failure);
         }
     }
 
-    /** Uses explicitly selected namespace values without changing saved configuration. */
+    /** Resolves explicitly selected namespace values without changing the persisted configuration. */
     public static TableId tablePath(DataSourceInfo info, ReadonlyConfig options) {
         return info.resolveTable(
                 options.get(JobOptions.DATABASE), options.get(JobOptions.SCHEMA), options.get(JobOptions.TABLE));

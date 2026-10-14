@@ -69,7 +69,12 @@ export function DataSyncPage() {
   );
   const [solutionType, setSolutionType] = useState<DataSyncSolutionType | "ALL">(() => {
     const initial = new URLSearchParams(location.search).get("solutionType");
-    if (initial === "SINGLE_TABLE_OFFLINE" || initial === "SINGLE_TABLE_REALTIME") return initial;
+    if (
+      initial === "SINGLE_TABLE_OFFLINE" ||
+      initial === "SINGLE_TABLE_REALTIME" ||
+      initial === "DATABASE_OFFLINE"
+    )
+      return initial;
     return "ALL";
   });
   const [pendingDelete, setPendingDelete] = useState<DataSyncTaskRecord>();

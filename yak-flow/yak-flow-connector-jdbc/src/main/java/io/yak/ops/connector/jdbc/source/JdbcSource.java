@@ -1,6 +1,7 @@
 package io.yak.ops.connector.jdbc.source;
 
 import io.yak.ops.configuration.Configuration;
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
@@ -46,6 +47,7 @@ import java.util.Objects;
 public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, JdbcEnumeratorState> {
 
     private final JdbcConnectionProvider connectionProvider;
+    private final TableMetrics metrics;
     private final String jdbcUrl;
     private final List<TableId> tables;
     private final Map<TableId, List<String>> projections;
@@ -102,6 +104,18 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
             List<TableId> tables,
             Configuration configuration,
             Map<TableId, List<String>> projections) {
+        this(connectionProvider, jdbcUrl, tables, configuration, projections, new TableMetrics());
+    }
+
+    /** Creates a reusable bounded Source with attempt-local, non-checkpointed observations. */
+    public JdbcSource(
+            JdbcConnectionProvider connectionProvider,
+            String jdbcUrl,
+            List<TableId> tables,
+            Configuration configuration,
+            Map<TableId, List<String>> projections,
+            TableMetrics metrics) {
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
         this.connectionProvider = Objects.requireNonNull(connectionProvider, "connectionProvider");
         this.jdbcUrl = Objects.requireNonNull(jdbcUrl, "jdbcUrl");
         this.tables = List.copyOf(Objects.requireNonNull(tables, "tables"));
@@ -156,7 +170,7 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
 
     @Override
     public SourceReader<TableRecord, JdbcSourceSplit> createReader(SourceReaderContext context) {
-        return new JdbcSourceReader(connectionProvider, dialect, configuration, context);
+        return new JdbcSourceReader(connectionProvider, dialect, configuration, context, metrics);
     }
 
     @Override
@@ -176,7 +190,8 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
                 new JdbcSplitPlanner(connectionProvider, dialect, configuration, projections),
                 tables,
                 fingerprint,
-                restored);
+                restored,
+                metrics);
     }
 
     private void validateOptions() {

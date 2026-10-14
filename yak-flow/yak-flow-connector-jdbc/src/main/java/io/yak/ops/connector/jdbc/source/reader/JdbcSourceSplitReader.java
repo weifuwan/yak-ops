@@ -1,6 +1,7 @@
 package io.yak.ops.connector.jdbc.source.reader;
 
 import io.yak.ops.configuration.Configuration;
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.base.source.reader.RecordsBySplits;
 import io.yak.ops.connector.base.source.reader.RecordsWithSplitIds;
 import io.yak.ops.connector.base.source.reader.splitreader.SplitReader;
@@ -46,6 +47,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
     private static final Logger LOG = LoggerFactory.getLogger(JdbcSourceSplitReader.class);
 
     private final JdbcConnectionProvider connections;
+    private final TableMetrics metrics;
     private final JdbcDialect dialect;
     private final int fetchBatchSize;
     private final int resultSetFetchSize;
@@ -72,6 +74,16 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
     }
 
     public JdbcSourceSplitReader(JdbcConnectionProvider connections, JdbcDialect dialect, Configuration configuration) {
+        this(connections, dialect, configuration, new TableMetrics());
+    }
+
+    /** Binds blocking fetch failures to their active table without retaining raw diagnostics. */
+    public JdbcSourceSplitReader(
+            JdbcConnectionProvider connections,
+            JdbcDialect dialect,
+            Configuration configuration,
+            TableMetrics metrics) {
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
         this.connections = Objects.requireNonNull(connections, "connections");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
         Objects.requireNonNull(configuration, "configuration");
@@ -103,6 +115,15 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
      */
     @Override
     public RecordsWithSplitIds<JdbcRecordAndPosition> fetch() throws Exception {
+        try {
+            return fetchRecords();
+        } catch (Exception failure) {
+            if (active != null && !cancellationRequested) metrics.readFailed(active.tableId());
+            throw failure;
+        }
+    }
+
+    private RecordsWithSplitIds<JdbcRecordAndPosition> fetchRecords() throws Exception {
         if (closed || cancellationRequested) {
             throw new IllegalStateException("JDBC split reader is closed or cancelled");
         }

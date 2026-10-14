@@ -6,7 +6,7 @@ Discussion: https://github.com/weifuwan/yak-ops/pull/1636
 
 Decision: [VOTE] Accepted — https://github.com/weifuwan/yak-ops/pull/1636#issuecomment-6160395888
 
-Implementation: Pending
+Implementation: [Unified product entry and versioned solutions — PR #1637](https://github.com/weifuwan/yak-ops/pull/1637); explicit multi-table batch implementation in progress
 
 Release: N/A until released
 

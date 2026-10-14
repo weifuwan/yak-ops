@@ -70,6 +70,13 @@ public class TaskExecutionObserver implements AutoCloseable {
         return handle == null ? OptionalInt.empty() : handle.progressPercent();
     }
 
+    /** Returns a process-owned observation only; terminal reads use the persisted Instance report. */
+    public java.util.Optional<String> executionReport(String instanceId) {
+        TaskHandle handle = active.get(instanceId);
+        if (handle == null) return java.util.Optional.empty();
+        return handle.executionReport();
+    }
+
     /** Requests cancellation for all active physical executions during process shutdown. */
     public void cancelActive() {
         active.forEach((instanceId, handle) -> {
@@ -146,7 +153,9 @@ public class TaskExecutionObserver implements AutoCloseable {
                             ticket.instanceId(),
                             metricsFailure.getClass().getSimpleName());
                 }
-                lifecycle.complete(ticket, outcome);
+                var report = handle.executionReport();
+                if (report.isPresent()) lifecycle.complete(ticket, outcome, report.get());
+                else lifecycle.complete(ticket, outcome);
                 LOG.info("Task Instance completed, instanceId={}, outcome={}", ticket.instanceId(), outcome);
             } else {
                 lifecycle.uncertain(ticket);

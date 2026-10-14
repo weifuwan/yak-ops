@@ -5,6 +5,7 @@ import java.util.List;
 /** Product identity and the supported data steps of a single-table synchronization. */
 public enum SolutionType {
     SINGLE_TABLE_OFFLINE("单表离线", "JDBC", List.of(Step.FULL), true),
+    DATABASE_OFFLINE("整库离线", "JDBC", List.of(Step.FULL), true),
     SINGLE_TABLE_REALTIME("单表实时", "MYSQL_CDC", List.of(Step.FULL, Step.INCREMENTAL), false);
 
     private final String displayName;

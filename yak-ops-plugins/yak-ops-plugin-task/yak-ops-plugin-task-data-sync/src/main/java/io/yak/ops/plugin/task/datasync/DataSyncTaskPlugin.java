@@ -12,7 +12,6 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.config.JobOptions;
 import io.yak.ops.plugin.task.datasync.config.SolutionOptions;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
@@ -101,14 +100,12 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
         JobConfig before = JobConfig.from(previous);
         JobConfig after = JobConfig.from(updated);
         if (before.solutionType() != after.solutionType()
-                || !context.dataSource(before.source().get(JobOptions.DATASOURCE_ID))
+                || !context.dataSource(before.sourceDataSourceId())
                         .type()
-                        .equals(context.dataSource(after.source().get(JobOptions.DATASOURCE_ID))
-                                .type())
-                || !context.dataSource(before.sink().get(JobOptions.DATASOURCE_ID))
+                        .equals(context.dataSource(after.sourceDataSourceId()).type())
+                || !context.dataSource(before.targetDataSourceId())
                         .type()
-                        .equals(context.dataSource(after.sink().get(JobOptions.DATASOURCE_ID))
-                                .type())) {
+                        .equals(context.dataSource(after.targetDataSourceId()).type())) {
             throw new TaskPluginException("Changing synchronization solution or datasource types requires a new task");
         }
     }
@@ -125,7 +122,7 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public boolean supportsScheduling(ReadonlyConfig parameters) {
-        String identifier = JobConfig.from(parameters).source().get(JobOptions.TYPE);
+        String identifier = JobConfig.from(parameters).solutionType().sourceIdentifier();
         return factories.source(identifier).boundedness() == Boundedness.BOUNDED;
     }
 

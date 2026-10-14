@@ -13,6 +13,17 @@ import java.util.concurrent.CompletionStage;
 public interface TaskHandle {
 
     /**
+     * Returns a plugin-owned public JSON observation of the current physical attempt.
+     * No credentials, row values, checkpoint bytes or raw exception messages may be included.
+     * The platform persists the final report atomically with the Instance outcome.
+     *
+     * @return immutable JSON snapshot up to 262144 characters, or empty when unavailable
+     */
+    default Optional<String> executionReport() {
+        return Optional.empty();
+    }
+
+    /**
      * Returns the physical Job identity, when provided by the execution engine.
      *
      * @return the known runtime identity, or empty before it is available

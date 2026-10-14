@@ -6,6 +6,7 @@ import type {
 import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
 
 import { readSyncParameters, solutionSyncType } from "./parameters.ts";
+import { readExecutionReport } from "./report.ts";
 
 export const isTaskInstanceActive = (status: TaskInstanceStatus): boolean =>
   status === "SUBMITTED" ||
@@ -42,6 +43,7 @@ export function toDataSyncInstanceRecord(
 
   return {
     id: instance.id,
+    executionReport: readExecutionReport(instance.executionReport, parameters.tableMappings.length),
     solutionType: parameters.solutionType,
     steps: parameters.steps,
     taskId: instance.definitionId,
@@ -61,6 +63,7 @@ export function toDataSyncInstanceRecord(
     errorMessage: instance.failureCode ?? undefined,
     createTime: instance.createTime ?? undefined,
     definitionSnapshot: {
+      tableMappings: parameters.tableMappings,
       solutionType: parameters.solutionType,
       steps: parameters.steps,
       taskId: instance.definitionId,

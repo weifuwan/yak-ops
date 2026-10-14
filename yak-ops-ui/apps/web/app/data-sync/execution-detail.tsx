@@ -16,6 +16,7 @@ import { isTaskInstanceActive } from "@/service/data-sync/execution";
 import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/data-sync";
 
 import { ExecutionProgressBar } from "./execution-progress-bar";
+import { TableExecutionResults } from "./table-execution-results";
 import "./execution-detail.css";
 
 export const isActiveDataSyncInstance = (record?: DataSyncInstanceRecord): boolean =>
@@ -254,15 +255,19 @@ export function DataSyncExecutionDetailContent({
       ) : null}
       <ExecutionProgressCard record={record} realtime={realtime} />
       <div className="min-w-0 pt-4">
-        <Table<TableExecutionRow>
-          columns={columns}
-          dataSource={rows}
-          rowKey="id"
-          size="small"
-          scroll={{ x: 1180 }}
-          pagination={false}
-          emptyText="暂无表级执行数据"
-        />
+        {record.solutionType === "DATABASE_OFFLINE" || record.executionReport ? (
+          <TableExecutionResults record={record} />
+        ) : (
+          <Table<TableExecutionRow>
+            columns={columns}
+            dataSource={rows}
+            rowKey="id"
+            size="small"
+            scroll={{ x: 1180 }}
+            pagination={false}
+            emptyText="暂无表级执行数据"
+          />
+        )}
       </div>
     </div>
   );

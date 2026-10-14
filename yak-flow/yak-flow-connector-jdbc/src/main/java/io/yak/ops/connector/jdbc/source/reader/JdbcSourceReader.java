@@ -1,6 +1,7 @@
 package io.yak.ops.connector.jdbc.source.reader;
 
 import io.yak.ops.configuration.Configuration;
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.base.source.reader.SingleThreadMultiplexSourceReaderBase;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
@@ -22,6 +23,8 @@ public final class JdbcSourceReader
         extends SingleThreadMultiplexSourceReaderBase<
                 JdbcRecordAndPosition, TableRecord, JdbcSourceSplit, JdbcSourceSplitState> {
 
+    private final TableMetrics metrics;
+
     public JdbcSourceReader(
             JdbcConnectionOptions connection,
             JdbcDialect dialect,
@@ -35,10 +38,21 @@ public final class JdbcSourceReader
             JdbcDialect dialect,
             Configuration configuration,
             SourceReaderContext context) {
+        this(connections, dialect, configuration, context, new TableMetrics());
+    }
+
+    /** Creates one mailbox-owned reader with shared table observations. */
+    public JdbcSourceReader(
+            JdbcConnectionProvider connections,
+            JdbcDialect dialect,
+            Configuration configuration,
+            SourceReaderContext context,
+            TableMetrics metrics) {
         super(
-                () -> new JdbcSourceSplitReader(connections, dialect, configuration),
-                new JdbcRecordEmitter(),
+                () -> new JdbcSourceSplitReader(connections, dialect, configuration, metrics),
+                new JdbcRecordEmitter(metrics),
                 Objects.requireNonNull(context, "context"));
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
     }
 
     @Override
@@ -60,6 +74,9 @@ public final class JdbcSourceReader
 
     @Override
     protected void onSplitFinished(Map<String, JdbcSourceSplitState> finished) {
+        finished.values()
+                .forEach(
+                        state -> metrics.splitFinished(state.toCheckpointSplit().tableId()));
         context.reportCompletedSplits(finished.size());
         context.sendSplitRequest();
     }

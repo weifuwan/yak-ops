@@ -49,7 +49,7 @@ public class TaskInstanceController {
 
     @GetMapping("/{id}")
     public Result<InstanceVO> detail(@PathVariable String id) {
-        return Result.success(toInstance(instances.instance(WorkspaceContext.requireWorkspaceId(), id)));
+        return Result.success(toInstance(instances.instance(WorkspaceContext.requireWorkspaceId(), id), true));
     }
 
     @GetMapping("/{id}/definition")
@@ -113,6 +113,10 @@ public class TaskInstanceController {
     }
 
     private InstanceVO toInstance(InstanceEntity value) {
+        return toInstance(value, false);
+    }
+
+    private InstanceVO toInstance(InstanceEntity value, boolean includeReport) {
         java.time.Instant scheduledTime = null;
         if (value.getScheduledTime() != null) {
             scheduledTime = value.getScheduledTime().toInstant(java.time.ZoneOffset.UTC);
@@ -124,6 +128,14 @@ public class TaskInstanceController {
             var live = observer.progressPercent(value.getId());
             if (live.isPresent()) {
                 progress = live.getAsInt();
+            }
+        }
+        String report = null;
+        if (includeReport) {
+            report = value.getExecutionReport();
+            if (!value.getStatus().isTerminal()
+                    && value.getStatus() != io.yak.ops.common.enums.task.TaskInstanceStatus.RECONCILING) {
+                report = observer.executionReport(value.getId()).orElse(report);
             }
         }
         return new InstanceVO(
@@ -143,6 +155,7 @@ public class TaskInstanceController {
                 value.getScheduleId(),
                 value.getScheduleRevision(),
                 scheduledTime,
-                progress);
+                progress,
+                report);
     }
 }

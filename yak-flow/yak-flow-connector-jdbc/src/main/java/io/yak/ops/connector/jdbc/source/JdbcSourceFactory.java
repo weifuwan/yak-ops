@@ -46,10 +46,26 @@ public final class JdbcSourceFactory implements TableSourceFactory {
 
     @Override
     public Source<TableRecord, ?, ?> createSource(TableSourceFactoryContext context) {
-        FactoryUtil.validateCreation(context.options(), this);
+        return createSource(List.of(context));
+    }
+
+    @Override
+    public Source<TableRecord, ?, ?> createSource(List<TableSourceFactoryContext> contexts) {
+        if (contexts.isEmpty()) throw new IllegalArgumentException("Source needs tables");
+        var first = contexts.getFirst();
+        for (var context : contexts) {
+            FactoryUtil.validateCreation(context.options(), this);
+            if (!context.options().equals(first.options())) {
+                throw new IllegalArgumentException("JDBC tables must share effective Source settings");
+            }
+        }
+        var connection = new JdbcConnectionOptions(first.options());
         return new JdbcSource(
-                new JdbcConnectionOptions(context.options()),
-                List.of(context.table()),
-                JdbcSourceOptions.configuration(context.options()));
+                new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connection),
+                connection.url(),
+                contexts.stream().map(TableSourceFactoryContext::table).toList(),
+                JdbcSourceOptions.configuration(first.options()),
+                java.util.Map.of(),
+                first.metrics());
     }
 }

@@ -11,7 +11,10 @@ export interface PaginationInfo {
 
 export type DataSyncType = "OFFLINE" | "REALTIME";
 
-export type DataSyncSolutionType = "SINGLE_TABLE_OFFLINE" | "SINGLE_TABLE_REALTIME";
+export type DataSyncSolutionType =
+  | "SINGLE_TABLE_OFFLINE"
+  | "SINGLE_TABLE_REALTIME"
+  | "DATABASE_OFFLINE";
 export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
 
 export interface DataSyncSolution {
@@ -41,17 +44,38 @@ export interface DataSyncTablePath {
   table: string;
 }
 
+export interface DataSyncTableMapping {
+  source: DataSyncTablePath;
+  target: DataSyncTablePath;
+  writeMode: DataSyncWriteMode;
+}
+
+export interface DataSyncTableResult {
+  mappingIndex: number;
+  step: "FULL";
+  status: "WAITING" | "RUNNING" | "FINISHED" | "FAILED" | "CANCELED";
+  progressPercent: number | null;
+  progressUnit: "SPLITS";
+  readRows: number;
+  committedRows: number;
+  plannedSplits: number | null;
+  completedSplits: number;
+  failureCode: string | null;
+}
+
+export interface DataSyncExecutionReport {
+  version: 1;
+  observedAt: string;
+  tables: DataSyncTableResult[];
+}
+
 export interface DataSyncParameters {
   solutionType: DataSyncSolutionType;
   steps: DataSyncStep[];
   source: { datasourceId: string };
   sink: { datasourceId: string };
   tableSelection: { mode: "EXPLICIT" };
-  tableMappings: Array<{
-    source: DataSyncTablePath;
-    target: DataSyncTablePath;
-    writeMode: DataSyncWriteMode;
-  }>;
+  tableMappings: DataSyncTableMapping[];
 }
 
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";
@@ -95,6 +119,7 @@ export interface DataSyncMappingConfig {
 
 export interface DataSyncTaskRecord {
   id: string;
+  tableMappings: DataSyncTableMapping[];
   solutionType: DataSyncSolutionType;
   steps: DataSyncStep[];
   name: string;
@@ -172,6 +197,7 @@ interface DataSyncTaskSaveBase {
 }
 
 export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
+  tableMappings?: DataSyncTableMapping[];
   solutionType: DataSyncSolutionType;
   steps: DataSyncStep[];
   writeMode: DataSyncWriteMode;
@@ -221,6 +247,7 @@ export interface DataSyncOfflineRuntimePlan {
 }
 
 export interface DataSyncDefinitionSnapshot {
+  tableMappings?: DataSyncTableMapping[];
   taskId: string;
   solutionType?: DataSyncSolutionType;
   steps?: DataSyncStep[];
@@ -239,6 +266,7 @@ export interface DataSyncDefinitionSnapshot {
 }
 
 export interface DataSyncInstanceRecord {
+  executionReport?: DataSyncExecutionReport;
   id: string;
   solutionType: DataSyncSolutionType;
   steps: DataSyncStep[];

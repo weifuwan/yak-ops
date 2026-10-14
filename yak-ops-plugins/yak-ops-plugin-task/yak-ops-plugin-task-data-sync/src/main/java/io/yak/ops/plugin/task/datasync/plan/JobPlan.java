@@ -3,36 +3,50 @@ package io.yak.ops.plugin.task.datasync.plan;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import java.util.List;
 import java.util.Objects;
 
-/**
- * Immutable DATA_SYNC plan containing pinned endpoint parameters, resolved table metadata and
- * admitted resource claims.
- *
- * <p>This value contains no connection credentials, physical Connector instances or running
- * execution handles. Runtime connections are resolved only after admission.
- *
- * @param sourceParameters selected Source definition
- * @param sinkParameters selected Sink definition
- * @param source authorized Source table and logical schema
- * @param target authorized target table and logical schema
- * @param admissionPlan exclusive target claim and resource binding fingerprint
- * @param sourceOptions non-secret Source operation and prepared replication settings
- */
-public record JobPlan(
-        ReadonlyConfig sourceParameters,
-        ReadonlyConfig sinkParameters,
-        DataSourceTable source,
-        DataSourceTable target,
-        TaskAdmissionPlan admissionPlan,
-        ReadonlyConfig sourceOptions) {
-
+/** Complete immutable table plan and atomic resource admission for one physical Job. */
+public record JobPlan(List<TablePlan> tables, TaskAdmissionPlan admissionPlan) {
     public JobPlan {
-        Objects.requireNonNull(sourceParameters, "sourceParameters");
-        Objects.requireNonNull(sinkParameters, "sinkParameters");
-        Objects.requireNonNull(source, "source");
-        Objects.requireNonNull(target, "target");
+        tables = List.copyOf(tables);
+        if (tables.isEmpty()) throw new IllegalArgumentException("Job needs table mappings");
         Objects.requireNonNull(admissionPlan, "admissionPlan");
-        Objects.requireNonNull(sourceOptions, "sourceOptions");
+    }
+
+    /** Constructs a single-table plan using the same collection-based execution contract. */
+    public JobPlan(
+            ReadonlyConfig sourceParameters,
+            ReadonlyConfig sinkParameters,
+            DataSourceTable source,
+            DataSourceTable target,
+            TaskAdmissionPlan admissionPlan,
+            ReadonlyConfig sourceOptions) {
+        this(List.of(new TablePlan(sourceParameters, sinkParameters, source, target, sourceOptions)), admissionPlan);
+    }
+
+    private TablePlan single() {
+        if (tables.size() != 1) throw new IllegalStateException("Job has multiple table mappings");
+        return tables.getFirst();
+    }
+
+    public ReadonlyConfig sourceParameters() {
+        return single().sourceParameters();
+    }
+
+    public ReadonlyConfig sinkParameters() {
+        return single().sinkParameters();
+    }
+
+    public DataSourceTable source() {
+        return single().source();
+    }
+
+    public DataSourceTable target() {
+        return single().target();
+    }
+
+    public ReadonlyConfig sourceOptions() {
+        return single().sourceOptions();
     }
 }

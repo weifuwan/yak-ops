@@ -23,6 +23,7 @@ interface DataSyncSearchableSelectProps {
   value: string | null;
   options: DataSyncSearchableSelectOption[];
   placeholder: string;
+  ariaLabel?: string;
   searchPlaceholder?: string;
   emptyText?: string;
   disabled?: boolean;
@@ -36,6 +37,7 @@ export function DataSyncSearchableSelect({
   value,
   options,
   placeholder,
+  ariaLabel,
   searchPlaceholder = "请输入关键字",
   emptyText = "暂无选项",
   disabled = false,
@@ -74,7 +76,7 @@ export function DataSyncSearchableSelect({
         if (nextValue) onValueChange(String(nextValue));
       }}
     >
-      <SelectTrigger variant="outlined">
+      <SelectTrigger variant="outlined" aria-label={ariaLabel}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent

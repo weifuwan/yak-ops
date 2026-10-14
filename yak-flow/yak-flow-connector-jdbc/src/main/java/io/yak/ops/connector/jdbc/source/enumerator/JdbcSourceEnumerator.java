@@ -1,5 +1,6 @@
 package io.yak.ops.connector.jdbc.source.enumerator;
 
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
@@ -25,6 +26,7 @@ public final class JdbcSourceEnumerator implements SplitEnumerator<JdbcSourceSpl
 
     private final SplitEnumeratorContext<JdbcSourceSplit> context;
     private final JdbcSplitPlanner planner;
+    private final TableMetrics metrics;
     private final List<TableId> tables;
     private final String fingerprint;
     private final Deque<JdbcSourceSplit> pending;
@@ -42,6 +44,18 @@ public final class JdbcSourceEnumerator implements SplitEnumerator<JdbcSourceSpl
             List<TableId> tables,
             String fingerprint,
             JdbcEnumeratorState restored) {
+        this(context, planner, tables, fingerprint, restored, new TableMetrics());
+    }
+
+    /** Creates per-table split planning with an attempt-local progress collector. */
+    public JdbcSourceEnumerator(
+            SplitEnumeratorContext<JdbcSourceSplit> context,
+            JdbcSplitPlanner planner,
+            List<TableId> tables,
+            String fingerprint,
+            JdbcEnumeratorState restored,
+            TableMetrics metrics) {
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
         this.context = Objects.requireNonNull(context, "context");
         this.planner = Objects.requireNonNull(planner, "planner");
         this.tables = List.copyOf(Objects.requireNonNull(tables, "tables"));
@@ -146,6 +160,7 @@ public final class JdbcSourceEnumerator implements SplitEnumerator<JdbcSourceSpl
                 return;
             }
             if (failure != null) {
+                metrics.readFailed(table);
                 throw new IllegalStateException("JDBC table split planning failed", failure);
             }
             if (index != nextTableIndex) {
@@ -153,6 +168,7 @@ public final class JdbcSourceEnumerator implements SplitEnumerator<JdbcSourceSpl
             }
             context.reportPlannedSplits(
                     Objects.requireNonNull(planned, "planned splits").size());
+            metrics.planned(table, planned.size());
             pending.addAll(planned);
             nextTableIndex++;
             drainRequests();

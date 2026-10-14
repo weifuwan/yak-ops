@@ -5,6 +5,7 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.base.factory.TableSinkFactoryContext;
 import io.yak.ops.connector.base.factory.TableSourceFactoryContext;
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.data.TableRecord;
@@ -16,13 +17,16 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.datasync.config.ExecutionConfigurationFactory;
 import io.yak.ops.plugin.task.datasync.config.JobOptions;
+import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress;
 import io.yak.ops.plugin.task.datasync.plan.JobPlan;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Compiles an authorized JobPlan to a physical single-table YakFlow pipeline. */
+/** Compiles all admitted table routes into one physical YakFlow pipeline. */
 public final class PipelineBuilder {
 
     private final DataSourceLookupService resources;
@@ -89,8 +93,9 @@ public final class PipelineBuilder {
     public CompiledPipeline build(JobPlan plan, TaskExecutionIdentity identity, boolean debug) {
         Objects.requireNonNull(plan, "plan");
         Objects.requireNonNull(identity, "identity");
-        var sourceFactory = factories.source(plan.sourceParameters().get(JobOptions.TYPE));
-        var sinkFactory = factories.sink(plan.sinkParameters().get(JobOptions.TYPE));
+        var first = plan.tables().getFirst();
+        var sourceFactory = factories.source(first.sourceParameters().get(JobOptions.TYPE));
+        var sinkFactory = factories.sink(first.sinkParameters().get(JobOptions.TYPE));
         int sourceParallelism = options.get(JobOptions.SOURCE_PARALLELISM);
         int sinkParallelism = options.get(JobOptions.SINK_PARALLELISM);
         if (sourceFactory.producesChangelog() && sinkParallelism != 1) {
@@ -98,30 +103,39 @@ public final class PipelineBuilder {
                     "DATA_SYNC changelog requires a single Sink writer until keyed routing is configured");
         }
         Configuration configuration = configurationFactory.create(identity, sourceFactory.boundedness(), debug);
-        String sourceId = plan.sourceParameters().get(JobOptions.DATASOURCE_ID);
-        String sinkId = plan.sinkParameters().get(JobOptions.DATASOURCE_ID);
+        String sourceId = first.sourceParameters().get(JobOptions.DATASOURCE_ID);
+        String sinkId = first.sinkParameters().get(JobOptions.DATASOURCE_ID);
         ReadonlyConfig sourceConnection = resources.connectionOptions(
-                identity.workspaceId(), sourceId, plan.source().revision());
+                identity.workspaceId(), sourceId, first.source().revision());
         ReadonlyConfig targetConnection = resources.connectionOptions(
-                identity.workspaceId(), sinkId, plan.target().revision());
-        ReadonlyConfig sourceOptions = creationOptions(
-                sourceConnectorOptions, sourceFactory.factoryIdentifier(), plan.sourceOptions(), sourceConnection);
-        ReadonlyConfig sinkOptions = creationOptions(
-                sinkConnectorOptions,
-                sinkFactory.factoryIdentifier(),
-                JobOptions.connectorOptions(plan.sinkParameters()),
-                targetConnection);
-        Source<TableRecord, ?, ?> source = sourceFactory.createSource(new TableSourceFactoryContext(
-                sourceOptions, plan.source().table(), plan.source().schema()));
+                identity.workspaceId(), sinkId, first.target().revision());
+        TableMetrics metrics = new TableMetrics();
+        List<TableSourceFactoryContext> sourceContexts = new ArrayList<>();
+        List<TableSinkFactoryContext> sinkContexts = new ArrayList<>();
+        for (var table : plan.tables()) {
+            metrics.register(table.source().table());
+            ReadonlyConfig sourceOptions = creationOptions(
+                    sourceConnectorOptions, sourceFactory.factoryIdentifier(), table.sourceOptions(), sourceConnection);
+            ReadonlyConfig sinkOptions = creationOptions(
+                    sinkConnectorOptions,
+                    sinkFactory.factoryIdentifier(),
+                    JobOptions.connectorOptions(table.sinkParameters()),
+                    targetConnection);
+            sourceContexts.add(new TableSourceFactoryContext(
+                    sourceOptions, table.source().table(), table.source().schema(), metrics));
+            sinkContexts.add(new TableSinkFactoryContext(
+                    sinkOptions,
+                    table.source().table(),
+                    table.source().schema(),
+                    table.target().table(),
+                    table.target().schema(),
+                    metrics));
+        }
+        Source<TableRecord, ?, ?> source = sourceFactory.createSource(sourceContexts);
         if (source.getBoundedness() != sourceFactory.boundedness()) {
             throw new IllegalStateException("DATA_SYNC Source boundedness differs from its Factory contract");
         }
-        Sink<TableRecord> sink = sinkFactory.createSink(new TableSinkFactoryContext(
-                sinkOptions,
-                plan.source().table(),
-                plan.source().schema(),
-                plan.target().table(),
-                plan.target().schema()));
+        Sink<TableRecord> sink = sinkFactory.createSink(sinkContexts);
         SourceTransformation<TableRecord> input =
                 new SourceTransformation<>("data-sync-source", source, TableRecord.class, sourceParallelism);
         SinkTransformation<TableRecord> output =
@@ -129,7 +143,11 @@ public final class PipelineBuilder {
         input.setUid("data-sync-source-" + identity.definitionId());
         output.setUid("data-sync-sink-" + identity.definitionId());
         StreamGraph graph = new StreamGraphGenerator(output, configuration).generate();
-        return new CompiledPipeline(graph, configuration);
+        TableExecutionProgress progress = null;
+        if (source.getBoundedness() == io.yak.ops.core.api.connector.source.Boundedness.BOUNDED) {
+            progress = new TableExecutionProgress(plan.tables(), metrics);
+        }
+        return new CompiledPipeline(graph, configuration, progress);
     }
 
     private static ReadonlyConfig creationOptions(

@@ -301,4 +301,21 @@ public class InstanceRepositoryImpl implements InstanceRepository {
                                 .setSql("state_version = state_version + 1"))
                 == 1;
     }
+
+    @Override
+    public boolean updateExecutionReport(String workspaceId, String instanceId, String dispatchToken, String report) {
+        return mapper.update(
+                        null,
+                        Wrappers.<InstanceEntity>lambdaUpdate()
+                                .eq(InstanceEntity::getWorkspaceId, workspaceId)
+                                .eq(InstanceEntity::getId, instanceId)
+                                .eq(InstanceEntity::getDispatchToken, dispatchToken)
+                                .in(
+                                        InstanceEntity::getStatus,
+                                        TaskInstanceStatus.LAUNCHING,
+                                        TaskInstanceStatus.RUNNING,
+                                        TaskInstanceStatus.CANCELLING)
+                                .set(InstanceEntity::getExecutionReport, report))
+                == 1;
+    }
 }

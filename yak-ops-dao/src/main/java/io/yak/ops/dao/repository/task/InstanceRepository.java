@@ -171,4 +171,15 @@ public interface InstanceRepository {
      * @return true if reconciliation was recorded
      */
     boolean markReconciling(String workspaceId, String instanceId, String dispatchToken);
+
+    /**
+     * Persists a bounded plugin report under the active dispatch owner, in the caller's terminal transaction.
+     *
+     * @param workspaceId owning Workspace
+     * @param instanceId active execution identity
+     * @param dispatchToken winning physical dispatch token
+     * @param report public JSON report without secrets or checkpoint state
+     * @return true when the owner and active status still match
+     */
+    boolean updateExecutionReport(String workspaceId, String instanceId, String dispatchToken, String report);
 }

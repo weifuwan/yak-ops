@@ -12,10 +12,12 @@ export function ExecutionProgressBar({
   status,
   percent,
   realtime,
+  ariaLabel,
 }: {
   status?: DataSyncInstanceStatus;
   percent?: number | null;
   realtime: boolean;
+  ariaLabel?: string;
 }) {
   const progress = status
     ? getExecutionProgress(status, percent, realtime)
@@ -37,7 +39,7 @@ export function ExecutionProgressBar({
   if (status === "FAILED" && (percent === null || percent === undefined)) {
     progressText += "（未取得进度数据）";
   }
-  const label = realtime ? "实时同步" : "离线同步";
+  const label = ariaLabel || (realtime ? "实时同步" : "离线同步");
 
   return (
     <div

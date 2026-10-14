@@ -15,16 +15,23 @@ import java.util.Objects;
 /** Immutable task parameters and their executable single-table Connector projection. */
 public final class JobConfig {
     private final ReadonlyConfig parameters;
-    private final ReadonlyConfig source;
-    private final ReadonlyConfig sink;
     private final SolutionType solutionType;
+    private final List<TableConfig> tables;
+
+    /** Maximum explicit mappings admitted by one product task. */
+    public static final int MAX_TABLES = 100;
 
     private JobConfig(
             ReadonlyConfig parameters, ReadonlyConfig source, ReadonlyConfig sink, SolutionType solutionType) {
         this.parameters = parameters;
-        this.source = source;
-        this.sink = sink;
         this.solutionType = solutionType;
+        this.tables = List.of(new TableConfig(source, sink));
+    }
+
+    private JobConfig(ReadonlyConfig parameters, List<TableConfig> tables, SolutionType type) {
+        this.parameters = parameters;
+        this.tables = List.copyOf(tables);
+        this.solutionType = type;
     }
 
     /** Reads validated product or stored version-two parameters without changing their persisted format. */
@@ -54,34 +61,67 @@ public final class JobConfig {
             throw new IllegalArgumentException("Only explicit table selection is supported");
         }
         List<Object> mappings = parameters.get(SolutionOptions.TABLE_MAPPINGS);
-        if (mappings.size() != 1 || !(mappings.getFirst() instanceof Map<?, ?> mapping)) {
-            throw new IllegalArgumentException("Single-table synchronization requires exactly one table mapping");
+        if (mappings.isEmpty()
+                || mappings.size() > MAX_TABLES
+                || (type != SolutionType.DATABASE_OFFLINE && mappings.size() != 1)) {
+            throw new IllegalArgumentException("Unsupported explicit table mapping count");
         }
-        Map<String, Object> values = new LinkedHashMap<>();
-        for (var entry : mapping.entrySet()) {
-            if (!(entry.getKey() instanceof String key)) {
-                throw new IllegalArgumentException("Table mapping property must be a string");
+        List<TableConfig> tables = new java.util.ArrayList<>();
+        java.util.Set<List<String>> sources = new HashSet<>();
+        java.util.Set<List<String>> targets = new HashSet<>();
+        for (Object entryValue : mappings) {
+            if (!(entryValue instanceof Map<?, ?> mapping)) {
+                throw new IllegalArgumentException("Table mapping must be an object");
             }
-            values.put(key, entry.getValue());
+            Map<String, Object> values = new LinkedHashMap<>();
+            for (var entry : mapping.entrySet()) {
+                if (!(entry.getKey() instanceof String key)) {
+                    throw new IllegalArgumentException("Table mapping property must be a string");
+                }
+                values.put(key, entry.getValue());
+            }
+            ReadonlyConfig table = ReadonlyConfig.fromMap(values);
+            validate(table, SolutionOptions.TABLE_MAPPING_RULE, "tableMappings");
+            ReadonlyConfig sourceTable = ReadonlyConfig.fromMap(table.get(JobOptions.SOURCE));
+            ReadonlyConfig targetTable = ReadonlyConfig.fromMap(table.get(SolutionOptions.TARGET));
+            validate(sourceTable, SolutionOptions.TABLE_RULE, "tableMappings.source");
+            validate(targetTable, SolutionOptions.TABLE_RULE, "tableMappings.target");
+            requireEmptyTransforms(parameters);
+            Map<String, Object> input = new LinkedHashMap<>(sourceTable.getSourceMap());
+            input.put("datasourceId", from.get(JobOptions.DATASOURCE_ID));
+            input.put("type", type.sourceIdentifier());
+            Map<String, Object> output = new LinkedHashMap<>(targetTable.getSourceMap());
+            output.put("datasourceId", to.get(JobOptions.DATASOURCE_ID));
+            output.put("type", "JDBC");
+            output.put("writeMode", table.get(JdbcSinkOptions.WRITE_MODE).name());
+            if (!sources.add(tableKey(sourceTable)) || !targets.add(tableKey(targetTable))) {
+                throw new IllegalArgumentException("Source and target tables must be unique");
+            }
+            tables.add(new TableConfig(ReadonlyConfig.fromMap(input), ReadonlyConfig.fromMap(output)));
         }
-        ReadonlyConfig table = ReadonlyConfig.fromMap(values);
-        validate(table, SolutionOptions.TABLE_MAPPING_RULE, "tableMappings");
-        ReadonlyConfig sourceTable = ReadonlyConfig.fromMap(table.get(JobOptions.SOURCE));
-        ReadonlyConfig targetTable = ReadonlyConfig.fromMap(table.get(SolutionOptions.TARGET));
-        validate(sourceTable, SolutionOptions.TABLE_RULE, "tableMappings.source");
-        validate(targetTable, SolutionOptions.TABLE_RULE, "tableMappings.target");
-        requireEmptyTransforms(parameters);
-        Map<String, Object> input = new LinkedHashMap<>(sourceTable.getSourceMap());
-        input.put("datasourceId", from.get(JobOptions.DATASOURCE_ID));
-        input.put("type", type.sourceIdentifier());
-        Map<String, Object> output = new LinkedHashMap<>(targetTable.getSourceMap());
-        output.put("datasourceId", to.get(JobOptions.DATASOURCE_ID));
-        output.put("type", "JDBC");
-        output.put("writeMode", table.get(JdbcSinkOptions.WRITE_MODE).name());
         Map<String, Object> canonical = new LinkedHashMap<>(parameters.getSourceMap());
         canonical.put("steps", expected);
-        return new JobConfig(
-                ReadonlyConfig.fromMap(canonical), ReadonlyConfig.fromMap(input), ReadonlyConfig.fromMap(output), type);
+        return new JobConfig(ReadonlyConfig.fromMap(canonical), tables, type);
+    }
+
+    private static List<String> tableKey(ReadonlyConfig table) {
+        return java.util.Arrays.asList(
+                table.get(JobOptions.DATABASE), table.get(JobOptions.SCHEMA), table.get(JobOptions.TABLE));
+    }
+
+    /** Returns the complete immutable explicit table mapping collection. */
+    public List<TableConfig> tables() {
+        return tables;
+    }
+
+    /** Returns the shared source connection identity, independent of table cardinality. */
+    public String sourceDataSourceId() {
+        return tables.getFirst().source().get(JobOptions.DATASOURCE_ID);
+    }
+
+    /** Returns the shared destination connection identity. */
+    public String targetDataSourceId() {
+        return tables.getFirst().sink().get(JobOptions.DATASOURCE_ID);
     }
 
     private static JobConfig pipeline(ReadonlyConfig parameters) {
@@ -123,11 +163,13 @@ public final class JobConfig {
     }
 
     public ReadonlyConfig source() {
-        return source;
+        if (tables.size() != 1) throw new IllegalStateException("Use explicit table mappings for a multi-table task");
+        return tables.getFirst().source();
     }
 
     public ReadonlyConfig sink() {
-        return sink;
+        if (tables.size() != 1) throw new IllegalStateException("Use explicit table mappings for a multi-table task");
+        return tables.getFirst().sink();
     }
 
     public SolutionType solutionType() {

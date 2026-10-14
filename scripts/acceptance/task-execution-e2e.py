@@ -456,9 +456,9 @@ def acceptance():
             "POSTGRE_SQL", "ods", "yak", 5432)
 
         choices = client.call("GET", "/api/v1/data-sync/solutions?sourceType=MYSQL&targetType=POSTGRE_SQL")
-        assert [choice["solutionType"] for choice in choices] == ["SINGLE_TABLE_OFFLINE", "SINGLE_TABLE_REALTIME"]
+        assert [choice["solutionType"] for choice in choices] == ["SINGLE_TABLE_OFFLINE", "SINGLE_TABLE_REALTIME", "DATABASE_OFFLINE"]
         assert choices[1]["defaultSteps"] == ["FULL", "INCREMENTAL"]
-        assert len(client.call("GET", "/api/v1/data-sync/solutions?sourceType=POSTGRE_SQL&targetType=MYSQL")) == 1
+        assert len(client.call("GET", "/api/v1/data-sync/solutions?sourceType=POSTGRE_SQL&targetType=MYSQL")) == 2
         client.call("GET", "/api/v1/data-sync/solutions?sourceType=JDBC&targetType=MYSQL", status=400)
         jdbc = create_task(client, "jdbc-" + uuid.uuid4().hex[:8],
                            source, target, False, debug=True)
@@ -547,6 +547,8 @@ def acceptance():
             "status": "RUNNING"})
         assert excluded["pagination"]["total"] == 0
 
+        from multitable_batch import verify_multitable_batch, verify_multitable_conflict
+        batch_evidence = verify_multitable_batch(globals(), client, source, target)
         verify_parameter_versions(client, source, target, jdbc)
         verify_periodic_jdbc(client, source, target)
         if os.environ.get("E2E_BROWSER") == "true":
@@ -582,6 +584,7 @@ def acceptance():
         running = continuous["instanceId"]
         wait_status(client, running, {"RUNNING"})
         assert claim_count(running) == 2
+        verify_multitable_conflict(globals(), client, source, target)
         verify_busy_schedule(client, source, target)
         assert client.call("GET", f"/api/v1/task-instances/{running}")["debug"] is False
         live_metrics = client.call(
@@ -639,6 +642,7 @@ def acceptance():
         assert uncertain["failureCode"] == "EXECUTION_OWNER_UNCERTAIN"
         assert "YakFlow Job started" in client.call(
             "GET", f"/api/v1/task-instances/{interrupted_id}/logs?limit=200")["content"]
+        assert client.call("GET", f"/api/v1/task-instances/{batch_evidence[0]}")["executionReport"] == batch_evidence[1]
         print(
             "PRODUCT E2E PASS: JDBC, CDC, idempotency, resource exclusion, "
             "cancellation and restart reconciliation")

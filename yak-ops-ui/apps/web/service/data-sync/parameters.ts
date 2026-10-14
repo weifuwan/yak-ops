@@ -5,7 +5,7 @@ import type {
   SyncPipelineParameters,
 } from "./types";
 
-const SOLUTIONS = new Set(["SINGLE_TABLE_OFFLINE", "SINGLE_TABLE_REALTIME"]);
+const SOLUTIONS = new Set(["SINGLE_TABLE_OFFLINE", "SINGLE_TABLE_REALTIME", "DATABASE_OFFLINE"]);
 const WRITES = new Set(["APPEND", "UPSERT"]);
 
 export const solutionSyncType = (type: DataSyncSolutionType) =>
@@ -69,20 +69,38 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
     expected.some((step) => !value.steps.includes(step)) ||
     value.tableSelection?.mode !== "EXPLICIT" ||
     !Array.isArray(value.tableMappings) ||
-    value.tableMappings.length !== 1 ||
+    value.tableMappings.length < 1 ||
+    value.tableMappings.length > 100 ||
+    (value.solutionType !== "DATABASE_OFFLINE" && value.tableMappings.length !== 1) ||
     !value.source?.datasourceId ||
     !value.sink?.datasourceId
   ) {
     throw new Error("不支持的同步方案或表映射");
   }
-  const mapping = value.tableMappings[0];
-  if (
-    !mapping?.source?.table ||
-    !mapping.target?.table ||
-    !WRITES.has(mapping.writeMode) ||
-    (value.solutionType === "SINGLE_TABLE_REALTIME" && mapping.writeMode !== "UPSERT")
-  ) {
-    throw new Error("不支持的同步目标写入配置");
+  const sources = new Set<string>();
+  const targets = new Set<string>();
+  for (const mapping of value.tableMappings) {
+    if (
+      !mapping?.source?.table ||
+      !mapping.target?.table ||
+      !WRITES.has(mapping.writeMode) ||
+      (value.solutionType === "SINGLE_TABLE_REALTIME" && mapping.writeMode !== "UPSERT")
+    ) {
+      throw new Error("不支持的同步目标写入配置");
+    }
+    const sourceKey = JSON.stringify([
+      mapping.source.database || "",
+      mapping.source.schema || "",
+      mapping.source.table,
+    ]);
+    const targetKey = JSON.stringify([
+      mapping.target.database || "",
+      mapping.target.schema || "",
+      mapping.target.table,
+    ]);
+    if (sources.has(sourceKey) || targets.has(targetKey)) throw new Error("来源表和去向表不能重复");
+    sources.add(sourceKey);
+    targets.add(targetKey);
   }
   return value;
 }

@@ -30,6 +30,7 @@ public final class SolutionCatalog {
         if ("MYSQL".equals(sourceType)) {
             choices.add(solution(SolutionType.SINGLE_TABLE_REALTIME));
         }
+        choices.add(solution(SolutionType.DATABASE_OFFLINE));
         return List.copyOf(choices);
     }
 
@@ -59,7 +60,7 @@ public final class SolutionCatalog {
     private Solution solution(SolutionType type) {
         factories.source(type.sourceIdentifier());
         List<String> writes = List.of("UPSERT");
-        if (type == SolutionType.SINGLE_TABLE_OFFLINE) {
+        if (type.supportsScheduling()) {
             writes = List.of("APPEND", "UPSERT");
         }
         return new Solution(

@@ -60,21 +60,37 @@ public final class JdbcSinkFactory implements TableSinkFactory {
 
     @Override
     public Sink<TableRecord> createSink(TableSinkFactoryContext context) {
-        FactoryUtil.validateCreation(context.options(), this);
-        JdbcConnectionOptions connection = new JdbcConnectionOptions(context.options());
-        JdbcWriteMode mode = context.options().get(JdbcSinkOptions.WRITE_MODE);
-        validate(context.options(), false);
-        JdbcTableWritePlan plan = new JdbcTableWritePlan(
-                context.sourceTable(),
-                context.targetTable(),
-                context.targetSchema(),
-                mode,
-                context.sourceSchema(),
-                Map.of());
+        return createSink(List.of(context));
+    }
+
+    @Override
+    public Sink<TableRecord> createSink(List<TableSinkFactoryContext> contexts) {
+        if (contexts.isEmpty()) throw new IllegalArgumentException("Sink needs table routes");
+        var first = contexts.getFirst();
+        JdbcConnectionOptions connection = new JdbcConnectionOptions(first.options());
+        List<JdbcTableWritePlan> plans = new java.util.ArrayList<>();
+        var common = new java.util.LinkedHashMap<>(first.options().getSourceMap());
+        common.remove(JdbcSinkOptions.WRITE_MODE.key());
+        for (var context : contexts) {
+            FactoryUtil.validateCreation(context.options(), this);
+            var configured = new java.util.LinkedHashMap<>(context.options().getSourceMap());
+            configured.remove(JdbcSinkOptions.WRITE_MODE.key());
+            if (!common.equals(configured))
+                throw new IllegalArgumentException("JDBC routes must share connection settings");
+            validate(context.options(), false);
+            plans.add(new JdbcTableWritePlan(
+                    context.sourceTable(),
+                    context.targetTable(),
+                    context.targetSchema(),
+                    context.options().get(JdbcSinkOptions.WRITE_MODE),
+                    context.sourceSchema(),
+                    Map.of()));
+        }
         return JdbcSink.builder()
                 .withConnectionProvider(new DefaultJdbcConnectionProvider(connection))
                 .withDialect(JdbcFactoryLoader.loadDialect(connection.url()))
-                .withTablePlans(List.of(plan))
+                .withTablePlans(plans)
+                .withTableMetrics(first.metrics())
                 .build();
     }
 }

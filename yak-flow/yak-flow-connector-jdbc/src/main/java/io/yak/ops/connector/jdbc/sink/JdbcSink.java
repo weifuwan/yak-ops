@@ -1,5 +1,6 @@
 package io.yak.ops.connector.jdbc.sink;
 
+import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.base.sink.writer.BatchFlushPolicy;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
@@ -30,6 +31,7 @@ public final class JdbcSink implements Sink<TableRecord> {
     private final JdbcDialect dialect;
     private final List<JdbcTableWritePlan> plans;
     private final BatchFlushPolicy batchPolicy;
+    private final TableMetrics metrics;
 
     public JdbcSink(
             JdbcConnectionProvider connections,
@@ -55,6 +57,17 @@ public final class JdbcSink implements Sink<TableRecord> {
             JdbcDialect dialect,
             List<JdbcTableWritePlan> plans,
             BatchFlushPolicy batchPolicy) {
+        this(connections, dialect, plans, batchPolicy, new TableMetrics());
+    }
+
+    /** Creates routes whose measurements count only acknowledged transaction commits. */
+    public JdbcSink(
+            JdbcConnectionProvider connections,
+            JdbcDialect dialect,
+            List<JdbcTableWritePlan> plans,
+            BatchFlushPolicy batchPolicy,
+            TableMetrics metrics) {
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
         this.connections = Objects.requireNonNull(connections, "connections");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
         this.plans = List.copyOf(Objects.requireNonNull(plans, "plans"));
@@ -89,7 +102,7 @@ public final class JdbcSink implements Sink<TableRecord> {
     @Override
     public JdbcWriter createWriter(WriterInitContext context) throws Exception {
         Objects.requireNonNull(context, "context");
-        JdbcOutputFormat output = new JdbcOutputFormat(connections, dialect, plans);
+        JdbcOutputFormat output = new JdbcOutputFormat(connections, dialect, plans, metrics);
         try {
             return new JdbcWriter(output, batchPolicy, context);
         } catch (RuntimeException | Error failure) {

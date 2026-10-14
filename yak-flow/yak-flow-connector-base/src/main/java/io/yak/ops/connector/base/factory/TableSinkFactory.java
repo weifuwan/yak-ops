@@ -17,4 +17,15 @@ public interface TableSinkFactory extends Factory {
 
     /** Constructs one reusable Sink definition without starting a writer. */
     Sink<TableRecord> createSink(TableSinkFactoryContext context);
+
+    /**
+     * Constructs one physical Sink for a nonempty ordered collection of resolved tables.
+     *
+     * @param contexts effective connection and table inputs for the shared execution
+     * @return reusable Sink definition; unsupported multi-table factories reject the request
+     */
+    default Sink<TableRecord> createSink(java.util.List<TableSinkFactoryContext> contexts) {
+        if (contexts.size() != 1) throw new UnsupportedOperationException("Factory does not support multiple tables");
+        return createSink(contexts.getFirst());
+    }
 }

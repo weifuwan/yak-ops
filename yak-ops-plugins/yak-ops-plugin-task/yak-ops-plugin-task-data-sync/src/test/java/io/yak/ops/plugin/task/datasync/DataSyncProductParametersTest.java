@@ -39,14 +39,14 @@ class DataSyncProductParametersTest {
     @Test
     void onlyTheTwoCurrentDirectedSolutionsAreAdvertisedWithLegalDefaults() {
         var mysql = plugin.solutions("MYSQL", "POSTGRE_SQL");
-        assertEquals(List.of(SolutionType.SINGLE_TABLE_OFFLINE, SolutionType.SINGLE_TABLE_REALTIME),
+        assertEquals(List.of(SolutionType.SINGLE_TABLE_OFFLINE, SolutionType.SINGLE_TABLE_REALTIME, SolutionType.DATABASE_OFFLINE),
                 mysql.stream().map(value -> value.solutionType()).toList());
         assertEquals(List.of(Step.FULL, Step.INCREMENTAL), mysql.get(1).defaultSteps());
         assertEquals(List.of("UPSERT"), mysql.get(1).allowedCombinations().getFirst().writeModes());
         assertFalse(mysql.get(1).allowedCombinations().getFirst().supportsScheduling());
-        assertEquals(List.of(SolutionType.SINGLE_TABLE_OFFLINE), plugin.solutions("POSTGRE_SQL", "MYSQL")
+        assertEquals(List.of(SolutionType.SINGLE_TABLE_OFFLINE, SolutionType.DATABASE_OFFLINE), plugin.solutions("POSTGRE_SQL", "MYSQL")
                 .stream().map(value -> value.solutionType()).toList());
-        assertEquals(1, plugin.solutions("ORACLE", "ORACLE").size());
+        assertEquals(2, plugin.solutions("ORACLE", "ORACLE").size());
         assertThrows(IllegalArgumentException.class, () -> plugin.solutions("JDBC", "MYSQL"));
         assertThrows(IllegalArgumentException.class, () -> plugin.solutions("MYSQL", ""));
         assertThrows(UnsupportedOperationException.class, () -> mysql.clear());

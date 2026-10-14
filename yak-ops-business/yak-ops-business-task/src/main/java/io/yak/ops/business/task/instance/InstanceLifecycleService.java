@@ -68,4 +68,13 @@ public interface InstanceLifecycleService {
 
     /** @param currentOwner current embedded JVM incarnation that has obtained the OS process lock */
     void reconcilePrevious(String currentOwner);
+
+    /**
+     * Atomically stores the final public plugin report, terminal outcome and release of owned claims.
+     *
+     * @param ticket winning physical execution ownership
+     * @param outcome authoritative physical terminal outcome
+     * @param executionReport plugin-owned JSON observation, or null when unavailable
+     */
+    void complete(DispatchTicket ticket, TaskOutcome outcome, String executionReport);
 }

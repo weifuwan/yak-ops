@@ -60,6 +60,8 @@ public class InstanceEntity extends BaseEntity {
     private LocalDateTime endTime;
     /** Last sampled bounded-source progress (0-99), persisted before terminal outcome. */
     private Integer progressPercent;
+    /** Plugin-owned public JSON report, fixed with the terminal outcome; null when not observed. */
+    private String executionReport;
     /** Safe failure category without credentials, absent while healthy. */
     private String failureCode;
 }

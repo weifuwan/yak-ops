@@ -52,7 +52,7 @@ public final class DataSyncTaskExecutor {
 
         try {
             return executor.execute(pipeline.graph(), pipeline.configuration())
-                    .thenApply(client -> (TaskHandle) new YakFlowTaskHandle(client));
+                    .thenApply(client -> (TaskHandle) new YakFlowTaskHandle(client, pipeline.progress()));
         } catch (RuntimeException error) {
             return CompletableFuture.failedFuture(error);
         }

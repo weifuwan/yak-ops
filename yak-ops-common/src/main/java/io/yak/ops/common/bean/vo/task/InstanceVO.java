@@ -21,4 +21,5 @@ public record InstanceVO(
         String scheduleId,
         Long scheduleRevision,
         Instant scheduledTime,
-        Integer progressPercent) {}
+        Integer progressPercent,
+        String executionReport) {}
