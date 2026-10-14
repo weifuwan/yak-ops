@@ -1,0 +1,62 @@
+name: Multi-table Development Workbench
+on:
+  push:
+    branches: [work/yoip-5-multitable-batch]
+permissions:
+  contents: write
+concurrency:
+  group: multitable-development-workbench
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Apply implementation to pinned main
+        run: |
+          cp -R _work /tmp/multitable-work
+          git switch --detach 273603fb545efcd92aefbf36c4d049bef860ce58
+          export PYTHONPATH=/tmp/multitable-work
+          python3 - <<'PY'
+          import apply_pipeline
+          from pathlib import Path
+          if Path('/tmp/multitable-work/apply_frontend.py').exists():
+              import apply_frontend
+          if Path('/tmp/multitable-work/apply_tests.py').exists():
+              import apply_tests
+          if Path('/tmp/multitable-work/refinements.py').exists():
+              import refinements
+          PY
+      - name: Format and compile backend
+        run: |
+          bash mvnw -q -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply > /tmp/multitable-format.log 2>&1 || { tail -100 /tmp/multitable-format.log; exit 1; }
+          bash mvnw -q -DskipTests -pl '!yak-ops-ui,!yak-ops-dist' test-compile > /tmp/multitable-compile.log 2>&1 || { tail -130 /tmp/multitable-compile.log; exit 1; }
+      - name: Format and compile frontend
+        working-directory: yak-ops-ui
+        run: |
+          npm ci --no-audit --no-fund > /tmp/multitable-npm.log 2>&1 || { tail -80 /tmp/multitable-npm.log; exit 1; }
+          npx oxfmt apps packages scripts
+          npm run typecheck > /tmp/multitable-types.log 2>&1 || { cat /tmp/multitable-types.log; exit 1; }
+      - name: Publish isolated result for review
+        run: |
+          git add -A
+          if git diff --cached --name-only | grep -E '^(_work/|\.github/)'; then echo 'Unexpected development files in delivery tree'; exit 1; fi
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(data-sync): explicit multi-table batch and product acceptance'
+          previous=$(git ls-remote origin refs/heads/work/yoip-5-multitable-result | cut -f1)
+          git push --force-with-lease=refs/heads/work/yoip-5-multitable-result:"$previous" origin HEAD:refs/heads/work/yoip-5-multitable-result
+          echo RESULT_COMMIT=$(git rev-parse HEAD)
+          git diff --stat 273603fb545efcd92aefbf36c4d049bef860ce58..HEAD
