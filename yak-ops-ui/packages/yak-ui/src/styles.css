@@ -5,11 +5,7 @@
   --yak-color-primary: #0033ff;
   --yak-color-primary-hover: color-mix(in srgb, var(--yak-color-primary) 90%, #000);
   --yak-color-primary-active: color-mix(in srgb, var(--yak-color-primary) 82%, #000);
-  --yak-color-primary-subtle: color-mix(
-    in srgb,
-    var(--yak-color-primary) 10%,
-    var(--yak-color-background, #fff)
-  );
+  --yak-color-primary-subtle: color-mix(in srgb, var(--yak-color-primary) 10%, #fff);
   --yak-color-primary-ring: color-mix(in srgb, var(--yak-color-primary) 20%, transparent);
   --yak-color-primary-halo: color-mix(in srgb, var(--yak-color-primary) 12%, transparent);
   --yak-color-hover: #f6f6f6;
