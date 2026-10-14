@@ -5,11 +5,19 @@ import type {
   SyncPipelineParameters,
 } from "./types";
 
-const SOLUTIONS = new Set(["SINGLE_TABLE_OFFLINE", "SINGLE_TABLE_REALTIME", "DATABASE_OFFLINE"]);
+const SOLUTIONS = new Set([
+  "SINGLE_TABLE_OFFLINE",
+  "SINGLE_TABLE_REALTIME",
+  "DATABASE_OFFLINE",
+  "DATABASE_REALTIME",
+]);
 const WRITES = new Set(["APPEND", "UPSERT"]);
 
 export const solutionSyncType = (type: DataSyncSolutionType) =>
-  type === "SINGLE_TABLE_REALTIME" ? "REALTIME" : "OFFLINE";
+  type === "SINGLE_TABLE_REALTIME" || type === "DATABASE_REALTIME" ? "REALTIME" : "OFFLINE";
+
+export const supportsMultipleTables = (type: DataSyncSolutionType) =>
+  type === "DATABASE_OFFLINE" || type === "DATABASE_REALTIME";
 
 /** Interprets the pinned parameter version; unrecognized formats are never guessed as offline. */
 export function readSyncParameters(schemaVersion: number, content: string): DataSyncParameters {
@@ -59,7 +67,7 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
     throw new Error("不支持的同步任务参数版本");
   }
   const expected: DataSyncStep[] =
-    value?.solutionType === "SINGLE_TABLE_REALTIME" ? ["FULL", "INCREMENTAL"] : ["FULL"];
+    solutionSyncType(value?.solutionType) === "REALTIME" ? ["FULL", "INCREMENTAL"] : ["FULL"];
   if (
     !value ||
     !SOLUTIONS.has(value.solutionType) ||
@@ -71,7 +79,7 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
     !Array.isArray(value.tableMappings) ||
     value.tableMappings.length < 1 ||
     value.tableMappings.length > 100 ||
-    (value.solutionType !== "DATABASE_OFFLINE" && value.tableMappings.length !== 1) ||
+    (!supportsMultipleTables(value.solutionType) && value.tableMappings.length !== 1) ||
     !value.source?.datasourceId ||
     !value.sink?.datasourceId
   ) {
@@ -84,7 +92,7 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
       !mapping?.source?.table ||
       !mapping.target?.table ||
       !WRITES.has(mapping.writeMode) ||
-      (value.solutionType === "SINGLE_TABLE_REALTIME" && mapping.writeMode !== "UPSERT")
+      (solutionSyncType(value.solutionType) === "REALTIME" && mapping.writeMode !== "UPSERT")
     ) {
       throw new Error("不支持的同步目标写入配置");
     }

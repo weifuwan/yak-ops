@@ -37,6 +37,8 @@ import {
 } from "@/service/data-sync";
 
 import { ExecutionProgressBar } from "@/app/data-sync/execution-progress-bar";
+import { ExecutionStages } from "./execution-stages";
+import { readExecutionSummary } from "@/service/data-sync/report";
 import { CreateSyncTaskDialog } from "./create-dialog";
 import { SOLUTION_LABELS, solutionSummary } from "./solution-presentation";
 import { canCancelTaskInstance } from "@/service/data-sync/execution";
@@ -72,7 +74,8 @@ export function DataSyncPage() {
     if (
       initial === "SINGLE_TABLE_OFFLINE" ||
       initial === "SINGLE_TABLE_REALTIME" ||
-      initial === "DATABASE_OFFLINE"
+      initial === "DATABASE_OFFLINE" ||
+      initial === "DATABASE_REALTIME"
     )
       return initial;
     return "ALL";
@@ -330,11 +333,19 @@ export function DataSyncPage() {
             title="查看本次执行"
             onClick={() => navigate(`/data-sync/${record.id}/detail?executionId=${instance.id}`)}
           >
-            <ExecutionProgressBar
-              status={instance.status}
-              percent={instance.progressPercent}
-              realtime={record.syncType === "REALTIME"}
-            />
+            {record.syncType === "REALTIME" ? (
+              <ExecutionStages
+                compact
+                status={instance.status}
+                summary={readExecutionSummary(instance.executionReport)}
+              />
+            ) : (
+              <ExecutionProgressBar
+                status={instance.status}
+                percent={instance.progressPercent}
+                realtime={false}
+              />
+            )}
           </button>
         );
       },

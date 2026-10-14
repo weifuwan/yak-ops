@@ -3,6 +3,7 @@ import type { DataSyncSolution, DataSyncSolutionType, DataSyncStep } from "@/ser
 export const SOLUTION_LABELS: Record<DataSyncSolutionType, string> = {
   SINGLE_TABLE_OFFLINE: "单表离线",
   DATABASE_OFFLINE: "整库离线",
+  DATABASE_REALTIME: "整库实时",
   SINGLE_TABLE_REALTIME: "单表实时",
 };
 export const STEP_LABELS: Record<DataSyncStep, string> = {

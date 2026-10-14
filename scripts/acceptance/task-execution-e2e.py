@@ -456,7 +456,7 @@ def acceptance():
             "POSTGRE_SQL", "ods", "yak", 5432)
 
         choices = client.call("GET", "/api/v1/data-sync/solutions?sourceType=MYSQL&targetType=POSTGRE_SQL")
-        assert [choice["solutionType"] for choice in choices] == ["SINGLE_TABLE_OFFLINE", "SINGLE_TABLE_REALTIME", "DATABASE_OFFLINE"]
+        assert [choice["solutionType"] for choice in choices] == ["SINGLE_TABLE_OFFLINE", "SINGLE_TABLE_REALTIME", "DATABASE_OFFLINE", "DATABASE_REALTIME"]
         assert choices[1]["defaultSteps"] == ["FULL", "INCREMENTAL"]
         assert len(client.call("GET", "/api/v1/data-sync/solutions?sourceType=POSTGRE_SQL&targetType=MYSQL")) == 2
         client.call("GET", "/api/v1/data-sync/solutions?sourceType=JDBC&targetType=MYSQL", status=400)
@@ -624,6 +624,9 @@ def acceptance():
         assert stopped_metrics["summary"]["canceledCount"] == 1
         assert stopped_metrics["summary"]["runningCount"] == 0
 
+        from database_realtime import verify_database_realtime
+        realtime_evidence = verify_database_realtime(globals(), client, source, target)
+
         interrupted, _ = submit(client, cdc)
         interrupted_id = interrupted["instanceId"]
         wait_status(client, interrupted_id, {"RUNNING"})
@@ -643,6 +646,8 @@ def acceptance():
         assert "YakFlow Job started" in client.call(
             "GET", f"/api/v1/task-instances/{interrupted_id}/logs?limit=200")["content"]
         assert client.call("GET", f"/api/v1/task-instances/{batch_evidence[0]}")["executionReport"] == batch_evidence[1]
+        for identity, report in realtime_evidence:
+            assert client.call("GET", f"/api/v1/task-instances/{identity}")["executionReport"] == report
         print(
             "PRODUCT E2E PASS: JDBC, CDC, idempotency, resource exclusion, "
             "cancellation and restart reconciliation")

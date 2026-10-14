@@ -298,7 +298,7 @@ class DataSyncTaskPluginContractTest {
                 lastTargetTable = tableId;
             }
             return new TableSchema(
-                    List.of(new Column("id", LogicalTypes.BIGINT), new Column("name", LogicalTypes.STRING)),
+                    List.of(new Column("id", LogicalTypes.BIGINT.copy(false)), new Column("name", LogicalTypes.STRING)),
                     List.of("id"));
         }
     }

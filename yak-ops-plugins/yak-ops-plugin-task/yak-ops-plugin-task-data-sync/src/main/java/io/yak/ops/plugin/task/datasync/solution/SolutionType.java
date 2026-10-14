@@ -2,11 +2,12 @@ package io.yak.ops.plugin.task.datasync.solution;
 
 import java.util.List;
 
-/** Product identity and the supported data steps of a single-table synchronization. */
+/** Product identity and the supported data steps of a synchronization solution. */
 public enum SolutionType {
     SINGLE_TABLE_OFFLINE("单表离线", "JDBC", List.of(Step.FULL), true),
     DATABASE_OFFLINE("整库离线", "JDBC", List.of(Step.FULL), true),
-    SINGLE_TABLE_REALTIME("单表实时", "MYSQL_CDC", List.of(Step.FULL, Step.INCREMENTAL), false);
+    SINGLE_TABLE_REALTIME("单表实时", "MYSQL_CDC", List.of(Step.FULL, Step.INCREMENTAL), false),
+    DATABASE_REALTIME("整库实时", "MYSQL_CDC", List.of(Step.FULL, Step.INCREMENTAL), false);
 
     private final String displayName;
     private final String sourceIdentifier;
@@ -18,6 +19,11 @@ public enum SolutionType {
         this.sourceIdentifier = sourceIdentifier;
         this.steps = List.copyOf(steps);
         this.supportsScheduling = supportsScheduling;
+    }
+
+    /** Returns whether the solution accepts an explicit collection of table mappings. */
+    public boolean supportsMultipleTables() {
+        return this == DATABASE_OFFLINE || this == DATABASE_REALTIME;
     }
 
     /** Returns the localized product choice. */

@@ -22,7 +22,7 @@ import {
   taskDraftKey,
   writeTaskDraft,
 } from "@/service/data-sync/draft";
-import { solutionSyncType } from "@/service/data-sync/parameters";
+import { solutionSyncType, supportsMultipleTables } from "@/service/data-sync/parameters";
 import { findStepCombination, solutionSummary } from "./solution-presentation";
 import { useSolutions } from "./use-solutions";
 import {
@@ -412,7 +412,7 @@ export function DataSyncTaskEditorPage() {
 }
 
 function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorInput) {
-  const batch = draft.solutionType === "DATABASE_OFFLINE";
+  const batch = supportsMultipleTables(draft.solutionType);
   const [mappings, setMappings] = useState<DataSyncTableMapping[]>(
     initialTask?.tableMappings || draft.form?.tableMappings || [],
   );
@@ -690,7 +690,7 @@ function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorIn
     form.name.trim() &&
     Boolean(form.sourceDataSourceId && form.targetDataSourceId) &&
     (batch
-      ? validTableMappings(mappings, targetCatalog.tables)
+      ? validTableMappings(mappings, targetCatalog.tables, combination?.writeModes || [])
       : Boolean(
           form.sourceTable &&
           selectedTableKey(
@@ -948,6 +948,7 @@ function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorIn
           <CollapseSection id="source" title="数据来源">
             {batch ? (
               <ExplicitTableSelection
+                writeMode={combination?.writeModes[0]}
                 sourceTables={sourceCatalog.tables}
                 targetTables={targetCatalog.tables}
                 mappings={mappings}
@@ -994,6 +995,7 @@ function TaskEditor({ draft, task: initialTask, connections = [] }: TaskEditorIn
           <CollapseSection id="target" title="目标表映射">
             {batch ? (
               <TableMappingEditor
+                writeModes={combination?.writeModes || []}
                 mappings={mappings}
                 targetTables={targetCatalog.tables}
                 loading={targetCatalog.loading}

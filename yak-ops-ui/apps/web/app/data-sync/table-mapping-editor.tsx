@@ -19,6 +19,7 @@ const catalogPath = (table: DataSourceCatalogTable): DataSyncTablePath => ({
 });
 
 interface Props {
+  writeMode?: DataSyncWriteMode;
   sourceTables: DataSourceCatalogTable[];
   targetTables: DataSourceCatalogTable[];
   mappings: DataSyncTableMapping[];
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function ExplicitTableSelection({
+  writeMode,
   sourceTables,
   targetTables,
   mappings,
@@ -48,6 +50,7 @@ export function ExplicitTableSelection({
     pathText(table).toLowerCase().includes(keyword.trim().toLowerCase()),
   );
   const add = (tables: DataSyncTablePath[]) => {
+    if (!writeMode) return;
     const missing = tables.filter((table) => !selected.has(tableKey(table)));
     if (mappings.length + missing.length > 100) return;
     onChange([
@@ -59,7 +62,7 @@ export function ExplicitTableSelection({
         return {
           source: { database: source.database, schema: source.schema, table: source.table },
           target,
-          writeMode: "APPEND" as const,
+          writeMode,
         };
       }),
     ]);
@@ -73,7 +76,7 @@ export function ExplicitTableSelection({
         <Checkbox
           aria-label={`选择 ${pathText(row)}`}
           checked={selected.has(row.id)}
-          disabled={!selected.has(row.id) && mappings.length >= 100}
+          disabled={loading || !writeMode || (!selected.has(row.id) && mappings.length >= 100)}
           onCheckedChange={(checked) =>
             checked
               ? add([row])
@@ -103,6 +106,7 @@ export function ExplicitTableSelection({
           onClick={() => add(visible)}
           disabled={
             loading ||
+            !writeMode ||
             mappings.length + visible.filter((table) => !selected.has(table.id)).length > 100
           }
         >
@@ -130,6 +134,7 @@ export function ExplicitTableSelection({
 }
 
 interface MappingProps {
+  writeModes: DataSyncWriteMode[];
   mappings: DataSyncTableMapping[];
   targetTables: DataSourceCatalogTable[];
   loading: boolean;
@@ -139,6 +144,7 @@ interface MappingProps {
 }
 
 export function TableMappingEditor({
+  writeModes,
   mappings,
   targetTables,
   loading,
@@ -146,6 +152,10 @@ export function TableMappingEditor({
   refresh,
   onChange,
 }: MappingProps) {
+  const writeOptions = writeModes.map((value) => ({
+    value,
+    label: value === "UPSERT" ? "按主键更新" : "追加写入",
+  }));
   const targetOptions = targetTables.map((table) => ({
     value: tableKey(catalogPath(table)),
     label: pathText(catalogPath(table)),
@@ -204,10 +214,8 @@ export function TableMappingEditor({
         <DataSyncSearchableSelect
           placeholder="请选择写入方式"
           value={row.writeMode}
-          options={[
-            { value: "APPEND", label: "追加写入" },
-            { value: "UPSERT", label: "按主键更新" },
-          ]}
+          disabled={writeModes.length < 2}
+          options={writeOptions}
           onValueChange={(value) => patch(row.index, { writeMode: value as DataSyncWriteMode })}
         />
       ),
@@ -234,10 +242,8 @@ export function TableMappingEditor({
           <DataSyncSearchableSelect
             value={null}
             placeholder="批量设置写入方式"
-            options={[
-              { value: "APPEND", label: "追加写入" },
-              { value: "UPSERT", label: "按主键更新" },
-            ]}
+            disabled={writeModes.length < 2}
+            options={writeOptions}
             onValueChange={(value) =>
               onChange(
                 mappings.map((mapping) => ({ ...mapping, writeMode: value as DataSyncWriteMode })),
@@ -266,6 +272,7 @@ export function TableMappingEditor({
 export function validTableMappings(
   mappings: DataSyncTableMapping[],
   targetTables: DataSourceCatalogTable[],
+  writeModes: DataSyncWriteMode[],
 ) {
   if (!mappings.length || mappings.length > 100) return false;
   const sources = new Set(mappings.map((mapping) => tableKey(mapping.source)));
@@ -276,6 +283,7 @@ export function validTableMappings(
     targets.size === mappings.length &&
     mappings.every(
       (mapping) =>
+        writeModes.includes(mapping.writeMode) &&
         Boolean(mapping.source.table) &&
         Boolean(mapping.target.table) &&
         available.has(tableKey(mapping.target)),

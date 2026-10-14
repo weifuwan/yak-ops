@@ -40,6 +40,23 @@ class MySqlCdcFactoryCreationTest {
         assertThrows(UnsupportedOperationException.class, () -> new MySqlCdcSourceFactory().createSource(new TableSourceFactoryContext(options.toReadonlyConfig(), TABLE, SCHEMA)));
     }
 
+    @Test
+    void registersAllTablesInOnePhysicalSourceAndRejectsConflictingSettings() throws Exception {
+        var metrics = new io.yak.ops.connector.base.metrics.TableMetrics();
+        var first = new TableSourceFactoryContext(options().toReadonlyConfig(), TABLE, SCHEMA, metrics);
+        var second = new TableSourceFactoryContext(options().toReadonlyConfig(), new TableId("app", null, "items"), SCHEMA, metrics);
+        var factory = new MySqlCdcSourceFactory();
+        var source = (MySqlHybridCdcSource) factory.createSource(List.of(first, second));
+        var field = MySqlHybridCdcSource.class.getDeclaredField("config");
+        field.setAccessible(true);
+        assertEquals(2, ((MySqlCdcSourceConfig) field.get(source)).schemas().size());
+        var changed = new TableSourceFactoryContext(options().set(MySqlCdcSourceOptions.SERVER_ID, 1234).toReadonlyConfig(), second.table(), SCHEMA, metrics);
+        assertThrows(IllegalArgumentException.class, () -> factory.createSource(List.of(first, changed)));
+        assertThrows(IllegalArgumentException.class, () -> factory.createSource(List.of(first, first)));
+        assertThrows(IllegalArgumentException.class, () -> factory.validateSchema(new TableSchema(List.of(new Column("id", LogicalTypes.STRING.copy(false))), List.of("id"))));
+        assertThrows(IllegalArgumentException.class, () -> factory.validateSchema(new TableSchema(List.of(new Column("id", LogicalTypes.BIGINT)), List.of("id"))));
+    }
+
     private static Configuration options() {
         return new Configuration().set(JdbcConnectionOptions.URL, "jdbc:mysql://localhost:3307/app")
                 .set(JdbcConnectionOptions.USERNAME, "user").set(JdbcConnectionOptions.PASSWORD, "secret")

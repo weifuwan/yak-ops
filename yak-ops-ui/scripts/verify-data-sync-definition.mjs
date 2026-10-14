@@ -108,7 +108,7 @@ assert.throws(() => readSyncParameters(1, oldParameters));
 assert.throws(() => readSyncParameters(3, oldParameters));
 assert.throws(() => readSyncParameters(2, created.parameters));
 for (const patch of [
-  { solutionType: "DATABASE_REALTIME" },
+  { solutionType: "UNSUPPORTED_SOLUTION" },
   { steps: ["FULL"] },
   { steps: ["FULL", "FULL"] },
   { steps: ["SCHEMA", "FULL", "INCREMENTAL"] },
@@ -152,3 +152,104 @@ assert.throws(() =>
   readSyncParameters(3, batchJson.replace("DATABASE_OFFLINE", "SINGLE_TABLE_OFFLINE")),
 );
 console.log("Explicit multi-table parameter and complete projection contracts passed");
+
+const databaseRealtime = {
+  ...batch,
+  solutionType: "DATABASE_REALTIME",
+  steps: ["FULL", "INCREMENTAL"],
+  tableMappings: batch.tableMappings.map((row) => ({ ...row, writeMode: "UPSERT" })),
+};
+const continuousJson = createDefinitionRequest(databaseRealtime).parameters;
+assert.equal(readSyncParameters(3, continuousJson).tableMappings.length, 2);
+assert.equal(toSyncTaskRecord({ ...definition, parameters: continuousJson }).syncType, "REALTIME");
+assert.equal(
+  readSyncParameters(
+    3,
+    createDefinitionRequest({
+      ...databaseRealtime,
+      tableMappings: databaseRealtime.tableMappings.slice(0, 1),
+    }).parameters,
+  ).solutionType,
+  "DATABASE_REALTIME",
+);
+assert.throws(() => readSyncParameters(3, continuousJson.replace("UPSERT", "APPEND")));
+assert.throws(() =>
+  readSyncParameters(3, continuousJson.replace('["FULL","INCREMENTAL"]', '["INCREMENTAL"]')),
+);
+
+const { readExecutionReport, readExecutionSummary } =
+  await import("../apps/web/service/data-sync/report.ts");
+const stage = (step, status, percent) => ({
+  step,
+  status,
+  progressPercent: percent,
+  progressUnit: step === "FULL" ? "SPLITS" : "RECORDS",
+  readRows: 2,
+  committedRows: 2,
+  plannedSplits: step === "FULL" ? 1 : null,
+  completedSplits: step === "FULL" ? 1 : null,
+  failureCode: null,
+});
+const summary = {
+  version: 2,
+  observedAt: new Date().toISOString(),
+  generation: 1,
+  restored: false,
+  counterScope: "GENERATION",
+  phase: "STREAMING",
+  checkpoints: { handoffId: 5, completedId: 7 },
+  stages: [stage("FULL", "FINISHED", 100), stage("INCREMENTAL", "RUNNING", null)],
+};
+const observed = {
+  ...summary,
+  tables: [0, 1].map((mappingIndex) => ({ mappingIndex, stages: summary.stages })),
+  summary,
+};
+assert.deepEqual(readExecutionSummary(JSON.stringify(summary)), summary);
+assert.equal(readExecutionReport(JSON.stringify(observed), 2).tables.length, 2);
+assert.equal(readExecutionReport(JSON.stringify(summary), 2), undefined);
+assert.equal(readExecutionReport(JSON.stringify(observed), 3), undefined);
+assert.equal(
+  readExecutionReport(
+    JSON.stringify({ ...observed, tables: [observed.tables[0], observed.tables[0]] }),
+    2,
+  ),
+  undefined,
+);
+assert.equal(
+  readExecutionSummary(
+    JSON.stringify({
+      ...summary,
+      stages: [summary.stages[0], { ...summary.stages[1], progressPercent: 50 }],
+    }),
+  ),
+  undefined,
+);
+assert.equal(
+  readExecutionSummary(
+    JSON.stringify({
+      ...summary,
+      stages: [summary.stages[0], { ...summary.stages[1], readRows: -1 }],
+    }),
+  ),
+  undefined,
+);
+const restored = {
+  ...observed,
+  generation: 2,
+  restored: true,
+  stages: [
+    {
+      ...summary.stages[0],
+      readRows: null,
+      committedRows: null,
+      plannedSplits: null,
+      completedSplits: null,
+    },
+    summary.stages[1],
+  ],
+};
+assert.equal(readExecutionReport(JSON.stringify(restored), 2).generation, 2);
+console.log(
+  "Database realtime parameters, stage summaries, restored and invalid observation contracts passed",
+);

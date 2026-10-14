@@ -14,7 +14,8 @@ export type DataSyncType = "OFFLINE" | "REALTIME";
 export type DataSyncSolutionType =
   | "SINGLE_TABLE_OFFLINE"
   | "SINGLE_TABLE_REALTIME"
-  | "DATABASE_OFFLINE";
+  | "DATABASE_OFFLINE"
+  | "DATABASE_REALTIME";
 export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
 
 export interface DataSyncSolution {
@@ -63,11 +64,48 @@ export interface DataSyncTableResult {
   failureCode: string | null;
 }
 
-export interface DataSyncExecutionReport {
+export interface DataSyncBatchReport {
   version: 1;
   observedAt: string;
   tables: DataSyncTableResult[];
 }
+
+export type DataSyncStageStatus =
+  | "WAITING"
+  | "RUNNING"
+  | "FINISHED"
+  | "FAILED"
+  | "CANCELED"
+  | "UNKNOWN";
+
+export interface DataSyncStageResult {
+  step: "FULL" | "INCREMENTAL";
+  status: DataSyncStageStatus;
+  progressPercent: number | null;
+  progressUnit: "SPLITS" | "RECORDS";
+  readRows: number | null;
+  committedRows: number | null;
+  plannedSplits: number | null;
+  completedSplits: number | null;
+  failureCode: string | null;
+}
+
+export interface DataSyncRealtimeSummary {
+  version: 2;
+  observedAt: string;
+  generation: number;
+  restored: boolean;
+  counterScope: "GENERATION";
+  phase: "INITIALIZING" | "SNAPSHOT" | "HANDOFF" | "STREAMING";
+  checkpoints: { handoffId: number | null; completedId: number | null };
+  stages: DataSyncStageResult[];
+}
+
+export interface DataSyncRealtimeReport extends DataSyncRealtimeSummary {
+  tables: Array<{ mappingIndex: number; stages: DataSyncStageResult[] }>;
+}
+
+export type DataSyncExecutionReport = DataSyncBatchReport | DataSyncRealtimeReport;
 
 export interface DataSyncParameters {
   solutionType: DataSyncSolutionType;

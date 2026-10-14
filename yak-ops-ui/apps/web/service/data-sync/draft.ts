@@ -18,9 +18,12 @@ export function readTaskDraft(key: string): DataSyncDraft | undefined {
       typeof draft.name !== "string" ||
       !["MYSQL", "POSTGRE_SQL", "ORACLE"].includes(draft.sourceType) ||
       !["MYSQL", "POSTGRE_SQL", "ORACLE"].includes(draft.targetType) ||
-      !["SINGLE_TABLE_OFFLINE", "SINGLE_TABLE_REALTIME", "DATABASE_OFFLINE"].includes(
-        draft.solutionType,
-      ) ||
+      ![
+        "SINGLE_TABLE_OFFLINE",
+        "SINGLE_TABLE_REALTIME",
+        "DATABASE_OFFLINE",
+        "DATABASE_REALTIME",
+      ].includes(draft.solutionType) ||
       !Array.isArray(draft.steps)
     )
       return undefined;

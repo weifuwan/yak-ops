@@ -40,6 +40,7 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
 
     private final Connection connection;
     private final TableMetrics metrics;
+    private final long metricsGeneration;
     private final Map<TableId, Long> pendingTableRows = new LinkedHashMap<>();
     private final TableBufferedStatementExecutor<TableRecord> executor;
     private final TableChangelogStatementExecutor statements;
@@ -80,6 +81,7 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
             TableMetrics metrics)
             throws SQLException {
         this.metrics = Objects.requireNonNull(metrics, "metrics");
+        metricsGeneration = metrics.generation();
         Objects.requireNonNull(connections, "connections");
         TableChangelogStatementExecutor statement = new TableChangelogStatementExecutor(dialect, plans);
         TableBufferedStatementExecutor<TableRecord> buffer =
@@ -113,7 +115,7 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
             executor.addToBatch(record);
             pendingTableRows.merge(record.tableId(), 1L, Long::sum);
         } catch (RuntimeException failure) {
-            metrics.writeFailed(record.tableId());
+            metrics.writeFailed(metricsGeneration, record.tableId());
             throw failure;
         }
     }
@@ -162,7 +164,7 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
             connection.commit();
             long commitMs = (System.nanoTime() - commitStartedNanos) / 1_000_000;
             executor.acknowledgeCommit();
-            pendingTableRows.forEach(metrics::committed);
+            pendingTableRows.forEach((table, count) -> metrics.committed(metricsGeneration, table, count));
             pendingTableRows.clear();
             committedRecords += batchRows;
             if ("true".equals(MDC.get("taskLogDebug"))) {
@@ -176,7 +178,7 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
             reportProgress(false);
         } catch (SQLException | RuntimeException failure) {
             failed = true;
-            if (!cancelled) pendingTableRows.keySet().forEach(metrics::writeFailed);
+            if (!cancelled) pendingTableRows.keySet().forEach(table -> metrics.writeFailed(metricsGeneration, table));
             try {
                 connection.rollback();
             } catch (SQLException rollbackFailure) {

@@ -10,6 +10,7 @@ import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.page.PagingData;
 import io.yak.ops.common.result.Result;
+import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.task.execution.TaskExecutionService;
 import io.yak.ops.task.execution.dispatch.embedded.TaskExecutionObserver;
@@ -112,6 +113,19 @@ public class TaskInstanceController {
         return Result.success(execution.cancel(workspaceId, id).name());
     }
 
+    private String reportSummary(String report) {
+        if (report == null) return null;
+        try {
+            var summary = JSONUtils.readTree(report).get("summary");
+            if (summary == null || !summary.isObject()) return null;
+            String json = summary.toString();
+            if (json.length() > 16384) return null;
+            return json;
+        } catch (RuntimeException unavailable) {
+            return null;
+        }
+    }
+
     private InstanceVO toInstance(InstanceEntity value) {
         return toInstance(value, false);
     }
@@ -130,13 +144,12 @@ public class TaskInstanceController {
                 progress = live.getAsInt();
             }
         }
-        String report = null;
-        if (includeReport) {
-            report = value.getExecutionReport();
-            if (!value.getStatus().isTerminal()
-                    && value.getStatus() != io.yak.ops.common.enums.task.TaskInstanceStatus.RECONCILING) {
-                report = observer.executionReport(value.getId()).orElse(report);
-            }
+        String report = value.getExecutionReport();
+        if (!includeReport) report = reportSummary(report);
+        if (!value.getStatus().isTerminal()
+                && value.getStatus() != io.yak.ops.common.enums.task.TaskInstanceStatus.RECONCILING) {
+            if (includeReport) report = observer.executionReport(value.getId()).orElse(report);
+            else report = observer.executionSummary(value.getId()).orElse(report);
         }
         return new InstanceVO(
                 value.getId(),

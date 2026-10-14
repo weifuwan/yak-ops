@@ -66,6 +66,11 @@ public final class MySqlCdcSource implements Source<TableRecord, MySqlBinlogSpli
         return new MySqlHybridCdcSource(config, fingerprint, chunkSize);
     }
 
+    /** Creates an initial snapshot source using the supplied connector measurement collector. */
+    public MySqlHybridCdcSource initialSnapshot(int chunkSize, io.yak.ops.connector.base.metrics.TableMetrics metrics) {
+        return new MySqlHybridCdcSource(config, fingerprint, chunkSize, metrics);
+    }
+
     @Override
     public Boundedness getBoundedness() {
         return Boundedness.CONTINUOUS_UNBOUNDED;
