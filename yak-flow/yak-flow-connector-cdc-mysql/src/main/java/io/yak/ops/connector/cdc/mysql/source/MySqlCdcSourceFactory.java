@@ -74,6 +74,9 @@ public final class MySqlCdcSourceFactory implements TableSourceFactory {
         }
         var first = contexts.getFirst();
         ReadonlyConfig options = first.options();
+        if (options.get(JdbcConnectionOptions.SSH_ENABLED)) {
+            throw new UnsupportedOperationException("MySQL CDC requires a direct MySQL connection");
+        }
         for (var context : contexts) {
             FactoryUtil.validateCreation(context.options(), this);
             validateSchema(context.schema());
@@ -82,10 +85,6 @@ public final class MySqlCdcSourceFactory implements TableSourceFactory {
                         "MySQL CDC tables must share connection, replication and observation settings");
             }
         }
-        if (options.get(JdbcConnectionOptions.SSH_ENABLED)) {
-            throw new UnsupportedOperationException("MySQL CDC requires a direct MySQL connection");
-        }
-        FactoryUtil.validateCreation(options, this);
         JdbcConnectionOptions connection = new JdbcConnectionOptions(options);
         if (!connection.url().startsWith("jdbc:mysql://")) {
             throw new IllegalArgumentException("MySQL CDC requires a MySQL connection URL");
