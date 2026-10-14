@@ -72,7 +72,10 @@ assert.match(sidebar, /bg-\[var\(--yak-color-primary-subtle\)\]/);
 assert.match(topBar, /text-\[var\(--yak-color-primary\)\]/);
 assert.match(detail, /bg-\[var\(--yak-color-primary-subtle\)\]/);
 assert.match(execution, /\[data-status="RUNNING"\]\s*\{\s*color: var\(--yak-color-primary\)/);
-assert.match(execution, /\.sync-execution-progress-fill\s*\{[^}]*background: var\(--yak-color-primary\)/);
+assert.match(
+  execution,
+  /\.sync-execution-progress-fill\s*\{[^}]*background: var\(--yak-color-primary\)/,
+);
 assert.match(cron, /bg-\[var\(--yak-color-primary-subtle\)\]/);
 assert.doesNotMatch(execution, /--yak-components-tab-active:/);
 assert.doesNotMatch(detail, /sync-execution-tabs/);
