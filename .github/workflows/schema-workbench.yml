@@ -5,60 +5,52 @@ on:
 permissions:
   contents: write
 jobs:
-  candidate:
+  align:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22.13.0'
-          cache: npm
-          cache-dependency-path: yak-ops-ui/package-lock.json
-      - name: Reconstruct clean code candidate
+      - name: Merge current main without losing either verification suite
         shell: bash
-        run: |
-          set -euo pipefail
-          cat .workbench/schema.delta2.* | gzip -d > /tmp/schema.patch
-          echo 'deb6fb857387cff3ce6ecd5e623a2dcbe4c82dcd559c55ecb5eadc1f3dc09ba1  /tmp/schema.patch' | sha256sum -c -
-          git worktree add --detach /tmp/yak-candidate 21c22c9eea4f5f87033714363dd11f6b88d6179c
-          cd /tmp/yak-candidate
-          git apply --unidiff-zero /tmp/schema.patch
-          # Workflow changes are submitted separately through the authorized maintainer connector.
-          git restore --source=21c22c9eea4f5f87033714363dd11f6b88d6179c .github/workflows/task-execution-product-acceptance.yml
-          git diff --check
-          test ! -d .workbench
-          test ! -f .github/workflows/schema-workbench.yml
-      - name: Format using repository tools
-        working-directory: /tmp/yak-candidate
-        run: |
-          bash mvnw -B -ntp -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
-          npm ci --prefix yak-ops-ui --no-audit --no-fund
-          npm run format --prefix yak-ops-ui
-          python3 -m py_compile scripts/acceptance/schema_migration_e2e.py scripts/acceptance/schema_migration_browser.py
-      - name: Preserve implementation for PR CI
-        working-directory: /tmp/yak-candidate
         env:
           CANDIDATE_BRANCH: workbench/schema-1643-candidate-${{ github.run_id }}
         run: |
           set -euo pipefail
+          git worktree add --detach /tmp/yak-candidate 2b35a4e21a5cd951f46ee87b3ad8082866ac28b4
+          cd /tmp/yak-candidate
           git config user.name 'ChatGPT'
           git config user.email 'chatgpt@users.noreply.github.com'
-          git add -A
-          git commit -m 'feat(data-sync): complete schema cancellation, observations and end-to-end acceptance'
+          if ! git merge --no-commit --no-ff 95af7412d4169b39ff34463d323165739d8ac388; then
+            test "$(git diff --name-only --diff-filter=U)" = 'yak-ops-ui/package.json'
+            git checkout --ours yak-ops-ui/package.json
+            python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('yak-ops-ui/package.json')
+          value = json.loads(p.read_text())
+          script = value['scripts']['contract:check']
+          assert 'verify-schema-migration.mjs' in script
+          if 'verify-primary-color-tokens.mjs' not in script:
+              script += ' && node scripts/verify-primary-color-tokens.mjs'
+          value['scripts']['contract:check'] = script
+          p.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+          PY
+            git add yak-ops-ui/package.json
+          fi
+          # Publish the one-line workflow trigger through the maintainer connector, not GITHUB_TOKEN.
+          git restore --source=95af7412d4169b39ff34463d323165739d8ac388 --staged --worktree .github/workflows/task-execution-product-acceptance.yml
+          git diff --check
+          test ! -d .workbench
+          test ! -f .github/workflows/schema-workbench.yml
+          git commit -m 'merge: retain main primary color checks alongside schema migration acceptance'
           git push origin HEAD:refs/heads/$CANDIDATE_BRANCH
           git rev-parse HEAD | tee /tmp/candidate-sha.txt
           git archive --format=zip HEAD -o /tmp/candidate-source.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: schema-completion-candidate
+          name: schema-aligned-candidate
           path: |
             /tmp/candidate-source.zip
             /tmp/candidate-sha.txt
