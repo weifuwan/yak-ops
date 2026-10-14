@@ -1,0 +1,19 @@
+name: Database Realtime Development Workbench
+on:
+  push:
+    branches: [work/database-realtime-20261014]
+permissions:
+  contents: read
+jobs:
+  workbench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Export tracked source
+        run: git archive --format=tar HEAD > /tmp/yak-source.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: database-realtime-source
+          path: /tmp/yak-source.tar
+          retention-days: 1
