@@ -1,5 +1,5 @@
 import { Alert, Button, Checkbox, Field, FieldLabel, Input, Modal } from "@yak-ops/yak-ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { COMMON_DB_OPTIONS } from "@/app/datasource/constants";
@@ -13,6 +13,7 @@ import { findStepCombination, STEP_LABELS } from "./solution-presentation";
 import { useSolutions } from "./use-solutions";
 
 export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
+  const stepLabelId = useId();
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const key = taskDraftKey(currentUser!.id, currentWorkspace!.id);
@@ -163,8 +164,14 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
                     ? steps.filter((value) => value !== step)
                     : [...steps, step];
                   return (
-                    <label key={step} className="flex items-center gap-2 text-xs text-[#344054]">
+                    <label
+                      key={step}
+                      id={`${stepLabelId}-${step}`}
+                      className="flex items-center gap-2 text-xs text-[#344054]"
+                    >
                       <Checkbox
+                        id={`${stepLabelId}-${step}-control`}
+                        aria-labelledby={`${stepLabelId}-${step}`}
                         checked={steps.includes(step)}
                         disabled={!findStepCombination(selected, nextSteps)}
                         onCheckedChange={() => setSteps(nextSteps)}
