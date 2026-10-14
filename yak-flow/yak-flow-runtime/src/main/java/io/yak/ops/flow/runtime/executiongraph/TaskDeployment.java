@@ -395,33 +395,49 @@ final class TaskDeployment {
     }
 
     private Throwable closeAll() {
-        Throwable failure = null;
+        List<AutoCloseable> resources = new ArrayList<>();
         if (checkpointCoordinator != null) {
-            try {
-                checkpointCoordinator.close();
-            } catch (Throwable error) {
-                failure = accumulate(failure, error);
-            }
+            resources.add(checkpointCoordinator);
         }
-        for (Execution execution : executions) {
-            try {
-                execution.close();
-            } catch (Throwable error) {
-                failure = accumulate(failure, error);
-            }
-        }
+        resources.addAll(executions);
         if (coordinator != null) {
-            try {
-                coordinator.close();
-            } catch (Throwable error) {
-                failure = accumulate(failure, error);
-            }
+            resources.add(coordinator);
         }
         if (checkpointStore != null) {
-            try {
-                checkpointStore.close();
-            } catch (Throwable error) {
-                failure = accumulate(failure, error);
+            resources.add(checkpointStore);
+        }
+        return closeAll(resources);
+    }
+
+    /**
+     * Awaits idempotent deployment shutdown before the Job publishes its terminal outcome.
+     * Cancellation interrupts wake execution waits but cannot release resource ownership early.
+     *
+     * @param resources deployment resources in shutdown order
+     * @return accumulated cleanup failure, or null after successful cleanup
+     */
+    static Throwable closeAll(List<? extends AutoCloseable> resources) {
+        boolean interrupted = Thread.interrupted();
+        Throwable failure = null;
+        try {
+            for (AutoCloseable resource : resources) {
+                boolean closed = false;
+                while (!closed) {
+                    try {
+                        resource.close();
+                        closed = true;
+                    } catch (InterruptedException error) {
+                        interrupted = true;
+                        Thread.interrupted();
+                    } catch (Throwable error) {
+                        failure = accumulate(failure, error);
+                        closed = true;
+                    }
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
             }
         }
         return failure;
