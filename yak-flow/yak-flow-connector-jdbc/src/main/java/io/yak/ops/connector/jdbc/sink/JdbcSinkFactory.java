@@ -34,6 +34,7 @@ public final class JdbcSinkFactory implements TableSinkFactory {
         return OptionRule.builder()
                 .include(optionRule())
                 .include(JdbcConnectionOptions.RULE)
+                .optional(JdbcSinkOptions.BATCH_ORDER, JdbcSinkOptions.STATEMENT_CACHE_SIZE)
                 .build();
     }
 
@@ -106,6 +107,8 @@ public final class JdbcSinkFactory implements TableSinkFactory {
                 .withConnectionProvider(new DefaultJdbcConnectionProvider(connection))
                 .withDialect(JdbcFactoryLoader.loadDialect(connection.url()))
                 .withTablePlans(plans)
+                .withBatchOrder(first.options().get(JdbcSinkOptions.BATCH_ORDER))
+                .withStatementCacheSize(first.options().get(JdbcSinkOptions.STATEMENT_CACHE_SIZE))
                 .withTableMetrics(first.metrics())
                 .build();
     }

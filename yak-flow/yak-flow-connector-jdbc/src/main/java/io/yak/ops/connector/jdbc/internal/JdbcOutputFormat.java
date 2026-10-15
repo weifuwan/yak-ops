@@ -7,6 +7,8 @@ import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.internal.executor.TableBufferedStatementExecutor;
 import io.yak.ops.connector.jdbc.internal.executor.TableChangelogStatementExecutor;
+import io.yak.ops.connector.jdbc.sink.JdbcBatchOrder;
+import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcTableWritePlan;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
@@ -80,12 +82,34 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
             List<JdbcTableWritePlan> plans,
             TableMetrics metrics)
             throws SQLException {
+        this(
+                connections,
+                dialect,
+                plans,
+                metrics,
+                JdbcBatchOrder.INPUT_ORDER,
+                JdbcSinkOptions.STATEMENT_CACHE_SIZE.defaultValue());
+    }
+
+    /** Creates one transaction with an explicit physical batch order and statement resource bound. */
+    public JdbcOutputFormat(
+            JdbcConnectionProvider connections,
+            JdbcDialect dialect,
+            List<JdbcTableWritePlan> plans,
+            TableMetrics metrics,
+            JdbcBatchOrder batchOrder,
+            int statementCacheSize)
+            throws SQLException {
+        Objects.requireNonNull(batchOrder, "batchOrder");
         this.metrics = Objects.requireNonNull(metrics, "metrics");
         metricsGeneration = metrics.generation();
         Objects.requireNonNull(connections, "connections");
-        TableChangelogStatementExecutor statement = new TableChangelogStatementExecutor(dialect, plans);
-        TableBufferedStatementExecutor<TableRecord> buffer =
-                new TableBufferedStatementExecutor<>(statement, statement::snapshot);
+        TableChangelogStatementExecutor statement =
+                new TableChangelogStatementExecutor(dialect, plans, statementCacheSize);
+        TableBufferedStatementExecutor<TableRecord> buffer = new TableBufferedStatementExecutor<>(
+                statement,
+                statement::snapshot,
+                batchOrder == JdbcBatchOrder.INDEPENDENT_TABLES ? TableRecord::tableId : null);
         Connection opened = JdbcConnectionRetry.open(connections, 1);
         try {
             opened.setAutoCommit(false);

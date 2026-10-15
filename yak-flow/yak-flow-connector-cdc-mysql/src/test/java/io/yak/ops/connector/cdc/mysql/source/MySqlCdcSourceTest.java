@@ -115,4 +115,17 @@ class MySqlCdcSourceTest {
             action.run();
         }
     }
+
+    @org.junit.jupiter.api.Test
+    void reservesDifferentReplicationConnectionsAndRejectsOverflow() {
+        var table = new io.yak.ops.core.data.TableId("shop",null,"orders");
+        var schema = new io.yak.ops.core.types.TableSchema(java.util.List.of(
+                new io.yak.ops.core.types.Column("id", io.yak.ops.core.types.LogicalTypes.BIGINT.copy(false))),java.util.List.of("id"));
+        var config = new MySqlCdcSourceConfig("localhost",3306,"user","password",1001,"topic",java.util.Map.of(table,schema),256);
+        var ids = new java.util.HashSet<Integer>();
+        ids.add(config.serverId());
+        for(int i=0;i<16;i++) org.junit.jupiter.api.Assertions.assertTrue(ids.add(config.snapshotServerId(i)));
+        var overflow = new MySqlCdcSourceConfig("localhost",3306,"user","password",Integer.MAX_VALUE,"topic",java.util.Map.of(table,schema),256);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,()->overflow.snapshotServerId(0));
+    }
 }

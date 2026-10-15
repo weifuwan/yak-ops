@@ -45,7 +45,9 @@ public final class BinlogOffsetOrder {
                 }
                 throw new IllegalArgumentException("Unordered MySQL GTID histories");
             }
-            return compareEventRow(left.position(), right.position());
+            if (text(left.position(), "file") == null || text(right.position(), "file") == null) {
+                return compareEventRow(left.position(), right.position());
+            }
         }
 
         String leftFile = text(left.position(), "file");

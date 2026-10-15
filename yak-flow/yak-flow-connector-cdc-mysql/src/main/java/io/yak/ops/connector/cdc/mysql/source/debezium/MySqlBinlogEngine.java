@@ -28,6 +28,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 public final class MySqlBinlogEngine implements AutoCloseable {
 
     private final MySqlCdcSourceConfig config;
+    private final int serverId;
     private final MySqlDebeziumRecordConverter converter;
     private final BlockingQueue<BinlogEvent> queue;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
@@ -41,6 +42,13 @@ public final class MySqlBinlogEngine implements AutoCloseable {
     private boolean started;
 
     public MySqlBinlogEngine(MySqlCdcSourceConfig config) {
+        this(config, config.serverId());
+    }
+
+    /** Uses a distinct replication connection while retaining the source partition and table contract. */
+    public MySqlBinlogEngine(MySqlCdcSourceConfig config, int serverId) {
+        if (serverId < 1) throw new IllegalArgumentException("Replication server ID must be positive");
+        this.serverId = serverId;
         this.config = Objects.requireNonNull(config, "config");
         converter = new MySqlDebeziumRecordConverter(config.schemas());
         queue = new ArrayBlockingQueue<>(config.queueCapacity());
@@ -63,8 +71,12 @@ public final class MySqlBinlogEngine implements AutoCloseable {
         }
         String connectorName = "yakflow-cdc-" + config.topicPrefix();
         sessionId = CheckpointOffsetBackingStore.register(connectorName, split.offset());
+        var properties = config.debeziumProperties(sessionId, historyPath);
+        properties.setProperty("database.server.id", Integer.toString(serverId));
+        // Snapshot readers share a logical source but must own distinct JMX registrations.
+        properties.setProperty("custom.metric.tags", "reader=" + serverId);
         engine = DebeziumEngine.create(ChangeEventFormat.of(Connect.class))
-                .using(config.debeziumProperties(sessionId, historyPath))
+                .using(properties)
                 .notifying(this::handleBatch)
                 .build();
         worker = Thread.ofVirtual().name("yakflow-mysql-debezium").start(() -> {
@@ -128,7 +140,7 @@ public final class MySqlBinlogEngine implements AutoCloseable {
     /**
      * Copies the local Schema History for the Reader's completed-checkpoint candidate.
      *
-     * <p>SQL Schema Evolution is unsupported in PR1. The history is essential for
+     * <p>SQL Schema Evolution is unsupported. The history is essential for
      * resuming Debezium at a saved Binlog offset without rebuilding an unrelated schema.
      */
     public byte[] snapshotHistory() throws IOException {

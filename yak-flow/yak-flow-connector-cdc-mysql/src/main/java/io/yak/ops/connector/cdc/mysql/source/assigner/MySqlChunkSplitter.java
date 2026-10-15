@@ -32,6 +32,8 @@ public final class MySqlChunkSplitter {
     private final JdbcDialect dialect;
     private final Map<TableId, TableSchema> schemas;
     private final int chunkSize;
+    private volatile PreparedStatement planningStatement;
+    private volatile boolean cancelled;
 
     public MySqlChunkSplitter(MySqlCdcSourceConfig config, int chunkSize) {
         this(config::openSnapshotConnection, JdbcDialects.forUrl("jdbc:mysql:"), config.schemas(), chunkSize);
@@ -101,6 +103,55 @@ public final class MySqlChunkSplitter {
             } while (lower != null);
         }
         return List.copyOf(ranges);
+    }
+
+    /** Discovers exactly one next range; the caller checkpoints the returned upper boundary before continuing. */
+    public MySqlSnapshotSplit planNext(TableId table, String fingerprint, int tableIndex, int chunkIndex, Long lower)
+            throws SQLException {
+        if (cancelled || tableIndex < 0 || chunkIndex < 0 || chunkIndex >= MAX_CHUNKS_PER_TABLE) {
+            throw new SQLException("MySQL chunk discovery is cancelled or exceeds its range limit");
+        }
+        String key = splitKey(Objects.requireNonNull(schemas.get(table), "table schema"));
+        String quoted = dialect.quoteIdentifier(key);
+        String sql = "SELECT " + quoted + " FROM " + dialect.qualifiedTable(table)
+                + (lower == null ? "" : " WHERE " + quoted + " >= ?")
+                + " ORDER BY " + quoted + " LIMIT 1 OFFSET ?";
+        try (Connection connection = connections.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            planningStatement = statement;
+            statement.setQueryTimeout(60);
+            if (cancelled) throw new SQLException("MySQL chunk discovery was cancelled");
+            int parameter = 1;
+            if (lower != null) statement.setLong(parameter++, lower);
+            statement.setInt(parameter, chunkSize);
+            Long upper;
+            try (ResultSet rows = statement.executeQuery()) {
+                upper = rows.next() ? rows.getBigDecimal(1).longValueExact() : null;
+            } catch (ArithmeticException | NullPointerException invalidKey) {
+                throw new SQLException(
+                        "MySQL snapshot chunk key is outside the supported signed BIGINT range", invalidKey);
+            }
+            if (upper != null && lower != null && upper <= lower)
+                throw new SQLException("MySQL chunk boundary did not advance");
+            return new MySqlSnapshotSplit(
+                    "mysql-snapshot-" + tableIndex + "-" + chunkIndex, fingerprint, table, lower, upper, null);
+        } finally {
+            planningStatement = null;
+        }
+    }
+
+    /** Signals terminal discovery cancellation without blocking the coordinator. */
+    public void cancel() {
+        cancelled = true;
+        PreparedStatement running = planningStatement;
+        if (running != null)
+            Thread.ofVirtual().name("yak-mysql-discovery-cancel").start(() -> {
+                try {
+                    running.cancel();
+                } catch (SQLException ignored) {
+                    /* Discovery owns statement cleanup and observes cancellation. */
+                }
+            });
     }
 
     public static String splitKey(TableSchema schema) {

@@ -27,4 +27,23 @@ class MySqlCdcReplicationIdentityTest {
         assertEquals(MySqlCdcReplicationIdentity.exclusiveResource(first), MySqlCdcReplicationIdentity.exclusiveResource(second));
         assertNotEquals(MySqlCdcReplicationIdentity.topicPrefix(first), MySqlCdcReplicationIdentity.topicPrefix(second));
     }
+
+    @org.junit.jupiter.api.Test
+    void allocatedReplicationBlocksCannotPartiallyOverlap() {
+        var blocks = new java.util.TreeSet<Integer>();
+        for(int i=0;i<10000;i++) {
+            int base = MySqlCdcReplicationIdentity.serverId("instance-"+i);
+            org.junit.jupiter.api.Assertions.assertEquals(1,base%32);
+            org.junit.jupiter.api.Assertions.assertTrue(base>0 && base<=Integer.MAX_VALUE-16);
+            blocks.add(base);
+        }
+        Integer previous=null;
+        for(int base:blocks) {
+            if(previous!=null) org.junit.jupiter.api.Assertions.assertTrue(base-previous>=32);
+            previous=base;
+        }
+        // Complete block collisions remain subject to the existing atomic admission claim.
+        org.junit.jupiter.api.Assertions.assertEquals(MySqlCdcReplicationIdentity.exclusiveResource("Aa"),
+                MySqlCdcReplicationIdentity.exclusiveResource("BB"));
+    }
 }

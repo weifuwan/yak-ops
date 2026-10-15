@@ -3,8 +3,12 @@ package io.yak.ops.connector.jdbc.internal.executor;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 /**
@@ -20,9 +24,26 @@ public final class TableBufferedStatementExecutor<T> implements JdbcBatchStateme
 
     private final JdbcBatchStatementExecutor<T> statementExecutor;
     private final UnaryOperator<T> snapshot;
+    private final Function<T, ?> groupingKey;
     private final List<T> pending = new ArrayList<>();
 
     public TableBufferedStatementExecutor(JdbcBatchStatementExecutor<T> statementExecutor, UnaryOperator<T> snapshot) {
+        this(statementExecutor, snapshot, null);
+    }
+
+    /**
+     * Allows stable grouping only for independently writable destinations.
+     *
+     * <p>The retained list remains the only owner of records. Sorting preserves the order
+     * within each group and does not reduce, deduplicate or copy the row payloads.
+     *
+     * @param statementExecutor ordered statement executor on the owning transaction
+     * @param snapshot detach and validate records at admission
+     * @param groupingKey independent destination identity, or null to preserve input order
+     */
+    public TableBufferedStatementExecutor(
+            JdbcBatchStatementExecutor<T> statementExecutor, UnaryOperator<T> snapshot, Function<T, ?> groupingKey) {
+        this.groupingKey = groupingKey;
         this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
         this.snapshot = Objects.requireNonNull(snapshot, "snapshot");
     }
@@ -43,6 +64,14 @@ public final class TableBufferedStatementExecutor<T> implements JdbcBatchStateme
 
     @Override
     public void executeBatch() throws SQLException {
+        if (groupingKey != null) {
+            Map<Object, Integer> groups = new LinkedHashMap<>();
+            for (T value : pending) {
+                Object key = Objects.requireNonNull(groupingKey.apply(value), "batch grouping key");
+                groups.computeIfAbsent(key, ignored -> groups.size());
+            }
+            pending.sort(Comparator.comparingInt(value -> groups.get(groupingKey.apply(value))));
+        }
         for (T value : pending) {
             statementExecutor.addToBatch(value);
         }

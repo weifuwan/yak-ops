@@ -18,14 +18,12 @@ import io.yak.ops.core.data.TableRecord;
 import java.util.Objects;
 
 /**
- * Initial-snapshot MySQL CDC source with parallel JDBC chunks and deferred Binlog replay.
+ * Reads parallel normalized snapshot chunks, then one filtered continuous Binlog stream.
  *
- * <p>A single Debezium reader anchors the low watermark before any snapshot starts.
- * Snapshot splits can run on parallel Readers; after their downstream output is covered by
- * a completed checkpoint, the original Binlog stream replays from the low watermark.
- *
- * <p>The checkpoint-protected snapshot-to-Binlog handoff provides at-least-once
- * processing; replay starts at the captured low watermark.
+ * <p>Each chunk's Low-to-High changes are merged before output. The immutable result is
+ * checkpointed before emission, preserving correction events across partial external writes.
+ * A covering completed checkpoint gates the transition to continuous Binlog consumption.
+ * JDBC output remains at-least-once; no XA or cross-table source transaction guarantee is implied.
  */
 public final class MySqlHybridCdcSource implements Source<TableRecord, MySqlHybridSplit, MySqlHybridEnumeratorState> {
 
@@ -49,11 +47,13 @@ public final class MySqlHybridCdcSource implements Source<TableRecord, MySqlHybr
         this.metrics = Objects.requireNonNull(metrics, "metrics");
         config.schemas().keySet().forEach(metrics::register);
         this.config = Objects.requireNonNull(config, "config");
+        config.snapshotServerId(15);
         if (chunkSize < 1 || chunkSize > 100_000) {
             throw new IllegalArgumentException("Hybrid snapshot chunk size must be between 1 and 100000");
         }
         this.chunkSize = chunkSize;
-        fingerprint = Objects.requireNonNull(sourceFingerprint, "sourceFingerprint") + "-hybrid-" + chunkSize;
+        fingerprint =
+                Objects.requireNonNull(sourceFingerprint, "sourceFingerprint") + "-hybrid-backfill-v2-" + chunkSize;
         config.schemas().values().forEach(io.yak.ops.connector.cdc.mysql.source.assigner.MySqlChunkSplitter::splitKey);
     }
 

@@ -104,6 +104,14 @@ public final class MySqlCdcSourceConfig {
         return username;
     }
 
+    /** Returns the reserved replication ID for one of at most sixteen snapshot readers. */
+    public int snapshotServerId(int reader) {
+        if (reader < 0 || reader >= 16 || serverId > Integer.MAX_VALUE - 16) {
+            throw new IllegalArgumentException("Hybrid source requires a reserved range of seventeen replication IDs");
+        }
+        return serverId + reader + 1;
+    }
+
     public int serverId() {
         return serverId;
     }
@@ -119,7 +127,8 @@ public final class MySqlCdcSourceConfig {
      * the MySQL JDBC driver provided by the Connector module.
      */
     public java.sql.Connection openSnapshotConnection() throws java.sql.SQLException {
-        String url = "jdbc:mysql://" + hostname + ":" + port + "/";
+        String url = "jdbc:mysql://" + hostname + ":" + port
+                + "/?useCursorFetch=true&useServerPrepStmts=true&connectTimeout=10000&socketTimeout=60000";
         return java.sql.DriverManager.getConnection(url, username, password);
     }
 

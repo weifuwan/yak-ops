@@ -25,7 +25,12 @@ import java.util.TreeMap;
  */
 public final class MySqlChunkBackfill {
 
+    private static final long DEFAULT_MAX_BYTES = 64L * 1024 * 1024;
     private final MySqlSnapshotSplit split;
+    private final TableSchema schema;
+    private final long maxBytes;
+    private long retainedBytes;
+    private boolean failed;
     private final int keyPosition;
     private final int columns;
     private final int maxRows;
@@ -40,8 +45,24 @@ public final class MySqlChunkBackfill {
      * @param maxRows maximum normalized rows retained in memory
      */
     public MySqlChunkBackfill(MySqlSnapshotSplit split, TableSchema schema, int maxRows) {
+        this(split, schema, maxRows, DEFAULT_MAX_BYTES);
+    }
+
+    /**
+     * Bounds retained rows and conservatively accounted payload bytes for one chunk.
+     *
+     * @param split frozen chunk identity and range
+     * @param schema source column types used for variable-width payload accounting
+     * @param maxRows maximum number of normalized rows
+     * @param maxBytes retained payload budget, not an exact JVM heap measurement
+     */
+    public MySqlChunkBackfill(MySqlSnapshotSplit split, TableSchema schema, int maxRows, long maxBytes) {
         this.split = Objects.requireNonNull(split, "split");
-        Objects.requireNonNull(schema, "schema");
+        this.schema = Objects.requireNonNull(schema, "schema");
+        if (maxBytes < 1) {
+            throw new IllegalArgumentException("Chunk backfill must have a positive byte budget");
+        }
+        this.maxBytes = maxBytes;
         if (maxRows < 1) {
             throw new IllegalArgumentException("Chunk backfill must have a positive row limit");
         }
@@ -74,8 +95,7 @@ public final class MySqlChunkBackfill {
         if (!contains(key)) {
             throw new IllegalArgumentException("Snapshot row falls outside its chunk");
         }
-        rows.put(key, snapshot(record));
-        enforceCapacity();
+        retain(key, record);
     }
 
     /**
@@ -123,21 +143,24 @@ public final class MySqlChunkBackfill {
     public List<TableRecord> finish() {
         ensureOpen();
         sealed = true;
-        return List.copyOf(new ArrayList<>(rows.values()));
+        List<TableRecord> result = List.copyOf(rows.values());
+        rows.clear();
+        retainedBytes = 0;
+        return result;
     }
 
     private void retract(TableRecord record) {
         long key = key(record);
         if (contains(key)) {
-            rows.remove(key);
+            TableRecord removed = rows.remove(key);
+            if (removed != null) retainedBytes -= payloadBytes(removed.row());
         }
     }
 
     private void upsert(TableRecord record) {
         long key = key(record);
         if (contains(key)) {
-            rows.put(key, snapshot(record));
-            enforceCapacity();
+            retain(key, record);
         }
     }
 
@@ -155,6 +178,9 @@ public final class MySqlChunkBackfill {
         if (!split.tableId().equals(record.tableId()) || record.row().getArity() != columns) {
             throw new IllegalArgumentException("Backfill event violates the frozen source table schema");
         }
+        if (record.row().isNullAt(keyPosition)) {
+            throw new IllegalArgumentException("Backfill primary key must not be null");
+        }
         return record.row().getLong(keyPosition);
     }
 
@@ -163,15 +189,36 @@ public final class MySqlChunkBackfill {
                 && (split.upperExclusive() == null || key < split.upperExclusive());
     }
 
-    private void enforceCapacity() {
-        if (rows.size() > maxRows) {
-            throw new IllegalStateException("Snapshot Backfill row limit exceeded; retry with smaller chunks");
+    private void retain(long key, TableRecord record) {
+        TableRecord previous = rows.get(key);
+        long size = payloadBytes(record.row());
+        long nextBytes = retainedBytes - (previous == null ? 0 : payloadBytes(previous.row())) + size;
+        if ((previous == null && rows.size() >= maxRows) || nextBytes > maxBytes) {
+            failed = true;
+            rows.clear();
+            retainedBytes = 0;
+            throw new IllegalStateException("Snapshot Backfill buffer limit exceeded; use smaller chunks");
         }
+        rows.put(key, snapshot(record));
+        retainedBytes = nextBytes;
+    }
+
+    private long payloadBytes(RowData row) {
+        long bytes = 128L + 8L * columns;
+        for (int index = 0; index < columns; index++) {
+            if (row.isNullAt(index)) continue;
+            bytes += switch (schema.column(index).dataType().getTypeRoot()) {
+                case CHAR, VARCHAR -> 48L + 2L * row.getString(index).length();
+                case BINARY, VARBINARY -> 24L + ((byte[]) row.getField(index)).length;
+                default -> 64L;
+            };
+        }
+        return bytes;
     }
 
     private void ensureOpen() {
-        if (sealed) {
-            throw new IllegalStateException("Snapshot Backfill has already been finalized");
+        if (sealed || failed) {
+            throw new IllegalStateException("Snapshot Backfill has already been finalized or failed");
         }
     }
 }

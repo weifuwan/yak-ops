@@ -10,9 +10,11 @@ import io.yak.ops.core.data.TableRecord;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Selects vendor statements for multi-table changelog records while preserving input order.
@@ -31,11 +33,24 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
     private final Map<TableId, JdbcTableWritePlan> routes = new LinkedHashMap<>();
     private final Map<TableId, TableSimpleStatementExecutor> writes = new LinkedHashMap<>();
     private final Map<TableId, TableSimpleStatementExecutor> deletes = new LinkedHashMap<>();
+    private final int statementCacheSize;
+    private final Set<TableSimpleStatementExecutor> prepared = new LinkedHashSet<>();
+    private Connection connection;
     private TableSimpleStatementExecutor active;
     private TableId awaitingUpdateAfter;
     private TableRecord beforeInExecution;
 
     public TableChangelogStatementExecutor(JdbcDialect dialect, List<JdbcTableWritePlan> plans) {
+        this(dialect, plans, 64);
+    }
+
+    /** Bounds live statements across all routes; SQL and converters remain immutable route definitions. */
+    public TableChangelogStatementExecutor(
+            JdbcDialect dialect, List<JdbcTableWritePlan> plans, int statementCacheSize) {
+        if (statementCacheSize < 1) {
+            throw new IllegalArgumentException("JDBC statement cache size must be positive");
+        }
+        this.statementCacheSize = statementCacheSize;
         Objects.requireNonNull(dialect, "dialect");
         if (Objects.requireNonNull(plans, "plans").isEmpty()) {
             throw new IllegalArgumentException("JDBC Sink requires at least one table route");
@@ -107,21 +122,28 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
 
     @Override
     public void prepareStatements(Connection connection) throws SQLException {
-        try {
-            for (TableSimpleStatementExecutor statement : writes.values()) {
-                statement.prepareStatements(connection);
-            }
-            for (TableSimpleStatementExecutor statement : deletes.values()) {
-                statement.prepareStatements(connection);
-            }
-        } catch (SQLException | RuntimeException failure) {
-            try {
-                closeStatements();
-            } catch (SQLException closingFailure) {
-                failure.addSuppressed(closingFailure);
-            }
-            throw failure;
+        if (this.connection != null) {
+            throw new IllegalStateException("JDBC executor already owns a connection");
         }
+        this.connection = Objects.requireNonNull(connection, "connection");
+    }
+
+    /** Called only after switching away from and executing the previous active batch. */
+    private void prepare(TableSimpleStatementExecutor statement) throws SQLException {
+        if (connection == null) {
+            throw new IllegalStateException("JDBC executor has no connection");
+        }
+        if (prepared.remove(statement)) {
+            prepared.add(statement);
+            return;
+        }
+        if (prepared.size() == statementCacheSize) {
+            TableSimpleStatementExecutor oldest = prepared.iterator().next();
+            oldest.closeStatements();
+            prepared.remove(oldest);
+        }
+        statement.prepareStatements(connection);
+        prepared.add(statement);
     }
 
     @Override
@@ -160,6 +182,7 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
         if (active != null && active != next) {
             active.executeBatch();
         }
+        prepare(next);
         next.addToBatch(row);
         active = next;
     }
@@ -177,6 +200,8 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
 
     @Override
     public void closeStatements() throws SQLException {
+        connection = null;
+        prepared.clear();
         active = null;
         beforeInExecution = null;
         SQLException failure = null;

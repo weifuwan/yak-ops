@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Mailbox-owned SourceReader for parallel snapshot ranges and one deferred Binlog stream.
@@ -32,7 +33,9 @@ public final class MySqlHybridSourceReader
     private final TableMetrics metrics;
     private final long generation;
     private final Map<String, MySqlSnapshotSplit> finishedUnacked = new LinkedHashMap<>();
-    private io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset resumeHigh;
+    private MySqlResumeBinlogEvent resumeEvent;
+    private final java.util.Set<String> acknowledged = new java.util.HashSet<>();
+    private final Map<String, Long> finishedCheckpoint = new LinkedHashMap<>();
 
     public MySqlHybridSourceReader(MySqlCdcSourceConfig config, SourceReaderContext context) {
         this(config, context, new TableMetrics());
@@ -40,7 +43,7 @@ public final class MySqlHybridSourceReader
 
     /** Creates a Reader bound to the generation opened by its source coordinator. */
     public MySqlHybridSourceReader(MySqlCdcSourceConfig config, SourceReaderContext context, TableMetrics metrics) {
-        this(new MySqlHybridSplitReader(config, metrics), context, metrics);
+        this(new MySqlHybridSplitReader(config, metrics, context.getIndexOfSubtask()), context, metrics);
     }
 
     private MySqlHybridSourceReader(MySqlHybridSplitReader splits, SourceReaderContext context, TableMetrics metrics) {
@@ -58,8 +61,8 @@ public final class MySqlHybridSourceReader
     @Override
     protected MySqlHybridSplitState initializedState(MySqlHybridSplit split) {
         MySqlHybridSplitState state = new MySqlHybridSplitState(split);
-        if (resumeHigh != null && split instanceof MySqlHybridBinlogSplit) {
-            state.resume(resumeHigh);
+        if (resumeEvent != null && split instanceof MySqlHybridBinlogSplit) {
+            state.resume(resumeEvent.highWatermark(), resumeEvent.finishedSplits());
         }
         return state;
     }
@@ -77,31 +80,50 @@ public final class MySqlHybridSourceReader
                 throw new IllegalStateException("Continuous MySQL Binlog split cannot finish");
             }
             finishedUnacked.put(snapshot.splitId(), snapshot);
-            context.sendSourceEventToCoordinator(new MySqlSnapshotFinishedEvent(snapshot.splitId()));
+            context.sendSourceEventToCoordinator(new MySqlSnapshotFinishedEvent(
+                    Objects.requireNonNull(snapshot.finished(), "Finished chunk has no watermark")));
             context.sendSplitRequest();
         }
     }
 
     @Override
     public List<MySqlHybridSplit> snapshotState(long checkpointId) {
+        forEachActiveSplitState(state -> state.snapshotCheckpoint(checkpointId));
+        acknowledged.forEach(id -> finishedCheckpoint.putIfAbsent(id, checkpointId));
         List<MySqlHybridSplit> active = new ArrayList<>(super.snapshotState(checkpointId));
         active.addAll(finishedUnacked.values());
         return List.copyOf(active);
     }
 
     @Override
+    public void notifyCheckpointComplete(long checkpointId) {
+        forEachActiveSplitState(state -> {
+            String id = state.completeCheckpoint(checkpointId);
+            if (id != null) splits.releaseSnapshot(id);
+        });
+        finishedCheckpoint.entrySet().removeIf(entry -> {
+            if (entry.getValue() > checkpointId) return false;
+            finishedUnacked.remove(entry.getKey());
+            acknowledged.remove(entry.getKey());
+            return true;
+        });
+    }
+
+    @Override
     public void handleSourceEvents(SourceEvent event) {
         if (event instanceof MySqlSnapshotFinishedAckEvent ack) {
-            finishedUnacked.remove(ack.splitId());
+            if (finishedUnacked.containsKey(ack.splitId())) acknowledged.add(ack.splitId());
         } else if (event instanceof MySqlResumeBinlogEvent resume) {
-            resumeHigh = resume.highWatermark();
+            resumeEvent = resume;
             forEachActiveSplitState(state -> {
                 if (state.binlog()) {
-                    state.resume(resumeHigh);
+                    state.resume(resume.highWatermark(), resume.finishedSplits());
                 }
             });
             metrics.streaming(generation);
-            splits.resumeBinlog(resumeHigh);
+            splits.resumeBinlog(resume);
+        } else if (event instanceof io.yak.ops.connector.cdc.mysql.source.events.MySqlStopSnapshotEvent) {
+            splits.finishSnapshots();
         } else {
             throw new IllegalArgumentException("Unsupported MySQL hybrid Reader event");
         }

@@ -12,10 +12,10 @@ public final class MySqlCdcReplicationIdentity {
 
     private MySqlCdcReplicationIdentity() {}
 
-    /** Returns the stable positive replication server ID for one instance. */
+    /** Returns the first ID of an aligned block reserved for one Binlog and sixteen snapshot readers. */
     public static int serverId(String instanceId) {
         Objects.requireNonNull(instanceId, "instanceId");
-        return Math.floorMod(instanceId.hashCode(), 2_000_000_000) + 1;
+        return Math.floorMod(instanceId.hashCode(), 62_500_000) * 32 + 1;
     }
 
     /** Returns the stable Debezium topic namespace for one instance. */
@@ -24,7 +24,7 @@ public final class MySqlCdcReplicationIdentity {
         return "yakflow_" + instanceId;
     }
 
-    /** Declares the replication server-ID resource for atomic admission. */
+    /** Declares the aligned replication block resource for atomic admission; all platform instances use this allocator. */
     public static ExecutionResource exclusiveResource(String instanceId) {
         return new ExecutionResource("MYSQL_CDC_SERVER_ID", Integer.toString(serverId(instanceId)));
     }

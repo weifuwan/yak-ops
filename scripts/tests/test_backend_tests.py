@@ -52,6 +52,8 @@ class SuiteSelectionTest(unittest.TestCase):
 
 
 class ReportTest(unittest.TestCase):
+    CDC_COUNTS = {"MySqlBinlogIT": 1, "MySqlHybridIT": 3, "MySqlBackfillIT": 2}
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -63,24 +65,46 @@ class ReportTest(unittest.TestCase):
         (self.reports / ("TEST-" + name + ".xml")).write_text(
             '<testsuite name="sample.' + name + '" ' + attributes + '>' + body.replace("NAME", name) + '</testsuite>')
 
+    def complete_reports(self):
+        for name, count in self.CDC_COUNTS.items():
+            body = ''.join('<testcase name="test' + str(index) + '" classname="sample.NAME"/>'
+                           for index in range(count))
+            self.write(name, body)
+
     def test_complete_reports_pass(self):
-        self.write("MySqlBinlogIT")
-        self.write("MySqlHybridIT")
-        self.assertEqual({"MySqlBinlogIT": 1, "MySqlHybridIT": 1}, subject.check_reports(["cdc"], self.root))
+        self.complete_reports()
+        self.assertEqual(self.CDC_COUNTS, subject.SUITES["cdc"][2])
+        self.assertEqual(self.CDC_COUNTS, subject.check_reports(["cdc"], self.root))
 
     def test_missing_zero_skipped_failed_or_partial_are_not_green(self):
-        self.write("MySqlBinlogIT")
-        for body in ('', '<testcase classname="sample.NAME"><skipped/></testcase>', '<testcase classname="sample.NAME"><failure/></testcase>'):
-            self.write("MySqlHybridIT", body)
-            with self.assertRaises(ValueError):
-                subject.check_reports(["cdc"], self.root)
+        self.complete_reports()
+        valid_case = '<testcase classname="sample.NAME"/>'
+        for body in ('', valid_case, valid_case * 2,
+                     valid_case * 2 + '<testcase classname="sample.NAME"><skipped/></testcase>',
+                     valid_case * 2 + '<testcase classname="sample.NAME"><failure/></testcase>',
+                     valid_case * 2 + '<testcase classname="sample.NAME"><error/></testcase>'):
+            with self.subTest(body=body):
+                self.write("MySqlHybridIT", body)
+                with self.assertRaisesRegex(ValueError, "MySqlHybridIT"):
+                    subject.check_reports(["cdc"], self.root)
         (self.reports / "TEST-MySqlHybridIT.xml").unlink()
-        self.assertRaises(ValueError, subject.check_reports, ["cdc"], self.root)
+        with self.assertRaisesRegex(ValueError, "MySqlHybridIT"):
+            subject.check_reports(["cdc"], self.root)
+
+    def test_backfill_reports_are_required_in_addition_to_hybrid_reports(self):
+        self.complete_reports()
+        self.write("MySqlBackfillIT")
+        with self.assertRaisesRegex(ValueError, "MySqlBackfillIT"):
+            subject.check_reports(["cdc"], self.root)
+        (self.reports / "TEST-MySqlBackfillIT.xml").unlink()
+        with self.assertRaisesRegex(ValueError, "MySqlBackfillIT"):
+            subject.check_reports(["cdc"], self.root)
 
     def test_xml_summary_errors_block_even_without_testcase(self):
-        self.write("MySqlBinlogIT")
-        self.write("MySqlHybridIT", attributes='errors="1"')
-        self.assertRaises(ValueError, subject.check_reports, ["cdc"], self.root)
+        self.complete_reports()
+        self.write("MySqlHybridIT", body='', attributes='errors="1"')
+        with self.assertRaisesRegex(ValueError, "Failed or skipped selected integration test"):
+            subject.check_reports(["cdc"], self.root)
 
     def test_new_unregistered_it_fails(self):
         with patch.object(subject, "SUITES", {"small": ("module", "tag", {"NamedIT": 1})}):

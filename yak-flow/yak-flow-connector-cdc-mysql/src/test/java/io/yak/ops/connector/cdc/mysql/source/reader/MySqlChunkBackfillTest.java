@@ -69,6 +69,36 @@ class MySqlChunkBackfillTest {
                 () -> backfill.addSnapshot(row(RowKind.INSERT, 12L, "over capacity")));
     }
 
+    @Test
+    void byteLimitFailsClosedEvenBeforeTheRowLimit() {
+        var schema = new TableSchema(List.of(new Column("id", LogicalTypes.BIGINT.copy(false)),
+                new Column("name", LogicalTypes.varchar(10000))), List.of("id"));
+        var backfill = new MySqlChunkBackfill(split(null, null), schema, 100, 512);
+        backfill.addSnapshot(row(RowKind.INSERT, 1L, "small"));
+        assertThrows(IllegalStateException.class,
+                () -> backfill.addSnapshot(row(RowKind.INSERT, 2L, "x".repeat(2000))));
+        assertThrows(IllegalStateException.class, backfill::finish);
+        assertThrows(IllegalStateException.class,
+                () -> backfill.apply(change(row(RowKind.DELETE, 1L, "small"))));
+    }
+
+    @Test
+    void deletesReleaseThePayloadBudgetForSubsequentRows() {
+        var backfill = new MySqlChunkBackfill(split(null, null), SCHEMA, 10, 512);
+        backfill.addSnapshot(row(RowKind.INSERT, 1L, "one"));
+        backfill.apply(change(row(RowKind.DELETE, 1L, "one")));
+        backfill.apply(change(row(RowKind.INSERT, 2L, "two")));
+        assertEquals(Map.of(2L, "two"), values(backfill.finish()));
+    }
+
+    @Test
+    void rejectsNullPrimaryKeysBeforeBufferingOrRetracting() {
+        var backfill = new MySqlChunkBackfill(split(null, null), SCHEMA, 5);
+        var malformed = new TableRecord(TABLE, RowKind.INSERT, GenericRowData.of(null, "missing"));
+        assertThrows(IllegalArgumentException.class, () -> backfill.addSnapshot(malformed));
+        assertEquals(Map.of(), values(backfill.finish()));
+    }
+
     private static MySqlSnapshotSplit split(Long lower, Long upper) {
         return new MySqlSnapshotSplit("chunk", "frozen", TABLE, lower, upper, null);
     }

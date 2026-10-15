@@ -43,19 +43,25 @@ public final class MySqlSnapshotSplitAssigner {
         }
     }
 
-    /** Registers an immutable complete plan after asynchronous table discovery finishes. */
+    /** Registers a complete plan for direct callers. */
     public void plan(List<MySqlSnapshotSplit> ranges) {
-        if (planned) {
-            throw new IllegalStateException("MySQL snapshot ranges were already planned");
+        append(ranges, true);
+    }
+
+    /** Appends a bounded discovery page without treating undiscovered tables as finished. */
+    public void append(List<MySqlSnapshotSplit> ranges, boolean lastPage) {
+        if (planned || total + ranges.size() > 10_000) {
+            throw new IllegalStateException("Snapshot discovery is complete or exceeds the checkpoint chunk limit");
         }
+        Set<String> ids = new LinkedHashSet<>(assigned.keySet());
+        ids.addAll(finished);
+        pending.forEach(split -> ids.add(split.splitId()));
         for (MySqlSnapshotSplit split : ranges) {
-            if (pending.stream().anyMatch(value -> value.splitId().equals(split.splitId()))) {
-                throw new IllegalArgumentException("Duplicate MySQL snapshot split ID");
-            }
-            pending.addLast(split);
+            if (!ids.add(split.splitId())) throw new IllegalArgumentException("Duplicate MySQL snapshot split ID");
         }
-        total = pending.size();
-        planned = true;
+        pending.addAll(ranges);
+        total += ranges.size();
+        planned = lastPage;
     }
 
     /** Assigns a split without acknowledging its downstream consumption. */

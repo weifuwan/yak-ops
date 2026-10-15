@@ -37,14 +37,14 @@ class MySqlHybridBinlogSplitTest {
         exposed[0] = 88;
         assertArrayEquals(new byte[] {1, 2, 3}, paused.binlog().schemaHistory());
 
-        MySqlHybridBinlogSplit running = paused.startStreaming(high);
+        MySqlHybridBinlogSplit running = paused.startStreaming(high, completed(high));
         assertEquals(MySqlHybridBinlogSplit.Phase.STREAMING, running.phase());
         assertEquals(high, running.highWatermark());
-        assertSame(paused.binlog(), running.binlog());
+        assertNotSame(paused.binlog(), running.binlog());
 
         MySqlHybridBinlogSplit progressed = running.withEmittedOffset(emitted, new byte[] {4, 5});
         assertNotSame(running, progressed);
-        assertEquals(low, running.binlog().offset());
+        assertEquals(high, running.binlog().offset());
         assertEquals(emitted, progressed.binlog().offset());
         assertArrayEquals(new byte[] {4, 5}, progressed.binlog().schemaHistory());
         assertEquals(high, progressed.highWatermark());
@@ -74,7 +74,7 @@ class MySqlHybridBinlogSplitTest {
                 new MySqlBinlogSplit("fingerprint", null, new byte[0]),
                 MySqlHybridBinlogSplit.Phase.BOOTSTRAP,
                 null);
-        assertThrows(IllegalStateException.class, () -> bootstrap.startStreaming(offset(100L)));
+        assertThrows(IllegalStateException.class, () -> bootstrap.startStreaming(offset(100L), completed(offset(100L))));
         assertThrows(IllegalArgumentException.class, () -> new MySqlHybridBinlogSplit(
                 bootstrap.binlog(), MySqlHybridBinlogSplit.Phase.PAUSED, null));
 
@@ -87,5 +87,20 @@ class MySqlHybridBinlogSplitTest {
         return new BinlogOffset(
                 Map.of("server", "secret-server"),
                 Map.of("file", "sensitive-binlog-position", "pos", position));
+    }
+
+    private static java.util.List<FinishedSnapshotSplitInfo> completed(BinlogOffset high) {
+        return java.util.List.of(new FinishedSnapshotSplitInfo(
+                new io.yak.ops.core.data.TableId("shop", null, "orders"), "chunk", null, null, high));
+    }
+
+    @org.junit.jupiter.api.Test
+    void refusesStreamingStateWithoutMatchingCompletedChunkMetadata() {
+        var binlog = new MySqlBinlogSplit("fp", offset(200L), new byte[]{1});
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new MySqlHybridBinlogSplit(binlog, MySqlHybridBinlogSplit.Phase.STREAMING, offset(200L)));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new MySqlHybridBinlogSplit(binlog, MySqlHybridBinlogSplit.Phase.STREAMING,
+                        offset(300L), completed(offset(200L))));
     }
 }

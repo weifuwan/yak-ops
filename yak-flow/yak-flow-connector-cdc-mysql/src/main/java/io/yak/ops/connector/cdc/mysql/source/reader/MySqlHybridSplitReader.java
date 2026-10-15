@@ -6,61 +6,62 @@ import io.yak.ops.connector.base.source.reader.RecordsWithSplitIds;
 import io.yak.ops.connector.base.source.reader.splitreader.SplitReader;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceConfig;
 import io.yak.ops.connector.cdc.mysql.source.debezium.MySqlBinlogEngine;
-import io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset;
+import io.yak.ops.connector.cdc.mysql.source.events.MySqlResumeBinlogEvent;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridBinlogSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit;
 import io.yak.ops.core.data.TableId;
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Multiplexes JDBC Snapshot scans and a paused Debezium Binlog on one Connector Base fetcher.
+ * Fetches normalized chunks and a filtered Binlog stream without advancing mailbox checkpoint state.
  *
- * <p>One Debezium engine is started before snapshot planning and is kept behind a bounded
- * handover queue. The first event anchors the low watermark and remains represented by
- * the subsequent snapshot; later Binlog events cannot leave this Reader until the source
- * coordinator confirms a checkpoint covering all Snapshot splits.
+ * <p>A prepared result waits for a completed checkpoint before any output batch is released.
+ * Restored results are replayed verbatim, not recomputed from a later database snapshot.
  */
 public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetchedRecord, MySqlHybridSplit> {
-
-    private static final Logger LOG = LoggerFactory.getLogger(MySqlHybridSplitReader.class);
-
-    private final MySqlSnapshotSplitReader snapshots;
-    private final MySqlBinlogEngine binlog;
+    private static final int OUTPUT_BATCH_SIZE = 256;
+    private final MySqlCdcSourceConfig config;
+    private final MySqlSnapshotBackfillReader snapshots;
     private final TableMetrics metrics;
     private final long generation;
     private final Set<TableId> tables;
-    private volatile boolean cancelled;
     private final Deque<MySqlSnapshotSplit> pending = new ArrayDeque<>();
-
-    private MySqlSnapshotSplit activeSnapshot;
-    private BinlogEvent bootstrapCandidate;
-    private boolean binlogAssigned;
-    private boolean bootstrap;
-    private volatile boolean streaming;
-    private volatile boolean resumeRequested;
+    private final Set<String> released = ConcurrentHashMap.newKeySet();
+    private volatile MySqlBinlogEngine binlog;
+    private volatile byte[] history = new byte[0];
+    private volatile MySqlResumeBinlogEvent resume;
+    private volatile boolean cancelled;
+    private MySqlHybridBinlogSplit binlogSplit;
+    private MySqlBinlogSplitFilter filter;
+    private MySqlSnapshotSplit active;
+    private int outputPosition;
+    private boolean streaming;
+    private volatile boolean snapshotsFinished;
+    private boolean snapshotsClosed;
     private boolean closed;
+    private BinlogEvent bootstrapCandidate;
 
     public MySqlHybridSplitReader(MySqlCdcSourceConfig config) {
-        this(config, new TableMetrics());
+        this(config, new TableMetrics(), 0);
     }
 
-    /** Binds fetch failures and liveness to the Reader generation without retaining row values. */
     public MySqlHybridSplitReader(MySqlCdcSourceConfig config, TableMetrics metrics) {
-        this.metrics = metrics;
+        this(config, metrics, 0);
+    }
+
+    public MySqlHybridSplitReader(MySqlCdcSourceConfig config, TableMetrics metrics, int reader) {
+        this.config = Objects.requireNonNull(config, "config");
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
         generation = metrics.generation();
         tables = Set.copyOf(config.schemas().keySet());
-        snapshots = new MySqlSnapshotSplitReader(Objects.requireNonNull(config, "config"));
-        binlog = new MySqlBinlogEngine(config);
+        snapshots = new MySqlSnapshotBackfillReader(config, reader);
     }
 
     @Override
@@ -68,17 +69,14 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
         for (MySqlHybridSplit split : splits) {
             if (split instanceof MySqlSnapshotSplit snapshot) {
                 pending.addLast(snapshot);
+                if (snapshot.prepared()) released.add(snapshot.splitId());
             } else if (split instanceof MySqlHybridBinlogSplit stream) {
-                if (binlogAssigned) {
-                    throw new IllegalStateException("A Hybrid Reader cannot own two Binlog splits");
-                }
-                bootstrap = stream.phase() == MySqlHybridBinlogSplit.Phase.BOOTSTRAP;
-                streaming = stream.phase() == MySqlHybridBinlogSplit.Phase.STREAMING || resumeRequested;
-                binlog.start(stream.binlog());
-                binlogAssigned = true;
-            } else {
-                throw new IllegalArgumentException("Unknown MySQL Hybrid Split");
-            }
+                if (binlogSplit != null) throw new IllegalStateException("Hybrid Reader already owns Binlog");
+                binlogSplit = stream;
+                history = stream.binlog().schemaHistory();
+                if (stream.phase() == MySqlHybridBinlogSplit.Phase.BOOTSTRAP) startBinlog(stream);
+                else if (stream.phase() == MySqlHybridBinlogSplit.Phase.STREAMING) startStreaming(stream);
+            } else throw new IllegalArgumentException("Unknown MySQL Hybrid split");
         }
     }
 
@@ -90,7 +88,7 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
             return result;
         } catch (Exception failure) {
             if (!cancelled && !(failure instanceof InterruptedException)) {
-                if (activeSnapshot != null) metrics.readFailed(generation, activeSnapshot.tableId(), false);
+                if (active != null) metrics.readFailed(generation, active.tableId(), false);
                 else tables.forEach(table -> metrics.readFailed(generation, table, streaming));
             }
             throw failure;
@@ -98,114 +96,151 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
     }
 
     private RecordsWithSplitIds<MySqlHybridFetchedRecord> fetchRecords() throws Exception {
-        if (closed) {
-            throw new IllegalStateException("MySQL hybrid reader has closed");
-        }
-        if (bootstrap && binlogAssigned) {
-            if (bootstrapCandidate == null) {
-                bootstrapCandidate = binlog.poll();
+        if (closed || cancelled) throw new IllegalStateException("MySQL hybrid reader is closed or cancelled");
+        if (binlogSplit != null && binlogSplit.phase() == MySqlHybridBinlogSplit.Phase.BOOTSTRAP) {
+            if (bootstrapCandidate == null) bootstrapCandidate = binlog.poll();
+            if (bootstrapCandidate == null) return empty();
+            byte[] discovered = binlog.snapshotHistory();
+            if (discovered.length == 0) {
+                Thread.sleep(20);
+                return empty();
             }
-            if (bootstrapCandidate != null) {
-                byte[] history = binlog.snapshotHistory();
-                if (history.length == 0) {
-                    // Debezium schema discovery and the first heartbeat are asynchronous.
-                    // Keep the anchor event until its corresponding history is checkpointable.
-                    Thread.sleep(100);
-                    return new RecordsBySplits<>(Map.of(), Set.of());
-                }
-                BinlogEvent first = bootstrapCandidate;
-                bootstrapCandidate = null;
-                bootstrap = false;
-                return new RecordsBySplits<>(
-                        Map.of(
-                                MySqlHybridBinlogSplit.ID,
-                                List.of(new MySqlHybridFetchedRecord(List.of(), null, first.offset(), true))),
-                        Set.of());
+            BinlogEvent first = bootstrapCandidate;
+            history = discovered;
+            binlog.close();
+            binlog = null;
+            binlogSplit = binlogSplit.withAnchor(first.offset(), history);
+            bootstrapCandidate = null;
+            return records(
+                    MySqlHybridBinlogSplit.ID,
+                    new MySqlHybridFetchedRecord(List.of(), null, first.offset(), true),
+                    false);
+        }
+        if (active == null && !pending.isEmpty()) {
+            active = pending.removeFirst();
+            outputPosition = active.outputPosition();
+            if (!active.prepared()) {
+                active = snapshots.read(active);
+                return records(active.splitId(), MySqlHybridFetchedRecord.prepared(active), false);
             }
         }
-        if (activeSnapshot == null && !pending.isEmpty()) {
-            activeSnapshot = pending.removeFirst();
-            snapshots.open(activeSnapshot);
-        }
-        if (activeSnapshot != null) {
-            RecordsWithSplitIds<MySqlHybridFetchedRecord> batch = snapshots.fetch();
-            if (batch.finishedSplits().contains(activeSnapshot.splitId())) {
-                activeSnapshot = null;
+        if (active != null) {
+            String id = active.splitId();
+            if (active.finished() != null) {
+                active = null;
+                released.remove(id);
+                return new RecordsBySplits<>(Map.of(), Set.of(id));
             }
-            return batch;
+            if (!released.contains(id)) {
+                Thread.sleep(20);
+                return empty();
+            }
+            List<io.yak.ops.core.data.TableRecord> rows = active.output().rows();
+            int next = Math.min(rows.size(), outputPosition + OUTPUT_BATCH_SIZE);
+            MySqlHybridFetchedRecord batch =
+                    MySqlHybridFetchedRecord.snapshotRows(rows.subList(outputPosition, next), next);
+            outputPosition = next;
+            boolean complete = next == rows.size();
+            if (complete) {
+                active = null;
+                released.remove(id);
+            }
+            return records(id, batch, complete);
         }
-        if (binlogAssigned && streaming) {
-            long pollStartedNanos = System.nanoTime();
+        if (snapshotsFinished && !snapshotsClosed) {
+            snapshots.close();
+            snapshotsClosed = true;
+        }
+        if (binlogSplit != null && resume != null && !streaming) {
+            startStreaming(binlogSplit.startStreaming(resume.highWatermark(), resume.finishedSplits()));
+        }
+        if (streaming) {
             BinlogEvent event = binlog.poll();
             if (event != null) {
-                if ("true".equals(MDC.get("taskLogDebug"))) {
-                    LOG.debug(
-                            "CDC binlog batch fetched, events={}, pollMs={}",
-                            event.records().size(),
-                            (System.nanoTime() - pollStartedNanos) / 1_000_000);
-                }
-                return new RecordsBySplits<>(
-                        Map.of(
-                                MySqlHybridBinlogSplit.ID,
-                                List.of(new MySqlHybridFetchedRecord(event.records(), null, event.offset(), false))),
-                        Set.of());
+                BinlogEvent filtered = filter.filter(event);
+                return records(
+                        MySqlHybridBinlogSplit.ID,
+                        new MySqlHybridFetchedRecord(filtered.records(), null, filtered.offset(), false),
+                        false);
             }
-        } else {
-            Thread.sleep(100);
-        }
-        return new RecordsBySplits<>(Map.of(), Set.of());
+        } else Thread.sleep(20);
+        return empty();
     }
 
-    /** Releases the Binlog gate only after the hybrid checkpoint handoff. */
-    public void resumeBinlog(BinlogOffset high) {
-        Objects.requireNonNull(high, "high");
-        resumeRequested = true;
+    private void startBinlog(MySqlHybridBinlogSplit split) throws Exception {
+        binlog = new MySqlBinlogEngine(config);
+        binlog.start(split.binlog());
+    }
+
+    private void startStreaming(MySqlHybridBinlogSplit split) throws Exception {
+        filter = new MySqlBinlogSplitFilter(config.schemas(), split.finishedSplits());
+        if (binlog != null) throw new IllegalStateException("Bootstrap Binlog was not closed before handoff");
+        // Snapshot backfill connections are no longer needed once this Reader enters streaming.
+        snapshots.close();
+        binlogSplit = split;
+        history = split.binlog().schemaHistory();
+        startBinlog(split);
         streaming = true;
-        LOG.info("CDC binlog streaming resumed after snapshot checkpoint");
+    }
+
+    public void finishSnapshots() {
+        snapshotsFinished = true;
+    }
+
+    public void releaseSnapshot(String splitId) {
+        if (!cancelled) released.add(splitId);
+    }
+
+    public void resumeBinlog(MySqlResumeBinlogEvent event) {
+        resume = Objects.requireNonNull(event, "event");
     }
 
     public byte[] snapshotHistory() {
-        try {
-            return binlog.snapshotHistory();
-        } catch (IOException problem) {
-            throw new IllegalStateException("MySQL hybrid Schema History checkpoint failed", problem);
-        }
+        return history.clone();
     }
 
     @Override
     public void wakeUp() {
-        // Blocking fetch calls are bounded; ordinary snapshot assignment must not stop Binlog I/O.
+        /* New assignments must not cancel active JDBC or Binlog I/O. */
     }
 
     @Override
     public void cancel() {
         cancelled = true;
-        binlog.requestStop();
+        snapshots.cancel();
+        MySqlBinlogEngine running = binlog;
+        if (running != null) running.requestStop();
     }
 
     @Override
     public void close() throws Exception {
-        if (closed) {
-            return;
-        }
+        if (closed) return;
         closed = true;
+        cancel();
         Exception failure = null;
         try {
             snapshots.close();
-        } catch (Exception problem) {
-            failure = problem;
+        } catch (Exception error) {
+            failure = error;
         }
         try {
-            binlog.close();
-        } catch (Exception problem) {
-            if (failure == null) {
-                failure = problem;
-            } else {
-                failure.addSuppressed(problem);
-            }
+            if (binlog != null) binlog.close();
+        } catch (Exception error) {
+            if (failure == null) failure = error;
+            else failure.addSuppressed(error);
         }
-        if (failure != null) {
-            throw failure;
-        }
+        pending.clear();
+        released.clear();
+        active = null;
+        if (failure != null) throw failure;
+    }
+
+    private static RecordsWithSplitIds<MySqlHybridFetchedRecord> empty() {
+        return new RecordsBySplits<>(Map.of(), Set.of());
+    }
+
+    private static RecordsWithSplitIds<MySqlHybridFetchedRecord> records(
+            String id, MySqlHybridFetchedRecord record, boolean complete) {
+        return new RecordsBySplits<>(Map.of(id, List.of(record)), complete ? Set.of(id) : Set.of());
     }
 }

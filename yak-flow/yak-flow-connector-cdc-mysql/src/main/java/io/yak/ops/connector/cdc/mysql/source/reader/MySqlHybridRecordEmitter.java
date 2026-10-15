@@ -38,12 +38,18 @@ public final class MySqlHybridRecordEmitter
     public void emitRecord(
             MySqlHybridFetchedRecord event, ReaderOutput<TableRecord> output, MySqlHybridSplitState state)
             throws Exception {
+        if (event.preparedSnapshot() != null) {
+            state.prepareSnapshot(event.preparedSnapshot());
+            return;
+        }
         for (TableRecord row : event.rows()) {
             output.collect(row);
             metrics.read(generation, row.tableId(), state.binlog());
         }
         metrics.observed(generation);
-        if (event.snapshotKey() != null) {
+        if (event.snapshotRowsEmitted() != null) {
+            state.emitSnapshotRows(event.snapshotRowsEmitted());
+        } else if (event.snapshotKey() != null) {
             state.emitSnapshotKey(event.snapshotKey());
         } else if (event.lowWatermark()) {
             state.captureLow(event.binlogOffset(), splits.snapshotHistory());

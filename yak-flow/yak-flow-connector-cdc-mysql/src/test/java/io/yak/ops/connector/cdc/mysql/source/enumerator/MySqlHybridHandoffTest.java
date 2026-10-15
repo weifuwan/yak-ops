@@ -30,7 +30,7 @@ class MySqlHybridHandoffTest {
         assigner.plan(List.of(split));
         assertFalse(assigner.snapshotComplete());
         assertEquals(split, assigner.nextSnapshot());
-        assigner.finishSnapshot(split.splitId());
+        assigner.finishSnapshot(finished(split, 300));
         assertTrue(assigner.snapshotComplete());
         assigner.captureHigh(high);
         assertFalse(assigner.completeCheckpoint(11));
@@ -43,6 +43,7 @@ class MySqlHybridHandoffTest {
         var restored = new MySqlHybridSplitAssigner("fingerprint", checkpoint);
         restored.resumeRestoredHandoff();
         assertEquals(MySqlHybridEnumeratorState.Phase.STREAMING, restored.phase());
+        assigner.snapshot(13);
         assertTrue(assigner.completeCheckpoint(12));
         assertEquals(MySqlHybridEnumeratorState.Phase.STREAMING, assigner.phase());
     }
@@ -68,7 +69,7 @@ class MySqlHybridHandoffTest {
     }
 
     @Test
-    void checkpointDuringHighWatermarkLookupAllowsSafeRetryOnRestore() throws Exception {
+    void restoresCompletedWatermarksBeforeHandoff() throws Exception {
         var low = new BinlogOffset(Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", 100L));
         var assigner = new MySqlHybridSplitAssigner("fingerprint", null);
         assigner.nextBinlog(0);
@@ -77,7 +78,7 @@ class MySqlHybridHandoffTest {
                 "snap-1", "fingerprint", new TableId("shop", null, "orders"), null, null, null);
         assigner.plan(List.of(split));
         assigner.nextSnapshot();
-        assigner.finishSnapshot(split.splitId());
+        assigner.finishSnapshot(finished(split, 200));
 
         var saved = assigner.snapshot(22);
         var serializer = new MySqlHybridEnumeratorStateSerializer();
@@ -95,5 +96,12 @@ class MySqlHybridHandoffTest {
         var assigner = new MySqlHybridSplitAssigner("fingerprint", null);
         var state = assigner.snapshot(1);
         assertThrows(IllegalArgumentException.class, () -> new MySqlHybridSplitAssigner("changed", state));
+    }
+
+    private static io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo finished(
+            MySqlSnapshotSplit split, long position) {
+        return new io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo(split.tableId(),
+                split.splitId(), split.lowerInclusive(), split.upperExclusive(),
+                new BinlogOffset(Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", position)));
     }
 }

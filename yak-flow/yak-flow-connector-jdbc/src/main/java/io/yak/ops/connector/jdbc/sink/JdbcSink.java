@@ -32,6 +32,8 @@ public final class JdbcSink implements Sink<TableRecord> {
     private final List<JdbcTableWritePlan> plans;
     private final BatchFlushPolicy batchPolicy;
     private final TableMetrics metrics;
+    private final JdbcBatchOrder batchOrder;
+    private final int statementCacheSize;
 
     public JdbcSink(
             JdbcConnectionProvider connections,
@@ -67,6 +69,30 @@ public final class JdbcSink implements Sink<TableRecord> {
             List<JdbcTableWritePlan> plans,
             BatchFlushPolicy batchPolicy,
             TableMetrics metrics) {
+        this(
+                connections,
+                dialect,
+                plans,
+                batchPolicy,
+                metrics,
+                JdbcBatchOrder.INPUT_ORDER,
+                JdbcSinkOptions.STATEMENT_CACHE_SIZE.defaultValue());
+    }
+
+    /** Creates an explicitly ordered Sink without inferring table independence from UPSERT mode. */
+    public JdbcSink(
+            JdbcConnectionProvider connections,
+            JdbcDialect dialect,
+            List<JdbcTableWritePlan> plans,
+            BatchFlushPolicy batchPolicy,
+            TableMetrics metrics,
+            JdbcBatchOrder batchOrder,
+            int statementCacheSize) {
+        this.batchOrder = Objects.requireNonNull(batchOrder, "batchOrder");
+        if (statementCacheSize < 1) {
+            throw new IllegalArgumentException("JDBC statement cache size must be positive");
+        }
+        this.statementCacheSize = statementCacheSize;
         this.metrics = Objects.requireNonNull(metrics, "metrics");
         this.connections = Objects.requireNonNull(connections, "connections");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
@@ -102,7 +128,8 @@ public final class JdbcSink implements Sink<TableRecord> {
     @Override
     public JdbcWriter createWriter(WriterInitContext context) throws Exception {
         Objects.requireNonNull(context, "context");
-        JdbcOutputFormat output = new JdbcOutputFormat(connections, dialect, plans, metrics);
+        JdbcOutputFormat output =
+                new JdbcOutputFormat(connections, dialect, plans, metrics, batchOrder, statementCacheSize);
         try {
             return new JdbcWriter(output, batchPolicy, context);
         } catch (RuntimeException | Error failure) {

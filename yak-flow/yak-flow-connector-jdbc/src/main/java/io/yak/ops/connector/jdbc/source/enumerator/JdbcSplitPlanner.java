@@ -145,7 +145,14 @@ public final class JdbcSplitPlanner {
                     } catch (ArithmeticException | NullPointerException outOfRange) {
                         // Unsigned BIGINT values outside signed-long range cannot be checkpointed
                         // through the supported numeric cursor. Replay the complete table instead.
-                        return List.of(fullScan(tableIndex, table, selectedColumns, null, schemaFingerprint));
+                        // The fallback no longer reads a hidden cursor column. Fingerprint
+                        // its actual projection and absent cursor, not the rejected key plan.
+                        return List.of(fullScan(
+                                tableIndex,
+                                table,
+                                selectedColumns,
+                                null,
+                                schemaFingerprint(connection, table, selectedColumns, null)));
                     }
 
                     if (minimum > maximum) {

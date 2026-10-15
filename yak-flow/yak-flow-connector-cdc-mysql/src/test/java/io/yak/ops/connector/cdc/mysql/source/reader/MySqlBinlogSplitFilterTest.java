@@ -83,6 +83,55 @@ class MySqlBinlogSplitFilterTest {
                         new FinishedSnapshotSplitInfo(TABLE, "overlap", 90L, null, offset(300)))));
     }
 
+    @Test
+    void rejectsTwoUnboundedRangesBeforeConsumingAnyRecord() {
+        assertThrows(IllegalArgumentException.class, () -> new MySqlBinlogSplitFilter(Map.of(TABLE, SCHEMA),
+                List.of(new FinishedSnapshotSplitInfo(TABLE, "a", null, null, offset(200)),
+                        new FinishedSnapshotSplitInfo(TABLE, "b", null, null, offset(300)))));
+    }
+
+    @Test
+    void rejectsDuplicateSplitIdentityAcrossDifferentTables() {
+        TableId other = new TableId("shop", null, "items");
+        assertThrows(IllegalArgumentException.class, () -> new MySqlBinlogSplitFilter(
+                Map.of(TABLE, SCHEMA, other, SCHEMA),
+                List.of(new FinishedSnapshotSplitInfo(TABLE, "same", null, null, offset(200)),
+                        new FinishedSnapshotSplitInfo(other, "same", null, null, offset(300)))));
+    }
+
+    @Test
+    void binaryLookupHonorsHalfOpenBoundsAndLongExtremes() {
+        var filter = filter();
+        assertEquals(1, filter.filter(event(250, row(RowKind.INSERT, 99, "left"))).records().size());
+        assertEquals(0, filter.filter(event(250, row(RowKind.INSERT, 100, "right"))).records().size());
+        assertEquals(1, filter.filter(event(350, row(RowKind.INSERT, Long.MIN_VALUE, "min"))).records().size());
+        assertEquals(1, filter.filter(event(350, row(RowKind.INSERT, Long.MAX_VALUE, "max"))).records().size());
+    }
+
+    @Test
+    void resolvesThousandsOfUnsortedChunksToTheirOwnHighWatermarks() {
+        var chunks = new java.util.ArrayList<FinishedSnapshotSplitInfo>();
+        for (int index = 1023; index >= 0; index--) {
+            chunks.add(new FinishedSnapshotSplitInfo(TABLE, "c" + index,
+                    index == 0 ? null : (long) index,
+                    index == 1023 ? null : (long) index + 1, offset(100 + 2L * index)));
+        }
+        var filter = new MySqlBinlogSplitFilter(Map.of(TABLE, SCHEMA), chunks);
+        for (int index = 0; index < 1024; index++) {
+            assertEquals(0, filter.filter(event(100 + 2L * index, row(RowKind.INSERT, index, "covered"))).records().size());
+            assertEquals(1, filter.filter(event(101 + 2L * index, row(RowKind.INSERT, index, "new"))).records().size());
+        }
+    }
+
+    @Test
+    void rejectsNullKeysAndMalformedRowShapes() {
+        var filter = filter();
+        assertThrows(IllegalArgumentException.class, () -> filter.filter(event(350,
+                new TableRecord(TABLE, RowKind.INSERT, GenericRowData.of(null, "null-key")))));
+        assertThrows(IllegalArgumentException.class, () -> filter.filter(event(350,
+                new TableRecord(TABLE, RowKind.INSERT, GenericRowData.of(1L)))));
+    }
+
     private static MySqlBinlogSplitFilter filter() {
         return new MySqlBinlogSplitFilter(
                 Map.of(TABLE, SCHEMA),

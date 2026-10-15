@@ -2,9 +2,12 @@ package io.yak.ops.connector.cdc.mysql.source.assigner;
 
 import io.yak.ops.connector.cdc.mysql.source.enumerator.MySqlHybridEnumeratorState;
 import io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset;
+import io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridBinlogSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -22,6 +25,10 @@ public final class MySqlHybridSplitAssigner {
     private BinlogOffset low;
     private BinlogOffset high;
     private Long handoffCheckpointId;
+    private final Map<String, FinishedSnapshotSplitInfo> completed = new LinkedHashMap<>();
+    private int nextTableIndex;
+    private int nextChunkIndex;
+    private Long nextChunkLower;
 
     public MySqlHybridSplitAssigner(String fingerprint, MySqlHybridEnumeratorState restored) {
         this.fingerprint = Objects.requireNonNull(fingerprint, "fingerprint");
@@ -33,6 +40,10 @@ public final class MySqlHybridSplitAssigner {
             if (!fingerprint.equals(restored.fingerprint())) {
                 throw new IllegalArgumentException("MySQL hybrid source definition changed since checkpoint");
             }
+            restored.finishedSplitInfos().forEach(info -> completed.put(info.splitId(), info));
+            nextTableIndex = restored.nextTableIndex();
+            nextChunkIndex = restored.nextChunkIndex();
+            nextChunkLower = restored.nextChunkLower();
             phase = restored.phase();
             low = restored.lowWatermark();
             high = restored.highWatermark();
@@ -75,8 +86,50 @@ public final class MySqlHybridSplitAssigner {
         snapshots.plan(splits);
     }
 
-    public void finishSnapshot(String splitId) {
-        snapshots.complete(splitId);
+    public void finishSnapshot(FinishedSnapshotSplitInfo info) {
+        FinishedSnapshotSplitInfo previous = completed.get(info.splitId());
+        if (previous != null) {
+            if (!previous.equals(info)) throw new IllegalStateException("Conflicting completed chunk High watermark");
+            return;
+        }
+        MySqlSnapshotSplit original = snapshots.assigned().get(info.splitId());
+        if (original == null
+                || !original.tableId().equals(info.tableId())
+                || !Objects.equals(original.lowerInclusive(), info.lowerInclusive())
+                || !Objects.equals(original.upperExclusive(), info.upperExclusive())) {
+            throw new IllegalArgumentException("Completed chunk differs from its assigned range");
+        }
+        snapshots.complete(info.splitId());
+        completed.put(info.splitId(), info);
+    }
+
+    public void appendPlan(MySqlSnapshotSplit split, int table, int chunk, Long lower, boolean last) {
+        if (phase != MySqlHybridEnumeratorState.Phase.SNAPSHOT)
+            throw new IllegalStateException("Snapshot discovery is inactive");
+        snapshots.append(List.of(split), last);
+        nextTableIndex = table;
+        nextChunkIndex = chunk;
+        nextChunkLower = lower;
+    }
+
+    public List<FinishedSnapshotSplitInfo> finishedSplits() {
+        return List.copyOf(completed.values());
+    }
+
+    public int nextTableIndex() {
+        return nextTableIndex;
+    }
+
+    public int nextChunkIndex() {
+        return nextChunkIndex;
+    }
+
+    public Long nextChunkLower() {
+        return nextChunkLower;
+    }
+
+    public int pendingSnapshotCount() {
+        return snapshots.pending().size();
     }
 
     public boolean snapshotComplete() {
@@ -122,7 +175,7 @@ public final class MySqlHybridSplitAssigner {
         if (checkpointId < 0) {
             throw new IllegalArgumentException("Checkpoint ID must not be negative");
         }
-        if (phase == MySqlHybridEnumeratorState.Phase.HANDOFF) {
+        if (phase == MySqlHybridEnumeratorState.Phase.HANDOFF && handoffCheckpointId == null) {
             handoffCheckpointId = checkpointId;
         }
         return new MySqlHybridEnumeratorState(
@@ -136,7 +189,11 @@ public final class MySqlHybridSplitAssigner {
                 snapshots.total(),
                 snapshots.pending(),
                 snapshots.assigned(),
-                snapshots.finished());
+                snapshots.finished(),
+                finishedSplits(),
+                nextTableIndex,
+                nextChunkIndex,
+                nextChunkLower);
     }
 
     public void addBack(MySqlHybridBinlogSplit split) {

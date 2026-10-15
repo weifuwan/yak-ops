@@ -8,10 +8,12 @@ import io.yak.ops.core.data.TableRecord;
 import io.yak.ops.core.types.TableSchema;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Filters Binlog changes already contained in per-chunk normalized snapshot output.
@@ -25,6 +27,7 @@ public final class MySqlBinlogSplitFilter {
 
     private final Map<TableId, List<FinishedSnapshotSplitInfo>> completed = new LinkedHashMap<>();
     private final Map<TableId, Integer> keyPositions = new LinkedHashMap<>();
+    private final Map<TableId, Integer> columnCounts = new LinkedHashMap<>();
 
     /**
      * Builds an immutable table-indexed filter using the completed initial snapshot.
@@ -56,16 +59,16 @@ public final class MySqlBinlogSplitFilter {
             }
             completed.put(entry.getKey(), new ArrayList<>());
             keyPositions.put(entry.getKey(), index);
+            columnCounts.put(entry.getKey(), schema.columnCount());
         }
+        Set<String> splitIds = new HashSet<>();
         for (FinishedSnapshotSplitInfo chunk : finished) {
+            if (!splitIds.add(chunk.splitId())) {
+                throw new IllegalArgumentException("Duplicate completed snapshot chunk identity");
+            }
             List<FinishedSnapshotSplitInfo> table = completed.get(chunk.tableId());
             if (table == null) {
                 throw new IllegalArgumentException("Unknown completed snapshot table");
-            }
-            for (FinishedSnapshotSplitInfo existing : table) {
-                if (existing.splitId().equals(chunk.splitId())) {
-                    throw new IllegalArgumentException("Duplicate completed snapshot chunk");
-                }
             }
             table.add(chunk);
         }
@@ -79,8 +82,11 @@ public final class MySqlBinlogSplitFilter {
                 throw new IllegalArgumentException("Finished snapshot ranges do not cover the entire keyspace");
             }
             for (int index = 1; index < infos.size(); index++) {
-                if (!Objects.equals(
-                        infos.get(index - 1).upperExclusive(), infos.get(index).lowerInclusive())) {
+                if (infos.get(index - 1).upperExclusive() == null
+                        || infos.get(index).lowerInclusive() == null
+                        || !Objects.equals(
+                                infos.get(index - 1).upperExclusive(),
+                                infos.get(index).lowerInclusive())) {
                     throw new IllegalArgumentException("Finished snapshot ranges have a gap or overlap");
                 }
             }
@@ -137,17 +143,28 @@ public final class MySqlBinlogSplitFilter {
         if (infos == null || position == null) {
             throw new IllegalArgumentException("Binlog event references an unregistered source table");
         }
+        if (record.row().getArity() != columnCounts.get(record.tableId())
+                || record.row().isNullAt(position)) {
+            throw new IllegalArgumentException("Binlog row violates its frozen schema or primary key");
+        }
         long key = record.row().getLong(position);
-        FinishedSnapshotSplitInfo match = null;
-        for (FinishedSnapshotSplitInfo info : infos) {
-            if (info.contains(key)) {
-                if (match != null) {
-                    throw new IllegalStateException("Overlapping finished snapshot key ranges");
-                }
-                match = info;
+        // Construction proves complete, non-overlapping coverage. Find the greatest
+        // inclusive lower bound without scanning every chunk for each Binlog mutation.
+        int left = 0;
+        int right = infos.size() - 1;
+        int matched = 0;
+        while (left <= right) {
+            int middle = left + (right - left) / 2;
+            Long lower = infos.get(middle).lowerInclusive();
+            if (lower == null || lower <= key) {
+                matched = middle;
+                left = middle + 1;
+            } else {
+                right = middle - 1;
             }
         }
-        if (match == null) {
+        FinishedSnapshotSplitInfo match = infos.get(matched);
+        if (!match.contains(key)) {
             throw new IllegalStateException("Missing finished snapshot metadata for Binlog key");
         }
         return BinlogOffsetOrder.isAfter(event.offset(), match.highWatermark());

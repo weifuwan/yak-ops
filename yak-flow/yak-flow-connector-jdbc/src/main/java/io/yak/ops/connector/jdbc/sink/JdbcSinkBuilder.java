@@ -30,6 +30,8 @@ public final class JdbcSinkBuilder {
     private TableId targetTable;
     private TableSchema schema;
     private JdbcWriteMode mode = JdbcWriteMode.APPEND;
+    private JdbcBatchOrder batchOrder = JdbcBatchOrder.INPUT_ORDER;
+    private int statementCacheSize = JdbcSinkOptions.STATEMENT_CACHE_SIZE.defaultValue();
     private List<JdbcTableWritePlan> tablePlans;
     private BatchFlushPolicy batchPolicy = new BatchFlushPolicy(500, Duration.ZERO);
 
@@ -106,6 +108,26 @@ public final class JdbcSinkBuilder {
         return this;
     }
 
+    /**
+     * Selects physical ordering; independent-table grouping requires an explicit caller decision.
+     *
+     * @param order whole-input order or independent destination groups
+     * @return this builder
+     */
+    public JdbcSinkBuilder withBatchOrder(JdbcBatchOrder order) {
+        batchOrder = Objects.requireNonNull(order, "order");
+        return this;
+    }
+
+    /** Limits live prepared statements for each Writer, not each individual table. */
+    public JdbcSinkBuilder withStatementCacheSize(int size) {
+        if (size < 1) {
+            throw new IllegalArgumentException("JDBC statement cache size must be positive");
+        }
+        statementCacheSize = size;
+        return this;
+    }
+
     public JdbcSinkBuilder withBatchFlushPolicy(BatchFlushPolicy policy) {
         batchPolicy = Objects.requireNonNull(policy, "policy");
         return this;
@@ -134,11 +156,13 @@ public final class JdbcSinkBuilder {
             if (sourceTable != null || targetTable != null || schema != null || mode != JdbcWriteMode.APPEND) {
                 throw new IllegalArgumentException("Single-table and multi-table JDBC Sink settings cannot be mixed");
             }
-            return new JdbcSink(provider, resolvedDialect, tablePlans, batchPolicy, metrics);
+            return new JdbcSink(
+                    provider, resolvedDialect, tablePlans, batchPolicy, metrics, batchOrder, statementCacheSize);
         }
         TableId target = Objects.requireNonNull(targetTable, "targetTable");
         JdbcTableWritePlan plan = new JdbcTableWritePlan(
                 sourceTable == null ? target : sourceTable, target, Objects.requireNonNull(schema, "schema"), mode);
-        return new JdbcSink(provider, resolvedDialect, List.of(plan), batchPolicy, metrics);
+        return new JdbcSink(
+                provider, resolvedDialect, List.of(plan), batchPolicy, metrics, batchOrder, statementCacheSize);
     }
 }

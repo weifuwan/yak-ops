@@ -17,7 +17,7 @@ import java.util.Objects;
  */
 public final class MySqlHybridSplitSerializer implements SimpleVersionedSerializer<MySqlHybridSplit> {
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
     private static final int MAX_BYTES = 8 * 1024 * 1024;
     private final MySqlBinlogSplitSerializer binlogSerializer = new MySqlBinlogSplitSerializer();
 
@@ -43,6 +43,13 @@ public final class MySqlHybridSplitSerializer implements SimpleVersionedSerializ
                 writeLong(out, snapshot.lowerInclusive());
                 writeLong(out, snapshot.upperExclusive());
                 writeLong(out, snapshot.lastEmittedKey());
+                out.writeByte(snapshot.finished() != null ? 2 : snapshot.output() != null ? 1 : 0);
+                if (snapshot.output() != null) {
+                    MySqlSnapshotOutputSerializer.write(out, snapshot.output());
+                    out.writeInt(snapshot.outputPosition());
+                } else if (snapshot.finished() != null) {
+                    snapshot.finished().highWatermark().writeTo(out);
+                }
             } else if (split instanceof MySqlHybridBinlogSplit binlog) {
                 out.writeByte(2);
                 out.writeByte(binlog.phase().ordinal());
@@ -53,6 +60,7 @@ public final class MySqlHybridSplitSerializer implements SimpleVersionedSerializ
                 byte[] encoded = binlogSerializer.serialize(binlog.binlog());
                 out.writeInt(encoded.length);
                 out.write(encoded);
+                writeFinishedSplits(out, binlog.finishedSplits());
             } else {
                 throw new IOException("Unknown MySQL hybrid split type");
             }
@@ -67,19 +75,30 @@ public final class MySqlHybridSplitSerializer implements SimpleVersionedSerializ
     @Override
     public MySqlHybridSplit deserialize(int version, byte[] serialized) throws IOException {
         if (version != VERSION || serialized == null || serialized.length > MAX_BYTES) {
-            throw new IOException("Unsupported MySQL hybrid split version or size");
+            throw new IOException("Unsupported MySQL hybrid split state; version 1 requires explicit reinitialization");
         }
         try (var in = new DataInputStream(new ByteArrayInputStream(serialized))) {
             MySqlHybridSplit split =
                     switch (in.readUnsignedByte()) {
-                        case 1 ->
-                            new MySqlSnapshotSplit(
-                                    in.readUTF(),
-                                    in.readUTF(),
-                                    new TableId(in.readUTF(), null, in.readUTF()),
-                                    readLong(in),
-                                    readLong(in),
-                                    readLong(in));
+                        case 1 -> {
+                            String id = in.readUTF();
+                            String fingerprint = in.readUTF();
+                            TableId table = new TableId(in.readUTF(), null, in.readUTF());
+                            Long lower = readLong(in), upper = readLong(in), key = readLong(in);
+                            int stage = in.readUnsignedByte();
+                            MySqlSnapshotOutput output = null;
+                            FinishedSnapshotSplitInfo finished = null;
+                            int position = 0;
+                            if (stage == 1) {
+                                output = MySqlSnapshotOutputSerializer.read(in, table);
+                                position = in.readInt();
+                            } else if (stage == 2) {
+                                finished = new FinishedSnapshotSplitInfo(
+                                        table, id, lower, upper, BinlogOffset.readFrom(in));
+                            } else if (stage != 0) throw new IOException("Unknown snapshot output stage");
+                            yield new MySqlSnapshotSplit(
+                                    id, fingerprint, table, lower, upper, key, output, position, finished);
+                        }
                         case 2 -> {
                             int phase = in.readUnsignedByte();
                             if (phase >= MySqlHybridBinlogSplit.Phase.values().length) {
@@ -93,7 +112,8 @@ public final class MySqlHybridSplitSerializer implements SimpleVersionedSerializ
                             yield new MySqlHybridBinlogSplit(
                                     binlogSerializer.deserialize(binlogSerializer.getVersion(), in.readNBytes(length)),
                                     MySqlHybridBinlogSplit.Phase.values()[phase],
-                                    high);
+                                    high,
+                                    readFinishedSplits(in));
                         }
                         default -> throw new IOException("Unknown MySQL hybrid split marker");
                     };
@@ -104,6 +124,35 @@ public final class MySqlHybridSplitSerializer implements SimpleVersionedSerializ
         } catch (RuntimeException error) {
             throw new IOException("Corrupt MySQL hybrid split state", error);
         }
+    }
+
+    public static void writeFinishedSplits(DataOutputStream out, java.util.List<FinishedSnapshotSplitInfo> finished)
+            throws IOException {
+        if (finished.size() > 10_000) throw new IOException("Too many finished snapshot chunks");
+        out.writeInt(finished.size());
+        for (FinishedSnapshotSplitInfo info : finished) {
+            out.writeUTF(info.tableId().catalog());
+            out.writeUTF(info.tableId().table());
+            out.writeUTF(info.splitId());
+            writeLong(out, info.lowerInclusive());
+            writeLong(out, info.upperExclusive());
+            info.highWatermark().writeTo(out);
+        }
+    }
+
+    public static java.util.List<FinishedSnapshotSplitInfo> readFinishedSplits(DataInputStream in) throws IOException {
+        int size = in.readInt();
+        if (size < 0 || size > 10_000 || size > in.available())
+            throw new IOException("Invalid finished snapshot count");
+        var result = new java.util.ArrayList<FinishedSnapshotSplitInfo>(size);
+        var ids = new java.util.HashSet<String>();
+        for (int i = 0; i < size; i++) {
+            TableId table = new TableId(in.readUTF(), null, in.readUTF());
+            String id = in.readUTF();
+            if (!ids.add(id)) throw new IOException("Duplicate finished snapshot identity");
+            result.add(new FinishedSnapshotSplitInfo(table, id, readLong(in), readLong(in), BinlogOffset.readFrom(in)));
+        }
+        return java.util.List.copyOf(result);
     }
 
     private static void writeLong(DataOutputStream out, Long value) throws IOException {

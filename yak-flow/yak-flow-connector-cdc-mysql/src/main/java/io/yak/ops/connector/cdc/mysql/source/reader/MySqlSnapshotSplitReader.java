@@ -45,7 +45,8 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
     private final Map<TableId, TableSchema> schemas;
 
     private Connection connection;
-    private PreparedStatement statement;
+    private volatile PreparedStatement statement;
+    private volatile boolean cancelled;
     private ResultSet results;
     private JdbcDialectConverter converter;
     private MySqlSnapshotSplit active;
@@ -67,6 +68,7 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
 
     /** Starts a split from its last mailbox-emitted key using ordered, exclusive cursor seek. */
     public void open(MySqlSnapshotSplit split) throws SQLException {
+        checkCancelled();
         if (active != null) {
             throw new IllegalStateException("Snapshot reader already has a running split");
         }
@@ -99,11 +101,14 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
         try {
             connection = connections.getConnection();
             connection.setReadOnly(true);
-            statement = connection.prepareStatement(sql);
+            statement = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            checkCancelled();
+            statement.setQueryTimeout(60);
             statement.setFetchSize(FETCH_BATCH);
             for (int index = 0; index < bounds.size(); index++) {
                 statement.setLong(index + 1, bounds.get(index));
             }
+            checkCancelled();
             long executeStartedNanos = System.nanoTime();
             results = statement.executeQuery();
             if ("true".equals(MDC.get("taskLogDebug"))) {
@@ -143,6 +148,7 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
      * @return bounded records and at most one finished split ID
      */
     public RecordsWithSplitIds<MySqlHybridFetchedRecord> fetch() throws SQLException {
+        checkCancelled();
         if (active == null) {
             throw new IllegalStateException("No active MySQL snapshot split");
         }
@@ -151,6 +157,7 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
         String key = MySqlChunkSplitter.splitKey(schemas.get(split.tableId()));
         List<MySqlHybridFetchedRecord> batch = new ArrayList<>();
         for (int remaining = FETCH_BATCH; hasRow && remaining > 0; remaining--) {
+            checkCancelled();
             var row = converter.toInternal(results);
             long keyValue = results.getLong(key);
             if (results.wasNull()) {
@@ -183,6 +190,25 @@ public final class MySqlSnapshotSplitReader implements AutoCloseable {
         return new RecordsBySplits<>(
                 batch.isEmpty() ? Map.of() : Map.of(split.splitId(), batch),
                 completed ? Set.of(split.splitId()) : Set.of());
+    }
+
+    /** Signals driver cancellation without making the requesting mailbox wait for network I/O. */
+    public void cancel() {
+        cancelled = true;
+        PreparedStatement running = statement;
+        if (running != null) {
+            Thread.ofVirtual().name("yak-mysql-snapshot-cancel").start(() -> {
+                try {
+                    running.cancel();
+                } catch (SQLException ignored) {
+                    // The fetcher still owns close and observes the query outcome.
+                }
+            });
+        }
+    }
+
+    private void checkCancelled() throws SQLException {
+        if (cancelled) throw new SQLException("MySQL snapshot read was cancelled");
     }
 
     @Override
