@@ -20,16 +20,11 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Apply backfill recovery tests
+      - name: Apply reviewed equality fix
         run: |
-          cp .github/backfill-tests.py /tmp/backfill-tests.py
-          git checkout -B fix/multitable-reliability-20261015 925a3fa78269de6f66030180e0492f237c8dbcf2
-          python3 /tmp/backfill-tests.py
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('yak-flow/yak-flow-connector-cdc-mysql/src/test/java/io/yak/ops/connector/cdc/mysql/source/MySqlHybridIT.java')
-          p.write_text(p.read_text().replace('private MySqlHybridEnumeratorState state() {','private MySqlHybridEnumeratorState state() throws Exception {').replace('private boolean streaming() {','private boolean streaming() throws Exception {'))
-          PY
+          cp .github/backfill-fix.py /tmp/backfill-fix.py
+          git checkout -B fix/multitable-reliability-20261015 16acfc1408f7ec6375a9c263c857a3eb6df27318
+          python3 /tmp/backfill-fix.py
           git ls-files --modified --others --exclude-standard > /tmp/multitable-changed.txt
       - name: Format changed Java sources
         run: |
@@ -46,8 +41,8 @@ jobs:
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add yak-flow scripts/tests/backend_tests.py
-          git commit -m 'test(cdc): verify chunk backfill and partial JDBC output recovery through production factory'
+          git add yak-flow
+          git commit -m 'fix(cdc): compare immutable checkpoint rows by value without changing TableRecord identity'
           git push origin HEAD:refs/heads/fix/multitable-reliability-20261015
           echo "Implementation commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
       - name: Connector and data-sync unit tests
