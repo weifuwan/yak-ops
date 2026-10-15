@@ -1,0 +1,63 @@
+name: Multi-table patch build
+on:
+  push:
+    branches: [work/multitable-reliability-build-20261015]
+permissions:
+  contents: write
+concurrency:
+  group: multitable-reliability-workbench
+  cancel-in-progress: false
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Apply patch to clean implementation branch
+        run: |
+          cp .github/multitable-workbench.py /tmp/multitable-workbench.py
+          git checkout -B fix/multitable-reliability-20261015 85338827bdbb745eaa6a017031640674a298a4f9
+          python3 /tmp/multitable-workbench.py
+          git status --short
+      - name: Format changed Java sources
+        run: |
+          git ls-files --modified --others --exclude-standard > /tmp/multitable-changed.txt
+          bash mvnw -B -ntp -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          expected = set(Path('/tmp/multitable-changed.txt').read_text().splitlines())
+          for name in subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines():
+              if name not in expected:
+                  subprocess.run(['git', 'restore', '--', name], check=True)
+          PY
+      - name: Commit implementation
+        run: |
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add yak-flow
+          git commit -m 'fix(jdbc): derive fallback fingerprints from the final split contract'
+          git push origin HEAD:refs/heads/fix/multitable-reliability-20261015
+          echo "Implementation commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - name: JDBC unit tests
+        run: >-
+          bash mvnw -B -ntp
+          -pl yak-flow/yak-flow-connector-jdbc -am
+          -Dtest=JdbcSplitFallbackTest,JdbcSplitPlannerTest,JdbcSourceProjectionReliabilityTest,JdbcMultiTableSinkTest
+          -Dsurefire.failIfNoSpecifiedTests=false test
+      - name: Test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multitable-workbench-tests
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: warn
+          retention-days: 7
