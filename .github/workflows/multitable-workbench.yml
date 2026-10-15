@@ -20,11 +20,20 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Apply reviewed equality fix
+      - name: Apply metadata and engine isolation fixes
         run: |
-          cp .github/backfill-fix.py /tmp/backfill-fix.py
-          git checkout -B fix/multitable-reliability-20261015 16acfc1408f7ec6375a9c263c857a3eb6df27318
-          python3 /tmp/backfill-fix.py
+          cp .github/backfill-finalize.py /tmp/backfill-finalize.py
+          git checkout -B fix/multitable-reliability-20261015 ca15dfc0ddbf7b6eecbd6b611048ae6493a8b3c1
+          python3 /tmp/backfill-finalize.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('yak-flow/yak-flow-connector-cdc-mysql/src/main/java/io/yak/ops/connector/cdc/mysql/source/debezium/MySqlBinlogEngine.java')
+          s=p.read_text()
+          old='properties.setProperty("database.server.id", Integer.toString(serverId));'
+          assert old in s
+          s=s.replace(old,old+'\n        // Snapshot readers share a logical source but must own distinct JMX registrations.\n        properties.setProperty("custom.metric.tags", "reader=" + serverId);')
+          p.write_text(s)
+          PY
           git ls-files --modified --others --exclude-standard > /tmp/multitable-changed.txt
       - name: Format changed Java sources
         run: |
@@ -41,8 +50,8 @@ jobs:
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add yak-flow
-          git commit -m 'fix(cdc): compare immutable checkpoint rows by value without changing TableRecord identity'
+          git add yak-flow yak-ops-plugins docs/yoips/YOIP-6-mysql-chunk-backfill-checkpoints.md
+          git commit -m 'fix(cdc): isolate reader metrics and validate durable handoff metadata'
           git push origin HEAD:refs/heads/fix/multitable-reliability-20261015
           echo "Implementation commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
       - name: Connector and data-sync unit tests
@@ -51,14 +60,14 @@ jobs:
           grep -E 'Tests run:|BUILD SUCCESS' /tmp/unit.log | tail -20
       - name: MySQL chunk backfill and recovery integration tests
         run: |
-          bash scripts/tests/run.sh cdc > /tmp/cdc.log 2>&1 || { tail -180 /tmp/cdc.log; exit 1; }
+          bash scripts/tests/run.sh cdc > /tmp/cdc.log 2>&1 || { tail -220 /tmp/cdc.log; exit 1; }
           cat target/test-artifacts/result.json
           mkdir -p /tmp/backfill-evidence/cdc
           cp -R target/test-artifacts/. /tmp/backfill-evidence/cdc/
           cp -R yak-flow/yak-flow-connector-cdc-mysql/target/failsafe-reports /tmp/backfill-evidence/cdc/
       - name: Real YakFlow CDC pipelines
         run: |
-          bash scripts/tests/run.sh cdc-pipeline > /tmp/cdc-pipeline.log 2>&1 || { tail -180 /tmp/cdc-pipeline.log; exit 1; }
+          bash scripts/tests/run.sh cdc-pipeline > /tmp/cdc-pipeline.log 2>&1 || { tail -220 /tmp/cdc-pipeline.log; exit 1; }
           cat target/test-artifacts/result.json
       - name: Test reports
         if: always()
