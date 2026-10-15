@@ -20,35 +20,51 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Apply reviewed backfill changes
+      - name: Apply backfill recovery tests
         run: |
-          cp .github/backfill-*.py /tmp/
-          git checkout -B fix/multitable-reliability-20261015 9ac7e64b11b387dcd5c441f55637c4bd700e04c7
-          for patch in /tmp/backfill-*.py; do python3 "$patch"; done
+          cp .github/backfill-tests.py /tmp/backfill-tests.py
+          git checkout -B fix/multitable-reliability-20261015 925a3fa78269de6f66030180e0492f237c8dbcf2
+          python3 /tmp/backfill-tests.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('yak-flow/yak-flow-connector-cdc-mysql/src/test/java/io/yak/ops/connector/cdc/mysql/source/MySqlHybridIT.java')
+          p.write_text(p.read_text().replace('private MySqlHybridEnumeratorState state() {','private MySqlHybridEnumeratorState state() throws Exception {').replace('private boolean streaming() {','private boolean streaming() throws Exception {'))
+          PY
           git ls-files --modified --others --exclude-standard > /tmp/multitable-changed.txt
       - name: Format changed Java sources
         run: |
-          bash mvnw -B -ntp -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+          bash mvnw -B -ntp -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply > /tmp/format.log 2>&1 || { tail -100 /tmp/format.log; exit 1; }
           python3 - <<'PY'
           from pathlib import Path
           import subprocess
-          expected = set(Path('/tmp/multitable-changed.txt').read_text().splitlines())
-          for name in subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines():
-              if name not in expected: subprocess.run(['git', 'restore', '--', name], check=True)
+          expected=set(Path('/tmp/multitable-changed.txt').read_text().splitlines())
+          for name in subprocess.check_output(['git','diff','--name-only'],text=True).splitlines():
+              if name not in expected: subprocess.run(['git','restore','--',name],check=True)
           PY
       - name: Commit implementation to existing PR
         run: |
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add yak-flow yak-ops-plugins
-          git commit -m 'feat(cdc): connect per-chunk backfill with durable output and filtered binlog handoff'
+          git add yak-flow scripts/tests/backend_tests.py
+          git commit -m 'test(cdc): verify chunk backfill and partial JDBC output recovery through production factory'
           git push origin HEAD:refs/heads/fix/multitable-reliability-20261015
           echo "Implementation commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
       - name: Connector and data-sync unit tests
-        run: >-
-          bash mvnw -B -ntp
-          -pl yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync -am test
+        run: |
+          bash mvnw -B -ntp -pl yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync -am test > /tmp/unit.log 2>&1 || { tail -140 /tmp/unit.log; exit 1; }
+          grep -E 'Tests run:|BUILD SUCCESS' /tmp/unit.log | tail -20
+      - name: MySQL chunk backfill and recovery integration tests
+        run: |
+          bash scripts/tests/run.sh cdc > /tmp/cdc.log 2>&1 || { tail -180 /tmp/cdc.log; exit 1; }
+          cat target/test-artifacts/result.json
+          mkdir -p /tmp/backfill-evidence/cdc
+          cp -R target/test-artifacts/. /tmp/backfill-evidence/cdc/
+          cp -R yak-flow/yak-flow-connector-cdc-mysql/target/failsafe-reports /tmp/backfill-evidence/cdc/
+      - name: Real YakFlow CDC pipelines
+        run: |
+          bash scripts/tests/run.sh cdc-pipeline > /tmp/cdc-pipeline.log 2>&1 || { tail -180 /tmp/cdc-pipeline.log; exit 1; }
+          cat target/test-artifacts/result.json
       - name: Test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -58,5 +74,9 @@ jobs:
             **/target/surefire-reports/**
             **/target/failsafe-reports/**
             target/test-artifacts/**
+            /tmp/backfill-evidence/**
+            /tmp/unit.log
+            /tmp/cdc.log
+            /tmp/cdc-pipeline.log
           if-no-files-found: warn
           retention-days: 7
