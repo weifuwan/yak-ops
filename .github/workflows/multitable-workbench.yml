@@ -23,7 +23,7 @@ jobs:
       - name: Apply patch to clean implementation branch
         run: |
           cp .github/multitable-workbench.py /tmp/multitable-workbench.py
-          git checkout -B fix/multitable-reliability-20261015 85338827bdbb745eaa6a017031640674a298a4f9
+          git checkout -B fix/multitable-reliability-20261015 8448e193980f09041ed7dfd1d818c0137c546a25
           python3 /tmp/multitable-workbench.py
           git status --short
       - name: Format changed Java sources
@@ -44,15 +44,13 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add yak-flow
-          git commit -m 'fix(jdbc): derive fallback fingerprints from the final split contract'
+          git commit -m 'perf(jdbc): add opt-in stable table batching and bounded lazy statements'
           git push origin HEAD:refs/heads/fix/multitable-reliability-20261015
           echo "Implementation commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
       - name: JDBC unit tests
         run: >-
           bash mvnw -B -ntp
-          -pl yak-flow/yak-flow-connector-jdbc -am
-          -Dtest=JdbcSplitFallbackTest,JdbcSplitPlannerTest,JdbcSourceProjectionReliabilityTest,JdbcMultiTableSinkTest
-          -Dsurefire.failIfNoSpecifiedTests=false test
+          -pl yak-flow/yak-flow-connector-jdbc -am test
       - name: Test reports
         if: always()
         uses: actions/upload-artifact@v4
