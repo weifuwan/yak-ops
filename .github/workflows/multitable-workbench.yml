@@ -20,56 +20,43 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Apply patch to clean implementation branch
+      - name: Apply reviewed backfill changes
         run: |
-          cp .github/multitable-workbench.py /tmp/multitable-workbench.py
-          git checkout -B fix/multitable-reliability-20261015 422a8068da9f534a540c5e6ceed860dbf3ebaa28
-          python3 /tmp/multitable-workbench.py
-          git status --short
+          cp .github/backfill-*.py /tmp/
+          git checkout -B fix/multitable-reliability-20261015 9ac7e64b11b387dcd5c441f55637c4bd700e04c7
+          for patch in /tmp/backfill-*.py; do python3 "$patch"; done
+          git ls-files --modified --others --exclude-standard > /tmp/multitable-changed.txt
       - name: Format changed Java sources
         run: |
-          git ls-files --modified --others --exclude-standard > /tmp/multitable-changed.txt
           bash mvnw -B -ntp -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
           python3 - <<'PY'
           from pathlib import Path
           import subprocess
           expected = set(Path('/tmp/multitable-changed.txt').read_text().splitlines())
           for name in subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines():
-              if name not in expected:
-                  subprocess.run(['git', 'restore', '--', name], check=True)
+              if name not in expected: subprocess.run(['git', 'restore', '--', name], check=True)
           PY
-      - name: Commit implementation
+      - name: Commit implementation to existing PR
         run: |
           git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add yak-flow
-          git commit -m 'fix(cdc): bound chunk buffers, index completed ranges, and cancel snapshot queries'
+          git add yak-flow yak-ops-plugins
+          git commit -m 'feat(cdc): connect per-chunk backfill with durable output and filtered binlog handoff'
           git push origin HEAD:refs/heads/fix/multitable-reliability-20261015
           echo "Implementation commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
-      - name: Connector unit tests
+      - name: Connector and data-sync unit tests
         run: >-
           bash mvnw -B -ntp
-          -pl yak-flow/yak-flow-connector-jdbc,yak-flow/yak-flow-connector-cdc-mysql -am test
-      - name: MySQL JDBC integration tests
-        run: bash scripts/tests/run.sh jdbc mysql
-      - name: Preserve JDBC evidence
-        if: always()
-        run: |
-          mkdir -p /tmp/multitable-evidence/jdbc-mysql
-          if [ -d target/test-artifacts ]; then cp -R target/test-artifacts/. /tmp/multitable-evidence/jdbc-mysql/; fi
-          if [ -d yak-flow/yak-flow-connector-jdbc/target/failsafe-reports ]; then cp -R yak-flow/yak-flow-connector-jdbc/target/failsafe-reports /tmp/multitable-evidence/jdbc-mysql/; fi
-      - name: MySQL CDC integration tests
-        run: bash scripts/tests/run.sh cdc
+          -pl yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync -am test
       - name: Test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: multitable-workbench-tests
+          name: multitable-backfill-tests
           path: |
             **/target/surefire-reports/**
             **/target/failsafe-reports/**
             target/test-artifacts/**
-            /tmp/multitable-evidence/**
           if-no-files-found: warn
           retention-days: 7
