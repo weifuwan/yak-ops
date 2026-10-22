@@ -43,13 +43,13 @@ public class GlobalExceptionHandler {
                 exception instanceof TaskValidationException validation ? validation.stage() : "CONFIG_OR_RESOURCE",
                 exception.getClass().getSimpleName(),
                 cause == null ? "NONE" : cause.getClass().getSimpleName());
-        String publicMessage = exception instanceof TaskValidationException validation
-                ? validation.publicMessage()
-                : null;
+        String publicMessage =
+                exception instanceof TaskValidationException validation ? validation.publicMessage() : null;
         return ResponseEntity.badRequest()
-                .body(publicMessage == null
-                        ? Result.fail(CommonErrorCode.PARAM_NOT_VALID)
-                        : Result.fail(CommonErrorCode.PARAM_NOT_VALID.getCode(), publicMessage));
+                .body(
+                        publicMessage == null
+                                ? Result.fail(CommonErrorCode.PARAM_NOT_VALID)
+                                : Result.fail(CommonErrorCode.PARAM_NOT_VALID.getCode(), publicMessage));
     }
 
     @ExceptionHandler(BusinessException.class)
