@@ -4,8 +4,8 @@ import io.yak.ops.connector.jdbc.database.JdbcFactoryLoader;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDdlPlan;
 import io.yak.ops.connector.jdbc.sink.JdbcMetadataApplier;
 import io.yak.ops.core.data.TableId;
-import io.yak.ops.core.event.CreateTableEvent;
 import io.yak.ops.core.event.ColumnProperties;
+import io.yak.ops.core.event.CreateTableEvent;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 
@@ -33,8 +33,8 @@ public final class SchemaValidator {
             if (!source.columnFeatures().isEmpty() && source.columnProperties().isEmpty()) {
                 throw new IllegalArgumentException("Source physical column properties are unavailable");
             }
-            boolean hasNativeFeatures = source.columnProperties().values().stream()
-                    .anyMatch(ColumnProperties::hasFeatures);
+            boolean hasNativeFeatures =
+                    source.columnProperties().values().stream().anyMatch(ColumnProperties::hasFeatures);
             if (hasNativeFeatures && !source.datasourceType().equals(target.type())) {
                 throw new IllegalArgumentException(
                         "Physical column expressions require a verified same-database dialect");
