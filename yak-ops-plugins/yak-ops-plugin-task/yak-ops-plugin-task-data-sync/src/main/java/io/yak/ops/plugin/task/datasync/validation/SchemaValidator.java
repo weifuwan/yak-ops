@@ -95,9 +95,9 @@ public final class SchemaValidator {
             JdbcMetadataApplier.validateSchema(event, actual.schema());
             for (var column : actual.schema().columns()) {
                 ColumnProperties properties = actual.columnProperties().get(column.name());
-                    if (properties == null) {
-                        throw new IllegalArgumentException("Target column properties unavailable: " + column.name());
-                    }
+                if (properties == null) {
+                    throw new IllegalArgumentException("Target column properties unavailable: " + column.name());
+                }
                 JdbcMetadataApplier.validateColumnProperties(
                         column.name(), event.getColumnProperties().get(column.name()), properties);
             }

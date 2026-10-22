@@ -159,7 +159,8 @@ public final class MySqlJdbcDialect extends AbstractDialect {
             String literal = defaultValue;
             // SQL_MODE is connection-specific; do not guess how escaped literals will parse.
             if (literal.indexOf('\\') >= 0 || literal.chars().anyMatch(character -> character < 32)) {
-                throw new IllegalArgumentException("Unsupported default literal escaping for column: " + column.name());
+                throw new IllegalArgumentException(
+                        "Unsupported default literal escaping for column: " + column.name());
             }
             return " DEFAULT " + stringLiteral(literal) + onUpdate;
         }

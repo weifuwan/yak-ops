@@ -44,11 +44,37 @@ public record JdbcColumnInfo(
         Boolean defaultGenerated) {
 
     public JdbcColumnInfo(
-            String name, String typeName, int jdbcType, Integer size, Integer scale, boolean nullable,
-            int ordinalPosition, boolean primaryKey, Integer primaryKeyPosition, String remarks,
-            boolean hasDefaultValue, Boolean autoIncrement, Boolean generated, String defaultExpression) {
-        this(name, typeName, jdbcType, size, scale, nullable, ordinalPosition, primaryKey,
-                primaryKeyPosition, remarks, hasDefaultValue, autoIncrement, generated, defaultExpression, null, null);
+            String name,
+            String typeName,
+            int jdbcType,
+            Integer size,
+            Integer scale,
+            boolean nullable,
+            int ordinalPosition,
+            boolean primaryKey,
+            Integer primaryKeyPosition,
+            String remarks,
+            boolean hasDefaultValue,
+            Boolean autoIncrement,
+            Boolean generated,
+            String defaultExpression) {
+        this(
+                name,
+                typeName,
+                jdbcType,
+                size,
+                scale,
+                nullable,
+                ordinalPosition,
+                primaryKey,
+                primaryKeyPosition,
+                remarks,
+                hasDefaultValue,
+                autoIncrement,
+                generated,
+                defaultExpression,
+                null,
+                null);
     }
 
     /** Compatibility constructor for callers without a default-expression kind. */
@@ -69,8 +95,22 @@ public record JdbcColumnInfo(
             String defaultExpression,
             String onUpdateExpression) {
         this(
-                name, typeName, jdbcType, size, scale, nullable, ordinalPosition, primaryKey, primaryKeyPosition,
-                remarks, hasDefaultValue, autoIncrement, generated, defaultExpression, onUpdateExpression, null);
+                name,
+                typeName,
+                jdbcType,
+                size,
+                scale,
+                nullable,
+                ordinalPosition,
+                primaryKey,
+                primaryKeyPosition,
+                remarks,
+                hasDefaultValue,
+                autoIncrement,
+                generated,
+                defaultExpression,
+                onUpdateExpression,
+                null);
     }
 
     /** Existing constructor for metadata callers that only know the presence of a default. */
@@ -88,8 +128,23 @@ public record JdbcColumnInfo(
             boolean hasDefaultValue,
             Boolean autoIncrement,
             Boolean generated) {
-        this(name, typeName, jdbcType, size, scale, nullable, ordinalPosition, primaryKey, primaryKeyPosition,
-                remarks, hasDefaultValue, autoIncrement, generated, null, null, null);
+        this(
+                name,
+                typeName,
+                jdbcType,
+                size,
+                scale,
+                nullable,
+                ordinalPosition,
+                primaryKey,
+                primaryKeyPosition,
+                remarks,
+                hasDefaultValue,
+                autoIncrement,
+                generated,
+                null,
+                null,
+                null);
     }
 
     /** Creates native metadata for plain, explicitly writable columns. */

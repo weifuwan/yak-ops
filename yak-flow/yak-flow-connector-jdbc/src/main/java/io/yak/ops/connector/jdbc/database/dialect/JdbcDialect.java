@@ -120,7 +120,8 @@ public interface JdbcDialect extends java.io.Serializable {
             Map<String, ColumnProperties> properties) {
         for (var entry : properties.entrySet()) {
             if (!entry.getValue().isKnown() || entry.getValue().hasFeatures()) {
-                throw new IllegalArgumentException("Target dialect cannot preserve column properties: " + entry.getKey());
+                throw new IllegalArgumentException(
+                        "Target dialect cannot preserve column properties: " + entry.getKey());
             }
         }
         return createTablePlan(table, schema, tableComment, columnComments);
