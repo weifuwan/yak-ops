@@ -210,7 +210,8 @@ public final class JdbcTableMetadata {
                     generatedDefaults.put(name, flags.contains("default_generated"));
                     // MySQL JDBC may report DEFAULT_GENERATED as IS_GENERATEDCOLUMN. The physical
                     // generated-column markers are distinct from generated DEFAULT expressions.
-                    generatedColumns.put(name, flags.contains("virtual generated") || flags.contains("stored generated"));
+                    generatedColumns.put(
+                            name, flags.contains("virtual generated") || flags.contains("stored generated"));
                     defaults.put(name, rows.getString("COLUMN_DEFAULT"));
                     if (!flags.contains("on update")) continue;
                     var matcher = java.util.regex.Pattern.compile(
