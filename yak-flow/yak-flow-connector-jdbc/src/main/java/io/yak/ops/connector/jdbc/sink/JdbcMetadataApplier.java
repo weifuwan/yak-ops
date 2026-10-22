@@ -200,7 +200,8 @@ public final class JdbcMetadataApplier implements MetadataApplier {
                     column.defaultExpression(),
                     column.autoIncrement(),
                     column.generated(),
-                    column.onUpdateExpression());
+                    column.onUpdateExpression(),
+                    column.defaultGenerated());
             validateColumnProperties(column.name(), planned, actualProperties);
             comments.put(column.name(), column.remarks());
         }
@@ -224,21 +225,27 @@ public final class JdbcMetadataApplier implements MetadataApplier {
         if (!expected.isKnown()
                 || !java.util.Objects.equals(expected.autoIncrement(), actual.autoIncrement())
                 || !java.util.Objects.equals(expected.generated(), actual.generated())
-                || !normalizeDefault(expected.onUpdateExpression())
-                        .equals(normalizeDefault(actual.onUpdateExpression()))
-                || !normalizeDefault(expected.defaultExpression())
-                        .equals(normalizeDefault(actual.defaultExpression()))) {
+                || (expected.defaultExpression() != null
+                        && expected.defaultGenerated() != null
+                        && !java.util.Objects.equals(expected.defaultGenerated(), actual.defaultGenerated()))
+                || !java.util.Objects.equals(
+                        normalizeDefault(expected.onUpdateExpression(), true),
+                        normalizeDefault(actual.onUpdateExpression(), true))
+                || !java.util.Objects.equals(
+                        normalizeDefault(expected.defaultExpression(), expected.defaultGenerated()),
+                        normalizeDefault(actual.defaultExpression(), actual.defaultGenerated()))) {
             throw new IllegalArgumentException("Target column properties do not match: " + column);
         }
     }
 
-    private static String normalizeDefault(String expression) {
-        if (expression == null) return "";
-        String value = expression.trim();
-        if (value.length() > 1 && value.startsWith("'") && value.endsWith("'")) {
-            value = value.substring(1, value.length() - 1).replace("''", "'");
+    private static String normalizeDefault(String expression, Boolean generated) {
+        if (expression == null) return null;
+        if (Boolean.TRUE.equals(generated)
+                && expression.trim().matches("(?i)CURRENT_TIMESTAMP(?:\\([0-6]?\\))?")) {
+            return expression.trim().replaceAll("(?i)current_timestamp\\(\\)", "CURRENT_TIMESTAMP")
+                    .toUpperCase(java.util.Locale.ROOT);
         }
-        return value.replaceAll("(?i)\\bcurrent_timestamp\\(\\)", "CURRENT_TIMESTAMP");
+        return expression;
     }
 
     /**

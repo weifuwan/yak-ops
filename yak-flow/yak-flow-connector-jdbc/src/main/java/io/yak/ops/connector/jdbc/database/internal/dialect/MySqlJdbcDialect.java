@@ -136,26 +136,33 @@ public final class MySqlJdbcDialect extends AbstractDialect {
         String onUpdate = "";
         if (update != null) {
             if (!column.dataType().getTypeRoot().name().startsWith("TIMESTAMP")
-                    || !update.trim().matches("(?i)CURRENT_TIMESTAMP(?:\\([0-6]\\))?")) {
+                    || !update.trim().matches("(?i)CURRENT_TIMESTAMP(?:\\([0-6]?\\))?")) {
                 throw new IllegalArgumentException("Unsupported ON UPDATE expression for column: " + column.name());
             }
             onUpdate = " ON UPDATE " + update.trim().toUpperCase(java.util.Locale.ROOT);
         }
         if (defaultValue == null) return onUpdate;
+        if (properties.defaultGenerated() == null) {
+            throw new IllegalArgumentException("Unknown default expression kind for column: " + column.name());
+        }
         String value = defaultValue.trim();
         String root = column.dataType().getTypeRoot().name();
-        if (value.matches("(?i)CURRENT_TIMESTAMP(?:\\([0-6]\\))?")) {
-            if (!root.startsWith("TIMESTAMP")) {
-                throw new IllegalArgumentException("CURRENT_TIMESTAMP requires a timestamp column: " + column.name());
-            }
+        if (Boolean.TRUE.equals(properties.defaultGenerated())
+                && value.matches("(?i)CURRENT_TIMESTAMP(?:\\([0-6]?\\))?")
+                && root.startsWith("TIMESTAMP")) {
             return " DEFAULT " + value.toUpperCase(java.util.Locale.ROOT) + onUpdate;
+        }
+        if (Boolean.TRUE.equals(properties.defaultGenerated())) {
+            throw new IllegalArgumentException("Unsupported default expression for column: " + column.name());
         }
         if (java.util.Set.of("CHAR", "VARCHAR", "DATE", "TIME_WITHOUT_TIME_ZONE", "TIMESTAMP_WITHOUT_TIME_ZONE")
                 .contains(root)) {
-            // MySQL metadata may return either the unquoted value or an SQL string literal.
-            String literal = value.length() >= 2 && value.startsWith("'") && value.endsWith("'")
-                    ? value.substring(1, value.length() - 1).replace("''", "'")
-                    : value;
+            // information_schema.COLUMN_DEFAULT is the unquoted literal for ordinary defaults.
+            String literal = defaultValue;
+            // SQL_MODE is connection-specific; do not guess how escaped literals will parse.
+            if (literal.indexOf('\\') >= 0 || literal.chars().anyMatch(character -> character < 32)) {
+                throw new IllegalArgumentException("Unsupported default literal escaping for column: " + column.name());
+            }
             return " DEFAULT " + stringLiteral(literal) + onUpdate;
         }
         if (java.util.Set.of("TINYINT", "SMALLINT", "INTEGER", "BIGINT", "FLOAT", "DOUBLE", "DECIMAL", "BOOLEAN")

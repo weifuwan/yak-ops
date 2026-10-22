@@ -104,8 +104,9 @@ public final class JobConfigValidator {
                 throw new IllegalArgumentException("Batch destinations overlap their source tables");
             }
         } catch (RuntimeException failure) {
-            if (schemas && failure instanceof IllegalArgumentException) {
-                throw new TaskValidationException("SCHEMA_VALIDATION", safeSchemaMessage(failure), failure);
+            if (schemas && failure instanceof SchemaValidationException schemaFailure) {
+                throw new TaskValidationException(
+                        "SCHEMA_VALIDATION", safeSchemaMessage(schemaFailure.failure()), schemaFailure);
             }
             throw new TaskPluginException("Invalid DATA_SYNC resource binding or Schema", failure);
         }
@@ -120,6 +121,9 @@ public final class JobConfigValidator {
         if (message != null) {
             String[][] reasons = {
                 {"Unsupported default expression for column: ", "不支持的默认值表达式"},
+                {"Unknown default expression kind for column: ", "无法识别默认值是否为表达式"},
+                {"Unsupported default literal escaping for column: ", "默认值含有暂不支持的转义字符"},
+                {"Target column properties unavailable: ", "目标字段物理属性缺失"},
                 {"CURRENT_TIMESTAMP requires a timestamp column: ", "时间默认值与字段类型不匹配"},
                 {"Unsupported ON UPDATE expression for column: ", "暂不支持的自动更新时间表达式"},
                 {"AUTO_INCREMENT requires an integer primary key: ", "自增列必须是整型主键"},
