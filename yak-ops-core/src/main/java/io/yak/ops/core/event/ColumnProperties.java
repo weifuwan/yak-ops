@@ -9,7 +9,11 @@ import java.io.Serializable;
  * Default expressions are metadata, never executable SQL until a target dialect validates them.
  */
 public record ColumnProperties(
-        String defaultExpression, Boolean autoIncrement, Boolean generated, String onUpdateExpression, Boolean defaultGenerated)
+        String defaultExpression,
+        Boolean autoIncrement,
+        Boolean generated,
+        String onUpdateExpression,
+        Boolean defaultGenerated)
         implements Serializable {
     private static final long serialVersionUID = 1L;
 
