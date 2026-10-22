@@ -76,8 +76,8 @@ class JdbcMetadataApplierTest {
                 List.of("id"));
         Map<String, ColumnProperties> properties = Map.of(
                 "id", new ColumnProperties(null, true, false),
-                "name", new ColumnProperties("hello", false, false),
-                "created_at", new ColumnProperties("CURRENT_TIMESTAMP", false, false));
+                "name", new ColumnProperties("hello", false, false, null, false),
+                "created_at", new ColumnProperties("CURRENT_TIMESTAMP", false, false, null, true));
         var event = new CreateTableEvent(
                 new TableId("app", null, "orders"), schema, null, Map.of(), properties);
         JdbcDialect mysql = JdbcFactoryLoader.loadDialect("jdbc:mysql:");
@@ -87,11 +87,11 @@ class JdbcMetadataApplierTest {
         assertTrue(plan.createTableSql().contains("DEFAULT CURRENT_TIMESTAMP"));
         assertEquals(properties, event.copy(new TableId("app", null, "copied")).getColumnProperties());
         JdbcMetadataApplier.validateColumnProperties(
-                "name", properties.get("name"), new ColumnProperties("'hello'", false, false));
+                "name", properties.get("name"), new ColumnProperties("hello", false, false, null, false));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> JdbcMetadataApplier.validateColumnProperties(
-                        "name", properties.get("name"), new ColumnProperties("different", false, false)));
+                        "name", properties.get("name"), new ColumnProperties("different", false, false, null, false)));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> JdbcMetadataApplier.plan(event, JdbcFactoryLoader.loadDialect("jdbc:postgresql:")));
@@ -107,10 +107,51 @@ class JdbcMetadataApplierTest {
         for (ColumnProperties attributes : List.of(
                 new ColumnProperties(null, null, false),
                 new ColumnProperties(null, false, true),
-                new ColumnProperties("UNSUPPORTED_FUNC()", false, false))) {
+                new ColumnProperties("UNSUPPORTED_FUNC()", false, false, null, true))) {
             var event = new CreateTableEvent(table, schema, null, Map.of(), Map.of("id", attributes));
             assertThrows(IllegalArgumentException.class, () -> JdbcMetadataApplier.plan(event, mysql));
         }
+    }
+
+    @Test
+    void defaultPresenceAndExpressionKindMustMatchExactly() {
+        ColumnProperties empty = new ColumnProperties("", false, false, null, false);
+        ColumnProperties absent = new ColumnProperties(null, false, false, null, false);
+        ColumnProperties literal = new ColumnProperties("(UUID())", false, false, null, false);
+        ColumnProperties expression = new ColumnProperties("(UUID())", false, false, null, true);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> JdbcMetadataApplier.validateColumnProperties("name", empty, absent));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> JdbcMetadataApplier.validateColumnProperties("name", literal, expression));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> JdbcMetadataApplier.validateColumnProperties(
+                        "name", new ColumnProperties(" value ", false, false, null, false),
+                        new ColumnProperties("value", false, false, null, false)));
+    }
+
+    @Test
+    void mysqlRejectsUnknownExpressionsAndModeDependentLiteralEscapes() {
+        TableSchema schema = new TableSchema(
+                List.of(
+                        new Column("id", LogicalTypes.BIGINT.copy(false)),
+                        new Column("name", LogicalTypes.varchar(80))),
+                List.of("id"));
+        JdbcDialect mysql = JdbcFactoryLoader.loadDialect("jdbc:mysql:");
+        var table = new TableId("app", null, "orders");
+        for (ColumnProperties unsafe : List.of(
+                new ColumnProperties("(UUID())", false, false, null, true),
+                new ColumnProperties("C:\\temp\\data", false, false, null, false),
+                new ColumnProperties("CURRENT_TIMESTAMP", false, false))) {
+            var event = new CreateTableEvent(table, schema, null, Map.of(), Map.of("name", unsafe));
+            assertThrows(IllegalArgumentException.class, () -> JdbcMetadataApplier.plan(event, mysql));
+        }
+        var safe = new CreateTableEvent(
+                table, schema, null, Map.of(),
+                Map.of("name", new ColumnProperties("  O'Brien  ", false, false, null, false)));
+        assertTrue(JdbcMetadataApplier.plan(safe, mysql).createTableSql().contains("DEFAULT '  O''Brien  '"));
     }
 
     @Test
