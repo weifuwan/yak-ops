@@ -159,13 +159,13 @@ public final class MySqlJdbcDialect extends AbstractDialect {
             String literal = defaultValue;
             // SQL_MODE is connection-specific; do not guess how escaped literals will parse.
             if (literal.indexOf('\\') >= 0 || literal.chars().anyMatch(character -> character < 32)) {
-                throw new IllegalArgumentException(
-                        "Unsupported default literal escaping for column: " + column.name());
+                throw new IllegalArgumentException("Unsupported default literal escaping for column: " + column.name());
             }
             return " DEFAULT " + stringLiteral(literal) + onUpdate;
         }
         if (java.util.Set.of("TINYINT", "SMALLINT", "INTEGER", "BIGINT", "FLOAT", "DOUBLE", "DECIMAL", "BOOLEAN")
-                .contains(root) && value.matches("[-+]?[0-9]+(?:\\.[0-9]+)?")) {
+                        .contains(root)
+                && value.matches("[-+]?[0-9]+(?:\\.[0-9]+)?")) {
             return " DEFAULT " + value + onUpdate;
         }
         throw new IllegalArgumentException("Unsupported default expression for column: " + column.name());
