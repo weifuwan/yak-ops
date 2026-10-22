@@ -390,13 +390,35 @@ class SchemaExecutionTest {
         @Override
         public Optional<DataSourceTable> findTable(String workspace, String datasource, String database, String schema, String table) {
             assertEquals("ws", workspace);
-            if ("source".equals(datasource)) return Optional.of(new DataSourceTable("MYSQL",
-                    new TableId("app", null, table), SHAPE, 1, sourceComment, Map.of(), sourceFeatures));
+            if ("source".equals(datasource)) {
+                Map<String, io.yak.ops.core.event.ColumnProperties> properties = plainProperties();
+                if (sourceFeatures.contains("DEFAULT")) {
+                    properties = Map.of(
+                            "id", new io.yak.ops.core.event.ColumnProperties(null, false, false),
+                            "name", new io.yak.ops.core.event.ColumnProperties("source-default", false, false, null, false));
+                } else if (sourceFeatures.contains("IDENTITY")) {
+                    properties = Map.of(
+                            "id", new io.yak.ops.core.event.ColumnProperties(null, true, false),
+                            "name", new io.yak.ops.core.event.ColumnProperties(null, false, false));
+                } else if (sourceFeatures.contains("GENERATED")) {
+                    properties = Map.of(
+                            "id", new io.yak.ops.core.event.ColumnProperties(null, false, false),
+                            "name", new io.yak.ops.core.event.ColumnProperties(null, false, true));
+                }
+                return Optional.of(new DataSourceTable("MYSQL", new TableId("app", null, table),
+                        SHAPE, 1, sourceComment, Map.of(), sourceFeatures, properties));
+            }
             if (lookupFailure != null) throw lookupFailure;
             TableId id = new TableId("ods", "public", table);
             TableSchema shape = targets.get(id);
             return shape == null ? Optional.empty() : Optional.of(new DataSourceTable("POSTGRE_SQL",
-                    id, shape, revision, sourceComment, Map.of(), Set.of()));
+                    id, shape, revision, sourceComment, Map.of(), Set.of(), plainProperties()));
+        }
+
+        private Map<String, io.yak.ops.core.event.ColumnProperties> plainProperties() {
+            return Map.of(
+                    "id", new io.yak.ops.core.event.ColumnProperties(null, false, false),
+                    "name", new io.yak.ops.core.event.ColumnProperties(null, false, false));
         }
 
         @Override
