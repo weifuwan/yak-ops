@@ -147,7 +147,9 @@ public final class MySqlJdbcDialect extends AbstractDialect {
         }
         String value = defaultValue.trim();
         String root = column.dataType().getTypeRoot().name();
-        if (value.matches("(?i)CURRENT_TIMESTAMP(?:\\([0-6]?\\))?") && root.startsWith("TIMESTAMP")) {
+        if (Boolean.TRUE.equals(properties.defaultGenerated())
+                && value.matches("(?i)CURRENT_TIMESTAMP(?:\\([0-6]?\\))?")
+                && root.startsWith("TIMESTAMP")) {
             return " DEFAULT " + value.toUpperCase(java.util.Locale.ROOT) + onUpdate;
         }
         if (Boolean.TRUE.equals(properties.defaultGenerated())) {
