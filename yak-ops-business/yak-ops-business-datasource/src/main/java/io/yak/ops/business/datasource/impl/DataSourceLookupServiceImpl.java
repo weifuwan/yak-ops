@@ -82,7 +82,11 @@ public class DataSourceLookupServiceImpl implements DataSourceLookupService {
                 if (Boolean.TRUE.equals(column.generated())) features.add("GENERATED");
                 if (column.autoIncrement() == null || column.generated() == null) features.add("UNKNOWN_GENERATION");
                 attributes.put(column.name(), new ColumnProperties(
-                        column.defaultExpression(), column.autoIncrement(), column.generated(), column.onUpdateExpression()));
+                        column.defaultExpression(),
+                        column.autoIncrement(),
+                        column.generated(),
+                        column.onUpdateExpression(),
+                        column.defaultGenerated()));
             }
             return Optional.of(new DataSourceTable(
                     entity.getDbType(),

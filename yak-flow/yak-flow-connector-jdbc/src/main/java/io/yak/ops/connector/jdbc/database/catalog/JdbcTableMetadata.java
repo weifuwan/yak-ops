@@ -193,7 +193,9 @@ public final class JdbcTableMetadata {
     private static List<JdbcColumnInfo> readMySqlUpdates(
             Connection connection, String catalog, String table, List<JdbcColumnInfo> columns) throws SQLException {
         Map<String, String> updates = new HashMap<>();
-        String sql = "SELECT COLUMN_NAME, EXTRA FROM information_schema.COLUMNS "
+        Map<String, Boolean> generatedDefaults = new HashMap<>();
+        Map<String, String> defaults = new HashMap<>();
+        String sql = "SELECT COLUMN_NAME, EXTRA, COLUMN_DEFAULT FROM information_schema.COLUMNS "
                 + "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, catalog == null ? connection.getCatalog() : catalog);
@@ -201,17 +203,24 @@ public final class JdbcTableMetadata {
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {
                     String extra = rows.getString("EXTRA");
-                    if (extra == null
-                            || !extra.toLowerCase(java.util.Locale.ROOT).contains("on update")) continue;
-                    var matcher = java.util.regex.Pattern.compile("(?i)on update\\s+(current_timestamp(?:\\([0-6]\\))?)")
+                    if (extra == null) throw new SQLException("MySQL column EXTRA metadata is unavailable");
+                    String flags = extra.toLowerCase(java.util.Locale.ROOT);
+                    String name = rows.getString("COLUMN_NAME");
+                    generatedDefaults.put(name, flags.contains("default_generated"));
+                    defaults.put(name, rows.getString("COLUMN_DEFAULT"));
+                    if (!flags.contains("on update")) continue;
+                    var matcher = java.util.regex.Pattern.compile(
+                                    "(?i)on update\\s+(current_timestamp(?:\\([0-6]?\\))?)")
                             .matcher(extra);
-                    updates.put(
-                            rows.getString("COLUMN_NAME"), matcher.find() ? matcher.group(1) : "UNSUPPORTED_ON_UPDATE");
+                    updates.put(name, matcher.find() ? matcher.group(1) : "UNSUPPORTED_ON_UPDATE");
                 }
             }
         }
         List<JdbcColumnInfo> enriched = new ArrayList<>(columns.size());
         for (JdbcColumnInfo column : columns) {
+            if (!generatedDefaults.containsKey(column.name())) {
+                throw new SQLException("MySQL physical default metadata is incomplete");
+            }
             enriched.add(new JdbcColumnInfo(
                     column.name(),
                     column.typeName(),
@@ -223,11 +232,12 @@ public final class JdbcTableMetadata {
                     column.primaryKey(),
                     column.primaryKeyPosition(),
                     column.remarks(),
-                    column.hasDefaultValue(),
+                    defaults.get(column.name()) != null,
                     column.autoIncrement(),
                     column.generated(),
-                    column.defaultExpression(),
-                    updates.get(column.name())));
+                    defaults.get(column.name()),
+                    updates.get(column.name()),
+                    generatedDefaults.get(column.name())));
         }
         return List.copyOf(enriched);
     }

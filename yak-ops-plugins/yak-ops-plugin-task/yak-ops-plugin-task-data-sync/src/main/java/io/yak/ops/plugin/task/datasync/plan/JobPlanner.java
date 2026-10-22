@@ -237,6 +237,7 @@ public final class JobPlanner {
             value.append(encodePart(entry.getKey()))
                     .append(encodePart(attribute.defaultExpression()))
                     .append(encodePart(attribute.onUpdateExpression()))
+                    .append(encodePart(String.valueOf(attribute.defaultGenerated())))
                     .append(encodePart(String.valueOf(attribute.autoIncrement())))
                     .append(encodePart(String.valueOf(attribute.generated())));
         }
