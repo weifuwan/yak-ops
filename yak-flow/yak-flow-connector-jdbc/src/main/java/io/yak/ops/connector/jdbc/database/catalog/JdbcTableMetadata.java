@@ -194,6 +194,7 @@ public final class JdbcTableMetadata {
             Connection connection, String catalog, String table, List<JdbcColumnInfo> columns) throws SQLException {
         Map<String, String> updates = new HashMap<>();
         Map<String, Boolean> generatedDefaults = new HashMap<>();
+        Map<String, Boolean> generatedColumns = new HashMap<>();
         Map<String, String> defaults = new HashMap<>();
         String sql = "SELECT COLUMN_NAME, EXTRA, COLUMN_DEFAULT FROM information_schema.COLUMNS "
                 + "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
@@ -207,6 +208,9 @@ public final class JdbcTableMetadata {
                     String flags = extra.toLowerCase(java.util.Locale.ROOT);
                     String name = rows.getString("COLUMN_NAME");
                     generatedDefaults.put(name, flags.contains("default_generated"));
+                    // MySQL JDBC may report DEFAULT_GENERATED as IS_GENERATEDCOLUMN. The physical
+                    // generated-column markers are distinct from generated DEFAULT expressions.
+                    generatedColumns.put(name, flags.contains("virtual generated") || flags.contains("stored generated"));
                     defaults.put(name, rows.getString("COLUMN_DEFAULT"));
                     if (!flags.contains("on update")) continue;
                     var matcher = java.util.regex.Pattern.compile(
@@ -234,7 +238,7 @@ public final class JdbcTableMetadata {
                     column.remarks(),
                     defaults.get(column.name()) != null,
                     column.autoIncrement(),
-                    column.generated(),
+                    generatedColumns.get(column.name()),
                     defaults.get(column.name()),
                     updates.get(column.name()),
                     generatedDefaults.get(column.name())));
