@@ -42,7 +42,8 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
     private MySqlBinlogSplitFilter filter;
     private MySqlSnapshotSplit active;
     private int outputPosition;
-    private boolean streaming;
+    // Written by the fetcher and inspected by the source mailbox during checkpoints.
+    private volatile boolean streaming;
     private volatile boolean snapshotsFinished;
     private boolean snapshotsClosed;
     private boolean closed;
