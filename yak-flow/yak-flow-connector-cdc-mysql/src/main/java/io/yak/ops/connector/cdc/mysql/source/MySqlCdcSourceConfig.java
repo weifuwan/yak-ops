@@ -338,6 +338,12 @@ public final class MySqlCdcSourceConfig {
                         .collect(Collectors.joining(",")));
         properties.setProperty("snapshot.mode", "no_data");
         properties.setProperty("include.schema.changes", Boolean.toString(schemaEvolutionEnabled));
+        // Debezium's row schemas normally omit VARCHAR capacity. Propagate the
+        // original column length so same-name ALTER TYPE changes can be fenced
+        // before any newly widened row reaches a JDBC Sink.
+        if (schemaEvolutionEnabled) {
+            properties.setProperty("column.propagate.source.type", ".*");
+        }
         properties.setProperty("tombstones.on.delete", "false");
         properties.setProperty("heartbeat.interval.ms", "1000");
         properties.setProperty("decimal.handling.mode", "precise");

@@ -10,6 +10,7 @@ import io.yak.ops.core.schema.PhysicalColumn;
 import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalType;
+import io.yak.ops.core.types.VarCharType;
 import io.yak.ops.core.types.TableSchema;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -148,11 +149,47 @@ public final class MySqlDebeziumRecordConverter {
         if (row == null) {
             return null;
         }
-        List<String> actual = row.schema().fields().stream()
-                .map(org.apache.kafka.connect.data.Field::name)
-                .toList();
-        List<String> expected = registered.columns().stream().map(Column::name).toList();
-        return actual.equals(expected) ? null : table;
+        return matchesRowSchema(row, registered) ? null : table;
+    }
+
+    /**
+     * Compares the Debezium row shape and its explicitly propagated VARCHAR
+     * capacities against a YakFlow schema. Missing metadata keeps the previous
+     * column-name check; enabling Schema Evolution requests the length parameter.
+     */
+    public boolean matchesRowSchema(Struct row, TableSchema registered) {
+        List<org.apache.kafka.connect.data.Field> fields = row.schema().fields();
+        if (fields.size() != registered.columnCount()) {
+            return false;
+        }
+        for (int index = 0; index < fields.size(); index++) {
+            org.apache.kafka.connect.data.Field field = fields.get(index);
+            Column column = registered.column(index);
+            if (!field.name().equals(column.name())) {
+                return false;
+            }
+            if (column.dataType() instanceof VarCharType varchar) {
+                Map<String, String> parameters = field.schema().parameters();
+                String capacity = parameters == null ? null : parameters.get("__debezium.source.column.length");
+                if (capacity != null) {
+                    int actualLength;
+                    try {
+                        actualLength = Integer.parseInt(capacity);
+                    } catch (NumberFormatException failure) {
+                        throw new IllegalArgumentException(
+                                "Invalid Debezium VARCHAR capacity metadata: " + field.name(), failure);
+                    }
+                    if (actualLength < 1) {
+                        throw new IllegalArgumentException(
+                                "Invalid Debezium VARCHAR capacity metadata: " + field.name());
+                    }
+                    if (actualLength != varchar.length()) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**

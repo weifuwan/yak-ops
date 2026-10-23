@@ -1,6 +1,9 @@
 package io.yak.ops.connector.cdc.mysql.source.reader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.yak.ops.core.data.RowKind;
@@ -80,6 +83,61 @@ class MySqlDebeziumRecordConverterTest {
         assertEquals(0, tombstone.records().size());
         assertThrows(IllegalArgumentException.class, () -> converter.convert(record("u", null, row(1L, "new"))));
         assertEquals(RowKind.DELETE, converter.convert(record("d", row(1L, "gone"), null)).records().getFirst().rowKind());
+    }
+
+
+    @Test
+    void detectsSameNameVarcharWideningBeforeRowEmission() {
+        var converter = new MySqlDebeziumRecordConverter(Map.of(TABLE, YAK_SCHEMA), Map.of(), true);
+        Struct unchanged = rowWithCapacity(100, "normal");
+        Struct widened = rowWithCapacity(180, "a-name-longer-than-thirty-two-characters");
+        assertTrue(converter.matchesRowSchema(unchanged, YAK_SCHEMA));
+        assertNull(converter.schemaMismatch(recordWithRow(unchanged)));
+        assertEquals(TABLE, converter.schemaMismatch(recordWithRow(widened)));
+        // Reconciliation must reject live metadata that is ahead of the
+        // actual row or does not yet describe its type.
+        assertFalse(converter.matchesRowSchema(widened, YAK_SCHEMA));
+        var widenedSchema = new TableSchema(
+                List.of(
+                        new Column("ID", LogicalTypes.BIGINT.copy(false)),
+                        new Column("NAME", LogicalTypes.varchar(180))),
+                List.of("ID"));
+        assertTrue(converter.matchesRowSchema(widened, widenedSchema));
+    }
+
+    @Test
+    void withoutPropagatedMetadataFallsBackToColumnNames() {
+        var converter = new MySqlDebeziumRecordConverter(Map.of(TABLE, YAK_SCHEMA), Map.of(), true);
+        assertNull(converter.schemaMismatch(recordWithRow(row(1L, "normal"))));
+    }
+
+    private static Struct rowWithCapacity(int length, String name) {
+        Schema rowSchema = SchemaBuilder.struct()
+                .optional()
+                .field("ID", Schema.INT64_SCHEMA)
+                .field("NAME", SchemaBuilder.string()
+                        .parameter("__debezium.source.column.length", Integer.toString(length))
+                        .build())
+                .build();
+        return new Struct(rowSchema).put("ID", 1L).put("NAME", name);
+    }
+
+    private static SourceRecord recordWithRow(Struct row) {
+        Schema envelopeSchema = SchemaBuilder.struct()
+                .field("op", Schema.STRING_SCHEMA)
+                .field("source", CONNECT_SOURCE)
+                .field("before", row.schema())
+                .field("after", row.schema())
+                .build();
+        Struct origin = new Struct(CONNECT_SOURCE).put("db", "shop").put("table", "orders");
+        Struct envelope = new Struct(envelopeSchema)
+                .put("op", "u")
+                .put("source", origin)
+                .put("before", row)
+                .put("after", row);
+        return new SourceRecord(
+                Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", 30L),
+                "yak.shop.orders", envelopeSchema, envelope);
     }
 
     private static Struct row(long id, String name) {

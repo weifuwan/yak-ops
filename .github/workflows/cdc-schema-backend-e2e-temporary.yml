@@ -1,0 +1,16 @@
+name: Targeted CDC Schema Backend E2E
+
+on:
+  push:
+    branches:
+      - fix/cdc-varchar-widening-backend-e2e-20261023
+
+permissions:
+  contents: read
+
+jobs:
+  backend-e2e:
+    name: Backend E2E Only
+    uses: ./.github/workflows/backend-tests.yml
+    with:
+      suite: backend-e2e
