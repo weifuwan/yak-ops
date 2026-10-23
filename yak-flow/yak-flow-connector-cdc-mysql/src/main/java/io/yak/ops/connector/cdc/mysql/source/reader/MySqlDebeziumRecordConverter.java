@@ -6,8 +6,8 @@ import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
 import io.yak.ops.core.event.SourceSchemaChange;
-import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.schema.PhysicalColumn;
+import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalType;
 import io.yak.ops.core.types.TableSchema;
@@ -127,7 +127,8 @@ public final class MySqlDebeziumRecordConverter {
      * cross a coordinated schema boundary before conversion.
      */
     public TableId schemaMismatch(SourceRecord source) {
-        if (!evolve || !(source.value() instanceof Struct envelope)
+        if (!evolve
+                || !(source.value() instanceof Struct envelope)
                 || envelope.schema().field("op") == null) {
             return null;
         }
@@ -179,8 +180,8 @@ public final class MySqlDebeziumRecordConverter {
         if (previous.equals(next)) {
             throw new IllegalStateException("Debezium row changed without a distinct source table schema");
         }
-        SourceSchemaChange change = new SourceSchemaChange(
-                MySqlSchemaChangeConverter.eventId(position, table), table, previous, next);
+        SourceSchemaChange change =
+                new SourceSchemaChange(MySqlSchemaChangeConverter.eventId(position, table), table, previous, next);
         physicalSchemas.put(table, next);
         schemas.put(table, next.toTableSchema());
         return new BinlogEvent(List.of(), preceding, change);
