@@ -6,8 +6,8 @@ import io.debezium.engine.RecordChangeEvent;
 import io.debezium.engine.format.ChangeEventFormat;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceConfig;
 import io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset;
-import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
-import io.yak.ops.connector.jdbc.database.catalog.factory.JdbcCatalogFactory;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcTableMetadata;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.connector.cdc.mysql.source.reader.BinlogEvent;
@@ -16,6 +16,7 @@ import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -158,12 +159,10 @@ public final class MySqlBinlogEngine implements AutoCloseable {
         if (lastQueuedOffset == null) {
             throw new IllegalStateException("Cannot reconcile CDC schema before an established binlog offset");
         }
-        String url = "jdbc:mysql://" + config.hostname() + ":" + config.port() + "/" + table.catalog();
-        var options = new JdbcConnectionOptions(
-                url, config.username(), config.password(), null, config.connectionProperties());
         TableSchema live;
-        try (var catalog = JdbcCatalogFactory.create(options)) {
-            live = catalog.getTable(table);
+        try (Connection connection = config.openSnapshotConnection()) {
+            live = JdbcTableMetadata.readTable(
+                    connection, JdbcDialects.forUrl("jdbc:mysql://source"), table);
         }
         Struct envelope = (Struct) source.value();
         Struct row = envelope.schema().field("after") == null ? null : envelope.getStruct("after");
