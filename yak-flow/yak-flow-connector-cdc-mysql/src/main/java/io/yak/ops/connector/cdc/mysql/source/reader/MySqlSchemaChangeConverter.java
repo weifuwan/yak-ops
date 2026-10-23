@@ -190,7 +190,7 @@ public final class MySqlSchemaChangeConverter {
     }
 
     /** Hashes the complete Connect offset, including intra-binlog event counters. */
-    private static String eventId(BinlogOffset offset, TableId table) {
+    static String eventId(BinlogOffset offset, TableId table) {
         StringBuilder data = new StringBuilder();
         for (Map<String, Object> part : List.of(offset.partition(), offset.position())) {
             part.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
