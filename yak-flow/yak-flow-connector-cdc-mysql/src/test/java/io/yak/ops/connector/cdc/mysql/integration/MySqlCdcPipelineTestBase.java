@@ -200,7 +200,11 @@ abstract class MySqlCdcPipelineTestBase {
                 new JdbcConnectionOptions(SOURCE.metadata().url(), "root", SOURCE.metadata().password());
         JdbcConnectionOptions targetOptions = targetOptions();
         JdbcDialect targetDialect = JdbcDialects.forUrl(targetOptions.url());
-        TableId from = new TableId(DATABASE, null, "cdc_rt_schema_orders");
+        String suffix = targetOptions.url().startsWith("jdbc:oracle:")
+                ? "oracle"
+                : targetOptions.url().startsWith("jdbc:postgresql:") ? "postgres" : "mysql";
+        String tableName = "cdc_rt_schema_orders_" + suffix;
+        TableId from = new TableId(DATABASE, null, tableName);
         TableSchema initialSchema = new TableSchema(
                 List.of(
                         new Column("ID", LogicalTypes.BIGINT.copy(false)),
@@ -213,14 +217,14 @@ abstract class MySqlCdcPipelineTestBase {
                 Connection targetConnection =
                         new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(targetOptions)
                                 .getConnection()) {
-            TableId to = targetTable(targetConnection, targetOptions.url(), "YF_CDC_RT_SCHEMA_ORDERS");
+            TableId to = targetTable(targetConnection, targetOptions.url(), "YF_CDC_RT_SCHEMA_ORDERS_" + suffix.toUpperCase(java.util.Locale.ROOT));
             try {
                 drop(targetConnection, targetDialect, to);
-                sql(sourceConnection, "DROP TABLE IF EXISTS cdc_rt_schema_orders");
+                sql(sourceConnection, "DROP TABLE IF EXISTS " + tableName);
                 sql(sourceConnection,
-                        "CREATE TABLE cdc_rt_schema_orders (ID BIGINT NOT NULL PRIMARY KEY, NAME VARCHAR(64) NOT NULL)");
+                        "CREATE TABLE " + tableName + " (ID BIGINT NOT NULL PRIMARY KEY, NAME VARCHAR(64) NOT NULL)");
                 sql(targetConnection, targetDialect.createTableSql(to, initialSchema));
-                sql(sourceConnection, "INSERT INTO cdc_rt_schema_orders VALUES (1,'before')");
+                sql(sourceConnection, "INSERT INTO " + tableName + " VALUES (1,'before')");
 
                 TableMetrics sourceMetrics = new TableMetrics();
                 MySqlHybridCdcSource source = MySqlCdcSource.builder()
@@ -228,8 +232,8 @@ abstract class MySqlCdcPipelineTestBase {
                         .port(SOURCE.metadata().port())
                         .username("root")
                         .password(SOURCE.metadata().password())
-                        .serverId(5581)
-                        .topicPrefix("yak_cdc_runtime_schema_evolution")
+                        .serverId(suffix.equals("mysql") ? 5581 : suffix.equals("oracle") ? 5601 : 5621)
+                        .topicPrefix("yak_cdc_runtime_schema_evolution_" + suffix)
                         .table(from, initialSchema)
                         .buildHybrid(1, sourceMetrics);
                 JdbcSink sink = JdbcSink.builder()
@@ -247,17 +251,19 @@ abstract class MySqlCdcPipelineTestBase {
                     // A delivered snapshot row does not imply that the CDC Binlog gate is open.
                     // Verify one genuine incremental mutation before testing a runtime DDL.
                     awaitStreamingPhase(first, sourceMetrics);
-                    sql(sourceConnection, "UPDATE cdc_rt_schema_orders SET NAME='stream-ready' WHERE ID=1");
+                    sql(sourceConnection, "UPDATE " + tableName + " SET NAME='stream-ready' WHERE ID=1");
                     awaitIncrementalRow(first, sourceMetrics, from, targetConnection, targetDialect, to, "stream-ready");
-                    sql(sourceConnection, "ALTER TABLE cdc_rt_schema_orders ADD COLUMN NOTE VARCHAR(128) NULL");
+                    sql(sourceConnection, "ALTER TABLE " + tableName + " ADD COLUMN NOTE VARCHAR(128) NULL");
                     if (targetOptions.url().startsWith("jdbc:oracle:")) {
-                        // Automatic JDBC ADD_COLUMN is currently supported only for MySQL/PostgreSQL.
-                        // Oracle must reject the change without silently applying following rows.
+                        // A row after the DDL also exercises reconciliation when Debezium
+                        // produces no structured tableChanges for this ALTER.
+                        // Oracle must reject unsupported DDL without delivering that row.
+                        sql(sourceConnection, "UPDATE " + tableName + " SET NAME='after', NOTE='blocked' WHERE ID=1");
                         awaitUnsupportedSchemaChange(first);
                         assertEquals("stream-ready", orderRows(targetConnection, targetDialect, to).get(1L));
                         return;
                     }
-                    sql(sourceConnection, "UPDATE cdc_rt_schema_orders SET NAME='after', NOTE='added' WHERE ID=1");
+                    sql(sourceConnection, "UPDATE " + tableName + " SET NAME='after', NOTE='added' WHERE ID=1");
                     awaitEvolvedRows(first, targetConnection, targetDialect, to, Map.of(1L, "added"));
                     assertTrue(((EmbeddedJobClient) first)
                                     .checkpoint()
@@ -272,16 +278,22 @@ abstract class MySqlCdcPipelineTestBase {
                 JobClient second = executor.execute(graph, restore).get(30, TimeUnit.SECONDS);
                 try {
                     sql(sourceConnection,
-                            "INSERT INTO cdc_rt_schema_orders (ID,NAME,NOTE) VALUES (2,'new','restored')");
+                            "INSERT INTO " + tableName + " (ID,NAME,NOTE) VALUES (2,'new','restored')");
                     awaitEvolvedRows(
                             second, targetConnection, targetDialect, to, Map.of(1L, "added", 2L, "restored"));
+                    // Recovery must retain enough Debezium history to process the NEXT DDL.
+                    // A stale bootstrap history can appear correct until the first row after restart.
+                    sql(sourceConnection, "ALTER TABLE " + tableName + " ADD COLUMN EXTRA VARCHAR(64) NULL");
+                    sql(sourceConnection, "UPDATE " + tableName + " SET EXTRA='after-restart' WHERE ID=2");
+                    awaitColumnValues(second, targetConnection, targetDialect, to,
+                            "EXTRA", java.util.Collections.singletonMap(2L, "after-restart"));
                     assertEquals(JobStatus.RUNNING, second.getJobStatus().get(10, TimeUnit.SECONDS));
                 } finally {
                     cancelIfActive(second);
                 }
             } finally {
                 drop(targetConnection, targetDialect, to);
-                sql(sourceConnection, "DROP TABLE IF EXISTS cdc_rt_schema_orders");
+                sql(sourceConnection, "DROP TABLE IF EXISTS " + tableName);
             }
         }
     }
@@ -360,15 +372,24 @@ abstract class MySqlCdcPipelineTestBase {
     private static void awaitEvolvedRows(
             JobClient job, Connection connection, JdbcDialect dialect, TableId table, Map<Long, String> expected)
             throws Exception {
+        awaitColumnValues(job, connection, dialect, table, "NOTE", expected);
+    }
+
+    private static void awaitColumnValues(
+            JobClient job, Connection connection, JdbcDialect dialect, TableId table,
+            String column, Map<Long, String> expected) throws Exception {
         long deadline = System.nanoTime() + DELIVERY_TIMEOUT.toNanos();
         while (System.nanoTime() < deadline) {
             ensureRunning(job);
             try (Statement sql = connection.createStatement();
                     ResultSet rows = sql.executeQuery("SELECT "
-                            + dialect.quoteIdentifier("ID") + ", " + dialect.quoteIdentifier("NOTE")
+                            + dialect.quoteIdentifier("ID") + ", " + dialect.quoteIdentifier(column)
                             + " FROM " + dialect.qualifiedTable(table))) {
                 Map<Long, String> actual = new LinkedHashMap<>();
-                while (rows.next()) actual.put(rows.getLong(1), rows.getString(2));
+                while (rows.next()) {
+                    String value = rows.getString(2);
+                    if (value != null) actual.put(rows.getLong(1), value);
+                }
                 if (expected.equals(actual)) return;
             } catch (SQLException notMigratedYet) {
                 // The target column may not exist until MetadataApplier completes its DDL.

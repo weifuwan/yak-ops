@@ -5,17 +5,27 @@ import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.RecordChangeEvent;
 import io.debezium.engine.format.ChangeEventFormat;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceConfig;
+import io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset;
 import io.yak.ops.connector.cdc.mysql.source.reader.BinlogEvent;
 import io.yak.ops.connector.cdc.mysql.source.reader.MySqlDebeziumRecordConverter;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcTableMetadata;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
+import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.types.TableSchema;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 
 /**
@@ -40,6 +50,7 @@ public final class MySqlBinlogEngine implements AutoCloseable {
     private String sessionId;
     private volatile boolean stopped;
     private boolean started;
+    private BinlogOffset lastQueuedOffset;
 
     public MySqlBinlogEngine(MySqlCdcSourceConfig config) {
         this(config, config.serverId());
@@ -61,6 +72,7 @@ public final class MySqlBinlogEngine implements AutoCloseable {
             throw new IllegalStateException("MySQL Binlog engine cannot start twice");
         }
         started = true;
+        lastQueuedOffset = split.offset();
         directory = Files.createTempDirectory("yakflow-binlog-");
         historyPath = directory.resolve("schema-history.dat");
         byte[] history = split.schemaHistory();
@@ -113,26 +125,75 @@ public final class MySqlBinlogEngine implements AutoCloseable {
             if (stopped) {
                 throw new InterruptedException("MySQL Binlog reader was stopped");
             }
-            BinlogEvent converted;
             try {
-                converted = converter.convert(event.record());
-            } catch (RuntimeException error) {
+                SourceRecord source = event.record();
+                TableId changed = converter.schemaMismatch(source);
+                if (changed != null) {
+                    // A Debezium DDL with empty tableChanges must not cause the next
+                    // row to bypass SchemaCoordinator. Read metadata, verify that it
+                    // describes THIS row, and emit the schema boundary before the row.
+                    // It uses the previous offset: acknowledging the boundary must
+                    // not checkpoint past the still-pending row.
+                    BinlogEvent transition = reconcile(source, changed);
+                    enqueue(transition);
+                }
+                BinlogEvent converted = converter.convert(source);
+                if (converted != null) {
+                    enqueue(converted);
+                    lastQueuedOffset = converted.offset();
+                }
+            } catch (InterruptedException interrupted) {
+                throw interrupted;
+            } catch (Exception error) {
                 failure.compareAndSet(null, error);
                 throw new IllegalStateException("MySQL CDC event conversion failed", error);
             }
-            if (converted != null) {
-                while (!stopped && !queue.offer(converted, 250, TimeUnit.MILLISECONDS)) {
-                    // Bounded handover: do not allow Debezium prefetch to grow without limit.
-                }
-                if (stopped) {
-                    throw new InterruptedException("MySQL Binlog reader was stopped");
-                }
-            }
-            // The engine may stage this offset, but the YakFlow checkpoint uses only the
-            // last event delivered by MySqlCdcRecordEmitter on the owning task mailbox.
+            // The engine may stage this offset, but the YakFlow checkpoint uses only
+            // the last event delivered by the owning Source mailbox.
             committer.markProcessed(event);
         }
         committer.markBatchFinished();
+    }
+
+    private BinlogEvent reconcile(SourceRecord source, TableId table) throws SQLException {
+        if (lastQueuedOffset == null) {
+            throw new IllegalStateException("Cannot reconcile CDC schema before an established binlog offset");
+        }
+        TableSchema live;
+        try (Connection connection = config.openSnapshotConnection()) {
+            live = JdbcTableMetadata.readTable(
+                    connection, JdbcDialects.forUrl(connection.getMetaData().getURL()), table);
+        }
+        Struct envelope = (Struct) source.value();
+        Struct row = envelope.schema().field("after") == null ? null : envelope.getStruct("after");
+        if (row == null && envelope.schema().field("before") != null) {
+            row = envelope.getStruct("before");
+        }
+        if (row == null) {
+            throw new IllegalStateException("CDC schema reconciliation requires a row image");
+        }
+        List<String> actual = row.schema().fields().stream()
+                .map(org.apache.kafka.connect.data.Field::name)
+                .toList();
+        List<String> expected =
+                live.columns().stream().map(column -> column.name()).toList();
+        if (!actual.equals(expected)) {
+            throw new IllegalStateException(
+                    "Current MySQL metadata does not match the binlog row; cannot safely recover schema");
+        }
+        BinlogOffset position = new BinlogOffset(
+                new LinkedHashMap<String, Object>(source.sourcePartition()),
+                new LinkedHashMap<String, Object>(source.sourceOffset()));
+        return converter.reconcile(table, live, lastQueuedOffset, position);
+    }
+
+    private void enqueue(BinlogEvent record) throws InterruptedException {
+        while (!stopped && !queue.offer(record, 250, TimeUnit.MILLISECONDS)) {
+            // Bounded handover: preserve strict schema-event / row order.
+        }
+        if (stopped) {
+            throw new InterruptedException("MySQL Binlog reader was stopped");
+        }
     }
 
     public BinlogEvent poll() throws InterruptedException {

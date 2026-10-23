@@ -97,6 +97,35 @@ class MySqlSchemaChangeConverterTest {
     }
 
     @Test
+    void rowSchemaMismatchReconcilesBeforeTheRowWithoutAdvancingItsOffset() {
+        var converter = new MySqlDebeziumRecordConverter(Map.of(SOURCE, ORIGINAL), Map.of(), true);
+        SourceRecord row = insertWithNote(101L);
+        assertEquals(SOURCE, converter.schemaMismatch(row));
+
+        TableSchema evolved = new TableSchema(
+                List.of(
+                        new Column("id", LogicalTypes.BIGINT.copy(false)),
+                        new Column("name", LogicalTypes.varchar(64)),
+                        new Column("note", LogicalTypes.varchar(128))),
+                List.of("id"));
+        var previous = new io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset(
+                Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", 100L));
+        var current = new io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset(
+                new java.util.LinkedHashMap<String, Object>(row.sourcePartition()),
+                new java.util.LinkedHashMap<String, Object>(row.sourceOffset()));
+        BinlogEvent boundary = converter.reconcile(SOURCE, evolved, previous, current);
+        assertEquals(100L, boundary.offset().position().get("pos"));
+        assertTrue(boundary.records().isEmpty());
+        assertEquals(3, boundary.schemaChange().after().columns().size());
+        assertEquals(null, converter.schemaMismatch(row));
+
+        BinlogEvent delivered = converter.convert(row);
+        assertEquals(101L, delivered.offset().position().get("pos"));
+        assertEquals(3, delivered.records().getFirst().row().getArity());
+        assertEquals("hello", delivered.records().getFirst().row().getString(2));
+    }
+
+    @Test
     void disablingEvolutionRejectsDdlBeforeAdvancingTheOffset() {
         var converter = new MySqlDebeziumRecordConverter(Map.of(SOURCE, ORIGINAL));
         assertThrows(UnsupportedOperationException.class, () -> converter.convert(ddl("ALTER", NEW_TABLE, 100L)));

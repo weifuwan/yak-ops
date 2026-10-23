@@ -6,6 +6,7 @@ import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
 import io.yak.ops.core.event.SourceSchemaChange;
+import io.yak.ops.core.schema.PhysicalColumn;
 import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalType;
@@ -118,6 +119,72 @@ public final class MySqlDebeziumRecordConverter {
             default -> throw new IllegalArgumentException("Unsupported Debezium MySQL row operation");
         }
         return new BinlogEvent(rows, progress);
+    }
+
+    /**
+     * Detects a row whose Debezium schema is ahead of the registered schema. Some
+     * MySQL DDL records have no structured table change; their rows must still
+     * cross a coordinated schema boundary before conversion.
+     */
+    public TableId schemaMismatch(SourceRecord source) {
+        if (!evolve
+                || !(source.value() instanceof Struct envelope)
+                || envelope.schema().field("op") == null) {
+            return null;
+        }
+        Struct origin = envelope.getStruct("source");
+        if (origin == null) {
+            return null;
+        }
+        TableId table = new TableId(origin.getString("db"), null, origin.getString("table"));
+        TableSchema registered = schemas.get(table);
+        if (registered == null) {
+            return null;
+        }
+        Struct row = envelope.schema().field("after") == null ? null : envelope.getStruct("after");
+        if (row == null && envelope.schema().field("before") != null) {
+            row = envelope.getStruct("before");
+        }
+        if (row == null) {
+            return null;
+        }
+        List<String> actual = row.schema().fields().stream()
+                .map(org.apache.kafka.connect.data.Field::name)
+                .toList();
+        List<String> expected = registered.columns().stream().map(Column::name).toList();
+        return actual.equals(expected) ? null : table;
+    }
+
+    /**
+     * Reconciles source metadata only if it describes the exact Debezium row shape.
+     * The caller emits this event with the preceding delivered offset, not the row
+     * offset, so checkpoints cannot skip the row that discovered the change.
+     */
+    public BinlogEvent reconcile(
+            TableId table, TableSchema catalogSchema, BinlogOffset preceding, BinlogOffset position) {
+        Objects.requireNonNull(preceding, "preceding CDC offset");
+        Schema previous = Objects.requireNonNull(physicalSchemas.get(table), "registered source schema");
+        if (!previous.primaryKeys().equals(catalogSchema.primaryKeys())) {
+            throw new UnsupportedOperationException("MySQL CDC cannot change primary keys during streaming");
+        }
+        List<PhysicalColumn> columns = new ArrayList<>();
+        for (Column column : catalogSchema.columns()) {
+            PhysicalColumn old = previous.column(column.name()).orElse(null);
+            columns.add(new PhysicalColumn(
+                    column.name(),
+                    column.dataType(),
+                    old == null ? null : old.comment(),
+                    old == null ? null : old.properties()));
+        }
+        Schema next = new Schema(columns, previous.primaryKeys(), previous.comment());
+        if (previous.equals(next)) {
+            throw new IllegalStateException("Debezium row changed without a distinct source table schema");
+        }
+        SourceSchemaChange change =
+                new SourceSchemaChange(MySqlSchemaChangeConverter.eventId(position, table), table, previous, next);
+        physicalSchemas.put(table, next);
+        schemas.put(table, next.toTableSchema());
+        return new BinlogEvent(List.of(), preceding, change);
     }
 
     private static Map<String, Object> asMap(Map<String, ?> source) {

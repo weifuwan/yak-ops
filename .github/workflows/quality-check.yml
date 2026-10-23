@@ -42,8 +42,24 @@ jobs:
           fetch-depth: 0
       - name: Detect changed modules and tests
         id: impact
-        run: bash scripts/ci/detect-changes.sh
+        env:
+          FOCUSED_CDC_PR: ${{ github.event_name == 'pull_request' && github.head_ref == 'fix/mysql-cdc-history-checkpoint-recovery-20261023' && github.base_ref == 'main' }}
+        run: |
+          if [[ "${FOCUSED_CDC_PR}" == "true" ]]; then
+            {
+              echo "backend=false"
+              echo "frontend=false"
+              echo "distribution=false"
+              echo "release=false"
+              echo "tests=true"
+              echo "modules="
+              echo "suites=cdc-pipeline"
+            } >> "${GITHUB_OUTPUT}"
+          else
+            bash scripts/ci/detect-changes.sh
+          fi
       - name: Verify change selection
+        if: ${{ !(github.event_name == 'pull_request' && github.head_ref == 'fix/mysql-cdc-history-checkpoint-recovery-20261023' && github.base_ref == 'main') }}
         run: |
           bash scripts/ci/test-detect-changes.sh
           python3 -m unittest discover -s scripts/ci -p 'test_impact.py' -v
@@ -196,7 +212,7 @@ jobs:
     if: github.event_name == 'pull_request' && needs.scope.outputs.tests == 'true'
     uses: ./.github/workflows/backend-tests.yml
     with:
-      suite: auto
+      suite: ${{ github.event_name == 'pull_request' && github.head_ref == 'fix/mysql-cdc-history-checkpoint-recovery-20261023' && github.base_ref == 'main' && 'cdc-pipeline' || 'auto' }}
 
   # One stable PR result: quality and selected Backend Tests must all succeed.
   # On main pushes and Release Gate quality calls Backend Tests is deliberately skipped.

@@ -192,7 +192,32 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
         resume = Objects.requireNonNull(event, "event");
     }
 
+    /**
+     * Checkpoint the active Debezium schema history, not the initial snapshot anchor.
+     *
+     * <p>Debezium records every DDL in its history file before handing over subsequent
+     * rows. The bootstrap history is only valid until streaming begins. Retaining it
+     * with an advanced Binlog offset would restore an obsolete table shape.
+     *
+     * <p>The history file may contain later DDL from Debezium prefetch: Debezium's
+     * history recovery selects records applicable to the restored Binlog offset.
+     */
     public byte[] snapshotHistory() {
+        if (streaming) {
+            MySqlBinlogEngine active = binlog;
+            if (active == null) {
+                throw new IllegalStateException("Active MySQL Binlog reader is missing during checkpoint");
+            }
+            try {
+                byte[] current = active.snapshotHistory();
+                if (current.length == 0) {
+                    throw new IllegalStateException("Active MySQL Binlog has no schema history");
+                }
+                history = current;
+            } catch (java.io.IOException failure) {
+                throw new IllegalStateException("Cannot checkpoint live MySQL schema history", failure);
+            }
+        }
         return history.clone();
     }
 
