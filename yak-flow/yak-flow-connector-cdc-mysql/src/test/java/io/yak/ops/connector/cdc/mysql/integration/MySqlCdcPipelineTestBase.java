@@ -232,7 +232,7 @@ abstract class MySqlCdcPipelineTestBase {
                         .port(SOURCE.metadata().port())
                         .username("root")
                         .password(SOURCE.metadata().password())
-                        .serverId(5581 + (suffix.equals("mysql") ? 0 : suffix.equals("oracle") ? 1 : 2))
+                        .serverId(suffix.equals("mysql") ? 5581 : suffix.equals("oracle") ? 5601 : 5621)
                         .topicPrefix("yak_cdc_runtime_schema_evolution_" + suffix)
                         .table(from, initialSchema)
                         .buildHybrid(1, sourceMetrics);
