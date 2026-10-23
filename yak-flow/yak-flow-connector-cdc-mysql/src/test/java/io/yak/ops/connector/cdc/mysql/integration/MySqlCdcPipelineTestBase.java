@@ -200,7 +200,11 @@ abstract class MySqlCdcPipelineTestBase {
                 new JdbcConnectionOptions(SOURCE.metadata().url(), "root", SOURCE.metadata().password());
         JdbcConnectionOptions targetOptions = targetOptions();
         JdbcDialect targetDialect = JdbcDialects.forUrl(targetOptions.url());
-        TableId from = new TableId(DATABASE, null, "cdc_rt_schema_orders");
+        String suffix = targetOptions.url().startsWith("jdbc:oracle:")
+                ? "oracle"
+                : targetOptions.url().startsWith("jdbc:postgresql:") ? "postgres" : "mysql";
+        String tableName = "cdc_rt_schema_orders_" + suffix;
+        TableId from = new TableId(DATABASE, null, tableName);
         TableSchema initialSchema = new TableSchema(
                 List.of(
                         new Column("ID", LogicalTypes.BIGINT.copy(false)),
@@ -213,14 +217,14 @@ abstract class MySqlCdcPipelineTestBase {
                 Connection targetConnection =
                         new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(targetOptions)
                                 .getConnection()) {
-            TableId to = targetTable(targetConnection, targetOptions.url(), "YF_CDC_RT_SCHEMA_ORDERS");
+            TableId to = targetTable(targetConnection, targetOptions.url(), "YF_CDC_RT_SCHEMA_ORDERS_" + suffix.toUpperCase(java.util.Locale.ROOT));
             try {
                 drop(targetConnection, targetDialect, to);
-                sql(sourceConnection, "DROP TABLE IF EXISTS cdc_rt_schema_orders");
+                sql(sourceConnection, "DROP TABLE IF EXISTS " + tableName);
                 sql(sourceConnection,
-                        "CREATE TABLE cdc_rt_schema_orders (ID BIGINT NOT NULL PRIMARY KEY, NAME VARCHAR(64) NOT NULL)");
+                        "CREATE TABLE " + tableName + " (ID BIGINT NOT NULL PRIMARY KEY, NAME VARCHAR(64) NOT NULL)");
                 sql(targetConnection, targetDialect.createTableSql(to, initialSchema));
-                sql(sourceConnection, "INSERT INTO cdc_rt_schema_orders VALUES (1,'before')");
+                sql(sourceConnection, "INSERT INTO " + tableName + " VALUES (1,'before')");
 
                 TableMetrics sourceMetrics = new TableMetrics();
                 MySqlHybridCdcSource source = MySqlCdcSource.builder()
@@ -228,8 +232,8 @@ abstract class MySqlCdcPipelineTestBase {
                         .port(SOURCE.metadata().port())
                         .username("root")
                         .password(SOURCE.metadata().password())
-                        .serverId(5581)
-                        .topicPrefix("yak_cdc_runtime_schema_evolution")
+                        .serverId(5581 + (suffix.equals("mysql") ? 0 : suffix.equals("oracle") ? 1 : 2))
+                        .topicPrefix("yak_cdc_runtime_schema_evolution_" + suffix)
                         .table(from, initialSchema)
                         .buildHybrid(1, sourceMetrics);
                 JdbcSink sink = JdbcSink.builder()
@@ -247,19 +251,19 @@ abstract class MySqlCdcPipelineTestBase {
                     // A delivered snapshot row does not imply that the CDC Binlog gate is open.
                     // Verify one genuine incremental mutation before testing a runtime DDL.
                     awaitStreamingPhase(first, sourceMetrics);
-                    sql(sourceConnection, "UPDATE cdc_rt_schema_orders SET NAME='stream-ready' WHERE ID=1");
+                    sql(sourceConnection, "UPDATE " + tableName + " SET NAME='stream-ready' WHERE ID=1");
                     awaitIncrementalRow(first, sourceMetrics, from, targetConnection, targetDialect, to, "stream-ready");
-                    sql(sourceConnection, "ALTER TABLE cdc_rt_schema_orders ADD COLUMN NOTE VARCHAR(128) NULL");
+                    sql(sourceConnection, "ALTER TABLE " + tableName + " ADD COLUMN NOTE VARCHAR(128) NULL");
                     if (targetOptions.url().startsWith("jdbc:oracle:")) {
                         // A row after the DDL also exercises reconciliation when Debezium
                         // produces no structured tableChanges for this ALTER.
                         // Oracle must reject unsupported DDL without delivering that row.
-                        sql(sourceConnection, "UPDATE cdc_rt_schema_orders SET NAME='after', NOTE='blocked' WHERE ID=1");
+                        sql(sourceConnection, "UPDATE " + tableName + " SET NAME='after', NOTE='blocked' WHERE ID=1");
                         awaitUnsupportedSchemaChange(first);
                         assertEquals("stream-ready", orderRows(targetConnection, targetDialect, to).get(1L));
                         return;
                     }
-                    sql(sourceConnection, "UPDATE cdc_rt_schema_orders SET NAME='after', NOTE='added' WHERE ID=1");
+                    sql(sourceConnection, "UPDATE " + tableName + " SET NAME='after', NOTE='added' WHERE ID=1");
                     awaitEvolvedRows(first, targetConnection, targetDialect, to, Map.of(1L, "added"));
                     assertTrue(((EmbeddedJobClient) first)
                                     .checkpoint()
@@ -274,7 +278,7 @@ abstract class MySqlCdcPipelineTestBase {
                 JobClient second = executor.execute(graph, restore).get(30, TimeUnit.SECONDS);
                 try {
                     sql(sourceConnection,
-                            "INSERT INTO cdc_rt_schema_orders (ID,NAME,NOTE) VALUES (2,'new','restored')");
+                            "INSERT INTO " + tableName + " (ID,NAME,NOTE) VALUES (2,'new','restored')");
                     awaitEvolvedRows(
                             second, targetConnection, targetDialect, to, Map.of(1L, "added", 2L, "restored"));
                     assertEquals(JobStatus.RUNNING, second.getJobStatus().get(10, TimeUnit.SECONDS));
@@ -283,7 +287,7 @@ abstract class MySqlCdcPipelineTestBase {
                 }
             } finally {
                 drop(targetConnection, targetDialect, to);
-                sql(sourceConnection, "DROP TABLE IF EXISTS cdc_rt_schema_orders");
+                sql(sourceConnection, "DROP TABLE IF EXISTS " + tableName);
             }
         }
     }
