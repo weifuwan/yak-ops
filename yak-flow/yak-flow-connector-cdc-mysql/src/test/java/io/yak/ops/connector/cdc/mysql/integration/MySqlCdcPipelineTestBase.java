@@ -251,8 +251,10 @@ abstract class MySqlCdcPipelineTestBase {
                     awaitIncrementalRow(first, sourceMetrics, from, targetConnection, targetDialect, to, "stream-ready");
                     sql(sourceConnection, "ALTER TABLE cdc_rt_schema_orders ADD COLUMN NOTE VARCHAR(128) NULL");
                     if (targetOptions.url().startsWith("jdbc:oracle:")) {
-                        // Automatic JDBC ADD_COLUMN is currently supported only for MySQL/PostgreSQL.
-                        // Oracle must reject the change without silently applying following rows.
+                        // A row after the DDL also exercises reconciliation when Debezium
+                        // produces no structured tableChanges for this ALTER.
+                        // Oracle must reject unsupported DDL without delivering that row.
+                        sql(sourceConnection, "UPDATE cdc_rt_schema_orders SET NAME='after', NOTE='blocked' WHERE ID=1");
                         awaitUnsupportedSchemaChange(first);
                         assertEquals("stream-ready", orderRows(targetConnection, targetDialect, to).get(1L));
                         return;
