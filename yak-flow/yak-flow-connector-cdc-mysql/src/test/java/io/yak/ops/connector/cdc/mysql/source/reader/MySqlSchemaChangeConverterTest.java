@@ -111,7 +111,8 @@ class MySqlSchemaChangeConverterTest {
         var previous = new io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset(
                 Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", 100L));
         var current = new io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset(
-                row.sourcePartition(), row.sourceOffset());
+                new java.util.LinkedHashMap<String, Object>(row.sourcePartition()),
+                new java.util.LinkedHashMap<String, Object>(row.sourceOffset()));
         BinlogEvent boundary = converter.reconcile(SOURCE, evolved, previous, current);
         assertEquals(100L, boundary.offset().position().get("pos"));
         assertTrue(boundary.records().isEmpty());
