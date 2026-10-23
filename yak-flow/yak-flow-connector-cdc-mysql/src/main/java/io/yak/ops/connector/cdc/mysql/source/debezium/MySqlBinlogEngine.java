@@ -172,17 +172,18 @@ public final class MySqlBinlogEngine implements AutoCloseable {
         if (row == null) {
             throw new IllegalStateException("CDC schema reconciliation requires a row image");
         }
-        List<String> actual =
-                row.schema().fields().stream().map(org.apache.kafka.connect.data.Field::name).toList();
-        List<String> expected = live.columns().stream().map(column -> column.name()).toList();
+        List<String> actual = row.schema().fields().stream()
+                .map(org.apache.kafka.connect.data.Field::name)
+                .toList();
+        List<String> expected =
+                live.columns().stream().map(column -> column.name()).toList();
         if (!actual.equals(expected)) {
             throw new IllegalStateException(
                     "Current MySQL metadata does not match the binlog row; cannot safely recover schema");
         }
-        BinlogOffset position =
-                new BinlogOffset(
-                        new LinkedHashMap<String, Object>(source.sourcePartition()),
-                        new LinkedHashMap<String, Object>(source.sourceOffset()));
+        BinlogOffset position = new BinlogOffset(
+                new LinkedHashMap<String, Object>(source.sourcePartition()),
+                new LinkedHashMap<String, Object>(source.sourceOffset()));
         return converter.reconcile(table, live, lastQueuedOffset, position);
     }
 
