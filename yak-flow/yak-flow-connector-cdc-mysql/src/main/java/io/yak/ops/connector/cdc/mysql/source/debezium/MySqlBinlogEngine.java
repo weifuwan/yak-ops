@@ -6,13 +6,13 @@ import io.debezium.engine.RecordChangeEvent;
 import io.debezium.engine.format.ChangeEventFormat;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceConfig;
 import io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset;
+import io.yak.ops.connector.cdc.mysql.source.reader.BinlogEvent;
+import io.yak.ops.connector.cdc.mysql.source.reader.MySqlDebeziumRecordConverter;
+import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import io.yak.ops.connector.jdbc.database.catalog.JdbcTableMetadata;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
-import io.yak.ops.connector.cdc.mysql.source.reader.BinlogEvent;
-import io.yak.ops.connector.cdc.mysql.source.reader.MySqlDebeziumRecordConverter;
-import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -162,7 +162,7 @@ public final class MySqlBinlogEngine implements AutoCloseable {
         TableSchema live;
         try (Connection connection = config.openSnapshotConnection()) {
             live = JdbcTableMetadata.readTable(
-                    connection, JdbcDialects.forUrl("jdbc:mysql://source"), table);
+                    connection, JdbcDialects.forUrl(connection.getMetaData().getURL()), table);
         }
         Struct envelope = (Struct) source.value();
         Struct row = envelope.schema().field("after") == null ? null : envelope.getStruct("after");
@@ -172,17 +172,17 @@ public final class MySqlBinlogEngine implements AutoCloseable {
         if (row == null) {
             throw new IllegalStateException("CDC schema reconciliation requires a row image");
         }
-        List<String> actual = row.schema().fields().stream()
-                .map(org.apache.kafka.connect.data.Field::name)
-                .toList();
+        List<String> actual =
+                row.schema().fields().stream().map(org.apache.kafka.connect.data.Field::name).toList();
         List<String> expected = live.columns().stream().map(column -> column.name()).toList();
         if (!actual.equals(expected)) {
             throw new IllegalStateException(
                     "Current MySQL metadata does not match the binlog row; cannot safely recover schema");
         }
-        BinlogOffset position = new BinlogOffset(
-                new LinkedHashMap<String, Object>(source.sourcePartition()),
-                new LinkedHashMap<String, Object>(source.sourceOffset()));
+        BinlogOffset position =
+                new BinlogOffset(
+                        new LinkedHashMap<String, Object>(source.sourcePartition()),
+                        new LinkedHashMap<String, Object>(source.sourceOffset()));
         return converter.reconcile(table, live, lastQueuedOffset, position);
     }
 
