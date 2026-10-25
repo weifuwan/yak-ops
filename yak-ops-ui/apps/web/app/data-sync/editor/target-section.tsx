@@ -1,4 +1,4 @@
-import { CollapseSection, Field, FieldLabel, Switch } from "@yak-ops/yak-ui";
+import { CollapseSection, Field, FieldLabel, Input, Switch } from "@yak-ops/yak-ui";
 import { type Dispatch, type SetStateAction } from "react";
 import { TableMappingEditor } from "./table-mapping-editor";
 import { SchemaPreview } from "./schema-preview";
@@ -136,6 +136,22 @@ export function TargetSection({
               onValueChange={(value) => patch("writeMode", value as DataSyncWriteMode)}
             />
           </Field>
+          {usesChangelog && form.keylessEnabled ? (
+            <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
+              <FieldLabel>目标主键</FieldLabel>
+              <Input
+                size="small"
+                variant="outlined"
+                placeholder="字段名，多个字段用逗号分隔"
+                value={form.targetPrimaryKeys.join(", ")}
+                onChange={(event) => {
+                  const keys = event.target.value.split(",").map((key) => key.trim());
+                  patch("targetPrimaryKeys", keys);
+                  patch("writeMode", keys.some(Boolean) ? "UPSERT" : "RETRACT");
+                }}
+              />
+            </Field>
+          ) : null}
         </TableSection>
       )}
       {usesChangelog ? (

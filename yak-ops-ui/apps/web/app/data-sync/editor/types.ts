@@ -15,6 +15,7 @@ export interface EditorForm {
   writeMode: DataSyncWriteMode;
   keylessEnabled: boolean;
   chunkKeyColumn: string;
+  targetPrimaryKeys: string[];
   incremental?: DataSyncIncrementalConfig;
   sourceDataSourceId: string;
   sourceDatabase: string;
@@ -43,6 +44,7 @@ export const EMPTY_FORM: EditorForm = {
   writeMode: "APPEND",
   keylessEnabled: false,
   chunkKeyColumn: "",
+  targetPrimaryKeys: [],
   incremental: undefined,
   sourceDataSourceId: "",
   sourceDatabase: "",

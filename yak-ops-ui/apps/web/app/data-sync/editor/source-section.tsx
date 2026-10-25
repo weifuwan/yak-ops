@@ -119,6 +119,7 @@ export function SourceSection({
               sourceTable: "",
               keylessEnabled: false,
               chunkKeyColumn: "",
+              targetPrimaryKeys: [],
               writeMode: usesChangelog ? "UPSERT" : current.writeMode,
             }));
           }}
@@ -132,6 +133,7 @@ export function SourceSection({
               sourceTable: table.name,
               keylessEnabled: false,
               chunkKeyColumn: "",
+              targetPrimaryKeys: [],
               writeMode: usesChangelog ? "UPSERT" : current.writeMode,
             }));
           }}
@@ -154,6 +156,7 @@ export function SourceSection({
                       ...current,
                       keylessEnabled: enabled,
                       chunkKeyColumn: enabled ? current.chunkKeyColumn : "",
+                      targetPrimaryKeys: [],
                       writeMode: enabled ? "RETRACT" : "UPSERT",
                       schemaChangesEnabled: enabled ? false : current.schemaChangesEnabled,
                       allowDropColumns: enabled ? false : current.allowDropColumns,

@@ -37,6 +37,7 @@ export function buildEditorPayload(
     solutionType: draft.solutionType,
     steps: draft.steps,
     writeMode: form.writeMode,
+    targetPrimaryKeys: form.targetPrimaryKeys?.filter(Boolean) ?? [],
     ...(usesChangelog && form.keylessEnabled && !batch
       ? { keylessEnabled: true, chunkKeyColumn: form.chunkKeyColumn }
       : {}),
@@ -105,9 +106,10 @@ export function canSaveEditor({
       ? !batch &&
         draft.solutionType === "SINGLE_TABLE_REALTIME" &&
         draft.targetType === "MYSQL" &&
-        !prepareSchema &&
         !form.schemaChangesEnabled &&
-        form.writeMode === "RETRACT" &&
+        (form.targetPrimaryKeys?.length
+          ? form.writeMode === "UPSERT" && form.targetPrimaryKeys.every(Boolean)
+          : form.writeMode === "RETRACT") &&
         Boolean(form.chunkKeyColumn.trim())
       : form.writeMode !== "RETRACT") &&
     (!useIncremental ||

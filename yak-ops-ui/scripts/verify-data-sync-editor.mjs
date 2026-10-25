@@ -109,6 +109,14 @@ assert.equal(
   true,
 );
 assert.equal(params.canSaveEditor({ ...options, form: { ...form, writeMode: "RETRACT" } }), false);
+assert.equal(params.canSaveEditor({
+  ...options,
+  draft: { ...draft, targetType: "MYSQL" },
+  selectedTargetDataSource: { dbType: "MYSQL" },
+  combination: { writeModes: ["UPSERT", "RETRACT"] },
+  form: { ...form, keylessEnabled: true, targetPrimaryKeys: ["bucket"],
+    chunkKeyColumn: "bucket", writeMode: "UPSERT", schemaChangesEnabled: false },
+}), true);
 assert.equal(params.canSaveEditor({ ...options, published: true }), false);
 assert.equal(
   params.canSaveEditor({ ...options, supportsScheduling: true, scheduleNeedsReload: true }),
