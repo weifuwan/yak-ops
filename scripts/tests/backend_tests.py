@@ -22,7 +22,7 @@ BUSINESS = "yak-ops-business/yak-ops-business-task"
 E2E = "yak-ops-e2e"
 # Minimum method counts prevent an empty subclass, lost inherited tests or partial run from passing.
 SUITES = {
-    "jdbc-mysql": (JDBC, "jdbc & mysql", {"MySqlSourceIT": 6, "MySqlSinkIT": 3, "MySqlKeylessRetractIT": 8}),
+    "jdbc-mysql": (JDBC, "jdbc & mysql", {"MySqlSourceIT": 6, "MySqlSinkIT": 3, "MySqlKeylessRetractIT": 8, "MySqlXaSinkIT": 2}),
     "jdbc-postgres": (JDBC, "jdbc & postgres", {"PostgresSourceIT": 5, "PostgresSinkIT": 3, "PostgresKeylessRetractIT": 3}),
     "jdbc-oracle": (JDBC, "jdbc & oracle", {"OracleSourceIT": 5, "OracleSinkIT": 3, "OracleKeylessRetractIT": 4}),
     "pipeline": (JDBC, "pipeline", {name: 2 for name in ("MySqlToMySqlIT", "MySqlToPostgresIT", "PostgresToOracleIT", "OracleToMySqlIT")}),
