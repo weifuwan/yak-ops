@@ -207,11 +207,11 @@ async def verify_multitable_mapping(page):
     requests = [req[2] for req in state["requests"]
                 if req[0] == "POST" and req[1] == "/api/v1/task-definitions"]
     assert len(requests) == 1, requests
-    parameters = json.loads(requests[0]["parameters"])
+    parameters = requests[0]["parameters"]
     assert parameters["solutionType"] == "DATABASE_OFFLINE", parameters
-    assert [row["source"]["table"] for row in parameters["tableMappings"]] == ["batch_a", "batch_b"]
-    assert [row["target"]["table"] for row in parameters["tableMappings"]] == ["batch_a_copy", "batch_b_copy"]
-    assert all(row["writeMode"] == "UPSERT" for row in parameters["tableMappings"])
+    assert [row["table"] for row in parameters["source"]["tables"]] == ["batch_a", "batch_b"]
+    assert [row["table"] for row in parameters["sink"]["tables"]] == ["batch_a_copy", "batch_b_copy"]
+    assert all(row["write"]["mode"] == "UPSERT" for row in parameters["sink"]["tables"])
 
 
 
@@ -264,10 +264,10 @@ async def verify_multitable_selection(page):
     writes = [item[2] for item in state["requests"]
               if item[0] == "POST" and item[1] == "/api/v1/task-definitions"]
     assert len(writes) == 1, writes
-    saved = json.loads(writes[0]["parameters"])
-    assert saved["tableSelection"] == {"mode": "EXPLICIT"}
-    assert [entry["source"]["table"] for entry in saved["tableMappings"]] == ["batch_a"]
-    assert [entry["target"]["table"] for entry in saved["tableMappings"]] == ["batch_a_copy"]
+    saved = writes[0]["parameters"]
+    assert saved["transform"] == [] and saved["env"] == {}
+    assert [entry["table"] for entry in saved["source"]["tables"]] == ["batch_a"]
+    assert [entry["table"] for entry in saved["sink"]["tables"]] == ["batch_a_copy"]
 
 
 async def verify_schema_preview(page):
@@ -307,9 +307,10 @@ async def verify_schema_preview(page):
     await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
     created = [req[2] for req in state["requests"]
                if req[0] == "POST" and req[1] == "/api/v1/task-definitions"][-1]
-    params = json.loads(created["parameters"])
-    assert params["steps"] == ["SCHEMA", "FULL"], params
-    assert params["tableMappings"][0]["target"]["table"] == "sm_browser_target"
+    params = created["parameters"]
+    assert params["steps"] == ["FULL"], params
+    assert params["sink"]["schemaPolicy"]["initial"] == "CREATE_OR_ALTER"
+    assert params["sink"]["tables"][0]["table"] == "sm_browser_target"
 
 
 async def verify_realtime_stages(page):
@@ -338,11 +339,11 @@ async def verify_realtime_stages(page):
     await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
     saved = [item[2] for item in state["requests"]
              if item[0] == "POST" and item[1] == "/api/v1/task-definitions"][-1]
-    config = json.loads(saved["parameters"])
+    config = saved["parameters"]
     assert config["solutionType"] == "DATABASE_REALTIME", config
     assert config["steps"] == ["FULL", "INCREMENTAL"]
-    assert len(config["tableMappings"]) == 2
-    assert all(row["writeMode"] == "UPSERT" for row in config["tableMappings"])
+    assert len(config["sink"]["tables"]) == 2
+    assert all(row["write"]["mode"] == "UPSERT" for row in config["sink"]["tables"])
 
     # Deliberately synthesize Instance telemetry; this must not start MySQL CDC or wait for a checkpoint.
     full = {"step": "FULL", "status": "FINISHED", "progressPercent": 100,
