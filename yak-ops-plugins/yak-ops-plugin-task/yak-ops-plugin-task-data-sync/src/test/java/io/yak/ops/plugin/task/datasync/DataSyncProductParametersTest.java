@@ -159,7 +159,7 @@ class DataSyncProductParametersTest {
     void customTargetKeysRequirePhysicalUniqueEvidenceButDoNotBecomeSourceKeys() {
         var columns = List.of(
                 new io.yak.ops.core.types.Column("bucket", io.yak.ops.core.types.LogicalTypes.BIGINT.copy(false)),
-                new io.yak.ops.core.types.Column("amount", io.yak.ops.core.types.LogicalTypes.DECIMAL));
+                new io.yak.ops.core.types.Column("amount", io.yak.ops.core.types.LogicalTypes.decimal(12, 2)));
         var physical = new io.yak.ops.core.types.TableSchema(columns, List.of());
         var source = new io.yak.ops.plugin.datasource.api.lookup.DataSourceTable(
                 "MYSQL", new io.yak.ops.core.data.TableId("app", null, "orders"), physical, 1,
