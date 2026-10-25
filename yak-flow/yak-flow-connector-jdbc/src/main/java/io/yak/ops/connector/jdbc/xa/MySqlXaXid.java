@@ -33,9 +33,9 @@ public final class MySqlXaXid implements Xid {
         }
     }
 
-    public static MySqlXaXid next(String instanceId, int subtask, long checkpointId) {
-        if (instanceId == null || !instanceId.matches("[A-Za-z0-9_-]{1,40}") || subtask < 0 || checkpointId <= 0) {
-            throw new IllegalArgumentException("Invalid persistent XA instance or checkpoint identity");
+    public static MySqlXaXid next(String instanceId, int subtask, long transactionSequence) {
+        if (instanceId == null || !instanceId.matches("[A-Za-z0-9_-]{1,40}") || subtask < 0 || transactionSequence <= 0) {
+            throw new IllegalArgumentException("Invalid persistent XA instance or transaction sequence");
         }
         byte[] owner = instanceId.getBytes(StandardCharsets.US_ASCII);
         byte[] global = ByteBuffer.allocate(PREFIX.length + owner.length)
@@ -44,7 +44,7 @@ public final class MySqlXaXid implements Xid {
                 .array();
         UUID nonce = UUID.randomUUID();
         byte[] branch = ByteBuffer.allocate(28)
-                .putLong(checkpointId)
+                .putLong(transactionSequence)
                 .putInt(subtask)
                 .putLong(nonce.getMostSignificantBits())
                 .putLong(nonce.getLeastSignificantBits())
