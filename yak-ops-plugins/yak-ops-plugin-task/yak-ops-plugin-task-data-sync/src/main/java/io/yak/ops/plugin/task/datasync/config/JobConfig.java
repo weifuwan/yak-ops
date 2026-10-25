@@ -23,18 +23,22 @@ public final class JobConfig {
             Options.key("tables").listType(Object.class).noDefaultValue();
     private static final Option<Map<String, Object>> SCHEMA_POLICY =
             Options.key("schemaPolicy").mapObjectType().noDefaultValue();
-    private static final Option<String> INITIAL = Options.key("initial").stringType().noDefaultValue();
+    private static final Option<String> INITIAL =
+            Options.key("initial").stringType().noDefaultValue();
     private static final Option<Map<String, Object>> EVOLUTION =
             Options.key("evolution").mapObjectType().noDefaultValue();
-    private static final Option<Boolean> ENABLED = Options.key("enabled").booleanType().noDefaultValue();
+    private static final Option<Boolean> ENABLED =
+            Options.key("enabled").booleanType().noDefaultValue();
     private static final Option<Boolean> ALLOW_DROP_COLUMNS =
             Options.key("allowDropColumns").booleanType().noDefaultValue();
 
     private static final OptionRule SOURCE_RULE =
             OptionRule.builder().required(JobOptions.DATASOURCE_ID, TABLES).build();
-    private static final OptionRule SINK_RULE =
-            OptionRule.builder().required(JobOptions.DATASOURCE_ID, TABLES, SCHEMA_POLICY).build();
-    private static final OptionRule SCHEMA_RULE = OptionRule.builder().required(INITIAL, EVOLUTION).build();
+    private static final OptionRule SINK_RULE = OptionRule.builder()
+            .required(JobOptions.DATASOURCE_ID, TABLES, SCHEMA_POLICY)
+            .build();
+    private static final OptionRule SCHEMA_RULE =
+            OptionRule.builder().required(INITIAL, EVOLUTION).build();
     private static final OptionRule EVOLUTION_RULE =
             OptionRule.builder().required(ENABLED, ALLOW_DROP_COLUMNS).build();
 
@@ -79,9 +83,9 @@ public final class JobConfig {
         if (!type.supportsScheduling() && !dataSteps.equals(List.of(Step.FULL, Step.INCREMENTAL))) {
             throw new IllegalArgumentException("Realtime requires FULL and INCREMENTAL");
         }
-        if (type.supportsScheduling() && !List.of(
-                        List.of(Step.FULL), List.of(Step.INCREMENTAL), List.of(Step.FULL, Step.INCREMENTAL))
-                .contains(dataSteps)) {
+        if (type.supportsScheduling()
+                && !List.of(List.of(Step.FULL), List.of(Step.INCREMENTAL), List.of(Step.FULL, Step.INCREMENTAL))
+                        .contains(dataSteps)) {
             throw new IllegalArgumentException("Unsupported offline data steps");
         }
         if (!parameters.get(SolutionOptions.TRANSFORM).isEmpty()
@@ -121,7 +125,8 @@ public final class JobConfig {
 
         List<Object> sources = from.get(TABLES);
         List<Object> sinks = to.get(TABLES);
-        if (sources.isEmpty() || sources.size() > MAX_TABLES
+        if (sources.isEmpty()
+                || sources.size() > MAX_TABLES
                 || sources.size() != sinks.size()
                 || (!type.supportsMultipleTables() && sources.size() != 1)) {
             throw new IllegalArgumentException("Unsupported explicit table count");
@@ -152,7 +157,8 @@ public final class JobConfig {
             if (!sourceTables.add(tableKey(source)) || !sinkTables.add(tableKey(target))) {
                 throw new IllegalArgumentException("Duplicate physical table route");
             }
-            routes.add(new TableConfig(input.options(), output.options(), input.incremental(), output.targetPrimaryKeys()));
+            routes.add(new TableConfig(
+                    input.options(), output.options(), input.incremental(), output.targetPrimaryKeys()));
         }
         if (!targets.isEmpty()) throw new IllegalArgumentException("Unknown Sink input");
         List<Step> stages = new ArrayList<>();
