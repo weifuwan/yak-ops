@@ -151,25 +151,18 @@ for (const kind of [
         initial: "CREATE_OR_ALTER",
         evolution: { enabled: false, allowDropColumns: false },
       },
-      tables: [
-        { input: "orders", table: "new_orders", write: { mode: "UPSERT" } },
-      ],
+      tables: [{ input: "orders", table: "new_orders", write: { mode: "UPSERT" } }],
     },
     env: {},
   };
-  assert.deepEqual(displaySyncSteps(readSyncParameters(4, parameters)), [
-    "SCHEMA",
-    ...dataSteps,
-  ]);
+  assert.deepEqual(displaySyncSteps(readSyncParameters(4, parameters)), ["SCHEMA", ...dataSteps]);
   for (const invalid of [
     ["SCHEMA"],
     ["SCHEMA", ...dataSteps],
     [...dataSteps, ...dataSteps],
     ["INCREMENTAL"],
   ]) {
-    assert.throws(() =>
-      readSyncParameters(4, { ...parameters, steps: invalid }),
-    );
+    assert.throws(() => readSyncParameters(4, { ...parameters, steps: invalid }));
   }
 }
 console.log(
