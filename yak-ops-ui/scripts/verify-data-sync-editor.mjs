@@ -94,6 +94,7 @@ assert.equal(
   params.canSaveEditor({
     ...options,
     draft: { ...draft, targetType: "MYSQL", steps: ["FULL", "INCREMENTAL"] },
+    selectedTargetDataSource: { dbType: "MYSQL" },
     prepareSchema: false,
     combination: { writeModes: ["UPSERT", "RETRACT"] },
     form: {

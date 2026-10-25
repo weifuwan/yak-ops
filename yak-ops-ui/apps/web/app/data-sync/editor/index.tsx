@@ -333,7 +333,7 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
             mappings={mappings}
             updateMappings={updateMappings}
             writeMode={combination?.writeModes[0]}
-            allowKeyless={usesChangelog && !batch && draft.targetType === "MYSQL"}
+            allowKeyless={usesChangelog && !batch && !prepareSchema && draft.targetType === "MYSQL"}
             usesChangelog={usesChangelog}
             useIncremental={useIncremental}
             initialLoad={initialLoad}
