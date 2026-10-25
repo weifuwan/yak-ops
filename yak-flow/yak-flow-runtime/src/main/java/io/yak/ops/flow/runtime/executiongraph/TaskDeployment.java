@@ -2,6 +2,8 @@ package io.yak.ops.flow.runtime.executiongraph;
 
 import io.yak.ops.core.api.connector.sink.MetadataApplier;
 import io.yak.ops.core.api.connector.sink.SchemaEvolutionSink;
+import io.yak.ops.core.api.connector.sink.Sink;
+import io.yak.ops.core.api.connector.sink.SupportsCommitter;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.configuration.CheckpointingOptions;
@@ -22,6 +24,8 @@ import io.yak.ops.flow.runtime.jobgraph.JobEdge;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
 import io.yak.ops.flow.runtime.jobgraph.JobVertex;
 import io.yak.ops.flow.runtime.operators.OperatorChain;
+import io.yak.ops.flow.runtime.operators.sink.SinkWriterOperator;
+import io.yak.ops.flow.runtime.state.OperatorStateBackend;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.schema.SchemaCoordinator;
 import io.yak.ops.flow.runtime.schema.SchemaManager;
@@ -136,10 +140,13 @@ final class TaskDeployment {
         } finally {
             Throwable cleanupFailure = closeAll();
             if (cleanupFailure != null) {
-                if (outcome == null) {
-                    outcome = cleanupFailure;
-                } else if (outcome != cleanupFailure) {
-                    outcome.addSuppressed(cleanupFailure);
+                outcome = accumulate(outcome, cleanupFailure);
+            }
+            if (outcome != null && cleanupFailure == null && checkpointEnabled() && !jobGraph.isSingleChainedVertex()) {
+                try {
+                    reconcileSinkCommits();
+                } catch (Throwable recoveryFailure) {
+                    outcome = accumulate(outcome, recoveryFailure);
                 }
             }
         }
@@ -453,6 +460,41 @@ final class TaskDeployment {
     private void failJob(Throwable cause) {
         if (firstFailure.compareAndSet(null, Objects.requireNonNull(cause, "cause must not be null"))) {
             stopAll(cause);
+        }
+    }
+
+    /**
+     * Resolves prepared transactions only against the checkpoint actually published to disk.
+     * A missing checkpoint means that every prepared XA transaction of this Instance is orphaned.
+     * Corrupt checkpoints fail closed rather than authorizing any rollback or commit.
+     */
+    @SuppressWarnings("unchecked")
+    private void reconcileSinkCommits() throws Exception {
+        String directory = jobGraph.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
+        try (FileCheckpointStore store = new FileCheckpointStore(Path.of(directory))) {
+            CheckpointSnapshot durable = store.loadLatest(FileCheckpointStore.graphSignature(
+                            jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM)))
+                    .orElse(null);
+            for (JobVertex vertex : jobGraph.getVertices()) {
+                StreamNode node = vertex.getHeadOperator();
+                if (!node.isSink() || !(node.getSink().orElseThrow() instanceof SupportsCommitter<?, ?>)) {
+                    continue;
+                }
+                for (int subtask = 0; subtask < vertex.getParallelism(); subtask++) {
+                    Execution execution = executionGraph.currentExecution(vertex.getId(), subtask);
+                    TaskEnvironment context = environment(execution);
+                    var state = durable == null
+                            ? Map.<String, CheckpointSnapshot.SerializedState>of()
+                            : durable.operatorStates().getOrDefault(
+                                    new CheckpointSnapshot.OperatorSubtask(node.getUid(), subtask), Map.of());
+                    boolean keyed = jobGraph.getEdges().stream()
+                            .anyMatch(edge -> edge.targetVertexId() == vertex.getId()
+                                    && edge.streamEdge().partitioning() == StreamPartitioning.KEYED);
+                    var backend = new OperatorStateBackend(state, context.taskInfo(), keyed);
+                    var sink = (Sink<Object>) node.getSink().orElseThrow();
+                    new SinkWriterOperator<>(sink, context).recoverCommittables(backend);
+                }
+            }
         }
     }
 
