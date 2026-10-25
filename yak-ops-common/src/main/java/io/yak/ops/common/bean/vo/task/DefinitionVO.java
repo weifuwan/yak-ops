@@ -1,5 +1,6 @@
 package io.yak.ops.common.bean.vo.task;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.time.LocalDateTime;
 import lombok.Data;
 
@@ -19,6 +20,7 @@ public class DefinitionVO {
     /** Schema version used by the plugin to interpret parameters. */
     private Integer parameterSchemaVersion;
     /** Validated plugin-specific JSON for the current definition version. */
+    @JsonRawValue
     private String parameters;
     /** Detailed diagnostics for newly submitted Instances. */
     private boolean debug;
