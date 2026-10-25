@@ -18,5 +18,4 @@ public class SchemaPreviewDTO {
     public void readParameters(JsonNode parameters) {
         this.parameters = TaskParameterJson.requiredObject(parameters);
     }
-
 }
