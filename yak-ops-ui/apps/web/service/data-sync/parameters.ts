@@ -3,7 +3,7 @@ import type {
   DataSyncIncrementalConfig,
   DataSyncSolutionType,
   DataSyncStep,
-  SyncPipelineParameters,
+  DataSyncTableMapping,
 } from "./types";
 
 const SOLUTIONS = new Set([
@@ -52,200 +52,160 @@ export const validIncrementalConfig = (
   return true;
 };
 
-/** Reads the stored parameter shape for presentation; it does not admit a task for execution. */
-export function parseSyncParameters(schemaVersion: number, content: string): DataSyncParameters {
-  const parsed = JSON.parse(content);
-  let value: DataSyncParameters;
-  if (schemaVersion === 2) {
-    const pipeline = parsed as SyncPipelineParameters;
-    if (
-      !pipeline ||
-      "solutionType" in pipeline ||
-      !["JDBC", "MYSQL_CDC"].includes(pipeline.source?.type) ||
-      pipeline.sink?.type !== "JDBC" ||
-      (pipeline.transform !== undefined &&
-        (!Array.isArray(pipeline.transform) || pipeline.transform.length !== 0))
-    ) {
-      throw new Error("不支持的同步任务定义");
-    }
-    const continuous = pipeline.source.type === "MYSQL_CDC";
-    value = {
-      solutionType: continuous ? "SINGLE_TABLE_REALTIME" : "SINGLE_TABLE_OFFLINE",
-      steps: continuous ? ["FULL", "INCREMENTAL"] : ["FULL"],
-      source: { datasourceId: pipeline.source.datasourceId },
-      sink: { datasourceId: pipeline.sink.datasourceId },
-      tableSelection: { mode: "EXPLICIT" },
-      tableMappings: [
-        {
-          source: {
-            database: pipeline.source.database,
-            schema: pipeline.source.schema,
-            table: pipeline.source.table,
-          },
-          target: {
-            database: pipeline.sink.database,
-            schema: pipeline.sink.schema,
-            table: pipeline.sink.table,
-          },
-          writeMode: pipeline.sink.writeMode,
-        },
-      ],
-    };
-  } else if (schemaVersion === 3) {
-    value = parsed as DataSyncParameters;
-    if (parsed?.source?.type !== undefined || parsed?.sink?.type !== undefined) {
-      throw new Error("同步任务参数格式与版本不匹配");
-    }
-  } else {
-    throw new Error("不支持的同步任务参数版本");
-  }
 
+/** One readable configuration contract; no V2/V3 conversion or protocol fallback. */
+export function parseSyncParameters(schemaVersion: number, content: string): DataSyncParameters {
+  if (schemaVersion !== 4) throw new Error("不支持的同步任务参数版本");
+  const value = JSON.parse(content) as DataSyncParameters;
+  const allowed = (object: object, keys: string[]) =>
+    Object.keys(object).every((key) => keys.includes(key));
   if (
-    !value ||
+    !value || typeof value !== "object" ||
+    !allowed(value, ["solutionType", "steps", "source", "transform", "sink", "env"]) ||
     !SOLUTIONS.has(value.solutionType) ||
     !Array.isArray(value.steps) ||
-    !value.steps.every((step) => ["SCHEMA", "FULL", "INCREMENTAL"].includes(step)) ||
+    !Array.isArray(value.transform) ||
+    value.transform.length !== 0 ||
+    !value.env || Object.keys(value.env).length !== 0 ||
     !value.source?.datasourceId ||
-    typeof value.source.datasourceId !== "string" ||
     !value.sink?.datasourceId ||
-    typeof value.sink.datasourceId !== "string" ||
-    value.tableSelection?.mode !== "EXPLICIT" ||
-    !Array.isArray(value.tableMappings) ||
-    value.tableMappings.length < 1 ||
-    value.tableMappings.length > 100
+    !Array.isArray(value.source.tables) ||
+    !Array.isArray(value.sink.tables) ||
+    !value.source.tables.length ||
+    value.source.tables.length > 100 ||
+    value.source.tables.length !== value.sink.tables.length ||
+    !allowed(value.source, ["datasourceId", "tables"]) ||
+    !allowed(value.sink, ["datasourceId", "tables", "schemaPolicy"])
   ) {
     throw new Error("不支持的同步任务定义");
   }
-  for (const mapping of value.tableMappings) {
-    if (
-      !mapping?.source ||
-      !mapping.target ||
-      typeof mapping.source.table !== "string" ||
-      !mapping.source.table.trim() ||
-      typeof mapping.target.table !== "string" ||
-      !mapping.target.table.trim() ||
-      !WRITES.has(mapping.writeMode)
-    ) {
-      throw new Error("不支持的同步任务表映射");
+  for (const source of value.source.tables) {
+    if (!source?.id || !source.table ||
+      !allowed(source, ["id", "database", "schema", "table", "keyless", "snapshot", "incremental"])) {
+      throw new Error("不支持的来源表配置");
     }
   }
-  return value;
-}
-
-/** Enforces static job and write-protocol admission without reading external resources. */
-export function validateSyncParameters(value: DataSyncParameters): void {
-  const realtime = value && solutionSyncType(value.solutionType) === "REALTIME";
-  if (
-    value?.schemaChangesEnabled !== undefined &&
-    (typeof value.schemaChangesEnabled !== "boolean" || !realtime)
-  ) {
-    throw new Error("结构变更配置只适用于实时任务");
-  }
-  if (
-    value?.allowDropColumns !== undefined &&
-    (typeof value.allowDropColumns !== "boolean" || !realtime)
-  ) {
-    throw new Error("删除目标字段只能在实时任务中配置");
-  }
-  if (value?.allowDropColumns && !value.schemaChangesEnabled) {
-    throw new Error("删除目标字段需要开启同步结构变更");
-  }
-  const steps = value?.steps || [];
-  const expected: DataSyncStep[] = realtime
-    ? ["FULL", "INCREMENTAL"]
-    : (["FULL", "INCREMENTAL"].filter((step) =>
-        steps.includes(step as DataSyncStep),
-      ) as DataSyncStep[]);
-  if (steps.includes("SCHEMA")) expected.unshift("SCHEMA");
-  if (expected.includes("SCHEMA") && !expected.includes("FULL")) {
-    throw new Error("结构迁移必须包含全量初始化");
-  }
-  if (
-    !value ||
-    !SOLUTIONS.has(value.solutionType) ||
-    !Array.isArray(value.steps) ||
-    !expected.some((step) => step === "FULL" || step === "INCREMENTAL") ||
-    value.steps.length !== expected.length ||
-    new Set(value.steps).size !== expected.length ||
-    expected.some((step) => !value.steps.includes(step)) ||
-    value.tableSelection?.mode !== "EXPLICIT" ||
-    !Array.isArray(value.tableMappings) ||
-    value.tableMappings.length < 1 ||
-    value.tableMappings.length > 100 ||
-    (!supportsMultipleTables(value.solutionType) && value.tableMappings.length !== 1) ||
-    !value.source?.datasourceId ||
-    !value.sink?.datasourceId
-  ) {
-    throw new Error("不支持的同步方案或表映射");
-  }
-  const sources = new Set<string>();
-  const targets = new Set<string>();
-  for (const mapping of value.tableMappings) {
-    const keyless = mapping?.source?.keyless === true;
-    const validRetract =
-      keyless &&
-      mapping.writeMode === "RETRACT" &&
-      mapping.source.xa === true &&
-      mapping.target.primaryKeys === undefined;
-    const validKeyedWrite =
-      keyless &&
-      mapping.writeMode === "UPSERT" &&
-      mapping.source.xa === undefined &&
-      Boolean(mapping.target.primaryKeys?.length);
-    const invalidTransaction = keyless
-      ? !validRetract && !validKeyedWrite
-      : mapping.source.xa !== undefined;
-    if (
-      (mapping?.source?.keyless !== undefined && typeof mapping.source.keyless !== "boolean") ||
-      (mapping?.source?.chunkKeyColumn !== undefined &&
-        (typeof mapping.source.chunkKeyColumn !== "string" ||
-          !mapping.source.chunkKeyColumn.trim() ||
-          mapping.source.chunkKeyColumn.length > 128)) ||
-      (mapping.target?.primaryKeys !== undefined &&
-        (!Array.isArray(mapping.target.primaryKeys) ||
-          mapping.target.primaryKeys.length === 0 ||
-          new Set(mapping.target.primaryKeys).size !== mapping.target.primaryKeys.length ||
-          mapping.target.primaryKeys.some((key) => typeof key !== "string" || !key.trim()))) ||
-      invalidTransaction ||
-      (keyless &&
-        (value.solutionType !== "SINGLE_TABLE_REALTIME" ||
-          value.schemaChangesEnabled !== false ||
-          value.allowDropColumns === true ||
-          !mapping.source.chunkKeyColumn)) ||
-      (!keyless &&
-        (mapping?.source?.chunkKeyColumn !== undefined || mapping.writeMode === "RETRACT")) ||
-      !mapping?.source?.table ||
-      !mapping.target?.table ||
-      !WRITES.has(mapping.writeMode) ||
-      ((solutionSyncType(value.solutionType) === "REALTIME" ||
-        offlineIncremental(value.solutionType, value.steps)) &&
-        mapping.writeMode !== "UPSERT" &&
-        !(keyless && mapping.writeMode === "RETRACT")) ||
-      (offlineIncremental(value.solutionType, value.steps)
-        ? !validIncrementalConfig(mapping.incremental, !value.steps.includes("FULL"))
-        : mapping.incremental !== undefined)
-    ) {
-      throw new Error("不支持的同步目标写入配置");
+  for (const target of value.sink.tables) {
+    if (!target?.input || !target.table || !target.write?.mode ||
+      !allowed(target, ["input", "database", "schema", "table", "write"]) ||
+      !allowed(target.write, ["mode", "primaryKeys", "transaction"])) {
+      throw new Error("不支持的目标表配置");
     }
-    const sourceKey = JSON.stringify([
-      mapping.source.database || "",
-      mapping.source.schema || "",
-      mapping.source.table,
-    ]);
-    const targetKey = JSON.stringify([
-      mapping.target.database || "",
-      mapping.target.schema || "",
-      mapping.target.table,
-    ]);
-    if (sources.has(sourceKey) || targets.has(targetKey)) throw new Error("来源表和去向表不能重复");
-    sources.add(sourceKey);
-    targets.add(targetKey);
   }
-}
-
-/** Interprets a pinned version with the complete current static execution contract. */
-export function readSyncParameters(schemaVersion: number, content: string): DataSyncParameters {
-  const value = parseSyncParameters(schemaVersion, content);
   validateSyncParameters(value);
   return value;
+}
+
+/** Returns a read-only UI projection, not an alternative persisted table-mapping model. */
+export function syncTableMappings(value: DataSyncParameters): DataSyncTableMapping[] {
+  const targets = new Map(value.sink.tables.map((target) => [target.input, target]));
+  return value.source.tables.map((table) => {
+    const target = targets.get(table.id);
+    if (!target) throw new Error("找不到目标表映射");
+    return {
+      source: {
+        database: table.database,
+        schema: table.schema,
+        table: table.table,
+        ...(table.keyless ? { keyless: true, chunkKeyColumn: table.snapshot?.chunkKeyColumn } : {}),
+      },
+      target: {
+        database: target.database,
+        schema: target.schema,
+        table: target.table,
+        ...(target.write.primaryKeys ? { primaryKeys: target.write.primaryKeys } : {}),
+      },
+      writeMode: target.write.mode,
+      ...(table.incremental ? { incremental: table.incremental } : {}),
+    };
+  });
+}
+
+/** SCHEMA is derived for the current stage viewer and editor; it is never persisted as a data step. */
+export function displaySyncSteps(value: DataSyncParameters): DataSyncStep[] {
+  return [
+    ...(value.sink.schemaPolicy.initial === "CREATE_OR_ALTER" ? (["SCHEMA"] as const) : []),
+    ...value.steps,
+  ];
+}
+
+export function validateSyncParameters(value: DataSyncParameters): void {
+  const realtime = solutionSyncType(value.solutionType) === "REALTIME";
+  const steps = value.steps;
+  if (
+    new Set(steps).size !== steps.length ||
+    steps.some((step) => step !== "FULL" && step !== "INCREMENTAL") ||
+    (realtime && (steps.length !== 2 || steps[0] !== "FULL" || steps[1] !== "INCREMENTAL")) ||
+    (!realtime && ![["FULL"], ["INCREMENTAL"], ["FULL", "INCREMENTAL"]].some(
+      (candidate) => JSON.stringify(candidate) === JSON.stringify(steps),
+    )) ||
+    (!supportsMultipleTables(value.solutionType) && value.source.tables.length !== 1)
+  ) throw new Error("不支持的同步步骤或表数量");
+  const policy = value.sink.schemaPolicy;
+  if (!policy || !["VERIFY", "CREATE_OR_ALTER"].includes(policy.initial) ||
+    typeof policy.evolution?.enabled !== "boolean" ||
+    typeof policy.evolution.allowDropColumns !== "boolean" ||
+    Object.keys(policy).some((key) => !["initial", "evolution"].includes(key)) ||
+    Object.keys(policy.evolution).some((key) => !["enabled", "allowDropColumns"].includes(key)) ||
+    (policy.evolution.allowDropColumns && !policy.evolution.enabled) ||
+    (!realtime && policy.evolution.enabled) ||
+    (policy.initial === "CREATE_OR_ALTER" && !steps.includes("FULL"))
+  ) throw new Error("不支持的目标结构策略");
+
+  const ids = new Set<string>();
+  const sourcePaths = new Set<string>();
+  const targetPaths = new Set<string>();
+  for (const source of value.source.tables) {
+    const sourcePath = JSON.stringify([source.database || "", source.schema || "", source.table]);
+    if (!source.id || ids.has(source.id) || sourcePaths.has(sourcePath)) {
+      throw new Error("来源表不能重复");
+    }
+    ids.add(source.id);
+    sourcePaths.add(sourcePath);
+    if (source.keyless !== undefined && typeof source.keyless !== "boolean")
+      throw new Error("无主键配置无效");
+    if (source.keyless) {
+      if (value.solutionType !== "SINGLE_TABLE_REALTIME" || policy.evolution.enabled ||
+        !source.snapshot?.chunkKeyColumn?.trim() ||
+        Object.keys(source.snapshot).some((key) => key !== "chunkKeyColumn")) {
+        throw new Error("无主键快照配置不完整");
+      }
+    } else if (source.snapshot !== undefined) throw new Error("仅无主键来源可设置快照分片键");
+    if (offlineIncremental(value.solutionType, steps)) {
+      if (!validIncrementalConfig(source.incremental, !steps.includes("FULL"))) {
+        throw new Error("离线增量配置不完整");
+      }
+    } else if (source.incremental !== undefined) {
+      throw new Error("来源增量配置与同步方案不匹配");
+    }
+  }
+  const mapped = new Set<string>();
+  for (const target of value.sink.tables) {
+    if (!ids.has(target.input) || mapped.has(target.input)) throw new Error("目标表关联无效");
+    mapped.add(target.input);
+    const path = JSON.stringify([target.database || "", target.schema || "", target.table]);
+    if (targetPaths.has(path)) throw new Error("目标表不能重复");
+    targetPaths.add(path);
+    const source = value.source.tables.find((table) => table.id === target.input)!;
+    const write = target.write;
+    if (!WRITES.has(write.mode) || (write.primaryKeys !== undefined &&
+      (!write.primaryKeys.length || new Set(write.primaryKeys).size !== write.primaryKeys.length ||
+        write.primaryKeys.some((key) => !key?.trim()))) ||
+      (write.primaryKeys && policy.evolution.enabled)) throw new Error("目标写入主键无效");
+    const retract = source.keyless && write.mode === "RETRACT" &&
+      write.transaction?.mode === "CHECKPOINT_XA" && !write.primaryKeys;
+    const keyed = source.keyless && write.mode === "UPSERT" &&
+      !write.transaction && Boolean(write.primaryKeys?.length);
+    if ((source.keyless && !retract && !keyed) ||
+      (!source.keyless && (write.mode === "RETRACT" || write.transaction !== undefined)) ||
+      ((realtime || offlineIncremental(value.solutionType, steps)) &&
+        write.mode !== "UPSERT" && !retract)) {
+      throw new Error("不支持的目标写入协议");
+    }
+  }
+}
+
+/** Enforces the same current strict contract used for creating a new definition. */
+export function readSyncParameters(schemaVersion: number, content: string): DataSyncParameters {
+  return parseSyncParameters(schemaVersion, content);
 }
