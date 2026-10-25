@@ -54,9 +54,9 @@ export const validIncrementalConfig = (
 
 
 /** One readable configuration contract; no V2/V3 conversion or protocol fallback. */
-export function parseSyncParameters(schemaVersion: number, content: string): DataSyncParameters {
+export function parseSyncParameters(schemaVersion: number, content: DataSyncParameters): DataSyncParameters {
   if (schemaVersion !== 4) throw new Error("不支持的同步任务参数版本");
-  const value = JSON.parse(content) as DataSyncParameters;
+  const value = content;
   const allowed = (object: object, keys: string[]) =>
     Object.keys(object).every((key) => keys.includes(key));
   if (
@@ -206,6 +206,6 @@ export function validateSyncParameters(value: DataSyncParameters): void {
 }
 
 /** Enforces the same current strict contract used for creating a new definition. */
-export function readSyncParameters(schemaVersion: number, content: string): DataSyncParameters {
+export function readSyncParameters(schemaVersion: number, content: DataSyncParameters): DataSyncParameters {
   return parseSyncParameters(schemaVersion, content);
 }
