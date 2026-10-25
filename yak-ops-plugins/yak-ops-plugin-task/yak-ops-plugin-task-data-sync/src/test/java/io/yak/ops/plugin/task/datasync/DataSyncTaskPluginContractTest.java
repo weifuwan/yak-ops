@@ -163,13 +163,13 @@ class DataSyncTaskPluginContractTest {
         Metadata context = new Metadata();
         String otherDatabase = offlineJson()
                 .replace(
-                        "\"datasourceId\":\"source\",\"table\"",
-                        "\"datasourceId\":\"source\",\"database\":\"wrong_db\",\"table\"");
+                        "\"id\":\"orders\",\"table\"",
+                        "\"id\":\"orders\",\"database\":\"wrong_db\",\"table\"");
         assertThrows(TaskPluginException.class, () -> parseAndValidate(otherDatabase, context));
         String otherSchema = offlineJson()
                 .replace(
-                        "\"datasourceId\":\"target\",\"table\"",
-                        "\"datasourceId\":\"target\",\"schema\":\"wrong_schema\",\"table\"");
+                        "\"input\":\"orders\",\"table\"",
+                        "\"input\":\"orders\",\"schema\":\"wrong_schema\",\"table\"");
         assertThrows(TaskPluginException.class, () -> parseAndValidate(otherSchema, context));
     }
 
