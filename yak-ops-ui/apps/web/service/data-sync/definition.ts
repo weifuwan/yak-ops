@@ -21,11 +21,16 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
           ? {
               keyless: true,
               chunkKeyColumn: task.chunkKeyColumn,
-              xa: true,
+              ...(task.writeMode === "RETRACT" ? { xa: true } : {}),
             }
           : {}),
       },
-      target: { database: task.targetDatabase, schema: task.targetSchema, table: task.targetTable },
+      target: {
+        database: task.targetDatabase,
+        schema: task.targetSchema,
+        table: task.targetTable,
+        ...(task.targetPrimaryKeys?.length ? { primaryKeys: [...task.targetPrimaryKeys] } : {}),
+      },
       writeMode: task.writeMode,
       ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
     },
@@ -110,7 +115,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
           ? {
               keyless: true,
               chunkKeyColumn: table.source.chunkKeyColumn,
-              xa: true,
+              ...(table.source.xa ? { xa: true } : {}),
             }
           : {}),
       },
@@ -118,6 +123,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
         database: table.target.database,
         schema: table.target.schema,
         table: table.target.table,
+        ...(table.target.primaryKeys ? { primaryKeys: [...table.target.primaryKeys] } : {}),
       },
       writeMode: table.writeMode,
       ...(table.incremental ? { incremental: { ...table.incremental } } : {}),
@@ -139,6 +145,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     writeMode: mapping.writeMode,
     keylessEnabled: mapping.source.keyless ?? false,
     chunkKeyColumn: mapping.source.chunkKeyColumn,
+    targetPrimaryKeys: mapping.target.primaryKeys,
     incremental: mapping.incremental ? { ...mapping.incremental } : undefined,
     sourceDataSourceId: parameters.source.datasourceId,
     sourceDatabase: mapping.source.database ?? undefined,

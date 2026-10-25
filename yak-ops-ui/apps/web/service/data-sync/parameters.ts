@@ -153,13 +153,21 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
         (typeof mapping.source.chunkKeyColumn !== "string" ||
           !mapping.source.chunkKeyColumn.trim() ||
           mapping.source.chunkKeyColumn.length > 128)) ||
-      (keyless ? mapping.source.xa !== true : mapping.source.xa !== undefined) ||
+      (mapping.target?.primaryKeys !== undefined &&
+        (!Array.isArray(mapping.target.primaryKeys) ||
+          mapping.target.primaryKeys.length === 0 ||
+          new Set(mapping.target.primaryKeys).size !== mapping.target.primaryKeys.length ||
+          mapping.target.primaryKeys.some((key) => typeof key !== "string" || !key.trim()))) ||
+      (keyless
+        ? (mapping.writeMode === "RETRACT"
+            ? mapping.source.xa !== true || mapping.target.primaryKeys !== undefined
+            : mapping.writeMode !== "UPSERT" ||
+              mapping.source.xa !== undefined || !mapping.target.primaryKeys?.length)
+        : mapping.source.xa !== undefined) ||
       (keyless &&
         (value.solutionType !== "SINGLE_TABLE_REALTIME" ||
-          value.steps.includes("SCHEMA") ||
           value.schemaChangesEnabled !== false ||
           value.allowDropColumns === true ||
-          mapping.writeMode !== "RETRACT" ||
           !mapping.source.chunkKeyColumn)) ||
       (!keyless &&
         (mapping?.source?.chunkKeyColumn !== undefined || mapping.writeMode === "RETRACT")) ||
@@ -168,7 +176,7 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
       !WRITES.has(mapping.writeMode) ||
       ((solutionSyncType(value.solutionType) === "REALTIME" ||
         offlineIncremental(value.solutionType, value.steps)) &&
-        mapping.writeMode !== (keyless ? "RETRACT" : "UPSERT")) ||
+        (mapping.writeMode !== "UPSERT" && !(keyless && mapping.writeMode === "RETRACT"))) ||
       (offlineIncremental(value.solutionType, value.steps)
         ? !validIncrementalConfig(mapping.incremental, !value.steps.includes("FULL"))
         : mapping.incremental !== undefined)
