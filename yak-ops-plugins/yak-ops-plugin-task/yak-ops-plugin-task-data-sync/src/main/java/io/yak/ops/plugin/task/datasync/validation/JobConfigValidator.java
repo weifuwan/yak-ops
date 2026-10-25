@@ -98,10 +98,7 @@ public final class JobConfigValidator {
                             table.sink(), writeSource, event.getSchema(), sourceFactory.producesChangelog()));
                     if (current != null && !schemaPlan.requiresDdl()) {
                         SchemaValidator.validateWrite(() -> sinkFactory.validateSchema(
-                                table.sink(),
-                                writeSource,
-                                current.schema(),
-                                sourceFactory.producesChangelog()));
+                                table.sink(), writeSource, current.schema(), sourceFactory.producesChangelog()));
                     }
                 } else if (schemas) {
                     var sourceSchema = context.tableSchema(sourceId, source);

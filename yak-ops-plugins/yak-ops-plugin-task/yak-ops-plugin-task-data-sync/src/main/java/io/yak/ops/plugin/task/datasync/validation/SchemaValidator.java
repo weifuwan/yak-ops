@@ -125,7 +125,11 @@ public final class SchemaValidator {
                         }));
             }
             CreateTableEvent event = new CreateTableEvent(
-                    table, writeSchema(source, primaryKeys), source.tableComment(), source.columnComments(), properties);
+                    table,
+                    writeSchema(source, primaryKeys),
+                    source.tableComment(),
+                    source.columnComments(),
+                    properties);
             return event;
         } catch (IllegalArgumentException | UnsupportedOperationException failure) {
             throw new SchemaValidationException(failure);

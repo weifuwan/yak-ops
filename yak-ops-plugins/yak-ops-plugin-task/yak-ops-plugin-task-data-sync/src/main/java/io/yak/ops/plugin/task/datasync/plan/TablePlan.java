@@ -65,8 +65,18 @@ public record TablePlan(
             ReadonlyConfig sourceOptions,
             SchemaChangePlan schemaPlan,
             DataSourceTable targetMetadata) {
-        this(sourceParameters, sinkParameters, source, targetDatasource, targetTable, targetSchema,
-                schemaChange, sourceOptions, schemaPlan, targetMetadata, source.schema());
+        this(
+                sourceParameters,
+                sinkParameters,
+                source,
+                targetDatasource,
+                targetTable,
+                targetSchema,
+                schemaChange,
+                sourceOptions,
+                schemaPlan,
+                targetMetadata,
+                source.schema());
     }
 
     /** Preserves established route constructors used by older tests and task integrations. */
