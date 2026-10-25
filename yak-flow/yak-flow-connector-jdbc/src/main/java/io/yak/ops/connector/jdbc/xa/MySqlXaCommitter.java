@@ -47,9 +47,9 @@ public final class MySqlXaCommitter implements Committer<MySqlXaXid> {
                 // Prepared transactions may outlive the writer connection on supported MySQL.
                 try {
                     resource.commit(xid, false);
-                } catch (XAException failure) {
-                    if (!recovered || failure.errorCode != XAException.XAER_NOTA) {
-                        throw failure;
+                } catch (XAException commitError) {
+                    if (!recovered || commitError.errorCode != XAException.XAER_NOTA) {
+                        throw commitError;
                     }
                 }
             }
