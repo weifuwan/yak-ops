@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readExecutionReport, readExecutionSummary } from "../apps/web/service/data-sync/report.ts";
-import { readSyncParameters } from "../apps/web/service/data-sync/parameters.ts";
+import { displaySyncSteps, readSyncParameters } from "../apps/web/service/data-sync/parameters.ts";
 
 const schema = (status = "FINISHED", completed = 1, action = "PREPARED") => ({
   step: "SCHEMA",
@@ -136,24 +136,40 @@ for (const kind of [
   "SINGLE_TABLE_REALTIME",
   "DATABASE_REALTIME",
 ]) {
-  const steps = ["SCHEMA", "FULL", ...(kind.endsWith("REALTIME") ? ["INCREMENTAL"] : [])];
+  const dataSteps = ["FULL", ...(kind.endsWith("REALTIME") ? ["INCREMENTAL"] : [])];
   const parameters = {
     solutionType: kind,
-    steps,
-    source: { datasourceId: "source" },
-    sink: { datasourceId: "target" },
-    tableSelection: { mode: "EXPLICIT" },
-    tableMappings: [
-      { source: { table: "orders" }, target: { table: "new_orders" }, writeMode: "UPSERT" },
-    ],
+    steps: dataSteps,
+    source: {
+      datasourceId: "source",
+      tables: [{ id: "orders", table: "orders" }],
+    },
+    transform: [],
+    sink: {
+      datasourceId: "target",
+      schemaPolicy: {
+        initial: "CREATE_OR_ALTER",
+        evolution: { enabled: false, allowDropColumns: false },
+      },
+      tables: [
+        { input: "orders", table: "new_orders", write: { mode: "UPSERT" } },
+      ],
+    },
+    env: {},
   };
-  assert.deepEqual(readSyncParameters(3, JSON.stringify(parameters)).steps, steps);
+  assert.deepEqual(displaySyncSteps(readSyncParameters(4, parameters)), [
+    "SCHEMA",
+    ...dataSteps,
+  ]);
   for (const invalid of [
     ["SCHEMA"],
-    ["SCHEMA", "SCHEMA", ...steps.slice(1)],
-    ["SCHEMA", "INCREMENTAL"],
+    ["SCHEMA", ...dataSteps],
+    [...dataSteps, ...dataSteps],
+    ["INCREMENTAL"],
   ]) {
-    assert.throws(() => readSyncParameters(3, JSON.stringify({ ...parameters, steps: invalid })));
+    assert.throws(() =>
+      readSyncParameters(4, { ...parameters, steps: invalid }),
+    );
   }
 }
 console.log(
