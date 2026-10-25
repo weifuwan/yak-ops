@@ -17,7 +17,9 @@ class DefinitionSqlProviderTest {
                 Map.of("sourceType", "MYSQL_CDC", "sourceDataSourceId", "source-id",
                         "targetDataSourceId", "target-id"));
         String sql = DefinitionSqlProvider.selectDefinitionPage(Map.of("filter", filter));
-        assertTrue(sql.contains("$.source.type"));
+        assertTrue(sql.contains("$.solutionType"));
+        assertTrue(sql.contains("v.parameter_schema_version = 4"));
+        assertFalse(sql.contains("v.parameter_schema_version = 2"));
         assertTrue(sql.contains("$.source.datasourceId"));
         assertTrue(sql.contains("$.sink.datasourceId"));
         assertTrue(sql.contains("#{filter.parameterFilters.sourceType}"));
