@@ -142,7 +142,10 @@ final class TaskDeployment {
             if (cleanupFailure != null) {
                 outcome = accumulate(outcome, cleanupFailure);
             }
-            if (outcome != null && cleanupFailure == null && checkpointEnabled() && !jobGraph.isSingleChainedVertex()) {
+            if ((outcome != null || executionGraph.isCancellationRequested())
+                    && cleanupFailure == null
+                    && checkpointEnabled()
+                    && !jobGraph.isSingleChainedVertex()) {
                 try {
                     reconcileSinkCommits();
                 } catch (Throwable recoveryFailure) {
