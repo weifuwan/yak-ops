@@ -220,6 +220,12 @@ public final class JobPlanner {
             if ("MYSQL_CDC".equals(sourceFactory.factoryIdentifier())) {
                 String chunkKey = source.get(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN);
                 if (chunkKey != null) binding += encodePart("chunkKey") + encodePart(chunkKey);
+                if (source.get(MySqlCdcSourceOptions.KEYLESS_ENABLED)) {
+                    if (!"MYSQL".equals(from.datasourceType()) || !"MYSQL".equals(targetInfo.type())) {
+                        throw new IllegalArgumentException("Keyless CDC product acceptance is MySQL to MySQL only");
+                    }
+                    binding += encodePart("keyless");
+                }
             }
             if (event != null) {
                 binding += encodePart("SCHEMA") + encodePart(event.getTableComment());

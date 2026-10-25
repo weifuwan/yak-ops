@@ -17,7 +17,7 @@ import io.yak.ops.core.types.TableSchema;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** Verifies keyless contract and the deliberately closed public creation gate. */
+/** Verifies the exact-row contract and public JDBC RETRACT admission. */
 class JdbcKeylessRetractionContractTest {
     private static final TableId TABLE = new TableId(null, "public", "entries");
     private static final TableSchema KEYLESS = new TableSchema(
@@ -59,20 +59,17 @@ class JdbcKeylessRetractionContractTest {
     }
 
     @Test
-    void supportsInternalRetractionPlansButKeepsPublicFactoryClosed() {
+    void supportsRetractionPlansAndValidatesFactorySchema() {
         var options = new Configuration()
                 .set(JdbcSinkOptions.WRITE_MODE, JdbcWriteMode.RETRACT)
                 .set(JdbcConnectionOptions.URL, "jdbc:mysql://localhost:3306/test")
                 .set(JdbcConnectionOptions.USERNAME, "user")
                 .set(JdbcConnectionOptions.PASSWORD, "secret");
         var factory = new JdbcSinkFactory();
-        assertThrows(UnsupportedOperationException.class,
-                () -> factory.validate(options.toReadonlyConfig(), true));
-        assertThrows(UnsupportedOperationException.class,
-                () -> factory.validateSchema(options.toReadonlyConfig(), KEYLESS, KEYLESS, true));
-        assertThrows(UnsupportedOperationException.class,
-                () -> factory.createSink(new TableSinkFactoryContext(
-                        options.toReadonlyConfig(), TABLE, KEYLESS, TABLE, KEYLESS)));
+        factory.validate(options.toReadonlyConfig(), true);
+        factory.validateSchema(options.toReadonlyConfig(), KEYLESS, KEYLESS, true);
+        factory.createSink(new TableSinkFactoryContext(
+                options.toReadonlyConfig(), TABLE, KEYLESS, TABLE, KEYLESS));
         var plan = new JdbcTableWritePlan(TABLE, TABLE, KEYLESS, JdbcWriteMode.RETRACT);
         assertEquals(JdbcWriteMode.RETRACT, plan.writeMode());
         assertTrue(plan.sql(new MySqlJdbcDialect()).startsWith("INSERT INTO"));

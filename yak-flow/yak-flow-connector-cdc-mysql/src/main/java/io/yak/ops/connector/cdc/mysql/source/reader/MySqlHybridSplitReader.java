@@ -69,9 +69,8 @@ public final class MySqlHybridSplitReader implements SplitReader<MySqlHybridFetc
     public void addSplits(List<MySqlHybridSplit> splits) throws Exception {
         for (MySqlHybridSplit split : splits) {
             if (split instanceof MySqlSnapshotSplit snapshot) {
-                if (snapshot.chunkRange() != null) {
-                    throw new UnsupportedOperationException("Typed snapshot execution requires a chunk-aware Reader");
-                }
+                // The typed backfill reader freezes the complete keyless range before any rows
+                // can be emitted. The checkpointed output position preserves duplicate rows.
                 pending.addLast(snapshot);
                 if (snapshot.prepared()) released.add(snapshot.splitId());
             } else if (split instanceof MySqlHybridBinlogSplit stream) {

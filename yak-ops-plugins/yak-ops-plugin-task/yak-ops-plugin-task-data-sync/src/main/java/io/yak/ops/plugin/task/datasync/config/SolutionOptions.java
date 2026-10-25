@@ -29,6 +29,10 @@ public final class SolutionOptions {
     public static final Option<Boolean> ALLOW_DROP_COLUMNS =
             Options.key("allowDropColumns").booleanType().defaultValue(false);
 
+    /** Explicitly selected no-PK source. Kept separate from the Connector's physical options. */
+    public static final Option<Boolean> KEYLESS = Options.key("keyless").booleanType().defaultValue(false);
+    public static final Option<String> CHUNK_KEY = Options.key("chunkKeyColumn").stringType().noDefaultValue();
+
     public static final OptionRule RULE = OptionRule.builder()
             .required(SOLUTION_TYPE, STEPS, JobOptions.SOURCE, JobOptions.SINK, TABLE_SELECTION, TABLE_MAPPINGS)
             .optional(JobOptions.TRANSFORM, SCHEMA_CHANGES_ENABLED, ALLOW_DROP_COLUMNS)
@@ -49,6 +53,8 @@ public final class SolutionOptions {
             .required(JobOptions.SOURCE, TARGET, JdbcSinkOptions.WRITE_MODE)
             .optional(INCREMENTAL)
             .build();
+    public static final OptionRule SOURCE_TABLE_RULE =
+            OptionRule.builder().include(TABLE_RULE).optional(KEYLESS, CHUNK_KEY).build();
     public static final OptionRule TABLE_RULE = OptionRule.builder()
             .required(
                     JobOptions.TABLE,

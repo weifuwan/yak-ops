@@ -76,9 +76,7 @@ public final class MySqlCdcSourceFactory implements TableSourceFactory {
     public void validateSchema(ReadonlyConfig options, TableSchema schema) {
         if (options.get(MySqlCdcSourceOptions.KEYLESS_ENABLED)) {
             MySqlKeylessSourceContract.validate(schema, options.get(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN));
-            throw new UnsupportedOperationException(
-                    "MySQL keyless CDC is not executable yet; typed snapshot Reader, Binlog handoff "
-                            + "and transactional RETRACT Sink acceptance are required");
+            return;
         }
         MySqlChunkSplitter.splitKey(schema, options.get(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN));
     }

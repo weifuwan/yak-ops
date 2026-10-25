@@ -93,6 +93,9 @@ public final class SolutionCatalog {
         List<String> writes = List.of("UPSERT");
         if (type.supportsScheduling()) {
             writes = List.of("APPEND", "UPSERT");
+        } else if (type == SolutionType.SINGLE_TABLE_REALTIME
+                && "MYSQL".equals(sourceType) && "MYSQL".equals(targetType)) {
+            writes = List.of("UPSERT", "RETRACT");
         }
         List<Step> applicable = new ArrayList<>(type.steps());
         List<Solution.Combination> combinations = new ArrayList<>();

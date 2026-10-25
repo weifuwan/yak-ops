@@ -3,7 +3,9 @@ package io.yak.ops.plugin.task.datasync.config;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.configuration.rule.OptionRule;
+import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
+import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
 import io.yak.ops.plugin.task.datasync.solution.SolutionType;
 import io.yak.ops.plugin.task.datasync.solution.Step;
 import java.util.HashSet;
@@ -120,16 +122,40 @@ public final class JobConfig {
             validate(table, SolutionOptions.TABLE_MAPPING_RULE, "tableMappings");
             ReadonlyConfig sourceTable = ReadonlyConfig.fromMap(table.get(JobOptions.SOURCE));
             ReadonlyConfig targetTable = ReadonlyConfig.fromMap(table.get(SolutionOptions.TARGET));
-            validate(sourceTable, SolutionOptions.TABLE_RULE, "tableMappings.source");
+            validate(sourceTable, SolutionOptions.SOURCE_TABLE_RULE, "tableMappings.source");
             validate(targetTable, SolutionOptions.TABLE_RULE, "tableMappings.target");
             requireEmptyTransforms(parameters);
             Map<String, Object> input = new LinkedHashMap<>(sourceTable.getSourceMap());
             input.put("datasourceId", from.get(JobOptions.DATASOURCE_ID));
             input.put("type", type.sourceIdentifier());
+            Object rawKeyless = sourceTable.getSourceMap().get(SolutionOptions.KEYLESS.key());
+            if (rawKeyless != null && !(rawKeyless instanceof Boolean)) {
+                throw new IllegalArgumentException("keyless must be a boolean");
+            }
+            boolean keyless = sourceTable.get(SolutionOptions.KEYLESS);
+            String chunkKey = sourceTable.get(SolutionOptions.CHUNK_KEY);
+            JdbcWriteMode mode = table.get(JdbcSinkOptions.WRITE_MODE);
+            if (keyless) {
+                if (type != SolutionType.SINGLE_TABLE_REALTIME
+                        || !expected.equals(List.of(Step.FULL.name(), Step.INCREMENTAL.name()))
+                        || parameters.get(SolutionOptions.SCHEMA_CHANGES_ENABLED)
+                        || mode != JdbcWriteMode.RETRACT
+                        || chunkKey == null
+                        || chunkKey.isBlank()) {
+                    throw new IllegalArgumentException(
+                            "Keyless CDC requires single-table FULL + INCREMENTAL, RETRACT, "
+                                    + "an explicit Chunk Key and disabled schema changes");
+                }
+                input.put(MySqlCdcSourceOptions.KEYLESS_ENABLED.key(), true);
+                input.put(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN.key(), chunkKey);
+            } else if (mode == JdbcWriteMode.RETRACT
+                    || sourceTable.getSourceMap().containsKey(SolutionOptions.CHUNK_KEY.key())) {
+                throw new IllegalArgumentException("RETRACT and Chunk Key require explicit keyless CDC");
+            }
             Map<String, Object> output = new LinkedHashMap<>(targetTable.getSourceMap());
             output.put("datasourceId", to.get(JobOptions.DATASOURCE_ID));
             output.put("type", "JDBC");
-            output.put("writeMode", table.get(JdbcSinkOptions.WRITE_MODE).name());
+            output.put("writeMode", mode.name());
             if (!sources.add(tableKey(sourceTable)) || !targets.add(tableKey(targetTable))) {
                 throw new IllegalArgumentException("Source and target tables must be unique");
             }

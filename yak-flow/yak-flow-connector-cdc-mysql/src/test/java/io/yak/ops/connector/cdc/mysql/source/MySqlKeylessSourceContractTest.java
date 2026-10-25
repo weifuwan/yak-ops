@@ -12,7 +12,7 @@ import io.yak.ops.core.types.TableSchema;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** Contract-only admission for keyless CDC. It must not start an incomplete Source. */
+/** Verifies explicit keyless Source admission without relaxing legacy keyed admission. */
 class MySqlKeylessSourceContractTest {
     private static final TableSchema KEYLESS = new TableSchema(
             List.of(
@@ -33,13 +33,15 @@ class MySqlKeylessSourceContractTest {
     }
 
     @Test
-    void refusesToStartTheKeylessSourceEvenWhenItsMetadataIsEligible() {
+    void admitsOnlyExplicitKeylessMetadata() {
         Configuration settings = new Configuration()
                 .set(MySqlCdcSourceOptions.KEYLESS_ENABLED, true)
                 .set(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN, "bucket");
-        var error = assertThrows(UnsupportedOperationException.class,
-                () -> new MySqlCdcSourceFactory().validateSchema(settings.toReadonlyConfig(), KEYLESS));
-        assertTrue(error.getMessage().contains("not executable"));
+        new MySqlCdcSourceFactory().validateSchema(settings.toReadonlyConfig(), KEYLESS);
+        assertThrows(IllegalArgumentException.class,
+                () -> new MySqlCdcSourceFactory().validateSchema(
+                        new Configuration().set(MySqlCdcSourceOptions.KEYLESS_ENABLED, true).toReadonlyConfig(),
+                        KEYLESS));
     }
 
     @Test

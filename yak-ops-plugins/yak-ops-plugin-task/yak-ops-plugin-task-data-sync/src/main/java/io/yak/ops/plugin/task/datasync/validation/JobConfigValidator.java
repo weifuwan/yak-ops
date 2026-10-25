@@ -81,7 +81,7 @@ public final class JobConfigValidator {
                 if (prepareSchema) SchemaValidator.validateNamespace(to, target);
                 if (schemas && prepareSchema) {
                     var sourceTable = SchemaValidator.sourceMetadata(() -> context.tableMetadata(sourceId, source));
-                    SchemaValidator.validateWrite(() -> sourceFactory.validateSchema(sourceTable.schema()));
+                    SchemaValidator.validateWrite(() -> sourceFactory.validateSchema(JobOptions.connectorOptions(table.source()), sourceTable.schema()));
                     var event = SchemaValidator.createEvent(sourceTable, to, target);
                     var current = context.findTable(sinkId, target).orElse(null);
                     if (current != null && current.revision() != to.revision()) {
@@ -100,7 +100,7 @@ public final class JobConfigValidator {
                     }
                 } else if (schemas) {
                     var sourceSchema = context.tableSchema(sourceId, source);
-                    SchemaValidator.validateWrite(() -> sourceFactory.validateSchema(sourceSchema));
+                    SchemaValidator.validateWrite(() -> sourceFactory.validateSchema(JobOptions.connectorOptions(table.source()), sourceSchema));
                     var targetSchema = context.tableSchema(sinkId, target);
                     SchemaValidator.validateWrite(() -> sinkFactory.validateSchema(
                             table.sink(), sourceSchema, targetSchema, sourceFactory.producesChangelog()));
