@@ -105,8 +105,10 @@ public final class JobConfigValidator {
                     }
                 } else if (schemas) {
                     var sourceSchema = context.tableSchema(sourceId, source);
-                    var writeSource = table.targetPrimaryKeys() == null ? sourceSchema
-                            : SchemaValidator.writeSchema(context.tableMetadata(sourceId, source), table.targetPrimaryKeys());
+                    var writeSource = table.targetPrimaryKeys() == null
+                            ? sourceSchema
+                            : SchemaValidator.writeSchema(
+                                    context.tableMetadata(sourceId, source), table.targetPrimaryKeys());
                     SchemaValidator.validateWrite(() ->
                             sourceFactory.validateSchema(JobOptions.connectorOptions(table.source()), sourceSchema));
                     var targetSchema = context.tableSchema(sinkId, target);

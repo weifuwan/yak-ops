@@ -124,14 +124,17 @@ public final class JobConfig {
             ReadonlyConfig targetTable = ReadonlyConfig.fromMap(table.get(SolutionOptions.TARGET));
             validate(sourceTable, SolutionOptions.SOURCE_TABLE_RULE, "tableMappings.source");
             validate(targetTable, SolutionOptions.TARGET_TABLE_RULE, "tableMappings.target");
-            List<String> targetPrimaryKeys = targetTable.getSourceMap().containsKey(SolutionOptions.TARGET_PRIMARY_KEYS.key())
-                    ? targetTable.get(SolutionOptions.TARGET_PRIMARY_KEYS) : null;
+            List<String> targetPrimaryKeys =
+                    targetTable.getSourceMap().containsKey(SolutionOptions.TARGET_PRIMARY_KEYS.key())
+                            ? targetTable.get(SolutionOptions.TARGET_PRIMARY_KEYS)
+                            : null;
             if (targetPrimaryKeys != null && parameters.get(SolutionOptions.SCHEMA_CHANGES_ENABLED)) {
                 throw new IllegalArgumentException("Runtime schema evolution is unsupported with custom target keys");
             }
-            if (targetPrimaryKeys != null && (targetPrimaryKeys.isEmpty()
-                    || targetPrimaryKeys.stream().anyMatch(key -> key == null || key.isBlank())
-                    || new HashSet<>(targetPrimaryKeys).size() != targetPrimaryKeys.size())) {
+            if (targetPrimaryKeys != null
+                    && (targetPrimaryKeys.isEmpty()
+                            || targetPrimaryKeys.stream().anyMatch(key -> key == null || key.isBlank())
+                            || new HashSet<>(targetPrimaryKeys).size() != targetPrimaryKeys.size())) {
                 throw new IllegalArgumentException("Target primary key columns must be unique and nonempty");
             }
             requireEmptyTransforms(parameters);
@@ -155,9 +158,11 @@ public final class JobConfig {
                         || !expected.containsAll(List.of(Step.FULL.name(), Step.INCREMENTAL.name()))
                         || parameters.get(SolutionOptions.SCHEMA_CHANGES_ENABLED)
                         || (mode != JdbcWriteMode.RETRACT && mode != JdbcWriteMode.UPSERT)
-                        || chunkKey == null || chunkKey.isBlank()) {
-                    throw new IllegalArgumentException("Keyless CDC requires single-table FULL + INCREMENTAL, "
-                            + "an explicit Chunk Key and disabled runtime schema changes");
+                        || chunkKey == null
+                        || chunkKey.isBlank()) {
+                    throw new IllegalArgumentException(
+                            "Keyless CDC requires single-table FULL + INCREMENTAL, "
+                                    + "an explicit Chunk Key and disabled runtime schema changes");
                 }
                 if (mode == JdbcWriteMode.RETRACT && (!Boolean.TRUE.equals(xa) || targetPrimaryKeys != null)) {
                     throw new IllegalArgumentException("Keyless RETRACT requires XA and no target primary key");
@@ -168,7 +173,8 @@ public final class JobConfig {
                 input.put(MySqlCdcSourceOptions.KEYLESS_ENABLED.key(), true);
                 input.put(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN.key(), chunkKey);
             } else {
-                if (xa != null || mode == JdbcWriteMode.RETRACT
+                if (xa != null
+                        || mode == JdbcWriteMode.RETRACT
                         || sourceTable.getSourceMap().containsKey(SolutionOptions.CHUNK_KEY.key())) {
                     throw new IllegalArgumentException("RETRACT, XA and Chunk Key require explicit keyless CDC");
                 }

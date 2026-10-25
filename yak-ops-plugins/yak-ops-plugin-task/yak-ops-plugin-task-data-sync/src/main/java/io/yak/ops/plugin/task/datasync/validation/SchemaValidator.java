@@ -56,17 +56,18 @@ public final class SchemaValidator {
             throw new IllegalArgumentException("Explicit target primary keys require MySQL source metadata");
         }
         Set<String> selected = new HashSet<>(targetPrimaryKeys);
-        if (selected.size() != targetPrimaryKeys.size()
-                || source.uniqueKeys().stream().noneMatch(index ->
-                        index.size() == selected.size() && selected.equals(new HashSet<>(index)))
-                        && !(source.schema().primaryKeys().size() == selected.size()
-                                && selected.equals(new HashSet<>(source.schema().primaryKeys())))) {
+        boolean hasUniqueIndex = source.uniqueKeys().stream()
+                .anyMatch(index -> index.size() == selected.size() && selected.containsAll(index));
+        boolean matchesSourcePrimaryKey = source.schema().primaryKeys().size() == selected.size()
+                && selected.containsAll(source.schema().primaryKeys());
+        if (selected.size() != targetPrimaryKeys.size() || (!hasUniqueIndex && !matchesSourcePrimaryKey)) {
             throw new IllegalArgumentException("Target primary key must match an enforced source unique index");
         }
         for (String key : targetPrimaryKeys) {
             Column column = source.schema().columns().stream()
                     .filter(candidate -> candidate.name().equals(key))
-                    .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown target key column"));
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown target key column"));
             if (column.nullable()) throw new IllegalArgumentException("Target primary key cannot be nullable: " + key);
             // Until collation and floating-point comparison are proved, accept exact scalar keys only.
             switch (column.dataType().getTypeRoot()) {

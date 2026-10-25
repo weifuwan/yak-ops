@@ -202,7 +202,8 @@ public final class JobPlanner {
             }
             TableSchema writeSource = SchemaValidator.writeSchema(from, mapping.targetPrimaryKeys());
             CreateTableEvent event = prepareSchema
-                    ? SchemaValidator.createEvent(from, targetInfo, targetTable, mapping.targetPrimaryKeys()) : null;
+                    ? SchemaValidator.createEvent(from, targetInfo, targetTable, mapping.targetPrimaryKeys())
+                    : null;
             SchemaChangePlan schema = event == null ? null : SchemaValidator.plan(event, targetInfo.type(), actual);
             if (schema != null && !preview) SchemaValidator.requireCompatible(schema);
             TableSchema expected = event == null ? actual.schema() : event.getSchema();
@@ -223,8 +224,8 @@ public final class JobPlanner {
                     + encodePart(Long.toString(targetInfo.revision()))
                     + encodeTable(targetTable)
                     + encodeSchema(expected);
-            if (mapping.targetPrimaryKeys() != null) binding += encodePart("targetPrimaryKeys")
-                    + encodePart(String.join(",", mapping.targetPrimaryKeys()));
+            if (mapping.targetPrimaryKeys() != null)
+                binding += encodePart("targetPrimaryKeys") + encodePart(String.join(",", mapping.targetPrimaryKeys()));
             if ("MYSQL_CDC".equals(sourceFactory.factoryIdentifier())) {
                 String chunkKey = source.get(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN);
                 if (chunkKey != null) binding += encodePart("chunkKey") + encodePart(chunkKey);

@@ -5,7 +5,10 @@ import java.util.List;
 import java.util.Objects;
 
 /** One explicit table mapping projected into validated, non-secret Connector options. */
-public record TableConfig(ReadonlyConfig source, ReadonlyConfig sink, IncrementalConfig incremental,
+public record TableConfig(
+        ReadonlyConfig source,
+        ReadonlyConfig sink,
+        IncrementalConfig incremental,
         List<String> targetPrimaryKeys) {
     public TableConfig(ReadonlyConfig source, ReadonlyConfig sink) {
         this(source, sink, null, null);

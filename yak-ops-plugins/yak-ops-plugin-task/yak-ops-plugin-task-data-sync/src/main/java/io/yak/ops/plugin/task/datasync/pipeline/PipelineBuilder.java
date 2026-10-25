@@ -191,7 +191,8 @@ public final class PipelineBuilder {
                     sinkOptions,
                     table.source().table(),
                     new io.yak.ops.core.types.TableSchema(
-                            table.source().schema().columns(), table.targetSchema().primaryKeys()),
+                            table.source().schema().columns(),
+                            table.targetSchema().primaryKeys()),
                     table.targetTable(),
                     table.targetSchema(),
                     metrics));
