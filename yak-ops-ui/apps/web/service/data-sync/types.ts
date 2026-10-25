@@ -54,7 +54,7 @@ export interface DataSyncIncrementalConfig {
 }
 
 export interface DataSyncTableMapping {
-  source: DataSyncTablePath & { keyless?: boolean; chunkKeyColumn?: string; xa?: boolean };
+  source: DataSyncTablePath & { keyless?: boolean; chunkKeyColumn?: string };
   target: DataSyncTablePath & { primaryKeys?: string[] };
   writeMode: DataSyncWriteMode;
   incremental?: DataSyncIncrementalConfig;
@@ -123,15 +123,35 @@ export interface DataSyncStageReport extends DataSyncExecutionSummary {
 export type DataSyncExecutionReport = DataSyncBatchReport | DataSyncStageReport;
 
 export interface DataSyncParameters {
-  /** Optional for definitions created before runtime evolution was configurable. */
-  schemaChangesEnabled?: boolean;
-  allowDropColumns?: boolean;
   solutionType: DataSyncSolutionType;
-  steps: DataSyncStep[];
-  source: { datasourceId: string };
-  sink: { datasourceId: string };
-  tableSelection: { mode: "EXPLICIT" };
-  tableMappings: DataSyncTableMapping[];
+  /** Data steps only; SCHEMA is an execution stage derived from Sink policy. */
+  steps: Array<"FULL" | "INCREMENTAL">;
+  source: {
+    datasourceId: string;
+    tables: Array<DataSyncTablePath & {
+      id: string;
+      keyless?: boolean;
+      snapshot?: { chunkKeyColumn: string };
+      incremental?: DataSyncIncrementalConfig;
+    }>;
+  };
+  transform: [];
+  sink: {
+    datasourceId: string;
+    schemaPolicy: {
+      initial: "VERIFY" | "CREATE_OR_ALTER";
+      evolution: { enabled: boolean; allowDropColumns: boolean };
+    };
+    tables: Array<DataSyncTablePath & {
+      input: string;
+      write: {
+        mode: DataSyncWriteMode;
+        primaryKeys?: string[];
+        transaction?: { mode: "CHECKPOINT_XA" };
+      };
+    }>;
+  };
+  env: Record<string, never>;
 }
 
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";
@@ -289,25 +309,6 @@ export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
 export type DataSyncTaskUpdatePayload =
   | DataSyncTaskSavePayload
   | Pick<DataSyncTaskSaveBase, "name" | "remark" | "debug">;
-
-export interface SyncPipelineParameters {
-  source: {
-    type: "JDBC" | "MYSQL_CDC";
-    datasourceId: string;
-    database?: string;
-    schema?: string;
-    table: string;
-  };
-  transform: [];
-  sink: {
-    type: "JDBC";
-    datasourceId: string;
-    database?: string;
-    schema?: string;
-    table: string;
-    writeMode: DataSyncWriteMode;
-  };
-}
 
 export type DataSyncInstanceStatus = TaskInstanceStatus;
 
