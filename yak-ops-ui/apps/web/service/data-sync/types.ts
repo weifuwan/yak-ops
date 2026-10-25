@@ -266,7 +266,7 @@ export interface TaskDefinitionRecord {
   status: DataSyncTaskStatus | string;
   definitionVersion: number;
   parameterSchemaVersion: number;
-  parameters: string;
+  parameters: DataSyncParameters;
   debug: boolean;
   remark?: string;
   createTime?: string;
