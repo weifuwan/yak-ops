@@ -190,9 +190,7 @@ public final class PipelineBuilder {
             sinkContexts.add(new TableSinkFactoryContext(
                     sinkOptions,
                     table.source().table(),
-                    new io.yak.ops.core.types.TableSchema(
-                            table.source().schema().columns(),
-                            table.targetSchema().primaryKeys()),
+                    table.writeSourceSchema(),
                     table.targetTable(),
                     table.targetSchema(),
                     metrics));

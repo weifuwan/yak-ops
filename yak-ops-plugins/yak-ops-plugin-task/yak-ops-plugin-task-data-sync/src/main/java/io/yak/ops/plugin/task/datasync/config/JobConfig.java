@@ -160,15 +160,15 @@ public final class JobConfig {
                         || (mode != JdbcWriteMode.RETRACT && mode != JdbcWriteMode.UPSERT)
                         || chunkKey == null
                         || chunkKey.isBlank()) {
-                    throw new IllegalArgumentException(
-                            "Keyless CDC requires single-table FULL + INCREMENTAL, "
-                                    + "an explicit Chunk Key and disabled runtime schema changes");
+                    throw new IllegalArgumentException("Keyless CDC requires single-table FULL + INCREMENTAL, "
+                            + "an explicit Chunk Key and disabled runtime schema changes");
                 }
                 if (mode == JdbcWriteMode.RETRACT && (!Boolean.TRUE.equals(xa) || targetPrimaryKeys != null)) {
                     throw new IllegalArgumentException("Keyless RETRACT requires XA and no target primary key");
                 }
                 if (mode == JdbcWriteMode.UPSERT && (xa != null || targetPrimaryKeys == null)) {
-                    throw new IllegalArgumentException("Keyless UPSERT requires a verified target primary key without XA");
+                    throw new IllegalArgumentException(
+                            "Keyless UPSERT requires a verified target primary key without XA");
                 }
                 input.put(MySqlCdcSourceOptions.KEYLESS_ENABLED.key(), true);
                 input.put(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN.key(), chunkKey);

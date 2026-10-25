@@ -19,10 +19,10 @@ import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /** Read-only constraints shared by schema preview, publication and execution planning. */
 public final class SchemaValidator {

@@ -27,11 +27,13 @@ public record TablePlan(
         CreateTableEvent schemaChange,
         ReadonlyConfig sourceOptions,
         SchemaChangePlan schemaPlan,
-        DataSourceTable targetMetadata) {
+        DataSourceTable targetMetadata,
+        TableSchema writeSourceSchema) {
     public TablePlan {
         Objects.requireNonNull(sourceParameters, "sourceParameters");
         Objects.requireNonNull(sinkParameters, "sinkParameters");
         Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(writeSourceSchema, "writeSourceSchema");
         Objects.requireNonNull(targetDatasource, "targetDatasource");
         Objects.requireNonNull(targetTable, "targetTable");
         Objects.requireNonNull(sourceOptions, "sourceOptions");
@@ -49,6 +51,22 @@ public record TablePlan(
                         || targetMetadata.revision() != targetDatasource.revision())) {
             throw new IllegalArgumentException("Target metadata does not match the admitted route");
         }
+    }
+
+    /** Creates a physical-only route without an overridden downstream row identity. */
+    public TablePlan(
+            ReadonlyConfig sourceParameters,
+            ReadonlyConfig sinkParameters,
+            DataSourceTable source,
+            DataSourceInfo targetDatasource,
+            TableId targetTable,
+            TableSchema targetSchema,
+            CreateTableEvent schemaChange,
+            ReadonlyConfig sourceOptions,
+            SchemaChangePlan schemaPlan,
+            DataSourceTable targetMetadata) {
+        this(sourceParameters, sinkParameters, source, targetDatasource, targetTable, targetSchema,
+                schemaChange, sourceOptions, schemaPlan, targetMetadata, source.schema());
     }
 
     /** Preserves established route constructors used by older tests and task integrations. */
@@ -138,7 +156,8 @@ public record TablePlan(
                 schemaChange,
                 physical,
                 schemaPlan,
-                targetMetadata);
+                targetMetadata,
+                writeSourceSchema);
     }
 
     /** Returns the admitted desired schema; creating the target does not change this value. */
@@ -163,6 +182,7 @@ public record TablePlan(
                 schemaChange,
                 sourceOptions,
                 schemaPlan,
-                target);
+                target,
+                writeSourceSchema);
     }
 }
