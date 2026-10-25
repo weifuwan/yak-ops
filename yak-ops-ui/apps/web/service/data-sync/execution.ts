@@ -5,7 +5,7 @@ import type {
 } from "../task-execution/types";
 import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
 
-import { parseSyncParameters, solutionSyncType } from "./parameters.ts";
+import { displaySyncSteps, parseSyncParameters, solutionSyncType, syncTableMappings } from "./parameters.ts";
 import { readExecutionReport } from "./report.ts";
 
 export const isTaskInstanceActive = (status: TaskInstanceStatus): boolean =>
@@ -43,12 +43,14 @@ export function toDataSyncInstanceRecord(
   }
 
   const parameters = parseSyncParameters(version.parameterSchemaVersion, version.parameters);
-  const source = { ...parameters.source, ...parameters.tableMappings[0].source };
+  const tableMappings = syncTableMappings(parameters);
+  const source = { ...parameters.source, ...tableMappings[0].source };
   const sink = {
     ...parameters.sink,
-    ...parameters.tableMappings[0].target,
-    writeMode: parameters.tableMappings[0].writeMode,
+    ...tableMappings[0].target,
+    writeMode: tableMappings[0].writeMode,
   };
+  const steps = displaySyncSteps(parameters);
   const syncType = solutionSyncType(parameters.solutionType);
   const taskName = version.name;
 
@@ -56,11 +58,11 @@ export function toDataSyncInstanceRecord(
     id: instance.id,
     executionReport: readExecutionReport(
       instance.executionReport,
-      parameters.tableMappings.length,
-      parameters.steps,
+      tableMappings.length,
+      steps,
     ),
     solutionType: parameters.solutionType,
-    steps: parameters.steps,
+    steps,
     taskId: instance.definitionId,
     taskName,
     taskVersion: instance.definitionVersion,
@@ -78,9 +80,9 @@ export function toDataSyncInstanceRecord(
     errorMessage: instance.failureCode ?? undefined,
     createTime: instance.createTime ?? undefined,
     definitionSnapshot: {
-      tableMappings: parameters.tableMappings,
+      tableMappings: tableMappings,
       solutionType: parameters.solutionType,
-      steps: parameters.steps,
+      steps,
       taskId: instance.definitionId,
       taskName,
       taskVersion: instance.definitionVersion,
