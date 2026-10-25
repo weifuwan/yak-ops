@@ -49,7 +49,7 @@ export interface TaskInstanceDefinitionRecord {
   name: string;
   taskType: string;
   parameterSchemaVersion: number;
-  parameters: string;
+  parameters: Record<string, unknown>;
 }
 
 export interface TaskInstancePageResult {
