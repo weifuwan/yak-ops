@@ -33,12 +33,14 @@ const version = {
         initial: "VERIFY",
         evolution: { enabled: false, allowDropColumns: false },
       },
-      tables: [{
-        input: "orders",
-        schema: "public",
-        table: "ods_orders",
-        write: { mode: "UPSERT" },
-      }],
+      tables: [
+        {
+          input: "orders",
+          schema: "public",
+          table: "ods_orders",
+          write: { mode: "UPSERT" },
+        },
+      ],
     },
     env: {},
   },
