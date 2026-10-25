@@ -181,6 +181,14 @@ public final class OneInputStreamTask extends StreamTask implements SchemaChange
         return future;
     }
 
+    /** Commit notification is serialized on the owning Sink mailbox. */
+    public CompletableFuture<Void> notifyCheckpointComplete(long checkpointId) {
+        return submitMailbox(() -> {
+            if (sinkOperator != null) sinkOperator.notifyCheckpointComplete(checkpointId);
+            return null;
+        });
+    }
+
     public void abortCheckpoint(long id, Throwable cause) {
         CompletableFuture<CheckpointState> future = pending.remove(id);
         if (future != null) {

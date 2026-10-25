@@ -466,6 +466,13 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
             if (System.nanoTime() >= checkpointDeadlineNanos) {
                 throw new IllegalStateException("Checkpoint persisted after deadline; refusing completion callback");
             }
+            // Commit prepared external transactions only after storage.save(snapshot) returned.
+            // Source completion is withheld until every participating Sink commit succeeds.
+            for (OneInputStreamTask task : inputTasks) {
+                if (task.isSinkTask() && !task.completionFuture().isDone()) {
+                    await(task.notifyCheckpointComplete(checkpointId));
+                }
+            }
             await(coordinator.notifyCheckpointComplete(checkpointId));
             for (SourceOperatorStreamTask<Object, SourceSplit> sourceTask : sourceTasks) {
                 if (!sourceTask.completionFuture().isDone()) {

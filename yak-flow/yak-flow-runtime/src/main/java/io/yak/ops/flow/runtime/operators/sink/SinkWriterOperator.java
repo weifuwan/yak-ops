@@ -1,11 +1,14 @@
 package io.yak.ops.flow.runtime.operators.sink;
 
 import io.yak.ops.core.api.connector.sink.CancellableSinkWriter;
+import io.yak.ops.core.api.connector.sink.Committer;
+import io.yak.ops.core.api.connector.sink.CommittingSinkWriter;
 import io.yak.ops.core.api.connector.sink.SchemaChangeAwareSinkWriter;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.sink.StatefulSinkWriter;
 import io.yak.ops.core.api.connector.sink.SupportsWriterState;
+import io.yak.ops.core.api.connector.sink.SupportsCommitter;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.api.operators.Collector;
@@ -48,6 +51,8 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
     private final WriterInitContext context;
     private OperatorStateBackend stateBackend;
     private volatile SinkWriter<T> writer;
+    private Committer<Object> committer;
+    private long pendingCommitCheckpointId = -1;
     private boolean opened;
     private boolean finished;
     private boolean closed;
@@ -84,6 +89,15 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
                         .get(CheckpointingOptions.CHECKPOINTING_INTERVAL)
                         .isZero()
                 || context.getConfiguration().get(CheckpointingOptions.RESTORE_LATEST);
+        if (sink instanceof SupportsCommitter<?, ?> transactional) {
+            if (!checkpointEnabled || stateBackend == null) {
+                throw new UnsupportedOperationException("Committing Sink requires durable checkpoint state");
+            }
+            openCommitter(transactional);
+        } else if (stateBackend != null
+                && stateBackend.names().stream().anyMatch(name -> name.startsWith("operator/committable-"))) {
+            throw new IllegalStateException("Restored committables require the original committing Sink");
+        }
         if (sink instanceof SupportsWriterState<?, ?> statefulSink) {
             if (stateBackend == null) {
                 // Direct SinkWriterOperator callers may not have an enclosing physical StreamTask.
@@ -115,7 +129,8 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
                 Objects.requireNonNull(contract.getWriterStateSerializer(), "Writer state serializer");
         List<Object> restored = new ArrayList<>();
         // Numbered writer state must be dense; no silent partial restore of a corrupted snapshot.
-        int stateCount = stateBackend.names().size();
+        int stateCount = (int) stateBackend.names().stream()
+                .filter(name -> name.startsWith("operator/writer-")).count();
         for (int index = 0; index < stateCount; index++) {
             restored.add(stateBackend
                     .get("writer-" + index, serializer)
@@ -123,6 +138,30 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
         }
         return Objects.requireNonNull(
                 contract.restoreWriter(context, List.copyOf(restored)), "restoreWriter returned null");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void openCommitter(SupportsCommitter<?, ?> raw) throws Exception {
+        SupportsCommitter<T, Object> contract = (SupportsCommitter<T, Object>) raw;
+        var serializer = Objects.requireNonNull(contract.getCommittableSerializer(), "Committable serializer");
+        committer = Objects.requireNonNull(contract.createCommitter(context), "Sink committer");
+        var restored = readCommittables(serializer);
+        if (!restored.isEmpty()) {
+            // Only durable checkpoint committables reach the restored writer.
+            committer.commit(restored, true);
+            stateBackend.removeByPrefix("committable-");
+        }
+    }
+
+    private java.util.List<Object> readCommittables(SimpleVersionedSerializer<Object> serializer) throws Exception {
+        int count = (int) stateBackend.names().stream()
+                .filter(name -> name.startsWith("operator/committable-")).count();
+        var values = new java.util.ArrayList<Object>(count);
+        for (int index = 0; index < count; index++) {
+            values.add(stateBackend.get("committable-" + index, serializer)
+                    .orElseThrow(() -> new IllegalStateException("Incomplete restored committable state")));
+        }
+        return java.util.List.copyOf(values);
     }
 
     private void rejectUnsafeWriter(String reason) throws Exception {
@@ -160,6 +199,22 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
         }
         requireOpen();
         writer.flush(false);
+        if (committer != null) {
+            if (!(writer instanceof CommittingSinkWriter<?, ?> committingWriter)) {
+                throw new IllegalStateException("Committing Sink requires a CommittingSinkWriter");
+            }
+            SupportsCommitter<T, Object> contract = (SupportsCommitter<T, Object>) sink;
+            java.util.Collection<Object> prepared =
+                    ((CommittingSinkWriter<T, Object>) committingWriter).prepareCommit(checkpointId);
+            Objects.requireNonNull(prepared, "Prepared committables");
+            stateBackend.removeByPrefix("committable-");
+            int index = 0;
+            for (Object committable : prepared) {
+                stateBackend.put("committable-" + index++, Objects.requireNonNull(committable),
+                        contract.getCommittableSerializer());
+            }
+            pendingCommitCheckpointId = checkpointId;
+        }
         if (!(writer instanceof StatefulSinkWriter<?, ?> statefulWriter)) {
             return;
         }
@@ -175,6 +230,19 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
         for (int i = 0; i < states.size(); i++) {
             backend.put("writer-" + i, states.get(i), serializer);
         }
+    }
+
+    /**
+     * Commits only after global checkpoint durability. Disk state retains prepared XIDs
+     * after commit so a crash between database acknowledgment and next checkpoint is recoverable.
+     */
+    @SuppressWarnings("unchecked")
+    public void notifyCheckpointComplete(long checkpointId) throws Exception {
+        if (committer == null || pendingCommitCheckpointId != checkpointId) return;
+        SupportsCommitter<T, Object> contract = (SupportsCommitter<T, Object>) sink;
+        committer.commit(readCommittables(contract.getCommittableSerializer()), false);
+        stateBackend.removeByPrefix("committable-");
+        pendingCommitCheckpointId = -1;
     }
 
     /**
@@ -240,9 +308,24 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
             return;
         }
         closed = true;
+        Exception failure = null;
         if (writer != null) {
-            writer.close();
+            try {
+                writer.close();
+            } catch (Exception error) {
+                failure = error;
+            }
             writer = null;
         }
+        if (committer != null) {
+            try {
+                committer.close();
+            } catch (Exception error) {
+                if (failure == null) failure = error;
+                else failure.addSuppressed(error);
+            }
+            committer = null;
+        }
+        if (failure != null) throw failure;
     }
 }
