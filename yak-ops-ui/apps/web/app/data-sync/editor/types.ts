@@ -14,6 +14,7 @@ export interface EditorForm {
   allowDropColumns: boolean;
   writeMode: DataSyncWriteMode;
   keylessEnabled: boolean;
+  xaEnabled: boolean;
   chunkKeyColumn: string;
   incremental?: DataSyncIncrementalConfig;
   sourceDataSourceId: string;
@@ -42,6 +43,7 @@ export const EMPTY_FORM: EditorForm = {
   allowDropColumns: false,
   writeMode: "APPEND",
   keylessEnabled: false,
+  xaEnabled: false,
   chunkKeyColumn: "",
   incremental: undefined,
   sourceDataSourceId: "",

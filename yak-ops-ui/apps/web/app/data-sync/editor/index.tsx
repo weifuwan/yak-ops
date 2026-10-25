@@ -75,6 +75,7 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
           ? "UPSERT"
           : "APPEND",
       keylessEnabled: value?.keylessEnabled ?? false,
+      xaEnabled: value?.xaEnabled ?? false,
       chunkKeyColumn: value?.chunkKeyColumn ?? "",
       incremental: useIncremental ? value?.incremental || EMPTY_INCREMENTAL : undefined,
       sourceDataSourceId: value?.sourceDataSourceId || "",

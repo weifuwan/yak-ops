@@ -54,7 +54,7 @@ export interface DataSyncIncrementalConfig {
 }
 
 export interface DataSyncTableMapping {
-  source: DataSyncTablePath & { keyless?: boolean; chunkKeyColumn?: string };
+  source: DataSyncTablePath & { keyless?: boolean; chunkKeyColumn?: string; xa?: boolean };
   target: DataSyncTablePath;
   writeMode: DataSyncWriteMode;
   incremental?: DataSyncIncrementalConfig;
@@ -176,6 +176,7 @@ export interface DataSyncMappingConfig {
 export interface DataSyncTaskRecord {
   id: string;
   keylessEnabled?: boolean;
+  xaEnabled?: boolean;
   chunkKeyColumn?: string;
   schemaChangesEnabled?: boolean;
   allowDropColumns?: boolean;
@@ -259,6 +260,7 @@ interface DataSyncTaskSaveBase {
 
 export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
   keylessEnabled?: boolean;
+  xaEnabled?: boolean;
   chunkKeyColumn?: string;
   schemaChangesEnabled?: boolean;
   allowDropColumns?: boolean;

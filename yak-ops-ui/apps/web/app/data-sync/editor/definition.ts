@@ -38,7 +38,7 @@ export function buildEditorPayload(
     steps: draft.steps,
     writeMode: form.writeMode,
     ...(usesChangelog && form.keylessEnabled && !batch
-      ? { keylessEnabled: true, chunkKeyColumn: form.chunkKeyColumn }
+      ? { keylessEnabled: true, xaEnabled: form.xaEnabled, chunkKeyColumn: form.chunkKeyColumn }
       : {}),
     ...(usesChangelog
       ? {
