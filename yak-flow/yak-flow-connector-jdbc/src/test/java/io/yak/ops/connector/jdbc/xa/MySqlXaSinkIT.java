@@ -138,6 +138,72 @@ class MySqlXaSinkIT {
         }
     }
 
+    @Test
+    void automaticFlushMustNotSplitAnUpdatePairAtBatchBoundary() throws Exception {
+        try (Connection connection = DATABASE.metadata().connect()) {
+            TableId target = table(connection);
+            create(connection, target);
+            try {
+                String owner = owner();
+                try (MySqlXaWriter writer = writer(target, owner);
+                        MySqlXaCommitter committer = committer(owner)) {
+                    for (int i = 1; i <= 499; i++) {
+                        writer.write(record(target, RowKind.INSERT, i, "7.00", "insert-" + i), CONTEXT);
+                    }
+                    // The 500th row is only the BEFORE image. The writer must defer flush.
+                    writer.write(updateImage(target, RowKind.UPDATE_BEFORE, 1, "7.00", 0), CONTEXT);
+                    writer.write(updateImage(target, RowKind.UPDATE_AFTER, 1, "8.00", 1), CONTEXT);
+                    var prepared = writer.prepareCommit(9);
+                    assertEquals(0, count(connection, target));
+                    committer.commit(prepared, false);
+                    assertEquals(499, count(connection, target));
+                    try (var query = connection.createStatement();
+                            var updated = query.executeQuery("SELECT amount FROM "
+                                    + new MySqlJdbcDialect().qualifiedTable(target) + " WHERE bucket=1")) {
+                        updated.next();
+                        assertEquals(new BigDecimal("8.00"), updated.getBigDecimal(1));
+                    }
+                }
+            } finally {
+                drop(connection, target);
+            }
+        }
+    }
+
+    @Test
+    void abandonedPrepareIsRolledBackWithoutDiscardingCompletedCheckpointTransaction() throws Exception {
+        try (Connection connection = DATABASE.metadata().connect()) {
+            TableId target = table(connection);
+            create(connection, target);
+            try {
+                String owner = owner();
+                try (MySqlXaWriter first = writer(target, owner);
+                        MySqlXaCommitter committer = committer(owner)) {
+                    first.write(record(target, RowKind.INSERT, 1, "1.00", "abandoned"), CONTEXT);
+                    first.prepareCommit(1); // No durable checkpoint covers this Xid.
+                    first.write(record(target, RowKind.INSERT, 2, "2.00", "persisted"), CONTEXT);
+                    var persisted = first.prepareCommit(2);
+                    committer.recover(persisted);
+                    committer.commit(persisted, true);
+                    assertEquals(1, count(connection, target));
+                    try (var query = connection.createStatement();
+                            var rows = query.executeQuery("SELECT bucket FROM "
+                                    + new MySqlJdbcDialect().qualifiedTable(target))) {
+                        rows.next();
+                        assertEquals(2L, rows.getLong(1));
+                    }
+                }
+            } finally {
+                drop(connection, target);
+            }
+        }
+    }
+
+    private static TableRecord updateImage(TableId table, RowKind kind, long bucket, String amount, int index) {
+        return new TableRecord(table, kind, GenericRowData.of(bucket, new BigDecimal(amount)))
+                .withChangeEventId(new ChangeEventId("source-" + table.table(), "update-1", index, 2));
+    }
+
     private static String owner() {
         return UUID.randomUUID().toString().replace("-", "");
     }
