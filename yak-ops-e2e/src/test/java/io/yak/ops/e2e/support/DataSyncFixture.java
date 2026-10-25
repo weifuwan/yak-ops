@@ -141,6 +141,28 @@ public final class DataSyncFixture implements AutoCloseable {
                 true);
     }
 
+    /** Runs a real MySQL-to-MySQL keyless XA task without creating any Receipt table. */
+    public String keylessXaRealtime() throws Exception {
+        source.execute("CREATE TABLE keyless_source "
+                + "(bucket BIGINT NOT NULL, amount DECIMAL(14,2) NULL) ENGINE=InnoDB");
+        source.execute("CREATE TABLE keyless_target "
+                + "(bucket BIGINT NOT NULL, amount DECIMAL(14,2) NULL) ENGINE=InnoDB");
+        source.execute("INSERT INTO keyless_source VALUES (1,10.00),(1,10.00),(2,NULL)");
+        Map<String, Object> parameters = new LinkedHashMap<>();
+        parameters.put("solutionType", "SINGLE_TABLE_REALTIME");
+        parameters.put("steps", List.of("FULL", "INCREMENTAL"));
+        parameters.put("schemaChangesEnabled", false);
+        parameters.put("source", Map.of("datasourceId", sourceId));
+        parameters.put("sink", Map.of("datasourceId", sourceId));
+        parameters.put("tableSelection", Map.of("mode", "EXPLICIT"));
+        parameters.put("tableMappings", List.of(Map.of(
+                "source", Map.of("table", "keyless_source", "keyless", true,
+                        "chunkKeyColumn", "bucket", "xa", true),
+                "target", Map.of("table", "keyless_target"),
+                "writeMode", "RETRACT")));
+        return create(parameters, true);
+    }
+
     public String submit(String definition) {
         String instance = api.submit(definition).path("instanceId").asText();
         track(instance);
