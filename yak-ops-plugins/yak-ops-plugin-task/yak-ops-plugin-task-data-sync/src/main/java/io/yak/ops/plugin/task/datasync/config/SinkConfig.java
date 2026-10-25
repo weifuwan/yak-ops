@@ -32,9 +32,12 @@ public record SinkConfig(ReadonlyConfig options, List<String> targetPrimaryKeys)
             .required(WRITE)
             .optional(JobOptions.DATABASE, JobOptions.SCHEMA)
             .build();
-    private static final OptionRule WRITE_RULE =
-            OptionRule.builder().required(MODE).optional(PRIMARY_KEYS, TRANSACTION).build();
-    private static final OptionRule TRANSACTION_RULE = OptionRule.builder().required(MODE).build();
+    private static final OptionRule WRITE_RULE = OptionRule.builder()
+            .required(MODE)
+            .optional(PRIMARY_KEYS, TRANSACTION)
+            .build();
+    private static final OptionRule TRANSACTION_RULE =
+            OptionRule.builder().required(MODE).build();
 
     public static SinkConfig from(
             ReadonlyConfig target,
@@ -48,10 +51,11 @@ public record SinkConfig(ReadonlyConfig options, List<String> targetPrimaryKeys)
         validate(write, WRITE_RULE, "sink.tables.write");
         JdbcWriteMode mode = JdbcWriteMode.valueOf(write.get(MODE));
         List<String> keys = write.getSourceMap().containsKey(PRIMARY_KEYS.key()) ? write.get(PRIMARY_KEYS) : null;
-        if (keys != null && (schemaChangesEnabled
-                || keys.isEmpty()
-                || keys.stream().anyMatch(k -> k == null || k.isBlank())
-                || new HashSet<>(keys).size() != keys.size())) {
+        if (keys != null
+                && (schemaChangesEnabled
+                        || keys.isEmpty()
+                        || keys.stream().anyMatch(k -> k == null || k.isBlank())
+                        || new HashSet<>(keys).size() != keys.size())) {
             throw new IllegalArgumentException("Target primary keys must be unique and schema evolution disabled");
         }
         Map<String, Object> transaction = write.get(TRANSACTION);
@@ -78,7 +82,8 @@ public record SinkConfig(ReadonlyConfig options, List<String> targetPrimaryKeys)
             throw new IllegalArgumentException("RETRACT and checkpoint XA require keyless CDC");
         }
         if ((!type.supportsScheduling() || steps.contains(Step.INCREMENTAL))
-                && mode != JdbcWriteMode.UPSERT && !(source.keyless() && mode == JdbcWriteMode.RETRACT)) {
+                && mode != JdbcWriteMode.UPSERT
+                && !(source.keyless() && mode == JdbcWriteMode.RETRACT)) {
             throw new IllegalArgumentException("Changelog and offline incremental require UPSERT");
         }
         Map<String, Object> physical = new LinkedHashMap<>(target.getSourceMap());
