@@ -137,6 +137,17 @@ public final class DataSyncFixture implements AutoCloseable {
                 "env", Map.of());
     }
 
+    /** Enables runtime target schema coordination in one Sink-owned location. */
+    public void setSchemaEvolution(Map<String, Object> parameters, boolean enabled, boolean allowDrop) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> saved = (Map<String, Object>) parameters.get("sink");
+        var sink = new LinkedHashMap<>(saved);
+        sink.put("schemaPolicy", Map.of(
+                "initial", "CREATE_OR_ALTER",
+                "evolution", Map.of("enabled", enabled, "allowDropColumns", allowDrop)));
+        parameters.put("sink", sink);
+    }
+
     public String create(Map<String, Object> parameters, boolean publish) {
         String definition = api.call(
                         "POST",
