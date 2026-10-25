@@ -52,7 +52,6 @@ export const validIncrementalConfig = (
   return true;
 };
 
-
 /** One readable configuration contract; no V2/V3 conversion or protocol fallback. */
 export function parseSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
   if (schemaVersion !== 4) throw new Error("不支持的同步任务参数版本");
@@ -60,13 +59,15 @@ export function parseSyncParameters(schemaVersion: number, content: unknown): Da
   const allowed = (object: object, keys: string[]) =>
     Object.keys(object).every((key) => keys.includes(key));
   if (
-    !value || typeof value !== "object" ||
+    !value ||
+    typeof value !== "object" ||
     !allowed(value, ["solutionType", "steps", "source", "transform", "sink", "env"]) ||
     !SOLUTIONS.has(value.solutionType) ||
     !Array.isArray(value.steps) ||
     !Array.isArray(value.transform) ||
     value.transform.length !== 0 ||
-    !value.env || Object.keys(value.env).length !== 0 ||
+    !value.env ||
+    Object.keys(value.env).length !== 0 ||
     !value.source?.datasourceId ||
     !value.sink?.datasourceId ||
     !Array.isArray(value.source.tables) ||
@@ -80,15 +81,22 @@ export function parseSyncParameters(schemaVersion: number, content: unknown): Da
     throw new Error("不支持的同步任务定义");
   }
   for (const source of value.source.tables) {
-    if (!source?.id || !source.table ||
-      !allowed(source, ["id", "database", "schema", "table", "keyless", "snapshot", "incremental"])) {
+    if (
+      !source?.id ||
+      !source.table ||
+      !allowed(source, ["id", "database", "schema", "table", "keyless", "snapshot", "incremental"])
+    ) {
       throw new Error("不支持的来源表配置");
     }
   }
   for (const target of value.sink.tables) {
-    if (!target?.input || !target.table || !target.write?.mode ||
+    if (
+      !target?.input ||
+      !target.table ||
+      !target.write?.mode ||
       !allowed(target, ["input", "database", "schema", "table", "write"]) ||
-      !allowed(target.write, ["mode", "primaryKeys", "transaction"])) {
+      !allowed(target.write, ["mode", "primaryKeys", "transaction"])
+    ) {
       throw new Error("不支持的目标表配置");
     }
   }
@@ -136,13 +144,17 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     new Set(steps).size !== steps.length ||
     steps.some((step) => step !== "FULL" && step !== "INCREMENTAL") ||
     (realtime && (steps.length !== 2 || steps[0] !== "FULL" || steps[1] !== "INCREMENTAL")) ||
-    (!realtime && ![["FULL"], ["INCREMENTAL"], ["FULL", "INCREMENTAL"]].some(
-      (candidate) => JSON.stringify(candidate) === JSON.stringify(steps),
-    )) ||
+    (!realtime &&
+      ![["FULL"], ["INCREMENTAL"], ["FULL", "INCREMENTAL"]].some(
+        (candidate) => JSON.stringify(candidate) === JSON.stringify(steps),
+      )) ||
     (!supportsMultipleTables(value.solutionType) && value.source.tables.length !== 1)
-  ) throw new Error("不支持的同步步骤或表数量");
+  )
+    throw new Error("不支持的同步步骤或表数量");
   const policy = value.sink.schemaPolicy;
-  if (!policy || !["VERIFY", "CREATE_OR_ALTER"].includes(policy.initial) ||
+  if (
+    !policy ||
+    !["VERIFY", "CREATE_OR_ALTER"].includes(policy.initial) ||
     typeof policy.evolution?.enabled !== "boolean" ||
     typeof policy.evolution.allowDropColumns !== "boolean" ||
     Object.keys(policy).some((key) => !["initial", "evolution"].includes(key)) ||
@@ -150,7 +162,8 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     (policy.evolution.allowDropColumns && !policy.evolution.enabled) ||
     (!realtime && policy.evolution.enabled) ||
     (policy.initial === "CREATE_OR_ALTER" && !steps.includes("FULL"))
-  ) throw new Error("不支持的目标结构策略");
+  )
+    throw new Error("不支持的目标结构策略");
 
   const ids = new Set<string>();
   const sourcePaths = new Set<string>();
@@ -165,9 +178,12 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     if (source.keyless !== undefined && typeof source.keyless !== "boolean")
       throw new Error("无主键配置无效");
     if (source.keyless) {
-      if (value.solutionType !== "SINGLE_TABLE_REALTIME" || policy.evolution.enabled ||
+      if (
+        value.solutionType !== "SINGLE_TABLE_REALTIME" ||
+        policy.evolution.enabled ||
         !source.snapshot?.chunkKeyColumn?.trim() ||
-        Object.keys(source.snapshot).some((key) => key !== "chunkKeyColumn")) {
+        Object.keys(source.snapshot).some((key) => key !== "chunkKeyColumn")
+      ) {
         throw new Error("无主键快照配置不完整");
       }
     } else if (source.snapshot !== undefined) throw new Error("仅无主键来源可设置快照分片键");
@@ -188,18 +204,32 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     targetPaths.add(path);
     const source = value.source.tables.find((table) => table.id === target.input)!;
     const write = target.write;
-    if (!WRITES.has(write.mode) || (write.primaryKeys !== undefined &&
-      (!write.primaryKeys.length || new Set(write.primaryKeys).size !== write.primaryKeys.length ||
-        write.primaryKeys.some((key) => !key?.trim()))) ||
-      (write.primaryKeys && policy.evolution.enabled)) throw new Error("目标写入主键无效");
-    const retract = source.keyless && write.mode === "RETRACT" &&
-      write.transaction?.mode === "CHECKPOINT_XA" && !write.primaryKeys;
-    const keyed = source.keyless && write.mode === "UPSERT" &&
-      !write.transaction && Boolean(write.primaryKeys?.length);
-    if ((source.keyless && !retract && !keyed) ||
+    if (
+      !WRITES.has(write.mode) ||
+      (write.primaryKeys !== undefined &&
+        (!write.primaryKeys.length ||
+          new Set(write.primaryKeys).size !== write.primaryKeys.length ||
+          write.primaryKeys.some((key) => !key?.trim()))) ||
+      (write.primaryKeys && policy.evolution.enabled)
+    )
+      throw new Error("目标写入主键无效");
+    const retract =
+      source.keyless &&
+      write.mode === "RETRACT" &&
+      write.transaction?.mode === "CHECKPOINT_XA" &&
+      !write.primaryKeys;
+    const keyed =
+      source.keyless &&
+      write.mode === "UPSERT" &&
+      !write.transaction &&
+      Boolean(write.primaryKeys?.length);
+    if (
+      (source.keyless && !retract && !keyed) ||
       (!source.keyless && (write.mode === "RETRACT" || write.transaction !== undefined)) ||
       ((realtime || offlineIncremental(value.solutionType, steps)) &&
-        write.mode !== "UPSERT" && !retract)) {
+        write.mode !== "UPSERT" &&
+        !retract)
+    ) {
       throw new Error("不支持的目标写入协议");
     }
   }
