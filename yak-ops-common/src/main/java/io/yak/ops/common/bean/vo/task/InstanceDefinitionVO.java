@@ -1,5 +1,7 @@
 package io.yak.ops.common.bean.vo.task;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
+
 /** Immutable Task Definition version used by an authorized execution Instance. */
 public record InstanceDefinitionVO(
         String definitionId,
