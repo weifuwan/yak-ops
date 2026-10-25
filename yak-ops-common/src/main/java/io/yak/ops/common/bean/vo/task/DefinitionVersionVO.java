@@ -1,5 +1,6 @@
 package io.yak.ops.common.bean.vo.task;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.time.LocalDateTime;
 import lombok.Data;
 
@@ -13,6 +14,7 @@ public class DefinitionVersionVO {
     /** Plugin parameter schema version frozen with this definition version. */
     private Integer parameterSchemaVersion;
     /** Persisted plugin-specific JSON snapshot for this version. */
+    @JsonRawValue
     private String parameters;
     /** Timestamp when the immutable version was created. */
     private LocalDateTime createTime;
