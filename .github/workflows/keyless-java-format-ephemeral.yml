@@ -20,7 +20,7 @@ jobs:
           cache: maven
       - name: Apply repository Spotless config
         run: |
-          mvn -B -ntp -pl yak-flow/yak-flow-connector-cdc-mysql,yak-flow/yak-flow-connector-jdbc,yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync -am spotless:apply
+          mvn -B -ntp -pl yak-flow/yak-flow-connector-cdc-mysql,yak-flow/yak-flow-connector-jdbc,yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync -am com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
       - name: Commit only keyless PR Java files
         run: |
           git config user.name 'github-actions[bot]'
