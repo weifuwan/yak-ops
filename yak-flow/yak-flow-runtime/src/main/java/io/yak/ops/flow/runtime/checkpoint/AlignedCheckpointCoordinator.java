@@ -69,6 +69,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     private long checkpointDeadlineNanos;
     private long finalCheckpointDeadlineNanos;
     private final ScheduledExecutorService timer;
+    private volatile Thread checkpointThread;
     private final AtomicBoolean closed = new AtomicBoolean();
 
     public AlignedCheckpointCoordinator(
@@ -102,6 +103,7 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
         ThreadFactory threads =
                 Thread.ofVirtual().name("yak-local-checkpoint-", 0).factory();
         this.timer = Executors.newSingleThreadScheduledExecutor(action -> threads.newThread(() -> {
+            checkpointThread = Thread.currentThread();
             if (logId == null || logId.isBlank()) {
                 action.run();
             } else {
@@ -663,6 +665,15 @@ public final class AlignedCheckpointCoordinator implements AutoCloseable {
     public void close() {
         if (closed.compareAndSet(false, true)) {
             timer.shutdownNow();
+            if (Thread.currentThread() == checkpointThread) return;
+            try {
+                if (!timer.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS)) {
+                    throw new IllegalStateException("Checkpoint coordinator did not stop before recovery");
+                }
+            } catch (InterruptedException failure) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while stopping checkpoint coordinator", failure);
+            }
         }
     }
 }
