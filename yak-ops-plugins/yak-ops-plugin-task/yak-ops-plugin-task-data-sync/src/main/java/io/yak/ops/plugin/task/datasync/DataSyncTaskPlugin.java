@@ -44,7 +44,7 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public int parameterSchemaVersion() {
-        return 3;
+        return 4;
     }
 
     @Override
@@ -56,28 +56,6 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
     public ReadonlyConfig parse(String content) {
         try {
             ReadonlyConfig parsed = ConfigParser.parseJson(content);
-            if (!parsed.getSourceMap().containsKey("solutionType")) {
-                throw new TaskPluginException("New DATA_SYNC definitions require parameter schema version 3");
-            }
-            return JobConfigValidator.validateConfig(parsed, factories).parameters();
-        } catch (RuntimeException failure) {
-            throw new TaskPluginException("Invalid DATA_SYNC pipeline JSON", failure);
-        }
-    }
-
-    @Override
-    public ReadonlyConfig parse(int schemaVersion, String content) {
-        if (schemaVersion == 3) {
-            return parse(content);
-        }
-        if (schemaVersion != 2) {
-            throw new TaskPluginException("Unsupported DATA_SYNC parameter schema version");
-        }
-        try {
-            ReadonlyConfig parsed = ConfigParser.parseJson(content);
-            if (parsed.getSourceMap().containsKey("solutionType")) {
-                throw new TaskPluginException("Stored DATA_SYNC parameter format does not match its schema version");
-            }
             return JobConfigValidator.validateConfig(parsed, factories).parameters();
         } catch (RuntimeException failure) {
             throw new TaskPluginException("Invalid DATA_SYNC pipeline JSON", failure);
@@ -98,7 +76,7 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
     /**
      * Plans target DDL from authorized metadata without executing statements or creating a Task.
      *
-     * @param parameters requested version-three product parameters
+     * @param parameters requested version-four product parameters
      * @param workspaceId trusted Workspace identity
      * @return ordered mapping previews with no connection credentials
      */
