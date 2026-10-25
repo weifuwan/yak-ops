@@ -155,6 +155,26 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
         }
     }
 
+    /**
+     * Reconciles XA transactions after all tasks stopped, using only the last durable snapshot.
+     * No new Writer is created and an unpersisted prepared transaction is never committed.
+     */
+    @SuppressWarnings("unchecked")
+    public void recoverCommittables(OperatorStateBackend backend) throws Exception {
+        if (opened || closed || stateBackend != null) {
+            throw new IllegalStateException("Cannot recover committables from an active Sink operator");
+        }
+        if (!(sink instanceof SupportsCommitter<?, ?> raw)) return;
+        stateBackend = Objects.requireNonNull(backend, "durable operator state");
+        SupportsCommitter<T, Object> contract = (SupportsCommitter<T, Object>) raw;
+        var serializer = Objects.requireNonNull(contract.getCommittableSerializer(), "Committable serializer");
+        var persisted = readCommittables(serializer);
+        try (Committer<Object> recovery = Objects.requireNonNull(contract.createCommitter(context), "Sink committer")) {
+            recovery.recover(persisted);
+            if (!persisted.isEmpty()) recovery.commit(persisted, true);
+        }
+    }
+
     private java.util.List<Object> readCommittables(SimpleVersionedSerializer<Object> serializer) throws Exception {
         int count = (int) stateBackend.names().stream()
                 .filter(name -> name.startsWith("operator/committable-"))
