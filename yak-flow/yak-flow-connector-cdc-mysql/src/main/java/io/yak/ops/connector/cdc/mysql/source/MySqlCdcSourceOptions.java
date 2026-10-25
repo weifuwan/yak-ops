@@ -20,7 +20,7 @@ public final class MySqlCdcSourceOptions {
             .stringType()
             .noDefaultValue();
 
-    /** Explicit opt-in request; execution stays gated until the Reader and Sink are ready. */
+    /** Explicit opt-in for the Hybrid keyless source; the standalone Binlog source remains gated. */
     public static final Option<Boolean> KEYLESS_ENABLED =
             Options.key("data-sync.mysql-cdc.keyless.enabled").booleanType().defaultValue(false);
 

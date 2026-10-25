@@ -132,20 +132,24 @@ class DataSyncProductParametersTest {
 
     @Test
     void keylessRealtimeRequiresExplicitKeyAndRetraction() {
-        String keyless = json(true)
-                .replace("\\"table\\":\\"orders\\"",
-                        "\\"table\\":\\"orders\\",\\"keyless\\":true,\\"chunkKeyColumn\\":\\"bucket\\"")
-                .replace("\\"writeMode\\":\\"UPSERT\\"", "\\"writeMode\\":\\"RETRACT\\"");
+        String keyless = """
+                {"solutionType":"SINGLE_TABLE_REALTIME","steps":["FULL","INCREMENTAL"],
+                 "schemaChangesEnabled":false,
+                 "source":{"datasourceId":"source"},"sink":{"datasourceId":"target"},
+                 "tableSelection":{"mode":"EXPLICIT"},
+                 "tableMappings":[{"source":{"table":"orders","keyless":true,"chunkKeyColumn":"bucket"},
+                                   "target":{"table":"copy"},"writeMode":"RETRACT"}]}
+                """;
         var config = JobConfig.from(plugin.parse(keyless));
-        assertEquals("bucket", config.source().get(io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceOptions.CHUNK_KEY_COLUMN));
+        assertEquals(
+                "bucket",
+                config.source().get(io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceOptions.CHUNK_KEY_COLUMN));
         assertTrue(config.source().get(io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceOptions.KEYLESS_ENABLED));
         assertEquals("RETRACT", config.sink().getSourceMap().get("writeMode"));
-        assertThrows(TaskPluginException.class, () -> plugin.parse(keyless.replace("\\"RETRACT\\"", "\\"UPSERT\\"")));
-        assertThrows(TaskPluginException.class, () -> plugin.parse(keyless.replace("\\"bucket\\"", "\\"\\"")));
-        assertThrows(TaskPluginException.class, () -> plugin.parse(keyless.replace(
-                "\\"keyless\\":true,", "")));
-        assertThrows(TaskPluginException.class, () -> plugin.parse(keyless.replace(
-                "\\"FULL\\",\\"INCREMENTAL\\"", "\\"SCHEMA\\",\\"FULL\\",\\"INCREMENTAL\\"")));
+        assertThrows(TaskPluginException.class, () -> plugin.parse(keyless.replace("RETRACT", "UPSERT")));
+        assertThrows(TaskPluginException.class, () -> plugin.parse(keyless.replace("bucket", "")));
+        assertThrows(TaskPluginException.class, () -> plugin.parse(keyless.replace("true", "false")));
+        assertThrows(TaskPluginException.class, () -> plugin.parse(keyless.replace("FULL", "SCHEMA")));
     }
 
     static String json(boolean realtime) {
