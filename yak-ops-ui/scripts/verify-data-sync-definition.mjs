@@ -65,15 +65,27 @@ const keyless = createDefinitionRequest({
 }).parameters;
 assert.equal(readSyncParameters(3, keyless).tableMappings[0].source.chunkKeyColumn, "bucket");
 assert.equal(
-  toSyncTaskRecord({ ...{ id: "keyless", name: "keyless", taskType: "DATA_SYNC",
-    status: "UNPUBLISHED", definitionVersion: 1, parameterSchemaVersion: 3,
-    parameters: keyless } }).keylessEnabled, true,
+  toSyncTaskRecord({
+    id: "keyless",
+    name: "keyless",
+    taskType: "DATA_SYNC",
+    status: "UNPUBLISHED",
+    definitionVersion: 1,
+    parameterSchemaVersion: 3,
+    parameters: keyless,
+  }).keylessEnabled,
+  true,
 );
 for (const invalid of [
   { ...JSON.parse(keyless), schemaChangesEnabled: true },
   { ...JSON.parse(keyless), steps: ["SCHEMA", "FULL", "INCREMENTAL"] },
-  { ...JSON.parse(keyless), tableMappings: [{ ...JSON.parse(keyless).tableMappings[0], writeMode: "UPSERT" }] },
-]) assert.throws(() => readSyncParameters(3, JSON.stringify(invalid)));
+  {
+    ...JSON.parse(keyless),
+    tableMappings: [{ ...JSON.parse(keyless).tableMappings[0], writeMode: "UPSERT" }],
+  },
+]) {
+  assert.throws(() => readSyncParameters(3, JSON.stringify(invalid)));
+}
 const metadata = updateDefinitionRequest({ name: "renamed", remark: "remark", debug: true });
 assert.equal(metadata.parameters, undefined);
 assert.equal(metadata.debug, true);

@@ -1,8 +1,7 @@
 import { Alert, CollapseSection, Field, FieldLabel, Switch } from "@yak-ops/yak-ui";
-import { useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { listDataSourceColumns, type DataSourceCatalogColumn } from "@/service/datasource";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
-import { type Dispatch, type SetStateAction } from "react";
 import { ExplicitTableSelection } from "./table-mapping-editor";
 import { IncrementalFields } from "./incremental-fields";
 import { TableSection } from "./table-section";
@@ -70,8 +69,16 @@ export function SourceSection({
       .catch(() => {
         if (active) setColumnsError(true);
       });
-    return () => { active = false; };
-  }, [allowKeyless, form.sourceDataSourceId, form.sourceDatabase, form.sourceSchema, form.sourceTable]);
+    return () => {
+      active = false;
+    };
+  }, [
+    allowKeyless,
+    form.sourceDataSourceId,
+    form.sourceDatabase,
+    form.sourceSchema,
+    form.sourceTable,
+  ]);
   const chunkColumns = sourceColumns.filter(
     (column) =>
       column.nullable === false &&
@@ -170,7 +177,9 @@ export function SourceSection({
                   </div>
                 </Field>
               ) : null}
-              {columnsError && form.keylessEnabled ? <Alert>来源字段加载失败</Alert> : null}
+              {columnsError && form.keylessEnabled ? (
+                <Alert>来源字段加载失败</Alert>
+              ) : null}
             </>
           ) : null}
           {useIncremental ? (

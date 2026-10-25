@@ -148,7 +148,8 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
   for (const mapping of value.tableMappings) {
     const keyless = mapping?.source?.keyless === true;
     if (
-      (mapping?.source?.keyless !== undefined && typeof mapping.source.keyless !== "boolean") ||
+      (mapping?.source?.keyless !== undefined &&
+        typeof mapping.source.keyless !== "boolean") ||
       (mapping?.source?.chunkKeyColumn !== undefined &&
         (typeof mapping.source.chunkKeyColumn !== "string" ||
           !mapping.source.chunkKeyColumn.trim() ||
@@ -160,7 +161,8 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
           value.allowDropColumns === true ||
           mapping.writeMode !== "RETRACT" ||
           !mapping.source.chunkKeyColumn)) ||
-      (!keyless && (mapping?.source?.chunkKeyColumn !== undefined || mapping.writeMode === "RETRACT")) ||
+      (!keyless &&
+        (mapping?.source?.chunkKeyColumn !== undefined || mapping.writeMode === "RETRACT")) ||
       !mapping?.source?.table ||
       !mapping.target?.table ||
       !WRITES.has(mapping.writeMode) ||

@@ -130,7 +130,8 @@ export function TargetSection({
               disabled={!combination || combination.writeModes.length === 1 || usesChangelog}
               options={(combination?.writeModes || []).map((mode) => ({
                 value: mode,
-                label: mode === "UPSERT" ? "按主键更新" : mode === "RETRACT" ? "逐行更新" : "追加写入",
+                label:
+                  mode === "UPSERT" ? "按主键更新" : mode === "RETRACT" ? "逐行更新" : "追加写入",
               }))}
               onValueChange={(value) => patch("writeMode", value as DataSyncWriteMode)}
             />
