@@ -5,7 +5,12 @@ import type {
 } from "../task-execution/types";
 import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types";
 
-import { displaySyncSteps, parseSyncParameters, solutionSyncType, syncTableMappings } from "./parameters.ts";
+import {
+  displaySyncSteps,
+  parseSyncParameters,
+  solutionSyncType,
+  syncTableMappings,
+} from "./parameters.ts";
 import { readExecutionReport } from "./report.ts";
 
 export const isTaskInstanceActive = (status: TaskInstanceStatus): boolean =>
@@ -56,11 +61,7 @@ export function toDataSyncInstanceRecord(
 
   return {
     id: instance.id,
-    executionReport: readExecutionReport(
-      instance.executionReport,
-      tableMappings.length,
-      steps,
-    ),
+    executionReport: readExecutionReport(instance.executionReport, tableMappings.length, steps),
     solutionType: parameters.solutionType,
     steps,
     taskId: instance.definitionId,
