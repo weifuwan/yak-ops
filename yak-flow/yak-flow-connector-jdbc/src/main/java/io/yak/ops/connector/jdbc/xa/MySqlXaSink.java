@@ -15,10 +15,9 @@ import io.yak.ops.core.data.TableRecord;
 import java.util.Objects;
 
 /**
- * An opt-in, single-route MySQL RETRACT Sink using XA instead of per-event replay receipts.
+ * Single-route MySQL RETRACT Sink coordinating prepared XA transactions with durable checkpoints.
  *
- * <p>Never substituted for an existing Receipt job without an explicit task-version change:
- * recovered checkpoints must use the same external transaction protocol that created them.
+ * <p>Recovered checkpoints must use the same transaction protocol as their original execution.
  */
 public final class MySqlXaSink implements SupportsCommitter<TableRecord, MySqlXaXid> {
 
