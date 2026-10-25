@@ -3,12 +3,15 @@ import {
   buildSyncParameters,
   createDefinitionRequest,
   definitionPageRequest,
+  projectSyncTaskPage,
   toSyncTaskRecord,
   updateDefinitionRequest,
 } from "../apps/web/service/data-sync/definition.ts";
 import {
+  displaySyncSteps,
   parseSyncParameters,
   readSyncParameters,
+  syncTableMappings,
   validateSyncParameters,
 } from "../apps/web/service/data-sync/parameters.ts";
 
@@ -35,29 +38,48 @@ const realtime = {
   writeMode: "UPSERT",
 };
 const created = createDefinitionRequest(realtime);
-const json = JSON.parse(created.parameters);
-assert.deepEqual(json, {
-  solutionType: "SINGLE_TABLE_REALTIME",
-  steps: ["FULL", "INCREMENTAL"],
-  schemaChangesEnabled: true,
-  allowDropColumns: false,
-  source: { datasourceId: "mysql-source" },
-  sink: { datasourceId: "pg-target" },
-  tableSelection: { mode: "EXPLICIT" },
-  tableMappings: [
-    {
-      source: { table: "orders" },
-      target: { schema: "public", table: "ods_orders" },
-      writeMode: "UPSERT",
-    },
-  ],
-});
+const json = created.parameters;
 assert.equal(created.taskType, "DATA_SYNC");
 assert.equal(created.debug, true);
+assert.equal(typeof created.parameters, "object");
 assert.equal(json.debug, undefined);
-assert.equal(json.source.type, undefined);
-assert.equal("parametersFormat" in created, false);
-assert.equal(buildSyncParameters(offline).tableMappings[0].writeMode, "APPEND");
+assert.deepEqual(Object.keys(json), ["solutionType", "steps", "source", "transform", "sink", "env"]);
+assert.deepEqual(json.steps, ["FULL", "INCREMENTAL"]);
+assert.deepEqual(json.transform, []);
+assert.deepEqual(json.env, {});
+assert.equal(json.source.datasourceId, "mysql-source");
+assert.equal(json.source.tables.length, 1);
+assert.equal(json.source.tables[0].table, "orders");
+assert.equal(json.sink.tables[0].input, json.source.tables[0].id);
+assert.equal(json.sink.tables[0].table, "ods_orders");
+assert.equal(json.sink.tables[0].write.mode, "UPSERT");
+assert.equal(json.sink.schemaPolicy.initial, "VERIFY");
+assert.equal(json.sink.schemaPolicy.evolution.enabled, true);
+assert.equal("tableMappings" in json, false);
+assert.equal("tableSelection" in json, false);
+assert.equal("schemaChangesEnabled" in json, false);
+assert.equal("type" in json.source, false);
+assert.equal(buildSyncParameters(offline).sink.tables[0].write.mode, "APPEND");
+assert.equal(readSyncParameters(4, json), json);
+assert.deepEqual(displaySyncSteps(json), ["FULL", "INCREMENTAL"]);
+assert.equal(syncTableMappings(json)[0].source.table, "orders");
+
+const record = {
+  id: "d-1",
+  name: "orders",
+  taskType: "DATA_SYNC",
+  status: "UNPUBLISHED",
+  debug: true,
+  definitionVersion: 1,
+  parameterSchemaVersion: 4,
+  parameters: json,
+};
+const projected = toSyncTaskRecord(record);
+assert.equal(projected.sourceDataSourceId, "mysql-source");
+assert.equal(projected.targetDataSourceId, "pg-target");
+assert.equal(projected.tableMappings[0].writeMode, "UPSERT");
+assert.equal(projected.syncType, "REALTIME");
+
 const keyless = createDefinitionRequest({
   ...realtime,
   targetDataSourceId: "mysql-target",
@@ -67,203 +89,120 @@ const keyless = createDefinitionRequest({
   chunkKeyColumn: "bucket",
   schemaChangesEnabled: false,
 }).parameters;
-assert.equal(readSyncParameters(3, keyless).tableMappings[0].source.chunkKeyColumn, "bucket");
-assert.equal(readSyncParameters(3, keyless).tableMappings[0].source.xa, true);
-assert.equal(
-  toSyncTaskRecord({
-    id: "keyless",
-    name: "keyless",
-    taskType: "DATA_SYNC",
-    status: "UNPUBLISHED",
-    definitionVersion: 1,
-    parameterSchemaVersion: 3,
-    parameters: keyless,
-  }).keylessEnabled,
-  true,
-);
-for (const invalid of [
-  {
-    ...JSON.parse(keyless),
-    tableMappings: [
-      {
-        ...JSON.parse(keyless).tableMappings[0],
-        source: { table: "source", keyless: true, chunkKeyColumn: "bucket" },
-      },
-    ],
+assert.equal(keyless.source.tables[0].snapshot.chunkKeyColumn, "bucket");
+assert.equal(keyless.sink.tables[0].write.transaction.mode, "CHECKPOINT_XA");
+assert.equal(keyless.sink.schemaPolicy.evolution.enabled, false);
+assert.equal(readSyncParameters(4, keyless), keyless);
+assert.equal(toSyncTaskRecord({ ...record, parameters: keyless }).keylessEnabled, true);
+assert.throws(() => readSyncParameters(3, keyless));
+assert.throws(() => readSyncParameters(2, keyless));
+assert.throws(() => parseSyncParameters(4, "{"));
+assert.throws(() => readSyncParameters(4, { ...keyless, tableMappings: [] }));
+assert.throws(() => readSyncParameters(4, {
+  ...keyless,
+  source: { ...keyless.source, tables: [{ ...keyless.source.tables[0], xa: true }] },
+}));
+assert.throws(() => readSyncParameters(4, {
+  ...keyless,
+  sink: {
+    ...keyless.sink,
+    tables: keyless.sink.tables.map((table) => ({
+      ...table,
+      write: { mode: "RETRACT" },
+    })),
   },
-  { ...JSON.parse(keyless), schemaChangesEnabled: true },
-  {
-    ...JSON.parse(keyless),
-    tableMappings: [{ ...JSON.parse(keyless).tableMappings[0], writeMode: "UPSERT" }],
-  },
-]) {
-  assert.throws(() => readSyncParameters(3, JSON.stringify(invalid)));
-}
-// Display parsing preserves persisted V3 intent without treating legacy RETRACT as valid XA.
-const legacyRetract = JSON.stringify({
-  ...JSON.parse(keyless),
-  tableMappings: [
-    {
-      ...JSON.parse(keyless).tableMappings[0],
-      source: { table: "orders", keyless: true, chunkKeyColumn: "bucket" },
+}));
+assert.throws(() => readSyncParameters(4, {
+  ...keyless,
+  sink: {
+    ...keyless.sink,
+    schemaPolicy: {
+      ...keyless.sink.schemaPolicy,
+      evolution: { enabled: true, allowDropColumns: false },
     },
-  ],
-});
-const savedLegacy = parseSyncParameters(3, legacyRetract);
-assert.equal(savedLegacy.tableMappings[0].source.xa, undefined);
-assert.equal(savedLegacy.tableMappings[0].writeMode, "RETRACT");
-assert.throws(() => validateSyncParameters(savedLegacy));
-assert.throws(() => readSyncParameters(3, legacyRetract));
-const displayedLegacy = toSyncTaskRecord({
-  id: "legacy",
-  name: "legacy",
-  taskType: "DATA_SYNC",
-  status: "UNPUBLISHED",
-  definitionVersion: 2,
-  parameterSchemaVersion: 3,
-  parameters: legacyRetract,
-});
-assert.equal(displayedLegacy.sourceTable, "orders");
-assert.equal(displayedLegacy.targetTable, "ods_orders");
-assert.match(displayedLegacy.configurationError, /不支持的同步目标写入配置/);
-assert.equal(
-  toSyncTaskRecord({
-    id: "supported",
-    name: "supported",
-    taskType: "DATA_SYNC",
-    status: "UNPUBLISHED",
-    definitionVersion: 1,
-    parameterSchemaVersion: 3,
-    parameters: keyless,
-  }).configurationError,
-  undefined,
-);
-
-const schemaKeyless = JSON.stringify({
-  ...JSON.parse(keyless),
-  steps: ["SCHEMA", "FULL", "INCREMENTAL"],
-});
-const schemaSteps = readSyncParameters(3, schemaKeyless).steps;
-assert.deepEqual(schemaSteps, ["SCHEMA", "FULL", "INCREMENTAL"]);
-const businessKey = createDefinitionRequest({
+  },
+}));
+const upsertKeyless = createDefinitionRequest({
   ...realtime,
-  targetDataSourceId: "mysql-target",
-  targetSchema: undefined,
   keylessEnabled: true,
   chunkKeyColumn: "bucket",
-  targetPrimaryKeys: ["bucket"],
+  schemaChangesEnabled: false,
   writeMode: "UPSERT",
-  schemaChangesEnabled: false,
+  targetPrimaryKeys: ["bucket"],
 }).parameters;
-const businessPrimaryKeys = readSyncParameters(3, businessKey).tableMappings[0].target.primaryKeys;
-assert.deepEqual(businessPrimaryKeys, ["bucket"]);
-assert.equal(readSyncParameters(3, businessKey).tableMappings[0].source.xa, undefined);
-const metadata = updateDefinitionRequest({ name: "renamed", remark: "remark", debug: true });
-assert.equal(metadata.parameters, undefined);
-assert.equal(metadata.debug, true);
-assert.equal(
-  JSON.parse(updateDefinitionRequest(offline).parameters).tableMappings[0].source.table,
-  "orders",
-);
-assert.deepEqual(definitionPageRequest({ pageNo: 1, pageSize: 20 }).parameterFilters, {});
-assert.deepEqual(
-  definitionPageRequest({ pageNo: 1, pageSize: 20, solutionType: "SINGLE_TABLE_REALTIME" })
-    .parameterFilters,
-  { solutionType: "SINGLE_TABLE_REALTIME" },
-);
-assert.deepEqual(
-  definitionPageRequest({
-    pageNo: 1,
-    pageSize: 20,
-    syncType: "OFFLINE",
-    sourceDataSourceId: "mysql-source",
-    targetDataSourceId: "pg-target",
-  }).parameterFilters,
-  { sourceType: "JDBC", sourceDataSourceId: "mysql-source", targetDataSourceId: "pg-target" },
-);
-const definition = {
-  id: "task",
-  name: "orders",
-  taskType: "DATA_SYNC",
-  status: "UNPUBLISHED",
-  definitionVersion: 5,
-  parameterSchemaVersion: 3,
-  parameters: created.parameters,
-};
-const result = toSyncTaskRecord(definition);
-assert.equal(result.solutionType, "SINGLE_TABLE_REALTIME");
-assert.equal(result.syncType, "REALTIME");
-assert.deepEqual(result.steps, ["FULL", "INCREMENTAL"]);
-assert.equal(result.targetSchema, "public");
-assert.equal(result.definitionVersion, 5);
-const oldParameters = JSON.stringify({
-  source: { type: "MYSQL_CDC", datasourceId: "mysql-source", table: "orders" },
-  transform: [],
+assert.deepEqual(upsertKeyless.sink.tables[0].write.primaryKeys, ["bucket"]);
+assert.equal(upsertKeyless.sink.tables[0].write.transaction, undefined);
+assert.equal(upsertKeyless.source.tables[0].snapshot.chunkKeyColumn, "bucket");
+assert.throws(() => validateSyncParameters({
+  ...upsertKeyless,
   sink: {
-    type: "JDBC",
-    datasourceId: "pg-target",
-    schema: "public",
-    table: "ods_orders",
-    writeMode: "UPSERT",
+    ...upsertKeyless.sink,
+    tables: upsertKeyless.sink.tables.map((table) => ({
+      ...table,
+      write: { ...table.write, primaryKeys: ["bucket", "bucket"] },
+    })),
   },
-});
-const oldDefinition = { ...definition, parameterSchemaVersion: 2, parameters: oldParameters };
-const oldRecord = toSyncTaskRecord(oldDefinition);
-assert.equal(oldRecord.schemaChangesEnabled, false);
-assert.equal(result.schemaChangesEnabled, true);
-const disabledJson = createDefinitionRequest({
-  ...realtime,
-  schemaChangesEnabled: false,
-}).parameters;
-assert.equal(readSyncParameters(3, disabledJson).schemaChangesEnabled, false);
-const missingPolicy = { ...json };
-delete missingPolicy.schemaChangesEnabled;
-assert.equal(readSyncParameters(3, JSON.stringify(missingPolicy)).schemaChangesEnabled, undefined);
-const invalidPolicy = { ...json, schemaChangesEnabled: "false" };
-assert.throws(() => readSyncParameters(3, JSON.stringify(invalidPolicy)));
-const invalidOfflinePolicy = { ...buildSyncParameters(offline), schemaChangesEnabled: true };
-assert.throws(() => readSyncParameters(3, JSON.stringify(invalidOfflinePolicy)));
-assert.equal(buildSyncParameters(offline).schemaChangesEnabled, undefined);
-const dropEnabled = buildSyncParameters({ ...realtime, allowDropColumns: true });
-assert.equal(dropEnabled.allowDropColumns, true);
-assert.equal(buildSyncParameters(realtime).allowDropColumns, false);
-assert.equal(
-  toSyncTaskRecord({ ...definition, parameters: JSON.stringify(dropEnabled) }).allowDropColumns,
-  true,
-);
-assert.throws(() =>
-  readSyncParameters(3, JSON.stringify({ ...dropEnabled, schemaChangesEnabled: false })),
-);
-assert.throws(() =>
-  readSyncParameters(3, JSON.stringify({ ...dropEnabled, allowDropColumns: "true" })),
-);
-assert.throws(() =>
-  readSyncParameters(
-    3,
-    JSON.stringify({ ...buildSyncParameters(offline), allowDropColumns: true }),
-  ),
-);
-assert.equal(oldDefinition.parameters, oldParameters);
-assert.throws(() => readSyncParameters(1, oldParameters));
-assert.throws(() => readSyncParameters(3, oldParameters));
-assert.throws(() => readSyncParameters(2, created.parameters));
-for (const patch of [
-  { solutionType: "UNSUPPORTED_SOLUTION" },
-  { steps: ["FULL"] },
-  { steps: ["FULL", "FULL"] },
-  { steps: ["SCHEMA"] },
-  { steps: ["SCHEMA", "FULL", "INCREMENTAL", "SCHEMA"] },
-  { tableSelection: { mode: "RULES" } },
-  { tableMappings: [] },
-  { tableMappings: [...json.tableMappings, ...json.tableMappings] },
-  { source: { ...json.source, type: "JDBC" } },
-  { tableMappings: [{ ...json.tableMappings[0], writeMode: "APPEND" }] },
-])
-  assert.throws(() => readSyncParameters(3, JSON.stringify({ ...json, ...patch })));
-assert.throws(() => toSyncTaskRecord({ ...definition, taskType: "UNKNOWN" }));
-console.log("Data Sync v3 and pinned-v2 definition contracts passed");
+}));
 
-const batch = {
+const prepared = createDefinitionRequest({
+  ...offline,
+  steps: ["SCHEMA", "FULL"],
+}).parameters;
+assert.deepEqual(prepared.steps, ["FULL"]);
+assert.equal(prepared.sink.schemaPolicy.initial, "CREATE_OR_ALTER");
+assert.deepEqual(displaySyncSteps(prepared), ["SCHEMA", "FULL"]);
+assert.throws(() => readSyncParameters(4, {
+  ...prepared,
+  steps: ["SCHEMA", "FULL"],
+}));
+assert.throws(() => readSyncParameters(4, {
+  ...prepared,
+  steps: ["INCREMENTAL"],
+}));
+assert.throws(() => readSyncParameters(4, {
+  ...prepared,
+  env: { "execution.debug": true },
+}));
+const metadata = updateDefinitionRequest({ name: "rename", remark: "remark", debug: false });
+assert.equal("parameters" in metadata, false);
+assert.equal(updateDefinitionRequest(offline).parameters.source.tables[0].table, "orders");
+assert.deepEqual(definitionPageRequest({
+  pageNo: 1,
+  pageSize: 20,
+  solutionType: "DATABASE_REALTIME",
+}).parameterFilters, { solutionType: "DATABASE_REALTIME" });
+
+const incremental = {
+  mode: "TIMESTAMP",
+  column: "updated_at",
+  initialValue: "2026-10-01T00:00:00",
+  delaySeconds: 0,
+  lookbackSeconds: 5,
+};
+const offlineIncremental = createDefinitionRequest({
+  ...offline,
+  steps: ["INCREMENTAL"],
+  writeMode: "UPSERT",
+  incremental,
+}).parameters;
+assert.deepEqual(offlineIncremental.source.tables[0].incremental, incremental);
+assert.equal(offlineIncremental.sink.tables[0].write.mode, "UPSERT");
+assert.throws(() => readSyncParameters(4, {
+  ...offlineIncremental,
+  source: {
+    ...offlineIncremental.source,
+    tables: [{ ...offlineIncremental.source.tables[0], incremental: undefined }],
+  },
+}));
+assert.throws(() => readSyncParameters(4, {
+  ...offlineIncremental,
+  sink: {
+    ...offlineIncremental.sink,
+    tables: [{ ...offlineIncremental.sink.tables[0], write: { mode: "APPEND" } }],
+  },
+}));
+
+const batch = createDefinitionRequest({
   ...offline,
   solutionType: "DATABASE_OFFLINE",
   tableMappings: [
@@ -275,82 +214,49 @@ const batch = {
     {
       source: { table: "users" },
       target: { schema: "public", table: "users_copy" },
-      writeMode: "UPSERT",
+      writeMode: "APPEND",
     },
   ],
-};
-const batchJson = createDefinitionRequest(batch).parameters;
-assert.equal(readSyncParameters(3, batchJson).tableMappings.length, 2);
-assert.deepEqual(
-  toSyncTaskRecord({ ...definition, parameters: batchJson }).tableMappings.map(
-    (row) => row.target.table,
-  ),
-  ["orders_copy", "users_copy"],
-);
-assert.throws(() => buildSyncParameters({ ...batch, tableMappings: [] }));
-assert.throws(() => readSyncParameters(3, batchJson.replace("users_copy", "orders_copy")));
-assert.throws(() =>
-  readSyncParameters(3, batchJson.replace("DATABASE_OFFLINE", "SINGLE_TABLE_OFFLINE")),
-);
-const offlineIncremental = {
-  ...offline,
-  writeMode: "UPSERT",
-  steps: ["INCREMENTAL"],
-  incremental: {
-    mode: "TIMESTAMP",
-    column: "updated_at",
-    initialValue: "2026-10-01T00:00:00",
-    delaySeconds: 120,
-    lookbackSeconds: 600,
-  },
-};
-const incrementalJson = createDefinitionRequest(offlineIncremental).parameters;
-const projectedIncremental = toSyncTaskRecord({ ...definition, parameters: incrementalJson });
-assert.deepEqual(projectedIncremental.incremental, offlineIncremental.incremental);
-assert.equal(readSyncParameters(3, incrementalJson).steps[0], "INCREMENTAL");
-assert.throws(() => readSyncParameters(3, incrementalJson.replace('"UPSERT"', '"APPEND"')));
-assert.throws(() => readSyncParameters(3, incrementalJson.replace('"updated_at"', '""')));
-assert.throws(() => readSyncParameters(3, incrementalJson.replace('"2026-10-01T00:00:00"', '""')));
-const initialLoadIncremental = createDefinitionRequest({
-  ...offlineIncremental,
-  steps: ["SCHEMA", "FULL", "INCREMENTAL"],
-  incremental: { mode: "TIMESTAMP", column: "updated_at", delaySeconds: 120, lookbackSeconds: 600 },
 }).parameters;
-assert.deepEqual(readSyncParameters(3, initialLoadIncremental).steps, [
-  "SCHEMA",
-  "FULL",
-  "INCREMENTAL",
-]);
-assert.equal(
-  readSyncParameters(3, initialLoadIncremental).tableMappings[0].incremental.column,
-  "updated_at",
-);
-assert.throws(() => readSyncParameters(3, incrementalJson.replace('"INCREMENTAL"', '"SCHEMA"')));
-console.log("Explicit multi-table and bounded incremental parameter contracts passed");
-
-const databaseRealtime = {
+assert.equal(batch.source.tables.length, 2);
+assert.equal(batch.sink.tables.length, 2);
+assert.equal(batch.source.tables[1].table, "users");
+assert.equal(batch.sink.tables[1].input, batch.source.tables[1].id);
+assert.equal(toSyncTaskRecord({ ...record, parameters: batch }).tableMappings.length, 2);
+assert.throws(() => readSyncParameters(4, {
   ...batch,
-  solutionType: "DATABASE_REALTIME",
-  steps: ["FULL", "INCREMENTAL"],
-  tableMappings: batch.tableMappings.map((row) => ({ ...row, writeMode: "UPSERT" })),
-};
-const continuousJson = createDefinitionRequest(databaseRealtime).parameters;
-assert.equal(readSyncParameters(3, continuousJson).tableMappings.length, 2);
-assert.equal(toSyncTaskRecord({ ...definition, parameters: continuousJson }).syncType, "REALTIME");
-assert.equal(
-  readSyncParameters(
-    3,
-    createDefinitionRequest({
-      ...databaseRealtime,
-      tableMappings: databaseRealtime.tableMappings.slice(0, 1),
-    }).parameters,
-  ).solutionType,
-  "DATABASE_REALTIME",
-);
-assert.throws(() => readSyncParameters(3, continuousJson.replace("UPSERT", "APPEND")));
-assert.throws(() =>
-  readSyncParameters(3, continuousJson.replace('["FULL","INCREMENTAL"]', '["INCREMENTAL"]')),
-);
+  solutionType: "SINGLE_TABLE_OFFLINE",
+}));
+assert.throws(() => readSyncParameters(4, {
+  ...batch,
+  sink: {
+    ...batch.sink,
+    tables: [batch.sink.tables[0], { ...batch.sink.tables[1], input: "table-1" }],
+  },
+}));
+assert.throws(() => readSyncParameters(4, {
+  ...batch,
+  sink: {
+    ...batch.sink,
+    tables: [batch.sink.tables[0], {
+      ...batch.sink.tables[1],
+      table: batch.sink.tables[0].table,
+    }],
+  },
+}));
+
+const page = projectSyncTaskPage({
+  bizData: [
+    record,
+    { ...record, id: "old", parameterSchemaVersion: 3 },
+    { ...record, id: "corrupt", parameters: null },
+  ],
+  pagination: { pageNo: 1, pageSize: 20, total: 3 },
+});
+assert.equal(page.bizData.length, 3);
+assert.equal(page.bizData[0].id, "d-1");
+assert.ok(page.bizData[1].configurationError);
+assert.ok(page.bizData[2].configurationError);
 
 const { readExecutionReport, readExecutionSummary } =
   await import("../apps/web/service/data-sync/report.ts");
@@ -429,8 +335,3 @@ console.log(
   "Database realtime parameters, stage summaries, restored and invalid observation contracts passed",
 );
 
-assert.deepEqual(
-  readSyncParameters(3, JSON.stringify({ ...json, steps: ["SCHEMA", "FULL", "INCREMENTAL"] }))
-    .steps,
-  ["SCHEMA", "FULL", "INCREMENTAL"],
-);
