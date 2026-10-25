@@ -10,61 +10,78 @@ import type {
   TaskDefinitionPageResult,
 } from "./types";
 import {
+  displaySyncSteps,
   parseSyncParameters,
   solutionSyncType,
+  syncTableMappings,
   supportsMultipleTables,
   validateSyncParameters,
 } from "./parameters.ts";
 
 /** Writes the single public product configuration; connector identifiers are resolved by the backend. */
 export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncParameters {
-  let tableMappings: DataSyncTableMapping[] = [
-    {
-      source: {
-        database: task.sourceDatabase,
-        schema: task.sourceSchema,
-        table: task.sourceTable,
-        ...(task.keylessEnabled
-          ? {
-              keyless: true,
-              chunkKeyColumn: task.chunkKeyColumn,
-              ...(task.writeMode === "RETRACT" ? { xa: true } : {}),
-            }
-          : {}),
-      },
-      target: {
-        database: task.targetDatabase,
-        schema: task.targetSchema,
-        table: task.targetTable,
-        ...(task.targetPrimaryKeys?.length ? { primaryKeys: [...task.targetPrimaryKeys] } : {}),
-      },
-      writeMode: task.writeMode,
-      ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
-    },
-  ];
-  if (supportsMultipleTables(task.solutionType)) {
-    if (!task.tableMappings?.length) throw new Error("请选择同步表");
-    tableMappings = task.tableMappings.map((mapping) => ({
-      source: { ...mapping.source },
-      target: { ...mapping.target },
-      writeMode: mapping.writeMode,
-      ...(mapping.incremental ? { incremental: { ...mapping.incremental } } : {}),
-    }));
-  }
+  const mappings: DataSyncTableMapping[] = supportsMultipleTables(task.solutionType)
+    ? (task.tableMappings ?? [])
+    : [{
+        source: {
+          database: task.sourceDatabase,
+          schema: task.sourceSchema,
+          table: task.sourceTable,
+          ...(task.keylessEnabled ? { keyless: true, chunkKeyColumn: task.chunkKeyColumn } : {}),
+        },
+        target: {
+          database: task.targetDatabase,
+          schema: task.targetSchema,
+          table: task.targetTable,
+          ...(task.targetPrimaryKeys?.length
+            ? { primaryKeys: [...task.targetPrimaryKeys] } : {}),
+        },
+        writeMode: task.writeMode,
+        ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
+      }];
+  if (!mappings.length) throw new Error("请选择同步表");
+  const realtime = solutionSyncType(task.solutionType) === "REALTIME";
+  const evolution = realtime && (task.schemaChangesEnabled ?? true);
   return {
     solutionType: task.solutionType,
-    steps: [...task.steps],
-    ...(solutionSyncType(task.solutionType) === "REALTIME"
-      ? {
-          schemaChangesEnabled: task.schemaChangesEnabled ?? true,
-          allowDropColumns:
-            Boolean(task.schemaChangesEnabled ?? true) && (task.allowDropColumns ?? false),
-        }
-      : {}),
-    source: { datasourceId: task.sourceDataSourceId },
-    sink: { datasourceId: task.targetDataSourceId },
-    tableSelection: { mode: "EXPLICIT" },
-    tableMappings,
+    steps: task.steps.filter((step) => step !== "SCHEMA") as Array<"FULL" | "INCREMENTAL">,
+    source: {
+      datasourceId: task.sourceDataSourceId,
+      tables: mappings.map((mapping, index) => ({
+        id: `table-${index + 1}`,
+        database: mapping.source.database,
+        schema: mapping.source.schema,
+        table: mapping.source.table,
+        ...(mapping.source.keyless
+          ? { keyless: true, snapshot: { chunkKeyColumn: mapping.source.chunkKeyColumn! } } : {}),
+        ...(mapping.incremental ? { incremental: { ...mapping.incremental } } : {}),
+      })),
+    },
+    transform: [],
+    sink: {
+      datasourceId: task.targetDataSourceId,
+      schemaPolicy: {
+        initial: task.steps.includes("SCHEMA") ? "CREATE_OR_ALTER" : "VERIFY",
+        evolution: {
+          enabled: evolution,
+          allowDropColumns: Boolean(evolution && task.allowDropColumns),
+        },
+      },
+      tables: mappings.map((mapping, index) => ({
+        input: `table-${index + 1}`,
+        database: mapping.target.database,
+        schema: mapping.target.schema,
+        table: mapping.target.table,
+        write: {
+          mode: mapping.writeMode,
+          ...(mapping.target.primaryKeys?.length
+            ? { primaryKeys: [...mapping.target.primaryKeys] } : {}),
+          ...(mapping.source.keyless && mapping.writeMode === "RETRACT"
+            ? { transaction: { mode: "CHECKPOINT_XA" as const } } : {}),
+        },
+      })),
+    },
+    env: {},
   };
 }
 
@@ -106,7 +123,7 @@ export function definitionPageRequest(params: DataSyncTaskPageParams) {
   };
 }
 
-/** Projects one immutable version into the unified task UI without rewriting stored version-two JSON. */
+/** Projects one immutable V4 definition into the editor's transient UI state. */
 export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTaskRecord {
   if (definition.taskType !== "DATA_SYNC") throw new Error("不支持的同步任务定义");
   const parameters = parseSyncParameters(definition.parameterSchemaVersion, definition.parameters);
@@ -116,43 +133,18 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
   } catch (failure) {
     configurationError = failure instanceof Error ? failure.message : "任务参数校验失败";
   }
-  const mapping = parameters.tableMappings[0];
+  const tableMappings = syncTableMappings(parameters);
+  const mapping = tableMappings[0];
   return {
     id: definition.id,
     ...(configurationError ? { configurationError } : {}),
-    tableMappings: parameters.tableMappings.map((table) => ({
-      source: {
-        database: table.source.database,
-        schema: table.source.schema,
-        table: table.source.table,
-        ...(table.source.keyless
-          ? {
-              keyless: true,
-              chunkKeyColumn: table.source.chunkKeyColumn,
-              ...(table.source.xa ? { xa: true } : {}),
-            }
-          : {}),
-      },
-      target: {
-        database: table.target.database,
-        schema: table.target.schema,
-        table: table.target.table,
-        ...(table.target.primaryKeys ? { primaryKeys: [...table.target.primaryKeys] } : {}),
-      },
-      writeMode: table.writeMode,
-      ...(table.incremental ? { incremental: { ...table.incremental } } : {}),
-    })),
+    tableMappings,
+
     name: definition.name,
     solutionType: parameters.solutionType,
-    steps: parameters.steps,
-    schemaChangesEnabled:
-      solutionSyncType(parameters.solutionType) === "REALTIME"
-        ? (parameters.schemaChangesEnabled ?? false)
-        : undefined,
-    allowDropColumns:
-      solutionSyncType(parameters.solutionType) === "REALTIME"
-        ? (parameters.allowDropColumns ?? false)
-        : undefined,
+    steps: displaySyncSteps(parameters),
+    schemaChangesEnabled: parameters.sink.schemaPolicy.evolution.enabled,
+    allowDropColumns: parameters.sink.schemaPolicy.evolution.allowDropColumns,
     syncType: solutionSyncType(parameters.solutionType),
     status: definition.status,
     debug: definition.debug ?? false,
