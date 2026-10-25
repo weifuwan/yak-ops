@@ -126,6 +126,9 @@ public final class JobConfig {
             validate(targetTable, SolutionOptions.TARGET_TABLE_RULE, "tableMappings.target");
             List<String> targetPrimaryKeys = targetTable.getSourceMap().containsKey(SolutionOptions.TARGET_PRIMARY_KEYS.key())
                     ? targetTable.get(SolutionOptions.TARGET_PRIMARY_KEYS) : null;
+            if (targetPrimaryKeys != null && parameters.get(SolutionOptions.SCHEMA_CHANGES_ENABLED)) {
+                throw new IllegalArgumentException("Runtime schema evolution is unsupported with custom target keys");
+            }
             if (targetPrimaryKeys != null && (targetPrimaryKeys.isEmpty()
                     || targetPrimaryKeys.stream().anyMatch(key -> key == null || key.isBlank())
                     || new HashSet<>(targetPrimaryKeys).size() != targetPrimaryKeys.size())) {

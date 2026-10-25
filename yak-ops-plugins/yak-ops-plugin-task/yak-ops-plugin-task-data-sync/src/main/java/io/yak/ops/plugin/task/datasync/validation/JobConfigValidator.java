@@ -78,6 +78,9 @@ public final class JobConfigValidator {
                 if (!sources.add(source) || !targets.add(target)) {
                     throw new IllegalArgumentException("Duplicate resolved source or destination table");
                 }
+                if (table.targetPrimaryKeys() != null && !"MYSQL".equals(to.type())) {
+                    throw new IllegalArgumentException("Custom target primary keys currently require MySQL targets");
+                }
                 if (prepareSchema) SchemaValidator.validateNamespace(to, target);
                 if (schemas && prepareSchema) {
                     var sourceTable = SchemaValidator.sourceMetadata(() -> context.tableMetadata(sourceId, source));

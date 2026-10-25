@@ -145,7 +145,9 @@ export function TargetSection({
                 placeholder="字段名，多个字段用逗号分隔"
                 value={form.targetPrimaryKeys.join(", ")}
                 onChange={(event) => {
-                  const keys = event.target.value.split(",").map((key) => key.trim());
+                  const keys = event.target.value.trim()
+                    ? event.target.value.split(",").map((key) => key.trim())
+                    : [];
                   patch("targetPrimaryKeys", keys);
                   patch("writeMode", keys.some(Boolean) ? "UPSERT" : "RETRACT");
                 }}

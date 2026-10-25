@@ -155,6 +155,44 @@ class DataSyncProductParametersTest {
         assertThrows(TaskPluginException.class, () -> plugin.parse(keyless.replace("FULL", "SCHEMA")));
     }
 
+    @Test
+    void customTargetKeysRequirePhysicalUniqueEvidenceButDoNotBecomeSourceKeys() {
+        var columns = List.of(
+                new io.yak.ops.core.types.Column("bucket", io.yak.ops.core.types.LogicalTypes.BIGINT.copy(false)),
+                new io.yak.ops.core.types.Column("amount", io.yak.ops.core.types.LogicalTypes.DECIMAL));
+        var physical = new io.yak.ops.core.types.TableSchema(columns, List.of());
+        var source = new io.yak.ops.plugin.datasource.api.lookup.DataSourceTable(
+                "MYSQL", new io.yak.ops.core.data.TableId("app", null, "orders"), physical, 1,
+                null, java.util.Map.of(), java.util.Set.of(), java.util.Map.of(),
+                List.of(List.of("bucket")));
+        var write = io.yak.ops.plugin.task.datasync.validation.SchemaValidator.writeSchema(source, List.of("bucket"));
+        assertEquals(List.of(), source.schema().primaryKeys());
+        assertEquals(List.of("bucket"), write.primaryKeys());
+        assertThrows(IllegalArgumentException.class,
+                () -> io.yak.ops.plugin.task.datasync.validation.SchemaValidator.writeSchema(source, List.of("amount")));
+        var unsafe = new io.yak.ops.plugin.datasource.api.lookup.DataSourceTable(
+                "MYSQL", source.table(), physical, 1);
+        assertThrows(IllegalArgumentException.class,
+                () -> io.yak.ops.plugin.task.datasync.validation.SchemaValidator.writeSchema(unsafe, List.of("bucket")));
+    }
+
+    @Test
+    void keylessInitialSchemaAndVerifiedTargetKeyAreIndependent() {
+        String keyless = """
+                {"solutionType":"SINGLE_TABLE_REALTIME","steps":["SCHEMA","FULL","INCREMENTAL"],
+                 "schemaChangesEnabled":false,
+                 "source":{"datasourceId":"source"},"sink":{"datasourceId":"target"},
+                 "tableSelection":{"mode":"EXPLICIT"},
+                 "tableMappings":[{"source":{"table":"orders","keyless":true,"chunkKeyColumn":"bucket"},
+                                   "target":{"table":"copy","primaryKeys":["bucket"]},"writeMode":"UPSERT"}]}
+                """;
+        var config = JobConfig.from(plugin.parse(keyless));
+        assertEquals(List.of("bucket"), config.tables().getFirst().targetPrimaryKeys());
+        assertEquals(false, config.sink().get(io.yak.ops.connector.jdbc.sink.JdbcSinkOptions.XA_ENABLED));
+        assertThrows(TaskPluginException.class,
+                () -> plugin.parse(keyless.replace("\"primaryKeys\":[\"bucket\"]", "\"primaryKeys\":[\"missing\",\"missing\"]")));
+    }
+
     static String json(boolean realtime) {
         String type = "SINGLE_TABLE_OFFLINE";
         String steps = "[\"FULL\"]";
