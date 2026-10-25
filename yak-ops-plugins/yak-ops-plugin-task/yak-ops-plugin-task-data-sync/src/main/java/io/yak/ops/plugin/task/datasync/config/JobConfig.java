@@ -1,238 +1,228 @@
 package io.yak.ops.plugin.task.datasync.config;
 
+import io.yak.ops.configuration.Option;
+import io.yak.ops.configuration.Options;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.plugin.task.datasync.solution.SolutionType;
 import io.yak.ops.plugin.task.datasync.solution.Step;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
-/** Immutable task parameters and their executable table Connector projections. */
+/** The single version-four public job contract and its admitted Source/Sink routes. */
 public final class JobConfig {
+    public static final int MAX_TABLES = 100;
+
+    private static final Option<List<Object>> TABLES =
+            Options.key("tables").listType(Object.class).noDefaultValue();
+    private static final Option<Map<String, Object>> SCHEMA_POLICY =
+            Options.key("schemaPolicy").mapObjectType().noDefaultValue();
+    private static final Option<String> INITIAL = Options.key("initial").stringType().noDefaultValue();
+    private static final Option<Map<String, Object>> EVOLUTION =
+            Options.key("evolution").mapObjectType().noDefaultValue();
+    private static final Option<Boolean> ENABLED = Options.key("enabled").booleanType().noDefaultValue();
+    private static final Option<Boolean> ALLOW_DROP_COLUMNS =
+            Options.key("allowDropColumns").booleanType().noDefaultValue();
+
+    private static final OptionRule SOURCE_RULE =
+            OptionRule.builder().required(JobOptions.DATASOURCE_ID, TABLES).build();
+    private static final OptionRule SINK_RULE =
+            OptionRule.builder().required(JobOptions.DATASOURCE_ID, TABLES, SCHEMA_POLICY).build();
+    private static final OptionRule SCHEMA_RULE = OptionRule.builder().required(INITIAL, EVOLUTION).build();
+    private static final OptionRule EVOLUTION_RULE =
+            OptionRule.builder().required(ENABLED, ALLOW_DROP_COLUMNS).build();
+
     private final ReadonlyConfig parameters;
     private final SolutionType solutionType;
     private final List<TableConfig> tables;
-
-    /** Maximum explicit mappings admitted by one product task. */
-    public static final int MAX_TABLES = 100;
+    private final List<Step> steps;
+    private final boolean schemaChangesEnabled;
+    private final boolean allowDropColumns;
 
     private JobConfig(
-            ReadonlyConfig parameters, ReadonlyConfig source, ReadonlyConfig sink, SolutionType solutionType) {
+            ReadonlyConfig parameters,
+            SolutionType solutionType,
+            List<TableConfig> tables,
+            List<Step> steps,
+            boolean schemaChangesEnabled,
+            boolean allowDropColumns) {
         this.parameters = parameters;
         this.solutionType = solutionType;
-        this.tables = List.of(new TableConfig(source, sink));
-    }
-
-    private JobConfig(ReadonlyConfig parameters, List<TableConfig> tables, SolutionType type) {
-        this.parameters = parameters;
         this.tables = List.copyOf(tables);
-        this.solutionType = type;
+        this.steps = List.copyOf(steps);
+        this.schemaChangesEnabled = schemaChangesEnabled;
+        this.allowDropColumns = allowDropColumns;
     }
 
-    /** Reads validated product or stored version-two parameters without changing their persisted format. */
     public static JobConfig from(ReadonlyConfig parameters) {
         Objects.requireNonNull(parameters, "parameters");
-        if (parameters.getSourceMap().containsKey("solutionType")) {
-            return solution(parameters);
-        }
-        return pipeline(parameters);
-    }
-
-    private static JobConfig solution(ReadonlyConfig parameters) {
         validate(parameters, SolutionOptions.RULE, "DATA_SYNC");
         SolutionType type = parameters.get(SolutionOptions.SOLUTION_TYPE);
-        Object rawSchemaChanges = parameters.getSourceMap().get(SolutionOptions.SCHEMA_CHANGES_ENABLED.key());
-        if (parameters.getSourceMap().containsKey(SolutionOptions.SCHEMA_CHANGES_ENABLED.key())
-                && !(rawSchemaChanges instanceof Boolean)) {
-            throw new IllegalArgumentException("schemaChangesEnabled must be a boolean");
+        List<String> requested = parameters.get(SolutionOptions.STEPS);
+        if (requested.isEmpty() || requested.size() != new HashSet<>(requested).size()) {
+            throw new IllegalArgumentException("Invalid synchronization steps");
         }
-        if (type.supportsScheduling()
-                && parameters.getSourceMap().containsKey(SolutionOptions.SCHEMA_CHANGES_ENABLED.key())) {
-            throw new IllegalArgumentException("schemaChangesEnabled is available only for realtime tasks");
-        }
-        Object rawDrop = parameters.getSourceMap().get(SolutionOptions.ALLOW_DROP_COLUMNS.key());
-        if (parameters.getSourceMap().containsKey(SolutionOptions.ALLOW_DROP_COLUMNS.key())
-                && !(rawDrop instanceof Boolean)) {
-            throw new IllegalArgumentException("allowDropColumns must be a boolean");
-        }
-        if (type.supportsScheduling()
-                && parameters.getSourceMap().containsKey(SolutionOptions.ALLOW_DROP_COLUMNS.key())) {
-            throw new IllegalArgumentException("allowDropColumns is available only for realtime tasks");
-        }
-        if (Boolean.TRUE.equals(rawDrop) && !parameters.get(SolutionOptions.SCHEMA_CHANGES_ENABLED)) {
-            throw new IllegalArgumentException("allowDropColumns requires schemaChangesEnabled=true");
-        }
-        List<String> steps = parameters.get(SolutionOptions.STEPS);
-        if (steps.size() != new HashSet<>(steps).size()) {
-            throw new IllegalArgumentException("Duplicate synchronization step");
-        }
-        List<String> expected = new java.util.ArrayList<>();
-        if (steps.contains(Step.SCHEMA.name())) expected.add(Step.SCHEMA.name());
-        if (type.supportsScheduling()) {
-            if (steps.contains(Step.FULL.name())) expected.add(Step.FULL.name());
-            if (steps.contains(Step.INCREMENTAL.name())) expected.add(Step.INCREMENTAL.name());
-            if (expected.isEmpty()
-                    || expected.equals(List.of(Step.SCHEMA.name()))
-                    || (expected.contains(Step.SCHEMA.name()) && !expected.contains(Step.FULL.name()))) {
-                throw new IllegalArgumentException("Schema preparation requires initial full load");
+        List<Step> dataSteps = new ArrayList<>();
+        for (String name : requested) {
+            Step step = Step.valueOf(name);
+            if (step == Step.SCHEMA) {
+                throw new IllegalArgumentException("Initial schema preparation belongs to Sink");
             }
-        } else {
-            expected.addAll(type.steps().stream().map(Step::name).toList());
+            dataSteps.add(step);
         }
-        if (steps.size() != expected.size() || !new HashSet<>(steps).equals(new HashSet<>(expected))) {
-            throw new IllegalArgumentException("Unsupported synchronization step combination");
+        if (!type.supportsScheduling() && !dataSteps.equals(List.of(Step.FULL, Step.INCREMENTAL))) {
+            throw new IllegalArgumentException("Realtime requires FULL and INCREMENTAL");
         }
-        ReadonlyConfig from = ReadonlyConfig.fromMap(parameters.get(JobOptions.SOURCE));
-        ReadonlyConfig to = ReadonlyConfig.fromMap(parameters.get(JobOptions.SINK));
-        validate(from, SolutionOptions.CONNECTION_RULE, "source");
-        validate(to, SolutionOptions.CONNECTION_RULE, "sink");
-        ReadonlyConfig selection = ReadonlyConfig.fromMap(parameters.get(SolutionOptions.TABLE_SELECTION));
-        validate(selection, SolutionOptions.SELECTION_RULE, "tableSelection");
-        if (!"EXPLICIT".equals(selection.get(SolutionOptions.SELECTION_MODE))) {
-            throw new IllegalArgumentException("Only explicit table selection is supported");
+        if (type.supportsScheduling() && !List.of(
+                        List.of(Step.FULL), List.of(Step.INCREMENTAL), List.of(Step.FULL, Step.INCREMENTAL))
+                .contains(dataSteps)) {
+            throw new IllegalArgumentException("Unsupported offline data steps");
         }
-        List<Object> mappings = parameters.get(SolutionOptions.TABLE_MAPPINGS);
-        if (mappings.isEmpty()
-                || mappings.size() > MAX_TABLES
-                || (!type.supportsMultipleTables() && mappings.size() != 1)) {
-            throw new IllegalArgumentException("Unsupported explicit table mapping count");
+        if (!parameters.get(SolutionOptions.TRANSFORM).isEmpty()
+                || !parameters.get(SolutionOptions.ENV).isEmpty()) {
+            throw new IllegalArgumentException("Transform and Env must be empty until explicitly supported");
         }
-        requireEmptyTransforms(parameters);
-        List<TableConfig> tables = new java.util.ArrayList<>();
-        java.util.Set<List<String>> sources = new HashSet<>();
-        java.util.Set<List<String>> targets = new HashSet<>();
-        for (Object entryValue : mappings) {
-            if (!(entryValue instanceof Map<?, ?> mapping)) {
-                throw new IllegalArgumentException("Table mapping must be an object");
+
+        ReadonlyConfig from = ReadonlyConfig.fromMap(parameters.get(SolutionOptions.SOURCE));
+        ReadonlyConfig to = ReadonlyConfig.fromMap(parameters.get(SolutionOptions.SINK));
+        validate(from, SOURCE_RULE, "source");
+        validate(to, SINK_RULE, "sink");
+        String fromId = from.get(JobOptions.DATASOURCE_ID);
+        String toId = to.get(JobOptions.DATASOURCE_ID);
+        if (fromId == null || fromId.isBlank() || toId == null || toId.isBlank()) {
+            throw new IllegalArgumentException("Source and Sink datasource references are required");
+        }
+        ReadonlyConfig schema = ReadonlyConfig.fromMap(to.get(SCHEMA_POLICY));
+        validate(schema, SCHEMA_RULE, "sink.schemaPolicy");
+        ReadonlyConfig evolution = ReadonlyConfig.fromMap(schema.get(EVOLUTION));
+        validate(evolution, EVOLUTION_RULE, "sink.schemaPolicy.evolution");
+        boolean evolve = evolution.get(ENABLED);
+        boolean drop = evolution.get(ALLOW_DROP_COLUMNS);
+        if (drop && !evolve) {
+            throw new IllegalArgumentException("DROP COLUMN requires Sink schema evolution");
+        }
+        if (type.supportsScheduling() && (evolve || drop)) {
+            throw new IllegalArgumentException("Runtime schema evolution requires realtime");
+        }
+        String initial = schema.get(INITIAL);
+        if (!"VERIFY".equals(initial) && !"CREATE_OR_ALTER".equals(initial)) {
+            throw new IllegalArgumentException("Unsupported initial target schema preparation");
+        }
+        boolean prepare = "CREATE_OR_ALTER".equals(initial);
+        if (prepare && !dataSteps.contains(Step.FULL)) {
+            throw new IllegalArgumentException("Initial schema preparation requires FULL");
+        }
+
+        List<Object> sources = from.get(TABLES);
+        List<Object> sinks = to.get(TABLES);
+        if (sources.isEmpty() || sources.size() > MAX_TABLES
+                || sources.size() != sinks.size()
+                || (!type.supportsMultipleTables() && sources.size() != 1)) {
+            throw new IllegalArgumentException("Unsupported explicit table count");
+        }
+        Map<String, ReadonlyConfig> targets = new HashMap<>();
+        for (Object entry : sinks) {
+            ReadonlyConfig target = asConfig(entry);
+            String input = target.get(SinkConfig.INPUT);
+            if (input == null || input.isBlank() || targets.putIfAbsent(input, target) != null) {
+                throw new IllegalArgumentException("Duplicate or missing Sink input");
             }
-            Map<String, Object> values = new LinkedHashMap<>();
-            for (var entry : mapping.entrySet()) {
-                if (!(entry.getKey() instanceof String key)) {
-                    throw new IllegalArgumentException("Table mapping property must be a string");
-                }
-                values.put(key, entry.getValue());
-            }
-            ReadonlyConfig table = ReadonlyConfig.fromMap(values);
-            validate(table, SolutionOptions.TABLE_MAPPING_RULE, "tableMappings");
-            ReadonlyConfig sourceTable = ReadonlyConfig.fromMap(table.get(JobOptions.SOURCE));
-            ReadonlyConfig targetTable = ReadonlyConfig.fromMap(table.get(SolutionOptions.TARGET));
-            SourceConfig source = SourceConfig.from(
-                    sourceTable,
-                    from.get(JobOptions.DATASOURCE_ID),
-                    type,
-                    expected,
-                    parameters.get(SolutionOptions.SCHEMA_CHANGES_ENABLED),
-                    table);
-            boolean offlineIncremental = type.supportsScheduling() && expected.contains(Step.INCREMENTAL.name());
-            SinkConfig sink = SinkConfig.from(
-                    targetTable,
-                    to.get(JobOptions.DATASOURCE_ID),
-                    table,
-                    source,
-                    parameters.get(SolutionOptions.SCHEMA_CHANGES_ENABLED),
-                    offlineIncremental);
-            if (!sources.add(tableKey(sourceTable)) || !targets.add(tableKey(targetTable))) {
-                throw new IllegalArgumentException("Source and target tables must be unique");
-            }
-            tables.add(
-                    new TableConfig(source.options(), sink.options(), source.incremental(), sink.targetPrimaryKeys()));
         }
-        Map<String, Object> canonical = new LinkedHashMap<>(parameters.getSourceMap());
-        canonical.put("steps", expected);
-        return new JobConfig(ReadonlyConfig.fromMap(canonical), tables, type);
+
+        Set<List<String>> sourceTables = new HashSet<>();
+        Set<List<String>> sinkTables = new HashSet<>();
+        Set<String> ids = new HashSet<>();
+        List<TableConfig> routes = new ArrayList<>();
+        for (Object entry : sources) {
+            ReadonlyConfig source = asConfig(entry);
+            String id = source.get(SourceConfig.ID);
+            if (id == null || id.isBlank() || !ids.add(id)) {
+                throw new IllegalArgumentException("Source table IDs must be unique and nonempty");
+            }
+            ReadonlyConfig target = targets.remove(id);
+            if (target == null) throw new IllegalArgumentException("Sink input must reference a Source table");
+            SourceConfig input = SourceConfig.from(source, fromId, type, dataSteps, evolve);
+            SinkConfig output = SinkConfig.from(target, toId, input, type, dataSteps, evolve);
+            if (!sourceTables.add(tableKey(source)) || !sinkTables.add(tableKey(target))) {
+                throw new IllegalArgumentException("Duplicate physical table route");
+            }
+            routes.add(new TableConfig(input.options(), output.options(), input.incremental(), output.targetPrimaryKeys()));
+        }
+        if (!targets.isEmpty()) throw new IllegalArgumentException("Unknown Sink input");
+        List<Step> stages = new ArrayList<>();
+        if (prepare) stages.add(Step.SCHEMA);
+        stages.addAll(dataSteps);
+        return new JobConfig(parameters, type, routes, stages, evolve, drop);
     }
 
-    private static List<String> tableKey(ReadonlyConfig table) {
+    private static ReadonlyConfig asConfig(Object value) {
+        if (!(value instanceof Map<?, ?> map)) {
+            throw new IllegalArgumentException("Table definition must be an object");
+        }
+        for (Object key : map.keySet()) {
+            if (!(key instanceof String)) throw new IllegalArgumentException("Table property must be a string");
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> attributes = (Map<String, Object>) map;
+        return ReadonlyConfig.fromMap(attributes);
+    }
+
+    private static List<String> tableKey(ReadonlyConfig config) {
         return java.util.Arrays.asList(
-                table.get(JobOptions.DATABASE), table.get(JobOptions.SCHEMA), table.get(JobOptions.TABLE));
+                config.get(JobOptions.DATABASE), config.get(JobOptions.SCHEMA), config.get(JobOptions.TABLE));
     }
 
-    /** Returns the complete immutable explicit table mapping collection. */
-    public List<TableConfig> tables() {
-        return tables;
-    }
-
-    /** Returns the shared source connection identity, independent of table cardinality. */
-    public String sourceDataSourceId() {
-        return tables.getFirst().source().get(JobOptions.DATASOURCE_ID);
-    }
-
-    /** Returns the shared destination connection identity. */
-    public String targetDataSourceId() {
-        return tables.getFirst().sink().get(JobOptions.DATASOURCE_ID);
-    }
-
-    private static JobConfig pipeline(ReadonlyConfig parameters) {
-        validate(parameters, JobOptions.PIPELINE_RULE, "DATA_SYNC");
-        Map<String, Object> input = parameters.get(JobOptions.SOURCE);
-        Map<String, Object> output = parameters.get(JobOptions.SINK);
-        requireEmptyTransforms(parameters);
-        ReadonlyConfig source = ReadonlyConfig.fromMap(input);
-        ReadonlyConfig sink = ReadonlyConfig.fromMap(output);
-        String identifier = source.get(JobOptions.TYPE);
-        if (!"JDBC".equals(sink.get(JobOptions.TYPE))) {
-            throw new IllegalArgumentException("Stored DATA_SYNC Sink is not supported");
-        }
-        SolutionType type;
-        if ("JDBC".equals(identifier)) {
-            type = SolutionType.SINGLE_TABLE_OFFLINE;
-        } else if ("MYSQL_CDC".equals(identifier)) {
-            type = SolutionType.SINGLE_TABLE_REALTIME;
-        } else {
-            throw new IllegalArgumentException("Stored DATA_SYNC Source is not supported");
-        }
-        return new JobConfig(parameters, source, sink, type);
-    }
-
-    private static void requireEmptyTransforms(ReadonlyConfig parameters) {
-        List<Object> transforms = parameters.get(JobOptions.TRANSFORM);
-        if (transforms == null || !transforms.isEmpty()) {
-            throw new IllegalArgumentException("DATA_SYNC requires empty transforms");
-        }
-    }
-
-    private static void validate(ReadonlyConfig parameters, OptionRule rule, String component) {
-        ConfigValidator.of(parameters).validate(rule);
-        ConfigValidator.validateUnknownKeys(parameters, rule, component);
+    private static void validate(ReadonlyConfig options, OptionRule rule, String section) {
+        ConfigValidator.of(options).validate(rule);
+        ConfigValidator.validateUnknownKeys(options, rule, section);
     }
 
     public ReadonlyConfig parameters() {
         return parameters;
     }
 
+    public List<TableConfig> tables() {
+        return tables;
+    }
+
+    public String sourceDataSourceId() {
+        return tables.getFirst().source().get(JobOptions.DATASOURCE_ID);
+    }
+
+    public String targetDataSourceId() {
+        return tables.getFirst().sink().get(JobOptions.DATASOURCE_ID);
+    }
+
     public ReadonlyConfig source() {
-        if (tables.size() != 1) throw new IllegalStateException("Use explicit table mappings for a multi-table task");
+        if (tables.size() != 1) throw new IllegalStateException("Multiple Source routes");
         return tables.getFirst().source();
     }
 
     public ReadonlyConfig sink() {
-        if (tables.size() != 1) throw new IllegalStateException("Use explicit table mappings for a multi-table task");
+        if (tables.size() != 1) throw new IllegalStateException("Multiple Sink routes");
         return tables.getFirst().sink();
     }
 
-    /** Returns canonical requested steps, including optional target structure preparation. */
+    /** SCHEMA is a derived execution stage, never a second persisted user setting. */
     public List<Step> steps() {
-        if (!parameters.getSourceMap().containsKey("solutionType")) return solutionType.steps();
-        return parameters.get(SolutionOptions.STEPS).stream().map(Step::valueOf).toList();
+        return steps;
     }
 
     public SolutionType solutionType() {
         return solutionType;
     }
 
-    /** Explicit opt-in only; previously stored tasks without this property stay disabled. */
-    /** Previously saved jobs are non-destructive unless this property is explicitly true. */
-    public boolean allowDropColumns() {
-        return schemaChangesEnabled() && parameters.get(SolutionOptions.ALLOW_DROP_COLUMNS);
+    public boolean schemaChangesEnabled() {
+        return schemaChangesEnabled;
     }
 
-    public boolean schemaChangesEnabled() {
-        return !solutionType.supportsScheduling()
-                && parameters.getSourceMap().containsKey(SolutionOptions.SOLUTION_TYPE.key())
-                && parameters.get(SolutionOptions.SCHEMA_CHANGES_ENABLED);
+    public boolean allowDropColumns() {
+        return allowDropColumns;
     }
 }
