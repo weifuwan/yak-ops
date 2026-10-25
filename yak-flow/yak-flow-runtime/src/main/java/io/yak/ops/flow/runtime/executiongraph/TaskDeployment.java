@@ -24,12 +24,12 @@ import io.yak.ops.flow.runtime.jobgraph.JobEdge;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
 import io.yak.ops.flow.runtime.jobgraph.JobVertex;
 import io.yak.ops.flow.runtime.operators.OperatorChain;
-import io.yak.ops.flow.runtime.operators.sink.SinkWriterOperator;
-import io.yak.ops.flow.runtime.state.OperatorStateBackend;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
+import io.yak.ops.flow.runtime.operators.sink.SinkWriterOperator;
 import io.yak.ops.flow.runtime.schema.SchemaCoordinator;
 import io.yak.ops.flow.runtime.schema.SchemaManager;
 import io.yak.ops.flow.runtime.source.coordinator.SourceCoordinator;
+import io.yak.ops.flow.runtime.state.OperatorStateBackend;
 import io.yak.ops.flow.runtime.tasks.FinishedOnRestoreStreamTask;
 import io.yak.ops.flow.runtime.tasks.OneInputStreamTask;
 import io.yak.ops.flow.runtime.tasks.SourceOperatorStreamTask;
@@ -485,8 +485,9 @@ final class TaskDeployment {
                     TaskEnvironment context = environment(execution);
                     var state = durable == null
                             ? Map.<String, CheckpointSnapshot.SerializedState>of()
-                            : durable.operatorStates().getOrDefault(
-                                    new CheckpointSnapshot.OperatorSubtask(node.getUid(), subtask), Map.of());
+                            : durable.operatorStates()
+                                    .getOrDefault(
+                                            new CheckpointSnapshot.OperatorSubtask(node.getUid(), subtask), Map.of());
                     boolean keyed = jobGraph.getEdges().stream()
                             .anyMatch(edge -> edge.targetVertexId() == vertex.getId()
                                     && edge.streamEdge().partitioning() == StreamPartitioning.KEYED);
