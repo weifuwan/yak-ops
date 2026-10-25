@@ -91,18 +91,18 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
     taskType: "DATA_SYNC",
     debug: task.debug,
     remark: task.remark,
-    parameters: JSON.stringify(buildSyncParameters(task)),
+    parameters: buildSyncParameters(task),
   };
 }
 
 /** Omitting parameters edits metadata only and preserves the existing immutable parameter version. */
 export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload) {
-  const request: { name: string; remark?: string; parameters?: string; debug?: boolean } = {
+  const request: { name: string; remark?: string; parameters?: DataSyncParameters; debug?: boolean } = {
     name: task.name,
     remark: task.remark,
     debug: task.debug,
   };
-  if ("solutionType" in task) request.parameters = JSON.stringify(buildSyncParameters(task));
+  if ("solutionType" in task) request.parameters = buildSyncParameters(task);
   return request;
 }
 
