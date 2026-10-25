@@ -31,7 +31,7 @@ class SingleTableRealtimeSchemaIT extends BackendTestBase {
         Map<String, Object> parameters = new LinkedHashMap<>(fixture.parameters(
                 "SINGLE_TABLE_REALTIME", List.of("SCHEMA", "FULL", "INCREMENTAL"),
                 List.of(fixture.route("bootstrap_orders", "bootstrap_orders"))));
-        parameters.put("schemaChangesEnabled", true);
+        fixture.setSchemaEvolution(parameters, true, false);
         String instance = fixture.submit(fixture.create(parameters, true));
         fixture.awaitState(instance, "RUNNING");
 
@@ -141,7 +141,7 @@ class SingleTableRealtimeSchemaIT extends BackendTestBase {
                         "SINGLE_TABLE_REALTIME",
                         List.of("SCHEMA", "FULL", "INCREMENTAL"),
                         List.of(fixture.route("rich_orders", "rich_orders"))));
-        parameters.put("schemaChangesEnabled", true);
+        fixture.setSchemaEvolution(parameters, true, false);
 
         // Target intentionally does not exist. Task publication must not execute the DDL.
         String definition = fixture.create(parameters, true);
@@ -189,8 +189,8 @@ class SingleTableRealtimeSchemaIT extends BackendTestBase {
         Map<String, Object> parameters = new LinkedHashMap<>(fixture.parameters(
                 "SINGLE_TABLE_REALTIME", List.of("SCHEMA", "FULL", "INCREMENTAL"),
                 List.of(fixture.route("drop_orders", "drop_orders"))));
-        parameters.put("schemaChangesEnabled", true);
-        parameters.put("allowDropColumns", true);
+        fixture.setSchemaEvolution(parameters, true, false);
+        fixture.setSchemaEvolution(parameters, true, true);
         String instance = fixture.submit(fixture.create(parameters, true));
         fixture.awaitState(instance, "RUNNING");
         fixture.awaitTarget("drop_orders", List.of(List.of(1L, "before")));
@@ -209,7 +209,7 @@ class SingleTableRealtimeSchemaIT extends BackendTestBase {
         Map<String, Object> parameters = new LinkedHashMap<>(fixture.parameters(
                 "SINGLE_TABLE_REALTIME", List.of("SCHEMA", "FULL", "INCREMENTAL"),
                 List.of(fixture.route("drop_rejected", "drop_rejected"))));
-        parameters.put("schemaChangesEnabled", true);
+        fixture.setSchemaEvolution(parameters, true, false);
         String instance = fixture.submit(fixture.create(parameters, true));
         fixture.awaitState(instance, "RUNNING");
         fixture.awaitTarget("drop_rejected", List.of(List.of(1L, "before")));
