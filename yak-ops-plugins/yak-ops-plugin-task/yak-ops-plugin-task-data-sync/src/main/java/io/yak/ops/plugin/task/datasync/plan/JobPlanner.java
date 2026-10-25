@@ -197,15 +197,20 @@ public final class JobPlanner {
                                     != tables.getFirst().targetDatasource().revision())) {
                 throw new IllegalStateException("Datasource revision changed while planning the table collection");
             }
-            CreateTableEvent event = prepareSchema ? SchemaValidator.createEvent(from, targetInfo, targetTable) : null;
+            if (mapping.targetPrimaryKeys() != null && !"MYSQL".equals(targetInfo.type())) {
+                throw new IllegalArgumentException("Explicit target primary keys currently require a MySQL target");
+            }
+            TableSchema writeSource = SchemaValidator.writeSchema(from, mapping.targetPrimaryKeys());
+            CreateTableEvent event = prepareSchema
+                    ? SchemaValidator.createEvent(from, targetInfo, targetTable, mapping.targetPrimaryKeys()) : null;
             SchemaChangePlan schema = event == null ? null : SchemaValidator.plan(event, targetInfo.type(), actual);
             if (schema != null && !preview) SchemaValidator.requireCompatible(schema);
             TableSchema expected = event == null ? actual.schema() : event.getSchema();
             if (schema == null || !schema.blocked()) {
-                sinkFactory.validateSchema(sink, from.schema(), expected, sourceFactory.producesChangelog());
+                sinkFactory.validateSchema(sink, writeSource, expected, sourceFactory.producesChangelog());
             }
             if (actual != null && (schema == null || (!schema.blocked() && !schema.requiresDdl()))) {
-                sinkFactory.validateSchema(sink, from.schema(), actual.schema(), sourceFactory.producesChangelog());
+                sinkFactory.validateSchema(sink, writeSource, actual.schema(), sourceFactory.producesChangelog());
             }
             String target = encodePart(sinkId) + encodeTable(targetTable);
             String binding = encodePart(workspaceId)
@@ -218,6 +223,8 @@ public final class JobPlanner {
                     + encodePart(Long.toString(targetInfo.revision()))
                     + encodeTable(targetTable)
                     + encodeSchema(expected);
+            if (mapping.targetPrimaryKeys() != null) binding += encodePart("targetPrimaryKeys")
+                    + encodePart(String.join(",", mapping.targetPrimaryKeys()));
             if ("MYSQL_CDC".equals(sourceFactory.factoryIdentifier())) {
                 String chunkKey = source.get(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN);
                 if (chunkKey != null) binding += encodePart("chunkKey") + encodePart(chunkKey);

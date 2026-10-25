@@ -181,7 +181,8 @@ public final class MySqlJdbcDialect extends AbstractDialect {
 
         String tableCommentClause =
                 tableComment == null || tableComment.isBlank() ? "" : " COMMENT=" + stringLiteral(tableComment);
-        String createTableSql = "CREATE TABLE " + qualifiedTable(table) + " (" + definitions + ")" + tableCommentClause;
+        String createTableSql = "CREATE TABLE " + qualifiedTable(table) + " (" + definitions + ")"
+                + tableCommentClause + " ENGINE=InnoDB";
         return new JdbcDdlPlan(createTableSql, List.of(createTableSql));
     }
 

@@ -15,10 +15,13 @@ import io.yak.ops.core.event.CreateTableEvent;
 import io.yak.ops.core.event.SchemaChangeEvent;
 import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Optional;
 
 /** Read-only constraints shared by schema preview, publication and execution planning. */
@@ -46,6 +49,34 @@ public final class SchemaValidator {
         }
     }
 
+    /** Maps an independently verified physical unique key to the downstream logical Schema. */
+    public static TableSchema writeSchema(DataSourceTable source, List<String> targetPrimaryKeys) {
+        if (targetPrimaryKeys == null) return source.schema();
+        if (!"MYSQL".equals(source.datasourceType()) || targetPrimaryKeys.isEmpty()) {
+            throw new IllegalArgumentException("Explicit target primary keys require MySQL source metadata");
+        }
+        Set<String> selected = new HashSet<>(targetPrimaryKeys);
+        if (selected.size() != targetPrimaryKeys.size()
+                || source.uniqueKeys().stream().noneMatch(index ->
+                        index.size() == selected.size() && selected.equals(new HashSet<>(index)))
+                        && !(source.schema().primaryKeys().size() == selected.size()
+                                && selected.equals(new HashSet<>(source.schema().primaryKeys())))) {
+            throw new IllegalArgumentException("Target primary key must match an enforced source unique index");
+        }
+        for (String key : targetPrimaryKeys) {
+            Column column = source.schema().columns().stream()
+                    .filter(candidate -> candidate.name().equals(key))
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown target key column"));
+            if (column.nullable()) throw new IllegalArgumentException("Target primary key cannot be nullable: " + key);
+            // Until collation and floating-point comparison are proved, accept exact scalar keys only.
+            switch (column.dataType().getTypeRoot()) {
+                case TINYINT, SMALLINT, INTEGER, BIGINT, DECIMAL, BINARY, VARBINARY -> {}
+                default -> throw new IllegalArgumentException("Unverified target primary-key comparison: " + key);
+            }
+        }
+        return new TableSchema(source.schema().columns(), targetPrimaryKeys);
+    }
+
     /**
      * Builds a complete desired target event from an authorized source table.
      *
@@ -55,6 +86,11 @@ public final class SchemaValidator {
      * @return validated target creation event
      */
     public static CreateTableEvent createEvent(DataSourceTable source, DataSourceInfo target, TableId table) {
+        return createEvent(source, target, table, null);
+    }
+
+    public static CreateTableEvent createEvent(
+            DataSourceTable source, DataSourceInfo target, TableId table, List<String> primaryKeys) {
         try {
             validateNamespace(target, table);
             if (source.columnFeatures().contains("NON_TABLE")) {
@@ -88,7 +124,7 @@ public final class SchemaValidator {
                         }));
             }
             CreateTableEvent event = new CreateTableEvent(
-                    table, source.schema(), source.tableComment(), source.columnComments(), properties);
+                    table, writeSchema(source, primaryKeys), source.tableComment(), source.columnComments(), properties);
             return event;
         } catch (IllegalArgumentException | UnsupportedOperationException failure) {
             throw new SchemaValidationException(failure);

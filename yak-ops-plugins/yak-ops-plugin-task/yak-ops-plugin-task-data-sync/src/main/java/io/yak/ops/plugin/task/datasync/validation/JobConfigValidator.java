@@ -81,9 +81,10 @@ public final class JobConfigValidator {
                 if (prepareSchema) SchemaValidator.validateNamespace(to, target);
                 if (schemas && prepareSchema) {
                     var sourceTable = SchemaValidator.sourceMetadata(() -> context.tableMetadata(sourceId, source));
+                    var writeSource = SchemaValidator.writeSchema(sourceTable, table.targetPrimaryKeys());
                     SchemaValidator.validateWrite(() -> sourceFactory.validateSchema(
                             JobOptions.connectorOptions(table.source()), sourceTable.schema()));
-                    var event = SchemaValidator.createEvent(sourceTable, to, target);
+                    var event = SchemaValidator.createEvent(sourceTable, to, target, table.targetPrimaryKeys());
                     var current = context.findTable(sinkId, target).orElse(null);
                     if (current != null && current.revision() != to.revision()) {
                         throw new IllegalStateException("Target datasource revision changed during validation");
@@ -91,21 +92,23 @@ public final class JobConfigValidator {
                     var schemaPlan = SchemaValidator.plan(event, to.type(), current);
                     SchemaValidator.requireCompatible(schemaPlan);
                     SchemaValidator.validateWrite(() -> sinkFactory.validateSchema(
-                            table.sink(), sourceTable.schema(), event.getSchema(), sourceFactory.producesChangelog()));
+                            table.sink(), writeSource, event.getSchema(), sourceFactory.producesChangelog()));
                     if (current != null && !schemaPlan.requiresDdl()) {
                         SchemaValidator.validateWrite(() -> sinkFactory.validateSchema(
                                 table.sink(),
-                                sourceTable.schema(),
+                                writeSource,
                                 current.schema(),
                                 sourceFactory.producesChangelog()));
                     }
                 } else if (schemas) {
                     var sourceSchema = context.tableSchema(sourceId, source);
+                    var writeSource = table.targetPrimaryKeys() == null ? sourceSchema
+                            : SchemaValidator.writeSchema(context.tableMetadata(sourceId, source), table.targetPrimaryKeys());
                     SchemaValidator.validateWrite(() ->
                             sourceFactory.validateSchema(JobOptions.connectorOptions(table.source()), sourceSchema));
                     var targetSchema = context.tableSchema(sinkId, target);
                     SchemaValidator.validateWrite(() -> sinkFactory.validateSchema(
-                            table.sink(), sourceSchema, targetSchema, sourceFactory.producesChangelog()));
+                            table.sink(), writeSource, targetSchema, sourceFactory.producesChangelog()));
                 }
             }
             if (sourceId.equals(sinkId) && sources.stream().anyMatch(targets::contains)) {
