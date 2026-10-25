@@ -45,6 +45,38 @@ class MySqlKeylessSourceContractTest {
     }
 
     @Test
+    void keylessHybridCanBeBuiltWhileKeyedLegacyValidationRemainsStrict() {
+        var table = new io.yak.ops.core.data.TableId("app", null, "events");
+        var source = MySqlCdcSource.builder()
+                .hostname("localhost")
+                .username("replication")
+                .password("test")
+                .serverId(7731)
+                .topicPrefix("keyless-constructor")
+                .table(table, KEYLESS, "bucket")
+                .buildHybrid(2);
+        assertEquals(io.yak.ops.core.api.connector.source.Boundedness.CONTINUOUS_UNBOUNDED,
+                source.getBoundedness());
+        assertThrows(IllegalArgumentException.class, () -> MySqlCdcSource.builder()
+                .hostname("localhost")
+                .username("replication")
+                .password("test")
+                .serverId(7732)
+                .topicPrefix("keyless-no-selection")
+                .table(table, KEYLESS)
+                .buildHybrid(2));
+        var keyed = new TableSchema(KEYLESS.columns(), List.of("bucket"));
+        assertThrows(IllegalArgumentException.class, () -> MySqlCdcSource.builder()
+                .hostname("localhost")
+                .username("replication")
+                .password("test")
+                .serverId(7733)
+                .topicPrefix("keyed-other-chunk")
+                .table(table, keyed, "amount")
+                .buildHybrid(2));
+    }
+
+    @Test
     void keepsExistingBigintAdmissionUnchangedWhenKeylessIsNotRequested() {
         var factory = new MySqlCdcSourceFactory();
         var keyed = new TableSchema(KEYLESS.columns(), List.of("bucket"));
