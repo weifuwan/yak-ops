@@ -30,8 +30,11 @@ public final class SolutionOptions {
             Options.key("allowDropColumns").booleanType().defaultValue(false);
 
     /** Explicitly selected no-PK source. Kept separate from the Connector's physical options. */
-    public static final Option<Boolean> KEYLESS = Options.key("keyless").booleanType().defaultValue(false);
-    public static final Option<String> CHUNK_KEY = Options.key("chunkKeyColumn").stringType().noDefaultValue();
+    public static final Option<Boolean> KEYLESS =
+            Options.key("keyless").booleanType().defaultValue(false);
+
+    public static final Option<String> CHUNK_KEY =
+            Options.key("chunkKeyColumn").stringType().noDefaultValue();
 
     public static final OptionRule RULE = OptionRule.builder()
             .required(SOLUTION_TYPE, STEPS, JobOptions.SOURCE, JobOptions.SINK, TABLE_SELECTION, TABLE_MAPPINGS)
@@ -60,8 +63,10 @@ public final class SolutionOptions {
             .optional(JobOptions.DATABASE, Conditions.matches(JobOptions.DATABASE, "(?s)^.{0,128}$"))
             .optional(JobOptions.SCHEMA, Conditions.matches(JobOptions.SCHEMA, "(?s)^.{0,128}$"))
             .build();
-    public static final OptionRule SOURCE_TABLE_RULE =
-            OptionRule.builder().include(TABLE_RULE).optional(KEYLESS, CHUNK_KEY).build();
+    public static final OptionRule SOURCE_TABLE_RULE = OptionRule.builder()
+            .include(TABLE_RULE)
+            .optional(KEYLESS, CHUNK_KEY)
+            .build();
 
     private SolutionOptions() {}
 }

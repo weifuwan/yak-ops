@@ -145,9 +145,8 @@ public final class JobConfig {
                         || mode != JdbcWriteMode.RETRACT
                         || chunkKey == null
                         || chunkKey.isBlank()) {
-                    throw new IllegalArgumentException(
-                            "Keyless CDC requires single-table FULL + INCREMENTAL, RETRACT, "
-                                    + "an explicit Chunk Key and disabled schema changes");
+                    throw new IllegalArgumentException("Keyless CDC requires single-table FULL + INCREMENTAL, RETRACT, "
+                            + "an explicit Chunk Key and disabled schema changes");
                 }
                 input.put(MySqlCdcSourceOptions.KEYLESS_ENABLED.key(), true);
                 input.put(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN.key(), chunkKey);
