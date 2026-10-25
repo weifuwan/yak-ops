@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: '22.13'
       - name: Apply repository backend format
-        run: bash mvnw -B -ntp -DskipTests spotless:apply
+        run: bash mvnw -B -ntp -DskipTests com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
       - name: Install frontend dependencies
         working-directory: yak-ops-ui
         run: npm ci --prefer-offline --no-audit --no-fund
