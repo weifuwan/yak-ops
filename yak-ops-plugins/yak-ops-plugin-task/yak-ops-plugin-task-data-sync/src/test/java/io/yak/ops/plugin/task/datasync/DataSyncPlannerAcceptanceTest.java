@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-/** V3 task parameters reach the physical Planner without relaxing component admission. */
+/** V4 task parameters reach the physical Planner without relaxing component admission. */
 class DataSyncPlannerAcceptanceTest {
     private static final TableSchema FULL = new TableSchema(
             List.of(
@@ -92,46 +92,54 @@ class DataSyncPlannerAcceptanceTest {
     }
 
     @Test
-    void invalidLegacyKeylessTransactionStillFailsStaticAdmission() {
-        String invalid = realtime().replace(
-                "\"source\":{\"table\":\"orders\"}",
-                "\"source\":{\"table\":\"orders\",\"keyless\":true,\"chunkKeyColumn\":\"id\"}");
-        assertThrows(TaskPluginException.class, () -> plugin.parse(invalid.replace("UPSERT", "RETRACT")));
+    void keylessRetractWithoutSinkCheckpointTransactionFailsAdmission() {
+        String invalid = realtime()
+                .replace("\"id\":\"orders\",\"table\":\"orders\"",
+                        "\"id\":\"orders\",\"table\":\"orders\",\"keyless\":true,\"snapshot\":{\"chunkKeyColumn\":\"id\"}")
+                .replace("\"mode\":\"UPSERT\"", "\"mode\":\"RETRACT\"");
+        assertThrows(TaskPluginException.class, () -> plugin.parse(invalid));
     }
 
     private static String offlineIncremental() {
         return """
                 {"solutionType":"SINGLE_TABLE_OFFLINE","steps":["FULL","INCREMENTAL"],
-                 "source":{"datasourceId":"source"},"sink":{"datasourceId":"target"},
-                 "tableSelection":{"mode":"EXPLICIT"},
-                 "tableMappings":[{"source":{"table":"orders"},
-                                   "target":{"database":"ods","schema":"public","table":"ods_orders"},
-                                   "writeMode":"UPSERT",
-                                   "incremental":{"mode":"TIMESTAMP","column":"updated_at",
-                                      "initialValue":"2026-10-01T00:00:00","delaySeconds":0,"lookbackSeconds":5}}]}
+                 "source":{"datasourceId":"source","tables":[{"id":"orders","table":"orders",
+                           "incremental":{"mode":"TIMESTAMP","column":"updated_at",
+                                          "initialValue":"2026-10-01T00:00:00",
+                                          "delaySeconds":0,"lookbackSeconds":5}}]},
+                 "transform":[],
+                 "sink":{"datasourceId":"target",
+                         "schemaPolicy":{"initial":"VERIFY","evolution":{"enabled":false,"allowDropColumns":false}},
+                         "tables":[{"input":"orders","database":"ods","schema":"public","table":"ods_orders",
+                                    "write":{"mode":"UPSERT"}}]},
+                 "env":{}}
                 """;
     }
 
     private static String offlineWithSchemaPreparation() {
         return """
-                {"solutionType":"SINGLE_TABLE_OFFLINE","steps":["SCHEMA","FULL"],
-                 "source":{"datasourceId":"source"},"sink":{"datasourceId":"target"},
-                 "tableSelection":{"mode":"EXPLICIT"},
-                 "tableMappings":[{"source":{"table":"orders"},
-                                   "target":{"database":"ods","schema":"public","table":"ods_orders"},
-                                   "writeMode":"APPEND"}]}
+                {"solutionType":"SINGLE_TABLE_OFFLINE","steps":["FULL"],
+                 "source":{"datasourceId":"source","tables":[{"id":"orders","table":"orders"}]},
+                 "transform":[],
+                 "sink":{"datasourceId":"target",
+                         "schemaPolicy":{"initial":"CREATE_OR_ALTER",
+                                         "evolution":{"enabled":false,"allowDropColumns":false}},
+                         "tables":[{"input":"orders","database":"ods","schema":"public","table":"ods_orders",
+                                    "write":{"mode":"APPEND"}}]},
+                 "env":{}}
                 """;
     }
 
     private static String realtime() {
         return """
                 {"solutionType":"SINGLE_TABLE_REALTIME","steps":["FULL","INCREMENTAL"],
-                 "schemaChangesEnabled":false,
-                 "source":{"datasourceId":"source"},"sink":{"datasourceId":"target"},
-                 "tableSelection":{"mode":"EXPLICIT"},
-                 "tableMappings":[{"source":{"table":"orders"},
-                                   "target":{"database":"ods","schema":"public","table":"ods_orders"},
-                                   "writeMode":"UPSERT"}]}
+                 "source":{"datasourceId":"source","tables":[{"id":"orders","table":"orders"}]},
+                 "transform":[],
+                 "sink":{"datasourceId":"target",
+                         "schemaPolicy":{"initial":"VERIFY","evolution":{"enabled":false,"allowDropColumns":false}},
+                         "tables":[{"input":"orders","database":"ods","schema":"public","table":"ods_orders",
+                                    "write":{"mode":"UPSERT"}}]},
+                 "env":{}}
                 """;
     }
 
