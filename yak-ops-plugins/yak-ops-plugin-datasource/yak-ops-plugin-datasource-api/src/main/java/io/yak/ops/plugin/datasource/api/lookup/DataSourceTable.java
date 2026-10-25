@@ -38,11 +38,24 @@ public record DataSourceTable(
 
     /** Retains current callers that do not request unique-index metadata. */
     public DataSourceTable(
-            String datasourceType, TableId table, TableSchema schema, long revision,
-            String tableComment, Map<String, String> columnComments,
-            Set<String> columnFeatures, Map<String, ColumnProperties> columnProperties) {
-        this(datasourceType, table, schema, revision, tableComment, columnComments,
-                columnFeatures, columnProperties, List.of());
+            String datasourceType,
+            TableId table,
+            TableSchema schema,
+            long revision,
+            String tableComment,
+            Map<String, String> columnComments,
+            Set<String> columnFeatures,
+            Map<String, ColumnProperties> columnProperties) {
+        this(
+                datasourceType,
+                table,
+                schema,
+                revision,
+                tableComment,
+                columnComments,
+                columnFeatures,
+                columnProperties,
+                List.of());
     }
 
     /** Preserves the original metadata constructor for existing callers. */
