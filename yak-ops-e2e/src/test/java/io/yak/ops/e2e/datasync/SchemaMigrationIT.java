@@ -16,7 +16,7 @@ class SchemaMigrationIT extends BackendTestBase {
         var parameters = fixture.parameters(
                 "SINGLE_TABLE_OFFLINE", List.of("SCHEMA", "FULL"), List.of(fixture.route("orders", "created_orders")));
         var preview = fixture.api.call(
-                "POST", "/api/v1/data-sync/schema/preview", Map.of("parameters", ApiClient.json(parameters)));
+                "POST", "/api/v1/data-sync/schema/preview", Map.of("parameters", parameters));
         assertFalse(preview.isEmpty());
         try (var connection = fixture.target.connect();
                 var statement = connection.createStatement();
