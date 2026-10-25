@@ -5,34 +5,21 @@ import java.util.Map;
 
 /** Typed product filters target nested canonical JSON paths; bound filter values remain parameters. */
 public final class DefinitionSqlProvider {
-    /** Connector projection for recognized parameter formats; unknown shapes remain unclassified. */
+    /** The only supported DATA_SYNC parameter schema is version four. */
     public static final String SOURCE_TYPE = """
-            (CASE
-              WHEN v.parameter_schema_version = 3 THEN
-                CASE JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.solutionType'))
-                  WHEN 'SINGLE_TABLE_OFFLINE' THEN 'JDBC'
-                  WHEN 'DATABASE_OFFLINE' THEN 'JDBC'
-                  WHEN 'SINGLE_TABLE_REALTIME' THEN 'MYSQL_CDC'
-                  WHEN 'DATABASE_REALTIME' THEN 'MYSQL_CDC'
-                END
-              WHEN v.parameter_schema_version = 2
-                AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.sink.type')) = 'JDBC'
-                AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type')) IN ('JDBC', 'MYSQL_CDC')
-              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type'))
+            (CASE WHEN v.parameter_schema_version = 4 THEN
+              CASE JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.solutionType'))
+                WHEN 'SINGLE_TABLE_OFFLINE' THEN 'JDBC'
+                WHEN 'DATABASE_OFFLINE' THEN 'JDBC'
+                WHEN 'SINGLE_TABLE_REALTIME' THEN 'MYSQL_CDC'
+                WHEN 'DATABASE_REALTIME' THEN 'MYSQL_CDC'
+              END
             END)
             """;
 
-    /** Product projection used before paging, including retained version-two definitions. */
     public static final String SOLUTION_TYPE = """
-            (CASE
-              WHEN v.parameter_schema_version = 3
-                THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.solutionType'))
-              WHEN v.parameter_schema_version = 2
-                AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.sink.type')) = 'JDBC'
-              THEN CASE JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type'))
-                WHEN 'JDBC' THEN 'SINGLE_TABLE_OFFLINE'
-                WHEN 'MYSQL_CDC' THEN 'SINGLE_TABLE_REALTIME'
-              END
+            (CASE WHEN v.parameter_schema_version = 4
+              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.solutionType'))
             END)
             """;
 
