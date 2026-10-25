@@ -1,6 +1,6 @@
 import type { TaskInstanceStatus } from "../task-execution/types";
 
-export type DataSyncWriteMode = "APPEND" | "UPSERT";
+export type DataSyncWriteMode = "APPEND" | "UPSERT" | "RETRACT";
 
 export interface PaginationInfo {
   pageNo: number;
@@ -54,7 +54,7 @@ export interface DataSyncIncrementalConfig {
 }
 
 export interface DataSyncTableMapping {
-  source: DataSyncTablePath;
+  source: DataSyncTablePath & { keyless?: boolean; chunkKeyColumn?: string };
   target: DataSyncTablePath;
   writeMode: DataSyncWriteMode;
   incremental?: DataSyncIncrementalConfig;
@@ -175,6 +175,8 @@ export interface DataSyncMappingConfig {
 
 export interface DataSyncTaskRecord {
   id: string;
+  keylessEnabled?: boolean;
+  chunkKeyColumn?: string;
   schemaChangesEnabled?: boolean;
   allowDropColumns?: boolean;
   tableMappings: DataSyncTableMapping[];
@@ -256,6 +258,8 @@ interface DataSyncTaskSaveBase {
 }
 
 export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
+  keylessEnabled?: boolean;
+  chunkKeyColumn?: string;
   schemaChangesEnabled?: boolean;
   allowDropColumns?: boolean;
   tableMappings?: DataSyncTableMapping[];

@@ -127,10 +127,10 @@ export function TargetSection({
             <DataSyncSearchableSelect
               placeholder="请选择写入方式"
               value={form.writeMode}
-              disabled={!combination || combination.writeModes.length === 1}
+              disabled={!combination || combination.writeModes.length === 1 || usesChangelog}
               options={(combination?.writeModes || []).map((mode) => ({
                 value: mode,
-                label: mode === "UPSERT" ? "按主键更新" : "追加写入",
+                label: mode === "UPSERT" ? "按主键更新" : mode === "RETRACT" ? "逐行更新" : "追加写入",
               }))}
               onValueChange={(value) => patch("writeMode", value as DataSyncWriteMode)}
             />
@@ -144,7 +144,7 @@ export function TargetSection({
             aria-label="同步结构变更"
             size="small"
             checked={form.schemaChangesEnabled}
-            disabled={published || saving || targetType === "ORACLE"}
+            disabled={published || saving || targetType === "ORACLE" || form.keylessEnabled}
             onCheckedChange={(checked) => {
               patch("schemaChangesEnabled", checked);
               if (!checked) patch("allowDropColumns", false);

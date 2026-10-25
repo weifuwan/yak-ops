@@ -12,7 +12,7 @@ const SOLUTIONS = new Set([
   "DATABASE_OFFLINE",
   "DATABASE_REALTIME",
 ]);
-const WRITES = new Set(["APPEND", "UPSERT"]);
+const WRITES = new Set(["APPEND", "UPSERT", "RETRACT"]);
 
 export const solutionSyncType = (type: DataSyncSolutionType) =>
   type === "SINGLE_TABLE_REALTIME" || type === "DATABASE_REALTIME" ? "REALTIME" : "OFFLINE";
@@ -146,13 +146,27 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
   const sources = new Set<string>();
   const targets = new Set<string>();
   for (const mapping of value.tableMappings) {
+    const keyless = mapping?.source?.keyless === true;
     if (
+      (mapping?.source?.keyless !== undefined && typeof mapping.source.keyless !== "boolean") ||
+      (mapping?.source?.chunkKeyColumn !== undefined &&
+        (typeof mapping.source.chunkKeyColumn !== "string" ||
+          !mapping.source.chunkKeyColumn.trim() ||
+          mapping.source.chunkKeyColumn.length > 128)) ||
+      (keyless &&
+        (value.solutionType !== "SINGLE_TABLE_REALTIME" ||
+          value.steps.includes("SCHEMA") ||
+          value.schemaChangesEnabled !== false ||
+          value.allowDropColumns === true ||
+          mapping.writeMode !== "RETRACT" ||
+          !mapping.source.chunkKeyColumn)) ||
+      (!keyless && (mapping?.source?.chunkKeyColumn !== undefined || mapping.writeMode === "RETRACT")) ||
       !mapping?.source?.table ||
       !mapping.target?.table ||
       !WRITES.has(mapping.writeMode) ||
       ((solutionSyncType(value.solutionType) === "REALTIME" ||
         offlineIncremental(value.solutionType, value.steps)) &&
-        mapping.writeMode !== "UPSERT") ||
+        mapping.writeMode !== (keyless ? "RETRACT" : "UPSERT")) ||
       (offlineIncremental(value.solutionType, value.steps)
         ? !validIncrementalConfig(mapping.incremental, !value.steps.includes("FULL"))
         : mapping.incremental !== undefined)

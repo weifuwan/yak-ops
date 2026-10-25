@@ -13,7 +13,12 @@ import { readSyncParameters, solutionSyncType, supportsMultipleTables } from "./
 export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncParameters {
   let tableMappings: DataSyncTableMapping[] = [
     {
-      source: { database: task.sourceDatabase, schema: task.sourceSchema, table: task.sourceTable },
+      source: {
+        database: task.sourceDatabase,
+        schema: task.sourceSchema,
+        table: task.sourceTable,
+        ...(task.keylessEnabled ? { keyless: true, chunkKeyColumn: task.chunkKeyColumn } : {}),
+      },
       target: { database: task.targetDatabase, schema: task.targetSchema, table: task.targetTable },
       writeMode: task.writeMode,
       ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
@@ -95,6 +100,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
         database: table.source.database,
         schema: table.source.schema,
         table: table.source.table,
+        ...(table.source.keyless ? { keyless: true, chunkKeyColumn: table.source.chunkKeyColumn } : {}),
       },
       target: {
         database: table.target.database,
@@ -119,6 +125,8 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     status: definition.status,
     debug: definition.debug ?? false,
     writeMode: mapping.writeMode,
+    keylessEnabled: mapping.source.keyless ?? false,
+    chunkKeyColumn: mapping.source.chunkKeyColumn,
     incremental: mapping.incremental ? { ...mapping.incremental } : undefined,
     sourceDataSourceId: parameters.source.datasourceId,
     sourceDatabase: mapping.source.database ?? undefined,

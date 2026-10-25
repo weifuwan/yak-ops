@@ -90,6 +90,22 @@ const options = {
   sourceCatalog: { schemas: [], tables: [], loading: false, error: "" },
 };
 assert.equal(params.canSaveEditor(options), true);
+assert.equal(
+  params.canSaveEditor({
+    ...options,
+    draft: { ...draft, targetType: "MYSQL", steps: ["FULL", "INCREMENTAL"] },
+    prepareSchema: false,
+    combination: { writeModes: ["UPSERT", "RETRACT"] },
+    form: { ...form, keylessEnabled: true, chunkKeyColumn: "bucket",
+      writeMode: "RETRACT", schemaChangesEnabled: false },
+    targetCatalog: { ...options.targetCatalog, tables: [{ name: "ods_orders" }] },
+  }),
+  true,
+);
+assert.equal(
+  params.canSaveEditor({ ...options, form: { ...form, writeMode: "RETRACT" } }),
+  false,
+);
 assert.equal(params.canSaveEditor({ ...options, published: true }), false);
 assert.equal(
   params.canSaveEditor({ ...options, supportsScheduling: true, scheduleNeedsReload: true }),

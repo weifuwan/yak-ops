@@ -53,8 +53,6 @@ public final class SolutionOptions {
             .required(JobOptions.SOURCE, TARGET, JdbcSinkOptions.WRITE_MODE)
             .optional(INCREMENTAL)
             .build();
-    public static final OptionRule SOURCE_TABLE_RULE =
-            OptionRule.builder().include(TABLE_RULE).optional(KEYLESS, CHUNK_KEY).build();
     public static final OptionRule TABLE_RULE = OptionRule.builder()
             .required(
                     JobOptions.TABLE,
@@ -62,6 +60,8 @@ public final class SolutionOptions {
             .optional(JobOptions.DATABASE, Conditions.matches(JobOptions.DATABASE, "(?s)^.{0,128}$"))
             .optional(JobOptions.SCHEMA, Conditions.matches(JobOptions.SCHEMA, "(?s)^.{0,128}$"))
             .build();
+    public static final OptionRule SOURCE_TABLE_RULE =
+            OptionRule.builder().include(TABLE_RULE).optional(KEYLESS, CHUNK_KEY).build();
 
     private SolutionOptions() {}
 }

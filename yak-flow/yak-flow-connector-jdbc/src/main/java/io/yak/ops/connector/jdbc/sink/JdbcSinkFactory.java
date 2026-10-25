@@ -97,7 +97,11 @@ public final class JdbcSinkFactory implements TableSinkFactory {
             configured.remove(JdbcSinkOptions.WRITE_MODE.key());
             if (!common.equals(configured))
                 throw new IllegalArgumentException("JDBC routes must share connection settings");
-            validateSchema(context.options(), context.sourceSchema(), context.targetSchema(), true);
+            validateSchema(
+                    context.options(),
+                    context.sourceSchema(),
+                    context.targetSchema(),
+                    context.options().get(JdbcSinkOptions.WRITE_MODE) == JdbcWriteMode.RETRACT);
             plans.add(new JdbcTableWritePlan(
                     context.sourceTable(),
                     context.targetTable(),

@@ -69,8 +69,13 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
       debug: value?.debug ?? false,
       schemaChangesEnabled: value?.schemaChangesEnabled ?? draft.targetType !== "ORACLE",
       allowDropColumns: value?.allowDropColumns ?? false,
-      writeMode:
-        value?.writeMode === "UPSERT" || usesChangelog || useIncremental ? "UPSERT" : "APPEND",
+      writeMode: value?.keylessEnabled
+        ? "RETRACT"
+        : value?.writeMode === "UPSERT" || usesChangelog || useIncremental
+          ? "UPSERT"
+          : "APPEND",
+      keylessEnabled: value?.keylessEnabled ?? false,
+      chunkKeyColumn: value?.chunkKeyColumn ?? "",
       incremental: useIncremental ? value?.incremental || EMPTY_INCREMENTAL : undefined,
       sourceDataSourceId: value?.sourceDataSourceId || "",
       sourceDatabase: value?.sourceDatabase || "",
@@ -328,6 +333,7 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
             mappings={mappings}
             updateMappings={updateMappings}
             writeMode={combination?.writeModes[0]}
+            allowKeyless={usesChangelog && !batch && draft.targetType === "MYSQL"}
             usesChangelog={usesChangelog}
             useIncremental={useIncremental}
             initialLoad={initialLoad}
