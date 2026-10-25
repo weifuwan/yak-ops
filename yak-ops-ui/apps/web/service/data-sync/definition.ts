@@ -22,23 +22,24 @@ import {
 export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncParameters {
   const mappings: DataSyncTableMapping[] = supportsMultipleTables(task.solutionType)
     ? (task.tableMappings ?? [])
-    : [{
-        source: {
-          database: task.sourceDatabase,
-          schema: task.sourceSchema,
-          table: task.sourceTable,
-          ...(task.keylessEnabled ? { keyless: true, chunkKeyColumn: task.chunkKeyColumn } : {}),
+    : [
+        {
+          source: {
+            database: task.sourceDatabase,
+            schema: task.sourceSchema,
+            table: task.sourceTable,
+            ...(task.keylessEnabled ? { keyless: true, chunkKeyColumn: task.chunkKeyColumn } : {}),
+          },
+          target: {
+            database: task.targetDatabase,
+            schema: task.targetSchema,
+            table: task.targetTable,
+            ...(task.targetPrimaryKeys?.length ? { primaryKeys: [...task.targetPrimaryKeys] } : {}),
+          },
+          writeMode: task.writeMode,
+          ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
         },
-        target: {
-          database: task.targetDatabase,
-          schema: task.targetSchema,
-          table: task.targetTable,
-          ...(task.targetPrimaryKeys?.length
-            ? { primaryKeys: [...task.targetPrimaryKeys] } : {}),
-        },
-        writeMode: task.writeMode,
-        ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
-      }];
+      ];
   if (!mappings.length) throw new Error("请选择同步表");
   const realtime = solutionSyncType(task.solutionType) === "REALTIME";
   const evolution = realtime && (task.schemaChangesEnabled ?? true);
@@ -53,7 +54,8 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
         schema: mapping.source.schema,
         table: mapping.source.table,
         ...(mapping.source.keyless
-          ? { keyless: true, snapshot: { chunkKeyColumn: mapping.source.chunkKeyColumn! } } : {}),
+          ? { keyless: true, snapshot: { chunkKeyColumn: mapping.source.chunkKeyColumn! } }
+          : {}),
         ...(mapping.incremental ? { incremental: { ...mapping.incremental } } : {}),
       })),
     },
@@ -75,9 +77,11 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
         write: {
           mode: mapping.writeMode,
           ...(mapping.target.primaryKeys?.length
-            ? { primaryKeys: [...mapping.target.primaryKeys] } : {}),
+            ? { primaryKeys: [...mapping.target.primaryKeys] }
+            : {}),
           ...(mapping.source.keyless && mapping.writeMode === "RETRACT"
-            ? { transaction: { mode: "CHECKPOINT_XA" as const } } : {}),
+            ? { transaction: { mode: "CHECKPOINT_XA" as const } }
+            : {}),
         },
       })),
     },
@@ -97,7 +101,12 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
 
 /** Omitting parameters edits metadata only and preserves the existing immutable parameter version. */
 export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload) {
-  const request: { name: string; remark?: string; parameters?: DataSyncParameters; debug?: boolean } = {
+  const request: {
+    name: string;
+    remark?: string;
+    parameters?: DataSyncParameters;
+    debug?: boolean;
+  } = {
     name: task.name,
     remark: task.remark,
     debug: task.debug,
