@@ -95,18 +95,26 @@ const validXa = definition("xa", {
   ...baseParameters,
   source: {
     ...baseParameters.source,
-    tables: [{
-      ...baseParameters.source.tables[0],
-      keyless: true,
-      snapshot: { chunkKeyColumn: "bucket" },
-    }],
+    tables: [
+      {
+        ...baseParameters.source.tables[0],
+        keyless: true,
+        snapshot: { chunkKeyColumn: "bucket" },
+      },
+    ],
   },
   sink: {
     ...baseParameters.sink,
-    tables: [{ input: "orders", table: "orders_copy", write: {
-      mode: "RETRACT",
-      transaction: { mode: "CHECKPOINT_XA" },
-    } }],
+    tables: [
+      {
+        input: "orders",
+        table: "orders_copy",
+        write: {
+          mode: "RETRACT",
+          transaction: { mode: "CHECKPOINT_XA" },
+        },
+      },
+    ],
   },
 });
 const page = {
@@ -121,9 +129,10 @@ const page = {
 };
 const projected = projectSyncTaskPage(page);
 assert.deepEqual(projected.pagination, page.pagination);
-assert.deepEqual(projected.bizData.map((task) => task.id), [
-  "valid", "old-version", "xa", "invalid", "unknown-version",
-]);
+assert.deepEqual(
+  projected.bizData.map((task) => task.id),
+  ["valid", "old-version", "xa", "invalid", "unknown-version"],
+);
 assert.equal(projected.bizData[0].syncType, "REALTIME");
 assert.equal(projected.bizData[2].keylessEnabled, true);
 assert.equal(projected.bizData[2].tableMappings[0].source.chunkKeyColumn, "bucket");
