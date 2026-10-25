@@ -21,6 +21,12 @@ public final class JdbcKeylessTargetValidator {
     private JdbcKeylessTargetValidator() {}
 
     public static void validate(Connection connection, JdbcTableWritePlan plan) throws SQLException {
+        validate(connection, plan, true);
+    }
+
+    /** XA commit coordination replaces per-event receipts without weakening target shape checks. */
+    public static void validate(Connection connection, JdbcTableWritePlan plan, boolean requireReceipts)
+            throws SQLException {
         if (plan.writeMode() != JdbcWriteMode.RETRACT) {
             return;
         }
@@ -77,7 +83,7 @@ public final class JdbcKeylessTargetValidator {
                 != 0) {
             throw new SQLException("MySQL RETRACT target cannot be referenced by foreign keys");
         }
-        validateReceiptTable(connection, catalog);
+        if (requireReceipts) validateReceiptTable(connection, catalog);
         try (PreparedStatement query =
                 connection.prepareStatement("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, EXTRA "
                         + "FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? "

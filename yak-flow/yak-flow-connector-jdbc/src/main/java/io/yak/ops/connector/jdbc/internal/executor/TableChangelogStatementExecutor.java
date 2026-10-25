@@ -35,6 +35,7 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
     private final Map<TableId, TableSimpleStatementExecutor> writes = new LinkedHashMap<>();
     private final Map<TableId, TableSimpleStatementExecutor> deletes = new LinkedHashMap<>();
     private final int statementCacheSize;
+    private final boolean useReplayReceipts;
     private final JdbcDialect dialect;
     private final Set<TableSimpleStatementExecutor> prepared = new LinkedHashSet<>();
     private Connection connection;
@@ -51,6 +52,16 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
     /** Bounds live statements across all routes; SQL and converters remain immutable route definitions. */
     public TableChangelogStatementExecutor(
             JdbcDialect dialect, List<JdbcTableWritePlan> plans, int statementCacheSize) {
+        this(dialect, plans, statementCacheSize, true);
+    }
+
+    /**
+     * Prepared XA transactions must not also reserve durable Receipt rows.
+     * Disabling receipts is allowed only for a checkpoint-coordinated XA owner.
+     */
+    public TableChangelogStatementExecutor(
+            JdbcDialect dialect, List<JdbcTableWritePlan> plans, int statementCacheSize, boolean useReplayReceipts) {
+        this.useReplayReceipts = useReplayReceipts;
         if (statementCacheSize < 1) {
             throw new IllegalArgumentException("JDBC statement cache size must be positive");
         }
@@ -184,7 +195,9 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
             throw new IllegalStateException("JDBC executor already owns a connection");
         }
         this.connection = Objects.requireNonNull(connection, "connection");
-        receipts = new JdbcReplayReceipts(connection, dialect, List.copyOf(routes.values()));
+        if (useReplayReceipts) {
+            receipts = new JdbcReplayReceipts(connection, dialect, List.copyOf(routes.values()));
+        }
     }
 
     /** Called only after switching away from and executing the previous active batch. */
@@ -254,7 +267,7 @@ public final class TableChangelogStatementExecutor implements JdbcBatchStatement
             active.executeBatch();
             active = null;
         }
-        return receipts.reserve(record, plan);
+        return useReplayReceipts ? receipts.reserve(record, plan) : true;
     }
 
     private void append(TableSimpleStatementExecutor next, RowData row) throws SQLException {
