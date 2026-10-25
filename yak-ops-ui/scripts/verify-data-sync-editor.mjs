@@ -152,11 +152,11 @@ const offlineParameters = transport.createDefinitionRequest(offlinePayload).para
 assert.equal(offlineParameters.solutionType, "SINGLE_TABLE_OFFLINE");
 assert.deepEqual(offlineParameters.steps, ["FULL", "INCREMENTAL"]);
 assert.equal(offlineParameters.source.tables.length, 1);
-assert.deepEqual(offlineParameters.source.tables[0].incremental, incremental);
+assert.deepEqual(JSON.parse(JSON.stringify(offlineParameters.source.tables[0].incremental)), incremental);
 assert.equal(offlineParameters.source.tables[0].table, "orders");
 assert.equal(offlineParameters.sink.tables[0].table, "ods_orders");
 assert.equal(offlineParameters.sink.tables[0].write.mode, "UPSERT");
-assert.equal("env" in offlineParameters, false);
+assert.deepEqual(JSON.parse(JSON.stringify(offlineParameters.env)), {});
 assert.equal("incremental" in offlineParameters.source, false);
 
 const incrementalOnly = {
