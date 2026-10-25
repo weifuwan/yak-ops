@@ -40,58 +40,30 @@ class DataSyncTaskPluginContractTest {
     @Test
     void periodicEligibilityIsPureAndKeepsContinuousJobsManual() {
         DataSyncTaskPlugin plugin = plugin();
-        assertTrue(plugin.supportsScheduling(plugin.parse(2, offlineJson())));
-        assertEquals(false, plugin.supportsScheduling(plugin.parse(2, realtimeJson())));
+        assertTrue(plugin.supportsScheduling(plugin.parse(4, offlineJson())));
+        assertEquals(false, plugin.supportsScheduling(plugin.parse(4, realtimeJson())));
     }
 
     @Test
-    void retainsLegacyRealtimePolicyAndValidatesExplicitConfiguration() {
-        var oldParameters = registry.get("DATA_SYNC").parse(2, realtimeJson());
-        assertEquals(false, JobConfig.from(oldParameters).schemaChangesEnabled());
-
-        String realtimeV3 = """
-                {
-                  "solutionType":"SINGLE_TABLE_REALTIME",
-                  "steps":["FULL","INCREMENTAL"],
-                  "schemaChangesEnabled":true,
-                  "source":{"datasourceId":"source"},
-                  "sink":{"datasourceId":"target"},
-                  "tableSelection":{"mode":"EXPLICIT"},
-                  "tableMappings":[{"source":{"table":"orders"},"target":{"table":"orders_copy"},
-                                    "writeMode":"UPSERT"}]
-                }
-                """;
-        assertEquals(
-                true,
-                JobConfig.from(registry.get("DATA_SYNC").parse(3, realtimeV3))
-                        .schemaChangesEnabled());
-        assertEquals(
-                false,
-                JobConfig.from(registry.get("DATA_SYNC")
-                                .parse(3, realtimeV3.replace("\"schemaChangesEnabled\":true,", "")))
-                        .schemaChangesEnabled());
-        assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(
-                3, realtimeV3.replace("\"schemaChangesEnabled\":true", "\"schemaChangesEnabled\":\"true\"")));
-        assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(
-                3, realtimeV3.replace("SINGLE_TABLE_REALTIME", "SINGLE_TABLE_OFFLINE")));
-        var enabledDrop = registry.get("DATA_SYNC")
-                .parse(3, realtimeV3.replace("\"schemaChangesEnabled\":true,",
-                        "\"schemaChangesEnabled\":true,\"allowDropColumns\":true,"));
-        assertEquals(true, JobConfig.from(enabledDrop).allowDropColumns());
-        assertEquals(false, JobConfig.from(registry.get("DATA_SYNC").parse(3, realtimeV3)).allowDropColumns());
-        assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(3,
-                realtimeV3.replace("\"schemaChangesEnabled\":true,",
-                        "\"schemaChangesEnabled\":false,\"allowDropColumns\":true,")));
-        assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(3,
-                realtimeV3.replace("\"schemaChangesEnabled\":true,",
-                        "\"schemaChangesEnabled\":true,\"allowDropColumns\":\"true\",")));
+    void sinkSchemaEvolutionHasOneOwnerAndRejectsUnexpectedRootFlags() {
+        String realtime = realtimeJson();
+        assertEquals(false, JobConfig.from(registry.get("DATA_SYNC").parse(4, realtime)).schemaChangesEnabled());
+        String enabled = realtime.replace("\"enabled\":false", "\"enabled\":true");
+        assertEquals(true, JobConfig.from(registry.get("DATA_SYNC").parse(4, enabled)).schemaChangesEnabled());
+        String drop = enabled.replace("\"allowDropColumns\":false", "\"allowDropColumns\":true");
+        assertEquals(true, JobConfig.from(registry.get("DATA_SYNC").parse(4, drop)).allowDropColumns());
+        assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(4,
+                realtime.replace("\"allowDropColumns\":false", "\"allowDropColumns\":true")));
+        assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(4,
+                realtime.replace("\"env\":{}", "\"env\":{\"checkpointDirectory\":\"tmp\"}")));
+        assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(3, realtime));
     }
 
     @Test
     void registersBootConstructedPluginWithOneRegistry() {
         assertTrue(registry.types().contains("DATA_SYNC"));
         assertInstanceOf(DataSyncTaskPlugin.class, registry.get("DATA_SYNC"));
-        assertEquals(3, registry.get("DATA_SYNC").parameterSchemaVersion());
+        assertEquals(4, registry.get("DATA_SYNC").parameterSchemaVersion());
         assertThrows(TaskPluginException.class, () -> registry.get("data-sync"));
         assertThrows(TaskPluginException.class, () -> registry.get("data_sync"));
         assertThrows(TaskPluginException.class, () -> registry.get("SQL"));
@@ -99,25 +71,16 @@ class DataSyncTaskPluginContractTest {
     }
 
     @Test
-    void parsesJDBCAndMySqlCdcWithoutAddingExecutionState() {
-        ReadonlyConfig jdbc = registry.get("DATA_SYNC").parse(2, offlineJson());
-        ReadonlyConfig cdc = registry.get("DATA_SYNC").parse(2, realtimeJson());
+    void parsesJDBCAndMySqlCdcWithoutPersistingPhysicalConnectorState() {
+        ReadonlyConfig jdbc = registry.get("DATA_SYNC").parse(4, offlineJson());
+        ReadonlyConfig cdc = registry.get("DATA_SYNC").parse(4, realtimeJson());
         assertEquals("JDBC", JobConfig.from(jdbc).source().get(JobOptions.TYPE));
         assertEquals("MYSQL_CDC", JobConfig.from(cdc).source().get(JobOptions.TYPE));
-        assertEquals(
-                "JDBC",
-                JSONUtils.readTree(ConfigParser.toJson(jdbc))
-                        .path("source")
-                        .path("type")
-                        .asText());
-        assertEquals(
-                "MYSQL_CDC",
-                JSONUtils.readTree(ConfigParser.toJson(cdc))
-                        .path("source")
-                        .path("type")
-                        .asText());
-        assertEquals(3, JSONUtils.readTree(ConfigParser.toJson(jdbc)).size());
-        assertEquals(jdbc, registry.get("DATA_SYNC").parse(2, ConfigParser.toJson(jdbc)));
+        var document = JSONUtils.readTree(ConfigParser.toJson(jdbc));
+        assertEquals(6, document.size());
+        assertEquals("orders", document.path("source").path("tables").get(0).path("table").asText());
+        assertTrue(document.path("source").path("type").isMissingNode());
+        assertEquals(jdbc, registry.get("DATA_SYNC").parse(4, ConfigParser.toJson(jdbc)));
     }
 
     @Test
@@ -126,13 +89,13 @@ class DataSyncTaskPluginContractTest {
                 "{}",
                 "[]",
                 "{",
-                offlineJson().replace("JDBC", "KAFKA"),
+                offlineJson().replace("SINGLE_TABLE_OFFLINE", "UNKNOWN_SOLUTION"),
                 offlineJson().replace("\"transform\": []", "\"transform\": [{}]"),
                 offlineJson().replace("\"transform\": []", "\"runtimeConfig\": {}"),
                 offlineJson().replace("APPEND", "OVERWRITE"),
                 realtimeJson().replace("UPSERT", "APPEND"))) {
             assertThrows(
-                    TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(2, json));
+                    TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(4, json));
         }
     }
 
@@ -141,7 +104,7 @@ class DataSyncTaskPluginContractTest {
         String json =
                 offlineJson().replace("\"table\":\"orders\"", "\"table\":\"orders\",\"password\":\"private-value\"");
         TaskPluginException exception = assertThrows(
-                TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(2, json));
+                TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(4, json));
         assertEquals("Invalid DATA_SYNC pipeline JSON", exception.getMessage());
     }
 
@@ -155,7 +118,7 @@ class DataSyncTaskPluginContractTest {
             String json = offlineJson()
                     .replace("\"table\":\"orders\"", "\"table\":\"orders\",\"" + key + "\":\"private-value\"");
             TaskPluginException failure = assertThrows(
-                    TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(2, json));
+                    TaskPluginException.class, () -> registry.get("DATA_SYNC").parse(4, json));
             assertTrue(!failure.toString().contains("private-value"));
         }
     }
@@ -163,7 +126,7 @@ class DataSyncTaskPluginContractTest {
     @Test
     void draftValidationChecksAuthorizedReferencesWithoutReadingTableSchemas() {
         TaskPlugin plugin = registry.get("DATA_SYNC");
-        ReadonlyConfig parameters = plugin.parse(2, realtimeJson());
+        ReadonlyConfig parameters = plugin.parse(4, realtimeJson());
         TaskValidationContext context = new TaskValidationContext() {
             @Override
             public DataSourceInfo dataSource(String id) {
@@ -296,7 +259,7 @@ class DataSyncTaskPluginContractTest {
 
     private ReadonlyConfig parseAndValidate(String json, TaskValidationContext context) {
         TaskPlugin plugin = registry.get("DATA_SYNC");
-        ReadonlyConfig parameters = plugin.parse(2, json);
+        ReadonlyConfig parameters = plugin.parse(4, json);
         plugin.validate(parameters, context);
         return parameters;
     }
@@ -304,9 +267,14 @@ class DataSyncTaskPluginContractTest {
     static String offlineJson() {
         return """
                 {
-                  "source": {"type":"JDBC","datasourceId":"source","table":"orders"},
+                  "solutionType":"SINGLE_TABLE_OFFLINE",
+                  "steps":["FULL"],
+                  "source":{"datasourceId":"source","tables":[{"id":"orders","table":"orders"}]},
                   "transform": [],
-                  "sink": {"type":"JDBC","datasourceId":"target","table":"orders_copy","writeMode":"APPEND"}
+                  "sink":{"datasourceId":"target",
+                          "schemaPolicy":{"initial":"VERIFY","evolution":{"enabled":false,"allowDropColumns":false}},
+                          "tables":[{"input":"orders","table":"orders_copy","write":{"mode":"APPEND"}}]},
+                  "env":{}
                 }
                 """;
     }
@@ -314,9 +282,14 @@ class DataSyncTaskPluginContractTest {
     static String realtimeJson() {
         return """
                 {
-                  "source": {"type":"MYSQL_CDC","datasourceId":"source","table":"orders"},
+                  "solutionType":"SINGLE_TABLE_REALTIME",
+                  "steps":["FULL","INCREMENTAL"],
+                  "source":{"datasourceId":"source","tables":[{"id":"orders","table":"orders"}]},
                   "transform": [],
-                  "sink": {"type":"JDBC","datasourceId":"target","table":"orders_copy","writeMode":"UPSERT"}
+                  "sink":{"datasourceId":"target",
+                          "schemaPolicy":{"initial":"VERIFY","evolution":{"enabled":false,"allowDropColumns":false}},
+                          "tables":[{"input":"orders","table":"orders_copy","write":{"mode":"UPSERT"}}]},
+                  "env":{}
                 }
                 """;
     }
