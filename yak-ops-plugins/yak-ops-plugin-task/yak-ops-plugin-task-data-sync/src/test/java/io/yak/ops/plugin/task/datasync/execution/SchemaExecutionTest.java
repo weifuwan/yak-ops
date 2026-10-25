@@ -137,7 +137,13 @@ class SchemaExecutionTest {
         Fixture f = new Fixture();
         f.targets.put(new TableId("ods", "public", "copy_0"), SHAPE);
         Map<String, Object> values = new java.util.LinkedHashMap<>(options(1, false).getSourceMap());
-        values.put("steps", List.of("FULL"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> previousSink = (Map<String, Object>) values.get("sink");
+        Map<String, Object> sink = new java.util.LinkedHashMap<>(previousSink);
+        sink.put("schemaPolicy", Map.of(
+                "initial", "VERIFY",
+                "evolution", Map.of("enabled", false, "allowDropColumns", false)));
+        values.put("sink", sink);
         ReadonlyConfig parameters = ReadonlyConfig.fromMap(values);
         var admission = f.planner.admissionPlan(parameters, ID);
         TaskHandle handle = new DataSyncTaskExecutor(f.planner, f.builder, f.engine)
