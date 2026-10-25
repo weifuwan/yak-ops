@@ -31,7 +31,8 @@ public record SourceConfig(ReadonlyConfig options, boolean keyless, IncrementalC
             .optional(JobOptions.DATABASE, JobOptions.SCHEMA, KEYLESS, SNAPSHOT, INCREMENTAL)
             .build();
 
-    private static final OptionRule SNAPSHOT_RULE = OptionRule.builder().required(CHUNK_KEY).build();
+    private static final OptionRule SNAPSHOT_RULE =
+            OptionRule.builder().required(CHUNK_KEY).build();
 
     public static SourceConfig from(
             ReadonlyConfig table,
