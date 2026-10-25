@@ -4,21 +4,25 @@ import json
 from urllib.parse import urlparse, parse_qs
 
 params = {
+    "solutionType": "SINGLE_TABLE_OFFLINE",
+    "steps": ["FULL"],
     "source": {
-        "type": "JDBC",
         "datasourceId": "src",
-        "database": "app",
-        "table": "orders",
+        "tables": [{"id": "orders", "database": "app", "table": "orders"}],
     },
     "transform": [],
     "sink": {
-        "type": "JDBC",
         "datasourceId": "dst",
-        "database": "ods",
-        "schema": "public",
-        "table": "ods_orders",
-        "writeMode": "APPEND",
+        "schemaPolicy": {
+            "initial": "VERIFY",
+            "evolution": {"enabled": False, "allowDropColumns": False},
+        },
+        "tables": [{
+            "input": "orders", "database": "ods", "schema": "public",
+            "table": "ods_orders", "write": {"mode": "APPEND"},
+        }],
     },
+    "env": {},
 }
 task = {
     "id": "task1",
@@ -26,8 +30,8 @@ task = {
     "taskType": "DATA_SYNC",
     "status": "PUBLISHED",
     "definitionVersion": 1,
-    "parameterSchemaVersion": 2,
-    "parameters": json.dumps(params),
+    "parameterSchemaVersion": 4,
+    "parameters": params,
     "debug": False,
     "updateBy": "user1",
     "createTime": "2030-10-14T00:00:00",
@@ -154,25 +158,25 @@ async def mock(route):
             data = [{"database": "ods", "schema": "public", "name": name, "type": "TABLE"}
                     for name in names]
     elif p == "/api/v1/data-sync/schema/preview" and method == "POST":
-        details = json.loads(b["parameters"])
+        details = b["parameters"]
         state["schema_previews"] = state.get("schema_previews", 0) + 1
         data = [{
             "mappingIndex": index, "target": {"catalog": "ods", "schema": "public",
-                                              "table": item["target"]["table"]},
+                                              "table": item["table"]},
             "action": "CREATE",
             "statements": ["CREATE TABLE public." + item["target"]["table"] + " (id BIGINT PRIMARY KEY)"],
             "differences": [{
                 "column": None, "action": "CREATE_TABLE", "reason": "TABLE_MISSING",
                 "sourceType": None, "targetType": None,
             }],
-        } for index, item in enumerate(details["tableMappings"])]
+        } for index, item in enumerate(details["sink"]["tables"])]
     elif p.startswith("/api/v1/data-source/"):
         data = next((x for x in sources if x["id"] == p.rsplit("/", 1)[-1]), {})
     elif p == "/api/v1/task-definitions/page":
         data = paging([state["task"]])
     elif p == "/api/v1/task-definitions" and method == "POST":
         state["created_tasks"] += 1
-        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED", "parameterSchemaVersion": 3}
+        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED", "parameterSchemaVersion": 4}
         data = state["task"]
     elif p.startswith("/api/v1/task-definitions/"):
         if method == "PUT":
