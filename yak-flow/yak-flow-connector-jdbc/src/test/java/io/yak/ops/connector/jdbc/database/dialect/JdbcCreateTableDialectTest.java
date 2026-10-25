@@ -64,7 +64,8 @@ class JdbcCreateTableDialectTest {
         assertEquals(plan.createTableSql(), plan.statements().getFirst());
         assertTrue(plan.createTableSql().contains("`id` BIGINT NOT NULL COMMENT '主键''s id'"));
         assertTrue(plan.createTableSql().contains("`name` VARCHAR(100) NOT NULL COMMENT '订单名称'"));
-        assertTrue(plan.createTableSql().endsWith("COMMENT='订单''s table'"));
+        assertTrue(plan.createTableSql().contains("COMMENT='订单''s table'"));
+        assertTrue(plan.createTableSql().endsWith("ENGINE=InnoDB"));
     }
 
     @Test
