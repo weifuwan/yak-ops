@@ -94,20 +94,47 @@ public final class DataSyncFixture implements AutoCloseable {
                 "UPSERT");
     }
 
+    /** Builds the current public Source/Sink configuration from logical E2E table routes. */
     public Map<String, Object> parameters(String solution, List<String> steps, List<Map<String, Object>> routes) {
+        List<Map<String, Object>> sourceTables = new ArrayList<>();
+        List<Map<String, Object>> sinkTables = new ArrayList<>();
+        for (int index = 0; index < routes.size(); index++) {
+            var route = routes.get(index);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> source = (Map<String, Object>) route.get("source");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> target = (Map<String, Object>) route.get("target");
+            String input = "table-" + (index + 1);
+            Map<String, Object> read = new LinkedHashMap<>(source);
+            read.put("id", input);
+            Object chunk = read.remove("chunkKeyColumn");
+            read.remove("xa");
+            if (chunk != null) read.put("snapshot", Map.of("chunkKeyColumn", chunk));
+            if (route.containsKey("incremental")) read.put("incremental", route.get("incremental"));
+            sourceTables.add(read);
+
+            Map<String, Object> write = new LinkedHashMap<>();
+            write.put("mode", route.get("writeMode"));
+            if (target.containsKey("primaryKeys")) write.put("primaryKeys", target.get("primaryKeys"));
+            if ("RETRACT".equals(route.get("writeMode"))) {
+                write.put("transaction", Map.of("mode", "CHECKPOINT_XA"));
+            }
+            Map<String, Object> output = new LinkedHashMap<>(target);
+            output.remove("primaryKeys");
+            output.put("input", input);
+            output.put("write", write);
+            sinkTables.add(output);
+        }
+        Map<String, Object> policy = Map.of(
+                "initial", steps.contains("SCHEMA") ? "CREATE_OR_ALTER" : "VERIFY",
+                "evolution", Map.of("enabled", false, "allowDropColumns", false));
         return Map.of(
-                "solutionType",
-                solution,
-                "steps",
-                steps,
-                "source",
-                Map.of("datasourceId", sourceId),
-                "sink",
-                Map.of("datasourceId", targetId),
-                "tableSelection",
-                Map.of("mode", "EXPLICIT"),
-                "tableMappings",
-                routes);
+                "solutionType", solution,
+                "steps", steps.stream().filter(step -> !"SCHEMA".equals(step)).toList(),
+                "source", Map.of("datasourceId", sourceId, "tables", sourceTables),
+                "transform", List.of(),
+                "sink", Map.of("datasourceId", targetId, "schemaPolicy", policy, "tables", sinkTables),
+                "env", Map.of());
     }
 
     public String create(Map<String, Object> parameters, boolean publish) {
@@ -122,7 +149,7 @@ public final class DataSyncFixture implements AutoCloseable {
                                 "debug",
                                 true,
                                 "parameters",
-                                ApiClient.json(parameters)))
+                                parameters))
                 .path("id")
                 .asText();
         if (publish) api.call("POST", "/api/v1/task-definitions/" + definition + "/publish");
@@ -148,18 +175,26 @@ public final class DataSyncFixture implements AutoCloseable {
         source.execute("CREATE TABLE keyless_target "
                 + "(bucket BIGINT NOT NULL, amount DECIMAL(14,2) NULL) ENGINE=InnoDB");
         source.execute("INSERT INTO keyless_source VALUES (1,10.00),(1,10.00),(2,NULL)");
-        Map<String, Object> parameters = new LinkedHashMap<>();
-        parameters.put("solutionType", "SINGLE_TABLE_REALTIME");
-        parameters.put("steps", List.of("FULL", "INCREMENTAL"));
-        parameters.put("schemaChangesEnabled", false);
-        parameters.put("source", Map.of("datasourceId", sourceId));
-        parameters.put("sink", Map.of("datasourceId", sourceId));
-        parameters.put("tableSelection", Map.of("mode", "EXPLICIT"));
-        parameters.put("tableMappings", List.of(Map.of(
-                "source", Map.of("table", "keyless_source", "keyless", true,
-                        "chunkKeyColumn", "bucket", "xa", true),
-                "target", Map.of("table", "keyless_target"),
-                "writeMode", "RETRACT")));
+        Map<String, Object> parameters = Map.of(
+                "solutionType", "SINGLE_TABLE_REALTIME",
+                "steps", List.of("FULL", "INCREMENTAL"),
+                "source", Map.of("datasourceId", sourceId, "tables", List.of(Map.of(
+                        "id", "keyless",
+                        "table", "keyless_source",
+                        "keyless", true,
+                        "snapshot", Map.of("chunkKeyColumn", "bucket")))),
+                "transform", List.of(),
+                "sink", Map.of(
+                        "datasourceId", sourceId,
+                        "schemaPolicy", Map.of("initial", "VERIFY",
+                                "evolution", Map.of("enabled", false, "allowDropColumns", false)),
+                        "tables", List.of(Map.of(
+                                "input", "keyless",
+                                "table", "keyless_target",
+                                "write", Map.of(
+                                        "mode", "RETRACT",
+                                        "transaction", Map.of("mode", "CHECKPOINT_XA"))))),
+                "env", Map.of());
         return create(parameters, true);
     }
 
