@@ -99,7 +99,8 @@ public class DataSourceLookupServiceImpl implements DataSourceLookupService {
                     description.remarks(),
                     comments,
                     features,
-                    attributes));
+                    attributes,
+                    catalog.getUniqueKeys(selected)));
         } catch (java.sql.SQLFeatureNotSupportedException failure) {
             // Only the column identifier is allowed through the public validation boundary.
             String message = failure.getMessage();

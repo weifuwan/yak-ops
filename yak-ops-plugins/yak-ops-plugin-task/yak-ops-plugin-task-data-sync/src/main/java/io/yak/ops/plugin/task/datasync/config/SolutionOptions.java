@@ -29,6 +29,10 @@ public final class SolutionOptions {
     public static final Option<Boolean> ALLOW_DROP_COLUMNS =
             Options.key("allowDropColumns").booleanType().defaultValue(false);
 
+    /** Target-side primary-key declaration, independent of the source snapshot chunk key. */
+    public static final Option<List<String>> TARGET_PRIMARY_KEYS =
+            Options.key("primaryKeys").listType(String.class).noDefaultValue();
+
     /** Explicitly selected no-PK source. Kept separate from the Connector's physical options. */
     public static final Option<Boolean> KEYLESS =
             Options.key("keyless").booleanType().defaultValue(false);
@@ -65,6 +69,10 @@ public final class SolutionOptions {
                     Conditions.notBlank(JobOptions.TABLE).and(Conditions.matches(JobOptions.TABLE, "(?s)^.{1,128}$")))
             .optional(JobOptions.DATABASE, Conditions.matches(JobOptions.DATABASE, "(?s)^.{0,128}$"))
             .optional(JobOptions.SCHEMA, Conditions.matches(JobOptions.SCHEMA, "(?s)^.{0,128}$"))
+            .build();
+    public static final OptionRule TARGET_TABLE_RULE = OptionRule.builder()
+            .include(TABLE_RULE)
+            .optional(TARGET_PRIMARY_KEYS)
             .build();
     public static final OptionRule SOURCE_TABLE_RULE = OptionRule.builder()
             .include(TABLE_RULE)

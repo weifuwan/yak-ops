@@ -96,6 +96,11 @@ public interface JdbcCatalog extends AutoCloseable, Serializable {
      */
     boolean tableExists(TableId tableId) throws SQLException;
 
+    /** Ordered columns of enforceable, full-column unique indexes, excluding partial or expression indexes. */
+    default List<List<String>> getUniqueKeys(TableId tableId) throws SQLException {
+        return List.of();
+    }
+
     /** Releases catalog resources; built-in implementations keep no persistent connection. */
     @Override
     void close();

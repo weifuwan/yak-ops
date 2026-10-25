@@ -3,6 +3,7 @@ package io.yak.ops.plugin.datasource.api.lookup;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.ColumnProperties;
 import io.yak.ops.core.types.TableSchema;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -21,7 +22,8 @@ public record DataSourceTable(
         String tableComment,
         Map<String, String> columnComments,
         Set<String> columnFeatures,
-        Map<String, ColumnProperties> columnProperties) {
+        Map<String, ColumnProperties> columnProperties,
+        List<List<String>> uniqueKeys) {
 
     public DataSourceTable {
         Objects.requireNonNull(datasourceType, "datasourceType");
@@ -31,6 +33,16 @@ public record DataSourceTable(
         columnComments = Map.copyOf(columnComments);
         columnFeatures = Set.copyOf(columnFeatures);
         columnProperties = Map.copyOf(columnProperties);
+        uniqueKeys = uniqueKeys.stream().map(List::copyOf).toList();
+    }
+
+    /** Retains current callers that do not request unique-index metadata. */
+    public DataSourceTable(
+            String datasourceType, TableId table, TableSchema schema, long revision,
+            String tableComment, Map<String, String> columnComments,
+            Set<String> columnFeatures, Map<String, ColumnProperties> columnProperties) {
+        this(datasourceType, table, schema, revision, tableComment, columnComments,
+                columnFeatures, columnProperties, List.of());
     }
 
     /** Preserves the original metadata constructor for existing callers. */
