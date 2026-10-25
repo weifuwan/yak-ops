@@ -113,6 +113,31 @@ class MySqlXaSinkIT {
         }
     }
 
+    @Test
+    void commitAcknowledgmentLossDoesNotDuplicateTheRecoveredTransaction() throws Exception {
+        try (Connection connection = DATABASE.metadata().connect()) {
+            TableId target = table(connection);
+            create(connection, target);
+            try {
+                String owner = owner();
+                try (MySqlXaWriter writer = writer(target, owner);
+                        MySqlXaCommitter committer = committer(owner)) {
+                    writer.write(record(target, RowKind.INSERT, 4, "15.00", "one-event"), CONTEXT);
+                    var prepared = writer.prepareCommit(3);
+                    committer.commit(prepared, false);
+                    assertEquals(1, count(connection, target));
+                    // The next attempt only knows the committable from its durable checkpoint.
+                    // A missing XA XID on recovery must not execute the old DML again.
+                    committer.recover(prepared);
+                    committer.commit(prepared, true);
+                    assertEquals(1, count(connection, target));
+                }
+            } finally {
+                drop(connection, target);
+            }
+        }
+    }
+
     private static String owner() {
         return UUID.randomUUID().toString().replace("-", "");
     }
