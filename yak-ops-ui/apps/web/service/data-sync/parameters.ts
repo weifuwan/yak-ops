@@ -159,10 +159,11 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
           new Set(mapping.target.primaryKeys).size !== mapping.target.primaryKeys.length ||
           mapping.target.primaryKeys.some((key) => typeof key !== "string" || !key.trim()))) ||
       (keyless
-        ? (mapping.writeMode === "RETRACT"
-            ? mapping.source.xa !== true || mapping.target.primaryKeys !== undefined
-            : mapping.writeMode !== "UPSERT" ||
-              mapping.source.xa !== undefined || !mapping.target.primaryKeys?.length)
+        ? mapping.writeMode === "RETRACT"
+          ? mapping.source.xa !== true || mapping.target.primaryKeys !== undefined
+          : mapping.writeMode !== "UPSERT" ||
+            mapping.source.xa !== undefined ||
+            !mapping.target.primaryKeys?.length
         : mapping.source.xa !== undefined) ||
       (keyless &&
         (value.solutionType !== "SINGLE_TABLE_REALTIME" ||

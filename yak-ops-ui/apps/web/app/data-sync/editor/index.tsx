@@ -70,7 +70,9 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
       schemaChangesEnabled: value?.schemaChangesEnabled ?? draft.targetType !== "ORACLE",
       allowDropColumns: value?.allowDropColumns ?? false,
       writeMode: value?.keylessEnabled
-        ? (value.writeMode === "UPSERT" ? "UPSERT" : "RETRACT")
+        ? value.writeMode === "UPSERT"
+          ? "UPSERT"
+          : "RETRACT"
         : value?.writeMode === "UPSERT" || usesChangelog || useIncremental
           ? "UPSERT"
           : "APPEND",

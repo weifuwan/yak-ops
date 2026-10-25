@@ -95,14 +95,28 @@ for (const invalid of [
 ]) {
   assert.throws(() => readSyncParameters(3, JSON.stringify(invalid)));
 }
-const schemaKeyless = JSON.stringify({ ...JSON.parse(keyless), steps: ["SCHEMA", "FULL", "INCREMENTAL"] });
-assert.deepEqual(readSyncParameters(3, schemaKeyless).steps, ["SCHEMA", "FULL", "INCREMENTAL"]);
+const schemaKeyless = JSON.stringify({
+  ...JSON.parse(keyless),
+  steps: ["SCHEMA", "FULL", "INCREMENTAL"],
+});
+assert.deepEqual(readSyncParameters(3, schemaKeyless).steps, [
+  "SCHEMA",
+  "FULL",
+  "INCREMENTAL",
+]);
 const businessKey = createDefinitionRequest({
-  ...realtime, targetDataSourceId: "mysql-target", targetSchema: undefined,
-  keylessEnabled: true, chunkKeyColumn: "bucket", targetPrimaryKeys: ["bucket"],
-  writeMode: "UPSERT", schemaChangesEnabled: false,
+  ...realtime,
+  targetDataSourceId: "mysql-target",
+  targetSchema: undefined,
+  keylessEnabled: true,
+  chunkKeyColumn: "bucket",
+  targetPrimaryKeys: ["bucket"],
+  writeMode: "UPSERT",
+  schemaChangesEnabled: false,
 }).parameters;
-assert.deepEqual(readSyncParameters(3, businessKey).tableMappings[0].target.primaryKeys, ["bucket"]);
+assert.deepEqual(readSyncParameters(3, businessKey).tableMappings[0].target.primaryKeys, [
+  "bucket",
+]);
 assert.equal(readSyncParameters(3, businessKey).tableMappings[0].source.xa, undefined);
 const metadata = updateDefinitionRequest({ name: "renamed", remark: "remark", debug: true });
 assert.equal(metadata.parameters, undefined);
