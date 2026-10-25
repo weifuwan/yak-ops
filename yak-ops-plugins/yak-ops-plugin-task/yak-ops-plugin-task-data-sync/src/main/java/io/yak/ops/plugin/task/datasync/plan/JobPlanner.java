@@ -229,8 +229,7 @@ public final class JobPlanner {
                 }
             }
             if (sink.get(JdbcSinkOptions.XA_ENABLED)) {
-                if (!"MYSQL".equals(targetInfo.type())
-                        || !source.get(MySqlCdcSourceOptions.KEYLESS_ENABLED)) {
+                if (!"MYSQL".equals(targetInfo.type()) || !source.get(MySqlCdcSourceOptions.KEYLESS_ENABLED)) {
                     throw new IllegalArgumentException("MySQL XA requires a keyless MySQL CDC Source");
                 }
                 binding += encodePart("XA");

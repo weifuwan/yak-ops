@@ -34,8 +34,7 @@ public final class MySqlXaXid implements Xid {
     }
 
     public static MySqlXaXid next(String instanceId, int subtask, long checkpointId) {
-        if (instanceId == null || !instanceId.matches("[A-Za-z0-9_-]{1,40}")
-                || subtask < 0 || checkpointId <= 0) {
+        if (instanceId == null || !instanceId.matches("[A-Za-z0-9_-]{1,40}") || subtask < 0 || checkpointId <= 0) {
             throw new IllegalArgumentException("Invalid persistent XA instance or checkpoint identity");
         }
         byte[] owner = instanceId.getBytes(StandardCharsets.US_ASCII);
@@ -56,8 +55,7 @@ public final class MySqlXaXid implements Xid {
     public boolean belongsTo(String instanceId) {
         return Arrays.equals(
                 global,
-                (new String(PREFIX, StandardCharsets.US_ASCII) + instanceId)
-                        .getBytes(StandardCharsets.US_ASCII));
+                (new String(PREFIX, StandardCharsets.US_ASCII) + instanceId).getBytes(StandardCharsets.US_ASCII));
     }
 
     @Override

@@ -12,7 +12,6 @@ import io.yak.ops.core.api.connector.sink.SupportsCommitter;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.data.TableRecord;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -53,8 +52,8 @@ public final class MySqlXaSink implements SupportsCommitter<TableRecord, MySqlXa
         if (context.getTaskInfo().getNumberOfParallelSubtasks() != 1) {
             throw new UnsupportedOperationException("Initial MySQL XA keyless Sink requires one writer");
         }
-        return new MySqlXaWriter(connection, dialect, plan, instanceId,
-                context.getTaskInfo().getIndexOfThisSubtask());
+        return new MySqlXaWriter(
+                connection, dialect, plan, instanceId, context.getTaskInfo().getIndexOfThisSubtask());
     }
 
     @Override

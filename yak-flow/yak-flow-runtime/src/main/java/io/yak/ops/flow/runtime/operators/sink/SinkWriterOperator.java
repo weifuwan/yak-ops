@@ -7,8 +7,8 @@ import io.yak.ops.core.api.connector.sink.SchemaChangeAwareSinkWriter;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.sink.StatefulSinkWriter;
-import io.yak.ops.core.api.connector.sink.SupportsWriterState;
 import io.yak.ops.core.api.connector.sink.SupportsCommitter;
+import io.yak.ops.core.api.connector.sink.SupportsWriterState;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.api.operators.Collector;
@@ -130,7 +130,8 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
         List<Object> restored = new ArrayList<>();
         // Numbered writer state must be dense; no silent partial restore of a corrupted snapshot.
         int stateCount = (int) stateBackend.names().stream()
-                .filter(name -> name.startsWith("operator/writer-")).count();
+                .filter(name -> name.startsWith("operator/writer-"))
+                .count();
         for (int index = 0; index < stateCount; index++) {
             restored.add(stateBackend
                     .get("writer-" + index, serializer)
@@ -156,10 +157,12 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
 
     private java.util.List<Object> readCommittables(SimpleVersionedSerializer<Object> serializer) throws Exception {
         int count = (int) stateBackend.names().stream()
-                .filter(name -> name.startsWith("operator/committable-")).count();
+                .filter(name -> name.startsWith("operator/committable-"))
+                .count();
         var values = new java.util.ArrayList<Object>(count);
         for (int index = 0; index < count; index++) {
-            values.add(stateBackend.get("committable-" + index, serializer)
+            values.add(stateBackend
+                    .get("committable-" + index, serializer)
                     .orElseThrow(() -> new IllegalStateException("Incomplete restored committable state")));
         }
         return java.util.List.copyOf(values);
@@ -215,7 +218,9 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
                 throw new IllegalStateException("Too many pending XA transactions after declined checkpoints");
             }
             for (Object committable : prepared) {
-                stateBackend.put("committable-" + index++, Objects.requireNonNull(committable),
+                stateBackend.put(
+                        "committable-" + index++,
+                        Objects.requireNonNull(committable),
                         contract.getCommittableSerializer());
             }
             pendingCommitCheckpointId = checkpointId;

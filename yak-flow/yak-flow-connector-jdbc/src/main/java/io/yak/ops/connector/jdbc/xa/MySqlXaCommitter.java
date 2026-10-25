@@ -79,16 +79,14 @@ public final class MySqlXaCommitter implements Committer<MySqlXaXid> {
         try {
             XAResource resource = connection.getXAResource();
             java.util.Set<MySqlXaXid> expected = java.util.Set.copyOf(keep);
-            javax.transaction.xa.Xid[] found =
-                    resource.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
+            javax.transaction.xa.Xid[] found = resource.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
             if (found.length > 100_000) {
                 throw new IllegalStateException("MySQL XA recovery scan exceeds safety limit");
             }
             for (javax.transaction.xa.Xid foreign : found) {
                 if (foreign.getFormatId() != MySqlXaXid.FORMAT_ID) continue;
                 byte[] global = foreign.getGlobalTransactionId();
-                if (!new String(global, java.nio.charset.StandardCharsets.US_ASCII)
-                        .startsWith("yakflow-xa:")) {
+                if (!new String(global, java.nio.charset.StandardCharsets.US_ASCII).startsWith("yakflow-xa:")) {
                     continue;
                 }
                 MySqlXaXid candidate = new MySqlXaXid(global, foreign.getBranchQualifier());
