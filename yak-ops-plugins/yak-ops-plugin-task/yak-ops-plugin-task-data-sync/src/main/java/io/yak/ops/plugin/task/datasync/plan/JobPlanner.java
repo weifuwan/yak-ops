@@ -4,6 +4,7 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceOptions;
 import io.yak.ops.connector.jdbc.database.schema.SchemaChangePlan;
+import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.CreateTableEvent;
 import io.yak.ops.core.types.Column;
@@ -227,6 +228,13 @@ public final class JobPlanner {
                     binding += encodePart("keyless");
                 }
             }
+            if (sink.get(JdbcSinkOptions.XA_ENABLED)) {
+                if (!"MYSQL".equals(targetInfo.type())
+                        || !source.get(MySqlCdcSourceOptions.KEYLESS_ENABLED)) {
+                    throw new IllegalArgumentException("MySQL XA requires a keyless MySQL CDC Source");
+                }
+                binding += encodePart("XA");
+            }
             if (event != null) {
                 binding += encodePart("SCHEMA") + encodePart(event.getTableComment());
                 binding += encodeProperties(event.getColumnProperties());
@@ -243,10 +251,14 @@ public final class JobPlanner {
                         MySqlCdcSourceOptions.TOPIC_PREFIX.key(), MySqlCdcReplicationIdentity.topicPrefix(instanceId));
                 if (tables.isEmpty()) claims.add(MySqlCdcReplicationIdentity.exclusiveResource(instanceId));
             }
+            Map<String, Object> preparedSink = new LinkedHashMap<>(sink.getSourceMap());
+            if (sink.get(JdbcSinkOptions.XA_ENABLED) && instanceId != null) {
+                preparedSink.put(JdbcSinkOptions.XA_INSTANCE_ID.key(), instanceId);
+            }
             bindings.append(binding);
             tables.add(new TablePlan(
                     source,
-                    sink,
+                    ReadonlyConfig.fromMap(preparedSink),
                     from,
                     targetInfo,
                     targetTable,

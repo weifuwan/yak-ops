@@ -21,5 +21,13 @@ public final class JdbcSinkOptions {
     public static final Option<Integer> STATEMENT_CACHE_SIZE =
             Options.key("connector.jdbc.sink.statement-cache-size").intType().defaultValue(64);
 
+    /** Opt-in to XA after a versioned product configuration selection. */
+    public static final Option<Boolean> XA_ENABLED =
+            Options.key("connector.jdbc.sink.xa-enabled").booleanType().defaultValue(false);
+
+    /** Stable task Instance identity assigned by the Runtime planner, never by user input. */
+    public static final Option<String> XA_INSTANCE_ID =
+            Options.key("connector.jdbc.sink.xa-instance").stringType().noDefaultValue();
+
     private JdbcSinkOptions() {}
 }

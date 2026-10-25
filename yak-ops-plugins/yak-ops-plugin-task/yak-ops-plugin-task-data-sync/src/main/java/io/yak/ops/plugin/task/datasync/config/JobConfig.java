@@ -129,6 +129,7 @@ public final class JobConfig {
             // Public mapping controls are translated to physical Connector options below.
             input.remove(SolutionOptions.KEYLESS.key());
             input.remove(SolutionOptions.CHUNK_KEY.key());
+            input.remove(SolutionOptions.XA.key());
             input.put("datasourceId", from.get(JobOptions.DATASOURCE_ID));
             input.put("type", type.sourceIdentifier());
             Object rawKeyless = sourceTable.getSourceMap().get(SolutionOptions.KEYLESS.key());
@@ -136,6 +137,10 @@ public final class JobConfig {
                 throw new IllegalArgumentException("keyless must be a boolean");
             }
             boolean keyless = sourceTable.get(SolutionOptions.KEYLESS);
+            boolean xa = sourceTable.get(SolutionOptions.XA);
+            if (xa && !keyless) {
+                throw new IllegalArgumentException("XA product admission requires explicit keyless CDC");
+            }
             String chunkKey = sourceTable.get(SolutionOptions.CHUNK_KEY);
             JdbcWriteMode mode = table.get(JdbcSinkOptions.WRITE_MODE);
             if (keyless) {
@@ -158,6 +163,7 @@ public final class JobConfig {
             output.put("datasourceId", to.get(JobOptions.DATASOURCE_ID));
             output.put("type", "JDBC");
             output.put("writeMode", mode.name());
+            if (xa) output.put(JdbcSinkOptions.XA_ENABLED.key(), true);
             if (!sources.add(tableKey(sourceTable)) || !targets.add(tableKey(targetTable))) {
                 throw new IllegalArgumentException("Source and target tables must be unique");
             }

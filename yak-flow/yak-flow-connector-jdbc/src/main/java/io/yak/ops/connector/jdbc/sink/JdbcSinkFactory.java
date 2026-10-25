@@ -7,6 +7,7 @@ import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.base.factory.TableSinkFactory;
 import io.yak.ops.connector.base.factory.TableSinkFactoryContext;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
+import io.yak.ops.connector.jdbc.xa.MySqlXaSink;
 import io.yak.ops.connector.jdbc.database.JdbcFactoryLoader;
 import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
 import io.yak.ops.core.api.connector.sink.Sink;
@@ -26,7 +27,10 @@ public final class JdbcSinkFactory implements TableSinkFactory {
 
     @Override
     public OptionRule optionRule() {
-        return OptionRule.builder().required(JdbcSinkOptions.WRITE_MODE).build();
+        return OptionRule.builder()
+                .required(JdbcSinkOptions.WRITE_MODE)
+                .optional(JdbcSinkOptions.XA_ENABLED, JdbcSinkOptions.XA_INSTANCE_ID)
+                .build();
     }
 
     @Override
@@ -43,6 +47,9 @@ public final class JdbcSinkFactory implements TableSinkFactory {
         JdbcWriteMode mode = options.get(JdbcSinkOptions.WRITE_MODE);
         if (mode == null) {
             throw new IllegalArgumentException("JDBC Sink requires a write mode");
+        }
+        if (options.get(JdbcSinkOptions.XA_ENABLED) && mode != JdbcWriteMode.RETRACT) {
+            throw new IllegalArgumentException("JDBC XA product admission currently requires RETRACT");
         }
         if (sourceProducesChangelog && mode != JdbcWriteMode.UPSERT && mode != JdbcWriteMode.RETRACT) {
             throw new IllegalArgumentException("Changelog Source requires UPSERT or keyless RETRACT");
@@ -111,6 +118,16 @@ public final class JdbcSinkFactory implements TableSinkFactory {
         String url = connection.url();
         var connections = new DefaultJdbcConnectionProvider(connection);
         var dialect = JdbcFactoryLoader.loadDialect(url);
+        if (first.options().get(JdbcSinkOptions.XA_ENABLED)) {
+            if (contexts.size() != 1) {
+                throw new UnsupportedOperationException("MySQL XA keyless execution requires one table route");
+            }
+            String instanceId = first.options().get(JdbcSinkOptions.XA_INSTANCE_ID);
+            if (instanceId == null) {
+                throw new IllegalArgumentException("MySQL XA requires a trusted task instance identity");
+            }
+            return new MySqlXaSink(connection, dialect, plans.getFirst(), instanceId);
+        }
         return JdbcSink.builder()
                 .withConnectionProvider(connections)
                 .withDialect(dialect)

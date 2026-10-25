@@ -33,6 +33,9 @@ public final class SolutionOptions {
     public static final Option<Boolean> KEYLESS =
             Options.key("keyless").booleanType().defaultValue(false);
 
+    /** New keyless definitions explicitly opt in to XA; absent preserves historical Receipt semantics. */
+    public static final Option<Boolean> XA = Options.key("xa").booleanType().defaultValue(false);
+
     public static final Option<String> CHUNK_KEY =
             Options.key("chunkKeyColumn").stringType().noDefaultValue();
 
@@ -65,7 +68,7 @@ public final class SolutionOptions {
             .build();
     public static final OptionRule SOURCE_TABLE_RULE = OptionRule.builder()
             .include(TABLE_RULE)
-            .optional(KEYLESS, CHUNK_KEY)
+            .optional(KEYLESS, CHUNK_KEY, XA)
             .build();
 
     private SolutionOptions() {}
