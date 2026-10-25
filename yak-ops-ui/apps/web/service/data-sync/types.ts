@@ -128,12 +128,14 @@ export interface DataSyncParameters {
   steps: Array<"FULL" | "INCREMENTAL">;
   source: {
     datasourceId: string;
-    tables: Array<DataSyncTablePath & {
-      id: string;
-      keyless?: boolean;
-      snapshot?: { chunkKeyColumn: string };
-      incremental?: DataSyncIncrementalConfig;
-    }>;
+    tables: Array<
+      DataSyncTablePath & {
+        id: string;
+        keyless?: boolean;
+        snapshot?: { chunkKeyColumn: string };
+        incremental?: DataSyncIncrementalConfig;
+      }
+    >;
   };
   transform: [];
   sink: {
@@ -142,14 +144,16 @@ export interface DataSyncParameters {
       initial: "VERIFY" | "CREATE_OR_ALTER";
       evolution: { enabled: boolean; allowDropColumns: boolean };
     };
-    tables: Array<DataSyncTablePath & {
-      input: string;
-      write: {
-        mode: DataSyncWriteMode;
-        primaryKeys?: string[];
-        transaction?: { mode: "CHECKPOINT_XA" };
-      };
-    }>;
+    tables: Array<
+      DataSyncTablePath & {
+        input: string;
+        write: {
+          mode: DataSyncWriteMode;
+          primaryKeys?: string[];
+          transaction?: { mode: "CHECKPOINT_XA" };
+        };
+      }
+    >;
   };
   env: Record<string, never>;
 }
