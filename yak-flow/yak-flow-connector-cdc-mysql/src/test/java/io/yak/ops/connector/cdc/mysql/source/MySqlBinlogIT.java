@@ -114,7 +114,7 @@ class MySqlBinlogIT {
         MySqlBinlogSplit checkpoint;
         try (SourceReader<TableRecord, MySqlBinlogSplit> reader = createReader(source, null)) {
             // Bootstrap captures table schemas but no table rows, then starts the Binlog stream.
-            awaitReplicationConnection();
+            awaitReaderReady(reader);
             execute(password, "INSERT INTO orders VALUES(1, 'first')");
             execute(password, "INSERT INTO items VALUES(10, 'item')");
             receive(reader, firstEvents, 2, Duration.ofSeconds(45));
@@ -145,7 +145,7 @@ class MySqlBinlogIT {
 
         List<TableRecord> recoveredEvents = new ArrayList<>();
         try (SourceReader<TableRecord, MySqlBinlogSplit> reader = createReader(source, checkpoint)) {
-            awaitReplicationConnection();
+            awaitReaderReady(reader);
             execute(password, "UPDATE orders SET NAME='changed' WHERE ID=1");
             execute(password, "DELETE FROM items WHERE ID=10");
             receive(reader, recoveredEvents, 3, Duration.ofSeconds(45));
@@ -191,7 +191,7 @@ class MySqlBinlogIT {
                 .build();
 
         try (SourceReader<TableRecord, MySqlBinlogSplit> reader = createReader(source, null)) {
-            awaitReplicationConnection();
+            awaitReaderReady(reader);
             execute(password, "INSERT INTO orders VALUES (110, 'same'), (111, 'same'), (112, 'same')");
             List<TableRecord> rows = new ArrayList<>();
             receive(reader, rows, 3, Duration.ofSeconds(45));
@@ -215,19 +215,35 @@ class MySqlBinlogIT {
         }
     }
 
-    private static void awaitReplicationConnection() throws Exception {
+    /** The owning Reader must have consumed the post-bootstrap heartbeat before test DML.
+     *
+     * <p>A server-wide SHOW PROCESSLIST Binlog Dump belongs to an arbitrary replication
+     * client and is not evidence that this Reader has finished its schema snapshot.
+     */
+    private static void awaitReaderReady(SourceReader<TableRecord, MySqlBinlogSplit> reader) throws Exception {
         long deadline = System.nanoTime() + Duration.ofSeconds(60).toNanos();
         while (System.nanoTime() < deadline) {
-            try (Connection connection = DATABASE_RESOURCE.metadata().connect();
-                    var statement = connection.createStatement();
-                    var rows = statement.executeQuery("SHOW PROCESSLIST")) {
-                while (rows.next()) {
-                    if (rows.getString("Command").startsWith("Binlog Dump")) return;
+            if (reader.pollNext(record -> {
+                throw new AssertionError("Unexpected row before first test mutation: " + record.tableId());
+            }) == InputStatus.END_OF_INPUT) {
+                throw new AssertionError("Unbounded Binlog Reader ended during bootstrap");
+            }
+            try {
+                List<MySqlBinlogSplit> splits = reader.snapshotState(0L);
+                if (splits.size() == 1
+                        && splits.getFirst().offset() != null
+                        && splits.getFirst().schemaHistory().length > 0) {
+                    return;
+                }
+            } catch (IllegalStateException notReady) {
+                if (notReady.getMessage() == null
+                        || !notReady.getMessage().contains("no complete offset/schema-history checkpoint")) {
+                    throw notReady;
                 }
             }
-            java.util.concurrent.TimeUnit.MILLISECONDS.sleep(100);
+            Thread.sleep(50);
         }
-        throw new AssertionError("CDC replication connection did not become ready");
+        throw new AssertionError("Own MySQL CDC Reader did not complete no-data bootstrap");
     }
 
     private static SourceReader<TableRecord, MySqlBinlogSplit> createReader(

@@ -203,7 +203,7 @@ class MySqlKeylessBackfillIT {
     }
 
     @Test
-    void publicSourceStillCannotStartKeylessBinlogOrHybridExecution() {
+    void binlogOnlyRemainsClosedButHybridSourceIsAdmitted() {
         String table = name("closed_");
         TableId id = new TableId("yak_cdc_it", null, table);
         var config = config(Map.of(id, SCHEMA), Map.of(id, "bucket"), 6761);
@@ -219,7 +219,9 @@ class MySqlKeylessBackfillIT {
         assertEquals(config.schemas(), source.config().schemas());
         assertThrows(UnsupportedOperationException.class, () -> source.createEnumerator(null));
         assertThrows(UnsupportedOperationException.class, () -> source.restoreEnumerator(null, null));
-        assertThrows(IllegalArgumentException.class, () -> source.initialSnapshot(10));
+        assertEquals(
+                io.yak.ops.core.api.connector.source.Boundedness.CONTINUOUS_UNBOUNDED,
+                source.initialSnapshot(10).getBoundedness());
     }
 
     private static MySqlCdcSourceConfig config(
