@@ -126,6 +126,9 @@ public final class JobConfig {
             validate(targetTable, SolutionOptions.TABLE_RULE, "tableMappings.target");
             requireEmptyTransforms(parameters);
             Map<String, Object> input = new LinkedHashMap<>(sourceTable.getSourceMap());
+            // Public mapping controls are translated to physical Connector options below.
+            input.remove(SolutionOptions.KEYLESS.key());
+            input.remove(SolutionOptions.CHUNK_KEY.key());
             input.put("datasourceId", from.get(JobOptions.DATASOURCE_ID));
             input.put("type", type.sourceIdentifier());
             Object rawKeyless = sourceTable.getSourceMap().get(SolutionOptions.KEYLESS.key());
