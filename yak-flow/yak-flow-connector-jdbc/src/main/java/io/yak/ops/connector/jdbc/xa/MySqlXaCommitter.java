@@ -13,8 +13,9 @@ import javax.transaction.xa.XAResource;
  * Transactional MySQL XA committer. Only XIDs scoped to the configured persistent instance
  * may be committed. No retry of ambiguous XA results is performed by this component.
  *
- * <p>Conservative missing-XID behavior intentionally fails closed: without an independently
- * durable decision, XAER_NOTA cannot prove whether a transaction committed or was rolled back.
+ * <p>Only a recovered committable from a durable checkpoint may treat XAER_NOTA as
+ * an already acknowledged completion, matching Flink JDBC's restored-transaction boundary.
+ * A fresh missing XID is always a hard failure.
  */
 public final class MySqlXaCommitter implements Committer<MySqlXaXid> {
 
@@ -44,8 +45,53 @@ public final class MySqlXaCommitter implements Committer<MySqlXaXid> {
             XAResource resource = connection.getXAResource();
             for (MySqlXaXid xid : committables) {
                 // Prepared transactions may outlive the writer connection on supported MySQL.
-                // XAER_NOTA cannot be assumed equivalent to a successful commit.
-                resource.commit(xid, false);
+                try {
+                    resource.commit(xid, false);
+                } catch (XAException failure) {
+                    if (!recovered || failure.errorCode != XAException.XAER_NOTA) {
+                        throw failure;
+                    }
+                }
+            }
+        } catch (SQLException | XAException | RuntimeException error) {
+            failure = error;
+            throw error;
+        } finally {
+            try {
+                connection.close();
+            } catch (SQLException closeError) {
+                if (failure != null) failure.addSuppressed(closeError);
+                else throw closeError;
+            }
+        }
+    }
+
+    @Override
+    public void recover(Collection<MySqlXaXid> keep) throws SQLException, XAException {
+        Objects.requireNonNull(keep, "restored committables");
+        for (MySqlXaXid xid : keep) {
+            if (xid == null || !xid.belongsTo(instanceId)) {
+                throw new IllegalArgumentException("Recovered XA state belongs to a different task");
+            }
+        }
+        XAConnection connection = dataSource.getXAConnection();
+        Throwable failure = null;
+        try {
+            XAResource resource = connection.getXAResource();
+            java.util.Set<MySqlXaXid> expected = java.util.Set.copyOf(keep);
+            javax.transaction.xa.Xid[] found =
+                    resource.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
+            if (found.length > 100_000) {
+                throw new IllegalStateException("MySQL XA recovery scan exceeds safety limit");
+            }
+            for (javax.transaction.xa.Xid foreign : found) {
+                if (foreign.getFormatId() != MySqlXaXid.FORMAT_ID) continue;
+                MySqlXaXid candidate = new MySqlXaXid(
+                        foreign.getGlobalTransactionId(), foreign.getBranchQualifier());
+                if (candidate.belongsTo(instanceId) && !expected.contains(candidate)) {
+                    // Never touch prepared transactions of another persistent task instance.
+                    resource.rollback(candidate);
+                }
             }
         } catch (SQLException | XAException | RuntimeException error) {
             failure = error;

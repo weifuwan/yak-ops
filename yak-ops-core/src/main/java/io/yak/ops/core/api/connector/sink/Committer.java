@@ -13,6 +13,13 @@ public interface Committer<CommT> extends AutoCloseable {
      */
     void commit(Collection<CommT> committables, boolean recovered) throws Exception;
 
+    /**
+     * Reconciles abandoned prepared transactions when restoring a task. Only transactions
+     * provably owned by this task may be rolled back; keep lists the committables in the
+     * latest successfully persisted checkpoint.
+     */
+    default void recover(Collection<CommT> keep) throws Exception {}
+
     @Override
     void close() throws Exception;
 }

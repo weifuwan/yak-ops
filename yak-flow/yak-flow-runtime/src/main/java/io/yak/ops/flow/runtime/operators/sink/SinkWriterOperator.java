@@ -146,6 +146,7 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
         var serializer = Objects.requireNonNull(contract.getCommittableSerializer(), "Committable serializer");
         committer = Objects.requireNonNull(contract.createCommitter(context), "Sink committer");
         var restored = readCommittables(serializer);
+        committer.recover(restored);
         if (!restored.isEmpty()) {
             // Only durable checkpoint committables reach the restored writer.
             committer.commit(restored, true);
