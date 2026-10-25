@@ -43,7 +43,14 @@ assert.equal(created.taskType, "DATA_SYNC");
 assert.equal(created.debug, true);
 assert.equal(typeof created.parameters, "object");
 assert.equal(json.debug, undefined);
-assert.deepEqual(Object.keys(json), ["solutionType", "steps", "source", "transform", "sink", "env"]);
+assert.deepEqual(Object.keys(json), [
+  "solutionType",
+  "steps",
+  "source",
+  "transform",
+  "sink",
+  "env",
+]);
 assert.deepEqual(json.steps, ["FULL", "INCREMENTAL"]);
 assert.deepEqual(json.transform, []);
 assert.deepEqual(json.env, {});
@@ -98,30 +105,36 @@ assert.throws(() => readSyncParameters(3, keyless));
 assert.throws(() => readSyncParameters(2, keyless));
 assert.throws(() => parseSyncParameters(4, "{"));
 assert.throws(() => readSyncParameters(4, { ...keyless, tableMappings: [] }));
-assert.throws(() => readSyncParameters(4, {
-  ...keyless,
-  source: { ...keyless.source, tables: [{ ...keyless.source.tables[0], xa: true }] },
-}));
-assert.throws(() => readSyncParameters(4, {
-  ...keyless,
-  sink: {
-    ...keyless.sink,
-    tables: keyless.sink.tables.map((table) => ({
-      ...table,
-      write: { mode: "RETRACT" },
-    })),
-  },
-}));
-assert.throws(() => readSyncParameters(4, {
-  ...keyless,
-  sink: {
-    ...keyless.sink,
-    schemaPolicy: {
-      ...keyless.sink.schemaPolicy,
-      evolution: { enabled: true, allowDropColumns: false },
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...keyless,
+    source: { ...keyless.source, tables: [{ ...keyless.source.tables[0], xa: true }] },
+  }),
+);
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...keyless,
+    sink: {
+      ...keyless.sink,
+      tables: keyless.sink.tables.map((table) => ({
+        ...table,
+        write: { mode: "RETRACT" },
+      })),
     },
-  },
-}));
+  }),
+);
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...keyless,
+    sink: {
+      ...keyless.sink,
+      schemaPolicy: {
+        ...keyless.sink.schemaPolicy,
+        evolution: { enabled: true, allowDropColumns: false },
+      },
+    },
+  }),
+);
 const upsertKeyless = createDefinitionRequest({
   ...realtime,
   keylessEnabled: true,
@@ -133,16 +146,18 @@ const upsertKeyless = createDefinitionRequest({
 assert.deepEqual(upsertKeyless.sink.tables[0].write.primaryKeys, ["bucket"]);
 assert.equal(upsertKeyless.sink.tables[0].write.transaction, undefined);
 assert.equal(upsertKeyless.source.tables[0].snapshot.chunkKeyColumn, "bucket");
-assert.throws(() => validateSyncParameters({
-  ...upsertKeyless,
-  sink: {
-    ...upsertKeyless.sink,
-    tables: upsertKeyless.sink.tables.map((table) => ({
-      ...table,
-      write: { ...table.write, primaryKeys: ["bucket", "bucket"] },
-    })),
-  },
-}));
+assert.throws(() =>
+  validateSyncParameters({
+    ...upsertKeyless,
+    sink: {
+      ...upsertKeyless.sink,
+      tables: upsertKeyless.sink.tables.map((table) => ({
+        ...table,
+        write: { ...table.write, primaryKeys: ["bucket", "bucket"] },
+      })),
+    },
+  }),
+);
 
 const prepared = createDefinitionRequest({
   ...offline,
@@ -151,26 +166,35 @@ const prepared = createDefinitionRequest({
 assert.deepEqual(prepared.steps, ["FULL"]);
 assert.equal(prepared.sink.schemaPolicy.initial, "CREATE_OR_ALTER");
 assert.deepEqual(displaySyncSteps(prepared), ["SCHEMA", "FULL"]);
-assert.throws(() => readSyncParameters(4, {
-  ...prepared,
-  steps: ["SCHEMA", "FULL"],
-}));
-assert.throws(() => readSyncParameters(4, {
-  ...prepared,
-  steps: ["INCREMENTAL"],
-}));
-assert.throws(() => readSyncParameters(4, {
-  ...prepared,
-  env: { "execution.debug": true },
-}));
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...prepared,
+    steps: ["SCHEMA", "FULL"],
+  }),
+);
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...prepared,
+    steps: ["INCREMENTAL"],
+  }),
+);
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...prepared,
+    env: { "execution.debug": true },
+  }),
+);
 const metadata = updateDefinitionRequest({ name: "rename", remark: "remark", debug: false });
 assert.equal("parameters" in metadata, false);
 assert.equal(updateDefinitionRequest(offline).parameters.source.tables[0].table, "orders");
-assert.deepEqual(definitionPageRequest({
-  pageNo: 1,
-  pageSize: 20,
-  solutionType: "DATABASE_REALTIME",
-}).parameterFilters, { solutionType: "DATABASE_REALTIME" });
+assert.deepEqual(
+  definitionPageRequest({
+    pageNo: 1,
+    pageSize: 20,
+    solutionType: "DATABASE_REALTIME",
+  }).parameterFilters,
+  { solutionType: "DATABASE_REALTIME" },
+);
 
 const incremental = {
   mode: "TIMESTAMP",
@@ -187,20 +211,24 @@ const offlineIncremental = createDefinitionRequest({
 }).parameters;
 assert.deepEqual(offlineIncremental.source.tables[0].incremental, incremental);
 assert.equal(offlineIncremental.sink.tables[0].write.mode, "UPSERT");
-assert.throws(() => readSyncParameters(4, {
-  ...offlineIncremental,
-  source: {
-    ...offlineIncremental.source,
-    tables: [{ ...offlineIncremental.source.tables[0], incremental: undefined }],
-  },
-}));
-assert.throws(() => readSyncParameters(4, {
-  ...offlineIncremental,
-  sink: {
-    ...offlineIncremental.sink,
-    tables: [{ ...offlineIncremental.sink.tables[0], write: { mode: "APPEND" } }],
-  },
-}));
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...offlineIncremental,
+    source: {
+      ...offlineIncremental.source,
+      tables: [{ ...offlineIncremental.source.tables[0], incremental: undefined }],
+    },
+  }),
+);
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...offlineIncremental,
+    sink: {
+      ...offlineIncremental.sink,
+      tables: [{ ...offlineIncremental.sink.tables[0], write: { mode: "APPEND" } }],
+    },
+  }),
+);
 
 const batch = createDefinitionRequest({
   ...offline,
@@ -223,27 +251,36 @@ assert.equal(batch.sink.tables.length, 2);
 assert.equal(batch.source.tables[1].table, "users");
 assert.equal(batch.sink.tables[1].input, batch.source.tables[1].id);
 assert.equal(toSyncTaskRecord({ ...record, parameters: batch }).tableMappings.length, 2);
-assert.throws(() => readSyncParameters(4, {
-  ...batch,
-  solutionType: "SINGLE_TABLE_OFFLINE",
-}));
-assert.throws(() => readSyncParameters(4, {
-  ...batch,
-  sink: {
-    ...batch.sink,
-    tables: [batch.sink.tables[0], { ...batch.sink.tables[1], input: "table-1" }],
-  },
-}));
-assert.throws(() => readSyncParameters(4, {
-  ...batch,
-  sink: {
-    ...batch.sink,
-    tables: [batch.sink.tables[0], {
-      ...batch.sink.tables[1],
-      table: batch.sink.tables[0].table,
-    }],
-  },
-}));
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...batch,
+    solutionType: "SINGLE_TABLE_OFFLINE",
+  }),
+);
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...batch,
+    sink: {
+      ...batch.sink,
+      tables: [batch.sink.tables[0], { ...batch.sink.tables[1], input: "table-1" }],
+    },
+  }),
+);
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...batch,
+    sink: {
+      ...batch.sink,
+      tables: [
+        batch.sink.tables[0],
+        {
+          ...batch.sink.tables[1],
+          table: batch.sink.tables[0].table,
+        },
+      ],
+    },
+  }),
+);
 
 const page = projectSyncTaskPage({
   bizData: [
@@ -334,4 +371,3 @@ assert.equal(readExecutionReport(JSON.stringify(restored), 2).generation, 2);
 console.log(
   "Database realtime parameters, stage summaries, restored and invalid observation contracts passed",
 );
-
