@@ -37,14 +37,14 @@ class MultiTableBatchContractTest {
             assertEquals(SolutionType.DATABASE_OFFLINE, job.solutionType());
             assertEquals(count, job.tables().size());
             assertTrue(plugin.supportsScheduling(parsed));
-            assertEquals(parsed, plugin.parse(3, ConfigParser.toJson(parsed)));
+            assertEquals(parsed, plugin.parse(4, ConfigParser.toJson(parsed)));
             plugin.validateReferences(parsed, new DataSyncTaskPluginContractTest.Metadata());
             plugin.validate(parsed, new DataSyncTaskPluginContractTest.Metadata());
         }
         assertThrows(TaskPluginException.class, () -> plugin.parse(json(0)));
         assertThrows(TaskPluginException.class, () -> plugin.parse(json(101)));
         assertThrows(TaskPluginException.class, () -> plugin.parse(json(2).replace("DATABASE_OFFLINE", "SINGLE_TABLE_OFFLINE")));
-        assertThrows(TaskPluginException.class, () -> plugin.parse(json(2).replace("EXPLICIT", "RULES")));
+        assertThrows(TaskPluginException.class, () -> plugin.parse(json(2).replace("\"env\":{}", "\"env\":{\"bad\":true}")));
     }
 
     @Test
@@ -263,16 +263,25 @@ class MultiTableBatchContractTest {
     }
 
     private static String json(int count) {
-        List<Map<String, Object>> tables = new ArrayList<>();
-        for (int index = 0; index < count; index++) tables.add(Map.of(
-                "source", Map.of("table", "orders" + index), "target", Map.of("table", "copy" + index), "writeMode", "UPSERT"));
+        List<Map<String, Object>> sources = new ArrayList<>();
+        List<Map<String, Object>> sinks = new ArrayList<>();
+        for (int index = 0; index < count; index++) {
+            String id = "route" + index;
+            sources.add(Map.of("id", id, "table", "orders" + index));
+            sinks.add(Map.of("input", id, "table", "copy" + index, "write", Map.of("mode", "UPSERT")));
+        }
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("solutionType", "DATABASE_OFFLINE");
         values.put("steps", List.of("FULL"));
-        values.put("source", Map.of("datasourceId", "source"));
-        values.put("sink", Map.of("datasourceId", "target"));
-        values.put("tableSelection", Map.of("mode", "EXPLICIT"));
-        values.put("tableMappings", tables);
+        values.put("source", Map.of("datasourceId", "source", "tables", sources));
+        values.put("transform", List.of());
+        values.put("sink", Map.of(
+                "datasourceId", "target",
+                "schemaPolicy", Map.of("initial", "VERIFY",
+                        "evolution", Map.of("enabled", false, "allowDropColumns", false)),
+                "tables", sinks));
+        values.put("env", Map.of());
         return JSONUtils.toJson(values);
     }
+
 }
