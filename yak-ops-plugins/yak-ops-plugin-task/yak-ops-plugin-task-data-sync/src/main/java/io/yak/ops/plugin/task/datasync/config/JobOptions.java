@@ -11,13 +11,6 @@ import java.util.Map;
 /** Persisted DATA_SYNC job keys and shared Connector endpoint identity. */
 public final class JobOptions {
 
-    public static final Option<Map<String, Object>> SOURCE =
-            Options.key("source").mapObjectType().noDefaultValue();
-    public static final Option<Map<String, Object>> SINK =
-            Options.key("sink").mapObjectType().noDefaultValue();
-    public static final Option<List<Object>> TRANSFORM =
-            Options.key("transform").listType(Object.class).defaultValue(List.of());
-
     public static final Option<String> TYPE = Options.key("type").stringType().noDefaultValue();
     public static final Option<String> DATASOURCE_ID =
             Options.key("datasourceId").stringType().noDefaultValue();
@@ -26,9 +19,6 @@ public final class JobOptions {
     public static final Option<String> SCHEMA =
             Options.key("schema").stringType().noDefaultValue();
     public static final Option<String> TABLE = Options.key("table").stringType().noDefaultValue();
-
-    public static final OptionRule PIPELINE_RULE =
-            OptionRule.builder().required(SOURCE, SINK).optional(TRANSFORM).build();
 
     public static final OptionRule ENDPOINT_RULE = OptionRule.builder()
             .required(TYPE, Conditions.notBlank(TYPE))
