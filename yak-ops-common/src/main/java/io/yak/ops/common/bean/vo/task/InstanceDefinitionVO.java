@@ -7,4 +7,4 @@ public record InstanceDefinitionVO(
         String name,
         String taskType,
         int parameterSchemaVersion,
-        String parameters) {}
+        @JsonRawValue String parameters) {}
