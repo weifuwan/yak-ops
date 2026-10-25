@@ -99,10 +99,7 @@ const schemaKeyless = JSON.stringify({
   ...JSON.parse(keyless),
   steps: ["SCHEMA", "FULL", "INCREMENTAL"],
 });
-assert.deepEqual(
-  readSyncParameters(3, schemaKeyless).steps,
-  ["SCHEMA", "FULL", "INCREMENTAL"],
-);
+assert.deepEqual(readSyncParameters(3, schemaKeyless).steps, ["SCHEMA", "FULL", "INCREMENTAL"]);
 const businessKey = createDefinitionRequest({
   ...realtime,
   targetDataSourceId: "mysql-target",
