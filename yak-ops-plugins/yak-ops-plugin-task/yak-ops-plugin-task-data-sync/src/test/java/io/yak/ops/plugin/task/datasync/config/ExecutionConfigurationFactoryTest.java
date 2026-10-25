@@ -14,6 +14,7 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceOptions;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -106,6 +107,19 @@ class ExecutionConfigurationFactoryTest {
         assertNotEquals(first, next);
         assertEquals(false, factory.create(nextInstance, Boundedness.CONTINUOUS_UNBOUNDED, false).get(CheckpointingOptions.RESTORE_LATEST));
     }
+    @Test
+    void resumedInstanceLoadsItsOwnCheckpointButNewInstancesDoNot() throws Exception {
+        ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(JobOptions.defaults(), stateRoot);
+        Path checkpoint = Files.createDirectories(stateRoot.resolve(FIRST.instanceId())).resolve("checkpoint.bin");
+        Files.createFile(checkpoint);
+        // The runtime validates the actual checkpoint bytes and rejects an invalid snapshot.
+        assertEquals(true, factory.create(FIRST, Boundedness.CONTINUOUS_UNBOUNDED, false)
+                .get(CheckpointingOptions.RESTORE_LATEST));
+        TaskExecutionIdentity newInstance = new TaskExecutionIdentity("ws", "definition", 1, "instance-101");
+        assertEquals(false, factory.create(newInstance, Boundedness.CONTINUOUS_UNBOUNDED, false)
+                .get(CheckpointingOptions.RESTORE_LATEST));
+    }
+
     @Test
     void rejectsUnsafeInstanceIdentifiers() {
         ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(JobOptions.defaults(), stateRoot);
