@@ -170,7 +170,8 @@ const incrementalOnlyPayload = params.buildEditorPayload(
   [],
   false,
 );
-const incrementalOnlyParameters = transport.createDefinitionRequest(incrementalOnlyPayload).parameters;
+const incrementalOnlyParameters =
+  transport.createDefinitionRequest(incrementalOnlyPayload).parameters;
 assert.equal(incrementalOnlyParameters.source.tables[0].incremental.column, "updated_at");
 const fullOnlyPayload = params.buildEditorPayload(
   offlineForm,
