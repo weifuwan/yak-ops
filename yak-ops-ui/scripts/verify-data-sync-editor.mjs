@@ -107,10 +107,7 @@ assert.equal(
   }),
   true,
 );
-assert.equal(
-  params.canSaveEditor({ ...options, form: { ...form, writeMode: "RETRACT" } }),
-  false,
-);
+assert.equal(params.canSaveEditor({ ...options, form: { ...form, writeMode: "RETRACT" } }), false);
 assert.equal(params.canSaveEditor({ ...options, published: true }), false);
 assert.equal(
   params.canSaveEditor({ ...options, supportsScheduling: true, scheduleNeedsReload: true }),

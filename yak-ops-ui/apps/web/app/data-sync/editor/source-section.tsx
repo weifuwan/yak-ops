@@ -177,9 +177,7 @@ export function SourceSection({
                   </div>
                 </Field>
               ) : null}
-              {columnsError && form.keylessEnabled ? (
-                <Alert>来源字段加载失败</Alert>
-              ) : null}
+              {columnsError && form.keylessEnabled ? <Alert>来源字段加载失败</Alert> : null}
             </>
           ) : null}
           {useIncremental ? (

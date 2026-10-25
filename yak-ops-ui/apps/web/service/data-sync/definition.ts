@@ -17,9 +17,7 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
         database: task.sourceDatabase,
         schema: task.sourceSchema,
         table: task.sourceTable,
-        ...(task.keylessEnabled
-          ? { keyless: true, chunkKeyColumn: task.chunkKeyColumn }
-          : {}),
+        ...(task.keylessEnabled ? { keyless: true, chunkKeyColumn: task.chunkKeyColumn } : {}),
       },
       target: { database: task.targetDatabase, schema: task.targetSchema, table: task.targetTable },
       writeMode: task.writeMode,
