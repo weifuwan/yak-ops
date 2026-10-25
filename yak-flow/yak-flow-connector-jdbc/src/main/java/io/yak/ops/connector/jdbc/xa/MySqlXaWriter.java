@@ -37,6 +37,7 @@ public final class MySqlXaWriter implements CommittingSinkWriter<TableRecord, My
     private MySqlXaXid xid;
     private long transactionSequence;
     private int pendingRows;
+    private boolean targetValidated;
     private boolean stopped;
 
     public MySqlXaWriter(
@@ -59,7 +60,7 @@ public final class MySqlXaWriter implements CommittingSinkWriter<TableRecord, My
         if (resource == null) begin();
         var detached = statements.snapshot(Objects.requireNonNull(element, "element"));
         statements.addToBatch(detached);
-        if (++pendingRows >= 500) flush(false);
+        if (++pendingRows >= 500 && statements.canAutomaticallyFlush()) flush(false);
     }
 
     @Override
@@ -103,7 +104,10 @@ public final class MySqlXaWriter implements CommittingSinkWriter<TableRecord, My
         try {
             jdbc = xaConnection.getConnection();
             requireDetachedXa(jdbc);
-            JdbcKeylessTargetValidator.validate(jdbc, plan);
+            if (!targetValidated) {
+                JdbcKeylessTargetValidator.validate(jdbc, plan);
+                targetValidated = true;
+            }
             statements = new TableChangelogStatementExecutor(dialect, List.of(plan), 64);
             statements.prepareStatements(jdbc);
             resource = xaConnection.getXAResource();
