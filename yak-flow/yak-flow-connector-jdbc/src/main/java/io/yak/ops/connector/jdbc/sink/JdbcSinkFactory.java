@@ -57,9 +57,7 @@ public final class JdbcSinkFactory implements TableSinkFactory {
         }
         validate(options, sourceProducesChangelog);
         JdbcSinkSchemaValidator.validate(
-                source,
-                target,
-                options.get(JdbcSinkOptions.WRITE_MODE) == JdbcWriteMode.UPSERT);
+                source, target, options.get(JdbcSinkOptions.WRITE_MODE) == JdbcWriteMode.UPSERT);
     }
 
     @Override
