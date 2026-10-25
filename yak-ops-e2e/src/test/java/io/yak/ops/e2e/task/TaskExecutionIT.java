@@ -100,7 +100,7 @@ class TaskExecutionIT extends BackendTestBase {
                 Map.of(
                         "name", "renamed-task",
                         "debug", false,
-                        "parameters", io.yak.ops.e2e.support.ApiClient.json(replacement)));
+                        "parameters", replacement));
         assertTrue(updated.path("definitionVersion").asInt() > old.path("version").asInt());
         fixture.api.call("POST", "/api/v1/task-definitions/" + definition + "/publish");
         String next = fixture.submit(definition);
