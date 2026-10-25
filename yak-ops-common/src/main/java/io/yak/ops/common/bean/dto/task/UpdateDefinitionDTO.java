@@ -28,5 +28,4 @@ public class UpdateDefinitionDTO {
     public void readParameters(JsonNode parameters) {
         this.parameters = TaskParameterJson.requiredObject(parameters);
     }
-
 }
