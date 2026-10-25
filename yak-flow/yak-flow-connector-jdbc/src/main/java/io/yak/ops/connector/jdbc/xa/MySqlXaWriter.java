@@ -36,6 +36,7 @@ public final class MySqlXaWriter implements CommittingSinkWriter<TableRecord, My
     private TableChangelogStatementExecutor statements;
     private MySqlXaXid xid;
     private long transactionSequence;
+    private int pendingRows;
     private boolean stopped;
 
     public MySqlXaWriter(
@@ -58,6 +59,7 @@ public final class MySqlXaWriter implements CommittingSinkWriter<TableRecord, My
         if (resource == null) begin();
         var detached = statements.snapshot(Objects.requireNonNull(element, "element"));
         statements.addToBatch(detached);
+        if (++pendingRows >= 500) flush(false);
     }
 
     @Override
@@ -69,6 +71,7 @@ public final class MySqlXaWriter implements CommittingSinkWriter<TableRecord, My
         if (resource != null) {
             statements.requireCompleteUpdate();
             statements.executeBatch();
+            pendingRows = 0;
         }
     }
 

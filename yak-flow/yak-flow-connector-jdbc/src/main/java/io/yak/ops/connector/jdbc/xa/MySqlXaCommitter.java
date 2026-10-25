@@ -86,8 +86,12 @@ public final class MySqlXaCommitter implements Committer<MySqlXaXid> {
             }
             for (javax.transaction.xa.Xid foreign : found) {
                 if (foreign.getFormatId() != MySqlXaXid.FORMAT_ID) continue;
-                MySqlXaXid candidate = new MySqlXaXid(
-                        foreign.getGlobalTransactionId(), foreign.getBranchQualifier());
+                byte[] global = foreign.getGlobalTransactionId();
+                if (!new String(global, java.nio.charset.StandardCharsets.US_ASCII)
+                        .startsWith("yakflow-xa:")) {
+                    continue;
+                }
+                MySqlXaXid candidate = new MySqlXaXid(global, foreign.getBranchQualifier());
                 if (candidate.belongsTo(instanceId) && !expected.contains(candidate)) {
                     // Never touch prepared transactions of another persistent task instance.
                     resource.rollback(candidate);

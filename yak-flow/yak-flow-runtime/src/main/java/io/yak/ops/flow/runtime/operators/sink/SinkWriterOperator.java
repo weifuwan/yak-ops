@@ -208,8 +208,12 @@ public final class SinkWriterOperator<T> implements OneInputStreamOperator<T, Vo
             java.util.Collection<Object> prepared =
                     ((CommittingSinkWriter<T, Object>) committingWriter).prepareCommit(checkpointId);
             Objects.requireNonNull(prepared, "Prepared committables");
-            stateBackend.removeByPrefix("committable-");
-            int index = 0;
+            // A declined checkpoint does not rewind the running Source. Its prepared
+            // transactions must survive into the next checkpoint, or rows would be lost.
+            int index = readCommittables(contract.getCommittableSerializer()).size();
+            if (index + prepared.size() > 1_000) {
+                throw new IllegalStateException("Too many pending XA transactions after declined checkpoints");
+            }
             for (Object committable : prepared) {
                 stateBackend.put("committable-" + index++, Objects.requireNonNull(committable),
                         contract.getCommittableSerializer());
