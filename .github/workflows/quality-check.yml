@@ -66,10 +66,6 @@ jobs:
         run: |
           python3 scripts/ci/test_logging_rules.py
           python3 scripts/verify_logging_rules.py
-      - name: Diagnose Java formatting of Data Sync contract
-        run: |
-          bash mvnw -B -ntp -pl yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync spotless:apply
-          python3 -c 'import json,pathlib; p=pathlib.Path("yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync/src/main/java/io/yak/ops/plugin/task/datasync/config"); [(print("FORMAT_JAVA:"+f.name+":"+json.dumps(f.read_text(), ensure_ascii=False))) for f in [p/"JobConfig.java",p/"SourceConfig.java",p/"SinkConfig.java"]]'
       - name: Verify changed Maven modules and upstream dependencies
         env:
           CI_MODULES: ${{ needs.scope.outputs.modules }}
