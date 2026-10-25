@@ -57,7 +57,7 @@ export const previewDataSyncSchema = (
 ): Promise<DataSyncSchemaPreview[]> =>
   HttpUtils.postData<DataSyncSchemaPreview[]>(
     "/api/v1/data-sync/schema/preview",
-    { parameters: JSON.stringify(buildSyncParameters(payload)) },
+    { parameters: buildSyncParameters(payload) },
     { signal },
   );
 
