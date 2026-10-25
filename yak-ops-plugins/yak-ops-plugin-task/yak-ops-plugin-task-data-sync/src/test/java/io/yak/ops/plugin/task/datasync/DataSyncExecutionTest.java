@@ -421,15 +421,21 @@ class DataSyncExecutionTest {
     }
 
     private static ReadonlyConfig parameters(boolean cdc) {
-        String type = cdc ? "MYSQL_CDC" : "JDBC";
-        String writeMode = cdc ? "UPSERT" : "APPEND";
+        String solution = cdc ? "SINGLE_TABLE_REALTIME" : "SINGLE_TABLE_OFFLINE";
+        String steps = cdc ? "[\"FULL\",\"INCREMENTAL\"]" : "[\"FULL\"]";
+        String mode = cdc ? "UPSERT" : "APPEND";
         return ConfigParser.parseJson("""
                 {
-                  "source": {"type":"%s","datasourceId":"source","table":"orders"},
-                  "transform": [],
-                  "sink": {"type":"JDBC","datasourceId":"target","table":"ods_orders","writeMode":"%s"}
+                  "solutionType":"%s",
+                  "steps":%s,
+                  "source":{"datasourceId":"source","tables":[{"id":"orders","table":"orders"}]},
+                  "transform":[],
+                  "sink":{"datasourceId":"target",
+                          "schemaPolicy":{"initial":"VERIFY","evolution":{"enabled":false,"allowDropColumns":false}},
+                          "tables":[{"input":"orders","table":"ods_orders","write":{"mode":"%s"}}]},
+                  "env":{}
                 }
-                """.formatted(type, writeMode));
+                """.formatted(solution, steps, mode));
     }
 
     private static ReadonlyConfig runtimeOptions(
