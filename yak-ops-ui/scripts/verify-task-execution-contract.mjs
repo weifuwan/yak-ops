@@ -18,18 +18,30 @@ const version = {
   version: 2,
   name: "orders",
   taskType: "DATA_SYNC",
-  parameterSchemaVersion: 2,
-  parameters: JSON.stringify({
-    source: { type: "MYSQL_CDC", datasourceId: "mysql-source", table: "orders" },
+  parameterSchemaVersion: 4,
+  parameters: {
+    solutionType: "SINGLE_TABLE_REALTIME",
+    steps: ["FULL", "INCREMENTAL"],
+    source: {
+      datasourceId: "mysql-source",
+      tables: [{ id: "orders", table: "orders" }],
+    },
     transform: [],
     sink: {
-      type: "JDBC",
       datasourceId: "pg-target",
-      schema: "public",
-      table: "ods_orders",
-      writeMode: "UPSERT",
+      schemaPolicy: {
+        initial: "VERIFY",
+        evolution: { enabled: false, allowDropColumns: false },
+      },
+      tables: [{
+        input: "orders",
+        schema: "public",
+        table: "ods_orders",
+        write: { mode: "UPSERT" },
+      }],
     },
-  }),
+    env: {},
+  },
 };
 const instance = {
   id: "instance-1",
@@ -101,6 +113,7 @@ assert.equal(
 );
 
 assert.throws(() => toDataSyncInstanceRecord(instance, { ...version, version: 3 }));
+assert.throws(() => toDataSyncInstanceRecord(instance, { ...version, parameterSchemaVersion: 2 }));
 assert.throws(() => toDataSyncInstanceRecord({ ...instance, taskType: "UNKNOWN" }, version));
 
 console.log("Task Execution frontend contract checks passed");
