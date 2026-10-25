@@ -3,19 +3,19 @@ package io.yak.ops.connector.jdbc.database.internal.catalog;
 import io.yak.ops.connector.jdbc.database.catalog.AbstractJdbcCatalog;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.PreparedStatement;
 import io.yak.ops.core.data.TableId;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.sql.SQLException;
-import java.util.LinkedHashSet;
-import java.util.List;
 
 /**
  * MySQL uses JDBC catalogs as database namespaces and has no separate schema namespace.

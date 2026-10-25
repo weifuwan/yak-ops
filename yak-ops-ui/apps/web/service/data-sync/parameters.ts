@@ -147,6 +147,19 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
   const targets = new Set<string>();
   for (const mapping of value.tableMappings) {
     const keyless = mapping?.source?.keyless === true;
+    const validRetract =
+      keyless &&
+      mapping.writeMode === "RETRACT" &&
+      mapping.source.xa === true &&
+      mapping.target.primaryKeys === undefined;
+    const validKeyedWrite =
+      keyless &&
+      mapping.writeMode === "UPSERT" &&
+      mapping.source.xa === undefined &&
+      Boolean(mapping.target.primaryKeys?.length);
+    const invalidTransaction = keyless
+      ? !validRetract && !validKeyedWrite
+      : mapping.source.xa !== undefined;
     if (
       (mapping?.source?.keyless !== undefined && typeof mapping.source.keyless !== "boolean") ||
       (mapping?.source?.chunkKeyColumn !== undefined &&
@@ -158,13 +171,7 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
           mapping.target.primaryKeys.length === 0 ||
           new Set(mapping.target.primaryKeys).size !== mapping.target.primaryKeys.length ||
           mapping.target.primaryKeys.some((key) => typeof key !== "string" || !key.trim()))) ||
-      (keyless
-        ? mapping.writeMode === "RETRACT"
-          ? mapping.source.xa !== true || mapping.target.primaryKeys !== undefined
-          : mapping.writeMode !== "UPSERT" ||
-            mapping.source.xa !== undefined ||
-            !mapping.target.primaryKeys?.length
-        : mapping.source.xa !== undefined) ||
+      invalidTransaction ||
       (keyless &&
         (value.solutionType !== "SINGLE_TABLE_REALTIME" ||
           value.schemaChangesEnabled !== false ||
@@ -177,7 +184,8 @@ export function readSyncParameters(schemaVersion: number, content: string): Data
       !WRITES.has(mapping.writeMode) ||
       ((solutionSyncType(value.solutionType) === "REALTIME" ||
         offlineIncremental(value.solutionType, value.steps)) &&
-        (mapping.writeMode !== "UPSERT" && !(keyless && mapping.writeMode === "RETRACT"))) ||
+        mapping.writeMode !== "UPSERT" &&
+        !(keyless && mapping.writeMode === "RETRACT")) ||
       (offlineIncremental(value.solutionType, value.steps)
         ? !validIncrementalConfig(mapping.incremental, !value.steps.includes("FULL"))
         : mapping.incremental !== undefined)
