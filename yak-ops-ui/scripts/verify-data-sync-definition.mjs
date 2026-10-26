@@ -177,7 +177,8 @@ assert.throws(() =>
     },
   }),
 );
-const { schemaPolicy: omittedPolicy, ...sinkWithoutPolicy } = prepared.sink;
+const sinkWithoutPolicy = { ...prepared.sink };
+delete sinkWithoutPolicy.schemaPolicy;
 assert.throws(() => readSyncParameters(4, { ...prepared, sink: sinkWithoutPolicy }));
 assert.deepEqual(displaySyncSteps(prepared), ["SCHEMA", "FULL"]);
 assert.throws(() =>
