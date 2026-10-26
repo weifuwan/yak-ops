@@ -125,9 +125,7 @@ async def verify_partial_task_save(page):
     assert state["created_tasks"] == 0
     await page.reload()
     await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("Partial save")
-    for index, name in enumerate(["MySQL source", "PostgreSQL target"]):
-        await page.locator("#datasource").get_by_role("combobox").nth(index).click()
-        await page.get_by_role("option", name=name, exact=True).click()
+    await pick_datasources(page)
     await page.locator("#source").get_by_role("combobox").click()
     await page.get_by_role("option", name="orders", exact=True).click()
     await page.locator("#target").get_by_role("combobox").first.click()
@@ -174,8 +172,8 @@ async def prepare_database_task(page, kind):
 
 
 async def pick_datasources(page):
-    for index, name in enumerate(("MySQL source", "PostgreSQL target")):
-        await pick_option(page, page.locator("#datasource").get_by_role("combobox").nth(index), name)
+    for label, name in (("来源数据源", "MySQL source"), ("目标数据源", "PostgreSQL target")):
+        await pick_option(page, page.get_by_role("combobox", name=label, exact=True), name)
 
 
 async def verify_multitable_mapping(page):

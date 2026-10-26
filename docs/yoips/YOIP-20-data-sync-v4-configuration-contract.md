@@ -48,26 +48,38 @@ This is a **proposed V4 fixture**, not accepted by the current V3 endpoint:
 ```json
 {
   "solutionType": "SINGLE_TABLE_REALTIME",
-  "steps": ["FULL", "INCREMENTAL"],
+  "steps": [
+    "FULL",
+    "INCREMENTAL"
+  ],
   "source": {
     "datasourceId": "mysql-source",
     "tables": [
-      { "id": "orders", "database": "app", "table": "orders" }
+      {
+        "id": "orders",
+        "database": "app",
+        "table": "orders"
+      }
     ]
   },
   "transform": [],
   "sink": {
     "datasourceId": "pg-target",
+    "schemaPolicy": {
+      "initial": "VERIFY",
+      "evolution": {
+        "enabled": true,
+        "allowDropColumns": false
+      }
+    },
     "tables": [
       {
         "input": "orders",
         "database": "ods",
         "schema": "public",
         "table": "ods_orders",
-        "write": { "mode": "UPSERT" },
-        "schemaPolicy": {
-          "initial": "VERIFY",
-          "evolution": { "enabled": true, "allowDropColumns": false }
+        "write": {
+          "mode": "UPSERT"
         }
       }
     ]
@@ -88,11 +100,11 @@ For supported offline incremental jobs, `source.tables[].incremental` owns `mode
 
 ### Sink-owned fields
 
-`sink.datasourceId` is required. `sink.tables` is a nonempty array. Each entry requires `input` referencing **exactly one** `source.tables[].id`, target `table` and optional `database`/`schema`, `write`, and `schemaPolicy`. V4 initially requires a bijection between source-table IDs and sink inputs: no fan-out, merge, duplicate source binding, or duplicate physical target, and no implicit table discovery.
+`sink.datasourceId` is required. `sink.tables` is a nonempty array. Each entry requires `input` referencing **exactly one** `source.tables[].id`, target `table` and optional `database`/`schema`, and `write`. The Sink object itself requires exactly one `sink.schemaPolicy` shared by all routes; per-table schema policies are not accepted. V4 initially requires a bijection between source-table IDs and sink inputs: no fan-out, merge, duplicate source binding, or duplicate physical target, and no implicit table discovery.
 
 `write.mode` uses implemented `APPEND`, `UPSERT`, or `RETRACT` options, subject to solution and physical target capability. Optional `write.primaryKeys` explicitly declares the target write identity; it is **not** the snapshot Chunk Key and must pass target-side physical schema/non-null/uniqueness admission. When omitted, the planner uses verified physical target metadata. An explicit `transaction.mode: "CHECKPOINT_XA"` in `write` is required for the supported keyless `RETRACT` protocol; it is not permitted on unrelated modes. The associated XA JDBC options and instance identity are generated on the Sink physical boundary, never under Source. This declaration pins transaction intent; no execution path is allowed to silently upgrade a stored protocol.
 
-`schemaPolicy.initial` is one of `VERIFY` (target already exists and is checked) or `CREATE_OR_ALTER` (explicit initial schema preparation under existing safety checks). `schemaPolicy.evolution.enabled` and `schemaPolicy.evolution.allowDropColumns` are required booleans. DROP COLUMN requires evolution enabled and the existing supported source/target dialect capabilities. The initial preparation policy is distinct from the ongoing Schema Change Event application policy. Initial `CREATE_OR_ALTER` requires the `FULL` data step, matching the current schema-preparation admission; no schema-only or incremental-only DDL is unlocked. Until the Planner supports genuinely independent per-route schema preparation/evolution, the validator requires the corresponding policy to be consistent across all tables in the job; the nested location does not promise per-route runtime capability.
+`schemaPolicy.initial` is one of `VERIFY` (target already exists and is checked) or `CREATE_OR_ALTER` (explicit initial schema preparation under existing safety checks). `schemaPolicy.evolution.enabled` and `schemaPolicy.evolution.allowDropColumns` are required booleans. DROP COLUMN requires evolution enabled and the existing supported source/target dialect capabilities. The initial preparation policy is distinct from the ongoing Schema Change Event application policy. Initial `CREATE_OR_ALTER` requires the `FULL` data step, matching the current schema-preparation admission; no schema-only or incremental-only DDL is unlocked. The first V4 release uses one Sink-wide policy for every target table. Independent per-route schema preparation/evolution is not supported and per-table policy overrides must be rejected.
 
 ### Environment and REST transport
 
@@ -106,17 +118,41 @@ The **proposed V4 HTTP representation** is a structured JSON object under `param
   "taskType": "DATA_SYNC",
   "parameters": {
     "solutionType": "SINGLE_TABLE_REALTIME",
-    "steps": ["FULL", "INCREMENTAL"],
-    "source": { "datasourceId": "mysql-source", "tables": [
-      { "id": "orders", "database": "app", "table": "orders" }
-    ] },
+    "steps": [
+      "FULL",
+      "INCREMENTAL"
+    ],
+    "source": {
+      "datasourceId": "mysql-source",
+      "tables": [
+        {
+          "id": "orders",
+          "database": "app",
+          "table": "orders"
+        }
+      ]
+    },
     "transform": [],
-    "sink": { "datasourceId": "pg-target", "tables": [
-      { "input": "orders", "schema": "public", "table": "ods_orders",
-        "write": { "mode": "UPSERT" },
-        "schemaPolicy": { "initial": "VERIFY",
-          "evolution": { "enabled": true, "allowDropColumns": false } } }
-    ] },
+    "sink": {
+      "datasourceId": "pg-target",
+      "schemaPolicy": {
+        "initial": "VERIFY",
+        "evolution": {
+          "enabled": true,
+          "allowDropColumns": false
+        }
+      },
+      "tables": [
+        {
+          "input": "orders",
+          "schema": "public",
+          "table": "ods_orders",
+          "write": {
+            "mode": "UPSERT"
+          }
+        }
+      ]
+    },
     "env": {}
   }
 }
@@ -153,36 +189,49 @@ Full offline multi-table fixture (the `source.tables[].id`/`sink.tables[].input`
 ```json
 {
   "solutionType": "DATABASE_OFFLINE",
-  "steps": ["FULL"],
+  "steps": [
+    "FULL"
+  ],
   "source": {
     "datasourceId": "mysql-source",
     "tables": [
-      { "id": "customers", "database": "crm", "table": "customers" },
-      { "id": "orders", "database": "crm", "table": "orders" }
+      {
+        "id": "customers",
+        "database": "crm",
+        "table": "customers"
+      },
+      {
+        "id": "orders",
+        "database": "crm",
+        "table": "orders"
+      }
     ]
   },
   "transform": [],
   "sink": {
     "datasourceId": "pg-target",
+    "schemaPolicy": {
+      "initial": "CREATE_OR_ALTER",
+      "evolution": {
+        "enabled": false,
+        "allowDropColumns": false
+      }
+    },
     "tables": [
       {
         "input": "customers",
         "schema": "public",
         "table": "ods_customers",
-        "write": { "mode": "APPEND" },
-        "schemaPolicy": {
-          "initial": "CREATE_OR_ALTER",
-          "evolution": { "enabled": false, "allowDropColumns": false }
+        "write": {
+          "mode": "APPEND"
         }
       },
       {
         "input": "orders",
         "schema": "public",
         "table": "ods_orders",
-        "write": { "mode": "APPEND" },
-        "schemaPolicy": {
-          "initial": "CREATE_OR_ALTER",
-          "evolution": { "enabled": false, "allowDropColumns": false }
+        "write": {
+          "mode": "APPEND"
         }
       }
     ]
@@ -203,21 +252,31 @@ Keyless Source and explicit target write identity (a selected subset of a V4 job
         "database": "app",
         "table": "events",
         "keyless": true,
-        "snapshot": { "chunkKeyColumn": "event_id" }
+        "snapshot": {
+          "chunkKeyColumn": "event_id"
+        }
       }
     ]
   },
   "sink": {
     "datasourceId": "mysql-target",
+    "schemaPolicy": {
+      "initial": "VERIFY",
+      "evolution": {
+        "enabled": false,
+        "allowDropColumns": false
+      }
+    },
     "tables": [
       {
         "input": "events",
         "database": "ods",
         "table": "events_copy",
-        "write": { "mode": "UPSERT", "primaryKeys": ["event_id"] },
-        "schemaPolicy": {
-          "initial": "VERIFY",
-          "evolution": { "enabled": false, "allowDropColumns": false }
+        "write": {
+          "mode": "UPSERT",
+          "primaryKeys": [
+            "event_id"
+          ]
         }
       }
     ]
@@ -249,7 +308,7 @@ The first V4 activation preserves already implemented solution capabilities:
 | `SINGLE_TABLE_REALTIME` | One explicit route | `FULL`, `INCREMENTAL` together | Changelog-aware `UPSERT`; supported keyless variants only with verified identity/protocol |
 | `DATABASE_REALTIME` | Multiple explicit one-to-one routes | `FULL`, `INCREMENTAL` together | Current destination dialect and keyless restrictions remain; no new per-table transaction claims |
 
-Schema preparation is requested by `sink.tables[].schemaPolicy.initial`, **not** a second `SCHEMA` value in `steps`. The execution report may still show a derived SCHEMA stage. The current product capability catalog determines which selections are legal; unsupported combinations must fail closed instead of falling back to offline or a less reliable write.
+Schema preparation is requested by `sink.schemaPolicy.initial`, **not** a second `SCHEMA` value in `steps`. The execution report may still show a derived SCHEMA stage. The current product capability catalog determines which selections are legal; unsupported combinations must fail closed instead of falling back to offline or a less reliable write.
 
 ### Source, Sink and Env ownership
 
@@ -260,7 +319,7 @@ Schema preparation is requested by `sink.tables[].schemaPolicy.initial`, **not**
 | Offline incremental range | `source.tables[].incremental` | Offline incremental planner, JDBC Source |
 | Target table and explicit write identity | `sink.tables[].table`, `.write.primaryKeys` | Target metadata validator, JDBC Sink |
 | Write mode and transaction semantics | `sink.tables[].write` | JDBC Sink writer/committer with Checkpoint |
-| Initial/ongoing schema handling | `sink.tables[].schemaPolicy` | Schema planner/applier/coordinator |
+| Initial/ongoing schema handling | `sink.schemaPolicy` | Schema planner/applier/coordinator |
 | Physical mode, parallelism and checkpoint | Not writable in V4 `env` | Task execution configuration and YakFlow Runtime |
 | Schedule/Cron, debug, task name, Instance identity | Outside V4 parameters | Task platform and Schedule |
 

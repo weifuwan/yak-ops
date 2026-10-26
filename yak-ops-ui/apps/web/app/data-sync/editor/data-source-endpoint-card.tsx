@@ -58,6 +58,7 @@ export function DataSourceEndpointCard({
           <FieldLabel required>数据源</FieldLabel>
           <DataSyncSearchableSelect
             value={dataSourceId || null}
+            ariaLabel={title}
             options={dataSourceOptions}
             placeholder="请选择数据源"
             searchPlaceholder="搜索数据源"

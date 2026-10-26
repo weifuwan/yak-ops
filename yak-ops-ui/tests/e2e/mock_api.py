@@ -164,7 +164,7 @@ async def mock(route):
             "mappingIndex": index, "target": {"catalog": "ods", "schema": "public",
                                               "table": item["table"]},
             "action": "CREATE",
-            "statements": ["CREATE TABLE public." + item["target"]["table"] + " (id BIGINT PRIMARY KEY)"],
+            "statements": ["CREATE TABLE public." + item["table"] + " (id BIGINT PRIMARY KEY)"],
             "differences": [{
                 "column": None, "action": "CREATE_TABLE", "reason": "TABLE_MISSING",
                 "sourceType": None, "targetType": None,
@@ -181,7 +181,7 @@ async def mock(route):
     elif p.startswith("/api/v1/task-definitions/"):
         if method == "PUT":
             state["updated_tasks"] += 1
-            state["task"] = {**state["task"], **b, **({"parameterSchemaVersion": 3} if "parameters" in b else {})}
+            state["task"] = {**state["task"], **b, **({"parameterSchemaVersion": 4} if "parameters" in b else {})}
         data = state["task"]
     elif p == "/api/v1/task-instances/latest":
         data = (

@@ -238,7 +238,7 @@ const upsertParameters = transport.createDefinitionRequest({
   targetPrimaryKeys: ["bucket"],
 }).parameters;
 assert.equal(upsertParameters.sink.tables[0].write.transaction, undefined);
-assert.deepEqual(upsertParameters.sink.tables[0].write.primaryKeys, ["bucket"]);
+assert.deepEqual(Array.from(upsertParameters.sink.tables[0].write.primaryKeys), ["bucket"]);
 
 const options = {
   published: false,

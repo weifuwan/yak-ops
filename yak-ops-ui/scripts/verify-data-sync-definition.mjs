@@ -165,6 +165,20 @@ const prepared = createDefinitionRequest({
 }).parameters;
 assert.deepEqual(prepared.steps, ["FULL"]);
 assert.equal(prepared.sink.schemaPolicy.initial, "CREATE_OR_ALTER");
+assert.throws(() =>
+  readSyncParameters(4, {
+    ...prepared,
+    sink: {
+      ...prepared.sink,
+      tables: prepared.sink.tables.map((table) => ({
+        ...table,
+        schemaPolicy: prepared.sink.schemaPolicy,
+      })),
+    },
+  }),
+);
+const { schemaPolicy: omittedPolicy, ...sinkWithoutPolicy } = prepared.sink;
+assert.throws(() => readSyncParameters(4, { ...prepared, sink: sinkWithoutPolicy }));
 assert.deepEqual(displaySyncSteps(prepared), ["SCHEMA", "FULL"]);
 assert.throws(() =>
   readSyncParameters(4, {
