@@ -290,6 +290,7 @@ export function TableMappingEditor({
         <div className="w-44">
           <DataSyncSearchableSelect
             value={null}
+            ariaLabel="批量设置写入方式"
             placeholder="批量设置写入方式"
             disabled={writeModes.length < 2}
             options={writeOptions}
