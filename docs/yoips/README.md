@@ -12,7 +12,7 @@ YOIPs record **long-lived architectural decisions** for significant subsystems, 
 | YOIP-4 | [Schedule Lifecycle and Quartz Integration](YOIP-4-schedule-lifecycle-quartz.md) | Accepted |
 | YOIP-5 | [Data Integration Synchronization Model](YOIP-5-data-integration-sync-product-model.md) | Accepted |
 | YOIP-6 | [MySQL Chunk Backfill and Durable Snapshot Output](YOIP-6-mysql-chunk-backfill-checkpoints.md) | Discussion (implementation merged) |
-| YOIP-20 | [Data Sync V4 Component-Owned Configuration Contract](YOIP-20-data-sync-v4-configuration-contract.md) | Discussion |
+| YOIP-20 | [Data Sync V4 Component-Owned Configuration Contract](YOIP-20-data-sync-v4-configuration-contract.md) | Accepted |
 
 YOIP-3 retains the original document's Accepted label, but no independent decision permalink was included in that historical record. YOIP-6 remains Discussion even though its implementation PR was merged. Merging implementation code or passing CI does not substitute for a design decision.
 
