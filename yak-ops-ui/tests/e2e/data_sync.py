@@ -126,9 +126,9 @@ async def verify_partial_task_save(page):
     await page.reload()
     await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("Partial save")
     await pick_datasources(page)
-    await page.locator("#source").get_by_role("combobox").click()
+    await page.locator("#source").get_by_role("combobox", name="表", exact=True).click()
     await page.get_by_role("option", name="orders", exact=True).click()
-    await page.locator("#target").get_by_role("combobox").first.click()
+    await page.locator("#target").get_by_role("combobox", name="表", exact=True).click()
     await page.get_by_role("option", name="public.ods_orders", exact=True).click()
     await configure_cron(page, "0 0 6 * * ?")
     await page.get_by_role("button", name="保存", exact=True).click()
@@ -196,7 +196,7 @@ async def verify_multitable_mapping(page):
         page,
         page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?batch_b$")),
         re.compile(r"(.*\.)?batch_b_copy$"))
-    await pick_option(page, page.locator("#target").get_by_role("combobox").first, "按主键更新")
+    await pick_option(page, page.locator("#target").get_by_role("combobox", name="批量设置写入方式", exact=True), "按主键更新")
     await page.reload()
     await expect(page.get_by_text("已选 2 / 100", exact=True)).to_be_visible()
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
@@ -329,7 +329,7 @@ async def verify_realtime_stages(page):
         await pick_option(page,
                           page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?" + table + r"$")),
                           re.compile(r"(.*\.)?" + table + r"_copy$"))
-    await expect(page.locator("#target").get_by_role("combobox").first).to_be_disabled()
+    await expect(page.locator("#target").get_by_role("combobox", name="批量设置写入方式", exact=True)).to_be_disabled()
     await expect(page.locator("#schedule")).to_have_count(0)
     await page.reload()
     await expect(page.get_by_text("已选 2 / 100", exact=True)).to_be_visible()
