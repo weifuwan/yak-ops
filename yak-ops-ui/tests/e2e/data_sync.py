@@ -172,8 +172,8 @@ async def prepare_database_task(page, kind):
 
 
 async def pick_datasources(page):
-    for label, name in (("来源数据源", "MySQL source"), ("目标数据源", "PostgreSQL target")):
-        await pick_option(page, page.get_by_role("combobox", name=label, exact=True), name)
+    for section, name in (("#source", "MySQL source"), ("#target", "PostgreSQL target")):
+        await pick_option(page, page.locator(section).get_by_role("combobox", name="数据源", exact=True), name)
 
 
 async def verify_multitable_mapping(page):
