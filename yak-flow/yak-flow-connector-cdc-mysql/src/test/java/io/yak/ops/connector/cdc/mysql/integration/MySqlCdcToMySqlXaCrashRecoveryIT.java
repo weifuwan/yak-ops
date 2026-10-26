@@ -194,7 +194,7 @@ class MySqlCdcToMySqlXaCrashRecoveryIT {
             throws Exception {
         String cp = System.getProperty("surefire.test.class.path");
         if (cp == null || cp.isBlank()) cp = System.getProperty("java.class.path");
-        String java = Path.of(
+        String executable = Path.of(
                         System.getProperty("java.home"),
                         "bin",
                         System.getProperty("os.name").toLowerCase(java.util.Locale.ROOT).contains("win")
@@ -202,7 +202,7 @@ class MySqlCdcToMySqlXaCrashRecoveryIT {
                                 : "java")
                 .toString();
         ProcessBuilder process = new ProcessBuilder(
-                        java,
+                        executable,
                         "-cp",
                         cp,
                         MySqlCdcXaCrashRecoveryProcess.class.getName(),
