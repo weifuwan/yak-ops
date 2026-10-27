@@ -229,7 +229,7 @@ public final class MySqlSplitReader implements SplitReader<MySqlFetchedRecord, M
             }
             try {
                 byte[] current = active.snapshotHistory();
-                if (current.length == 0) {
+                if (current.length == 0 && standalone == null) {
                     throw new IllegalStateException("Active MySQL Binlog has no schema history");
                 }
                 history = current;

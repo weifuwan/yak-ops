@@ -79,7 +79,6 @@ public final class MySqlSource implements Source<TableRecord, MySqlSplit, Pendin
         if (options.startupMode() != StartupMode.LATEST_OFFSET) {
             throw new UnsupportedOperationException("MySQL Binlog Source requires latest-offset startup");
         }
-        requirePhysicalPrimaryKeys(config);
         config.schemas().keySet().forEach(metrics::register);
         return new MySqlSource(options, config, 0, fingerprint(config), metrics);
     }
@@ -128,12 +127,14 @@ public final class MySqlSource implements Source<TableRecord, MySqlSplit, Pendin
     @Override
     public SplitEnumerator<MySqlSplit, PendingSplitsState> createEnumerator(
             SplitEnumeratorContext<MySqlSplit> context) {
+        if (startupOptions.startupMode() != StartupMode.INITIAL) requirePhysicalPrimaryKeys(config);
         return createEnumerator(context, null);
     }
 
     @Override
     public SplitEnumerator<MySqlSplit, PendingSplitsState> restoreEnumerator(
             SplitEnumeratorContext<MySqlSplit> context, PendingSplitsState checkpointState) {
+        if (startupOptions.startupMode() != StartupMode.INITIAL) requirePhysicalPrimaryKeys(config);
         return createEnumerator(context, Objects.requireNonNull(checkpointState, "checkpointState"));
     }
 
@@ -146,6 +147,7 @@ public final class MySqlSource implements Source<TableRecord, MySqlSplit, Pendin
     @Override
     public SourceReader<TableRecord, MySqlSplit> createReader(SourceReaderContext context) {
         boolean initial = startupOptions.startupMode() == StartupMode.INITIAL;
+        if (!initial) requirePhysicalPrimaryKeys(config);
         if (!initial && (context.currentParallelism() != 1 || context.getIndexOfSubtask() != 0)) {
             throw new IllegalArgumentException("Stream-only MySQL CDC requires one SourceReader");
         }
