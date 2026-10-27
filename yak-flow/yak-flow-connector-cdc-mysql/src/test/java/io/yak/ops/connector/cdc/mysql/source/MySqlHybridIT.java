@@ -250,7 +250,9 @@ class MySqlHybridIT {
                 plans.add(new JdbcTableWritePlan(from, to, schema,
                         keyless ? JdbcWriteMode.RETRACT : JdbcWriteMode.UPSERT));
             }
-            source = (MySqlHybridCdcSource) new MySqlCdcSourceFactory().createSource(contexts);
+            var selected = assertInstanceOf(MySqlSource.class, new MySqlCdcSourceFactory().createSource(contexts));
+            assertEquals(StartupMode.INITIAL, selected.startupMode());
+            source = assertInstanceOf(MySqlHybridCdcSource.class, selected.delegate());
         }
         private String source(int i) { return prefix + "_s" + i; }
         private String target(int i) { return prefix + "_t" + i; }
