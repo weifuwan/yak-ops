@@ -17,6 +17,7 @@ import io.yak.ops.connector.jdbc.source.reader.JdbcSourceSplitReader;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.api.connector.source.InputStatus;
 import io.yak.ops.core.api.connector.source.ReaderInfo;
+import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.connector.source.SplitsAssignment;
@@ -251,6 +252,11 @@ class JdbcSourceProjectionReliabilityTest {
 
         @Override
         public Map<Integer, ReaderInfo> registeredReaders() { return Map.of(0, new ReaderInfo(0, "")); }
+
+        @Override
+        public void sendEventToSourceReader(int subtaskId, SourceEvent event) {
+            throw new UnsupportedOperationException("SourceEvent transport is not used by this test");
+        }
 
         @Override
         public SplitEnumeratorMetricGroup metricGroup() {
