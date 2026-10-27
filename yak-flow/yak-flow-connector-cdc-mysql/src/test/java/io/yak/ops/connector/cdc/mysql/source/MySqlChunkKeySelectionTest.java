@@ -1,10 +1,5 @@
 package io.yak.ops.connector.cdc.mysql.source;
 
-import io.yak.ops.core.api.connector.source.ReaderInfo;
-import io.yak.ops.core.api.connector.source.SplitsAssignment;
-import io.yak.ops.core.api.metrics.Gauge;
-import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -21,7 +16,11 @@ import io.yak.ops.connector.cdc.mysql.source.utils.ChunkUtils;
 import io.yak.ops.connector.cdc.mysql.table.MySqlCdcSourceFactory;
 import io.yak.ops.connector.cdc.mysql.table.StartupMode;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
+import io.yak.ops.core.api.connector.source.ReaderInfo;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
+import io.yak.ops.core.api.connector.source.SplitsAssignment;
+import io.yak.ops.core.api.metrics.Gauge;
+import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalTypes;
