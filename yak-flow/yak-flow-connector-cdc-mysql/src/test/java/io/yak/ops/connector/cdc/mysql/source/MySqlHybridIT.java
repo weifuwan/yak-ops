@@ -1,20 +1,15 @@
 package io.yak.ops.connector.cdc.mysql.source;
 
-import io.yak.ops.core.api.connector.source.ReaderInfo;
-import io.yak.ops.core.api.connector.source.SplitsAssignment;
-import io.yak.ops.core.api.metrics.Gauge;
-import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.connector.base.factory.TableSourceFactoryContext;
 import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.cdc.mysql.source.assigners.state.MySqlHybridEnumeratorState;
-import io.yak.ops.connector.cdc.mysql.source.config.MySqlCdcSourceOptions;
-import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplit;
 import io.yak.ops.connector.cdc.mysql.source.assigners.state.PendingSplitsState;
+import io.yak.ops.connector.cdc.mysql.source.config.MySqlCdcSourceOptions;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit;
+import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplit;
 import io.yak.ops.connector.cdc.mysql.table.MySqlCdcSourceFactory;
 import io.yak.ops.connector.cdc.mysql.table.StartupMode;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
@@ -23,11 +18,15 @@ import io.yak.ops.connector.jdbc.internal.JdbcOutputFormat;
 import io.yak.ops.connector.jdbc.sink.JdbcTableWritePlan;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
 import io.yak.ops.core.api.connector.source.InputStatus;
+import io.yak.ops.core.api.connector.source.ReaderInfo;
 import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.api.connector.source.SourceReader;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
+import io.yak.ops.core.api.connector.source.SplitsAssignment;
+import io.yak.ops.core.api.metrics.Gauge;
+import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableId;
