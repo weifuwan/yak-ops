@@ -1,10 +1,5 @@
 package io.yak.ops.connector.cdc.mysql.source;
 
-import io.yak.ops.core.api.connector.source.ReaderInfo;
-import io.yak.ops.core.api.connector.source.SplitsAssignment;
-import io.yak.ops.core.api.metrics.Gauge;
-import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,10 +11,14 @@ import io.yak.ops.connector.cdc.mysql.source.config.MySqlCdcSourceConfig;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplit;
 import io.yak.ops.core.api.connector.source.InputStatus;
+import io.yak.ops.core.api.connector.source.ReaderInfo;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.core.api.connector.source.SourceReader;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
+import io.yak.ops.core.api.connector.source.SplitsAssignment;
+import io.yak.ops.core.api.metrics.Gauge;
+import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
 import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
