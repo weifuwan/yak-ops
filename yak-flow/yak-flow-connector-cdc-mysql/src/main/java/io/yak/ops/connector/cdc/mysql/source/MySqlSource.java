@@ -52,8 +52,10 @@ public final class MySqlSource<SplitT extends SourceSplit, StateT>
     static MySqlSource<?, ?> create(
             MySqlCdcSourceBuilder builder, StartupMode startupMode, int snapshotChunkSize, TableMetrics metrics) {
         Objects.requireNonNull(startupMode, "startupMode");
-        MySqlCdcSource binlog = Objects.requireNonNull(builder, "builder")
-                .build(Objects.requireNonNull(metrics, "metrics"));
+        Objects.requireNonNull(metrics, "metrics");
+        // Match the existing Hybrid builder: its Binlog definition does not own task metrics.
+        TableMetrics definitionMetrics = startupMode.includesSnapshot() ? new TableMetrics() : metrics;
+        MySqlCdcSource binlog = Objects.requireNonNull(builder, "builder").build(definitionMetrics);
         if (startupMode == StartupMode.INITIAL) {
             MySqlHybridCdcSource hybrid = binlog.initialSnapshot(snapshotChunkSize, metrics);
             return new MySqlSource<MySqlHybridSplit, MySqlHybridEnumeratorState>(
