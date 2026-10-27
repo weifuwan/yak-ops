@@ -10,7 +10,7 @@ import io.yak.ops.configuration.Configuration;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceOptions;
-import io.yak.ops.connector.cdc.mysql.source.MySqlHybridCdcSource;
+import io.yak.ops.connector.cdc.mysql.source.MySqlSource;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcSink;
@@ -192,7 +192,7 @@ class DataSyncExecutionTest {
         StreamGraph continuous = lastGraph.get();
         assertTrue(!continuous.isBounded());
         assertInstanceOf(
-                MySqlHybridCdcSource.class,
+                MySqlSource.class,
                 continuous.getSourceNodes().getFirst().getSource().orElseThrow());
         assertEquals(
                 java.time.Duration.ofSeconds(10),
@@ -281,8 +281,9 @@ class DataSyncExecutionTest {
         assertEquals(false, compiled.configuration().contains(MySqlCdcSourceOptions.SNAPSHOT_CHUNK_SIZE));
         assertEquals(false, compiled.configuration().contains(MySqlCdcSourceOptions.QUEUE_CAPACITY));
         Object source = compiled.graph().getSourceNodes().getFirst().getSource().orElseThrow();
-        assertEquals(512, field(source, "chunkSize"));
-        var sourceConfig = (io.yak.ops.connector.cdc.mysql.source.MySqlCdcSourceConfig) field(source, "config");
+        var mysql = assertInstanceOf(MySqlSource.class, source);
+        assertEquals(512, mysql.snapshotChunkSize());
+        var sourceConfig = mysql.config();
         assertEquals(64, sourceConfig.queueCapacity());
         JobPlan prepared = planner.plan(parameters, CONTEXT);
         assertEquals(prepared.sourceOptions().get(MySqlCdcSourceOptions.SERVER_ID), sourceConfig.serverId());

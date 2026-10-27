@@ -1,6 +1,7 @@
 package io.yak.ops.connector.cdc.mysql.source;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -81,7 +82,9 @@ class MySqlChunkKeySelectionTest {
                 ITEMS,
                 ITEMS_SCHEMA,
                 measurements);
-        var source = (MySqlHybridCdcSource) factory.createSource(List.of(first, second));
+        var selected = assertInstanceOf(MySqlSource.class, factory.createSource(List.of(first, second)));
+        assertEquals(StartupMode.INITIAL, selected.startupMode());
+        var source = assertInstanceOf(MySqlHybridCdcSource.class, selected.delegate());
 
         // A matching Source can restore the same checkpoint without inspecting its private config.
         var original = source.createEnumerator(new CoordinatorContext());

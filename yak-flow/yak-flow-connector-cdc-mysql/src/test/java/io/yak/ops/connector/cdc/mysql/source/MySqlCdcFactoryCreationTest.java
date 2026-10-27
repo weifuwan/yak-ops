@@ -27,8 +27,8 @@ class MySqlCdcFactoryCreationTest {
         Configuration options = options();
         // The latest-offset source exposes the same configuration used by the initial snapshot path.
         options.set(MySqlCdcSourceOptions.STARTUP_MODE, "latest-offset");
-        MySqlCdcSource source = assertInstanceOf(
-                MySqlCdcSource.class,
+        var source = assertInstanceOf(
+                MySqlSource.class,
                 new MySqlCdcSourceFactory()
                         .createSource(new TableSourceFactoryContext(options.toReadonlyConfig(), TABLE, SCHEMA)));
         MySqlCdcSourceConfig config = source.config();
@@ -47,8 +47,8 @@ class MySqlCdcFactoryCreationTest {
                         "sslMode", "DISABLED",
                         "allowPublicKeyRetrieval", "true"));
         options.set(MySqlCdcSourceOptions.STARTUP_MODE, "latest-offset");
-        MySqlCdcSource source = assertInstanceOf(
-                MySqlCdcSource.class,
+        var source = assertInstanceOf(
+                MySqlSource.class,
                 new MySqlCdcSourceFactory()
                         .createSource(new TableSourceFactoryContext(options.toReadonlyConfig(), TABLE, SCHEMA)));
         MySqlCdcSourceConfig config = source.config();
@@ -79,13 +79,14 @@ class MySqlCdcFactoryCreationTest {
         var first = new TableSourceFactoryContext(options().toReadonlyConfig(), TABLE, SCHEMA, metrics);
         var second = new TableSourceFactoryContext(options().toReadonlyConfig(), new TableId("app", null, "items"), SCHEMA, metrics);
         var factory = new MySqlCdcSourceFactory();
-        assertInstanceOf(MySqlHybridCdcSource.class, factory.createSource(List.of(first, second)));
+        assertInstanceOf(MySqlSource.class, factory.createSource(List.of(first, second)));
         var latest = options().set(MySqlCdcSourceOptions.STARTUP_MODE, "latest-offset").toReadonlyConfig();
         var binlog = assertInstanceOf(
-                MySqlCdcSource.class,
+                MySqlSource.class,
                 factory.createSource(List.of(
                         new TableSourceFactoryContext(latest, TABLE, SCHEMA, metrics),
                         new TableSourceFactoryContext(latest, second.table(), SCHEMA, metrics))));
+        assertEquals(StartupMode.LATEST_OFFSET, binlog.startupMode());
         assertEquals(2, binlog.config().schemas().size());
         assertTrue(binlog.config().schemas().containsKey(second.table()));
         var changed = new TableSourceFactoryContext(options().set(MySqlCdcSourceOptions.SERVER_ID, 1234).toReadonlyConfig(), second.table(), SCHEMA, metrics);
@@ -100,19 +101,23 @@ class MySqlCdcFactoryCreationTest {
     void startupOptionsSelectHybridByDefaultAndBinlogOnlyFromLatest() {
         var factory = new MySqlCdcSourceFactory();
         var initial = factory.createSource(new TableSourceFactoryContext(options().toReadonlyConfig(), TABLE, SCHEMA));
-        assertInstanceOf(MySqlHybridCdcSource.class, initial);
+        assertEquals(StartupMode.INITIAL, assertInstanceOf(MySqlSource.class, initial).startupMode());
 
         var explicitInitial = options().set(MySqlCdcSourceOptions.STARTUP_MODE, "initial");
-        assertInstanceOf(
-                MySqlHybridCdcSource.class,
-                factory.createSource(new TableSourceFactoryContext(explicitInitial.toReadonlyConfig(), TABLE, SCHEMA)));
+        assertEquals(
+                StartupMode.INITIAL,
+                assertInstanceOf(
+                                MySqlSource.class,
+                                factory.createSource(new TableSourceFactoryContext(
+                                        explicitInitial.toReadonlyConfig(), TABLE, SCHEMA)))
+                        .startupMode());
 
         // A nonnumeric primary key can identify Binlog changes without serving as a snapshot Chunk Key.
         var textKey = new TableSchema(
                 List.of(new Column("code", LogicalTypes.varchar(64).copy(false))), List.of("code"));
         var latest = options().set(MySqlCdcSourceOptions.STARTUP_MODE, "latest-offset");
         var binlog = factory.createSource(new TableSourceFactoryContext(latest.toReadonlyConfig(), TABLE, textKey));
-        assertInstanceOf(MySqlCdcSource.class, binlog);
+        assertEquals(StartupMode.LATEST_OFFSET, assertInstanceOf(MySqlSource.class, binlog).startupMode());
     }
 
     @Test

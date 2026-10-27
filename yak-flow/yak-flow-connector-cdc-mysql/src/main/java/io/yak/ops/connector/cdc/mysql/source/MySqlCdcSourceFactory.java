@@ -74,23 +74,8 @@ public final class MySqlCdcSourceFactory implements TableSourceFactory {
 
     @Override
     public void validateSchema(ReadonlyConfig options, TableSchema schema) {
-        StartupMode startupMode = StartupMode.from(options.get(MySqlCdcSourceOptions.STARTUP_MODE));
-        String selected = options.get(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN);
-        if (startupMode == StartupMode.INITIAL) {
-            ChunkUtils.requireSupportedSnapshot(schema, selected);
-            return;
-        }
-        if (selected != null) {
-            throw new IllegalArgumentException("Snapshot Chunk Key is not supported for latest-offset startup");
-        }
-        if (schema.primaryKeys().isEmpty()) {
-            throw new IllegalArgumentException("Latest-offset MySQL CDC requires a physical primary key");
-        }
-        for (var column : schema.columns()) {
-            if (!column.dataType().isResolved()) {
-                throw new IllegalArgumentException("MySQL CDC requires resolved source column types");
-            }
-        }
+        StartupMode.from(options.get(MySqlCdcSourceOptions.STARTUP_MODE))
+                .validateSchema(schema, options.get(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN));
     }
 
     @Override
@@ -128,7 +113,7 @@ public final class MySqlCdcSourceFactory implements TableSourceFactory {
         if (connection.host() == null) {
             throw new UnsupportedOperationException("MySQL CDC requires a direct MySQL connection");
         }
-        var builder = MySqlCdcSource.builder()
+        var builder = MySqlSource.builder()
                 .hostname(connection.host())
                 .port(connection.port())
                 .username(connection.username())
@@ -141,9 +126,8 @@ public final class MySqlCdcSourceFactory implements TableSourceFactory {
             builder.table(
                     context.table(), context.schema(), context.options().get(MySqlCdcSourceOptions.CHUNK_KEY_COLUMN));
         }
-        return startupMode == StartupMode.INITIAL
-                ? builder.buildHybrid(options.get(MySqlCdcSourceOptions.SNAPSHOT_CHUNK_SIZE), first.metrics())
-                : builder.build(first.metrics());
+        return MySqlSource.create(
+                builder, startupMode, options.get(MySqlCdcSourceOptions.SNAPSHOT_CHUNK_SIZE), first.metrics());
     }
 
     /**

@@ -8,10 +8,10 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Configures an unbounded MySQL Binlog source with explicit, frozen table schemas.
+ * Defines MySQL CDC connection and table settings shared by both startup modes.
  *
- * <p>Supports a current-position Binlog start and recovery from a completed YakFlow checkpoint.
- * Initial snapshots and Binlog handoff are provided by {@link MySqlHybridCdcSource}.
+ * <p>{@link MySqlSource} selects the runtime path. The typed build methods remain in
+ * use by connector tests until the split and checkpoint contracts are unified.
  */
 public final class MySqlCdcSourceBuilder {
 
