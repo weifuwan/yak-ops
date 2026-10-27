@@ -1,10 +1,10 @@
 package io.yak.ops.connector.cdc.mysql.source.assigner;
 
 import io.yak.ops.connector.cdc.mysql.source.enumerator.MySqlHybridEnumeratorState;
-import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridSplit;
 import io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset;
 import io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridBinlogSplit;
+import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit;
 import java.util.LinkedHashMap;
 import java.util.List;

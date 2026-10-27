@@ -6,8 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 /** Assigns the latest-offset Binlog split to the only replication reader. */
-public final class MySqlBinlogSplitAssigner
-        implements MySqlSplitAssigner<MySqlBinlogSplit, MySqlPendingSplitsState> {
+public final class MySqlBinlogSplitAssigner implements MySqlSplitAssigner<MySqlBinlogSplit, MySqlPendingSplitsState> {
 
     private final String sourceFingerprint;
     private MySqlBinlogSplit pending;

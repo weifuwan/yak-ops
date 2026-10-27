@@ -31,7 +31,8 @@ public record MySqlHybridEnumeratorState(
         List<FinishedSnapshotSplitInfo> finishedSplitInfos,
         int nextTableIndex,
         int nextChunkIndex,
-        ChunkRange nextChunkRange) implements PendingSplitsState {
+        ChunkRange nextChunkRange)
+        implements PendingSplitsState {
 
     public enum Phase {
         BOOTSTRAP,
