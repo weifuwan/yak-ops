@@ -11,6 +11,7 @@ import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplit;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.ReaderInfo;
+import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.connector.source.SplitsAssignment;
 import io.yak.ops.core.api.metrics.Gauge;
@@ -120,6 +121,11 @@ class MySqlCdcSourceTest {
 
         @Override
         public Map<Integer, ReaderInfo> registeredReaders() { return Map.of(0, new ReaderInfo(0, "")); }
+
+        @Override
+        public void sendEventToSourceReader(int subtaskId, SourceEvent event) {
+            throw new UnsupportedOperationException("SourceEvent transport is not used by this test");
+        }
 
         @Override
         public SplitEnumeratorMetricGroup metricGroup() {
