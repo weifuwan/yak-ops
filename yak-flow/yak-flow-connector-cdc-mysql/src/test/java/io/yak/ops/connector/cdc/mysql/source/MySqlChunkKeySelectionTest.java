@@ -17,6 +17,7 @@ import io.yak.ops.connector.cdc.mysql.table.MySqlCdcSourceFactory;
 import io.yak.ops.connector.cdc.mysql.table.StartupMode;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.core.api.connector.source.ReaderInfo;
+import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.connector.source.SplitsAssignment;
 import io.yak.ops.core.api.metrics.Gauge;
@@ -178,6 +179,11 @@ class MySqlChunkKeySelectionTest {
 
         @Override
         public Map<Integer, ReaderInfo> registeredReaders() { return Map.of(); }
+
+        @Override
+        public void sendEventToSourceReader(int subtaskId, SourceEvent event) {
+            throw new UnsupportedOperationException("SourceEvent transport is not used by this test");
+        }
 
         @Override
         public SplitEnumeratorMetricGroup metricGroup() {
