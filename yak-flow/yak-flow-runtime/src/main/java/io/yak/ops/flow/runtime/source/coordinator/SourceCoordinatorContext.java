@@ -1,13 +1,13 @@
 package io.yak.ops.flow.runtime.source.coordinator;
 
+import io.yak.ops.core.api.connector.source.ReaderInfo;
 import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.api.connector.source.SourceSplit;
-import io.yak.ops.core.api.connector.source.ReaderInfo;
+import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.connector.source.SplitsAssignment;
+import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.api.metrics.Gauge;
 import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
-import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
-import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
 import io.yak.ops.flow.runtime.operators.coordination.OperatorCoordinatorContext;
 import io.yak.ops.flow.runtime.operators.coordination.SubtaskGateway;
@@ -26,9 +26,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
