@@ -1,6 +1,7 @@
 package io.yak.ops.connector.cdc.mysql.source.assigner;
 
 import io.yak.ops.connector.cdc.mysql.source.enumerator.MySqlHybridEnumeratorState;
+import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridSplit;
 import io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset;
 import io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlHybridBinlogSplit;
@@ -16,11 +17,12 @@ import java.util.Objects;
  * <p>The transition from HANDOFF to STREAMING is gated by a completed checkpoint
  * containing all snapshot output, not by a final split delivery acknowledgment.
  */
-public final class MySqlHybridSplitAssigner {
+public final class MySqlHybridSplitAssigner
+        implements MySqlSplitAssigner<MySqlHybridSplit, MySqlHybridEnumeratorState> {
 
     private final String fingerprint;
     private final MySqlSnapshotSplitAssigner snapshots;
-    private final MySqlBinlogSplitAssigner binlog;
+    private final MySqlHybridBinlogSplitAssigner binlog;
     private MySqlHybridEnumeratorState.Phase phase;
     private BinlogOffset low;
     private BinlogOffset high;
@@ -34,7 +36,7 @@ public final class MySqlHybridSplitAssigner {
         this.fingerprint = Objects.requireNonNull(fingerprint, "fingerprint");
         if (restored == null) {
             snapshots = new MySqlSnapshotSplitAssigner();
-            binlog = new MySqlBinlogSplitAssigner(fingerprint);
+            binlog = new MySqlHybridBinlogSplitAssigner(fingerprint);
             phase = MySqlHybridEnumeratorState.Phase.BOOTSTRAP;
         } else {
             if (!fingerprint.equals(restored.fingerprint())) {
@@ -47,7 +49,7 @@ public final class MySqlHybridSplitAssigner {
             phase = restored.phase();
             low = restored.lowWatermark();
             high = restored.highWatermark();
-            binlog = new MySqlBinlogSplitAssigner(restored.pendingBinlog(), restored.binlogAssigned());
+            binlog = new MySqlHybridBinlogSplitAssigner(restored.pendingBinlog(), restored.binlogAssigned());
             snapshots = new MySqlSnapshotSplitAssigner(
                     restored.pendingSnapshots(),
                     restored.assignedSnapshots(),
@@ -55,6 +57,12 @@ public final class MySqlHybridSplitAssigner {
                     restored.totalSnapshotSplits(),
                     restored.snapshotPlanned());
         }
+    }
+
+    @Override
+    public MySqlHybridSplit getNext(int subtaskId) {
+        MySqlHybridBinlogSplit next = nextBinlog(subtaskId);
+        return next != null ? next : nextSnapshot();
     }
 
     public MySqlHybridBinlogSplit nextBinlog(int subtaskId) {
@@ -184,7 +192,8 @@ public final class MySqlHybridSplitAssigner {
         phase = MySqlHybridEnumeratorState.Phase.STREAMING;
     }
 
-    public boolean completeCheckpoint(long checkpointId) {
+    @Override
+    public boolean notifyCheckpointComplete(long checkpointId) {
         if (phase == MySqlHybridEnumeratorState.Phase.HANDOFF
                 && handoffCheckpointId != null
                 && checkpointId >= handoffCheckpointId) {
@@ -195,7 +204,8 @@ public final class MySqlHybridSplitAssigner {
         return false;
     }
 
-    public MySqlHybridEnumeratorState snapshot(long checkpointId) {
+    @Override
+    public MySqlHybridEnumeratorState snapshotState(long checkpointId) {
         if (checkpointId < 0) {
             throw new IllegalArgumentException("Checkpoint ID must not be negative");
         }
@@ -218,6 +228,20 @@ public final class MySqlHybridSplitAssigner {
                 nextTableIndex,
                 nextChunkIndex,
                 nextChunkRange);
+    }
+
+    @Override
+    public void addSplitsBack(List<MySqlHybridSplit> splits, int subtaskId) {
+        for (MySqlHybridSplit split : splits) {
+            if (split instanceof MySqlSnapshotSplit snapshot) {
+                addBack(snapshot);
+            } else if (split instanceof MySqlHybridBinlogSplit binlogSplit) {
+                if (subtaskId != 0) {
+                    throw new IllegalArgumentException("Binlog belongs to reader zero");
+                }
+                addBack(binlogSplit);
+            }
+        }
     }
 
     public void addBack(MySqlHybridBinlogSplit split) {

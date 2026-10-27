@@ -24,7 +24,7 @@ class MySqlHybridHandoffTest {
         assertEquals(MySqlHybridEnumeratorState.Phase.BOOTSTRAP, assigner.phase());
         assertEquals("mysql-binlog", assigner.nextBinlog(0).splitId());
         assigner.captureLow(low);
-        assertFalse(assigner.snapshot(10).snapshotPlanned());
+        assertFalse(assigner.snapshotState(10).snapshotPlanned());
         var split = new MySqlSnapshotSplit("snap-1", "fingerprint", new TableId("shop", null, "orders"),
                 null, null, null);
         assigner.plan(List.of(split));
@@ -33,9 +33,9 @@ class MySqlHybridHandoffTest {
         assigner.finishSnapshot(finished(split, 300));
         assertTrue(assigner.snapshotComplete());
         assigner.captureHigh(high);
-        assertFalse(assigner.completeCheckpoint(11));
-        MySqlHybridEnumeratorState waiting = assigner.snapshot(12);
-        assertFalse(assigner.completeCheckpoint(11));
+        assertFalse(assigner.notifyCheckpointComplete(11));
+        MySqlHybridEnumeratorState waiting = assigner.snapshotState(12);
+        assertFalse(assigner.notifyCheckpointComplete(11));
         assertEquals(MySqlHybridEnumeratorState.Phase.HANDOFF, assigner.phase());
 
         var serializer = new MySqlHybridEnumeratorStateSerializer();
@@ -43,8 +43,8 @@ class MySqlHybridHandoffTest {
         var restored = new MySqlHybridSplitAssigner("fingerprint", checkpoint);
         restored.resumeRestoredHandoff();
         assertEquals(MySqlHybridEnumeratorState.Phase.STREAMING, restored.phase());
-        assigner.snapshot(13);
-        assertTrue(assigner.completeCheckpoint(12));
+        assigner.snapshotState(13);
+        assertTrue(assigner.notifyCheckpointComplete(12));
         assertEquals(MySqlHybridEnumeratorState.Phase.STREAMING, assigner.phase());
     }
 
@@ -58,7 +58,7 @@ class MySqlHybridHandoffTest {
 
         // The planning callback has not run yet. A periodic checkpoint must not fail the job.
         var serializer = new MySqlHybridEnumeratorStateSerializer();
-        var saved = assigner.snapshot(21);
+        var saved = assigner.snapshotState(21);
         var restored = new MySqlHybridSplitAssigner(
                 "fingerprint", serializer.deserialize(serializer.getVersion(), serializer.serialize(saved)));
         assertEquals(MySqlHybridEnumeratorState.Phase.SNAPSHOT, restored.phase());
@@ -80,7 +80,7 @@ class MySqlHybridHandoffTest {
         assigner.nextSnapshot();
         assigner.finishSnapshot(finished(split, 200));
 
-        var saved = assigner.snapshot(22);
+        var saved = assigner.snapshotState(22);
         var serializer = new MySqlHybridEnumeratorStateSerializer();
         var restored = new MySqlHybridSplitAssigner(
                 "fingerprint", serializer.deserialize(serializer.getVersion(), serializer.serialize(saved)));
@@ -94,7 +94,7 @@ class MySqlHybridHandoffTest {
     @Test
     void rejectsDifferentDefinitionOnRestore() {
         var assigner = new MySqlHybridSplitAssigner("fingerprint", null);
-        var state = assigner.snapshot(1);
+        var state = assigner.snapshotState(1);
         assertThrows(IllegalArgumentException.class, () -> new MySqlHybridSplitAssigner("changed", state));
     }
 

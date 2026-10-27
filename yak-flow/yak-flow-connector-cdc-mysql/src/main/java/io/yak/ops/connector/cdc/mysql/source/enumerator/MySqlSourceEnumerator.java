@@ -1,5 +1,6 @@
 package io.yak.ops.connector.cdc.mysql.source.enumerator;
 
+import io.yak.ops.connector.cdc.mysql.source.assigner.MySqlBinlogSplitAssigner;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
@@ -15,9 +16,7 @@ import java.util.Objects;
 public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlBinlogSplit, MySqlPendingSplitsState> {
 
     private final SplitEnumeratorContext<MySqlBinlogSplit> context;
-    private final String sourceFingerprint;
-    private MySqlBinlogSplit pending;
-    private boolean assigned;
+    private final MySqlBinlogSplitAssigner assigner;
     private boolean started;
     private boolean closed;
 
@@ -26,19 +25,10 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlBinlogS
             String sourceFingerprint,
             MySqlPendingSplitsState restored) {
         this.context = Objects.requireNonNull(context, "context");
-        this.sourceFingerprint = Objects.requireNonNull(sourceFingerprint, "sourceFingerprint");
         if (context.currentParallelism() != 1) {
-            throw new IllegalArgumentException("MySQL Binlog Source supports one reader in PR1");
+            throw new IllegalArgumentException("MySQL Binlog Source supports one reader");
         }
-        if (restored == null) {
-            pending = new MySqlBinlogSplit(sourceFingerprint, null, new byte[0]);
-        } else {
-            if (!sourceFingerprint.equals(restored.sourceFingerprint())) {
-                throw new IllegalArgumentException("MySQL CDC definition changed since its checkpoint");
-            }
-            pending = restored.pendingSplit();
-            assigned = restored.splitAssigned();
-        }
+        assigner = new MySqlBinlogSplitAssigner(sourceFingerprint, restored);
     }
 
     @Override
@@ -57,10 +47,9 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlBinlogS
         if (subtaskId != 0 || !context.registeredReaders().contains(0)) {
             throw new IllegalArgumentException("Unregistered MySQL Binlog reader");
         }
-        if (pending != null) {
-            context.assignSplit(pending, 0);
-            pending = null;
-            assigned = true;
+        MySqlBinlogSplit next = assigner.getNext(subtaskId);
+        if (next != null) {
+            context.assignSplit(next, 0);
         }
     }
 
@@ -73,15 +62,10 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlBinlogS
 
     @Override
     public void addSplitsBack(List<MySqlBinlogSplit> splits, int subtaskId) {
-        if (closed || subtaskId != 0 || splits.size() != 1 || pending != null) {
+        if (closed) {
             throw new IllegalStateException("Unexpected returned MySQL Binlog split");
         }
-        MySqlBinlogSplit returned = Objects.requireNonNull(splits.getFirst(), "split");
-        if (!sourceFingerprint.equals(returned.definitionFingerprint())) {
-            throw new IllegalArgumentException("Returned MySQL Binlog split has an incompatible source");
-        }
-        pending = returned;
-        assigned = false;
+        assigner.addSplitsBack(splits, subtaskId);
     }
 
     @Override
@@ -89,12 +73,17 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlBinlogS
         if (!started || closed || checkpointId < 0) {
             throw new IllegalStateException("MySQL Binlog enumerator cannot checkpoint");
         }
-        return new MySqlPendingSplitsState(sourceFingerprint, assigned, pending);
+        return assigner.snapshotState(checkpointId);
+    }
+
+    @Override
+    public void notifyCheckpointComplete(long checkpointId) {
+        assigner.notifyCheckpointComplete(checkpointId);
     }
 
     @Override
     public void close() {
         closed = true;
-        pending = null;
+        assigner.close();
     }
 }

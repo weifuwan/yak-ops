@@ -134,7 +134,7 @@ class MySqlTypedSnapshotAssignmentTest {
                 ORDERS, "bucket", LogicalTypeRoot.DECIMAL, first.chunkRange().end(), null);
         assigner.appendPlan(first, 1);
         var saved = SERIALIZER.deserialize(
-                SERIALIZER.getVersion(), SERIALIZER.serialize(assigner.snapshot(9)));
+                SERIALIZER.getVersion(), SERIALIZER.serialize(assigner.snapshotState(9)));
         var restored = new MySqlHybridSplitAssigner(FINGERPRINT, saved);
         MySqlSnapshotSplit last = planner.planNext(
                 ORDERS, FINGERPRINT, restored.nextTableIndex(), restored.nextChunkIndex(),
@@ -142,8 +142,8 @@ class MySqlTypedSnapshotAssignmentTest {
         assertEquals(cursor.start(), last.chunkRange().start());
         assertNull(last.chunkRange().end());
         restored.appendPlan(last, 1);
-        assertTrue(restored.snapshot(10).snapshotPlanned());
-        assertNull(restored.snapshot(10).nextChunkRange());
+        assertTrue(restored.snapshotState(10).snapshotPlanned());
+        assertNull(restored.snapshotState(10).nextChunkRange());
     }
 
     @Test

@@ -35,7 +35,7 @@ class MySqlTypedEnumeratorCheckpointTest {
         assertEquals(first, assigner.nextSnapshot());
         assigner.finishSnapshot(finished(first, 150));
         MySqlHybridEnumeratorState persisted = SERIALIZER.deserialize(
-                SERIALIZER.getVersion(), SERIALIZER.serialize(assigner.snapshot(5)));
+                SERIALIZER.getVersion(), SERIALIZER.serialize(assigner.snapshotState(5)));
         assertEquals(boundary, persisted.nextChunkRange().start());
         assertEquals(1, persisted.finishedSplitInfos().size());
         var recovered = new MySqlHybridSplitAssigner("fp", persisted);
@@ -51,7 +51,7 @@ class MySqlTypedEnumeratorCheckpointTest {
         assertTrue(recovered.snapshotComplete());
         recovered.captureHigh(offset(200));
         var handoff = SERIALIZER.deserialize(
-                SERIALIZER.getVersion(), SERIALIZER.serialize(recovered.snapshot(7)));
+                SERIALIZER.getVersion(), SERIALIZER.serialize(recovered.snapshotState(7)));
         var resumed = new MySqlHybridSplitAssigner("fp", handoff);
         resumed.resumeRestoredHandoff();
         assertEquals(MySqlHybridEnumeratorState.Phase.STREAMING, resumed.phase());
@@ -62,7 +62,7 @@ class MySqlTypedEnumeratorCheckpointTest {
         var assigner = new MySqlHybridSplitAssigner("fp", null);
         assigner.nextBinlog(0);
         assigner.captureLow(offset(100));
-        byte[] persisted = SERIALIZER.serialize(assigner.snapshot(1));
+        byte[] persisted = SERIALIZER.serialize(assigner.snapshotState(1));
         assertThrows(IOException.class, () -> SERIALIZER.deserialize(2, persisted));
         assertThrows(IOException.class, () -> SERIALIZER.deserialize(3, persisted));
         assertThrows(IOException.class, () -> SERIALIZER.deserialize(1, persisted));

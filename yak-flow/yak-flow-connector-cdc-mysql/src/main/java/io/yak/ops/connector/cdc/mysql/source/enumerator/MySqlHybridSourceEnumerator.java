@@ -179,25 +179,19 @@ public final class MySqlHybridSourceEnumerator
     public void addSplitsBack(List<MySqlHybridSplit> splits, int reader) {
         if (closed || reader < 0 || reader >= context.currentParallelism())
             throw new IllegalStateException("Invalid split return");
-        for (MySqlHybridSplit split : splits) {
-            if (split instanceof MySqlSnapshotSplit snapshot) assigner.addBack(snapshot);
-            else if (split instanceof MySqlHybridBinlogSplit binlog) {
-                if (reader != 0) throw new IllegalArgumentException("Binlog belongs to reader zero");
-                assigner.addBack(binlog);
-            }
-        }
+        assigner.addSplitsBack(splits, reader);
         assignAvailable();
     }
 
     @Override
     public MySqlHybridEnumeratorState snapshotState(long checkpointId) {
         if (!started || closed) throw new IllegalStateException("Inactive MySQL Hybrid enumerator");
-        return assigner.snapshot(checkpointId);
+        return assigner.snapshotState(checkpointId);
     }
 
     @Override
     public void notifyCheckpointComplete(long checkpointId) {
-        boolean handoff = assigner.completeCheckpoint(checkpointId);
+        boolean handoff = assigner.notifyCheckpointComplete(checkpointId);
         metrics.checkpointCompleted(generation, checkpointId, handoff);
         if (handoff) sendResumeEvents();
     }
@@ -266,7 +260,7 @@ public final class MySqlHybridSourceEnumerator
                 waitingReaders.remove(reader);
                 continue;
             }
-            MySqlSnapshotSplit split = assigner.nextSnapshot();
+            MySqlHybridSplit split = assigner.getNext(reader);
             if (split == null) break;
             context.assignSplit(split, reader);
             waitingReaders.remove(reader);

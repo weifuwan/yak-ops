@@ -26,7 +26,7 @@ class MySqlProgressiveDiscoveryTest {
         original.finishSnapshot(finished(first, 150));
         assertFalse(original.snapshotComplete());
         var serializer = new MySqlHybridEnumeratorStateSerializer();
-        var saved = serializer.deserialize(serializer.getVersion(), serializer.serialize(original.snapshot(1)));
+        var saved = serializer.deserialize(serializer.getVersion(), serializer.serialize(original.snapshotState(1)));
         var restored = new MySqlHybridSplitAssigner("fp", saved);
         assertEquals(0, restored.nextTableIndex());
         assertEquals(1, restored.nextChunkIndex());
@@ -40,10 +40,10 @@ class MySqlProgressiveDiscoveryTest {
         restored.finishSnapshot(finished(last,250));
         assertTrue(restored.snapshotComplete());
         restored.captureHigh(offset(250));
-        restored.snapshot(3);
-        restored.snapshot(4);
-        assertTrue(restored.completeCheckpoint(3), "A later pending checkpoint must not hide an earlier covering completion");
-        assertEquals(MySqlHybridEnumeratorState.Phase.STREAMING, restored.snapshot(5).phase());
+        restored.snapshotState(3);
+        restored.snapshotState(4);
+        assertTrue(restored.notifyCheckpointComplete(3), "A later pending checkpoint must not hide an earlier covering completion");
+        assertEquals(MySqlHybridEnumeratorState.Phase.STREAMING, restored.snapshotState(5).phase());
     }
 
     @Test
@@ -66,7 +66,7 @@ class MySqlProgressiveDiscoveryTest {
     void oldEnumeratorFormatIsRejectedRatherThanReinitialized() throws Exception {
         var assigner = assigner();
         var serializer = new MySqlHybridEnumeratorStateSerializer();
-        byte[] bytes = serializer.serialize(assigner.snapshot(1));
+        byte[] bytes = serializer.serialize(assigner.snapshotState(1));
         assertThrows(IOException.class, () -> serializer.deserialize(1,bytes));
     }
 

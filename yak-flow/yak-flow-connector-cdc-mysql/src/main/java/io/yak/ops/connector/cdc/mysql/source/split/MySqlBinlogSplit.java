@@ -1,7 +1,6 @@
 package io.yak.ops.connector.cdc.mysql.source.split;
 
 import io.yak.ops.connector.cdc.mysql.source.offset.BinlogOffset;
-import io.yak.ops.core.api.connector.source.SourceSplit;
 import java.util.Objects;
 
 /**
@@ -11,7 +10,7 @@ import java.util.Objects;
  * restored together with the offset to avoid starting from an incompatible schema.
  * A null offset means the initial stream has not yet established a safe resume point.
  */
-public final class MySqlBinlogSplit implements SourceSplit {
+public final class MySqlBinlogSplit implements MySqlSplit {
 
     public static final String ID = "mysql-binlog";
 
