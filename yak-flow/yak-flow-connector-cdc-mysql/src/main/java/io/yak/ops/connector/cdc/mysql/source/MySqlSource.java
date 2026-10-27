@@ -26,8 +26,7 @@ import java.util.Objects;
  * @param <SplitT> split type of the selected startup mode
  * @param <StateT> enumerator checkpoint type of the selected startup mode
  */
-public final class MySqlSource<SplitT extends SourceSplit, StateT>
-        implements Source<TableRecord, SplitT, StateT> {
+public final class MySqlSource<SplitT extends SourceSplit, StateT> implements Source<TableRecord, SplitT, StateT> {
 
     private final StartupMode startupMode;
     private final MySqlCdcSourceConfig config;
@@ -61,8 +60,7 @@ public final class MySqlSource<SplitT extends SourceSplit, StateT>
             return new MySqlSource<MySqlHybridSplit, MySqlHybridEnumeratorState>(
                     startupMode, binlog.config(), snapshotChunkSize, hybrid);
         }
-        return new MySqlSource<MySqlBinlogSplit, MySqlPendingSplitsState>(
-                startupMode, binlog.config(), 0, binlog);
+        return new MySqlSource<MySqlBinlogSplit, MySqlPendingSplitsState>(startupMode, binlog.config(), 0, binlog);
     }
 
     public StartupMode startupMode() {
