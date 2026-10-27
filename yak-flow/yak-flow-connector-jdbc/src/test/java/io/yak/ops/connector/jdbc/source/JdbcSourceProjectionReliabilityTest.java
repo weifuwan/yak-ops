@@ -1,14 +1,10 @@
 package io.yak.ops.connector.jdbc.source;
 
-import io.yak.ops.core.api.connector.source.ReaderInfo;
-import io.yak.ops.core.api.connector.source.SplitsAssignment;
-import io.yak.ops.core.api.metrics.Gauge;
-import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.yak.ops.configuration.Configuration;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.JdbcSourceOptions;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
@@ -20,9 +16,12 @@ import io.yak.ops.connector.jdbc.source.reader.JdbcSourceReader;
 import io.yak.ops.connector.jdbc.source.reader.JdbcSourceSplitReader;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.api.connector.source.InputStatus;
+import io.yak.ops.core.api.connector.source.ReaderInfo;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
-import io.yak.ops.configuration.Configuration;
+import io.yak.ops.core.api.connector.source.SplitsAssignment;
+import io.yak.ops.core.api.metrics.Gauge;
+import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
 import java.sql.Connection;
