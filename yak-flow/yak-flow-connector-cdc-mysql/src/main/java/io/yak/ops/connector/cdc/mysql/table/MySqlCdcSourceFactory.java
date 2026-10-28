@@ -66,6 +66,16 @@ public final class MySqlCdcSourceFactory implements TableSourceFactory {
                 .include(optionRule())
                 .include(JdbcConnectionOptions.RULE)
                 .include(PHYSICAL_RULE)
+                .optional(
+                        MySqlSourceOptions.SCAN_SNAPSHOT_FETCH_SIZE,
+                        MySqlSourceOptions.CONNECT_TIMEOUT,
+                        MySqlSourceOptions.HEARTBEAT_INTERVAL,
+                        MySqlSourceOptions.CHUNK_META_GROUP_SIZE,
+                        MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_LOWER_BOUND,
+                        MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_UPPER_BOUND,
+                        MySqlSourceOptions.SCAN_NEWLY_ADDED_TABLE_ENABLED,
+                        MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_METADATA_RELEASE_ENABLED,
+                        MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_BACKFILL_SKIP)
                 .required(MySqlSourceOptions.SERVER_ID, Conditions.notBlank(MySqlSourceOptions.SERVER_ID))
                 .required(MySqlSourceOptions.TOPIC_PREFIX, Conditions.notBlank(MySqlSourceOptions.TOPIC_PREFIX))
                 .build();
@@ -129,6 +139,23 @@ public final class MySqlCdcSourceFactory implements TableSourceFactory {
         ReadonlyConfig options = first.options();
         StartupOptions startupOptions = startupOptions(options);
         startupOptions.requireSupported();
+        if (startupOptions.isStreamOnly()) {
+            for (var snapshotSetting : List.of(
+                    MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN,
+                    MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_SIZE,
+                    MySqlSourceOptions.SCAN_SNAPSHOT_FETCH_SIZE,
+                    MySqlSourceOptions.CHUNK_META_GROUP_SIZE,
+                    MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_LOWER_BOUND,
+                    MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_UPPER_BOUND,
+                    MySqlSourceOptions.SCAN_NEWLY_ADDED_TABLE_ENABLED,
+                    MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_METADATA_RELEASE_ENABLED,
+                    MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_BACKFILL_SKIP)) {
+                if (options.getSourceMap().containsKey(snapshotSetting.key())) {
+                    throw new IllegalArgumentException(
+                            "MySQL stream-only startup cannot use snapshot setting: " + snapshotSetting.key());
+                }
+            }
+        }
         if (options.get(JdbcConnectionOptions.SSH_ENABLED)) {
             throw new UnsupportedOperationException("MySQL CDC requires a direct MySQL connection");
         }
@@ -159,7 +186,17 @@ public final class MySqlCdcSourceFactory implements TableSourceFactory {
                 .connectionProperties(mergedConnectionProperties(connection))
                 .serverId(options.get(MySqlSourceOptions.SERVER_ID))
                 .topicPrefix(options.get(MySqlSourceOptions.TOPIC_PREFIX))
-                .queueCapacity(options.get(MySqlSourceOptions.QUEUE_CAPACITY));
+                .queueCapacity(options.get(MySqlSourceOptions.QUEUE_CAPACITY))
+                .fetchSize(options.get(MySqlSourceOptions.SCAN_SNAPSHOT_FETCH_SIZE))
+                .connectTimeout(options.get(MySqlSourceOptions.CONNECT_TIMEOUT))
+                .heartbeatInterval(options.get(MySqlSourceOptions.HEARTBEAT_INTERVAL))
+                .splitMetaGroupSize(options.get(MySqlSourceOptions.CHUNK_META_GROUP_SIZE))
+                .distributionFactorLower(options.get(MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_LOWER_BOUND))
+                .distributionFactorUpper(options.get(MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_UPPER_BOUND))
+                .scanNewlyAddedTableEnabled(options.get(MySqlSourceOptions.SCAN_NEWLY_ADDED_TABLE_ENABLED))
+                .releaseSnapshotMetadataEnabled(
+                        options.get(MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_METADATA_RELEASE_ENABLED))
+                .skipSnapshotBackfill(options.get(MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_BACKFILL_SKIP));
         for (var context : contexts) {
             builder.table(
                     context.table(),
