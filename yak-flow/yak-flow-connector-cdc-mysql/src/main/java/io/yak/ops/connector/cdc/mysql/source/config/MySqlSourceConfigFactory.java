@@ -24,7 +24,6 @@ import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
 import java.io.Serializable;
 import java.time.Duration;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -49,34 +48,21 @@ public class MySqlSourceConfigFactory implements Serializable {
     private List<String> databaseList;
     private List<String> tableList;
     private String excludeTableList;
-    private String serverTimeZone = ZoneId.systemDefault().getId();
     private StartupOptions startupOptions = StartupOptions.initial();
     private boolean explicitStartupOptions;
     private int splitSize = MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_SIZE.defaultValue();
     private int splitMetaGroupSize = MySqlSourceOptions.CHUNK_META_GROUP_SIZE.defaultValue();
     private int fetchSize = MySqlSourceOptions.SCAN_SNAPSHOT_FETCH_SIZE.defaultValue();
     private Duration connectTimeout = MySqlSourceOptions.CONNECT_TIMEOUT.defaultValue();
-    private int connectMaxRetries = MySqlSourceOptions.CONNECT_MAX_RETRIES.defaultValue();
-    private int connectionPoolSize = MySqlSourceOptions.CONNECTION_POOL_SIZE.defaultValue();
     private double distributionFactorUpper =
             MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_UPPER_BOUND.defaultValue();
     private double distributionFactorLower =
             MySqlSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_LOWER_BOUND.defaultValue();
-    private boolean includeSchemaChanges = false;
-    private boolean includeHeartbeatEvents = false;
-    private boolean includeTransactionMetadataEvents = false;
     private boolean scanNewlyAddedTableEnabled = false;
     private boolean releaseSnapshotMetadataEnabled = false;
-    private boolean closeIdleReaders = false;
-    private Properties jdbcProperties;
     private Duration heartbeatInterval = MySqlSourceOptions.HEARTBEAT_INTERVAL.defaultValue();
-    private Properties dbzProperties;
     private Map<TableId, String> chunkKeyColumns = new HashMap<>();
     private boolean skipSnapshotBackfill = false;
-    private boolean parseOnLineSchemaChanges = false;
-    private boolean treatTinyInt1AsBoolean = true;
-    private boolean useLegacyJsonFormat = true;
-    private boolean assignUnboundedChunkFirst = false;
 
     public MySqlSourceConfigFactory hostname(String hostname) {
         this.hostname = hostname;
@@ -150,10 +136,6 @@ public class MySqlSourceConfigFactory implements Serializable {
      * TIMESTAMP type in MYSQL converted to STRING. See more
      * https://debezium.io/documentation/reference/1.9/connectors/mysql.html#mysql-temporal-types
      */
-    public MySqlSourceConfigFactory serverTimeZone(String timeZone) {
-        this.serverTimeZone = timeZone;
-        return this;
-    }
 
     /**
      * The chunk key of table snapshot, captured tables are split into multiple chunks by the chunk
@@ -225,34 +207,14 @@ public class MySqlSourceConfigFactory implements Serializable {
     }
 
     /** The connection pool size. */
-    public MySqlSourceConfigFactory connectionPoolSize(int connectionPoolSize) {
-        this.connectionPoolSize = connectionPoolSize;
-        return this;
-    }
 
     /** The max retry times to get connection. */
-    public MySqlSourceConfigFactory connectMaxRetries(int connectMaxRetries) {
-        this.connectMaxRetries = connectMaxRetries;
-        return this;
-    }
 
     /** Whether the {@link MySqlSource} should output the schema changes or not. */
-    public MySqlSourceConfigFactory includeSchemaChanges(boolean includeSchemaChanges) {
-        this.includeSchemaChanges = includeSchemaChanges;
-        return this;
-    }
 
     /** Whether the {@link MySqlSource} should output the heartbeat events or not. */
-    public MySqlSourceConfigFactory includeHeartbeatEvents(boolean includeHeartbeatEvents) {
-        this.includeHeartbeatEvents = includeHeartbeatEvents;
-        return this;
-    }
 
     /** Whether the {@link MySqlSource} should output the transaction metadata events or not. */
-    public MySqlSourceConfigFactory includeTransactionMetadataEvents(boolean includeTransactionMetadataEvents) {
-        this.includeTransactionMetadataEvents = includeTransactionMetadataEvents;
-        return this;
-    }
 
     /** Whether the {@link MySqlSource} should scan the newly added tables or not. */
     public MySqlSourceConfigFactory scanNewlyAddedTableEnabled(boolean scanNewlyAddedTableEnabled) {
@@ -270,9 +232,14 @@ public class MySqlSourceConfigFactory implements Serializable {
         return this;
     }
 
-    /** Custom properties that will overwrite the default JDBC connection URL. */
+    /** JDBC properties join the single validated connection map used by JDBC and Debezium. */
     public MySqlSourceConfigFactory jdbcProperties(Properties jdbcProperties) {
-        this.jdbcProperties = jdbcProperties;
+        Objects.requireNonNull(jdbcProperties, "jdbcProperties").forEach((key, value) -> {
+            if (!(key instanceof String name) || !(value instanceof String text)) {
+                throw new IllegalArgumentException("MySQL JDBC property keys and values must be strings");
+            }
+            connectionProperties.put(name, text);
+        });
         return this;
     }
 
@@ -284,15 +251,15 @@ public class MySqlSourceConfigFactory implements Serializable {
     }
 
     public MySqlSourceConfigFactory heartbeatInterval(Duration heartbeatInterval) {
-        this.heartbeatInterval = heartbeatInterval;
+        Duration selected = Objects.requireNonNull(heartbeatInterval, "heartbeatInterval");
+        if (selected.isNegative() || selected.toMillis() <= 0) {
+            throw new IllegalArgumentException("MySQL heartbeat.interval must be at least one millisecond");
+        }
+        this.heartbeatInterval = selected;
         return this;
     }
 
     /** The Debezium MySQL connector properties. For example, "snapshot.mode". */
-    public MySqlSourceConfigFactory debeziumProperties(Properties properties) {
-        this.dbzProperties = properties;
-        return this;
-    }
 
     /**
      * Whether to skip backfill in snapshot reading phase.
@@ -314,10 +281,6 @@ public class MySqlSourceConfigFactory implements Serializable {
      * Whether to use legacy json format. The default value is true, which means there is no
      * whitespace before value and after comma in json format.
      */
-    public MySqlSourceConfigFactory useLegacyJsonFormat(boolean useLegacyJsonFormat) {
-        this.useLegacyJsonFormat = useLegacyJsonFormat;
-        return this;
-    }
 
     /**
      * Whether to close idle readers at the end of the snapshot phase. This feature depends on
@@ -329,30 +292,14 @@ public class MySqlSourceConfigFactory implements Serializable {
      * <p>See more
      * https://cwiki.apache.org/confluence/display/FLINK/FLIP-147%3A+Support+Checkpoints+After+Tasks+Finished.
      */
-    public MySqlSourceConfigFactory closeIdleReaders(boolean closeIdleReaders) {
-        this.closeIdleReaders = closeIdleReaders;
-        return this;
-    }
 
     /** Whether to parse gh-ost/pt-osc utility generated schema change events. Defaults to false. */
-    public MySqlSourceConfigFactory parseOnLineSchemaChanges(boolean parseOnLineSchemaChanges) {
-        this.parseOnLineSchemaChanges = parseOnLineSchemaChanges;
-        return this;
-    }
 
-    public MySqlSourceConfigFactory treatTinyInt1AsBoolean(boolean treatTinyInt1AsBoolean) {
-        this.treatTinyInt1AsBoolean = treatTinyInt1AsBoolean;
-        return this;
-    }
 
     /**
      * Whether to assign the unbounded chunks first during snapshot reading phase. Defaults to
      * false.
      */
-    public MySqlSourceConfigFactory assignUnboundedChunkFirst(boolean assignUnboundedChunkFirst) {
-        this.assignUnboundedChunkFirst = assignUnboundedChunkFirst;
-        return this;
-    }
 
     // YakFlow-specific identity, prepared table schemas and bounded queue capacity.
     private final Map<TableId, TableSchema> schemas = new LinkedHashMap<>();
@@ -408,6 +355,20 @@ public class MySqlSourceConfigFactory implements Serializable {
     /** Creates a config without opening a JDBC or Binlog connection. */
     public MySqlSourceConfig createConfig(int subtaskId, String serverName) {
         if (subtaskId < 0) throw new IllegalArgumentException("Subtask ID must not be negative");
+        if (fetchSize <= 0) throw new IllegalArgumentException("scan.snapshot.fetch.size must be positive");
+        if (splitSize <= 0 || splitSize > 100_000)
+            throw new IllegalArgumentException("scan.incremental.snapshot.chunk.size must be 1..100000");
+        if (splitMetaGroupSize <= 0)
+            throw new IllegalArgumentException("chunk-meta.group.size must be positive");
+        if (connectTimeout == null || connectTimeout.toMillis() < 250
+                || connectTimeout.toMillis() > Integer.MAX_VALUE)
+            throw new IllegalArgumentException("connect.timeout must be between 250ms and Integer.MAX_VALUE ms");
+        if (heartbeatInterval == null || heartbeatInterval.toMillis() < 1
+                || heartbeatInterval.toMillis() > Integer.MAX_VALUE)
+            throw new IllegalArgumentException("heartbeat.interval must be within 1..Integer.MAX_VALUE ms");
+        if (!Double.isFinite(distributionFactorLower) || !Double.isFinite(distributionFactorUpper)
+                || distributionFactorLower <= 0 || distributionFactorUpper < distributionFactorLower)
+            throw new IllegalArgumentException("Invalid chunk-key even-distribution factor bounds");
         if (serverIdRange == null) throw new IllegalArgumentException("MySQL server-id is required");
         if (schemas.isEmpty()) throw new IllegalArgumentException("MySQL CDC requires at least one table");
         String topic = Objects.requireNonNull(serverName, "topicPrefix");
@@ -439,7 +400,6 @@ public class MySqlSourceConfigFactory implements Serializable {
             // Debezium permits an exclude-only filter when no include patterns were configured.
             props.setProperty("table.exclude.list", excludeTableList);
         }
-        if (dbzProperties != null) props.putAll(dbzProperties);
         return new MySqlSourceConfig(
                 hostname,
                 port,
@@ -488,8 +448,7 @@ public class MySqlSourceConfigFactory implements Serializable {
 
     private SourceSettings sourceSettings(Properties props, List<String> databases, List<String> tables) {
         Properties jdbc = new Properties();
-        if (jdbcProperties != null) jdbc.putAll(jdbcProperties);
-        else jdbc.putAll(connectionProperties);
+        jdbc.putAll(connectionProperties);
         Properties debezium = new Properties();
         debezium.putAll(props);
         return new SourceSettings(
@@ -501,23 +460,13 @@ public class MySqlSourceConfigFactory implements Serializable {
                 splitSize,
                 splitMetaGroupSize,
                 fetchSize,
-                serverTimeZone,
+                heartbeatInterval,
                 connectTimeout,
-                connectMaxRetries,
-                connectionPoolSize,
                 distributionFactorUpper,
                 distributionFactorLower,
-                includeSchemaChanges,
-                includeHeartbeatEvents,
-                includeTransactionMetadataEvents,
                 scanNewlyAddedTableEnabled,
-                closeIdleReaders,
                 jdbc,
                 skipSnapshotBackfill,
-                parseOnLineSchemaChanges,
-                treatTinyInt1AsBoolean,
-                useLegacyJsonFormat,
-                assignUnboundedChunkFirst,
                 releaseSnapshotMetadataEnabled,
                 debezium);
     }
@@ -532,23 +481,13 @@ public class MySqlSourceConfigFactory implements Serializable {
             int splitSize,
             int splitMetaGroupSize,
             int fetchSize,
-            String serverTimeZone,
+            Duration heartbeatInterval,
             Duration connectTimeout,
-            int connectMaxRetries,
-            int connectionPoolSize,
             double distributionFactorUpper,
             double distributionFactorLower,
-            boolean includeSchemaChanges,
-            boolean includeHeartbeatEvents,
-            boolean includeTransactionMetadataEvents,
             boolean scanNewlyAddedTableEnabled,
-            boolean closeIdleReaders,
             Properties jdbcProperties,
             boolean skipSnapshotBackfill,
-            boolean parseOnLineSchemaChanges,
-            boolean treatTinyInt1AsBoolean,
-            boolean useLegacyJsonFormat,
-            boolean assignUnboundedChunkFirst,
             boolean releaseSnapshotMetadataEnabled,
             Properties dbzProperties) {}
 
