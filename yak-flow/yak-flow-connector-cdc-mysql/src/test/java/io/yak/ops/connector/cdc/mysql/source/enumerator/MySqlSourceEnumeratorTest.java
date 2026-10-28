@@ -266,7 +266,7 @@ class MySqlSourceEnumeratorTest {
                 .topicPrefix("typed-checkpoint-test");
         if (chunkColumn == null) builder.table(ORDERS, schema);
         else builder.table(ORDERS, schema, chunkColumn);
-        return builder.build().config();
+        return builder.buildHybrid(2).config();
     }
 
     private static String database() {
