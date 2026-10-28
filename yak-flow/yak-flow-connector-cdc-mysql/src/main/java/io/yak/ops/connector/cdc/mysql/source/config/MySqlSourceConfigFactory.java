@@ -369,6 +369,16 @@ public class MySqlSourceConfigFactory implements Serializable {
         if (!Double.isFinite(distributionFactorLower) || !Double.isFinite(distributionFactorUpper)
                 || distributionFactorLower <= 0 || distributionFactorUpper < distributionFactorLower)
             throw new IllegalArgumentException("Invalid chunk-key even-distribution factor bounds");
+        if (scanNewlyAddedTableEnabled && releaseSnapshotMetadataEnabled)
+            throw new IllegalArgumentException(
+                    "scan.newly-added-table.enabled conflicts with scan.incremental.snapshot.metadata.release.enabled");
+        if (startupOptions.isStreamOnly()
+                && (scanNewlyAddedTableEnabled || releaseSnapshotMetadataEnabled || skipSnapshotBackfill
+                        || !chunkKeyColumns.isEmpty()))
+            throw new IllegalArgumentException("Binlog-only MySQL CDC cannot apply snapshot-only configuration");
+        if (startupOptions.isSnapshotOnly()
+                && (scanNewlyAddedTableEnabled || releaseSnapshotMetadataEnabled || skipSnapshotBackfill))
+            throw new IllegalArgumentException("Bounded MySQL snapshot does not support Binlog handoff settings");
         if (serverIdRange == null) throw new IllegalArgumentException("MySQL server-id is required");
         if (schemas.isEmpty()) throw new IllegalArgumentException("MySQL CDC requires at least one table");
         String topic = Objects.requireNonNull(serverName, "topicPrefix");
