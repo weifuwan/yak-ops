@@ -80,6 +80,7 @@ class MySqlSourceConfigTest {
         assertThat(props.getProperty("max.queue.size")).isEqualTo("16");
         assertThat(props.getProperty("max.batch.size")).isEqualTo("15");
         assertThat(props.getProperty("driver.useSSL")).isEqualTo("false");
+        assertThat(props.getProperty("driver.connectTimeout")).isEqualTo("3500");
         assertThat(props.getProperty("snapshot.mode")).isEqualTo("no_data");
         assertThat(props.getProperty("database.password")).isEqualTo("secret");
     }
@@ -105,6 +106,9 @@ class MySqlSourceConfigTest {
 
     @Test
     void rejectsInertOrInconsistentSettingsBeforeOpeningMySql() {
+        assertThatThrownBy(() -> settings().connectionProperties(java.util.Map.of("connectTimeout", "500"))
+                        .createConfig(0))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("connect.timeout");
         assertThatThrownBy(() -> settings().fetchSize(0).createConfig(0))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("scan.snapshot.fetch.size");
         assertThatThrownBy(() -> settings().splitMetaGroupSize(0).createConfig(0))
