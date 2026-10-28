@@ -234,12 +234,14 @@ public class MySqlSourceConfigFactory implements Serializable {
 
     /** JDBC properties join the single validated connection map used by JDBC and Debezium. */
     public MySqlSourceConfigFactory jdbcProperties(Properties jdbcProperties) {
+        Map<String, String> merged = new LinkedHashMap<>(connectionProperties);
         Objects.requireNonNull(jdbcProperties, "jdbcProperties").forEach((key, value) -> {
             if (!(key instanceof String name) || !(value instanceof String text)) {
                 throw new IllegalArgumentException("MySQL JDBC property keys and values must be strings");
             }
-            connectionProperties.put(name, text);
+            merged.put(name, text);
         });
+        connectionProperties = merged;
         return this;
     }
 
