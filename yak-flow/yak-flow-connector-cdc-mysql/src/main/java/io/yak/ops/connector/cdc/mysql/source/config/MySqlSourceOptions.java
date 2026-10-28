@@ -55,12 +55,6 @@ public class MySqlSourceOptions {
             .noDefaultValue()
             .withDescription("Table name of the MySQL database to monitor.");
 
-    public static final Option<String> SERVER_TIME_ZONE = Options.key("server-time-zone")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("The session time zone in database server. If not set, then "
-                    + "ZoneId.systemDefault() is used to determine the server time zone.");
-
     public static final Option<String> SERVER_ID = Options.key("server-id")
             .stringType()
             .noDefaultValue()
@@ -72,19 +66,6 @@ public class MySqlSourceOptions {
                     + " joins the MySQL  cluster as another server (with this unique ID) "
                     + "so it can read the binlog. By default, a random number is generated between"
                     + " 5400 and 6400, though we recommend setting an explicit value.");
-
-    public static final Option<Boolean> SCAN_INCREMENTAL_SNAPSHOT_ENABLED = Options.key(
-                    "scan.incremental.snapshot.enabled")
-            .booleanType()
-            .defaultValue(true)
-            .withDescription(
-                    "Incremental snapshot is a new mechanism to read snapshot of a table. "
-                            + "Compared to the old snapshot mechanism, the incremental snapshot has many advantages, including:\n"
-                            + "(1) source can be parallel during snapshot reading, \n"
-                            + "(2) source can perform checkpoints in the chunk granularity during snapshot reading, \n"
-                            + "(3) source doesn't need to acquire global read lock (FLUSH TABLES WITH READ LOCK) before snapshot reading.\n"
-                            + "If you would like the source run in parallel, each parallel reader should have an unique server id, "
-                            + "so the 'server-id' must be a range like '5400-6400', and the range must be larger than the parallelism.");
 
     public static final Option<Integer> SCAN_INCREMENTAL_SNAPSHOT_CHUNK_SIZE = Options.key(
                     "scan.incremental.snapshot.chunk.size")
@@ -103,15 +84,6 @@ public class MySqlSourceOptions {
             .defaultValue(Duration.ofSeconds(30))
             .withDescription(
                     "The maximum time that the connector should wait after trying to connect to the MySQL database server before timing out. This value cannot be less than 250ms.");
-
-    public static final Option<Integer> CONNECTION_POOL_SIZE =
-            Options.key("connection.pool.size").intType().defaultValue(20).withDescription("The connection pool size.");
-
-    public static final Option<Integer> CONNECT_MAX_RETRIES = Options.key("connect.max-retries")
-            .intType()
-            .defaultValue(3)
-            .withDescription(
-                    "The max retry times that the connector should retry to build MySQL database server connection.");
 
     public static final Option<String> SCAN_STARTUP_MODE = Options.key("scan.startup.mode")
             .stringType()
@@ -156,15 +128,9 @@ public class MySqlSourceOptions {
 
     public static final Option<Duration> HEARTBEAT_INTERVAL = Options.key("heartbeat.interval")
             .durationType()
-            .defaultValue(Duration.ofSeconds(30))
+            .defaultValue(Duration.ofSeconds(1))
             .withDescription(
-                    "Optional interval of sending heartbeat event for tracing the latest available binlog offsets");
-
-    public static final Option<Boolean> SCAN_READ_CHANGELOG_AS_APPEND_ONLY_ENABLED = Options.key(
-                    "scan.read-changelog-as-append-only.enabled")
-            .booleanType()
-            .defaultValue(false)
-            .withDescription("Whether to convert the changelog data stream to an append-only data stream");
+                    "Debezium heartbeat interval; one second preserves snapshot and Binlog handoff progress.");
 
     // ----------------------------------------------------------------------------
     // experimental options, won't add them to documentation
@@ -218,37 +184,12 @@ public class MySqlSourceOptions {
             .withDescription(
                     "The chunk key of table snapshot, captured tables are split into multiple chunks by a chunk key when read the snapshot of table."
                             + "By default, the chunk key is the first column of the primary key.");
-    public static final Option<Boolean> SCAN_INCREMENTAL_CLOSE_IDLE_READER_ENABLED = Options.key(
-                    "scan.incremental.close-idle-reader.enabled")
-            .booleanType()
-            .defaultValue(false)
-            .withDescription("Whether to close idle readers at the end of the snapshot phase. This feature depends on "
-                    + "FLIP-147: Support Checkpoints After Tasks Finished. The flink version is required to be "
-                    + "greater than or equal to 1.14 when enabling this feature.");
     public static final Option<Boolean> SCAN_INCREMENTAL_SNAPSHOT_BACKFILL_SKIP = Options.key(
                     "scan.incremental.snapshot.backfill.skip")
             .booleanType()
             .defaultValue(false)
             .withDescription(
                     "Whether to skip backfill in snapshot reading phase. If backfill is skipped, changes on captured tables during snapshot phase will be consumed later in binlog reading phase instead of being merged into the snapshot. WARNING: Skipping backfill might lead to data inconsistency because some binlog events happened within the snapshot phase might be replayed (only at-least-once semantic is promised). For example updating an already updated value in snapshot, or deleting an already deleted entry in snapshot. These replayed binlog events should be handled specially.");
-    public static final Option<Boolean> PARSE_ONLINE_SCHEMA_CHANGES = Options.key(
-                    "scan.parse.online.schema.changes.enabled")
-            .booleanType()
-            .defaultValue(false)
-            .withDescription(
-                    "Whether to parse schema change events generated by gh-ost/pt-osc utilities. Defaults to false.");
-    public static final Option<Boolean> USE_LEGACY_JSON_FORMAT = Options.key("use.legacy.json.format")
-            .booleanType()
-            .defaultValue(true)
-            .withDescription(
-                    "Whether to use legacy json format. The default value is true, which means there is no whitespace before value and after comma in json format.");
-
-    public static final Option<Boolean> SCAN_INCREMENTAL_SNAPSHOT_UNBOUNDED_CHUNK_FIRST = Options.key(
-                    "scan.incremental.snapshot.unbounded-chunk-first.enabled")
-            .booleanType()
-            .defaultValue(true)
-            .withDescription(
-                    "Whether to assign the unbounded chunks first during snapshot reading phase. This might help reduce the risk of the TaskManager experiencing an out-of-memory (OOM) error when taking a snapshot of the largest unbounded chunk.");
     // YakFlow's runtime-only settings are not part of the persisted job definition.
     public static final Option<String> TOPIC_PREFIX =
             Options.key("connector.mysql-cdc.topic-prefix").stringType().noDefaultValue();
