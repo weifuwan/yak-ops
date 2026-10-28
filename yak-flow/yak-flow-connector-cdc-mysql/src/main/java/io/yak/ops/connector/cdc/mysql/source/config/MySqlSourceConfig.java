@@ -607,8 +607,8 @@ public final class MySqlSourceConfig {
         properties.setProperty("time.precision.mode", "adaptive_time_microseconds");
         // Debezium's queue and the YakFlow Binlog handover share one bounded
         // source queue capacity; do not hide a second fixed 512-event buffer.
-        properties.setProperty("max.batch.size", Integer.toString(Math.min(128, queueCapacity)));
-        properties.setProperty("max.queue.size", Integer.toString(queueCapacity));
+        properties.setProperty("max.batch.size", Integer.toString(Math.min(128, Math.max(1, queueCapacity - 1))));
+        properties.setProperty("max.queue.size", Integer.toString(Math.max(2, queueCapacity)));
         properties.setProperty("offset.storage", CheckpointOffsetBackingStore.class.getName());
         properties.setProperty("yakflow.cdc.session.id", session);
         properties.setProperty("offset.flush.interval.ms", "0");
