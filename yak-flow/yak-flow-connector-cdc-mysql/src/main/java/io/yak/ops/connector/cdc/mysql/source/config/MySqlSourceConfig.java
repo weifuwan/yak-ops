@@ -86,23 +86,13 @@ public final class MySqlSourceConfig {
     private final int splitSize;
     private final int splitMetaGroupSize;
     private final int fetchSize;
-    private final String serverTimeZone;
     private final Duration connectTimeout;
-    private final int connectMaxRetries;
-    private final int connectionPoolSize;
+    private final Duration heartbeatInterval;
     private final double distributionFactorUpper;
     private final double distributionFactorLower;
-    private final boolean includeSchemaChanges;
-    private final boolean includeHeartbeatEvents;
-    private final boolean includeTransactionMetadataEvents;
     private final boolean scanNewlyAddedTableEnabled;
-    private final boolean closeIdleReaders;
     private final Properties jdbcProperties;
     private final boolean skipSnapshotBackfill;
-    private final boolean parseOnLineSchemaChanges;
-    private final boolean treatTinyInt1AsBoolean;
-    private final boolean useLegacyJsonFormat;
-    private final boolean assignUnboundedChunkFirst;
     private final boolean releaseSnapshotMetadataEnabled;
     private final Properties dbzProperties;
 
@@ -274,23 +264,13 @@ public final class MySqlSourceConfig {
         this.splitSize = settings.splitSize();
         this.splitMetaGroupSize = settings.splitMetaGroupSize();
         this.fetchSize = settings.fetchSize();
-        this.serverTimeZone = settings.serverTimeZone();
         this.connectTimeout = settings.connectTimeout();
-        this.connectMaxRetries = settings.connectMaxRetries();
-        this.connectionPoolSize = settings.connectionPoolSize();
+        this.heartbeatInterval = settings.heartbeatInterval();
         this.distributionFactorUpper = settings.distributionFactorUpper();
         this.distributionFactorLower = settings.distributionFactorLower();
-        this.includeSchemaChanges = settings.includeSchemaChanges();
-        this.includeHeartbeatEvents = settings.includeHeartbeatEvents();
-        this.includeTransactionMetadataEvents = settings.includeTransactionMetadataEvents();
         this.scanNewlyAddedTableEnabled = settings.scanNewlyAddedTableEnabled();
-        this.closeIdleReaders = settings.closeIdleReaders();
         this.jdbcProperties = settings.jdbcProperties();
         this.skipSnapshotBackfill = settings.skipSnapshotBackfill();
-        this.parseOnLineSchemaChanges = settings.parseOnLineSchemaChanges();
-        this.treatTinyInt1AsBoolean = settings.treatTinyInt1AsBoolean();
-        this.useLegacyJsonFormat = settings.useLegacyJsonFormat();
-        this.assignUnboundedChunkFirst = settings.assignUnboundedChunkFirst();
         this.releaseSnapshotMetadataEnabled = settings.releaseSnapshotMetadataEnabled();
         this.dbzProperties = settings.dbzProperties();
     }
@@ -552,8 +532,7 @@ public final class MySqlSourceConfig {
         properties.putAll(connectionProperties);
         properties.putIfAbsent("useCursorFetch", "true");
         properties.putIfAbsent("useServerPrepStmts", "true");
-        properties.putIfAbsent("connectTimeout", "10000");
-        properties.putIfAbsent("socketTimeout", "60000");
+        properties.putIfAbsent("connectTimeout", Long.toString(connectTimeout.toMillis()));
         properties.setProperty("user", username);
         properties.setProperty("password", password);
         return DriverManager.getConnection(url, properties);
@@ -622,12 +601,14 @@ public final class MySqlSourceConfig {
             properties.setProperty("column.propagate.source.type", ".*");
         }
         properties.setProperty("tombstones.on.delete", "false");
-        properties.setProperty("heartbeat.interval.ms", "1000");
+        properties.setProperty("heartbeat.interval.ms", Long.toString(heartbeatInterval.toMillis()));
         properties.setProperty("decimal.handling.mode", "precise");
         properties.setProperty("binary.handling.mode", "bytes");
         properties.setProperty("time.precision.mode", "adaptive_time_microseconds");
-        properties.setProperty("max.batch.size", "128");
-        properties.setProperty("max.queue.size", "512");
+        // Debezium's queue and the YakFlow Binlog handover share one bounded
+        // source queue capacity; do not hide a second fixed 512-event buffer.
+        properties.setProperty("max.batch.size", Integer.toString(Math.min(128, queueCapacity)));
+        properties.setProperty("max.queue.size", Integer.toString(queueCapacity));
         properties.setProperty("offset.storage", CheckpointOffsetBackingStore.class.getName());
         properties.setProperty("yakflow.cdc.session.id", session);
         properties.setProperty("offset.flush.interval.ms", "0");
@@ -695,33 +676,19 @@ public final class MySqlSourceConfig {
         return fetchSize;
     }
 
-    public String getServerTimeZone() {
-        return serverTimeZone;
-    }
 
     public Duration getConnectTimeout() {
         return connectTimeout;
     }
 
-    public int getConnectMaxRetries() {
-        return connectMaxRetries;
+    public Duration getHeartbeatInterval() {
+        return heartbeatInterval;
     }
 
-    public int getConnectionPoolSize() {
-        return connectionPoolSize;
-    }
 
-    public boolean isIncludeSchemaChanges() {
-        return includeSchemaChanges;
-    }
 
-    public boolean isIncludeHeartbeatEvents() {
-        return includeHeartbeatEvents;
-    }
 
-    public boolean isIncludeTransactionMetadataEvents() {
-        return includeTransactionMetadataEvents;
-    }
+
 
     public boolean isScanNewlyAddedTableEnabled() {
         return scanNewlyAddedTableEnabled;
@@ -731,17 +698,8 @@ public final class MySqlSourceConfig {
         return releaseSnapshotMetadataEnabled;
     }
 
-    public boolean isCloseIdleReaders() {
-        return closeIdleReaders;
-    }
 
-    public boolean isParseOnLineSchemaChanges() {
-        return parseOnLineSchemaChanges;
-    }
 
-    public boolean isAssignUnboundedChunkFirst() {
-        return assignUnboundedChunkFirst;
-    }
 
     public Properties getDbzProperties() {
         return dbzProperties;
@@ -792,9 +750,6 @@ public final class MySqlSourceConfig {
         return skipSnapshotBackfill;
     }
 
-    public boolean isTreatTinyInt1AsBoolean() {
-        return treatTinyInt1AsBoolean;
-    }
 
     /** Compatibility with Flink CDC's source configuration model; YakFlow owns the runtime schema. */
     public boolean isSchemaEvolutionEnabled() {
