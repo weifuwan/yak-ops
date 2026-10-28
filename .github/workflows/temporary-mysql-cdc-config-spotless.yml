@@ -1,4 +1,4 @@
-name: Temporary MySQL CDC Config Spotless Apply
+name: Temporary MySQL CDC Config Spotless Apply (final)
 on:
   push:
     branches:
@@ -34,6 +34,7 @@ jobs:
             yak-flow/yak-flow-connector-cdc-mysql/src/main/java/io/yak/ops/connector/cdc/mysql/source/config/MySqlSourceConfigFactory.java \
             yak-flow/yak-flow-connector-cdc-mysql/src/main/java/io/yak/ops/connector/cdc/mysql/source/config/MySqlSourceOptions.java \
             yak-flow/yak-flow-connector-cdc-mysql/src/main/java/io/yak/ops/connector/cdc/mysql/table/MySqlCdcSourceFactory.java \
+            yak-flow/yak-flow-connector-cdc-mysql/src/main/java/io/yak/ops/connector/cdc/mysql/debezium/reader/SnapshotSplitReader.java \
             yak-flow/yak-flow-connector-cdc-mysql/src/test/java/io/yak/ops/connector/cdc/mysql/source/config/MySqlSourceConfigTest.java \
             yak-flow/yak-flow-connector-cdc-mysql/src/test/java/io/yak/ops/connector/cdc/mysql/source/enumerator/MySqlSourceEnumeratorTest.java
           if ! git diff --cached --quiet; then
