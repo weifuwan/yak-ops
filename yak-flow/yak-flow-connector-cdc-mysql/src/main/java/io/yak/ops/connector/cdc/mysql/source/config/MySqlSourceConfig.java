@@ -676,7 +676,6 @@ public final class MySqlSourceConfig {
         return fetchSize;
     }
 
-
     public Duration getConnectTimeout() {
         return connectTimeout;
     }
@@ -685,11 +684,6 @@ public final class MySqlSourceConfig {
         return heartbeatInterval;
     }
 
-
-
-
-
-
     public boolean isScanNewlyAddedTableEnabled() {
         return scanNewlyAddedTableEnabled;
     }
@@ -697,9 +691,6 @@ public final class MySqlSourceConfig {
     public boolean isReleaseSnapshotMetadataEnabled() {
         return releaseSnapshotMetadataEnabled;
     }
-
-
-
 
     public Properties getDbzProperties() {
         return dbzProperties;
@@ -749,7 +740,6 @@ public final class MySqlSourceConfig {
     public boolean isSkipSnapshotBackfill() {
         return skipSnapshotBackfill;
     }
-
 
     /** Compatibility with Flink CDC's source configuration model; YakFlow owns the runtime schema. */
     public boolean isSchemaEvolutionEnabled() {

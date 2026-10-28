@@ -297,7 +297,6 @@ public class MySqlSourceConfigFactory implements Serializable {
 
     /** Whether to parse gh-ost/pt-osc utility generated schema change events. Defaults to false. */
 
-
     /**
      * Whether to assign the unbounded chunks first during snapshot reading phase. Defaults to
      * false.
@@ -305,6 +304,7 @@ public class MySqlSourceConfigFactory implements Serializable {
 
     // YakFlow-specific identity, prepared table schemas and bounded queue capacity.
     private final Map<TableId, TableSchema> schemas = new LinkedHashMap<>();
+
     private String topicPrefix;
     private int queueCapacity = MySqlSourceOptions.QUEUE_CAPACITY.defaultValue();
     private Map<String, String> connectionProperties = Map.of();
@@ -360,22 +360,25 @@ public class MySqlSourceConfigFactory implements Serializable {
         if (fetchSize <= 0) throw new IllegalArgumentException("scan.snapshot.fetch.size must be positive");
         if (splitSize <= 0 || splitSize > 100_000)
             throw new IllegalArgumentException("scan.incremental.snapshot.chunk.size must be 1..100000");
-        if (splitMetaGroupSize <= 0)
-            throw new IllegalArgumentException("chunk-meta.group.size must be positive");
-        if (connectTimeout == null || connectTimeout.toMillis() < 250
-                || connectTimeout.toMillis() > Integer.MAX_VALUE)
+        if (splitMetaGroupSize <= 0) throw new IllegalArgumentException("chunk-meta.group.size must be positive");
+        if (connectTimeout == null || connectTimeout.toMillis() < 250 || connectTimeout.toMillis() > Integer.MAX_VALUE)
             throw new IllegalArgumentException("connect.timeout must be between 250ms and Integer.MAX_VALUE ms");
-        if (heartbeatInterval == null || heartbeatInterval.toMillis() < 1
+        if (heartbeatInterval == null
+                || heartbeatInterval.toMillis() < 1
                 || heartbeatInterval.toMillis() > Integer.MAX_VALUE)
             throw new IllegalArgumentException("heartbeat.interval must be within 1..Integer.MAX_VALUE ms");
-        if (!Double.isFinite(distributionFactorLower) || !Double.isFinite(distributionFactorUpper)
-                || distributionFactorLower <= 0 || distributionFactorUpper < distributionFactorLower)
+        if (!Double.isFinite(distributionFactorLower)
+                || !Double.isFinite(distributionFactorUpper)
+                || distributionFactorLower <= 0
+                || distributionFactorUpper < distributionFactorLower)
             throw new IllegalArgumentException("Invalid chunk-key even-distribution factor bounds");
         if (scanNewlyAddedTableEnabled && releaseSnapshotMetadataEnabled)
             throw new IllegalArgumentException(
                     "scan.newly-added-table.enabled conflicts with scan.incremental.snapshot.metadata.release.enabled");
         if (startupOptions.isStreamOnly()
-                && (scanNewlyAddedTableEnabled || releaseSnapshotMetadataEnabled || skipSnapshotBackfill
+                && (scanNewlyAddedTableEnabled
+                        || releaseSnapshotMetadataEnabled
+                        || skipSnapshotBackfill
                         || !chunkKeyColumns.isEmpty()))
             throw new IllegalArgumentException("Binlog-only MySQL CDC cannot apply snapshot-only configuration");
         if (startupOptions.isSnapshotOnly()

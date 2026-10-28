@@ -129,8 +129,7 @@ public class MySqlSourceOptions {
     public static final Option<Duration> HEARTBEAT_INTERVAL = Options.key("heartbeat.interval")
             .durationType()
             .defaultValue(Duration.ofSeconds(1))
-            .withDescription(
-                    "Debezium heartbeat interval; one second preserves snapshot and Binlog handoff progress.");
+            .withDescription("Debezium heartbeat interval; one second preserves snapshot and Binlog handoff progress.");
 
     // ----------------------------------------------------------------------------
     // experimental options, won't add them to documentation
