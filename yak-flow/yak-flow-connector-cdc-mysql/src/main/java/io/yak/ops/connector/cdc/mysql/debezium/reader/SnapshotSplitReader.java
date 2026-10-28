@@ -4,6 +4,7 @@ import io.yak.ops.connector.base.source.reader.RecordsBySplits;
 import io.yak.ops.connector.base.source.reader.RecordsWithSplitIds;
 import io.yak.ops.connector.cdc.mysql.source.assigners.ChunkRange;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceConfig;
+import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit;
 import io.yak.ops.connector.cdc.mysql.source.utils.StatementUtils;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
@@ -40,7 +41,7 @@ public final class SnapshotSplitReader implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SnapshotSplitReader.class);
 
-    private static final int DEFAULT_FETCH_SIZE = 256;
+    private static final int DEFAULT_FETCH_SIZE = MySqlSourceOptions.SCAN_SNAPSHOT_FETCH_SIZE.defaultValue();
 
     private final JdbcConnectionProvider connections;
     private final JdbcDialect dialect;
