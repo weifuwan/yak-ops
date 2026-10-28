@@ -292,6 +292,10 @@ public final class MySqlSourceConfig {
             if (key == null || !key.matches("[A-Za-z][A-Za-z0-9_.-]*") || value == null) {
                 throw new IllegalArgumentException("Invalid MySQL JDBC connection property");
             }
+            if ("connecttimeout".equalsIgnoreCase(key)) {
+                throw new IllegalArgumentException(
+                        "MySQL JDBC connectTimeout must be configured through connect.timeout");
+            }
             if (Set.of(
                             "user",
                             "username",
@@ -532,7 +536,7 @@ public final class MySqlSourceConfig {
         properties.putAll(connectionProperties);
         properties.putIfAbsent("useCursorFetch", "true");
         properties.putIfAbsent("useServerPrepStmts", "true");
-        properties.putIfAbsent("connectTimeout", Long.toString(connectTimeout.toMillis()));
+        properties.setProperty("connectTimeout", Long.toString(connectTimeout.toMillis()));
         properties.setProperty("user", username);
         properties.setProperty("password", password);
         return DriverManager.getConnection(url, properties);
@@ -555,6 +559,7 @@ public final class MySqlSourceConfig {
         properties.setProperty("database.server.id", Integer.toString(serverId));
         // Debezium 2.7 passes driver.* values to its own JDBC connections.
         connectionProperties.forEach((key, value) -> properties.setProperty("driver." + key, value));
+        properties.setProperty("driver.connectTimeout", Long.toString(connectTimeout.toMillis()));
         properties.setProperty("topic.prefix", topicPrefix);
         if (scanNewlyAddedTableEnabled) {
             if (!databaseList.isEmpty())
