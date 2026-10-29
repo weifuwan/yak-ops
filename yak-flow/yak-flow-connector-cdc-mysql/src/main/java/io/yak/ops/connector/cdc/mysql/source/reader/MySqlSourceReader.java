@@ -187,6 +187,7 @@ public final class MySqlSourceReader
     @Override
     protected void onSplitFinished(Map<String, MySqlSplitState> finished) {
         Map<String, DebeziumOffset> finishedOffsets = new LinkedHashMap<>();
+        Map<String, byte[]> finishedHistories = new LinkedHashMap<>();
         boolean requestNextSplit = false;
         for (var entry : finished.entrySet()) {
             if (entry.getValue().binlog()) {
@@ -216,19 +217,27 @@ public final class MySqlSourceReader
                     snapshot.splitId(),
                     Objects.requireNonNull(snapshot.finished(), "Finished chunk has no watermark")
                             .highWatermark());
+            if (snapshot.finishedSchemaHistory().length != 0) {
+                finishedHistories.put(snapshot.splitId(), snapshot.finishedSchemaHistory());
+            }
             requestNextSplit = true;
         }
         if (!finishedOffsets.isEmpty()) {
-            context.sendSourceEventToCoordinator(new FinishedSnapshotSplitsReportEvent(finishedOffsets));
+            context.sendSourceEventToCoordinator(new FinishedSnapshotSplitsReportEvent(finishedOffsets, finishedHistories));
         }
         if (requestNextSplit) context.sendSplitRequest();
     }
 
     private void reportFinishedSplits() {
         Map<String, DebeziumOffset> finishedOffsets = new LinkedHashMap<>();
+        Map<String, byte[]> finishedHistories = new LinkedHashMap<>();
         finishedUnacked.forEach((id, split) -> {
-            if (split.finished() != null)
+            if (split.finished() != null) {
                 finishedOffsets.put(id, split.finished().highWatermark());
+                if (split.finishedSchemaHistory().length != 0) {
+                    finishedHistories.put(id, split.finishedSchemaHistory());
+                }
+            }
         });
         if (!finishedOffsets.isEmpty()) {
             context.sendSourceEventToCoordinator(new FinishedSnapshotSplitsReportEvent(finishedOffsets));
