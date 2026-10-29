@@ -17,9 +17,12 @@
 
 package io.yak.ops.worker.task.executor.worker;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils;
-import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils.MDCAutoClosable;
+import io.yak.ops.worker.task.executor.LOG.TaskExecutorMDCUtils;
+import io.yak.ops.worker.task.executor.LOG.TaskExecutorMDCUtils.MDCAutoClosable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +31,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TaskExecutorWorker.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TaskExecutorWorker.class);
 
     private final Map<String, ITaskExecutor> registeredTaskExecutors = new ConcurrentHashMap<>();
 
@@ -67,7 +70,7 @@ public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
                             trackTaskExecutorState(taskExecutor);
                         }
                     } catch (Throwable e) {
-                        log.error("{} execute failed", taskExecutor, e);
+                        LOG.error("{} execute failed", taskExecutor, e);
                         onTaskExecutorFailed(taskExecutor);
                     }
                 }
@@ -81,7 +84,7 @@ public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
                     activeTaskExecutorEmptyCondition.await(minNextTrackDelay, TimeUnit.MILLISECONDS);
                 }
             } catch (InterruptedException e) {
-                log.info("TaskExecutorWorker(id={}) is interrupted", workerId, e);
+                LOG.info("TaskExecutorWorker(id={}) is interrupted", workerId, e);
                 break;
             } finally {
                 activeTaskExecutorsChangeLock.unlock();

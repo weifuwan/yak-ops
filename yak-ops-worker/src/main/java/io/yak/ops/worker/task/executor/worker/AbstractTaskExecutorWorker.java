@@ -17,6 +17,9 @@
 
 package io.yak.ops.worker.task.executor.worker;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.TaskExecutorState;
 import io.yak.ops.worker.task.executor.events.TaskExecutorFailedLifecycleEvent;
@@ -26,7 +29,7 @@ import io.yak.ops.worker.task.executor.events.TaskExecutorSuccessLifecycleEvent;
 import java.util.Objects;
 
 public abstract class AbstractTaskExecutorWorker implements ITaskExecutorWorker {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AbstractTaskExecutorWorker.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractTaskExecutorWorker.class);
 
     protected void trackTaskExecutorState(final ITaskExecutor taskExecutor) {
         Objects.requireNonNull(taskExecutor, "taskExecutor is null");
@@ -47,7 +50,7 @@ public abstract class AbstractTaskExecutorWorker implements ITaskExecutorWorker 
                 onTaskExecutorPaused(taskExecutor);
                 break;
             case RUNNING:
-                log.debug("TaskExecutor(id={}) is running", taskExecutor.getId());
+                LOG.debug("TaskExecutor(id={}) is running", taskExecutor.getId());
                 break;
             default:
                 throw new IllegalStateException("Unexpected TaskExecutorState: " + taskExecutorState
