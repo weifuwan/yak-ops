@@ -202,21 +202,42 @@ CREATE TABLE yak_ops_task_instance (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Durable Task execution intent';
 
-CREATE TABLE yak_ops_task_execution_claim (
-  id VARCHAR(64) NOT NULL COMMENT 'Stable exclusive claim identifier',
-  workspace_id VARCHAR(64) NOT NULL COMMENT 'Workspace owning the resource identity',
-  resource_type VARCHAR(32) NOT NULL COMMENT 'Resource category requiring exclusive use',
-  resource_key VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Case-sensitive canonical resource identity',
-  instance_id VARCHAR(64) NOT NULL COMMENT 'Instance authorized to release the claim',
-  create_time DATETIME(3) NOT NULL COMMENT 'Claim acquisition timestamp',
-  update_time DATETIME(3) NOT NULL COMMENT 'Last claim update timestamp',
-  create_by VARCHAR(64) NOT NULL COMMENT 'Actor creating this claim',
-  update_by VARCHAR(64) NOT NULL COMMENT 'Actor updating this claim',
+-- DolphinScheduler TaskGroup slot accounting (TaskGroupMapper.xml, dev@ee47c371).
+-- Yak Ops adds Workspace/resource keys and string Task IDs for atomic multi-target
+-- reservations. Slot CAS and release SQL follow the upstream TaskGroup DAO.
+CREATE TABLE t_ds_task_group (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  workspace_id VARCHAR(64) NOT NULL,
+  resource_type VARCHAR(32) NOT NULL,
+  resource_key VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  group_size INT NOT NULL DEFAULT 1,
+  use_size INT NOT NULL DEFAULT 0,
+  status TINYINT NOT NULL DEFAULT 1,
+  create_time DATETIME(3) NOT NULL,
+  update_time DATETIME(3) NOT NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_ops_task_claim_resource (workspace_id, resource_type, resource_key),
-  KEY idx_ops_task_claim_instance (workspace_id, instance_id)
+  UNIQUE KEY uk_ds_task_group_resource (workspace_id, resource_type, resource_key)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Exclusive claims held by nonterminal Task Instances';
+  COMMENT='DolphinScheduler task group slots for exclusive execution resources';
+
+CREATE TABLE t_ds_task_group_queue (
+  id VARCHAR(64) NOT NULL,
+  task_id VARCHAR(64) NOT NULL,
+  group_id BIGINT NOT NULL,
+  priority INT NOT NULL DEFAULT 0,
+  status TINYINT NOT NULL DEFAULT 1,
+  force_start TINYINT NOT NULL DEFAULT 0,
+  in_queue TINYINT NOT NULL DEFAULT 1,
+  create_time DATETIME(3) NOT NULL,
+  update_time DATETIME(3) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_ds_task_group_queue_task (task_id, group_id),
+  KEY idx_ds_task_group_queue_task (task_id),
+  KEY idx_ds_task_group_queue_group (group_id),
+  KEY idx_ds_task_group_queue_status (status)
+) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='DolphinScheduler task group slot allocations; task IDs are Yak Ops strings';
 
 -- DolphinScheduler JDBC Registry DDL, upstream dev@ee47c371 (Apache-2.0)
 CREATE TABLE `t_ds_jdbc_registry_data`
