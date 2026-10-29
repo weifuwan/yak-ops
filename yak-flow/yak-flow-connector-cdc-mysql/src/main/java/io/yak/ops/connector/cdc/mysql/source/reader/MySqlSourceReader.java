@@ -56,6 +56,7 @@ public final class MySqlSourceReader
     private final Map<String, MySqlSnapshotSplit> finishedUnacked = new LinkedHashMap<>();
     private MySqlResumeBinlogEvent resumeEvent;
     private MySqlBinlogSplit suspendedBinlogSplit;
+    private MySqlBinlogSplit uncompletedBinlogSplit;
     private long pendingBinlogUpdateGeneration = -1;
     private final BinlogSplitMetaGroupAssembler binlogMetadata = new BinlogSplitMetaGroupAssembler();
     private final java.util.Set<String> acknowledged = new java.util.HashSet<>();
@@ -154,6 +155,16 @@ public final class MySqlSourceReader
                 context.sendSourceEventToCoordinator(new LatestFinishedSplitsNumberRequestEvent(
                         binlog.finishedSplits().size()));
                 context.sendSplitRequest();
+            } else if (split instanceof MySqlBinlogSplit binlog
+                    && binlog.phase() == MySqlBinlogSplit.Phase.STREAMING
+                    && !binlog.isCompletedSplit()) {
+                // Flink CDC: keep incomplete initial Binlog outside the fetcher until
+                // all finished Snapshot groups have been assembled.
+                if (uncompletedBinlogSplit != null) {
+                    throw new IllegalStateException("Only one incomplete MySQL Binlog split may be restored");
+                }
+                uncompletedBinlogSplit = binlog;
+                context.sendSourceEventToCoordinator(new BinlogSplitMetaRequestEvent(0, 0));
             } else {
                 active.add(split);
                 if (split instanceof MySqlBinlogSplit binlog
@@ -265,6 +276,10 @@ public final class MySqlSourceReader
                 && active.stream().noneMatch(split -> MySqlBinlogSplit.ID.equals(split.splitId()))) {
             active.add(suspendedBinlogSplit);
         }
+        if (uncompletedBinlogSplit != null
+                && active.stream().noneMatch(split -> MySqlBinlogSplit.ID.equals(split.splitId()))) {
+            active.add(uncompletedBinlogSplit);
+        }
         return List.copyOf(active);
     }
 
@@ -323,6 +338,18 @@ public final class MySqlSourceReader
                 throw new IllegalArgumentException("Metadata delivered for another Binlog split");
             }
             if (binlogMetadata.addGroup(group)) {
+                if (uncompletedBinlogSplit != null) {
+                    MySqlBinlogSplit complete = uncompletedBinlogSplit.withFinishedSnapshotSplitInfos(
+                            binlogMetadata.finishedSplits(uncompletedBinlogSplit.highWatermark()));
+                    // Do not start Debezium before the complete fence set is installed.
+                    try {
+                        super.addSplits(List.of(complete));
+                    } catch (Exception failure) {
+                        throw new IllegalStateException("Cannot start assembled initial Binlog split", failure);
+                    }
+                    uncompletedBinlogSplit = null;
+                    metrics.streaming(generation);
+                }
                 context.sendSourceEventToCoordinator(new BinlogSplitMetaAssembledEvent(binlogMetadata.generation()));
             } else if (group.getBinlogAssignmentGeneration() == binlogMetadata.generation()) {
                 context.sendSourceEventToCoordinator(
