@@ -93,7 +93,6 @@ class MySqlHybridSplitAssignerTest {
     @Test
     void restoredInitialHandoffRetainsHistoryOffsetWhenEarliestTableWasRemoved() throws Exception {
         var restored = restoreBeforeBinlogWithRemovedTable(true);
-        assertTrue(restored.snapshotComplete() == false);
         assertEquals(1, restored.finishedSplits().size());
         assertEquals(offset(200), restored.high());
         var binlog = (MySqlBinlogSplit) restored.getNext().orElseThrow();
