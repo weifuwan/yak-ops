@@ -32,8 +32,15 @@ public final class HybridPendingSplitsState extends PendingSplitsState {
             Phase phase,
             DebeziumOffset lowWatermark,
             DebeziumOffset highWatermark) {
-        this(snapshotPendingSplits, binlogAssigned, pendingBinlog, phase, lowWatermark, highWatermark,
-                null, new byte[0]);
+        this(
+                snapshotPendingSplits,
+                binlogAssigned,
+                pendingBinlog,
+                phase,
+                lowWatermark,
+                highWatermark,
+                null,
+                new byte[0]);
     }
 
     public HybridPendingSplitsState(
@@ -46,7 +53,8 @@ public final class HybridPendingSplitsState extends PendingSplitsState {
             DebeziumOffset schemaHistoryWatermark,
             byte[] schemaHistory) {
         this.schemaHistoryWatermark = schemaHistoryWatermark;
-        this.schemaHistory = Objects.requireNonNull(schemaHistory, "schemaHistory").clone();
+        this.schemaHistory =
+                Objects.requireNonNull(schemaHistory, "schemaHistory").clone();
         if ((schemaHistoryWatermark == null) != (this.schemaHistory.length == 0)) {
             throw new IllegalArgumentException("Snapshot schema history requires its originating HIGH watermark");
         }
@@ -147,8 +155,14 @@ public final class HybridPendingSplitsState extends PendingSplitsState {
     @Override
     public int hashCode() {
         return Objects.hash(
-                snapshotPendingSplits, isBinlogSplitAssigned, pendingBinlog, phase, lowWatermark, highWatermark,
-                schemaHistoryWatermark, Arrays.hashCode(schemaHistory));
+                snapshotPendingSplits,
+                isBinlogSplitAssigned,
+                pendingBinlog,
+                phase,
+                lowWatermark,
+                highWatermark,
+                schemaHistoryWatermark,
+                Arrays.hashCode(schemaHistory));
     }
 
     @Override
