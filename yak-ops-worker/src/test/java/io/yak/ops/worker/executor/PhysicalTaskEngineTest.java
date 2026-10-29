@@ -8,6 +8,8 @@ import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.worker.task.executor.TaskEngine;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.ITaskExecutor;
+import io.yak.ops.worker.task.executor.events.TaskExecutorKillLifecycleEvent;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -100,6 +102,15 @@ class PhysicalTaskEngineTest {
         } finally {
             engine.close();
         }
+    }
+
+    @Test
+    void requeuedLifecycleEventIsDelayedInsteadOfSpinning() {
+        PhysicalTaskExecutor executor = task(
+                "retry", new CompletableFuture<>(), new AtomicInteger());
+        TaskExecutorKillLifecycleEvent event = TaskExecutorKillLifecycleEvent.of(executor);
+        event.retryAfter(1_000);
+        assertTrue(event.getDelay(TimeUnit.MILLISECONDS) > 0);
     }
 
     private static PhysicalTaskExecutor task(

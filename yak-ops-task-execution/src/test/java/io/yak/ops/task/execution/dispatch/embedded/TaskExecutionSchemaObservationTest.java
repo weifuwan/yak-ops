@@ -34,6 +34,7 @@ class TaskExecutionSchemaObservationTest {
             inject(observer, "worker", worker);
             InstanceEntity instance = new InstanceEntity();
             instance.setStatus(TaskInstanceStatus.RUNNING);
+            instance.setDispatchToken("token");
             when(instances.instance("ws", "instance")).thenReturn(instance);
             DispatchTicket ticket = new DispatchTicket("ws", "instance", "task", 1, "DATA_SYNC", "revision", "token", false);
             AtomicBoolean persisted = new AtomicBoolean();
@@ -57,6 +58,10 @@ class TaskExecutionSchemaObservationTest {
             TaskRuntimeReference job = new TaskRuntimeReference("YAKFLOW", "real-job-id");
             reference.complete(Optional.of(job));
             verify(lifecycle, timeout(5000)).runtimeReference(ticket, job);
+            doAnswer(call -> {
+                instance.setStatus(TaskInstanceStatus.CANCELED);
+                return null;
+            }).when(lifecycle).complete(ticket, TaskOutcome.CANCELED, "{\"version\":3}");
             completed.complete(TaskOutcome.CANCELED);
             verify(lifecycle, timeout(5000)).complete(ticket, TaskOutcome.CANCELED, "{\"version\":3}");
             verify(lifecycle, never()).uncertain(ticket);
