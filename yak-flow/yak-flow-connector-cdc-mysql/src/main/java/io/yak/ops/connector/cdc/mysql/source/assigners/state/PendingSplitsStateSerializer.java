@@ -282,8 +282,14 @@ public final class PendingSplitsStateSerializer implements SimpleVersionedSerial
         }
         byte[] history = in.readNBytes(historyLength);
         return new HybridPendingSplitsState(
-                snapshot, binlogAssigned, pending, HybridPendingSplitsState.Phase.values()[phaseIndex], low, high,
-                historyWatermark, history);
+                snapshot,
+                binlogAssigned,
+                pending,
+                HybridPendingSplitsState.Phase.values()[phaseIndex],
+                low,
+                high,
+                historyWatermark,
+                history);
     }
 
     private BinlogPendingSplitsState deserializeBinlogPendingSplitsState(DataInputStream in, int splitVersion)
