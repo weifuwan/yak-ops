@@ -50,6 +50,20 @@ class MySqlSplitSerializerTest {
     }
 
     @Test
+    void incompleteBinlogMetadataSurvivesReaderCheckpoint() throws Exception {
+        var high = new DebeziumOffset(
+                Map.of("server", "yak"), Map.of("file", "mysql-bin.000010", "pos", 300L));
+        var incomplete = MySqlBinlogSplit.forCompletedSnapshot(
+                high, new byte[] {1, 2, 3}, high, java.util.List.of(), 3);
+        var serializer = MySqlSplitSerializer.INSTANCE;
+        MySqlBinlogSplit restored = (MySqlBinlogSplit) serializer.deserialize(
+                serializer.getVersion(), serializer.serialize(incomplete));
+        assertEquals(3, restored.getTotalFinishedSplitSize());
+        assertEquals(0, restored.finishedSplits().size());
+        org.junit.jupiter.api.Assertions.assertFalse(restored.isCompletedSplit());
+    }
+
+    @Test
     void roundTripsPausedAndRunningBinlogWithSchemaHistory() throws Exception {
         var serializer = new MySqlSplitSerializer();
         var low = new DebeziumOffset(Map.of("server", "yak"), Map.of("file", "mysql-bin.000010", "pos", 100L));
@@ -120,7 +134,7 @@ class MySqlSplitSerializerTest {
     @Test
     void testSplitVersionAndDefensiveSerializedFormCache() throws Exception {
         var serializer = MySqlSplitSerializer.INSTANCE;
-        assertEquals(2, serializer.getVersion());
+        assertEquals(3, serializer.getVersion());
         var split = new MySqlSnapshotSplit(
                 "cached-0", new TableId("shop", null, "orders"), null, 12L, null);
         byte[] baseline = serializer.serialize(split);
