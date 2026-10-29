@@ -1,14 +1,13 @@
 package io.yak.ops.worker.executor;
 
-import io.yak.ops.plugin.task.api.execution.TaskOutcome;
+import io.yak.ops.worker.task.executor.ITaskExecutor;
+import io.yak.ops.worker.task.executor.ITaskExecutorFactory;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 
-/** Creates one physical task per admitted Task Instance, without binding to a particular plugin type. */
-public final class PhysicalTaskExecutorFactory {
-    public PhysicalTaskExecutor createTaskExecutor(
-            String workspaceId, String instanceId, Supplier<CompletionStage<TaskOutcome>> task, Runnable cancellation) {
-        return new PhysicalTaskExecutor(new TaskExecutionContext(workspaceId, instanceId), task, cancellation);
+/** DolphinScheduler PhysicalTaskExecutorFactory, bound to the existing plugin SPI. */
+public final class PhysicalTaskExecutorFactory implements ITaskExecutorFactory {
+    @Override
+    public ITaskExecutor createTaskExecutor(TaskExecutionContext context) {
+        return new PhysicalTaskExecutor(context, context.getPhysicalTaskPluginFactory());
     }
 }

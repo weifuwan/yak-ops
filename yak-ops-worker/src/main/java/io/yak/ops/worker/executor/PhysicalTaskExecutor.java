@@ -5,42 +5,48 @@ import io.yak.ops.worker.task.executor.AbstractTaskExecutor;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.TaskExecutorState;
 import io.yak.ops.worker.task.executor.eventbus.TaskExecutorEventBus;
-import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * DolphinScheduler PhysicalTaskExecutor adapted to Yak Ops's asynchronous TaskHandle.
- * A task occupies its exclusive slot until the observer has persisted its outcome.
+ * DolphinScheduler PhysicalTaskExecutor adapted to the existing async TaskHandle.
+ * Initialization resolves the physical plugin; handle triggers its execution.
  */
 public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
-    private final Supplier<CompletionStage<TaskOutcome>> submission;
-    private final Runnable cancellation;
+    private static final Logger LOG = LoggerFactory.getLogger(PhysicalTaskExecutor.class);
+    private final PhysicalTaskPluginFactory physicalTaskPluginFactory;
     private final AtomicBoolean cancellationRequested = new AtomicBoolean();
+    private volatile PhysicalTask physicalTask;
+    private volatile boolean persistedTerminal;
+    private volatile boolean uncertainOutcome;
 
-    public PhysicalTaskExecutor(
-            TaskExecutionContext context, Supplier<CompletionStage<TaskOutcome>> submission, Runnable cancellation) {
+    public PhysicalTaskExecutor(TaskExecutionContext context, PhysicalTaskPluginFactory factory) {
         super(context, new TaskExecutorEventBus());
-        this.submission = Objects.requireNonNull(submission);
-        this.cancellation = Objects.requireNonNull(cancellation);
+        physicalTaskPluginFactory = java.util.Objects.requireNonNull(factory);
     }
 
     @Override
     protected void initializeTaskPlugin() {
-        // The submitted action resolves the pinned Task definition and existing Task SPI.
+        physicalTask = java.util.Objects.requireNonNull(
+                physicalTaskPluginFactory.createPhysicalTask(taskExecutionContext),
+                "PhysicalTaskPluginFactory returned null");
+        if (cancellationRequested.get()) physicalTask.cancel();
     }
 
     @Override
     protected void doTriggerTaskPlugin() {
         try {
-            CompletionStage<TaskOutcome> completion = submission.get();
-            if (completion == null) throw new IllegalStateException("Task submission returned null completion");
-            completion.whenComplete((outcome, error) -> {
-                if (error != null || outcome == null) {
-                    transitTaskExecutorState(TaskExecutorState.FAILED);
+            CompletionStage<TaskOutcome> completion = physicalTask.handle();
+            if (completion == null) throw new IllegalStateException("PhysicalTask.handle returned null");
+            completion.whenComplete((outcome, failure) -> {
+                if (failure != null || outcome == null) {
+                    uncertainOutcome = true;
+                    LOG.error("Physical Task outcome uncertain, instanceId={}", getId(), failure);
                     return;
                 }
+                persistedTerminal = true;
                 switch (outcome) {
                     case FINISHED:
                         transitTaskExecutorState(TaskExecutorState.SUCCEEDED);
@@ -52,32 +58,30 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
                         transitTaskExecutorState(TaskExecutorState.FAILED);
                         break;
                     default:
-                        transitTaskExecutorState(TaskExecutorState.FAILED);
+                        uncertainOutcome = true;
+                        persistedTerminal = false;
                 }
             });
         } catch (RuntimeException failure) {
-            transitTaskExecutorState(TaskExecutorState.FAILED);
-            throw failure;
+            uncertainOutcome = true;
+            LOG.error("Physical Task submission state unknown, instanceId={}", getId(), failure);
         }
     }
 
-    @Override
-    protected TaskExecutorState doTrackTaskPluginStatus() {
-        return taskExecutorState.get();
+    @Override protected TaskExecutorState doTrackTaskPluginStatus() { return taskExecutorState.get(); }
+    public boolean isPersistedTerminal() { return persistedTerminal; }
+    public boolean isUncertainOutcome() { return uncertainOutcome; }
+
+    @Override public void pause() { throw new UnsupportedOperationException("Task pause is not supported"); }
+
+    @Override public void kill() {
+        if (cancellationRequested.compareAndSet(false, true)) {
+            PhysicalTask task = physicalTask;
+            if (task != null) task.cancel();
+        }
     }
 
-    @Override
-    public void pause() {
-        throw new UnsupportedOperationException("Pause is not supported by the embedded Task SPI");
-    }
-
-    @Override
-    public void kill() {
-        if (cancellationRequested.compareAndSet(false, true)) cancellation.run();
-    }
-
-    @Override
-    public void finalizeTask() {
-        // Physical resources are closed by TaskHandle and its completion observer.
+    @Override public void finalizeTask() {
+        // TaskHandle closes its own physical resources on completion.
     }
 }
