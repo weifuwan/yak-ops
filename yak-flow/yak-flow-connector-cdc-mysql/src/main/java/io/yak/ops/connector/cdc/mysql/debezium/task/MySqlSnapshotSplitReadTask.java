@@ -127,7 +127,15 @@ public final class MySqlSnapshotSplitReadTask implements AutoCloseable {
                     if (backfillEvent(event, low, high, split.tableId(), buffer)) break;
                 }
             }
-            MySqlSnapshotSplit prepared = split.withOutput(new MySqlSnapshotOutput(low, high, buffer.finish()));
+            // Use the history of the actual bounded backfill task. A fresh no_data
+            // bootstrap *after* Snapshot would describe a later schema and cannot
+            // safely be backdated to the minimum completed chunk watermark.
+            byte[] schemaHistory = binlog.snapshotHistory();
+            if (schemaHistory.length == 0) {
+                throw new IllegalStateException("Completed MySQL Snapshot lacks recoverable Schema History");
+            }
+            MySqlSnapshotSplit prepared = split.withOutput(
+                    new MySqlSnapshotOutput(low, high, buffer.finish(), schemaHistory));
             return prepared;
         } finally {
             snapshots.close();
