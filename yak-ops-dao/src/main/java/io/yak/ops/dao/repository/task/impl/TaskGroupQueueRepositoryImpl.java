@@ -107,10 +107,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             throw new IllegalStateException("TaskGroupQueue release was not atomic");
         }
         for (Long id : groups) {
-            if (jdbc.update(
-                            "UPDATE t_ds_task_group SET use_size = use_size - 1"
-                                    + " WHERE id = ? AND use_size > 0",
-                            id)
+            if (jdbc.update("UPDATE t_ds_task_group SET use_size = use_size - 1" + " WHERE id = ? AND use_size > 0", id)
                     != 1) {
                 throw new IllegalStateException("TaskGroup slot counter is inconsistent");
             }
