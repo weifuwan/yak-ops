@@ -105,7 +105,7 @@ class PhysicalTaskEngineTest {
     private static PhysicalTaskExecutor task(
             String id, CompletionStage<TaskOutcome> completion, AtomicInteger kills) {
         TaskExecutionContext context = new TaskExecutionContext("workspace", id);
-        context.setPhysicalTaskPluginFactory(ignored -> new PhysicalTask() {
+        PhysicalTaskPluginFactory factory = ignored -> new PhysicalTask() {
             @Override public CompletionStage<TaskOutcome> handle() { return completion; }
             @Override public void cancel() {
                 kills.incrementAndGet();
@@ -113,8 +113,8 @@ class PhysicalTaskEngineTest {
                     ((CompletableFuture<TaskOutcome>) completion).complete(TaskOutcome.CANCELED);
                 }
             }
-        });
-        ITaskExecutor executor = new PhysicalTaskExecutorFactory().createTaskExecutor(context);
+        };
+        ITaskExecutor executor = new PhysicalTaskExecutorFactory(factory).createTaskExecutor(context);
         return (PhysicalTaskExecutor) executor;
     }
 

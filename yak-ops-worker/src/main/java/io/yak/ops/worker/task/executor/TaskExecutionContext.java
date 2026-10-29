@@ -1,6 +1,5 @@
 package io.yak.ops.worker.task.executor;
 
-import io.yak.ops.worker.executor.PhysicalTaskPluginFactory;
 import java.util.Objects;
 
 /** Worker-local identity of one physical Task; business ownership stays with the Master. */
@@ -11,21 +10,12 @@ public final class TaskExecutionContext {
     private String taskName;
     private String workflowInstanceId;
     private String logPath;
-    private PhysicalTaskPluginFactory physicalTaskPluginFactory;
     private long startTime;
     private long endTime;
 
     public TaskExecutionContext(String workspaceId, String taskInstanceId) {
         this.workspaceId = Objects.requireNonNull(workspaceId, "workspaceId");
         this.taskInstanceId = Objects.requireNonNull(taskInstanceId, "taskInstanceId");
-    }
-
-    public PhysicalTaskPluginFactory getPhysicalTaskPluginFactory() {
-        return physicalTaskPluginFactory;
-    }
-
-    public void setPhysicalTaskPluginFactory(PhysicalTaskPluginFactory factory) {
-        physicalTaskPluginFactory = Objects.requireNonNull(factory);
     }
 
     public String getWorkspaceId() {

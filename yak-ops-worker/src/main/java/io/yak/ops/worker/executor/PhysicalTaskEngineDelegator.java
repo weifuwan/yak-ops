@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 public final class PhysicalTaskEngineDelegator implements AutoCloseable {
     private final TaskEngine engine;
     private final PhysicalTaskExecutorRepository repository;
-    private final PhysicalTaskExecutorFactory factory = new PhysicalTaskExecutorFactory();
 
     public PhysicalTaskEngineDelegator(@Value("${yak.worker.task-executor-slots:4}") int slots) {
         repository = new PhysicalTaskExecutorRepository();
@@ -31,8 +30,7 @@ public final class PhysicalTaskEngineDelegator implements AutoCloseable {
 
     public void dispatch(String workspaceId, String instanceId, PhysicalTaskPluginFactory pluginFactory) {
         TaskExecutionContext context = new TaskExecutionContext(workspaceId, instanceId);
-        context.setPhysicalTaskPluginFactory(pluginFactory);
-        engine.submitTask(factory.createTaskExecutor(context));
+        engine.submitTask(new PhysicalTaskExecutorFactory(pluginFactory).createTaskExecutor(context));
     }
 
     public void kill(String instanceId) {
