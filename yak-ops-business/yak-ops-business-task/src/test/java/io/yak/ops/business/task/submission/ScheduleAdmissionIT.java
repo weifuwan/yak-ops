@@ -13,7 +13,7 @@ import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
-import io.yak.ops.business.task.submission.impl.AdmissionServiceImpl;
+import io.yak.ops.business.task.submission.impl.TaskSubmissionTransactionServiceImpl;
 import io.yak.ops.business.task.submission.impl.SubmissionServiceImpl;
 import io.yak.ops.common.enums.schedule.ScheduleFireOutcome;
 import io.yak.ops.common.enums.schedule.ScheduleFireReason;
@@ -161,7 +161,7 @@ class ScheduleAdmissionIT {
                 ScheduleRepositoryImpl.class,
                 ScheduleFireRepositoryImpl.class,
                 SubmissionServiceImpl.class,
-                AdmissionServiceImpl.class);
+                TaskSubmissionTransactionServiceImpl.class);
         context.refresh();
         admissionController = context.getBean(ScheduleAdmissionController.class);
         submissions = context.getBean(SubmissionService.class);

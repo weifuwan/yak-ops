@@ -7,7 +7,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** Validates immutable and deterministic exclusive-resource declarations. */
-class TaskAdmissionPlanTest {
+class TaskExecutionResourcesTest {
 
     @Test
     void sortsAndCopiesExclusiveResources() {

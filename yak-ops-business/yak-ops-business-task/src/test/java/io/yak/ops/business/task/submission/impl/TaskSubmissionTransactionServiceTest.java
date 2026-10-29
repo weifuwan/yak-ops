@@ -34,8 +34,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 /** Checks read-only revalidation and atomic admission inputs. */
-class AdmissionServiceTest {
-    private final AdmissionServiceImpl service = new AdmissionServiceImpl();
+class TaskSubmissionTransactionServiceTest {
+    private final TaskSubmissionTransactionServiceImpl service = new TaskSubmissionTransactionServiceImpl();
     private final DefinitionRepository definitions = mock(DefinitionRepository.class);
     private final DefinitionVersionRepository versions = mock(DefinitionVersionRepository.class);
     private final InstanceRepository instances = mock(InstanceRepository.class);
@@ -46,7 +46,7 @@ class AdmissionServiceTest {
     private final ExecutionResource target = new ExecutionResource("DATA_SYNC_TARGET", "source/table");
     private final TaskExecutionResources plan = new TaskExecutionResources(List.of(target), "resource-v1");
 
-    AdmissionServiceTest() {
+    TaskSubmissionTransactionServiceTest() {
         inject("definitions", definitions);
         inject("versions", versions);
         inject("instances", instances);
@@ -86,11 +86,11 @@ class AdmissionServiceTest {
     }
 
     @Test
-    void rejectsResourceBindingChangeBeforeDatabaseWrites() {
-        when(plugin.plan(parameters, context)).thenReturn(new TaskExecutionResources(List.of(target), "resource-v2"));
-        assertThrows(BusinessException.class, () -> service.admit(request()));
-        verify(instances, never()).add(any());
-        verify(claims, never()).add(any());
+    void usesPreparedResourcesWithoutReplanningUnderDefinitionLock() {
+        service.admit(request());
+        verify(plugin, never()).plan(any(), any());
+        verify(instances).add(any());
+        verify(claims).add(any());
     }
 
     @Test
@@ -151,7 +151,7 @@ class AdmissionServiceTest {
 
     private void inject(String name, Object dependency) {
         try {
-            Field field = AdmissionServiceImpl.class.getDeclaredField(name);
+            Field field = TaskSubmissionTransactionServiceImpl.class.getDeclaredField(name);
             field.setAccessible(true);
             field.set(service, dependency);
         } catch (ReflectiveOperationException error) {

@@ -51,7 +51,7 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
  * declared resources. Physical execution must occur after this transaction commits.
  */
 @Service
-public class AdmissionServiceImpl implements TaskSubmissionTransactionService {
+public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTransactionService {
     @Resource
     private DefinitionRepository definitions;
 

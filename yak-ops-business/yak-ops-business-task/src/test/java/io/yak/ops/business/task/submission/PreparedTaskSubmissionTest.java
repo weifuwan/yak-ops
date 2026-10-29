@@ -16,7 +16,7 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class AdmissionRequestTest {
+class PreparedTaskSubmissionTest {
 
     @Test
     void preservesAdmittedInputsAndExecutablePluginIdentity() {
