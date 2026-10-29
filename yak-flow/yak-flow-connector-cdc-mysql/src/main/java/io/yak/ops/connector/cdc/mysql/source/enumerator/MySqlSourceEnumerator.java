@@ -21,7 +21,6 @@ import io.yak.ops.connector.cdc.mysql.source.events.FinishedSnapshotSplitsReport
 import io.yak.ops.connector.cdc.mysql.source.events.FinishedSnapshotSplitsRequestEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.LatestFinishedSplitsNumberEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.LatestFinishedSplitsNumberRequestEvent;
-import io.yak.ops.connector.cdc.mysql.source.events.MySqlLowWatermarkEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlResumeBinlogEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlStopSnapshotEvent;
 import io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo;
@@ -134,9 +133,7 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
         tables.forEach(metrics::register);
         generation = metrics.beginSnapshot(restored != null);
         splitter = planner;
-        assigner = initial
-                ? new MySqlHybridSplitAssigner(startupOptions, restoredHybrid, splitMetaGroupSize)
-                : null;
+        assigner = initial ? new MySqlHybridSplitAssigner(startupOptions, restoredHybrid, splitMetaGroupSize) : null;
         if (initial) {
             assigner.initializeTables(
                     tables, config.isScanNewlyAddedTableEnabled(), config.isReleaseSnapshotMetadataEnabled());
@@ -219,8 +216,7 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
             if (next != null) context.assignSplit(next, 0);
             return;
         }
-        if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING
-                && !assigner.isAssigningNewlyAddedTables()) {
+        if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING && !assigner.isAssigningNewlyAddedTables()) {
             // Reader 0 may request a returned Binlog split after a region restart.
             if (reader == 0) assignAvailable();
             return;
@@ -341,8 +337,7 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
             planSnapshotAsync();
         } else if (event instanceof FinishedSnapshotSplitsReportEvent finished) {
             assigner.onFinishedSplits(finished.getFinishedOffsets());
-            assigner.captureSnapshotSchemaHistory(
-                    finished.getFinishedOffsets(), finished.getFinishedSchemaHistories());
+            assigner.captureSnapshotSchemaHistory(finished.getFinishedOffsets(), finished.getFinishedSchemaHistories());
             List<String> acknowledged = new ArrayList<>();
             Map<String, FinishedSnapshotSplitInfo> completed = new LinkedHashMap<>();
             assigner.finishedSplits().forEach(info -> completed.put(info.splitId(), info));
