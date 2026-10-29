@@ -28,7 +28,7 @@ public final class MySqlSplitSerializer implements SimpleVersionedSerializer<MyS
 
     // Flink CDC's split layout uses the same two kind flags, but the payload uses YakFlow's
     // Debezium 2.7 history and typed Chunk representation. Do not claim Flink v4 wire compatibility.
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
     private static final int MAX_BYTES = 8 * 1024 * 1024;
     private static final int SNAPSHOT_SPLIT_FLAG = 1;
     private static final int BINLOG_SPLIT_FLAG = 2;
@@ -109,6 +109,12 @@ public final class MySqlSplitSerializer implements SimpleVersionedSerializer<MyS
         out.writeBoolean(split.finished() != null);
         if (split.finished() != null) {
             split.finished().highWatermark().writeTo(out);
+            byte[] history = split.finishedSchemaHistory();
+            if (history.length > MAX_BYTES - 4096) {
+                throw new IOException("Completed Snapshot schema history exceeds split size limit");
+            }
+            out.writeInt(history.length);
+            out.write(history);
         }
         ChunkRangeStateSerializer.write(out, split.chunkRange());
     }
@@ -119,10 +125,18 @@ public final class MySqlSplitSerializer implements SimpleVersionedSerializer<MyS
         Long lower = readLong(in);
         Long upper = readLong(in);
         DebeziumOffset high = in.readBoolean() ? DebeziumOffset.readFrom(in) : null;
+        byte[] history = new byte[0];
+        if (high != null) {
+            int length = in.readInt();
+            if (length < 0 || length > in.available() || length > MAX_BYTES - 4096) {
+                throw new IOException("Invalid completed Snapshot schema history length");
+            }
+            history = in.readNBytes(length);
+        }
         ChunkRange range = ChunkRangeStateSerializer.read(in);
         FinishedSnapshotSplitInfo finished =
                 high == null ? null : new FinishedSnapshotSplitInfo(table, id, lower, upper, high, range);
-        return new MySqlSnapshotSplit(id, table, lower, upper, null, null, 0, finished, range);
+        return new MySqlSnapshotSplit(id, table, lower, upper, null, null, 0, finished, range, history);
     }
 
     private static void writeBinlog(DataOutputStream out, MySqlBinlogSplit split) throws IOException {
