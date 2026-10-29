@@ -63,12 +63,13 @@ class MySqlBinlogHandoffMetadataTest {
         var enumerator = new MySqlSourceEnumerator(
                 StartupOptions.initial(), context, source.config(), 2, handoffState(), new TableMetrics());
         enumerator.start();
-        assertThat(context.assignedToBinlogReader).isEmpty();
+        // The restored state came from an already durable checkpoint and the
+        // Snapshot Assigner can complete its initial transition immediately.
+        assertThat(context.assignedToBinlogReader).hasSize(1);
         assertThat(context.toReader0).noneMatch(MySqlResumeBinlogEvent.class::isInstance);
 
         enumerator.snapshotState(12);
         enumerator.notifyCheckpointComplete(11);
-        assertThat(context.assignedToBinlogReader).isEmpty();
         enumerator.notifyCheckpointComplete(12);
         assertThat(context.assignedToBinlogReader).hasSize(1);
         var assigned = (io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit)
