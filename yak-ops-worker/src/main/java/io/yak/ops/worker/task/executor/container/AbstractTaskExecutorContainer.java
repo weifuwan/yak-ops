@@ -30,8 +30,6 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-
 public abstract class AbstractTaskExecutorContainer implements ITaskExecutorContainer {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractTaskExecutorContainer.class);
     private volatile boolean closed;
@@ -43,7 +41,6 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
     protected final TaskExecutorWorkers taskExecutorWorkers;
 
     public AbstractTaskExecutorContainer(final TaskExecutorContainerConfig containerConfig) {
-        final String threadPoolFormat = containerConfig.getContainerName() + "-worker-%d";
         final int threadPoolSize = containerConfig.getTaskExecutorThreadPoolSize();
         if (threadPoolSize < 1) {
             throw new IllegalArgumentException("Task executor slots must be positive");
@@ -129,7 +126,6 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
         return taskExecutorAssignmentTable;
     }
 
-    @VisibleForTesting
     public TaskExecutorWorkers getTaskExecutorWorkers() {
         return taskExecutorWorkers;
     }
