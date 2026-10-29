@@ -66,7 +66,9 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
     }
 
     public String incarnation() {
-        if (lock == null || !lock.isValid() || !registry.isConnected()
+        if (lock == null
+                || !lock.isValid()
+                || !registry.isConnected()
                 || !incarnation.equals(registry.get(REGISTRY_PATH))) {
             throw new IllegalStateException("Embedded execution ownership was lost");
         }
