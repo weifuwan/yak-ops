@@ -74,6 +74,32 @@ class MySqlSourceReaderTest {
     }
 
     @Test
+    void restoredFinishedSnapshotRereportsOffsetAndDebeziumHistoryWithoutRescanning() throws Exception {
+        var events = new ArrayList<SourceEvent>();
+        var table = new TableId("shop", null, "orders");
+        var high = offset(150);
+        var finished = new FinishedSnapshotSplitInfo(table, "orders-0", null, null, high);
+        var restored = new io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit(
+                "orders-0", table, null, null, null, null, 0, finished, null, new byte[] {1, 2, 3});
+        try (MySqlSourceReader reader = new MySqlSourceReader(
+                config(), context(new AtomicInteger(), events), new TableMetrics(), true)) {
+            reader.addSplits(List.of(restored));
+            assertThat(events).hasSize(1);
+            var report = (io.yak.ops.connector.cdc.mysql.source.events.FinishedSnapshotSplitsReportEvent)
+                    events.getFirst();
+            assertThat(report.getFinishedOffsets()).containsEntry("orders-0", high);
+            assertThat(report.getFinishedSchemaHistories().get("orders-0")).containsExactly(1, 2, 3);
+            assertThat(reader.snapshotState(5)).containsExactly(restored);
+            reader.handleSourceEvents(new FinishedSnapshotSplitsRequestEvent());
+            assertThat(events).hasSize(2);
+            var rereported = (io.yak.ops.connector.cdc.mysql.source.events.FinishedSnapshotSplitsReportEvent)
+                    events.getLast();
+            assertThat(rereported.getFinishedSchemaHistories().get("orders-0"))
+                    .containsExactly(1, 2, 3);
+        }
+    }
+
+    @Test
     void checkpointRestoredPausedBinlogRereportsLowWatermarkToCoordinator() throws Exception {
         var events = new ArrayList<SourceEvent>();
         var requests = new AtomicInteger();
