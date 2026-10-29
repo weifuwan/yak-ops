@@ -1,22 +1,46 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.yak.ops.worker.task.executor.worker;
 
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-import io.yak.ops.worker.task.executor.TaskExecutorState;
-import io.yak.ops.worker.task.executor.events.TaskExecutorLifecycleEvent;
-import io.yak.ops.worker.task.executor.events.TaskExecutorLifecycleEventType;
+import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils;
+import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils.MDCAutoClosable;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-/** Port of DolphinScheduler TaskExecutorWorker: registered slots outlive fired tasks. */
-public final class TaskExecutorWorker implements ITaskExecutorWorker {
-    private final int workerId;
+
+public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TaskExecutorWorker.class);
+
     private final Map<String, ITaskExecutor> registeredTaskExecutors = new ConcurrentHashMap<>();
+
     private final Map<String, ITaskExecutor> activeTaskExecutors = new ConcurrentHashMap<>();
-    private final ReentrantLock lock = new ReentrantLock();
-    private final Condition wakeup = lock.newCondition();
+
+    private final Lock activeTaskExecutorsChangeLock = new ReentrantLock();
+
+    private final Condition activeTaskExecutorEmptyCondition = activeTaskExecutorsChangeLock.newCondition();
+
+    private final int workerId;
 
     public TaskExecutorWorker(int workerId) {
         this.workerId = workerId;
@@ -30,82 +54,90 @@ public final class TaskExecutorWorker implements ITaskExecutorWorker {
     @Override
     public void start() {
         while (!Thread.currentThread().isInterrupted()) {
-            long waitMillis = 100;
-            for (ITaskExecutor executor : activeTaskExecutors.values()) {
-                try {
-                    if (!executor.isStarted()) executor.start();
-                    long remaining = executor.getRemainingTrackDelay();
-                    if (remaining <= 0) {
-                        TaskExecutorState state = executor.trackTaskExecutorState();
-                        if (state.isFinalState()) {
-                            executor.getTaskExecutionContext().setEndTime(System.currentTimeMillis());
-                            executor.getTaskExecutorEventBus()
-                                    .publish(TaskExecutorLifecycleEvent.of(executor, terminalEvent(state)));
-                            unFireTaskExecutor(executor);
+            long minNextTrackDelay = 100;
+            for (final ITaskExecutor taskExecutor : activeTaskExecutors.values()) {
+                try (final MDCAutoClosable closable = TaskExecutorMDCUtils.logWithMDC(taskExecutor)) {
+                    try {
+                        if (!taskExecutor.isStarted()) {
+                            taskExecutor.start();
                         }
-                    } else {
-                        waitMillis = Math.min(waitMillis, remaining);
+
+                        final long remainingTrackDelay = taskExecutor.getRemainingTrackDelay();
+                        if (remainingTrackDelay > 0) {
+                            minNextTrackDelay = Math.min(minNextTrackDelay, remainingTrackDelay);
+                        } else {
+                            trackTaskExecutorState(taskExecutor);
+                        }
+                    } catch (Throwable e) {
+                        log.error("{} execute failed", taskExecutor, e);
+                        onTaskExecutorFailed(taskExecutor);
                     }
-                } catch (Throwable failure) {
-                    executor.getTaskExecutorEventBus()
-                            .publish(TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.FAILED));
-                    unFireTaskExecutor(executor);
                 }
             }
-            lock.lock();
+
+            activeTaskExecutorsChangeLock.lock();
             try {
-                if (activeTaskExecutors.isEmpty()) wakeup.await();
-                else wakeup.await(Math.max(1, waitMillis), TimeUnit.MILLISECONDS);
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-                return;
+                if (activeTaskExecutors.isEmpty()) {
+                    activeTaskExecutorEmptyCondition.await();
+                } else {
+                    activeTaskExecutorEmptyCondition.await(minNextTrackDelay, TimeUnit.MILLISECONDS);
+                }
+            } catch (InterruptedException e) {
+                log.info("TaskExecutorWorker(id={}) is interrupted", workerId, e);
+                break;
             } finally {
-                lock.unlock();
+                activeTaskExecutorsChangeLock.unlock();
             }
         }
     }
 
-    private TaskExecutorLifecycleEventType terminalEvent(TaskExecutorState state) {
-        switch (state) {
-            case SUCCEEDED:
-                return TaskExecutorLifecycleEventType.SUCCESS;
-            case KILLED:
-                return TaskExecutorLifecycleEventType.KILLED;
-            case PAUSED:
-                return TaskExecutorLifecycleEventType.PAUSED;
-            default:
-                return TaskExecutorLifecycleEventType.FAILED;
+    @Override
+    public void registerTaskExecutor(final ITaskExecutor taskExecutor) {
+        final String taskExecutorId = taskExecutor.getId();
+        if (registeredTaskExecutors.putIfAbsent(taskExecutorId, taskExecutor) != null) {
+            throw new IllegalStateException("Task already registered: " + taskExecutorId);
         }
     }
 
     @Override
-    public void registerTaskExecutor(ITaskExecutor executor) {
-        if (registeredTaskExecutors.putIfAbsent(executor.getId(), executor) != null)
-            throw new IllegalStateException("Duplicate task registration: " + executor.getId());
+    public void unRegisterTaskExecutor(final ITaskExecutor taskExecutor) {
+        final String taskExecutorId = taskExecutor.getId();
+        if (!registeredTaskExecutors.containsKey(taskExecutorId)) {
+            throw new IllegalStateException(
+                    "The TaskExecutorWorker has not registered " + taskExecutor);
+        }
+        registeredTaskExecutors.remove(taskExecutorId);
     }
 
     @Override
-    public void unRegisterTaskExecutor(ITaskExecutor executor) {
-        registeredTaskExecutors.remove(executor.getId(), executor);
-    }
-
-    @Override
-    public void fireTaskExecutor(ITaskExecutor executor) {
-        lock.lock();
+    public void fireTaskExecutor(final ITaskExecutor taskExecutor) {
+        activeTaskExecutorsChangeLock.lock();
         try {
-            if (!registeredTaskExecutors.containsKey(executor.getId()))
-                throw new IllegalStateException("Task was not registered");
-            if (activeTaskExecutors.putIfAbsent(executor.getId(), executor) != null)
-                throw new IllegalStateException("Task already started");
-            wakeup.signalAll();
+            final String taskExecutorId = taskExecutor.getId();
+            if (!registeredTaskExecutors.containsKey(taskExecutorId)) {
+                throw new IllegalStateException(
+                        "The TaskExecutorWorker has not registered " + taskExecutor);
+            }
+            if (activeTaskExecutors.containsKey(taskExecutorId)) {
+                throw new IllegalStateException(
+                        "The TaskExecutorWorker has already fired " + taskExecutor);
+            }
+            activeTaskExecutors.put(taskExecutorId, taskExecutor);
+            activeTaskExecutorEmptyCondition.signalAll();
         } finally {
-            lock.unlock();
+            activeTaskExecutorsChangeLock.unlock();
         }
     }
 
     @Override
-    public void unFireTaskExecutor(ITaskExecutor executor) {
-        activeTaskExecutors.remove(executor.getId(), executor);
+    public void unFireTaskExecutor(ITaskExecutor taskExecutor) {
+        try {
+            activeTaskExecutorsChangeLock.lock();
+            final String taskExecutorId = taskExecutor.getId();
+            activeTaskExecutors.remove(taskExecutorId);
+        } finally {
+            activeTaskExecutorsChangeLock.unlock();
+        }
     }
 
     @Override
@@ -117,4 +149,5 @@ public final class TaskExecutorWorker implements ITaskExecutorWorker {
     public int getFiredTaskExecutorSize() {
         return activeTaskExecutors.size();
     }
+
 }
