@@ -21,6 +21,7 @@ import io.yak.ops.connector.cdc.mysql.debezium.DebeziumOffset;
 import io.yak.ops.connector.cdc.mysql.source.enumerator.MySqlSourceEnumerator;
 import io.yak.ops.connector.cdc.mysql.source.reader.MySqlSourceReader;
 import io.yak.ops.core.api.connector.source.SourceEvent;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -32,13 +33,39 @@ public class FinishedSnapshotSplitsReportEvent implements SourceEvent {
     private static final long serialVersionUID = 1L;
 
     private final Map<String, DebeziumOffset> finishedOffsets;
+    private final Map<String, byte[]> finishedSchemaHistories;
 
     public FinishedSnapshotSplitsReportEvent(Map<String, DebeziumOffset> finishedOffsets) {
+        this(finishedOffsets, Map.of());
+    }
+
+    /**
+     * Each completed Chunk offers Debezium history through its HIGH watermark.
+     * The coordinator retains only the history for the earliest completed HIGH,
+     * since that is the starting point of the deferred Binlog split.
+     */
+    public FinishedSnapshotSplitsReportEvent(
+            Map<String, DebeziumOffset> finishedOffsets,
+            Map<String, byte[]> finishedSchemaHistories) {
         this.finishedOffsets = Map.copyOf(finishedOffsets);
+        Map<String, byte[]> copied = new LinkedHashMap<>();
+        finishedSchemaHistories.forEach((id, history) -> {
+            if (!finishedOffsets.containsKey(id)) {
+                throw new IllegalArgumentException("Unknown finished split schema history: " + id);
+            }
+            copied.put(id, history.clone());
+        });
+        this.finishedSchemaHistories = Map.copyOf(copied);
     }
 
     public Map<String, DebeziumOffset> getFinishedOffsets() {
         return finishedOffsets;
+    }
+
+    public Map<String, byte[]> getFinishedSchemaHistories() {
+        Map<String, byte[]> copied = new LinkedHashMap<>();
+        finishedSchemaHistories.forEach((id, history) -> copied.put(id, history.clone()));
+        return copied;
     }
 
     @Override
