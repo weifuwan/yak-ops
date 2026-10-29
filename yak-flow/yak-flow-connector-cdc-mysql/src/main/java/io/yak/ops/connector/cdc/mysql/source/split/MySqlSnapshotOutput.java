@@ -6,6 +6,7 @@ import io.yak.ops.core.data.RowData;
 import io.yak.ops.core.data.RowKind;
 import io.yak.ops.core.data.TableRecord;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -14,8 +15,20 @@ public final class MySqlSnapshotOutput {
     private final DebeziumOffset low;
     private final DebeziumOffset high;
     private final List<TableRecord> rows;
+    private final byte[] schemaHistory;
 
     public MySqlSnapshotOutput(DebeziumOffset low, DebeziumOffset high, List<TableRecord> rows) {
+        this(low, high, rows, new byte[0]);
+    }
+
+    /**
+     * Keeps the completed Debezium 2.7 Schema History from the same bounded backfill
+     * stream that advanced to this chunk's high watermark. The eventual Binlog split
+     * must use history valid at its starting offset, not a later schema-only snapshot.
+     */
+    public MySqlSnapshotOutput(
+            DebeziumOffset low, DebeziumOffset high, List<TableRecord> rows, byte[] schemaHistory) {
+        this.schemaHistory = Objects.requireNonNull(schemaHistory, "schemaHistory").clone();
         this.low = Objects.requireNonNull(low, "low");
         this.high = Objects.requireNonNull(high, "high");
         if (low.compareTo(high) > 0) {
@@ -54,13 +67,18 @@ public final class MySqlSnapshotOutput {
         return rows;
     }
 
+    public byte[] schemaHistory() {
+        return schemaHistory.clone();
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
         if (!(other instanceof MySqlSnapshotOutput output)
                 || !low.equals(output.low)
                 || !high.equals(output.high)
-                || rows.size() != output.rows.size()) return false;
+                || rows.size() != output.rows.size()
+                || !Arrays.equals(schemaHistory, output.schemaHistory)) return false;
         // TableRecord deliberately has execution identity, while this in-memory snapshot image is a value.
         for (int i = 0; i < rows.size(); i++) {
             TableRecord left = rows.get(i), right = output.rows.get(i);
@@ -73,7 +91,7 @@ public final class MySqlSnapshotOutput {
 
     @Override
     public int hashCode() {
-        int hash = Objects.hash(low, high);
+        int hash = Objects.hash(low, high, Arrays.hashCode(schemaHistory));
         for (TableRecord row : rows) hash = 31 * hash + Objects.hash(row.tableId(), row.rowKind(), row.row());
         return hash;
     }
