@@ -5,11 +5,11 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.api.connector.source.Boundedness;
+import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
-import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.config.SolutionOptions;
@@ -18,9 +18,9 @@ import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
 import io.yak.ops.plugin.task.datasync.solution.Solution;
 import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
 import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
-import java.util.concurrent.CompletionStage;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletionStage;
 
 /** Owns DATA_SYNC Task definition rules and delegates physical planning and execution. */
 public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
