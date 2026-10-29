@@ -134,7 +134,9 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
         tables.forEach(metrics::register);
         generation = metrics.beginSnapshot(restored != null);
         splitter = planner;
-        assigner = initial ? new MySqlHybridSplitAssigner(startupOptions, restoredHybrid) : null;
+        assigner = initial
+                ? new MySqlHybridSplitAssigner(startupOptions, restoredHybrid, splitMetaGroupSize)
+                : null;
         if (initial) {
             assigner.initializeTables(
                     tables, config.isScanNewlyAddedTableEnabled(), config.isReleaseSnapshotMetadataEnabled());
