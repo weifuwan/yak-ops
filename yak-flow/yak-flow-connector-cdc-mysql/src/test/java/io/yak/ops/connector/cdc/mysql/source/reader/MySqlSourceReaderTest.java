@@ -114,6 +114,31 @@ class MySqlSourceReaderTest {
     }
 
     @Test
+    void incompleteInitialBinlogRemainsCheckpointedUntilAllMetadataGroupsArrive() throws Exception {
+        var events = new ArrayList<SourceEvent>();
+        var table = new TableId("shop", null, "orders");
+        var first = new FinishedSnapshotSplitInfo(table, "chunk-0", null, null, offset(100));
+        var pending = MySqlBinlogSplit.forCompletedSnapshot(
+                offset(100), new byte[] {1}, offset(200), List.of(), 2);
+        try (MySqlSourceReader reader = new MySqlSourceReader(
+                config(), context(new AtomicInteger(), events), new TableMetrics(), true)) {
+            reader.addSplits(List.of(pending));
+            assertThat(events).hasSize(1);
+            assertThat(events.getFirst()).isInstanceOf(BinlogSplitMetaRequestEvent.class);
+            assertThat(((BinlogSplitMetaRequestEvent) events.getFirst()).getGroupId()).isZero();
+            assertThat(reader.snapshotState(1)).containsExactly(pending);
+            reader.handleSourceEvents(new BinlogSplitMetaEvent(
+                    0, 2, 2, 0, List.of(FinishedSnapshotSplitInfo.serialize(first))));
+            assertThat(events.getLast()).isInstanceOf(BinlogSplitMetaRequestEvent.class);
+            assertThat(((BinlogSplitMetaRequestEvent) events.getLast()).getGroupId()).isEqualTo(1);
+            // Uncheckpointed assembly progress is transient; the original incomplete split
+            // must be recoverable even if the reader crashes between metadata groups.
+            assertThat(reader.snapshotState(2)).containsExactly(pending);
+            assertThat(events).noneMatch(BinlogSplitMetaAssembledEvent.class::isInstance);
+        }
+    }
+
+    @Test
     void assemblesSerializedMetadataGroupsBeforeResumingBinlog() throws Exception {
         var events = new ArrayList<SourceEvent>();
         var table = new TableId("shop", null, "orders");
