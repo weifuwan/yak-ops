@@ -250,7 +250,8 @@ public final class MySqlSourceReader
             requestNextSplit = true;
         }
         if (!finishedOffsets.isEmpty()) {
-            context.sendSourceEventToCoordinator(new FinishedSnapshotSplitsReportEvent(finishedOffsets, finishedHistories));
+            context.sendSourceEventToCoordinator(
+                    new FinishedSnapshotSplitsReportEvent(finishedOffsets, finishedHistories));
         }
         if (requestNextSplit) context.sendSplitRequest();
     }
