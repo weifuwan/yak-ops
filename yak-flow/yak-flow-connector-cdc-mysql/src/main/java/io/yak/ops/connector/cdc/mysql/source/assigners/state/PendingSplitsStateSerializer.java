@@ -40,7 +40,7 @@ import java.util.zip.CRC32C;
  * Earlier pre-release versions are intentionally unsupported.
  */
 public final class PendingSplitsStateSerializer implements SimpleVersionedSerializer<PendingSplitsState> {
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
     private static final int MAX_BYTES = 8 * 1024 * 1024;
     private static final int MAX_SPLITS = 10_000;
     // Retain Flink CDC 3.7's discriminator values for all three pending-state kinds.
@@ -172,7 +172,9 @@ public final class PendingSplitsStateSerializer implements SimpleVersionedSerial
         // YakFlow starts Binlog ahead of Snapshot, unlike Flink's deferred handoff.
         // Keep the durable early-Binlog anchor and phase as a trailing extension.
         out.writeByte(state.phase().ordinal());
-        if (!state.isBinlogSplitAssigned()) {
+        // Snapshot-first INITIAL has no pending Binlog until Snapshot finishes.
+        out.writeBoolean(state.pendingBinlog() != null);
+        if (state.pendingBinlog() != null) {
             writeMySqlSplit(state.pendingBinlog(), out);
         }
         writeOffset(out, state.lowWatermark());
@@ -265,8 +267,12 @@ public final class PendingSplitsStateSerializer implements SimpleVersionedSerial
         if (phaseIndex >= HybridPendingSplitsState.Phase.values().length) {
             throw new IOException("Unknown MySQL hybrid phase");
         }
+        boolean hasPendingBinlog = in.readBoolean();
+        if (hasPendingBinlog && binlogAssigned) {
+            throw new IOException("Assigned Binlog cannot also be pending");
+        }
         MySqlBinlogSplit pending =
-                binlogAssigned ? null : readMySqlSplit(in, splitVersion).asBinlogSplit();
+                hasPendingBinlog ? readMySqlSplit(in, splitVersion).asBinlogSplit() : null;
         DebeziumOffset low = readOffset(in);
         DebeziumOffset high = readOffset(in);
         DebeziumOffset historyWatermark = readOffset(in);
