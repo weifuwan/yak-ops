@@ -23,6 +23,7 @@
         <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><optional>true</optional></dependency>
         <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
         <dependency><groupId>org.mockito</groupId><artifactId>mockito-core</artifactId><scope>test</scope></dependency>
+        <dependency><groupId>com.google.truth</groupId><artifactId>truth</artifactId><version>1.4.4</version><scope>test</scope></dependency>
 
     </dependencies>
     <!-- Preserve imported ASF source layout and formatting for upstream diffs. -->
