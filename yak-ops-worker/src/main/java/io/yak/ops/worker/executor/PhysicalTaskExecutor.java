@@ -1,6 +1,9 @@
 package io.yak.ops.worker.executor;
 
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
+import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import io.yak.ops.worker.task.executor.AbstractTaskExecutor;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.TaskExecutorState;
@@ -19,6 +22,7 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     private final PhysicalTaskPluginFactory physicalTaskPluginFactory;
     private final AtomicBoolean cancellationRequested = new AtomicBoolean();
     private volatile PhysicalTask physicalTask;
+    private final AtomicReference<TaskHandle> taskHandle = new AtomicReference<>();
     private volatile boolean persistedTerminal;
     private volatile boolean uncertainOutcome;
 
@@ -80,6 +84,14 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     }
 
     @Override protected TaskExecutorState doTrackTaskPluginStatus() { return taskExecutorState.get(); }
+    public void registerTaskHandle(TaskHandle handle) {
+        if (!taskHandle.compareAndSet(null, java.util.Objects.requireNonNull(handle))) {
+            throw new IllegalStateException("Physical Task handle already registered: " + getId());
+        }
+    }
+
+    public Optional<TaskHandle> getTaskHandle() { return Optional.ofNullable(taskHandle.get()); }
+
     public boolean isPersistedTerminal() { return persistedTerminal; }
     public boolean isUncertainOutcome() { return uncertainOutcome; }
 
@@ -93,6 +105,6 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     }
 
     @Override public void finalizeTask() {
-        // TaskHandle closes its own physical resources on completion.
+        taskHandle.set(null);
     }
 }

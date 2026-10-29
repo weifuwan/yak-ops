@@ -1,6 +1,8 @@
 package io.yak.ops.worker.executor;
 
 import io.yak.ops.worker.task.executor.ITaskExecutor;
+import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import java.util.Optional;
 import io.yak.ops.worker.task.executor.TaskEngine;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import jakarta.annotation.PostConstruct;
@@ -13,10 +15,11 @@ import org.springframework.stereotype.Component;
 @Component
 public final class PhysicalTaskEngineDelegator implements AutoCloseable {
     private final TaskEngine engine;
+    private final PhysicalTaskExecutorRepository repository;
     private final PhysicalTaskExecutorFactory factory = new PhysicalTaskExecutorFactory();
 
     public PhysicalTaskEngineDelegator(@Value("${yak.worker.task-executor-slots:4}") int slots) {
-        PhysicalTaskExecutorRepository repository = new PhysicalTaskExecutorRepository();
+        repository = new PhysicalTaskExecutorRepository();
         PhysicalTaskExecutorContainerProvider container = new PhysicalTaskExecutorContainerProvider(slots);
         engine = new PhysicalTaskEngineFactory().createTaskEngine(repository, container);
     }
@@ -30,6 +33,19 @@ public final class PhysicalTaskEngineDelegator implements AutoCloseable {
     }
 
     public void kill(String instanceId) { engine.killTask(instanceId); }
+
+    public void registerTaskHandle(String instanceId, TaskHandle handle) {
+        PhysicalTaskExecutor executor = (PhysicalTaskExecutor) repository.get(instanceId)
+                .orElseThrow(() -> new IllegalStateException("Physical Task is not registered: " + instanceId));
+        executor.registerTaskHandle(handle);
+    }
+
+    public Optional<TaskHandle> taskHandle(String instanceId) {
+        return repository.get(instanceId)
+                .filter(PhysicalTaskExecutor.class::isInstance)
+                .map(PhysicalTaskExecutor.class::cast)
+                .flatMap(PhysicalTaskExecutor::getTaskHandle);
+    }
     public Collection<ITaskExecutor> queryTaskExecutors() { return engine.queryTaskExecutors(); }
 
     @PreDestroy @Override public void close() { engine.close(); }

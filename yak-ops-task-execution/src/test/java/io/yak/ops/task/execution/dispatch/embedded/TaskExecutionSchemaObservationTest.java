@@ -9,6 +9,8 @@ import io.yak.ops.business.task.instance.InstanceService;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import io.yak.ops.worker.executor.PhysicalTaskEngineDelegator;
+import java.util.concurrent.atomic.AtomicReference;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;
 import java.util.Optional;
@@ -26,6 +28,10 @@ class TaskExecutionSchemaObservationTest {
             InstanceService instances = mock(InstanceService.class);
             inject(observer, "lifecycle", lifecycle);
             inject(observer, "instances", instances);
+            PhysicalTaskEngineDelegator worker = mock(PhysicalTaskEngineDelegator.class);
+            AtomicReference<TaskHandle> activeHandle = new AtomicReference<>();
+            when(worker.taskHandle("instance")).thenAnswer(call -> Optional.ofNullable(activeHandle.get()));
+            inject(observer, "worker", worker);
             InstanceEntity instance = new InstanceEntity();
             instance.setStatus(TaskInstanceStatus.RUNNING);
             when(instances.instance("ws", "instance")).thenReturn(instance);
@@ -44,6 +50,7 @@ class TaskExecutionSchemaObservationTest {
                     assertTrue(observer.executionReport("instance").isPresent());
                 }
             };
+            activeHandle.set(handle);
             doAnswer(call -> { persisted.set(true); return null; }).when(lifecycle).started(ticket, null);
             submit(observer, ticket, handle);
             verify(lifecycle).started(ticket, null);
