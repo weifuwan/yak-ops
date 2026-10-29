@@ -20,7 +20,7 @@ public class CodeGenerateUtils {
 
     static {
         try {
-            codeGenerator = new CodeGenerator(InetAddress.getLocalHost().getHostName() + "-" + OSUtils.getProcessID());
+            codeGenerator = new CodeGenerator(InetAddress.getLocalHost().getHostName() + "-" + ProcessHandle.current().pid());
         } catch (UnknownHostException e) {
             throw new CodeGenerateException(e.getMessage());
         }

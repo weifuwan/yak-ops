@@ -17,14 +17,13 @@
 
 package org.apache.dolphinscheduler.plugin.registry.jdbc;
 
-import org.apache.dolphinscheduler.common.utils.NetUtils;
 
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class LockUtils {
 
-    private static final String LOCK_OWNER_PREFIX = NetUtils.getHost() + "_" + ProcessHandle.current().pid() + "_";
+    private static final String LOCK_OWNER_PREFIX = JdbcRegistryHost.getHost() + "_" + ProcessHandle.current().pid() + "_";
 
     public static String getLockOwner() {
         return LOCK_OWNER_PREFIX + Thread.currentThread().getName();

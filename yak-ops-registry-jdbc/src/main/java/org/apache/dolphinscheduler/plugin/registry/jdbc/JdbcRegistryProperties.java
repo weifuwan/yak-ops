@@ -17,7 +17,6 @@
 
 package org.apache.dolphinscheduler.plugin.registry.jdbc;
 
-import org.apache.dolphinscheduler.common.utils.NetUtils;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -74,7 +73,7 @@ public class JdbcRegistryProperties implements Validator {
                     "registry.sessionTimeout must be greater than 3 * heartbeatRefreshInterval");
         }
         if (StringUtils.isEmpty(jdbcRegistryClientName)) {
-            jdbcRegistryClientName = NetUtils.getHost() + ":" + serverPort;
+            jdbcRegistryClientName = JdbcRegistryHost.getHost() + ":" + serverPort;
         }
         print();
 

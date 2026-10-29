@@ -11,11 +11,14 @@
   and HA classes are outside the JDBC module's runtime dependency graph and not
   copied; they require DolphinScheduler Master/Worker heartbeat models.
 - Required upstream utility classes `CodeGenerateUtils`, `NetUtils`,
-  and `ThreadUtils` are copied unchanged.
-- **Only JDBC code changes**: replace `OSUtils.getProcessID()` with Java 21
-  `ProcessHandle.current().pid()` in two files, and replace two DTO uses of
-  the large upstream common JSON helper with `JdbcRegistryJson` (the two
-  Jackson operations actually required by JDBC Registry).
+  `ThreadUtils` and `DefaultUncaughtExceptionHandler` are copied unchanged.
+- **Compatibility changes**: use Java 21 `ProcessHandle.current().pid()`
+  in the upstream CodeGenerateUtils and JDBC client/lock utility; replace
+  three `NetUtils.getHost()` uses with the narrow `JdbcRegistryHost` helper.
+  Upstream NetUtils is intentionally not copied: its unrelated helpers depend
+  on KubernetesUtils/PropertyUtils and additional DolphinScheduler subsystems.
+  Two DTOs use the local `JdbcRegistryJson` adapter rather than the full
+  DolphinScheduler Common JSONUtils module.
 - Spring Boot 3 auto-configuration discovery is added in
   `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`;
   it points to the original upstream configuration class.

@@ -18,7 +18,7 @@
 package org.apache.dolphinscheduler.plugin.registry.jdbc.client;
 
 import org.apache.dolphinscheduler.common.utils.CodeGenerateUtils;
-import org.apache.dolphinscheduler.common.utils.NetUtils;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.JdbcRegistryHost;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.model.DTO.DataType;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.model.DTO.JdbcRegistryDataDTO;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.server.ConnectionStateListener;
@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JdbcRegistryClient implements IJdbcRegistryClient {
 
-    private static final String DEFAULT_CLIENT_NAME = NetUtils.getHost() + "_" + ProcessHandle.current().pid();
+    private static final String DEFAULT_CLIENT_NAME = JdbcRegistryHost.getHost() + "_" + ProcessHandle.current().pid();
 
     private final JdbcRegistryClientIdentify jdbcRegistryClientIdentify;
 
