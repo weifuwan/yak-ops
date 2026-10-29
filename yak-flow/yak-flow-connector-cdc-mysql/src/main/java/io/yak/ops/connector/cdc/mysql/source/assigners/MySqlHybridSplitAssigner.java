@@ -120,7 +120,8 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
             binlogAssigned = true;
             return next;
         }
-        if (phase != HybridPendingSplitsState.Phase.HANDOFF
+        if ((phase != HybridPendingSplitsState.Phase.HANDOFF
+                        && phase != HybridPendingSplitsState.Phase.SNAPSHOT)
                 || !AssignerStatus.isInitialAssigningFinished(snapshots.getAssignerStatus())
                 || !snapshots.allFinished()) return null;
         MySqlBinlogSplit next = createBinlogSplit();
@@ -134,9 +135,16 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
         List<FinishedSnapshotSplitInfo> finished = snapshots.getFinishedSplitInfos();
         DebeziumOffset start = io.yak.ops.connector.cdc.mysql.source.utils.RecordUtils
                 .getStartingOffsetOfBinlogSplit(finished);
+        DebeziumOffset maximum = finished.stream()
+                .map(FinishedSnapshotSplitInfo::highWatermark)
+                .max(DebeziumOffset::compareTo)
+                .orElseThrow();
+        if (high != null && !high.equals(maximum)) {
+            throw new IllegalStateException("Snapshot high watermark conflicts with completed Chunk metadata");
+        }
+        high = maximum;
         return MySqlBinlogSplit.forCompletedSnapshot(
-                start, schemaHistoryForBinlog(), Objects.requireNonNull(high, "snapshot high"),
-                finished);
+                start, schemaHistoryForBinlog(), maximum, finished);
     }
 
     public MySqlSnapshotSplit nextSnapshot() {
