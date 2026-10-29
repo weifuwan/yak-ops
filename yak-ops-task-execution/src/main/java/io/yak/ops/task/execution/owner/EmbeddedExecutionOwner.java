@@ -59,7 +59,8 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
             // A killed client's lock is removed by the upstream Registry purge
             // after session timeout, not immediately when the JVM disappears.
             // Wait for that purge rather than rejecting a safe restart at 1 second.
-            long deadline = System.nanoTime() + registrySessionTimeout.multipliedBy(2).toNanos();
+            long deadline =
+                    System.nanoTime() + registrySessionTimeout.multipliedBy(2).toNanos();
             boolean acquired = false;
             while (System.nanoTime() < deadline) {
                 if (!registry.isConnected()) {
