@@ -9,7 +9,7 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS))
 
-from verify_logging_rules import ROOT, chinese_connector_exceptions, chinese_engine_literals, verify_file
+from verify_logging_rules import ROOT, chinese_connector_exceptions, chinese_engine_literals, production_java_files, verify_file
 
 
 class LoggingChecksTest(unittest.TestCase):
@@ -24,6 +24,12 @@ class LoggingChecksTest(unittest.TestCase):
                 encoding="utf-8",
             )
             return verify_file(source)
+
+    def test_upstream_registry_sources_are_excluded_without_disabling_native_rules(self):
+        paths = [str(path.relative_to(ROOT)) for path in production_java_files()]
+        self.assertFalse(any(path.startswith("yak-ops-registry-jdbc/") for path in paths))
+        self.assertFalse(any(path.startswith("yak-ops-registry-api/") for path in paths))
+        self.assertTrue(any(path.startswith("yak-ops-task-execution/") for path in paths))
 
     def test_marker_log_templates_follow_the_same_language_rules(self):
         self.assertEqual([], self.check(

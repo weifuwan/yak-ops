@@ -4,6 +4,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Verbatim Apache DolphinScheduler Registry source is held in dedicated vendor
+# modules. Keep source intact for upstream diffs; native Yak Ops code is checked.
+UPSTREAM_REGISTRY_MODULES = {"yak-ops-registry-api", "yak-ops-registry-jdbc"}
+
 FORBIDDEN_SNIPPETS = {
     "@Slf4j": "禁止使用 Lombok @Slf4j，统一显式声明 SLF4J Logger",
     "lombok.extern.slf4j.Slf4j": "禁止导入 Lombok @Slf4j",
@@ -89,7 +93,7 @@ def production_java_files():
         normalized = path.as_posix()
         if "/src/main/java/" not in normalized:
             continue
-        if "yak-ops-ui" in path.parts:
+        if "yak-ops-ui" in path.parts or path.relative_to(ROOT).parts[0] in UPSTREAM_REGISTRY_MODULES:
             continue
         files.append(path)
     return sorted(files)
