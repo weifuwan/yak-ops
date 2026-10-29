@@ -32,7 +32,6 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     private JdbcTemplate jdbc;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public void add(TaskGroupQueueEntity queue) {
         LocalDateTime now = LocalDateTime.now();
         jdbc.update(
