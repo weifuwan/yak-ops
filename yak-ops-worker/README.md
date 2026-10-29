@@ -57,3 +57,15 @@ in a transaction, sorted by resource identity. Queue `task_id` uses the Yak
 Ops string Task Instance ID. Uncertain tasks retain their slots until explicit
 reconciliation; a waiting queue/coordinator is not enabled for exclusive
 destination resources. Runtime failure cannot release all groups non-atomically.
+
+### Task Group source boundary
+
+The source-migrated `org.apache.dolphinscheduler.common.enums.Flag` and
+`TaskGroupQueueStatus` establish upstream queue/slot status codes; acquisition
+writes `ACQUIRE_SUCCESS`, `NO` force-start and `YES` in-queue as DolphinScheduler
+does. The live adapter is intentionally **not** an upstream `TaskGroupCoordinator`:
+it has no Workflow Instance, waiting task state, queue wakeup, priority arbitration,
+or distributed Master event protocol. Do not claim full Task Group Coordinator
+migration until those dependencies and recovery transitions are available.
+
+Source baseline: DolphinScheduler dev `ee47c371`, Apache 2.0 headers preserved.

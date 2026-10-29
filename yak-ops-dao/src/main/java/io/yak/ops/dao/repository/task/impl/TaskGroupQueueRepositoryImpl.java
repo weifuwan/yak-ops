@@ -2,6 +2,8 @@ package io.yak.ops.dao.repository.task.impl;
 
 import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
 import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
+import org.apache.dolphinscheduler.common.enums.Flag;
+import org.apache.dolphinscheduler.common.enums.TaskGroupQueueStatus;
 import jakarta.annotation.Resource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -63,10 +65,13 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
         jdbc.update(
                 "INSERT INTO yak_ops_task_group_queue"
                         + " (id, task_id, group_id, priority, status, force_start, in_queue, create_time, update_time)"
-                        + " VALUES (?, ?, ?, 0, 1, 0, 1, ?, ?)",
+                        + " VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)",
                 queue.getId(),
                 queue.getInstanceId(),
                 groupId,
+                TaskGroupQueueStatus.ACQUIRE_SUCCESS.getCode(),
+                Flag.NO.getCode(),
+                Flag.YES.getCode(),
                 now,
                 now);
     }
