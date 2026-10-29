@@ -91,6 +91,63 @@ class MySqlHybridSplitAssignerTest {
     }
 
     @Test
+    void restoredInitialHandoffRetainsHistoryOffsetWhenEarliestTableWasRemoved() throws Exception {
+        var restored = restoreBeforeBinlogWithRemovedTable(true);
+        assertTrue(restored.snapshotComplete() == false);
+        assertEquals(1, restored.finishedSplits().size());
+        assertEquals(offset(200), restored.high());
+        var binlog = (MySqlBinlogSplit) restored.getNext().orElseThrow();
+        // History was captured at A's HIGH=100, and cannot be safely moved to
+        // B's HIGH=200: DDL between those positions must still be replayed.
+        assertEquals(offset(100), binlog.offset());
+        assertEquals(offset(200), binlog.highWatermark());
+        assertEquals("table-b", binlog.finishedSplits().getFirst().splitId());
+        assertArrayEquals(new byte[] {1, 2, 3}, binlog.schemaHistory());
+        assertTrue(restored.getNext().isEmpty());
+    }
+
+    @Test
+    void restoredInitialHandoffRecomputesHighWhenLatestTableWasRemoved() throws Exception {
+        var restored = restoreBeforeBinlogWithRemovedTable(false);
+        assertEquals(1, restored.finishedSplits().size());
+        assertEquals(offset(100), restored.high());
+        var binlog = (MySqlBinlogSplit) restored.getNext().orElseThrow();
+        assertEquals(offset(100), binlog.offset());
+        assertEquals(offset(100), binlog.highWatermark());
+        assertEquals("table-a", binlog.finishedSplits().getFirst().splitId());
+        assertArrayEquals(new byte[] {1, 2, 3}, binlog.schemaHistory());
+        assertTrue(restored.getNext().isEmpty());
+    }
+
+    /**
+     * Restore a completed INITIAL checkpoint after dropping one previously captured
+     * table. This must not reset the Debezium history to a later offset.
+     */
+    private static MySqlHybridSplitAssigner restoreBeforeBinlogWithRemovedTable(boolean removeEarliest)
+            throws Exception {
+        var tableA = new TableId("shop", null, "orders_a");
+        var tableB = new TableId("shop", null, "orders_b");
+        var first = new MySqlSnapshotSplit("table-a", tableA, null, null, null);
+        var second = new MySqlSnapshotSplit("table-b", tableB, null, null, null);
+        var assigner = new MySqlHybridSplitAssigner(StartupOptions.initial(), null);
+        assigner.initializeTables(List.of(tableA, tableB), true, false);
+        assigner.plan(List.of(first, second));
+        assertEquals(first, assigner.getNext().orElseThrow());
+        assertEquals(second, assigner.getNext().orElseThrow());
+        finish(assigner, first, 100);
+        finish(assigner, second, 200);
+        var serializer = new PendingSplitsStateSerializer();
+        var state = assigner.snapshotState(10);
+        assigner.notifyCheckpointComplete(10);
+        // Restore the checkpointed coordinator, not the in-memory assigner.
+        var restored = new MySqlHybridSplitAssigner(
+                StartupOptions.initial(),
+                (HybridPendingSplitsState) serializer.deserialize(serializer.getVersion(), serializer.serialize(state)));
+        restored.initializeTables(List.of(removeEarliest ? tableB : tableA), true, false);
+        return restored;
+    }
+
+    @Test
     void returnedBinlogPreservesItsOffsetAndRejectsOldMetadataAck() {
         var assigner = completedAssigner();
         assigner.snapshotState(10);
