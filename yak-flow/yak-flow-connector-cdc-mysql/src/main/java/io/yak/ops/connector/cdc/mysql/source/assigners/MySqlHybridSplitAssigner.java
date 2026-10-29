@@ -27,6 +27,7 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
 
     private final MySqlSnapshotSplitAssigner snapshots;
     private final boolean snapshotOnly;
+    private final int splitMetaGroupSize;
     private MySqlBinlogSplit pendingBinlog;
     private boolean binlogAssigned;
     private HybridPendingSplitsState.Phase phase;
@@ -41,7 +42,16 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
     private Long releaseMetadataCheckpointId;
 
     public MySqlHybridSplitAssigner(StartupOptions startupOptions, HybridPendingSplitsState restored) {
+        this(startupOptions, restored, Integer.MAX_VALUE);
+    }
+
+    public MySqlHybridSplitAssigner(
+            StartupOptions startupOptions, HybridPendingSplitsState restored, int splitMetaGroupSize) {
         Objects.requireNonNull(startupOptions, "startupOptions");
+        if (splitMetaGroupSize <= 0) {
+            throw new IllegalArgumentException("Invalid Binlog metadata group size");
+        }
+        this.splitMetaGroupSize = splitMetaGroupSize;
         if (startupOptions.isStreamOnly()) {
             throw new IllegalArgumentException("MySQL Hybrid Source requires snapshot startup");
         }
@@ -143,8 +153,12 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
             throw new IllegalStateException("Snapshot high watermark conflicts with completed Chunk metadata");
         }
         high = maximum;
+        // Flink CDC 3.7: do not put arbitrarily many finished chunks in the initial
+        // Binlog assignment; the Reader fetches the missing groups from the coordinator.
+        List<FinishedSnapshotSplitInfo> inline =
+                finished.size() > splitMetaGroupSize ? List.of() : finished;
         return MySqlBinlogSplit.forCompletedSnapshot(
-                start, schemaHistoryForBinlog(), maximum, finished);
+                start, schemaHistoryForBinlog(), maximum, inline, finished.size());
     }
 
     public MySqlSnapshotSplit nextSnapshot() {
