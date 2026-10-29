@@ -40,7 +40,7 @@ import java.util.zip.CRC32C;
  * Earlier pre-release versions are intentionally unsupported.
  */
 public final class PendingSplitsStateSerializer implements SimpleVersionedSerializer<PendingSplitsState> {
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
     private static final int MAX_BYTES = 8 * 1024 * 1024;
     private static final int MAX_SPLITS = 10_000;
     // Retain Flink CDC 3.7's discriminator values for all three pending-state kinds.
@@ -177,6 +177,15 @@ public final class PendingSplitsStateSerializer implements SimpleVersionedSerial
         }
         writeOffset(out, state.lowWatermark());
         writeOffset(out, state.highWatermark());
+        // The selected history is a functional prerequisite of the deferred
+        // initial Binlog split. It must be durable while Snapshot is unfinished.
+        writeOffset(out, state.schemaHistoryWatermark());
+        byte[] history = state.schemaHistory();
+        if (history.length > MAX_BYTES - 4096) {
+            throw new IOException("Selected Snapshot schema history exceeds enumerator checkpoint limit");
+        }
+        out.writeInt(history.length);
+        out.write(history);
     }
 
     private void serializeBinlogPendingSplitsState(BinlogPendingSplitsState state, DataOutputStream out)
@@ -260,8 +269,15 @@ public final class PendingSplitsStateSerializer implements SimpleVersionedSerial
                 binlogAssigned ? null : readMySqlSplit(in, splitVersion).asBinlogSplit();
         DebeziumOffset low = readOffset(in);
         DebeziumOffset high = readOffset(in);
+        DebeziumOffset historyWatermark = readOffset(in);
+        int historyLength = in.readInt();
+        if (historyLength < 0 || historyLength > in.available() || historyLength > MAX_BYTES - 4096) {
+            throw new IOException("Invalid selected Snapshot schema history");
+        }
+        byte[] history = in.readNBytes(historyLength);
         return new HybridPendingSplitsState(
-                snapshot, binlogAssigned, pending, HybridPendingSplitsState.Phase.values()[phaseIndex], low, high);
+                snapshot, binlogAssigned, pending, HybridPendingSplitsState.Phase.values()[phaseIndex], low, high,
+                historyWatermark, history);
     }
 
     private BinlogPendingSplitsState deserializeBinlogPendingSplitsState(DataInputStream in, int splitVersion)
