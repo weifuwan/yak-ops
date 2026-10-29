@@ -53,8 +53,7 @@ public class ExecutionOwnerRepositoryImpl implements ExecutionOwnerRepository {
         }
 
         jdbc.update(
-                "UPDATE yak_ops_task_execution_owner SET owner_incarnation = ?,"
-                        + " update_time = ? WHERE id = ?",
+                "UPDATE yak_ops_task_execution_owner SET owner_incarnation = ?," + " update_time = ? WHERE id = ?",
                 incarnation,
                 now,
                 OWNER_ID);
