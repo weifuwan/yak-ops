@@ -208,6 +208,9 @@ CREATE TABLE yak_ops_task_instance (
 CREATE TABLE t_ds_task_group (
   id BIGINT NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
+  description VARCHAR(255) NULL,
+  user_id INT NULL,
+  project_code BIGINT NOT NULL DEFAULT 0,
   workspace_id VARCHAR(64) NOT NULL,
   resource_type VARCHAR(32) NOT NULL,
   resource_key VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
@@ -224,7 +227,9 @@ CREATE TABLE t_ds_task_group (
 CREATE TABLE t_ds_task_group_queue (
   id VARCHAR(64) NOT NULL,
   task_id VARCHAR(64) NOT NULL,
+  task_name VARCHAR(255) NULL,
   group_id BIGINT NOT NULL,
+  workflow_instance_id VARCHAR(64) NULL,
   priority INT NOT NULL DEFAULT 0,
   status TINYINT NOT NULL DEFAULT 1,
   force_start TINYINT NOT NULL DEFAULT 0,
@@ -235,6 +240,7 @@ CREATE TABLE t_ds_task_group_queue (
   UNIQUE KEY uk_ds_task_group_queue_task (task_id, group_id),
   KEY idx_ds_task_group_queue_task (task_id),
   KEY idx_ds_task_group_queue_group (group_id),
+  KEY idx_ds_task_group_queue_workflow (workflow_instance_id),
   KEY idx_ds_task_group_queue_status (status)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='DolphinScheduler task group slot allocations; task IDs are Yak Ops strings';
