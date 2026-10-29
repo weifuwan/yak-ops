@@ -48,8 +48,7 @@ public final class TaskExecutionResources {
     public boolean equals(Object value) {
         if (this == value) return true;
         if (!(value instanceof TaskExecutionResources other)) return false;
-        return exclusiveResources.equals(other.exclusiveResources)
-                && resourceRevision.equals(other.resourceRevision);
+        return exclusiveResources.equals(other.exclusiveResources) && resourceRevision.equals(other.resourceRevision);
     }
 
     @Override
