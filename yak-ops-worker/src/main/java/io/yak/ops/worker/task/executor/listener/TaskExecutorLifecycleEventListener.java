@@ -3,32 +3,46 @@ package io.yak.ops.worker.task.executor.listener;
 import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.ITaskExecutorRepository;
 import io.yak.ops.worker.task.executor.container.ITaskExecutorContainerProvider;
-import io.yak.ops.worker.task.executor.events.TaskExecutorLifecycleEvent;
-import io.yak.ops.worker.task.executor.events.TaskExecutorLifecycleEventType;
+import io.yak.ops.worker.task.executor.eventbus.ITaskExecutorLifecycleEventReporter;
+import io.yak.ops.worker.task.executor.events.*;
 
-/** Handles execution commands and finalizes only after observer completion. */
-public class TaskExecutorLifecycleEventListener {
-    private final ITaskExecutorRepository repository;
-    private final ITaskExecutorContainerProvider<?> containers;
+public class TaskExecutorLifecycleEventListener implements ITaskExecutorLifecycleEventListener {
+    private final ITaskExecutorContainerProvider<?> taskExecutorContainerDelegator;
+    private final ITaskExecutorRepository taskExecutorRepository;
+    private final ITaskExecutorLifecycleEventReporter taskExecutorLifecycleEventReporter;
 
-    public TaskExecutorLifecycleEventListener(
-            ITaskExecutorRepository repository, ITaskExecutorContainerProvider<?> containers) {
-        this.repository = repository;
-        this.containers = containers;
+    public TaskExecutorLifecycleEventListener(ITaskExecutorContainerProvider<?> container,
+                                              ITaskExecutorRepository repository,
+                                              ITaskExecutorLifecycleEventReporter reporter) {
+        this.taskExecutorContainerDelegator = container;
+        this.taskExecutorRepository = repository;
+        this.taskExecutorLifecycleEventReporter = reporter;
     }
 
-    public void onEvent(ITaskExecutor executor, TaskExecutorLifecycleEvent event) {
-        TaskExecutorLifecycleEventType type = event.getType();
-        if (type == TaskExecutorLifecycleEventType.KILL) {
-            executor.kill();
-        } else if (type == TaskExecutorLifecycleEventType.PAUSE) {
-            executor.pause();
-        } else if (type.isFinished()) {
-            executor.getTaskExecutorEventBus()
-                    .publish(TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.FINALIZE));
-        } else if (type == TaskExecutorLifecycleEventType.FINALIZE) {
-            containers.getExecutorContainer().finalize(executor);
-            repository.remove(executor.getId());
-        }
+    @Override public void onTaskExecutorDispatchedLifecycleEvent(TaskExecutorDispatchedLifecycleEvent event) { report(event); }
+    @Override public void onTaskExecutorStartedLifecycleEvent(TaskExecutorStartedLifecycleEvent event) { report(event); }
+    @Override public void onTaskExecutorRuntimeContextChangedEvent(TaskExecutorRuntimeContextChangedLifecycleEvent event) { report(event); }
+    @Override public void onTaskExecutorPauseLifecycleEvent(TaskExecutorPauseLifecycleEvent event) { getTaskExecutor(event).pause(); }
+    @Override public void onTaskExecutorPausedLifecycleEvent(TaskExecutorPausedLifecycleEvent event) { report(event); }
+    @Override public void onTaskExecutorKillLifecycleEvent(TaskExecutorKillLifecycleEvent event) { getTaskExecutor(event).kill(); }
+    @Override public void onTaskExecutorKilledLifecycleEvent(TaskExecutorKilledLifecycleEvent event) { report(event); }
+    @Override public void onTaskExecutorSuccessLifecycleEvent(TaskExecutorSuccessLifecycleEvent event) { report(event); }
+    @Override public void onTaskExecutorFailLifecycleEvent(TaskExecutorFailedLifecycleEvent event) { report(event); }
+
+    @Override
+    public void onTaskExecutorFinalizeLifecycleEvent(TaskExecutorFinalizeLifecycleEvent event) {
+        ITaskExecutor executor = getTaskExecutor(event);
+        // The local reporter generates FINALIZE only after the TaskHandle outcome was persisted.
+        taskExecutorContainerDelegator.getExecutorContainer().finalize(executor);
+        taskExecutorRepository.remove(executor.getId());
+    }
+
+    private void report(IReportableTaskExecutorLifecycleEvent event) {
+        taskExecutorLifecycleEventReporter.reportTaskExecutorLifecycleEvent(event);
+    }
+
+    private ITaskExecutor getTaskExecutor(ITaskExecutorLifecycleEvent event) {
+        return taskExecutorRepository.get(event.getTaskInstanceId())
+                .orElseThrow(() -> new IllegalStateException("Unknown TaskExecutor: " + event.getTaskInstanceId()));
     }
 }
