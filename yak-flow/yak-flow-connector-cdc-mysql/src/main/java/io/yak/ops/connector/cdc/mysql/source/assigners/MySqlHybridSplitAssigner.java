@@ -31,6 +31,8 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
     private HybridPendingSplitsState.Phase phase;
     private DebeziumOffset low;
     private DebeziumOffset high;
+    private DebeziumOffset schemaHistoryWatermark;
+    private byte[] schemaHistory = new byte[0];
     private Long handoffCheckpointId;
     private boolean binlogSplitMetaAssembled;
     private long binlogAssignmentGeneration;
@@ -51,6 +53,8 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
             phase = restored.phase();
             low = restored.lowWatermark();
             high = restored.highWatermark();
+            schemaHistoryWatermark = restored.schemaHistoryWatermark();
+            schemaHistory = restored.schemaHistory();
             pendingBinlog = restored.pendingBinlog();
             binlogAssigned = restored.isBinlogSplitAssigned();
             if (binlogAssigned == (pendingBinlog != null)) {
@@ -145,6 +149,39 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
     @Override
     public void onFinishedSplits(Map<String, DebeziumOffset> splitFinishedOffsets) {
         snapshots.onFinishedSplits(splitFinishedOffsets);
+    }
+
+    /**
+     * Retain only the Schema History from the lowest completed Chunk HIGH. The matching
+     * bounded Debezium backfill was running through that HIGH, unlike a schema-only
+     * bootstrap started after Snapshot completion.
+     */
+    public void captureSnapshotSchemaHistory(
+            Map<String, DebeziumOffset> completedOffsets, Map<String, byte[]> histories) {
+        histories.forEach((splitId, history) -> {
+            DebeziumOffset watermark = completedOffsets.get(splitId);
+            if (watermark == null || history == null || history.length == 0) {
+                throw new IllegalArgumentException("Snapshot history must belong to a completed Chunk");
+            }
+            if (schemaHistoryWatermark == null || watermark.compareTo(schemaHistoryWatermark) < 0) {
+                schemaHistoryWatermark = watermark;
+                schemaHistory = history.clone();
+            }
+        });
+    }
+
+    public byte[] schemaHistoryForBinlog() {
+        if (schemaHistoryWatermark == null || schemaHistory.length == 0) {
+            throw new IllegalStateException("Completed Snapshot has no recoverable Schema History");
+        }
+        DebeziumOffset minimum = snapshots.finishedSplits().stream()
+                .map(FinishedSnapshotSplitInfo::highWatermark)
+                .min(DebeziumOffset::compareTo)
+                .orElseThrow(() -> new IllegalStateException("No finished Snapshot Chunk"));
+        if (!minimum.equals(schemaHistoryWatermark)) {
+            throw new IllegalStateException("Snapshot history does not match the earliest Chunk HIGH");
+        }
+        return schemaHistory.clone();
     }
 
     /** The Snapshot Assigner alone owns completion metadata and split attribution. */
@@ -318,7 +355,9 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
                 && releaseMetadataCheckpointId == null) {
             releaseMetadataCheckpointId = checkpointId;
         }
-        return new HybridPendingSplitsState(snapshotState, binlogAssigned, pendingBinlog, phase, low, high);
+        return new HybridPendingSplitsState(
+                snapshotState, binlogAssigned, pendingBinlog, phase, low, high,
+                schemaHistoryWatermark, schemaHistory);
     }
 
     @Override
