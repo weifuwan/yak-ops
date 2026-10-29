@@ -257,9 +257,14 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
             return resolve(
                     schedule, trigger, key, ScheduleFireOutcome.REJECTED, ScheduleFireReason.NOT_SCHEDULABLE, null);
         }
-        // Resource metadata was prepared outside this transaction; the Worker
-        // verifies it again before executing the pinned Task Definition.
-        TaskExecutionResources currentPlan = request.plan();
+        // Schedules record a definitive BINDING_CHANGED outcome instead of an accepted
+        // but subsequently rejected Instance. Keep this check until scheduled resource
+        // resolution is moved into a separately prepared, transactional trigger protocol.
+        TaskExecutionResources currentPlan = request.plugin().plan(request.parameters(), request.identity());
+        if (!request.plan().equals(currentPlan)) {
+            return resolve(
+                    schedule, trigger, key, ScheduleFireOutcome.REJECTED, ScheduleFireReason.BINDING_CHANGED, null);
+        }
         // The savepoint is inside this interceptor boundary: expected conflict never marks the outer transaction
         // rollback-only.
         var status = TransactionAspectSupport.currentTransactionStatus();
