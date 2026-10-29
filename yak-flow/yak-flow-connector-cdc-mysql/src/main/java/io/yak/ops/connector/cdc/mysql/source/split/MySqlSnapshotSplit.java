@@ -4,6 +4,7 @@ import io.yak.ops.connector.cdc.base.source.meta.split.SnapshotSplit;
 import io.yak.ops.connector.cdc.mysql.debezium.DebeziumOffset;
 import io.yak.ops.connector.cdc.mysql.source.assigners.ChunkRange;
 import io.yak.ops.core.data.TableId;
+import java.util.Arrays;
 import java.util.Objects;
 
 /** Source chunk boundaries and completion high watermark; normalized rows are transient only. */
@@ -17,6 +18,7 @@ public final class MySqlSnapshotSplit extends MySqlSplit implements SnapshotSpli
     private final int outputPosition;
     private final FinishedSnapshotSplitInfo finished;
     private final ChunkRange chunkRange;
+    private final byte[] finishedSchemaHistory;
 
     /** Constructs an unprepared legacy numeric range using the stable split identifier. */
     public MySqlSnapshotSplit(
@@ -53,6 +55,22 @@ public final class MySqlSnapshotSplit extends MySqlSplit implements SnapshotSpli
             int outputPosition,
             FinishedSnapshotSplitInfo finished,
             ChunkRange chunkRange) {
+        this(splitId, tableId, lowerInclusive, upperExclusive, lastEmittedKey, output, outputPosition,
+                finished, chunkRange, new byte[0]);
+    }
+
+    /** Schema history captured by the bounded backfill task through this completed chunk's HIGH. */
+    public MySqlSnapshotSplit(
+            String splitId,
+            TableId tableId,
+            Long lowerInclusive,
+            Long upperExclusive,
+            Long lastEmittedKey,
+            MySqlSnapshotOutput output,
+            int outputPosition,
+            FinishedSnapshotSplitInfo finished,
+            ChunkRange chunkRange,
+            byte[] finishedSchemaHistory) {
         super(splitId);
         if (splitId == null || splitId.isBlank()) {
             throw new IllegalArgumentException("Snapshot split requires a stable ID");
@@ -103,6 +121,10 @@ public final class MySqlSnapshotSplit extends MySqlSplit implements SnapshotSpli
         this.outputPosition = outputPosition;
         this.finished = finished;
         this.chunkRange = chunkRange;
+        this.finishedSchemaHistory = Objects.requireNonNull(finishedSchemaHistory, "finishedSchemaHistory").clone();
+        if (finished == null && this.finishedSchemaHistory.length != 0) {
+            throw new IllegalArgumentException("Unfinished snapshot cannot carry completed schema history");
+        }
     }
 
     public boolean prepared() {
@@ -143,7 +165,8 @@ public final class MySqlSnapshotSplit extends MySqlSplit implements SnapshotSpli
                     0,
                     new FinishedSnapshotSplitInfo(
                             tableId, splitId, lowerInclusive, upperExclusive, output.high(), chunkRange),
-                    chunkRange);
+                    chunkRange,
+                    output.schemaHistory());
         }
         return new MySqlSnapshotSplit(
                 splitId, tableId, lowerInclusive, upperExclusive, null, output, position, null, chunkRange);
@@ -180,6 +203,11 @@ public final class MySqlSnapshotSplit extends MySqlSplit implements SnapshotSpli
 
     public FinishedSnapshotSplitInfo finished() {
         return finished;
+    }
+
+    /** Recoverable Debezium history captured through this chunk's High watermark. */
+    public byte[] finishedSchemaHistory() {
+        return finishedSchemaHistory.clone();
     }
 
     public ChunkRange chunkRange() {
@@ -225,7 +253,8 @@ public final class MySqlSnapshotSplit extends MySqlSplit implements SnapshotSpli
                 && Objects.equals(lastEmittedKey, that.lastEmittedKey)
                 && Objects.equals(output, that.output)
                 && Objects.equals(finished, that.finished)
-                && Objects.equals(chunkRange, that.chunkRange);
+                && Objects.equals(chunkRange, that.chunkRange)
+                && Arrays.equals(finishedSchemaHistory, that.finishedSchemaHistory);
     }
 
     @Override
@@ -239,7 +268,8 @@ public final class MySqlSnapshotSplit extends MySqlSplit implements SnapshotSpli
                 output,
                 outputPosition,
                 finished,
-                chunkRange);
+                chunkRange,
+                Arrays.hashCode(finishedSchemaHistory));
     }
 
     @Override
