@@ -30,7 +30,6 @@ import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.impl.DefinitionRepositoryImpl;
 import io.yak.ops.dao.repository.task.impl.DefinitionVersionRepositoryImpl;
 import io.yak.ops.dao.repository.task.impl.ExecutionClaimRepositoryImpl;
-import io.yak.ops.dao.repository.task.impl.ExecutionOwnerRepositoryImpl;
 import io.yak.ops.dao.repository.task.impl.InstanceRepositoryImpl;
 import io.yak.ops.plugin.scheduler.api.CronService;
 import io.yak.ops.plugin.scheduler.api.ScheduleRegistration;
@@ -69,6 +68,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
+import org.apache.dolphinscheduler.registry.api.Registry;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
@@ -104,6 +104,7 @@ class ScheduleAdmissionIT {
     private static ScheduleAdmissionController admissionController;
     private static SubmissionService submissions;
     private static DataSource dataSource;
+    private static final Registry REGISTRY = mock(Registry.class);
 
     @RegisterExtension
     static final MySqlDatabase MYSQL = new MySqlDatabase("mysql-admission", false, false);
@@ -157,7 +158,6 @@ class ScheduleAdmissionIT {
                 DefinitionVersionRepositoryImpl.class,
                 InstanceRepositoryImpl.class,
                 ExecutionClaimRepositoryImpl.class,
-                ExecutionOwnerRepositoryImpl.class,
                 ScheduleRepositoryImpl.class,
                 ScheduleFireRepositoryImpl.class,
                 SubmissionServiceImpl.class,
@@ -183,14 +183,16 @@ class ScheduleAdmissionIT {
         admissionController.stop();
         admissionController.awaitQuiescence();
         LOSE_COMMIT_RESPONSE.set(false);
+        reset(REGISTRY);
+        when(REGISTRY.isConnected()).thenReturn(true);
+        when(REGISTRY.get("/yak-ops/masters/embedded")).thenReturn("test-owner");
         for (String table : List.of(
                 "yak_ops_task_execution_claim",
                 "yak_ops_task_instance",
                 "yak_ops_schedule_fire",
                 "yak_ops_schedule",
                 "yak_ops_task_definition_version",
-                "yak_ops_task_definition",
-                "yak_ops_task_execution_owner")) {
+                "yak_ops_task_definition")) {
             jdbc.update("DELETE FROM " + table);
         }
         for (String table : List.of(
@@ -211,8 +213,6 @@ class ScheduleAdmissionIT {
         when(AUTHORITY.isActiveMember("ws", "actor")).thenReturn(true);
         PLUGIN.reset();
         insertDefinition();
-        jdbc.update(
-                "INSERT INTO yak_ops_task_execution_owner (id,host_id,state_root,owner_incarnation,create_time,update_time) VALUES ('embedded','test-host','/test-state','test-owner',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
         jdbc.update(
                 "INSERT INTO yak_ops_schedule (id,workspace_id,target_type,target_id,cron_expression,time_zone,enabled,revision,enabled_at,enabled_by,create_time,update_time,create_by,update_by) VALUES ('schedule','ws','TASK','task','0 * * * * ?','UTC',1,2,'2026-10-13 00:00:00','actor',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')");
         NOW.set(BASE);
@@ -417,7 +417,7 @@ class ScheduleAdmissionIT {
         assertThrows(
                 IllegalStateException.class,
                 () -> context.getBean(TaskSubmissionTransactionService.class).admitScheduled(trigger(), null, null));
-        jdbc.update("UPDATE yak_ops_task_execution_owner SET owner_incarnation='other-owner'");
+        when(REGISTRY.get("/yak-ops/masters/embedded")).thenReturn("other-owner");
         assertThrows(IllegalStateException.class, () -> submissions.submitScheduled(trigger()));
         assertFalse(admissionController.isOpen());
         assertEquals(0, count("yak_ops_task_instance"));
@@ -565,6 +565,11 @@ class ScheduleAdmissionIT {
         @Bean
         ScheduleAdmissionController scheduleAdmissionController(Clock scheduleClock) {
             return new ScheduleAdmissionController(scheduleClock, Duration.ofSeconds(60));
+        }
+
+        @Bean
+        Registry registry() {
+            return REGISTRY;
         }
 
         @Bean
