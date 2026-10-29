@@ -349,6 +349,8 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
             planSnapshotAsync();
         } else if (event instanceof FinishedSnapshotSplitsReportEvent finished) {
             assigner.onFinishedSplits(finished.getFinishedOffsets());
+            assigner.captureSnapshotSchemaHistory(
+                    finished.getFinishedOffsets(), finished.getFinishedSchemaHistories());
             List<String> acknowledged = new ArrayList<>();
             Map<String, FinishedSnapshotSplitInfo> completed = new LinkedHashMap<>();
             assigner.finishedSplits().forEach(info -> completed.put(info.splitId(), info));
