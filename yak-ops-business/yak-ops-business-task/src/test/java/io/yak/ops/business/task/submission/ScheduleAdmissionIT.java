@@ -267,6 +267,7 @@ class ScheduleAdmissionIT {
         assertEquals(1, count("t_ds_task_group_queue"));
         assertEquals(1, count("yak_ops_schedule_fire"));
         jdbc.update("DELETE FROM t_ds_task_group_queue");
+        jdbc.update("UPDATE t_ds_task_group SET use_size = 0");
         ScheduleFireResult replay = submissions.submitScheduled(trigger());
         assertTrue(replay.replayed());
         assertEquals(ScheduleFireOutcome.SKIPPED, replay.outcome());
@@ -390,6 +391,7 @@ class ScheduleAdmissionIT {
                 ScheduleFireOutcome.SKIPPED,
                 submissions.submitScheduled(trigger()).outcome());
         jdbc.update("DELETE FROM t_ds_task_group_queue");
+        jdbc.update("UPDATE t_ds_task_group SET use_size = 0");
         context.getBean(ScheduleFireRepository.class)
                 .retire("ws", "schedule", LocalDateTime.ofInstant(BASE.plusSeconds(61), ZoneOffset.UTC));
         assertEquals(0, count("yak_ops_schedule_fire"));
@@ -505,8 +507,19 @@ class ScheduleAdmissionIT {
 
     private static void occupy(String resource) {
         jdbc.update(
-                "INSERT INTO t_ds_task_group_queue (id,workspace_id,resource_type,resource_key,instance_id,create_time,update_time,create_by,update_by) VALUES ('occupied','ws','TEST',?,'other-instance',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')",
+                "INSERT INTO t_ds_task_group"
+                        + " (name,workspace_id,resource_type,resource_key,group_size,use_size,status,create_time,update_time)"
+                        + " VALUES ('TEST','ws','TEST',?,1,1,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))",
                 resource);
+        Long groupId = jdbc.queryForObject(
+                "SELECT id FROM t_ds_task_group WHERE workspace_id='ws' AND resource_type='TEST' AND resource_key=?",
+                Long.class,
+                resource);
+        jdbc.update(
+                "INSERT INTO t_ds_task_group_queue"
+                        + " (id,task_id,group_id,priority,status,force_start,in_queue,create_time,update_time)"
+                        + " VALUES ('occupied','other-instance',?,0,1,0,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))",
+                groupId);
     }
 
     private static void stop(boolean unpublish) {
