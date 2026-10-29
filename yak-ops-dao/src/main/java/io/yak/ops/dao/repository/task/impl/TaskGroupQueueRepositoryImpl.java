@@ -118,8 +118,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             throw new IllegalStateException("TaskGroupQueue release was not atomic");
         }
         for (Long id : groups) {
-            if (taskGroupMapper.releaseTaskGroupSlot(id)
-                    != 1) {
+            if (taskGroupMapper.releaseTaskGroupSlot(id) != 1) {
                 throw new IllegalStateException("TaskGroup slot counter is inconsistent");
             }
         }
