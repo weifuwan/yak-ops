@@ -73,6 +73,10 @@ public final class BootProcess implements ExtensionContext.Store.CloseableResour
                 "-jar",
                 jar.toString(),
                 "--server.port=0",
+                // Keep the upstream Registry three-heartbeat validation while allowing
+                // crash-recovery tests to exercise bounded lease expiration promptly.
+                "--registry.session-timeout=PT9S",
+                "--registry.heartbeat-refresh-interval=PT3S",
                 "--yak.task.execution.state-directory=" + directory.resolve("state"));
         var env = command.environment();
         env.keySet().removeIf(key -> key.startsWith("YAK_") || key.startsWith("SPRING_"));

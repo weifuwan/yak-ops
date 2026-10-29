@@ -9,6 +9,7 @@ import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.util.UUID;
 import org.apache.dolphinscheduler.registry.api.Registry;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,9 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
     @Value("${yak.task.execution.state-directory:./data/task-state}")
     private String stateDirectory;
 
+    @Value("${registry.session-timeout:PT60S}")
+    private Duration registrySessionTimeout;
+
     private FileChannel channel;
     private FileLock lock;
     private boolean registered;
@@ -49,8 +53,31 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
             throw new IllegalStateException("Another embedded executor owns the local state directory");
         }
         try {
-            if (!registry.isConnected() || !registry.acquireLock(REGISTRY_LOCK, 1000)) {
-                throw new IllegalStateException("Unable to acquire DolphinScheduler Registry execution lock");
+            if (!registry.isConnected()) {
+                throw new IllegalStateException("DolphinScheduler JDBC Registry is disconnected");
+            }
+            // A killed client's lock is removed by the upstream Registry purge
+            // after session timeout, not immediately when the JVM disappears.
+            // Wait for that purge rather than rejecting a safe restart at 1 second.
+            long deadline = System.nanoTime() + registrySessionTimeout.multipliedBy(2).toNanos();
+            boolean acquired = false;
+            while (System.nanoTime() < deadline) {
+                if (!registry.isConnected()) {
+                    throw new IllegalStateException("DolphinScheduler JDBC Registry connection was lost");
+                }
+                if (registry.acquireLock(REGISTRY_LOCK, 50)) {
+                    acquired = true;
+                    break;
+                }
+                try {
+                    Thread.sleep(250);
+                } catch (InterruptedException failure) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while acquiring JDBC Registry lock", failure);
+                }
+            }
+            if (!acquired) {
+                throw new IllegalStateException("Timed out waiting for DolphinScheduler Registry execution lock");
             }
             registered = true;
             registry.put(REGISTRY_PATH, incarnation, true);
