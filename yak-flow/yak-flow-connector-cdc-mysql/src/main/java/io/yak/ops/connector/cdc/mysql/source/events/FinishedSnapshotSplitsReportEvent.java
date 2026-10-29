@@ -45,8 +45,7 @@ public class FinishedSnapshotSplitsReportEvent implements SourceEvent {
      * since that is the starting point of the deferred Binlog split.
      */
     public FinishedSnapshotSplitsReportEvent(
-            Map<String, DebeziumOffset> finishedOffsets,
-            Map<String, byte[]> finishedSchemaHistories) {
+            Map<String, DebeziumOffset> finishedOffsets, Map<String, byte[]> finishedSchemaHistories) {
         this.finishedOffsets = Map.copyOf(finishedOffsets);
         Map<String, byte[]> copied = new LinkedHashMap<>();
         finishedSchemaHistories.forEach((id, history) -> {
