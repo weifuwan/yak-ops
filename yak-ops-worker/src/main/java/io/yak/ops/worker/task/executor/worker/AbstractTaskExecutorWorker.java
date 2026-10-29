@@ -17,9 +17,6 @@
 
 package io.yak.ops.worker.task.executor.worker;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.TaskExecutorState;
 import io.yak.ops.worker.task.executor.events.TaskExecutorFailedLifecycleEvent;
@@ -27,6 +24,8 @@ import io.yak.ops.worker.task.executor.events.TaskExecutorKilledLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorPausedLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorSuccessLifecycleEvent;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractTaskExecutorWorker implements ITaskExecutorWorker {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractTaskExecutorWorker.class);

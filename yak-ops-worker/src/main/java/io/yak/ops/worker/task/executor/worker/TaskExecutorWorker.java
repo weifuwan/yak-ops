@@ -17,18 +17,17 @@
 
 package io.yak.ops.worker.task.executor.worker;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-import io.yak.ops.worker.task.executor.LOG.TaskExecutorMDCUtils;
-import io.yak.ops.worker.task.executor.LOG.TaskExecutorMDCUtils.MDCAutoClosable;
+import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils;
+import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils.MDCAutoClosable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
     private static final Logger LOG = LoggerFactory.getLogger(TaskExecutorWorker.class);
