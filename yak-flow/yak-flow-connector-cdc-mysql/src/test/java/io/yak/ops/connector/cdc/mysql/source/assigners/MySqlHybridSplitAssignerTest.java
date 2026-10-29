@@ -44,6 +44,28 @@ class MySqlHybridSplitAssignerTest {
     }
 
     @Test
+    void createsIncompleteInitialBinlogWhenMetadataExceedsGroupSize() {
+        var assigner = new MySqlHybridSplitAssigner(StartupOptions.initial(), null, 1);
+        var first = snapshot();
+        var second = new MySqlSnapshotSplit("snapshot-1", first.tableId(), null, null, null);
+        assigner.plan(List.of(first, second));
+        assigner.getNext().orElseThrow();
+        assigner.getNext().orElseThrow();
+        finish(assigner, first, 200);
+        finish(assigner, second, 300);
+        assigner.snapshotState(7);
+        assigner.notifyCheckpointComplete(7);
+        var binlog = (MySqlBinlogSplit) assigner.getNext().orElseThrow();
+        assertFalse(binlog.isCompletedSplit());
+        assertEquals(2, binlog.getTotalFinishedSplitSize());
+        assertTrue(binlog.finishedSplits().isEmpty());
+        assertEquals(offset(200), binlog.offset());
+        var completed = binlog.withFinishedSnapshotSplitInfos(assigner.finishedSplits());
+        assertTrue(completed.isCompletedSplit());
+        assertEquals(2, completed.finishedSplits().size());
+    }
+
+    @Test
     void restoresEarliestChunkHistoryBeforeAllocatingBinlog() throws Exception {
         var assigner = new MySqlHybridSplitAssigner(StartupOptions.initial(), null);
         var first = snapshot();
