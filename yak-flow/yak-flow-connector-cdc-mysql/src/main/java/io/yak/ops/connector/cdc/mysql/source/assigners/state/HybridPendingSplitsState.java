@@ -56,8 +56,7 @@ public final class HybridPendingSplitsState extends PendingSplitsState {
         this.pendingBinlog = pendingBinlog;
         this.lowWatermark = lowWatermark;
         this.highWatermark = highWatermark;
-        if (binlogAssigned == (pendingBinlog != null)
-                || (phase != Phase.BOOTSTRAP && lowWatermark == null)
+        if ((binlogAssigned && pendingBinlog != null)
                 || ((phase == Phase.HANDOFF || phase == Phase.STREAMING) && highWatermark == null)) {
             throw new IllegalArgumentException("Inconsistent hybrid binlog assignment state");
         }
@@ -87,10 +86,11 @@ public final class HybridPendingSplitsState extends PendingSplitsState {
                 DebeziumOffset maximum = snapshotPendingSplits.getSplitFinishedOffsets().values().stream()
                         .max(DebeziumOffset::compareTo)
                         .orElseThrow();
-                if (highWatermark.compareTo(maximum) != 0 || lowWatermark.compareTo(highWatermark) > 0) {
+                if (highWatermark.compareTo(maximum) != 0
+                        || (lowWatermark != null && lowWatermark.compareTo(highWatermark) > 0)) {
                     throw new IllegalArgumentException("Hybrid checkpoint watermarks are inconsistent");
                 }
-            } else if (lowWatermark.compareTo(highWatermark) > 0) {
+            } else if (lowWatermark != null && lowWatermark.compareTo(highWatermark) > 0) {
                 // During a newly-added-table scan the existing Binlog High watermark remains
                 // authoritative until the new table Snapshot is checkpointed and handed off.
                 throw new IllegalArgumentException("Hybrid checkpoint watermarks are inconsistent");
