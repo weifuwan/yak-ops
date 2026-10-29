@@ -1,7 +1,7 @@
 package io.yak.ops.business.task.submission.impl;
 
-import io.yak.ops.business.task.submission.AdmissionRequest;
-import io.yak.ops.business.task.submission.AdmissionService;
+import io.yak.ops.business.task.submission.PreparedTaskSubmission;
+import io.yak.ops.business.task.submission.TaskSubmissionTransactionService;
 import io.yak.ops.business.task.submission.ScheduleAdmissionController;
 import io.yak.ops.business.task.submission.ScheduleFireResult;
 import io.yak.ops.business.task.submission.ScheduleRequestId;
@@ -29,7 +29,7 @@ import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.scheduler.api.CronService;
 import io.yak.ops.plugin.scheduler.api.ScheduleTrigger;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.workspace.WorkspaceService;
 import jakarta.annotation.Resource;
@@ -51,7 +51,7 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
  * declared resources. Physical execution must occur after this transaction commits.
  */
 @Service
-public class AdmissionServiceImpl implements AdmissionService {
+public class AdmissionServiceImpl implements TaskSubmissionTransactionService {
     @Resource
     private DefinitionRepository definitions;
 
@@ -87,7 +87,7 @@ public class AdmissionServiceImpl implements AdmissionService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public SubmissionResult admit(AdmissionRequest request) {
+    public SubmissionResult admit(PreparedTaskSubmission request) {
         if (request.triggerType() == TaskTriggerType.SCHEDULE
                 || request.scheduleId() != null
                 || request.scheduleRevision() != null
@@ -116,16 +116,13 @@ public class AdmissionServiceImpl implements AdmissionService {
             throw new BusinessException(CommonErrorCode.RESOURCE_DUPLICATION);
         }
 
-        TaskAdmissionPlan currentPlan = request.plugin().plan(request.parameters(), context);
-        if (!request.plan().equals(currentPlan)) {
-            throw new BusinessException(CommonErrorCode.RESOURCE_DUPLICATION);
-        }
-
-        return persist(request, definition, currentPlan);
+        // Resources were resolved before this transaction. Keep database row locks
+        // short; the Worker revalidates the binding before starting physical execution.
+        return persist(request, definition, request.plan());
     }
 
     private SubmissionResult persist(
-            AdmissionRequest request, DefinitionEntity definition, TaskAdmissionPlan currentPlan) {
+            PreparedTaskSubmission request, DefinitionEntity definition, TaskExecutionResources currentPlan) {
         TaskExecutionIdentity context = request.identity();
         String workspaceId = context.workspaceId();
         InstanceEntity instance = new InstanceEntity();
@@ -181,7 +178,7 @@ public class AdmissionServiceImpl implements AdmissionService {
     @Override
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
     public ScheduleFireResult admitScheduled(
-            ScheduleTrigger trigger, AdmissionRequest request, ScheduleFireReason preparationFailure) {
+            ScheduleTrigger trigger, PreparedTaskSubmission request, ScheduleFireReason preparationFailure) {
         admissionController.checkAdmission();
         ScheduleEntity selected = schedules
                 .queryIncludingDeleted(trigger.workspaceId(), trigger.scheduleId())
@@ -260,11 +257,9 @@ public class AdmissionServiceImpl implements AdmissionService {
             return resolve(
                     schedule, trigger, key, ScheduleFireOutcome.REJECTED, ScheduleFireReason.NOT_SCHEDULABLE, null);
         }
-        TaskAdmissionPlan currentPlan = request.plugin().plan(request.parameters(), request.identity());
-        if (!request.plan().equals(currentPlan)) {
-            return resolve(
-                    schedule, trigger, key, ScheduleFireOutcome.REJECTED, ScheduleFireReason.BINDING_CHANGED, null);
-        }
+        // Resource metadata was prepared outside this transaction; the Worker
+        // verifies it again before executing the pinned Task Definition.
+        TaskExecutionResources currentPlan = request.plan();
         // The savepoint is inside this interceptor boundary: expected conflict never marks the outer transaction
         // rollback-only.
         var status = TransactionAspectSupport.currentTransactionStatus();
@@ -289,7 +284,7 @@ public class AdmissionServiceImpl implements AdmissionService {
     }
 
     private void validateScheduledRequest(
-            AdmissionRequest request,
+            PreparedTaskSubmission request,
             ScheduleEntity schedule,
             ScheduleTrigger trigger,
             String key,

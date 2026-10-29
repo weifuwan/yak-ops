@@ -7,7 +7,7 @@ import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
@@ -105,13 +105,13 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
     }
 
     @Override
-    public TaskAdmissionPlan plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
+    public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
         return planner.admissionPlan(parameters, context);
     }
 
     @Override
     public CompletionStage<TaskHandle> start(
-            ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity context, boolean debug) {
+            ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
         return executor.start(parameters, plan, context, debug);
     }
 }

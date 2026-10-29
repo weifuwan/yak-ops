@@ -12,7 +12,7 @@ import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
@@ -173,7 +173,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
                     .queryCurrent(workspaceId, ticket.definitionId(), ticket.definitionVersion())
                     .orElseThrow(() -> new IllegalStateException("Pinned Task version is not available"));
             ReadonlyConfig parameters = executable.parse(version.getParameterSchemaVersion(), version.getParameters());
-            TaskAdmissionPlan plan = executable.plan(parameters, identity);
+            TaskExecutionResources plan = executable.plan(parameters, identity);
             Set<ExecutionResource> owned = claims.findByInstance(workspaceId, instanceId).stream()
                     .map(this::resource)
                     .collect(java.util.stream.Collectors.toSet());

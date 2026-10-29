@@ -2,7 +2,7 @@ package io.yak.ops.plugin.task.datasync.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import java.util.List;
 import java.util.Objects;
 
@@ -13,12 +13,12 @@ import java.util.Objects;
  */
 public final class JobPlan {
     private final List<TablePlan> tables;
-    private final TaskAdmissionPlan admissionPlan;
+    private final TaskExecutionResources admissionPlan;
 
     @JsonCreator
     public JobPlan(
             @JsonProperty("tables") List<TablePlan> tables,
-            @JsonProperty("admissionPlan") TaskAdmissionPlan admissionPlan) {
+            @JsonProperty("admissionPlan") TaskExecutionResources admissionPlan) {
         tables = List.copyOf(tables);
         if (tables.isEmpty()) throw new IllegalArgumentException("Job needs table mappings");
         Objects.requireNonNull(admissionPlan, "admissionPlan");
@@ -32,7 +32,7 @@ public final class JobPlan {
     }
 
     @JsonProperty("admissionPlan")
-    public TaskAdmissionPlan admissionPlan() {
+    public TaskExecutionResources admissionPlan() {
         return admissionPlan;
     }
 

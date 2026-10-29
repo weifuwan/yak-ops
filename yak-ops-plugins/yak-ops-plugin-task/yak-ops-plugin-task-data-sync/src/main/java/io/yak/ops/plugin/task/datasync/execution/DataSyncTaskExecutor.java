@@ -2,7 +2,7 @@ package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.core.execution.PipelineExecutor;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
@@ -45,7 +45,7 @@ public final class DataSyncTaskExecutor {
      * @param debug Instance diagnostics flag
      */
     public CompletionStage<TaskHandle> start(
-            ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity identity, boolean debug) {
+            ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity identity, boolean debug) {
         try {
             JobPlan current = planner.plan(parameters, identity);
             if (!plan.equals(current.admissionPlan())) {

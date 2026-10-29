@@ -5,7 +5,7 @@ import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.exceptions.SchemaEvolveException;
 import io.yak.ops.core.execution.PipelineExecutor;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
@@ -28,7 +28,7 @@ import org.slf4j.MDC;
 final class DataSyncTaskHandle implements TaskHandle {
     private static final Logger LOG = LoggerFactory.getLogger(DataSyncTaskHandle.class);
     private final ReadonlyConfig parameters;
-    private final TaskAdmissionPlan admission;
+    private final TaskExecutionResources admission;
     private final TaskExecutionIdentity identity;
     private final boolean debug;
     private final JobPlanner planner;
@@ -48,7 +48,7 @@ final class DataSyncTaskHandle implements TaskHandle {
 
     DataSyncTaskHandle(
             ReadonlyConfig parameters,
-            TaskAdmissionPlan admission,
+            TaskExecutionResources admission,
             TaskExecutionIdentity identity,
             boolean debug,
             JobPlanner planner,

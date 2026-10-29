@@ -3,18 +3,18 @@ package io.yak.ops.business.task.submission;
 import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import java.time.Instant;
 
 /**
- * Prepared inputs for one Task admission transaction.
+ * Validated inputs for one atomic Task Instance submission.
  *
  * <p>The executable plugin is a live capability used for read-only plan revalidation
- * during admission. This request holds that capability without invoking or owning its
+ * before submission. This request holds that capability without invoking or owning its
  * lifecycle and therefore has identity semantics rather than value equality.
  */
-public final class AdmissionRequest {
+public final class PreparedTaskSubmission {
 
     private final TaskExecutionIdentity identity;
     private final TaskTriggerType triggerType;
@@ -22,7 +22,7 @@ public final class AdmissionRequest {
     private final String requestFingerprint;
     private final String operatorId;
     private final ReadonlyConfig parameters;
-    private final TaskAdmissionPlan plan;
+    private final TaskExecutionResources plan;
     private final ExecutableTaskPlugin plugin;
     private final String scheduleId;
     private final Long scheduleRevision;
@@ -37,20 +37,20 @@ public final class AdmissionRequest {
      * @param requestFingerprint non-secret submission intent fingerprint
      * @param operatorId actor initiating execution
      * @param parameters validated immutable Task parameters
-     * @param plan resolved execution resources and binding revision
+     * @param plan resolved exclusive resources and binding revision
      * @param plugin executable Task type used to prepare and revalidate the plan
      * @param scheduleId originating schedule or null
      * @param scheduleRevision originating revision or null
      * @param scheduledTime logical UTC time or null
      */
-    public AdmissionRequest(
+    public PreparedTaskSubmission(
             TaskExecutionIdentity identity,
             TaskTriggerType triggerType,
             String requestId,
             String requestFingerprint,
             String operatorId,
             ReadonlyConfig parameters,
-            TaskAdmissionPlan plan,
+            TaskExecutionResources plan,
             ExecutableTaskPlugin plugin,
             String scheduleId,
             Long scheduleRevision,
@@ -99,7 +99,7 @@ public final class AdmissionRequest {
     }
 
     /** Returns the admitted resource plan. */
-    public TaskAdmissionPlan plan() {
+    public TaskExecutionResources plan() {
         return plan;
     }
 
@@ -126,6 +126,6 @@ public final class AdmissionRequest {
     /** Omits plugin, parameters, and submission identifiers from diagnostics. */
     @Override
     public String toString() {
-        return "AdmissionRequest{contents=redacted}";
+        return "PreparedTaskSubmission{contents=redacted}";
     }
 }

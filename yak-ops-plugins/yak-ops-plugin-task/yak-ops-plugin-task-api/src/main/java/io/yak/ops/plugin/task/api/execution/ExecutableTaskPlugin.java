@@ -17,23 +17,23 @@ public interface ExecutableTaskPlugin extends TaskPlugin {
     }
 
     /**
-     * Declares canonical exclusive resources and resource-binding revision.
+     * Resolves exclusive execution resources and their metadata revision before submission.
      *
      * @param parameters validated immutable Task configuration
      * @param context identity of the selected immutable Definition version
-     * @return read-only admission plan
+     * @return resources checked at Task Instance submission and Worker startup
      */
-    TaskAdmissionPlan plan(ReadonlyConfig parameters, TaskExecutionIdentity context);
+    TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context);
 
     /**
-     * Starts physical execution after durable admission and resource revalidation.
+     * Starts physical execution after durable Instance submission and resource revalidation.
      *
      * @param parameters pinned Task configuration
-     * @param plan admitted resource claims and binding revision
+     * @param plan resource claims and binding revision of the submitted Task Instance
      * @param context authorized Instance and Attempt identity
      * @param debug detailed diagnostics captured for this Instance
      * @return execution handle
      */
     CompletionStage<TaskHandle> start(
-            ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity context, boolean debug);
+            ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug);
 }

@@ -1,7 +1,7 @@
 package io.yak.ops.business.task.submission.impl;
 
-import io.yak.ops.business.task.submission.AdmissionRequest;
-import io.yak.ops.business.task.submission.AdmissionService;
+import io.yak.ops.business.task.submission.PreparedTaskSubmission;
+import io.yak.ops.business.task.submission.TaskSubmissionTransactionService;
 import io.yak.ops.business.task.submission.ScheduleAdmissionController;
 import io.yak.ops.business.task.submission.ScheduleFireResult;
 import io.yak.ops.business.task.submission.ScheduleRequestId;
@@ -29,7 +29,7 @@ import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
 import io.yak.ops.workspace.WorkspaceService;
@@ -77,7 +77,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private TaskValidationContextFactory validationContexts;
 
     @Resource
-    private AdmissionService admission;
+    private TaskSubmissionTransactionService admission;
 
     @Override
     public SubmissionResult submit(TaskSubmissionCommand command) {
@@ -104,7 +104,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             return replay(existing.orElseThrow(), fingerprint);
         }
 
-        AdmissionRequest request = prepare(command, fingerprint);
+        PreparedTaskSubmission request = prepare(command, fingerprint);
         try {
             return admission.admit(request);
         } catch (DuplicateKeyException duplicate) {
@@ -115,7 +115,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
     }
 
-    private AdmissionRequest prepare(TaskSubmissionCommand command, String fingerprint) {
+    private PreparedTaskSubmission prepare(TaskSubmissionCommand command, String fingerprint) {
         String workspaceId = command.workspaceId();
         String definitionId = command.definitionId();
         String requestId = command.requestId();
@@ -138,8 +138,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
         executable.validate(parameters, validationContexts.forWorkspace(workspaceId));
         TaskExecutionIdentity context = new TaskExecutionIdentity(workspaceId, definitionId, version, IdUtils.nextId());
-        TaskAdmissionPlan plan = executable.plan(parameters, context);
-        return new AdmissionRequest(
+        TaskExecutionResources plan = executable.plan(parameters, context);
+        return new PreparedTaskSubmission(
                 context,
                 command.triggerType(),
                 requestId,
@@ -197,7 +197,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                     trigger.scheduleId(),
                     trigger.revision(),
                     trigger.scheduledTime());
-            AdmissionRequest prepared = null;
+            PreparedTaskSubmission prepared = null;
             ScheduleFireReason failure = null;
             try {
                 prepared = prepare(command, "SCHEDULE:" + schedule.getTargetId() + ":" + key);

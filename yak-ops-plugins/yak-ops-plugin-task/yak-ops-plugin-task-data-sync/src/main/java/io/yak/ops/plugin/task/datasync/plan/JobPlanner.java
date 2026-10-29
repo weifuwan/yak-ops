@@ -13,7 +13,7 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.config.JobOptions;
@@ -49,7 +49,7 @@ public final class JobPlanner {
      * @param context trusted Task execution identity
      * @return complete admission claims validated against the expected schema
      */
-    public TaskAdmissionPlan admissionPlan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
+    public TaskExecutionResources admissionPlan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
         return plan(parameters, context).admissionPlan();
     }
 
@@ -235,7 +235,7 @@ public final class JobPlanner {
                 && sources.stream().anyMatch(targets::contains)) {
             throw new IllegalArgumentException("Destinations overlap their source tables");
         }
-        return new JobPlan(tables, new TaskAdmissionPlan(claims, sha256(bindings.toString())));
+        return new JobPlan(tables, new TaskExecutionResources(claims, sha256(bindings.toString())));
     }
 
     private static String encodeTable(TableId table) {
