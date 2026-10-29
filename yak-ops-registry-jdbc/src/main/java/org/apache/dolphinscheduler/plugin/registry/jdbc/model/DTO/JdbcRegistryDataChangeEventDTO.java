@@ -17,7 +17,7 @@
 
 package org.apache.dolphinscheduler.plugin.registry.jdbc.model.DTO;
 
-import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.JdbcRegistryJson;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.model.DO.JdbcRegistryData;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.model.DO.JdbcRegistryDataChangeEvent;
 
@@ -51,7 +51,7 @@ public class JdbcRegistryDataChangeEventDTO {
 
     public static JdbcRegistryDataChangeEventDTO fromJdbcRegistryDataChangeEvent(JdbcRegistryDataChangeEvent jdbcRegistryDataChangeEvent) {
         JdbcRegistryData jdbcRegistryData =
-                JSONUtils.parseObject(jdbcRegistryDataChangeEvent.getJdbcRegistryData(), JdbcRegistryData.class);
+                JdbcRegistryJson.parseObject(jdbcRegistryDataChangeEvent.getJdbcRegistryData(), JdbcRegistryData.class);
         if (jdbcRegistryData == null) {
             throw new IllegalArgumentException(
                     "jdbcRegistryData: " + jdbcRegistryDataChangeEvent.getJdbcRegistryData() + " is invalidated");
@@ -67,7 +67,7 @@ public class JdbcRegistryDataChangeEventDTO {
     public static JdbcRegistryDataChangeEvent toJdbcRegistryDataChangeEvent(JdbcRegistryDataChangeEventDTO jdbcRegistryDataChangeEvent) {
         return JdbcRegistryDataChangeEvent.builder()
                 .id(jdbcRegistryDataChangeEvent.getId())
-                .jdbcRegistryData(JSONUtils.toJsonString(jdbcRegistryDataChangeEvent.getJdbcRegistryData()))
+                .jdbcRegistryData(JdbcRegistryJson.toJsonString(jdbcRegistryDataChangeEvent.getJdbcRegistryData()))
                 .eventType(jdbcRegistryDataChangeEvent.getEventType().name())
                 .createTime(jdbcRegistryDataChangeEvent.getCreateTime())
                 .build();

@@ -17,7 +17,7 @@
 
 package org.apache.dolphinscheduler.plugin.registry.jdbc.model.DTO;
 
-import org.apache.dolphinscheduler.common.utils.JSONUtils;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.JdbcRegistryJson;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.model.DO.JdbcRegistryClientHeartbeat;
 
 import java.util.Date;
@@ -51,7 +51,7 @@ public class JdbcRegistryClientHeartbeatDTO {
                 .clientName(jdbcRegistryClientHeartbeat.getClientName())
                 .lastHeartbeatTime(jdbcRegistryClientHeartbeat.getLastHeartbeatTime())
                 .clientConfig(
-                        JSONUtils.parseObject(jdbcRegistryClientHeartbeat.getConnectionConfig(), ClientConfig.class))
+                        JdbcRegistryJson.parseObject(jdbcRegistryClientHeartbeat.getConnectionConfig(), ClientConfig.class))
                 .createTime(jdbcRegistryClientHeartbeat.getCreateTime())
                 .build();
     }
@@ -61,7 +61,7 @@ public class JdbcRegistryClientHeartbeatDTO {
                 .id(jdbcRegistryClientHeartbeatDTO.getId())
                 .clientName(jdbcRegistryClientHeartbeatDTO.getClientName())
                 .lastHeartbeatTime(jdbcRegistryClientHeartbeatDTO.getLastHeartbeatTime())
-                .connectionConfig(JSONUtils.toJsonString(jdbcRegistryClientHeartbeatDTO.getClientConfig()))
+                .connectionConfig(JdbcRegistryJson.toJsonString(jdbcRegistryClientHeartbeatDTO.getClientConfig()))
                 .createTime(jdbcRegistryClientHeartbeatDTO.getCreateTime())
                 .build();
     }
