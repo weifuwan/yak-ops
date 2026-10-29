@@ -130,8 +130,7 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
             binlogAssigned = true;
             return next;
         }
-        if ((phase != HybridPendingSplitsState.Phase.HANDOFF
-                        && phase != HybridPendingSplitsState.Phase.SNAPSHOT)
+        if ((phase != HybridPendingSplitsState.Phase.HANDOFF && phase != HybridPendingSplitsState.Phase.SNAPSHOT)
                 || !AssignerStatus.isInitialAssigningFinished(snapshots.getAssignerStatus())
                 || !snapshots.allFinished()) return null;
         MySqlBinlogSplit next = createBinlogSplit();
@@ -143,8 +142,8 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
     /** Flink's minimum finished-chunk HIGH algorithm, with Debezium 2.7 history. */
     private MySqlBinlogSplit createBinlogSplit() {
         List<FinishedSnapshotSplitInfo> finished = snapshots.getFinishedSplitInfos();
-        DebeziumOffset start = io.yak.ops.connector.cdc.mysql.source.utils.RecordUtils
-                .getStartingOffsetOfBinlogSplit(finished);
+        DebeziumOffset start =
+                io.yak.ops.connector.cdc.mysql.source.utils.RecordUtils.getStartingOffsetOfBinlogSplit(finished);
         DebeziumOffset maximum = finished.stream()
                 .map(FinishedSnapshotSplitInfo::highWatermark)
                 .max(DebeziumOffset::compareTo)
@@ -155,10 +154,8 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
         high = maximum;
         // Flink CDC 3.7: do not put arbitrarily many finished chunks in the initial
         // Binlog assignment; the Reader fetches the missing groups from the coordinator.
-        List<FinishedSnapshotSplitInfo> inline =
-                finished.size() > splitMetaGroupSize ? List.of() : finished;
-        return MySqlBinlogSplit.forCompletedSnapshot(
-                start, schemaHistoryForBinlog(), maximum, inline, finished.size());
+        List<FinishedSnapshotSplitInfo> inline = finished.size() > splitMetaGroupSize ? List.of() : finished;
+        return MySqlBinlogSplit.forCompletedSnapshot(start, schemaHistoryForBinlog(), maximum, inline, finished.size());
     }
 
     public MySqlSnapshotSplit nextSnapshot() {
@@ -393,8 +390,7 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
             releaseMetadataCheckpointId = checkpointId;
         }
         return new HybridPendingSplitsState(
-                snapshotState, binlogAssigned, pendingBinlog, phase, low, high,
-                schemaHistoryWatermark, schemaHistory);
+                snapshotState, binlogAssigned, pendingBinlog, phase, low, high, schemaHistoryWatermark, schemaHistory);
     }
 
     @Override
