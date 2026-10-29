@@ -205,7 +205,7 @@ CREATE TABLE yak_ops_task_instance (
 -- DolphinScheduler TaskGroup slot accounting (TaskGroupMapper.xml, dev@ee47c371).
 -- Yak Ops adds Workspace/resource keys and string Task IDs for atomic multi-target
 -- reservations. Slot CAS and release SQL follow the upstream TaskGroup DAO.
-CREATE TABLE t_ds_task_group (
+CREATE TABLE yak_ops_task_group (
   id BIGINT NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
   description VARCHAR(255) NULL,
@@ -220,11 +220,11 @@ CREATE TABLE t_ds_task_group (
   create_time DATETIME(3) NOT NULL,
   update_time DATETIME(3) NOT NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_ds_task_group_resource (workspace_id, resource_type, resource_key)
+  UNIQUE KEY uk_ops_task_group_resource (workspace_id, resource_type, resource_key)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='DolphinScheduler task group slots for exclusive execution resources';
 
-CREATE TABLE t_ds_task_group_queue (
+CREATE TABLE yak_ops_task_group_queue (
   id VARCHAR(64) NOT NULL,
   task_id VARCHAR(64) NOT NULL,
   task_name VARCHAR(255) NULL,
@@ -237,16 +237,16 @@ CREATE TABLE t_ds_task_group_queue (
   create_time DATETIME(3) NOT NULL,
   update_time DATETIME(3) NOT NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_ds_task_group_queue_task (task_id, group_id),
-  KEY idx_ds_task_group_queue_task (task_id),
-  KEY idx_ds_task_group_queue_group (group_id),
-  KEY idx_ds_task_group_queue_workflow (workflow_instance_id),
-  KEY idx_ds_task_group_queue_status (status)
+  UNIQUE KEY uk_ops_task_group_queue_task (task_id, group_id),
+  KEY idx_ops_task_group_queue_task (task_id),
+  KEY idx_ops_task_group_queue_group (group_id),
+  KEY idx_ops_task_group_queue_workflow (workflow_instance_id),
+  KEY idx_ops_task_group_queue_status (status)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='DolphinScheduler task group slot allocations; task IDs are Yak Ops strings';
 
 -- DolphinScheduler JDBC Registry DDL, upstream dev@ee47c371 (Apache-2.0)
-CREATE TABLE `t_ds_jdbc_registry_data`
+CREATE TABLE `yak_ops_jdbc_registry_data`
 (
     `id`               bigint(11)   NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `data_key`         varchar(256) NOT NULL COMMENT 'key, like zookeeper node path',
@@ -256,11 +256,11 @@ CREATE TABLE `t_ds_jdbc_registry_data`
     `create_time`      timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
     `last_update_time` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'last update time',
     PRIMARY KEY (`id`),
-    unique Key `uk_t_ds_jdbc_registry_dataKey` (`data_key`)
+    unique Key `uk_yak_ops_jdbc_registry_dataKey` (`data_key`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
-CREATE TABLE `t_ds_jdbc_registry_lock`
+CREATE TABLE `yak_ops_jdbc_registry_lock`
 (
     `id`          bigint(11)   NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `lock_key`    varchar(256) NOT NULL COMMENT 'lock path',
@@ -268,11 +268,11 @@ CREATE TABLE `t_ds_jdbc_registry_lock`
     `client_id`   bigint(11)   NOT NULL COMMENT 'client id',
     `create_time` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
     PRIMARY KEY (`id`),
-    unique Key `uk_t_ds_jdbc_registry_lockKey` (`lock_key`)
+    unique Key `uk_yak_ops_jdbc_registry_lockKey` (`lock_key`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
-CREATE TABLE `t_ds_jdbc_registry_client_heartbeat`
+CREATE TABLE `yak_ops_jdbc_registry_client_heartbeat`
 (
     `id`                  bigint(11)   NOT NULL COMMENT 'primary key',
     `client_name`         varchar(256) NOT NULL COMMENT 'client name, ip_processId',
@@ -283,7 +283,7 @@ CREATE TABLE `t_ds_jdbc_registry_client_heartbeat`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
-CREATE TABLE `t_ds_jdbc_registry_data_change_event`
+CREATE TABLE `yak_ops_jdbc_registry_data_change_event`
 (
     `id`                 bigint(11)  NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `event_type`         varchar(64) NOT NULL COMMENT 'ADD, UPDATE, DELETE',

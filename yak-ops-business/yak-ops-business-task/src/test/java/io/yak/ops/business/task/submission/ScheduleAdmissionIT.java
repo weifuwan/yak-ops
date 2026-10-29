@@ -187,8 +187,8 @@ class ScheduleAdmissionIT {
         when(REGISTRY.isConnected()).thenReturn(true);
         when(REGISTRY.get("/yak-ops/masters/embedded")).thenReturn("test-owner");
         for (String table : List.of(
-                "t_ds_task_group_queue",
-                "t_ds_task_group",
+                "yak_ops_task_group_queue",
+                "yak_ops_task_group",
                 "yak_ops_task_instance",
                 "yak_ops_schedule_fire",
                 "yak_ops_schedule",
@@ -264,10 +264,10 @@ class ScheduleAdmissionIT {
         assertEquals(ScheduleFireOutcome.SKIPPED, first.outcome());
         assertEquals(ScheduleFireReason.RESOURCE_BUSY, first.reason());
         assertEquals(0, count("yak_ops_task_instance"));
-        assertEquals(1, count("t_ds_task_group_queue"));
+        assertEquals(1, count("yak_ops_task_group_queue"));
         assertEquals(1, count("yak_ops_schedule_fire"));
-        jdbc.update("DELETE FROM t_ds_task_group_queue");
-        jdbc.update("UPDATE t_ds_task_group SET use_size = 0");
+        jdbc.update("DELETE FROM yak_ops_task_group_queue");
+        jdbc.update("UPDATE yak_ops_task_group SET use_size = 0");
         ScheduleFireResult replay = submissions.submitScheduled(trigger());
         assertTrue(replay.replayed());
         assertEquals(ScheduleFireOutcome.SKIPPED, replay.outcome());
@@ -307,7 +307,7 @@ class ScheduleAdmissionIT {
             stop.get(15, TimeUnit.SECONDS);
             assertEquals("SUBMITTED", jdbc.queryForObject("SELECT status FROM yak_ops_task_instance", String.class));
             assertEquals(0, jdbc.queryForObject("SELECT enabled FROM yak_ops_schedule", Integer.class));
-            assertEquals(1, count("t_ds_task_group_queue"));
+            assertEquals(1, count("yak_ops_task_group_queue"));
         }
     }
 
@@ -390,8 +390,8 @@ class ScheduleAdmissionIT {
         assertEquals(
                 ScheduleFireOutcome.SKIPPED,
                 submissions.submitScheduled(trigger()).outcome());
-        jdbc.update("DELETE FROM t_ds_task_group_queue");
-        jdbc.update("UPDATE t_ds_task_group SET use_size = 0");
+        jdbc.update("DELETE FROM yak_ops_task_group_queue");
+        jdbc.update("UPDATE yak_ops_task_group SET use_size = 0");
         context.getBean(ScheduleFireRepository.class)
                 .retire("ws", "schedule", LocalDateTime.ofInstant(BASE.plusSeconds(61), ZoneOffset.UTC));
         assertEquals(0, count("yak_ops_schedule_fire"));
@@ -507,16 +507,16 @@ class ScheduleAdmissionIT {
 
     private static void occupy(String resource) {
         jdbc.update(
-                "INSERT INTO t_ds_task_group"
+                "INSERT INTO yak_ops_task_group"
                         + " (name,workspace_id,resource_type,resource_key,group_size,use_size,status,create_time,update_time)"
                         + " VALUES ('TEST','ws','TEST',?,1,1,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))",
                 resource);
         Long groupId = jdbc.queryForObject(
-                "SELECT id FROM t_ds_task_group WHERE workspace_id='ws' AND resource_type='TEST' AND resource_key=?",
+                "SELECT id FROM yak_ops_task_group WHERE workspace_id='ws' AND resource_type='TEST' AND resource_key=?",
                 Long.class,
                 resource);
         jdbc.update(
-                "INSERT INTO t_ds_task_group_queue"
+                "INSERT INTO yak_ops_task_group_queue"
                         + " (id,task_id,group_id,priority,status,force_start,in_queue,create_time,update_time)"
                         + " VALUES ('occupied','other-instance',?,0,1,0,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))",
                 groupId);

@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     private static final String RESOURCE_JOIN =
             "SELECT q.id, q.task_id, g.workspace_id, g.resource_type, g.resource_key"
-                    + " FROM t_ds_task_group_queue q JOIN t_ds_task_group g ON q.group_id = g.id";
+                    + " FROM yak_ops_task_group_queue q JOIN yak_ops_task_group g ON q.group_id = g.id";
 
     @Resource
     private JdbcTemplate jdbc;
@@ -35,7 +35,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     public void add(TaskGroupQueueEntity queue) {
         LocalDateTime now = LocalDateTime.now();
         jdbc.update(
-                "INSERT INTO t_ds_task_group (name, workspace_id, resource_type, resource_key,"
+                "INSERT INTO yak_ops_task_group (name, workspace_id, resource_type, resource_key,"
                         + " group_size, use_size, status, create_time, update_time)"
                         + " VALUES (?, ?, ?, ?, 1, 0, 1, ?, ?)"
                         + " ON DUPLICATE KEY UPDATE id = id",
@@ -46,7 +46,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                 now,
                 now);
         Long groupId = jdbc.queryForObject(
-                "SELECT id FROM t_ds_task_group WHERE workspace_id = ? AND resource_type = ?"
+                "SELECT id FROM yak_ops_task_group WHERE workspace_id = ? AND resource_type = ?"
                         + " AND resource_key = ? FOR UPDATE",
                 Long.class,
                 queue.getWorkspaceId(),
@@ -54,14 +54,14 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                 queue.getResourceKey());
         if (groupId == null
                 || jdbc.update(
-                                "UPDATE t_ds_task_group SET use_size = use_size + 1"
+                                "UPDATE yak_ops_task_group SET use_size = use_size + 1"
                                         + " WHERE id = ? AND use_size < group_size",
                                 groupId)
                         != 1) {
             throw new DuplicateKeyException("TaskGroup slot is occupied");
         }
         jdbc.update(
-                "INSERT INTO t_ds_task_group_queue"
+                "INSERT INTO yak_ops_task_group_queue"
                         + " (id, task_id, group_id, priority, status, force_start, in_queue, create_time, update_time)"
                         + " VALUES (?, ?, ?, 0, 1, 0, 1, ?, ?)",
                 queue.getId(),
@@ -97,16 +97,16 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     @Transactional(rollbackFor = Exception.class)
     public int releaseOwned(String workspaceId, String instanceId) {
         List<Long> groups = jdbc.queryForList(
-                "SELECT q.group_id FROM t_ds_task_group_queue q"
-                        + " JOIN t_ds_task_group g ON g.id = q.group_id"
+                "SELECT q.group_id FROM yak_ops_task_group_queue q"
+                        + " JOIN yak_ops_task_group g ON g.id = q.group_id"
                         + " WHERE g.workspace_id = ? AND q.task_id = ? FOR UPDATE",
                 Long.class,
                 workspaceId,
                 instanceId);
         if (groups.isEmpty()) return 0;
         int removed = jdbc.update(
-                "DELETE q FROM t_ds_task_group_queue q"
-                        + " JOIN t_ds_task_group g ON g.id = q.group_id"
+                "DELETE q FROM yak_ops_task_group_queue q"
+                        + " JOIN yak_ops_task_group g ON g.id = q.group_id"
                         + " WHERE g.workspace_id = ? AND q.task_id = ?",
                 workspaceId,
                 instanceId);
@@ -114,7 +114,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             throw new IllegalStateException("TaskGroupQueue release was not atomic");
         }
         for (Long id : groups) {
-            if (jdbc.update("UPDATE t_ds_task_group SET use_size = use_size - 1" + " WHERE id = ? AND use_size > 0", id)
+            if (jdbc.update("UPDATE yak_ops_task_group SET use_size = use_size - 1" + " WHERE id = ? AND use_size > 0", id)
                     != 1) {
                 throw new IllegalStateException("TaskGroup slot counter is inconsistent");
             }

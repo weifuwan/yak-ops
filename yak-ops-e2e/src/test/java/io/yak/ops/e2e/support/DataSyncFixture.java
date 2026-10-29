@@ -268,7 +268,7 @@ public final class DataSyncFixture implements AutoCloseable {
     public long claimCount(String instance) throws Exception {
         try (Connection connection = app.metadata().connect();
                 var statement = connection.prepareStatement(
-                        "SELECT COUNT(*) FROM t_ds_task_group_queue WHERE task_id=?")) {
+                        "SELECT COUNT(*) FROM yak_ops_task_group_queue WHERE task_id=?")) {
             statement.setString(1, instance);
             try (var rows = statement.executeQuery()) {
                 rows.next();
