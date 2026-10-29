@@ -18,7 +18,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Apply repository formatter
-        run: ./mvnw -B -pl yak-ops-worker,yak-ops-task-execution spotless:apply
+        run: bash ./mvnw -B -pl yak-ops-worker,yak-ops-task-execution spotless:apply
       - name: Commit formatted files to PR branch
         run: |
           git config user.name 'github-actions[bot]'
