@@ -1,39 +1,39 @@
 package io.yak.ops.task.execution.owner;
 
-import io.yak.ops.dao.repository.task.ExecutionOwnerRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.UUID;
+import org.apache.dolphinscheduler.registry.api.Registry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 /**
- * Holds the single-host embedded execution owner lock for the lifetime of the application.
- *
- * <p>The database owner record blocks another state root or host. Heartbeat expiry
- * never authorizes a second executor to launch a previously submitted Job.
+ * Owns the single embedded dispatcher through DolphinScheduler JDBC Registry and
+ * a local filesystem lock. No second dispatcher starts after a failed lease check.
  */
 @Component
 @DependsOn("yakOpsFlyway")
 public class EmbeddedExecutionOwner implements AutoCloseable {
+    public static final String REGISTRY_PATH = "/yak-ops/masters/embedded";
+    public static final String REGISTRY_LOCK = "/yak-ops/locks/embedded";
 
     @Resource
-    private ExecutionOwnerRepository owners;
+    private Registry registry;
 
     @Value("${yak.task.execution.state-directory:./data/task-state}")
     private String stateDirectory;
 
     private FileChannel channel;
     private FileLock lock;
+    private boolean registered;
     private final String incarnation = UUID.randomUUID().toString();
 
     @PostConstruct
@@ -43,15 +43,19 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
         root = root.toRealPath();
         channel = FileChannel.open(
                 root.resolve(".embedded-owner.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-        FileLock acquired = channel.tryLock();
-        if (acquired == null) {
+        lock = channel.tryLock();
+        if (lock == null) {
             channel.close();
-            throw new IllegalStateException("Another Yak Ops embedded executor owns the local state directory");
+            throw new IllegalStateException("Another embedded executor owns the local state directory");
         }
-        lock = acquired;
         try {
-            owners.register(InetAddress.getLocalHost().getHostName(), root.toString(), incarnation);
-        } catch (IOException | RuntimeException | Error failure) {
+            if (!registry.isConnected() || !registry.acquireLock(REGISTRY_LOCK, 1000)) {
+                throw new IllegalStateException("Unable to acquire DolphinScheduler Registry execution lock");
+            }
+            registered = true;
+            registry.put(REGISTRY_PATH, incarnation, true);
+            incarnation();
+        } catch (RuntimeException | Error failure) {
             try {
                 close();
             } catch (IOException closeFailure) {
@@ -62,8 +66,9 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
     }
 
     public String incarnation() {
-        if (!lock.isValid()) {
-            throw new IllegalStateException("Embedded execution lock was lost");
+        if (lock == null || !lock.isValid() || !registry.isConnected()
+                || !incarnation.equals(registry.get(REGISTRY_PATH))) {
+            throw new IllegalStateException("Embedded execution ownership was lost");
         }
         return incarnation;
     }
@@ -71,11 +76,23 @@ public class EmbeddedExecutionOwner implements AutoCloseable {
     @Override
     @PreDestroy
     public void close() throws IOException {
-        if (lock != null && lock.isValid()) {
-            lock.release();
-        }
-        if (channel != null) {
-            channel.close();
+        try {
+            if (registered) {
+                registered = false;
+                try {
+                    if (registry.isConnected() && incarnation.equals(registry.get(REGISTRY_PATH))) {
+                        registry.delete(REGISTRY_PATH);
+                    }
+                } finally {
+                    registry.releaseLock(REGISTRY_LOCK);
+                }
+            }
+        } finally {
+            try {
+                if (lock != null && lock.isValid()) lock.release();
+            } finally {
+                if (channel != null) channel.close();
+            }
         }
     }
 }

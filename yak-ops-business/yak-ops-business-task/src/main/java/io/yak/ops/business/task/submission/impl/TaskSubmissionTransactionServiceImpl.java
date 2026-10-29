@@ -24,7 +24,6 @@ import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
-import io.yak.ops.dao.repository.task.ExecutionOwnerRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.scheduler.api.CronService;
 import io.yak.ops.plugin.scheduler.api.ScheduleTrigger;
@@ -39,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.Objects;
+import org.apache.dolphinscheduler.registry.api.Registry;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -71,7 +71,7 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
     private ScheduleFireRepository fires;
 
     @Resource
-    private ExecutionOwnerRepository owners;
+    private Registry registry;
 
     @Resource
     private ScheduleAdmissionController admissionController;
@@ -195,7 +195,8 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
         if (request != null) {
             validateScheduledRequest(request, schedule, trigger, key, fingerprint);
         }
-        if (!owners.isCurrentForAdmission(admissionController.checkAdmission())) {
+        if (!registry.isConnected()
+                || !admissionController.checkAdmission().equals(registry.get("/yak-ops/masters/embedded"))) {
             admissionController.stop();
             throw new IllegalStateException("Schedule database ownership was lost");
         }
