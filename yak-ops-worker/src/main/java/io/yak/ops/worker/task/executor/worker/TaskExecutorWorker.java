@@ -31,6 +31,7 @@ public final class TaskExecutorWorker implements ITaskExecutorWorker {
                     if (remaining <= 0) {
                         TaskExecutorState state = executor.trackTaskExecutorState();
                         if (state.isFinalState()) {
+                            executor.getTaskExecutionContext().setEndTime(System.currentTimeMillis());
                             executor.getTaskExecutorEventBus().publish(
                                     TaskExecutorLifecycleEvent.of(executor, terminalEvent(state)));
                             unFireTaskExecutor(executor);

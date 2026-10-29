@@ -191,9 +191,11 @@ public class TaskExecutionObserver implements AutoCloseable {
                     .whenCompleteAsync(
                             (outcome, error) -> {
                                 try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
-                                    observeTerminal(ticket, handle, outcome, error);
+                                    boolean persisted = observeTerminal(ticket, handle, outcome, error);
                                     if (observed != null) {
-                                        if (error == null && outcome != null) observed.complete(outcome);
+                                        if (!persisted) observed.completeExceptionally(
+                                                new IllegalStateException("Task outcome could not be persisted"));
+                                        else if (error == null && outcome != null) observed.complete(outcome);
                                         else observed.completeExceptionally(error == null
                                                 ? new IllegalStateException("Unknown Task outcome") : error);
                                     }
@@ -217,7 +219,8 @@ public class TaskExecutionObserver implements AutoCloseable {
         }
     }
 
-    private void observeTerminal(DispatchTicket ticket, TaskHandle handle, TaskOutcome outcome, Throwable failure) {
+    private boolean observeTerminal(DispatchTicket ticket, TaskHandle handle, TaskOutcome outcome, Throwable failure) {
+        boolean persisted = false;
         try {
             if (failure == null && outcome != null) {
                 handle.runtimeReference().ifPresent(reference -> lifecycle.runtimeReference(ticket, reference));
@@ -236,10 +239,12 @@ public class TaskExecutionObserver implements AutoCloseable {
                 if (report.isPresent()) lifecycle.complete(ticket, outcome, report.get());
                 else lifecycle.complete(ticket, outcome);
                 LOG.info("Task Instance completed, instanceId={}, outcome={}", ticket.instanceId(), outcome);
+                persisted = true;
             } else {
                 var report = publicObservation(ticket.instanceId(), handle, false);
                 if (report.isPresent()) lifecycle.uncertain(ticket, report.get());
                 else lifecycle.uncertain(ticket);
+                persisted = true;
             }
         } catch (RuntimeException persistenceFailure) {
             LOG.error(
@@ -248,6 +253,7 @@ public class TaskExecutionObserver implements AutoCloseable {
                     persistenceFailure.getClass().getSimpleName());
             try {
                 lifecycle.uncertain(ticket);
+                persisted = true;
             } catch (RuntimeException reconciliationFailure) {
                 LOG.error(
                         "Unable to protect uncertain Task execution, instanceId={}, exceptionType={}",
@@ -257,6 +263,7 @@ public class TaskExecutionObserver implements AutoCloseable {
         } finally {
             active.remove(ticket.instanceId(), handle);
         }
+        return persisted;
     }
 
     @PreDestroy

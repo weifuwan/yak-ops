@@ -27,7 +27,10 @@ public final class TaskExecutorEventBusCoordinator implements AutoCloseable {
             TaskExecutorLifecycleEvent event;
             while ((event = executor.getTaskExecutorEventBus().poll().orElse(null)) != null) {
                 try { listener.onEvent(executor, event); }
-                catch (RuntimeException failure) { /* Preserve task; lifecycle will reconcile on restart. */ }
+                catch (RuntimeException failure) {
+                    executor.getTaskExecutorEventBus().publish(event);
+                    break;
+                }
             }
         }
     }

@@ -17,7 +17,6 @@
 
 package io.yak.ops.worker.task.executor;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
 import java.util.Map;
@@ -30,7 +29,7 @@ public class TaskExecutorRepository implements ITaskExecutorRepository {
 
     @Override
     public void put(final ITaskExecutor taskExecutor) {
-        checkNotNull(taskExecutor);
+        java.util.Objects.requireNonNull(taskExecutor, "taskExecutor");
         if (taskExecutorMap.putIfAbsent(taskExecutor.getId(), taskExecutor) != null) {
             throw new IllegalStateException("Task executor is already registered: " + taskExecutor.getId());
         }

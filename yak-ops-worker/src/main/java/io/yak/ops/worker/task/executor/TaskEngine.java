@@ -25,7 +25,7 @@ public final class TaskEngine implements ITaskEngine {
     @Override public void start() { events.start(); }
 
     @Override
-    public void submitTask(ITaskExecutor executor) {
+    public synchronized void submitTask(ITaskExecutor executor) {
         ITaskExecutorContainer container = containerProvider.getExecutorContainer();
         boolean dispatched = false;
         boolean registered = false;

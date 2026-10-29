@@ -6,6 +6,7 @@ import io.yak.ops.business.task.instance.InstanceService;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.dao.entity.task.ExecutionClaimEntity;
+import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
 import io.yak.ops.plugin.task.api.TaskPlugin;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -91,7 +93,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
 
     private void scanPending() {
         owner.incarnation();
-        for (var pending : lifecycle.pendingRuns()) {
+        for (io.yak.ops.business.task.instance.PendingRun pending : lifecycle.pendingRuns()) {
             dispatch(pending.workspaceId(), pending.instanceId());
         }
     }
@@ -154,7 +156,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
                 lifecycle.complete(ticket, TaskOutcome.FAILED);
                 return CompletableFuture.completedFuture(TaskOutcome.FAILED);
             }
-            var version = definitions
+            DefinitionVersionEntity version = definitions
                     .queryCurrent(workspaceId, ticket.definitionId(), ticket.definitionVersion())
                     .orElseThrow(() -> new IllegalStateException("Pinned Task version is not available"));
             ReadonlyConfig parameters = executable.parse(version.getParameterSchemaVersion(), version.getParameters());
@@ -165,7 +167,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             if (!Objects.equals(plan.resourceRevision(), ticket.resourceRevision())
                     || !owned.equals(Set.copyOf(plan.exclusiveResources()))) {
                 lifecycle.complete(ticket, TaskOutcome.FAILED);
-                return;
+                return CompletableFuture.completedFuture(TaskOutcome.FAILED);
             }
             DispatchTicket launched = ticket;
             CompletionStage<TaskHandle> submitted;
@@ -202,6 +204,5 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     public void close() {
         poller.shutdownNow();
         observer.cancelActive();
-
     }
 }
