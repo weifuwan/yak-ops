@@ -182,6 +182,9 @@ public final class MySqlSourceReader
                     && !binlog.finishedSplits().isEmpty()) {
                 // Deferred INITIAL delivers a complete Binlog split directly.
                 context.sendSourceEventToCoordinator(new BinlogSplitMetaAssembledEvent(0));
+                // If the coordinator restarted, discover its current assignment
+                // generation before allowing Snapshot metadata release.
+                context.sendSourceEventToCoordinator(new BinlogSplitMetaRequestEvent(0, 0));
                 metrics.streaming(generation);
             }
         }
