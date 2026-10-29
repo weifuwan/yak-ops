@@ -33,3 +33,20 @@ jobs:
           -Dmaven.test.skip=true -Dspotless.check.skip=true -Dcheckstyle.skip=true install
       - name: Verify all MySQL CDC unit tests
         run: bash mvnw -B -ntp -pl yak-flow/yak-flow-connector-cdc-mysql test
+      # Temporary review tool; removed after applying the repository's formatter.
+      - name: Export Palantir-formatted MySQL CDC sources for PR cleanup
+        if: always()
+        run: |
+          bash mvnw -B -ntp -pl yak-flow/yak-flow-connector-cdc-mysql \
+            com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import subprocess
+          names = subprocess.check_output(["git", "diff", "--name-only"], text=True).splitlines()
+          for name in names:
+              if name.endswith(".java") and name.startswith("yak-flow/yak-flow-connector-cdc-mysql/"):
+                  content = pathlib.Path(name).read_text(encoding="utf-8")
+                  print("YAKFORMATTED:" + json.dumps({"path": name, "content": content}, ensure_ascii=True, separators=(",", ":")), flush=True)
+          PY
+
