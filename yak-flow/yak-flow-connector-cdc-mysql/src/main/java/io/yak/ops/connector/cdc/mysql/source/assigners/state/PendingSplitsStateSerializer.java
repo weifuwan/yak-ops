@@ -41,7 +41,7 @@ import java.util.zip.CRC32C;
  */
 public final class PendingSplitsStateSerializer implements SimpleVersionedSerializer<PendingSplitsState> {
     private static final int VERSION = 4;
-    private static final int MAX_BYTES = 8 * 1024 * 1024;
+    private static final int MAX_BYTES = 64 * 1024 * 1024;
     private static final int MAX_SPLITS = 10_000;
     // Retain Flink CDC 3.7's discriminator values for all three pending-state kinds.
     private static final int SNAPSHOT_PENDING_SPLITS_STATE_FLAG = 1;
