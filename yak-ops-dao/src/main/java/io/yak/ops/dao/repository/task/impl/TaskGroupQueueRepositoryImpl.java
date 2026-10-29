@@ -12,6 +12,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Adaptation of DolphinScheduler TaskGroupDao/TaskGroupQueueDao for immutable
@@ -31,6 +32,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     private JdbcTemplate jdbc;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void add(TaskGroupQueueEntity queue) {
         LocalDateTime now = LocalDateTime.now();
         jdbc.update(
@@ -93,6 +95,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int releaseOwned(String workspaceId, String instanceId) {
         List<Long> groups = jdbc.queryForList(
                 "SELECT q.group_id FROM t_ds_task_group_queue q"
@@ -102,7 +105,12 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                 workspaceId,
                 instanceId);
         if (groups.isEmpty()) return 0;
-        int removed = jdbc.update("DELETE FROM t_ds_task_group_queue WHERE task_id = ?", instanceId);
+        int removed = jdbc.update(
+                "DELETE q FROM t_ds_task_group_queue q"
+                        + " JOIN t_ds_task_group g ON g.id = q.group_id"
+                        + " WHERE g.workspace_id = ? AND q.task_id = ?",
+                workspaceId,
+                instanceId);
         if (removed != groups.size()) {
             throw new IllegalStateException("TaskGroupQueue release was not atomic");
         }
