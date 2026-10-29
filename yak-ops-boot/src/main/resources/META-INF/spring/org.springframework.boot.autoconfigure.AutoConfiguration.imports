@@ -1,0 +1,3 @@
+# Use Spring Boot's deferred auto-configuration ordering (after DataSource/MyBatis).
+# Upstream JDBC Registry is published with spring.factories for older Boot versions.
+org.apache.dolphinscheduler.plugin.registry.jdbc.JdbcRegistryAutoConfiguration
