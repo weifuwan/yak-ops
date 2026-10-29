@@ -26,7 +26,7 @@ public class TaskEngine implements ITaskEngine {
     @Override
     public synchronized void submitTask(ITaskExecutor executor) {
         if (taskExecutorRepository.contains(executor.getId())) {
-            throw new IllegalStateException("Task executor already submitted: " + executor.getId());
+            throw new IllegalArgumentException("Task executor already submitted: " + executor.getId());
         }
         ITaskExecutorContainer container = taskExecutorContainerDelegator.getExecutorContainer();
         boolean dispatched = false;

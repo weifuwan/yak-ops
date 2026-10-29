@@ -29,9 +29,20 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
 
     @Override
     protected void initializeTaskPlugin() {
-        physicalTask = java.util.Objects.requireNonNull(
-                physicalTaskPluginFactory.createPhysicalTask(taskExecutionContext),
-                "PhysicalTaskPluginFactory returned null");
+        try {
+            physicalTask = java.util.Objects.requireNonNull(
+                    physicalTaskPluginFactory.createPhysicalTask(taskExecutionContext),
+                    "PhysicalTaskPluginFactory returned null");
+        } catch (RuntimeException failure) {
+            uncertainOutcome = true;
+            LOG.error("Physical plugin initialization could not be confirmed, instanceId={}", getId(), failure);
+            physicalTask = new PhysicalTask() {
+                @Override public CompletionStage<TaskOutcome> handle() {
+                    return java.util.concurrent.CompletableFuture.failedFuture(failure);
+                }
+                @Override public void cancel() { }
+            };
+        }
         if (cancellationRequested.get()) physicalTask.cancel();
     }
 

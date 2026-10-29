@@ -1,6 +1,7 @@
 package io.yak.ops.worker.task.executor.container;
 
 import io.yak.ops.worker.task.executor.ITaskExecutor;
+import io.yak.ops.worker.task.executor.exceptions.TaskExecutorRuntimeException;
 import io.yak.ops.worker.task.executor.worker.TaskExecutorWorker;
 import io.yak.ops.worker.task.executor.worker.TaskExecutorWorkers;
 import java.util.Optional;
@@ -28,7 +29,7 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
     public synchronized void dispatch(ITaskExecutor executor) {
         if (closed) throw new IllegalStateException("Task container is closed");
         Optional<TaskExecutorWorker> candidate = getTaskExecutorWorkerCandidate(executor);
-        if (candidate.isEmpty()) throw new IllegalStateException("All exclusive task executor slots are busy");
+        if (candidate.isEmpty()) throw new TaskExecutorRuntimeException("All exclusive task executor slots are busy");
         TaskExecutorWorker worker = candidate.get();
         worker.registerTaskExecutor(executor);
         assignmentTable.registerTaskExecutor(executor, worker);
