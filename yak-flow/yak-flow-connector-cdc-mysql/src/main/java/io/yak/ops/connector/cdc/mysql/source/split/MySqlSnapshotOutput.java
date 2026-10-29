@@ -26,9 +26,9 @@ public final class MySqlSnapshotOutput {
      * stream that advanced to this chunk's high watermark. The eventual Binlog split
      * must use history valid at its starting offset, not a later schema-only snapshot.
      */
-    public MySqlSnapshotOutput(
-            DebeziumOffset low, DebeziumOffset high, List<TableRecord> rows, byte[] schemaHistory) {
-        this.schemaHistory = Objects.requireNonNull(schemaHistory, "schemaHistory").clone();
+    public MySqlSnapshotOutput(DebeziumOffset low, DebeziumOffset high, List<TableRecord> rows, byte[] schemaHistory) {
+        this.schemaHistory =
+                Objects.requireNonNull(schemaHistory, "schemaHistory").clone();
         this.low = Objects.requireNonNull(low, "low");
         this.high = Objects.requireNonNull(high, "high");
         if (low.compareTo(high) > 0) {
