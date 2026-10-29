@@ -313,10 +313,10 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
             if (assigner.isSnapshotMetaReleased()) return;
             if (reader != 0) throw new IllegalArgumentException("Only the Binlog owner may ACK metadata");
             if (!assigner.onBinlogSplitMetaAssembled(assembled.getBinlogAssignmentGeneration())) return;
-            if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING
+            // The INITIAL Binlog split already runs from its own checkpointed offset.
+            // Only a genuinely suspended newly-added-table reader needs a Resume event.
+            if (pendingBinlogUpdateGeneration >= 0
                     && (assigner.isNewlyAddedSnapshotFinished() || assigner.isNewlyAddedAssignmentFinished())) {
-                sendResumeEvents();
-            } else if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING) {
                 sendResumeEvents();
             }
         } else if (event instanceof BinlogSplitUpdateAckEvent ack) {
