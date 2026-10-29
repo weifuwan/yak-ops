@@ -9,6 +9,7 @@ import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.worker.task.executor.TaskEngine;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
+import io.yak.ops.worker.task.executor.TaskExecutorState;
 import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.events.TaskExecutorKillLifecycleEvent;
 import java.util.concurrent.TimeUnit;
@@ -113,6 +114,29 @@ class PhysicalTaskEngineTest {
         TaskExecutorKillLifecycleEvent event = TaskExecutorKillLifecycleEvent.of(executor);
         event.retryAfter(1_000);
         assertTrue(event.getDelay(TimeUnit.MILLISECONDS) > 0);
+    }
+
+    @Test
+    void resolvesRegisteredPluginOnlyAfterMasterPreparationSetsTaskType() {
+        TaskPluginRegistry registry = mock(TaskPluginRegistry.class);
+        io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin channel =
+                mock(io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin.class);
+        org.mockito.Mockito.when(registry.get("DATA_SYNC")).thenReturn(channel);
+        TaskExecutionContext context = new TaskExecutionContext("workspace", "plugin");
+        PhysicalTaskPluginFactory factory = new PhysicalTaskPluginFactory(registry, (ctx, lazyChannel) -> {
+            ctx.setTaskType("DATA_SYNC");
+            assertEquals(channel, lazyChannel.get());
+            return new PhysicalTask() {
+                @Override public CompletionStage<TaskOutcome> handle() {
+                    return CompletableFuture.completedFuture(TaskOutcome.FINISHED);
+                }
+                @Override public void cancel() { }
+            };
+        });
+        PhysicalTaskExecutor executor =
+                (PhysicalTaskExecutor) new PhysicalTaskExecutorFactory(factory).createTaskExecutor(context);
+        executor.start();
+        assertEquals(TaskExecutorState.SUCCEEDED, executor.trackTaskExecutorState());
     }
 
     private static PhysicalTaskExecutor task(
