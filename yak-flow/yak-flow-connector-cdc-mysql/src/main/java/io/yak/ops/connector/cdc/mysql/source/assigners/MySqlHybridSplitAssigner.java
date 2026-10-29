@@ -193,6 +193,11 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
      */
     public void captureSnapshotSchemaHistory(
             Map<String, DebeziumOffset> completedOffsets, Map<String, byte[]> histories) {
+        if (phase == HybridPendingSplitsState.Phase.STREAMING) {
+            // New-table Snapshot metadata is reconciled with the running Binlog,
+            // never used to replace the original initial starting history.
+            return;
+        }
         histories.forEach((splitId, history) -> {
             DebeziumOffset watermark = completedOffsets.get(splitId);
             if (watermark == null || history == null || history.length == 0) {
@@ -315,6 +320,8 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
                 && releaseMetadataCheckpointId != null
                 && checkpointId >= releaseMetadataCheckpointId) {
             snapshots.releaseSnapshotMetadata();
+            schemaHistoryWatermark = null;
+            schemaHistory = new byte[0];
             releaseMetadataCheckpointId = null;
         }
     }
