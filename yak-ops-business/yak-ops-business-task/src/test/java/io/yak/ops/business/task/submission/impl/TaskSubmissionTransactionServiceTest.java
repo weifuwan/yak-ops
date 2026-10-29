@@ -9,7 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.yak.ops.business.task.submission.AdmissionRequest;
+import io.yak.ops.business.task.submission.PreparedTaskSubmission;
 import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.common.enums.task.TaskTriggerType;
@@ -25,7 +25,7 @@ import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import java.lang.reflect.Field;
 import java.util.List;
@@ -44,7 +44,7 @@ class AdmissionServiceTest {
     private final ReadonlyConfig parameters = ReadonlyConfig.fromMap(java.util.Map.of());
     private final TaskExecutionIdentity context = new TaskExecutionIdentity("ws", "definition-1", 2, "instance-1");
     private final ExecutionResource target = new ExecutionResource("DATA_SYNC_TARGET", "source/table");
-    private final TaskAdmissionPlan plan = new TaskAdmissionPlan(List.of(target), "resource-v1");
+    private final TaskExecutionResources plan = new TaskExecutionResources(List.of(target), "resource-v1");
 
     AdmissionServiceTest() {
         inject("definitions", definitions);
@@ -87,7 +87,7 @@ class AdmissionServiceTest {
 
     @Test
     void rejectsResourceBindingChangeBeforeDatabaseWrites() {
-        when(plugin.plan(parameters, context)).thenReturn(new TaskAdmissionPlan(List.of(target), "resource-v2"));
+        when(plugin.plan(parameters, context)).thenReturn(new TaskExecutionResources(List.of(target), "resource-v2"));
         assertThrows(BusinessException.class, () -> service.admit(request()));
         verify(instances, never()).add(any());
         verify(claims, never()).add(any());
@@ -113,7 +113,7 @@ class AdmissionServiceTest {
 
     @Test
     void workflowAdmissionPersistsTheTriggerWithExplicitWorkspace() {
-        AdmissionRequest workflow = new AdmissionRequest(
+        PreparedTaskSubmission workflow = new PreparedTaskSubmission(
                 context,
                 TaskTriggerType.WORKFLOW,
                 "workflow-123",
@@ -134,8 +134,8 @@ class AdmissionServiceTest {
         verify(instances).findByRequest("ws", TaskTriggerType.WORKFLOW, "workflow-123");
     }
 
-    private AdmissionRequest request() {
-        return new AdmissionRequest(
+    private PreparedTaskSubmission request() {
+        return new PreparedTaskSubmission(
                 context,
                 TaskTriggerType.MANUAL,
                 "request-123",

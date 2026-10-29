@@ -40,7 +40,7 @@ import io.yak.ops.plugin.scheduler.quartz.QuartzScheduler;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
@@ -416,7 +416,7 @@ class ScheduleAdmissionIT {
     void databaseOwnerChangeAndMissingPermitFailClosed() {
         assertThrows(
                 IllegalStateException.class,
-                () -> context.getBean(AdmissionService.class).admitScheduled(trigger(), null, null));
+                () -> context.getBean(TaskSubmissionTransactionService.class).admitScheduled(trigger(), null, null));
         jdbc.update("UPDATE yak_ops_task_execution_owner SET owner_incarnation='other-owner'");
         assertThrows(IllegalStateException.class, () -> submissions.submitScheduled(trigger()));
         assertFalse(admissionController.isOpen());
@@ -656,7 +656,7 @@ class ScheduleAdmissionIT {
         }
 
         @Override
-        public TaskAdmissionPlan plan(ReadonlyConfig parameters, TaskExecutionIdentity identity) {
+        public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity identity) {
             int call = plans.incrementAndGet();
             if (call == blockCall) {
                 entered.countDown();
@@ -671,12 +671,12 @@ class ScheduleAdmissionIT {
             if (changeBinding && call > 1) {
                 revision = "binding-v2";
             }
-            return new TaskAdmissionPlan(resources, revision);
+            return new TaskExecutionResources(resources, revision);
         }
 
         @Override
         public CompletionStage<TaskHandle> start(
-                ReadonlyConfig parameters, TaskAdmissionPlan plan, TaskExecutionIdentity identity, boolean debug) {
+                ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity identity, boolean debug) {
             throw new AssertionError("Admission must not start physical execution");
         }
     }

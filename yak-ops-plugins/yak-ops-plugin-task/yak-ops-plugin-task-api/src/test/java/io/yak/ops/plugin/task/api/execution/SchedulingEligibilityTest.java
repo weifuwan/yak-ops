@@ -45,13 +45,13 @@ class SchedulingEligibilityTest {
             }
 
             @Override
-            public TaskAdmissionPlan plan(ReadonlyConfig options, TaskExecutionIdentity context) {
+            public TaskExecutionResources plan(ReadonlyConfig options, TaskExecutionIdentity context) {
                 throw new AssertionError();
             }
 
             @Override
             public CompletionStage<TaskHandle> start(
-                    ReadonlyConfig options, TaskAdmissionPlan plan, TaskExecutionIdentity context, boolean debug) {
+                    ReadonlyConfig options, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
                 throw new AssertionError();
             }
         };

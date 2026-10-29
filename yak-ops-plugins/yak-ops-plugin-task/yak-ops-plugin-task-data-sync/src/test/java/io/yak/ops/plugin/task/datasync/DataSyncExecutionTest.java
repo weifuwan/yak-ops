@@ -31,7 +31,7 @@ import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
@@ -68,7 +68,7 @@ class DataSyncExecutionTest {
         AtomicInteger submissions = new AtomicInteger();
         DataSyncTaskPlugin plugin = plugin(resources, finishedExecutor(submissions));
         ReadonlyConfig parameters = parameters(false);
-        TaskAdmissionPlan plan = plugin.plan(parameters, CONTEXT);
+        TaskExecutionResources plan = plugin.plan(parameters, CONTEXT);
         assertEquals(1, plan.exclusiveResources().size());
         assertEquals("DATA_SYNC_TARGET", plan.exclusiveResources().getFirst().type());
         assertEquals(0, resources.connections.get());
@@ -124,7 +124,7 @@ class DataSyncExecutionTest {
         AtomicInteger submissions = new AtomicInteger();
         DataSyncTaskPlugin plugin = plugin(resources, finishedExecutor(submissions));
         ReadonlyConfig parameters = parameters(false);
-        TaskAdmissionPlan admitted = plugin.plan(parameters, CONTEXT);
+        TaskExecutionResources admitted = plugin.plan(parameters, CONTEXT);
         resources.targetSchema = new TableSchema(
                 List.of(
                         new Column("id", LogicalTypes.BIGINT.copy(false)),
@@ -147,7 +147,7 @@ class DataSyncExecutionTest {
         AtomicInteger submissions = new AtomicInteger();
         DataSyncTaskPlugin plugin = plugin(resources, finishedExecutor(submissions));
         ReadonlyConfig parameters = parameters(false);
-        TaskAdmissionPlan admitted = plugin.plan(parameters, CONTEXT);
+        TaskExecutionResources admitted = plugin.plan(parameters, CONTEXT);
         resources.targetRevision++;
         CompletionException failure = assertThrows(
                 CompletionException.class,
@@ -166,7 +166,7 @@ class DataSyncExecutionTest {
         AtomicInteger submissions = new AtomicInteger();
         DataSyncTaskPlugin plugin = plugin(resources, finishedExecutor(submissions));
         ReadonlyConfig parameters = parameters(true);
-        TaskAdmissionPlan plan = plugin.plan(parameters, CONTEXT);
+        TaskExecutionResources plan = plugin.plan(parameters, CONTEXT);
         assertTrue(plan.resourceRevision().length() <= 128);
         var handle =
                 plugin.start(parameters, plan, CONTEXT, false).toCompletableFuture().join();
@@ -283,7 +283,7 @@ class DataSyncExecutionTest {
         AtomicInteger submissions = new AtomicInteger();
         DataSyncTaskPlugin plugin = plugin(resources, finishedExecutor(submissions));
         ReadonlyConfig parameters = parameters(false);
-        TaskAdmissionPlan plan = plugin.plan(parameters, CONTEXT);
+        TaskExecutionResources plan = plugin.plan(parameters, CONTEXT);
         resources.sourceConnectionRevision = 2;
         var handle = plugin.start(parameters, plan, CONTEXT, false)
                 .toCompletableFuture()
@@ -303,7 +303,7 @@ class DataSyncExecutionTest {
         AtomicInteger submissions = new AtomicInteger();
         DataSyncTaskPlugin plugin = plugin(resources, finishedExecutor(submissions));
         ReadonlyConfig parameters = parameters(true);
-        TaskAdmissionPlan plan = plugin.plan(parameters, CONTEXT);
+        TaskExecutionResources plan = plugin.plan(parameters, CONTEXT);
         var handle = plugin.start(parameters, plan, CONTEXT, false)
                 .toCompletableFuture()
                 .join();
@@ -320,7 +320,7 @@ class DataSyncExecutionTest {
         Resources resources = new Resources();
         JobPlanner planner = new JobPlanner(resources, new FactoryUtil());
         ReadonlyConfig parameters = parameters(true);
-        TaskAdmissionPlan admitted = planner.admissionPlan(parameters, CONTEXT);
+        TaskExecutionResources admitted = planner.admissionPlan(parameters, CONTEXT);
         TaskExecutionIdentity repeatedPlan = new TaskExecutionIdentity("ws", "definition", 1, "instance-123");
 
         assertEquals(2, admitted.exclusiveResources().size());

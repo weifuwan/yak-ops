@@ -11,7 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -23,9 +23,9 @@ class AdmissionRequestTest {
         TaskExecutionIdentity identity = new TaskExecutionIdentity("workspace", "definition", 2, "instance");
         ReadonlyConfig parameters = ReadonlyConfig.fromMap(java.util.Map.of());
         ExecutableTaskPlugin plugin = mock(ExecutableTaskPlugin.class);
-        TaskAdmissionPlan plan = new TaskAdmissionPlan(List.of(), "resource-revision");
+        TaskExecutionResources plan = new TaskExecutionResources(List.of(), "resource-revision");
 
-        AdmissionRequest request = new AdmissionRequest(
+        PreparedTaskSubmission request = new PreparedTaskSubmission(
                 identity,
                 TaskTriggerType.MANUAL,
                 "private-request-key",
@@ -37,7 +37,7 @@ class AdmissionRequestTest {
                 null,
                 null,
                 null);
-        AdmissionRequest another = new AdmissionRequest(
+        PreparedTaskSubmission another = new PreparedTaskSubmission(
                 identity,
                 TaskTriggerType.MANUAL,
                 "private-request-key",
@@ -67,14 +67,14 @@ class AdmissionRequestTest {
     void diagnosticsNeverInvokePluginOrRenderSubmissionInputs() {
         ExecutableTaskPlugin plugin = mock(ExecutableTaskPlugin.class);
         ReadonlyConfig parameters = mock(ReadonlyConfig.class);
-        AdmissionRequest request = new AdmissionRequest(
+        PreparedTaskSubmission request = new PreparedTaskSubmission(
                 new TaskExecutionIdentity("workspace", "definition", 2, "instance"),
                 TaskTriggerType.WORKFLOW,
                 "private-request-key",
                 "private-fingerprint",
                 "sensitive-actor",
                 parameters,
-                new TaskAdmissionPlan(List.of(), "private-resource-revision"),
+                new TaskExecutionResources(List.of(), "private-resource-revision"),
                 plugin,
                 null,
                 null,

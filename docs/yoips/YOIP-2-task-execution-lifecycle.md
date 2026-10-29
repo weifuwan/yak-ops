@@ -79,7 +79,7 @@ and replay indicator. A response confirms admission, not physical Job startup.
 #### Admission
 
 The Task plugin parses and validates its parameters and prepares a read-only
-`TaskAdmissionPlan`. The plan declares the effective non-secret resource binding and
+`TaskExecutionResources`. The plan declares the effective non-secret resource binding and
 canonical exclusive resources. Admission verifies the published Definition and resource
 revision, then inserts the Instance and acquires its resource claims in one transaction.
 

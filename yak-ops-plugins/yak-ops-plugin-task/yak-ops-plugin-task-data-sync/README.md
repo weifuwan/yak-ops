@@ -15,7 +15,7 @@ DATA_SYNC turns one versioned V4 Task definition into one authorized YakFlow pip
    and resource checks. `SchemaPlanner` plans DDL; `SchemaValidator` checks safety.
    `SchemaValidationMessages` maps known failures to safe user-facing messages.
 5. `plan/JobPlanner` — resolve authorized physical metadata and revisions, validate table
-   writes, compute `JobPlan` and immutable `TaskAdmissionPlan`. No credentials or DDL.
+   writes, compute `JobPlan` and immutable `TaskExecutionResources`. No credentials or DDL.
 6. `execution/DataSyncTaskExecutor` — re-check admission and return **one deferred**
    `DataSyncTaskHandle`, regardless of the selected solution.
 7. `execution/DataSyncTaskHandle` — when `start()` is called by the platform, owns the
@@ -30,7 +30,7 @@ DATA_SYNC turns one versioned V4 Task definition into one authorized YakFlow pip
 ```text
 V4 parameters
   -> JobConfig / JobConfigValidator (static and publication checks)
-  -> JobPlanner (authorized metadata and TaskAdmissionPlan)
+  -> JobPlanner (authorized metadata and TaskExecutionResources)
   -> DataSyncTaskExecutor.start (admission fence, no engine submission)
   -> platform registers TaskHandle and persists RUNNING
   -> DataSyncTaskHandle.start

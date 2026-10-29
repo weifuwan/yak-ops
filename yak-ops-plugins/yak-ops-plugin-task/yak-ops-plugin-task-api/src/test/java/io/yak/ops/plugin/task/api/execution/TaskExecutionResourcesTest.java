@@ -14,7 +14,7 @@ class TaskAdmissionPlanTest {
         ExecutionResource first = new ExecutionResource("DATA_SYNC_TARGET", "a");
         ExecutionResource second = new ExecutionResource("DATA_SYNC_TARGET", "b");
         List<ExecutionResource> resources = new java.util.ArrayList<>(List.of(second, first));
-        TaskAdmissionPlan plan = new TaskAdmissionPlan(resources, "revision-1");
+        TaskExecutionResources plan = new TaskExecutionResources(resources, "revision-1");
         resources.clear();
         assertEquals(List.of(first, second), plan.exclusiveResources());
         assertThrows(UnsupportedOperationException.class, () -> plan.exclusiveResources().add(first));
@@ -23,8 +23,8 @@ class TaskAdmissionPlanTest {
     @Test
     void rejectsDuplicateOrInvalidResources() {
         ExecutionResource resource = new ExecutionResource("DATA_SYNC_TARGET", "ds/table");
-        assertThrows(IllegalArgumentException.class, () -> new TaskAdmissionPlan(List.of(resource, resource), "rev"));
-        assertThrows(IllegalArgumentException.class, () -> new TaskAdmissionPlan(List.of(resource), ""));
+        assertThrows(IllegalArgumentException.class, () -> new TaskExecutionResources(List.of(resource, resource), "rev"));
+        assertThrows(IllegalArgumentException.class, () -> new TaskExecutionResources(List.of(resource), ""));
         assertThrows(IllegalArgumentException.class, () -> new ExecutionResource("DATA_SYNC_TARGET", ""));
     }
 }

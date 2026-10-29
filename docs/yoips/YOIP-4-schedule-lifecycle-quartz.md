@@ -216,7 +216,7 @@ in-flight old callback. Null scheduled time and early/nonmatching Cron notificat
 
 The notification listener waits for durable submission resolution only. It does not wait for
 a physical Job to finish and does not create an untracked in-memory work queue. Existing
-SubmissionService/AdmissionService remain the only route to Task Instance creation.
+SubmissionService/TaskSubmissionTransactionService remain the only route to Task Instance creation.
 
 For new SCHEDULE intent, the outer business transaction and final Task admission use one
 physical platform-database transaction. Acquire locks consistently in this order: current

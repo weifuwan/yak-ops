@@ -9,7 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.yak.ops.business.task.submission.AdmissionService;
+import io.yak.ops.business.task.submission.TaskSubmissionTransactionService;
 import io.yak.ops.business.task.submission.SubmissionResult;
 import io.yak.ops.business.task.submission.TaskSubmissionCommand;
 import io.yak.ops.common.enums.task.DefinitionStatus;
@@ -25,7 +25,7 @@ import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
-import io.yak.ops.plugin.task.api.execution.TaskAdmissionPlan;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
 import java.lang.reflect.Field;
@@ -43,7 +43,7 @@ class SubmissionServiceTest {
     private final TaskPluginRegistry registry = mock(TaskPluginRegistry.class);
     private final TaskValidationContext validation = mock(TaskValidationContext.class);
     private final TaskValidationContextFactory validationContexts = mock(TaskValidationContextFactory.class);
-    private final AdmissionService admission = mock(AdmissionService.class);
+    private final TaskSubmissionTransactionService admission = mock(TaskSubmissionTransactionService.class);
     private final ExecutableTaskPlugin plugin = mock(ExecutableTaskPlugin.class);
     private final ReadonlyConfig params = ReadonlyConfig.fromMap(java.util.Map.of());
 
@@ -70,7 +70,7 @@ class SubmissionServiceTest {
         when(versions.queryCurrent("ws", "definition-1", 2)).thenReturn(Optional.of(version));
         when(registry.get("DATA_SYNC")).thenReturn(plugin);
         when(plugin.parse(2, "{}")).thenReturn(params);
-        when(plugin.plan(any(), any())).thenReturn(new TaskAdmissionPlan(List.of(), "config-v1"));
+        when(plugin.plan(any(), any())).thenReturn(new TaskExecutionResources(List.of(), "config-v1"));
     }
 
     @Test
