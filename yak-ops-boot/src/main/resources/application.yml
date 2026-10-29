@@ -59,3 +59,9 @@ logging:
       max-file-size: ${YAK_LOG_MAX_FILE_SIZE:100MB}
       max-history: ${YAK_LOG_MAX_HISTORY:7}
       total-size-cap: ${YAK_LOG_TOTAL_SIZE_CAP:5GB}
+
+# DolphinScheduler embedded JDBC registry
+registry:
+  type: jdbc
+  heartbeat-refresh-interval: PT3S
+  session-timeout: PT60S

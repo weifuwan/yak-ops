@@ -17,7 +17,7 @@ class TaskExecutionMigrationTest {
     @Test
     void createsOnlyFinalTablesWithoutDataMutations() throws IOException {
         String sql = baseline();
-        assertEquals(25, Pattern.compile("(?m)^CREATE TABLE ").matcher(sql).results().count());
+        assertEquals(28, Pattern.compile("(?m)^CREATE TABLE ").matcher(sql).results().count());
         assertFalse(Pattern.compile("(?im)^\\s*(UPDATE|INSERT|DELETE|DROP|ALTER|TRUNCATE|REPLACE)\\s+")
                 .matcher(sql)
                 .find());
@@ -34,7 +34,10 @@ class TaskExecutionMigrationTest {
             "CREATE TABLE yak_ops_task_definition_version (",
             "CREATE TABLE yak_ops_task_instance (",
             "CREATE TABLE yak_ops_task_execution_claim (",
-            "CREATE TABLE yak_ops_task_execution_owner (",
+            "CREATE TABLE t_ds_jdbc_registry_data",
+            "CREATE TABLE t_ds_jdbc_registry_lock",
+            "CREATE TABLE t_ds_jdbc_registry_client_heartbeat",
+            "CREATE TABLE t_ds_jdbc_registry_data_change_event",
             "definition_name VARCHAR(128)",
             "debug TINYINT(1) NOT NULL DEFAULT 0",
             "log_path VARCHAR(512)",

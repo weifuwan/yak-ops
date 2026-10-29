@@ -1,6 +1,8 @@
 package io.yak.ops.boot.config;
 
 import io.yak.ops.business.task.submission.ScheduleAdmissionController;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.JdbcRegistryAutoConfiguration;
+import org.springframework.context.annotation.Import;
 import io.yak.ops.business.task.submission.SubmissionService;
 import io.yak.ops.plugin.scheduler.api.CronService;
 import io.yak.ops.plugin.scheduler.api.Scheduler;
@@ -15,7 +17,17 @@ import org.springframework.context.annotation.Configuration;
 
 /** Assembles scheduler collaborators without initializing its store before verified ownership. */
 @Configuration(proxyBeanMethods = false)
+@Import(JdbcRegistryAutoConfiguration.class)
 public class ScheduleConfiguration {
+    @Bean
+    static org.springframework.beans.factory.config.BeanFactoryPostProcessor registryMigrationOrder() {
+        return factory -> {
+            if (factory.containsBeanDefinition("jdbcRegistry")) {
+                factory.getBeanDefinition("jdbcRegistry").setDependsOn("yakOpsFlyway");
+            }
+        };
+    }
+
     @Bean
     Clock scheduleClock() {
         return Clock.systemUTC();
