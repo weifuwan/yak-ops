@@ -59,7 +59,7 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
             schemaHistory = restored.schemaHistory();
             pendingBinlog = restored.pendingBinlog();
             binlogAssigned = restored.isBinlogSplitAssigned();
-            if (binlogAssigned == (pendingBinlog != null)) {
+            if (binlogAssigned && pendingBinlog != null) {
                 throw new IllegalArgumentException("Binlog assignment and pending split state conflict");
             }
             snapshots = new MySqlSnapshotSplitAssigner(restored.getSnapshotPendingSplits());
