@@ -72,8 +72,7 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
     }
 
     public MySqlBinlogSplit withFinishedSnapshotSplitInfos(List<FinishedSnapshotSplitInfo> finished) {
-        return new MySqlBinlogSplit(
-                offset, schemaHistory, phase, highWatermark, finished, totalFinishedSplitSize);
+        return new MySqlBinlogSplit(offset, schemaHistory, phase, highWatermark, finished, totalFinishedSplitSize);
     }
 
     private MySqlBinlogSplit(
@@ -82,7 +81,12 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
             Phase phase,
             DebeziumOffset highWatermark,
             List<FinishedSnapshotSplitInfo> finishedSnapshotSplitInfos) {
-        this(offset, schemaHistory, phase, highWatermark, finishedSnapshotSplitInfos,
+        this(
+                offset,
+                schemaHistory,
+                phase,
+                highWatermark,
+                finishedSnapshotSplitInfos,
                 finishedSnapshotSplitInfos.size());
     }
 
@@ -100,8 +104,7 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
         this.phase = Objects.requireNonNull(phase, "phase");
         this.finishedSnapshotSplitInfos =
                 List.copyOf(Objects.requireNonNull(finishedSnapshotSplitInfos, "finishedSnapshotSplitInfos"));
-        if (totalFinishedSplitSize < this.finishedSnapshotSplitInfos.size()
-                || totalFinishedSplitSize > 10_000) {
+        if (totalFinishedSplitSize < this.finishedSnapshotSplitInfos.size() || totalFinishedSplitSize > 10_000) {
             throw new IllegalArgumentException("Invalid Binlog finished snapshot split count");
         }
         this.totalFinishedSplitSize = totalFinishedSplitSize;
@@ -125,8 +128,7 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
                     max = info.highWatermark();
                 }
             }
-            if (totalFinishedSplitSize == this.finishedSnapshotSplitInfos.size()
-                    && highWatermark.compareTo(max) != 0) {
+            if (totalFinishedSplitSize == this.finishedSnapshotSplitInfos.size() && highWatermark.compareTo(max) != 0) {
                 throw new IllegalArgumentException("Completed snapshot high watermark mismatch");
             }
         } else if (highWatermark != null || totalFinishedSplitSize != 0) {
