@@ -13,7 +13,6 @@ import io.yak.ops.connector.cdc.mysql.source.assigners.MySqlHybridSplitAssigner;
 import io.yak.ops.connector.cdc.mysql.source.assigners.state.HybridPendingSplitsState;
 import io.yak.ops.connector.cdc.mysql.source.assigners.state.PendingSplitsStateSerializer;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceConfig;
-import io.yak.ops.connector.cdc.mysql.source.events.MySqlLowWatermarkEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.FinishedSnapshotSplitsReportEvent;
 import io.yak.ops.connector.cdc.mysql.debezium.DebeziumOffset;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplit;
@@ -73,11 +72,10 @@ class MySqlSourceEnumeratorTest {
         enumerator.start();
         enumerator.handleSplitRequest(0, null);
         enumerator.handleSplitRequest(1, null);
-        enumerator.handleSourceEvent(0, new MySqlLowWatermarkEvent(offset(100)));
         assertEquals(1, context.pendingActions());
         context.runOne();
 
-        MySqlSnapshotSplit first = (MySqlSnapshotSplit) context.assignments(1).getFirst();
+        MySqlSnapshotSplit first = (MySqlSnapshotSplit) context.assignments(0).getFirst();
         assertEquals("mysql-snapshot-0-0", first.splitId());
         assertEquals(LogicalTypeRoot.DECIMAL, first.chunkRange().type());
         assertNull(first.chunkRange().start());
@@ -117,30 +115,34 @@ class MySqlSourceEnumeratorTest {
     }
 
     @Test
-    void neverAssignsReturnedBinlogSplitToSnapshotReaderWhenReaderZeroIsUnavailable() throws Exception {
+    void doesNotAssignDeferredBinlogToSnapshotReaderWhenReaderZeroIsUnavailable() throws Exception {
         var schema = new TableSchema(
                 List.of(new Column("id", LogicalTypes.BIGINT.copy(false))), List.of("id"));
         var assigner = new MySqlHybridSplitAssigner(StartupOptions.initial(), null);
-        var unownedBinlog = assigner.nextBinlog();
-        assigner.captureLow(offset(100));
         var snapshot = MySqlSnapshotSplit.typed(
                 "snapshot-0", new ChunkRange(ORDERS, "id", LogicalTypeRoot.BIGINT, null, null));
         assigner.plan(List.of(snapshot));
-        assigner.addBack(unownedBinlog);
-
+        assertEquals(snapshot, assigner.nextSnapshot());
+        var high = offset(200);
+        assigner.finishSnapshot(new io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo(
+                ORDERS, snapshot.splitId(), null, null, high, snapshot.chunkRange()));
+        assigner.captureSnapshotSchemaHistory(
+                Map.of(snapshot.splitId(), high), Map.of(snapshot.splitId(), new byte[] {1, 2, 3}));
+        assigner.captureHigh(high);
+        assigner.snapshotState(1);
+        assigner.notifyCheckpointComplete(1);
         var context = new Coordinator() {
             @Override
             public Map<Integer, ReaderInfo> registeredReaders() {
                 return Map.of(1, new ReaderInfo(1, ""));
             }
         };
-        var coordinator = enumerator(context, configuration(schema, null), database(), assigner.snapshotState(1));
+        var coordinator = enumerator(context, configuration(schema, null), database(), assigner.snapshotState(2));
         coordinator.start();
         coordinator.handleSplitRequest(1, null);
-        assertEquals(List.of(snapshot), context.assignments(1));
-        var state = (HybridPendingSplitsState) coordinator.snapshotState(2);
+        assertTrue(context.assignments(1).isEmpty());
+        var state = (HybridPendingSplitsState) coordinator.snapshotState(3);
         assertFalse(state.isBinlogSplitAssigned());
-        assertEquals(unownedBinlog, state.pendingBinlog());
         coordinator.close();
     }
 
@@ -162,8 +164,6 @@ class MySqlSourceEnumeratorTest {
                 List.of());
         var planner = splitter(url, keyless, "bucket");
         var assigner = new MySqlHybridSplitAssigner(StartupOptions.initial(), null);
-        assigner.nextBinlog();
-        assigner.captureLow(offset(100));
         MySqlSnapshotSplit first = planner.planNext(ORDERS, 0, 0, null);
         assertEquals(new BigDecimal("9223372036854775808.00000000"), first.chunkRange().end());
         var cursor = new ChunkRange(
@@ -218,9 +218,8 @@ class MySqlSourceEnumeratorTest {
         enumerator.start();
         enumerator.handleSplitRequest(0, null);
         enumerator.handleSplitRequest(1, null);
-        enumerator.handleSourceEvent(0, new MySqlLowWatermarkEvent(offset(100)));
         context.runOne();
-        var first = (MySqlSnapshotSplit) context.assignments(1).getFirst();
+        var first = (MySqlSnapshotSplit) context.assignments(0).getFirst();
         assertEquals(LogicalTypeRoot.BIGINT, first.chunkRange().type());
         assertEquals(3L, first.chunkRange().end());
         var checkpoint = enumerator.snapshotState(1);
