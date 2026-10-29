@@ -34,6 +34,7 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
     private final Phase phase;
     private final DebeziumOffset highWatermark;
     private final List<FinishedSnapshotSplitInfo> finishedSnapshotSplitInfos;
+    private final int totalFinishedSplitSize;
 
     /** Constructs a binlog-only source split. */
     public MySqlBinlogSplit(DebeziumOffset offset, byte[] schemaHistory) {
@@ -59,12 +60,39 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
         return new MySqlBinlogSplit(startingOffset, schemaHistory, Phase.STREAMING, highWatermark, finished);
     }
 
+    /** Flink CDC 3.7 sends large finished-split metadata in bounded groups. */
+    public static MySqlBinlogSplit forCompletedSnapshot(
+            DebeziumOffset startingOffset,
+            byte[] schemaHistory,
+            DebeziumOffset highWatermark,
+            List<FinishedSnapshotSplitInfo> finished,
+            int totalFinishedSplitSize) {
+        return new MySqlBinlogSplit(
+                startingOffset, schemaHistory, Phase.STREAMING, highWatermark, finished, totalFinishedSplitSize);
+    }
+
+    public MySqlBinlogSplit withFinishedSnapshotSplitInfos(List<FinishedSnapshotSplitInfo> finished) {
+        return new MySqlBinlogSplit(
+                offset, schemaHistory, phase, highWatermark, finished, totalFinishedSplitSize);
+    }
+
     private MySqlBinlogSplit(
             DebeziumOffset offset,
             byte[] schemaHistory,
             Phase phase,
             DebeziumOffset highWatermark,
             List<FinishedSnapshotSplitInfo> finishedSnapshotSplitInfos) {
+        this(offset, schemaHistory, phase, highWatermark, finishedSnapshotSplitInfos,
+                finishedSnapshotSplitInfos.size());
+    }
+
+    private MySqlBinlogSplit(
+            DebeziumOffset offset,
+            byte[] schemaHistory,
+            Phase phase,
+            DebeziumOffset highWatermark,
+            List<FinishedSnapshotSplitInfo> finishedSnapshotSplitInfos,
+            int totalFinishedSplitSize) {
         super(ID);
         this.offset = offset;
         this.schemaHistory =
@@ -72,13 +100,18 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
         this.phase = Objects.requireNonNull(phase, "phase");
         this.finishedSnapshotSplitInfos =
                 List.copyOf(Objects.requireNonNull(finishedSnapshotSplitInfos, "finishedSnapshotSplitInfos"));
+        if (totalFinishedSplitSize < this.finishedSnapshotSplitInfos.size()
+                || totalFinishedSplitSize > 10_000) {
+            throw new IllegalArgumentException("Invalid Binlog finished snapshot split count");
+        }
+        this.totalFinishedSplitSize = totalFinishedSplitSize;
         if (phase == Phase.PAUSED || phase == Phase.STREAMING) {
             if (offset == null || this.schemaHistory.length == 0) {
                 throw new IllegalArgumentException("Initial Binlog requires anchor and Debezium schema history");
             }
         }
-        if (phase == Phase.STREAMING || (phase == Phase.PAUSED && !this.finishedSnapshotSplitInfos.isEmpty())) {
-            if (highWatermark == null || this.finishedSnapshotSplitInfos.isEmpty()) {
+        if (phase == Phase.STREAMING || (phase == Phase.PAUSED && totalFinishedSplitSize > 0)) {
+            if (highWatermark == null || totalFinishedSplitSize == 0) {
                 throw new IllegalArgumentException("Streaming Binlog requires completed snapshot watermarks");
             }
             HashSet<String> ids = new HashSet<>();
@@ -92,10 +125,11 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
                     max = info.highWatermark();
                 }
             }
-            if (highWatermark.compareTo(max) != 0) {
+            if (totalFinishedSplitSize == this.finishedSnapshotSplitInfos.size()
+                    && highWatermark.compareTo(max) != 0) {
                 throw new IllegalArgumentException("Completed snapshot high watermark mismatch");
             }
-        } else if (highWatermark != null || !this.finishedSnapshotSplitInfos.isEmpty()) {
+        } else if (highWatermark != null || totalFinishedSplitSize != 0) {
             throw new IllegalArgumentException("Unfinished Binlog cannot contain completed snapshot metadata");
         }
         this.highWatermark = highWatermark;
@@ -123,7 +157,12 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
     }
 
     public boolean isCompletedSplit() {
-        return phase == Phase.STANDALONE || phase == Phase.STREAMING;
+        return phase == Phase.STANDALONE
+                || (phase == Phase.STREAMING && finishedSnapshotSplitInfos.size() == totalFinishedSplitSize);
+    }
+
+    public int getTotalFinishedSplitSize() {
+        return totalFinishedSplitSize;
     }
 
     public List<FinishedSnapshotSplitInfo> getFinishedSnapshotSplitInfos() {
@@ -220,8 +259,9 @@ public final class MySqlBinlogSplit extends MySqlSplit implements StreamSplit {
             byte[] history,
             Phase phase,
             DebeziumOffset high,
-            List<FinishedSnapshotSplitInfo> infos) {
-        return new MySqlBinlogSplit(offset, history, phase, high, infos);
+            List<FinishedSnapshotSplitInfo> infos,
+            int totalFinishedSplitSize) {
+        return new MySqlBinlogSplit(offset, history, phase, high, infos, totalFinishedSplitSize);
     }
 
     @Override
