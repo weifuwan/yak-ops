@@ -30,6 +30,26 @@ class MySqlSplitSerializerTest {
     }
 
     @Test
+    void roundTripsCompletedSnapshotWithBoundedBackfillSchemaHistory() throws Exception {
+        var table = new TableId("shop", null, "orders");
+        var high = new DebeziumOffset(
+                Map.of("server", "yak"), Map.of("file", "mysql-bin.000010", "pos", 300L));
+        var finished = new FinishedSnapshotSplitInfo(
+                table, "snapshot-history", null, null, high);
+        var original = new MySqlSnapshotSplit(
+                "snapshot-history", table, null, null, null, null, 0, finished, null,
+                new byte[] {1, 2, 3});
+        var serializer = MySqlSplitSerializer.INSTANCE;
+        var restored = (MySqlSnapshotSplit) serializer.deserialize(
+                serializer.getVersion(), serializer.serialize(original));
+        assertEquals(original, restored);
+        assertArrayEquals(new byte[] {1, 2, 3}, restored.finishedSchemaHistory());
+        byte[] detached = restored.finishedSchemaHistory();
+        detached[0] = 99;
+        assertArrayEquals(new byte[] {1, 2, 3}, restored.finishedSchemaHistory());
+    }
+
+    @Test
     void roundTripsPausedAndRunningBinlogWithSchemaHistory() throws Exception {
         var serializer = new MySqlSplitSerializer();
         var low = new DebeziumOffset(Map.of("server", "yak"), Map.of("file", "mysql-bin.000010", "pos", 100L));
