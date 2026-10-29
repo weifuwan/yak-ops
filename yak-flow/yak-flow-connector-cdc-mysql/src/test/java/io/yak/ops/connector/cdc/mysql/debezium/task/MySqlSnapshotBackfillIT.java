@@ -131,6 +131,65 @@ class MySqlSnapshotBackfillIT {
     }
 
     @Test
+    void deferredInitialBinlogRecoversFromSnapshotHighThroughDdlAndReaderRestart() throws Exception {
+        execute("INSERT INTO snapshot_contract VALUES (1,'snapshot')");
+        MySqlSnapshotSplit finished;
+        try (MySqlSnapshotSplitReadTask snapshotReader = new MySqlSnapshotSplitReadTask(config(), 0)) {
+            MySqlSnapshotSplit prepared = snapshotReader.read(split(null, null));
+            assertThat(prepared.output().schemaHistory()).isNotEmpty();
+            finished = prepared.withOutputPosition(prepared.output().rows().size());
+        }
+        assertThat(finished.finished()).isNotNull();
+        assertThat(finished.finishedSchemaHistory()).isNotEmpty();
+        var high = finished.finished().highWatermark();
+        var initial = io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit.forCompletedSnapshot(
+                high, finished.finishedSchemaHistory(), high, List.of(finished.finished()));
+        // Changes after the Chunk HIGH must be decoded by the deferred Binlog reader.
+        execute("ALTER TABLE snapshot_contract ALTER COLUMN name SET DEFAULT 'after-ddl'");
+        execute("INSERT INTO snapshot_contract (id) VALUES (2)");
+
+        io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit checkpoint;
+        try (MySqlBinlogSplitReadTask binlog = new MySqlBinlogSplitReadTask(config())) {
+            binlog.start(initial);
+            long deadline = System.nanoTime() + java.time.Duration.ofSeconds(60).toNanos();
+            io.yak.ops.connector.cdc.mysql.debezium.BinlogEvent delivered = null;
+            while (System.nanoTime() < deadline && delivered == null) {
+                var event = binlog.poll();
+                if (event != null && event.records().stream().anyMatch(
+                        record -> ((Number) record.row().getField(0)).longValue() == 2L)) {
+                    delivered = event;
+                }
+            }
+            assertThat(delivered).as("Binlog event after Snapshot HIGH and DDL").isNotNull();
+            assertThat(delivered.records()).anySatisfy(row -> {
+                if (((Number) row.row().getField(0)).longValue() == 2L) {
+                    assertThat(row.row().getString(1)).isEqualTo("after-ddl");
+                }
+            });
+            byte[] currentHistory = binlog.snapshotHistory();
+            checkpoint = initial.withEmittedOffset(delivered.offset(), currentHistory);
+            var serializer = MySqlSplitSerializer.INSTANCE;
+            checkpoint = (io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit)
+                    serializer.deserialize(serializer.getVersion(), serializer.serialize(checkpoint));
+        }
+        execute("INSERT INTO snapshot_contract VALUES (3,'replayed')");
+        try (MySqlBinlogSplitReadTask restored = new MySqlBinlogSplitReadTask(config())) {
+            restored.start(checkpoint);
+            long deadline = System.nanoTime() + java.time.Duration.ofSeconds(60).toNanos();
+            boolean received = false;
+            while (System.nanoTime() < deadline && !received) {
+                var event = restored.poll();
+                if (event != null) {
+                    received = event.records().stream().anyMatch(row ->
+                            ((Number) row.row().getField(0)).longValue() == 3L
+                                    && "replayed".equals(row.row().getString(1)));
+                }
+            }
+            assertThat(received).as("Checkpointed Binlog resumes after DDL").isTrue();
+        }
+    }
+
+    @Test
     void realMysqlWideChunkLargerThanFourMiBCompletesWithoutDroppingImages() throws Exception {
         execute("ALTER TABLE snapshot_contract MODIFY name VARCHAR(16000) NOT NULL");
         String payload = "w".repeat(12_000);
