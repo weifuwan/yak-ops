@@ -19,6 +19,38 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Proves Binlog handoff needs a completed snapshot checkpoint, not only an assignment ACK. */
 class MySqlHybridSplitAssignerTest {
 
+    /**
+     * Flink CDC 3.7 defers the initial Binlog split until the completed snapshot
+     * assignment has been covered by a checkpoint. This is the target contract
+     * for removing the YakFlow BOOTSTRAP -> HANDOFF -> RESUME protocol.
+     */
+    @Test
+    void assignsBinlogOnlyAfterSnapshotCheckpoint() {
+        var assigner = new MySqlHybridSplitAssigner(StartupOptions.initial(), null);
+        var split = new MySqlSnapshotSplit(
+                "snapshot-0", new TableId("shop", null, "orders"), null, null, null);
+        var high = new DebeziumOffset(
+                Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", 300L));
+
+        // A new Hybrid assigner must not allocate the Binlog reader before Snapshot.
+        assertTrue(assigner.getNext().isEmpty());
+        assigner.plan(List.of(split));
+        assertEquals(split, assigner.getNext().orElseThrow());
+        assertTrue(assigner.getNext().isEmpty());
+
+        assigner.finishSnapshot(finished(split, 300));
+        // Finished reports alone cannot open the stream before a durable checkpoint.
+        assertTrue(assigner.getNext().isEmpty());
+        assigner.snapshotState(42);
+        assertTrue(assigner.getNext().isEmpty());
+        assigner.notifyCheckpointComplete(42);
+
+        var binlog = assigner.getNext().orElseThrow();
+        assertTrue(binlog instanceof io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit);
+        assertEquals(high, ((io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit) binlog).offset());
+        assertTrue(assigner.getNext().isEmpty());
+    }
+
     @Test
     void gatesHandoffAndRestoresCompletedPendingTransition() throws Exception {
         var low = new DebeziumOffset(Map.of("server", "yak"), Map.of("file", "mysql-bin.000001", "pos", 100L));
