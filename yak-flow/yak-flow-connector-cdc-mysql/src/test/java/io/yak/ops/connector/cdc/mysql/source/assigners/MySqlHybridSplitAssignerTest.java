@@ -39,6 +39,9 @@ class MySqlHybridSplitAssignerTest {
         assertTrue(assigner.getNext().isEmpty());
 
         assigner.finishSnapshot(finished(split, 300));
+        assigner.captureSnapshotSchemaHistory(
+                Map.of("snapshot-0", high),
+                Map.of("snapshot-0", new byte[] {1, 2, 3}));
         // Finished reports alone cannot open the stream before a durable checkpoint.
         assertTrue(assigner.getNext().isEmpty());
         assigner.snapshotState(42);
