@@ -28,8 +28,8 @@ public final class MySqlSplitSerializer implements SimpleVersionedSerializer<MyS
 
     // Flink CDC's split layout uses the same two kind flags, but the payload uses YakFlow's
     // Debezium 2.7 history and typed Chunk representation. Do not claim Flink v4 wire compatibility.
-    private static final int VERSION = 2;
-    private static final int MAX_BYTES = 8 * 1024 * 1024;
+    private static final int VERSION = 3;
+    private static final int MAX_BYTES = 64 * 1024 * 1024;
     private static final int SNAPSHOT_SPLIT_FLAG = 1;
     private static final int BINLOG_SPLIT_FLAG = 2;
 
@@ -156,6 +156,7 @@ public final class MySqlSplitSerializer implements SimpleVersionedSerializer<MyS
             split.highWatermark().writeTo(out);
         }
         writeFinishedSplits(out, split.finishedSplits());
+        out.writeInt(split.getTotalFinishedSplitSize());
     }
 
     private static MySqlBinlogSplit readBinlog(DataInputStream in) throws IOException {
@@ -174,7 +175,9 @@ public final class MySqlSplitSerializer implements SimpleVersionedSerializer<MyS
         }
         DebeziumOffset high = in.readBoolean() ? DebeziumOffset.readFrom(in) : null;
         List<FinishedSnapshotSplitInfo> infos = readFinishedSplits(in);
-        return MySqlBinlogSplit.restore(offset, history, MySqlBinlogSplit.Phase.values()[phase], high, infos);
+        int totalFinishedSplitSize = in.readInt();
+        return MySqlBinlogSplit.restore(
+                offset, history, MySqlBinlogSplit.Phase.values()[phase], high, infos, totalFinishedSplitSize);
     }
 
     /** Serializes completed snapshot chunk watermarks for reader and enumerator checkpoints. */
