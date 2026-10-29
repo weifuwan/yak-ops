@@ -1,7 +1,7 @@
 # DolphinScheduler JDBC Registry source
 
 - Upstream repository: https://github.com/apache/dolphinscheduler
-- Source baseline: released tag **3.4.3** (Apache License 2.0).
+- Source baseline: released tag **3.4.3** (Apache License 2.0); heartbeat/lease safety patch imported from upstream PR **#18416** (`a600f0659888f5f99deed1d3c464983f560a250b`).
 - Preserved package names: `org.apache.dolphinscheduler.registry.api` and
   `org.apache.dolphinscheduler.plugin.registry.jdbc`.
 - All JDBC Registry production Java classes are copied from the upstream module,
@@ -26,5 +26,7 @@
   Registry tables. The original SQL resources are retained for source comparison
   and must not be re-executed after migration. Existing V1 databases require an
   explicit migration or clean rebuild; changing V1 alone is not a safe upgrade.
+
+The JDBC Registry server, heartbeat Mapper/Repository, and upstream regression test follow Apache DolphinScheduler PR #18416 (compare-and-delete expiration, durable current heartbeat, atomic connection state). Keep provenance when updating further.
 
 Do not rename imported upstream classes or selectively rewrite algorithms.
