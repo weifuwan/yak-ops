@@ -20,7 +20,6 @@ package io.yak.ops.worker.task.executor;
 import lombok.Getter;
 
 public enum TaskExecutorState {
-
     INITIALIZED(false),
 
     RUNNING(false),
@@ -32,7 +31,6 @@ public enum TaskExecutorState {
     FAILED(true),
 
     SUCCEEDED(true),
-
     ;
 
     @Getter
@@ -41,5 +39,4 @@ public enum TaskExecutorState {
     TaskExecutorState(boolean finalState) {
         this.finalState = finalState;
     }
-
 }

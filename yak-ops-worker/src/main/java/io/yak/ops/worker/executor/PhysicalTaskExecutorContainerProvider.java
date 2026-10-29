@@ -8,6 +8,7 @@ import io.yak.ops.worker.task.executor.container.TaskExecutorContainerConfig;
 public final class PhysicalTaskExecutorContainerProvider
         implements ITaskExecutorContainerProvider<ExclusiveThreadTaskExecutorContainer> {
     private final ExclusiveThreadTaskExecutorContainer container;
+
     public PhysicalTaskExecutorContainerProvider(int slots) {
         TaskExecutorContainerConfig config = TaskExecutorContainerConfig.builder()
                 .containerName("physical-task-executor")
@@ -15,5 +16,9 @@ public final class PhysicalTaskExecutorContainerProvider
                 .build();
         container = new ExclusiveThreadTaskExecutorContainer(config);
     }
-    @Override public ExclusiveThreadTaskExecutorContainer getExecutorContainer() { return container; }
+
+    @Override
+    public ExclusiveThreadTaskExecutorContainer getExecutorContainer() {
+        return container;
+    }
 }

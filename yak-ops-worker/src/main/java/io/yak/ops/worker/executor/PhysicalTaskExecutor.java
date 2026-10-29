@@ -19,19 +19,20 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     private final Runnable cancellation;
     private final AtomicBoolean cancellationRequested = new AtomicBoolean();
 
-    public PhysicalTaskExecutor(TaskExecutionContext context,
-                                Supplier<CompletionStage<TaskOutcome>> submission,
-                                Runnable cancellation) {
+    public PhysicalTaskExecutor(
+            TaskExecutionContext context, Supplier<CompletionStage<TaskOutcome>> submission, Runnable cancellation) {
         super(context, new TaskExecutorEventBus());
         this.submission = Objects.requireNonNull(submission);
         this.cancellation = Objects.requireNonNull(cancellation);
     }
 
-    @Override protected void initializeTaskPlugin() {
+    @Override
+    protected void initializeTaskPlugin() {
         // The submitted action resolves the pinned Task definition and existing Task SPI.
     }
 
-    @Override protected void doTriggerTaskPlugin() {
+    @Override
+    protected void doTriggerTaskPlugin() {
         try {
             CompletionStage<TaskOutcome> completion = submission.get();
             if (completion == null) throw new IllegalStateException("Task submission returned null completion");
@@ -60,19 +61,23 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
         }
     }
 
-    @Override protected TaskExecutorState doTrackTaskPluginStatus() {
+    @Override
+    protected TaskExecutorState doTrackTaskPluginStatus() {
         return taskExecutorState.get();
     }
 
-    @Override public void pause() {
+    @Override
+    public void pause() {
         throw new UnsupportedOperationException("Pause is not supported by the embedded Task SPI");
     }
 
-    @Override public void kill() {
+    @Override
+    public void kill() {
         if (cancellationRequested.compareAndSet(false, true)) cancellation.run();
     }
 
-    @Override public void finalizeTask() {
+    @Override
+    public void finalizeTask() {
         // Physical resources are closed by TaskHandle and its completion observer.
     }
 }

@@ -34,15 +34,25 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
         assignmentTable.registerTaskExecutor(executor, worker);
     }
 
-    @Override public void start(ITaskExecutor executor) {
+    @Override
+    public void start(ITaskExecutor executor) {
         String workerId = assignmentTable.getTaskExecutorWorkerId(executor);
         if (workerId == null) throw new IllegalStateException("Task not assigned to a worker");
         taskExecutorWorkers.getWorkerById(Integer.parseInt(workerId)).fireTaskExecutor(executor);
     }
 
-    @Override public void pause(ITaskExecutor executor) { executor.pause(); }
-    @Override public void kill(ITaskExecutor executor) { executor.kill(); }
-    @Override public synchronized void finalize(ITaskExecutor executor) {
+    @Override
+    public void pause(ITaskExecutor executor) {
+        executor.pause();
+    }
+
+    @Override
+    public void kill(ITaskExecutor executor) {
+        executor.kill();
+    }
+
+    @Override
+    public synchronized void finalize(ITaskExecutor executor) {
         String id = assignmentTable.getTaskExecutorWorkerId(executor);
         if (id != null) {
             TaskExecutorWorker worker = taskExecutorWorkers.getWorkerById(Integer.parseInt(id));
@@ -53,16 +63,20 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
         executor.finalizeTask();
     }
 
-    @Override public double slotUsage() {
+    @Override
+    public double slotUsage() {
         long inUse = taskExecutorWorkers.getWorkers().stream()
-                .filter(worker -> worker.getRegisteredTaskExecutorSize() > 0).count();
+                .filter(worker -> worker.getRegisteredTaskExecutorSize() > 0)
+                .count();
         return (double) inUse / taskExecutorWorkers.getWorkers().size();
     }
 
-    @Override public synchronized void close() {
+    @Override
+    public synchronized void close() {
         if (closed) return;
         closed = true;
         taskExecutorThreadPool.shutdownNow();
     }
+
     protected abstract Optional<TaskExecutorWorker> getTaskExecutorWorkerCandidate(ITaskExecutor executor);
 }

@@ -9,12 +9,36 @@ public final class TaskEngineBuilder {
     private ITaskExecutorRepository taskExecutorRepository;
     private ITaskExecutorContainerProvider<?> taskExecutorContainerDelegator;
     private TaskExecutorEventBusCoordinator taskExecutorEventBusCoordinator;
-    public String getEngineName() { return engineName; }
-    public void setEngineName(String name) { engineName = name; }
-    public ITaskExecutorRepository getTaskExecutorRepository() { return taskExecutorRepository; }
-    public void setTaskExecutorRepository(ITaskExecutorRepository repository) { taskExecutorRepository = repository; }
-    public ITaskExecutorContainerProvider<?> getTaskExecutorContainerDelegator() { return taskExecutorContainerDelegator; }
-    public void setTaskExecutorContainerDelegator(ITaskExecutorContainerProvider<?> container) { taskExecutorContainerDelegator = container; }
-    public TaskExecutorEventBusCoordinator getTaskExecutorEventBusCoordinator() { return taskExecutorEventBusCoordinator; }
-    public void setTaskExecutorEventBusCoordinator(TaskExecutorEventBusCoordinator events) { taskExecutorEventBusCoordinator = events; }
+
+    public String getEngineName() {
+        return engineName;
+    }
+
+    public void setEngineName(String name) {
+        engineName = name;
+    }
+
+    public ITaskExecutorRepository getTaskExecutorRepository() {
+        return taskExecutorRepository;
+    }
+
+    public void setTaskExecutorRepository(ITaskExecutorRepository repository) {
+        taskExecutorRepository = repository;
+    }
+
+    public ITaskExecutorContainerProvider<?> getTaskExecutorContainerDelegator() {
+        return taskExecutorContainerDelegator;
+    }
+
+    public void setTaskExecutorContainerDelegator(ITaskExecutorContainerProvider<?> container) {
+        taskExecutorContainerDelegator = container;
+    }
+
+    public TaskExecutorEventBusCoordinator getTaskExecutorEventBusCoordinator() {
+        return taskExecutorEventBusCoordinator;
+    }
+
+    public void setTaskExecutorEventBusCoordinator(TaskExecutorEventBusCoordinator events) {
+        taskExecutorEventBusCoordinator = events;
+    }
 }

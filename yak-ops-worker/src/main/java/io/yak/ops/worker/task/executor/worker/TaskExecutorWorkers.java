@@ -30,10 +30,8 @@ public class TaskExecutorWorkers {
     private final LongAdder longAdder = new LongAdder();
 
     public TaskExecutorWorkers(final int workerSize) {
-        this.taskExecutorWorkers = IntStream
-                .range(0, workerSize)
-                .mapToObj(TaskExecutorWorker::new)
-                .collect(Collectors.toList());
+        this.taskExecutorWorkers =
+                IntStream.range(0, workerSize).mapToObj(TaskExecutorWorker::new).collect(Collectors.toList());
     }
 
     public List<TaskExecutorWorker> getWorkers() {

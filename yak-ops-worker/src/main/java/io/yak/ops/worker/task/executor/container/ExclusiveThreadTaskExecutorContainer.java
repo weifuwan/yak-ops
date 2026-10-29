@@ -19,9 +19,7 @@ package io.yak.ops.worker.task.executor.container;
 
 import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.worker.TaskExecutorWorker;
-
 import java.util.Optional;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -39,5 +37,4 @@ public class ExclusiveThreadTaskExecutorContainer extends AbstractTaskExecutorCo
     protected Optional<TaskExecutorWorker> getTaskExecutorWorkerCandidate(final ITaskExecutor taskExecutor) {
         return taskExecutorWorkers.selectIdleWorker();
     }
-
 }

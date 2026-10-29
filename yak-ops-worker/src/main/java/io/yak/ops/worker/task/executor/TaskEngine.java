@@ -14,15 +14,19 @@ public final class TaskEngine implements ITaskEngine {
     private final ITaskExecutorContainerProvider<?> containerProvider;
     private final TaskExecutorEventBusCoordinator events;
 
-    public TaskEngine(ITaskExecutorRepository repository,
-                      ITaskExecutorContainerProvider<?> containerProvider,
-                      TaskExecutorEventBusCoordinator events) {
+    public TaskEngine(
+            ITaskExecutorRepository repository,
+            ITaskExecutorContainerProvider<?> containerProvider,
+            TaskExecutorEventBusCoordinator events) {
         this.repository = Objects.requireNonNull(repository);
         this.containerProvider = Objects.requireNonNull(containerProvider);
         this.events = Objects.requireNonNull(events);
     }
 
-    @Override public void start() { events.start(); }
+    @Override
+    public void start() {
+        events.start();
+    }
 
     @Override
     public synchronized void submitTask(ITaskExecutor executor) {
@@ -37,8 +41,8 @@ public final class TaskEngine implements ITaskEngine {
             dispatched = true;
             repository.put(executor);
             registered = true;
-            executor.getTaskExecutorEventBus().publish(
-                    TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.DISPATCHED));
+            executor.getTaskExecutorEventBus()
+                    .publish(TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.DISPATCHED));
             container.start(executor);
         } catch (RuntimeException failure) {
             if (registered) repository.remove(executor.getId());
@@ -47,20 +51,32 @@ public final class TaskEngine implements ITaskEngine {
         }
     }
 
-    @Override public void pauseTask(String id) {
-        getTaskExecutor(id).getTaskExecutorEventBus().publish(
-                TaskExecutorLifecycleEvent.of(getTaskExecutor(id), TaskExecutorLifecycleEventType.PAUSE));
+    @Override
+    public void pauseTask(String id) {
+        getTaskExecutor(id)
+                .getTaskExecutorEventBus()
+                .publish(TaskExecutorLifecycleEvent.of(getTaskExecutor(id), TaskExecutorLifecycleEventType.PAUSE));
     }
 
-    @Override public void killTask(String id) {
+    @Override
+    public void killTask(String id) {
         ITaskExecutor executor = getTaskExecutor(id);
-        executor.getTaskExecutorEventBus().publish(
-                TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.KILL));
+        executor.getTaskExecutorEventBus()
+                .publish(TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.KILL));
     }
 
-    @Override public Collection<ITaskExecutor> queryTaskExecutors() { return repository.getAll(); }
+    @Override
+    public Collection<ITaskExecutor> queryTaskExecutors() {
+        return repository.getAll();
+    }
+
     private ITaskExecutor getTaskExecutor(String id) {
         return repository.get(id).orElseThrow(() -> new IllegalArgumentException("Unknown task executor: " + id));
     }
-    @Override public void close() { events.close(); containerProvider.getExecutorContainer().close(); }
+
+    @Override
+    public void close() {
+        events.close();
+        containerProvider.getExecutorContainer().close();
+    }
 }

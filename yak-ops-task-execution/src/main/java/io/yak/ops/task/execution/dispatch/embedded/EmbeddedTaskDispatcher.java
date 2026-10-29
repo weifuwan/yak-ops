@@ -5,8 +5,8 @@ import io.yak.ops.business.task.instance.InstanceLifecycleService;
 import io.yak.ops.business.task.instance.InstanceService;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.dao.entity.task.ExecutionClaimEntity;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
+import io.yak.ops.dao.entity.task.ExecutionClaimEntity;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
 import io.yak.ops.plugin.task.api.TaskPlugin;
@@ -66,6 +66,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
 
     @Resource
     private PhysicalTaskEngineDelegator worker;
+
     private final ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor(
             Thread.ofVirtual().name("task-dispatch-reconcile", 0).factory());
     private final Object[] launchFences = new Object[256];
@@ -112,12 +113,14 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     public void dispatch(String workspaceId, String instanceId) {
         owner.incarnation();
         try {
-            worker.dispatch(workspaceId, instanceId,
-                    () -> launch(workspaceId, instanceId), () -> observer.cancel(instanceId));
+            worker.dispatch(
+                    workspaceId, instanceId, () -> launch(workspaceId, instanceId), () -> observer.cancel(instanceId));
         } catch (IllegalStateException capacityOrDuplicate) {
             // Reconcile pending SUBMITTED instances after an execution slot becomes available.
-            LOG.debug("Embedded Worker deferred Task dispatch, instanceId={}, reason={}",
-                    instanceId, capacityOrDuplicate.getMessage());
+            LOG.debug(
+                    "Embedded Worker deferred Task dispatch, instanceId={}, reason={}",
+                    instanceId,
+                    capacityOrDuplicate.getMessage());
         }
     }
 

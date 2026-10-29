@@ -18,10 +18,17 @@ public final class TaskExecutorWorker implements ITaskExecutorWorker {
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition wakeup = lock.newCondition();
 
-    public TaskExecutorWorker(int workerId) { this.workerId = workerId; }
-    @Override public int getId() { return workerId; }
+    public TaskExecutorWorker(int workerId) {
+        this.workerId = workerId;
+    }
 
-    @Override public void start() {
+    @Override
+    public int getId() {
+        return workerId;
+    }
+
+    @Override
+    public void start() {
         while (!Thread.currentThread().isInterrupted()) {
             long waitMillis = 100;
             for (ITaskExecutor executor : activeTaskExecutors.values()) {
@@ -32,16 +39,16 @@ public final class TaskExecutorWorker implements ITaskExecutorWorker {
                         TaskExecutorState state = executor.trackTaskExecutorState();
                         if (state.isFinalState()) {
                             executor.getTaskExecutionContext().setEndTime(System.currentTimeMillis());
-                            executor.getTaskExecutorEventBus().publish(
-                                    TaskExecutorLifecycleEvent.of(executor, terminalEvent(state)));
+                            executor.getTaskExecutorEventBus()
+                                    .publish(TaskExecutorLifecycleEvent.of(executor, terminalEvent(state)));
                             unFireTaskExecutor(executor);
                         }
                     } else {
                         waitMillis = Math.min(waitMillis, remaining);
                     }
                 } catch (Throwable failure) {
-                    executor.getTaskExecutorEventBus().publish(
-                            TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.FAILED));
+                    executor.getTaskExecutorEventBus()
+                            .publish(TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.FAILED));
                     unFireTaskExecutor(executor);
                 }
             }
@@ -52,27 +59,38 @@ public final class TaskExecutorWorker implements ITaskExecutorWorker {
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
                 return;
-            } finally { lock.unlock(); }
+            } finally {
+                lock.unlock();
+            }
         }
     }
 
     private TaskExecutorLifecycleEventType terminalEvent(TaskExecutorState state) {
         switch (state) {
-            case SUCCEEDED: return TaskExecutorLifecycleEventType.SUCCESS;
-            case KILLED: return TaskExecutorLifecycleEventType.KILLED;
-            case PAUSED: return TaskExecutorLifecycleEventType.PAUSED;
-            default: return TaskExecutorLifecycleEventType.FAILED;
+            case SUCCEEDED:
+                return TaskExecutorLifecycleEventType.SUCCESS;
+            case KILLED:
+                return TaskExecutorLifecycleEventType.KILLED;
+            case PAUSED:
+                return TaskExecutorLifecycleEventType.PAUSED;
+            default:
+                return TaskExecutorLifecycleEventType.FAILED;
         }
     }
 
-    @Override public void registerTaskExecutor(ITaskExecutor executor) {
+    @Override
+    public void registerTaskExecutor(ITaskExecutor executor) {
         if (registeredTaskExecutors.putIfAbsent(executor.getId(), executor) != null)
             throw new IllegalStateException("Duplicate task registration: " + executor.getId());
     }
-    @Override public void unRegisterTaskExecutor(ITaskExecutor executor) {
+
+    @Override
+    public void unRegisterTaskExecutor(ITaskExecutor executor) {
         registeredTaskExecutors.remove(executor.getId(), executor);
     }
-    @Override public void fireTaskExecutor(ITaskExecutor executor) {
+
+    @Override
+    public void fireTaskExecutor(ITaskExecutor executor) {
         lock.lock();
         try {
             if (!registeredTaskExecutors.containsKey(executor.getId()))
@@ -80,11 +98,23 @@ public final class TaskExecutorWorker implements ITaskExecutorWorker {
             if (activeTaskExecutors.putIfAbsent(executor.getId(), executor) != null)
                 throw new IllegalStateException("Task already started");
             wakeup.signalAll();
-        } finally { lock.unlock(); }
+        } finally {
+            lock.unlock();
+        }
     }
-    @Override public void unFireTaskExecutor(ITaskExecutor executor) {
+
+    @Override
+    public void unFireTaskExecutor(ITaskExecutor executor) {
         activeTaskExecutors.remove(executor.getId(), executor);
     }
-    @Override public int getRegisteredTaskExecutorSize() { return registeredTaskExecutors.size(); }
-    @Override public int getFiredTaskExecutorSize() { return activeTaskExecutors.size(); }
+
+    @Override
+    public int getRegisteredTaskExecutorSize() {
+        return registeredTaskExecutors.size();
+    }
+
+    @Override
+    public int getFiredTaskExecutorSize() {
+        return activeTaskExecutors.size();
+    }
 }

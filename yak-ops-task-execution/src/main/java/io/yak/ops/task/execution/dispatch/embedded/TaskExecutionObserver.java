@@ -50,16 +50,17 @@ public class TaskExecutionObserver implements AutoCloseable {
     }
 
     /** Completes only after terminal business persistence has been attempted. */
-    public CompletionStage<TaskOutcome> observeTracked(
-            DispatchTicket ticket, CompletionStage<TaskHandle> submission) {
+    public CompletionStage<TaskOutcome> observeTracked(DispatchTicket ticket, CompletionStage<TaskHandle> submission) {
         CompletableFuture<TaskOutcome> observed = new CompletableFuture<>();
-        submission.whenCompleteAsync((handle, failure) -> {
-            try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
-                observeSubmission(ticket, handle, failure, observed);
-            } catch (RuntimeException error) {
-                observed.completeExceptionally(error);
-            }
-        }, callbacks);
+        submission.whenCompleteAsync(
+                (handle, failure) -> {
+                    try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
+                        observeSubmission(ticket, handle, failure, observed);
+                    } catch (RuntimeException error) {
+                        observed.completeExceptionally(error);
+                    }
+                },
+                callbacks);
         return observed;
     }
 
@@ -132,8 +133,8 @@ public class TaskExecutionObserver implements AutoCloseable {
         observeSubmission(ticket, handle, failure, null);
     }
 
-    private void observeSubmission(DispatchTicket ticket, TaskHandle handle, Throwable failure,
-                                   CompletableFuture<TaskOutcome> observed) {
+    private void observeSubmission(
+            DispatchTicket ticket, TaskHandle handle, Throwable failure, CompletableFuture<TaskOutcome> observed) {
         if (failure != null) {
             Throwable cause = failure;
             if (cause instanceof CompletionException && cause.getCause() != null) {
@@ -193,11 +194,15 @@ public class TaskExecutionObserver implements AutoCloseable {
                                 try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
                                     boolean persisted = observeTerminal(ticket, handle, outcome, error);
                                     if (observed != null) {
-                                        if (!persisted) observed.completeExceptionally(
-                                                new IllegalStateException("Task outcome could not be persisted"));
+                                        if (!persisted)
+                                            observed.completeExceptionally(
+                                                    new IllegalStateException("Task outcome could not be persisted"));
                                         else if (error == null && outcome != null) observed.complete(outcome);
-                                        else observed.completeExceptionally(error == null
-                                                ? new IllegalStateException("Unknown Task outcome") : error);
+                                        else
+                                            observed.completeExceptionally(
+                                                    error == null
+                                                            ? new IllegalStateException("Unknown Task outcome")
+                                                            : error);
                                     }
                                 }
                             },

@@ -32,5 +32,4 @@ public class TaskExecutorContainerConfig {
 
     @Builder.Default
     private int taskExecutorThreadPoolSize = Runtime.getRuntime().availableProcessors() * 2 + 1;
-
 }

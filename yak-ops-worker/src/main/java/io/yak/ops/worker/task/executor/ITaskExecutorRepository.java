@@ -33,5 +33,4 @@ public interface ITaskExecutorRepository {
     void remove(final String taskExecutorId);
 
     void clear();
-
 }

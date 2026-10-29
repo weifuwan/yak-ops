@@ -17,7 +17,6 @@
 
 package io.yak.ops.worker.task.executor;
 
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -59,5 +58,4 @@ public class TaskExecutorRepository implements ITaskExecutorRepository {
     public void clear() {
         taskExecutorMap.clear();
     }
-
 }

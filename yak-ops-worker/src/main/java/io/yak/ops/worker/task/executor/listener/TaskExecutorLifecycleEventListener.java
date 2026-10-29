@@ -10,10 +10,13 @@ import io.yak.ops.worker.task.executor.events.TaskExecutorLifecycleEventType;
 public class TaskExecutorLifecycleEventListener {
     private final ITaskExecutorRepository repository;
     private final ITaskExecutorContainerProvider<?> containers;
-    public TaskExecutorLifecycleEventListener(ITaskExecutorRepository repository,
-                                              ITaskExecutorContainerProvider<?> containers) {
-        this.repository = repository; this.containers = containers;
+
+    public TaskExecutorLifecycleEventListener(
+            ITaskExecutorRepository repository, ITaskExecutorContainerProvider<?> containers) {
+        this.repository = repository;
+        this.containers = containers;
     }
+
     public void onEvent(ITaskExecutor executor, TaskExecutorLifecycleEvent event) {
         TaskExecutorLifecycleEventType type = event.getType();
         if (type == TaskExecutorLifecycleEventType.KILL) {
@@ -21,8 +24,8 @@ public class TaskExecutorLifecycleEventListener {
         } else if (type == TaskExecutorLifecycleEventType.PAUSE) {
             executor.pause();
         } else if (type.isFinished()) {
-            executor.getTaskExecutorEventBus().publish(
-                    TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.FINALIZE));
+            executor.getTaskExecutorEventBus()
+                    .publish(TaskExecutorLifecycleEvent.of(executor, TaskExecutorLifecycleEventType.FINALIZE));
         } else if (type == TaskExecutorLifecycleEventType.FINALIZE) {
             containers.getExecutorContainer().finalize(executor);
             repository.remove(executor.getId());
