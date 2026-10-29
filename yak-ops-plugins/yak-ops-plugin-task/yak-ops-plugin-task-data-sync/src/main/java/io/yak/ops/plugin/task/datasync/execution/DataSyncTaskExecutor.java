@@ -2,16 +2,16 @@ package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.core.execution.PipelineExecutor;
-import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
 import io.yak.ops.plugin.task.datasync.plan.JobPlan;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.Objects;
 
 /**
  * Creates one deferred DATA_SYNC execution handle for every supported synchronization mode.
