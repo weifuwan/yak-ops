@@ -165,6 +165,15 @@ public final class MySqlSourceReader
             }
         }
         super.addSplits(active);
+        for (MySqlSplit split : active) {
+            if (split instanceof MySqlBinlogSplit binlog
+                    && binlog.phase() == MySqlBinlogSplit.Phase.STREAMING
+                    && !binlog.finishedSplits().isEmpty()) {
+                // Deferred INITIAL delivers a complete Binlog split directly.
+                context.sendSourceEventToCoordinator(new BinlogSplitMetaAssembledEvent(0));
+                metrics.streaming(generation);
+            }
+        }
         reportFinishedSplits();
     }
 
