@@ -10,8 +10,8 @@
 - Used SPI source is copied into `yak-ops-registry-api`. Upstream RegistryClient
   and HA classes are outside the JDBC module's runtime dependency graph and not
   copied; they require DolphinScheduler Master/Worker heartbeat models.
-- Required upstream utility classes `CodeGenerateUtils`, `NetUtils`,
-  `ThreadUtils` and `DefaultUncaughtExceptionHandler` are copied unchanged.
+- `ThreadUtils` and `DefaultUncaughtExceptionHandler` are copied unchanged;
+  `CodeGenerateUtils` is copied with its single process-ID compatibility change.
 - **Compatibility changes**: use Java 21 `ProcessHandle.current().pid()`
   in the upstream CodeGenerateUtils and JDBC client/lock utility; replace
   three `NetUtils.getHost()` uses with the narrow `JdbcRegistryHost` helper.
