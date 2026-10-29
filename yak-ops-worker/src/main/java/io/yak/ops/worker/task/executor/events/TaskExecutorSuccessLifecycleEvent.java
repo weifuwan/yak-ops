@@ -17,10 +17,8 @@
 
 package io.yak.ops.worker.task.executor.events;
 
-import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-
-
+import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -33,8 +31,7 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class TaskExecutorSuccessLifecycleEvent extends AbstractTaskExecutorLifecycleEvent
-        implements
-            IReportableTaskExecutorLifecycleEvent {
+        implements IReportableTaskExecutorLifecycleEvent {
 
     private String workflowInstanceId;
 
@@ -42,25 +39,17 @@ public class TaskExecutorSuccessLifecycleEvent extends AbstractTaskExecutorLifec
 
     private long endTime;
 
-    
-
     private Long latestReportTime;
 
     private boolean needAlert;
-
-    
 
     public static TaskExecutorSuccessLifecycleEvent of(final ITaskExecutor taskExecutor) {
         final TaskExecutionContext taskExecutionContext = taskExecutor.getTaskExecutionContext();
         return TaskExecutorSuccessLifecycleEvent.builder()
                 .workflowInstanceId(taskExecutionContext.getWorkflowInstanceId())
                 .taskInstanceId(taskExecutionContext.getTaskInstanceId())
-
                 .type(TaskExecutorLifecycleEventType.SUCCESS)
                 .endTime(taskExecutionContext.getEndTime())
-
-
                 .build();
     }
-
 }

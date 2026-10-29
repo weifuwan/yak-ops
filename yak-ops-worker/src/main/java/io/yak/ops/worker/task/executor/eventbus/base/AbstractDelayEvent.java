@@ -19,7 +19,6 @@ package io.yak.ops.worker.task.executor.eventbus.base;
 
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
-
 import lombok.Builder;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
@@ -68,5 +67,4 @@ public abstract class AbstractDelayEvent implements IEvent, Delayed {
     public int compareTo(Delayed other) {
         return Long.compare(this.expiredTimeInNano, ((AbstractDelayEvent) other).expiredTimeInNano);
     }
-
 }

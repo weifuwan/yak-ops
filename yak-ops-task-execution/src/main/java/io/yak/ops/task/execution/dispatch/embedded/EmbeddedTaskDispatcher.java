@@ -19,8 +19,8 @@ import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.task.execution.dispatch.TaskExecutionCoordinator;
 import io.yak.ops.task.execution.owner.EmbeddedExecutionOwner;
-import io.yak.ops.worker.executor.PhysicalTaskEngineDelegator;
 import io.yak.ops.worker.executor.PhysicalTask;
+import io.yak.ops.worker.executor.PhysicalTaskEngineDelegator;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.exceptions.TaskExecutorRuntimeException;
 import jakarta.annotation.PostConstruct;
@@ -149,7 +149,11 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
         String instanceId = taskContext.getTaskInstanceId();
         DispatchTicket ticket = null;
         try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", instanceId)) {
-            ticket = lifecycle.claim(workspaceId, instanceId, owner.incarnation(), UUID.randomUUID().toString());
+            ticket = lifecycle.claim(
+                    workspaceId,
+                    instanceId,
+                    owner.incarnation(),
+                    UUID.randomUUID().toString());
             if (ticket == null) {
                 return completedPhysicalTask(TaskOutcome.CANCELED);
             }
@@ -224,19 +228,25 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
 
     private static PhysicalTask completedPhysicalTask(TaskOutcome outcome) {
         return new PhysicalTask() {
-            @Override public CompletionStage<TaskOutcome> handle() {
+            @Override
+            public CompletionStage<TaskOutcome> handle() {
                 return CompletableFuture.completedFuture(outcome);
             }
-            @Override public void cancel() { }
+
+            @Override
+            public void cancel() {}
         };
     }
 
     private static PhysicalTask uncertainPhysicalTask(RuntimeException failure) {
         return new PhysicalTask() {
-            @Override public CompletionStage<TaskOutcome> handle() {
+            @Override
+            public CompletionStage<TaskOutcome> handle() {
                 return CompletableFuture.failedFuture(failure);
             }
-            @Override public void cancel() { }
+
+            @Override
+            public void cancel() {}
         };
     }
 

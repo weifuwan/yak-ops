@@ -18,7 +18,6 @@
 package io.yak.ops.worker.task.executor.events;
 
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -31,8 +30,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @SuperBuilder
 public class TaskExecutorKillLifecycleEvent extends AbstractTaskExecutorLifecycleEvent
-        implements
-            IOperableTaskExecutorLifecycleEvent {
+        implements IOperableTaskExecutorLifecycleEvent {
 
     public static TaskExecutorKillLifecycleEvent of(final ITaskExecutor taskExecutor) {
         return TaskExecutorKillLifecycleEvent.builder()
@@ -40,5 +38,4 @@ public class TaskExecutorKillLifecycleEvent extends AbstractTaskExecutorLifecycl
                 .type(TaskExecutorLifecycleEventType.KILL)
                 .build();
     }
-
 }

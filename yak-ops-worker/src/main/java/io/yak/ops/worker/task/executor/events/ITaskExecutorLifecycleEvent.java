@@ -29,5 +29,4 @@ public interface ITaskExecutorLifecycleEvent {
     long getEventCreateTime();
 
     TaskExecutorLifecycleEventType getType();
-
 }

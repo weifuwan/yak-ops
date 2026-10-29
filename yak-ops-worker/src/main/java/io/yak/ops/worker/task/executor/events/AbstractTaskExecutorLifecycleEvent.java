@@ -18,7 +18,6 @@
 package io.yak.ops.worker.task.executor.events;
 
 import io.yak.ops.worker.task.executor.eventbus.base.AbstractDelayEvent;
-
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -32,8 +31,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 public abstract class AbstractTaskExecutorLifecycleEvent extends AbstractDelayEvent
-        implements
-            ITaskExecutorLifecycleEvent {
+        implements ITaskExecutorLifecycleEvent {
 
     protected String taskInstanceId;
 
@@ -41,5 +39,4 @@ public abstract class AbstractTaskExecutorLifecycleEvent extends AbstractDelayEv
     protected long eventCreateTime = System.currentTimeMillis();
 
     protected TaskExecutorLifecycleEventType type;
-
 }

@@ -32,12 +32,12 @@ public interface ITaskExecutorEventBusCoordinator extends AutoCloseable {
     /**
      * Register the task executor event listener
      */
-    void registerTaskExecutorLifecycleEventListener(final ITaskExecutorLifecycleEventListener taskExecutorLifecycleEventListener);
+    void registerTaskExecutorLifecycleEventListener(
+            final ITaskExecutorLifecycleEventListener taskExecutorLifecycleEventListener);
 
     /**
      * Shutdown the coordinator
      */
     @Override
     void close();
-
 }

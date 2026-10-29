@@ -18,7 +18,6 @@
 package io.yak.ops.worker.task.executor.events;
 
 public enum TaskExecutorLifecycleEventType {
-
     DISPATCHED,
 
     RUNNING,
@@ -41,9 +40,6 @@ public enum TaskExecutorLifecycleEventType {
     ;
 
     public boolean isFinished() {
-        return (this == KILLED
-                || this == PAUSED
-                || this == FAILED
-                || this == SUCCESS);
+        return (this == KILLED || this == PAUSED || this == FAILED || this == SUCCESS);
     }
 }

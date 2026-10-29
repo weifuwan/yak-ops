@@ -20,14 +20,12 @@ package io.yak.ops.worker.task.executor.worker;
 import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils;
 import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils.MDCAutoClosable;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 
 public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TaskExecutorWorker.class);
@@ -103,8 +101,7 @@ public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
     public void unRegisterTaskExecutor(final ITaskExecutor taskExecutor) {
         final String taskExecutorId = taskExecutor.getId();
         if (!registeredTaskExecutors.containsKey(taskExecutorId)) {
-            throw new IllegalStateException(
-                    "The TaskExecutorWorker has not registered " + taskExecutor);
+            throw new IllegalStateException("The TaskExecutorWorker has not registered " + taskExecutor);
         }
         registeredTaskExecutors.remove(taskExecutorId);
     }
@@ -115,12 +112,10 @@ public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
         try {
             final String taskExecutorId = taskExecutor.getId();
             if (!registeredTaskExecutors.containsKey(taskExecutorId)) {
-                throw new IllegalStateException(
-                        "The TaskExecutorWorker has not registered " + taskExecutor);
+                throw new IllegalStateException("The TaskExecutorWorker has not registered " + taskExecutor);
             }
             if (activeTaskExecutors.containsKey(taskExecutorId)) {
-                throw new IllegalStateException(
-                        "The TaskExecutorWorker has already fired " + taskExecutor);
+                throw new IllegalStateException("The TaskExecutorWorker has already fired " + taskExecutor);
             }
             activeTaskExecutors.put(taskExecutorId, taskExecutor);
             activeTaskExecutorEmptyCondition.signalAll();
@@ -149,5 +144,4 @@ public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
     public int getFiredTaskExecutorSize() {
         return activeTaskExecutors.size();
     }
-
 }

@@ -38,5 +38,4 @@ public interface IReportableTaskExecutorLifecycleEvent extends ITaskExecutorLife
      * Set the latest report time of the event.
      */
     void setLatestReportTime(Long latestReportTime);
-
 }

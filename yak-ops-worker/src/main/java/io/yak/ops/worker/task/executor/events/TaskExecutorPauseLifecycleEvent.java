@@ -18,7 +18,6 @@
 package io.yak.ops.worker.task.executor.events;
 
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -29,8 +28,7 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
 public class TaskExecutorPauseLifecycleEvent extends AbstractTaskExecutorLifecycleEvent
-        implements
-            IOperableTaskExecutorLifecycleEvent {
+        implements IOperableTaskExecutorLifecycleEvent {
 
     public static TaskExecutorPauseLifecycleEvent of(final ITaskExecutor taskExecutor) {
         return TaskExecutorPauseLifecycleEvent.builder()

@@ -10,12 +10,35 @@ public final class TaskEngineBuilder {
     private ITaskExecutorContainerProvider<?> taskExecutorContainerDelegator;
     private ITaskExecutorEventBusCoordinator taskExecutorEventBusCoordinator;
 
-    public String getEngineName() { return engineName; }
-    public void setEngineName(String value) { engineName = value; }
-    public ITaskExecutorRepository getTaskExecutorRepository() { return taskExecutorRepository; }
-    public void setTaskExecutorRepository(ITaskExecutorRepository value) { taskExecutorRepository = value; }
-    public ITaskExecutorContainerProvider<?> getTaskExecutorContainerDelegator() { return taskExecutorContainerDelegator; }
-    public void setTaskExecutorContainerDelegator(ITaskExecutorContainerProvider<?> value) { taskExecutorContainerDelegator = value; }
-    public ITaskExecutorEventBusCoordinator getTaskExecutorEventBusCoordinator() { return taskExecutorEventBusCoordinator; }
-    public void setTaskExecutorEventBusCoordinator(ITaskExecutorEventBusCoordinator value) { taskExecutorEventBusCoordinator = value; }
+    public String getEngineName() {
+        return engineName;
+    }
+
+    public void setEngineName(String value) {
+        engineName = value;
+    }
+
+    public ITaskExecutorRepository getTaskExecutorRepository() {
+        return taskExecutorRepository;
+    }
+
+    public void setTaskExecutorRepository(ITaskExecutorRepository value) {
+        taskExecutorRepository = value;
+    }
+
+    public ITaskExecutorContainerProvider<?> getTaskExecutorContainerDelegator() {
+        return taskExecutorContainerDelegator;
+    }
+
+    public void setTaskExecutorContainerDelegator(ITaskExecutorContainerProvider<?> value) {
+        taskExecutorContainerDelegator = value;
+    }
+
+    public ITaskExecutorEventBusCoordinator getTaskExecutorEventBusCoordinator() {
+        return taskExecutorEventBusCoordinator;
+    }
+
+    public void setTaskExecutorEventBusCoordinator(ITaskExecutorEventBusCoordinator value) {
+        taskExecutorEventBusCoordinator = value;
+    }
 }

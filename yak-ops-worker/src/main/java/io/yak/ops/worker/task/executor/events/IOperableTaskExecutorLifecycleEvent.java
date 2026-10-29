@@ -22,6 +22,4 @@ import io.yak.ops.worker.task.executor.ITaskExecutor;
 /**
  * The lifecycle event which represent the operation to {@link ITaskExecutor}.
  */
-public interface IOperableTaskExecutorLifecycleEvent extends ITaskExecutorLifecycleEvent {
-
-}
+public interface IOperableTaskExecutorLifecycleEvent extends ITaskExecutorLifecycleEvent {}

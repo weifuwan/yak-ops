@@ -18,29 +18,35 @@ public final class LocalTaskExecutorLifecycleEventReporter implements ITaskExecu
         this.repository = Objects.requireNonNull(repository);
     }
 
-    @Override public void start() { }
+    @Override
+    public void start() {}
 
     @Override
     public void reportTaskExecutorLifecycleEvent(IReportableTaskExecutorLifecycleEvent event) {
         if (!event.getType().isFinished()) return;
-        ITaskExecutor executor = repository.get(event.getTaskInstanceId())
-                .orElseThrow(() -> new IllegalStateException("Cannot acknowledge missing task: " + event.getTaskInstanceId()));
+        ITaskExecutor executor = repository
+                .get(event.getTaskInstanceId())
+                .orElseThrow(() ->
+                        new IllegalStateException("Cannot acknowledge missing task: " + event.getTaskInstanceId()));
         if (!(executor instanceof PhysicalTaskExecutor physicalTask) || !physicalTask.isPersistedTerminal()) {
             throw new IllegalStateException("Task cannot be finalized before durable terminal observation");
         }
-        receiveTaskExecutorLifecycleEventACK(
-                new TaskExecutorLifecycleEventAck(executor.getId(), event.getType()));
+        receiveTaskExecutorLifecycleEventACK(new TaskExecutorLifecycleEventAck(executor.getId(), event.getType()));
     }
 
     @Override
     public void receiveTaskExecutorLifecycleEventACK(TaskExecutorLifecycleEventAck ack) {
-        repository.get(ack.getTaskExecutorId()).ifPresent(executor ->
-                executor.getTaskExecutorEventBus().publish(TaskExecutorFinalizeLifecycleEvent.of(executor)));
+        repository
+                .get(ack.getTaskExecutorId())
+                .ifPresent(executor ->
+                        executor.getTaskExecutorEventBus().publish(TaskExecutorFinalizeLifecycleEvent.of(executor)));
     }
 
-    @Override public void onWorkflowInstanceHostChanged(String taskInstanceId) {
+    @Override
+    public void onWorkflowInstanceHostChanged(String taskInstanceId) {
         // No remote Master in embedded mode.
     }
 
-    @Override public void close() { }
+    @Override
+    public void close() {}
 }

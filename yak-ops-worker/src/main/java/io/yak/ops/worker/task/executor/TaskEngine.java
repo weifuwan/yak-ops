@@ -18,10 +18,14 @@ public class TaskEngine implements ITaskEngine {
         engineName = builder.getEngineName();
         taskExecutorRepository = java.util.Objects.requireNonNull(builder.getTaskExecutorRepository());
         taskExecutorContainerDelegator = java.util.Objects.requireNonNull(builder.getTaskExecutorContainerDelegator());
-        taskExecutorEventBusCoordinator = java.util.Objects.requireNonNull(builder.getTaskExecutorEventBusCoordinator());
+        taskExecutorEventBusCoordinator =
+                java.util.Objects.requireNonNull(builder.getTaskExecutorEventBusCoordinator());
     }
 
-    @Override public void start() { taskExecutorEventBusCoordinator.start(); }
+    @Override
+    public void start() {
+        taskExecutorEventBusCoordinator.start();
+    }
 
     @Override
     public synchronized void submitTask(ITaskExecutor executor) {
@@ -45,25 +49,30 @@ public class TaskEngine implements ITaskEngine {
         }
     }
 
-    @Override public void pauseTask(String id) {
+    @Override
+    public void pauseTask(String id) {
         throw new UnsupportedOperationException("Pause is not supported by the embedded Task SPI");
     }
 
-    @Override public void killTask(String id) {
+    @Override
+    public void killTask(String id) {
         ITaskExecutor executor = getTaskExecutor(id);
         executor.getTaskExecutorEventBus().publish(TaskExecutorKillLifecycleEvent.of(executor));
     }
 
-    @Override public Collection<ITaskExecutor> queryTaskExecutors() {
+    @Override
+    public Collection<ITaskExecutor> queryTaskExecutors() {
         return taskExecutorRepository.getAll();
     }
 
     private ITaskExecutor getTaskExecutor(String id) {
-        return taskExecutorRepository.get(id)
+        return taskExecutorRepository
+                .get(id)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown Task Executor: " + id));
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         taskExecutorEventBusCoordinator.close();
         taskExecutorContainerDelegator.getExecutorContainer().close();
     }

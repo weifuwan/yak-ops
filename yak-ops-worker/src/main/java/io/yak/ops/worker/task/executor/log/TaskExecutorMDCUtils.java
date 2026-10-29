@@ -18,7 +18,6 @@
 package io.yak.ops.worker.task.executor.log;
 
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-
 import org.slf4j.MDC;
 
 public class TaskExecutorMDCUtils {
@@ -27,7 +26,8 @@ public class TaskExecutorMDCUtils {
     private static final String TASK_INSTANCE_LOG_FULL_PATH_MDC_KEY = "taskInstanceLogFullPath";
 
     public static MDCAutoClosable logWithMDC(final ITaskExecutor taskExecutor) {
-        return logWithMDC(taskExecutor.getId(), taskExecutor.getTaskExecutionContext().getLogPath());
+        return logWithMDC(
+                taskExecutor.getId(), taskExecutor.getTaskExecutionContext().getLogPath());
     }
 
     public static MDCAutoClosable logWithMDC(final String taskInstanceId) {
@@ -53,5 +53,4 @@ public class TaskExecutorMDCUtils {
         @Override
         void close();
     }
-
 }

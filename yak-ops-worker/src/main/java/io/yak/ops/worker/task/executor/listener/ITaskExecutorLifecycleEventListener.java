@@ -49,5 +49,4 @@ public interface ITaskExecutorLifecycleEventListener {
     void onTaskExecutorFailLifecycleEvent(final TaskExecutorFailedLifecycleEvent event);
 
     void onTaskExecutorFinalizeLifecycleEvent(final TaskExecutorFinalizeLifecycleEvent event);
-
 }

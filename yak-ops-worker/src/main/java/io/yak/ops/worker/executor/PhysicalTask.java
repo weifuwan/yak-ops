@@ -9,5 +9,6 @@ import java.util.concurrent.CompletionStage;
  */
 public interface PhysicalTask {
     CompletionStage<TaskOutcome> handle();
+
     void cancel();
 }

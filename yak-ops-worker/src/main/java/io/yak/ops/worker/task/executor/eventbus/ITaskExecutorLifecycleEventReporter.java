@@ -19,7 +19,6 @@ package io.yak.ops.worker.task.executor.eventbus;
 
 import io.yak.ops.worker.task.executor.events.IReportableTaskExecutorLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorLifecycleEventType;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -39,7 +38,8 @@ public interface ITaskExecutorLifecycleEventReporter extends AutoCloseable {
      * Receive the task executor event, which need to be reported to the master.
      * <p> This method is not sync, will only put the event into a pending queue and send the event in another thread.
      */
-    void reportTaskExecutorLifecycleEvent(final IReportableTaskExecutorLifecycleEvent reportableTaskExecutorLifecycleEvent);
+    void reportTaskExecutorLifecycleEvent(
+            final IReportableTaskExecutorLifecycleEvent reportableTaskExecutorLifecycleEvent);
 
     /**
      * Receive the task execution event ACK, which means the master has received the event.
@@ -67,5 +67,4 @@ public interface ITaskExecutorLifecycleEventReporter extends AutoCloseable {
 
         private TaskExecutorLifecycleEventType taskExecutorLifecycleEventType;
     }
-
 }

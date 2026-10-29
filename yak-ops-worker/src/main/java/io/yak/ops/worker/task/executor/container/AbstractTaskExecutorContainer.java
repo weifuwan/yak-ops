@@ -84,9 +84,13 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
         taskExecutorThreadPool.shutdownNow();
     }
 
-    public TaskExecutorAssignmentTable getTaskExecutorAssignmentTable() { return assignmentTable; }
+    public TaskExecutorAssignmentTable getTaskExecutorAssignmentTable() {
+        return assignmentTable;
+    }
 
-    public TaskExecutorWorkers getTaskExecutorWorkers() { return taskExecutorWorkers; }
+    public TaskExecutorWorkers getTaskExecutorWorkers() {
+        return taskExecutorWorkers;
+    }
 
     protected abstract Optional<TaskExecutorWorker> getTaskExecutorWorkerCandidate(ITaskExecutor executor);
 }

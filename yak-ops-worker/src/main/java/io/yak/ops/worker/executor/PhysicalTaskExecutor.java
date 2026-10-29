@@ -1,15 +1,15 @@
 package io.yak.ops.worker.executor;
 
-import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
+import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.worker.task.executor.AbstractTaskExecutor;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.TaskExecutorState;
 import io.yak.ops.worker.task.executor.eventbus.TaskExecutorEventBus;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,10 +41,13 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
             uncertainOutcome = true;
             LOG.error("Physical plugin initialization could not be confirmed, instanceId={}", getId(), failure);
             physicalTask = new PhysicalTask() {
-                @Override public CompletionStage<TaskOutcome> handle() {
+                @Override
+                public CompletionStage<TaskOutcome> handle() {
                     return java.util.concurrent.CompletableFuture.failedFuture(failure);
                 }
-                @Override public void cancel() { }
+
+                @Override
+                public void cancel() {}
             };
         }
         if (cancellationRequested.get()) physicalTask.cancel();
@@ -83,28 +86,44 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
         }
     }
 
-    @Override protected TaskExecutorState doTrackTaskPluginStatus() { return taskExecutorState.get(); }
+    @Override
+    protected TaskExecutorState doTrackTaskPluginStatus() {
+        return taskExecutorState.get();
+    }
+
     public void registerTaskHandle(TaskHandle handle) {
         if (!taskHandle.compareAndSet(null, java.util.Objects.requireNonNull(handle))) {
             throw new IllegalStateException("Physical Task handle already registered: " + getId());
         }
     }
 
-    public Optional<TaskHandle> getTaskHandle() { return Optional.ofNullable(taskHandle.get()); }
+    public Optional<TaskHandle> getTaskHandle() {
+        return Optional.ofNullable(taskHandle.get());
+    }
 
-    public boolean isPersistedTerminal() { return persistedTerminal; }
-    public boolean isUncertainOutcome() { return uncertainOutcome; }
+    public boolean isPersistedTerminal() {
+        return persistedTerminal;
+    }
 
-    @Override public void pause() { throw new UnsupportedOperationException("Task pause is not supported"); }
+    public boolean isUncertainOutcome() {
+        return uncertainOutcome;
+    }
 
-    @Override public void kill() {
+    @Override
+    public void pause() {
+        throw new UnsupportedOperationException("Task pause is not supported");
+    }
+
+    @Override
+    public void kill() {
         if (cancellationRequested.compareAndSet(false, true)) {
             PhysicalTask task = physicalTask;
             if (task != null) task.cancel();
         }
     }
 
-    @Override public void finalizeTask() {
+    @Override
+    public void finalizeTask() {
         taskHandle.set(null);
     }
 }

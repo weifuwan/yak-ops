@@ -32,9 +32,13 @@ public abstract class AbstractTaskExecutor implements ITaskExecutor {
         doTriggerTaskPlugin();
     }
 
-    @Override public boolean isStarted() { return started.get(); }
+    @Override
+    public boolean isStarted() {
+        return started.get();
+    }
 
-    @Override public TaskExecutorState trackTaskExecutorState() {
+    @Override
+    public TaskExecutorState trackTaskExecutorState() {
         TaskExecutorState state = taskExecutorState.get();
         if (state.isFinalState()) return state;
         latestStateTrackTime = System.currentTimeMillis();
@@ -54,11 +58,23 @@ public abstract class AbstractTaskExecutor implements ITaskExecutor {
         taskExecutorState.set(state);
     }
 
-    protected void initializeTaskContext() { taskExecutionContext.setStartTime(System.currentTimeMillis()); }
+    protected void initializeTaskContext() {
+        taskExecutionContext.setStartTime(System.currentTimeMillis());
+    }
+
     protected abstract void initializeTaskPlugin();
+
     protected abstract void doTriggerTaskPlugin();
+
     protected abstract TaskExecutorState doTrackTaskPluginStatus();
 
-    @Override public TaskExecutionContext getTaskExecutionContext() { return taskExecutionContext; }
-    @Override public TaskExecutorEventBus getTaskExecutorEventBus() { return taskExecutorEventBus; }
+    @Override
+    public TaskExecutionContext getTaskExecutionContext() {
+        return taskExecutionContext;
+    }
+
+    @Override
+    public TaskExecutorEventBus getTaskExecutorEventBus() {
+        return taskExecutorEventBus;
+    }
 }

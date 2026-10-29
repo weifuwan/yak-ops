@@ -17,15 +17,13 @@
 
 package io.yak.ops.worker.task.executor.worker;
 
-import java.util.Objects;
-
 import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.TaskExecutorState;
 import io.yak.ops.worker.task.executor.events.TaskExecutorFailedLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorKilledLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorPausedLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorSuccessLifecycleEvent;
-
+import java.util.Objects;
 
 public abstract class AbstractTaskExecutorWorker implements ITaskExecutorWorker {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AbstractTaskExecutorWorker.class);
@@ -84,5 +82,4 @@ public abstract class AbstractTaskExecutorWorker implements ITaskExecutorWorker 
     protected void onTaskExecutorFinished(final ITaskExecutor taskExecutor) {
         unFireTaskExecutor(taskExecutor);
     }
-
 }

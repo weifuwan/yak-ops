@@ -4,21 +4,21 @@ import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.ITaskExecutorRepository;
 import io.yak.ops.worker.task.executor.events.AbstractTaskExecutorLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorDispatchedLifecycleEvent;
-import io.yak.ops.worker.task.executor.events.TaskExecutorStartedLifecycleEvent;
-import io.yak.ops.worker.task.executor.events.TaskExecutorRuntimeContextChangedLifecycleEvent;
-import io.yak.ops.worker.task.executor.events.TaskExecutorPauseLifecycleEvent;
-import io.yak.ops.worker.task.executor.events.TaskExecutorPausedLifecycleEvent;
-import io.yak.ops.worker.task.executor.events.TaskExecutorKillLifecycleEvent;
-import io.yak.ops.worker.task.executor.events.TaskExecutorKilledLifecycleEvent;
-import io.yak.ops.worker.task.executor.events.TaskExecutorSuccessLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorFailedLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorFinalizeLifecycleEvent;
+import io.yak.ops.worker.task.executor.events.TaskExecutorKillLifecycleEvent;
+import io.yak.ops.worker.task.executor.events.TaskExecutorKilledLifecycleEvent;
+import io.yak.ops.worker.task.executor.events.TaskExecutorPauseLifecycleEvent;
+import io.yak.ops.worker.task.executor.events.TaskExecutorPausedLifecycleEvent;
+import io.yak.ops.worker.task.executor.events.TaskExecutorRuntimeContextChangedLifecycleEvent;
+import io.yak.ops.worker.task.executor.events.TaskExecutorStartedLifecycleEvent;
+import io.yak.ops.worker.task.executor.events.TaskExecutorSuccessLifecycleEvent;
 import io.yak.ops.worker.task.executor.listener.ITaskExecutorLifecycleEventListener;
 import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,7 +32,8 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
     private static final long DEFAULT_FIRE_INTERVAL = 50;
     private final String coordinatorName;
     private final ITaskExecutorRepository taskExecutorRepository;
-    private final List<ITaskExecutorLifecycleEventListener> taskExecutorLifecycleEventListeners = new CopyOnWriteArrayList<>();
+    private final List<ITaskExecutorLifecycleEventListener> taskExecutorLifecycleEventListeners =
+            new CopyOnWriteArrayList<>();
     private final Set<String> firingTaskExecutorIds = ConcurrentHashMap.newKeySet();
     private ScheduledExecutorService mainExecutorThreadPool;
     private ExecutorService workerExecutorThreadPool;
@@ -63,8 +64,11 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
             if (!firingTaskExecutorIds.add(taskExecutorId)) continue;
             try {
                 workerExecutorThreadPool.execute(() -> {
-                    try { doFireTaskExecutorEventBus(executor); }
-                    finally { firingTaskExecutorIds.remove(taskExecutorId); }
+                    try {
+                        doFireTaskExecutorEventBus(executor);
+                    } finally {
+                        firingTaskExecutorIds.remove(taskExecutorId);
+                    }
                 });
             } catch (RuntimeException failure) {
                 firingTaskExecutorIds.remove(taskExecutorId);
@@ -75,31 +79,44 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
 
     private void doFireTaskExecutorEventBus(ITaskExecutor executor) {
         try (TaskExecutorMDCUtils.MDCAutoClosable ignored = TaskExecutorMDCUtils.logWithMDC(executor)) {
-            AbstractTaskExecutorLifecycleEvent event = executor.getTaskExecutorEventBus().poll().orElse(null);
+            AbstractTaskExecutorLifecycleEvent event =
+                    executor.getTaskExecutorEventBus().poll().orElse(null);
             if (event == null) return;
             try {
                 for (ITaskExecutorLifecycleEventListener listener : taskExecutorLifecycleEventListeners) {
                     switch (event.getType()) {
                         case DISPATCHED:
-                            listener.onTaskExecutorDispatchedLifecycleEvent((TaskExecutorDispatchedLifecycleEvent) event); break;
+                            listener.onTaskExecutorDispatchedLifecycleEvent(
+                                    (TaskExecutorDispatchedLifecycleEvent) event);
+                            break;
                         case RUNNING:
-                            listener.onTaskExecutorStartedLifecycleEvent((TaskExecutorStartedLifecycleEvent) event); break;
+                            listener.onTaskExecutorStartedLifecycleEvent((TaskExecutorStartedLifecycleEvent) event);
+                            break;
                         case RUNTIME_CONTEXT_CHANGE:
-                            listener.onTaskExecutorRuntimeContextChangedEvent((TaskExecutorRuntimeContextChangedLifecycleEvent) event); break;
+                            listener.onTaskExecutorRuntimeContextChangedEvent(
+                                    (TaskExecutorRuntimeContextChangedLifecycleEvent) event);
+                            break;
                         case PAUSE:
-                            listener.onTaskExecutorPauseLifecycleEvent((TaskExecutorPauseLifecycleEvent) event); break;
+                            listener.onTaskExecutorPauseLifecycleEvent((TaskExecutorPauseLifecycleEvent) event);
+                            break;
                         case PAUSED:
-                            listener.onTaskExecutorPausedLifecycleEvent((TaskExecutorPausedLifecycleEvent) event); break;
+                            listener.onTaskExecutorPausedLifecycleEvent((TaskExecutorPausedLifecycleEvent) event);
+                            break;
                         case KILL:
-                            listener.onTaskExecutorKillLifecycleEvent((TaskExecutorKillLifecycleEvent) event); break;
+                            listener.onTaskExecutorKillLifecycleEvent((TaskExecutorKillLifecycleEvent) event);
+                            break;
                         case KILLED:
-                            listener.onTaskExecutorKilledLifecycleEvent((TaskExecutorKilledLifecycleEvent) event); break;
+                            listener.onTaskExecutorKilledLifecycleEvent((TaskExecutorKilledLifecycleEvent) event);
+                            break;
                         case SUCCESS:
-                            listener.onTaskExecutorSuccessLifecycleEvent((TaskExecutorSuccessLifecycleEvent) event); break;
+                            listener.onTaskExecutorSuccessLifecycleEvent((TaskExecutorSuccessLifecycleEvent) event);
+                            break;
                         case FAILED:
-                            listener.onTaskExecutorFailLifecycleEvent((TaskExecutorFailedLifecycleEvent) event); break;
+                            listener.onTaskExecutorFailLifecycleEvent((TaskExecutorFailedLifecycleEvent) event);
+                            break;
                         case FINALIZE:
-                            listener.onTaskExecutorFinalizeLifecycleEvent((TaskExecutorFinalizeLifecycleEvent) event); break;
+                            listener.onTaskExecutorFinalizeLifecycleEvent((TaskExecutorFinalizeLifecycleEvent) event);
+                            break;
                         default:
                             throw new IllegalStateException("Unexpected task executor event " + event.getType());
                     }

@@ -18,7 +18,6 @@
 package io.yak.ops.worker.task.executor.events;
 
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -38,5 +37,4 @@ public class TaskExecutorFinalizeLifecycleEvent extends AbstractTaskExecutorLife
                 .type(TaskExecutorLifecycleEventType.FINALIZE)
                 .build();
     }
-
 }

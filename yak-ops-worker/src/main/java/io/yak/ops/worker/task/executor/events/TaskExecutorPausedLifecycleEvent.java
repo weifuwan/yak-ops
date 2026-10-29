@@ -17,9 +17,8 @@
 
 package io.yak.ops.worker.task.executor.events;
 
-import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-
+import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -32,8 +31,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class TaskExecutorPausedLifecycleEvent extends AbstractTaskExecutorLifecycleEvent
-        implements
-            IReportableTaskExecutorLifecycleEvent {
+        implements IReportableTaskExecutorLifecycleEvent {
 
     private String workflowInstanceId;
 
@@ -48,10 +46,8 @@ public class TaskExecutorPausedLifecycleEvent extends AbstractTaskExecutorLifecy
         return TaskExecutorPausedLifecycleEvent.builder()
                 .taskInstanceId(taskExecutionContext.getTaskInstanceId())
                 .workflowInstanceId(taskExecutionContext.getWorkflowInstanceId())
-
                 .endTime(taskExecutionContext.getEndTime())
                 .type(TaskExecutorLifecycleEventType.PAUSED)
                 .build();
     }
-
 }

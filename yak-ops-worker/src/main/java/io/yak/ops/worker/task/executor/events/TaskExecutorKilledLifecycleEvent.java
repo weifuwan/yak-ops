@@ -17,9 +17,8 @@
 
 package io.yak.ops.worker.task.executor.events;
 
-import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-
+import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -32,8 +31,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 public class TaskExecutorKilledLifecycleEvent extends AbstractTaskExecutorLifecycleEvent
-        implements
-            IReportableTaskExecutorLifecycleEvent {
+        implements IReportableTaskExecutorLifecycleEvent {
 
     private String workflowInstanceId;
 
@@ -48,10 +46,8 @@ public class TaskExecutorKilledLifecycleEvent extends AbstractTaskExecutorLifecy
         return TaskExecutorKilledLifecycleEvent.builder()
                 .taskInstanceId(taskExecutionContext.getTaskInstanceId())
                 .workflowInstanceId(taskExecutionContext.getWorkflowInstanceId())
-
                 .endTime(taskExecutionContext.getEndTime())
                 .type(TaskExecutorLifecycleEventType.KILLED)
                 .build();
     }
-
 }

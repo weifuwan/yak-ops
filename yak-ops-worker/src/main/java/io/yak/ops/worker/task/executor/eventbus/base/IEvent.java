@@ -20,6 +20,4 @@ package io.yak.ops.worker.task.executor.eventbus.base;
 /**
  * The interface of event which is used can be stored at {@link IEventBus}.
  */
-public interface IEvent {
-
-}
+public interface IEvent {}

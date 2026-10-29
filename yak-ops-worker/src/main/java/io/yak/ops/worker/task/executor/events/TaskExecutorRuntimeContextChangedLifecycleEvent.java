@@ -17,9 +17,8 @@
 
 package io.yak.ops.worker.task.executor.events;
 
-import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.ITaskExecutor;
-
+import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -32,8 +31,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 public class TaskExecutorRuntimeContextChangedLifecycleEvent extends AbstractTaskExecutorLifecycleEvent
-        implements
-            IReportableTaskExecutorLifecycleEvent {
+        implements IReportableTaskExecutorLifecycleEvent {
 
     private String workflowInstanceId;
 
@@ -51,10 +49,7 @@ public class TaskExecutorRuntimeContextChangedLifecycleEvent extends AbstractTas
         return TaskExecutorRuntimeContextChangedLifecycleEvent.builder()
                 .taskInstanceId(taskExecutionContext.getTaskInstanceId())
                 .workflowInstanceId(taskExecutionContext.getWorkflowInstanceId())
-
-
                 .type(TaskExecutorLifecycleEventType.RUNTIME_CONTEXT_CHANGE)
                 .build();
     }
-
 }

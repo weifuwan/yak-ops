@@ -6,10 +6,10 @@ import io.yak.ops.business.task.instance.InstanceService;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
-import io.yak.ops.worker.executor.PhysicalTaskEngineDelegator;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
+import io.yak.ops.worker.executor.PhysicalTaskEngineDelegator;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import java.util.Optional;
@@ -38,6 +38,7 @@ public class TaskExecutionObserver implements AutoCloseable {
 
     @Resource
     private PhysicalTaskEngineDelegator worker;
+
     private final ExecutorService callbacks = Executors.newVirtualThreadPerTaskExecutor();
 
     /**

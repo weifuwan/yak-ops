@@ -1,7 +1,7 @@
 package io.yak.ops.worker.task.executor;
 
-import java.util.Objects;
 import io.yak.ops.worker.executor.PhysicalTaskPluginFactory;
+import java.util.Objects;
 
 /** Worker-local identity of one physical Task; business ownership stays with the Master. */
 public final class TaskExecutionContext {
@@ -20,20 +20,67 @@ public final class TaskExecutionContext {
         this.taskInstanceId = Objects.requireNonNull(taskInstanceId, "taskInstanceId");
     }
 
-    public PhysicalTaskPluginFactory getPhysicalTaskPluginFactory() { return physicalTaskPluginFactory; }
-    public void setPhysicalTaskPluginFactory(PhysicalTaskPluginFactory factory) { physicalTaskPluginFactory = Objects.requireNonNull(factory); }
-    public String getWorkspaceId() { return workspaceId; }
-    public String getTaskInstanceId() { return taskInstanceId; }
-    public String getTaskType() { return taskType; }
-    public void setTaskType(String taskType) { this.taskType = taskType; }
-    public String getTaskName() { return taskName; }
-    public void setTaskName(String taskName) { this.taskName = taskName; }
-    public String getWorkflowInstanceId() { return workflowInstanceId; }
-    public void setWorkflowInstanceId(String id) { workflowInstanceId = id; }
-    public String getLogPath() { return logPath; }
-    public void setLogPath(String path) { logPath = path; }
-    public long getStartTime() { return startTime; }
-    public void setStartTime(long time) { startTime = time; }
-    public long getEndTime() { return endTime; }
-    public void setEndTime(long time) { endTime = time; }
+    public PhysicalTaskPluginFactory getPhysicalTaskPluginFactory() {
+        return physicalTaskPluginFactory;
+    }
+
+    public void setPhysicalTaskPluginFactory(PhysicalTaskPluginFactory factory) {
+        physicalTaskPluginFactory = Objects.requireNonNull(factory);
+    }
+
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
+    public String getTaskInstanceId() {
+        return taskInstanceId;
+    }
+
+    public String getTaskType() {
+        return taskType;
+    }
+
+    public void setTaskType(String taskType) {
+        this.taskType = taskType;
+    }
+
+    public String getTaskName() {
+        return taskName;
+    }
+
+    public void setTaskName(String taskName) {
+        this.taskName = taskName;
+    }
+
+    public String getWorkflowInstanceId() {
+        return workflowInstanceId;
+    }
+
+    public void setWorkflowInstanceId(String id) {
+        workflowInstanceId = id;
+    }
+
+    public String getLogPath() {
+        return logPath;
+    }
+
+    public void setLogPath(String path) {
+        logPath = path;
+    }
+
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long time) {
+        startTime = time;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long time) {
+        endTime = time;
+    }
 }
