@@ -29,17 +29,17 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 public interface JdbcRegistryDataMapper extends BaseMapper<JdbcRegistryData> {
 
-    @Select("select * from t_ds_jdbc_registry_data")
+    @Select("select * from yak_ops_jdbc_registry_data")
     List<JdbcRegistryData> selectAll();
 
-    @Select("select * from t_ds_jdbc_registry_data where data_key = #{key}")
+    @Select("select * from yak_ops_jdbc_registry_data where data_key = #{key}")
     JdbcRegistryData selectByKey(@Param("key") String key);
 
-    @Delete("delete from t_ds_jdbc_registry_data where data_key = #{key}")
+    @Delete("delete from yak_ops_jdbc_registry_data where data_key = #{key}")
     void deleteByKey(@Param("key") String key);
 
     @Delete({"<script>",
-            "delete from t_ds_jdbc_registry_data",
+            "delete from yak_ops_jdbc_registry_data",
             "where client_id IN ",
             "<foreach item='clientId' index='index' collection='clientIds' open='(' separator=',' close=')'>",
             "   #{clientId}",

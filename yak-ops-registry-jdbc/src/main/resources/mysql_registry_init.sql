@@ -16,8 +16,8 @@
 */
 
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_data`;
-CREATE TABLE `t_ds_jdbc_registry_data`
+DROP TABLE IF EXISTS `yak_ops_jdbc_registry_data`;
+CREATE TABLE `yak_ops_jdbc_registry_data`
 (
     `id`               bigint(11)   NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `data_key`         varchar(256) NOT NULL COMMENT 'key, like zookeeper node path',
@@ -27,13 +27,13 @@ CREATE TABLE `t_ds_jdbc_registry_data`
     `create_time`      timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
     `last_update_time` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'last update time',
     PRIMARY KEY (`id`),
-    unique Key `uk_t_ds_jdbc_registry_dataKey` (`data_key`)
+    unique Key `uk_yak_ops_jdbc_registry_dataKey` (`data_key`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_lock`;
-CREATE TABLE `t_ds_jdbc_registry_lock`
+DROP TABLE IF EXISTS `yak_ops_jdbc_registry_lock`;
+CREATE TABLE `yak_ops_jdbc_registry_lock`
 (
     `id`          bigint(11)   NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `lock_key`    varchar(256) NOT NULL COMMENT 'lock path',
@@ -41,12 +41,12 @@ CREATE TABLE `t_ds_jdbc_registry_lock`
     `client_id`   bigint(11)   NOT NULL COMMENT 'client id',
     `create_time` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'create time',
     PRIMARY KEY (`id`),
-    unique Key `uk_t_ds_jdbc_registry_lockKey` (`lock_key`)
+    unique Key `uk_yak_ops_jdbc_registry_lockKey` (`lock_key`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_client_heartbeat`;
-CREATE TABLE `t_ds_jdbc_registry_client_heartbeat`
+DROP TABLE IF EXISTS `yak_ops_jdbc_registry_client_heartbeat`;
+CREATE TABLE `yak_ops_jdbc_registry_client_heartbeat`
 (
     `id`                  bigint(11)   NOT NULL COMMENT 'primary key',
     `client_name`         varchar(256) NOT NULL COMMENT 'client name, ip_processId',
@@ -57,8 +57,8 @@ CREATE TABLE `t_ds_jdbc_registry_client_heartbeat`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8;
 
-DROP TABLE IF EXISTS `t_ds_jdbc_registry_data_change_event`;
-CREATE TABLE `t_ds_jdbc_registry_data_change_event`
+DROP TABLE IF EXISTS `yak_ops_jdbc_registry_data_change_event`;
+CREATE TABLE `yak_ops_jdbc_registry_data_change_event`
 (
     `id`                 bigint(11)  NOT NULL AUTO_INCREMENT COMMENT 'primary key',
     `event_type`         varchar(64) NOT NULL COMMENT 'ADD, UPDATE, DELETE',

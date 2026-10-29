@@ -30,12 +30,12 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 public interface JdbcRegistryDataChangeEventMapper extends BaseMapper<JdbcRegistryDataChangeEvent> {
 
-    @Select("select max(id) from t_ds_jdbc_registry_data_change_event")
+    @Select("select max(id) from yak_ops_jdbc_registry_data_change_event")
     Long getMaxId();
 
-    @Select("select * from t_ds_jdbc_registry_data_change_event where id > #{id} order by id asc limit 1000")
+    @Select("select * from yak_ops_jdbc_registry_data_change_event where id > #{id} order by id asc limit 1000")
     List<JdbcRegistryDataChangeEvent> selectJdbcRegistryDataChangeEventWhereIdAfter(@Param("id") long id);
 
-    @Delete("delete from t_ds_jdbc_registry_data_change_event where create_time < #{createTime}")
+    @Delete("delete from yak_ops_jdbc_registry_data_change_event where create_time < #{createTime}")
     void deleteJdbcRegistryDataChangeEventBeforeCreateTime(@Param("createTime") Date createTime);
 }

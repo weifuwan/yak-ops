@@ -5,8 +5,7 @@
 - Preserved package names: `org.apache.dolphinscheduler.registry.api` and
   `org.apache.dolphinscheduler.plugin.registry.jdbc`.
 - All JDBC Registry production Java classes are copied from the upstream module,
-  together with `mysql_registry_init.sql`, `postgresql_registry_init.sql`,
-  and the upstream `META-INF/spring.factories` resource.
+  together with the two SQL resources and the upstream `META-INF/spring.factories` resource.
 - Used SPI source is copied into `yak-ops-registry-api`. Upstream RegistryClient
   and HA classes are outside the JDBC module's runtime dependency graph and not
   copied; they require DolphinScheduler Master/Worker heartbeat models.
@@ -23,8 +22,7 @@
   `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`;
   it points to the original upstream configuration class.
 - **Schema lifecycle**: Yak Ops Flyway V1 owns creation of the four upstream
-  Registry tables. The original SQL resources are retained for source comparison
-  and must not be re-executed after migration. Existing V1 databases require an
+  Registry tables. SQL resources, four DO `@TableName` annotations and Mapper SQL adapt only table/index identifiers from `t_ds_` to `yak_ops_`; preserve all upstream algorithms. The bootstrap SQL resources must not be re-executed after migration. Existing V1 databases require an
   explicit migration or clean rebuild; changing V1 alone is not a safe upgrade.
 
 The JDBC Registry server, heartbeat Mapper/Repository, and upstream regression test follow Apache DolphinScheduler PR #18416 (compare-and-delete expiration, durable current heartbeat, atomic connection state). Keep provenance when updating further.

@@ -28,7 +28,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
-@TableName(value = "t_ds_jdbc_registry_data_change_event")
+@TableName(value = "yak_ops_jdbc_registry_data_change_event")
 @Data
 @Builder
 @NoArgsConstructor

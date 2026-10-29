@@ -29,10 +29,10 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 public interface JdbcRegistryClientHeartbeatMapper extends BaseMapper<JdbcRegistryClientHeartbeat> {
 
-    @Select("select * from t_ds_jdbc_registry_client_heartbeat")
+    @Select("select * from yak_ops_jdbc_registry_client_heartbeat")
     List<JdbcRegistryClientHeartbeat> selectAll();
 
-    @Delete("delete from t_ds_jdbc_registry_client_heartbeat "
+    @Delete("delete from yak_ops_jdbc_registry_client_heartbeat "
             + "where id = #{id} and last_heartbeat_time = #{lastHeartbeatTime}")
     int deleteByIdAndLastHeartbeatTime(@Param("id") Long id, @Param("lastHeartbeatTime") Long lastHeartbeatTime);
 
