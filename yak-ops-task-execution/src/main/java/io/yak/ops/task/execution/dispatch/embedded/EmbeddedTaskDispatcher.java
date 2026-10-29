@@ -18,6 +18,7 @@ import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.task.execution.dispatch.TaskExecutionCoordinator;
 import io.yak.ops.task.execution.owner.EmbeddedExecutionOwner;
+import io.yak.ops.worker.executor.PhysicalTaskEngineDelegator;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
@@ -25,9 +26,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -62,7 +62,8 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     @Resource
     private ExecutionClaimRepository claims;
 
-    private final ExecutorService workers = Executors.newVirtualThreadPerTaskExecutor();
+    @Resource
+    private PhysicalTaskEngineDelegator worker;
     private final ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor(
             Thread.ofVirtual().name("task-dispatch-reconcile", 0).factory());
     private final Object[] launchFences = new Object[256];
@@ -108,11 +109,14 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     @Override
     public void dispatch(String workspaceId, String instanceId) {
         owner.incarnation();
-        workers.execute(() -> {
-            try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", instanceId)) {
-                launch(workspaceId, instanceId);
-            }
-        });
+        try {
+            worker.dispatch(workspaceId, instanceId,
+                    () -> launch(workspaceId, instanceId), () -> observer.cancel(instanceId));
+        } catch (IllegalStateException capacityOrDuplicate) {
+            // Reconcile pending SUBMITTED instances after an execution slot becomes available.
+            LOG.debug("Embedded Worker deferred Task dispatch, instanceId={}, reason={}",
+                    instanceId, capacityOrDuplicate.getMessage());
+        }
     }
 
     /**
@@ -133,14 +137,14 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
         }
     }
 
-    private void launch(String workspaceId, String instanceId) {
+    private CompletionStage<TaskOutcome> launch(String workspaceId, String instanceId) {
         DispatchTicket ticket = null;
         boolean physicalStartInvoked = false;
-        try {
+        try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", instanceId)) {
             String token = UUID.randomUUID().toString();
             ticket = lifecycle.claim(workspaceId, instanceId, owner.incarnation(), token);
             if (ticket == null) {
-                return;
+                return CompletableFuture.completedFuture(TaskOutcome.CANCELED);
             }
             LOG.info("Task Instance launch claimed, instanceId={}", instanceId);
             TaskExecutionIdentity context = new TaskExecutionIdentity(
@@ -148,7 +152,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             TaskPlugin plugin = registry.get(ticket.taskType());
             if (!(plugin instanceof ExecutableTaskPlugin executable)) {
                 lifecycle.complete(ticket, TaskOutcome.FAILED);
-                return;
+                return CompletableFuture.completedFuture(TaskOutcome.FAILED);
             }
             var version = definitions
                     .queryCurrent(workspaceId, ticket.definitionId(), ticket.definitionVersion())
@@ -168,14 +172,14 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             synchronized (launchFence(instanceId)) {
                 if (instances.instance(workspaceId, instanceId).getStatus() == TaskInstanceStatus.CANCELLING) {
                     lifecycle.complete(ticket, TaskOutcome.CANCELED);
-                    return;
+                    return CompletableFuture.completedFuture(TaskOutcome.CANCELED);
                 }
                 physicalStartInvoked = true;
                 submitted = executable.start(parameters, plan, context, ticket.debug());
             }
             // Runtime completion may run on an interrupted YakFlow Job thread. Business
             // transactions must execute on a fresh thread to keep JDBC connections usable.
-            observer.observe(launched, submitted);
+            return observer.observeTracked(launched, submitted);
         } catch (RuntimeException failure) {
             if (ticket != null) {
                 if (physicalStartInvoked) {
@@ -185,6 +189,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
                 }
             }
             LOG.error("Task dispatch failed, instanceId={}", instanceId, failure);
+            return CompletableFuture.failedFuture(failure);
         }
     }
 
@@ -197,6 +202,6 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     public void close() {
         poller.shutdownNow();
         observer.cancelActive();
-        workers.shutdown();
+
     }
 }

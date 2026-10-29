@@ -13,6 +13,7 @@
     <description>Task execution coordination, embedded dispatch, ownership and terminal observation</description>
     <dependencies>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-business-schedule</artifactId></dependency>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-worker</artifactId></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-scheduler-api</artifactId></dependency>
 
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-configuration</artifactId></dependency>

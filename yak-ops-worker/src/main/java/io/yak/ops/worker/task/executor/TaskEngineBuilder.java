@@ -1,42 +1,20 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.yak.ops.worker.task.executor;
 
 import io.yak.ops.worker.task.executor.container.ITaskExecutorContainerProvider;
-import io.yak.ops.worker.task.executor.eventbus.ITaskExecutorEventBusCoordinator;
+import io.yak.ops.worker.task.executor.eventbus.TaskExecutorEventBusCoordinator;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class TaskEngineBuilder {
-
+/** DolphinScheduler TaskEngineBuilder fields, adapted to local lifecycle coordination. */
+public final class TaskEngineBuilder {
     private String engineName;
-
     private ITaskExecutorRepository taskExecutorRepository;
-
-    private ITaskExecutorContainerProvider taskExecutorContainerDelegator;
-
-    private ITaskExecutorEventBusCoordinator taskExecutorEventBusCoordinator;
-
+    private ITaskExecutorContainerProvider<?> taskExecutorContainerDelegator;
+    private TaskExecutorEventBusCoordinator taskExecutorEventBusCoordinator;
+    public String getEngineName() { return engineName; }
+    public void setEngineName(String name) { engineName = name; }
+    public ITaskExecutorRepository getTaskExecutorRepository() { return taskExecutorRepository; }
+    public void setTaskExecutorRepository(ITaskExecutorRepository repository) { taskExecutorRepository = repository; }
+    public ITaskExecutorContainerProvider<?> getTaskExecutorContainerDelegator() { return taskExecutorContainerDelegator; }
+    public void setTaskExecutorContainerDelegator(ITaskExecutorContainerProvider<?> container) { taskExecutorContainerDelegator = container; }
+    public TaskExecutorEventBusCoordinator getTaskExecutorEventBusCoordinator() { return taskExecutorEventBusCoordinator; }
+    public void setTaskExecutorEventBusCoordinator(TaskExecutorEventBusCoordinator events) { taskExecutorEventBusCoordinator = events; }
 }

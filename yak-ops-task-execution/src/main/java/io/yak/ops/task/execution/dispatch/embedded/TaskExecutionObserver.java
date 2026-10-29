@@ -13,6 +13,7 @@ import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,13 +46,21 @@ public class TaskExecutionObserver implements AutoCloseable {
      * @param submission pending physical execution handle
      */
     public void observe(DispatchTicket ticket, CompletionStage<TaskHandle> submission) {
-        submission.whenCompleteAsync(
-                (handle, failure) -> {
-                    try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
-                        observeSubmission(ticket, handle, failure);
-                    }
-                },
-                callbacks);
+        observeTracked(ticket, submission);
+    }
+
+    /** Completes only after terminal business persistence has been attempted. */
+    public CompletionStage<TaskOutcome> observeTracked(
+            DispatchTicket ticket, CompletionStage<TaskHandle> submission) {
+        CompletableFuture<TaskOutcome> observed = new CompletableFuture<>();
+        submission.whenCompleteAsync((handle, failure) -> {
+            try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
+                observeSubmission(ticket, handle, failure, observed);
+            } catch (RuntimeException error) {
+                observed.completeExceptionally(error);
+            }
+        }, callbacks);
+        return observed;
     }
 
     /**
@@ -120,6 +129,11 @@ public class TaskExecutionObserver implements AutoCloseable {
     }
 
     private void observeSubmission(DispatchTicket ticket, TaskHandle handle, Throwable failure) {
+        observeSubmission(ticket, handle, failure, null);
+    }
+
+    private void observeSubmission(DispatchTicket ticket, TaskHandle handle, Throwable failure,
+                                   CompletableFuture<TaskOutcome> observed) {
         if (failure != null) {
             Throwable cause = failure;
             if (cause instanceof CompletionException && cause.getCause() != null) {
@@ -136,6 +150,12 @@ public class TaskExecutionObserver implements AutoCloseable {
                         "Task submission result could not be persisted, instanceId={}, exceptionType={}",
                         ticket.instanceId(),
                         persistFailure.getClass().getSimpleName());
+                if (observed != null) observed.completeExceptionally(persistFailure);
+                return;
+            }
+            if (observed != null) {
+                if (cause instanceof TaskStartRejectedException) observed.complete(TaskOutcome.FAILED);
+                else observed.completeExceptionally(cause);
             }
             return;
         }
@@ -172,6 +192,11 @@ public class TaskExecutionObserver implements AutoCloseable {
                             (outcome, error) -> {
                                 try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", ticket.instanceId())) {
                                     observeTerminal(ticket, handle, outcome, error);
+                                    if (observed != null) {
+                                        if (error == null && outcome != null) observed.complete(outcome);
+                                        else observed.completeExceptionally(error == null
+                                                ? new IllegalStateException("Unknown Task outcome") : error);
+                                    }
                                 }
                             },
                             callbacks);
@@ -188,6 +213,7 @@ public class TaskExecutionObserver implements AutoCloseable {
                     "Unable to observe Task execution, instanceId={}, exceptionType={}",
                     instanceId,
                     observationFailure.getClass().getSimpleName());
+            if (observed != null) observed.completeExceptionally(observationFailure);
         }
     }
 
