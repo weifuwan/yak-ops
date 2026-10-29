@@ -69,8 +69,13 @@ public class TaskExecutorWorker extends AbstractTaskExecutorWorker {
                             trackTaskExecutorState(taskExecutor);
                         }
                     } catch (Throwable e) {
-                        LOG.error("{} execute failed", taskExecutor, e);
-                        onTaskExecutorFailed(taskExecutor);
+                        // A failed observation does not prove an asynchronously submitted
+                        // engine job has terminated. Keep the slot until confirmed.
+                        LOG.error("Task executor state could not be confirmed, taskId={}",
+                                taskExecutor.getId(), e);
+                        if (e instanceof VirtualMachineError fatal) {
+                            throw fatal;
+                        }
                     }
                 }
             }

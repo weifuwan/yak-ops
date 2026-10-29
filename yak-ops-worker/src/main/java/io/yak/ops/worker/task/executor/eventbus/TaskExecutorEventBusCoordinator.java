@@ -122,7 +122,8 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
                     }
                 }
             } catch (RuntimeException failure) {
-                // Requeue the original delayed event; preserve its original event timestamp.
+                // An already-expired event must not be retried in a tight loop.
+                event.retryAfter(1_000);
                 executor.getTaskExecutorEventBus().publish(event);
                 LOG.error("Unable to handle physical task lifecycle event {}", event.getType(), failure);
             }

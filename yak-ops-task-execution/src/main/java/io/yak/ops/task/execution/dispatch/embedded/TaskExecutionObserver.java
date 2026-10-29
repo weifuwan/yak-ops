@@ -164,8 +164,8 @@ public class TaskExecutionObserver implements AutoCloseable {
             return;
         }
         String instanceId = ticket.instanceId();
-        worker.registerTaskHandle(instanceId, handle);
         try {
+            worker.registerTaskHandle(instanceId, handle);
             TaskRuntimeReference reference = handle.runtimeReference().orElse(null);
             lifecycle.started(ticket, reference);
             LOG.info("Task Instance started, instanceId={}", instanceId);
@@ -246,7 +246,19 @@ public class TaskExecutionObserver implements AutoCloseable {
                 if (report.isPresent()) lifecycle.complete(ticket, outcome, report.get());
                 else lifecycle.complete(ticket, outcome);
                 LOG.info("Task Instance completed, instanceId={}, outcome={}", ticket.instanceId(), outcome);
-                persisted = true;
+                // complete() is intentionally idempotent. Never ACK a stale
+                // dispatch or a terminal outcome skipped due to RECONCILING.
+                TaskInstanceStatus expectedStatus =
+                        switch (outcome) {
+                            case FINISHED -> TaskInstanceStatus.FINISHED;
+                            case FAILED -> TaskInstanceStatus.FAILED;
+                            case CANCELED -> TaskInstanceStatus.CANCELED;
+                        };
+                io.yak.ops.dao.entity.task.InstanceEntity actual =
+                        instances.instance(ticket.workspaceId(), ticket.instanceId());
+                persisted = actual != null
+                        && actual.getStatus() == expectedStatus
+                        && ticket.dispatchToken().equals(actual.getDispatchToken());
             } else {
                 var report = publicObservation(ticket.instanceId(), handle, false);
                 if (report.isPresent()) lifecycle.uncertain(ticket, report.get());

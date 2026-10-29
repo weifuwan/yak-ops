@@ -57,6 +57,16 @@ public abstract class AbstractDelayEvent implements IEvent, Delayed {
         this.expiredTimeInNano = this.delayTime * 1_000_000 + this.createTimeInNano;
     }
 
+    /**
+     * Reschedule a polled event without changing its lifecycle identity.
+     * Call this only after removal from the DelayQueue.
+     */
+    public void retryAfter(long retryDelayMillis) {
+        this.delayTime = Math.max(0, retryDelayMillis);
+        this.createTimeInNano = System.nanoTime();
+        this.expiredTimeInNano = this.createTimeInNano + TimeUnit.MILLISECONDS.toNanos(this.delayTime);
+    }
+
     @Override
     public long getDelay(TimeUnit unit) {
         long delay = createTimeInNano + delayTime * 1_000_000 - System.nanoTime();
