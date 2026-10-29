@@ -36,13 +36,12 @@ public class ExecutionOwnerRepositoryImpl implements ExecutionOwnerRepository {
         if (owners.isEmpty()) {
             jdbc.update(
                     "INSERT INTO yak_ops_task_execution_owner"
-                            + " (id, host_id, state_root, owner_incarnation, last_seen_time, create_time, update_time)"
-                            + " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            + " (id, host_id, state_root, owner_incarnation, create_time, update_time)"
+                            + " VALUES (?, ?, ?, ?, ?, ?)",
                     OWNER_ID,
                     hostId,
                     stateRoot,
                     incarnation,
-                    now,
                     now,
                     now);
             return;
@@ -54,10 +53,9 @@ public class ExecutionOwnerRepositoryImpl implements ExecutionOwnerRepository {
         }
 
         jdbc.update(
-                "UPDATE yak_ops_task_execution_owner SET owner_incarnation = ?, last_seen_time = ?,"
+                "UPDATE yak_ops_task_execution_owner SET owner_incarnation = ?,"
                         + " update_time = ? WHERE id = ?",
                 incarnation,
-                now,
                 now,
                 OWNER_ID);
     }

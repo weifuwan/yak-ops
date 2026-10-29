@@ -212,7 +212,7 @@ class ScheduleAdmissionIT {
         PLUGIN.reset();
         insertDefinition();
         jdbc.update(
-                "INSERT INTO yak_ops_task_execution_owner (id,host_id,state_root,owner_incarnation,last_seen_time,create_time,update_time) VALUES ('embedded','test-host','/test-state','test-owner',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+                "INSERT INTO yak_ops_task_execution_owner (id,host_id,state_root,owner_incarnation,create_time,update_time) VALUES ('embedded','test-host','/test-state','test-owner',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
         jdbc.update(
                 "INSERT INTO yak_ops_schedule (id,workspace_id,target_type,target_id,cron_expression,time_zone,enabled,revision,enabled_at,enabled_by,create_time,update_time,create_by,update_by) VALUES ('schedule','ws','TASK','task','0 * * * * ?','UTC',1,2,'2026-10-13 00:00:00','actor',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')");
         NOW.set(BASE);

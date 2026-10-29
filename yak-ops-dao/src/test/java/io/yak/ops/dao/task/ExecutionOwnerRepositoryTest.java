@@ -56,7 +56,6 @@ class ExecutionOwnerRepositoryTest {
                 eq("/state"),
                 eq("incarnation"),
                 org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any());
     }
 }

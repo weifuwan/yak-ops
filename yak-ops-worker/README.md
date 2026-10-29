@@ -33,3 +33,19 @@ retain their ASF headers; adapted files are documented in this module.
 - A Physical Task does not relinquish ownership on unconfirmed async engine
   completion; the business `RECONCILING` state and dispatch token remain
   authoritative. Run and inspect all backend checks before merging.
+
+## Registry and resource scheduling follow-up
+
+The embedded Worker still uses the Yak Ops singleton owner table and the
+per-resource exclusive Claim table. Neither has a one-to-one table equivalent
+in DolphinScheduler. The non-heartbeating `last_seen_time` column and
+unused MyBatis Owner entity/mapper were removed rather than presenting them
+as a DolphinScheduler-style node registry.
+
+Replacing Owner requires the **whole** DolphinScheduler Registry lifecycle
+(including JDBC Registry data, lock, client heartbeat and change-event tables),
+with recovery fencing before a second process can launch tasks. Replacing
+Claim with DolphinScheduler TaskGroup/TaskGroupQueue also requires an explicit
+decision about multi-target atomic exclusivity and MySQL CDC replication
+server-ID collisions: a Task Group slot is not equivalent to a per-target
+lock. Do not remove either live guard until those contracts have parity.

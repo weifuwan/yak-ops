@@ -223,7 +223,6 @@ CREATE TABLE yak_ops_task_execution_owner (
   host_id VARCHAR(128) NOT NULL COMMENT 'Host holding the local execution lock',
   state_root VARCHAR(512) NOT NULL COMMENT 'Canonical directory for execution owner lock',
   owner_incarnation VARCHAR(128) NOT NULL COMMENT 'JVM incarnation with dispatch authority',
-  last_seen_time DATETIME(3) NOT NULL COMMENT 'Diagnostic heartbeat, not an execution fence',
   create_time DATETIME(3) NOT NULL COMMENT 'Owner record creation timestamp',
   update_time DATETIME(3) NOT NULL COMMENT 'Last owner record update timestamp',
   PRIMARY KEY (id)
