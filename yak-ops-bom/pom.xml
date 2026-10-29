@@ -26,8 +26,8 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency><groupId>org.apache.dolphinscheduler</groupId><artifactId>dolphinscheduler-registry-api</artifactId><version>3.4.2</version></dependency>
-            <dependency><groupId>org.apache.dolphinscheduler</groupId><artifactId>dolphinscheduler-registry-jdbc</artifactId><version>3.4.2</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-registry-api</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-registry-jdbc</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-scheduler-api</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-scheduler-quartz</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-business-schedule</artifactId><version>${project.version}</version></dependency>

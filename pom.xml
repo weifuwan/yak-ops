@@ -56,6 +56,8 @@
         <module>yak-ops-plugins/yak-ops-plugin-datasource</module>
         <module>yak-ops-plugins/yak-ops-plugin-task</module>
         <module>yak-ops-plugins/yak-ops-plugin-scheduler</module>
+        <module>yak-ops-registry-api</module>
+        <module>yak-ops-registry-jdbc</module>
         <module>yak-ops-worker</module>
         <module>yak-ops-task-execution</module>
         <module>yak-ops-boot</module>
