@@ -187,24 +187,16 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
         if (!initial) return;
         if (snapshotOnly && assigner.snapshotComplete()) {
             finishSnapshotOnly();
-        } else if (restoredHandoff || assigner.phase() == HybridPendingSplitsState.Phase.STREAMING) {
-            AssignerStatus status = assigner.getAssignerStatus();
-            if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING
-                    && (status == AssignerStatus.NEWLY_ADDED_ASSIGNING
-                            || status == AssignerStatus.NEWLY_ADDED_ASSIGNING_SNAPSHOT_FINISHED
-                            || status == AssignerStatus.NEWLY_ADDED_ASSIGNING_FINISHED)) {
+        } else if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING) {
+            if (isNewlyAddedProtocolStatus()) {
                 requestBinlogSplitUpdateIfNeed(
                         assigner.isNewlyAddedAssignmentFinished() && pendingBinlogUpdateGeneration < 0);
-            } else if (assigner.isSnapshotMetaReleased()) {
-                context.registeredReaders().keySet().stream()
-                        .filter(id -> id != 0)
-                        .forEach(this::sendResumeEvent);
-            } else {
-                sendBinlogMetadataGroup(0, assigner.getBinlogAssignmentGeneration());
             }
         } else if (assigner.snapshotComplete()) {
-            enterHandoff();
+            if (assigner.phase() == HybridPendingSplitsState.Phase.SNAPSHOT) enterHandoff();
+            assignAvailable();
         } else {
+            assignAvailable();
             planSnapshotAsync();
         }
     }
@@ -256,15 +248,11 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
             }
             return;
         }
-        if ((assigner.phase() == HybridPendingSplitsState.Phase.STREAMING
-                        || assigner.phase() == HybridPendingSplitsState.Phase.HANDOFF)
-                && reader == 0) {
-            if (!assigner.isSnapshotMetaReleased()) {
+        if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING) {
+            // A restored reader owns its checkpointed Binlog split. No initial Resume event.
+            if (reader == 0 && !assigner.isSnapshotMetaReleased()) {
                 assigner.onBinlogReaderReset();
-                sendBinlogMetadataGroup(0, assigner.getBinlogAssignmentGeneration());
             }
-        } else if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING) {
-            sendResumeEvent(reader);
         } else if (assigner.phase() == HybridPendingSplitsState.Phase.SNAPSHOT) {
             context.sendEventToSourceReader(reader, new FinishedSnapshotSplitsRequestEvent());
         }
@@ -275,14 +263,7 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
     public void handleSourceEvent(int reader, SourceEvent event) {
         if (closed) return;
         if (!initial) throw new IllegalArgumentException("Binlog-only coordinator does not receive snapshot events");
-        if (event instanceof MySqlLowWatermarkEvent low) {
-            if (reader != 0) throw new IllegalArgumentException("Only the Binlog owner may report bootstrap");
-            boolean bootstrap = assigner.phase() == HybridPendingSplitsState.Phase.BOOTSTRAP;
-            assigner.captureLow(low.offset());
-            if (!bootstrap) return;
-            metrics.phase(generation, TableMetrics.Phase.SNAPSHOT, false);
-            planSnapshotAsync();
-        } else if (event instanceof LatestFinishedSplitsNumberRequestEvent request) {
+        if (event instanceof LatestFinishedSplitsNumberRequestEvent request) {
             if (reader != 0) {
                 throw new IllegalArgumentException("Only the Binlog owner may request finished Snapshot count");
             }
@@ -329,10 +310,6 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
             if (!assigner.onBinlogSplitMetaAssembled(assembled.getBinlogAssignmentGeneration())) return;
             if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING
                     && (assigner.isNewlyAddedSnapshotFinished() || assigner.isNewlyAddedAssignmentFinished())) {
-                sendResumeEvents();
-            } else if (restoredHandoff && assigner.phase() == HybridPendingSplitsState.Phase.HANDOFF) {
-                // This handoff checkpoint was already durable before recovery.
-                assigner.resumeRestoredHandoff();
                 sendResumeEvents();
             } else if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING) {
                 sendResumeEvents();
@@ -401,14 +378,13 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
         boolean waitingForHandoff = initial && assigner.phase() == HybridPendingSplitsState.Phase.HANDOFF;
         if (initial) assigner.notifyCheckpointComplete(checkpointId);
         else streamAssigner.notifyCheckpointComplete(checkpointId);
-        boolean handoff = waitingForHandoff && assigner.phase() == HybridPendingSplitsState.Phase.STREAMING;
-        metrics.checkpointCompleted(generation, checkpointId, handoff);
-        if (handoff) sendResumeEvents();
-        if (initial && !handoff) {
+        if (initial) {
             requestBinlogSplitUpdateIfNeed(false);
             assignAvailable();
             planSnapshotAsync();
         }
+        boolean handoff = waitingForHandoff && assigner.phase() == HybridPendingSplitsState.Phase.STREAMING;
+        metrics.checkpointCompleted(generation, checkpointId, handoff);
     }
 
     @Override
@@ -466,7 +442,8 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
                 .orElseThrow();
         assigner.captureHigh(high);
         metrics.phase(generation, TableMetrics.Phase.HANDOFF, false);
-        sendBinlogMetadataGroup(0, assigner.getBinlogAssignmentGeneration());
+        // The Binlog split is created and assigned only after the Snapshot
+        // Assigner has received a completed checkpoint.
     }
 
     private void assignAvailable() {
