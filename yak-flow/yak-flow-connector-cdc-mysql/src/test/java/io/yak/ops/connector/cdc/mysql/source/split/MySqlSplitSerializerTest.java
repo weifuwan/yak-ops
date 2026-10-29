@@ -23,7 +23,7 @@ class MySqlSplitSerializerTest {
                 (MySqlSnapshotSplit) serializer.deserialize(serializer.getVersion(), serializer.serialize(original));
         assertEquals(original, restored);
         assertThrows(IOException.class, () -> serializer.deserialize(99, serializer.serialize(original)));
-        assertThrows(IOException.class, () -> serializer.deserialize(2, serializer.serialize(original)));
+        assertThrows(IOException.class, () -> serializer.deserialize(serializer.getVersion() + 1, serializer.serialize(original)));
         assertEquals(100L, restored.getSplitStart()[0]);
         assertEquals(200L, restored.getSplitEnd()[0]);
         assertEquals(null, restored.output());
@@ -100,7 +100,7 @@ class MySqlSplitSerializerTest {
     @Test
     void testSplitVersionAndDefensiveSerializedFormCache() throws Exception {
         var serializer = MySqlSplitSerializer.INSTANCE;
-        assertEquals(1, serializer.getVersion());
+        assertEquals(2, serializer.getVersion());
         var split = new MySqlSnapshotSplit(
                 "cached-0", new TableId("shop", null, "orders"), null, 12L, null);
         byte[] baseline = serializer.serialize(split);
