@@ -90,6 +90,14 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
         if (snapshots.getAssignerStatus() == AssignerStatus.NEWLY_ADDED_ASSIGNING_SNAPSHOT_FINISHED
                 && !snapshots.isSnapshotMetaReleased()) {
             refreshHighWatermark();
+        } else if (!binlogAssigned
+                && pendingBinlog == null
+                && phase == HybridPendingSplitsState.Phase.HANDOFF
+                && snapshots.allFinished()
+                && !snapshots.finishedSplits().isEmpty()) {
+            // A restored INITIAL checkpoint may have filtered out a completed table.
+            // The original maximum HIGH then no longer describes the captured chunks.
+            refreshHighWatermark();
         }
         return started;
     }
@@ -142,8 +150,16 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
     /** Flink's minimum finished-chunk HIGH algorithm, with Debezium 2.7 history. */
     private MySqlBinlogSplit createBinlogSplit() {
         List<FinishedSnapshotSplitInfo> finished = snapshots.getFinishedSplitInfos();
-        DebeziumOffset start =
+        DebeziumOffset minimum =
                 io.yak.ops.connector.cdc.mysql.source.utils.RecordUtils.getStartingOffsetOfBinlogSplit(finished);
+        byte[] history = schemaHistoryForBinlog();
+        // Preserve the actual position of the checkpointed Debezium 2.7 history.
+        // If a removed table owned the earliest HIGH, seeking directly to the
+        // remaining minimum would skip intervening DDL needed for schema recovery.
+        DebeziumOffset start = schemaHistoryWatermark;
+        if (start.compareTo(minimum) > 0) {
+            throw new IllegalStateException("Snapshot schema history begins after the earliest retained Chunk");
+        }
         DebeziumOffset maximum = finished.stream()
                 .map(FinishedSnapshotSplitInfo::highWatermark)
                 .max(DebeziumOffset::compareTo)
@@ -155,7 +171,7 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
         // Flink CDC 3.7: do not put arbitrarily many finished chunks in the initial
         // Binlog assignment; the Reader fetches the missing groups from the coordinator.
         List<FinishedSnapshotSplitInfo> inline = finished.size() > splitMetaGroupSize ? List.of() : finished;
-        return MySqlBinlogSplit.forCompletedSnapshot(start, schemaHistoryForBinlog(), maximum, inline, finished.size());
+        return MySqlBinlogSplit.forCompletedSnapshot(start, history, maximum, inline, finished.size());
     }
 
     public MySqlSnapshotSplit nextSnapshot() {
@@ -229,8 +245,8 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
                 .map(FinishedSnapshotSplitInfo::highWatermark)
                 .min(DebeziumOffset::compareTo)
                 .orElseThrow(() -> new IllegalStateException("No finished Snapshot Chunk"));
-        if (!minimum.equals(schemaHistoryWatermark)) {
-            throw new IllegalStateException("Snapshot history does not match the earliest Chunk HIGH");
+        if (schemaHistoryWatermark.compareTo(minimum) > 0) {
+            throw new IllegalStateException("Snapshot history begins after the earliest retained Chunk HIGH");
         }
         return schemaHistory.clone();
     }
