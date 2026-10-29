@@ -75,8 +75,21 @@ class MySqlBinlogHandoffMetadataTest {
         var assigned = (io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit)
                 context.assignedToBinlogReader.getFirst();
         assertThat(assigned.offset()).isEqualTo(offset(100));
-        assertThat(assigned.finishedSplits()).hasSize(3);
+        assertThat(assigned.finishedSplits()).isEmpty();
+        assertThat(assigned.getTotalFinishedSplitSize()).isEqualTo(3);
+        assertThat(assigned.isCompletedSplit()).isFalse();
         assertThat(assigned.schemaHistory()).containsExactly(1, 2, 3);
+        // The Reader fetches the same bounded groups as Flink CDC 3.7.
+        enumerator.handleSourceEvent(0, new BinlogSplitMetaRequestEvent(0, 0));
+        BinlogSplitMetaEvent first = (BinlogSplitMetaEvent) context.toReader0.getLast();
+        assertThat(first.getMetaGroupId()).isZero();
+        assertThat(first.getTotalGroups()).isEqualTo(2);
+        assertThat(first.getMetaGroup()).hasSize(2);
+        enumerator.handleSourceEvent(0, new BinlogSplitMetaRequestEvent(1, 0));
+        BinlogSplitMetaEvent second = (BinlogSplitMetaEvent) context.toReader0.getLast();
+        assertThat(second.getMetaGroupId()).isEqualTo(1);
+        assertThat(second.getMetaGroup()).hasSize(1);
+        enumerator.handleSourceEvent(0, new BinlogSplitMetaAssembledEvent(0));
         assertThat(context.toReader0).noneMatch(MySqlResumeBinlogEvent.class::isInstance);
         enumerator.close();
     }
