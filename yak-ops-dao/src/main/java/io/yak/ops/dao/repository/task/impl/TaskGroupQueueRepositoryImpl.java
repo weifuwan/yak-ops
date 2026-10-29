@@ -1,6 +1,7 @@
 package io.yak.ops.dao.repository.task.impl;
 
 import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
+import io.yak.ops.dao.mapper.task.TaskGroupMapper;
 import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
 import org.apache.dolphinscheduler.common.enums.Flag;
 import org.apache.dolphinscheduler.common.enums.TaskGroupQueueStatus;
@@ -33,6 +34,9 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     @Resource
     private JdbcTemplate jdbc;
 
+    @Resource
+    private TaskGroupMapper taskGroupMapper;
+
     @Override
     public void add(TaskGroupQueueEntity queue) {
         LocalDateTime now = LocalDateTime.now();
@@ -54,12 +58,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                 queue.getWorkspaceId(),
                 queue.getResourceType(),
                 queue.getResourceKey());
-        if (groupId == null
-                || jdbc.update(
-                                "UPDATE yak_ops_task_group SET use_size = use_size + 1"
-                                        + " WHERE id = ? AND use_size < group_size",
-                                groupId)
-                        != 1) {
+        if (groupId == null || taskGroupMapper.acquireTaskGroupSlot(groupId) != 1) {
             throw new DuplicateKeyException("TaskGroup slot is occupied");
         }
         jdbc.update(
@@ -119,7 +118,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             throw new IllegalStateException("TaskGroupQueue release was not atomic");
         }
         for (Long id : groups) {
-            if (jdbc.update("UPDATE yak_ops_task_group SET use_size = use_size - 1" + " WHERE id = ? AND use_size > 0", id)
+            if (taskGroupMapper.releaseTaskGroupSlot(id)
                     != 1) {
                 throw new IllegalStateException("TaskGroup slot counter is inconsistent");
             }
