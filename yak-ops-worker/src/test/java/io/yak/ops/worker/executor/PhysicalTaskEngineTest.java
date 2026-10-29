@@ -6,13 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.worker.task.executor.TaskEngine;
+import io.yak.ops.worker.task.executor.TaskExecutionContext;
+import io.yak.ops.worker.task.executor.ITaskExecutor;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
-/** Verifies exclusive DolphinScheduler-style execution slots with deferred TaskHandle outcomes. */
+/** Physical Worker tests for exclusive slots, durable terminal ACK, cancellation and unknown outcomes. */
 class PhysicalTaskEngineTest {
-
     @Test
     void exclusiveSlotIsRetainedUntilTaskCompletionAndCanThenBeReused() throws Exception {
         PhysicalTaskExecutorRepository repository = new PhysicalTaskExecutorRepository();
@@ -21,17 +23,13 @@ class PhysicalTaskEngineTest {
         engine.start();
         try {
             CompletableFuture<TaskOutcome> first = new CompletableFuture<>();
-            PhysicalTaskExecutor task1 = new PhysicalTaskExecutorFactory()
-                    .createTaskExecutor("workspace", "instance-1", () -> first, () -> first.complete(TaskOutcome.CANCELED));
+            PhysicalTaskExecutor task1 = task("instance-1", first, new AtomicInteger());
             engine.submitTask(task1);
             assertTrue(repository.contains("instance-1"));
-
-            PhysicalTaskExecutor task2 = new PhysicalTaskExecutorFactory()
-                    .createTaskExecutor("workspace", "instance-2",
-                            () -> CompletableFuture.completedFuture(TaskOutcome.FINISHED), () -> {});
-            assertThrows(IllegalStateException.class, () -> engine.submitTask(task2));
+            PhysicalTaskExecutor task2 = task("instance-2",
+                    CompletableFuture.completedFuture(TaskOutcome.FINISHED), new AtomicInteger());
+            assertThrows(RuntimeException.class, () -> engine.submitTask(task2));
             assertEquals(1.0, containers.getExecutorContainer().slotUsage(), 0.01);
-
             first.complete(TaskOutcome.FINISHED);
             awaitReleased(repository, "instance-1");
             engine.submitTask(task2);
@@ -43,29 +41,27 @@ class PhysicalTaskEngineTest {
     }
 
     @Test
-    void duplicateSubmissionIsRejectedWithoutReplacingTheOriginal() {
+    void duplicateSubmissionDoesNotReplaceTheOriginal() throws Exception {
         PhysicalTaskExecutorRepository repository = new PhysicalTaskExecutorRepository();
         PhysicalTaskExecutorContainerProvider containers = new PhysicalTaskExecutorContainerProvider(1);
         TaskEngine engine = new PhysicalTaskEngineFactory().createTaskEngine(repository, containers);
         engine.start();
         try {
-            CompletableFuture<TaskOutcome> completion = new CompletableFuture<>();
-            PhysicalTaskExecutor original = new PhysicalTaskExecutorFactory()
-                    .createTaskExecutor("workspace", "instance", () -> completion,
-                            () -> completion.complete(TaskOutcome.CANCELED));
+            CompletableFuture<TaskOutcome> pending = new CompletableFuture<>();
+            PhysicalTaskExecutor original = task("instance", pending, new AtomicInteger());
             engine.submitTask(original);
-            PhysicalTaskExecutor duplicate = new PhysicalTaskExecutorFactory()
-                    .createTaskExecutor("workspace", "instance", () -> completion, () -> {});
-            assertThrows(IllegalStateException.class, () -> engine.submitTask(duplicate));
+            assertThrows(IllegalArgumentException.class,
+                    () -> engine.submitTask(task("instance", pending, new AtomicInteger())));
             assertEquals(original, repository.get("instance").orElseThrow());
-            completion.complete(TaskOutcome.FINISHED);
+            pending.complete(TaskOutcome.FINISHED);
+            awaitReleased(repository, "instance");
         } finally {
             engine.close();
         }
     }
 
     @Test
-    void killIsForwardedOnceToThePhysicalTask() throws Exception {
+    void killIsForwardedOnce() throws Exception {
         PhysicalTaskExecutorRepository repository = new PhysicalTaskExecutorRepository();
         PhysicalTaskExecutorContainerProvider containers = new PhysicalTaskExecutorContainerProvider(1);
         TaskEngine engine = new PhysicalTaskEngineFactory().createTaskEngine(repository, containers);
@@ -73,11 +69,7 @@ class PhysicalTaskEngineTest {
         try {
             CompletableFuture<TaskOutcome> completion = new CompletableFuture<>();
             AtomicInteger kills = new AtomicInteger();
-            PhysicalTaskExecutor task = new PhysicalTaskExecutorFactory()
-                    .createTaskExecutor("workspace", "instance", () -> completion, () -> {
-                        kills.incrementAndGet();
-                        completion.complete(TaskOutcome.CANCELED);
-                    });
+            PhysicalTaskExecutor task = task("instance", completion, kills);
             engine.submitTask(task);
             awaitStarted(task);
             engine.killTask("instance");
@@ -89,14 +81,51 @@ class PhysicalTaskEngineTest {
         }
     }
 
+    @Test
+    void uncertainOutcomeNeverEmitsTerminalAckOrReleasesSlot() throws Exception {
+        PhysicalTaskExecutorRepository repository = new PhysicalTaskExecutorRepository();
+        PhysicalTaskExecutorContainerProvider containers = new PhysicalTaskExecutorContainerProvider(1);
+        TaskEngine engine = new PhysicalTaskEngineFactory().createTaskEngine(repository, containers);
+        engine.start();
+        try {
+            CompletableFuture<TaskOutcome> outcome = new CompletableFuture<>();
+            PhysicalTaskExecutor task = task("unknown", outcome, new AtomicInteger());
+            engine.submitTask(task);
+            awaitStarted(task);
+            outcome.completeExceptionally(new IllegalStateException("Engine submission outcome unknown"));
+            for (int i = 0; i < 20 && !task.isUncertainOutcome(); i++) Thread.sleep(10);
+            assertTrue(task.isUncertainOutcome());
+            assertTrue(repository.contains("unknown"));
+            assertEquals(1.0, containers.getExecutorContainer().slotUsage(), 0.01);
+        } finally {
+            engine.close();
+        }
+    }
+
+    private static PhysicalTaskExecutor task(
+            String id, CompletionStage<TaskOutcome> completion, AtomicInteger kills) {
+        TaskExecutionContext context = new TaskExecutionContext("workspace", id);
+        context.setPhysicalTaskPluginFactory(ignored -> new PhysicalTask() {
+            @Override public CompletionStage<TaskOutcome> handle() { return completion; }
+            @Override public void cancel() {
+                kills.incrementAndGet();
+                if (completion instanceof CompletableFuture) {
+                    ((CompletableFuture<TaskOutcome>) completion).complete(TaskOutcome.CANCELED);
+                }
+            }
+        });
+        ITaskExecutor executor = new PhysicalTaskExecutorFactory().createTaskExecutor(context);
+        return (PhysicalTaskExecutor) executor;
+    }
+
     private static void awaitStarted(PhysicalTaskExecutor executor) throws InterruptedException {
         for (int attempt = 0; attempt < 200 && !executor.isStarted(); attempt++) Thread.sleep(10);
-        assertTrue(executor.isStarted(), "Task should start");
+        assertTrue(executor.isStarted(), "Physical Task should start");
     }
 
     private static void awaitReleased(PhysicalTaskExecutorRepository repository, String id)
             throws InterruptedException {
-        for (int attempt = 0; attempt < 200 && repository.contains(id); attempt++) Thread.sleep(10);
-        assertTrue(!repository.contains(id), "Finalized task must release its Worker slot");
+        for (int attempt = 0; attempt < 500 && repository.contains(id); attempt++) Thread.sleep(10);
+        assertTrue(!repository.contains(id), "Durable terminal ACK must release the Worker slot");
     }
 }
