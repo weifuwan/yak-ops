@@ -27,3 +27,12 @@ ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUT
 DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
 WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE
 USE OR PERFORMANCE OF THIS SOFTWARE.
+
+Apache DolphinScheduler JDBC Registry
+Copyright 2026 The Apache Software Foundation
+
+The Registry API SPI and JDBC Registry implementation are migrated from
+Apache DolphinScheduler 3.4.3, including upstream SQL resources. The upstream
+source files retain their Apache License 2.0 headers. See
+`yak-ops-registry-jdbc/UPSTREAM.md` for the source baseline and the limited
+Yak Ops compatibility adaptations.

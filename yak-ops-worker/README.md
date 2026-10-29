@@ -36,9 +36,11 @@ retain their ASF headers; adapted files are documented in this module.
 
 ## DolphinScheduler JDBC Registry
 
-The embedded Master uses the published DolphinScheduler
-`dolphinscheduler-registry-jdbc:3.4.2` implementation and the four original
-`t_ds_jdbc_registry_*` tables. The previous `yak_ops_task_execution_owner`
+The embedded Master uses directly migrated DolphinScheduler **3.4.3**
+Registry API and JDBC source in `yak-ops-registry-api` /
+`yak-ops-registry-jdbc`, without an external DolphinScheduler Registry
+Maven dependency. The four `t_ds_jdbc_registry_*` tables retain their
+upstream DDL; compare `yak-ops-registry-jdbc/UPSTREAM.md` for adaptations. The previous `yak_ops_task_execution_owner`
 row and its repository are deleted. Registration uses an ephemeral Registry
 path and Registry lock. The embedded filesystem lock remains a process-local
 safety guard, and new dispatch fails closed when Registry ownership is lost.

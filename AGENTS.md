@@ -25,6 +25,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 - `yak-ops-business` owns datasource/task business lifecycle; `yak-ops-task-execution` owns process-level dispatch, observation, cancellation, and embedded Task execution.
 - `yak-ops-plugins` owns plugin APIs and implementations; `yak-ops-dao` owns repositories, persistence, and Flyway; `yak-ops-platform` owns Workspace, security, and preferences.
 - `yak-ops-common` holds genuine shared utilities; `yak-ops-boot` assembles the application and HTTP boundary.
+- `yak-ops-registry-api` and `yak-ops-registry-jdbc` retain upstream DolphinScheduler 3.4.3 Registry source and API; keep upstream files and source formatting intact, isolate only minimal compatibility adapters and document deviations.
 - `yak-ops-ui` owns the frontend; `yak-ops-test-utils` is test-only; `yak-ops-e2e` owns packaged-process HTTP Task tests.
 
 ## Architecture Boundaries
