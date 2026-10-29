@@ -141,7 +141,11 @@ public final class MySqlSourceReader
         }
         List<MySqlSplit> active = new ArrayList<>();
         for (MySqlSplit split : added) {
-            if (split instanceof MySqlBinlogSplit binlog
+            if (split instanceof MySqlSnapshotSplit snapshot && snapshot.finished() != null) {
+                // Flink CDC's finished-unacked state must be re-reported, never
+                // resubmitted to JDBC snapshot execution after a Reader recovery.
+                finishedUnacked.put(snapshot.splitId(), snapshot);
+            } else if (split instanceof MySqlBinlogSplit binlog
                     && binlog.phase() == MySqlBinlogSplit.Phase.PAUSED
                     && !binlog.finishedSplits().isEmpty()) {
                 // Flink CDC keeps a restored suspended Binlog split outside the active fetcher:
