@@ -3,7 +3,9 @@ package io.yak.ops.worker.executor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
+import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.worker.task.executor.TaskEngine;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
@@ -116,7 +118,8 @@ class PhysicalTaskEngineTest {
     private static PhysicalTaskExecutor task(
             String id, CompletionStage<TaskOutcome> completion, AtomicInteger kills) {
         TaskExecutionContext context = new TaskExecutionContext("workspace", id);
-        PhysicalTaskPluginFactory factory = ignored -> new PhysicalTask() {
+        PhysicalTaskPluginFactory factory = new PhysicalTaskPluginFactory(
+                mock(TaskPluginRegistry.class), (ignored, taskChannel) -> new PhysicalTask() {
             @Override public CompletionStage<TaskOutcome> handle() { return completion; }
             @Override public void cancel() {
                 kills.incrementAndGet();
@@ -124,7 +127,7 @@ class PhysicalTaskEngineTest {
                     ((CompletableFuture<TaskOutcome>) completion).complete(TaskOutcome.CANCELED);
                 }
             }
-        };
+        });
         ITaskExecutor executor = new PhysicalTaskExecutorFactory(factory).createTaskExecutor(context);
         return (PhysicalTaskExecutor) executor;
     }

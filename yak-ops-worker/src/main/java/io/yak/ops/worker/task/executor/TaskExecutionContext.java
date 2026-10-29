@@ -9,6 +9,8 @@ public final class TaskExecutionContext {
     private String taskType;
     private String taskName;
     private String workflowInstanceId;
+    private String workflowInstanceName;
+    private String projectCode;
     private String logPath;
     private long startTime;
     private long endTime;
@@ -44,6 +46,22 @@ public final class TaskExecutionContext {
 
     public String getWorkflowInstanceId() {
         return workflowInstanceId;
+    }
+
+    public String getWorkflowInstanceName() {
+        return workflowInstanceName;
+    }
+
+    public void setWorkflowInstanceName(String name) {
+        workflowInstanceName = name;
+    }
+
+    public String getProjectCode() {
+        return projectCode;
+    }
+
+    public void setProjectCode(String value) {
+        projectCode = value;
     }
 
     public void setWorkflowInstanceId(String id) {

@@ -9,7 +9,6 @@ import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.entity.task.ExecutionClaimEntity;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
-import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
@@ -35,6 +34,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -116,7 +116,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     public void dispatch(String workspaceId, String instanceId) {
         owner.incarnation();
         try {
-            worker.dispatch(workspaceId, instanceId, this::preparePhysicalTask);
+            worker.dispatch(workspaceId, instanceId, registry, this::preparePhysicalTask);
         } catch (TaskExecutorRuntimeException busy) {
             // No physical slot was obtained. The durable SUBMITTED row stays pending.
             LOG.debug("All Worker slots are busy; Task remains pending, instanceId={}", instanceId);
@@ -144,7 +144,8 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
      * Master-side durable admission. The physical plugin is initialized and triggered
      * by PhysicalTaskExecutor; this method never starts a TaskHandle.
      */
-    private PhysicalTask preparePhysicalTask(TaskExecutionContext taskContext) {
+    private PhysicalTask preparePhysicalTask(
+            TaskExecutionContext taskContext, Supplier<ExecutableTaskPlugin> taskPluginSupplier) {
         String workspaceId = taskContext.getWorkspaceId();
         String instanceId = taskContext.getTaskInstanceId();
         DispatchTicket ticket = null;
@@ -162,8 +163,8 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             taskContext.setTaskType(ticket.taskType());
             taskContext.setTaskName(ticket.definitionId());
 
-            TaskPlugin plugin = registry.get(ticket.taskType());
-            if (!(plugin instanceof ExecutableTaskPlugin executable)) {
+            ExecutableTaskPlugin executable = taskPluginSupplier.get();
+            if (executable == null) {
                 lifecycle.complete(ticket, TaskOutcome.FAILED);
                 return completedPhysicalTask(TaskOutcome.FAILED);
             }

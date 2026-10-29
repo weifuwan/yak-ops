@@ -3,9 +3,7 @@ package io.yak.ops.worker.executor;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.worker.task.executor.AbstractTaskExecutor;
-import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.TaskExecutorState;
-import io.yak.ops.worker.task.executor.eventbus.TaskExecutorEventBus;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -26,16 +24,18 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     private volatile boolean persistedTerminal;
     private volatile boolean uncertainOutcome;
 
-    public PhysicalTaskExecutor(TaskExecutionContext context, PhysicalTaskPluginFactory factory) {
-        super(context, new TaskExecutorEventBus());
-        physicalTaskPluginFactory = java.util.Objects.requireNonNull(factory);
+    public PhysicalTaskExecutor(final PhysicalTaskExecutorBuilder physicalTaskExecutorBuilder) {
+        super(physicalTaskExecutorBuilder.getTaskExecutionContext(),
+                physicalTaskExecutorBuilder.getTaskExecutorEventBus());
+        physicalTaskPluginFactory = java.util.Objects.requireNonNull(
+                physicalTaskExecutorBuilder.getPhysicalTaskPluginFactory());
     }
 
     @Override
     protected void initializeTaskPlugin() {
         try {
             physicalTask = java.util.Objects.requireNonNull(
-                    physicalTaskPluginFactory.createPhysicalTask(taskExecutionContext),
+                    physicalTaskPluginFactory.createPhysicalTask(this),
                     "PhysicalTaskPluginFactory returned null");
         } catch (RuntimeException failure) {
             uncertainOutcome = true;
@@ -86,6 +86,10 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
         }
     }
 
+    public PhysicalTask getPhysicalTask() {
+        return physicalTask;
+    }
+
     @Override
     protected TaskExecutorState doTrackTaskPluginStatus() {
         return taskExecutorState.get();
@@ -125,5 +129,12 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     @Override
     public void finalizeTask() {
         taskHandle.set(null);
+    }
+
+    @Override
+    public String toString() {
+        return "PhysicalTaskExecutor{id=" + taskExecutionContext.getTaskInstanceId() +
+                ", name=" + taskExecutionContext.getTaskName() +
+                ", state=" + taskExecutorState.get() + "}";
     }
 }
