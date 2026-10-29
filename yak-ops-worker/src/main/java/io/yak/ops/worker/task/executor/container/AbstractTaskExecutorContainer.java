@@ -21,7 +21,6 @@ import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.exceptions.TaskExecutorRuntimeException;
 import io.yak.ops.worker.task.executor.worker.TaskExecutorWorker;
 import io.yak.ops.worker.task.executor.worker.TaskExecutorWorkers;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -46,9 +45,15 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
             throw new IllegalArgumentException("Task executor slots must be positive");
         }
         this.taskExecutorThreadPool = new ThreadPoolExecutor(
-                threadPoolSize, threadPoolSize, 0, TimeUnit.MILLISECONDS,
+                threadPoolSize,
+                threadPoolSize,
+                0,
+                TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(),
-                Thread.ofPlatform().daemon(true).name(containerConfig.getContainerName() + "-worker-", 0).factory());
+                Thread.ofPlatform()
+                        .daemon(true)
+                        .name(containerConfig.getContainerName() + "-worker-", 0)
+                        .factory());
         this.taskExecutorWorkers = new TaskExecutorWorkers(threadPoolSize);
         this.taskExecutorAssignmentTable = new TaskExecutorAssignmentTable();
         startAllThreadTaskExecutorWorker();
@@ -62,7 +67,8 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
             }
             Optional<TaskExecutorWorker> taskExecutorWorkerCandidate = getTaskExecutorWorkerCandidate(taskExecutor);
             if (!taskExecutorWorkerCandidate.isPresent()) {
-                LOG.info("All ExclusiveThreadTaskExecutorWorker are busy, cannot submit taskExecutor(id={})",
+                LOG.info(
+                        "All ExclusiveThreadTaskExecutorWorker are busy, cannot submit taskExecutor(id={})",
                         taskExecutor.getId());
                 throw new TaskExecutorRuntimeException("All ExclusiveThreadTaskExecutorWorker are busy");
             }
@@ -115,8 +121,7 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
     @Override
     public double slotUsage() {
         final List<TaskExecutorWorker> allWorkers = taskExecutorWorkers.getWorkers();
-        final long activeWorkerCount = allWorkers
-                .stream()
+        final long activeWorkerCount = allWorkers.stream()
                 .filter(taskExecutorWorker -> taskExecutorWorker.getRegisteredTaskExecutorSize() != 0)
                 .count();
         return activeWorkerCount / (double) allWorkers.size();
@@ -150,5 +155,4 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
         closed = true;
         taskExecutorThreadPool.shutdownNow();
     }
-
 }

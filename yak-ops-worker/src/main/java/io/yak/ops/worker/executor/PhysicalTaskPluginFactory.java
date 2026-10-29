@@ -43,8 +43,7 @@ public final class PhysicalTaskPluginFactory {
 
     public PhysicalTask createPhysicalTask(final PhysicalTaskExecutor physicalTaskExecutor) {
         return taskPreparation.apply(
-                physicalTaskExecutor.getTaskExecutionContext(),
-                () -> getTaskChannel(physicalTaskExecutor));
+                physicalTaskExecutor.getTaskExecutionContext(), () -> getTaskChannel(physicalTaskExecutor));
     }
 
     public ExecutableTaskPlugin getTaskChannel(final PhysicalTaskExecutor physicalTaskExecutor) {

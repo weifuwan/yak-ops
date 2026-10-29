@@ -37,8 +37,8 @@ public abstract class AbstractTaskExecutor implements ITaskExecutor {
     protected final TaskExecutionContext taskExecutionContext;
     protected final TaskExecutorEventBus taskExecutorEventBus;
 
-    public AbstractTaskExecutor(final TaskExecutionContext taskExecutionContext,
-                                final TaskExecutorEventBus taskExecutorEventBus) {
+    public AbstractTaskExecutor(
+            final TaskExecutionContext taskExecutionContext, final TaskExecutorEventBus taskExecutorEventBus) {
         this.taskExecutionContext = Objects.requireNonNull(taskExecutionContext);
         this.taskExecutorEventBus = Objects.requireNonNull(taskExecutorEventBus);
         this.latestStateTrackTime = 0;
@@ -108,8 +108,10 @@ public abstract class AbstractTaskExecutor implements ITaskExecutor {
 
     protected void initializeTaskContext() {
         taskExecutionContext.setStartTime(System.currentTimeMillis());
-        LOG.debug("Initialized taskContext id={}, taskType={}",
-                taskExecutionContext.getTaskInstanceId(), taskExecutionContext.getTaskType());
+        LOG.debug(
+                "Initialized taskContext id={}, taskType={}",
+                taskExecutionContext.getTaskInstanceId(),
+                taskExecutionContext.getTaskType());
     }
 
     private void publishTaskRunningEvent() {

@@ -19,7 +19,6 @@ package io.yak.ops.worker.executor;
 
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.eventbus.TaskExecutorEventBus;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -35,5 +34,4 @@ public class PhysicalTaskExecutorBuilder {
     private TaskExecutorEventBus taskExecutorEventBus = new TaskExecutorEventBus();
 
     private PhysicalTaskPluginFactory physicalTaskPluginFactory;
-
 }

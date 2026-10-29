@@ -25,18 +25,18 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     private volatile boolean uncertainOutcome;
 
     public PhysicalTaskExecutor(final PhysicalTaskExecutorBuilder physicalTaskExecutorBuilder) {
-        super(physicalTaskExecutorBuilder.getTaskExecutionContext(),
+        super(
+                physicalTaskExecutorBuilder.getTaskExecutionContext(),
                 physicalTaskExecutorBuilder.getTaskExecutorEventBus());
-        physicalTaskPluginFactory = java.util.Objects.requireNonNull(
-                physicalTaskExecutorBuilder.getPhysicalTaskPluginFactory());
+        physicalTaskPluginFactory =
+                java.util.Objects.requireNonNull(physicalTaskExecutorBuilder.getPhysicalTaskPluginFactory());
     }
 
     @Override
     protected void initializeTaskPlugin() {
         try {
             physicalTask = java.util.Objects.requireNonNull(
-                    physicalTaskPluginFactory.createPhysicalTask(this),
-                    "PhysicalTaskPluginFactory returned null");
+                    physicalTaskPluginFactory.createPhysicalTask(this), "PhysicalTaskPluginFactory returned null");
         } catch (RuntimeException failure) {
             uncertainOutcome = true;
             LOG.error("Physical plugin initialization could not be confirmed, instanceId={}", getId(), failure);
@@ -133,8 +133,8 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
 
     @Override
     public String toString() {
-        return "PhysicalTaskExecutor{id=" + taskExecutionContext.getTaskInstanceId() +
-                ", name=" + taskExecutionContext.getTaskName() +
-                ", state=" + taskExecutorState.get() + "}";
+        return "PhysicalTaskExecutor{id=" + taskExecutionContext.getTaskInstanceId() + ", name="
+                + taskExecutionContext.getTaskName() + ", state="
+                + taskExecutorState.get() + "}";
     }
 }

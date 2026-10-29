@@ -44,7 +44,8 @@ public class TaskEngine implements ITaskEngine {
         engineName = taskEngineBuilder.getEngineName();
         taskExecutorContainerDelegator = Objects.requireNonNull(taskEngineBuilder.getTaskExecutorContainerDelegator());
         taskExecutorRepository = Objects.requireNonNull(taskEngineBuilder.getTaskExecutorRepository());
-        taskExecutorEventBusCoordinator = Objects.requireNonNull(taskEngineBuilder.getTaskExecutorEventBusCoordinator());
+        taskExecutorEventBusCoordinator =
+                Objects.requireNonNull(taskEngineBuilder.getTaskExecutorEventBusCoordinator());
     }
 
     @Override
@@ -116,7 +117,8 @@ public class TaskEngine implements ITaskEngine {
     }
 
     private ITaskExecutor getTaskExecutor(final String taskId) {
-        return taskExecutorRepository.get(taskId)
+        return taskExecutorRepository
+                .get(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown Task Executor: " + taskId));
     }
 }

@@ -33,22 +33,19 @@ import io.yak.ops.worker.task.executor.events.TaskExecutorStartedLifecycleEvent;
 import io.yak.ops.worker.task.executor.events.TaskExecutorSuccessLifecycleEvent;
 import io.yak.ops.worker.task.executor.listener.ITaskExecutorLifecycleEventListener;
 import io.yak.ops.worker.task.executor.log.TaskExecutorMDCUtils;
-
-
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoordinator {
     private static final Logger LOG = LoggerFactory.getLogger(TaskExecutorEventBusCoordinator.class);
@@ -69,8 +66,8 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
 
     private ThreadPoolExecutor workerExecutorThreadPool;
 
-    public TaskExecutorEventBusCoordinator(final String coordinatorName,
-                                           final ITaskExecutorRepository taskExecutorRepository) {
+    public TaskExecutorEventBusCoordinator(
+            final String coordinatorName, final ITaskExecutorRepository taskExecutorRepository) {
         this.coordinatorName = coordinatorName;
         this.taskExecutorRepository = taskExecutorRepository;
         this.taskExecutorLifecycleEventListeners = new CopyOnWriteArrayList<>();
@@ -83,12 +80,21 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
         }
         final int size = Math.max(1, DEFAULT_WORKER_SIZE);
         workerExecutorThreadPool = new ThreadPoolExecutor(
-                size, size, 0, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(),
-                Thread.ofPlatform().daemon(true).name(
-                        coordinatorName + "-eventbus-coordinator-worker-", 0).factory());
+                size,
+                size,
+                0,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(),
+                Thread.ofPlatform()
+                        .daemon(true)
+                        .name(coordinatorName + "-eventbus-coordinator-worker-", 0)
+                        .factory());
         mainExecutorThreadPool = new ScheduledThreadPoolExecutor(
-                1, Thread.ofPlatform().daemon(true).name(
-                        coordinatorName + "-eventbus-coordinator-main-", 0).factory());
+                1,
+                Thread.ofPlatform()
+                        .daemon(true)
+                        .name(coordinatorName + "-eventbus-coordinator-main-", 0)
+                        .factory());
         // DolphinScheduler's scheduled coordinator + fixed worker pool; the
         // worker pool is initialized before the scheduler to avoid startup races.
         mainExecutorThreadPool.scheduleWithFixedDelay(
@@ -97,7 +103,8 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
     }
 
     @Override
-    public void registerTaskExecutorLifecycleEventListener(final ITaskExecutorLifecycleEventListener taskExecutorLifecycleEventListener) {
+    public void registerTaskExecutorLifecycleEventListener(
+            final ITaskExecutorLifecycleEventListener taskExecutorLifecycleEventListener) {
         java.util.Objects.requireNonNull(taskExecutorLifecycleEventListener);
         taskExecutorLifecycleEventListeners.add(taskExecutorLifecycleEventListener);
     }
@@ -136,8 +143,7 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
                     });
                 } catch (RuntimeException dispatchFailure) {
                     firingTaskExecutorIds.remove(taskExecutorId);
-                    LOG.error("Fire TaskExecutorEventBus scheduling error, taskId={}",
-                            taskExecutorId, dispatchFailure);
+                    LOG.error("Fire TaskExecutorEventBus scheduling error, taskId={}", taskExecutorId, dispatchFailure);
                 }
             }
         } catch (Throwable throwable) {
@@ -157,7 +163,8 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
             }
             final ITaskExecutorLifecycleEvent taskExecutorLifecycleEvent = headEventOptional.get();
             try {
-                for (final ITaskExecutorLifecycleEventListener taskExecutorLifecycleEventListener : taskExecutorLifecycleEventListeners) {
+                for (final ITaskExecutorLifecycleEventListener taskExecutorLifecycleEventListener :
+                        taskExecutorLifecycleEventListeners) {
                     switch (taskExecutorLifecycleEvent.getType()) {
                         case DISPATCHED:
                             taskExecutorLifecycleEventListener.onTaskExecutorDispatchedLifecycleEvent(
@@ -204,7 +211,8 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
                                     "Unsupported TaskExecutorLifecycleEvent: " + taskExecutorLifecycleEvent);
                     }
                 }
-                LOG.debug("Success fire {}", taskExecutorLifecycleEvent.getClass().getSimpleName());
+                LOG.debug(
+                        "Success fire {}", taskExecutorLifecycleEvent.getClass().getSimpleName());
             } catch (Exception e) {
                 // Do not drop lifecycle commands on transient listener failures.
                 // The event is already polled; reschedule with delay, never spin
@@ -215,5 +223,4 @@ public class TaskExecutorEventBusCoordinator implements ITaskExecutorEventBusCoo
             }
         }
     }
-
 }

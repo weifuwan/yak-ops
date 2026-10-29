@@ -19,7 +19,6 @@ package io.yak.ops.worker.task.executor;
 
 import io.yak.ops.worker.task.executor.container.ITaskExecutorContainerProvider;
 import io.yak.ops.worker.task.executor.eventbus.ITaskExecutorEventBusCoordinator;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,5 +37,4 @@ public class TaskEngineBuilder {
     private ITaskExecutorContainerProvider<?> taskExecutorContainerDelegator;
 
     private ITaskExecutorEventBusCoordinator taskExecutorEventBusCoordinator;
-
 }
