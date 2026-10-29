@@ -227,7 +227,7 @@ CREATE TABLE yak_ops_task_execution_owner (
   update_time DATETIME(3) NOT NULL COMMENT 'Last owner record update timestamp',
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Single embedded dispatcher identity; heartbeat expiry is not an execution fence';
+  COMMENT='Embedded dispatcher identity; the local file lock is its execution fence';
 
 -- Scheduling
 

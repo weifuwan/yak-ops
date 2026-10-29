@@ -1,5 +1,7 @@
 package io.yak.ops.plugin.task.api.execution;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -14,7 +16,10 @@ public final class TaskExecutionResources {
     private final List<ExecutionResource> exclusiveResources;
     private final String resourceRevision;
 
-    public TaskExecutionResources(List<ExecutionResource> exclusiveResources, String resourceRevision) {
+    @JsonCreator
+    public TaskExecutionResources(
+            @JsonProperty("exclusiveResources") List<ExecutionResource> exclusiveResources,
+            @JsonProperty("resourceRevision") String resourceRevision) {
         Objects.requireNonNull(exclusiveResources, "exclusiveResources");
         Objects.requireNonNull(resourceRevision, "resourceRevision");
         if (resourceRevision.isBlank() || resourceRevision.length() > 128) {
@@ -29,10 +34,12 @@ public final class TaskExecutionResources {
         this.resourceRevision = resourceRevision;
     }
 
+    @JsonProperty("exclusiveResources")
     public List<ExecutionResource> exclusiveResources() {
         return exclusiveResources;
     }
 
+    @JsonProperty("resourceRevision")
     public String resourceRevision() {
         return resourceRevision;
     }
