@@ -13,11 +13,9 @@ import org.apache.ibatis.annotations.Update;
  */
 @Mapper
 public interface TaskGroupMapper {
-    @Update("UPDATE yak_ops_task_group SET use_size = use_size + 1"
-            + " WHERE id = #{id} AND use_size < group_size")
+    @Update("UPDATE yak_ops_task_group SET use_size = use_size + 1" + " WHERE id = #{id} AND use_size < group_size")
     int acquireTaskGroupSlot(@Param("id") Long id);
 
-    @Update("UPDATE yak_ops_task_group SET use_size = use_size - 1"
-            + " WHERE id = #{id} AND use_size > 0")
+    @Update("UPDATE yak_ops_task_group SET use_size = use_size - 1" + " WHERE id = #{id} AND use_size > 0")
     int releaseTaskGroupSlot(@Param("id") Long id);
 }

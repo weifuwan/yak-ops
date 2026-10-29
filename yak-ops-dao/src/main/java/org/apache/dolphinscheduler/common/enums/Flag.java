@@ -17,9 +17,8 @@
 
 package org.apache.dolphinscheduler.common.enums;
 
-import lombok.Getter;
-
 import com.baomidou.mybatisplus.annotation.EnumValue;
+import lombok.Getter;
 
 /**
  * have_script
@@ -46,6 +45,7 @@ public enum Flag {
 
     @EnumValue
     private final int code;
+
     private final String descp;
 
     public static Flag of(int code) {

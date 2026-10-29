@@ -17,15 +17,13 @@
 
 package org.apache.dolphinscheduler.common.enums;
 
-import java.util.HashMap;
-
 import com.baomidou.mybatisplus.annotation.EnumValue;
+import java.util.HashMap;
 
 /**
  * running status for task group queue
  */
 public enum TaskGroupQueueStatus {
-
     WAIT_QUEUE(-1, "wait queue"),
     ACQUIRE_SUCCESS(1, "acquire success"),
     @Deprecated
@@ -33,6 +31,7 @@ public enum TaskGroupQueueStatus {
 
     @EnumValue
     private final int code;
+
     private final String descp;
     private static HashMap<Integer, TaskGroupQueueStatus> STATUS_MAP = new HashMap<>();
 
