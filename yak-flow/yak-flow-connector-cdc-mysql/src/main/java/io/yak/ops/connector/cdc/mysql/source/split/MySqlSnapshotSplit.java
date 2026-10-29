@@ -55,8 +55,17 @@ public final class MySqlSnapshotSplit extends MySqlSplit implements SnapshotSpli
             int outputPosition,
             FinishedSnapshotSplitInfo finished,
             ChunkRange chunkRange) {
-        this(splitId, tableId, lowerInclusive, upperExclusive, lastEmittedKey, output, outputPosition,
-                finished, chunkRange, new byte[0]);
+        this(
+                splitId,
+                tableId,
+                lowerInclusive,
+                upperExclusive,
+                lastEmittedKey,
+                output,
+                outputPosition,
+                finished,
+                chunkRange,
+                new byte[0]);
     }
 
     /** Schema history captured by the bounded backfill task through this completed chunk's HIGH. */
@@ -121,7 +130,8 @@ public final class MySqlSnapshotSplit extends MySqlSplit implements SnapshotSpli
         this.outputPosition = outputPosition;
         this.finished = finished;
         this.chunkRange = chunkRange;
-        this.finishedSchemaHistory = Objects.requireNonNull(finishedSchemaHistory, "finishedSchemaHistory").clone();
+        this.finishedSchemaHistory = Objects.requireNonNull(finishedSchemaHistory, "finishedSchemaHistory")
+                .clone();
         if (finished == null && this.finishedSchemaHistory.length != 0) {
             throw new IllegalArgumentException("Unfinished snapshot cannot carry completed schema history");
         }
