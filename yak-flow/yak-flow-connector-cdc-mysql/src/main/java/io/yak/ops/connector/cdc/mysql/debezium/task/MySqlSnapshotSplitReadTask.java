@@ -134,8 +134,8 @@ public final class MySqlSnapshotSplitReadTask implements AutoCloseable {
             if (schemaHistory.length == 0) {
                 throw new IllegalStateException("Completed MySQL Snapshot lacks recoverable Schema History");
             }
-            MySqlSnapshotSplit prepared = split.withOutput(
-                    new MySqlSnapshotOutput(low, high, buffer.finish(), schemaHistory));
+            MySqlSnapshotSplit prepared =
+                    split.withOutput(new MySqlSnapshotOutput(low, high, buffer.finish(), schemaHistory));
             return prepared;
         } finally {
             snapshots.close();
