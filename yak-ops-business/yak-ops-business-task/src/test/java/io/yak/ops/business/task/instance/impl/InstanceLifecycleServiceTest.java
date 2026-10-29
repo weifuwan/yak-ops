@@ -12,7 +12,7 @@ import io.yak.ops.business.task.instance.DispatchTicket;
 import io.yak.ops.business.task.instance.PendingRun;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.dao.entity.task.InstanceEntity;
-import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
+import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.dao.repository.task.TaskCursorRepository;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
@@ -27,7 +27,7 @@ class InstanceLifecycleServiceTest {
 
     private final InstanceLifecycleServiceImpl service = new InstanceLifecycleServiceImpl();
     private final InstanceRepository instances = mock(InstanceRepository.class);
-    private final ExecutionClaimRepository claims = mock(ExecutionClaimRepository.class);
+    private final TaskGroupQueueRepository claims = mock(TaskGroupQueueRepository.class);
     private final TaskCursorRepository cursors = mock(TaskCursorRepository.class);
 
     InstanceLifecycleServiceTest() {

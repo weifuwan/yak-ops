@@ -29,7 +29,7 @@ import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.impl.DefinitionRepositoryImpl;
 import io.yak.ops.dao.repository.task.impl.DefinitionVersionRepositoryImpl;
-import io.yak.ops.dao.repository.task.impl.ExecutionClaimRepositoryImpl;
+import io.yak.ops.dao.repository.task.impl.TaskGroupQueueRepositoryImpl;
 import io.yak.ops.dao.repository.task.impl.InstanceRepositoryImpl;
 import io.yak.ops.plugin.scheduler.api.CronService;
 import io.yak.ops.plugin.scheduler.api.ScheduleRegistration;
@@ -157,7 +157,7 @@ class ScheduleAdmissionIT {
                 DefinitionRepositoryImpl.class,
                 DefinitionVersionRepositoryImpl.class,
                 InstanceRepositoryImpl.class,
-                ExecutionClaimRepositoryImpl.class,
+                TaskGroupQueueRepositoryImpl.class,
                 ScheduleRepositoryImpl.class,
                 ScheduleFireRepositoryImpl.class,
                 SubmissionServiceImpl.class,
@@ -187,7 +187,8 @@ class ScheduleAdmissionIT {
         when(REGISTRY.isConnected()).thenReturn(true);
         when(REGISTRY.get("/yak-ops/masters/embedded")).thenReturn("test-owner");
         for (String table : List.of(
-                "yak_ops_task_execution_claim",
+                "t_ds_task_group_queue",
+                "t_ds_task_group",
                 "yak_ops_task_instance",
                 "yak_ops_schedule_fire",
                 "yak_ops_schedule",
@@ -263,9 +264,9 @@ class ScheduleAdmissionIT {
         assertEquals(ScheduleFireOutcome.SKIPPED, first.outcome());
         assertEquals(ScheduleFireReason.RESOURCE_BUSY, first.reason());
         assertEquals(0, count("yak_ops_task_instance"));
-        assertEquals(1, count("yak_ops_task_execution_claim"));
+        assertEquals(1, count("t_ds_task_group_queue"));
         assertEquals(1, count("yak_ops_schedule_fire"));
-        jdbc.update("DELETE FROM yak_ops_task_execution_claim");
+        jdbc.update("DELETE FROM t_ds_task_group_queue");
         ScheduleFireResult replay = submissions.submitScheduled(trigger());
         assertTrue(replay.replayed());
         assertEquals(ScheduleFireOutcome.SKIPPED, replay.outcome());
@@ -305,7 +306,7 @@ class ScheduleAdmissionIT {
             stop.get(15, TimeUnit.SECONDS);
             assertEquals("SUBMITTED", jdbc.queryForObject("SELECT status FROM yak_ops_task_instance", String.class));
             assertEquals(0, jdbc.queryForObject("SELECT enabled FROM yak_ops_schedule", Integer.class));
-            assertEquals(1, count("yak_ops_task_execution_claim"));
+            assertEquals(1, count("t_ds_task_group_queue"));
         }
     }
 
@@ -388,7 +389,7 @@ class ScheduleAdmissionIT {
         assertEquals(
                 ScheduleFireOutcome.SKIPPED,
                 submissions.submitScheduled(trigger()).outcome());
-        jdbc.update("DELETE FROM yak_ops_task_execution_claim");
+        jdbc.update("DELETE FROM t_ds_task_group_queue");
         context.getBean(ScheduleFireRepository.class)
                 .retire("ws", "schedule", LocalDateTime.ofInstant(BASE.plusSeconds(61), ZoneOffset.UTC));
         assertEquals(0, count("yak_ops_schedule_fire"));
@@ -504,7 +505,7 @@ class ScheduleAdmissionIT {
 
     private static void occupy(String resource) {
         jdbc.update(
-                "INSERT INTO yak_ops_task_execution_claim (id,workspace_id,resource_type,resource_key,instance_id,create_time,update_time,create_by,update_by) VALUES ('occupied','ws','TEST',?,'other-instance',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')",
+                "INSERT INTO t_ds_task_group_queue (id,workspace_id,resource_type,resource_key,instance_id,create_time,update_time,create_by,update_by) VALUES ('occupied','ws','TEST',?,'other-instance',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')",
                 resource);
     }
 

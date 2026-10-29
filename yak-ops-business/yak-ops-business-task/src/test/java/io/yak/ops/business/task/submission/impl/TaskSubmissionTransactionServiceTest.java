@@ -15,11 +15,11 @@ import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
-import io.yak.ops.dao.entity.task.ExecutionClaimEntity;
+import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
-import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
+import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
@@ -37,7 +37,7 @@ class TaskSubmissionTransactionServiceTest {
     private final DefinitionRepository definitions = mock(DefinitionRepository.class);
     private final DefinitionVersionRepository versions = mock(DefinitionVersionRepository.class);
     private final InstanceRepository instances = mock(InstanceRepository.class);
-    private final ExecutionClaimRepository claims = mock(ExecutionClaimRepository.class);
+    private final TaskGroupQueueRepository claims = mock(TaskGroupQueueRepository.class);
     private final ExecutableTaskPlugin plugin = mock(ExecutableTaskPlugin.class);
     private final ReadonlyConfig parameters = ReadonlyConfig.fromMap(java.util.Map.of());
     private final TaskExecutionIdentity context = new TaskExecutionIdentity("ws", "definition-1", 2, "instance-1");
@@ -70,7 +70,7 @@ class TaskSubmissionTransactionServiceTest {
         assertEquals(TaskInstanceStatus.SUBMITTED, result.status());
 
         ArgumentCaptor<InstanceEntity> instance = ArgumentCaptor.forClass(InstanceEntity.class);
-        ArgumentCaptor<ExecutionClaimEntity> claim = ArgumentCaptor.forClass(ExecutionClaimEntity.class);
+        ArgumentCaptor<TaskGroupQueueEntity> claim = ArgumentCaptor.forClass(TaskGroupQueueEntity.class);
         verify(instances).add(instance.capture());
         verify(claims).add(claim.capture());
 

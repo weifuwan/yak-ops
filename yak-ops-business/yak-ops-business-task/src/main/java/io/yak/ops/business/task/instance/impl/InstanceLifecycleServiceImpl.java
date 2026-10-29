@@ -7,7 +7,7 @@ import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.dao.entity.task.InstanceEntity;
-import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
+import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.dao.repository.task.TaskCursorRepository;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
@@ -25,7 +25,7 @@ public class InstanceLifecycleServiceImpl implements InstanceLifecycleService {
     private InstanceRepository instances;
 
     @Resource
-    private ExecutionClaimRepository claims;
+    private TaskGroupQueueRepository claims;
 
     @Resource
     private TaskCursorRepository cursors;

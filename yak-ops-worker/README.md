@@ -49,3 +49,15 @@ Claim with DolphinScheduler TaskGroup/TaskGroupQueue also requires an explicit
 decision about multi-target atomic exclusivity and MySQL CDC replication
 server-ID collisions: a Task Group slot is not equivalent to a per-target
 lock. Do not remove either live guard until those contracts have parity.
+
+## DolphinScheduler Task Group slot migration
+
+The old `yak_ops_task_execution_claim` table is replaced by `t_ds_task_group`
+and `t_ds_task_group_queue`. The SQL slot CAS follows DolphinScheduler's
+`TaskGroupMapper.xml` `acquireTaskGroupSlot` / `releaseTaskGroupSlot`.
+Yak Ops uses a Workspace-scoped Task Group of capacity one per canonical
+exclusive resource and permits one Task Instance to reserve multiple groups
+in a transaction, sorted by resource identity. Queue `task_id` uses the Yak
+Ops string Task Instance ID. Uncertain tasks retain their slots until explicit
+reconciliation; a waiting queue/coordinator is not enabled for exclusive
+destination resources. Runtime failure cannot release all groups non-atomically.

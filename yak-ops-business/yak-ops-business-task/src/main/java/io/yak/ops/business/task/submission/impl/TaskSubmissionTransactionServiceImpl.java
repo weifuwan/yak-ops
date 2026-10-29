@@ -17,13 +17,13 @@ import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.dao.entity.schedule.ScheduleEntity;
 import io.yak.ops.dao.entity.schedule.ScheduleFireEntity;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
-import io.yak.ops.dao.entity.task.ExecutionClaimEntity;
+import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.dao.repository.schedule.ScheduleFireRepository;
 import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
-import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
+import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.scheduler.api.CronService;
 import io.yak.ops.plugin.scheduler.api.ScheduleTrigger;
@@ -62,7 +62,7 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
     private InstanceRepository instances;
 
     @Resource
-    private ExecutionClaimRepository claims;
+    private TaskGroupQueueRepository claims;
 
     @Resource
     private ScheduleRepository schedules;
@@ -151,7 +151,7 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
         for (ExecutionResource resource : currentPlan.exclusiveResources().stream()
                 .sorted(Comparator.comparing(ExecutionResource::type).thenComparing(ExecutionResource::key))
                 .toList()) {
-            ExecutionClaimEntity claim = new ExecutionClaimEntity();
+            TaskGroupQueueEntity claim = new TaskGroupQueueEntity();
             claim.setWorkspaceId(workspaceId);
             claim.setResourceType(resource.type());
             claim.setResourceKey(resource.key());

@@ -6,9 +6,9 @@ import io.yak.ops.business.task.instance.InstanceService;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
-import io.yak.ops.dao.entity.task.ExecutionClaimEntity;
+import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
-import io.yak.ops.dao.repository.task.ExecutionClaimRepository;
+import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
@@ -65,7 +65,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     private DefinitionVersionRepository definitions;
 
     @Resource
-    private ExecutionClaimRepository claims;
+    private TaskGroupQueueRepository claims;
 
     @Resource
     private PhysicalTaskEngineDelegator worker;
@@ -251,7 +251,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
         };
     }
 
-    private ExecutionResource resource(ExecutionClaimEntity claim) {
+    private ExecutionResource resource(TaskGroupQueueEntity claim) {
         return new ExecutionResource(claim.getResourceType(), claim.getResourceKey());
     }
 
