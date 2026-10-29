@@ -32,14 +32,19 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
         if (candidate.isEmpty()) throw new TaskExecutorRuntimeException("All exclusive task executor slots are busy");
         TaskExecutorWorker worker = candidate.get();
         worker.registerTaskExecutor(executor);
-        assignmentTable.registerTaskExecutor(executor, worker);
+        try {
+            assignmentTable.registerTaskExecutor(executor, worker);
+        } catch (RuntimeException failure) {
+            worker.unRegisterTaskExecutor(executor);
+            throw failure;
+        }
     }
 
     @Override
     public void start(ITaskExecutor executor) {
-        String workerId = assignmentTable.getTaskExecutorWorkerId(executor);
+        Integer workerId = assignmentTable.getTaskExecutorWorkerId(executor);
         if (workerId == null) throw new IllegalStateException("Task not assigned to a worker");
-        taskExecutorWorkers.getWorkerById(Integer.parseInt(workerId)).fireTaskExecutor(executor);
+        taskExecutorWorkers.getWorkerById(workerId).fireTaskExecutor(executor);
     }
 
     @Override
@@ -54,9 +59,9 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
 
     @Override
     public synchronized void finalize(ITaskExecutor executor) {
-        String id = assignmentTable.getTaskExecutorWorkerId(executor);
+        Integer id = assignmentTable.getTaskExecutorWorkerId(executor);
         if (id != null) {
-            TaskExecutorWorker worker = taskExecutorWorkers.getWorkerById(Integer.parseInt(id));
+            TaskExecutorWorker worker = taskExecutorWorkers.getWorkerById(id);
             worker.unFireTaskExecutor(executor);
             worker.unRegisterTaskExecutor(executor);
             assignmentTable.unregisterTaskExecutor(executor);
@@ -78,6 +83,10 @@ public abstract class AbstractTaskExecutorContainer implements ITaskExecutorCont
         closed = true;
         taskExecutorThreadPool.shutdownNow();
     }
+
+    public TaskExecutorAssignmentTable getTaskExecutorAssignmentTable() { return assignmentTable; }
+
+    public TaskExecutorWorkers getTaskExecutorWorkers() { return taskExecutorWorkers; }
 
     protected abstract Optional<TaskExecutorWorker> getTaskExecutorWorkerCandidate(ITaskExecutor executor);
 }

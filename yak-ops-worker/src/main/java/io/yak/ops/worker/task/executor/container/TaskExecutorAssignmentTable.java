@@ -22,9 +22,8 @@ public final class TaskExecutorAssignmentTable {
         assignments.remove(task.getId());
     }
 
-    public String getTaskExecutorWorkerId(ITaskExecutor task) {
-        Integer id = assignments.get(task.getId());
-        return id == null ? null : id.toString();
+    public Integer getTaskExecutorWorkerId(ITaskExecutor task) {
+        return assignments.get(task.getId());
     }
 
     public boolean isEmpty() {
