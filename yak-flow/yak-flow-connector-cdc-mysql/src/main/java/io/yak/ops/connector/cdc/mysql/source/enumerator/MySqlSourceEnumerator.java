@@ -192,6 +192,7 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
                 requestBinlogSplitUpdateIfNeed(
                         assigner.isNewlyAddedAssignmentFinished() && pendingBinlogUpdateGeneration < 0);
             }
+            assignAvailable();
         } else if (assigner.snapshotComplete()) {
             if (assigner.phase() == HybridPendingSplitsState.Phase.SNAPSHOT) enterHandoff();
             assignAvailable();
@@ -216,8 +217,12 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
             if (next != null) context.assignSplit(next, 0);
             return;
         }
-        if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING && !assigner.isAssigningNewlyAddedTables())
+        if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING
+                && !assigner.isAssigningNewlyAddedTables()) {
+            // Reader 0 may request a returned Binlog split after a region restart.
+            if (reader == 0) assignAvailable();
             return;
+        }
         waitingReaders.add(reader);
         assignAvailable();
         planSnapshotAsync();
@@ -448,11 +453,12 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
 
     private void assignAvailable() {
         if (closed || !started) return;
-        MySqlBinlogSplit binlog = assigner.nextBinlog();
-        if (binlog != null) {
-            if (context.registeredReaders().containsKey(0)) context.assignSplit(binlog, 0);
-            else assigner.addBack(binlog);
-            waitingReaders.remove(0);
+        if (context.registeredReaders().containsKey(0)) {
+            MySqlBinlogSplit binlog = assigner.nextBinlog();
+            if (binlog != null) {
+                context.assignSplit(binlog, 0);
+                waitingReaders.remove(0);
+            }
         }
         boolean initialSnapshot = assigner.phase() == HybridPendingSplitsState.Phase.SNAPSHOT;
         boolean newlyAddedSnapshot = assigner.phase() == HybridPendingSplitsState.Phase.STREAMING
