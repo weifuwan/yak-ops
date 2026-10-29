@@ -82,16 +82,16 @@ class PendingSplitsStateSerializerTest {
         HybridPendingSplitsState original = new HybridPendingSplitsState(
                 snapshot, true, null, HybridPendingSplitsState.Phase.BOOTSTRAP, null, null);
         byte[] protectedState = serializer.serialize(original);
-        assertThat(serializer.getVersion()).isEqualTo(2);
-        assertThat(serializer.deserialize(2, protectedState)).isEqualTo(original);
+        assertThat(serializer.getVersion()).isEqualTo(4);
+        assertThat(serializer.deserialize(serializer.getVersion(), protectedState)).isEqualTo(original);
 
         byte[] changed = protectedState.clone();
         changed[16] ^= 0x01;
-        assertThatThrownBy(() -> serializer.deserialize(2, changed))
+        assertThatThrownBy(() -> serializer.deserialize(serializer.getVersion(), changed))
                 .isInstanceOf(IOException.class).hasMessageContaining("checksum");
         byte[] damagedTail = protectedState.clone();
         damagedTail[damagedTail.length - 1] ^= 0x01;
-        assertThatThrownBy(() -> serializer.deserialize(2, damagedTail))
+        assertThatThrownBy(() -> serializer.deserialize(serializer.getVersion(), damagedTail))
                 .isInstanceOf(IOException.class).hasMessageContaining("checksum");
         assertThatThrownBy(() -> serializer.deserialize(0, protectedState))
                 .isInstanceOf(IOException.class);
