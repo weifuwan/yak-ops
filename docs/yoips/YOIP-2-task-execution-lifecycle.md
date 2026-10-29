@@ -21,7 +21,7 @@ business lifecycle. Runtime owns its internal recovery and subtask execution att
 
 Manual execution is supported independently of Workflows. Scheduling and Workflows may invoke the
 same submission service with stable trigger identities. The embedded deployment uses a single
-verified execution owner, a local state directory and resource-specific admission claims.
+DolphinScheduler JDBC Registry ownership, a local state directory and resource-specific Task Group slots.
 
 ## Public Interfaces
 
@@ -58,7 +58,7 @@ trusted runtime ownership or credentials.
 | CANCELED | Cancellation has been confirmed, including before launch |
 
 FINISHED, FAILED and CANCELED are terminal and immutable. RECONCILING is nonterminal and
-retains its resource claims. The platform never treats an observed Job ID or elapsed time as
+retains its Task Group slots. The platform never treats an observed Job ID or elapsed time as
 proof that an external writer has stopped.
 
 The Task API exposes:
@@ -81,7 +81,7 @@ and replay indicator. A response confirms admission, not physical Job startup.
 The Task plugin parses and validates its parameters and prepares a read-only
 `TaskExecutionResources`. The plan declares the effective non-secret resource binding and
 canonical exclusive resources. Admission verifies the published Definition and resource
-revision, then inserts the Instance and acquires its resource claims in one transaction.
+revision, then inserts the Instance and acquires its Task Group slots in one transaction.
 
 The database enforces uniqueness of `(workspace_id, trigger_type, request_id)` and
 `(workspace_id, resource_type, resource_key)`. A repeated request with identical intent
@@ -95,14 +95,14 @@ owner identity. It atomically claims one SUBMITTED Instance, changes it to LAUNC
 persists its owner incarnation and one-time dispatch token.
 
 A winning dispatcher verifies the pinned Definition version, planned resource revision and
-held claims before invoking the plugin start operation. The plugin returns a `TaskHandle`.
+held Task Group slots before invoking the plugin start operation. The plugin returns a `TaskHandle`.
 The observer records the engine and Job ID, tracks completion, and forwards cancellation
 through that handle. The winning token guards Job-reference persistence, terminal transitions
 and uncertain-execution reconciliation.
 
 A SUBMITTED Instance may be canceled and finalized without invoking the plugin. Cancellation
 after the LAUNCHING claim records CANCELLING, forwards the request when a handle exists,
-and waits for authoritative termination before releasing resource claims. A delayed start
+and waits for authoritative termination before releasing Task Group slots. A delayed start
 observation may record its Job ID without replacing the CANCELLING state.
 
 The platform stores the authoritative terminal status and releases claims in the same
@@ -114,11 +114,11 @@ resources. The engine's structured failure category is persisted without sensiti
 A pending SUBMITTED Instance can be claimed after process restart. An Instance already in
 LAUNCHING, RUNNING or CANCELLING belongs to its recorded owner incarnation; startup
 reconciliation checks the prior owner and records RECONCILING when physical execution
-outcome is uncertain. In that state, the Instance retains its resource claims and cannot
+outcome is uncertain. In that state, the Instance retains its Task Group slots and cannot
 start another Job.
 
 The embedded deployment requires one host and a canonical writable state root.
-Ownership checks guard against competing executors. Confirmed terminalization and claim
+DolphinScheduler Registry's ephemeral node and distributed lock guard against competing embedded Masters. Confirmed terminalization and claim
 release require evidence that prior external writers are no longer active. Job resubmission
 across process restarts is outside this execution contract.
 
@@ -191,7 +191,7 @@ exactly-once delivery or a cross-attempt business total.
 
 ## Compatibility, Deprecation, and Migration Plan
 
-The forward-only Task Instance migration adds launch ownership and Job reference fields to
+The Task Instance baseline defines launch ownership and Job reference fields to
 `yak_ops_task_instance`. It transfers the existing single-submission ownership, Job ID and
 observed timestamps from the execution submission records, then keeps Instance as the
 authoritative lifecycle table. Published migrations retain their original contents.
@@ -200,13 +200,13 @@ authoritative lifecycle table. Published migrations retain their original conten
 
 1. Equivalent request replay returns the same Instance, including after Definition changes.
 2. Two concurrent dispatchers cannot launch the same Instance twice.
-3. Cancellation before claiming prevents physical execution and releases resource claims.
+3. Cancellation before claiming prevents physical execution and releases Task Group slots.
 4. Cancellation during startup preserves CANCELLING until physical termination.
 5. Terminal callbacks are token-guarded and release claims only after confirmed completion.
 6. Embedded-process interruption retains protection for uncertain external writes.
 7. JDBC and CDC pipelines execute through YakFlow with the correct pinned configuration.
 8. Runtime internal restart and checkpoint recovery do not create another business Instance.
-9. Independent Instances use distinct checkpoint directories and cannot steal target claims.
+9. Independent Instances use distinct checkpoint directories and cannot steal target Task Group slots.
 10. Public endpoints and UI expose Instance state and the engine Job ID directly.
 
 ## Rejected Alternatives

@@ -5,10 +5,10 @@ DolphinScheduler `dolphinscheduler-task-executor` and
 TaskEngine → Container → TaskExecutorWorker → PhysicalTaskExecutor architecture.
 
 The first implementation is embedded: one JVM, one Master, a configurable
-number of exclusive task slots, no RPC, no Worker registry. The Yak Ops Task
+number of exclusive task slots, no remote RPC or remote Worker discovery. The Yak Ops Task
 SPI and its deferred TaskHandle lifecycle remain authoritative for physical
 execution. The platform persists the Task Instance and does not release
-execution claims on an unconfirmed Job result.
+Task Group slots on an unconfirmed Job result.
 
 Source alignment: Apache DolphinScheduler dev
 `ee47c371a7f920b0b5bbba3fb01dd1695f5800a3`. Imported upstream files
@@ -25,7 +25,7 @@ retain their ASF headers; adapted files are documented in this module.
   `createPhysicalTask` / `getTaskChannel` model.
 - Yak Ops differences are deliberate: string Task Instance ID, existing
   `ExecutableTaskPlugin` / deferred `TaskHandle`, Master-side durable
-  claim and authorization, a local rather than RPC lifecycle ACK, and no
+  Task Group slot and authorization, a local rather than RPC lifecycle ACK, and no
   remote log upload or worker filesystem staging.
 - The runtime context is transportable **data**, not a holder of factories or
   callbacks. Workflow/project fields stay nullable until a Workflow model
@@ -34,21 +34,15 @@ retain their ASF headers; adapted files are documented in this module.
   completion; the business `RECONCILING` state and dispatch token remain
   authoritative. Run and inspect all backend checks before merging.
 
-## Registry and resource scheduling follow-up
+## DolphinScheduler JDBC Registry
 
-The embedded Worker still uses the Yak Ops singleton owner table and the
-per-resource exclusive Claim table. Neither has a one-to-one table equivalent
-in DolphinScheduler. The non-heartbeating `last_seen_time` column and
-unused MyBatis Owner entity/mapper were removed rather than presenting them
-as a DolphinScheduler-style node registry.
-
-Replacing Owner requires the **whole** DolphinScheduler Registry lifecycle
-(including JDBC Registry data, lock, client heartbeat and change-event tables),
-with recovery fencing before a second process can launch tasks. Replacing
-Claim with DolphinScheduler TaskGroup/TaskGroupQueue also requires an explicit
-decision about multi-target atomic exclusivity and MySQL CDC replication
-server-ID collisions: a Task Group slot is not equivalent to a per-target
-lock. Do not remove either live guard until those contracts have parity.
+The embedded Master uses the published DolphinScheduler
+`dolphinscheduler-registry-jdbc:3.4.2` implementation and the four original
+`t_ds_jdbc_registry_*` tables. The previous `yak_ops_task_execution_owner`
+row and its repository are deleted. Registration uses an ephemeral Registry
+path and Registry lock. The embedded filesystem lock remains a process-local
+safety guard, and new dispatch fails closed when Registry ownership is lost.
+Uncertain physical executions are not blindly resumed by a successor Master.
 
 ## DolphinScheduler Task Group slot migration
 

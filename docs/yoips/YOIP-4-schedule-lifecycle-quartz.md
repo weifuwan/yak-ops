@@ -229,12 +229,12 @@ Under those locks, recheck publication and prepared Definition version, enabling
 schedule target/state/revision, activation/time eligibility, existing occurrence result, and
 resource binding. Include the schedule guard in final Task admission so an internal caller
 cannot bypass it by directly choosing SCHEDULE. Persist an ADMITTED fire, its Task Instance,
-and all resource claims atomically. Physical dispatch observes only committed Instances.
+and all Task Group slots atomically. Physical dispatch observes only committed Instances.
 Do not call an independently committing `REQUIRES_NEW` admission and later append a fire row.
 
 Expected exclusive-resource conflict resolves to SKIPPED under the same occurrence serialization.
 Use a savepoint around the existing admission writes, retaining the outer Definition/Schedule
-locks: roll back partial Instance/claim writes, then commit the final skip. No earlier callback
+locks: roll back partial Instance/Task Group queue writes, then commit the final skip. No earlier callback
 may leave a partial Instance or reopen a known skip through a rollback-to-new-transaction gap.
 The nested/savepoint boundary must not mark the outer transaction rollback-only for an expected
 conflict. Unexpected transaction, connection, or deadlock failures roll back the whole unit;
@@ -288,7 +288,7 @@ select a JDBC driver version. JobDataMap persists only primitive/string registra
 no serialized Spring beans, Task snapshots, or credentials. Schema creation is migration-owned,
 not an application startup routine that drops and recreates Quartz tables.
 
-Reuse YOIP-2's single-host, canonical-state-root execution-owner contract. Acquire and verify
+Reuse YOIP-2's DolphinScheduler JDBC Registry lease with a local embedded filesystem lock. Acquire and verify
 that ownership before initializing the active Quartz store/lifecycle; disable automatic Quartz
 startup. A losing process neither initializes an active store nor mutates its registrations.
 Multiple hosts or alternate state roots using the same Quartz tables remain unsupported; a
@@ -351,7 +351,7 @@ must be synchronized; tests inject time rather than rely on arbitrary sleeps.
 
 [DisallowConcurrentExecution][quartz-concurrency], when used for the short notification Job,
 only serializes that Quartz JobKey. It cannot prevent two already submitted Tasks from running.
-Task overlap remains governed by the existing database resource claims, not a Quartz annotation.
+Task overlap remains governed by the existing database Task Group slots, not a Quartz annotation.
 
 ### Workflow extension boundary
 
@@ -437,14 +437,14 @@ transactions/Quartz JDBC JobStore for persistence behavior; an in-memory mock is
 | Eligibility | Bounded JDBC is eligible; CDC and default-false plugins are rejected for scheduling; manual execution remains unchanged |
 | CRUD | One active schedule per target; stale mutations conflict; repeat enable/disable is a no-op; delete/recreate never reuses an ID |
 | Replay | Concurrent/repeated notifications yield one fire result and at most one Instance; differing actual times do not change the key; conflicting intent is rejected |
-| Skips | Occupied execution resources produce one durable SKIPPED result; replay after release stays skipped; RECONCILING claims remain effective |
+| Skips | Occupied execution resources produce one durable SKIPPED result; replay after release stays skipped; RECONCILING Task Group slots remain effective |
 | Transaction | Inject a conflict after a partial claim write; savepoint rollback removes all tentative writes while preserving occurrence locks and the final skip |
 | Stop races | Barrier tests cover both commit orders for disable, delete and Task unpublish against admission; stop never cancels a committed Instance |
 | Versions | A Definition changed after preparation is rejected without mixing versions; replays retain the original version; old Trigger revisions never adopt current revisions |
 | Failure boundary | Fault injection before admission, after business commit, before Quartz acknowledgement, and during commit response proves no duplicate/replacement execution and no false failure/skip |
 | Registration | Lost after-commit updates, orphaned/missing/stale registrations, engine errors and reconciliation converge without resetting unchanged next-fire state |
 | Restart | Pre-activation occurrences are not admitted even inside the misfire threshold; persisted SUBMITTED Instances still dispatch; no downtime-backfill rows are invented |
-| Ownership | A competing process/state-root mismatch cannot initialize an active store or start scheduling; shutdown/ownership loss closes the gate before releasing ownership |
+| Ownership | A competing Registry lock holder or lost Registry connection cannot initialize an active store or start scheduling; shutdown/ownership loss closes the gate before releasing ownership |
 | Time | UTC/Asia time zones, invalid zones, finite expressions, lateness boundaries and DST transitions produce matching preview/actual sequences |
 | Retention | Purged skip/failure history cannot reopen an old occurrence; deleted schedules and clock rollback do not bypass time/identity guards |
 | Frontend | Existing picker/advanced Cron preservation, stale preview handling, save versus enable, task-level placement, list batching and truthful skipped-fire display |
