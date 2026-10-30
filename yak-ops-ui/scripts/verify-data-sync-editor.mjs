@@ -149,14 +149,7 @@ const persistedStartup = {
   skipEvents: 2,
   skipRows: 3,
 };
-const offsetEdit = params.buildEditorPayload(
-  form,
-  realtimeOnly,
-  false,
-  [],
-  true,
-  persistedStartup,
-);
+const offsetEdit = params.buildEditorPayload(form, realtimeOnly, false, [], true, persistedStartup);
 const savedStartup = transport.createDefinitionRequest(offsetEdit).parameters.source.startup;
 assert.deepEqual(JSON.parse(JSON.stringify(savedStartup)), persistedStartup);
 const offlineStartupPayload = params.buildEditorPayload(
