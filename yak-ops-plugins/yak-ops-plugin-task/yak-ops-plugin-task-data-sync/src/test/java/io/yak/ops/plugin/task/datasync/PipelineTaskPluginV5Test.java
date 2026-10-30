@@ -93,34 +93,58 @@ class PipelineTaskPluginV5Test {
             this.id = id;
         }
 
-        @Override public String getJobId() { return id; }
+        @Override
+        public String getJobId() {
+            return id;
+        }
 
-        @Override public void start() {
+        @Override
+        public void start() {
             if (status != JobStatus.CREATED) return;
             status = JobStatus.RUNNING;
             composer.starts++;
         }
 
-        @Override public JobStatus getStatus() { return status; }
+        @Override
+        public JobStatus getStatus() {
+            return status;
+        }
 
-        @Override public CompletionStage<JobStatus> completion() { return terminal; }
+        @Override
+        public CompletionStage<JobStatus> completion() {
+            return terminal;
+        }
 
-        @Override public CompletionStage<Void> cancel() {
+        @Override
+        public CompletionStage<Void> cancel() {
             status = JobStatus.CANCELED;
             terminal.complete(status);
             return CompletableFuture.completedFuture(null);
         }
 
-        @Override public OptionalInt getProgressPercent() { return OptionalInt.empty(); }
+        @Override
+        public OptionalInt getProgressPercent() {
+            return OptionalInt.empty();
+        }
 
-        @Override public Optional<String> getExecutionReport() { return Optional.empty(); }
+        @Override
+        public Optional<String> getExecutionReport() {
+            return Optional.empty();
+        }
 
-        @Override public Optional<String> getExecutionSummary() { return Optional.empty(); }
+        @Override
+        public Optional<String> getExecutionSummary() {
+            return Optional.empty();
+        }
 
-        @Override public CompletionStage<Optional<String>> engineJobIdReady() {
+        @Override
+        public CompletionStage<Optional<String>> engineJobIdReady() {
             return CompletableFuture.completedFuture(Optional.empty());
         }
 
-        @Override public Optional<String> engineJobId() { return Optional.empty(); }
+        @Override
+        public Optional<String> engineJobId() {
+            return Optional.empty();
+        }
     }
 }
