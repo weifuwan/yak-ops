@@ -189,7 +189,7 @@ public final class PipelineYamlConverter {
         List<String> segments = new ArrayList<>();
         for (String name : List.of("database", "schema", "table")) {
             String part = text(table, name);
-            if (part != null) {
+            if (part != null && (!part.isBlank() || "table".equals(name))) {
                 if (part.isBlank() || part.indexOf('.') >= 0) {
                     throw new TaskPluginException("Invalid DATA_SYNC table path segment");
                 }
