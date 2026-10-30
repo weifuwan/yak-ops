@@ -28,3 +28,13 @@
 The JDBC Registry server, heartbeat Mapper/Repository, and upstream regression test follow Apache DolphinScheduler PR #18416 (compare-and-delete expiration, durable current heartbeat, atomic connection state). Keep provenance when updating further.
 
 Do not rename imported upstream classes or selectively rewrite algorithms.
+
+## Yak Ops orphan cleanup race fix (PR #1813 follow-up)
+
+The 3.4.3-derived purge implementation previously used a stale heartbeat snapshot to decide
+whether to delete *all* data/locks collected later. A client that registered between
+those queries could lose its live ephemeral node or lock. Purge now uses owner-checked,
+heartbeat-absence-guarded SQL DELETEs. Ephemeral row deletion and its Registry DELETE
+event commit together. All original classes/packages are retained; these local
+mapper/repository/data-manager methods are an explicit safety deviation pending
+an equivalent upstream source change.
