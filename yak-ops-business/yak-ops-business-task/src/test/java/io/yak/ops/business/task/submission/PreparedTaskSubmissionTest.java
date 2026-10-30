@@ -7,11 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+
 import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.configuration.ReadonlyConfig;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
-import io.yak.ops.plugin.task.api.TaskChannel;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

@@ -2,6 +2,7 @@ package io.yak.ops.boot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
 import io.yak.ops.boot.config.TaskPluginConfiguration;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
