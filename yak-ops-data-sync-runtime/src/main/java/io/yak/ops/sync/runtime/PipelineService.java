@@ -109,7 +109,7 @@ public final class PipelineService {
         try {
             PipelineContext trusted = context(context, debug);
             io.yak.ops.core.definition.PipelineDef definition =
-                    new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters));
+                    new YamlPipelineDefinitionParser().parse(JobConfig.yaml(parameters));
             PipelinePlan admitted = composer.plan(definition, trusted);
             if (!plan.equals(admission(admitted))) {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
