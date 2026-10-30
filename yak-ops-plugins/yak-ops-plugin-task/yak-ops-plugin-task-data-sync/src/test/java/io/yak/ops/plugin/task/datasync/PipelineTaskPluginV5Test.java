@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.Test;
 
 /** Verifies that the Task SPI only adapts and rechecks the Flink-style composer. */
@@ -70,7 +70,8 @@ class PipelineTaskPluginV5Test {
         ReadonlyConfig parameters = ConfigParser.parseJson(V5);
         TaskExecutionResources admitted = plugin.plan(parameters, identity);
         composer.revision = "changed";
-        assertThrows(CompletionException.class,
+        assertThrows(
+                CompletionException.class,
                 () -> plugin.start(parameters, admitted, identity, false).toCompletableFuture().join());
         assertEquals(0, composer.compositions);
     }
