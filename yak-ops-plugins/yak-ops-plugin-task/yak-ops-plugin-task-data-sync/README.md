@@ -11,11 +11,11 @@ V4-to-V5 migration or V5-to-V4 adapter is available.
   `RouteDef`, `TransformDef`. Only one complete V5 definition is accepted.
 - `io.yak.ops.core.parser`: strict JSON-to-`PipelineDef` parsing.
 - `io.yak.ops.core.composer`: `PipelineComposer`, `PipelineExecution`,
-  `PipelinePlan`, `PipelineContext` and host-provided `PipelineRuntime`.
-  This API is process-local; it is not a durable remote job registry.
+  `PipelinePlan` and `PipelineContext`; the implementation is `YakFlowPipelineComposer`.
+  This interface owns no running-job registry and performs no cancellation or submission.
 - `PipelineTaskPlugin`: DolphinScheduler-style Task SPI, registration,
   validation, admission and a thin deferred execution handle.
-- `execution/YakFlowPipelineRuntime`: binds the V5 composer to the verified
+- `execution/YakFlowPipelineComposer`: binds the V5 composer to the verified
   `JobPlanner`, `PipelineBuilder` and YakFlow executor.
 - `config/JobConfig`: internal typed per-table execution projection of V5,
   **not a persisted V4 wire format**. Source/Sink/Route are read from V5.

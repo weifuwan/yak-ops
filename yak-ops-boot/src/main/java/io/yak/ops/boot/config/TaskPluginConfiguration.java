@@ -6,13 +6,12 @@ import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.execution.PipelineExecutor;
-import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.datasync.PipelineTaskPlugin;
 import io.yak.ops.plugin.task.datasync.execution.PipelineTaskExecutor;
-import io.yak.ops.plugin.task.datasync.execution.YakFlowPipelineRuntime;
+import io.yak.ops.plugin.task.datasync.execution.YakFlowPipelineComposer;
 import io.yak.ops.plugin.task.datasync.pipeline.EnvironmentOptions;
 import io.yak.ops.plugin.task.datasync.pipeline.ExecutionConfigurationFactory;
 import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
@@ -119,8 +118,7 @@ public class TaskPluginConfiguration {
 
     @Bean
     PipelineComposer pipelineComposer(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
-        return new PipelineComposer(
-                new JsonPipelineDefinitionParser(), new YakFlowPipelineRuntime(planner, executor, factories));
+        return new YakFlowPipelineComposer(planner, executor, factories);
     }
 
     @Bean

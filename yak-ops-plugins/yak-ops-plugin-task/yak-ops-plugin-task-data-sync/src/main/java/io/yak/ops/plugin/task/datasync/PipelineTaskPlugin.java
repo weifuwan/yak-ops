@@ -145,7 +145,9 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
-        return admission(composer.plan(ConfigParser.toJson(parameters), context(context, false)));
+        return admission(composer.plan(
+                new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters)),
+                context(context, false)));
     }
 
     @Override
@@ -153,12 +155,13 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
         try {
             PipelineContext trusted = context(context, debug);
-            String json = ConfigParser.toJson(parameters);
-            TaskExecutionResources actual = admission(composer.plan(json, trusted));
-            if (!plan.equals(actual)) {
+            io.yak.ops.core.definition.PipelineDef definition =
+                    new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters));
+            PipelinePlan admitted = composer.plan(definition, trusted);
+            if (!plan.equals(admission(admitted))) {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
             }
-            PipelineExecution job = composer.compose(json, trusted);
+            PipelineExecution job = composer.compose(definition, admitted, trusted);
             return CompletableFuture.completedFuture(new PipelineExecutionTaskHandle(job));
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(

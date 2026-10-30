@@ -19,3 +19,9 @@ Example:
 
 Explicit one-to-one routes remain the currently supported physical execution subset.
 Unknown connector combinations and unsupported transformations fail validation.
+
+Composer alignment: `PipelineComposer` is an interface with definition-to-execution semantics;
+`YakFlowPipelineComposer` owns the embedded implementation. Parsing remains in the
+parser, and Task scheduling owns job registration, status and cancellation.
+Task submission revalidates metadata before composing; the deferred execution
+revalidates its admitted resources before any physical side effects.

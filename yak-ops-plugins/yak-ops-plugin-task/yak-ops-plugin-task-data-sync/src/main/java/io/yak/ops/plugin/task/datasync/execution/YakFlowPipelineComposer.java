@@ -5,7 +5,7 @@ import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.composer.PipelineContext;
 import io.yak.ops.core.composer.PipelineExecution;
 import io.yak.ops.core.composer.PipelinePlan;
-import io.yak.ops.core.composer.PipelineRuntime;
+import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
@@ -18,20 +18,15 @@ import java.util.List;
 import java.util.Objects;
 
 /** Compiles V5 definitions with the existing YakFlow execution algorithm. */
-public final class YakFlowPipelineRuntime implements PipelineRuntime {
+public final class YakFlowPipelineComposer implements PipelineComposer {
     private final JobPlanner planner;
     private final PipelineTaskExecutor executor;
     private final FactoryUtil factories;
 
-    public YakFlowPipelineRuntime(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
+    public YakFlowPipelineComposer(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
         this.planner = Objects.requireNonNull(planner, "planner");
         this.executor = Objects.requireNonNull(executor, "executor");
         this.factories = Objects.requireNonNull(factories, "factories");
-    }
-
-    @Override
-    public void validate(PipelineDef definition, PipelineContext context) {
-        JobConfigValidator.validateConfig(definition.getOriginal(), factories);
     }
 
     @Override
@@ -45,7 +40,9 @@ public final class YakFlowPipelineRuntime implements PipelineRuntime {
     }
 
     @Override
-    public PipelineExecution prepare(PipelineDef definition, PipelinePlan plan, PipelineContext context) {
+    public PipelineExecution compose(PipelineDef definition, PipelinePlan plan, PipelineContext context) {
+        // The plan was admitted by plan() and checked against the Task scheduler's claim.
+        // Physical execution revalidates the metadata before any write or DDL.
         ReadonlyConfig parameters = definition.getOriginal();
         List<ExecutionResource> claims = new ArrayList<>();
         for (PipelinePlan.ResourceClaim resource : plan.resources()) {
