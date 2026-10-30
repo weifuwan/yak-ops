@@ -1,0 +1,33 @@
+name: Temporary V5 UI formatter
+on:
+  push:
+    branches:
+      - refactor/core-data-sync-client-v5
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/core-data-sync-client-v5
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Format V5 editor contract test
+        run: |
+          cd yak-ops-ui
+          npm ci --no-audit --no-fund
+          npx oxfmt scripts/verify-data-sync-editor.mjs
+      - name: Commit formatted test
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add yak-ops-ui/scripts/verify-data-sync-editor.mjs
+          if ! git diff --cached --quiet; then
+            git commit -m "style(ui): apply oxfmt to CDC startup regression test"
+            git push origin HEAD:refactor/core-data-sync-client-v5
+          fi
