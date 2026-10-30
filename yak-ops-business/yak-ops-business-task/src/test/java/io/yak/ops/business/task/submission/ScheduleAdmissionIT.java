@@ -52,6 +52,7 @@ import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
 import io.yak.ops.testutils.MySqlDatabase;
 import io.yak.ops.workspace.WorkspaceService;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -607,7 +608,7 @@ class ScheduleAdmissionIT {
     }
 
     @Test
-    void registryPurgePreservesClientRegisteredAfterHeartbeatSnapshot() {
+    void registryPurgePreservesClientRegisteredAfterHeartbeatSnapshot() throws Exception {
         JdbcRegistryClientRepository clients = context.getBean(JdbcRegistryClientRepository.class);
         JdbcRegistryClientRepository snapshotClients = org.mockito.Mockito.spy(clients);
         JdbcRegistryDataRepository data = context.getBean(JdbcRegistryDataRepository.class);
@@ -644,7 +645,9 @@ class ScheduleAdmissionIT {
                 return heartbeatSnapshot;
             }).when(snapshotClients).queryAll();
 
-            org.springframework.test.util.ReflectionTestUtils.invokeMethod(server, "purgeInvalidJdbcRegistryMetadata");
+            Method purge = JdbcRegistryServer.class.getDeclaredMethod("purgeInvalidJdbcRegistryMetadata");
+            purge.setAccessible(true);
+            purge.invoke(server);
 
             assertEquals(1, jdbc.queryForObject(
                     "SELECT COUNT(*) FROM yak_ops_jdbc_registry_data WHERE data_key='/test/live'", Integer.class));
