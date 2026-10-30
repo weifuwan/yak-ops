@@ -41,9 +41,7 @@ public final class TaskGroupCoordinator implements AutoCloseable {
     private final TaskExecutionCoordinator dispatcher;
 
     public TaskGroupCoordinator(
-            EmbeddedExecutionOwner owner,
-            TaskGroupQueueRepository queues,
-            TaskExecutionCoordinator dispatcher) {
+            EmbeddedExecutionOwner owner, TaskGroupQueueRepository queues, TaskExecutionCoordinator dispatcher) {
         this.owner = owner;
         this.queues = queues;
         this.dispatcher = dispatcher;
