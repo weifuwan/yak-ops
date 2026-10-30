@@ -11,14 +11,13 @@ import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
-import io.yak.ops.plugin.task.datasync.config.V5PipelineAdapter;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
 import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Bridges the Core client to the existing YakFlow-backed synchronization implementation. */
+/** Compiles V5 definitions with the existing YakFlow execution algorithm. */
 public final class YakFlowPipelineRuntime implements PipelineRuntime {
     private final JobPlanner planner;
     private final DataSyncTaskExecutor executor;
@@ -32,12 +31,12 @@ public final class YakFlowPipelineRuntime implements PipelineRuntime {
 
     @Override
     public void validate(PipelineDef definition, PipelineContext context) {
-        JobConfigValidator.validateConfig(V5PipelineAdapter.toV4(definition), factories);
+        JobConfigValidator.validateConfig(definition.getOriginal(), factories);
     }
 
     @Override
     public PipelinePlan plan(PipelineDef definition, PipelineContext context) {
-        TaskExecutionResources resources = planner.admissionPlan(V5PipelineAdapter.toV4(definition), identity(context));
+        TaskExecutionResources resources = planner.admissionPlan(definition.getOriginal(), identity(context));
         List<PipelinePlan.ResourceClaim> claims = new ArrayList<>();
         for (ExecutionResource resource : resources.exclusiveResources()) {
             claims.add(new PipelinePlan.ResourceClaim(resource.type(), resource.key()));
@@ -47,7 +46,7 @@ public final class YakFlowPipelineRuntime implements PipelineRuntime {
 
     @Override
     public PipelineExecution prepare(PipelineDef definition, PipelinePlan plan, PipelineContext context) {
-        ReadonlyConfig parameters = V5PipelineAdapter.toV4(definition);
+        ReadonlyConfig parameters = definition.getOriginal();
         List<ExecutionResource> claims = new ArrayList<>();
         for (PipelinePlan.ResourceClaim resource : plan.resources()) {
             claims.add(new ExecutionResource(resource.type(), resource.key()));

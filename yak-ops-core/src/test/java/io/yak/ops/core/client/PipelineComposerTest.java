@@ -17,7 +17,13 @@ import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.Test;
 
 class PipelineComposerTest {
-    private static final String V4 = "{\"solutionType\":\"SINGLE_TABLE_OFFLINE\"}";
+    private static final String V5 = """
+            {"source":{"type":"JDBC","datasourceId":"s","tables":[{"table":"orders"}]},
+             "sink":{"type":"JDBC","datasourceId":"t","schemaPolicy":{"initial":"VERIFY",
+             "evolution":{"enabled":false,"allowDropColumns":false}},
+             "tables":[{"table":"orders_copy","write":{"mode":"APPEND"}}]},
+             "route":[{"source-table":"orders","sink-table":"orders_copy"}]}
+            """;
     private static final PipelineContext CONTEXT =
             new PipelineContext("ws", "definition", 1, "instance", false);
 
@@ -40,7 +46,7 @@ class PipelineComposerTest {
         PipelineComposer client = new PipelineComposer(new JsonPipelineDefinitionParser(), new StubEngine());
         client.compose(V5, CONTEXT);
         assertThrows(IllegalArgumentException.class,
-                () -> client.compose("{\"solutionType\":\"SINGLE_TABLE_REALTIME\"}", CONTEXT));
+                () -> client.compose(V5.replace("orders_copy", "users_copy"), CONTEXT));
     }
 
     @Test

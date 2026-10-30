@@ -11,6 +11,8 @@ import io.yak.ops.core.client.PipelineExecution;
 import io.yak.ops.core.client.PipelinePlan;
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
+import io.yak.ops.configuration.Option;
+import io.yak.ops.configuration.Options;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
@@ -20,8 +22,6 @@ import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.config.SolutionOptions;
-import io.yak.ops.plugin.task.datasync.config.V5PipelineAdapter;
 import io.yak.ops.plugin.task.datasync.execution.PipelineComposerTaskHandle;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
@@ -38,6 +38,18 @@ import java.util.concurrent.CompletionStage;
 public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     public static final String TYPE = "DATA_SYNC";
+    private static final Option<java.util.Map<String, Object>> SOURCE =
+            Options.key("source").mapObjectType().noDefaultValue();
+    private static final Option<java.util.Map<String, Object>> SINK =
+            Options.key("sink").mapObjectType().noDefaultValue();
+    private static final Option<List<Object>> ROUTE =
+            Options.key("route").listType(Object.class).noDefaultValue();
+    private static final Option<List<Object>> TRANSFORM =
+            Options.key("transform").listType(Object.class).noDefaultValue();
+    private static final Option<java.util.Map<String, Object>> PIPELINE =
+            Options.key("pipeline").mapObjectType().noDefaultValue();
+    private static final OptionRule RULE = OptionRule.builder()
+            .required(SOURCE, SINK).optional(ROUTE, TRANSFORM, PIPELINE).build();
 
     private final JobPlanner planner;
     private final DataSyncTaskExecutor executor;
@@ -63,42 +75,22 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public int parameterSchemaVersion() {
-        return 4;
+        return 5;
     }
 
     @Override
     public OptionRule optionRule() {
-        return SolutionOptions.RULE;
+        return RULE;
     }
 
     @Override
     public ReadonlyConfig parse(String content) {
         try {
-            ReadonlyConfig parsed = ConfigParser.parseJson(content);
+            ReadonlyConfig parsed = new JsonPipelineDefinitionParser().parse(content).getOriginal();
             return JobConfigValidator.validateConfig(parsed, factories).parameters();
         } catch (RuntimeException failure) {
-            throw new TaskPluginException("Invalid DATA_SYNC pipeline JSON", failure);
+            throw new TaskPluginException("Invalid V5 DATA_SYNC pipeline JSON", failure);
         }
-    }
-
-    @Override
-    public ReadonlyConfig parse(int schemaVersion, String content) {
-        if (schemaVersion == 4) return parse(content);
-        if (schemaVersion == 5) {
-            PipelineDef definition = new JsonPipelineDefinitionParser().parse(content);
-            if (definition.getVersion() != 5) {
-                throw new TaskPluginException("Expected V5 pipeline JSON");
-            }
-            JobConfigValidator.validateConfig(V5PipelineAdapter.toV4(definition), factories);
-            return definition.getOriginal();
-        }
-        throw new TaskPluginException("Unsupported DATA_SYNC parameter schema version");
-    }
-
-    private static ReadonlyConfig executable(ReadonlyConfig parameters) {
-        if (parameters.getSourceMap().containsKey("solutionType")) return parameters;
-        PipelineDef definition = new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters));
-        return V5PipelineAdapter.toV4(definition);
     }
 
     private static PipelineContext context(TaskExecutionIdentity identity, boolean debug) {
@@ -131,8 +123,8 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public void validateUpdate(ReadonlyConfig previous, ReadonlyConfig updated, TaskValidationContext context) {
-        JobConfig before = JobConfig.from(executable(previous));
-        JobConfig after = JobConfig.from(executable(updated));
+        JobConfig before = JobConfig.from(previous);
+        JobConfig after = JobConfig.from(updated);
         if (before.solutionType() != after.solutionType()
                 || !context.dataSource(before.sourceDataSourceId())
                         .type()
@@ -146,18 +138,18 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public void validateReferences(ReadonlyConfig parameters, TaskValidationContext context) {
-        JobConfigValidator.validateReferences(executable(parameters), context, factories);
+        JobConfigValidator.validateReferences(parameters, context, factories);
     }
 
     @Override
     public void validate(ReadonlyConfig parameters, TaskValidationContext context) {
-        JobConfigValidator.validateResources(executable(parameters), context, factories);
+        JobConfigValidator.validateResources(parameters, context, factories);
     }
 
     @Override
     public boolean supportsScheduling(ReadonlyConfig parameters) {
         String identifier =
-                JobConfig.from(executable(parameters)).solutionType().sourceIdentifier();
+                JobConfig.from(parameters).solutionType().sourceIdentifier();
         return factories.source(identifier).boundedness() == Boundedness.BOUNDED;
     }
 
@@ -166,13 +158,13 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
         if (client != null) {
             return admission(client.plan(ConfigParser.toJson(parameters), context(context, false)));
         }
-        return planner.admissionPlan(executable(parameters), context);
+        return planner.admissionPlan(parameters, context);
     }
 
     @Override
     public CompletionStage<TaskHandle> start(
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
-        if (client == null) return executor.start(executable(parameters), plan, context, debug);
+        if (client == null) return executor.start(parameters, plan, context, debug);
         try {
             PipelineContext trusted = context(context, debug);
             String json = ConfigParser.toJson(parameters);
