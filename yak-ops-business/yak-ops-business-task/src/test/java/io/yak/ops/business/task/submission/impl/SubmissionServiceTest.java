@@ -78,7 +78,7 @@ class SubmissionServiceTest {
         SubmissionResult accepted = new SubmissionResult("instance-1", 2, TaskInstanceStatus.SUBMITTED, false);
         when(admission.admit(any())).thenReturn(accepted);
         assertEquals(accepted, service.submit(manual("request-123")));
-        verify(plugin, never()).start(any(), any(), any(), anyBoolean());
+        verify(plugin, never()).createTask(any(), any(), any(), anyBoolean());
     }
 
     @Test

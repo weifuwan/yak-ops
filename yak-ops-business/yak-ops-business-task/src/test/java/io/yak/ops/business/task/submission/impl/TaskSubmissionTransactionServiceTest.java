@@ -80,7 +80,7 @@ class TaskSubmissionTransactionServiceTest {
         assertEquals("resource-v1", instance.getValue().getResourceRevision());
         assertEquals("instance-1", claim.getValue().getInstanceId());
         assertEquals("source/table", claim.getValue().getResourceKey());
-        verify(plugin, never()).start(any(), any(), any(), anyBoolean());
+        verify(plugin, never()).createTask(any(), any(), any(), anyBoolean());
     }
 
     @Test
