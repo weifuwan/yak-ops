@@ -7,7 +7,6 @@ import io.yak.ops.task.execution.dispatch.TaskExecutionCoordinator;
 import io.yak.ops.task.execution.owner.EmbeddedExecutionOwner;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import jakarta.annotation.Resource;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,14 +34,20 @@ public final class TaskGroupCoordinator implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(TaskGroupCoordinator.class);
     private static final int SCAN_LIMIT = 1000;
 
-    @Resource
-    private EmbeddedExecutionOwner owner;
+    private final EmbeddedExecutionOwner owner;
 
-    @Resource
-    private TaskGroupQueueRepository queues;
+    private final TaskGroupQueueRepository queues;
 
-    @Resource
-    private TaskExecutionCoordinator dispatcher;
+    private final TaskExecutionCoordinator dispatcher;
+
+    public TaskGroupCoordinator(
+            EmbeddedExecutionOwner owner,
+            TaskGroupQueueRepository queues,
+            TaskExecutionCoordinator dispatcher) {
+        this.owner = owner;
+        this.queues = queues;
+        this.dispatcher = dispatcher;
+    }
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
             Thread.ofPlatform().daemon(true).name("task-group-coordinator").factory());
@@ -81,7 +86,7 @@ public final class TaskGroupCoordinator implements AutoCloseable {
         }
     }
 
-    private void scanWaiting() {
+    void scanWaiting() {
         owner.incarnation();
         List<TaskGroupQueueEntity> waiting = queues.waiting(SCAN_LIMIT);
         Set<String> attempted = new HashSet<>();
