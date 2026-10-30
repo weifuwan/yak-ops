@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.plan;
+package io.yak.ops.sync.runtime.plan;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

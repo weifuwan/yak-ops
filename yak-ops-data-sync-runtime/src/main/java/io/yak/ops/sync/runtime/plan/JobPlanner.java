@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.plan;
+package io.yak.ops.sync.runtime.plan;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
@@ -15,13 +15,13 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
-import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.config.JobOptions;
-import io.yak.ops.plugin.task.datasync.solution.SolutionValidator;
-import io.yak.ops.plugin.task.datasync.solution.Step;
-import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
-import io.yak.ops.plugin.task.datasync.validation.SchemaPlanner;
-import io.yak.ops.plugin.task.datasync.validation.SchemaValidator;
+import io.yak.ops.sync.runtime.config.JobConfig;
+import io.yak.ops.sync.runtime.config.JobOptions;
+import io.yak.ops.sync.runtime.solution.SolutionValidator;
+import io.yak.ops.sync.runtime.solution.Step;
+import io.yak.ops.sync.runtime.validation.JobConfigValidator;
+import io.yak.ops.sync.runtime.validation.SchemaPlanner;
+import io.yak.ops.sync.runtime.validation.SchemaValidator;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -92,7 +92,7 @@ public final class JobPlanner {
         java.util.Set<TableId> sources = new java.util.HashSet<>();
         java.util.Set<TableId> targets = new java.util.HashSet<>();
         StringBuilder bindings = new StringBuilder();
-        for (io.yak.ops.plugin.task.datasync.config.TableConfig mapping : job.tables()) {
+        for (io.yak.ops.sync.runtime.config.TableConfig mapping : job.tables()) {
             ReadonlyConfig source = mapping.source();
             ReadonlyConfig sink = mapping.sink();
             String sourceId = source.get(JobOptions.DATASOURCE_ID);

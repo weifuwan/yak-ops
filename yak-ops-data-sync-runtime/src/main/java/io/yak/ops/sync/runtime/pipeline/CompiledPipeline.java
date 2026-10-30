@@ -1,10 +1,10 @@
-package io.yak.ops.plugin.task.datasync.pipeline;
+package io.yak.ops.sync.runtime.pipeline;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
-import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress;
 import java.util.Objects;
 
 /** One physical graph, its configuration, and optional bounded-table observations. */

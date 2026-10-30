@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.pipeline;
+package io.yak.ops.sync.runtime.pipeline;
 
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.configuration.Option;

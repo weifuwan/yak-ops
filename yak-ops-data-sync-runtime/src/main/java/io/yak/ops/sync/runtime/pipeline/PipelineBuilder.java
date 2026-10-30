@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.pipeline;
+package io.yak.ops.sync.runtime.pipeline;
 
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.configuration.ReadonlyConfig;
@@ -18,10 +18,10 @@ import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
-import io.yak.ops.plugin.task.datasync.config.JobOptions;
-import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress;
-import io.yak.ops.plugin.task.datasync.plan.JobPlan;
-import io.yak.ops.plugin.task.datasync.plan.TablePlan;
+import io.yak.ops.sync.runtime.config.JobOptions;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress;
+import io.yak.ops.sync.runtime.plan.JobPlan;
+import io.yak.ops.sync.runtime.plan.TablePlan;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

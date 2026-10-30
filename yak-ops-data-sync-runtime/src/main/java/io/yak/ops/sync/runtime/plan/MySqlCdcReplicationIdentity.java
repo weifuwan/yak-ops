@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.plan;
+package io.yak.ops.sync.runtime.plan;
 
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import java.util.Objects;
