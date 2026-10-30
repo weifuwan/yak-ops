@@ -18,13 +18,13 @@
 package io.yak.ops.worker.executor;
 
 import io.yak.ops.plugin.task.api.AbstractTask;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
-import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
-import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.Objects;
 
 /**
  * DolphinScheduler PhysicalTaskPluginFactory: resolve the TaskChannel by task type.

@@ -1,22 +1,21 @@
 package io.yak.ops.worker.executor;
 
-import io.yak.ops.plugin.task.api.AbstractTask;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-
-import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.api.AbstractTask;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.worker.task.executor.events.TaskExecutorKillLifecycleEvent;
+import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.TaskEngine;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.TaskExecutorState;
-import io.yak.ops.worker.task.executor.ITaskExecutor;
-import io.yak.ops.worker.task.executor.events.TaskExecutorKillLifecycleEvent;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 /** Physical Worker tests for exclusive slots, durable terminal ACK, cancellation and unknown outcomes. */
