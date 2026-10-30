@@ -1,66 +1,1243 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.yak.ops.core.parser;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.apache.flink.cdc.common.configuration.Configuration;
+import org.apache.flink.cdc.common.event.SchemaChangeEventType;
+import org.apache.flink.cdc.common.pipeline.ExistingTableSchemaExpansionMode;
+import org.apache.flink.cdc.common.pipeline.PipelineOptions;
+import io.yak.ops.core.definition.ModelDef;
 import io.yak.ops.core.definition.PipelineDef;
+import io.yak.ops.core.definition.RouteDef;
+import io.yak.ops.core.definition.SinkDef;
+import io.yak.ops.core.definition.SourceDef;
+import io.yak.ops.core.definition.TransformDef;
+import io.yak.ops.core.definition.UdfDef;
+import org.apache.flink.core.fs.Path;
+
+import org.apache.flink.shaded.guava31.com.google.common.collect.ImmutableMap;
+import org.apache.flink.shaded.guava31.com.google.common.collect.ImmutableSet;
+import org.apache.flink.shaded.guava31.com.google.common.io.Resources;
+
 import org.junit.jupiter.api.Test;
 
+import java.net.URL;
+import java.time.Duration;
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Set;
+
+import static org.apache.flink.cdc.common.event.SchemaChangeEventType.ADD_COLUMN;
+import static org.apache.flink.cdc.common.event.SchemaChangeEventType.ALTER_COLUMN_TYPE;
+import static org.apache.flink.cdc.common.event.SchemaChangeEventType.ALTER_TABLE_COMMENT;
+import static org.apache.flink.cdc.common.event.SchemaChangeEventType.CREATE_TABLE;
+import static org.apache.flink.cdc.common.event.SchemaChangeEventType.DROP_COLUMN;
+import static org.apache.flink.cdc.common.event.SchemaChangeEventType.DROP_TABLE;
+import static org.apache.flink.cdc.common.event.SchemaChangeEventType.RENAME_COLUMN;
+import static org.apache.flink.cdc.common.event.SchemaChangeEventType.TRUNCATE_TABLE;
+import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_LOCAL_TIME_ZONE;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+
+/** Unit test for {@link org.apache.flink.cdc.cli.parser.YamlPipelineDefinitionParser}. */
 class YamlPipelineDefinitionParserTest {
-    private final PipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
 
     @Test
-    void parsesFlinkCdcStyleSourceSinkRouteAndPipeline() {
-        PipelineDef definition = parser.parse("""
-                source:
-                  type: mysql
-                  name: orders-source
-                  datasource-id: source
-                  tables: app.orders
-                  scan.startup.mode: initial
-                sink:
-                  type: jdbc
-                  datasource-id: sink
-                  write.mode: UPSERT
-                route:
-                  - source-table: app.orders
-                    sink-table: public.ods_orders
-                    description: business routing
-                pipeline:
-                  name: orders-sync
-                  parallelism: 1
-                  execution.runtime-mode: STREAMING
-                """);
-        assertEquals("mysql", definition.getSource().getType());
-        assertEquals("orders-source", definition.getSource().getName().orElseThrow());
-        assertEquals("initial", definition.getSource().getConfig().getSourceMap().get("scan.startup.mode"));
-        assertEquals("jdbc", definition.getSink().getType());
-        assertEquals("public.ods_orders", definition.getRoute().getFirst().getSinkTable());
-        assertTrue(definition.getRoute().getFirst().getDescription().isPresent());
-        assertEquals("1", definition.getConfig().getSourceMap().get("parallelism"));
+    void testParsingFullDefinition() throws Exception {
+        URL resource = Resources.getResource("definitions/pipeline-definition-full.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(new Path(resource.toURI()), new Configuration());
+        assertThat(pipelineDef).isEqualTo(fullDef);
     }
 
     @Test
-    void rejectsUnknownTopLevelAndDuplicateKeys() {
-        assertThrows(IllegalArgumentException.class, () -> parser.parse("""
-                source: {type: mysql}
-                sink: {type: jdbc}
-                unexpected: value
-                """));
-        assertThrows(IllegalArgumentException.class, () -> parser.parse("""
-                source: {type: mysql, type: jdbc}
-                sink: {type: jdbc}
-                """));
+    void testParsingNecessaryOnlyDefinition() throws Exception {
+        URL resource = Resources.getResource("definitions/pipeline-definition-with-optional.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(new Path(resource.toURI()), new Configuration());
+        assertThat(pipelineDef).isEqualTo(defWithOptional);
     }
 
     @Test
-    void rejectsNestedConnectorConfiguration() {
-        assertThrows(IllegalArgumentException.class, () -> parser.parse("""
-                source:
-                  type: mysql
-                  startup: {mode: initial}
-                sink: {type: jdbc}
-                """));
+    void testMinimizedDefinition() throws Exception {
+        URL resource = Resources.getResource("definitions/pipeline-definition-minimized.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(new Path(resource.toURI()), new Configuration());
+        assertThat(pipelineDef).isEqualTo(minimizedDef);
+    }
+
+    @Test
+    void testOverridingGlobalConfig() throws Exception {
+        URL resource = Resources.getResource("definitions/pipeline-definition-full.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef =
+                parser.parse(
+                        new Path(resource.toURI()),
+                        Configuration.fromMap(
+                                ImmutableMap.<String, String>builder()
+                                        .put("parallelism", "1")
+                                        .build()));
+        assertThat(pipelineDef).isEqualTo(fullDefWithGlobalConf);
+    }
+
+    @Test
+    void testEvaluateDefaultLocalTimeZone() throws Exception {
+        URL resource = Resources.getResource("definitions/pipeline-definition-minimized.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(new Path(resource.toURI()), new Configuration());
+        assertThat(pipelineDef.getConfig().get(PIPELINE_LOCAL_TIME_ZONE))
+                .isNotEqualTo(PIPELINE_LOCAL_TIME_ZONE.defaultValue());
+    }
+
+    @Test
+    void testEvaluateDefaultRpcTimeOut() throws Exception {
+        URL resource = Resources.getResource("definitions/pipeline-definition-minimized.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef =
+                parser.parse(
+                        new Path(resource.toURI()),
+                        Configuration.fromMap(
+                                ImmutableMap.<String, String>builder()
+                                        .put(
+                                                PipelineOptions.PIPELINE_SCHEMA_OPERATOR_RPC_TIMEOUT
+                                                        .key(),
+                                                "1h")
+                                        .build()));
+        assertThat(
+                        pipelineDef
+                                .getConfig()
+                                .get(PipelineOptions.PIPELINE_SCHEMA_OPERATOR_RPC_TIMEOUT))
+                .isEqualTo(Duration.ofSeconds(60 * 60));
+    }
+
+    @Test
+    void testValidTimeZone() throws Exception {
+        URL resource = Resources.getResource("definitions/pipeline-definition-minimized.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef =
+                parser.parse(
+                        new Path(resource.toURI()),
+                        Configuration.fromMap(
+                                ImmutableMap.<String, String>builder()
+                                        .put(PIPELINE_LOCAL_TIME_ZONE.key(), "Asia/Shanghai")
+                                        .build()));
+        assertThat(pipelineDef.getConfig().get(PIPELINE_LOCAL_TIME_ZONE))
+                .isEqualTo("Asia/Shanghai");
+
+        pipelineDef =
+                parser.parse(
+                        new Path(resource.toURI()),
+                        Configuration.fromMap(
+                                ImmutableMap.<String, String>builder()
+                                        .put(PIPELINE_LOCAL_TIME_ZONE.key(), "GMT+08:00")
+                                        .build()));
+        assertThat(pipelineDef.getConfig().get(PIPELINE_LOCAL_TIME_ZONE)).isEqualTo("GMT+08:00");
+
+        pipelineDef =
+                parser.parse(
+                        new Path(resource.toURI()),
+                        Configuration.fromMap(
+                                ImmutableMap.<String, String>builder()
+                                        .put(PIPELINE_LOCAL_TIME_ZONE.key(), "UTC")
+                                        .build()));
+        assertThat(pipelineDef.getConfig().get(PIPELINE_LOCAL_TIME_ZONE)).isEqualTo("UTC");
+    }
+
+    @Test
+    void testInvalidTimeZone() {
+        URL resource = Resources.getResource("definitions/pipeline-definition-minimized.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        assertThatThrownBy(
+                        () ->
+                                parser.parse(
+                                        new Path(resource.toURI()),
+                                        Configuration.fromMap(
+                                                ImmutableMap.<String, String>builder()
+                                                        .put(
+                                                                PIPELINE_LOCAL_TIME_ZONE.key(),
+                                                                "invalid time zone")
+                                                        .build())))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(
+                        "Invalid time zone. The valid value should be a Time Zone Database ID"
+                                + " such as 'America/Los_Angeles' to include daylight saving time. "
+                                + "Fixed offsets are supported using 'GMT-08:00' or 'GMT+08:00'. "
+                                + "Or use 'UTC' without time zone and daylight saving time.");
+    }
+
+    @Test
+    void testRouteWithReplacementSymbol() throws Exception {
+        URL resource =
+                Resources.getResource("definitions/pipeline-definition-full-with-repsym.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(new Path(resource.toURI()), new Configuration());
+        assertThat(pipelineDef).isEqualTo(fullDefWithRouteRepSym);
+    }
+
+    @Test
+    void testUdfDefinition() throws Exception {
+        URL resource = Resources.getResource("definitions/pipeline-definition-with-udf.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(new Path(resource.toURI()), new Configuration());
+        assertThat(pipelineDef).isEqualTo(pipelineDefWithUdf);
+    }
+
+    @Test
+    void testUdfDefinitionWithOptions() throws Exception {
+        URL resource =
+                Resources.getResource("definitions/pipeline-definition-with-udf-options.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(new Path(resource.toURI()), new Configuration());
+        assertThat(pipelineDef).isEqualTo(pipelineDefWithUdfOptions);
+    }
+
+    @Test
+    void testPythonUdfDefinition() throws Exception {
+        URL resource =
+                Resources.getResource("definitions/pipeline-definition-with-python-udf.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(new Path(resource.toURI()), new Configuration());
+        assertThat(pipelineDef).isEqualTo(pipelineDefWithPythonUdf);
+    }
+
+    @Test
+    void testPythonUdfRejectsClasspathAndPythonCodeTogether() {
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        assertThatThrownBy(
+                        () ->
+                                parser.parse(
+                                        buildPipelineDefWithPythonUdf(
+                                                "py_identity",
+                                                "classpath: org.example.MyFunction\n"
+                                                        + "      python-code: |\n"
+                                                        + "        def eval(x: int) -> int:\n"
+                                                        + "          return x\n"
+                                                        + "      python-executable: /usr/bin/python3\n"),
+                                        new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "UDF configuration cannot define both \"classpath\" and \"python-code\"");
+    }
+
+    @Test
+    void testPythonUdfRejectsOptionsAlongsidePythonCode() {
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        assertThatThrownBy(
+                        () ->
+                                parser.parse(
+                                        buildPipelineDefWithPythonUdf(
+                                                "py_identity",
+                                                "python-code: |\n"
+                                                        + "        def eval(x: int) -> int:\n"
+                                                        + "          return x\n"
+                                                        + "      options:\n"
+                                                        + "        cache.enabled: true\n"),
+                                        new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "UDF configuration using \"python-code\" cannot define \"options\"; use top-level \"python-executable\" and \"python-files\" instead");
+    }
+
+    @Test
+    void testPythonExecutableRequiresPythonCode() {
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        assertThatThrownBy(
+                        () ->
+                                parser.parse(
+                                        buildPipelineDefWithPythonUdf(
+                                                "py_identity",
+                                                "python-executable: /usr/bin/python3\n"
+                                                        + "      classpath: org.example.MyFunction\n"),
+                                        new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "UDF configuration using \"python-executable\" or \"python-files\" requires \"python-code\"");
+    }
+
+    @Test
+    void testPythonFilesRequiresPythonCode() {
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        assertThatThrownBy(
+                        () ->
+                                parser.parse(
+                                        buildPipelineDefWithPythonUdf(
+                                                "py_identity",
+                                                "python-files:\n"
+                                                        + "        - /flink/usrlib/deps.zip\n"
+                                                        + "      classpath: org.example.MyFunction\n"),
+                                        new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "UDF configuration using \"python-executable\" or \"python-files\" requires \"python-code\"");
+    }
+
+    @Test
+    void testPythonFilesMustUseListSyntax() {
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        assertThatThrownBy(
+                        () ->
+                                parser.parse(
+                                        buildPipelineDefWithPythonUdf(
+                                                "py_identity",
+                                                "python-code: |\n"
+                                                        + "        def eval(x: int) -> int:\n"
+                                                        + "          return x\n"
+                                                        + "      python-files: /flink/usrlib/deps.zip\n"),
+                                        new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "YAML UDF field `python-files` should be a list when used with `python-code`.");
+    }
+
+    @Test
+    void testUdfRequiresClasspathOrPythonCode() {
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        assertThatThrownBy(
+                        () ->
+                                parser.parse(
+                                        buildPipelineDefWithPythonUdf("py_identity", ""),
+                                        new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "Missing required field \"classpath\" or \"python-code\" in UDF configuration");
+    }
+
+    @Test
+    void testPythonUdfRequiresName() {
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        assertThatThrownBy(
+                        () ->
+                                parser.parse(
+                                        "source:\n"
+                                                + "  type: values\n"
+                                                + "\n"
+                                                + "sink:\n"
+                                                + "  type: values\n"
+                                                + "\n"
+                                                + "pipeline:\n"
+                                                + "  user-defined-function:\n"
+                                                + "    - python-code: |\n"
+                                                + "        def eval(x: int) -> int:\n"
+                                                + "          return x\n",
+                                        new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Missing required field \"name\" in UDF configuration");
+    }
+
+    @Test
+    void testRouteMode() throws Exception {
+        URL resource =
+                Resources.getResource("definitions/pipeline-definition-with-route-mode.yaml");
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(new Path(resource.toURI()), new Configuration());
+        assertThat(pipelineDef).isEqualTo(pipelineDefWithRouteMode);
+    }
+
+    @Test
+    void testSchemaEvolutionTypesConfiguration() throws Exception {
+        testSchemaEvolutionTypesParsing(
+                "evolve",
+                null,
+                null,
+                ImmutableSet.of(
+                        ALTER_TABLE_COMMENT,
+                        ADD_COLUMN,
+                        ALTER_COLUMN_TYPE,
+                        CREATE_TABLE,
+                        DROP_COLUMN,
+                        DROP_TABLE,
+                        RENAME_COLUMN,
+                        TRUNCATE_TABLE));
+        testSchemaEvolutionTypesParsing(
+                "try_evolve",
+                null,
+                null,
+                ImmutableSet.of(
+                        ALTER_TABLE_COMMENT,
+                        ADD_COLUMN,
+                        ALTER_COLUMN_TYPE,
+                        CREATE_TABLE,
+                        DROP_COLUMN,
+                        DROP_TABLE,
+                        RENAME_COLUMN,
+                        TRUNCATE_TABLE));
+        testSchemaEvolutionTypesParsing(
+                "evolve",
+                "[column, table]",
+                "[drop]",
+                ImmutableSet.of(
+                        ALTER_TABLE_COMMENT,
+                        ADD_COLUMN,
+                        ALTER_COLUMN_TYPE,
+                        CREATE_TABLE,
+                        RENAME_COLUMN,
+                        TRUNCATE_TABLE));
+        testSchemaEvolutionTypesParsing(
+                "lenient",
+                null,
+                null,
+                ImmutableSet.of(
+                        ALTER_TABLE_COMMENT,
+                        ADD_COLUMN,
+                        ALTER_COLUMN_TYPE,
+                        CREATE_TABLE,
+                        DROP_COLUMN,
+                        RENAME_COLUMN));
+        testSchemaEvolutionTypesParsing(
+                "lenient",
+                null,
+                "[]",
+                ImmutableSet.of(
+                        ALTER_TABLE_COMMENT,
+                        ADD_COLUMN,
+                        ALTER_COLUMN_TYPE,
+                        CREATE_TABLE,
+                        DROP_COLUMN,
+                        DROP_TABLE,
+                        RENAME_COLUMN,
+                        TRUNCATE_TABLE));
+    }
+
+    /**
+     * Test that CreateTableEvent is automatically added when user specifies include.schema.changes
+     * without create.table. This ensures the foundational CreateTableEvent is always included for
+     * proper schema handling. See FLINK-37837.
+     */
+    @Test
+    void testCreateTableAutoAddedToIncludedSchemaChanges() throws Exception {
+        // Test case 1: User specifies only add.column, create.table should be auto-added
+        testSchemaEvolutionTypesParsing(
+                "evolve", "[add.column]", null, ImmutableSet.of(ADD_COLUMN, CREATE_TABLE));
+
+        // Test case 2: User specifies column family, create.table should be auto-added
+        testSchemaEvolutionTypesParsing(
+                "evolve",
+                "[column]",
+                null,
+                ImmutableSet.of(
+                        ADD_COLUMN, ALTER_COLUMN_TYPE, DROP_COLUMN, RENAME_COLUMN, CREATE_TABLE));
+
+        // Test case 3: User explicitly excludes create.table, should NOT auto-add
+        testSchemaEvolutionTypesParsing(
+                "evolve", "[add.column]", "[create.table]", ImmutableSet.of(ADD_COLUMN));
+
+        // Test case 4: User excludes via "create" family tag, should NOT auto-add
+        testSchemaEvolutionTypesParsing(
+                "evolve", "[add.column]", "[create]", ImmutableSet.of(ADD_COLUMN));
+
+        // Test case 5: User excludes via "table" family tag, should NOT auto-add
+        testSchemaEvolutionTypesParsing(
+                "evolve",
+                "[add.column, alter.column.type]",
+                "[table]",
+                ImmutableSet.of(ADD_COLUMN, ALTER_COLUMN_TYPE));
+
+        // Test case 6: User already includes create.table, no duplicate should be added
+        testSchemaEvolutionTypesParsing(
+                "evolve",
+                "[add.column, create.table]",
+                null,
+                ImmutableSet.of(ADD_COLUMN, CREATE_TABLE));
+
+        // Test case 7: Lenient mode with specified include, create.table should be auto-added
+        testSchemaEvolutionTypesParsing(
+                "lenient", "[add.column]", null, ImmutableSet.of(ADD_COLUMN, CREATE_TABLE));
+    }
+
+    private void testSchemaEvolutionTypesParsing(
+            String behavior, String included, String excluded, Set<SchemaChangeEventType> expected)
+            throws Exception {
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef =
+                parser.parse(
+                        "source:\n"
+                                + "  type: foo\n"
+                                + "sink:\n"
+                                + "  type: bar\n"
+                                + (included != null
+                                        ? String.format("  include.schema.changes: %s\n", included)
+                                        : "")
+                                + (excluded != null
+                                        ? String.format("  exclude.schema.changes: %s\n", excluded)
+                                        : "")
+                                + "pipeline:\n"
+                                + "  schema.change.behavior: "
+                                + behavior
+                                + "\n"
+                                + "  parallelism: 1\n",
+                        new Configuration());
+        assertThat(pipelineDef)
+                .isEqualTo(
+                        new PipelineDef(
+                                new SourceDef("foo", null, new Configuration()),
+                                new SinkDef("bar", null, new Configuration(), expected),
+                                Collections.emptyList(),
+                                Collections.emptyList(),
+                                Collections.emptyList(),
+                                Configuration.fromMap(
+                                        ImmutableMap.<String, String>builder()
+                                                .put("schema.change.behavior", behavior)
+                                                .put("parallelism", "1")
+                                                .build())));
+    }
+
+    @Test
+    void testExistingTableSchemaExpansionModeParsing() throws Exception {
+        for (ExistingTableSchemaExpansionMode mode : ExistingTableSchemaExpansionMode.values()) {
+            PipelineDef parsed =
+                    new YamlPipelineDefinitionParser()
+                            .parse(
+                                    "source:\n"
+                                            + "  type: foo\n"
+                                            + "sink:\n"
+                                            + "  type: bar\n"
+                                            + "  existing-table.schema-expansion.mode: "
+                                            + mode.name()
+                                            + "\n",
+                                    new Configuration());
+            assertThat(parsed.getSink().getExistingTableSchemaExpansionMode()).isEqualTo(mode);
+            assertThat(parsed.getSink().getConfig().toMap())
+                    .doesNotContainKey("existing-table.schema-expansion.mode");
+        }
+    }
+
+    @Test
+    void testExistingTableSchemaExpansionModeIsCaseInsensitive() throws Exception {
+        PipelineDef parsed =
+                new YamlPipelineDefinitionParser()
+                        .parse(
+                                "source:\n"
+                                        + "  type: foo\n"
+                                        + "sink:\n"
+                                        + "  type: bar\n"
+                                        + "  existing-table.schema-expansion.mode: \"check\"\n",
+                                new Configuration());
+        assertThat(parsed.getSink().getExistingTableSchemaExpansionMode())
+                .isEqualTo(ExistingTableSchemaExpansionMode.CHECK);
+    }
+
+    @Test
+    void testExistingTableSchemaExpansionModeDefaultsToDisabled() throws Exception {
+        PipelineDef defaultPipeline =
+                new YamlPipelineDefinitionParser()
+                        .parse("source:\n  type: foo\nsink:\n  type: bar\n", new Configuration());
+        assertThat(defaultPipeline.getSink().getExistingTableSchemaExpansionMode())
+                .isEqualTo(ExistingTableSchemaExpansionMode.DISABLED);
+    }
+
+    @Test
+    void testRejectsInvalidExpansionMode() {
+        assertThatThrownBy(
+                        () ->
+                                new YamlPipelineDefinitionParser()
+                                        .parse(
+                                                "source:\n"
+                                                        + "  type: foo\n"
+                                                        + "sink:\n"
+                                                        + "  type: bar\n"
+                                                        + "  existing-table.schema-expansion.mode: INVALID\n",
+                                                new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DISABLED, CHECK, TRY_EXPAND, EXPAND");
+
+        assertThatThrownBy(
+                        () ->
+                                new YamlPipelineDefinitionParser()
+                                        .parse(
+                                                "source:\n"
+                                                        + "  type: foo\n"
+                                                        + "sink:\n"
+                                                        + "  type: bar\n"
+                                                        + "  existing-table.schema-expansion.mode: true\n",
+                                                new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DISABLED, CHECK, TRY_EXPAND, EXPAND");
+
+        assertThatThrownBy(
+                        () ->
+                                new YamlPipelineDefinitionParser()
+                                        .parse(
+                                                "source:\n"
+                                                        + "  type: foo\n"
+                                                        + "sink:\n"
+                                                        + "  type: bar\n"
+                                                        + "  existing-table.schema-expansion.mode: false\n",
+                                                new Configuration()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DISABLED, CHECK, TRY_EXPAND, EXPAND");
+    }
+
+    @Test
+    void testParsingFactoryBasedModel() throws Exception {
+        String yaml =
+                "source:\n"
+                        + "  type: values\n"
+                        + "sink:\n"
+                        + "  type: values\n"
+                        + "pipeline:\n"
+                        + "  model:\n"
+                        + "    name: completion_model\n"
+                        + "    type: dummy\n"
+                        + "    options:\n"
+                        + "      debug: true\n"
+                        + "      retries: 3\n";
+
+        PipelineDef pipelineDef =
+                new YamlPipelineDefinitionParser().parse(yaml, new Configuration());
+
+        assertThat(pipelineDef.getModels())
+                .containsExactly(
+                        ModelDef.of(
+                                "completion_model",
+                                "dummy",
+                                ImmutableMap.of("debug", "true", "retries", "3")));
+    }
+
+    @Test
+    void testParsingFactoryBasedModelWithFlatModelNameOption() throws Exception {
+        String yaml =
+                "source:\n"
+                        + "  type: values\n"
+                        + "sink:\n"
+                        + "  type: values\n"
+                        + "pipeline:\n"
+                        + "  model:\n"
+                        + "    name: completion_model\n"
+                        + "    type: openai-compatible\n"
+                        + "    model-name: model-v1\n";
+
+        PipelineDef pipelineDef =
+                new YamlPipelineDefinitionParser().parse(yaml, new Configuration());
+
+        assertThat(pipelineDef.getModels())
+                .containsExactly(
+                        ModelDef.of(
+                                "completion_model",
+                                "openai-compatible",
+                                Collections.singletonMap("model-name", "model-v1")));
+    }
+
+    @Test
+    void testParsingLegacyAndFactoryBasedModelsTogether() throws Exception {
+        String yaml =
+                "source:\n"
+                        + "  type: values\n"
+                        + "sink:\n"
+                        + "  type: values\n"
+                        + "pipeline:\n"
+                        + "  model:\n"
+                        + "    - model-name: LEGACY_CHAT\n"
+                        + "      class-name: OpenAIChatModel\n"
+                        + "      openai.model: legacy-model\n"
+                        + "    - name: completion_model\n"
+                        + "      type: dummy\n"
+                        + "      debug: false\n";
+
+        PipelineDef pipelineDef =
+                new YamlPipelineDefinitionParser().parse(yaml, new Configuration());
+
+        assertThat(pipelineDef.getModels()).hasSize(2);
+        assertThat(pipelineDef.getModels().get(0).isLegacy()).isTrue();
+        assertThat(pipelineDef.getModels().get(1))
+                .isEqualTo(
+                        ModelDef.of(
+                                "completion_model",
+                                "dummy",
+                                Collections.singletonMap("debug", "false")));
+    }
+
+    @Test
+    void testDuplicateAndInvalidModelNames() {
+        String duplicate =
+                "source:\n"
+                        + "  type: values\n"
+                        + "sink:\n"
+                        + "  type: values\n"
+                        + "pipeline:\n"
+                        + "  model:\n"
+                        + "    - name: duplicated\n"
+                        + "      type: dummy\n"
+                        + "    - model-name: duplicated\n"
+                        + "      class-name: OpenAIChatModel\n";
+        String invalid =
+                "source:\n"
+                        + "  type: values\n"
+                        + "sink:\n"
+                        + "  type: values\n"
+                        + "pipeline:\n"
+                        + "  model:\n"
+                        + "    name: invalid-name\n"
+                        + "    type: dummy\n";
+
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        assertThatThrownBy(() -> parser.parse(duplicate, new Configuration()))
+                .hasMessage("Duplicate model name 'duplicated' in pipeline definition.");
+        assertThatThrownBy(() -> parser.parse(invalid, new Configuration()))
+                .hasMessageContaining("is not a valid identifier");
+    }
+
+    private final PipelineDef fullDef =
+            new PipelineDef(
+                    new SourceDef(
+                            "mysql",
+                            "source-database",
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("host", "localhost")
+                                            .put("port", "3306")
+                                            .put("username", "admin")
+                                            .put("password", "pass")
+                                            .put(
+                                                    "tables",
+                                                    "adb.*, bdb.user_table_[0-9]+, [app|web]_order_.*")
+                                            .put(
+                                                    "chunk-column",
+                                                    "app_order_.*:id,web_order:product_id")
+                                            .put("capture-new-tables", "true")
+                                            .build())),
+                    new SinkDef(
+                            "kafka",
+                            "sink-queue",
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("bootstrap-servers", "localhost:9092")
+                                            .put("auto-create-table", "true")
+                                            .build())),
+                    Arrays.asList(
+                            new RouteDef(
+                                    "mydb.default.app_order_.*",
+                                    "odsdb.default.app_order",
+                                    null,
+                                    "sync all sharding tables to one"),
+                            new RouteDef(
+                                    "mydb.default.web_order",
+                                    "odsdb.default.ods_web_order",
+                                    null,
+                                    "sync table to with given prefix ods_")),
+                    Arrays.asList(
+                            new TransformDef(
+                                    "mydb.app_order_.*",
+                                    "id, order_id, TO_UPPER(product_name)",
+                                    "id > 10 AND order_id > 100",
+                                    "id",
+                                    "product_name",
+                                    "comment=app order",
+                                    "project fields from source table",
+                                    "SOFT_DELETE"),
+                            new TransformDef(
+                                    "mydb.web_order_.*",
+                                    "CONCAT(id, order_id) as uniq_id, *",
+                                    "uniq_id > 10",
+                                    null,
+                                    null,
+                                    null,
+                                    "add new uniq_id for each row",
+                                    null)),
+                    Collections.emptyList(),
+                    Collections.singletonList(
+                            new ModelDef(
+                                    "GET_EMBEDDING",
+                                    "OpenAIEmbeddingModel",
+                                    new LinkedHashMap<>(
+                                            ImmutableMap.<String, String>builder()
+                                                    .put("model-name", "GET_EMBEDDING")
+                                                    .put("class-name", "OpenAIEmbeddingModel")
+                                                    .put("openai.model", "text-embedding-3-small")
+                                                    .put("openai.host", "https://xxxx")
+                                                    .put("openai.apikey", "abcd1234")
+                                                    .build()))),
+                    Configuration.fromMap(
+                            ImmutableMap.<String, String>builder()
+                                    .put("name", "source-database-sync-pipe")
+                                    .put("parallelism", "4")
+                                    .put("sink.partitioning.strategy", "TABLE_ID")
+                                    .put("execution.runtime-mode", "STREAMING")
+                                    .put("schema.change.behavior", "evolve")
+                                    .put("schema-operator.rpc-timeout", "1 h")
+                                    .build()));
+
+    @Test
+    void testParsingFullDefinitionFromString() throws Exception {
+        String pipelineDefText =
+                "source:\n"
+                        + "  type: mysql\n"
+                        + "  name: source-database\n"
+                        + "  host: localhost\n"
+                        + "  port: 3306\n"
+                        + "  username: admin\n"
+                        + "  password: pass\n"
+                        + "  tables: adb.*, bdb.user_table_[0-9]+, [app|web]_order_.*\n"
+                        + "  chunk-column: app_order_.*:id,web_order:product_id\n"
+                        + "  capture-new-tables: true\n"
+                        + "\n"
+                        + "sink:\n"
+                        + "  type: kafka\n"
+                        + "  name: sink-queue\n"
+                        + "  bootstrap-servers: localhost:9092\n"
+                        + "  auto-create-table: true\n"
+                        + "\n"
+                        + "route:\n"
+                        + "  - source-table: mydb.default.app_order_.*\n"
+                        + "    sink-table: odsdb.default.app_order\n"
+                        + "    description: sync all sharding tables to one\n"
+                        + "  - source-table: mydb.default.web_order\n"
+                        + "    sink-table: odsdb.default.ods_web_order\n"
+                        + "    description: sync table to with given prefix ods_\n"
+                        + "\n"
+                        + "transform:\n"
+                        + "  - source-table: mydb.app_order_.*\n"
+                        + "    projection: id, order_id, TO_UPPER(product_name)\n"
+                        + "    filter: id > 10 AND order_id > 100\n"
+                        + "    primary-keys: id\n"
+                        + "    partition-keys: product_name\n"
+                        + "    table-options: comment=app order\n"
+                        + "    description: project fields from source table\n"
+                        + "    converter-after-transform: SOFT_DELETE\n"
+                        + "  - source-table: mydb.web_order_.*\n"
+                        + "    projection: CONCAT(id, order_id) as uniq_id, *\n"
+                        + "    filter: uniq_id > 10\n"
+                        + "    description: add new uniq_id for each row\n"
+                        + "\n"
+                        + "pipeline:\n"
+                        + "  name: source-database-sync-pipe\n"
+                        + "  parallelism: 4\n"
+                        + "  sink.partitioning.strategy: TABLE_ID\n"
+                        + "  schema.change.behavior: evolve\n"
+                        + "  schema-operator.rpc-timeout: 1 h\n"
+                        + "  execution.runtime-mode: STREAMING\n"
+                        + "  model:\n"
+                        + "    - model-name: GET_EMBEDDING\n"
+                        + "      class-name: OpenAIEmbeddingModel\n"
+                        + "      openai.model: text-embedding-3-small\n"
+                        + "      openai.host: https://xxxx\n"
+                        + "      openai.apikey: abcd1234";
+        YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
+        PipelineDef pipelineDef = parser.parse(pipelineDefText, new Configuration());
+        assertThat(pipelineDef).isEqualTo(fullDef);
+    }
+
+    private final PipelineDef fullDefWithGlobalConf =
+            new PipelineDef(
+                    new SourceDef(
+                            "mysql",
+                            "source-database",
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("host", "localhost")
+                                            .put("port", "3306")
+                                            .put("username", "admin")
+                                            .put("password", "pass")
+                                            .put(
+                                                    "tables",
+                                                    "adb.*, bdb.user_table_[0-9]+, [app|web]_order_.*")
+                                            .put(
+                                                    "chunk-column",
+                                                    "app_order_.*:id,web_order:product_id")
+                                            .put("capture-new-tables", "true")
+                                            .build())),
+                    new SinkDef(
+                            "kafka",
+                            "sink-queue",
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("bootstrap-servers", "localhost:9092")
+                                            .put("auto-create-table", "true")
+                                            .build())),
+                    Arrays.asList(
+                            new RouteDef(
+                                    "mydb.default.app_order_.*",
+                                    "odsdb.default.app_order",
+                                    null,
+                                    "sync all sharding tables to one"),
+                            new RouteDef(
+                                    "mydb.default.web_order",
+                                    "odsdb.default.ods_web_order",
+                                    null,
+                                    "sync table to with given prefix ods_")),
+                    Arrays.asList(
+                            new TransformDef(
+                                    "mydb.app_order_.*",
+                                    "id, order_id, TO_UPPER(product_name)",
+                                    "id > 10 AND order_id > 100",
+                                    "id",
+                                    "product_name",
+                                    "comment=app order",
+                                    "project fields from source table",
+                                    "SOFT_DELETE"),
+                            new TransformDef(
+                                    "mydb.web_order_.*",
+                                    "CONCAT(id, order_id) as uniq_id, *",
+                                    "uniq_id > 10",
+                                    null,
+                                    null,
+                                    null,
+                                    "add new uniq_id for each row",
+                                    null)),
+                    Collections.emptyList(),
+                    Collections.singletonList(
+                            new ModelDef(
+                                    "GET_EMBEDDING",
+                                    "OpenAIEmbeddingModel",
+                                    new LinkedHashMap<>(
+                                            ImmutableMap.<String, String>builder()
+                                                    .put("model-name", "GET_EMBEDDING")
+                                                    .put("class-name", "OpenAIEmbeddingModel")
+                                                    .put("openai.model", "text-embedding-3-small")
+                                                    .put("openai.host", "https://xxxx")
+                                                    .put("openai.apikey", "abcd1234")
+                                                    .build()))),
+                    Configuration.fromMap(
+                            ImmutableMap.<String, String>builder()
+                                    .put("name", "source-database-sync-pipe")
+                                    .put("parallelism", "4")
+                                    .put("sink.partitioning.strategy", "TABLE_ID")
+                                    .put("schema.change.behavior", "evolve")
+                                    .put("schema-operator.rpc-timeout", "1 h")
+                                    .put("execution.runtime-mode", "STREAMING")
+                                    .build()));
+
+    private final PipelineDef defWithOptional =
+            new PipelineDef(
+                    new SourceDef(
+                            "mysql",
+                            null,
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("host", "localhost")
+                                            .put("port", "3306")
+                                            .put("username", "admin")
+                                            .put("password", "pass")
+                                            .put(
+                                                    "tables",
+                                                    "adb.*, bdb.user_table_[0-9]+, [app|web]_order_.*")
+                                            .build())),
+                    new SinkDef(
+                            "kafka",
+                            null,
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("bootstrap-servers", "localhost:9092")
+                                            .build()),
+                            ImmutableSet.of(
+                                    ALTER_TABLE_COMMENT,
+                                    DROP_COLUMN,
+                                    ALTER_COLUMN_TYPE,
+                                    ADD_COLUMN,
+                                    CREATE_TABLE,
+                                    RENAME_COLUMN)),
+                    Collections.singletonList(
+                            new RouteDef(
+                                    "mydb.default.app_order_.*",
+                                    "odsdb.default.app_order",
+                                    null,
+                                    null)),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Configuration.fromMap(
+                            ImmutableMap.<String, String>builder()
+                                    .put("parallelism", "4")
+                                    .build()));
+
+    private final PipelineDef minimizedDef =
+            new PipelineDef(
+                    new SourceDef("mysql", null, new Configuration()),
+                    new SinkDef(
+                            "kafka",
+                            null,
+                            new Configuration(),
+                            ImmutableSet.of(
+                                    ALTER_TABLE_COMMENT,
+                                    DROP_COLUMN,
+                                    ALTER_COLUMN_TYPE,
+                                    ADD_COLUMN,
+                                    CREATE_TABLE,
+                                    RENAME_COLUMN)),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Configuration.fromMap(
+                            Collections.singletonMap(
+                                    "local-time-zone", ZoneId.systemDefault().toString())));
+
+    private final PipelineDef fullDefWithRouteRepSym =
+            new PipelineDef(
+                    new SourceDef(
+                            "mysql",
+                            "source-database",
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("host", "localhost")
+                                            .put("port", "3306")
+                                            .put("username", "admin")
+                                            .put("password", "pass")
+                                            .put(
+                                                    "tables",
+                                                    "adb.*, bdb.user_table_[0-9]+, [app|web]_order_.*")
+                                            .put(
+                                                    "chunk-column",
+                                                    "app_order_.*:id,web_order:product_id")
+                                            .put("capture-new-tables", "true")
+                                            .build())),
+                    new SinkDef(
+                            "kafka",
+                            "sink-queue",
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("bootstrap-servers", "localhost:9092")
+                                            .put("auto-create-table", "true")
+                                            .build())),
+                    Arrays.asList(
+                            new RouteDef(
+                                    "mydb.default.app_order_.*",
+                                    "odsdb.default.app_order_<>",
+                                    "<>",
+                                    "sync all sharding tables to one"),
+                            new RouteDef(
+                                    "mydb.default.web_order",
+                                    "odsdb.default.ods_web_order_>_<",
+                                    ">_<",
+                                    "sync table to with given prefix ods_")),
+                    Arrays.asList(
+                            new TransformDef(
+                                    "mydb.app_order_.*",
+                                    "id, order_id, TO_UPPER(product_name)",
+                                    "id > 10 AND order_id > 100",
+                                    "id",
+                                    "product_name",
+                                    "comment=app order",
+                                    "project fields from source table",
+                                    "SOFT_DELETE"),
+                            new TransformDef(
+                                    "mydb.web_order_.*",
+                                    "CONCAT(id, order_id) as uniq_id, *",
+                                    "uniq_id > 10",
+                                    null,
+                                    null,
+                                    null,
+                                    "add new uniq_id for each row",
+                                    null)),
+                    Collections.emptyList(),
+                    Configuration.fromMap(
+                            ImmutableMap.<String, String>builder()
+                                    .put("name", "source-database-sync-pipe")
+                                    .put("parallelism", "4")
+                                    .put("sink.partitioning.strategy", "TABLE_ID")
+                                    .put("schema.change.behavior", "evolve")
+                                    .put("schema-operator.rpc-timeout", "1 h")
+                                    .build()));
+
+    private final PipelineDef pipelineDefWithUdf =
+            new PipelineDef(
+                    new SourceDef("values", null, new Configuration()),
+                    new SinkDef(
+                            "values",
+                            null,
+                            new Configuration(),
+                            ImmutableSet.of(
+                                    ALTER_TABLE_COMMENT,
+                                    DROP_COLUMN,
+                                    ALTER_COLUMN_TYPE,
+                                    ADD_COLUMN,
+                                    CREATE_TABLE,
+                                    RENAME_COLUMN)),
+                    Collections.emptyList(),
+                    Collections.singletonList(
+                            new TransformDef(
+                                    "mydb.web_order",
+                                    "*, inc(inc(inc(id))) as inc_id, format(id, 'id -> %d') as formatted_id",
+                                    "inc(id) < 100",
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null)),
+                    Arrays.asList(
+                            new UdfDef(
+                                    "inc",
+                                    "org.apache.flink.cdc.udf.examples.java.AddOneFunctionClass"),
+                            new UdfDef(
+                                    "format",
+                                    "org.apache.flink.cdc.udf.examples.java.FormatFunctionClass")),
+                    Configuration.fromMap(
+                            ImmutableMap.<String, String>builder()
+                                    .put("parallelism", "1")
+                                    .build()));
+
+    private final PipelineDef pipelineDefWithUdfOptions =
+            new PipelineDef(
+                    new SourceDef("values", null, new Configuration()),
+                    new SinkDef(
+                            "values",
+                            null,
+                            new Configuration(),
+                            ImmutableSet.of(
+                                    ALTER_TABLE_COMMENT,
+                                    DROP_COLUMN,
+                                    ALTER_COLUMN_TYPE,
+                                    ADD_COLUMN,
+                                    CREATE_TABLE,
+                                    RENAME_COLUMN)),
+                    Collections.emptyList(),
+                    Collections.singletonList(
+                            new TransformDef(
+                                    "mydb.web_order",
+                                    "*, query_redis(id) as redis_value",
+                                    "id > 0",
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    null)),
+                    Collections.singletonList(
+                            new UdfDef(
+                                    "query_redis",
+                                    "org.apache.flink.cdc.udf.examples.java.RedisQueryFunction",
+                                    ImmutableMap.<String, String>builder()
+                                            .put("hostname", "localhost")
+                                            .put("port", "6379")
+                                            .put("cache.enabled", "true")
+                                            .build())),
+                    Configuration.fromMap(
+                            ImmutableMap.<String, String>builder()
+                                    .put("parallelism", "1")
+                                    .build()));
+
+    private final PipelineDef pipelineDefWithPythonUdf =
+            new PipelineDef(
+                    new SourceDef("values", null, new Configuration()),
+                    new SinkDef(
+                            "values",
+                            null,
+                            new Configuration(),
+                            ImmutableSet.of(
+                                    ALTER_TABLE_COMMENT,
+                                    DROP_COLUMN,
+                                    ALTER_COLUMN_TYPE,
+                                    ADD_COLUMN,
+                                    CREATE_TABLE,
+                                    RENAME_COLUMN)),
+                    Collections.emptyList(),
+                    Collections.singletonList(
+                            new TransformDef(
+                                    "mydb.web_order",
+                                    "*, py_identity(id) as py_id",
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    ",",
+                                    null,
+                                    null)),
+                    Collections.singletonList(
+                            new UdfDef(
+                                    "py_identity",
+                                    "org.apache.flink.cdc.python.PythonUdf",
+                                    ImmutableMap.<String, String>builder()
+                                            .put("source", "def eval(x: int) -> int:\n  return x\n")
+                                            .put("python-executable", "/usr/bin/python3")
+                                            .put(
+                                                    "python-files",
+                                                    "/flink/usrlib/deps.zip,/flink/usrlib/shared")
+                                            .build())),
+                    Collections.emptyList(),
+                    Configuration.fromMap(
+                            ImmutableMap.<String, String>builder()
+                                    .put("parallelism", "1")
+                                    .build()));
+
+    private final PipelineDef pipelineDefWithRouteMode =
+            new PipelineDef(
+                    new SourceDef(
+                            "mysql",
+                            null,
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("hostname", "localhost")
+                                            .put("port", "3306")
+                                            .put("username", "root")
+                                            .put("password", "123456")
+                                            .put("tables", "mydb.\\.*")
+                                            .put("server-id", "5400-5404")
+                                            .put("server-time-zone", "UTC")
+                                            .build())),
+                    new SinkDef(
+                            "doris",
+                            null,
+                            Configuration.fromMap(
+                                    ImmutableMap.<String, String>builder()
+                                            .put("fenodes", "127.0.0.1:8030")
+                                            .put("username", "root")
+                                            .put("password", "")
+                                            .build()),
+                            ImmutableSet.of(
+                                    ALTER_TABLE_COMMENT,
+                                    DROP_COLUMN,
+                                    ALTER_COLUMN_TYPE,
+                                    ADD_COLUMN,
+                                    CREATE_TABLE,
+                                    RENAME_COLUMN)),
+                    Arrays.asList(
+                            new RouteDef(
+                                    "mydb.order_.*",
+                                    "ods_db.ods_orders",
+                                    null,
+                                    "Merge all order sharded tables"),
+                            new RouteDef(
+                                    "mydb.product_.*",
+                                    "ods_db.ods_products",
+                                    null,
+                                    "Merge all product sharded tables"),
+                            new RouteDef(
+                                    "mydb.*",
+                                    "ods_db.ods_<>",
+                                    "<>",
+                                    "One-to-one mapping for other tables")),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Configuration.fromMap(
+                            ImmutableMap.<String, String>builder()
+                                    .put("name", "mysql_to_doris_with_route_match_mode")
+                                    .put("parallelism", "2")
+                                    .put("route-mode", "FIRST_MATCH")
+                                    .build()));
+
+    private static String buildPipelineDefWithPythonUdf(String name, String udfBody) {
+        return "source:\n"
+                + "  type: values\n"
+                + "\n"
+                + "sink:\n"
+                + "  type: values\n"
+                + "\n"
+                + "transform:\n"
+                + "  - source-table: mydb.web_order\n"
+                + "    projection: \"*, "
+                + name
+                + "(id) as py_id\"\n"
+                + "\n"
+                + "pipeline:\n"
+                + "  parallelism: 1\n"
+                + "  user-defined-function:\n"
+                + "    - name: "
+                + name
+                + "\n"
+                + (udfBody.isEmpty() ? "" : "      " + udfBody);
     }
 }
