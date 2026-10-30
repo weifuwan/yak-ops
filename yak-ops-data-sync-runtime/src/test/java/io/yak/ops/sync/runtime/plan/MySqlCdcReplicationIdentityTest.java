@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.plan;
+package io.yak.ops.sync.runtime.plan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;

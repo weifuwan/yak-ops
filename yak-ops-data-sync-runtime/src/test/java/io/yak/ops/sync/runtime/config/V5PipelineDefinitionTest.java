@@ -1,10 +1,10 @@
-package io.yak.ops.plugin.task.datasync.config;
+package io.yak.ops.sync.runtime.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.yak.ops.configuration.ConfigParser;
-import io.yak.ops.plugin.task.datasync.solution.Step;
+import io.yak.ops.sync.runtime.solution.Step;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -45,7 +45,7 @@ class V5PipelineDefinitionTest {
         String database = V5.replace("\"execution.runtime-mode\": \"STREAMING\"",
                 "\"execution.runtime-mode\": \"STREAMING\", \"pipeline.table-scope\": \"DATABASE\"");
         JobConfig plan = JobConfig.from(ConfigParser.parseJson(database));
-        assertEquals(io.yak.ops.plugin.task.datasync.solution.SolutionType.DATABASE_REALTIME, plan.solutionType());
+        assertEquals(io.yak.ops.sync.runtime.solution.SolutionType.DATABASE_REALTIME, plan.solutionType());
     }
 
     @Test
@@ -63,7 +63,7 @@ class V5PipelineDefinitionTest {
                         + " {\"source-table\": \"app.users\", \"sink-table\": \"public.ods_users\"}");
         JobConfig config = JobConfig.from(ConfigParser.parseJson(multi));
         assertEquals(2, config.tables().size());
-        assertEquals(io.yak.ops.plugin.task.datasync.solution.SolutionType.DATABASE_REALTIME, config.solutionType());
+        assertEquals(io.yak.ops.sync.runtime.solution.SolutionType.DATABASE_REALTIME, config.solutionType());
     }
 
     @Test

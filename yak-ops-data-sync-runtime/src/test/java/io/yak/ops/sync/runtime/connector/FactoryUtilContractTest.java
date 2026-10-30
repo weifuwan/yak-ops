@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.connector;
+package io.yak.ops.sync.runtime.connector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -18,8 +18,8 @@ import io.yak.ops.connector.jdbc.source.JdbcSourceFactory;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.data.TableRecord;
-import io.yak.ops.plugin.task.datasync.config.JobOptions;
-import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
+import io.yak.ops.sync.runtime.config.JobOptions;
+import io.yak.ops.sync.runtime.validation.JobConfigValidator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
