@@ -1,68 +1,31 @@
 package io.yak.ops.sync.runtime.config;
 
-import io.yak.ops.configuration.Option;
-import io.yak.ops.configuration.Options;
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.configuration.rule.ConfigValidator;
-import io.yak.ops.configuration.rule.OptionRule;
+import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.connector.cdc.mysql.table.StartupOptions;
+import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
+import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
+import io.yak.ops.core.definition.PipelineDef;
+import io.yak.ops.core.definition.RouteDef;
+import io.yak.ops.core.parser.YamlPipelineDefinitionParser;
 import io.yak.ops.sync.runtime.solution.SolutionType;
 import io.yak.ops.sync.runtime.solution.Step;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 
-/** Validated internal execution plan derived exclusively from V5 PipelineDef. */
+/**
+ * Internal, non-secret connector execution inputs derived from one V6 PipelineDef.
+ *
+ * <p>YAML keys are Flink CDC 3.7-style flat connector options. Only yak.* keys are
+ * platform extensions; no V5 source/sink table arrays or startup translation is used.
+ */
 public final class JobConfig {
     public static final int MAX_TABLES = 100;
-
-    private static final Option<Map<String, Object>> STARTUP =
-            Options.key("startup").mapObjectType().noDefaultValue();
-    private static final Option<String> MODE = Options.key("mode").stringType().noDefaultValue();
-    private static final Option<String> TABLE_SCOPE =
-            Options.key("pipeline.table-scope").stringType().noDefaultValue();
-    private static final Option<String> STARTUP_FILE =
-            Options.key("file").stringType().noDefaultValue();
-    private static final Option<Long> STARTUP_POSITION =
-            Options.key("pos").longType().noDefaultValue();
-    private static final Option<String> STARTUP_GTID =
-            Options.key("gtidSet").stringType().noDefaultValue();
-    private static final Option<Long> STARTUP_TIMESTAMP =
-            Options.key("timestampMillis").longType().noDefaultValue();
-    private static final Option<Long> STARTUP_SKIP_EVENTS =
-            Options.key("skipEvents").longType().noDefaultValue();
-    private static final Option<Long> STARTUP_SKIP_ROWS =
-            Options.key("skipRows").longType().noDefaultValue();
-    private static final OptionRule STARTUP_RULE = OptionRule.builder()
-            .required(MODE)
-            .optional(
-                    STARTUP_FILE,
-                    STARTUP_POSITION,
-                    STARTUP_GTID,
-                    STARTUP_TIMESTAMP,
-                    STARTUP_SKIP_EVENTS,
-                    STARTUP_SKIP_ROWS)
-            .build();
-
-    private static final Option<List<Object>> TABLES =
-            Options.key("tables").listType(Object.class).noDefaultValue();
-    private static final Option<Map<String, Object>> SCHEMA_POLICY =
-            Options.key("schemaPolicy").mapObjectType().noDefaultValue();
-    private static final Option<String> INITIAL =
-            Options.key("initial").stringType().noDefaultValue();
-    private static final Option<Map<String, Object>> EVOLUTION =
-            Options.key("evolution").mapObjectType().noDefaultValue();
-    private static final Option<Boolean> ENABLED =
-            Options.key("enabled").booleanType().noDefaultValue();
-    private static final Option<Boolean> ALLOW_DROP_COLUMNS =
-            Options.key("allowDropColumns").booleanType().noDefaultValue();
-
-    private static final OptionRule SCHEMA_RULE =
-            OptionRule.builder().required(INITIAL, EVOLUTION).build();
-    private static final OptionRule EVOLUTION_RULE =
-            OptionRule.builder().required(ENABLED, ALLOW_DROP_COLUMNS).build();
-
+    private static final String YAML = "pipelineYaml";
     private final ReadonlyConfig parameters;
     private final SolutionType solutionType;
     private final List<TableConfig> tables;
@@ -85,182 +48,304 @@ public final class JobConfig {
         this.allowDropColumns = allowDropColumns;
     }
 
-    /** Converts the one persisted V5 pipeline into typed, per-table execution inputs. */
+    public static String yaml(ReadonlyConfig parameters) {
+        Object content = parameters.getSourceMap().get(YAML);
+        if (!(content instanceof String text) || text.isBlank()) {
+            throw new IllegalArgumentException("V6 pipelineYaml is required");
+        }
+        return text;
+    }
+
+    /** Factory-friendly per-table options without an intermediate V5 config schema. */
     public static JobConfig from(ReadonlyConfig parameters) {
-        Objects.requireNonNull(parameters, "parameters");
-        io.yak.ops.core.definition.PipelineDef definition = new io.yak.ops.core.parser.JsonPipelineDefinitionParser()
-                .parse(io.yak.ops.configuration.ConfigParser.toJson(parameters));
+        PipelineDef definition = new YamlPipelineDefinitionParser().parse(yaml(parameters));
+        Map<String, Object> from = definition.getSource().getConfig().getSourceMap();
+        Map<String, Object> to = definition.getSink().getConfig().getSourceMap();
         String sourceType = definition.getSource().getType();
         String sinkType = definition.getSink().getType();
-        if (!"JDBC".equals(sinkType) || (!"JDBC".equals(sourceType) && !"MYSQL_CDC".equals(sourceType))) {
-            throw new IllegalArgumentException("Unsupported pipeline connector combination");
+        boolean realtime = "mysql".equals(sourceType);
+        if ((!realtime && !"jdbc".equals(sourceType)) || !"jdbc".equals(sinkType)) {
+            throw new IllegalArgumentException("Unsupported V6 pipeline connector combination");
         }
-        boolean realtime = "MYSQL_CDC".equals(sourceType);
-        ReadonlyConfig from = definition.getSource().getConfig();
-        ReadonlyConfig to = definition.getSink().getConfig();
-        String fromId = from.get(JobOptions.DATASOURCE_ID);
-        String toId = to.get(JobOptions.DATASOURCE_ID);
-        if (fromId == null || fromId.isBlank() || toId == null || toId.isBlank()) {
-            throw new IllegalArgumentException("Source and Sink datasource references are required");
+        if (!definition.getTransforms().isEmpty()) {
+            throw new IllegalArgumentException("YakFlow does not yet support Flink CDC transform operators");
         }
-        List<Object> rawSources = from.get(TABLES);
-        List<Object> rawSinks = to.get(TABLES);
-        if (rawSources.isEmpty()
-                || rawSources.size() > MAX_TABLES
-                || rawSources.size() != rawSinks.size()
-                || rawSources.size() != definition.getRoute().size()) {
-            throw new IllegalArgumentException("Invalid pipeline table mappings");
+        String sourceId = required(from, "datasource-id");
+        String sinkId = required(to, "datasource-id");
+        String selection = required(from, "tables");
+        List<String> sourceTables = new ArrayList<>();
+        for (String table : selection.split(",", -1)) {
+            String name = table.trim();
+            if (name.isEmpty() || !name.matches("[A-Za-z0-9_$]+(\\.[A-Za-z0-9_$]+){0,2}")) {
+                throw new IllegalArgumentException("YakFlow currently requires explicit source table names");
+            }
+            sourceTables.add(name);
         }
-        // Product scope is explicit in V5 and must not change when tables are added or removed.
-        // An omitted scope is accepted only for earlier V5 definitions, never for V4 input.
-        String scope = definition.getConfig().get(TABLE_SCOPE);
-        if (scope == null) scope = rawSources.size() == 1 ? "SINGLE" : "DATABASE";
+        if (sourceTables.isEmpty() || sourceTables.size() > MAX_TABLES
+                || new HashSet<>(sourceTables).size() != sourceTables.size()) {
+            throw new IllegalArgumentException("Invalid or duplicate source table selection");
+        }
+        List<RouteDef> routes = definition.getRoute().isEmpty()
+                ? defaultRoutes(sourceTables)
+                : definition.getRoute();
+        if (routes.size() != sourceTables.size()) {
+            throw new IllegalArgumentException("YakFlow currently requires a one-to-one route per source table");
+        }
+        Set<String> mappedSource = new HashSet<>();
+        Set<String> mappedSink = new HashSet<>();
+        for (RouteDef route : routes) {
+            if (route.getReplaceSymbol().isPresent()
+                    || !sourceTables.contains(route.getSourceTable())
+                    || !mappedSource.add(route.getSourceTable())
+                    || !mappedSink.add(route.getSinkTable())) {
+                throw new IllegalArgumentException("Unsupported, duplicate or non-explicit route");
+            }
+        }
+
+        String scope = optional(definition.getConfig().getSourceMap(), "yak.table-scope",
+                sourceTables.size() == 1 ? "SINGLE" : "DATABASE");
         if (!"SINGLE".equals(scope) && !"DATABASE".equals(scope)) {
-            throw new IllegalArgumentException("Unsupported pipeline.table-scope");
+            throw new IllegalArgumentException("Invalid yak.table-scope");
         }
-        if ("SINGLE".equals(scope) && rawSources.size() != 1) {
-            throw new IllegalArgumentException("SINGLE table scope requires exactly one table");
+        if ("SINGLE".equals(scope) && sourceTables.size() != 1) {
+            throw new IllegalArgumentException("SINGLE requires exactly one table");
         }
-        SolutionType type = "SINGLE".equals(scope)
+        SolutionType solution = "SINGLE".equals(scope)
                 ? (realtime ? SolutionType.SINGLE_TABLE_REALTIME : SolutionType.SINGLE_TABLE_OFFLINE)
                 : (realtime ? SolutionType.DATABASE_REALTIME : SolutionType.DATABASE_OFFLINE);
+
         List<Step> dataSteps;
-        StartupOptions startupOptions = null;
-        Map<String, Object> startupSettings = from.get(STARTUP);
         if (realtime) {
-            if (from.getSourceMap().containsKey("syncMode")) {
-                throw new IllegalArgumentException("CDC pipelines use startup, not syncMode");
-            }
-            String requested = startupSettings == null ? "INITIAL" : String.valueOf(startupSettings.get("mode"));
-            String mode =
-                    switch (requested) {
-                        case "INITIAL" -> "initial";
-                        case "SNAPSHOT" -> "snapshot";
-                        case "EARLIEST_OFFSET" -> "earliest-offset";
-                        case "LATEST_OFFSET" -> "latest-offset";
-                        case "SPECIFIC_OFFSETS" -> "specific-offset";
-                        case "TIMESTAMP" -> "timestamp";
-                        default -> throw new IllegalArgumentException("Unsupported CDC startup mode");
-                    };
-            Map<String, Object> normalized = startupSettings == null
-                    ? new java.util.LinkedHashMap<>()
-                    : new java.util.LinkedHashMap<>(startupSettings);
-            normalized.put("mode", mode);
-            ReadonlyConfig startup = ReadonlyConfig.fromMap(normalized);
-            validate(startup, STARTUP_RULE, "source.startup");
-            startupOptions = StartupOptions.from(
-                    mode,
-                    startup.get(STARTUP_FILE),
-                    startup.get(STARTUP_POSITION),
-                    startup.get(STARTUP_GTID),
-                    startup.get(STARTUP_TIMESTAMP),
-                    startup.get(STARTUP_SKIP_EVENTS),
-                    startup.get(STARTUP_SKIP_ROWS));
-            dataSteps = switch (requested) {
-                case "INITIAL" -> List.of(Step.FULL, Step.INCREMENTAL);
-                case "SNAPSHOT" -> List.of(Step.FULL);
-                default -> List.of(Step.INCREMENTAL);
+            String startup = optional(from, MySqlSourceOptions.SCAN_STARTUP_MODE.key(), "initial");
+            long timestampMillis = numeric(from, MySqlSourceOptions.SCAN_STARTUP_TIMESTAMP_MILLIS.key(), 0L);
+            StartupOptions.from(
+                    startup,
+                    optional(from, MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_FILE.key(), null),
+                    nullableLong(from, MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_POS.key()),
+                    optional(from, MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_GTID_SET.key(), null),
+                    timestampMillis == 0 ? null : timestampMillis,
+                    nullableLong(from, MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_SKIP_EVENTS.key()),
+                    nullableLong(from, MySqlSourceOptions.SCAN_STARTUP_SPECIFIC_OFFSET_SKIP_ROWS.key()));
+            dataSteps = switch (startup) {
+                case "initial" -> List.of(Step.FULL, Step.INCREMENTAL);
+                case "snapshot" -> List.of(Step.FULL);
+                case "earliest-offset", "latest-offset", "specific-offset", "timestamp" ->
+                        List.of(Step.INCREMENTAL);
+                default -> throw new IllegalArgumentException("Unsupported Flink CDC startup mode");
             };
         } else {
-            if (startupSettings != null) throw new IllegalArgumentException("JDBC does not accept CDC startup");
-            String syncMode = String.valueOf(from.getSourceMap().getOrDefault("syncMode", "FULL"));
+            String syncMode = optional(from, "yak.sync.mode", "FULL");
             dataSteps = switch (syncMode) {
                 case "FULL" -> List.of(Step.FULL);
                 case "INCREMENTAL" -> List.of(Step.INCREMENTAL);
                 case "FULL_AND_INCREMENTAL" -> List.of(Step.FULL, Step.INCREMENTAL);
-                default -> throw new IllegalArgumentException("Unsupported JDBC syncMode");
+                default -> throw new IllegalArgumentException("Unsupported JDBC sync mode");
             };
         }
-        Object runtimeMode = definition.getConfig().getSourceMap().get("execution.runtime-mode");
-        String expected = realtime && dataSteps.contains(Step.INCREMENTAL) ? "STREAMING" : "BATCH";
-        if (runtimeMode != null && !expected.equals(runtimeMode)) {
-            throw new IllegalArgumentException("Pipeline runtime mode conflicts with Source execution mode");
-        }
 
-        ReadonlyConfig schema = ReadonlyConfig.fromMap(to.get(SCHEMA_POLICY));
-        validate(schema, SCHEMA_RULE, "sink.schemaPolicy");
-        ReadonlyConfig evolution = ReadonlyConfig.fromMap(schema.get(EVOLUTION));
-        validate(evolution, EVOLUTION_RULE, "sink.schemaPolicy.evolution");
-        boolean evolve = evolution.get(ENABLED);
-        boolean drop = evolution.get(ALLOW_DROP_COLUMNS);
-        if (drop && !evolve) throw new IllegalArgumentException("DROP COLUMN requires Schema Evolution");
-        if ((!realtime || dataSteps.equals(List.of(Step.FULL))) && evolve) {
+        String expectedRuntime = realtime && dataSteps.contains(Step.INCREMENTAL) ? "STREAMING" : "BATCH";
+        String runtime = optional(definition.getConfig().getSourceMap(),
+                "execution.runtime-mode", expectedRuntime);
+        if (!expectedRuntime.equals(runtime)) {
+            throw new IllegalArgumentException("Pipeline runtime mode conflicts with source mode");
+        }
+        String initial = optional(to, "yak.schema.initial", "VERIFY");
+        if (!"VERIFY".equals(initial) && !"CREATE_OR_ALTER".equals(initial)) {
+            throw new IllegalArgumentException("Unsupported target schema preparation");
+        }
+        boolean evolve = flag(to, "yak.schema.evolution.enabled", false);
+        boolean drop = flag(to, "yak.schema.evolution.allow-drop-columns", false);
+        if (drop && !evolve) {
+            throw new IllegalArgumentException("DROP COLUMN requires Schema Evolution");
+        }
+        if (evolve && (!realtime || !dataSteps.contains(Step.INCREMENTAL))) {
             throw new IllegalArgumentException("Schema Evolution requires continuous CDC");
         }
-        String initial = schema.get(INITIAL);
-        if (!"VERIFY".equals(initial) && !"CREATE_OR_ALTER".equals(initial)) {
-            throw new IllegalArgumentException("Unsupported target Schema preparation");
-        }
-        boolean prepare = "CREATE_OR_ALTER".equals(initial);
-        if (prepare && !dataSteps.contains(Step.FULL)) {
-            throw new IllegalArgumentException("Initial Schema preparation requires FULL");
-        }
-
-        Map<String, ReadonlyConfig> sources = new java.util.LinkedHashMap<>();
-        Map<String, ReadonlyConfig> sinks = new java.util.LinkedHashMap<>();
-        for (Object entry : rawSources) {
-            ReadonlyConfig table = asConfig(entry);
-            if (sources.putIfAbsent(tablePath(table), table) != null) {
-                throw new IllegalArgumentException("Duplicate source table");
-            }
-        }
-        for (Object entry : rawSinks) {
-            ReadonlyConfig table = asConfig(entry);
-            if (sinks.putIfAbsent(tablePath(table), table) != null) {
-                throw new IllegalArgumentException("Duplicate sink table");
-            }
-        }
-        List<TableConfig> routes = new ArrayList<>();
-        for (io.yak.ops.core.definition.RouteDef route : definition.getRoute()) {
-            ReadonlyConfig source = sources.remove(route.getSourceTable());
-            ReadonlyConfig target = sinks.remove(route.getSinkTable());
-            if (source == null || target == null) {
-                throw new IllegalArgumentException("Route refers to an unknown or repeated table");
-            }
-            Map<String, Object> sourceTable = new java.util.LinkedHashMap<>(source.getSourceMap());
-            sourceTable.put("id", route.getSourceTable());
-            Map<String, Object> targetTable = new java.util.LinkedHashMap<>(target.getSourceMap());
-            targetTable.put("input", route.getSourceTable());
-            SourceConfig input =
-                    SourceConfig.from(ReadonlyConfig.fromMap(sourceTable), fromId, type, dataSteps, startupOptions);
-            SinkConfig output = SinkConfig.from(ReadonlyConfig.fromMap(targetTable), toId, type, dataSteps, evolve);
-            routes.add(new TableConfig(
-                    input.options(), output.options(), input.incremental(), output.targetPrimaryKeys()));
-        }
-        if (!sources.isEmpty() || !sinks.isEmpty()) {
-            throw new IllegalArgumentException("Unmapped source or sink table");
+        if ("CREATE_OR_ALTER".equals(initial) && !dataSteps.contains(Step.FULL)) {
+            throw new IllegalArgumentException("Initial schema preparation requires FULL");
         }
         List<Step> stages = new ArrayList<>();
-        if (prepare) stages.add(Step.SCHEMA);
+        if ("CREATE_OR_ALTER".equals(initial)) {
+            stages.add(Step.SCHEMA);
+        }
         stages.addAll(dataSteps);
-        return new JobConfig(parameters, type, routes, stages, evolve, drop);
+
+        List<TableConfig> mappings = new ArrayList<>();
+        for (RouteDef route : routes) {
+            String sourceTable = route.getSourceTable();
+            String sinkTable = route.getSinkTable();
+            Map<String, Object> sourceOptions = new LinkedHashMap<>();
+            copyConnectorOptions(from, sourceOptions, "scan.");
+            sourceOptions.put(JobOptions.TYPE.key(), realtime ? "MYSQL_CDC" : "JDBC");
+            sourceOptions.put(JobOptions.DATASOURCE_ID.key(), sourceId);
+            addTablePath(sourceOptions, sourceTable, optional(from, "yak.namespace-kind",
+                    realtime ? "DATABASE" : "SCHEMA"));
+            String sourcePrefix = "yak.table." + sourceTable + ".";
+            String chunkKey = optional(from, sourcePrefix + "chunk-key-column",
+                    optional(from, MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN.key(), null));
+            if (chunkKey != null) {
+                if (!realtime || !dataSteps.contains(Step.FULL)) {
+                    throw new IllegalArgumentException("Snapshot Chunk Key requires initial CDC snapshot");
+                }
+                sourceOptions.put(MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN.key(), chunkKey);
+            }
+            IncrementalConfig incremental = incremental(from, sourcePrefix, !realtime && dataSteps.contains(Step.INCREMENTAL));
+
+            Map<String, Object> sinkOptions = new LinkedHashMap<>();
+            copyConnectorOptions(to, sinkOptions, "connector.jdbc.sink.");
+            sinkOptions.put(JobOptions.TYPE.key(), "JDBC");
+            sinkOptions.put(JobOptions.DATASOURCE_ID.key(), sinkId);
+            addTablePath(sinkOptions, sinkTable, optional(to, "yak.namespace-kind", "SCHEMA"));
+            String sinkPrefix = "yak.table." + sinkTable + ".";
+            String write = optional(to, sinkPrefix + "write.mode", optional(to, "write.mode", "UPSERT"));
+            JdbcWriteMode mode = JdbcWriteMode.valueOf(write);
+            sinkOptions.put(JdbcSinkOptions.WRITE_MODE.key(), mode.name());
+            List<String> targetPrimaryKeys = csv(optional(to, sinkPrefix + "write.primary-keys", null));
+            String transaction = optional(to, sinkPrefix + "write.transaction.mode", null);
+            boolean xa = "CHECKPOINT_XA".equals(transaction);
+            if (transaction != null && !xa) {
+                throw new IllegalArgumentException("Unsupported transaction mode");
+            }
+            if (xa) {
+                sinkOptions.put(JdbcSinkOptions.XA_ENABLED.key(), true);
+            }
+            if (targetPrimaryKeys != null && (targetPrimaryKeys.isEmpty() || evolve
+                    || new HashSet<>(targetPrimaryKeys).size() != targetPrimaryKeys.size())) {
+                throw new IllegalArgumentException("Invalid target primary key override");
+            }
+            if (mode == JdbcWriteMode.RETRACT
+                    && (!xa || targetPrimaryKeys != null || solution != SolutionType.SINGLE_TABLE_REALTIME
+                    || !dataSteps.contains(Step.INCREMENTAL) || evolve)) {
+                throw new IllegalArgumentException("RETRACT requires single-table realtime XA");
+            }
+            if (xa && mode != JdbcWriteMode.RETRACT) {
+                throw new IllegalArgumentException("Checkpoint XA requires RETRACT");
+            }
+            if ((realtime || dataSteps.contains(Step.INCREMENTAL))
+                    && mode != JdbcWriteMode.UPSERT && mode != JdbcWriteMode.RETRACT) {
+                throw new IllegalArgumentException("Incremental pipelines require UPSERT");
+            }
+            mappings.add(new TableConfig(ReadonlyConfig.fromMap(sourceOptions),
+                    ReadonlyConfig.fromMap(sinkOptions), incremental, targetPrimaryKeys));
+        }
+        return new JobConfig(parameters, solution, mappings, stages, evolve, drop);
     }
 
-    private static String tablePath(ReadonlyConfig table) {
-        List<String> parts = new ArrayList<>();
-        for (io.yak.ops.configuration.Option<String> option :
-                List.of(JobOptions.DATABASE, JobOptions.SCHEMA, JobOptions.TABLE)) {
-            String value = table.get(option);
-            if (value != null) parts.add(value);
-        }
-        return String.join(".", parts);
+    private static void copyConnectorOptions(
+            Map<String, Object> source, Map<String, Object> target, String prefix) {
+        source.forEach((key, value) -> {
+            if (key.startsWith(prefix)) {
+                target.put(key, value);
+            }
+        });
     }
 
-    private static ReadonlyConfig asConfig(Object value) {
-        if (!(value instanceof Map<?, ?> map)) {
-            throw new IllegalArgumentException("Table definition must be an object");
+    private static void addTablePath(Map<String, Object> target, String value, String namespaceKind) {
+        String[] parts = value.split("\\.", -1);
+        if (parts.length < 1 || parts.length > 3) {
+            throw new IllegalArgumentException("Table identifier must have at most three parts");
         }
-        for (Object key : map.keySet()) {
-            if (!(key instanceof String)) throw new IllegalArgumentException("Table property must be a string");
+        if (parts.length == 3) {
+            target.put(JobOptions.DATABASE.key(), parts[0]);
+            target.put(JobOptions.SCHEMA.key(), parts[1]);
+        } else if (parts.length == 2) {
+            if ("DATABASE".equals(namespaceKind)) {
+                target.put(JobOptions.DATABASE.key(), parts[0]);
+            } else if ("SCHEMA".equals(namespaceKind)) {
+                target.put(JobOptions.SCHEMA.key(), parts[0]);
+            } else {
+                throw new IllegalArgumentException("Invalid namespace kind");
+            }
         }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> attributes = (Map<String, Object>) map;
-        return ReadonlyConfig.fromMap(attributes);
+        target.put(JobOptions.TABLE.key(), parts[parts.length - 1]);
     }
 
-    private static void validate(ReadonlyConfig options, OptionRule rule, String section) {
-        ConfigValidator.of(options).validate(rule);
-        ConfigValidator.validateUnknownKeys(options, rule, section);
+    private static IncrementalConfig incremental(
+            Map<String, Object> options, String prefix, boolean enabled) {
+        String mode = optional(options, prefix + "incremental.mode", null);
+        if (!enabled) {
+            if (mode != null) {
+                throw new IllegalArgumentException("Incremental options require offline incremental");
+            }
+            return null;
+        }
+        if (mode == null) {
+            throw new IllegalArgumentException("Offline incremental requires table incremental options");
+        }
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("mode", mode);
+        values.put("column", required(options, prefix + "incremental.column"));
+        putIfPresent(options, values, prefix + "incremental.initial-value", "initialValue");
+        if (options.containsKey(prefix + "incremental.delay-seconds")) {
+            values.put("delaySeconds", numeric(options, prefix + "incremental.delay-seconds", 0));
+        }
+        if (options.containsKey(prefix + "incremental.lookback-seconds")) {
+            values.put("lookbackSeconds", numeric(options, prefix + "incremental.lookback-seconds", 0));
+        }
+        return IncrementalConfig.from(values);
+    }
+
+    private static void putIfPresent(
+            Map<String, Object> source, Map<String, Object> target, String fromKey, String toKey) {
+        if (source.containsKey(fromKey)) {
+            target.put(toKey, source.get(fromKey));
+        }
+    }
+
+    private static List<RouteDef> defaultRoutes(List<String> tables) {
+        List<RouteDef> routes = new ArrayList<>();
+        for (String table : tables) {
+            routes.add(new RouteDef(table, table));
+        }
+        return routes;
+    }
+
+    private static List<String> csv(String value) {
+        if (value == null) {
+            return null;
+        }
+        List<String> result = new ArrayList<>();
+        for (String key : value.split(",", -1)) {
+            if (key.isBlank()) {
+                throw new IllegalArgumentException("Invalid comma-separated option");
+            }
+            result.add(key.trim());
+        }
+        return result;
+    }
+
+    private static String required(Map<String, Object> options, String key) {
+        Object value = options.get(key);
+        if (!(value instanceof String text) || text.isBlank()) {
+            throw new IllegalArgumentException("Required Pipeline option missing: " + key);
+        }
+        return text;
+    }
+
+    private static String optional(Map<String, Object> options, String key, String fallback) {
+        Object value = options.get(key);
+        return value == null ? fallback : (String) value;
+    }
+
+    private static boolean flag(Map<String, Object> options, String key, boolean fallback) {
+        String value = optional(options, key, null);
+        if (value == null) {
+            return fallback;
+        }
+        if (!"true".equals(value) && !"false".equals(value)) {
+            throw new IllegalArgumentException("Expected boolean option: " + key);
+        }
+        return Boolean.parseBoolean(value);
+    }
+
+    private static Long nullableLong(Map<String, Object> options, String key) {
+        String value = optional(options, key, null);
+        return value == null ? null : Long.parseLong(value);
+    }
+
+    private static long numeric(Map<String, Object> options, String key, long fallback) {
+        Long value = nullableLong(options, key);
+        return value == null ? fallback : value;
     }
 
     public ReadonlyConfig parameters() {
@@ -279,7 +364,6 @@ public final class JobConfig {
         return tables.getFirst().sink().get(JobOptions.DATASOURCE_ID);
     }
 
-    /** SCHEMA is a derived execution stage, never a second persisted user setting. */
     public List<Step> steps() {
         return steps;
     }
