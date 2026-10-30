@@ -17,12 +17,10 @@
 
 package io.yak.ops.composer.definition;
 
-import org.apache.flink.cdc.common.configuration.Configuration;
-
-import javax.annotation.Nullable;
-
 import java.util.Objects;
 import java.util.Optional;
+import javax.annotation.Nullable;
+import org.apache.flink.cdc.common.configuration.Configuration;
 
 /**
  * Definition of a data source.
@@ -38,7 +36,10 @@ import java.util.Optional;
  */
 public class SourceDef {
     private final String type;
-    @Nullable private final String name;
+
+    @Nullable
+    private final String name;
+
     private final Configuration config;
 
     public SourceDef(String type, @Nullable String name, Configuration config) {
@@ -61,16 +62,7 @@ public class SourceDef {
 
     @Override
     public String toString() {
-        return "SourceDef{"
-                + "type='"
-                + type
-                + '\''
-                + ", name='"
-                + name
-                + '\''
-                + ", config="
-                + config
-                + '}';
+        return "SourceDef{" + "type='" + type + '\'' + ", name='" + name + '\'' + ", config=" + config + '}';
     }
 
     @Override

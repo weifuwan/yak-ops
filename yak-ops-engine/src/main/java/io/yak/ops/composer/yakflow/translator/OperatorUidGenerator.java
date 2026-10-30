@@ -31,8 +31,7 @@ public class OperatorUidGenerator {
 
     public OperatorUidGenerator(@Nullable String prefix) {
         if (prefix != null && prefix.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "The prefix can be null but cannot be an empty string.");
+            throw new IllegalArgumentException("The prefix can be null but cannot be an empty string.");
         }
         this.prefix = prefix;
     }

@@ -9,10 +9,7 @@ import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 public final class DataSinkTranslator {
 
     public SinkTransformation<TableRecord> translate(
-            SourceTransformation<TableRecord> input,
-            Sink<TableRecord> sink,
-            int sinkParallelism,
-            String definitionId) {
+            SourceTransformation<TableRecord> input, Sink<TableRecord> sink, int sinkParallelism, String definitionId) {
         SinkTransformation<TableRecord> output =
                 new SinkTransformation<>(input, "data-sync-sink", sink, sinkParallelism);
         output.setUid(new OperatorUidGenerator("data-sync-sink").generateUid(definitionId));

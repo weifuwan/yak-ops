@@ -17,18 +17,16 @@
 
 package io.yak.ops.composer.definition;
 
-import org.apache.flink.cdc.common.configuration.Configuration;
-import org.apache.flink.cdc.common.event.SchemaChangeEventType;
-import org.apache.flink.cdc.common.event.SchemaChangeEventTypeFamily;
-import org.apache.flink.cdc.common.pipeline.ExistingTableSchemaExpansionMode;
-
-import javax.annotation.Nullable;
-
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.apache.flink.cdc.common.configuration.Configuration;
+import org.apache.flink.cdc.common.event.SchemaChangeEventType;
+import org.apache.flink.cdc.common.event.SchemaChangeEventTypeFamily;
+import org.apache.flink.cdc.common.pipeline.ExistingTableSchemaExpansionMode;
 
 /**
  * Definition of a data sink.
@@ -44,7 +42,10 @@ import java.util.stream.Collectors;
  */
 public class SinkDef {
     private final String type;
-    @Nullable private final String name;
+
+    @Nullable
+    private final String name;
+
     private final Configuration config;
     private final Set<SchemaChangeEventType> includedSchemaEvolutionTypes;
     private final ExistingTableSchemaExpansionMode existingTableSchemaExpansionMode;
@@ -63,12 +64,7 @@ public class SinkDef {
             @Nullable String name,
             Configuration config,
             Set<SchemaChangeEventType> includedSchemaEvolutionTypes) {
-        this(
-                type,
-                name,
-                config,
-                includedSchemaEvolutionTypes,
-                ExistingTableSchemaExpansionMode.DISABLED);
+        this(type, name, config, includedSchemaEvolutionTypes, ExistingTableSchemaExpansionMode.DISABLED);
     }
 
     public SinkDef(
@@ -134,14 +130,12 @@ public class SinkDef {
         return Objects.equals(type, sinkDef.type)
                 && Objects.equals(name, sinkDef.name)
                 && Objects.equals(config, sinkDef.config)
-                && Objects.equals(
-                        includedSchemaEvolutionTypes, sinkDef.includedSchemaEvolutionTypes)
+                && Objects.equals(includedSchemaEvolutionTypes, sinkDef.includedSchemaEvolutionTypes)
                 && existingTableSchemaExpansionMode == sinkDef.existingTableSchemaExpansionMode;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(
-                type, name, config, includedSchemaEvolutionTypes, existingTableSchemaExpansionMode);
+        return Objects.hash(type, name, config, includedSchemaEvolutionTypes, existingTableSchemaExpansionMode);
     }
 }

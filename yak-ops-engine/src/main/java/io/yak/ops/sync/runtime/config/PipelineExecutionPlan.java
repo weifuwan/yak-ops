@@ -1,12 +1,12 @@
 package io.yak.ops.sync.runtime.config;
 
+import io.yak.ops.composer.definition.PipelineDef;
+import io.yak.ops.composer.definition.RouteDef;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.connector.cdc.mysql.table.StartupOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
-import io.yak.ops.composer.definition.PipelineDef;
-import io.yak.ops.composer.definition.RouteDef;
 import io.yak.ops.sync.runtime.solution.SolutionType;
 import io.yak.ops.sync.runtime.solution.Step;
 import java.util.ArrayList;

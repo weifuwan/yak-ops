@@ -1,10 +1,10 @@
 package io.yak.ops.sync.runtime.validation;
 
+import io.yak.ops.composer.definition.PipelineDef;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.core.data.TableId;
-import io.yak.ops.composer.definition.PipelineDef;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskValidationException;

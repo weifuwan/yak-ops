@@ -18,9 +18,20 @@
 
 package io.yak.ops.cli.utils;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.apache.flink.cdc.common.utils.TimeUtils;
 import org.apache.flink.configuration.MemorySize;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snakeyaml.engine.v2.api.Dump;
@@ -37,20 +48,6 @@ import org.snakeyaml.engine.v2.nodes.Tag;
 import org.snakeyaml.engine.v2.representer.StandardRepresenter;
 import org.snakeyaml.engine.v2.schema.CoreSchema;
 
-import javax.annotation.Nonnull;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 /**
  * This class contains utility methods to load standard yaml file and convert object to standard
  * yaml syntax.
@@ -59,41 +56,34 @@ public class YamlParserUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(YamlParserUtils.class);
 
-    private static final DumpSettings blockerDumperSettings =
-            DumpSettings.builder()
-                    .setDefaultFlowStyle(FlowStyle.BLOCK)
-                    // Disable split long lines to avoid add unexpected line breaks
-                    .setSplitLines(false)
-                    .setSchema(new CoreSchema())
-                    .build();
+    private static final DumpSettings blockerDumperSettings = DumpSettings.builder()
+            .setDefaultFlowStyle(FlowStyle.BLOCK)
+            // Disable split long lines to avoid add unexpected line breaks
+            .setSplitLines(false)
+            .setSchema(new CoreSchema())
+            .build();
 
-    private static final DumpSettings flowDumperSettings =
-            DumpSettings.builder()
-                    .setDefaultFlowStyle(FlowStyle.FLOW)
-                    // Disable split long lines to avoid add unexpected line breaks
-                    .setSplitLines(false)
-                    .setSchema(new CoreSchema())
-                    .build();
+    private static final DumpSettings flowDumperSettings = DumpSettings.builder()
+            .setDefaultFlowStyle(FlowStyle.FLOW)
+            // Disable split long lines to avoid add unexpected line breaks
+            .setSplitLines(false)
+            .setSchema(new CoreSchema())
+            .build();
 
     private static final Dump blockerDumper =
             new Dump(blockerDumperSettings, new FlinkConfigRepresenter(blockerDumperSettings));
 
-    private static final Dump flowDumper =
-            new Dump(flowDumperSettings, new FlinkConfigRepresenter(flowDumperSettings));
+    private static final Dump flowDumper = new Dump(flowDumperSettings, new FlinkConfigRepresenter(flowDumperSettings));
 
-    private static final Load loader =
-            new Load(
-                    LoadSettings.builder()
-                            .setSchema(new CoreSchema())
-                            .setAllowDuplicateKeys(false)
-                            .build());
+    private static final Load loader = new Load(LoadSettings.builder()
+            .setSchema(new CoreSchema())
+            .setAllowDuplicateKeys(false)
+            .build());
 
-    private static final Load legacyLoader =
-            new Load(
-                    LoadSettings.builder()
-                            .setSchema(new CoreSchema())
-                            .setAllowDuplicateKeys(true)
-                            .build());
+    private static final Load legacyLoader = new Load(LoadSettings.builder()
+            .setSchema(new CoreSchema())
+            .setAllowDuplicateKeys(true)
+            .build());
 
     private static Load getYamlLoader(boolean allowDuplicateKeys) {
         return allowDuplicateKeys ? legacyLoader : loader;
@@ -109,8 +99,7 @@ public class YamlParserUtils {
      * @throws YamlEngineException if the file cannot be parsed.
      * @throws IOException if an I/O error occurs while reading from the file stream.
      */
-    public static synchronized @Nonnull Map<String, Object> loadYamlFile(File file)
-            throws Exception {
+    public static synchronized @Nonnull Map<String, Object> loadYamlFile(File file) throws Exception {
         return loadYamlFile(file, false);
     }
 
@@ -126,20 +115,18 @@ public class YamlParserUtils {
      * @throws IOException if an I/O error occurs while reading from the file stream.
      */
     @SuppressWarnings("unchecked")
-    public static synchronized @Nonnull Map<String, Object> loadYamlFile(
-            File file, boolean allowDuplicateKeys) throws Exception {
+    public static synchronized @Nonnull Map<String, Object> loadYamlFile(File file, boolean allowDuplicateKeys)
+            throws Exception {
         try (FileInputStream inputStream = new FileInputStream((file))) {
             Map<String, Object> yamlResult =
-                    (Map<String, Object>)
-                            getYamlLoader(allowDuplicateKeys).loadFromInputStream(inputStream);
+                    (Map<String, Object>) getYamlLoader(allowDuplicateKeys).loadFromInputStream(inputStream);
             return yamlResult == null ? new HashMap<>() : yamlResult;
         } catch (FileNotFoundException e) {
             LOG.error("Failed to find YAML file", e);
             throw e;
         } catch (IOException | YamlEngineException e) {
             if (e instanceof MarkedYamlEngineException) {
-                YamlEngineException exception =
-                        wrapExceptionToHiddenSensitiveData((MarkedYamlEngineException) e);
+                YamlEngineException exception = wrapExceptionToHiddenSensitiveData((MarkedYamlEngineException) e);
                 LOG.error("Failed to parse YAML configuration", exception);
                 throw exception;
             } else {
@@ -186,17 +173,14 @@ public class YamlParserUtils {
      *     line of the data.
      */
     @SuppressWarnings("unchecked")
-    public static synchronized List<String> convertAndDumpYamlFromFlatMap(
-            Map<String, Object> flattenMap) {
+    public static synchronized List<String> convertAndDumpYamlFromFlatMap(Map<String, Object> flattenMap) {
         try {
             Map<String, Object> nestedMap = new LinkedHashMap<>();
             for (Map.Entry<String, Object> entry : flattenMap.entrySet()) {
                 String[] keys = entry.getKey().split("\\.");
                 Map<String, Object> currentMap = nestedMap;
                 for (int i = 0; i < keys.length - 1; i++) {
-                    currentMap =
-                            (Map<String, Object>)
-                                    currentMap.computeIfAbsent(keys[i], k -> new LinkedHashMap<>());
+                    currentMap = (Map<String, Object>) currentMap.computeIfAbsent(keys[i], k -> new LinkedHashMap<>());
                 }
                 currentMap.put(keys[keys.length - 1], entry.getValue());
             }
@@ -243,8 +227,7 @@ public class YamlParserUtils {
      * @param exception The MarkedYamlEngineException containing potentially sensitive data.
      * @return A YamlEngineException with a message that has sensitive data hidden.
      */
-    private static YamlEngineException wrapExceptionToHiddenSensitiveData(
-            MarkedYamlEngineException exception) {
+    private static YamlEngineException wrapExceptionToHiddenSensitiveData(MarkedYamlEngineException exception) {
         StringBuilder lines = new StringBuilder();
         String context = exception.getContext();
         Optional<Mark> contextMark = exception.getContextMark();
@@ -291,12 +274,7 @@ public class YamlParserUtils {
      * exclude the Mark#get_snippet(), to prevent leaking any sensitive data.
      */
     private static String hiddenSensitiveDataInMark(Mark mark) {
-        return " in "
-                + mark.getName()
-                + ", line "
-                + (mark.getLine() + 1)
-                + ", column "
-                + (mark.getColumn() + 1);
+        return " in " + mark.getName() + ", line " + (mark.getLine() + 1) + ", column " + (mark.getColumn() + 1);
     }
 
     private static class FlinkConfigRepresenter extends StandardRepresenter {

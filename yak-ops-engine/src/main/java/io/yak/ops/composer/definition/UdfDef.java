@@ -81,15 +81,6 @@ public class UdfDef {
 
     @Override
     public String toString() {
-        return "UdfDef{"
-                + "name='"
-                + name
-                + '\''
-                + ", classpath='"
-                + classpath
-                + '\''
-                + ", options="
-                + options
-                + '}';
+        return "UdfDef{" + "name='" + name + '\'' + ", classpath='" + classpath + '\'' + ", options=" + options + '}';
     }
 }
