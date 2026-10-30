@@ -3,30 +3,30 @@ package io.yak.ops.dao.repository.task.impl;
 import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
 import io.yak.ops.dao.mapper.task.TaskGroupMapper;
 import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
+import io.yak.ops.dao.task.TaskGroupSlotReleasedEvent;
 import jakarta.annotation.Resource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.apache.dolphinscheduler.common.enums.Flag;
 import org.apache.dolphinscheduler.common.enums.TaskGroupQueueStatus;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Adaptation of DolphinScheduler TaskGroupDao/TaskGroupQueueDao for immutable
- * workspace-scoped destination identities and Yak Ops string Task IDs.
- *
- * <p>Slot acquisition and release use the original upstream atomic UPDATE
- * contract. The caller's transaction rolls back all previously acquired
- * slots if any resource is busy.
+ * DolphinScheduler TaskGroup slot and queue persistence adapted to workspace-scoped
+ * resources and string Task Instance IDs. An Instance acquires all its slots or none.
  */
 @Repository
 public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
+    private static final int WAITING = TaskGroupQueueStatus.WAIT_QUEUE.getCode();
+    private static final int ACQUIRED = TaskGroupQueueStatus.ACQUIRE_SUCCESS.getCode();
     private static final String RESOURCE_JOIN =
             "SELECT q.id, q.task_id, g.workspace_id, g.resource_type, g.resource_key"
                     + " FROM yak_ops_task_group_queue q JOIN yak_ops_task_group g ON q.group_id = g.id";
@@ -36,6 +36,9 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
 
     @Resource
     private TaskGroupMapper taskGroupMapper;
+
+    @Resource
+    private ApplicationEventPublisher events;
 
     @Override
     public void add(TaskGroupQueueEntity queue) {
@@ -58,32 +61,133 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                 queue.getWorkspaceId(),
                 queue.getResourceType(),
                 queue.getResourceKey());
-        if (groupId == null || taskGroupMapper.acquireTaskGroupSlot(groupId) != 1) {
-            throw new DuplicateKeyException("TaskGroup slot is occupied");
+        if (groupId == null) {
+            throw new IllegalStateException("TaskGroup was not created");
         }
         jdbc.update(
                 "INSERT INTO yak_ops_task_group_queue"
                         + " (id, task_id, group_id, priority, status, force_start, in_queue, create_time, update_time)"
-                        + " VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)",
+                        + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 queue.getId(),
                 queue.getInstanceId(),
                 groupId,
-                TaskGroupQueueStatus.ACQUIRE_SUCCESS.getCode(),
+                queue.getPriority(),
+                WAITING,
                 Flag.NO.getCode(),
                 Flag.YES.getCode(),
                 now,
                 now);
     }
 
+    /**
+     * The caller owns a transaction. Lock the Instance first, then all group rows
+     * in ID order. Check availability and per-group priority before acquiring any slot.
+     * This avoids partial multi-resource acquisitions and priority inversion.
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean tryAcquire(String workspaceId, String instanceId) {
+        List<String> statuses = jdbc.queryForList(
+                "SELECT status FROM yak_ops_task_instance WHERE workspace_id = ? AND id = ? FOR UPDATE",
+                String.class,
+                workspaceId,
+                instanceId);
+        if (statuses.size() != 1 || !"SUBMITTED".equals(statuses.get(0))) {
+            return false;
+        }
+        List<QueueSlot> slots = jdbc.query(
+                "SELECT q.id, q.task_id, q.group_id, q.status, g.group_size, g.use_size"
+                        + " FROM yak_ops_task_group_queue q"
+                        + " JOIN yak_ops_task_group g ON g.id = q.group_id"
+                        + " WHERE g.workspace_id = ? AND q.task_id = ?"
+                        + " ORDER BY g.id FOR UPDATE",
+                (rows, rowNum) -> new QueueSlot(
+                        rows.getString("id"),
+                        rows.getString("task_id"),
+                        rows.getLong("group_id"),
+                        rows.getInt("status"),
+                        rows.getInt("group_size"),
+                        rows.getInt("use_size")),
+                workspaceId,
+                instanceId);
+        if (slots.isEmpty()) {
+            return true;
+        }
+        if (slots.stream().allMatch(slot -> slot.status() == ACQUIRED)) {
+            return true;
+        }
+        if (slots.stream().anyMatch(slot -> slot.status() != WAITING)) {
+            throw new IllegalStateException("Partial TaskGroup acquisition is not supported");
+        }
+        for (QueueSlot slot : slots) {
+            if (slot.useSize() >= slot.groupSize()) {
+                return false;
+            }
+            List<String> heads = jdbc.queryForList(
+                    "SELECT task_id FROM yak_ops_task_group_queue"
+                            + " WHERE group_id = ? AND status = ? AND in_queue = ?"
+                            + " ORDER BY priority DESC, create_time ASC, id ASC LIMIT 1",
+                    String.class,
+                    slot.groupId(),
+                    WAITING,
+                    Flag.YES.getCode());
+            if (heads.isEmpty() || !instanceId.equals(heads.get(0))) {
+                return false;
+            }
+        }
+        for (QueueSlot slot : slots) {
+            if (taskGroupMapper.acquireTaskGroupSlot(slot.groupId()) != 1) {
+                throw new IllegalStateException("TaskGroup capacity changed while locked");
+            }
+            if (jdbc.update(
+                            "UPDATE yak_ops_task_group_queue SET status = ?, update_time = ?"
+                                    + " WHERE id = ? AND status = ?",
+                            ACQUIRED,
+                            LocalDateTime.now(),
+                            slot.id(),
+                            WAITING)
+                    != 1) {
+                throw new IllegalStateException("TaskGroup queue status changed while locked");
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean allAcquired(String workspaceId, String instanceId) {
+        Integer pending = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM yak_ops_task_group_queue q"
+                        + " JOIN yak_ops_task_group g ON g.id = q.group_id"
+                        + " WHERE g.workspace_id = ? AND q.task_id = ? AND q.status <> ?",
+                Integer.class,
+                workspaceId,
+                instanceId,
+                ACQUIRED);
+        return pending != null && pending == 0;
+    }
+
+    @Override
+    public List<TaskGroupQueueEntity> waiting(int limit) {
+        return jdbc.query(
+                RESOURCE_JOIN + " JOIN yak_ops_task_instance t ON t.id = q.task_id"
+                        + " WHERE q.status = ? AND q.in_queue = ? AND t.status = 'SUBMITTED'"
+                        + " ORDER BY q.priority DESC, q.create_time ASC, q.id ASC LIMIT ?",
+                new SlotMapper(),
+                WAITING,
+                Flag.YES.getCode(),
+                Math.max(1, Math.min(limit, 1000)));
+    }
+
     @Override
     public Optional<TaskGroupQueueEntity> findResourceForUpdate(String workspaceId, String type, String key) {
         List<TaskGroupQueueEntity> allocated = jdbc.query(
                 RESOURCE_JOIN + " WHERE g.workspace_id = ? AND g.resource_type = ?"
-                        + " AND g.resource_key = ? FOR UPDATE",
+                        + " AND g.resource_key = ? AND q.status = ? FOR UPDATE",
                 new SlotMapper(),
                 workspaceId,
                 type,
-                key);
+                key,
+                ACQUIRED);
         return allocated.stream().findFirst();
     }
 
@@ -100,29 +204,68 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int releaseOwned(String workspaceId, String instanceId) {
-        List<Long> groups = jdbc.queryForList(
-                "SELECT q.group_id FROM yak_ops_task_group_queue q"
+        List<QueueSlot> slots = jdbc.query(
+                "SELECT q.id, q.task_id, q.group_id, q.status, g.group_size, g.use_size"
+                        + " FROM yak_ops_task_group_queue q"
                         + " JOIN yak_ops_task_group g ON g.id = q.group_id"
-                        + " WHERE g.workspace_id = ? AND q.task_id = ? FOR UPDATE",
-                Long.class,
+                        + " WHERE g.workspace_id = ? AND q.task_id = ?"
+                        + " ORDER BY g.id FOR UPDATE",
+                (rows, rowNum) -> new QueueSlot(
+                        rows.getString("id"),
+                        rows.getString("task_id"),
+                        rows.getLong("group_id"),
+                        rows.getInt("status"),
+                        rows.getInt("group_size"),
+                        rows.getInt("use_size")),
                 workspaceId,
                 instanceId);
-        if (groups.isEmpty()) return 0;
+        if (slots.isEmpty()) {
+            return 0;
+        }
         int removed = jdbc.update(
                 "DELETE q FROM yak_ops_task_group_queue q"
                         + " JOIN yak_ops_task_group g ON g.id = q.group_id"
                         + " WHERE g.workspace_id = ? AND q.task_id = ?",
                 workspaceId,
                 instanceId);
-        if (removed != groups.size()) {
+        if (removed != slots.size()) {
             throw new IllegalStateException("TaskGroupQueue release was not atomic");
         }
-        for (Long id : groups) {
-            if (taskGroupMapper.releaseTaskGroupSlot(id) != 1) {
+        for (QueueSlot slot : slots) {
+            if (slot.status() == ACQUIRED && taskGroupMapper.releaseTaskGroupSlot(slot.groupId()) != 1) {
                 throw new IllegalStateException("TaskGroup slot counter is inconsistent");
             }
         }
+        events.publishEvent(new TaskGroupSlotReleasedEvent(instanceId));
         return removed;
+    }
+
+    /**
+     * Correct counters after restart using persisted acquired rows as evidence.
+     * In-flight and RECONCILING jobs retain their rows and therefore their slots.
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reconcile() {
+        List<Long> groupIds =
+                jdbc.queryForList("SELECT id FROM yak_ops_task_group ORDER BY id FOR UPDATE", Long.class);
+        for (Long groupId : groupIds) {
+            Integer count = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM yak_ops_task_group_queue"
+                            + " WHERE group_id = ? AND status = ? AND in_queue = ? AND force_start = ?",
+                    Integer.class,
+                    groupId,
+                    ACQUIRED,
+                    Flag.YES.getCode(),
+                    Flag.NO.getCode());
+            jdbc.update(
+                    "UPDATE yak_ops_task_group SET use_size = ?, update_time = ?"
+                            + " WHERE id = ? AND use_size <> ?",
+                    count,
+                    LocalDateTime.now(),
+                    groupId,
+                    count);
+        }
     }
 
     private static final class SlotMapper implements RowMapper<TaskGroupQueueEntity> {
@@ -136,5 +279,29 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             queue.setResourceKey(rows.getString("resource_key"));
             return queue;
         }
+    }
+
+    private static final class QueueSlot {
+        private final String id;
+        private final String taskId;
+        private final long groupId;
+        private final int status;
+        private final int groupSize;
+        private final int useSize;
+
+        private QueueSlot(String id, String taskId, long groupId, int status, int groupSize, int useSize) {
+            this.id = id;
+            this.taskId = taskId;
+            this.groupId = groupId;
+            this.status = status;
+            this.groupSize = groupSize;
+            this.useSize = useSize;
+        }
+
+        private String id() { return id; }
+        private long groupId() { return groupId; }
+        private int status() { return status; }
+        private int groupSize() { return groupSize; }
+        private int useSize() { return useSize; }
     }
 }
