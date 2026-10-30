@@ -25,8 +25,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /** Owns every DATA_SYNC execution from platform registration through physical termination. */
-final class DataSyncTaskHandle implements TaskHandle {
-    private static final Logger LOG = LoggerFactory.getLogger(DataSyncTaskHandle.class);
+final class PipelineTaskHandle implements TaskHandle {
+    private static final Logger LOG = LoggerFactory.getLogger(PipelineTaskHandle.class);
     private final ReadonlyConfig parameters;
     private final TaskExecutionResources admission;
     private final TaskExecutionIdentity identity;
@@ -46,7 +46,7 @@ final class DataSyncTaskHandle implements TaskHandle {
     private boolean submissionInvoked;
     private CompletableFuture<Void> cancellation;
 
-    DataSyncTaskHandle(
+    PipelineTaskHandle(
             ReadonlyConfig parameters,
             TaskExecutionResources admission,
             TaskExecutionIdentity identity,

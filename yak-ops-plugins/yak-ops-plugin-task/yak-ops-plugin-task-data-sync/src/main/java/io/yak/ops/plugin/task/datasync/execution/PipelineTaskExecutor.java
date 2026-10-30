@@ -19,13 +19,13 @@ import java.util.concurrent.CompletionStage;
  * <p>The platform registers the handle before starting physical work. The handle owns
  * re-admission, optional schema and cursor preparation, graph submission and cancellation.
  */
-public final class DataSyncTaskExecutor {
+public final class PipelineTaskExecutor {
     private final JobPlanner planner;
     private final PipelineBuilder builder;
     private final PipelineExecutor executor;
     private final IncrementalBatchPreparation incrementalPreparation;
 
-    public DataSyncTaskExecutor(
+    public PipelineTaskExecutor(
             JobPlanner planner,
             PipelineBuilder builder,
             PipelineExecutor executor,
@@ -55,7 +55,7 @@ public final class DataSyncTaskExecutor {
             return CompletableFuture.failedFuture(
                     new TaskStartRejectedException("DATA_SYNC rejected before engine submission", failure));
         }
-        return CompletableFuture.completedFuture(new DataSyncTaskHandle(
+        return CompletableFuture.completedFuture(new PipelineTaskHandle(
                 parameters, plan, identity, debug, planner, builder, executor, incrementalPreparation));
     }
 }

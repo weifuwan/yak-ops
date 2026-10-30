@@ -21,8 +21,8 @@ import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
-import io.yak.ops.plugin.task.datasync.execution.PipelineComposerTaskHandle;
+import io.yak.ops.plugin.task.datasync.execution.PipelineTaskExecutor;
+import io.yak.ops.plugin.task.datasync.execution.PipelineExecutionTaskHandle;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
 import io.yak.ops.plugin.task.datasync.solution.Solution;
 import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
@@ -34,7 +34,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /** Owns DATA_SYNC Task definition rules and delegates physical planning and execution. */
-public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
+public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
 
     public static final String TYPE = "DATA_SYNC";
     private static final Option<java.util.Map<String, Object>> SOURCE =
@@ -53,16 +53,16 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
             .build();
 
     private final JobPlanner planner;
-    private final DataSyncTaskExecutor executor;
+    private final PipelineTaskExecutor executor;
     private final FactoryUtil factories;
     private final PipelineComposer client;
 
-    public DataSyncTaskPlugin(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
+    public PipelineTaskPlugin(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
         this(planner, executor, factories, null);
     }
 
-    public DataSyncTaskPlugin(
-            JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories, PipelineComposer client) {
+    public PipelineTaskPlugin(
+            JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories, PipelineComposer client) {
         this.planner = Objects.requireNonNull(planner, "planner");
         this.executor = Objects.requireNonNull(executor, "executor");
         this.factories = Objects.requireNonNull(factories, "factories");
@@ -174,7 +174,7 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
             }
             PipelineExecution job = client.compose(json, trusted);
-            return CompletableFuture.completedFuture(new PipelineComposerTaskHandle(job));
+            return CompletableFuture.completedFuture(new PipelineExecutionTaskHandle(job));
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(
                     new TaskStartRejectedException("DATA_SYNC rejected before engine submission", failure));

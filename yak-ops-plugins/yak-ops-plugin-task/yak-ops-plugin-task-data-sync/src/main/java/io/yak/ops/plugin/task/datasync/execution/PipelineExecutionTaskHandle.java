@@ -10,10 +10,10 @@ import java.util.OptionalInt;
 import java.util.concurrent.CompletionStage;
 
 /** Thin DolphinScheduler-style Task lifecycle adapter for a Core PipelineExecution. */
-public final class PipelineComposerTaskHandle implements TaskHandle {
+public final class PipelineExecutionTaskHandle implements TaskHandle {
     private final PipelineExecution job;
 
-    public PipelineComposerTaskHandle(PipelineExecution job) {
+    public PipelineExecutionTaskHandle(PipelineExecution job) {
         this.job = java.util.Objects.requireNonNull(job, "job");
     }
 
@@ -24,7 +24,7 @@ public final class PipelineComposerTaskHandle implements TaskHandle {
 
     @Override
     public CompletionStage<TaskOutcome> completion() {
-        return job.completion().thenApply(PipelineComposerTaskHandle::toOutcome);
+        return job.completion().thenApply(PipelineExecutionTaskHandle::toOutcome);
     }
 
     @Override

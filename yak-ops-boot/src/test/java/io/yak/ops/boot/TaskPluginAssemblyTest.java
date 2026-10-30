@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import io.yak.ops.boot.config.TaskPluginConfiguration;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
-import io.yak.ops.plugin.task.datasync.DataSyncTaskPlugin;
+import io.yak.ops.plugin.task.datasync.PipelineTaskPlugin;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ class TaskPluginAssemblyTest {
                 TaskPluginConfiguration.class, TestDatasourceLookup.class)) {
             TaskPluginRegistry registry = context.getBean(TaskPluginRegistry.class);
             assertEquals(1, registry.types().size());
-            assertInstanceOf(ExecutableTaskPlugin.class, registry.get(DataSyncTaskPlugin.TYPE));
+            assertInstanceOf(ExecutableTaskPlugin.class, registry.get(PipelineTaskPlugin.TYPE));
         }
     }
 

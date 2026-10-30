@@ -5,7 +5,7 @@ DATA_SYNC turns one versioned V4 Task definition into one authorized YakFlow pip
 
 ## Read the implementation in this order
 
-1. `DataSyncTaskPlugin` — platform SPI: configuration validation, publication checks,
+1. `PipelineTaskPlugin` — platform SPI: configuration validation, publication checks,
    admission, solution listing, and creation of a Task execution handle.
 2. `config/JobConfig` — parse V4 definition into ordered table routes and execution intent.
    `config/SourceConfig`, `SinkConfig`, and `TableConfig` project endpoint settings.
@@ -16,14 +16,14 @@ DATA_SYNC turns one versioned V4 Task definition into one authorized YakFlow pip
    `SchemaValidationMessages` maps known failures to safe user-facing messages.
 5. `plan/JobPlanner` — resolve authorized physical metadata and revisions, validate table
    writes, compute `JobPlan` and immutable `TaskExecutionResources`. No credentials or DDL.
-6. `execution/DataSyncTaskExecutor` — re-check admission and return **one deferred**
-   `DataSyncTaskHandle`, regardless of the selected solution.
-7. `execution/DataSyncTaskHandle` — when `start()` is called by the platform, owns the
+6. `execution/PipelineTaskExecutor` — re-check admission and return **one deferred**
+   `PipelineTaskHandle`, regardless of the selected solution.
+7. `execution/PipelineTaskHandle` — when `start()` is called by the platform, owns the
    complete preparation, submission, cancellation and completion sequence.
 8. `pipeline/PipelineBuilder` — compile verified routes into Source/Sink, YakFlow
    `StreamGraph` and execution configuration. It is not a task scheduler.
 9. `execution/TableExecutionProgress` — collect live state and metrics;
-   `DataSyncExecutionReport` projects them into the existing public JSON reports.
+   `PipelineExecutionReport` projects them into the existing public JSON reports.
 
 ## Execution sequence
 
@@ -31,9 +31,9 @@ DATA_SYNC turns one versioned V4 Task definition into one authorized YakFlow pip
 V4 parameters
   -> JobConfig / JobConfigValidator (static and publication checks)
   -> JobPlanner (authorized metadata and TaskExecutionResources)
-  -> DataSyncTaskExecutor.start (admission fence, no engine submission)
+  -> PipelineTaskExecutor.start (admission fence, no engine submission)
   -> platform registers TaskHandle and persists RUNNING
-  -> DataSyncTaskHandle.start
+  -> PipelineTaskHandle.start
      -> JobPlanner (re-admission)
      -> IncrementalBatchPreparation (only for bounded offline incremental:
         source-clock upper bound, durable TaskCursorStore.freeze)

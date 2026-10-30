@@ -1,6 +1,6 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
-import static io.yak.ops.plugin.task.datasync.execution.DataSyncExecutionReport.schemaStage;
+import static io.yak.ops.plugin.task.datasync.execution.PipelineExecutionReport.schemaStage;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -112,8 +112,8 @@ public final class TableExecutionProgress {
         return reporter().summary(jobStatus);
     }
 
-    private DataSyncExecutionReport reporter() {
-        return new DataSyncExecutionReport(
+    private PipelineExecutionReport reporter() {
+        return new PipelineExecutionReport(
                 plans, metrics, continuous, dataStep, List.copyOf(schemaStages), dataSubmitted, preparationStopped);
     }
     /** Two completed-checkpoint observations; unavailable restored identifiers remain null. */

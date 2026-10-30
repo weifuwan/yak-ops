@@ -10,8 +10,8 @@ import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.datasync.DataSyncTaskPlugin;
-import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
+import io.yak.ops.plugin.task.datasync.PipelineTaskPlugin;
+import io.yak.ops.plugin.task.datasync.execution.PipelineTaskExecutor;
 import io.yak.ops.plugin.task.datasync.execution.YakFlowPipelineRuntime;
 import io.yak.ops.plugin.task.datasync.pipeline.EnvironmentOptions;
 import io.yak.ops.plugin.task.datasync.pipeline.ExecutionConfigurationFactory;
@@ -109,28 +109,28 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    DataSyncTaskExecutor dataSyncTaskExecutor(
+    PipelineTaskExecutor dataSyncTaskExecutor(
             JobPlanner planner,
             PipelineBuilder builder,
             PipelineExecutor executor,
             io.yak.ops.plugin.task.datasync.execution.IncrementalBatchPreparation incrementalPlanner) {
-        return new DataSyncTaskExecutor(planner, builder, executor, incrementalPlanner);
+        return new PipelineTaskExecutor(planner, builder, executor, incrementalPlanner);
     }
 
     @Bean
-    PipelineComposer pipelineComposer(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
+    PipelineComposer pipelineComposer(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
         return new PipelineComposer(
                 new JsonPipelineDefinitionParser(), new YakFlowPipelineRuntime(planner, executor, factories));
     }
 
     @Bean
-    DataSyncTaskPlugin dataSyncTaskPlugin(
-            JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories, PipelineComposer client) {
-        return new DataSyncTaskPlugin(planner, executor, factories, client);
+    PipelineTaskPlugin dataSyncTaskPlugin(
+            JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories, PipelineComposer client) {
+        return new PipelineTaskPlugin(planner, executor, factories, client);
     }
 
     @Bean
-    TaskPluginRegistry taskPluginRegistry(DataSyncTaskPlugin taskPlugin) {
+    TaskPluginRegistry taskPluginRegistry(PipelineTaskPlugin taskPlugin) {
         return new TaskPluginRegistry(List.of(taskPlugin));
     }
 }
