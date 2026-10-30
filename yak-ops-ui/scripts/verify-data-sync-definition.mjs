@@ -64,7 +64,17 @@ for (const startup of [
   { mode: "SPECIFIC_OFFSETS", gtidSet: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-9" },
   { mode: "TIMESTAMP", timestampMillis: 1700000000123 },
 ]) {
-  const original = { ...v5, source: { ...v5.source, startup } };
+  const original = {
+    ...v5,
+    source: { ...v5.source, startup },
+    sink: {
+      ...v5.sink,
+      schemaPolicy: {
+        ...v5.sink.schemaPolicy,
+        evolution: { enabled: startup.mode !== "SNAPSHOT", allowDropColumns: false },
+      },
+    },
+  };
   const loaded = toSyncTaskRecord({ ...record, parameters: original });
   assert.deepEqual(loaded.startup, startup);
   const saved = buildSyncParameters({
