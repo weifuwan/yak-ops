@@ -8,7 +8,6 @@ import jakarta.annotation.Resource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.apache.dolphinscheduler.common.enums.Flag;
@@ -283,7 +282,6 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
 
     private static final class QueueSlot {
         private final String id;
-        private final String taskId;
         private final long groupId;
         private final int status;
         private final int groupSize;
@@ -291,7 +289,6 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
 
         private QueueSlot(String id, String taskId, long groupId, int status, int groupSize, int useSize) {
             this.id = id;
-            this.taskId = taskId;
             this.groupId = groupId;
             this.status = status;
             this.groupSize = groupSize;
