@@ -77,6 +77,6 @@ class PipelineExecutionPlanTest {
     }
 
     private static PipelineExecutionPlan job(String yaml) {
-        return PipelineExecutionPlan.from(new io.yak.ops.core.parser.YamlPipelineDefinitionParser().parse(yaml));
+        return PipelineExecutionPlan.from(new io.yak.ops.cli.parser.YamlPipelineDefinitionParser().parse(yaml));
     }
 }

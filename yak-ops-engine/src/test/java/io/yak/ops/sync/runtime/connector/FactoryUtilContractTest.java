@@ -16,7 +16,7 @@ import io.yak.ops.connector.jdbc.source.JdbcSourceFactory;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.data.TableRecord;
-import io.yak.ops.core.parser.YamlPipelineDefinitionParser;
+import io.yak.ops.cli.parser.YamlPipelineDefinitionParser;
 import io.yak.ops.sync.runtime.config.JobOptions;
 import io.yak.ops.sync.runtime.validation.PipelineDefinitionValidator;
 import java.util.List;
