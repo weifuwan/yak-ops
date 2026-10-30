@@ -151,25 +151,20 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
         for (ExecutionResource resource : currentPlan.exclusiveResources().stream()
                 .sorted(Comparator.comparing(ExecutionResource::type).thenComparing(ExecutionResource::key))
                 .toList()) {
-            TaskGroupQueueEntity claim = new TaskGroupQueueEntity();
-            claim.setWorkspaceId(workspaceId);
-            claim.setResourceType(resource.type());
-            claim.setResourceKey(resource.key());
-            claim.setInstanceId(context.instanceId());
-            claim.initCreate(request.operatorId());
-            try {
-                claims.add(claim);
-            } catch (DuplicateKeyException conflict) {
-                if (request.triggerType() == TaskTriggerType.SCHEDULE) {
-                    var occupied = claims.findResourceForUpdate(workspaceId, resource.type(), resource.key());
-                    if (occupied.isPresent()
-                            && !context.instanceId()
-                                    .equals(occupied.orElseThrow().getInstanceId())) {
-                        throw new ResourceBusyException(conflict);
-                    }
-                }
-                throw conflict;
-            }
+            TaskGroupQueueEntity queue = new TaskGroupQueueEntity();
+            queue.setWorkspaceId(workspaceId);
+            queue.setResourceType(resource.type());
+            queue.setResourceKey(resource.key());
+            queue.setInstanceId(context.instanceId());
+            queue.initCreate(request.operatorId());
+            claims.add(queue);
+        }
+        // A multi-resource Task may not hold a subset of its slots while waiting.
+        // Scheduled occurrences retain the existing RESOURCE_BUSY -> SKIPPED contract;
+        // manual submissions remain durable and are awakened by TaskGroupCoordinator.
+        if (!claims.tryAcquire(workspaceId, context.instanceId())
+                && request.triggerType() == TaskTriggerType.SCHEDULE) {
+            throw new ResourceBusyException(new DuplicateKeyException("TaskGroup slots are occupied"));
         }
         return new SubmissionResult(
                 context.instanceId(), context.definitionVersion(), TaskInstanceStatus.SUBMITTED, false);
