@@ -15,7 +15,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 import io.yak.ops.business.schedule.ScheduleRegistrationService;
 import io.yak.ops.common.bean.dto.schedule.CreateScheduleDTO;
 import io.yak.ops.common.bean.dto.schedule.SchedulePreviewDTO;
@@ -37,8 +36,8 @@ import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.plugin.scheduler.api.CronService;
-import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.workspace.WorkspaceService;
 import java.time.Clock;
 import java.time.Instant;

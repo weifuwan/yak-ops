@@ -1,16 +1,15 @@
 package io.yak.ops.boot;
 
-import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
-import io.yak.ops.configuration.ReadonlyConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-
 import io.yak.ops.boot.config.TaskPluginConfiguration;
-import io.yak.ops.plugin.task.api.TaskPluginManager;
-import io.yak.ops.plugin.task.api.TaskChannel;
-import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
+import io.yak.ops.configuration.ReadonlyConfig;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
+import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
