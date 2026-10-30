@@ -1,13 +1,13 @@
-package io.yak.ops.plugin.task.datasync.execution;
+package io.yak.ops.sync.runtime.execution;
 
 import io.yak.ops.core.api.connector.sink.MetadataApplier;
 import io.yak.ops.core.event.SchemaChangeEventType;
 import io.yak.ops.core.exceptions.SchemaEvolveException;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
-import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
-import io.yak.ops.plugin.task.datasync.plan.JobPlan;
-import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
-import io.yak.ops.plugin.task.datasync.plan.TablePlan;
+import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;
+import io.yak.ops.sync.runtime.plan.JobPlan;
+import io.yak.ops.sync.runtime.plan.JobPlanner;
+import io.yak.ops.sync.runtime.plan.TablePlan;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CancellationException;

@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.execution;
+package io.yak.ops.sync.runtime.execution;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.core.composer.PipelineComposer;
@@ -10,8 +10,8 @@ import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
-import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
-import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
+import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;
+import io.yak.ops.sync.runtime.plan.JobPlanner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

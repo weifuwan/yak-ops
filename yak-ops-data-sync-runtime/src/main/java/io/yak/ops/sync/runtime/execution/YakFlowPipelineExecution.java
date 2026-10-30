@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.execution;
+package io.yak.ops.sync.runtime.execution;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.metrics.TableMetrics;
@@ -9,11 +9,11 @@ import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
-import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
-import io.yak.ops.plugin.task.datasync.plan.JobPlan;
-import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
-import io.yak.ops.plugin.task.datasync.solution.Step;
+import io.yak.ops.sync.runtime.config.JobConfig;
+import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;
+import io.yak.ops.sync.runtime.plan.JobPlan;
+import io.yak.ops.sync.runtime.plan.JobPlanner;
+import io.yak.ops.sync.runtime.solution.Step;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CancellationException;
@@ -117,7 +117,7 @@ public final class YakFlowPipelineExecution implements PipelineExecution {
                         ? planner.plan(parameters, identity)
                         : plan;
                 verifyAdmission(current);
-                io.yak.ops.plugin.task.datasync.pipeline.CompiledPipeline pipeline = builder.build(
+                io.yak.ops.sync.runtime.pipeline.CompiledPipeline pipeline = builder.build(
                         incremental == null ? current : incremental.apply(current),
                         identity,
                         debug,

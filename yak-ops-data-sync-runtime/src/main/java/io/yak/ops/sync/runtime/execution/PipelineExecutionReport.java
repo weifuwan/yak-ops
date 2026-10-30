@@ -1,17 +1,17 @@
-package io.yak.ops.plugin.task.datasync.execution;
+package io.yak.ops.sync.runtime.execution;
 
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.data.TableId;
-import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress.Checkpoints;
-import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress.RealtimeReport;
-import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress.RealtimeSummary;
-import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress.Report;
-import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress.StageResult;
-import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress.TableResult;
-import io.yak.ops.plugin.task.datasync.execution.TableExecutionProgress.TableStages;
-import io.yak.ops.plugin.task.datasync.plan.TablePlan;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress.Checkpoints;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress.RealtimeReport;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress.RealtimeSummary;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress.Report;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress.StageResult;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress.TableResult;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress.TableStages;
+import io.yak.ops.sync.runtime.plan.TablePlan;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,12 +1,12 @@
-package io.yak.ops.plugin.task.datasync.execution;
+package io.yak.ops.sync.runtime.execution;
 
-import static io.yak.ops.plugin.task.datasync.execution.PipelineExecutionReport.schemaStage;
+import static io.yak.ops.sync.runtime.execution.PipelineExecutionReport.schemaStage;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.core.api.common.JobStatus;
-import io.yak.ops.plugin.task.datasync.plan.TablePlan;
+import io.yak.ops.sync.runtime.plan.TablePlan;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;

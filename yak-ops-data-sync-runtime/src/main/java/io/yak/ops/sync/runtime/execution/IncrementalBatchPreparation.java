@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.execution;
+package io.yak.ops.sync.runtime.execution;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
@@ -10,12 +10,12 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.execution.TaskCursorBatch;
 import io.yak.ops.plugin.task.api.execution.TaskCursorStore;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
-import io.yak.ops.plugin.task.datasync.config.IncrementalConfig;
-import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.config.JobOptions;
-import io.yak.ops.plugin.task.datasync.plan.JobPlan;
-import io.yak.ops.plugin.task.datasync.plan.TablePlan;
-import io.yak.ops.plugin.task.datasync.solution.Step;
+import io.yak.ops.sync.runtime.config.IncrementalConfig;
+import io.yak.ops.sync.runtime.config.JobConfig;
+import io.yak.ops.sync.runtime.config.JobOptions;
+import io.yak.ops.sync.runtime.plan.JobPlan;
+import io.yak.ops.sync.runtime.plan.TablePlan;
+import io.yak.ops.sync.runtime.solution.Step;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
