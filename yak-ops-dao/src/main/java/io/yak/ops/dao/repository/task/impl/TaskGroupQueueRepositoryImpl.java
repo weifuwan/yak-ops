@@ -27,7 +27,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     private static final int WAITING = TaskGroupQueueStatus.WAIT_QUEUE.getCode();
     private static final int ACQUIRED = TaskGroupQueueStatus.ACQUIRE_SUCCESS.getCode();
     private static final String RESOURCE_JOIN =
-            "SELECT q.id, q.task_id, g.workspace_id, g.resource_type, g.resource_key"
+            "SELECT q.id, q.task_id, q.priority, q.create_time, g.workspace_id, g.resource_type, g.resource_key"
                     + " FROM yak_ops_task_group_queue q JOIN yak_ops_task_group g ON q.group_id = g.id";
 
     @Resource
@@ -165,14 +165,31 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     }
 
     @Override
-    public List<TaskGroupQueueEntity> waiting(int limit) {
+    public List<TaskGroupQueueEntity> waiting(int limit, TaskGroupQueueEntity after) {
+        String sql = RESOURCE_JOIN + " JOIN yak_ops_task_instance t ON t.id = q.task_id"
+                + " WHERE q.status = ? AND q.in_queue = ? AND t.status = 'SUBMITTED'";
+        if (after == null) {
+            return jdbc.query(
+                    sql + " ORDER BY q.priority DESC, q.create_time ASC, q.id ASC LIMIT ?",
+                    new SlotMapper(),
+                    WAITING,
+                    Flag.YES.getCode(),
+                    Math.max(1, Math.min(limit, 1000)));
+        }
+        // Keyset pagination must match all three ORDER BY fields. OFFSET pagination
+        // would skip entries when another task is acquired or canceled mid-scan.
         return jdbc.query(
-                RESOURCE_JOIN + " JOIN yak_ops_task_instance t ON t.id = q.task_id"
-                        + " WHERE q.status = ? AND q.in_queue = ? AND t.status = 'SUBMITTED'"
+                sql + " AND (q.priority < ? OR (q.priority = ?"
+                        + " AND (q.create_time > ? OR (q.create_time = ? AND q.id > ?))))"
                         + " ORDER BY q.priority DESC, q.create_time ASC, q.id ASC LIMIT ?",
                 new SlotMapper(),
                 WAITING,
                 Flag.YES.getCode(),
+                after.getPriority(),
+                after.getPriority(),
+                after.getCreateTime(),
+                after.getCreateTime(),
+                after.getId(),
                 Math.max(1, Math.min(limit, 1000)));
     }
 
@@ -281,6 +298,8 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             TaskGroupQueueEntity queue = new TaskGroupQueueEntity();
             queue.setId(rows.getString("id"));
             queue.setInstanceId(rows.getString("task_id"));
+            queue.setPriority(rows.getInt("priority"));
+            queue.setCreateTime(rows.getTimestamp("create_time").toLocalDateTime());
             queue.setWorkspaceId(rows.getString("workspace_id"));
             queue.setResourceType(rows.getString("resource_type"));
             queue.setResourceKey(rows.getString("resource_key"));
