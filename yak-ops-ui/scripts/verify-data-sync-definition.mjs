@@ -67,6 +67,10 @@ for (const startup of [
   const original = {
     ...v5,
     source: { ...v5.source, startup },
+    pipeline: {
+      ...v5.pipeline,
+      "execution.runtime-mode": startup.mode === "SNAPSHOT" ? "BATCH" : "STREAMING",
+    },
     sink: {
       ...v5.sink,
       schemaPolicy: {
