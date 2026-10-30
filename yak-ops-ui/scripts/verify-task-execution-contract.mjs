@@ -18,31 +18,26 @@ const version = {
   version: 2,
   name: "orders",
   taskType: "DATA_SYNC",
-  parameterSchemaVersion: 4,
+  parameterSchemaVersion: 5,
   parameters: {
-    solutionType: "SINGLE_TABLE_REALTIME",
-    steps: ["FULL", "INCREMENTAL"],
     source: {
+      type: "MYSQL_CDC",
       datasourceId: "mysql-source",
-      tables: [{ id: "orders", table: "orders" }],
+      startup: { mode: "INITIAL" },
+      tables: [{ table: "orders" }],
     },
-    transform: [],
     sink: {
+      type: "JDBC",
       datasourceId: "pg-target",
       schemaPolicy: {
         initial: "VERIFY",
         evolution: { enabled: false, allowDropColumns: false },
       },
-      tables: [
-        {
-          input: "orders",
-          schema: "public",
-          table: "ods_orders",
-          write: { mode: "UPSERT" },
-        },
-      ],
+      tables: [{ schema: "public", table: "ods_orders", write: { mode: "UPSERT" } }],
     },
-    env: {},
+    route: [{ "source-table": "orders", "sink-table": "public.ods_orders" }],
+    transform: [],
+    pipeline: { "execution.runtime-mode": "STREAMING" },
   },
 };
 const instance = {

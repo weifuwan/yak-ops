@@ -113,7 +113,8 @@ public final class PipelineComposer {
         private final int definitionVersion;
         private final PipelineExecution job;
 
-        private RegisteredJob(PipelineDef definition, String definitionId, int definitionVersion, PipelineExecution job) {
+        private RegisteredJob(
+                PipelineDef definition, String definitionId, int definitionVersion, PipelineExecution job) {
             this.definition = definition;
             this.definitionId = definitionId;
             this.definitionVersion = definitionVersion;
