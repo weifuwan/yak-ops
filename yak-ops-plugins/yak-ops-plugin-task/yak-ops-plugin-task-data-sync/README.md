@@ -19,7 +19,7 @@ V4-to-V5 migration or V5-to-V4 adapter is available.
   `JobPlanner`, `PipelineBuilder` and YakFlow executor.
 - `config/JobConfig`: internal typed per-table execution projection of V5,
   **not a persisted V4 wire format**. Source/Sink/Route are read from V5.
-- `solution/SolutionCatalog`: advertised user-facing choices such as
+- `solution/SolutionCatalog`: boot-managed product-facing choices such as
   single-table/batch and database/CDC. Product `solutionType` is derived and
   must not be persisted in a V5 pipeline.
 - `plan/JobPlanner`: authorized datasource metadata, table identities and

@@ -9,13 +9,14 @@ import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
+import io.yak.ops.plugin.task.datasync.PipelineTaskChannelFactory;
 import io.yak.ops.plugin.task.datasync.execution.YakFlowPipelineComposer;
 import io.yak.ops.plugin.task.datasync.pipeline.EnvironmentOptions;
 import io.yak.ops.plugin.task.datasync.pipeline.ExecutionConfigurationFactory;
 import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
-import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
-import io.yak.ops.plugin.task.datasync.PipelineTaskChannelFactory;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
+import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -114,6 +115,11 @@ public class TaskPluginConfiguration {
             PipelineExecutor executor,
             io.yak.ops.plugin.task.datasync.execution.IncrementalBatchPreparation incrementalPreparation) {
         return new YakFlowPipelineComposer(planner, builder, executor, incrementalPreparation);
+    }
+
+    @Bean
+    SolutionCatalog dataSyncSolutionCatalog(FactoryUtil factories) {
+        return new SolutionCatalog(factories);
     }
 
     @Bean
