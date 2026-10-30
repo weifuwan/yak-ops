@@ -6,7 +6,7 @@ import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.connector.jdbc.database.schema.SchemaChangePlan;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.core.data.TableId;
-import io.yak.ops.core.definition.PipelineDef;
+import io.yak.ops.composer.definition.PipelineDef;
 import io.yak.ops.core.event.CreateTableEvent;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
