@@ -1,0 +1,43 @@
+name: Format V6 PR source once
+on:
+  push:
+    branches:
+      - refactor/data-sync-v6-flink-cdc-pipeline
+    paths:
+      - .github/workflows/data-sync-v6-format-once.yml
+permissions:
+  contents: write
+jobs:
+  format-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/data-sync-v6-flink-cdc-pipeline
+          persist-credentials: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Apply repository Java formatter
+        run: mvn -B -ntp -pl yak-ops-engine,yak-ops-plugin-task-data-sync spotless:apply
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13'
+          cache: npm
+          cache-dependency-path: yak-ops-ui/package-lock.json
+      - name: Apply repository frontend formatter
+        working-directory: yak-ops-ui
+        run: npm ci && npm run format
+      - name: Commit only formatter changes and remove this one-time workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -- .github/workflows/data-sync-v6-format-once.yml
+          git add -u
+          git diff --cached --quiet && exit 0
+          git commit -m "style(data-sync): apply Spotless and Oxfmt to V6 refactor"
+          git push origin HEAD:refactor/data-sync-v6-flink-cdc-pipeline
