@@ -22,6 +22,7 @@ jobs:
           node-version: '22.13.1'
       - name: Apply Java formatting
         run: |
+          mvn -q -ntp -pl yak-ops-bom install -DskipTests
           mvn -q -ntp -f yak-ops-core/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
           mvn -q -ntp -f yak-ops-data-sync-runtime/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
           mvn -q -ntp -f yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync/pom.xml com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
