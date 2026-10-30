@@ -156,6 +156,8 @@ public class InstanceRepositoryImpl implements InstanceRepository {
     public List<InstanceEntity> pending() {
         return mapper.selectList(Wrappers.<InstanceEntity>lambdaQuery()
                 .eq(InstanceEntity::getStatus, TaskInstanceStatus.SUBMITTED)
+                .notExists("SELECT 1 FROM yak_ops_task_group_queue q"
+                        + " WHERE q.task_id = yak_ops_task_instance.id AND q.status <> 1")
                 .orderByAsc(InstanceEntity::getCreateTime));
     }
 
@@ -184,6 +186,8 @@ public class InstanceRepositoryImpl implements InstanceRepository {
                                 .eq(InstanceEntity::getWorkspaceId, workspaceId)
                                 .eq(InstanceEntity::getId, instanceId)
                                 .eq(InstanceEntity::getStatus, TaskInstanceStatus.SUBMITTED)
+                                .apply("NOT EXISTS (SELECT 1 FROM yak_ops_task_group_queue q"
+                                        + " WHERE q.task_id = yak_ops_task_instance.id AND q.status <> 1)")
                                 .set(InstanceEntity::getStatus, TaskInstanceStatus.LAUNCHING)
                                 .set(InstanceEntity::getOwnerIncarnation, ownerIncarnation)
                                 .set(InstanceEntity::getDispatchToken, dispatchToken)
