@@ -99,7 +99,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                         + " FROM yak_ops_task_group_queue q"
                         + " JOIN yak_ops_task_group g ON g.id = q.group_id"
                         + " WHERE g.workspace_id = ? AND q.task_id = ?"
-                        + " ORDER BY g.id FOR UPDATE",
+                        + " ORDER BY g.resource_type, g.resource_key FOR UPDATE",
                 (rows, rowNum) -> new QueueSlot(
                         rows.getString("id"),
                         rows.getString("task_id"),
@@ -208,7 +208,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                         + " FROM yak_ops_task_group_queue q"
                         + " JOIN yak_ops_task_group g ON g.id = q.group_id"
                         + " WHERE g.workspace_id = ? AND q.task_id = ?"
-                        + " ORDER BY g.id FOR UPDATE",
+                        + " ORDER BY g.resource_type, g.resource_key FOR UPDATE",
                 (rows, rowNum) -> new QueueSlot(
                         rows.getString("id"),
                         rows.getString("task_id"),
@@ -246,6 +246,18 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void reconcile() {
+        // The upstream coordinator removes orphaned and terminal queue entries
+        // before repairing slot counters. RECONCILING must remain reserved.
+        List<QueueOwner> stale = jdbc.query(
+                "SELECT DISTINCT q.task_id, g.workspace_id"
+                        + " FROM yak_ops_task_group_queue q"
+                        + " JOIN yak_ops_task_group g ON g.id = q.group_id"
+                        + " LEFT JOIN yak_ops_task_instance t ON t.id = q.task_id"
+                        + " WHERE t.id IS NULL OR t.status IN ('FINISHED', 'FAILED', 'CANCELED')",
+                (rows, rowNum) -> new QueueOwner(rows.getString("workspace_id"), rows.getString("task_id")));
+        for (QueueOwner owner : stale) {
+            releaseOwned(owner.workspaceId(), owner.instanceId());
+        }
         List<Long> groupIds =
                 jdbc.queryForList("SELECT id FROM yak_ops_task_group ORDER BY id FOR UPDATE", Long.class);
         for (Long groupId : groupIds) {
@@ -278,6 +290,19 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             queue.setResourceKey(rows.getString("resource_key"));
             return queue;
         }
+    }
+
+    private static final class QueueOwner {
+        private final String workspaceId;
+        private final String instanceId;
+
+        private QueueOwner(String workspaceId, String instanceId) {
+            this.workspaceId = workspaceId;
+            this.instanceId = instanceId;
+        }
+
+        private String workspaceId() { return workspaceId; }
+        private String instanceId() { return instanceId; }
     }
 
     private static final class QueueSlot {
