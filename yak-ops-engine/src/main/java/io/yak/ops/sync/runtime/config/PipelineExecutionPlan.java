@@ -90,6 +90,21 @@ public final class PipelineExecutionPlan {
         }
 
         Map<String, Object> pipelineOptions = new LinkedHashMap<>(definition.getConfig().toMap());
+        // The upstream parser recognizes more options than YakFlow can currently execute.
+        // Never accept an option and silently discard its execution semantics.
+        for (String key : pipelineOptions.keySet()) {
+            if (!"execution.runtime-mode".equals(key)
+                    && !"local-time-zone".equals(key)
+                    && !"yak.table-scope".equals(key)) {
+                throw new IllegalArgumentException("Unsupported YakFlow Pipeline option: " + key);
+            }
+        }
+        String localTimeZone = optional(pipelineOptions, "local-time-zone", null);
+        if (localTimeZone != null
+                && !localTimeZone.equals(java.time.ZoneId.systemDefault().toString())) {
+            throw new IllegalArgumentException("YakFlow does not yet support custom pipeline time zones");
+        }
+
         String scope = optional(
                 pipelineOptions,
                 "yak.table-scope",

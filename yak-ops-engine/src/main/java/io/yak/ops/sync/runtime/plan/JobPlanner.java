@@ -43,28 +43,6 @@ public final class JobPlanner {
         this.factories = Objects.requireNonNull(factories, "factories");
     }
 
-    /**
-     * Declares every exclusive destination and its non-secret binding fingerprint.
-     *
-     * @param parameters pinned DATA_SYNC definition
-     * @param context trusted Task execution identity
-     * @return complete admission claims validated against the expected schema
-     */
-    public TaskExecutionResources admissionPlan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
-        return plan(parameters, context).admissionPlan();
-    }
-
-    /**
-     * Resolves source and target metadata without DDL, connection credentials or Job submission.
-     *
-     * @param parameters pinned DATA_SYNC definition
-     * @param context trusted Task execution identity
-     * @return immutable logical plan; missing targets require explicit SCHEMA preparation
-     */
-    public JobPlan plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
-        return resolve(PipelineDefinitionValidator.validateConfig(parameters, factories), context.workspaceId(), context.instanceId());
-    }
-
     public TaskExecutionResources admissionPlan(PipelineDef definition, TaskExecutionIdentity context) {
         return plan(definition, context).admissionPlan();
     }
