@@ -1,4 +1,4 @@
-import { decodePipelineYaml } from "./pipeline-yaml";
+import { decodePipelineYaml } from "./pipeline-yaml.ts";
 import type {
   DataSyncParameters,
   DataSyncIncrementalConfig,
