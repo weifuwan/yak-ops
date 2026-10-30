@@ -8,8 +8,8 @@ import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.datasync.PipelineTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
 import io.yak.ops.plugin.task.datasync.execution.PipelineTaskExecutor;
 import io.yak.ops.plugin.task.datasync.execution.YakFlowPipelineComposer;
 import io.yak.ops.plugin.task.datasync.pipeline.EnvironmentOptions;
@@ -122,12 +122,12 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    PipelineTaskPlugin pipelineTaskPlugin(FactoryUtil factories, PipelineComposer composer) {
-        return new PipelineTaskPlugin(factories, composer);
+    PipelineTaskChannel pipelineTaskPlugin(FactoryUtil factories, PipelineComposer composer) {
+        return new PipelineTaskChannel(factories, composer);
     }
 
     @Bean
-    TaskPluginRegistry taskPluginRegistry(PipelineTaskPlugin taskPlugin) {
-        return new TaskPluginRegistry(List.of(taskPlugin));
+    TaskPluginManager taskPluginRegistry(PipelineTaskChannel taskPlugin) {
+        return new TaskPluginManager(List.of(taskPlugin));
     }
 }

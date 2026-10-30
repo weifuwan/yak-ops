@@ -13,7 +13,7 @@ import io.yak.ops.core.composer.PipelineExecution;
 import io.yak.ops.core.composer.PipelinePlan;
 import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
 import io.yak.ops.plugin.task.api.TaskPluginException;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
@@ -32,7 +32,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /** Owns DATA_SYNC Task definition rules and delegates physical planning and execution. */
-public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
+public final class PipelineTaskChannel implements TaskChannel {
 
     public static final String TYPE = "DATA_SYNC";
     private static final Option<java.util.Map<String, Object>> SOURCE =
@@ -53,7 +53,7 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
     private final FactoryUtil factories;
     private final PipelineComposer composer;
 
-    public PipelineTaskPlugin(FactoryUtil factories, PipelineComposer composer) {
+    public PipelineTaskChannel(FactoryUtil factories, PipelineComposer composer) {
         this.factories = Objects.requireNonNull(factories, "factories");
         this.composer = Objects.requireNonNull(composer, "composer");
     }
@@ -150,7 +150,7 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
     }
 
     @Override
-    public CompletionStage<TaskHandle> start(
+    public CompletionStage<TaskHandle> createTask(
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
         try {
             PipelineContext trusted = context(context, debug);

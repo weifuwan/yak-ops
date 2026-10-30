@@ -1,11 +1,14 @@
-package io.yak.ops.plugin.task.api.execution;
+package io.yak.ops.plugin.task.api;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.TaskPlugin;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
+import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
+import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import java.util.concurrent.CompletionStage;
 
-/** Execution capability of a registered Task Plugin. */
-public interface ExecutableTaskPlugin extends TaskPlugin {
+/** DolphinScheduler TaskChannel: validates a task and creates deferred physical execution. */
+public interface TaskChannel extends TaskPlugin {
 
     /**
      * Declares whether these parsed parameters permit periodic submission without external access.
@@ -26,7 +29,7 @@ public interface ExecutableTaskPlugin extends TaskPlugin {
     TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context);
 
     /**
-     * Starts physical execution after durable Instance submission and resource revalidation.
+     * Creates deferred physical execution after durable Instance submission and resource revalidation.
      *
      * @param parameters pinned Task configuration
      * @param plan resource claims and binding revision of the submitted Task Instance

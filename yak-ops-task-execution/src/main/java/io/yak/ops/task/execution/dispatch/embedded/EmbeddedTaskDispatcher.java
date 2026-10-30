@@ -9,8 +9,8 @@ import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
@@ -59,7 +59,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     private TaskExecutionObserver observer;
 
     @Resource
-    private TaskPluginRegistry registry;
+    private TaskPluginManager registry;
 
     @Resource
     private DefinitionVersionRepository definitions;
@@ -150,7 +150,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
      * by PhysicalTaskExecutor; this method never starts a TaskHandle.
      */
     private PhysicalTask preparePhysicalTask(
-            TaskExecutionContext taskContext, Supplier<ExecutableTaskPlugin> taskPluginSupplier) {
+            TaskExecutionContext taskContext, Supplier<TaskChannel> taskPluginSupplier) {
         String workspaceId = taskContext.getWorkspaceId();
         String instanceId = taskContext.getTaskInstanceId();
         DispatchTicket ticket = null;
@@ -168,7 +168,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             taskContext.setTaskType(ticket.taskType());
             taskContext.setTaskName(ticket.definitionId());
 
-            ExecutableTaskPlugin executable = taskPluginSupplier.get();
+            TaskChannel executable = taskPluginSupplier.get();
             if (executable == null) {
                 lifecycle.complete(ticket, TaskOutcome.FAILED);
                 return completedPhysicalTask(TaskOutcome.FAILED);
@@ -199,7 +199,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
                         }
                         try {
                             CompletionStage<TaskHandle> submission =
-                                    executable.start(parameters, plan, identity, launched.debug());
+                                    executable.createTask(parameters, plan, identity, launched.debug());
                             return observer.observeTracked(launched, submission);
                         } catch (RuntimeException unknown) {
                             try {

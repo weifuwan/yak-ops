@@ -10,14 +10,14 @@ import java.util.NoSuchElementException;
  * <p>Plugins may be discovered from the classpath or supplied as constructed instances.
  * Parameter parsing and resource validation remain the responsibility of each plugin.
  */
-public final class TaskPluginRegistry {
+public final class TaskPluginManager {
 
     private final SpiRegistry<TaskPlugin> plugins;
 
     /** Discovers Task plugins using their Java SPI registrations. */
-    public TaskPluginRegistry() {
+    public TaskPluginManager() {
         try {
-            plugins = SpiRegistry.load(TaskPlugin.class, TaskPluginRegistry::identifiers);
+            plugins = SpiRegistry.load(TaskPlugin.class, TaskPluginManager::identifiers);
         } catch (IllegalStateException exception) {
             throw new TaskPluginException(exception.getMessage(), exception);
         }
@@ -28,9 +28,9 @@ public final class TaskPluginRegistry {
      *
      * @param providers plugin instances, including plugins constructed with runtime dependencies
      */
-    public TaskPluginRegistry(Iterable<? extends TaskPlugin> providers) {
+    public TaskPluginManager(Iterable<? extends TaskPlugin> providers) {
         try {
-            plugins = SpiRegistry.of(providers, TaskPluginRegistry::identifiers);
+            plugins = SpiRegistry.of(providers, TaskPluginManager::identifiers);
         } catch (IllegalStateException exception) {
             throw new TaskPluginException(exception.getMessage(), exception);
         }

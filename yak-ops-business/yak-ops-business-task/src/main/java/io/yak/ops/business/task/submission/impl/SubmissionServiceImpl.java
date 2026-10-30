@@ -27,8 +27,8 @@ import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.scheduler.api.ScheduleTrigger;
 import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginException;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
@@ -71,7 +71,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private InstanceRepository instances;
 
     @Resource
-    private TaskPluginRegistry plugins;
+    private TaskPluginManager plugins;
 
     @Resource
     private TaskValidationContextFactory validationContexts;
@@ -126,7 +126,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
         TaskPlugin plugin = plugins.get(definition.getTaskType());
-        if (!(plugin instanceof ExecutableTaskPlugin executable)) {
+        if (!(plugin instanceof TaskChannel executable)) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
         int version = definition.getCurrentVersion();
