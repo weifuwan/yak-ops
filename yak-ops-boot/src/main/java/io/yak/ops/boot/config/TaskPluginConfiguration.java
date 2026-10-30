@@ -124,9 +124,8 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    PipelineTaskPlugin dataSyncTaskPlugin(
-            JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories, PipelineComposer composer) {
-        return new PipelineTaskPlugin(planner, executor, factories, composer);
+    PipelineTaskPlugin pipelineTaskPlugin(FactoryUtil factories, PipelineComposer composer) {
+        return new PipelineTaskPlugin(factories, composer);
     }
 
     @Bean

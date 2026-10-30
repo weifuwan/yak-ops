@@ -22,8 +22,6 @@ import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.execution.PipelineExecutionTaskHandle;
-import io.yak.ops.plugin.task.datasync.execution.PipelineTaskExecutor;
-import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
 import io.yak.ops.plugin.task.datasync.solution.Solution;
 import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
 import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
@@ -52,21 +50,12 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
             .optional(ROUTE, TRANSFORM, PIPELINE)
             .build();
 
-    private final JobPlanner planner;
-    private final PipelineTaskExecutor executor;
     private final FactoryUtil factories;
     private final PipelineComposer composer;
 
-    public PipelineTaskPlugin(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
-        this(planner, executor, factories, null);
-    }
-
-    public PipelineTaskPlugin(
-            JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories, PipelineComposer client) {
-        this.planner = Objects.requireNonNull(planner, "planner");
-        this.executor = Objects.requireNonNull(executor, "executor");
+    public PipelineTaskPlugin(FactoryUtil factories, PipelineComposer composer) {
         this.factories = Objects.requireNonNull(factories, "factories");
-        this.composer = composer;
+        this.composer = Objects.requireNonNull(composer, "composer");
     }
 
     @Override
@@ -156,16 +145,12 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
-        if (composer != null) {
-            return admission(composer.plan(ConfigParser.toJson(parameters), context(context, false)));
-        }
-        return planner.admissionPlan(parameters, context);
+        return admission(composer.plan(ConfigParser.toJson(parameters), context(context, false)));
     }
 
     @Override
     public CompletionStage<TaskHandle> start(
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
-        if (composer == null) return executor.start(parameters, plan, context, debug);
         try {
             PipelineContext trusted = context(context, debug);
             String json = ConfigParser.toJson(parameters);
