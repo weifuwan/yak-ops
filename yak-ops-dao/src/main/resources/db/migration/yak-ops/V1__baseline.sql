@@ -241,7 +241,8 @@ CREATE TABLE yak_ops_task_group_queue (
   KEY idx_ops_task_group_queue_task (task_id),
   KEY idx_ops_task_group_queue_group (group_id),
   KEY idx_ops_task_group_queue_workflow (workflow_instance_id),
-  KEY idx_ops_task_group_queue_status (status)
+  KEY idx_ops_task_group_queue_status (status),
+  KEY idx_ops_task_group_queue_waiting (group_id, status, in_queue, priority, create_time, id)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='DolphinScheduler task group slot allocations; task IDs are Yak Ops strings';
 
