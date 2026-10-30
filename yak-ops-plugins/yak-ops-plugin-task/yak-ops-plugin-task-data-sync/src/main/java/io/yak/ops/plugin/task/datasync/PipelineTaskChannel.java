@@ -1,58 +1,26 @@
 package io.yak.ops.plugin.task.datasync;
 
-import io.yak.ops.configuration.ConfigParser;
-import io.yak.ops.configuration.Option;
-import io.yak.ops.configuration.Options;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
-import io.yak.ops.connector.base.factory.FactoryUtil;
-import io.yak.ops.core.api.connector.source.Boundedness;
-import io.yak.ops.core.composer.PipelineComposer;
-import io.yak.ops.core.composer.PipelineContext;
-import io.yak.ops.core.composer.PipelineExecution;
-import io.yak.ops.core.composer.PipelinePlan;
-import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
 import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.TaskPluginException;
-import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
-import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
-import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
-import java.util.ArrayList;
-import java.util.List;
+import io.yak.ops.sync.runtime.PipelineService;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-/** Owns DATA_SYNC Task definition rules and delegates physical planning and execution. */
+/** Thin DolphinScheduler-style DATA_SYNC TaskChannel. Engine validation and planning stay in PipelineService. */
 public final class PipelineTaskChannel implements TaskChannel {
-
     public static final String TYPE = "DATA_SYNC";
-    private static final Option<java.util.Map<String, Object>> SOURCE =
-            Options.key("source").mapObjectType().noDefaultValue();
-    private static final Option<java.util.Map<String, Object>> SINK =
-            Options.key("sink").mapObjectType().noDefaultValue();
-    private static final Option<List<Object>> ROUTE =
-            Options.key("route").listType(Object.class).noDefaultValue();
-    private static final Option<List<Object>> TRANSFORM =
-            Options.key("transform").listType(Object.class).noDefaultValue();
-    private static final Option<java.util.Map<String, Object>> PIPELINE =
-            Options.key("pipeline").mapObjectType().noDefaultValue();
-    private static final OptionRule RULE = OptionRule.builder()
-            .required(SOURCE, SINK)
-            .optional(ROUTE, TRANSFORM, PIPELINE)
-            .build();
 
-    private final FactoryUtil factories;
-    private final PipelineComposer composer;
+    private final PipelineService service;
 
-    public PipelineTaskChannel(FactoryUtil factories, PipelineComposer composer) {
-        this.factories = Objects.requireNonNull(factories, "factories");
-        this.composer = Objects.requireNonNull(composer, "composer");
+    public PipelineTaskChannel(PipelineService service) {
+        this.service = Objects.requireNonNull(service, "service");
     }
 
     @Override
@@ -67,90 +35,54 @@ public final class PipelineTaskChannel implements TaskChannel {
 
     @Override
     public OptionRule optionRule() {
-        return RULE;
+        return service.optionRule();
+    }
+
+    public PipelineParameters parseParameters(String content) {
+        PipelineParameters parameters = new PipelineParameters(content);
+        if (!parameters.checkParameters()) {
+            throw new TaskPluginException("DATA_SYNC requires V5 Pipeline JSON");
+        }
+        return parameters;
     }
 
     @Override
     public ReadonlyConfig parse(String content) {
-        try {
-            ReadonlyConfig parsed =
-                    new JsonPipelineDefinitionParser().parse(content).getOriginal();
-            return JobConfigValidator.validateConfig(parsed, factories).parameters();
-        } catch (RuntimeException failure) {
-            throw new TaskPluginException("Invalid V5 DATA_SYNC pipeline JSON", failure);
-        }
-    }
-
-    private static PipelineContext context(TaskExecutionIdentity identity, boolean debug) {
-        return new PipelineContext(
-                identity.workspaceId(),
-                identity.definitionId(),
-                identity.definitionVersion(),
-                identity.instanceId(),
-                debug);
-    }
-
-    private static TaskExecutionResources admission(PipelinePlan plan) {
-        List<ExecutionResource> claims = new ArrayList<>();
-        for (PipelinePlan.ResourceClaim claim : plan.resources()) {
-            claims.add(new ExecutionResource(claim.type(), claim.key()));
-        }
-        return new TaskExecutionResources(claims, plan.resourceRevision());
+        return service.parse(parseParameters(content).getPipelineJson());
     }
 
     @Override
     public void validateUpdate(ReadonlyConfig previous, ReadonlyConfig updated, TaskValidationContext context) {
-        JobConfig before = JobConfig.from(previous);
-        JobConfig after = JobConfig.from(updated);
-        if (before.solutionType() != after.solutionType()
-                || !context.dataSource(before.sourceDataSourceId())
-                        .type()
-                        .equals(context.dataSource(after.sourceDataSourceId()).type())
-                || !context.dataSource(before.targetDataSourceId())
-                        .type()
-                        .equals(context.dataSource(after.targetDataSourceId()).type())) {
-            throw new TaskPluginException("Changing synchronization solution or datasource types requires a new task");
-        }
+        service.validateUpdate(previous, updated, context);
     }
 
     @Override
     public void validateReferences(ReadonlyConfig parameters, TaskValidationContext context) {
-        JobConfigValidator.validateReferences(parameters, context, factories);
+        service.validateReferences(parameters, context);
     }
 
     @Override
     public void validate(ReadonlyConfig parameters, TaskValidationContext context) {
-        JobConfigValidator.validateResources(parameters, context, factories);
+        service.validate(parameters, context);
     }
 
     @Override
     public boolean supportsScheduling(ReadonlyConfig parameters) {
-        String identifier = JobConfig.from(parameters).solutionType().sourceIdentifier();
-        return factories.source(identifier).boundedness() == Boundedness.BOUNDED;
+        return service.supportsScheduling(parameters);
     }
 
     @Override
-    public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
-        return admission(composer.plan(
-                new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters)), context(context, false)));
+    public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity identity) {
+        return service.plan(parameters, identity);
     }
 
     @Override
     public CompletionStage<TaskHandle> createTask(
-            ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
+            ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity identity, boolean debug) {
         try {
-            PipelineContext trusted = context(context, debug);
-            io.yak.ops.core.definition.PipelineDef definition =
-                    new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters));
-            PipelinePlan admitted = composer.plan(definition, trusted);
-            if (!plan.equals(admission(admitted))) {
-                throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
-            }
-            PipelineExecution job = composer.compose(definition, admitted, trusted);
-            return CompletableFuture.completedFuture(new PipelineTask(job));
+            return CompletableFuture.completedFuture(new PipelineTask(service.submit(parameters, plan, identity, debug)));
         } catch (RuntimeException failure) {
-            return CompletableFuture.failedFuture(
-                    new TaskStartRejectedException("DATA_SYNC rejected before engine submission", failure));
+            return CompletableFuture.failedFuture(failure);
         }
     }
 }
