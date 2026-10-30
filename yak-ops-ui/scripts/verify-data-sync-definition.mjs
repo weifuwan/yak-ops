@@ -24,7 +24,13 @@ const base = {
   targetTable: "ods_orders",
 };
 const definitionJson = createDefinitionRequest(base).parameters;
-assert.deepEqual(Object.keys(definitionJson), ["source", "sink", "route", "transform", "pipeline"]);
+assert.deepEqual(Object.keys(definitionJson), [
+  "source",
+  "sink",
+  "route",
+  "transform",
+  "pipeline",
+]);
 assert.equal(definitionJson.source.type, "MYSQL_CDC");
 assert.equal(definitionJson.source.startup.mode, "INITIAL");
 assert.equal(definitionJson.route[0]["source-table"], "orders");
