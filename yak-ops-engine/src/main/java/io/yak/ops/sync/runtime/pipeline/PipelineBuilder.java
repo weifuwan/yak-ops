@@ -19,6 +19,8 @@ import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.sync.runtime.config.JobOptions;
+import io.yak.ops.composer.yakflow.translator.DataSourceTranslator;
+import io.yak.ops.composer.yakflow.translator.DataSinkTranslator;
 import io.yak.ops.sync.runtime.execution.TableExecutionProgress;
 import io.yak.ops.sync.runtime.plan.JobPlan;
 import io.yak.ops.sync.runtime.plan.TablePlan;
@@ -151,18 +153,13 @@ public final class PipelineBuilder {
                     metrics));
         }
         Source<TableRecord, ?, ?> source = sourceFactory.createSource(sourceContexts);
-        if (source instanceof MySqlSource mysql && mysql.startupOptions().isStreamOnly() && sourceParallelism != 1) {
-            throw new UnsupportedOperationException("Stream-only MySQL CDC requires Source parallelism 1");
-        }
         Configuration configuration = configurationFactory.create(
                 identity, source.getBoundedness(), debug, schemaChangesEnabled, allowDropColumns);
         Sink<TableRecord> sink = sinkFactory.createSink(sinkContexts);
         SourceTransformation<TableRecord> input =
-                new SourceTransformation<>("data-sync-source", source, TableRecord.class, sourceParallelism);
+                new DataSourceTranslator().translate(source, sourceParallelism, identity.definitionId());
         SinkTransformation<TableRecord> output =
-                new SinkTransformation<>(input, "data-sync-sink", sink, sinkParallelism);
-        input.setUid("data-sync-source-" + identity.definitionId());
-        output.setUid("data-sync-sink-" + identity.definitionId());
+                new DataSinkTranslator().translate(input, sink, sinkParallelism, identity.definitionId());
         StreamGraph graph = new StreamGraphGenerator(output, configuration).generate();
         TableExecutionProgress observations = progress;
         if (observations == null) {
