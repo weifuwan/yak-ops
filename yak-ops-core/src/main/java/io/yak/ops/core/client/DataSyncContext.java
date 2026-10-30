@@ -10,8 +10,8 @@ public final class DataSyncContext {
     private final String instanceId;
     private final boolean debug;
 
-    public DataSyncContext(String workspaceId, String definitionId, int definitionVersion,
-            String instanceId, boolean debug) {
+    public DataSyncContext(
+            String workspaceId, String definitionId, int definitionVersion, String instanceId, boolean debug) {
         this.workspaceId = require(workspaceId, "workspaceId");
         this.definitionId = require(definitionId, "definitionId");
         this.instanceId = require(instanceId, "instanceId");
@@ -26,13 +26,23 @@ public final class DataSyncContext {
         return value;
     }
 
-    public String workspaceId() { return workspaceId; }
+    public String workspaceId() {
+        return workspaceId;
+    }
 
-    public String definitionId() { return definitionId; }
+    public String definitionId() {
+        return definitionId;
+    }
 
-    public int definitionVersion() { return definitionVersion; }
+    public int definitionVersion() {
+        return definitionVersion;
+    }
 
-    public String instanceId() { return instanceId; }
+    public String instanceId() {
+        return instanceId;
+    }
 
-    public boolean debug() { return debug; }
+    public boolean debug() {
+        return debug;
+    }
 }

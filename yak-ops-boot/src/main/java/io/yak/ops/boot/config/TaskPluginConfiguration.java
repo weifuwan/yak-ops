@@ -4,15 +4,15 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
-import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.core.client.DataSyncClient;
+import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
-import io.yak.ops.plugin.task.datasync.execution.YakFlowDataSyncEngine;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.datasync.DataSyncTaskPlugin;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
+import io.yak.ops.plugin.task.datasync.execution.YakFlowDataSyncEngine;
 import io.yak.ops.plugin.task.datasync.pipeline.EnvironmentOptions;
 import io.yak.ops.plugin.task.datasync.pipeline.ExecutionConfigurationFactory;
 import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
@@ -120,8 +120,7 @@ public class TaskPluginConfiguration {
     @Bean
     DataSyncClient dataSyncClient(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
         return new DataSyncClient(
-                new JsonPipelineDefinitionParser(),
-                new YakFlowDataSyncEngine(planner, executor, factories));
+                new JsonPipelineDefinitionParser(), new YakFlowDataSyncEngine(planner, executor, factories));
     }
 
     @Bean

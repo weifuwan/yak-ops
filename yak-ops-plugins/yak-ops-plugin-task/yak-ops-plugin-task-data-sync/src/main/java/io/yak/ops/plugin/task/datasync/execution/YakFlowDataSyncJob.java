@@ -26,7 +26,9 @@ public final class YakFlowDataSyncJob implements DataSyncJob {
     }
 
     @Override
-    public String getJobId() { return jobId; }
+    public String getJobId() {
+        return jobId;
+    }
 
     @Override
     public synchronized void start() {
@@ -36,10 +38,14 @@ public final class YakFlowDataSyncJob implements DataSyncJob {
     }
 
     @Override
-    public JobStatus getStatus() { return status; }
+    public JobStatus getStatus() {
+        return status;
+    }
 
     @Override
-    public CompletionStage<JobStatus> completion() { return handle.completion().thenApply(YakFlowDataSyncJob::status); }
+    public CompletionStage<JobStatus> completion() {
+        return handle.completion().thenApply(YakFlowDataSyncJob::status);
+    }
 
     @Override
     public CompletionStage<Void> cancel() {
@@ -48,13 +54,19 @@ public final class YakFlowDataSyncJob implements DataSyncJob {
     }
 
     @Override
-    public OptionalInt getProgressPercent() { return handle.progressPercent(); }
+    public OptionalInt getProgressPercent() {
+        return handle.progressPercent();
+    }
 
     @Override
-    public Optional<String> getExecutionReport() { return handle.executionReport(); }
+    public Optional<String> getExecutionReport() {
+        return handle.executionReport();
+    }
 
     @Override
-    public Optional<String> getExecutionSummary() { return handle.executionSummary(); }
+    public Optional<String> getExecutionSummary() {
+        return handle.executionSummary();
+    }
 
     @Override
     public CompletionStage<Optional<String>> engineJobIdReady() {

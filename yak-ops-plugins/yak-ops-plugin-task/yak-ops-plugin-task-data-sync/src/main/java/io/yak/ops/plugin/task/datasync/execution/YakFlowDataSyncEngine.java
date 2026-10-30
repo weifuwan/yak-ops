@@ -37,8 +37,7 @@ public final class YakFlowDataSyncEngine implements DataSyncEngine {
 
     @Override
     public DataSyncPlan plan(PipelineDef definition, DataSyncContext context) {
-        TaskExecutionResources resources = planner.admissionPlan(
-                V5PipelineAdapter.toV4(definition), identity(context));
+        TaskExecutionResources resources = planner.admissionPlan(V5PipelineAdapter.toV4(definition), identity(context));
         List<DataSyncPlan.ResourceClaim> claims = new ArrayList<>();
         for (ExecutionResource resource : resources.exclusiveResources()) {
             claims.add(new DataSyncPlan.ResourceClaim(resource.type(), resource.key()));
@@ -55,12 +54,13 @@ public final class YakFlowDataSyncEngine implements DataSyncEngine {
         }
         TaskExecutionResources admission = new TaskExecutionResources(claims, plan.resourceRevision());
         TaskHandle handle = executor.start(parameters, admission, identity(context), context.debug())
-                .toCompletableFuture().join();
+                .toCompletableFuture()
+                .join();
         return new YakFlowDataSyncJob(context.instanceId(), handle);
     }
 
     private static TaskExecutionIdentity identity(DataSyncContext context) {
-        return new TaskExecutionIdentity(context.workspaceId(), context.definitionId(),
-                context.definitionVersion(), context.instanceId());
+        return new TaskExecutionIdentity(
+                context.workspaceId(), context.definitionId(), context.definitionVersion(), context.instanceId());
     }
 }

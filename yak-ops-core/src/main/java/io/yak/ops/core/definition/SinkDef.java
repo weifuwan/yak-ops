@@ -14,7 +14,11 @@ public final class SinkDef {
         this.config = Objects.requireNonNull(config, "config");
     }
 
-    public String getType() { return type; }
+    public String getType() {
+        return type;
+    }
 
-    public ReadonlyConfig getConfig() { return config; }
+    public ReadonlyConfig getConfig() {
+        return config;
+    }
 }

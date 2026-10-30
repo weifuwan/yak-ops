@@ -18,7 +18,9 @@ public final class DataSyncClientTaskHandle implements TaskHandle {
     }
 
     @Override
-    public void start() { job.start(); }
+    public void start() {
+        job.start();
+    }
 
     @Override
     public CompletionStage<TaskOutcome> completion() {
@@ -26,7 +28,9 @@ public final class DataSyncClientTaskHandle implements TaskHandle {
     }
 
     @Override
-    public CompletionStage<Void> cancel() { return job.cancel(); }
+    public CompletionStage<Void> cancel() {
+        return job.cancel();
+    }
 
     @Override
     public Optional<TaskRuntimeReference> runtimeReference() {
@@ -35,18 +39,23 @@ public final class DataSyncClientTaskHandle implements TaskHandle {
 
     @Override
     public CompletionStage<Optional<TaskRuntimeReference>> runtimeReferenceReady() {
-        return job.engineJobIdReady().thenApply(
-                id -> id.map(value -> new TaskRuntimeReference("YAKFLOW", value)));
+        return job.engineJobIdReady().thenApply(id -> id.map(value -> new TaskRuntimeReference("YAKFLOW", value)));
     }
 
     @Override
-    public OptionalInt progressPercent() { return job.getProgressPercent(); }
+    public OptionalInt progressPercent() {
+        return job.getProgressPercent();
+    }
 
     @Override
-    public Optional<String> executionReport() { return job.getExecutionReport(); }
+    public Optional<String> executionReport() {
+        return job.getExecutionReport();
+    }
 
     @Override
-    public Optional<String> executionSummary() { return job.getExecutionSummary(); }
+    public Optional<String> executionSummary() {
+        return job.getExecutionSummary();
+    }
 
     private static TaskOutcome toOutcome(JobStatus status) {
         return switch (status) {

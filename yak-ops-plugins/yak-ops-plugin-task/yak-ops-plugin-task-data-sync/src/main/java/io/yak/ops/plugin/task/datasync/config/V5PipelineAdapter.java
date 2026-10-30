@@ -22,8 +22,10 @@ public final class V5PipelineAdapter {
     public static ReadonlyConfig toV4(PipelineDef definition) {
         if (definition.getVersion() == 4) return definition.getOriginal();
         if (definition.getVersion() != 5) throw new IllegalArgumentException("Unsupported pipeline definition version");
-        Map<String, Object> source = new LinkedHashMap<>(definition.getSource().getConfig().getSourceMap());
-        Map<String, Object> sink = new LinkedHashMap<>(definition.getSink().getConfig().getSourceMap());
+        Map<String, Object> source =
+                new LinkedHashMap<>(definition.getSource().getConfig().getSourceMap());
+        Map<String, Object> sink =
+                new LinkedHashMap<>(definition.getSink().getConfig().getSourceMap());
         String sourceType = definition.getSource().getType();
         source.remove("type");
         sink.remove("type");
@@ -34,7 +36,8 @@ public final class V5PipelineAdapter {
         boolean realtime = "MYSQL_CDC".equals(sourceType);
         List<Object> sources = array(source.remove("tables"), "source.tables");
         List<Object> sinks = array(sink.remove("tables"), "sink.tables");
-        if (sources.size() != sinks.size() || sources.size() != definition.getRoute().size()) {
+        if (sources.size() != sinks.size()
+                || sources.size() != definition.getRoute().size()) {
             throw new IllegalArgumentException("V5 route and table counts differ");
         }
         String solution = sources.size() == 1
@@ -42,8 +45,8 @@ public final class V5PipelineAdapter {
                 : (realtime ? "DATABASE_REALTIME" : "DATABASE_OFFLINE");
 
         String syncMode = string(source.remove("syncMode"), "source.syncMode", false);
-        Map<String, Object> startup = source.containsKey("startup")
-                ? object(source.get("startup"), "source.startup") : null;
+        Map<String, Object> startup =
+                source.containsKey("startup") ? object(source.get("startup"), "source.startup") : null;
         List<String> steps;
         if (realtime) {
             if (syncMode != null) {
@@ -53,8 +56,7 @@ public final class V5PipelineAdapter {
             steps = switch (mode) {
                 case "INITIAL" -> List.of("FULL", "INCREMENTAL");
                 case "SNAPSHOT" -> List.of("FULL");
-                case "EARLIEST_OFFSET", "LATEST_OFFSET", "SPECIFIC_OFFSETS", "TIMESTAMP" ->
-                    List.of("INCREMENTAL");
+                case "EARLIEST_OFFSET", "LATEST_OFFSET", "SPECIFIC_OFFSETS", "TIMESTAMP" -> List.of("INCREMENTAL");
                 default -> throw new IllegalArgumentException("Unsupported MySQL CDC startup mode");
             };
         } else {
@@ -66,8 +68,10 @@ public final class V5PipelineAdapter {
                 default -> throw new IllegalArgumentException("Unsupported JDBC syncMode");
             };
         }
-        String mode = string(definition.getConfig().getSourceMap().get("execution.runtime-mode"),
-                "pipeline.execution.runtime-mode", false);
+        String mode = string(
+                definition.getConfig().getSourceMap().get("execution.runtime-mode"),
+                "pipeline.execution.runtime-mode",
+                false);
         String expected = realtime && !steps.equals(List.of("FULL")) ? "STREAMING" : "BATCH";
         if (mode != null && !expected.equals(mode)) {
             throw new IllegalArgumentException("Pipeline runtime mode conflicts with Source execution mode");

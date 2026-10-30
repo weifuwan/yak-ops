@@ -43,19 +43,35 @@ public final class PipelineDef {
         this.config = ReadonlyConfig.fromMap(java.util.Map.of());
     }
 
-    public static PipelineDef legacyV4(ReadonlyConfig legacy) { return new PipelineDef(legacy); }
+    public static PipelineDef legacyV4(ReadonlyConfig legacy) {
+        return new PipelineDef(legacy);
+    }
 
-    public int getVersion() { return version; }
+    public int getVersion() {
+        return version;
+    }
 
-    public ReadonlyConfig getOriginal() { return original; }
+    public ReadonlyConfig getOriginal() {
+        return original;
+    }
 
-    public SourceDef getSource() { return source; }
+    public SourceDef getSource() {
+        return source;
+    }
 
-    public SinkDef getSink() { return sink; }
+    public SinkDef getSink() {
+        return sink;
+    }
 
-    public List<RouteDef> getRoute() { return routes; }
+    public List<RouteDef> getRoute() {
+        return routes;
+    }
 
-    public List<TransformDef> getTransforms() { return transforms; }
+    public List<TransformDef> getTransforms() {
+        return transforms;
+    }
 
-    public ReadonlyConfig getConfig() { return config; }
+    public ReadonlyConfig getConfig() {
+        return config;
+    }
 }

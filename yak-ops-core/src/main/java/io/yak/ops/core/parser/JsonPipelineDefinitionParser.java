@@ -18,12 +18,9 @@ import java.util.Set;
  * V4 definitions are passed through unchanged for their pinned legacy planner.
  */
 public final class JsonPipelineDefinitionParser implements PipelineDefinitionParser {
-    private static final Set<String> ROOT_FIELDS =
-            Set.of("source", "sink", "route", "transform", "pipeline");
-    private static final Set<String> SOURCE_FIELDS =
-            Set.of("type", "datasourceId", "startup", "syncMode", "tables");
-    private static final Set<String> SINK_FIELDS =
-            Set.of("type", "datasourceId", "schemaPolicy", "tables");
+    private static final Set<String> ROOT_FIELDS = Set.of("source", "sink", "route", "transform", "pipeline");
+    private static final Set<String> SOURCE_FIELDS = Set.of("type", "datasourceId", "startup", "syncMode", "tables");
+    private static final Set<String> SINK_FIELDS = Set.of("type", "datasourceId", "schemaPolicy", "tables");
 
     @Override
     public PipelineDef parse(String content) {
@@ -44,8 +41,7 @@ public final class JsonPipelineDefinitionParser implements PipelineDefinitionPar
         requiredString(sink, "datasourceId", "sink");
         List<Object> sourceTables = array(source.get("tables"), "source.tables");
         List<Object> sinkTables = array(sink.get("tables"), "sink.tables");
-        if (sourceTables.isEmpty() || sourceTables.size() > 100
-                || sourceTables.size() != sinkTables.size()) {
+        if (sourceTables.isEmpty() || sourceTables.size() > 100 || sourceTables.size() != sinkTables.size()) {
             throw new IllegalArgumentException("V5 requires 1–100 one-to-one source/sink tables");
         }
         for (Object table : sourceTables) validateTable(object(table, "source.tables"), false);
@@ -56,13 +52,12 @@ public final class JsonPipelineDefinitionParser implements PipelineDefinitionPar
         object(sink.get("schemaPolicy"), "sink.schemaPolicy");
         if (source.containsKey("startup")) object(source.get("startup"), "source.startup");
         if (source.containsKey("syncMode")) requiredString(source, "syncMode", "source");
-        List<Object> transform = values.containsKey("transform")
-                ? array(values.get("transform"), "transform") : List.of();
+        List<Object> transform =
+                values.containsKey("transform") ? array(values.get("transform"), "transform") : List.of();
         if (!transform.isEmpty()) {
             throw new IllegalArgumentException("V5 transforms require a supported YakFlow operator");
         }
-        List<Object> routes = values.containsKey("route")
-                ? array(values.get("route"), "route") : List.of();
+        List<Object> routes = values.containsKey("route") ? array(values.get("route"), "route") : List.of();
         if (routes.size() != sourceTables.size()) {
             throw new IllegalArgumentException("V5 requires an explicit route for every source table");
         }
@@ -86,8 +81,8 @@ public final class JsonPipelineDefinitionParser implements PipelineDefinitionPar
         if (!sources.equals(physicalSources) || !sinks.equals(physicalSinks)) {
             throw new IllegalArgumentException("V5 route must reference each configured physical table once");
         }
-        Map<String, Object> pipeline = values.containsKey("pipeline")
-                ? object(values.get("pipeline"), "pipeline") : Map.of();
+        Map<String, Object> pipeline =
+                values.containsKey("pipeline") ? object(values.get("pipeline"), "pipeline") : Map.of();
         checkKeys(pipeline, Set.of("execution.runtime-mode"), "pipeline");
         if (pipeline.containsKey("execution.runtime-mode")) {
             String mode = requiredString(pipeline, "execution.runtime-mode", "pipeline");
@@ -105,9 +100,12 @@ public final class JsonPipelineDefinitionParser implements PipelineDefinitionPar
     }
 
     private static void validateTable(Map<String, Object> table, boolean sink) {
-        checkKeys(table, sink
-                ? Set.of("database", "schema", "table", "write")
-                : Set.of("database", "schema", "table", "snapshot", "incremental"), "table");
+        checkKeys(
+                table,
+                sink
+                        ? Set.of("database", "schema", "table", "write")
+                        : Set.of("database", "schema", "table", "snapshot", "incremental"),
+                "table");
         requiredString(table, "table", "table");
         for (String optional : List.of("database", "schema")) {
             if (table.containsKey(optional)) requiredString(table, optional, "table");

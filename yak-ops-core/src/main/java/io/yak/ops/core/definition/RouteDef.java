@@ -15,7 +15,11 @@ public final class RouteDef {
         }
     }
 
-    public String getSourceTable() { return sourceTable; }
+    public String getSourceTable() {
+        return sourceTable;
+    }
 
-    public String getSinkTable() { return sinkTable; }
+    public String getSinkTable() {
+        return sinkTable;
+    }
 }

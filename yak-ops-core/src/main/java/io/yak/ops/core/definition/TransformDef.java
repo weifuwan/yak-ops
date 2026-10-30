@@ -17,9 +17,15 @@ public final class TransformDef {
         this.filter = filter;
     }
 
-    public String getSourceTable() { return sourceTable; }
+    public String getSourceTable() {
+        return sourceTable;
+    }
 
-    public String getProjection() { return projection; }
+    public String getProjection() {
+        return projection;
+    }
 
-    public String getFilter() { return filter; }
+    public String getFilter() {
+        return filter;
+    }
 }

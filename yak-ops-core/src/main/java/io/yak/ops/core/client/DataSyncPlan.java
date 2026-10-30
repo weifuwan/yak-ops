@@ -14,9 +14,13 @@ public final class DataSyncPlan {
         if (resourceRevision.isBlank()) throw new IllegalArgumentException("Resource revision is required");
     }
 
-    public List<ResourceClaim> resources() { return resources; }
+    public List<ResourceClaim> resources() {
+        return resources;
+    }
 
-    public String resourceRevision() { return resourceRevision; }
+    public String resourceRevision() {
+        return resourceRevision;
+    }
 
     public static final class ResourceClaim {
         private final String type;
@@ -28,8 +32,12 @@ public final class DataSyncPlan {
             if (type.isBlank() || key.isBlank()) throw new IllegalArgumentException("Resource claim must not be blank");
         }
 
-        public String type() { return type; }
+        public String type() {
+            return type;
+        }
 
-        public String key() { return key; }
+        public String key() {
+            return key;
+        }
     }
 }

@@ -56,13 +56,19 @@ public final class DataSyncClient {
         engine.validate(definition, context);
         String key = key(context.workspaceId(), context.instanceId());
         if (jobs.size() >= MAX_TRACKED_JOBS) {
-            jobs.entrySet().removeIf(entry ->
-                    entry.getValue().job.completion().toCompletableFuture().isDone());
+            jobs.entrySet()
+                    .removeIf(entry -> entry.getValue()
+                            .job
+                            .completion()
+                            .toCompletableFuture()
+                            .isDone());
         }
         RegisteredJob registered = jobs.compute(key, (ignored, previous) -> {
             if (previous != null) {
-                if (!previous.definition.getOriginal().getSourceMap()
-                        .equals(definition.getOriginal().getSourceMap())
+                if (!previous.definition
+                                .getOriginal()
+                                .getSourceMap()
+                                .equals(definition.getOriginal().getSourceMap())
                         || !previous.definitionId.equals(context.definitionId())
                         || previous.definitionVersion != context.definitionVersion()) {
                     throw new IllegalArgumentException("Conflicting Data Sync submission identity");
@@ -73,8 +79,8 @@ public final class DataSyncClient {
                 throw new IllegalStateException("Too many tracked Data Sync jobs");
             }
             DataSyncPlan plan = engine.plan(definition, context);
-            DataSyncJob job = Objects.requireNonNull(
-                    engine.prepare(definition, plan, context), "engine.prepare returned null");
+            DataSyncJob job =
+                    Objects.requireNonNull(engine.prepare(definition, plan, context), "engine.prepare returned null");
             if (!context.instanceId().equals(job.getJobId())) {
                 throw new IllegalStateException("Data Sync job identity differs from trusted Instance");
             }

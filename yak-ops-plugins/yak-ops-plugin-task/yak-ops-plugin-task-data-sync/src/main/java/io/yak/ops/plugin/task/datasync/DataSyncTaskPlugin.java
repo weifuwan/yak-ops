@@ -1,37 +1,37 @@
 package io.yak.ops.plugin.task.datasync;
 
 import io.yak.ops.configuration.ConfigParser;
+import io.yak.ops.configuration.ReadonlyConfig;
+import io.yak.ops.configuration.rule.OptionRule;
+import io.yak.ops.connector.base.factory.FactoryUtil;
+import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.client.DataSyncClient;
 import io.yak.ops.core.client.DataSyncContext;
 import io.yak.ops.core.client.DataSyncJob;
 import io.yak.ops.core.client.DataSyncPlan;
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
-import io.yak.ops.plugin.task.api.execution.ExecutionResource;
-import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
-import io.yak.ops.plugin.task.datasync.config.V5PipelineAdapter;
-import io.yak.ops.plugin.task.datasync.execution.DataSyncClientTaskHandle;
-import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
-import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.configuration.rule.OptionRule;
-import io.yak.ops.connector.base.factory.FactoryUtil;
-import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.config.SolutionOptions;
+import io.yak.ops.plugin.task.datasync.config.V5PipelineAdapter;
+import io.yak.ops.plugin.task.datasync.execution.DataSyncClientTaskHandle;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
 import io.yak.ops.plugin.task.datasync.solution.Solution;
 import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
 import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /** Owns DATA_SYNC Task definition rules and delegates physical planning and execution. */
@@ -97,14 +97,17 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     private static ReadonlyConfig executable(ReadonlyConfig parameters) {
         if (parameters.getSourceMap().containsKey("solutionType")) return parameters;
-        PipelineDef definition =
-                new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters));
+        PipelineDef definition = new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters));
         return V5PipelineAdapter.toV4(definition);
     }
 
     private static DataSyncContext context(TaskExecutionIdentity identity, boolean debug) {
-        return new DataSyncContext(identity.workspaceId(), identity.definitionId(),
-                identity.definitionVersion(), identity.instanceId(), debug);
+        return new DataSyncContext(
+                identity.workspaceId(),
+                identity.definitionId(),
+                identity.definitionVersion(),
+                identity.instanceId(),
+                debug);
     }
 
     private static TaskExecutionResources admission(DataSyncPlan plan) {
@@ -153,7 +156,8 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public boolean supportsScheduling(ReadonlyConfig parameters) {
-        String identifier = JobConfig.from(executable(parameters)).solutionType().sourceIdentifier();
+        String identifier =
+                JobConfig.from(executable(parameters)).solutionType().sourceIdentifier();
         return factories.source(identifier).boundedness() == Boundedness.BOUNDED;
     }
 
