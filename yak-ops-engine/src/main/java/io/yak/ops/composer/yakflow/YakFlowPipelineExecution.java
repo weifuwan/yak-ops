@@ -1,15 +1,18 @@
-package io.yak.ops.sync.runtime.execution;
+package io.yak.ops.composer.yakflow;
 
+import io.yak.ops.composer.PipelineExecution;
+import io.yak.ops.composer.definition.PipelineDef;
 import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.core.api.common.JobStatus;
-import io.yak.ops.core.composer.PipelineExecution;
-import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.exceptions.SchemaEvolveException;
 import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
+import io.yak.ops.sync.runtime.execution.IncrementalBatchPreparation;
+import io.yak.ops.sync.runtime.execution.SchemaPreparation;
+import io.yak.ops.sync.runtime.execution.TableExecutionProgress;
 import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;
 import io.yak.ops.sync.runtime.plan.JobPlan;
 import io.yak.ops.sync.runtime.plan.JobPlanner;

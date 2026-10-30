@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package io.yak.ops.core.definition;
+package io.yak.ops.composer.definition;
 
 import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_EXECUTION_RUNTIME_MODE;
 import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_LOCAL_TIME_ZONE;
 import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_ROUTE_MODE;
 
-import io.yak.ops.core.composer.PipelineComposer;
-import io.yak.ops.core.composer.PipelineExecution;
+import io.yak.ops.composer.PipelineComposer;
+import io.yak.ops.composer.PipelineExecution;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;

@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.configuration.ConfigParser;
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.core.definition.PipelineDef;
-import io.yak.ops.core.parser.YamlPipelineDefinitionParser;
+import io.yak.ops.composer.definition.PipelineDef;
+import io.yak.ops.cli.parser.YamlPipelineDefinitionParser;
 import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
 import org.junit.jupiter.api.Test;
 

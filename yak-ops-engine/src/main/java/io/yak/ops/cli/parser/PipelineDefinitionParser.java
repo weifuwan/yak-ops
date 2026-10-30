@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package io.yak.ops.core.parser;
+package io.yak.ops.cli.parser;
 
-import io.yak.ops.core.definition.PipelineDef;
+import io.yak.ops.composer.definition.PipelineDef;
 import org.apache.flink.cdc.common.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 

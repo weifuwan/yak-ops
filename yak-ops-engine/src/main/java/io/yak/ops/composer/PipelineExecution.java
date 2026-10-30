@@ -1,4 +1,4 @@
-package io.yak.ops.core.composer;
+package io.yak.ops.composer;
 
 import io.yak.ops.core.api.common.JobStatus;
 import java.util.Optional;

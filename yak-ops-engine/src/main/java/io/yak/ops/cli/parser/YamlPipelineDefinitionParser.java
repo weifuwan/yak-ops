@@ -15,24 +15,21 @@
  * limitations under the License.
  */
 
-package io.yak.ops.core.parser;
+package io.yak.ops.cli.parser;
 
 import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_SCHEMA_CHANGE_BEHAVIOR;
 import static org.apache.flink.cdc.common.utils.ChangeEventUtils.resolveSchemaEvolutionOptions;
 import static org.apache.flink.cdc.common.utils.Preconditions.checkNotNull;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.yak.ops.core.definition.ModelDef;
-import io.yak.ops.core.definition.PipelineDef;
-import io.yak.ops.core.definition.RouteDef;
-import io.yak.ops.core.definition.SinkDef;
-import io.yak.ops.core.definition.SourceDef;
-import io.yak.ops.core.definition.TransformDef;
-import io.yak.ops.core.definition.UdfDef;
+import io.yak.ops.cli.utils.ConfigurationUtils;
+import io.yak.ops.composer.definition.ModelDef;
+import io.yak.ops.composer.definition.PipelineDef;
+import io.yak.ops.composer.definition.RouteDef;
+import io.yak.ops.composer.definition.SinkDef;
+import io.yak.ops.composer.definition.SourceDef;
+import io.yak.ops.composer.definition.TransformDef;
+import io.yak.ops.composer.definition.UdfDef;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,6 +53,11 @@ import org.apache.flink.cdc.common.utils.StringUtils;
 import org.apache.flink.core.fs.FSDataInputStream;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 /** Parser for converting YAML formatted pipeline definition to {@link PipelineDef}. */
 public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
@@ -118,20 +120,21 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
 
     private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
-    /** Parse the specified pipeline definition file. */
-    @Override
-    public PipelineDef parse(Path pipelineDefPath, Configuration globalPipelineConfig) throws Exception {
-        FileSystem fileSystem = FileSystem.get(pipelineDefPath.toUri());
-        FSDataInputStream pipelineInStream = fileSystem.open(pipelineDefPath);
-        return parse(mapper.readTree(pipelineInStream), globalPipelineConfig);
-    }
-
+    /** Embedded YakFlow entrypoint for YAML text without a separate global Flink config. */
     public PipelineDef parse(String pipelineDefText) {
         try {
             return parse(pipelineDefText, new Configuration());
         } catch (Exception failure) {
             throw new IllegalArgumentException("Invalid pipeline definition", failure);
         }
+    }
+
+    /** Parse the specified pipeline definition file. */
+    @Override
+    public PipelineDef parse(Path pipelineDefPath, Configuration globalPipelineConfig) throws Exception {
+        FileSystem fileSystem = FileSystem.get(pipelineDefPath.toUri());
+        FSDataInputStream pipelineInStream = fileSystem.open(pipelineDefPath);
+        return parse(mapper.readTree(pipelineInStream), globalPipelineConfig);
     }
 
     @Override
@@ -601,6 +604,22 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
             throw new IllegalArgumentException(String.format(
                     "YAML %s block is expecting an array children, but got an %s (%s). Perhaps you missed a dash prefix `-`?",
                     contextName, jsonNode.getNodeType(), jsonNode));
+        }
+    }
+
+    public static Map<String, String> getFlinkConfigFromPipelineDef(Path pipelineDefPath) throws IOException {
+        FileSystem fileSystem = FileSystem.get(pipelineDefPath.toUri());
+        try (FSDataInputStream pipelineInStream = fileSystem.open(pipelineDefPath)) {
+            JsonNode pipelineDefJsonNode = mapper.readTree(pipelineInStream);
+            return Optional.ofNullable(pipelineDefJsonNode.get(PIPELINE_KEY))
+                    .map(node -> node.get(FLINK_KEY))
+                    .filter(JsonNode::isObject)
+                    .map(flinkNode -> {
+                        Map<String, Object> rawMap =
+                                mapper.convertValue(flinkNode, new TypeReference<Map<String, Object>>() {});
+                        return ConfigurationUtils.flattenConfigMap(rawMap, "");
+                    })
+                    .orElse(Collections.emptyMap());
         }
     }
 }

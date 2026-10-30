@@ -1,13 +1,28 @@
 # Yak Ops Engine
 
-The engine accepts **Flink CDC 3.7 Pipeline YAML**, parses it to `PipelineDef`,
-plans authorized source and sink bindings, translates the supported pipeline to
-YakFlow's `StreamGraph`, and executes it. It does not parse API JSON or serialize
-editor request bodies.
+This module aligns its CLI and Composer source structure to **Apache Flink CDC 3.7**
+(tag `release-3.7.0`) while preserving embedded YakFlow runtime semantics.
 
-The DATA_SYNC Task Plugin owns the public V6 JSON-to-YAML conversion and task
-parameters. The Backend API and frontend exchange JSON, never YAML. Engine-specific resource admission, schema preparation and checkpoint
-ownership stay in Yak Ops; parser and definition semantics follow Flink CDC 3.7.
+## Package alignment
 
-Unsupported Flink CDC operations must be rejected before submission rather than
-accepted and silently discarded. Physical execution remains YakFlow, not Flink.
+| Yak Ops package | Upstream reference | Responsibility |
+| --- | --- | --- |
+| `io.yak.ops.cli.parser` | `flink-cdc-cli/.../cli/parser` | Pipeline YAML parser and `PipelineDef` creation |
+| `io.yak.ops.cli.utils` | `flink-cdc-cli/.../cli/utils` | Upstream YAML and configuration flattening |
+| `io.yak.ops.composer.definition` | `flink-cdc-composer/.../composer/definition` | Flink CDC 3.7 pipeline definitions |
+| `io.yak.ops.composer` | `flink-cdc-composer/.../composer` | Composer contracts, augmented with trusted Task admission |
+| `io.yak.ops.composer.yakflow` | `flink-cdc-composer/.../composer/flink` | Embedded YakFlow composer and deferred execution |
+| `io.yak.ops.sync.runtime` | Platform-specific | Authorizations, resource planning, schema preparation and runtime |
+
+**Inbound contract:** Frontend JSON → Backend API JSON → Task Plugin JSON-to-YAML →
+Engine YAML Parser → Pipeline Definition → Composer → YakFlow `StreamGraph`.
+
+The engine does not parse the product JSON. Flink-specific CLI launchers,
+cluster deployment (YARN/Kubernetes), Flink DataStream translators and Flink
+runtime lifecycle are **intentionally not copied**: Yak Ops runs YakFlow and
+must preserve resource admission, instance registration and cancellation.
+Unsupported operators must fail explicitly instead of being silently ignored.
+
+The YakFlow-specific translation and platform-specific execution classes still
+need a second, independent alignment pass. Do not treat directory renaming
+as proof of behavioral parity.

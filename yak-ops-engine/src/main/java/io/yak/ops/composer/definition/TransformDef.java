@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.yak.ops.core.definition;
+package io.yak.ops.composer.definition;
 
 import java.util.Objects;
 

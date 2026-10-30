@@ -1,13 +1,13 @@
 package io.yak.ops.sync.runtime;
 
+import io.yak.ops.cli.parser.YamlPipelineDefinitionParser;
+import io.yak.ops.composer.PipelineComposer;
+import io.yak.ops.composer.PipelineContext;
+import io.yak.ops.composer.PipelineExecution;
+import io.yak.ops.composer.PipelinePlan;
+import io.yak.ops.composer.definition.PipelineDef;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.api.connector.source.Boundedness;
-import io.yak.ops.core.composer.PipelineComposer;
-import io.yak.ops.core.composer.PipelineContext;
-import io.yak.ops.core.composer.PipelineExecution;
-import io.yak.ops.core.composer.PipelinePlan;
-import io.yak.ops.core.definition.PipelineDef;
-import io.yak.ops.core.parser.YamlPipelineDefinitionParser;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;

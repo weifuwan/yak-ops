@@ -1,17 +1,17 @@
 package io.yak.ops.boot.config;
 
+import io.yak.ops.composer.PipelineComposer;
+import io.yak.ops.composer.yakflow.YakFlowPipelineComposer;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
-import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.datasync.PipelineTaskChannelFactory;
 import io.yak.ops.sync.runtime.PipelineService;
-import io.yak.ops.sync.runtime.execution.YakFlowPipelineComposer;
 import io.yak.ops.sync.runtime.pipeline.EnvironmentOptions;
 import io.yak.ops.sync.runtime.pipeline.ExecutionConfigurationFactory;
 import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;

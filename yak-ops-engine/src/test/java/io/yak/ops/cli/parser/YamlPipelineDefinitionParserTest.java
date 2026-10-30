@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package io.yak.ops.core.parser;
+package io.yak.ops.cli.parser;
 
 import org.apache.flink.cdc.common.configuration.Configuration;
 import org.apache.flink.cdc.common.event.SchemaChangeEventType;
 import org.apache.flink.cdc.common.pipeline.ExistingTableSchemaExpansionMode;
 import org.apache.flink.cdc.common.pipeline.PipelineOptions;
-import io.yak.ops.core.definition.ModelDef;
-import io.yak.ops.core.definition.PipelineDef;
-import io.yak.ops.core.definition.RouteDef;
-import io.yak.ops.core.definition.SinkDef;
-import io.yak.ops.core.definition.SourceDef;
-import io.yak.ops.core.definition.TransformDef;
-import io.yak.ops.core.definition.UdfDef;
+import io.yak.ops.composer.definition.ModelDef;
+import io.yak.ops.composer.definition.PipelineDef;
+import io.yak.ops.composer.definition.RouteDef;
+import io.yak.ops.composer.definition.SinkDef;
+import io.yak.ops.composer.definition.SourceDef;
+import io.yak.ops.composer.definition.TransformDef;
+import io.yak.ops.composer.definition.UdfDef;
 import org.apache.flink.core.fs.Path;
 
 import org.apache.flink.shaded.guava31.com.google.common.collect.ImmutableMap;

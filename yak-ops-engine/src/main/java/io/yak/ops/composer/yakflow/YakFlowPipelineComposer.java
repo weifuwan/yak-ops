@@ -1,14 +1,15 @@
-package io.yak.ops.sync.runtime.execution;
+package io.yak.ops.composer.yakflow;
 
-import io.yak.ops.core.composer.PipelineComposer;
-import io.yak.ops.core.composer.PipelineContext;
-import io.yak.ops.core.composer.PipelineExecution;
-import io.yak.ops.core.composer.PipelinePlan;
-import io.yak.ops.core.definition.PipelineDef;
+import io.yak.ops.composer.PipelineComposer;
+import io.yak.ops.composer.PipelineContext;
+import io.yak.ops.composer.PipelineExecution;
+import io.yak.ops.composer.PipelinePlan;
+import io.yak.ops.composer.definition.PipelineDef;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
+import io.yak.ops.sync.runtime.execution.IncrementalBatchPreparation;
 import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;
 import io.yak.ops.sync.runtime.plan.JobPlanner;
 import java.util.ArrayList;

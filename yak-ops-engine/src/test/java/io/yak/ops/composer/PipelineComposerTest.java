@@ -1,10 +1,10 @@
-package io.yak.ops.core.composer;
+package io.yak.ops.composer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.yak.ops.core.definition.PipelineDef;
+import io.yak.ops.composer.definition.PipelineDef;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;

@@ -1,6 +1,6 @@
-package io.yak.ops.core.composer;
+package io.yak.ops.composer;
 
-import io.yak.ops.core.definition.PipelineDef;
+import io.yak.ops.composer.definition.PipelineDef;
 
 /**
  * Translates a validated pipeline definition into a deferred execution.
