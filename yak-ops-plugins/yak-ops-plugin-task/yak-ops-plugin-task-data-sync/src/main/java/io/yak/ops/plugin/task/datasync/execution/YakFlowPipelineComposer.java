@@ -9,8 +9,9 @@ import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
-import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
+import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
+import io.yak.ops.core.execution.PipelineExecutor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -18,11 +19,19 @@ import java.util.Objects;
 /** Compiles V5 definitions with the existing YakFlow execution algorithm. */
 public final class YakFlowPipelineComposer implements PipelineComposer {
     private final JobPlanner planner;
-    private final PipelineTaskExecutor executor;
+    private final PipelineBuilder builder;
+    private final PipelineExecutor executor;
+    private final IncrementalBatchPreparation incrementalPreparation;
 
-    public YakFlowPipelineComposer(JobPlanner planner, PipelineTaskExecutor executor) {
+    public YakFlowPipelineComposer(
+            JobPlanner planner,
+            PipelineBuilder builder,
+            PipelineExecutor executor,
+            IncrementalBatchPreparation incrementalPreparation) {
         this.planner = Objects.requireNonNull(planner, "planner");
+        this.builder = Objects.requireNonNull(builder, "builder");
         this.executor = Objects.requireNonNull(executor, "executor");
+        this.incrementalPreparation = Objects.requireNonNull(incrementalPreparation, "incrementalPreparation");
     }
 
     @Override
@@ -45,10 +54,9 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
             claims.add(new ExecutionResource(resource.type(), resource.key()));
         }
         TaskExecutionResources admission = new TaskExecutionResources(claims, plan.resourceRevision());
-        TaskHandle handle = executor.start(parameters, admission, identity(context), context.debug())
-                .toCompletableFuture()
-                .join();
-        return new YakFlowPipelineExecution(context.instanceId(), handle);
+        return new YakFlowPipelineExecution(
+                parameters, admission, identity(context), context.debug(),
+                planner, builder, executor, incrementalPreparation);
     }
 
     private static TaskExecutionIdentity identity(PipelineContext context) {

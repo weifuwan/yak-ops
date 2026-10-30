@@ -7,26 +7,25 @@ import io.yak.ops.core.api.common.JobExecutionResult;
 import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.execution.JobClient;
-import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
 /** Checks that exceptional Job results preserve authoritative terminal status. */
-class YakFlowTaskHandleTest {
+class YakFlowPipelineExecutionTest {
 
     @Test
     void successfulJobProducesFinishedOutcome() {
-        assertEquals(TaskOutcome.FINISHED, handle(JobStatus.FINISHED).completion().toCompletableFuture().join());
+        assertEquals(JobStatus.FINISHED, handle(JobStatus.FINISHED).toCompletableFuture().join());
     }
 
     @Test
     void canceledJobDoesNotBecomeFailedBecauseResultFutureIsExceptional() {
-        assertEquals(TaskOutcome.CANCELED, handle(JobStatus.CANCELED).completion().toCompletableFuture().join());
+        assertEquals(JobStatus.CANCELED, handle(JobStatus.CANCELED).toCompletableFuture().join());
     }
 
     @Test
     void failedJobIsNeverReportedAsCanceled() {
-        assertEquals(TaskOutcome.FAILED, handle(JobStatus.FAILED).completion().toCompletableFuture().join());
+        assertEquals(JobStatus.FAILED, handle(JobStatus.FAILED).toCompletableFuture().join());
     }
 
     @Test
@@ -54,13 +53,13 @@ class YakFlowTaskHandleTest {
                 return CompletableFuture.completedFuture(new JobExecutionResult(identity, 1));
             }
         };
-        var completion = new YakFlowTaskHandle(client).completion().toCompletableFuture();
+        CompletableFuture<JobStatus> completion = YakFlowPipelineExecution.terminalStatus(client).toCompletableFuture();
         assertFalse(completion.isDone());
         status.complete(JobStatus.FINISHED);
-        assertEquals(TaskOutcome.FINISHED, completion.join());
+        assertEquals(JobStatus.FINISHED, completion.join());
     }
 
-    private static YakFlowTaskHandle handle(JobStatus terminal) {
+    private static java.util.concurrent.CompletionStage<JobStatus> handle(JobStatus terminal) {
         JobID identity = JobID.generate();
         JobClient client = new JobClient() {
             @Override
@@ -86,6 +85,6 @@ class YakFlowTaskHandleTest {
                 return CompletableFuture.failedFuture(new IllegalStateException("Job has no successful result"));
             }
         };
-        return new YakFlowTaskHandle(client);
+        return YakFlowPipelineExecution.terminalStatus(client);
     }
 }

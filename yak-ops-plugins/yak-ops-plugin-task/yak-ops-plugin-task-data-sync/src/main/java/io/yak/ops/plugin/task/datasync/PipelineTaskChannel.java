@@ -21,7 +21,6 @@ import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.execution.PipelineExecutionTaskHandle;
 import io.yak.ops.plugin.task.datasync.solution.Solution;
 import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
 import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
@@ -161,7 +160,7 @@ public final class PipelineTaskChannel implements TaskChannel {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
             }
             PipelineExecution job = composer.compose(definition, admitted, trusted);
-            return CompletableFuture.completedFuture(new PipelineExecutionTaskHandle(job));
+            return CompletableFuture.completedFuture(new PipelineTask(job));
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(
                     new TaskStartRejectedException("DATA_SYNC rejected before engine submission", failure));

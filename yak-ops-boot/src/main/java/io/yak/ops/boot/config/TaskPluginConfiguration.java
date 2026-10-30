@@ -11,7 +11,6 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
 import io.yak.ops.plugin.task.datasync.PipelineTaskChannelFactory;
-import io.yak.ops.plugin.task.datasync.execution.PipelineTaskExecutor;
 import io.yak.ops.plugin.task.datasync.execution.YakFlowPipelineComposer;
 import io.yak.ops.plugin.task.datasync.pipeline.EnvironmentOptions;
 import io.yak.ops.plugin.task.datasync.pipeline.ExecutionConfigurationFactory;
@@ -109,17 +108,12 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    PipelineTaskExecutor dataSyncTaskExecutor(
+    PipelineComposer pipelineComposer(
             JobPlanner planner,
             PipelineBuilder builder,
             PipelineExecutor executor,
-            io.yak.ops.plugin.task.datasync.execution.IncrementalBatchPreparation incrementalPlanner) {
-        return new PipelineTaskExecutor(planner, builder, executor, incrementalPlanner);
-    }
-
-    @Bean
-    PipelineComposer pipelineComposer(JobPlanner planner, PipelineTaskExecutor executor) {
-        return new YakFlowPipelineComposer(planner, executor);
+            io.yak.ops.plugin.task.datasync.execution.IncrementalBatchPreparation incrementalPreparation) {
+        return new YakFlowPipelineComposer(planner, builder, executor, incrementalPreparation);
     }
 
     @Bean

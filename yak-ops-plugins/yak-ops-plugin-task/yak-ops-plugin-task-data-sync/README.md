@@ -24,7 +24,7 @@ V4-to-V5 migration or V5-to-V4 adapter is available.
   must not be persisted in a V5 pipeline.
 - `plan/JobPlanner`: authorized datasource metadata, table identities and
   resource admission; preserves existing Schema and CDC checks.
-- `execution/PipelineTaskExecutor` and `PipelineTaskHandle`: physical
+- `execution/YakFlowPipelineExecution` and `YakFlowPipelineExecution`: physical
   preparation and lifecycle behind the composer.
 - `pipeline/PipelineBuilder`: table-aware Source and Sink factories, stream
   graph and runtime settings.
@@ -35,9 +35,9 @@ V4-to-V5 migration or V5-to-V4 adapter is available.
 V5 JSON -> JsonPipelineDefinitionParser -> PipelineDef
         -> PipelineComposer.plan
         -> JobPlanner (authorized metadata and admission)
-        -> PipelineTaskChannel registers deferred PipelineExecutionTaskHandle
+        -> PipelineTaskChannel registers deferred PipelineTask
         -> PipelineExecution.start() (after Task Instance registration)
-        -> PipelineTaskHandle (schema/cursor preparation, re-admission)
+        -> YakFlowPipelineExecution (schema/cursor preparation, re-admission)
         -> PipelineBuilder -> YakFlow PipelineExecutor
         -> completion / status / cancellation / report
 ```
