@@ -15,13 +15,13 @@ import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
-import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
 import io.yak.ops.dao.entity.task.InstanceEntity;
+import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
-import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
@@ -38,7 +38,7 @@ class TaskSubmissionTransactionServiceTest {
     private final DefinitionVersionRepository versions = mock(DefinitionVersionRepository.class);
     private final InstanceRepository instances = mock(InstanceRepository.class);
     private final TaskGroupQueueRepository claims = mock(TaskGroupQueueRepository.class);
-    private final ExecutableTaskPlugin plugin = mock(ExecutableTaskPlugin.class);
+    private final TaskChannel plugin = mock(TaskChannel.class);
     private final ReadonlyConfig parameters = ReadonlyConfig.fromMap(java.util.Map.of());
     private final TaskExecutionIdentity context = new TaskExecutionIdentity("ws", "definition-1", 2, "instance-1");
     private final ExecutionResource target = new ExecutionResource("DATA_SYNC_TARGET", "source/table");
@@ -80,7 +80,7 @@ class TaskSubmissionTransactionServiceTest {
         assertEquals("resource-v1", instance.getValue().getResourceRevision());
         assertEquals("instance-1", claim.getValue().getInstanceId());
         assertEquals("source/table", claim.getValue().getResourceKey());
-        verify(plugin, never()).start(any(), any(), any(), anyBoolean());
+        verify(plugin, never()).createTask(any(), any(), any(), anyBoolean());
     }
 
     @Test

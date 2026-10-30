@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import java.util.List;
@@ -22,7 +22,7 @@ class PreparedTaskSubmissionTest {
     void preservesAdmittedInputsAndExecutablePluginIdentity() {
         TaskExecutionIdentity identity = new TaskExecutionIdentity("workspace", "definition", 2, "instance");
         ReadonlyConfig parameters = ReadonlyConfig.fromMap(java.util.Map.of());
-        ExecutableTaskPlugin plugin = mock(ExecutableTaskPlugin.class);
+        TaskChannel plugin = mock(TaskChannel.class);
         TaskExecutionResources plan = new TaskExecutionResources(List.of(), "resource-revision");
 
         PreparedTaskSubmission request = new PreparedTaskSubmission(
@@ -65,7 +65,7 @@ class PreparedTaskSubmissionTest {
 
     @Test
     void diagnosticsNeverInvokePluginOrRenderSubmissionInputs() {
-        ExecutableTaskPlugin plugin = mock(ExecutableTaskPlugin.class);
+        TaskChannel plugin = mock(TaskChannel.class);
         ReadonlyConfig parameters = mock(ReadonlyConfig.class);
         PreparedTaskSubmission request = new PreparedTaskSubmission(
                 new TaskExecutionIdentity("workspace", "definition", 2, "instance"),

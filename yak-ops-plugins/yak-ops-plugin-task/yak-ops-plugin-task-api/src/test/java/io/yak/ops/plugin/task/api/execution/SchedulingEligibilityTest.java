@@ -4,16 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
+import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
-import java.util.concurrent.CompletionStage;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.Test;
 
 /** Manual execution plugins do not acquire scheduling capability implicitly. */
 class SchedulingEligibilityTest {
     @Test
     void existingPluginDefaultsToManualOnly() {
-        ExecutableTaskPlugin plugin = new ExecutableTaskPlugin() {
+        TaskChannel plugin = new TaskChannel() {
             @Override
             public String type() {
                 return "MANUAL_TEST";
@@ -27,6 +29,16 @@ class SchedulingEligibilityTest {
             @Override
             public OptionRule optionRule() {
                 return OptionRule.builder().build();
+            }
+
+            @Override
+            public AbstractParameters parseParameters(String content) {
+                return new AbstractParameters() {
+                    @Override
+                    public boolean checkParameters() {
+                        return true;
+                    }
+                };
             }
 
             @Override
@@ -50,7 +62,7 @@ class SchedulingEligibilityTest {
             }
 
             @Override
-            public CompletionStage<TaskHandle> start(
+            public CompletionStage<TaskHandle> createTask(
                     ReadonlyConfig options, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
                 throw new AssertionError();
             }

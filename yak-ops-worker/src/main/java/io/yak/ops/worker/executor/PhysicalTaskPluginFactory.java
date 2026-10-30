@@ -17,9 +17,10 @@
 
 package io.yak.ops.worker.executor;
 
+import io.yak.ops.plugin.task.api.AbstractTask;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.TaskPlugin;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -31,24 +32,24 @@ import java.util.function.Supplier;
  * the Worker does not depend on business persistence.
  */
 public final class PhysicalTaskPluginFactory {
-    private final TaskPluginRegistry taskPluginRegistry;
-    private final BiFunction<TaskExecutionContext, Supplier<ExecutableTaskPlugin>, PhysicalTask> taskPreparation;
+    private final TaskPluginManager taskPluginRegistry;
+    private final BiFunction<TaskExecutionContext, Supplier<TaskChannel>, AbstractTask> taskPreparation;
 
     public PhysicalTaskPluginFactory(
-            TaskPluginRegistry taskPluginRegistry,
-            BiFunction<TaskExecutionContext, Supplier<ExecutableTaskPlugin>, PhysicalTask> taskPreparation) {
+            TaskPluginManager taskPluginRegistry,
+            BiFunction<TaskExecutionContext, Supplier<TaskChannel>, AbstractTask> taskPreparation) {
         this.taskPluginRegistry = Objects.requireNonNull(taskPluginRegistry);
         this.taskPreparation = Objects.requireNonNull(taskPreparation);
     }
 
-    public PhysicalTask createPhysicalTask(final PhysicalTaskExecutor physicalTaskExecutor) {
+    public AbstractTask createPhysicalTask(final PhysicalTaskExecutor physicalTaskExecutor) {
         return taskPreparation.apply(
                 physicalTaskExecutor.getTaskExecutionContext(), () -> getTaskChannel(physicalTaskExecutor));
     }
 
-    public ExecutableTaskPlugin getTaskChannel(final PhysicalTaskExecutor physicalTaskExecutor) {
+    public TaskChannel getTaskChannel(final PhysicalTaskExecutor physicalTaskExecutor) {
         final String taskType = physicalTaskExecutor.getTaskExecutionContext().getTaskType();
         final TaskPlugin plugin = taskPluginRegistry.get(taskType);
-        return plugin instanceof ExecutableTaskPlugin ? (ExecutableTaskPlugin) plugin : null;
+        return plugin instanceof TaskChannel ? (TaskChannel) plugin : null;
     }
 }

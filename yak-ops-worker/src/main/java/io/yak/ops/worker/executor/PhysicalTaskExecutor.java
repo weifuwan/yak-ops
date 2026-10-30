@@ -1,5 +1,6 @@
 package io.yak.ops.worker.executor;
 
+import io.yak.ops.plugin.task.api.AbstractTask;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.worker.task.executor.AbstractTaskExecutor;
@@ -19,7 +20,7 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(PhysicalTaskExecutor.class);
     private final PhysicalTaskPluginFactory physicalTaskPluginFactory;
     private final AtomicBoolean cancellationRequested = new AtomicBoolean();
-    private volatile PhysicalTask physicalTask;
+    private volatile AbstractTask physicalTask;
     private final AtomicReference<TaskHandle> taskHandle = new AtomicReference<>();
     private volatile boolean persistedTerminal;
     private volatile boolean uncertainOutcome;
@@ -40,14 +41,16 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
         } catch (RuntimeException failure) {
             uncertainOutcome = true;
             LOG.error("Physical plugin initialization could not be confirmed, instanceId={}", getId(), failure);
-            physicalTask = new PhysicalTask() {
+            physicalTask = new AbstractTask() {
                 @Override
                 public CompletionStage<TaskOutcome> handle() {
                     return java.util.concurrent.CompletableFuture.failedFuture(failure);
                 }
 
                 @Override
-                public void cancel() {}
+                public CompletionStage<Void> cancel() {
+                    return java.util.concurrent.CompletableFuture.completedFuture(null);
+                }
             };
         }
         if (cancellationRequested.get()) physicalTask.cancel();
@@ -57,7 +60,7 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     protected void doTriggerTaskPlugin() {
         try {
             CompletionStage<TaskOutcome> completion = physicalTask.handle();
-            if (completion == null) throw new IllegalStateException("PhysicalTask.handle returned null");
+            if (completion == null) throw new IllegalStateException("AbstractTask.handle returned null");
             completion.whenComplete((outcome, failure) -> {
                 if (failure != null || outcome == null) {
                     uncertainOutcome = true;
@@ -86,7 +89,7 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
         }
     }
 
-    public PhysicalTask getPhysicalTask() {
+    public AbstractTask getPhysicalTask() {
         return physicalTask;
     }
 
@@ -121,7 +124,7 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
     @Override
     public void kill() {
         if (cancellationRequested.compareAndSet(false, true)) {
-            PhysicalTask task = physicalTask;
+            AbstractTask task = physicalTask;
             if (task != null) task.cancel();
         }
     }

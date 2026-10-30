@@ -9,8 +9,9 @@ import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.AbstractTask;
+import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
@@ -18,7 +19,6 @@ import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.task.execution.dispatch.TaskExecutionCoordinator;
 import io.yak.ops.task.execution.owner.EmbeddedExecutionOwner;
-import io.yak.ops.worker.executor.PhysicalTask;
 import io.yak.ops.worker.executor.PhysicalTaskEngineDelegator;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.exceptions.TaskExecutorRuntimeException;
@@ -59,7 +59,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     private TaskExecutionObserver observer;
 
     @Resource
-    private TaskPluginRegistry registry;
+    private TaskPluginManager registry;
 
     @Resource
     private DefinitionVersionRepository definitions;
@@ -149,8 +149,8 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
      * Master-side durable admission. The physical plugin is initialized and triggered
      * by PhysicalTaskExecutor; this method never starts a TaskHandle.
      */
-    private PhysicalTask preparePhysicalTask(
-            TaskExecutionContext taskContext, Supplier<ExecutableTaskPlugin> taskPluginSupplier) {
+    private AbstractTask preparePhysicalTask(
+            TaskExecutionContext taskContext, Supplier<TaskChannel> taskPluginSupplier) {
         String workspaceId = taskContext.getWorkspaceId();
         String instanceId = taskContext.getTaskInstanceId();
         DispatchTicket ticket = null;
@@ -168,7 +168,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             taskContext.setTaskType(ticket.taskType());
             taskContext.setTaskName(ticket.definitionId());
 
-            ExecutableTaskPlugin executable = taskPluginSupplier.get();
+            TaskChannel executable = taskPluginSupplier.get();
             if (executable == null) {
                 lifecycle.complete(ticket, TaskOutcome.FAILED);
                 return completedPhysicalTask(TaskOutcome.FAILED);
@@ -189,7 +189,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             }
 
             DispatchTicket launched = ticket;
-            return new PhysicalTask() {
+            return new AbstractTask() {
                 @Override
                 public CompletionStage<TaskOutcome> handle() {
                     synchronized (launchFence(instanceId)) {
@@ -199,7 +199,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
                         }
                         try {
                             CompletionStage<TaskHandle> submission =
-                                    executable.start(parameters, plan, identity, launched.debug());
+                                    executable.createTask(parameters, plan, identity, launched.debug());
                             return observer.observeTracked(launched, submission);
                         } catch (RuntimeException unknown) {
                             try {
@@ -213,8 +213,9 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
                 }
 
                 @Override
-                public void cancel() {
+                public CompletionStage<Void> cancel() {
                     observer.cancel(instanceId);
+                    return CompletableFuture.completedFuture(null);
                 }
             };
         } catch (RuntimeException failure) {
@@ -232,27 +233,31 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
         }
     }
 
-    private static PhysicalTask completedPhysicalTask(TaskOutcome outcome) {
-        return new PhysicalTask() {
+    private static AbstractTask completedPhysicalTask(TaskOutcome outcome) {
+        return new AbstractTask() {
             @Override
             public CompletionStage<TaskOutcome> handle() {
                 return CompletableFuture.completedFuture(outcome);
             }
 
             @Override
-            public void cancel() {}
+            public CompletionStage<Void> cancel() {
+                return CompletableFuture.completedFuture(null);
+            }
         };
     }
 
-    private static PhysicalTask uncertainPhysicalTask(RuntimeException failure) {
-        return new PhysicalTask() {
+    private static AbstractTask uncertainPhysicalTask(RuntimeException failure) {
+        return new AbstractTask() {
             @Override
             public CompletionStage<TaskOutcome> handle() {
                 return CompletableFuture.failedFuture(failure);
             }
 
             @Override
-            public void cancel() {}
+            public CompletionStage<Void> cancel() {
+                return CompletableFuture.completedFuture(null);
+            }
         };
     }
 

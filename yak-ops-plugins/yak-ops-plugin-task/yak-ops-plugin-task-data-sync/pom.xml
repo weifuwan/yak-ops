@@ -14,42 +14,14 @@
     <artifactId>yak-ops-plugin-task-data-sync</artifactId>
 
     <name>Yak Ops Data Sync Task Plugin</name>
-    <description>DATA_SYNC definition, planning and YakFlow execution</description>
+    <description>Thin DolphinScheduler TaskChannel adapter for V5 data synchronization</description>
 
     <dependencies>
-        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-datasource-api</artifactId></dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-configuration</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-task-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-common</artifactId>
-        </dependency>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-configuration</artifactId></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-core</artifactId></dependency>
-        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-connector-jdbc</artifactId></dependency>
-        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-runtime</artifactId></dependency>
-        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-flow-connector-cdc-mysql</artifactId></dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.auto.service</groupId>
-            <artifactId>auto-service-annotations</artifactId>
-            <version>${auto-service.version}</version>
-            <scope>provided</scope>
-        </dependency>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-task-api</artifactId></dependency>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-data-sync-runtime</artifactId></dependency>
+        <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
     </dependencies>
 
     <build>

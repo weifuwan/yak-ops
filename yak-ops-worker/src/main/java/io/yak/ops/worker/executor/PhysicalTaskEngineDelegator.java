@@ -1,7 +1,8 @@
 package io.yak.ops.worker.executor;
 
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.AbstractTask;
+import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.TaskEngine;
@@ -35,8 +36,8 @@ public final class PhysicalTaskEngineDelegator implements AutoCloseable {
     public void dispatch(
             String workspaceId,
             String instanceId,
-            TaskPluginRegistry registry,
-            BiFunction<TaskExecutionContext, Supplier<ExecutableTaskPlugin>, PhysicalTask> prepareTask) {
+            TaskPluginManager registry,
+            BiFunction<TaskExecutionContext, Supplier<TaskChannel>, AbstractTask> prepareTask) {
         TaskExecutionContext context = new TaskExecutionContext(workspaceId, instanceId);
         PhysicalTaskPluginFactory pluginFactory = new PhysicalTaskPluginFactory(registry, prepareTask);
         engine.submitTask(new PhysicalTaskExecutorFactory(pluginFactory).createTaskExecutor(context));

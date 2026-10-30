@@ -10,8 +10,8 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
-import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import io.yak.ops.business.task.submission.impl.SubmissionServiceImpl;
 import io.yak.ops.business.task.submission.impl.TaskSubmissionTransactionServiceImpl;
@@ -19,34 +19,35 @@ import io.yak.ops.common.enums.schedule.ScheduleFireOutcome;
 import io.yak.ops.common.enums.schedule.ScheduleFireReason;
 import io.yak.ops.common.enums.schedule.ScheduleTargetType;
 import io.yak.ops.common.enums.task.DefinitionStatus;
+import io.yak.ops.common.enums.task.TaskInstanceStatus;
+import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
-import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
-import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
-import io.yak.ops.common.enums.task.TaskTriggerType;
-import io.yak.ops.common.enums.task.TaskInstanceStatus;
-import io.yak.ops.dao.repository.schedule.impl.ScheduleFireRepositoryImpl;
-import io.yak.ops.dao.repository.schedule.impl.ScheduleRepositoryImpl;
 import io.yak.ops.dao.repository.schedule.ScheduleFireRepository;
 import io.yak.ops.dao.repository.schedule.ScheduleRepository;
+import io.yak.ops.dao.repository.schedule.impl.ScheduleFireRepositoryImpl;
+import io.yak.ops.dao.repository.schedule.impl.ScheduleRepositoryImpl;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
+import io.yak.ops.dao.repository.task.InstanceRepository;
+import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
 import io.yak.ops.dao.repository.task.impl.DefinitionRepositoryImpl;
 import io.yak.ops.dao.repository.task.impl.DefinitionVersionRepositoryImpl;
-import io.yak.ops.dao.repository.task.impl.TaskGroupQueueRepositoryImpl;
 import io.yak.ops.dao.repository.task.impl.InstanceRepositoryImpl;
+import io.yak.ops.dao.repository.task.impl.TaskGroupQueueRepositoryImpl;
 import io.yak.ops.plugin.scheduler.api.CronService;
 import io.yak.ops.plugin.scheduler.api.ScheduleRegistration;
 import io.yak.ops.plugin.scheduler.api.ScheduleTrigger;
 import io.yak.ops.plugin.scheduler.quartz.QuartzCronService;
 import io.yak.ops.plugin.scheduler.quartz.QuartzScheduler;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
 import io.yak.ops.testutils.MySqlDatabase;
@@ -63,43 +64,43 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.List;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.sql.DataSource;
-import org.apache.dolphinscheduler.registry.api.Registry;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.JdbcRegistryProperties;
-import org.apache.dolphinscheduler.plugin.registry.jdbc.server.JdbcRegistryServer;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.repository.JdbcRegistryClientRepository;
-import org.apache.dolphinscheduler.plugin.registry.jdbc.repository.JdbcRegistryDataRepository;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.repository.JdbcRegistryDataChangeEventRepository;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.repository.JdbcRegistryDataRepository;
 import org.apache.dolphinscheduler.plugin.registry.jdbc.repository.JdbcRegistryLockRepository;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.server.JdbcRegistryServer;
+import org.apache.dolphinscheduler.registry.api.Registry;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.mybatis.spring.annotation.MapperScan;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mybatis.spring.SqlSessionTemplate;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.support.JdbcTransactionManager;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Real MySQL savepoint, race, commit-uncertainty, retention, and Quartz JDBC JobStore contracts. */
@@ -778,8 +779,8 @@ class ScheduleAdmissionIT {
         }
 
         @Bean
-        TaskPluginRegistry taskPluginRegistry() {
-            return new TaskPluginRegistry(List.of(PLUGIN));
+        TaskPluginManager taskPluginRegistry() {
+            return new TaskPluginManager(List.of(PLUGIN));
         }
 
         @Bean
@@ -812,7 +813,7 @@ class ScheduleAdmissionIT {
         }
     }
 
-    private static final class TestPlugin implements ExecutableTaskPlugin {
+    private static final class TestPlugin implements TaskChannel {
         private final AtomicInteger plans = new AtomicInteger();
         private volatile List<ExecutionResource> resources;
         private volatile int blockCall;
@@ -842,6 +843,16 @@ class ScheduleAdmissionIT {
         @Override
         public OptionRule optionRule() {
             return OptionRule.builder().build();
+        }
+
+        @Override
+        public AbstractParameters parseParameters(String content) {
+            return new AbstractParameters() {
+                @Override
+                public boolean checkParameters() {
+                    return true;
+                }
+            };
         }
 
         @Override
@@ -880,7 +891,7 @@ class ScheduleAdmissionIT {
         }
 
         @Override
-        public CompletionStage<TaskHandle> start(
+        public CompletionStage<TaskHandle> createTask(
                 ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity identity, boolean debug) {
             throw new AssertionError("Admission must not start physical execution");
         }

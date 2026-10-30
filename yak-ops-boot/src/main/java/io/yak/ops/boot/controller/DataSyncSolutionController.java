@@ -5,8 +5,8 @@ import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.result.Result;
-import io.yak.ops.plugin.task.datasync.PipelineTaskPlugin;
-import io.yak.ops.plugin.task.datasync.solution.Solution;
+import io.yak.ops.sync.runtime.solution.Solution;
+import io.yak.ops.sync.runtime.solution.SolutionCatalog;
 import jakarta.annotation.Resource;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(CommonConstants.API_PREFIX + "/data-sync")
 public class DataSyncSolutionController {
     @Resource
-    private PipelineTaskPlugin plugin;
+    private SolutionCatalog catalog;
 
     /**
      * Returns implemented solutions for an ordered datasource-type pair.
@@ -32,7 +32,7 @@ public class DataSyncSolutionController {
     public Result<List<Solution>> solutions(@RequestParam String sourceType, @RequestParam String targetType) {
         WorkspaceContext.requireWorkspaceId();
         try {
-            return Result.success(plugin.solutions(sourceType, targetType));
+            return Result.success(catalog.list(sourceType, targetType));
         } catch (IllegalArgumentException failure) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }

@@ -23,9 +23,9 @@ import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
 import java.lang.reflect.Field;
@@ -40,11 +40,11 @@ class SubmissionServiceTest {
     private final DefinitionRepository definitions = mock(DefinitionRepository.class);
     private final DefinitionVersionRepository versions = mock(DefinitionVersionRepository.class);
     private final InstanceRepository instances = mock(InstanceRepository.class);
-    private final TaskPluginRegistry registry = mock(TaskPluginRegistry.class);
+    private final TaskPluginManager registry = mock(TaskPluginManager.class);
     private final TaskValidationContext validation = mock(TaskValidationContext.class);
     private final TaskValidationContextFactory validationContexts = mock(TaskValidationContextFactory.class);
     private final TaskSubmissionTransactionService admission = mock(TaskSubmissionTransactionService.class);
-    private final ExecutableTaskPlugin plugin = mock(ExecutableTaskPlugin.class);
+    private final TaskChannel plugin = mock(TaskChannel.class);
     private final ReadonlyConfig params = ReadonlyConfig.fromMap(java.util.Map.of());
 
     SubmissionServiceTest() {
@@ -78,7 +78,7 @@ class SubmissionServiceTest {
         SubmissionResult accepted = new SubmissionResult("instance-1", 2, TaskInstanceStatus.SUBMITTED, false);
         when(admission.admit(any())).thenReturn(accepted);
         assertEquals(accepted, service.submit(manual("request-123")));
-        verify(plugin, never()).start(any(), any(), any(), anyBoolean());
+        verify(plugin, never()).createTask(any(), any(), any(), anyBoolean());
     }
 
     @Test

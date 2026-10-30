@@ -2,7 +2,7 @@ package io.yak.ops.business.task.submission;
 
 import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import java.time.Instant;
@@ -23,7 +23,7 @@ public final class PreparedTaskSubmission {
     private final String operatorId;
     private final ReadonlyConfig parameters;
     private final TaskExecutionResources plan;
-    private final ExecutableTaskPlugin plugin;
+    private final TaskChannel plugin;
     private final String scheduleId;
     private final Long scheduleRevision;
     private final Instant scheduledTime;
@@ -51,7 +51,7 @@ public final class PreparedTaskSubmission {
             String operatorId,
             ReadonlyConfig parameters,
             TaskExecutionResources plan,
-            ExecutableTaskPlugin plugin,
+            TaskChannel plugin,
             String scheduleId,
             Long scheduleRevision,
             Instant scheduledTime) {
@@ -104,7 +104,7 @@ public final class PreparedTaskSubmission {
     }
 
     /** Returns the executable plugin used for plan revalidation. */
-    public ExecutableTaskPlugin plugin() {
+    public TaskChannel plugin() {
         return plugin;
     }
 

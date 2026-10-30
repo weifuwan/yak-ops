@@ -26,7 +26,7 @@ import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.task.api.TaskPlugin;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import jakarta.annotation.Resource;
 import java.util.List;
@@ -44,7 +44,7 @@ public class DefinitionServiceImpl implements DefinitionService {
     private DefinitionVersionRepository versionRepository;
 
     @Resource
-    private TaskPluginRegistry pluginRegistry;
+    private TaskPluginManager pluginRegistry;
 
     @Resource
     private TaskValidationContext validationContext;

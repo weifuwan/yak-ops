@@ -28,8 +28,8 @@ import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.plugin.scheduler.api.CronService;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.workspace.WorkspaceService;
 import jakarta.annotation.Resource;
 import java.time.Clock;
@@ -57,7 +57,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private DefinitionVersionRepository versions;
 
     @Resource
-    private TaskPluginRegistry plugins;
+    private TaskPluginManager plugins;
 
     @Resource
     private CronService cron;
@@ -384,7 +384,7 @@ public class ScheduleServiceImpl implements ScheduleService {
             return result;
         }
         var plugin = plugins.get(definition.getTaskType());
-        if (!(plugin instanceof ExecutableTaskPlugin executable)) {
+        if (!(plugin instanceof TaskChannel executable)) {
             result.setEligibilityReason("NOT_SCHEDULABLE");
             return result;
         }

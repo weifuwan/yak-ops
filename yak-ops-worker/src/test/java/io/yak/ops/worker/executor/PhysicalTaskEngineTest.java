@@ -5,16 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
+import io.yak.ops.plugin.task.api.AbstractTask;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
+import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.TaskEngine;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.TaskExecutorState;
-import io.yak.ops.worker.task.executor.ITaskExecutor;
 import io.yak.ops.worker.task.executor.events.TaskExecutorKillLifecycleEvent;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
@@ -118,19 +119,19 @@ class PhysicalTaskEngineTest {
 
     @Test
     void resolvesRegisteredPluginOnlyAfterMasterPreparationSetsTaskType() {
-        TaskPluginRegistry registry = mock(TaskPluginRegistry.class);
-        io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin channel =
-                mock(io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin.class);
+        TaskPluginManager registry = mock(TaskPluginManager.class);
+        io.yak.ops.plugin.task.api.TaskChannel channel =
+                mock(io.yak.ops.plugin.task.api.TaskChannel.class);
         org.mockito.Mockito.when(registry.get("DATA_SYNC")).thenReturn(channel);
         TaskExecutionContext context = new TaskExecutionContext("workspace", "plugin");
         PhysicalTaskPluginFactory factory = new PhysicalTaskPluginFactory(registry, (ctx, lazyChannel) -> {
             ctx.setTaskType("DATA_SYNC");
             assertEquals(channel, lazyChannel.get());
-            return new PhysicalTask() {
+            return new AbstractTask() {
                 @Override public CompletionStage<TaskOutcome> handle() {
                     return CompletableFuture.completedFuture(TaskOutcome.FINISHED);
                 }
-                @Override public void cancel() { }
+                @Override public CompletionStage<Void> cancel() { return CompletableFuture.completedFuture(null); }
             };
         });
         PhysicalTaskExecutor executor =
@@ -143,13 +144,14 @@ class PhysicalTaskEngineTest {
             String id, CompletionStage<TaskOutcome> completion, AtomicInteger kills) {
         TaskExecutionContext context = new TaskExecutionContext("workspace", id);
         PhysicalTaskPluginFactory factory = new PhysicalTaskPluginFactory(
-                mock(TaskPluginRegistry.class), (ignored, taskChannel) -> new PhysicalTask() {
+                mock(TaskPluginManager.class), (ignored, taskChannel) -> new AbstractTask() {
             @Override public CompletionStage<TaskOutcome> handle() { return completion; }
-            @Override public void cancel() {
+            @Override public CompletionStage<Void> cancel() {
                 kills.incrementAndGet();
                 if (completion instanceof CompletableFuture) {
                     ((CompletableFuture<TaskOutcome>) completion).complete(TaskOutcome.CANCELED);
                 }
+                return CompletableFuture.completedFuture(null);
             }
         });
         ITaskExecutor executor = new PhysicalTaskExecutorFactory(factory).createTaskExecutor(context);
