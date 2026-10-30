@@ -49,6 +49,10 @@ public class JdbcRegistryLockRepository {
         jdbcRegistryLock.setId(jdbcRegistryLockDO.getId());
     }
 
+    public boolean deleteOrphanByIdAndClientId(Long id, Long clientId) {
+        return jdbcRegistryLockMapper.deleteOrphanByIdAndClientId(id, clientId) == 1;
+    }
+
     public void deleteById(Long id) {
         jdbcRegistryLockMapper.deleteById(id);
     }
