@@ -36,4 +36,10 @@ public interface JdbcRegistryLockMapper extends BaseMapper<JdbcRegistryLock> {
             "</foreach>",
             "</script>"})
     void deleteByClientIds(@Param("clientIds") List<Long> clientIds);
+    /** Conditional cleanup prevents a stale purge snapshot from deleting a newly registered client's lock. */
+    @Delete("delete from yak_ops_jdbc_registry_lock where id = #{id} and client_id = #{clientId}"
+            + " and not exists (select 1 from yak_ops_jdbc_registry_client_heartbeat"
+            + " where id = #{clientId})")
+    int deleteOrphanByIdAndClientId(@Param("id") Long id, @Param("clientId") Long clientId);
+
 }
