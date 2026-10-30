@@ -131,7 +131,7 @@ class PhysicalTaskEngineTest {
                 @Override public CompletionStage<TaskOutcome> handle() {
                     return CompletableFuture.completedFuture(TaskOutcome.FINISHED);
                 }
-                @Override public void cancel() { }
+                @Override public CompletionStage<Void> cancel() { return CompletableFuture.completedFuture(null); }
             };
         });
         PhysicalTaskExecutor executor =
@@ -146,11 +146,12 @@ class PhysicalTaskEngineTest {
         PhysicalTaskPluginFactory factory = new PhysicalTaskPluginFactory(
                 mock(TaskPluginManager.class), (ignored, taskChannel) -> new AbstractTask() {
             @Override public CompletionStage<TaskOutcome> handle() { return completion; }
-            @Override public void cancel() {
+            @Override public CompletionStage<Void> cancel() {
                 kills.incrementAndGet();
                 if (completion instanceof CompletableFuture) {
                     ((CompletableFuture<TaskOutcome>) completion).complete(TaskOutcome.CANCELED);
                 }
+                return CompletableFuture.completedFuture(null);
             }
         });
         ITaskExecutor executor = new PhysicalTaskExecutorFactory(factory).createTaskExecutor(context);

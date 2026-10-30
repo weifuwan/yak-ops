@@ -14,5 +14,5 @@ public abstract class AbstractTask {
     public abstract CompletionStage<TaskOutcome> handle();
 
     /** Requests cancellation; a request alone is not a terminal outcome. */
-    public abstract void cancel();
+    public abstract CompletionStage<Void> cancel();
 }

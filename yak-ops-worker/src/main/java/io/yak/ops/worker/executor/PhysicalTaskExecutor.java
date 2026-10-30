@@ -48,7 +48,9 @@ public final class PhysicalTaskExecutor extends AbstractTaskExecutor {
                 }
 
                 @Override
-                public void cancel() {}
+                public CompletionStage<Void> cancel() {
+                    return java.util.concurrent.CompletableFuture.completedFuture(null);
+                }
             };
         }
         if (cancellationRequested.get()) physicalTask.cancel();

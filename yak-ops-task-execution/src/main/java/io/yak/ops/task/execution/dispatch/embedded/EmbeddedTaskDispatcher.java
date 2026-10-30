@@ -213,8 +213,9 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
                 }
 
                 @Override
-                public void cancel() {
+                public CompletionStage<Void> cancel() {
                     observer.cancel(instanceId);
+                    return CompletableFuture.completedFuture(null);
                 }
             };
         } catch (RuntimeException failure) {
@@ -240,7 +241,9 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             }
 
             @Override
-            public void cancel() {}
+            public CompletionStage<Void> cancel() {
+                return CompletableFuture.completedFuture(null);
+            }
         };
     }
 
@@ -252,7 +255,9 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             }
 
             @Override
-            public void cancel() {}
+            public CompletionStage<Void> cancel() {
+                return CompletableFuture.completedFuture(null);
+            }
         };
     }
 
