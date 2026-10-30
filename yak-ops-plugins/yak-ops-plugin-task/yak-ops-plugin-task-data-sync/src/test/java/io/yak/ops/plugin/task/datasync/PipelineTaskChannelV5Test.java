@@ -18,6 +18,7 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
+import io.yak.ops.sync.runtime.PipelineService;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -44,7 +45,7 @@ class PipelineTaskChannelV5Test {
     @Test
     void executesOneAdmissionCheckPerTaskBoundaryAndDefersPhysicalStart() {
         StubComposer composer = new StubComposer();
-        PipelineTaskChannel plugin = new PipelineTaskChannel(new FactoryUtil(), composer);
+        PipelineTaskChannel plugin = new PipelineTaskChannel(new PipelineService(new FactoryUtil(), composer));
         TaskExecutionIdentity identity = new TaskExecutionIdentity("ws", "def", 1, "instance");
         ReadonlyConfig parameters = ConfigParser.parseJson(V5);
 
@@ -65,7 +66,7 @@ class PipelineTaskChannelV5Test {
     @Test
     void rejectsChangedAdmissionBeforeComposition() {
         StubComposer composer = new StubComposer();
-        PipelineTaskChannel plugin = new PipelineTaskChannel(new FactoryUtil(), composer);
+        PipelineTaskChannel plugin = new PipelineTaskChannel(new PipelineService(new FactoryUtil(), composer));
         TaskExecutionIdentity identity = new TaskExecutionIdentity("ws", "def", 1, "instance");
         ReadonlyConfig parameters = ConfigParser.parseJson(V5);
         TaskExecutionResources admitted = plugin.plan(parameters, identity);
@@ -79,7 +80,7 @@ class PipelineTaskChannelV5Test {
     @Test
     void cancelFlowsThroughTheTaskHandleWithoutComposerRegistry() {
         StubComposer composer = new StubComposer();
-        PipelineTaskChannel plugin = new PipelineTaskChannel(new FactoryUtil(), composer);
+        PipelineTaskChannel plugin = new PipelineTaskChannel(new PipelineService(new FactoryUtil(), composer));
         TaskExecutionIdentity identity = new TaskExecutionIdentity("ws", "def", 1, "instance");
         ReadonlyConfig parameters = ConfigParser.parseJson(V5);
         TaskExecutionResources admitted = plugin.plan(parameters, identity);
