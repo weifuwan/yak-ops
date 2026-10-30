@@ -30,7 +30,8 @@ export const offlineIncremental = (solution: DataSyncSolutionType, steps: DataSy
 
 /** Product category is inferred from Connector and table count, not persisted in V5. */
 export function pipelineSolutionType(value: DataSyncParameters): DataSyncSolutionType {
-  const multiple = value.source.tables.length > 1;
+  const multiple = value.pipeline?.["pipeline.table-scope"] === "DATABASE"
+    || (value.pipeline?.["pipeline.table-scope"] === undefined && value.source.tables.length > 1);
   const realtime = value.source.type === "MYSQL_CDC";
   return realtime
     ? multiple
@@ -147,7 +148,10 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     value.source.tables.length !== value.sink.tables.length ||
     value.route.length !== value.source.tables.length ||
     (value.pipeline !== undefined &&
-      (!hasOnlyKeys(value.pipeline, ["execution.runtime-mode"]) ||
+      (!hasOnlyKeys(value.pipeline, ["execution.runtime-mode", "pipeline.table-scope"]) ||
+        (value.pipeline["pipeline.table-scope"] !== undefined &&
+          !["SINGLE", "DATABASE"].includes(value.pipeline["pipeline.table-scope"])) ||
+        (value.pipeline["pipeline.table-scope"] === "SINGLE" && value.source.tables.length !== 1) ||
         (value.pipeline["execution.runtime-mode"] !== undefined &&
           !["BATCH", "STREAMING"].includes(value.pipeline["execution.runtime-mode"]))))
   ) {

@@ -18,6 +18,7 @@ class DefinitionSqlProviderTest {
                         "targetDataSourceId", "target-id"));
         String sql = DefinitionSqlProvider.selectDefinitionPage(Map.of("filter", filter));
         assertTrue(sql.contains("$.source.type"));
+        assertTrue(DefinitionSqlProvider.SOLUTION_TYPE.contains("pipeline.table-scope"));
         assertTrue(sql.contains("v.parameter_schema_version = 5"));
         assertFalse(sql.contains("v.parameter_schema_version = 2"));
         assertTrue(sql.contains("$.source.datasourceId"));

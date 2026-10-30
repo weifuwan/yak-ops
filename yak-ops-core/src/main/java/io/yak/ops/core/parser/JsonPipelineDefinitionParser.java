@@ -79,7 +79,16 @@ public final class JsonPipelineDefinitionParser implements PipelineDefinitionPar
         }
         Map<String, Object> pipeline =
                 values.containsKey("pipeline") ? object(values.get("pipeline"), "pipeline") : Map.of();
-        checkKeys(pipeline, Set.of("execution.runtime-mode"), "pipeline");
+        checkKeys(pipeline, Set.of("execution.runtime-mode", "pipeline.table-scope"), "pipeline");
+        if (pipeline.containsKey("pipeline.table-scope")) {
+            String scope = requiredString(pipeline, "pipeline.table-scope", "pipeline");
+            if (!"SINGLE".equals(scope) && !"DATABASE".equals(scope)) {
+                throw new IllegalArgumentException("Unsupported V5 pipeline.table-scope");
+            }
+            if ("SINGLE".equals(scope) && sourceTables.size() != 1) {
+                throw new IllegalArgumentException("SINGLE scope requires exactly one route");
+            }
+        }
         if (pipeline.containsKey("execution.runtime-mode")) {
             String mode = requiredString(pipeline, "execution.runtime-mode", "pipeline");
             if (!"BATCH".equals(mode) && !"STREAMING".equals(mode)) {

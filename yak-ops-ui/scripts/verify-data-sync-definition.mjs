@@ -33,6 +33,7 @@ assert.equal(v5.route[0]["source-table"], "orders");
 assert.equal(v5.route[0]["sink-table"], "public.ods_orders");
 assert.equal(v5.sink.tables[0].write.mode, "UPSERT");
 assert.equal(v5.pipeline["execution.runtime-mode"], "STREAMING");
+assert.equal(v5.pipeline["pipeline.table-scope"], "SINGLE");
 assert.equal(pipelineSolutionType(v5), "SINGLE_TABLE_REALTIME");
 assert.deepEqual(displaySyncSteps(v5), ["FULL", "INCREMENTAL"]);
 assert.equal(syncTableMappings(v5)[0].source.table, "orders");
@@ -65,6 +66,19 @@ assert.equal(batch.source.type, "JDBC");
 assert.equal(batch.source.syncMode, "FULL");
 assert.equal(batch.route.length, 2);
 assert.equal(pipelineSolutionType(batch), "DATABASE_OFFLINE");
+const singleRouteDatabase = buildSyncParameters({
+  ...base,
+  solutionType: "DATABASE_REALTIME",
+  tableMappings: [{ source: { table: "orders" }, target: { table: "orders_copy" }, writeMode: "UPSERT" }],
+});
+assert.equal(singleRouteDatabase.route.length, 1);
+assert.equal(singleRouteDatabase.pipeline["pipeline.table-scope"], "DATABASE");
+assert.equal(pipelineSolutionType(singleRouteDatabase), "DATABASE_REALTIME");
+assert.equal(toSyncTaskRecord({ ...record, parameters: singleRouteDatabase }).solutionType, "DATABASE_REALTIME");
+assert.throws(() => readSyncParameters(5, { ...singleRouteDatabase,
+  pipeline: { ...singleRouteDatabase.pipeline, "pipeline.table-scope": "SINGLE" },
+  route: [singleRouteDatabase.route[0], singleRouteDatabase.route[0]],
+}));
 assert.equal(syncTableMappings(batch).length, 2);
 assert.throws(() => readSyncParameters(5, { ...batch, route: [batch.route[0], batch.route[0]] }));
 console.log("V5 pipeline definition and UI projection contracts passed");

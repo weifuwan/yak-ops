@@ -66,6 +66,13 @@ class JsonPipelineDefinitionParserTest {
     }
 
     @Test
+    void rejectsInvalidProductScope() {
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(
+                V5.replace("\"execution.runtime-mode\": \"STREAMING\"",
+                        "\"execution.runtime-mode\": \"STREAMING\", \"pipeline.table-scope\": \"MANY\"")));
+    }
+
+    @Test
     void rejectsV4() {
         assertThrows(IllegalArgumentException.class, () -> parser.parse("""
                 {"solutionType":"SINGLE_TABLE_OFFLINE"}

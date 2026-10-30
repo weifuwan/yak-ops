@@ -114,6 +114,7 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
     transform: [] as [],
     pipeline: {
       "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
+      "pipeline.table-scope": supportsMultipleTables(task.solutionType) ? ("DATABASE" as const) : ("SINGLE" as const),
     },
   };
 }

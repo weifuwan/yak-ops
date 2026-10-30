@@ -16,11 +16,15 @@ public final class DefinitionSqlProvider {
             (CASE WHEN v.parameter_schema_version = 5 THEN
               CASE
                 WHEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type')) = 'JDBC'
-                  THEN IF(JSON_LENGTH(v.parameters, '$.source.tables') = 1,
-                          'SINGLE_TABLE_OFFLINE', 'DATABASE_OFFLINE')
+                  THEN IF(COALESCE(
+                          JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.pipeline."pipeline.table-scope"')),
+                          IF(JSON_LENGTH(v.parameters, '$.source.tables') = 1, 'SINGLE', 'DATABASE')
+                        ) = 'SINGLE', 'SINGLE_TABLE_OFFLINE', 'DATABASE_OFFLINE')
                 WHEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type')) = 'MYSQL_CDC'
-                  THEN IF(JSON_LENGTH(v.parameters, '$.source.tables') = 1,
-                          'SINGLE_TABLE_REALTIME', 'DATABASE_REALTIME')
+                  THEN IF(COALESCE(
+                          JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.pipeline."pipeline.table-scope"')),
+                          IF(JSON_LENGTH(v.parameters, '$.source.tables') = 1, 'SINGLE', 'DATABASE')
+                        ) = 'SINGLE', 'SINGLE_TABLE_REALTIME', 'DATABASE_REALTIME')
               END
             END)
             """;

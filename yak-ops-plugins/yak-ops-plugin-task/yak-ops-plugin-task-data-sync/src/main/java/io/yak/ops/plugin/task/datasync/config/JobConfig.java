@@ -20,6 +20,8 @@ public final class JobConfig {
     private static final Option<Map<String, Object>> STARTUP =
             Options.key("startup").mapObjectType().noDefaultValue();
     private static final Option<String> MODE = Options.key("mode").stringType().noDefaultValue();
+    private static final Option<String> TABLE_SCOPE =
+            Options.key("pipeline.table-scope").stringType().noDefaultValue();
     private static final Option<String> STARTUP_FILE =
             Options.key("file").stringType().noDefaultValue();
     private static final Option<Long> STARTUP_POSITION =
@@ -56,13 +58,6 @@ public final class JobConfig {
     private static final Option<Boolean> ALLOW_DROP_COLUMNS =
             Options.key("allowDropColumns").booleanType().noDefaultValue();
 
-    private static final OptionRule SOURCE_RULE = OptionRule.builder()
-            .required(JobOptions.DATASOURCE_ID, TABLES)
-            .optional(STARTUP)
-            .build();
-    private static final OptionRule SINK_RULE = OptionRule.builder()
-            .required(JobOptions.DATASOURCE_ID, TABLES, SCHEMA_POLICY)
-            .build();
     private static final OptionRule SCHEMA_RULE =
             OptionRule.builder().required(INITIAL, EVOLUTION).build();
     private static final OptionRule EVOLUTION_RULE =
@@ -116,7 +111,17 @@ public final class JobConfig {
                 || rawSources.size() != definition.getRoute().size()) {
             throw new IllegalArgumentException("Invalid pipeline table mappings");
         }
-        SolutionType type = rawSources.size() == 1
+        // Product scope is explicit in V5 and must not change when tables are added or removed.
+        // An omitted scope is accepted only for earlier V5 definitions, never for V4 input.
+        String scope = definition.getConfig().get(TABLE_SCOPE);
+        if (scope == null) scope = rawSources.size() == 1 ? "SINGLE" : "DATABASE";
+        if (!"SINGLE".equals(scope) && !"DATABASE".equals(scope)) {
+            throw new IllegalArgumentException("Unsupported pipeline.table-scope");
+        }
+        if ("SINGLE".equals(scope) && rawSources.size() != 1) {
+            throw new IllegalArgumentException("SINGLE table scope requires exactly one table");
+        }
+        SolutionType type = "SINGLE".equals(scope)
                 ? (realtime ? SolutionType.SINGLE_TABLE_REALTIME : SolutionType.SINGLE_TABLE_OFFLINE)
                 : (realtime ? SolutionType.DATABASE_REALTIME : SolutionType.DATABASE_OFFLINE);
         List<Step> dataSteps;
@@ -251,11 +256,6 @@ public final class JobConfig {
         @SuppressWarnings("unchecked")
         Map<String, Object> attributes = (Map<String, Object>) map;
         return ReadonlyConfig.fromMap(attributes);
-    }
-
-    private static List<String> tableKey(ReadonlyConfig config) {
-        return java.util.Arrays.asList(
-                config.get(JobOptions.DATABASE), config.get(JobOptions.SCHEMA), config.get(JobOptions.TABLE));
     }
 
     private static void validate(ReadonlyConfig options, OptionRule rule, String section) {

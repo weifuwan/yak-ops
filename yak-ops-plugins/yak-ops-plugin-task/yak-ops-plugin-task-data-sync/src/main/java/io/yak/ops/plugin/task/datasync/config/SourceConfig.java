@@ -78,8 +78,8 @@ public final class SourceConfig {
             StartupOptions startupOptions) {
         validate(table, TABLE_RULE, "source.tables");
         Map<String, Object> snapshot = table.get(SNAPSHOT);
-        if (snapshot != null && (type != SolutionType.SINGLE_TABLE_REALTIME || !steps.contains(Step.FULL))) {
-            throw new IllegalArgumentException("Snapshot Chunk Key requires realtime FULL and INCREMENTAL");
+        if (snapshot != null && (type.supportsScheduling() || !steps.contains(Step.FULL))) {
+            throw new IllegalArgumentException("Snapshot Chunk Key requires a realtime FULL snapshot");
         }
         String chunkKey = null;
         if (snapshot != null) {

@@ -169,7 +169,11 @@ export interface DataSyncParameters {
   };
   route: Array<{ "source-table": string; "sink-table": string }>;
   transform: [];
-  pipeline: { "execution.runtime-mode": "BATCH" | "STREAMING" };
+  pipeline: {
+    "execution.runtime-mode": "BATCH" | "STREAMING";
+    /** V5-only product scope; never persist the old solutionType enum. */
+    "pipeline.table-scope"?: "SINGLE" | "DATABASE";
+  };
 }
 
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";

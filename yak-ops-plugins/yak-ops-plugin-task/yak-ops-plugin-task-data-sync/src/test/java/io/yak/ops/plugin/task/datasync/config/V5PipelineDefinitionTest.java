@@ -41,6 +41,32 @@ class V5PipelineDefinitionTest {
     }
 
     @Test
+    void preservesDatabaseScopeWithOneRoute() {
+        String database = V5.replace("\"execution.runtime-mode\": \"STREAMING\"",
+                "\"execution.runtime-mode\": \"STREAMING\", \"pipeline.table-scope\": \"DATABASE\"");
+        JobConfig plan = JobConfig.from(ConfigParser.parseJson(database));
+        assertEquals(io.yak.ops.plugin.task.datasync.solution.SolutionType.DATABASE_REALTIME, plan.solutionType());
+    }
+
+    @Test
+    void acceptsChunkKeyPerTableForMultiTableCdc() {
+        String multi = V5.replace("\"tables\": [{\"database\": \"app\", \"table\": \"orders\"}]",
+                "\"tables\": [{\"database\": \"app\", \"table\": \"orders\","
+                        + " \"snapshot\": {\"chunkKeyColumn\": \"bucket\"}},"
+                        + " {\"database\": \"app\", \"table\": \"users\","
+                        + " \"snapshot\": {\"chunkKeyColumn\": \"id\"}}]")
+                .replace("\"schema\": \"public\", \"table\": \"ods_orders\", \"write\": {\"mode\": \"UPSERT\"}",
+                        "\"schema\": \"public\", \"table\": \"ods_orders\", \"write\": {\"mode\": \"UPSERT\"}},"
+                        + " {\"schema\": \"public\", \"table\": \"ods_users\", \"write\": {\"mode\": \"UPSERT\"}")
+                .replace("{\"source-table\": \"app.orders\", \"sink-table\": \"public.ods_orders\"}",
+                        "{\"source-table\": \"app.orders\", \"sink-table\": \"public.ods_orders\"},"
+                        + " {\"source-table\": \"app.users\", \"sink-table\": \"public.ods_users\"}");
+        JobConfig config = JobConfig.from(ConfigParser.parseJson(multi));
+        assertEquals(2, config.tables().size());
+        assertEquals(io.yak.ops.plugin.task.datasync.solution.SolutionType.DATABASE_REALTIME, config.solutionType());
+    }
+
+    @Test
     void rejectsV4Fields() {
         assertThrows(IllegalArgumentException.class, () ->
                 JobConfig.from(ConfigParser.parseJson(
