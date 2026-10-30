@@ -157,7 +157,7 @@ public final class PipelineBuilder {
                 identity, source.getBoundedness(), debug, schemaChangesEnabled, allowDropColumns);
         Sink<TableRecord> sink = sinkFactory.createSink(sinkContexts);
         SourceTransformation<TableRecord> input =
-                new DataSourceTranslator().translate(source, sourceParallelism, identity.definitionId());
+                new DataSourceTranslator().translate(source, TableRecord.class, sourceParallelism, identity.definitionId());
         SinkTransformation<TableRecord> output =
                 new DataSinkTranslator().translate(input, sink, sinkParallelism, identity.definitionId());
         StreamGraph graph = new StreamGraphGenerator(output, configuration).generate();

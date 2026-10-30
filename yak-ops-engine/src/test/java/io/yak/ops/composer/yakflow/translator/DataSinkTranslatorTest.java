@@ -13,6 +13,28 @@ import org.junit.jupiter.api.Test;
 class DataSinkTranslatorTest {
 
     @Test
+    void translatesOtherRecordTypesWithoutDependingOnTableRecord() {
+        Transformation<String> transformed =
+                new Transformation<String>("string-transform", String.class) {
+                    @Override
+                    public List<Transformation<?>> getInputs() {
+                        return List.of();
+                    }
+                };
+        Sink<String> sink = context -> {
+            throw new UnsupportedOperationException("Not executed during translation");
+        };
+
+        SinkTransformation<String> output =
+                new DataSinkTranslator().translate(transformed, sink, 1, "string-definition");
+
+        assertSame(transformed, output.getInput());
+        assertSame(sink, output.getSink());
+        assertEquals(String.class, output.getInputType());
+        assertEquals("data-sync-sink-string-definition", output.getUid());
+    }
+
+    @Test
     void acceptsTransformedInputInsteadOfOnlySourceTransformations() {
         Transformation<TableRecord> transformed =
                 new Transformation<TableRecord>("post-transform", TableRecord.class) {

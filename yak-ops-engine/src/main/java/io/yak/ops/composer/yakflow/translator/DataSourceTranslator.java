@@ -1,7 +1,6 @@
 package io.yak.ops.composer.yakflow.translator;
 
 import io.yak.ops.core.api.connector.source.Source;
-import io.yak.ops.core.data.TableRecord;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 
 /**
@@ -10,11 +9,11 @@ import io.yak.ops.flow.runtime.transformations.SourceTransformation;
  */
 public final class DataSourceTranslator {
 
-    public SourceTransformation<TableRecord> translate(
-            Source<TableRecord, ?, ?> source, int sourceParallelism, String definitionId) {
+    public <T> SourceTransformation<T> translate(
+            Source<T, ?, ?> source, Class<T> outputType, int sourceParallelism, String definitionId) {
         source.validateParallelism(sourceParallelism);
-        SourceTransformation<TableRecord> input =
-                new SourceTransformation<>("data-sync-source", source, TableRecord.class, sourceParallelism);
+        SourceTransformation<T> input =
+                new SourceTransformation<>("data-sync-source", source, outputType, sourceParallelism);
         input.setUid(new OperatorUidGenerator("data-sync-source").generateUid(definitionId));
         return input;
     }
