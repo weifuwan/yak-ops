@@ -67,6 +67,8 @@ class JsonPipelineDefinitionParserTest {
 
     @Test
     void rejectsV4() {
-        assertThrows(IllegalArgumentException.class, () -> parser.parse("{\\"solutionType\\":\\"SINGLE_TABLE_OFFLINE\\"}"));
+        assertThrows(IllegalArgumentException.class, () -> parser.parse("""
+                {"solutionType":"SINGLE_TABLE_OFFLINE"}
+                """));
     }
 }

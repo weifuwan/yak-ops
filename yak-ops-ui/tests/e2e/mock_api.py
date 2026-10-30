@@ -4,25 +4,27 @@ import json
 from urllib.parse import urlparse, parse_qs
 
 params = {
-    "solutionType": "SINGLE_TABLE_OFFLINE",
-    "steps": ["FULL"],
     "source": {
+        "type": "JDBC",
         "datasourceId": "src",
-        "tables": [{"id": "orders", "database": "app", "table": "orders"}],
+        "syncMode": "FULL",
+        "tables": [{"database": "app", "table": "orders"}],
     },
-    "transform": [],
     "sink": {
+        "type": "JDBC",
         "datasourceId": "dst",
         "schemaPolicy": {
             "initial": "VERIFY",
             "evolution": {"enabled": False, "allowDropColumns": False},
         },
         "tables": [{
-            "input": "orders", "database": "ods", "schema": "public",
+            "database": "ods", "schema": "public",
             "table": "ods_orders", "write": {"mode": "APPEND"},
         }],
     },
-    "env": {},
+    "route": [{"source-table": "app.orders", "sink-table": "ods.public.ods_orders"}],
+    "transform": [],
+    "pipeline": {"execution.runtime-mode": "BATCH"},
 }
 task = {
     "id": "task1",
@@ -30,7 +32,7 @@ task = {
     "taskType": "DATA_SYNC",
     "status": "PUBLISHED",
     "definitionVersion": 1,
-    "parameterSchemaVersion": 4,
+    "parameterSchemaVersion": 5,
     "parameters": params,
     "debug": False,
     "updateBy": "user1",
@@ -169,12 +171,12 @@ async def mock(route):
         data = paging([state["task"]])
     elif p == "/api/v1/task-definitions" and method == "POST":
         state["created_tasks"] += 1
-        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED", "parameterSchemaVersion": 4}
+        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED", "parameterSchemaVersion": 5}
         data = state["task"]
     elif p.startswith("/api/v1/task-definitions/"):
         if method == "PUT":
             state["updated_tasks"] += 1
-            state["task"] = {**state["task"], **b, **({"parameterSchemaVersion": 4} if "parameters" in b else {})}
+            state["task"] = {**state["task"], **b, **({"parameterSchemaVersion": 5} if "parameters" in b else {})}
         data = state["task"]
     elif p == "/api/v1/task-instances/latest":
         data = (
