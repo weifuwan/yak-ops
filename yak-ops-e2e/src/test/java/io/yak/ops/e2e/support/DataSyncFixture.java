@@ -3,7 +3,6 @@ package io.yak.ops.e2e.support;
 import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.yak.ops.testutils.DatabaseMetadata;
 import io.yak.ops.testutils.JdbcAssertions;
 import io.yak.ops.testutils.TestNames;
@@ -95,7 +94,7 @@ public final class DataSyncFixture implements AutoCloseable {
                 "UPSERT");
     }
 
-    /** Produces mutable test scenario inputs. Submission uses only the V6 YAML execution contract. */
+    /** Produces mutable test scenario inputs. The public API receives V6 JSON; the Task Plugin converts to YAML. */
     public Map<String, Object> parameters(String solution, List<String> steps, List<Map<String, Object>> routes) {
         boolean realtime = solution.endsWith("_REALTIME");
         List<Map<String, Object>> sourceTables = new ArrayList<>();
@@ -173,129 +172,6 @@ public final class DataSyncFixture implements AutoCloseable {
         parameters.put("sink", sink);
     }
 
-    /**
-     * Convert disposable scenario fixtures to the public V6 YAML representation at the API boundary.
-     * Production never invokes a V5 migration adapter; this helper only keeps E2E scenario builders readable.
-     */
-    private static Map<String, Object> yamlParameters(Map<String, Object> scenario) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> rawSource = (Map<String, Object>) scenario.get("source");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> rawSink = (Map<String, Object>) scenario.get("sink");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> sources = (List<Map<String, Object>>) rawSource.get("tables");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> sinks = (List<Map<String, Object>>) rawSink.get("tables");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> routes = (List<Map<String, Object>>) scenario.get("route");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> productPipeline = (Map<String, Object>) scenario.get("pipeline");
-
-        String type = rawSource.get("type").toString();
-        Map<String, String> source = new LinkedHashMap<>();
-        source.put("type", "MYSQL_CDC".equals(type) ? "mysql" : "jdbc");
-        source.put("datasource-id", rawSource.get("datasourceId").toString());
-        source.put("tables", String.join(",", sources.stream().map(DataSyncFixture::path).toList()));
-        source.put("yak.namespace-kind", sources.stream().anyMatch(table -> table.containsKey("database"))
-                ? "DATABASE" : "SCHEMA");
-        if ("MYSQL_CDC".equals(type)) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> startup = (Map<String, Object>) rawSource.getOrDefault(
-                    "startup", Map.of("mode", "INITIAL"));
-            source.put("scan.startup.mode", switch (startup.get("mode").toString()) {
-                case "INITIAL" -> "initial";
-                case "SNAPSHOT" -> "snapshot";
-                case "EARLIEST_OFFSET" -> "earliest-offset";
-                case "LATEST_OFFSET" -> "latest-offset";
-                case "SPECIFIC_OFFSETS" -> "specific-offset";
-                case "TIMESTAMP" -> "timestamp";
-                default -> throw new IllegalArgumentException("Unsupported test CDC startup");
-            });
-            for (Map.Entry<String, String> option : Map.of(
-                            "file", "scan.startup.specific-offset.file",
-                            "pos", "scan.startup.specific-offset.pos",
-                            "gtidSet", "scan.startup.specific-offset.gtid-set",
-                            "timestampMillis", "scan.startup.timestamp-millis",
-                            "skipEvents", "scan.startup.specific-offset.skip-events",
-                            "skipRows", "scan.startup.specific-offset.skip-rows")
-                    .entrySet()) {
-                if (startup.containsKey(option.getKey())) {
-                    source.put(option.getValue(), startup.get(option.getKey()).toString());
-                }
-            }
-        } else {
-            source.put("yak.sync.mode", rawSource.getOrDefault("syncMode", "FULL").toString());
-        }
-        for (Map<String, Object> table : sources) {
-            String prefix = "yak.table." + path(table) + ".";
-            @SuppressWarnings("unchecked")
-            Map<String, Object> snapshot = (Map<String, Object>) table.get("snapshot");
-            if (snapshot != null && snapshot.containsKey("chunkKeyColumn")) {
-                source.put(prefix + "chunk-key-column", snapshot.get("chunkKeyColumn").toString());
-            }
-            @SuppressWarnings("unchecked")
-            Map<String, Object> incremental = (Map<String, Object>) table.get("incremental");
-            if (incremental != null) {
-                for (Map.Entry<String, String> option : Map.of(
-                                "mode", "mode",
-                                "column", "column",
-                                "initialValue", "initial-value",
-                                "delaySeconds", "delay-seconds",
-                                "lookbackSeconds", "lookback-seconds")
-                        .entrySet()) {
-                    if (incremental.containsKey(option.getKey())) {
-                        source.put(prefix + "incremental." + option.getValue(),
-                                incremental.get(option.getKey()).toString());
-                    }
-                }
-            }
-        }
-
-        Map<String, String> sink = new LinkedHashMap<>();
-        sink.put("type", "jdbc");
-        sink.put("datasource-id", rawSink.get("datasourceId").toString());
-        sink.put("yak.namespace-kind", sinks.stream().anyMatch(table -> table.containsKey("database"))
-                ? "DATABASE" : "SCHEMA");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> policy = (Map<String, Object>) rawSink.get("schemaPolicy");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> evolution = (Map<String, Object>) policy.get("evolution");
-        sink.put("yak.schema.initial", policy.get("initial").toString());
-        sink.put("yak.schema.evolution.enabled", evolution.get("enabled").toString());
-        sink.put("yak.schema.evolution.allow-drop-columns", evolution.get("allowDropColumns").toString());
-        for (Map<String, Object> table : sinks) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> write = (Map<String, Object>) table.get("write");
-            String prefix = "yak.table." + path(table) + ".";
-            sink.put(prefix + "write.mode", write.get("mode").toString());
-            if (write.containsKey("primaryKeys")) {
-                @SuppressWarnings("unchecked")
-                List<String> keys = (List<String>) write.get("primaryKeys");
-                sink.put(prefix + "write.primary-keys", String.join(",", keys));
-            }
-            if (write.containsKey("transaction")) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> transaction = (Map<String, Object>) write.get("transaction");
-                sink.put(prefix + "write.transaction.mode", transaction.get("mode").toString());
-            }
-        }
-        Map<String, String> pipeline = new LinkedHashMap<>();
-        pipeline.put("execution.runtime-mode", productPipeline.get("execution.runtime-mode").toString());
-        pipeline.put("yak.table-scope", productPipeline.containsKey("pipeline.table-scope")
-                ? productPipeline.get("pipeline.table-scope").toString()
-                : routes.size() == 1 ? "SINGLE" : "DATABASE");
-        Map<String, Object> definition = new LinkedHashMap<>();
-        definition.put("source", source);
-        definition.put("sink", sink);
-        definition.put("route", routes);
-        definition.put("pipeline", pipeline);
-        try {
-            return Map.of("pipelineYaml", new YAMLMapper().writeValueAsString(definition));
-        } catch (com.fasterxml.jackson.core.JsonProcessingException failure) {
-            throw new IllegalStateException("Failed to create V6 E2E Pipeline YAML", failure);
-        }
-    }
-
     public String create(Map<String, Object> parameters, boolean publish) {
         String definition = api.call(
                         "POST",
@@ -308,7 +184,7 @@ public final class DataSyncFixture implements AutoCloseable {
                                 "debug",
                                 true,
                                 "parameters",
-                                yamlParameters(parameters)))
+                                parameters))
                 .path("id")
                 .asText();
         if (publish) api.call("POST", "/api/v1/task-definitions/" + definition + "/publish");

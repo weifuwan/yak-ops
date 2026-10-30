@@ -7,7 +7,6 @@ import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.definition.RouteDef;
-import io.yak.ops.core.parser.YamlPipelineDefinitionParser;
 import io.yak.ops.sync.runtime.solution.SolutionType;
 import io.yak.ops.sync.runtime.solution.Step;
 import java.util.ArrayList;
@@ -25,7 +24,6 @@ import java.util.Set;
  */
 public final class PipelineExecutionPlan {
     public static final int MAX_TABLES = 100;
-    private static final String YAML = "pipelineYaml";
     private final SolutionType solutionType;
     private final List<TableConfig> tables;
     private final List<Step> steps;
@@ -43,19 +41,6 @@ public final class PipelineExecutionPlan {
         this.steps = List.copyOf(steps);
         this.schemaChangesEnabled = schemaChangesEnabled;
         this.allowDropColumns = allowDropColumns;
-    }
-
-    public static String yaml(ReadonlyConfig parameters) {
-        Object content = parameters.getSourceMap().get(YAML);
-        if (!(content instanceof String text) || text.isBlank()) {
-            throw new IllegalArgumentException("pipelineYaml is required");
-        }
-        return text;
-    }
-
-    /** Factory-friendly per-table options without an intermediate V5 config schema. */
-    public static PipelineExecutionPlan from(ReadonlyConfig parameters) {
-        return from(new YamlPipelineDefinitionParser().parse(yaml(parameters)));
     }
 
     public static PipelineExecutionPlan from(PipelineDef definition) {

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { projectSyncTaskPage } from "../apps/web/service/data-sync/definition.ts";
 import { readSyncParameters } from "../apps/web/service/data-sync/parameters.ts";
-import { encodePipelineYaml } from "../apps/web/service/data-sync/pipeline-yaml.ts";
 import {
   parseTaskListFilters,
   updateTaskListFilters,
@@ -87,7 +86,7 @@ const definition = (id, parameters, parameterSchemaVersion = 6) => ({
   taskType: "DATA_SYNC",
   definitionVersion: 4,
   parameterSchemaVersion,
-  parameters: parameterSchemaVersion === 6 ? encodePipelineYaml(parameters) : parameters,
+  parameters,
   updateBy: "operator",
   updateTime: "2026-10-25 12:00:00",
 });

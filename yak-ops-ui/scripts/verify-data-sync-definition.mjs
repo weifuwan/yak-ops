@@ -10,7 +10,6 @@ import {
   syncTableMappings,
   displaySyncSteps,
 } from "../apps/web/service/data-sync/parameters.ts";
-import { encodePipelineYaml } from "../apps/web/service/data-sync/pipeline-yaml.ts";
 
 const base = {
   name: "orders",
@@ -24,14 +23,15 @@ const base = {
   targetSchema: "public",
   targetTable: "ods_orders",
 };
-const envelope = createDefinitionRequest(base).parameters;
-assert.deepEqual(Object.keys(envelope), ["pipelineYaml"]);
-assert.match(envelope.pipelineYaml, /source:\s*\n/);
-assert.match(envelope.pipelineYaml, /scan.startup.mode: initial/);
-assert.match(envelope.pipelineYaml, /source-table: orders/);
-assert.match(envelope.pipelineYaml, /sink-table: public.ods_orders/);
+const definitionJson = createDefinitionRequest(base).parameters;
+assert.deepEqual(Object.keys(definitionJson), ["source", "sink", "route", "transform", "pipeline"]);
+assert.equal(definitionJson.source.type, "MYSQL_CDC");
+assert.equal(definitionJson.source.startup.mode, "INITIAL");
+assert.equal(definitionJson.route[0]["source-table"], "orders");
+assert.equal(definitionJson.route[0]["sink-table"], "public.ods_orders");
+assert.equal("pipelineYaml" in definitionJson, false);
 
-const v6 = readSyncParameters(6, envelope);
+const v6 = readSyncParameters(6, definitionJson);
 assert.equal(v6.source.type, "MYSQL_CDC");
 assert.equal(v6.source.startup.mode, "INITIAL");
 assert.equal(v6.sink.type, "JDBC");
@@ -41,9 +41,9 @@ assert.equal(v6.pipeline["execution.runtime-mode"], "STREAMING");
 assert.equal(pipelineSolutionType(v6), "SINGLE_TABLE_REALTIME");
 assert.deepEqual(displaySyncSteps(v6), ["FULL", "INCREMENTAL"]);
 assert.equal(syncTableMappings(v6)[0].source.table, "orders");
-assert.throws(() => readSyncParameters(5, envelope));
-assert.throws(() => readSyncParameters(6, { pipelineYaml: "" }));
-assert.throws(() => readSyncParameters(6, { pipelineYaml: "source: []" }));
+assert.throws(() => readSyncParameters(5, definitionJson));
+assert.throws(() => readSyncParameters(6, { source: [] }));
+assert.throws(() => readSyncParameters(6, { ...definitionJson, unknown: 1 }));
 
 const record = {
   id: "d-1",
@@ -53,7 +53,7 @@ const record = {
   debug: false,
   definitionVersion: 1,
   parameterSchemaVersion: 6,
-  parameters: envelope,
+  parameters: definitionJson,
 };
 assert.equal(toSyncTaskRecord(record).solutionType, "SINGLE_TABLE_REALTIME");
 
@@ -82,7 +82,7 @@ for (const startup of [
     startup: loaded.startup,
   });
   assert.deepEqual(saved.source.startup, startup);
-  assert.deepEqual(readSyncParameters(6, encodePipelineYaml(saved)).source.startup, startup);
+  assert.deepEqual(readSyncParameters(6, saved).source.startup, startup);
 }
 const batch = buildSyncParameters({
   ...base,
@@ -98,7 +98,7 @@ assert.equal(batch.source.type, "JDBC");
 assert.equal(batch.source.syncMode, "FULL");
 assert.equal(batch.route.length, 2);
 assert.equal(
-  pipelineSolutionType(readSyncParameters(6, encodePipelineYaml(batch))),
+  pipelineSolutionType(readSyncParameters(6, batch)),
   "DATABASE_OFFLINE",
 );
 
@@ -115,8 +115,10 @@ const singleRouteDatabase = buildSyncParameters({
 });
 assert.equal(singleRouteDatabase.pipeline["pipeline.table-scope"], "DATABASE");
 assert.equal(
-  pipelineSolutionType(readSyncParameters(6, encodePipelineYaml(singleRouteDatabase))),
+  pipelineSolutionType(readSyncParameters(6, singleRouteDatabase)),
   "DATABASE_REALTIME",
 );
-assert.equal(syncTableMappings(readSyncParameters(6, encodePipelineYaml(batch))).length, 2);
-console.log("V6 YAML definition, startup round-trip and UI projection contracts passed");
+assert.equal(syncTableMappings(readSyncParameters(6, batch)).length, 2);
+const withServerIndex = { ...definitionJson, index: { sourceType: "MYSQL_CDC" } };
+assert.deepEqual(readSyncParameters(6, withServerIndex), definitionJson);
+console.log("V6 JSON API, startup round-trip, and UI projection contracts passed");

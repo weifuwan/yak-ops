@@ -4,10 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.sync.runtime.solution.Step;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class PipelineExecutionPlanTest {
@@ -79,6 +77,6 @@ class PipelineExecutionPlanTest {
     }
 
     private static PipelineExecutionPlan job(String yaml) {
-        return PipelineExecutionPlan.from(ReadonlyConfig.fromMap(Map.of("pipelineYaml", yaml)));
+        return PipelineExecutionPlan.from(new io.yak.ops.core.parser.YamlPipelineDefinitionParser().parse(yaml));
     }
 }

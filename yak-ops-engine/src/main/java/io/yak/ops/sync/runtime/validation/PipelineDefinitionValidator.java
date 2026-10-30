@@ -20,11 +20,6 @@ import java.util.Set;
 public final class PipelineDefinitionValidator {
     private PipelineDefinitionValidator() {}
 
-    /** Checks all Connector options without external access or connection credentials. */
-    public static PipelineExecutionPlan validateConfig(ReadonlyConfig parameters, FactoryUtil factories) {
-        return validateConfig(PipelineExecutionPlan.from(parameters), factories);
-    }
-
     public static PipelineExecutionPlan validateConfig(PipelineDef definition, FactoryUtil factories) {
         return validateConfig(PipelineExecutionPlan.from(definition), factories);
     }
@@ -49,21 +44,11 @@ public final class PipelineDefinitionValidator {
 
     /** Resolves authorized namespaces and rejects aliases of duplicate tables without opening tables. */
     public static void validateReferences(
-            ReadonlyConfig parameters, TaskValidationContext context, FactoryUtil factories) {
-        validateBindings(PipelineExecutionPlan.from(parameters), context, factories, false);
-    }
-
-    public static void validateReferences(
             PipelineDef definition, TaskValidationContext context, FactoryUtil factories) {
         validateBindings(PipelineExecutionPlan.from(definition), context, factories, false);
     }
 
     /** Validates all authorized source/target schemas; no DDL or writes are performed. */
-    public static void validateResources(
-            ReadonlyConfig parameters, TaskValidationContext context, FactoryUtil factories) {
-        validateBindings(PipelineExecutionPlan.from(parameters), context, factories, true);
-    }
-
     public static void validateResources(
             PipelineDef definition, TaskValidationContext context, FactoryUtil factories) {
         validateBindings(PipelineExecutionPlan.from(definition), context, factories, true);
