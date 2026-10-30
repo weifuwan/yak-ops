@@ -22,6 +22,11 @@ import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
+import io.yak.ops.dao.repository.task.TaskGroupQueueRepository;
+import io.yak.ops.dao.repository.task.InstanceRepository;
+import io.yak.ops.dao.entity.task.TaskGroupQueueEntity;
+import io.yak.ops.common.enums.task.TaskTriggerType;
+import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.dao.repository.schedule.impl.ScheduleFireRepositoryImpl;
 import io.yak.ops.dao.repository.schedule.impl.ScheduleRepositoryImpl;
 import io.yak.ops.dao.repository.schedule.ScheduleFireRepository;
@@ -503,6 +508,95 @@ class ScheduleAdmissionIT {
                 "INSERT INTO yak_ops_task_definition (id,workspace_id,name,task_type,status,current_version,create_time,update_time,create_by,update_by) VALUES ('task','ws','test task','SCHEDULE_TEST',1,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')");
         jdbc.update(
                 "INSERT INTO yak_ops_task_definition_version (id,workspace_id,definition_id,version,parameters,create_time,update_time,create_by,update_by) VALUES ('version','ws','task',1,'{}',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')");
+    }
+
+    @Test
+    void manualConflictWaitsUntilReleasedAndNeverDispatchesEarly() {
+        PLUGIN.resources = List.of(new ExecutionResource("TEST", "shared"));
+        occupy("shared");
+        SubmissionResult submitted = submissions.submit(new TaskSubmissionCommand(
+                "ws", "task", TaskTriggerType.MANUAL, "manual-wait-01", "actor", null, null, null));
+        assertEquals(TaskInstanceStatus.SUBMITTED, submitted.status());
+        assertEquals(-1, jdbc.queryForObject(
+                "SELECT status FROM yak_ops_task_group_queue WHERE task_id = ?",
+                Integer.class,
+                submitted.instanceId()));
+        InstanceRepository instances = context.getBean(InstanceRepository.class);
+        assertFalse(instances.pending().stream().anyMatch(row -> submitted.instanceId().equals(row.getId())));
+
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        assertFalse(groups.tryAcquire("ws", submitted.instanceId()));
+        groups.releaseOwned("ws", "other-instance");
+        assertTrue(groups.tryAcquire("ws", submitted.instanceId()));
+        assertTrue(groups.allAcquired("ws", submitted.instanceId()));
+        assertTrue(instances.pending().stream().anyMatch(row -> submitted.instanceId().equals(row.getId())));
+    }
+
+    @Test
+    void waitingQueuesHonorPriorityAndThenFifo() {
+        occupy("shared");
+        enqueue("low", "shared", 1);
+        enqueue("high", "shared", 10);
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        assertEquals("high", groups.waiting(10).get(0).getInstanceId());
+
+        groups.releaseOwned("ws", "other-instance");
+        assertFalse(groups.tryAcquire("ws", "low"));
+        assertTrue(groups.tryAcquire("ws", "high"));
+        assertFalse(groups.tryAcquire("ws", "low"));
+        groups.releaseOwned("ws", "high");
+        assertTrue(groups.tryAcquire("ws", "low"));
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT use_size FROM yak_ops_task_group WHERE resource_key = 'shared'", Integer.class));
+    }
+
+    @Test
+    void multiResourceWaitingNeverOccupiesOnlyTheFreeGroup() {
+        occupy("z-busy");
+        enqueue("multi", "a-free", 0);
+        TaskGroupQueueEntity second = new TaskGroupQueueEntity();
+        second.setWorkspaceId("ws");
+        second.setResourceType("TEST");
+        second.setResourceKey("z-busy");
+        second.setInstanceId("multi");
+        second.initCreate("actor");
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        new TransactionTemplate(context.getBean(PlatformTransactionManager.class))
+                .executeWithoutResult(status -> groups.add(second));
+
+        assertFalse(groups.tryAcquire("ws", "multi"));
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT use_size FROM yak_ops_task_group WHERE resource_key = 'a-free'", Integer.class));
+        assertEquals(2, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM yak_ops_task_group_queue WHERE task_id = 'multi' AND status = -1",
+                Integer.class));
+        groups.releaseOwned("ws", "other-instance");
+        assertTrue(groups.tryAcquire("ws", "multi"));
+        assertEquals(2, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM yak_ops_task_group_queue WHERE task_id = 'multi' AND status = 1",
+                Integer.class));
+    }
+
+    private static void enqueue(String instanceId, String resource, int priority) {
+        jdbc.update(
+                "INSERT INTO yak_ops_task_instance"
+                        + " (id,workspace_id,definition_id,definition_version,task_type,trigger_type,"
+                        + " request_id,request_fingerprint,resource_revision,status,state_version,"
+                        + " create_time,update_time,create_by,update_by)"
+                        + " VALUES (?, 'ws', 'task', 1, 'SCHEDULE_TEST', 'MANUAL', ?, 'MANUAL:task', 'v1',"
+                        + " 'SUBMITTED', 0, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3), 'actor', 'actor')",
+                instanceId,
+                "request-" + instanceId);
+        TaskGroupQueueEntity queue = new TaskGroupQueueEntity();
+        queue.setWorkspaceId("ws");
+        queue.setResourceType("TEST");
+        queue.setResourceKey(resource);
+        queue.setInstanceId(instanceId);
+        queue.setPriority(priority);
+        queue.initCreate("actor");
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        new TransactionTemplate(context.getBean(PlatformTransactionManager.class))
+                .executeWithoutResult(status -> groups.add(queue));
     }
 
     private static void occupy(String resource) {
