@@ -12,23 +12,23 @@ import io.yak.ops.core.composer.PipelineContext;
 import io.yak.ops.core.composer.PipelineExecution;
 import io.yak.ops.core.composer.PipelinePlan;
 import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
-import io.yak.ops.plugin.task.api.TaskPluginException;
-import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
+import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.solution.Solution;
 import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
 import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.List;
+import java.util.Objects;
 
 /** Owns DATA_SYNC Task definition rules and delegates physical planning and execution. */
 public final class PipelineTaskChannel implements TaskChannel {

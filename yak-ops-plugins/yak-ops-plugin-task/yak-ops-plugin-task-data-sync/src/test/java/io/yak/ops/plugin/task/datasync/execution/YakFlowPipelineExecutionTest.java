@@ -2,7 +2,6 @@ package io.yak.ops.plugin.task.datasync.execution;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-
 import io.yak.ops.core.api.common.JobExecutionResult;
 import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.common.JobStatus;

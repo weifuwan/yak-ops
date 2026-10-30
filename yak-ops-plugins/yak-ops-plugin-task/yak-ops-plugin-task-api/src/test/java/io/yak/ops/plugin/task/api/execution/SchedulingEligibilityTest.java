@@ -1,11 +1,9 @@
 package io.yak.ops.plugin.task.api.execution;
 
-import io.yak.ops.plugin.task.api.TaskChannel;
-
 import static org.junit.jupiter.api.Assertions.assertFalse;
-
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import java.util.concurrent.CompletionStage;
 import java.util.Map;
