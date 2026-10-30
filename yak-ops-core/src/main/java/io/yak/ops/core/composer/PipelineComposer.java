@@ -1,4 +1,4 @@
-package io.yak.ops.core.client;
+package io.yak.ops.core.composer;
 
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.parser.PipelineDefinitionParser;

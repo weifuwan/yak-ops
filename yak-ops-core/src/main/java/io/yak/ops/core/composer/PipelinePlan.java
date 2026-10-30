@@ -1,4 +1,4 @@
-package io.yak.ops.core.client;
+package io.yak.ops.core.composer;
 
 import java.util.List;
 import java.util.Objects;

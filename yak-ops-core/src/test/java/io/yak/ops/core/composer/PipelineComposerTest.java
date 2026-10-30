@@ -1,4 +1,4 @@
-package io.yak.ops.core.client;
+package io.yak.ops.core.composer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

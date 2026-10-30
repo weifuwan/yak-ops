@@ -1,7 +1,7 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.core.api.common.JobStatus;
-import io.yak.ops.core.client.PipelineExecution;
+import io.yak.ops.core.composer.PipelineExecution;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;

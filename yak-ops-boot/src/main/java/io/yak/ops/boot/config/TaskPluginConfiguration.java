@@ -4,7 +4,7 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
-import io.yak.ops.core.client.PipelineComposer;
+import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
@@ -118,7 +118,7 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    PipelineComposer dataSyncClient(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
+    PipelineComposer pipelineComposer(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
         return new PipelineComposer(
                 new JsonPipelineDefinitionParser(), new YakFlowPipelineRuntime(planner, executor, factories));
     }
