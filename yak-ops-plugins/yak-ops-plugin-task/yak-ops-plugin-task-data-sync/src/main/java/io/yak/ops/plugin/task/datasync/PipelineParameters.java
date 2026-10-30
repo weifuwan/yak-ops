@@ -2,20 +2,20 @@ package io.yak.ops.plugin.task.datasync;
 
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 
-/** Opaque V5 Pipeline JSON carried by the DATA_SYNC Task. Runtime owns its schema and options. */
+/** Opaque V6 Pipeline YAML carried by the DATA_SYNC Task. */
 public final class PipelineParameters extends AbstractParameters {
-    private final String pipelineJson;
+    private final String pipelineYaml;
 
-    public PipelineParameters(String pipelineJson) {
-        this.pipelineJson = pipelineJson;
+    public PipelineParameters(String pipelineYaml) {
+        this.pipelineYaml = pipelineYaml;
     }
 
-    public String getPipelineJson() {
-        return pipelineJson;
+    public String getPipelineYaml() {
+        return pipelineYaml;
     }
 
     @Override
     public boolean checkParameters() {
-        return pipelineJson != null && !pipelineJson.isBlank();
+        return pipelineYaml != null && !pipelineYaml.isBlank();
     }
 }

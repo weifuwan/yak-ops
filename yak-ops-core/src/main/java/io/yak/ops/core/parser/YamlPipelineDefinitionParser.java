@@ -12,7 +12,6 @@ import io.yak.ops.core.definition.SourceDef;
 import io.yak.ops.core.definition.TransformDef;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -74,10 +73,8 @@ public final class YamlPipelineDefinitionParser implements PipelineDefinitionPar
                 }
             }
             ReadonlyConfig pipelineConfig = toConfiguration(root.get(PIPELINE_KEY), PIPELINE_KEY);
-            @SuppressWarnings("unchecked")
-            Map<String, Object> original = MAPPER.convertValue(root, Map.class);
             return new PipelineDef(
-                    ReadonlyConfig.fromMap(original), sourceDef, sinkDef, routes, transforms, pipelineConfig);
+                    ReadonlyConfig.fromMap(Map.of("pipelineYaml", content)), sourceDef, sinkDef, routes, transforms, pipelineConfig);
         } catch (IOException failure) {
             throw new IllegalArgumentException("Invalid pipeline YAML", failure);
         }

@@ -6,7 +6,7 @@ import java.util.Objects;
 
 /**
  * Declarative pipeline definition, based on Flink CDC 3.7's PipelineDef boundaries.
- * V5 is the only supported pipeline definition.
+ * V6 YAML is the only supported pipeline definition.
  */
 public final class PipelineDef {
     private final int version;
@@ -24,7 +24,7 @@ public final class PipelineDef {
             List<RouteDef> routes,
             List<TransformDef> transforms,
             ReadonlyConfig config) {
-        this.version = 5;
+        this.version = 6;
         this.original = Objects.requireNonNull(original, "original");
         this.source = Objects.requireNonNull(source, "source");
         this.sink = Objects.requireNonNull(sink, "sink");

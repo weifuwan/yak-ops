@@ -1,6 +1,5 @@
 package io.yak.ops.sync.runtime;
 
-import io.yak.ops.configuration.ConfigParser;
 import io.yak.ops.configuration.Option;
 import io.yak.ops.configuration.Options;
 import io.yak.ops.configuration.ReadonlyConfig;
@@ -11,7 +10,7 @@ import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.composer.PipelineContext;
 import io.yak.ops.core.composer.PipelineExecution;
 import io.yak.ops.core.composer.PipelinePlan;
-import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
+import io.yak.ops.core.parser.YamlPipelineDefinitionParser;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
@@ -21,28 +20,18 @@ import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.sync.runtime.config.JobConfig;
 import io.yak.ops.sync.runtime.validation.JobConfigValidator;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * Unified V5 data synchronization definition, admission, and deferred submission service.
+ * Unified V6 YAML data synchronization definition, admission, and deferred submission service.
  * Task plugins only delegate to this service; engine configuration and planning stay in runtime.
  */
 public final class PipelineService {
-    private static final Option<java.util.Map<String, Object>> SOURCE =
-            Options.key("source").mapObjectType().noDefaultValue();
-    private static final Option<java.util.Map<String, Object>> SINK =
-            Options.key("sink").mapObjectType().noDefaultValue();
-    private static final Option<List<Object>> ROUTE =
-            Options.key("route").listType(Object.class).noDefaultValue();
-    private static final Option<List<Object>> TRANSFORM =
-            Options.key("transform").listType(Object.class).noDefaultValue();
-    private static final Option<java.util.Map<String, Object>> PIPELINE =
-            Options.key("pipeline").mapObjectType().noDefaultValue();
-    private static final OptionRule RULE = OptionRule.builder()
-            .required(SOURCE, SINK)
-            .optional(ROUTE, TRANSFORM, PIPELINE)
-            .build();
+    private static final Option<String> PIPELINE_YAML =
+            Options.key("pipelineYaml").stringType().noDefaultValue();
+    private static final OptionRule RULE = OptionRule.builder().required(PIPELINE_YAML).build();
 
     private final FactoryUtil factories;
     private final PipelineComposer composer;
@@ -58,11 +47,11 @@ public final class PipelineService {
 
     public ReadonlyConfig parse(String content) {
         try {
-            ReadonlyConfig parsed =
-                    new JsonPipelineDefinitionParser().parse(content).getOriginal();
-            return JobConfigValidator.validateConfig(parsed, factories).parameters();
+            new YamlPipelineDefinitionParser().parse(content);
+            ReadonlyConfig parameters = ReadonlyConfig.fromMap(Map.of(PIPELINE_YAML.key(), content));
+            return JobConfigValidator.validateConfig(parameters, factories).parameters();
         } catch (RuntimeException failure) {
-            throw new TaskPluginException("Invalid V5 DATA_SYNC pipeline JSON", failure);
+            throw new TaskPluginException("Invalid V6 DATA_SYNC Pipeline YAML", failure);
         }
     }
 
@@ -112,7 +101,7 @@ public final class PipelineService {
 
     public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
         return admission(composer.plan(
-                new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters)), context(context, false)));
+                new YamlPipelineDefinitionParser().parse(JobConfig.yaml(parameters)), context(context, false)));
     }
 
     public PipelineExecution submit(
