@@ -1,8 +1,10 @@
 package io.yak.ops.plugin.task.datasync;
 
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
+import io.yak.ops.configuration.ReadonlyConfig;
+import io.yak.ops.plugin.task.api.TaskPluginException;
 
-/** Opaque V6 Pipeline YAML carried by the DATA_SYNC Task. */
+/** Opaque Flink CDC Pipeline YAML carried by the DATA_SYNC Task. */
 public final class PipelineParameters extends AbstractParameters {
     private final String pipelineYaml;
 
@@ -12,6 +14,14 @@ public final class PipelineParameters extends AbstractParameters {
 
     public String getPipelineYaml() {
         return pipelineYaml;
+    }
+
+    public static String yaml(ReadonlyConfig parameters) {
+        Object value = parameters.getSourceMap().get("pipelineYaml");
+        if (!(value instanceof String text) || text.isBlank()) {
+            throw new TaskPluginException("DATA_SYNC requires Pipeline YAML");
+        }
+        return text;
     }
 
     @Override

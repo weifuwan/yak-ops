@@ -19,7 +19,7 @@ import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.data.TableRecord;
 import io.yak.ops.sync.runtime.config.JobOptions;
-import io.yak.ops.sync.runtime.validation.JobConfigValidator;
+import io.yak.ops.sync.runtime.validation.PipelineDefinitionValidator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -47,7 +47,7 @@ class FactoryUtilContractTest {
         FactoryUtil.validate(source, factories.source("EXTERNAL"), JobOptions.ENDPOINT_RULE);
         assertEquals("EXTERNAL", factories.source(source.get(JobOptions.TYPE)).factoryIdentifier());
         // A registered Connector is not an automatically enabled product solution.
-        assertThrows(TaskPluginException.class, () -> JobConfigValidator.validateConfig(
+        assertThrows(TaskPluginException.class, () -> PipelineDefinitionValidator.validateConfig(
                 ConfigParser.parseJson("""
                     {
                       "source":{"type":"EXTERNAL","datasourceId":"source","table":"orders"},

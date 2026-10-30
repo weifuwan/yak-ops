@@ -145,7 +145,7 @@ public final class PipelineExecutionPlan {
         }
 
         String expectedRuntime = realtime && dataSteps.contains(Step.INCREMENTAL) ? "STREAMING" : "BATCH";
-        String runtime = optional(definition.getConfig().getSourceMap(), "execution.runtime-mode", expectedRuntime);
+        String runtime = optional(pipelineOptions, "execution.runtime-mode", expectedRuntime);
         if (!expectedRuntime.equals(runtime)) {
             throw new IllegalArgumentException("Pipeline runtime mode conflicts with source mode");
         }
