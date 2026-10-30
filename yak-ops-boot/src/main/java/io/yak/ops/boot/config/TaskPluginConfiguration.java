@@ -11,12 +11,13 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
 import io.yak.ops.plugin.task.datasync.PipelineTaskChannelFactory;
-import io.yak.ops.plugin.task.datasync.execution.YakFlowPipelineComposer;
-import io.yak.ops.plugin.task.datasync.pipeline.EnvironmentOptions;
-import io.yak.ops.plugin.task.datasync.pipeline.ExecutionConfigurationFactory;
-import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
-import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
-import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
+import io.yak.ops.sync.runtime.PipelineService;
+import io.yak.ops.sync.runtime.execution.YakFlowPipelineComposer;
+import io.yak.ops.sync.runtime.pipeline.EnvironmentOptions;
+import io.yak.ops.sync.runtime.pipeline.ExecutionConfigurationFactory;
+import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;
+import io.yak.ops.sync.runtime.plan.JobPlanner;
+import io.yak.ops.sync.runtime.solution.SolutionCatalog;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -103,9 +104,9 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    io.yak.ops.plugin.task.datasync.execution.IncrementalBatchPreparation incrementalBatchPlanner(
+    io.yak.ops.sync.runtime.execution.IncrementalBatchPreparation incrementalBatchPlanner(
             DataSourceLookupService resources, io.yak.ops.plugin.task.api.execution.TaskCursorStore cursors) {
-        return new io.yak.ops.plugin.task.datasync.execution.IncrementalBatchPreparation(resources, cursors);
+        return new io.yak.ops.sync.runtime.execution.IncrementalBatchPreparation(resources, cursors);
     }
 
     @Bean
@@ -113,7 +114,7 @@ public class TaskPluginConfiguration {
             JobPlanner planner,
             PipelineBuilder builder,
             PipelineExecutor executor,
-            io.yak.ops.plugin.task.datasync.execution.IncrementalBatchPreparation incrementalPreparation) {
+            io.yak.ops.sync.runtime.execution.IncrementalBatchPreparation incrementalPreparation) {
         return new YakFlowPipelineComposer(planner, builder, executor, incrementalPreparation);
     }
 
@@ -123,13 +124,18 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    PipelineTaskChannel pipelineTaskPlugin(FactoryUtil factories, PipelineComposer composer) {
-        return new PipelineTaskChannel(factories, composer);
+    PipelineService pipelineService(FactoryUtil factories, PipelineComposer composer) {
+        return new PipelineService(factories, composer);
     }
 
     @Bean
-    PipelineTaskChannelFactory pipelineTaskChannelFactory(FactoryUtil factories, PipelineComposer composer) {
-        return new PipelineTaskChannelFactory(factories, composer);
+    PipelineTaskChannel pipelineTaskPlugin(PipelineService service) {
+        return new PipelineTaskChannel(service);
+    }
+
+    @Bean
+    PipelineTaskChannelFactory pipelineTaskChannelFactory(PipelineService service) {
+        return new PipelineTaskChannelFactory(service);
     }
 
     @Bean
