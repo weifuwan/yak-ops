@@ -126,6 +126,7 @@ assert.equal("sink" in request, false);
 assert.equal("env" in request, false);
 
 const transport = compile("../apps/web/service/data-sync/definition.ts", {
+  "./pipeline-yaml.ts": { encodePipelineYaml: (value) => value },
   "./parameters.ts": {
     solutionSyncType: (solution) => (solution.endsWith("_REALTIME") ? "REALTIME" : "OFFLINE"),
     supportsMultipleTables: (solution) => solution.startsWith("DATABASE_"),
@@ -141,7 +142,7 @@ const realtimeOnlyDefinition = transport.createDefinitionRequest(realtimeOnlyPay
 assert.equal(realtimeOnlyDefinition.source.startup.mode, "LATEST_OFFSET");
 assert.equal(realtimeOnlyDefinition.pipeline["execution.runtime-mode"], "STREAMING");
 
-// Real editor payload path must preserve a V5 offset even when editing other fields.
+// Editor projection must preserve a CDC offset even when editing other fields.
 const persistedStartup = {
   mode: "SPECIFIC_OFFSETS",
   file: "mysql-bin.000123",

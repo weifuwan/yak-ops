@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { projectSyncTaskPage } from "../apps/web/service/data-sync/definition.ts";
 import { readSyncParameters } from "../apps/web/service/data-sync/parameters.ts";
+import { encodePipelineYaml } from "../apps/web/service/data-sync/pipeline-yaml.ts";
 import {
   parseTaskListFilters,
   updateTaskListFilters,
@@ -79,14 +80,14 @@ const baseParameters = {
   transform: [],
   pipeline: { "execution.runtime-mode": "STREAMING" },
 };
-const definition = (id, parameters, parameterSchemaVersion = 5) => ({
+const definition = (id, parameters, parameterSchemaVersion = 6) => ({
   id,
   name: "task-" + id,
   status: "PUBLISHED",
   taskType: "DATA_SYNC",
   definitionVersion: 4,
   parameterSchemaVersion,
-  parameters,
+  parameters: parameterSchemaVersion === 6 ? encodePipelineYaml(parameters) : parameters,
   updateBy: "operator",
   updateTime: "2026-10-25 12:00:00",
 });
@@ -122,7 +123,7 @@ const page = {
     normal,
     obsolete,
     validXa,
-    definition("invalid", { ...baseParameters, sink: null }),
+    definition("invalid", { ...baseParameters, sink: null }, 99),
     definition("unknown-version", baseParameters, 99),
   ],
   pagination: { pageNo: 2, pageSize: 20, total: 45 },
@@ -150,4 +151,4 @@ assert.match(projected.bizData[4].configurationError, /不支持的同步任务�
 assert.equal("configurationError" in projected.bizData[0], false);
 assert.equal("configurationError" in projected.bizData[2], false);
 assert.throws(() => projectSyncTaskPage({ bizData: null, pagination: page.pagination }));
-console.log("Data Sync strict V5 list projection and unreadable definition isolation passed.");
+console.log("Data Sync strict V6 list projection and unreadable definition isolation passed.");

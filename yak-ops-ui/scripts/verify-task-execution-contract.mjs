@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { encodePipelineYaml } from "../apps/web/service/data-sync/pipeline-yaml.ts";
 
 import {
   canCancelTaskInstance,
@@ -18,8 +19,8 @@ const version = {
   version: 2,
   name: "orders",
   taskType: "DATA_SYNC",
-  parameterSchemaVersion: 5,
-  parameters: {
+  parameterSchemaVersion: 6,
+  parameters: encodePipelineYaml({
     source: {
       type: "MYSQL_CDC",
       datasourceId: "mysql-source",
@@ -38,7 +39,7 @@ const version = {
     route: [{ "source-table": "orders", "sink-table": "public.ods_orders" }],
     transform: [],
     pipeline: { "execution.runtime-mode": "STREAMING" },
-  },
+  }),
 };
 const instance = {
   id: "instance-1",
