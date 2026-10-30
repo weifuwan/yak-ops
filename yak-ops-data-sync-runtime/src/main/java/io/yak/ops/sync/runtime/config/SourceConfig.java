@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.config;
+package io.yak.ops.sync.runtime.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -11,8 +11,8 @@ import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.connector.cdc.mysql.table.StartupMode;
 import io.yak.ops.connector.cdc.mysql.table.StartupOptions;
-import io.yak.ops.plugin.task.datasync.solution.SolutionType;
-import io.yak.ops.plugin.task.datasync.solution.Step;
+import io.yak.ops.sync.runtime.solution.SolutionType;
+import io.yak.ops.sync.runtime.solution.Step;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;

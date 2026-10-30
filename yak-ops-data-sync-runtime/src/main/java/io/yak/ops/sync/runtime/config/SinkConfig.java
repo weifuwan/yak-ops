@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.config;
+package io.yak.ops.sync.runtime.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -10,8 +10,8 @@ import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
-import io.yak.ops.plugin.task.datasync.solution.SolutionType;
-import io.yak.ops.plugin.task.datasync.solution.Step;
+import io.yak.ops.sync.runtime.solution.SolutionType;
+import io.yak.ops.sync.runtime.solution.Step;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;

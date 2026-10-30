@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.config;
+package io.yak.ops.sync.runtime.config;
 
 import io.yak.ops.configuration.Option;
 import io.yak.ops.configuration.Options;
@@ -6,8 +6,8 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.cdc.mysql.table.StartupOptions;
-import io.yak.ops.plugin.task.datasync.solution.SolutionType;
-import io.yak.ops.plugin.task.datasync.solution.Step;
+import io.yak.ops.sync.runtime.solution.SolutionType;
+import io.yak.ops.sync.runtime.solution.Step;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
