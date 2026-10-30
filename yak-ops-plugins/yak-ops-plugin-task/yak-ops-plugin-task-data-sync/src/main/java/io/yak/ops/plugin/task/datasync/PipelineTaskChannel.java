@@ -98,7 +98,6 @@ public final class PipelineTaskChannel implements TaskChannel {
         return new TaskExecutionResources(claims, plan.resourceRevision());
     }
 
-
     @Override
     public void validateUpdate(ReadonlyConfig previous, ReadonlyConfig updated, TaskValidationContext context) {
         JobConfig before = JobConfig.from(previous);

@@ -55,8 +55,14 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
         }
         TaskExecutionResources admission = new TaskExecutionResources(claims, plan.resourceRevision());
         return new YakFlowPipelineExecution(
-                parameters, admission, identity(context), context.debug(),
-                planner, builder, executor, incrementalPreparation);
+                parameters,
+                admission,
+                identity(context),
+                context.debug(),
+                planner,
+                builder,
+                executor,
+                incrementalPreparation);
     }
 
     private static TaskExecutionIdentity identity(PipelineContext context) {
