@@ -19,8 +19,7 @@ class PipelineYamlConverterTest {
               "source": {
                 "type": "MYSQL_CDC", "datasourceId": "source",
                 "startup": {"mode": "SPECIFIC_OFFSETS", "file": "mysql-bin.000123", "pos": 45678},
-                "tables": [{"database": "app", "table": "orders",
-                            "snapshot": {"chunkKeyColumn": "id"}}]
+                "tables": [{"database": "app", "table": "orders"}]
               },
               "sink": {
                 "type": "JDBC", "datasourceId": "target",
@@ -81,6 +80,6 @@ class PipelineYamlConverterTest {
         PipelineExecutionPlan plan = PipelineExecutionPlan.from(
                 new YamlPipelineDefinitionParser().parse(
                         PipelineYamlConverter.convert(ConfigParser.parseJson(json))));
-        assertEquals("BATCH", plan.steps().size() == 1 ? "BATCH" : "OTHER");
+        assertEquals(1, plan.steps().size());
     }
 }
