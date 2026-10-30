@@ -1,6 +1,6 @@
 package io.yak.ops.sync.runtime.execution;
 
-import io.yak.ops.configuration.ReadonlyConfig;
+import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.composer.PipelineExecution;
@@ -9,7 +9,7 @@ import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
-import io.yak.ops.sync.runtime.config.JobConfig;
+import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
 import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;
 import io.yak.ops.sync.runtime.plan.JobPlan;
 import io.yak.ops.sync.runtime.plan.JobPlanner;
@@ -27,7 +27,7 @@ import org.slf4j.MDC;
 /** Owns every DATA_SYNC execution from platform registration through physical termination. */
 public final class YakFlowPipelineExecution implements PipelineExecution {
     private static final Logger LOG = LoggerFactory.getLogger(YakFlowPipelineExecution.class);
-    private final ReadonlyConfig parameters;
+    private final PipelineDef definition;
     private final TaskExecutionResources admission;
     private final TaskExecutionIdentity identity;
     private final boolean debug;
@@ -47,7 +47,7 @@ public final class YakFlowPipelineExecution implements PipelineExecution {
     private CompletableFuture<Void> cancellation;
 
     public YakFlowPipelineExecution(
-            ReadonlyConfig parameters,
+            PipelineDef definition,
             TaskExecutionResources admission,
             TaskExecutionIdentity identity,
             boolean debug,
@@ -56,7 +56,7 @@ public final class YakFlowPipelineExecution implements PipelineExecution {
             PipelineExecutor executor,
             IncrementalBatchPreparation incrementalPreparation) {
         this.incrementalPreparation = incrementalPreparation;
-        this.parameters = parameters;
+        this.definition = definition;
         this.admission = admission;
         this.identity = identity;
         this.debug = debug;
@@ -89,9 +89,9 @@ public final class YakFlowPipelineExecution implements PipelineExecution {
         try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", identity.instanceId())) {
             try {
                 checkCanceled();
-                JobPlan plan = planner.plan(parameters, identity);
+                JobPlan plan = planner.plan(definition, identity);
                 verifyAdmission(plan);
-                JobConfig config = JobConfig.from(parameters);
+                PipelineExecutionPlan config = PipelineExecutionPlan.from(definition);
                 IncrementalBatchPreparation.IncrementalRun incremental =
                         config.solutionType().supportsScheduling()
                                         && config.steps().contains(Step.INCREMENTAL)

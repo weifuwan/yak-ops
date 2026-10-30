@@ -1,6 +1,5 @@
 package io.yak.ops.sync.runtime.execution;
 
-import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.composer.PipelineContext;
 import io.yak.ops.core.composer.PipelineExecution;
@@ -16,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Compiles V5 definitions with the existing YakFlow execution algorithm. */
+/** Composes Flink CDC 3.7 Pipeline definitions with the existing YakFlow execution algorithm. */
 public final class YakFlowPipelineComposer implements PipelineComposer {
     private final JobPlanner planner;
     private final PipelineBuilder builder;
@@ -36,7 +35,7 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
 
     @Override
     public PipelinePlan plan(PipelineDef definition, PipelineContext context) {
-        TaskExecutionResources resources = planner.admissionPlan(definition.getOriginal(), identity(context));
+        TaskExecutionResources resources = planner.admissionPlan(definition, identity(context));
         List<PipelinePlan.ResourceClaim> claims = new ArrayList<>();
         for (ExecutionResource resource : resources.exclusiveResources()) {
             claims.add(new PipelinePlan.ResourceClaim(resource.type(), resource.key()));
@@ -48,14 +47,13 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
     public PipelineExecution compose(PipelineDef definition, PipelinePlan plan, PipelineContext context) {
         // The plan was admitted by plan() and checked against the Task scheduler's claim.
         // Physical execution revalidates the metadata before any write or DDL.
-        ReadonlyConfig parameters = definition.getOriginal();
         List<ExecutionResource> claims = new ArrayList<>();
         for (PipelinePlan.ResourceClaim resource : plan.resources()) {
             claims.add(new ExecutionResource(resource.type(), resource.key()));
         }
         TaskExecutionResources admission = new TaskExecutionResources(claims, plan.resourceRevision());
         return new YakFlowPipelineExecution(
-                parameters,
+                definition,
                 admission,
                 identity(context),
                 context.debug(),

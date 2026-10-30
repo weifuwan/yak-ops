@@ -1,15 +1,12 @@
 package io.yak.ops.sync.runtime;
 
-import io.yak.ops.configuration.Option;
-import io.yak.ops.configuration.Options;
-import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.composer.PipelineContext;
 import io.yak.ops.core.composer.PipelineExecution;
 import io.yak.ops.core.composer.PipelinePlan;
+import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.parser.YamlPipelineDefinitionParser;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
@@ -17,50 +14,42 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
-import io.yak.ops.sync.runtime.config.JobConfig;
-import io.yak.ops.sync.runtime.validation.JobConfigValidator;
+import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
+import io.yak.ops.sync.runtime.validation.PipelineDefinitionValidator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Unified V6 YAML data synchronization definition, admission, and deferred submission service.
- * Task plugins only delegate to this service; engine configuration and planning stay in runtime.
+ * Parses Flink CDC Pipeline YAML and coordinates YakFlow planning, admission, and execution.
+ *
+ * <p>The Task Plugin owns transport conversion. This service receives YAML only; it does not
+ * understand the frontend JSON contract.
  */
 public final class PipelineService {
-    private static final Option<String> PIPELINE_YAML =
-            Options.key("pipelineYaml").stringType().noDefaultValue();
-    private static final Option<Map<String, Object>> INDEX =
-            Options.key("index").mapObjectType().noDefaultValue();
-    private static final OptionRule RULE =
-            OptionRule.builder().required(PIPELINE_YAML).optional(INDEX).build();
-
     private final FactoryUtil factories;
     private final PipelineComposer composer;
+    private final YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
 
     public PipelineService(FactoryUtil factories, PipelineComposer composer) {
         this.factories = Objects.requireNonNull(factories, "factories");
         this.composer = Objects.requireNonNull(composer, "composer");
     }
 
-    public OptionRule optionRule() {
-        return RULE;
-    }
-
-    public ReadonlyConfig parse(String content) {
+    /** Parses and validates a Pipeline definition and returns server-derived query indexes. */
+    public io.yak.ops.configuration.ReadonlyConfig parse(String yaml) {
         try {
-            new YamlPipelineDefinitionParser().parse(content);
-            ReadonlyConfig parameters = ReadonlyConfig.fromMap(Map.of(PIPELINE_YAML.key(), content));
-            JobConfig job = JobConfigValidator.validateConfig(parameters, factories);
+            PipelineDef definition = parser.parse(yaml);
+            PipelineExecutionPlan plan = PipelineDefinitionValidator.validateConfig(definition, factories);
             Map<String, Object> index = Map.of(
-                    "sourceType", job.solutionType().sourceIdentifier(),
-                    "solutionType", job.solutionType().name(),
-                    "sourceDataSourceId", job.sourceDataSourceId(),
-                    "targetDataSourceId", job.targetDataSourceId());
-            return ReadonlyConfig.fromMap(Map.of(PIPELINE_YAML.key(), content, INDEX.key(), index));
+                    "sourceType", plan.solutionType().sourceIdentifier(),
+                    "solutionType", plan.solutionType().name(),
+                    "sourceDataSourceId", plan.sourceDataSourceId(),
+                    "targetDataSourceId", plan.targetDataSourceId());
+            return io.yak.ops.configuration.ReadonlyConfig.fromMap(Map.of("index", index));
         } catch (RuntimeException failure) {
-            throw new TaskPluginException("Invalid V6 DATA_SYNC Pipeline YAML", failure);
+            throw new TaskPluginException("Invalid DATA_SYNC Pipeline YAML", failure);
         }
     }
 
@@ -81,9 +70,9 @@ public final class PipelineService {
         return new TaskExecutionResources(claims, plan.resourceRevision());
     }
 
-    public void validateUpdate(ReadonlyConfig previous, ReadonlyConfig updated, TaskValidationContext context) {
-        JobConfig before = JobConfig.from(previous);
-        JobConfig after = JobConfig.from(updated);
+    public void validateUpdate(String previousYaml, String updatedYaml, TaskValidationContext context) {
+        PipelineExecutionPlan before = PipelineExecutionPlan.from(parser.parse(previousYaml));
+        PipelineExecutionPlan after = PipelineExecutionPlan.from(parser.parse(updatedYaml));
         if (before.solutionType() != after.solutionType()
                 || !context.dataSource(before.sourceDataSourceId())
                         .type()
@@ -95,30 +84,29 @@ public final class PipelineService {
         }
     }
 
-    public void validateReferences(ReadonlyConfig parameters, TaskValidationContext context) {
-        JobConfigValidator.validateReferences(parameters, context, factories);
+    public void validateReferences(String yaml, TaskValidationContext context) {
+        PipelineDefinitionValidator.validateReferences(parser.parse(yaml), context, factories);
     }
 
-    public void validate(ReadonlyConfig parameters, TaskValidationContext context) {
-        JobConfigValidator.validateResources(parameters, context, factories);
+    public void validate(String yaml, TaskValidationContext context) {
+        PipelineDefinitionValidator.validateResources(parser.parse(yaml), context, factories);
     }
 
-    public boolean supportsScheduling(ReadonlyConfig parameters) {
-        String identifier = JobConfig.from(parameters).solutionType().sourceIdentifier();
+    public boolean supportsScheduling(String yaml) {
+        String identifier = PipelineExecutionPlan.from(parser.parse(yaml)).solutionType().sourceIdentifier();
         return factories.source(identifier).boundedness() == Boundedness.BOUNDED;
     }
 
-    public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
-        return admission(composer.plan(
-                new YamlPipelineDefinitionParser().parse(JobConfig.yaml(parameters)), context(context, false)));
+    public TaskExecutionResources plan(String yaml, TaskExecutionIdentity identity) {
+        PipelineDef definition = parser.parse(yaml);
+        return admission(composer.plan(definition, context(identity, false)));
     }
 
     public PipelineExecution submit(
-            ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
+            String yaml, TaskExecutionResources plan, TaskExecutionIdentity identity, boolean debug) {
         try {
-            PipelineContext trusted = context(context, debug);
-            io.yak.ops.core.definition.PipelineDef definition =
-                    new YamlPipelineDefinitionParser().parse(JobConfig.yaml(parameters));
+            PipelineContext trusted = context(identity, debug);
+            PipelineDef definition = parser.parse(yaml);
             PipelinePlan admitted = composer.plan(definition, trusted);
             if (!plan.equals(admission(admitted))) {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
