@@ -4,7 +4,6 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.definition.RouteDef;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +25,8 @@ public final class V5PipelineAdapter {
         Map<String, Object> source = new LinkedHashMap<>(definition.getSource().getConfig().getSourceMap());
         Map<String, Object> sink = new LinkedHashMap<>(definition.getSink().getConfig().getSourceMap());
         String sourceType = definition.getSource().getType();
+        source.remove("type");
+        sink.remove("type");
         String sinkType = definition.getSink().getType();
         if (!"JDBC".equals(sinkType) || (!"JDBC".equals(sourceType) && !"MYSQL_CDC".equals(sourceType))) {
             throw new IllegalArgumentException("V5 connector combination is not supported by YakFlow");

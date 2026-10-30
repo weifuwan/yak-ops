@@ -1,6 +1,18 @@
 package io.yak.ops.plugin.task.datasync;
 
 import io.yak.ops.configuration.ConfigParser;
+import io.yak.ops.core.client.DataSyncClient;
+import io.yak.ops.core.client.DataSyncContext;
+import io.yak.ops.core.client.DataSyncJob;
+import io.yak.ops.core.client.DataSyncPlan;
+import io.yak.ops.core.definition.PipelineDef;
+import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
+import io.yak.ops.plugin.task.api.execution.ExecutionResource;
+import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
+import io.yak.ops.plugin.task.datasync.config.V5PipelineAdapter;
+import io.yak.ops.plugin.task.datasync.execution.DataSyncClientTaskHandle;
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.base.factory.FactoryUtil;
@@ -30,11 +42,18 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
     private final JobPlanner planner;
     private final DataSyncTaskExecutor executor;
     private final FactoryUtil factories;
+    private final DataSyncClient client;
 
     public DataSyncTaskPlugin(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
+        this(planner, executor, factories, null);
+    }
+
+    public DataSyncTaskPlugin(
+            JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories, DataSyncClient client) {
         this.planner = Objects.requireNonNull(planner, "planner");
         this.executor = Objects.requireNonNull(executor, "executor");
         this.factories = Objects.requireNonNull(factories, "factories");
+        this.client = client;
     }
 
     @Override
@@ -62,6 +81,40 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
         }
     }
 
+    @Override
+    public ReadonlyConfig parse(int schemaVersion, String content) {
+        if (schemaVersion == 4) return parse(content);
+        if (schemaVersion == 5) {
+            PipelineDef definition = new JsonPipelineDefinitionParser().parse(content);
+            if (definition.getVersion() != 5) {
+                throw new TaskPluginException("Expected V5 pipeline JSON");
+            }
+            JobConfigValidator.validateConfig(V5PipelineAdapter.toV4(definition), factories);
+            return definition.getOriginal();
+        }
+        throw new TaskPluginException("Unsupported DATA_SYNC parameter schema version");
+    }
+
+    private static ReadonlyConfig executable(ReadonlyConfig parameters) {
+        if (parameters.getSourceMap().containsKey("solutionType")) return parameters;
+        PipelineDef definition =
+                new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters));
+        return V5PipelineAdapter.toV4(definition);
+    }
+
+    private static DataSyncContext context(TaskExecutionIdentity identity, boolean debug) {
+        return new DataSyncContext(identity.workspaceId(), identity.definitionId(),
+                identity.definitionVersion(), identity.instanceId(), debug);
+    }
+
+    private static TaskExecutionResources admission(DataSyncPlan plan) {
+        List<ExecutionResource> claims = new ArrayList<>();
+        for (DataSyncPlan.ResourceClaim claim : plan.resources()) {
+            claims.add(new ExecutionResource(claim.type(), claim.key()));
+        }
+        return new TaskExecutionResources(claims, plan.resourceRevision());
+    }
+
     /**
      * Lists supported type-level choices without accessing actual datasource connections.
      *
@@ -75,8 +128,8 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public void validateUpdate(ReadonlyConfig previous, ReadonlyConfig updated, TaskValidationContext context) {
-        JobConfig before = JobConfig.from(previous);
-        JobConfig after = JobConfig.from(updated);
+        JobConfig before = JobConfig.from(executable(previous));
+        JobConfig after = JobConfig.from(executable(updated));
         if (before.solutionType() != after.solutionType()
                 || !context.dataSource(before.sourceDataSourceId())
                         .type()
@@ -90,28 +143,44 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public void validateReferences(ReadonlyConfig parameters, TaskValidationContext context) {
-        JobConfigValidator.validateReferences(parameters, context, factories);
+        JobConfigValidator.validateReferences(executable(parameters), context, factories);
     }
 
     @Override
     public void validate(ReadonlyConfig parameters, TaskValidationContext context) {
-        JobConfigValidator.validateResources(parameters, context, factories);
+        JobConfigValidator.validateResources(executable(parameters), context, factories);
     }
 
     @Override
     public boolean supportsScheduling(ReadonlyConfig parameters) {
-        String identifier = JobConfig.from(parameters).solutionType().sourceIdentifier();
+        String identifier = JobConfig.from(executable(parameters)).solutionType().sourceIdentifier();
         return factories.source(identifier).boundedness() == Boundedness.BOUNDED;
     }
 
     @Override
     public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
-        return planner.admissionPlan(parameters, context);
+        if (client != null) {
+            return admission(client.plan(ConfigParser.toJson(parameters), context(context, false)));
+        }
+        return planner.admissionPlan(executable(parameters), context);
     }
 
     @Override
     public CompletionStage<TaskHandle> start(
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
-        return executor.start(parameters, plan, context, debug);
+        if (client == null) return executor.start(executable(parameters), plan, context, debug);
+        try {
+            DataSyncContext trusted = context(context, debug);
+            String json = ConfigParser.toJson(parameters);
+            TaskExecutionResources actual = admission(client.plan(json, trusted));
+            if (!plan.equals(actual)) {
+                throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
+            }
+            DataSyncJob job = client.prepare(json, trusted);
+            return CompletableFuture.completedFuture(new DataSyncClientTaskHandle(job));
+        } catch (RuntimeException failure) {
+            return CompletableFuture.failedFuture(
+                    new TaskStartRejectedException("DATA_SYNC rejected before engine submission", failure));
+        }
     }
 }
