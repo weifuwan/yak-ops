@@ -1,10 +1,10 @@
 package io.yak.ops.plugin.task.api;
 
 import io.yak.ops.spi.SpiRegistry;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Objects;
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 /**
  * Resolves exact Task plugin types through the shared SPI registration mechanism.

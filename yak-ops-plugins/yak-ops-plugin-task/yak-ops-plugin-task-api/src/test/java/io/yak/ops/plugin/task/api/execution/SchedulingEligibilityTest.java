@@ -1,5 +1,7 @@
 package io.yak.ops.plugin.task.api.execution;
 
+import io.yak.ops.plugin.task.api.TaskChannel;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import io.yak.ops.configuration.ReadonlyConfig;

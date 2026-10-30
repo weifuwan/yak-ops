@@ -1,7 +1,6 @@
 package io.yak.ops.plugin.task.api;
 
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
