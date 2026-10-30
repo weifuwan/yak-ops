@@ -11,6 +11,7 @@ import type {
 } from "./types";
 import {
   displaySyncSteps,
+  pipelineSolutionType,
   parseSyncParameters,
   solutionSyncType,
   syncTableMappings,
@@ -45,60 +46,82 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
   const continuous = realtime && task.steps.includes("INCREMENTAL");
   const evolution = continuous && (task.schemaChangesEnabled ?? true);
   const dataSteps = (["FULL", "INCREMENTAL"] as const).filter((step) => task.steps.includes(step));
+  const physicalPath = (table: { database?: string; schema?: string; table: string }) =>
+    [table.database, table.schema, table.table].filter(Boolean).join(".");
+  const sourceTables = mappings.map((mapping) => ({
+    database: mapping.source.database,
+    schema: mapping.source.schema,
+    table: mapping.source.table,
+    ...(mapping.source.chunkKeyColumn
+      ? { snapshot: { chunkKeyColumn: mapping.source.chunkKeyColumn } }
+      : {}),
+    ...(mapping.incremental ? { incremental: { ...mapping.incremental } } : {}),
+  }));
+  const sinkTables = mappings.map((mapping) => ({
+    database: mapping.target.database,
+    schema: mapping.target.schema,
+    table: mapping.target.table,
+    write: {
+      mode: mapping.writeMode,
+      ...(mapping.target.primaryKeys?.length
+        ? { primaryKeys: [...mapping.target.primaryKeys] }
+        : {}),
+      ...(mapping.writeMode === "RETRACT"
+        ? { transaction: { mode: "CHECKPOINT_XA" as const } }
+        : {}),
+    },
+  }));
   return {
-    solutionType: task.solutionType,
-    steps: dataSteps,
     source: {
+      type: realtime ? ("MYSQL_CDC" as const) : ("JDBC" as const),
       datasourceId: task.sourceDataSourceId,
       ...(realtime
         ? {
-            startup: {
-              mode: task.steps.includes("FULL")
-                ? task.steps.includes("INCREMENTAL")
-                  ? ("initial" as const)
-                  : ("snapshot" as const)
-                : ("latest-offset" as const),
-            },
+            // Retain the full V5 offset when editing: steps alone cannot identify
+            // EARLIEST_OFFSET, SPECIFIC_OFFSETS or TIMESTAMP (or their parameters).
+            startup: task.startup
+              ? { ...task.startup }
+              : {
+                  mode: task.steps.includes("FULL")
+                    ? task.steps.includes("INCREMENTAL")
+                      ? ("INITIAL" as const)
+                      : ("SNAPSHOT" as const)
+                    : ("LATEST_OFFSET" as const),
+                },
           }
-        : {}),
-      tables: mappings.map((mapping, index) => ({
-        id: `table-${index + 1}`,
-        database: mapping.source.database,
-        schema: mapping.source.schema,
-        table: mapping.source.table,
-        ...(mapping.source.chunkKeyColumn
-          ? { snapshot: { chunkKeyColumn: mapping.source.chunkKeyColumn } }
-          : {}),
-        ...(mapping.incremental ? { incremental: { ...mapping.incremental } } : {}),
-      })),
+        : {
+            syncMode:
+              dataSteps.length === 2
+                ? ("FULL_AND_INCREMENTAL" as const)
+                : dataSteps.includes("INCREMENTAL")
+                  ? ("INCREMENTAL" as const)
+                  : ("FULL" as const),
+          }),
+      tables: sourceTables,
     },
-    transform: [],
     sink: {
+      type: "JDBC" as const,
       datasourceId: task.targetDataSourceId,
       schemaPolicy: {
-        initial: task.steps.includes("SCHEMA") ? "CREATE_OR_ALTER" : "VERIFY",
+        initial: task.steps.includes("SCHEMA") ? ("CREATE_OR_ALTER" as const) : ("VERIFY" as const),
         evolution: {
           enabled: evolution,
           allowDropColumns: Boolean(evolution && task.allowDropColumns),
         },
       },
-      tables: mappings.map((mapping, index) => ({
-        input: `table-${index + 1}`,
-        database: mapping.target.database,
-        schema: mapping.target.schema,
-        table: mapping.target.table,
-        write: {
-          mode: mapping.writeMode,
-          ...(mapping.target.primaryKeys?.length
-            ? { primaryKeys: [...mapping.target.primaryKeys] }
-            : {}),
-          ...(mapping.writeMode === "RETRACT"
-            ? { transaction: { mode: "CHECKPOINT_XA" as const } }
-            : {}),
-        },
-      })),
+      tables: sinkTables,
     },
-    env: {},
+    route: mappings.map((mapping) => ({
+      "source-table": physicalPath(mapping.source),
+      "sink-table": physicalPath(mapping.target),
+    })),
+    transform: [] as [],
+    pipeline: {
+      "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
+      "pipeline.table-scope": supportsMultipleTables(task.solutionType)
+        ? ("DATABASE" as const)
+        : ("SINGLE" as const),
+    },
   };
 }
 
@@ -145,7 +168,7 @@ export function definitionPageRequest(params: DataSyncTaskPageParams) {
   };
 }
 
-/** Projects one immutable V4 definition into the editor's transient UI state. */
+/** Projects one immutable V5 definition into the editor's transient UI state. */
 export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTaskRecord {
   if (definition.taskType !== "DATA_SYNC") throw new Error("不支持的同步任务定义");
   const parameters = parseSyncParameters(definition.parameterSchemaVersion, definition.parameters);
@@ -163,11 +186,12 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     tableMappings,
 
     name: definition.name,
-    solutionType: parameters.solutionType,
+    solutionType: pipelineSolutionType(parameters),
     steps: displaySyncSteps(parameters),
+    ...(parameters.source.startup ? { startup: { ...parameters.source.startup } } : {}),
     schemaChangesEnabled: parameters.sink.schemaPolicy.evolution.enabled,
     allowDropColumns: parameters.sink.schemaPolicy.evolution.allowDropColumns,
-    syncType: solutionSyncType(parameters.solutionType),
+    syncType: solutionSyncType(pipelineSolutionType(parameters)),
     status: definition.status,
     debug: definition.debug ?? false,
     writeMode: mapping.writeMode,

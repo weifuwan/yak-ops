@@ -219,7 +219,7 @@ async def verify_multitable_mapping(page):
                 if req[0] == "POST" and req[1] == "/api/v1/task-definitions"]
     assert len(requests) == 1, requests
     parameters = requests[0]["parameters"]
-    assert parameters["solutionType"] == "DATABASE_OFFLINE", parameters
+    assert parameters["source"]["type"] == "JDBC" and len(parameters["route"]) == 2, parameters
     assert [row["table"] for row in parameters["source"]["tables"]] == ["batch_a", "batch_b"]
     assert [row["table"] for row in parameters["sink"]["tables"]] == ["batch_a_copy", "batch_b_copy"]
     assert all(row["write"]["mode"] == "UPSERT" for row in parameters["sink"]["tables"])
@@ -276,7 +276,7 @@ async def verify_multitable_selection(page):
               if item[0] == "POST" and item[1] == "/api/v1/task-definitions"]
     assert len(writes) == 1, writes
     saved = writes[0]["parameters"]
-    assert saved["transform"] == [] and saved["env"] == {}
+    assert saved["transform"] == [] and saved["pipeline"]["execution.runtime-mode"] == "BATCH"
     assert [entry["table"] for entry in saved["source"]["tables"]] == ["batch_a"]
     assert [entry["table"] for entry in saved["sink"]["tables"]] == ["batch_a_copy"]
 
@@ -314,7 +314,7 @@ async def verify_schema_configuration(page):
     created = [req[2] for req in state["requests"]
                if req[0] == "POST" and req[1] == "/api/v1/task-definitions"][-1]
     params = created["parameters"]
-    assert params["steps"] == ["FULL"], params
+    assert params["source"]["syncMode"] == "FULL", params
     assert params["sink"]["schemaPolicy"]["initial"] == "CREATE_OR_ALTER"
     assert params["sink"]["tables"][0]["table"] == "sm_browser_target"
 
@@ -347,8 +347,8 @@ async def verify_realtime_stages(page):
     saved = [item[2] for item in state["requests"]
              if item[0] == "POST" and item[1] == "/api/v1/task-definitions"][-1]
     config = saved["parameters"]
-    assert config["solutionType"] == "DATABASE_REALTIME", config
-    assert config["steps"] == ["FULL", "INCREMENTAL"]
+    assert config["source"]["type"] == "MYSQL_CDC" and len(config["route"]) == 2, config
+    assert config["source"]["startup"]["mode"] == "INITIAL"
     assert len(config["sink"]["tables"]) == 2
     assert all(row["write"]["mode"] == "UPSERT" for row in config["sink"]["tables"])
 

@@ -1,40 +1,61 @@
 package io.yak.ops.plugin.task.datasync;
 
 import io.yak.ops.configuration.ConfigParser;
+import io.yak.ops.configuration.Option;
+import io.yak.ops.configuration.Options;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.api.connector.source.Boundedness;
+import io.yak.ops.core.composer.PipelineComposer;
+import io.yak.ops.core.composer.PipelineContext;
+import io.yak.ops.core.composer.PipelineExecution;
+import io.yak.ops.core.composer.PipelinePlan;
+import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.config.SolutionOptions;
-import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
-import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
+import io.yak.ops.plugin.task.datasync.execution.PipelineExecutionTaskHandle;
 import io.yak.ops.plugin.task.datasync.solution.Solution;
 import io.yak.ops.plugin.task.datasync.solution.SolutionCatalog;
 import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /** Owns DATA_SYNC Task definition rules and delegates physical planning and execution. */
-public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
+public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
 
     public static final String TYPE = "DATA_SYNC";
+    private static final Option<java.util.Map<String, Object>> SOURCE =
+            Options.key("source").mapObjectType().noDefaultValue();
+    private static final Option<java.util.Map<String, Object>> SINK =
+            Options.key("sink").mapObjectType().noDefaultValue();
+    private static final Option<List<Object>> ROUTE =
+            Options.key("route").listType(Object.class).noDefaultValue();
+    private static final Option<List<Object>> TRANSFORM =
+            Options.key("transform").listType(Object.class).noDefaultValue();
+    private static final Option<java.util.Map<String, Object>> PIPELINE =
+            Options.key("pipeline").mapObjectType().noDefaultValue();
+    private static final OptionRule RULE = OptionRule.builder()
+            .required(SOURCE, SINK)
+            .optional(ROUTE, TRANSFORM, PIPELINE)
+            .build();
 
-    private final JobPlanner planner;
-    private final DataSyncTaskExecutor executor;
     private final FactoryUtil factories;
+    private final PipelineComposer composer;
 
-    public DataSyncTaskPlugin(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
-        this.planner = Objects.requireNonNull(planner, "planner");
-        this.executor = Objects.requireNonNull(executor, "executor");
+    public PipelineTaskPlugin(FactoryUtil factories, PipelineComposer composer) {
         this.factories = Objects.requireNonNull(factories, "factories");
+        this.composer = Objects.requireNonNull(composer, "composer");
     }
 
     @Override
@@ -44,22 +65,40 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public int parameterSchemaVersion() {
-        return 4;
+        return 5;
     }
 
     @Override
     public OptionRule optionRule() {
-        return SolutionOptions.RULE;
+        return RULE;
     }
 
     @Override
     public ReadonlyConfig parse(String content) {
         try {
-            ReadonlyConfig parsed = ConfigParser.parseJson(content);
+            ReadonlyConfig parsed =
+                    new JsonPipelineDefinitionParser().parse(content).getOriginal();
             return JobConfigValidator.validateConfig(parsed, factories).parameters();
         } catch (RuntimeException failure) {
-            throw new TaskPluginException("Invalid DATA_SYNC pipeline JSON", failure);
+            throw new TaskPluginException("Invalid V5 DATA_SYNC pipeline JSON", failure);
         }
+    }
+
+    private static PipelineContext context(TaskExecutionIdentity identity, boolean debug) {
+        return new PipelineContext(
+                identity.workspaceId(),
+                identity.definitionId(),
+                identity.definitionVersion(),
+                identity.instanceId(),
+                debug);
+    }
+
+    private static TaskExecutionResources admission(PipelinePlan plan) {
+        List<ExecutionResource> claims = new ArrayList<>();
+        for (PipelinePlan.ResourceClaim claim : plan.resources()) {
+            claims.add(new ExecutionResource(claim.type(), claim.key()));
+        }
+        return new TaskExecutionResources(claims, plan.resourceRevision());
     }
 
     /**
@@ -106,12 +145,26 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
-        return planner.admissionPlan(parameters, context);
+        return admission(composer.plan(
+                new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters)), context(context, false)));
     }
 
     @Override
     public CompletionStage<TaskHandle> start(
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
-        return executor.start(parameters, plan, context, debug);
+        try {
+            PipelineContext trusted = context(context, debug);
+            io.yak.ops.core.definition.PipelineDef definition =
+                    new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters));
+            PipelinePlan admitted = composer.plan(definition, trusted);
+            if (!plan.equals(admission(admitted))) {
+                throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
+            }
+            PipelineExecution job = composer.compose(definition, admitted, trusted);
+            return CompletableFuture.completedFuture(new PipelineExecutionTaskHandle(job));
+        } catch (RuntimeException failure) {
+            return CompletableFuture.failedFuture(
+                    new TaskStartRejectedException("DATA_SYNC rejected before engine submission", failure));
+        }
     }
 }

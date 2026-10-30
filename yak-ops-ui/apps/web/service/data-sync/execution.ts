@@ -7,6 +7,7 @@ import type { DataSyncInstancePageParams, DataSyncInstanceRecord } from "./types
 
 import {
   displaySyncSteps,
+  pipelineSolutionType,
   parseSyncParameters,
   solutionSyncType,
   syncTableMappings,
@@ -56,13 +57,13 @@ export function toDataSyncInstanceRecord(
     writeMode: tableMappings[0].writeMode,
   };
   const steps = displaySyncSteps(parameters);
-  const syncType = solutionSyncType(parameters.solutionType);
+  const syncType = solutionSyncType(pipelineSolutionType(parameters));
   const taskName = version.name;
 
   return {
     id: instance.id,
     executionReport: readExecutionReport(instance.executionReport, tableMappings.length, steps),
-    solutionType: parameters.solutionType,
+    solutionType: pipelineSolutionType(parameters),
     steps,
     taskId: instance.definitionId,
     taskName,
@@ -82,7 +83,7 @@ export function toDataSyncInstanceRecord(
     createTime: instance.createTime ?? undefined,
     definitionSnapshot: {
       tableMappings: tableMappings,
-      solutionType: parameters.solutionType,
+      solutionType: pipelineSolutionType(parameters),
       steps,
       taskId: instance.definitionId,
       taskName,

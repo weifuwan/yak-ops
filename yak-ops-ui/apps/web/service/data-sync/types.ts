@@ -122,23 +122,36 @@ export interface DataSyncStageReport extends DataSyncExecutionSummary {
 
 export type DataSyncExecutionReport = DataSyncBatchReport | DataSyncStageReport;
 
+/** The one persisted pipeline format; product SolutionType is derived, never serialized. */
 export interface DataSyncParameters {
-  solutionType: DataSyncSolutionType;
-  /** Data steps only; SCHEMA is an execution stage derived from Sink policy. */
-  steps: Array<"FULL" | "INCREMENTAL">;
   source: {
+    type: "JDBC" | "MYSQL_CDC";
     datasourceId: string;
-    startup?: { mode: "initial" | "snapshot" | "latest-offset" };
+    syncMode?: "FULL" | "INCREMENTAL" | "FULL_AND_INCREMENTAL";
+    startup?: {
+      mode:
+        | "INITIAL"
+        | "SNAPSHOT"
+        | "EARLIEST_OFFSET"
+        | "LATEST_OFFSET"
+        | "SPECIFIC_OFFSETS"
+        | "TIMESTAMP";
+      file?: string;
+      pos?: number;
+      gtidSet?: string;
+      timestampMillis?: number;
+      skipEvents?: number;
+      skipRows?: number;
+    };
     tables: Array<
       DataSyncTablePath & {
-        id: string;
         snapshot?: { chunkKeyColumn: string };
         incremental?: DataSyncIncrementalConfig;
       }
     >;
   };
-  transform: [];
   sink: {
+    type: "JDBC";
     datasourceId: string;
     schemaPolicy: {
       initial: "VERIFY" | "CREATE_OR_ALTER";
@@ -146,7 +159,6 @@ export interface DataSyncParameters {
     };
     tables: Array<
       DataSyncTablePath & {
-        input: string;
         write: {
           mode: DataSyncWriteMode;
           primaryKeys?: string[];
@@ -155,8 +167,17 @@ export interface DataSyncParameters {
       }
     >;
   };
-  env: Record<string, never>;
+  route: Array<{ "source-table": string; "sink-table": string }>;
+  transform: [];
+  pipeline: {
+    "execution.runtime-mode": "BATCH" | "STREAMING";
+    /** V5-only product scope; never persist the old solutionType enum. */
+    "pipeline.table-scope"?: "SINGLE" | "DATABASE";
+  };
 }
+
+/** V5 MySQL CDC startup position, including specific file/GTID/timestamp fields. */
+export type DataSyncStartupOptions = NonNullable<DataSyncParameters["source"]["startup"]>;
 
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";
 
@@ -170,6 +191,8 @@ export interface DataSyncTaskRecord {
   allowDropColumns?: boolean;
   tableMappings: DataSyncTableMapping[];
   incremental?: DataSyncIncrementalConfig;
+  /** Read-only in the current editor; preserve the full V5 startup intent on parameter edits. */
+  startup?: DataSyncStartupOptions;
   solutionType: DataSyncSolutionType;
   steps: DataSyncStep[];
   name: string;
@@ -265,6 +288,7 @@ export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
   steps: DataSyncStep[];
   writeMode: DataSyncWriteMode;
   incremental?: DataSyncIncrementalConfig;
+  startup?: DataSyncStartupOptions;
 }
 
 export type DataSyncTaskUpdatePayload =

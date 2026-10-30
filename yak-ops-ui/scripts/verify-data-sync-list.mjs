@@ -60,24 +60,26 @@ assert.notDeepEqual(
 console.log("Data Sync list filter and scope checks passed.");
 
 const baseParameters = {
-  solutionType: "SINGLE_TABLE_REALTIME",
-  steps: ["FULL", "INCREMENTAL"],
   source: {
+    type: "MYSQL_CDC",
     datasourceId: "source",
-    tables: [{ id: "orders", table: "orders" }],
+    startup: { mode: "INITIAL" },
+    tables: [{ table: "orders" }],
   },
-  transform: [],
   sink: {
+    type: "JDBC",
     datasourceId: "target",
     schemaPolicy: {
       initial: "VERIFY",
       evolution: { enabled: false, allowDropColumns: false },
     },
-    tables: [{ input: "orders", table: "orders_copy", write: { mode: "UPSERT" } }],
+    tables: [{ table: "orders_copy", write: { mode: "UPSERT" } }],
   },
-  env: {},
+  route: [{ "source-table": "orders", "sink-table": "orders_copy" }],
+  transform: [],
+  pipeline: { "execution.runtime-mode": "STREAMING" },
 };
-const definition = (id, parameters, parameterSchemaVersion = 4) => ({
+const definition = (id, parameters, parameterSchemaVersion = 5) => ({
   id,
   name: "task-" + id,
   status: "PUBLISHED",
@@ -106,7 +108,6 @@ const validXa = definition("xa", {
     ...baseParameters.sink,
     tables: [
       {
-        input: "orders",
         table: "orders_copy",
         write: {
           mode: "RETRACT",
@@ -149,4 +150,4 @@ assert.match(projected.bizData[4].configurationError, /不支持的同步任务�
 assert.equal("configurationError" in projected.bizData[0], false);
 assert.equal("configurationError" in projected.bizData[2], false);
 assert.throws(() => projectSyncTaskPage({ bizData: null, pagination: page.pagination }));
-console.log("Data Sync strict V4 list projection and unreadable definition isolation passed.");
+console.log("Data Sync strict V5 list projection and unreadable definition isolation passed.");

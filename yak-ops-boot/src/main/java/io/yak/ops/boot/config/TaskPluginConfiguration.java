@@ -4,12 +4,14 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
+import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.datasync.DataSyncTaskPlugin;
-import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
+import io.yak.ops.plugin.task.datasync.PipelineTaskPlugin;
+import io.yak.ops.plugin.task.datasync.execution.PipelineTaskExecutor;
+import io.yak.ops.plugin.task.datasync.execution.YakFlowPipelineComposer;
 import io.yak.ops.plugin.task.datasync.pipeline.EnvironmentOptions;
 import io.yak.ops.plugin.task.datasync.pipeline.ExecutionConfigurationFactory;
 import io.yak.ops.plugin.task.datasync.pipeline.PipelineBuilder;
@@ -106,21 +108,26 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    DataSyncTaskExecutor dataSyncTaskExecutor(
+    PipelineTaskExecutor dataSyncTaskExecutor(
             JobPlanner planner,
             PipelineBuilder builder,
             PipelineExecutor executor,
             io.yak.ops.plugin.task.datasync.execution.IncrementalBatchPreparation incrementalPlanner) {
-        return new DataSyncTaskExecutor(planner, builder, executor, incrementalPlanner);
+        return new PipelineTaskExecutor(planner, builder, executor, incrementalPlanner);
     }
 
     @Bean
-    DataSyncTaskPlugin dataSyncTaskPlugin(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
-        return new DataSyncTaskPlugin(planner, executor, factories);
+    PipelineComposer pipelineComposer(JobPlanner planner, PipelineTaskExecutor executor) {
+        return new YakFlowPipelineComposer(planner, executor);
     }
 
     @Bean
-    TaskPluginRegistry taskPluginRegistry(DataSyncTaskPlugin taskPlugin) {
+    PipelineTaskPlugin pipelineTaskPlugin(FactoryUtil factories, PipelineComposer composer) {
+        return new PipelineTaskPlugin(factories, composer);
+    }
+
+    @Bean
+    TaskPluginRegistry taskPluginRegistry(PipelineTaskPlugin taskPlugin) {
         return new TaskPluginRegistry(List.of(taskPlugin));
     }
 }

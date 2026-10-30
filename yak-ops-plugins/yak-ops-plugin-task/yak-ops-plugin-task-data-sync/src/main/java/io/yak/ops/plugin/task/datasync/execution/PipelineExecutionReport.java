@@ -24,7 +24,7 @@ import java.util.OptionalInt;
  *
  * <p>No execution state or lifecycle decisions are owned by this projector.
  */
-final class DataSyncExecutionReport {
+final class PipelineExecutionReport {
     private final List<TablePlan> plans;
     private final TableMetrics metrics;
     private final boolean continuous;
@@ -33,7 +33,7 @@ final class DataSyncExecutionReport {
     private final boolean dataSubmitted;
     private final boolean preparationStopped;
 
-    DataSyncExecutionReport(
+    PipelineExecutionReport(
             List<TablePlan> plans,
             TableMetrics metrics,
             boolean continuous,

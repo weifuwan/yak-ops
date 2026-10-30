@@ -138,15 +138,36 @@ const realtimeOnly = {
 const realtimeOnlyPayload = params.buildEditorPayload(form, realtimeOnly, false, [], true);
 assert.equal("chunkKeyColumn" in realtimeOnlyPayload, false);
 const realtimeOnlyDefinition = transport.createDefinitionRequest(realtimeOnlyPayload).parameters;
-assert.equal(realtimeOnlyDefinition.source.startup.mode, "latest-offset");
-assert.deepEqual(Array.from(realtimeOnlyDefinition.steps), ["INCREMENTAL"]);
+assert.equal(realtimeOnlyDefinition.source.startup.mode, "LATEST_OFFSET");
+assert.equal(realtimeOnlyDefinition.pipeline["execution.runtime-mode"], "STREAMING");
+
+// Real editor payload path must preserve a V5 offset even when editing other fields.
+const persistedStartup = {
+  mode: "SPECIFIC_OFFSETS",
+  file: "mysql-bin.000123",
+  pos: 45678,
+  skipEvents: 2,
+  skipRows: 3,
+};
+const offsetEdit = params.buildEditorPayload(form, realtimeOnly, false, [], true, persistedStartup);
+const savedStartup = transport.createDefinitionRequest(offsetEdit).parameters.source.startup;
+assert.deepEqual(JSON.parse(JSON.stringify(savedStartup)), persistedStartup);
+const offlineStartupPayload = params.buildEditorPayload(
+  form,
+  { ...draft, solutionType: "SINGLE_TABLE_OFFLINE" },
+  false,
+  [],
+  false,
+  persistedStartup,
+);
+assert.equal("startup" in offlineStartupPayload, false);
 
 const snapshotDraft = { ...draft, steps: ["FULL"] };
 const snapshotPayload = params.buildEditorPayload(form, snapshotDraft, false, [], true);
 const snapshotDefinition = transport.createDefinitionRequest(snapshotPayload).parameters;
-assert.equal(snapshotDefinition.source.startup.mode, "snapshot");
+assert.equal(snapshotDefinition.source.startup.mode, "SNAPSHOT");
 assert.equal(snapshotDefinition.sink.schemaPolicy.evolution.enabled, false);
-assert.deepEqual(Array.from(snapshotDefinition.steps), ["FULL"]);
+assert.equal(snapshotDefinition.pipeline["execution.runtime-mode"], "BATCH");
 
 const incremental = {
   mode: "TIMESTAMP",
@@ -169,8 +190,8 @@ const offlinePayload = params.buildEditorPayload(offlineForm, offlineDraft, fals
 assert.equal(offlinePayload.incremental.column, "updated_at");
 assert.equal(offlinePayload.incremental.lookbackSeconds, 5);
 const offlineParameters = transport.createDefinitionRequest(offlinePayload).parameters;
-assert.equal(offlineParameters.solutionType, "SINGLE_TABLE_OFFLINE");
-assert.deepEqual(Array.from(offlineParameters.steps), ["FULL", "INCREMENTAL"]);
+assert.equal(offlineParameters.source.type, "JDBC");
+assert.equal(offlineParameters.source.syncMode, "FULL_AND_INCREMENTAL");
 assert.equal(offlineParameters.source.tables.length, 1);
 assert.deepEqual(
   JSON.parse(JSON.stringify(offlineParameters.source.tables[0].incremental)),
@@ -179,7 +200,7 @@ assert.deepEqual(
 assert.equal(offlineParameters.source.tables[0].table, "orders");
 assert.equal(offlineParameters.sink.tables[0].table, "ods_orders");
 assert.equal(offlineParameters.sink.tables[0].write.mode, "UPSERT");
-assert.deepEqual(JSON.parse(JSON.stringify(offlineParameters.env)), {});
+assert.equal("env" in offlineParameters, false);
 assert.equal("incremental" in offlineParameters.source, false);
 
 const incrementalOnly = {

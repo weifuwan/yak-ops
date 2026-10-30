@@ -18,6 +18,7 @@ export function buildEditorPayload(
   batch: boolean,
   mappings: DataSyncTableMapping[],
   usesChangelog: boolean,
+  startup?: DataSyncTaskSavePayload["startup"],
 ): DataSyncTaskSavePayload {
   const common = {
     name: form.name.trim(),
@@ -36,6 +37,7 @@ export function buildEditorPayload(
     ...common,
     solutionType: draft.solutionType,
     steps: draft.steps,
+    ...(usesChangelog && startup ? { startup: { ...startup } } : {}),
     writeMode: form.sink.writeMode,
     targetPrimaryKeys: form.sink.targetPrimaryKeys?.filter(Boolean) ?? [],
     ...(!batch && offlineIncremental(draft.solutionType, draft.steps) && form.source.incremental

@@ -5,21 +5,27 @@ import java.util.Map;
 
 /** Typed product filters target nested canonical JSON paths; bound filter values remain parameters. */
 public final class DefinitionSqlProvider {
-    /** The only supported DATA_SYNC parameter schema is version four. */
+    /** Filters are derived from the V5 pipeline; no persisted SolutionType is required. */
     public static final String SOURCE_TYPE = """
-            (CASE WHEN v.parameter_schema_version = 4 THEN
-              CASE JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.solutionType'))
-                WHEN 'SINGLE_TABLE_OFFLINE' THEN 'JDBC'
-                WHEN 'DATABASE_OFFLINE' THEN 'JDBC'
-                WHEN 'SINGLE_TABLE_REALTIME' THEN 'MYSQL_CDC'
-                WHEN 'DATABASE_REALTIME' THEN 'MYSQL_CDC'
-              END
+            (CASE WHEN v.parameter_schema_version = 5
+              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type'))
             END)
             """;
 
     public static final String SOLUTION_TYPE = """
-            (CASE WHEN v.parameter_schema_version = 4
-              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.solutionType'))
+            (CASE WHEN v.parameter_schema_version = 5 THEN
+              CASE
+                WHEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type')) = 'JDBC'
+                  THEN IF(COALESCE(
+                          JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.pipeline."pipeline.table-scope"')),
+                          IF(JSON_LENGTH(v.parameters, '$.source.tables') = 1, 'SINGLE', 'DATABASE')
+                        ) = 'SINGLE', 'SINGLE_TABLE_OFFLINE', 'DATABASE_OFFLINE')
+                WHEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type')) = 'MYSQL_CDC'
+                  THEN IF(COALESCE(
+                          JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.pipeline."pipeline.table-scope"')),
+                          IF(JSON_LENGTH(v.parameters, '$.source.tables') = 1, 'SINGLE', 'DATABASE')
+                        ) = 'SINGLE', 'SINGLE_TABLE_REALTIME', 'DATABASE_REALTIME')
+              END
             END)
             """;
 

@@ -245,7 +245,8 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
     else changeConnection(side, value);
   };
 
-  const payload = () => buildEditorPayload(form, draft, batch, mappings, usesChangelog);
+  const payload = () =>
+    buildEditorPayload(form, draft, batch, mappings, usesChangelog, initialTask?.startup);
 
   const published = editing && taskStatus === "PUBLISHED";
   const canSave = canSaveEditor({
@@ -393,6 +394,7 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
             continuous={continuous}
             useIncremental={useIncremental}
             initialLoad={initialLoad}
+            startupMode={initialTask?.startup?.mode}
             patchSource={patchSource}
             onSourceSchemaChange={(schema) =>
               updateSourceSelection((current) => selectSourceSchema(current, schema, usesChangelog))

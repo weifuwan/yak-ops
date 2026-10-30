@@ -94,47 +94,71 @@ public final class DataSyncFixture implements AutoCloseable {
                 "UPSERT");
     }
 
-    /** Builds the current public Source/Sink configuration from logical E2E table routes. */
+    /** Generates V5 definitions directly; no legacy parameter conversion. */
     public Map<String, Object> parameters(String solution, List<String> steps, List<Map<String, Object>> routes) {
+        boolean realtime = solution.endsWith("_REALTIME");
         List<Map<String, Object>> sourceTables = new ArrayList<>();
         List<Map<String, Object>> sinkTables = new ArrayList<>();
-        for (int index = 0; index < routes.size(); index++) {
-            var route = routes.get(index);
+        List<Map<String, Object>> tableRoutes = new ArrayList<>();
+        for (Map<String, Object> route : routes) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> source = (Map<String, Object>) route.get("source");
+            Map<String, Object> from = (Map<String, Object>) route.get("source");
             @SuppressWarnings("unchecked")
-            Map<String, Object> target = (Map<String, Object>) route.get("target");
-            String input = "table-" + (index + 1);
-            Map<String, Object> read = new LinkedHashMap<>(source);
-            read.put("id", input);
-            Object chunk = read.remove("chunkKeyColumn");
-            read.remove("xa");
-            if (chunk != null) read.put("snapshot", Map.of("chunkKeyColumn", chunk));
-            if (route.containsKey("incremental")) read.put("incremental", route.get("incremental"));
-            sourceTables.add(read);
-
+            Map<String, Object> to = (Map<String, Object>) route.get("target");
+            Map<String, Object> input = new LinkedHashMap<>(from);
+            Object chunkKey = input.remove("chunkKeyColumn");
+            input.remove("xa");
+            if (chunkKey != null) input.put("snapshot", Map.of("chunkKeyColumn", chunkKey));
+            if (route.containsKey("incremental")) input.put("incremental", route.get("incremental"));
+            sourceTables.add(input);
             Map<String, Object> write = new LinkedHashMap<>();
             write.put("mode", route.get("writeMode"));
-            if (target.containsKey("primaryKeys")) write.put("primaryKeys", target.get("primaryKeys"));
+            if (to.containsKey("primaryKeys")) write.put("primaryKeys", to.get("primaryKeys"));
             if ("RETRACT".equals(route.get("writeMode"))) {
                 write.put("transaction", Map.of("mode", "CHECKPOINT_XA"));
             }
-            Map<String, Object> output = new LinkedHashMap<>(target);
+            Map<String, Object> output = new LinkedHashMap<>(to);
             output.remove("primaryKeys");
-            output.put("input", input);
             output.put("write", write);
             sinkTables.add(output);
+            tableRoutes.add(Map.of("source-table", path(input), "sink-table", path(output)));
         }
-        Map<String, Object> policy = Map.of(
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("type", realtime ? "MYSQL_CDC" : "JDBC");
+        source.put("datasourceId", sourceId);
+        source.put("tables", sourceTables);
+        if (realtime) {
+            source.put("startup", Map.of("mode",
+                    !steps.contains("FULL") ? "LATEST_OFFSET"
+                            : steps.contains("INCREMENTAL") ? "INITIAL" : "SNAPSHOT"));
+        } else {
+            source.put("syncMode", steps.contains("FULL") && steps.contains("INCREMENTAL")
+                    ? "FULL_AND_INCREMENTAL"
+                    : steps.contains("INCREMENTAL") ? "INCREMENTAL" : "FULL");
+        }
+        Map<String, Object> sink = new LinkedHashMap<>();
+        sink.put("type", "JDBC");
+        sink.put("datasourceId", targetId);
+        sink.put("schemaPolicy", Map.of(
                 "initial", steps.contains("SCHEMA") ? "CREATE_OR_ALTER" : "VERIFY",
-                "evolution", Map.of("enabled", false, "allowDropColumns", false));
-        return Map.of(
-                "solutionType", solution,
-                "steps", steps.stream().filter(step -> !"SCHEMA".equals(step)).toList(),
-                "source", Map.of("datasourceId", sourceId, "tables", sourceTables),
-                "transform", List.of(),
-                "sink", Map.of("datasourceId", targetId, "schemaPolicy", policy, "tables", sinkTables),
-                "env", Map.of());
+                "evolution", Map.of("enabled", false, "allowDropColumns", false)));
+        sink.put("tables", sinkTables);
+        Map<String, Object> definition = new LinkedHashMap<>();
+        definition.put("source", source);
+        definition.put("sink", sink);
+        definition.put("route", tableRoutes);
+        definition.put("transform", List.of());
+        definition.put("pipeline", Map.of("execution.runtime-mode",
+                realtime && steps.contains("INCREMENTAL") ? "STREAMING" : "BATCH"));
+        return definition;
+    }
+
+    private static String path(Map<String, Object> table) {
+        List<String> names = new ArrayList<>();
+        for (String field : List.of("database", "schema", "table")) {
+            if (table.get(field) != null) names.add(table.get(field).toString());
+        }
+        return String.join(".", names);
     }
 
     /** Enables runtime target schema coordination in one Sink-owned location. */
@@ -186,25 +210,23 @@ public final class DataSyncFixture implements AutoCloseable {
         source.execute("CREATE TABLE keyless_target "
                 + "(bucket BIGINT NOT NULL, amount DECIMAL(14,2) NULL) ENGINE=InnoDB");
         source.execute("INSERT INTO keyless_source VALUES (1,10.00),(1,10.00),(2,NULL)");
-        Map<String, Object> parameters = Map.of(
-                "solutionType", "SINGLE_TABLE_REALTIME",
-                "steps", List.of("FULL", "INCREMENTAL"),
-                "source", Map.of("datasourceId", sourceId, "tables", List.of(Map.of(
-                        "id", "keyless",
-                        "table", "keyless_source",
-                        "snapshot", Map.of("chunkKeyColumn", "bucket")))),
-                "transform", List.of(),
-                "sink", Map.of(
-                        "datasourceId", sourceId,
-                        "schemaPolicy", Map.of("initial", "VERIFY",
-                                "evolution", Map.of("enabled", false, "allowDropColumns", false)),
-                        "tables", List.of(Map.of(
-                                "input", "keyless",
-                                "table", "keyless_target",
-                                "write", Map.of(
-                                        "mode", "RETRACT",
-                                        "transaction", Map.of("mode", "CHECKPOINT_XA"))))),
-                "env", Map.of());
+        Map<String, Object> parameters = new LinkedHashMap<>();
+        parameters.put("source", Map.of(
+                "type", "MYSQL_CDC", "datasourceId", sourceId,
+                "startup", Map.of("mode", "INITIAL"),
+                "tables", List.of(Map.of("table", "keyless_source",
+                        "snapshot", Map.of("chunkKeyColumn", "bucket")))));
+        parameters.put("sink", Map.of(
+                "type", "JDBC", "datasourceId", sourceId,
+                "schemaPolicy", Map.of("initial", "VERIFY",
+                        "evolution", Map.of("enabled", false, "allowDropColumns", false)),
+                "tables", List.of(Map.of("table", "keyless_target",
+                        "write", Map.of("mode", "RETRACT",
+                                "transaction", Map.of("mode", "CHECKPOINT_XA"))))));
+        parameters.put("route", List.of(Map.of(
+                "source-table", "keyless_source", "sink-table", "keyless_target")));
+        parameters.put("transform", List.of());
+        parameters.put("pipeline", Map.of("execution.runtime-mode", "STREAMING"));
         return create(parameters, true);
     }
 
