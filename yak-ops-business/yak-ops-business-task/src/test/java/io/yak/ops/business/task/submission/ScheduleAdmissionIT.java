@@ -538,7 +538,7 @@ class ScheduleAdmissionIT {
         enqueue("low", "shared", 1);
         enqueue("high", "shared", 10);
         TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
-        assertEquals("high", groups.waiting(10).get(0).getInstanceId());
+        assertEquals("high", groups.waiting(10, null).get(0).getInstanceId());
 
         groups.releaseOwned("ws", "other-instance");
         assertFalse(groups.tryAcquire("ws", "low"));
@@ -575,6 +575,25 @@ class ScheduleAdmissionIT {
         assertEquals(2, jdbc.queryForObject(
                 "SELECT COUNT(*) FROM yak_ops_task_group_queue WHERE task_id = 'multi' AND status = 1",
                 Integer.class));
+    }
+
+    @Test
+    void waitingQueueKeysetPagesPastThousandBlockedTasksToFreeResources() {
+        occupy("blocked");
+        for (int i = 0; i < 1000; i++) {
+            enqueue("blocked-" + i, "blocked", 10);
+        }
+        enqueue("free-resource", "free", 0);
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        List<TaskGroupQueueEntity> firstPage = groups.waiting(1000, null);
+        assertEquals(1000, firstPage.size());
+        assertTrue(firstPage.stream().noneMatch(row -> "free-resource".equals(row.getInstanceId())));
+
+        List<TaskGroupQueueEntity> secondPage = groups.waiting(1000, firstPage.get(firstPage.size() - 1));
+        assertEquals(1, secondPage.size());
+        assertEquals("free-resource", secondPage.get(0).getInstanceId());
+        assertTrue(groups.tryAcquire("ws", "free-resource"));
+        assertFalse(groups.tryAcquire("ws", "blocked-0"));
     }
 
     private static void enqueue(String instanceId, String resource, int priority) {
