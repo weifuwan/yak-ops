@@ -80,7 +80,8 @@ public final class PipelineTaskChannel implements TaskChannel {
     public CompletionStage<TaskHandle> createTask(
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity identity, boolean debug) {
         try {
-            return CompletableFuture.completedFuture(new PipelineTask(service.submit(parameters, plan, identity, debug)));
+            return CompletableFuture.completedFuture(
+                    new PipelineTask(service.submit(parameters, plan, identity, debug)));
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(failure);
         }
