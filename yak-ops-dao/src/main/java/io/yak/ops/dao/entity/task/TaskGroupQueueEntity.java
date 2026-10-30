@@ -12,4 +12,6 @@ public class TaskGroupQueueEntity extends BaseEntity {
     private String resourceType;
     private String resourceKey;
     private String instanceId;
+    /** Higher priority enters a free TaskGroup before lower priority; defaults to FIFO. */
+    private int priority;
 }
