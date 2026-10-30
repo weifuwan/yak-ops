@@ -17,10 +17,9 @@
 
 package io.yak.ops.core.definition;
 
-import javax.annotation.Nullable;
-
 import java.util.Objects;
 import java.util.Optional;
+import javax.annotation.Nullable;
 
 /**
  * Definition of a router.
@@ -37,13 +36,12 @@ public class RouteDef {
     private final String sourceTable;
     private final String sinkTable;
     private final String replaceSymbol;
-    @Nullable private final String description;
+
+    @Nullable
+    private final String description;
 
     public RouteDef(
-            String sourceTable,
-            String sinkTable,
-            @Nullable String replaceSymbol,
-            @Nullable String description) {
+            String sourceTable, String sinkTable, @Nullable String replaceSymbol, @Nullable String description) {
         this.sourceTable = sourceTable;
         this.sinkTable = sinkTable;
         this.replaceSymbol = replaceSymbol;

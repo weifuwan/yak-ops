@@ -24,13 +24,7 @@ const base = {
   targetTable: "ods_orders",
 };
 const definitionJson = createDefinitionRequest(base).parameters;
-assert.deepEqual(Object.keys(definitionJson), [
-  "source",
-  "sink",
-  "route",
-  "transform",
-  "pipeline",
-]);
+assert.deepEqual(Object.keys(definitionJson), ["source", "sink", "route", "transform", "pipeline"]);
 assert.equal(definitionJson.source.type, "MYSQL_CDC");
 assert.equal(definitionJson.source.startup.mode, "INITIAL");
 assert.equal(definitionJson.route[0]["source-table"], "orders");
@@ -103,10 +97,7 @@ const batch = buildSyncParameters({
 assert.equal(batch.source.type, "JDBC");
 assert.equal(batch.source.syncMode, "FULL");
 assert.equal(batch.route.length, 2);
-assert.equal(
-  pipelineSolutionType(readSyncParameters(6, batch)),
-  "DATABASE_OFFLINE",
-);
+assert.equal(pipelineSolutionType(readSyncParameters(6, batch)), "DATABASE_OFFLINE");
 
 const singleRouteDatabase = buildSyncParameters({
   ...base,
@@ -120,10 +111,7 @@ const singleRouteDatabase = buildSyncParameters({
   ],
 });
 assert.equal(singleRouteDatabase.pipeline["pipeline.table-scope"], "DATABASE");
-assert.equal(
-  pipelineSolutionType(readSyncParameters(6, singleRouteDatabase)),
-  "DATABASE_REALTIME",
-);
+assert.equal(pipelineSolutionType(readSyncParameters(6, singleRouteDatabase)), "DATABASE_REALTIME");
 assert.equal(syncTableMappings(readSyncParameters(6, batch)).length, 2);
 const withServerIndex = { ...definitionJson, index: { sourceType: "MYSQL_CDC" } };
 assert.deepEqual(readSyncParameters(6, withServerIndex), definitionJson);

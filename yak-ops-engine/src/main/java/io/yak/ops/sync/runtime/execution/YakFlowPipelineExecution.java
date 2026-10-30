@@ -1,9 +1,9 @@
 package io.yak.ops.sync.runtime.execution;
 
-import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.composer.PipelineExecution;
+import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.exceptions.SchemaEvolveException;
 import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.core.execution.PipelineExecutor;

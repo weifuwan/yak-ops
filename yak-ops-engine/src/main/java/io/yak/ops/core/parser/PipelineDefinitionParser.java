@@ -17,8 +17,8 @@
 
 package io.yak.ops.core.parser;
 
-import org.apache.flink.cdc.common.configuration.Configuration;
 import io.yak.ops.core.definition.PipelineDef;
+import org.apache.flink.cdc.common.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
 
 /** Parsing pipeline definition files and generate {@link PipelineDef}. */

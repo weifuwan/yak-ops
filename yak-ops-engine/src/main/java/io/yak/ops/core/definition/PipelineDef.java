@@ -17,23 +17,22 @@
 
 package io.yak.ops.core.definition;
 
-import org.apache.flink.cdc.common.annotation.VisibleForTesting;
-import org.apache.flink.cdc.common.configuration.Configuration;
-import org.apache.flink.cdc.common.pipeline.RouteMode;
-import org.apache.flink.cdc.common.pipeline.RuntimeExecutionMode;
-import org.apache.flink.cdc.common.types.LocalZonedTimestampType;
+import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_EXECUTION_RUNTIME_MODE;
+import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_LOCAL_TIME_ZONE;
+import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_ROUTE_MODE;
+
 import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.composer.PipelineExecution;
-
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.TimeZone;
-
-import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_EXECUTION_RUNTIME_MODE;
-import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_LOCAL_TIME_ZONE;
-import static org.apache.flink.cdc.common.pipeline.PipelineOptions.PIPELINE_ROUTE_MODE;
+import org.apache.flink.cdc.common.annotation.VisibleForTesting;
+import org.apache.flink.cdc.common.configuration.Configuration;
+import org.apache.flink.cdc.common.pipeline.RouteMode;
+import org.apache.flink.cdc.common.pipeline.RuntimeExecutionMode;
+import org.apache.flink.cdc.common.types.LocalZonedTimestampType;
 
 /**
  * Definition of a pipeline.
@@ -216,11 +215,10 @@ public class PipelineDef {
         }
 
         if (!isValid) {
-            throw new IllegalArgumentException(
-                    "Invalid time zone. The valid value should be a Time Zone Database ID "
-                            + "such as 'America/Los_Angeles' to include daylight saving time. "
-                            + "Fixed offsets are supported using 'GMT-08:00' or 'GMT+08:00'. "
-                            + "Or use 'UTC' without time zone and daylight saving time.");
+            throw new IllegalArgumentException("Invalid time zone. The valid value should be a Time Zone Database ID "
+                    + "such as 'America/Los_Angeles' to include daylight saving time. "
+                    + "Fixed offsets are supported using 'GMT-08:00' or 'GMT+08:00'. "
+                    + "Or use 'UTC' without time zone and daylight saving time.");
         }
     }
 }

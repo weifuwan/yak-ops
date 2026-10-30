@@ -1,12 +1,12 @@
 package io.yak.ops.sync.runtime.plan;
 
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.connector.jdbc.database.schema.SchemaChangePlan;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.event.CreateTableEvent;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
@@ -16,8 +16,8 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
-import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
 import io.yak.ops.sync.runtime.config.JobOptions;
+import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
 import io.yak.ops.sync.runtime.solution.SolutionValidator;
 import io.yak.ops.sync.runtime.solution.Step;
 import io.yak.ops.sync.runtime.validation.PipelineDefinitionValidator;
@@ -48,7 +48,10 @@ public final class JobPlanner {
     }
 
     public JobPlan plan(PipelineDef definition, TaskExecutionIdentity context) {
-        return resolve(PipelineDefinitionValidator.validateConfig(definition, factories), context.workspaceId(), context.instanceId());
+        return resolve(
+                PipelineDefinitionValidator.validateConfig(definition, factories),
+                context.workspaceId(),
+                context.instanceId());
     }
 
     /**

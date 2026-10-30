@@ -18,7 +18,6 @@ public final class PipelineParameters extends AbstractParameters {
 
     @Override
     public boolean checkParameters() {
-        return json.getSourceMap().containsKey("source")
-                && json.getSourceMap().containsKey("sink");
+        return json.getSourceMap().containsKey("source") && json.getSourceMap().containsKey("sink");
     }
 }

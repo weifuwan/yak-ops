@@ -11,8 +11,8 @@ import io.yak.ops.plugin.task.api.execution.TaskCursorBatch;
 import io.yak.ops.plugin.task.api.execution.TaskCursorStore;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.sync.runtime.config.IncrementalConfig;
-import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
 import io.yak.ops.sync.runtime.config.JobOptions;
+import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
 import io.yak.ops.sync.runtime.plan.JobPlan;
 import io.yak.ops.sync.runtime.plan.TablePlan;
 import io.yak.ops.sync.runtime.solution.Step;
@@ -38,7 +38,8 @@ public final class IncrementalBatchPreparation {
         this.cursors = Objects.requireNonNull(cursors, "cursors");
     }
 
-    public IncrementalRun prepare(JobPlan plan, PipelineExecutionPlan config, TaskExecutionIdentity identity) throws Exception {
+    public IncrementalRun prepare(JobPlan plan, PipelineExecutionPlan config, TaskExecutionIdentity identity)
+            throws Exception {
         if (!config.solutionType().supportsScheduling() || !config.steps().contains(Step.INCREMENTAL))
             throw new IllegalArgumentException("Expected bounded offline incremental task");
         List<TaskCursorBatch> proposals = new ArrayList<>();

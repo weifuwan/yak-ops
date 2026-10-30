@@ -44,8 +44,10 @@ public final class PipelineExecutionPlan {
     }
 
     public static PipelineExecutionPlan from(PipelineDef definition) {
-        Map<String, Object> from = new LinkedHashMap<>(definition.getSource().getConfig().toMap());
-        Map<String, Object> to = new LinkedHashMap<>(definition.getSink().getConfig().toMap());
+        Map<String, Object> from =
+                new LinkedHashMap<>(definition.getSource().getConfig().toMap());
+        Map<String, Object> to =
+                new LinkedHashMap<>(definition.getSink().getConfig().toMap());
         String sourceType = definition.getSource().getType();
         String sinkType = definition.getSink().getType();
         boolean realtime = "mysql".equals(sourceType);
@@ -89,7 +91,8 @@ public final class PipelineExecutionPlan {
             }
         }
 
-        Map<String, Object> pipelineOptions = new LinkedHashMap<>(definition.getConfig().toMap());
+        Map<String, Object> pipelineOptions =
+                new LinkedHashMap<>(definition.getConfig().toMap());
         // The upstream parser recognizes more options than YakFlow can currently execute.
         // Never accept an option and silently discard its execution semantics.
         for (String key : pipelineOptions.keySet()) {
@@ -105,10 +108,7 @@ public final class PipelineExecutionPlan {
             throw new IllegalArgumentException("YakFlow does not yet support custom pipeline time zones");
         }
 
-        String scope = optional(
-                pipelineOptions,
-                "yak.table-scope",
-                sourceTables.size() == 1 ? "SINGLE" : "DATABASE");
+        String scope = optional(pipelineOptions, "yak.table-scope", sourceTables.size() == 1 ? "SINGLE" : "DATABASE");
         if (!"SINGLE".equals(scope) && !"DATABASE".equals(scope)) {
             throw new IllegalArgumentException("Invalid yak.table-scope");
         }
@@ -360,7 +360,6 @@ public final class PipelineExecutionPlan {
         Long value = nullableLong(options, key);
         return value == null ? fallback : value;
     }
-
 
     public List<TableConfig> tables() {
         return tables;

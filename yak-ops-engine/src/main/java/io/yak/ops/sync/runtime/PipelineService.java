@@ -93,7 +93,8 @@ public final class PipelineService {
     }
 
     public boolean supportsScheduling(String yaml) {
-        String identifier = PipelineExecutionPlan.from(parser.parse(yaml)).solutionType().sourceIdentifier();
+        String identifier =
+                PipelineExecutionPlan.from(parser.parse(yaml)).solutionType().sourceIdentifier();
         return factories.source(identifier).boundedness() == Boundedness.BOUNDED;
     }
 

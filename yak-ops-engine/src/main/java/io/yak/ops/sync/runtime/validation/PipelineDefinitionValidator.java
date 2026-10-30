@@ -1,16 +1,16 @@
 package io.yak.ops.sync.runtime.validation;
 
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskValidationException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
-import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
 import io.yak.ops.sync.runtime.config.JobOptions;
+import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
 import io.yak.ops.sync.runtime.solution.SolutionValidator;
 import java.util.HashSet;
 import java.util.Objects;
@@ -49,8 +49,7 @@ public final class PipelineDefinitionValidator {
     }
 
     /** Validates all authorized source/target schemas; no DDL or writes are performed. */
-    public static void validateResources(
-            PipelineDef definition, TaskValidationContext context, FactoryUtil factories) {
+    public static void validateResources(PipelineDef definition, TaskValidationContext context, FactoryUtil factories) {
         validateBindings(PipelineExecutionPlan.from(definition), context, factories, true);
     }
 

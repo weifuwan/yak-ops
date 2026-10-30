@@ -42,11 +42,13 @@ public final class PipelineYamlConverter {
         List<Object> sourceTables = array(inputSource.get("tables"), "source.tables");
         List<Object> sinkTables = array(inputSink.get("tables"), "sink.tables");
         List<Object> routes = array(root.get("route"), "route");
-        if (sourceTables.isEmpty() || sourceTables.size() != sinkTables.size()
+        if (sourceTables.isEmpty()
+                || sourceTables.size() != sinkTables.size()
                 || routes.size() != sourceTables.size()) {
             throw new TaskPluginException("DATA_SYNC requires one route per source and target table");
         }
-        if (root.containsKey("transform") && !array(root.get("transform"), "transform").isEmpty()) {
+        if (root.containsKey("transform")
+                && !array(root.get("transform"), "transform").isEmpty()) {
             throw new TaskPluginException("YakFlow does not support transforms");
         }
 
@@ -69,8 +71,14 @@ public final class PipelineYamlConverter {
             }
             if (table.containsKey("incremental")) {
                 Map<String, Object> incremental = object(table.get("incremental"), "incremental");
-                checkKeys(incremental, "incremental",
-                        "mode", "column", "initialValue", "delaySeconds", "lookbackSeconds");
+                checkKeys(
+                        incremental,
+                        "incremental",
+                        "mode",
+                        "column",
+                        "initialValue",
+                        "delaySeconds",
+                        "lookbackSeconds");
                 source.put(prefix + "incremental.mode", required(incremental, "mode"));
                 source.put(prefix + "incremental.column", required(incremental, "column"));
                 copy(incremental, "initialValue", source, prefix + "incremental.initial-value");
@@ -88,18 +96,19 @@ public final class PipelineYamlConverter {
             Map<String, Object> startup = inputSource.containsKey("startup")
                     ? object(inputSource.get("startup"), "startup")
                     : Map.of("mode", "INITIAL");
-            checkKeys(startup, "startup",
-                    "mode", "file", "pos", "gtidSet", "timestampMillis", "skipEvents", "skipRows");
+            checkKeys(
+                    startup, "startup", "mode", "file", "pos", "gtidSet", "timestampMillis", "skipEvents", "skipRows");
             String mode = required(startup, "mode");
-            String mapped = switch (mode) {
-                case "INITIAL" -> "initial";
-                case "SNAPSHOT" -> "snapshot";
-                case "EARLIEST_OFFSET" -> "earliest-offset";
-                case "LATEST_OFFSET" -> "latest-offset";
-                case "SPECIFIC_OFFSETS" -> "specific-offset";
-                case "TIMESTAMP" -> "timestamp";
-                default -> throw new TaskPluginException("Unsupported CDC startup mode: " + mode);
-            };
+            String mapped =
+                    switch (mode) {
+                        case "INITIAL" -> "initial";
+                        case "SNAPSHOT" -> "snapshot";
+                        case "EARLIEST_OFFSET" -> "earliest-offset";
+                        case "LATEST_OFFSET" -> "latest-offset";
+                        case "SPECIFIC_OFFSETS" -> "specific-offset";
+                        case "TIMESTAMP" -> "timestamp";
+                        default -> throw new TaskPluginException("Unsupported CDC startup mode: " + mode);
+                    };
             source.put("scan.startup.mode", mapped);
             copy(startup, "file", source, "scan.startup.specific-offset.file");
             copy(startup, "pos", source, "scan.startup.specific-offset.pos");
@@ -111,8 +120,8 @@ public final class PipelineYamlConverter {
             if (inputSource.containsKey("startup")) {
                 throw new TaskPluginException("JDBC source does not support CDC startup");
             }
-            source.put("yak.sync.mode", inputSource.containsKey("syncMode")
-                    ? required(inputSource, "syncMode") : "FULL");
+            source.put(
+                    "yak.sync.mode", inputSource.containsKey("syncMode") ? required(inputSource, "syncMode") : "FULL");
         }
 
         Map<String, String> sink = new LinkedHashMap<>();
@@ -170,8 +179,7 @@ public final class PipelineYamlConverter {
         }
         pipeline.put("execution.runtime-mode", runtime);
         String scope = text(inputPipeline, "pipeline.table-scope");
-        pipeline.put("yak.table-scope", scope == null
-                ? (sourceTables.size() == 1 ? "SINGLE" : "DATABASE") : scope);
+        pipeline.put("yak.table-scope", scope == null ? (sourceTables.size() == 1 ? "SINGLE" : "DATABASE") : scope);
 
         Map<String, Object> definition = new LinkedHashMap<>();
         definition.put("source", source);
@@ -202,8 +210,7 @@ public final class PipelineYamlConverter {
         return String.join(".", segments);
     }
 
-    private static void copy(
-            Map<String, Object> source, String from, Map<String, String> target, String to) {
+    private static void copy(Map<String, Object> source, String from, Map<String, String> target, String to) {
         if (source.containsKey(from)) {
             Object value = source.get(from);
             if (!(value instanceof String) && !(value instanceof Number)) {

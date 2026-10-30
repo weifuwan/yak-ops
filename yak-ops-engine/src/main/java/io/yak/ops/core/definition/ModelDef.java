@@ -44,12 +44,7 @@ public class ModelDef {
         this(modelName, null, className, parameters, true);
     }
 
-    private ModelDef(
-            String name,
-            String type,
-            String className,
-            Map<String, String> options,
-            boolean legacy) {
+    private ModelDef(String name, String type, String className, Map<String, String> options, boolean legacy) {
         this.name = name;
         this.type = type;
         this.className = className;
