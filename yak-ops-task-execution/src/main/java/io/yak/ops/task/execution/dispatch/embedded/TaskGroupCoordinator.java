@@ -50,6 +50,9 @@ public final class TaskGroupCoordinator implements AutoCloseable {
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
             Thread.ofPlatform().daemon(true).name("task-group-coordinator").factory());
     private final AtomicBoolean started = new AtomicBoolean();
+    // Owned by the single coordinator executor. Persist progress across scan ticks,
+    // otherwise blocked entries in the first page starve unrelated free resources.
+    private TaskGroupQueueEntity scanCursor;
 
     @PostConstruct
     public void start() {
@@ -86,18 +89,37 @@ public final class TaskGroupCoordinator implements AutoCloseable {
 
     void scanWaiting() {
         owner.incarnation();
-        List<TaskGroupQueueEntity> waiting = queues.waiting(SCAN_LIMIT);
+        List<TaskGroupQueueEntity> waiting = queues.waiting(SCAN_LIMIT, scanCursor);
+        if (waiting.isEmpty() && scanCursor != null) {
+            // Reached the end of a stable priority/time/id sweep. Restart at
+            // the head without resetting progress on every one-second tick.
+            scanCursor = null;
+            waiting = queues.waiting(SCAN_LIMIT, null);
+        }
+        if (waiting.isEmpty()) {
+            return;
+        }
+        // Advance before attempting admission: a single corrupt or unavailable
+        // task must not permanently keep the cursor on the same page.
+        scanCursor = waiting.get(waiting.size() - 1);
         Set<String> attempted = new HashSet<>();
         for (TaskGroupQueueEntity queue : waiting) {
             if (!attempted.add(queue.getInstanceId())) {
                 continue;
             }
+            // Losing the embedded owner is a global safety condition, not a
+            // per-task failure. Abort the scan rather than dispatching blindly.
             owner.incarnation();
-            // tryAcquire rechecks SUBMITTED, locks the Instance before its groups,
-            // respects the highest-priority waiting member of every resource, and
-            // never reserves a partial set on a multi-resource Task.
-            if (queues.tryAcquire(queue.getWorkspaceId(), queue.getInstanceId())) {
-                dispatcher.dispatch(queue.getWorkspaceId(), queue.getInstanceId());
+            try {
+                if (queues.tryAcquire(queue.getWorkspaceId(), queue.getInstanceId())) {
+                    dispatcher.dispatch(queue.getWorkspaceId(), queue.getInstanceId());
+                }
+            } catch (RuntimeException failure) {
+                LOG.error(
+                        "TaskGroup queued Instance admission failed, instanceId={}, exceptionType={}",
+                        queue.getInstanceId(),
+                        failure.getClass().getSimpleName(),
+                        failure);
             }
         }
     }
