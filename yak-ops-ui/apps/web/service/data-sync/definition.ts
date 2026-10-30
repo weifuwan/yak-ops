@@ -1,4 +1,4 @@
-import { encodePipelineYaml } from "./pipeline-yaml";
+import { encodePipelineYaml } from "./pipeline-yaml.ts";
 import type {
   DataSyncTaskPageParams,
   DataSyncTaskPageResult,
