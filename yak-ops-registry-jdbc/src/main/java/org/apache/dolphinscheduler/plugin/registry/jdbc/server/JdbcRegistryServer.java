@@ -291,29 +291,17 @@ public class JdbcRegistryServer implements IJdbcRegistryServer {
                 .map(JdbcRegistryClientHeartbeatDTO::getId)
                 .collect(Collectors.toSet());
 
-        // remove the data and lock which client is not exist.
-        final Set<Long> existJdbcRegistryClientIds = jdbcRegistryClients
-                .stream()
-                .map(JdbcRegistryClientHeartbeatDTO::getId)
-                .filter(id -> !deletedJdbcRegistryClientIds.contains(id))
-                .collect(Collectors.toSet());
+        // Heartbeat snapshots cannot be used as proof that a client is absent:
+        // a different client may register while this purge is still scanning.
+        // Recheck the owner in the DELETE statement itself, guarded by the row ID
+        // and client ID so that replaced data and active locks are never removed.
         jdbcRegistryDataManager.getAllJdbcRegistryData()
                 .stream()
-                .filter(jdbcRegistryDataDTO -> !existJdbcRegistryClientIds.contains(jdbcRegistryDataDTO.getClientId()))
-                .filter(jdbcRegistryDataDTO -> DataType.EPHEMERAL.name().equals(jdbcRegistryDataDTO.getDataType()))
-                .forEach(jdbcRegistryData -> {
-                    log.info("Remove the JdbcRegistryData: {} which client is not exist in the registry",
-                            jdbcRegistryData);
-                    jdbcRegistryDataManager.deleteJdbcRegistryDataByKey(jdbcRegistryData.getDataKey());
-                });
+                .filter(data -> DataType.EPHEMERAL.name().equals(data.getDataType()))
+                .forEach(jdbcRegistryDataManager::deleteOrphanedJdbcRegistryData);
         jdbcRegistryLockRepository.queryAll()
-                .stream()
-                .filter(jdbcRegistryLockDTO -> !existJdbcRegistryClientIds.contains(jdbcRegistryLockDTO.getClientId()))
-                .forEach(jdbcRegistryLockDTO -> {
-                    log.info("Remove the JdbcRegistryLock: {} which client is not exist in the registry",
-                            jdbcRegistryLockDTO);
-                    jdbcRegistryLockRepository.deleteById(jdbcRegistryLockDTO.getId());
-                });
+                .forEach(lock -> jdbcRegistryLockRepository.deleteOrphanByIdAndClientId(
+                        lock.getId(), lock.getClientId()));
         stopWatch.stop();
         log.debug("Success purge invalid jdbcRegistryMetadata, cost: {} ms", stopWatch.getTime());
     }
