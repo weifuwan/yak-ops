@@ -25,7 +25,7 @@ import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
 import io.yak.ops.plugin.task.api.TaskPlugin;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -40,7 +40,7 @@ class DefinitionCrudContractTest {
     private final DefinitionServiceImpl service = new DefinitionServiceImpl();
     private final DefinitionRepository definitions = mock(DefinitionRepository.class);
     private final DefinitionVersionRepository versions = mock(DefinitionVersionRepository.class);
-    private final TaskPluginRegistry registry = mock(TaskPluginRegistry.class);
+    private final TaskPluginManager registry = mock(TaskPluginManager.class);
     private final TaskValidationContext context = mock(TaskValidationContext.class);
     private final PublicationService publication = mock(PublicationService.class);
     private final ScheduleRepository schedules = mock(ScheduleRepository.class);

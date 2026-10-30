@@ -13,7 +13,7 @@ V4-to-V5 migration or V5-to-V4 adapter is available.
 - `io.yak.ops.core.composer`: `PipelineComposer`, `PipelineExecution`,
   `PipelinePlan` and `PipelineContext`; the implementation is `YakFlowPipelineComposer`.
   This interface owns no running-job registry and performs no cancellation or submission.
-- `PipelineTaskPlugin`: DolphinScheduler-style Task SPI, registration,
+- `PipelineTaskChannel`: DolphinScheduler-style Task SPI, registration,
   validation, admission and a thin deferred execution handle.
 - `execution/YakFlowPipelineComposer`: binds the V5 composer to the verified
   `JobPlanner`, `PipelineBuilder` and YakFlow executor.
@@ -35,7 +35,7 @@ V4-to-V5 migration or V5-to-V4 adapter is available.
 V5 JSON -> JsonPipelineDefinitionParser -> PipelineDef
         -> PipelineComposer.plan
         -> JobPlanner (authorized metadata and admission)
-        -> PipelineTaskPlugin registers deferred PipelineExecutionTaskHandle
+        -> PipelineTaskChannel registers deferred PipelineExecutionTaskHandle
         -> PipelineExecution.start() (after Task Instance registration)
         -> PipelineTaskHandle (schema/cursor preparation, re-admission)
         -> PipelineBuilder -> YakFlow PipelineExecutor

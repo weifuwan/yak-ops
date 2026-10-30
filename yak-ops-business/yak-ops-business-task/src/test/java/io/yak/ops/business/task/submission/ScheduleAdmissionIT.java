@@ -41,12 +41,12 @@ import io.yak.ops.plugin.scheduler.api.ScheduleRegistration;
 import io.yak.ops.plugin.scheduler.api.ScheduleTrigger;
 import io.yak.ops.plugin.scheduler.quartz.QuartzCronService;
 import io.yak.ops.plugin.scheduler.quartz.QuartzScheduler;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
 import io.yak.ops.testutils.MySqlDatabase;
@@ -778,8 +778,8 @@ class ScheduleAdmissionIT {
         }
 
         @Bean
-        TaskPluginRegistry taskPluginRegistry() {
-            return new TaskPluginRegistry(List.of(PLUGIN));
+        TaskPluginManager taskPluginRegistry() {
+            return new TaskPluginManager(List.of(PLUGIN));
         }
 
         @Bean
@@ -812,7 +812,7 @@ class ScheduleAdmissionIT {
         }
     }
 
-    private static final class TestPlugin implements ExecutableTaskPlugin {
+    private static final class TestPlugin implements TaskChannel {
         private final AtomicInteger plans = new AtomicInteger();
         private volatile List<ExecutionResource> resources;
         private volatile int blockCall;
@@ -880,7 +880,7 @@ class ScheduleAdmissionIT {
         }
 
         @Override
-        public CompletionStage<TaskHandle> start(
+        public CompletionStage<TaskHandle> createTask(
                 ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity identity, boolean debug) {
             throw new AssertionError("Admission must not start physical execution");
         }

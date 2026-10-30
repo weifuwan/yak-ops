@@ -24,7 +24,7 @@ retain their ASF headers; adapted files are documented in this module.
   concrete `PhysicalTaskPluginFactory` use the upstream construction and
   `createPhysicalTask` / `getTaskChannel` model.
 - Yak Ops differences are deliberate: string Task Instance ID, existing
-  `ExecutableTaskPlugin` / deferred `TaskHandle`, Master-side durable
+  `TaskChannel` / deferred `TaskHandle`, Master-side durable
   Task Group slot and authorization, a local rather than RPC lifecycle ACK, and no
   remote log upload or worker filesystem staging.
 - The runtime context is transportable **data**, not a holder of factories or

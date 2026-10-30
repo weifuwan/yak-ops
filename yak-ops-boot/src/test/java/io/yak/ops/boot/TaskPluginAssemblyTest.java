@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import io.yak.ops.boot.config.TaskPluginConfiguration;
-import io.yak.ops.plugin.task.api.TaskPluginRegistry;
-import io.yak.ops.plugin.task.api.execution.ExecutableTaskPlugin;
-import io.yak.ops.plugin.task.datasync.PipelineTaskPlugin;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import org.junit.jupiter.api.Test;
@@ -23,9 +23,9 @@ class TaskPluginAssemblyTest {
     void loadsTaskPluginThroughBootConfiguration() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
                 TaskPluginConfiguration.class, TestDatasourceLookup.class)) {
-            TaskPluginRegistry registry = context.getBean(TaskPluginRegistry.class);
+            TaskPluginManager registry = context.getBean(TaskPluginManager.class);
             assertEquals(1, registry.types().size());
-            assertInstanceOf(ExecutableTaskPlugin.class, registry.get(PipelineTaskPlugin.TYPE));
+            assertInstanceOf(TaskChannel.class, registry.get(PipelineTaskChannel.TYPE));
         }
     }
 

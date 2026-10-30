@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class SchedulingEligibilityTest {
     @Test
     void existingPluginDefaultsToManualOnly() {
-        ExecutableTaskPlugin plugin = new ExecutableTaskPlugin() {
+        TaskChannel plugin = new TaskChannel() {
             @Override
             public String type() {
                 return "MANUAL_TEST";
@@ -50,7 +50,7 @@ class SchedulingEligibilityTest {
             }
 
             @Override
-            public CompletionStage<TaskHandle> start(
+            public CompletionStage<TaskHandle> createTask(
                     ReadonlyConfig options, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
                 throw new AssertionError();
             }

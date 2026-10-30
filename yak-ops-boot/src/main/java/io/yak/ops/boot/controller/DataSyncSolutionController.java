@@ -5,7 +5,7 @@ import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.result.Result;
-import io.yak.ops.plugin.task.datasync.PipelineTaskPlugin;
+import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
 import io.yak.ops.plugin.task.datasync.solution.Solution;
 import jakarta.annotation.Resource;
 import java.util.List;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(CommonConstants.API_PREFIX + "/data-sync")
 public class DataSyncSolutionController {
     @Resource
-    private PipelineTaskPlugin plugin;
+    private PipelineTaskChannel plugin;
 
     /**
      * Returns implemented solutions for an ordered datasource-type pair.

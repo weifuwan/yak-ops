@@ -27,7 +27,7 @@ import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.Test;
 
 /** Verifies that the Task SPI only adapts and rechecks the Flink-style composer. */
-class PipelineTaskPluginV5Test {
+class PipelineTaskChannelV5Test {
     private static final String V5 = """
             {
               "source": {"type":"JDBC", "datasourceId":"s", "syncMode":"FULL",
@@ -44,14 +44,14 @@ class PipelineTaskPluginV5Test {
     @Test
     void executesOneAdmissionCheckPerTaskBoundaryAndDefersPhysicalStart() {
         StubComposer composer = new StubComposer();
-        PipelineTaskPlugin plugin = new PipelineTaskPlugin(new FactoryUtil(), composer);
+        PipelineTaskChannel plugin = new PipelineTaskChannel(new FactoryUtil(), composer);
         TaskExecutionIdentity identity = new TaskExecutionIdentity("ws", "def", 1, "instance");
         ReadonlyConfig parameters = ConfigParser.parseJson(V5);
 
         assertEquals(5, plugin.parameterSchemaVersion());
         TaskExecutionResources admitted = plugin.plan(parameters, identity);
         assertEquals(1, composer.plans);
-        TaskHandle handle = plugin.start(parameters, admitted, identity, false).toCompletableFuture().join();
+        TaskHandle handle = plugin.createTask(parameters, admitted, identity, false).toCompletableFuture().join();
         assertEquals(2, composer.plans);
         assertEquals(1, composer.compositions);
         assertEquals(0, composer.starts);
@@ -65,25 +65,25 @@ class PipelineTaskPluginV5Test {
     @Test
     void rejectsChangedAdmissionBeforeComposition() {
         StubComposer composer = new StubComposer();
-        PipelineTaskPlugin plugin = new PipelineTaskPlugin(new FactoryUtil(), composer);
+        PipelineTaskChannel plugin = new PipelineTaskChannel(new FactoryUtil(), composer);
         TaskExecutionIdentity identity = new TaskExecutionIdentity("ws", "def", 1, "instance");
         ReadonlyConfig parameters = ConfigParser.parseJson(V5);
         TaskExecutionResources admitted = plugin.plan(parameters, identity);
         composer.revision = "changed";
         assertThrows(
                 CompletionException.class,
-                () -> plugin.start(parameters, admitted, identity, false).toCompletableFuture().join());
+                () -> plugin.createTask(parameters, admitted, identity, false).toCompletableFuture().join());
         assertEquals(0, composer.compositions);
     }
 
     @Test
     void cancelFlowsThroughTheTaskHandleWithoutComposerRegistry() {
         StubComposer composer = new StubComposer();
-        PipelineTaskPlugin plugin = new PipelineTaskPlugin(new FactoryUtil(), composer);
+        PipelineTaskChannel plugin = new PipelineTaskChannel(new FactoryUtil(), composer);
         TaskExecutionIdentity identity = new TaskExecutionIdentity("ws", "def", 1, "instance");
         ReadonlyConfig parameters = ConfigParser.parseJson(V5);
         TaskExecutionResources admitted = plugin.plan(parameters, identity);
-        TaskHandle handle = plugin.start(parameters, admitted, identity, false).toCompletableFuture().join();
+        TaskHandle handle = plugin.createTask(parameters, admitted, identity, false).toCompletableFuture().join();
         handle.cancel().toCompletableFuture().join();
         assertEquals(TaskOutcome.CANCELED, handle.completion().toCompletableFuture().join());
         assertEquals(0, composer.starts);
