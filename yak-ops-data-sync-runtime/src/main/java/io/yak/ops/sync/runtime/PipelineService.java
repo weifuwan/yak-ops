@@ -44,7 +44,6 @@ public final class PipelineService {
             .optional(ROUTE, TRANSFORM, PIPELINE)
             .build();
 
-
     private final FactoryUtil factories;
     private final PipelineComposer composer;
 
@@ -59,7 +58,8 @@ public final class PipelineService {
 
     public ReadonlyConfig parse(String content) {
         try {
-            ReadonlyConfig parsed = new JsonPipelineDefinitionParser().parse(content).getOriginal();
+            ReadonlyConfig parsed =
+                    new JsonPipelineDefinitionParser().parse(content).getOriginal();
             return JobConfigValidator.validateConfig(parsed, factories).parameters();
         } catch (RuntimeException failure) {
             throw new TaskPluginException("Invalid V5 DATA_SYNC pipeline JSON", failure);
