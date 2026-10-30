@@ -74,6 +74,12 @@ import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
 import org.apache.dolphinscheduler.registry.api.Registry;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.JdbcRegistryProperties;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.server.JdbcRegistryServer;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.repository.JdbcRegistryClientRepository;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.repository.JdbcRegistryDataRepository;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.repository.JdbcRegistryDataChangeEventRepository;
+import org.apache.dolphinscheduler.plugin.registry.jdbc.repository.JdbcRegistryLockRepository;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
@@ -166,7 +172,11 @@ class ScheduleAdmissionIT {
                 ScheduleRepositoryImpl.class,
                 ScheduleFireRepositoryImpl.class,
                 SubmissionServiceImpl.class,
-                TaskSubmissionTransactionServiceImpl.class);
+                TaskSubmissionTransactionServiceImpl.class,
+                JdbcRegistryClientRepository.class,
+                JdbcRegistryDataRepository.class,
+                JdbcRegistryDataChangeEventRepository.class,
+                JdbcRegistryLockRepository.class);
         context.refresh();
         admissionController = context.getBean(ScheduleAdmissionController.class);
         submissions = context.getBean(SubmissionService.class);
@@ -596,6 +606,66 @@ class ScheduleAdmissionIT {
         assertFalse(groups.tryAcquire("ws", "blocked-0"));
     }
 
+    @Test
+    void registryPurgePreservesClientRegisteredAfterHeartbeatSnapshot() {
+        JdbcRegistryClientRepository clients = context.getBean(JdbcRegistryClientRepository.class);
+        JdbcRegistryClientRepository snapshotClients = org.mockito.Mockito.spy(clients);
+        JdbcRegistryDataRepository data = context.getBean(JdbcRegistryDataRepository.class);
+        JdbcRegistryDataChangeEventRepository events =
+                context.getBean(JdbcRegistryDataChangeEventRepository.class);
+        JdbcRegistryLockRepository locks = context.getBean(JdbcRegistryLockRepository.class);
+        JdbcRegistryProperties properties = new JdbcRegistryProperties();
+        properties.setSessionTimeout(Duration.ofSeconds(60));
+        JdbcRegistryServer server = new JdbcRegistryServer(
+                data, locks, snapshotClients, events, properties,
+                new TransactionTemplate(context.getBean(PlatformTransactionManager.class)));
+        try {
+            jdbc.update(
+                    "INSERT INTO yak_ops_jdbc_registry_data (data_key,data_value,data_type,client_id)"
+                            + " VALUES ('/test/orphan','orphan','EPHEMERAL',70001)");
+            jdbc.update(
+                    "INSERT INTO yak_ops_jdbc_registry_lock (lock_key,lock_owner,client_id)"
+                            + " VALUES ('/test/orphan-lock','orphan',70001)");
+            // Simulate the exact race: B registers AFTER the purge reads its
+            // heartbeat snapshot, but BEFORE it reads metadata and locks.
+            org.mockito.Mockito.doAnswer(invocation -> {
+                Object heartbeatSnapshot = invocation.callRealMethod();
+                jdbc.update(
+                        "INSERT INTO yak_ops_jdbc_registry_client_heartbeat"
+                                + " (id,client_name,last_heartbeat_time,connection_config)"
+                                + " VALUES (70002,'new-client',?,'{}')",
+                        System.currentTimeMillis());
+                jdbc.update(
+                        "INSERT INTO yak_ops_jdbc_registry_data (data_key,data_value,data_type,client_id)"
+                                + " VALUES ('/test/live','live','EPHEMERAL',70002)");
+                jdbc.update(
+                        "INSERT INTO yak_ops_jdbc_registry_lock (lock_key,lock_owner,client_id)"
+                                + " VALUES ('/test/live-lock','live',70002)");
+                return heartbeatSnapshot;
+            }).when(snapshotClients).queryAll();
+
+            org.springframework.test.util.ReflectionTestUtils.invokeMethod(server, "purgeInvalidJdbcRegistryMetadata");
+
+            assertEquals(1, jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM yak_ops_jdbc_registry_data WHERE data_key='/test/live'", Integer.class));
+            assertEquals(1, jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM yak_ops_jdbc_registry_lock WHERE lock_key='/test/live-lock'", Integer.class));
+            assertEquals(0, jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM yak_ops_jdbc_registry_data WHERE data_key='/test/orphan'", Integer.class));
+            assertEquals(0, jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM yak_ops_jdbc_registry_lock WHERE lock_key='/test/orphan-lock'", Integer.class));
+            assertTrue(jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM yak_ops_jdbc_registry_data_change_event WHERE event_type='DELETE'",
+                    Integer.class) >= 1);
+        } finally {
+            server.close();
+            jdbc.update("DELETE FROM yak_ops_jdbc_registry_data_change_event");
+            jdbc.update("DELETE FROM yak_ops_jdbc_registry_lock");
+            jdbc.update("DELETE FROM yak_ops_jdbc_registry_data");
+            jdbc.update("DELETE FROM yak_ops_jdbc_registry_client_heartbeat");
+        }
+    }
+
     private static void enqueue(String instanceId, String resource, int priority) {
         jdbc.update(
                 "INSERT INTO yak_ops_task_instance"
@@ -652,7 +722,7 @@ class ScheduleAdmissionIT {
 
     @Configuration(proxyBeanMethods = false)
     @EnableTransactionManagement
-    @MapperScan("io.yak.ops.dao.mapper")
+    @MapperScan({"io.yak.ops.dao.mapper", "org.apache.dolphinscheduler.plugin.registry.jdbc.mapper"})
     static class Beans {
         @Bean
         DataSource dataSource() {
