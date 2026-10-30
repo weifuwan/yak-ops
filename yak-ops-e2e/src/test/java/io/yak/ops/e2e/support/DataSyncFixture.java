@@ -94,7 +94,7 @@ public final class DataSyncFixture implements AutoCloseable {
                 "UPSERT");
     }
 
-    /** Generates V5 definitions directly; no legacy parameter conversion. */
+    /** Produces mutable test scenario inputs. The public API receives V6 JSON; the Task Plugin converts to YAML. */
     public Map<String, Object> parameters(String solution, List<String> steps, List<Map<String, Object>> routes) {
         boolean realtime = solution.endsWith("_REALTIME");
         List<Map<String, Object>> sourceTables = new ArrayList<>();

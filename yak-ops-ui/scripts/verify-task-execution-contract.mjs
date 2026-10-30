@@ -18,7 +18,7 @@ const version = {
   version: 2,
   name: "orders",
   taskType: "DATA_SYNC",
-  parameterSchemaVersion: 5,
+  parameterSchemaVersion: 6,
   parameters: {
     source: {
       type: "MYSQL_CDC",

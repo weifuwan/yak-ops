@@ -1,21 +1,23 @@
 package io.yak.ops.plugin.task.datasync;
 
+import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
+import java.util.Objects;
 
-/** Opaque V5 Pipeline JSON carried by the DATA_SYNC Task. Runtime owns its schema and options. */
+/** Task API JSON. YAML is an ephemeral engine input, never a persisted parameter. */
 public final class PipelineParameters extends AbstractParameters {
-    private final String pipelineJson;
+    private final ReadonlyConfig json;
 
-    public PipelineParameters(String pipelineJson) {
-        this.pipelineJson = pipelineJson;
+    public PipelineParameters(ReadonlyConfig json) {
+        this.json = Objects.requireNonNull(json, "json");
     }
 
-    public String getPipelineJson() {
-        return pipelineJson;
+    public ReadonlyConfig getJson() {
+        return json;
     }
 
     @Override
     public boolean checkParameters() {
-        return pipelineJson != null && !pipelineJson.isBlank();
+        return json.getSourceMap().containsKey("source") && json.getSourceMap().containsKey("sink");
     }
 }

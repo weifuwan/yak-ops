@@ -77,7 +77,7 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
       datasourceId: task.sourceDataSourceId,
       ...(realtime
         ? {
-            // Retain the full V5 offset when editing: steps alone cannot identify
+            // Retain the full V6 JSON offset when editing: steps alone cannot identify
             // EARLIEST_OFFSET, SPECIFIC_OFFSETS or TIMESTAMP (or their parameters).
             startup: task.startup
               ? { ...task.startup }
@@ -168,7 +168,7 @@ export function definitionPageRequest(params: DataSyncTaskPageParams) {
   };
 }
 
-/** Projects one immutable V5 definition into the editor's transient UI state. */
+/** Projects one immutable V6 JSON definition into the editor's transient UI state. */
 export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTaskRecord {
   if (definition.taskType !== "DATA_SYNC") throw new Error("不支持的同步任务定义");
   const parameters = parseSyncParameters(definition.parameterSchemaVersion, definition.parameters);

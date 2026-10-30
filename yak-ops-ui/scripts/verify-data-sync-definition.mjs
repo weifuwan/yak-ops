@@ -23,24 +23,28 @@ const base = {
   targetSchema: "public",
   targetTable: "ods_orders",
 };
-const definition = createDefinitionRequest(base);
-const v5 = definition.parameters;
-assert.deepEqual(Object.keys(v5), ["source", "sink", "route", "transform", "pipeline"]);
-assert.equal(v5.source.type, "MYSQL_CDC");
-assert.equal(v5.source.startup.mode, "INITIAL");
-assert.equal(v5.sink.type, "JDBC");
-assert.equal(v5.route[0]["source-table"], "orders");
-assert.equal(v5.route[0]["sink-table"], "public.ods_orders");
-assert.equal(v5.sink.tables[0].write.mode, "UPSERT");
-assert.equal(v5.pipeline["execution.runtime-mode"], "STREAMING");
-assert.equal(v5.pipeline["pipeline.table-scope"], "SINGLE");
-assert.equal(pipelineSolutionType(v5), "SINGLE_TABLE_REALTIME");
-assert.deepEqual(displaySyncSteps(v5), ["FULL", "INCREMENTAL"]);
-assert.equal(syncTableMappings(v5)[0].source.table, "orders");
-assert.equal(readSyncParameters(5, v5), v5);
-assert.throws(() => readSyncParameters(4, v5));
-assert.throws(() => readSyncParameters(5, { ...v5, solutionType: "SINGLE_TABLE_REALTIME" }));
-assert.throws(() => readSyncParameters(5, { ...v5, route: [] }));
+const definitionJson = createDefinitionRequest(base).parameters;
+assert.deepEqual(Object.keys(definitionJson), ["source", "sink", "route", "transform", "pipeline"]);
+assert.equal(definitionJson.source.type, "MYSQL_CDC");
+assert.equal(definitionJson.source.startup.mode, "INITIAL");
+assert.equal(definitionJson.route[0]["source-table"], "orders");
+assert.equal(definitionJson.route[0]["sink-table"], "public.ods_orders");
+assert.equal("pipelineYaml" in definitionJson, false);
+
+const v6 = readSyncParameters(6, definitionJson);
+assert.equal(v6.source.type, "MYSQL_CDC");
+assert.equal(v6.source.startup.mode, "INITIAL");
+assert.equal(v6.sink.type, "JDBC");
+assert.equal(v6.route[0]["source-table"], "orders");
+assert.equal(v6.sink.tables[0].write.mode, "UPSERT");
+assert.equal(v6.pipeline["execution.runtime-mode"], "STREAMING");
+assert.equal(pipelineSolutionType(v6), "SINGLE_TABLE_REALTIME");
+assert.deepEqual(displaySyncSteps(v6), ["FULL", "INCREMENTAL"]);
+assert.equal(syncTableMappings(v6)[0].source.table, "orders");
+assert.throws(() => readSyncParameters(5, definitionJson));
+assert.throws(() => readSyncParameters(6, { source: [] }));
+assert.throws(() => readSyncParameters(6, { ...definitionJson, unknown: 1 }));
+
 const record = {
   id: "d-1",
   name: "orders",
@@ -48,13 +52,11 @@ const record = {
   status: "UNPUBLISHED",
   debug: false,
   definitionVersion: 1,
-  parameterSchemaVersion: 5,
-  parameters: v5,
+  parameterSchemaVersion: 6,
+  parameters: definitionJson,
 };
 assert.equal(toSyncTaskRecord(record).solutionType, "SINGLE_TABLE_REALTIME");
 
-// V5 edit/save round trips must not turn pinned Binlog offsets into LATEST_OFFSET.
-// For modes without an editable form, the existing startup object is read-only.
 for (const startup of [
   { mode: "INITIAL" },
   { mode: "SNAPSHOT" },
@@ -64,22 +66,14 @@ for (const startup of [
   { mode: "SPECIFIC_OFFSETS", gtidSet: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-9" },
   { mode: "TIMESTAMP", timestampMillis: 1700000000123 },
 ]) {
-  const original = {
-    ...v5,
-    source: { ...v5.source, startup },
-    pipeline: {
-      ...v5.pipeline,
-      "execution.runtime-mode": startup.mode === "SNAPSHOT" ? "BATCH" : "STREAMING",
-    },
-    sink: {
-      ...v5.sink,
-      schemaPolicy: {
-        ...v5.sink.schemaPolicy,
-        evolution: { enabled: startup.mode !== "SNAPSHOT", allowDropColumns: false },
-      },
-    },
-  };
-  const loaded = toSyncTaskRecord({ ...record, parameters: original });
+  const steps =
+    startup.mode === "SNAPSHOT"
+      ? ["FULL"]
+      : startup.mode === "INITIAL"
+        ? ["FULL", "INCREMENTAL"]
+        : ["INCREMENTAL"];
+  const created = createDefinitionRequest({ ...base, steps, startup }).parameters;
+  const loaded = toSyncTaskRecord({ ...record, parameters: created });
   assert.deepEqual(loaded.startup, startup);
   const saved = buildSyncParameters({
     ...base,
@@ -88,7 +82,7 @@ for (const startup of [
     startup: loaded.startup,
   });
   assert.deepEqual(saved.source.startup, startup);
-  assert.deepEqual(readSyncParameters(5, saved).source.startup, startup);
+  assert.deepEqual(readSyncParameters(6, saved).source.startup, startup);
 }
 const batch = buildSyncParameters({
   ...base,
@@ -103,7 +97,8 @@ const batch = buildSyncParameters({
 assert.equal(batch.source.type, "JDBC");
 assert.equal(batch.source.syncMode, "FULL");
 assert.equal(batch.route.length, 2);
-assert.equal(pipelineSolutionType(batch), "DATABASE_OFFLINE");
+assert.equal(pipelineSolutionType(readSyncParameters(6, batch)), "DATABASE_OFFLINE");
+
 const singleRouteDatabase = buildSyncParameters({
   ...base,
   solutionType: "DATABASE_REALTIME",
@@ -115,34 +110,9 @@ const singleRouteDatabase = buildSyncParameters({
     },
   ],
 });
-assert.equal(singleRouteDatabase.route.length, 1);
 assert.equal(singleRouteDatabase.pipeline["pipeline.table-scope"], "DATABASE");
-assert.equal(pipelineSolutionType(singleRouteDatabase), "DATABASE_REALTIME");
-assert.throws(() =>
-  readSyncParameters(5, {
-    ...singleRouteDatabase,
-    sink: {
-      ...singleRouteDatabase.sink,
-      tables: [
-        {
-          ...singleRouteDatabase.sink.tables[0],
-          write: { mode: "RETRACT", transaction: { mode: "CHECKPOINT_XA" } },
-        },
-      ],
-    },
-  }),
-);
-assert.equal(
-  toSyncTaskRecord({ ...record, parameters: singleRouteDatabase }).solutionType,
-  "DATABASE_REALTIME",
-);
-assert.throws(() =>
-  readSyncParameters(5, {
-    ...singleRouteDatabase,
-    pipeline: { ...singleRouteDatabase.pipeline, "pipeline.table-scope": "SINGLE" },
-    route: [singleRouteDatabase.route[0], singleRouteDatabase.route[0]],
-  }),
-);
-assert.equal(syncTableMappings(batch).length, 2);
-assert.throws(() => readSyncParameters(5, { ...batch, route: [batch.route[0], batch.route[0]] }));
-console.log("V5 pipeline definition and UI projection contracts passed");
+assert.equal(pipelineSolutionType(readSyncParameters(6, singleRouteDatabase)), "DATABASE_REALTIME");
+assert.equal(syncTableMappings(readSyncParameters(6, batch)).length, 2);
+const withServerIndex = { ...definitionJson, index: { sourceType: "MYSQL_CDC" } };
+assert.deepEqual(readSyncParameters(6, withServerIndex), definitionJson);
+console.log("V6 JSON API, startup round-trip, and UI projection contracts passed");

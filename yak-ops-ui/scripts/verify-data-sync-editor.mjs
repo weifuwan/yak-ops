@@ -141,7 +141,7 @@ const realtimeOnlyDefinition = transport.createDefinitionRequest(realtimeOnlyPay
 assert.equal(realtimeOnlyDefinition.source.startup.mode, "LATEST_OFFSET");
 assert.equal(realtimeOnlyDefinition.pipeline["execution.runtime-mode"], "STREAMING");
 
-// Real editor payload path must preserve a V5 offset even when editing other fields.
+// Editor projection must preserve a CDC offset even when editing other fields.
 const persistedStartup = {
   mode: "SPECIFIC_OFFSETS",
   file: "mysql-bin.000123",

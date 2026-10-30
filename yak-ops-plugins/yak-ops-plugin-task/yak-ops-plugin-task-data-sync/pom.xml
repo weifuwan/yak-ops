@@ -14,13 +14,14 @@
     <artifactId>yak-ops-plugin-task-data-sync</artifactId>
 
     <name>Yak Ops Data Sync Task Plugin</name>
-    <description>Thin DolphinScheduler TaskChannel adapter for V5 data synchronization</description>
+    <description>DolphinScheduler-style V6 JSON-to-YAML Task adapter</description>
 
     <dependencies>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-configuration</artifactId></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-core</artifactId></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-task-api</artifactId></dependency>
-        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-data-sync-runtime</artifactId></dependency>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-engine</artifactId></dependency>
+        <dependency><groupId>com.fasterxml.jackson.dataformat</groupId><artifactId>jackson-dataformat-yaml</artifactId></dependency>
         <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
     </dependencies>
 

@@ -52,7 +52,7 @@
         <module>yak-flow/yak-flow-connector-cdc-base</module>
         <module>yak-flow/yak-flow-connector-jdbc</module>
         <module>yak-flow/yak-flow-connector-cdc-mysql</module>
-        <module>yak-ops-data-sync-runtime</module>
+        <module>yak-ops-engine</module>
         <module>yak-ops-business</module>
         <module>yak-ops-plugins/yak-ops-plugin-datasource</module>
         <module>yak-ops-plugins/yak-ops-plugin-task</module>
