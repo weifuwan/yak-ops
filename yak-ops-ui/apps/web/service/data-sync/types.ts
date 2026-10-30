@@ -122,7 +122,7 @@ export interface DataSyncStageReport extends DataSyncExecutionSummary {
 
 export type DataSyncExecutionReport = DataSyncBatchReport | DataSyncStageReport;
 
-/** Transient editor projection. Only V6 pipelineYaml is persisted. */
+/** V6 JSON task definition persisted through the API; the Task Plugin converts it to YAML. */
 export interface DataSyncParameters {
   source: {
     type: "JDBC" | "MYSQL_CDC";
@@ -251,7 +251,7 @@ export interface TaskDefinitionRecord {
   status: DataSyncTaskStatus | string;
   definitionVersion: number;
   parameterSchemaVersion: number;
-  parameters: { pipelineYaml: string };
+  parameters: DataSyncParameters & { index?: Record<string, string> };
   debug: boolean;
   remark?: string;
   createTime?: string;

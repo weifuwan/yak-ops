@@ -126,7 +126,6 @@ assert.equal("sink" in request, false);
 assert.equal("env" in request, false);
 
 const transport = compile("../apps/web/service/data-sync/definition.ts", {
-  "./pipeline-yaml.ts": { encodePipelineYaml: (value) => value },
   "./parameters.ts": {
     solutionSyncType: (solution) => (solution.endsWith("_REALTIME") ? "REALTIME" : "OFFLINE"),
     supportsMultipleTables: (solution) => solution.startsWith("DATABASE_"),

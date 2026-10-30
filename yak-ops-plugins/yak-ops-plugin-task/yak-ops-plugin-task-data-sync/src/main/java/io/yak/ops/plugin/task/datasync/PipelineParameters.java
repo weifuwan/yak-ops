@@ -1,31 +1,24 @@
 package io.yak.ops.plugin.task.datasync;
 
-import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.plugin.task.api.TaskPluginException;
+import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
+import java.util.Objects;
 
-/** Opaque Flink CDC Pipeline YAML carried by the DATA_SYNC Task. */
+/** Task API JSON. YAML is an ephemeral engine input, never a persisted parameter. */
 public final class PipelineParameters extends AbstractParameters {
-    private final String pipelineYaml;
+    private final ReadonlyConfig json;
 
-    public PipelineParameters(String pipelineYaml) {
-        this.pipelineYaml = pipelineYaml;
+    public PipelineParameters(ReadonlyConfig json) {
+        this.json = Objects.requireNonNull(json, "json");
     }
 
-    public String getPipelineYaml() {
-        return pipelineYaml;
-    }
-
-    public static String yaml(ReadonlyConfig parameters) {
-        Object value = parameters.getSourceMap().get("pipelineYaml");
-        if (!(value instanceof String text) || text.isBlank()) {
-            throw new TaskPluginException("DATA_SYNC requires Pipeline YAML");
-        }
-        return text;
+    public ReadonlyConfig getJson() {
+        return json;
     }
 
     @Override
     public boolean checkParameters() {
-        return pipelineYaml != null && !pipelineYaml.isBlank();
+        return json.getSourceMap().containsKey("source")
+                && json.getSourceMap().containsKey("sink");
     }
 }

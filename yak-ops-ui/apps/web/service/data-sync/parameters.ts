@@ -1,4 +1,3 @@
-import { decodePipelineYaml } from "./pipeline-yaml.ts";
 import type {
   DataSyncParameters,
   DataSyncIncrementalConfig,
@@ -29,7 +28,7 @@ export const supportsMultipleTables = (type: DataSyncSolutionType) =>
 export const offlineIncremental = (solution: DataSyncSolutionType, steps: DataSyncStep[]) =>
   solutionSyncType(solution) === "OFFLINE" && steps.includes("INCREMENTAL");
 
-/** Product category is inferred from Connector and table count, not persisted in V5. */
+/** Product category is inferred from the JSON source and table scope. */
 export function pipelineSolutionType(value: DataSyncParameters): DataSyncSolutionType {
   const multiple =
     value.pipeline?.["pipeline.table-scope"] === "DATABASE" ||
@@ -73,10 +72,13 @@ export const validIncrementalConfig = (
   return true;
 };
 
-/** Persisted V6 YAML is projected into a transient visual editor model. */
+/** Parse the persisted V6 JSON without converting YAML in the frontend. */
 export function parseSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
   if (schemaVersion !== 6) throw new Error("不支持的同步任务参数版本");
-  const value = decodePipelineYaml(content);
+  if (!content || typeof content !== "object" || Array.isArray(content))
+    throw new Error("无效的 V6 JSON Pipeline 定义");
+  const { index, ...definition } = content as DataSyncParameters & { index?: unknown };
+  const value = definition as DataSyncParameters;
   if (!hasOnlyKeys(value, ["source", "sink", "route", "transform", "pipeline"]))
     throw new Error("Pipeline 包含未识别的配置项");
   validateSyncParameters(value);
