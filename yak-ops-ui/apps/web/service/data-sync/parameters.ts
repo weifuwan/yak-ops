@@ -30,8 +30,9 @@ export const offlineIncremental = (solution: DataSyncSolutionType, steps: DataSy
 
 /** Product category is inferred from Connector and table count, not persisted in V5. */
 export function pipelineSolutionType(value: DataSyncParameters): DataSyncSolutionType {
-  const multiple = value.pipeline?.["pipeline.table-scope"] === "DATABASE"
-    || (value.pipeline?.["pipeline.table-scope"] === undefined && value.source.tables.length > 1);
+  const multiple =
+    value.pipeline?.["pipeline.table-scope"] === "DATABASE" ||
+    (value.pipeline?.["pipeline.table-scope"] === undefined && value.source.tables.length > 1);
   const realtime = value.source.type === "MYSQL_CDC";
   return realtime
     ? multiple

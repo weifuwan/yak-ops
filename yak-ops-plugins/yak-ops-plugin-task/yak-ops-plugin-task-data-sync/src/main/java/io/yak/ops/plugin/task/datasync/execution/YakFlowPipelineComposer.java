@@ -2,17 +2,16 @@ package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
+import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.composer.PipelineContext;
 import io.yak.ops.core.composer.PipelineExecution;
 import io.yak.ops.core.composer.PipelinePlan;
-import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
-import io.yak.ops.plugin.task.datasync.validation.JobConfigValidator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

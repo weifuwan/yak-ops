@@ -146,8 +146,7 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
     @Override
     public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
         return admission(composer.plan(
-                new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters)),
-                context(context, false)));
+                new JsonPipelineDefinitionParser().parse(ConfigParser.toJson(parameters)), context(context, false)));
     }
 
     @Override
