@@ -5,33 +5,22 @@ import java.util.Map;
 
 /** Typed product filters target nested canonical JSON paths; bound filter values remain parameters. */
 public final class DefinitionSqlProvider {
-    /** Filters are derived from the V5 pipeline; no persisted SolutionType is required. */
+    /** Immutable V6 search projection produced by the Task plugin from validated YAML. */
     public static final String SOURCE_TYPE = """
-            (CASE WHEN v.parameter_schema_version = 5
-              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type'))
+            (CASE WHEN v.parameter_schema_version = 6
+              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.index.sourceType'))
             END)
             """;
 
     public static final String SOLUTION_TYPE = """
-            (CASE WHEN v.parameter_schema_version = 5 THEN
-              CASE
-                WHEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type')) = 'JDBC'
-                  THEN IF(COALESCE(
-                          JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.pipeline."pipeline.table-scope"')),
-                          IF(JSON_LENGTH(v.parameters, '$.source.tables') = 1, 'SINGLE', 'DATABASE')
-                        ) = 'SINGLE', 'SINGLE_TABLE_OFFLINE', 'DATABASE_OFFLINE')
-                WHEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.source.type')) = 'MYSQL_CDC'
-                  THEN IF(COALESCE(
-                          JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.pipeline."pipeline.table-scope"')),
-                          IF(JSON_LENGTH(v.parameters, '$.source.tables') = 1, 'SINGLE', 'DATABASE')
-                        ) = 'SINGLE', 'SINGLE_TABLE_REALTIME', 'DATABASE_REALTIME')
-              END
+            (CASE WHEN v.parameter_schema_version = 6
+              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.index.solutionType'))
             END)
             """;
 
     private static final Map<String, String> JSON_FILTER_PATHS = Map.of(
-            "sourceDataSourceId", "$.source.datasourceId",
-            "targetDataSourceId", "$.sink.datasourceId");
+            "sourceDataSourceId", "$.index.sourceDataSourceId",
+            "targetDataSourceId", "$.index.targetDataSourceId");
 
     private DefinitionSqlProvider() {}
 

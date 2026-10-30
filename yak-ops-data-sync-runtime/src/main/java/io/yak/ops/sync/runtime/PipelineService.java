@@ -31,7 +31,9 @@ import java.util.Objects;
 public final class PipelineService {
     private static final Option<String> PIPELINE_YAML =
             Options.key("pipelineYaml").stringType().noDefaultValue();
-    private static final OptionRule RULE = OptionRule.builder().required(PIPELINE_YAML).build();
+    private static final Option<Map<String, Object>> INDEX =
+            Options.key("index").mapObjectType().noDefaultValue();
+    private static final OptionRule RULE = OptionRule.builder().required(PIPELINE_YAML).optional(INDEX).build();
 
     private final FactoryUtil factories;
     private final PipelineComposer composer;
@@ -49,7 +51,13 @@ public final class PipelineService {
         try {
             new YamlPipelineDefinitionParser().parse(content);
             ReadonlyConfig parameters = ReadonlyConfig.fromMap(Map.of(PIPELINE_YAML.key(), content));
-            return JobConfigValidator.validateConfig(parameters, factories).parameters();
+            JobConfig job = JobConfigValidator.validateConfig(parameters, factories);
+            Map<String, Object> index = Map.of(
+                    "sourceType", job.solutionType().sourceIdentifier(),
+                    "solutionType", job.solutionType().name(),
+                    "sourceDataSourceId", job.sourceDataSourceId(),
+                    "targetDataSourceId", job.targetDataSourceId());
+            return ReadonlyConfig.fromMap(Map.of(PIPELINE_YAML.key(), content, INDEX.key(), index));
         } catch (RuntimeException failure) {
             throw new TaskPluginException("Invalid V6 DATA_SYNC Pipeline YAML", failure);
         }
