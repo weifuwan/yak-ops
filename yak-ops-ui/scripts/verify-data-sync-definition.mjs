@@ -66,11 +66,12 @@ for (const startup of [
   { mode: "SPECIFIC_OFFSETS", gtidSet: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-9" },
   { mode: "TIMESTAMP", timestampMillis: 1700000000123 },
 ]) {
-  const steps = startup.mode === "SNAPSHOT"
-    ? ["FULL"]
-    : startup.mode === "INITIAL"
-      ? ["FULL", "INCREMENTAL"]
-      : ["INCREMENTAL"];
+  const steps =
+    startup.mode === "SNAPSHOT"
+      ? ["FULL"]
+      : startup.mode === "INITIAL"
+        ? ["FULL", "INCREMENTAL"]
+        : ["INCREMENTAL"];
   const created = createDefinitionRequest({ ...base, steps, startup }).parameters;
   const loaded = toSyncTaskRecord({ ...record, parameters: created });
   assert.deepEqual(loaded.startup, startup);
@@ -96,7 +97,10 @@ const batch = buildSyncParameters({
 assert.equal(batch.source.type, "JDBC");
 assert.equal(batch.source.syncMode, "FULL");
 assert.equal(batch.route.length, 2);
-assert.equal(pipelineSolutionType(readSyncParameters(6, encodePipelineYaml(batch))), "DATABASE_OFFLINE");
+assert.equal(
+  pipelineSolutionType(readSyncParameters(6, encodePipelineYaml(batch))),
+  "DATABASE_OFFLINE",
+);
 
 const singleRouteDatabase = buildSyncParameters({
   ...base,
