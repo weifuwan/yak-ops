@@ -80,7 +80,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
 
     /**
      * The caller owns a transaction. Lock the Instance first, then all group rows
-     * in ID order. Check availability and per-group priority before acquiring any slot.
+     * in deterministic resource order. Check availability and per-group priority before acquiring any slot.
      * This avoids partial multi-resource acquisitions and priority inversion.
      */
     @Override
@@ -296,7 +296,6 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             this.workspaceId = workspaceId;
             this.instanceId = instanceId;
         }
-
     }
 
     private static final class QueueSlot {
@@ -313,6 +312,5 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             this.groupSize = groupSize;
             this.useSize = useSize;
         }
-
     }
 }
