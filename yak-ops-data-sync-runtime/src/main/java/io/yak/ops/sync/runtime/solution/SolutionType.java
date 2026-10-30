@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.solution;
+package io.yak.ops.sync.runtime.solution;
 
 import java.util.List;
 

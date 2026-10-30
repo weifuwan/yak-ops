@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.validation;
+package io.yak.ops.sync.runtime.validation;
 
 /**
  * Maps allowed schema diagnostics into stable product-facing messages.

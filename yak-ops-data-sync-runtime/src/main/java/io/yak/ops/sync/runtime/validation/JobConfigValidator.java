@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.validation;
+package io.yak.ops.sync.runtime.validation;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
@@ -8,9 +8,9 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskValidationException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
-import io.yak.ops.plugin.task.datasync.config.JobConfig;
-import io.yak.ops.plugin.task.datasync.config.JobOptions;
-import io.yak.ops.plugin.task.datasync.solution.SolutionValidator;
+import io.yak.ops.sync.runtime.config.JobConfig;
+import io.yak.ops.sync.runtime.config.JobOptions;
+import io.yak.ops.sync.runtime.solution.SolutionValidator;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -24,7 +24,7 @@ public final class JobConfigValidator {
         Objects.requireNonNull(factories, "factories");
         try {
             JobConfig job = JobConfig.from(parameters);
-            for (io.yak.ops.plugin.task.datasync.config.TableConfig table : job.tables()) {
+            for (io.yak.ops.sync.runtime.config.TableConfig table : job.tables()) {
                 io.yak.ops.connector.base.factory.TableSourceFactory sourceFactory =
                         factories.source(table.source().get(JobOptions.TYPE));
                 io.yak.ops.connector.base.factory.TableSinkFactory sinkFactory =
@@ -59,10 +59,10 @@ public final class JobConfigValidator {
             String sinkId = job.targetDataSourceId();
             DataSourceInfo from = context.dataSource(sourceId);
             DataSourceInfo to = context.dataSource(sinkId);
-            boolean prepareSchema = job.steps().contains(io.yak.ops.plugin.task.datasync.solution.Step.SCHEMA);
+            boolean prepareSchema = job.steps().contains(io.yak.ops.sync.runtime.solution.Step.SCHEMA);
             Set<TableId> sources = new HashSet<>();
             Set<TableId> targets = new HashSet<>();
-            for (io.yak.ops.plugin.task.datasync.config.TableConfig table : job.tables()) {
+            for (io.yak.ops.sync.runtime.config.TableConfig table : job.tables()) {
                 io.yak.ops.connector.base.factory.TableSourceFactory sourceFactory =
                         factories.source(table.source().get(JobOptions.TYPE));
                 io.yak.ops.connector.base.factory.TableSinkFactory sinkFactory =

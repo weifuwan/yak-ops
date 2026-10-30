@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.validation;
+package io.yak.ops.sync.runtime.validation;
 
 /** Marks physical schema errors without exposing untrusted driver or DDL diagnostics. */
 public final class SchemaValidationException extends IllegalArgumentException {

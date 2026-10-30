@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.validation;
+package io.yak.ops.sync.runtime.validation;
 
 import io.yak.ops.connector.jdbc.database.JdbcFactoryLoader;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDdlPlan;

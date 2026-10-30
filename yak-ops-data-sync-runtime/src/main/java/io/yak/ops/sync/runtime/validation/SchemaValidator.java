@@ -1,4 +1,4 @@
-package io.yak.ops.plugin.task.datasync.validation;
+package io.yak.ops.sync.runtime.validation;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.jdbc.database.schema.SchemaChangePlan;
@@ -12,7 +12,7 @@ import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
-import io.yak.ops.plugin.task.datasync.config.JobOptions;
+import io.yak.ops.sync.runtime.config.JobOptions;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
