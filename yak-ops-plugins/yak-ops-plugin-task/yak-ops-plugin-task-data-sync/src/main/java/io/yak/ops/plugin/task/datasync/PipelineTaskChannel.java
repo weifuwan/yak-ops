@@ -1,7 +1,7 @@
 package io.yak.ops.plugin.task.datasync;
 
-import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.ConfigParser;
+import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.TaskPluginException;
@@ -42,8 +42,7 @@ public final class PipelineTaskChannel implements TaskChannel {
     public PipelineParameters parseParameters(String content) {
         ReadonlyConfig envelope = ConfigParser.parseJson(content);
         Object yaml = envelope.getSourceMap().get("pipelineYaml");
-        PipelineParameters parameters =
-                new PipelineParameters(yaml instanceof String text ? text : null);
+        PipelineParameters parameters = new PipelineParameters(yaml instanceof String text ? text : null);
         if (!parameters.checkParameters()) {
             throw new TaskPluginException("DATA_SYNC requires V6 Pipeline YAML");
         }

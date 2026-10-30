@@ -20,8 +20,8 @@ import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.sync.runtime.config.JobConfig;
 import io.yak.ops.sync.runtime.validation.JobConfigValidator;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -33,7 +33,8 @@ public final class PipelineService {
             Options.key("pipelineYaml").stringType().noDefaultValue();
     private static final Option<Map<String, Object>> INDEX =
             Options.key("index").mapObjectType().noDefaultValue();
-    private static final OptionRule RULE = OptionRule.builder().required(PIPELINE_YAML).optional(INDEX).build();
+    private static final OptionRule RULE =
+            OptionRule.builder().required(PIPELINE_YAML).optional(INDEX).build();
 
     private final FactoryUtil factories;
     private final PipelineComposer composer;

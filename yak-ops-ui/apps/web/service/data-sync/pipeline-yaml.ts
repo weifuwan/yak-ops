@@ -1,9 +1,5 @@
 import { parse, stringify } from "yaml";
-import type {
-  DataSyncParameters,
-  DataSyncTablePath,
-  DataSyncStartupOptions,
-} from "./types";
+import type { DataSyncParameters, DataSyncTablePath, DataSyncStartupOptions } from "./types";
 
 /**
  * Flink CDC 3.7-style YAML public definition. The editor model is transient:
@@ -30,8 +26,7 @@ function tablePath(value: string, namespaceKind: string): DataSyncTablePath {
   if (segments.length < 1 || segments.length > 3 || segments.some((segment) => !segment))
     throw new Error("Invalid V6 table path");
   const table = segments.pop()!;
-  if (segments.length === 2)
-    return { database: segments[0], schema: segments[1], table };
+  if (segments.length === 2) return { database: segments[0], schema: segments[1], table };
   if (segments.length === 1)
     return namespaceKind === "DATABASE"
       ? { database: segments[0], table }
@@ -132,7 +127,8 @@ export function encodePipelineYaml(value: DataSyncParameters): PipelineYamlParam
     route: value.route,
     pipeline: {
       "execution.runtime-mode": value.pipeline["execution.runtime-mode"],
-      "yak.table-scope": value.pipeline["pipeline.table-scope"] ??
+      "yak.table-scope":
+        value.pipeline["pipeline.table-scope"] ??
         (value.source.tables.length > 1 ? "DATABASE" : "SINGLE"),
     },
   };
@@ -144,21 +140,28 @@ export function decodePipelineYaml(content: unknown): DataSyncParameters {
   if (!content || typeof content !== "object" || Array.isArray(content))
     throw new Error("Invalid V6 Pipeline envelope");
   const envelope = content as Partial<PipelineYamlParameters>;
-  if (typeof envelope.pipelineYaml !== "string")
-    throw new Error("Missing V6 pipelineYaml");
+  if (typeof envelope.pipelineYaml !== "string") throw new Error("Missing V6 pipelineYaml");
   const parsed: unknown = parse(envelope.pipelineYaml, { uniqueKeys: true });
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
     throw new Error("Invalid V6 YAML document");
   const document = parsed as Partial<PipelineDocument>;
-  if (!document.source || !document.sink || !Array.isArray(document.route) ||
-      !document.pipeline || document.source.type === undefined ||
-      document.sink.type !== "jdbc") throw new Error("Invalid V6 Pipeline shape");
+  if (
+    !document.source ||
+    !document.sink ||
+    !Array.isArray(document.route) ||
+    !document.pipeline ||
+    document.source.type === undefined ||
+    document.sink.type !== "jdbc"
+  )
+    throw new Error("Invalid V6 Pipeline shape");
 
   const source = document.source;
   const sink = document.sink;
   const realtime = source.type === "mysql";
   if (!realtime && source.type !== "jdbc") throw new Error("Unsupported V6 Source");
-  const sourceTables = required(source, "tables").split(",").map((item) => item.trim());
+  const sourceTables = required(source, "tables")
+    .split(",")
+    .map((item) => item.trim());
   const sourceKind = optional(source, "yak.namespace-kind", realtime ? "DATABASE" : "SCHEMA");
   const sinkKind = optional(sink, "yak.namespace-kind", "SCHEMA");
   const sourceDefinitions = sourceTables.map((name) => {
@@ -181,7 +184,12 @@ export function decodePipelineYaml(content: unknown): DataSyncParameters {
                 ? { delaySeconds: positiveNumber(source, prefix + "incremental.delay-seconds") }
                 : {}),
               ...(source[prefix + "incremental.lookback-seconds"] !== undefined
-                ? { lookbackSeconds: positiveNumber(source, prefix + "incremental.lookback-seconds") }
+                ? {
+                    lookbackSeconds: positiveNumber(
+                      source,
+                      prefix + "incremental.lookback-seconds",
+                    ),
+                  }
                 : {}),
             },
           }
@@ -253,7 +261,8 @@ export function decodePipelineYaml(content: unknown): DataSyncParameters {
         initial: optional(sink, "yak.schema.initial", "VERIFY") as "VERIFY",
         evolution: {
           enabled: optional(sink, "yak.schema.evolution.enabled", "false") === "true",
-          allowDropColumns: optional(sink, "yak.schema.evolution.allow-drop-columns", "false") === "true",
+          allowDropColumns:
+            optional(sink, "yak.schema.evolution.allow-drop-columns", "false") === "true",
         },
       },
       tables: sinkDefinitions,

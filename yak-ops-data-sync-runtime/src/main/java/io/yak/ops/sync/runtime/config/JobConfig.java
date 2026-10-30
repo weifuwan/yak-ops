@@ -81,13 +81,12 @@ public final class JobConfig {
             }
             sourceTables.add(name);
         }
-        if (sourceTables.isEmpty() || sourceTables.size() > MAX_TABLES
+        if (sourceTables.isEmpty()
+                || sourceTables.size() > MAX_TABLES
                 || new HashSet<>(sourceTables).size() != sourceTables.size()) {
             throw new IllegalArgumentException("Invalid or duplicate source table selection");
         }
-        List<RouteDef> routes = definition.getRoute().isEmpty()
-                ? defaultRoutes(sourceTables)
-                : definition.getRoute();
+        List<RouteDef> routes = definition.getRoute().isEmpty() ? defaultRoutes(sourceTables) : definition.getRoute();
         if (routes.size() != sourceTables.size()) {
             throw new IllegalArgumentException("YakFlow currently requires a one-to-one route per source table");
         }
@@ -102,7 +101,9 @@ public final class JobConfig {
             }
         }
 
-        String scope = optional(definition.getConfig().getSourceMap(), "yak.table-scope",
+        String scope = optional(
+                definition.getConfig().getSourceMap(),
+                "yak.table-scope",
                 sourceTables.size() == 1 ? "SINGLE" : "DATABASE");
         if (!"SINGLE".equals(scope) && !"DATABASE".equals(scope)) {
             throw new IllegalArgumentException("Invalid yak.table-scope");
@@ -129,8 +130,7 @@ public final class JobConfig {
             dataSteps = switch (startup) {
                 case "initial" -> List.of(Step.FULL, Step.INCREMENTAL);
                 case "snapshot" -> List.of(Step.FULL);
-                case "earliest-offset", "latest-offset", "specific-offset", "timestamp" ->
-                        List.of(Step.INCREMENTAL);
+                case "earliest-offset", "latest-offset", "specific-offset", "timestamp" -> List.of(Step.INCREMENTAL);
                 default -> throw new IllegalArgumentException("Unsupported Flink CDC startup mode");
             };
         } else {
@@ -144,8 +144,7 @@ public final class JobConfig {
         }
 
         String expectedRuntime = realtime && dataSteps.contains(Step.INCREMENTAL) ? "STREAMING" : "BATCH";
-        String runtime = optional(definition.getConfig().getSourceMap(),
-                "execution.runtime-mode", expectedRuntime);
+        String runtime = optional(definition.getConfig().getSourceMap(), "execution.runtime-mode", expectedRuntime);
         if (!expectedRuntime.equals(runtime)) {
             throw new IllegalArgumentException("Pipeline runtime mode conflicts with source mode");
         }
@@ -178,10 +177,12 @@ public final class JobConfig {
             copyConnectorOptions(from, sourceOptions, "scan.");
             sourceOptions.put(JobOptions.TYPE.key(), realtime ? "MYSQL_CDC" : "JDBC");
             sourceOptions.put(JobOptions.DATASOURCE_ID.key(), sourceId);
-            addTablePath(sourceOptions, sourceTable, optional(from, "yak.namespace-kind",
-                    realtime ? "DATABASE" : "SCHEMA"));
+            addTablePath(
+                    sourceOptions, sourceTable, optional(from, "yak.namespace-kind", realtime ? "DATABASE" : "SCHEMA"));
             String sourcePrefix = "yak.table." + sourceTable + ".";
-            String chunkKey = optional(from, sourcePrefix + "chunk-key-column",
+            String chunkKey = optional(
+                    from,
+                    sourcePrefix + "chunk-key-column",
                     optional(from, MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN.key(), null));
             if (chunkKey != null) {
                 if (!realtime || !dataSteps.contains(Step.FULL)) {
@@ -189,7 +190,8 @@ public final class JobConfig {
                 }
                 sourceOptions.put(MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN.key(), chunkKey);
             }
-            IncrementalConfig incremental = incremental(from, sourcePrefix, !realtime && dataSteps.contains(Step.INCREMENTAL));
+            IncrementalConfig incremental =
+                    incremental(from, sourcePrefix, !realtime && dataSteps.contains(Step.INCREMENTAL));
 
             Map<String, Object> sinkOptions = new LinkedHashMap<>();
             copyConnectorOptions(to, sinkOptions, "connector.jdbc.sink.");
@@ -209,30 +211,38 @@ public final class JobConfig {
             if (xa) {
                 sinkOptions.put(JdbcSinkOptions.XA_ENABLED.key(), true);
             }
-            if (targetPrimaryKeys != null && (targetPrimaryKeys.isEmpty() || evolve
-                    || new HashSet<>(targetPrimaryKeys).size() != targetPrimaryKeys.size())) {
+            if (targetPrimaryKeys != null
+                    && (targetPrimaryKeys.isEmpty()
+                            || evolve
+                            || new HashSet<>(targetPrimaryKeys).size() != targetPrimaryKeys.size())) {
                 throw new IllegalArgumentException("Invalid target primary key override");
             }
             if (mode == JdbcWriteMode.RETRACT
-                    && (!xa || targetPrimaryKeys != null || solution != SolutionType.SINGLE_TABLE_REALTIME
-                    || !dataSteps.contains(Step.INCREMENTAL) || evolve)) {
+                    && (!xa
+                            || targetPrimaryKeys != null
+                            || solution != SolutionType.SINGLE_TABLE_REALTIME
+                            || !dataSteps.contains(Step.INCREMENTAL)
+                            || evolve)) {
                 throw new IllegalArgumentException("RETRACT requires single-table realtime XA");
             }
             if (xa && mode != JdbcWriteMode.RETRACT) {
                 throw new IllegalArgumentException("Checkpoint XA requires RETRACT");
             }
             if ((realtime || dataSteps.contains(Step.INCREMENTAL))
-                    && mode != JdbcWriteMode.UPSERT && mode != JdbcWriteMode.RETRACT) {
+                    && mode != JdbcWriteMode.UPSERT
+                    && mode != JdbcWriteMode.RETRACT) {
                 throw new IllegalArgumentException("Incremental pipelines require UPSERT");
             }
-            mappings.add(new TableConfig(ReadonlyConfig.fromMap(sourceOptions),
-                    ReadonlyConfig.fromMap(sinkOptions), incremental, targetPrimaryKeys));
+            mappings.add(new TableConfig(
+                    ReadonlyConfig.fromMap(sourceOptions),
+                    ReadonlyConfig.fromMap(sinkOptions),
+                    incremental,
+                    targetPrimaryKeys));
         }
         return new JobConfig(parameters, solution, mappings, stages, evolve, drop);
     }
 
-    private static void copyConnectorOptions(
-            Map<String, Object> source, Map<String, Object> target, String prefix) {
+    private static void copyConnectorOptions(Map<String, Object> source, Map<String, Object> target, String prefix) {
         source.forEach((key, value) -> {
             if (key.startsWith(prefix)) {
                 target.put(key, value);
@@ -260,8 +270,7 @@ public final class JobConfig {
         target.put(JobOptions.TABLE.key(), parts[parts.length - 1]);
     }
 
-    private static IncrementalConfig incremental(
-            Map<String, Object> options, String prefix, boolean enabled) {
+    private static IncrementalConfig incremental(Map<String, Object> options, String prefix, boolean enabled) {
         String mode = optional(options, prefix + "incremental.mode", null);
         if (!enabled) {
             if (mode != null) {

@@ -51,8 +51,8 @@ public final class YamlPipelineDefinitionParser implements PipelineDefinitionPar
         }
         try {
             JsonNode root = MAPPER.readTree(content);
-            validateNodeKeys("top-level", root, Set.of(SOURCE_KEY, SINK_KEY),
-                    Set.of(ROUTE_KEY, TRANSFORM_KEY, PIPELINE_KEY));
+            validateNodeKeys(
+                    "top-level", root, Set.of(SOURCE_KEY, SINK_KEY), Set.of(ROUTE_KEY, TRANSFORM_KEY, PIPELINE_KEY));
 
             SourceDef sourceDef = toSourceDef(required(root, SOURCE_KEY, "pipeline"));
             SinkDef sinkDef = toSinkDef(required(root, SINK_KEY, "pipeline"));
@@ -74,7 +74,12 @@ public final class YamlPipelineDefinitionParser implements PipelineDefinitionPar
             }
             ReadonlyConfig pipelineConfig = toConfiguration(root.get(PIPELINE_KEY), PIPELINE_KEY);
             return new PipelineDef(
-                    ReadonlyConfig.fromMap(Map.of("pipelineYaml", content)), sourceDef, sinkDef, routes, transforms, pipelineConfig);
+                    ReadonlyConfig.fromMap(Map.of("pipelineYaml", content)),
+                    sourceDef,
+                    sinkDef,
+                    routes,
+                    transforms,
+                    pipelineConfig);
         } catch (IOException failure) {
             throw new IllegalArgumentException("Invalid pipeline YAML", failure);
         }
@@ -95,7 +100,10 @@ public final class YamlPipelineDefinitionParser implements PipelineDefinitionPar
     }
 
     private RouteDef toRouteDef(JsonNode node) {
-        validateNodeKeys(ROUTE_KEY, node, Set.of(ROUTE_SOURCE_TABLE_KEY, ROUTE_SINK_TABLE_KEY),
+        validateNodeKeys(
+                ROUTE_KEY,
+                node,
+                Set.of(ROUTE_SOURCE_TABLE_KEY, ROUTE_SINK_TABLE_KEY),
                 Set.of(ROUTE_REPLACE_SYMBOL, ROUTE_DESCRIPTION_KEY));
         return new RouteDef(
                 requiredText(node, ROUTE_SOURCE_TABLE_KEY, ROUTE_KEY),
@@ -105,7 +113,10 @@ public final class YamlPipelineDefinitionParser implements PipelineDefinitionPar
     }
 
     private TransformDef toTransformDef(JsonNode node) {
-        validateNodeKeys(TRANSFORM_KEY, node, Set.of(TRANSFORM_SOURCE_TABLE_KEY),
+        validateNodeKeys(
+                TRANSFORM_KEY,
+                node,
+                Set.of(TRANSFORM_SOURCE_TABLE_KEY),
                 Set.of(TRANSFORM_PROJECTION_KEY, TRANSFORM_FILTER_KEY));
         return new TransformDef(
                 requiredText(node, TRANSFORM_SOURCE_TABLE_KEY, TRANSFORM_KEY),
@@ -134,8 +145,7 @@ public final class YamlPipelineDefinitionParser implements PipelineDefinitionPar
             Map.Entry<String, JsonNode> field = fields.next();
             JsonNode value = field.getValue();
             if (!value.isValueNode() || value.isNull()) {
-                throw new IllegalArgumentException(
-                        section + "." + field.getKey() + " must be a scalar option");
+                throw new IllegalArgumentException(section + "." + field.getKey() + " must be a scalar option");
             }
             options.put(field.getKey(), value.asText());
         }
@@ -187,8 +197,7 @@ public final class YamlPipelineDefinitionParser implements PipelineDefinitionPar
         }
     }
 
-    private static void validateNodeKeys(
-            String section, JsonNode node, Set<String> required, Set<String> optional) {
+    private static void validateNodeKeys(String section, JsonNode node, Set<String> required, Set<String> optional) {
         if (node == null || !node.isObject()) {
             throw new IllegalArgumentException(section + " must be a YAML mapping");
         }
