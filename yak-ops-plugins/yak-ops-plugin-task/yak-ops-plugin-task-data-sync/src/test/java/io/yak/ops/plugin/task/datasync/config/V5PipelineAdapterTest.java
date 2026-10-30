@@ -48,9 +48,8 @@ class V5PipelineAdapterTest {
 
     @Test
     void rejectsUnknownRouteTargets() {
-        PipelineDef definition = new JsonPipelineDefinitionParser().parse(
-                V5.replace("public.ods_orders", "public.missing"));
-        assertThrows(IllegalArgumentException.class, () -> V5PipelineAdapter.toV4(definition));
+        String invalid = V5.replace("public.ods_orders", "public.missing");
+        assertThrows(IllegalArgumentException.class, () -> new JsonPipelineDefinitionParser().parse(invalid));
     }
 
     @Test

@@ -59,6 +59,19 @@ public final class V5PipelineAdapter {
                 case "EARLIEST_OFFSET", "LATEST_OFFSET", "SPECIFIC_OFFSETS", "TIMESTAMP" -> List.of("INCREMENTAL");
                 default -> throw new IllegalArgumentException("Unsupported MySQL CDC startup mode");
             };
+            if (startup != null) {
+                String connectorMode = switch (mode) {
+                    case "INITIAL" -> "initial";
+                    case "SNAPSHOT" -> "snapshot";
+                    case "EARLIEST_OFFSET" -> "earliest-offset";
+                    case "LATEST_OFFSET" -> "latest-offset";
+                    case "SPECIFIC_OFFSETS" -> "specific-offset";
+                    case "TIMESTAMP" -> "timestamp";
+                    default -> throw new IllegalArgumentException("Unsupported CDC startup mode");
+                };
+                startup.put("mode", connectorMode);
+                source.put("startup", startup);
+            }
         } else {
             if (startup != null) throw new IllegalArgumentException("JDBC does not accept CDC startup");
             steps = switch (syncMode == null ? "FULL" : syncMode) {
