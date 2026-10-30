@@ -1,88 +1,60 @@
-# DATA_SYNC Task Plugin
+# Pipeline Task Plugin (DATA_SYNC)
 
-DATA_SYNC turns one versioned V4 Task definition into one authorized YakFlow pipeline. It is a
-**task plugin**, not a second CDC runtime or a generic workflow/DAG engine.
+The one persisted Task definition is V5. It follows Flink CDC 3.7's
+`PipelineDef` / `PipelineComposer` boundaries and uses existing YakFlow
+source, sink, checkpoint and schema-planning algorithms. No V4 parser,
+V4-to-V5 migration or V5-to-V4 adapter is available.
 
-## Read the implementation in this order
+## Code ownership
 
-1. `PipelineTaskPlugin` — platform SPI: configuration validation, publication checks,
-   admission, solution listing, and creation of a Task execution handle.
-2. `config/JobConfig` — parse V4 definition into ordered table routes and execution intent.
-   `config/SourceConfig`, `SinkConfig`, and `TableConfig` project endpoint settings.
-3. `solution/SolutionCatalog` — choices displayed in the product; `SolutionValidator`
-   owns the corresponding permitted combinations. No physical datasource access here.
-4. `validation/JobConfigValidator` — publication-time, workspace-scoped configuration
-   and resource checks. `SchemaPlanner` plans DDL; `SchemaValidator` checks safety.
-   `SchemaValidationMessages` maps known failures to safe user-facing messages.
-5. `plan/JobPlanner` — resolve authorized physical metadata and revisions, validate table
-   writes, compute `JobPlan` and immutable `TaskExecutionResources`. No credentials or DDL.
-6. `execution/PipelineTaskExecutor` — re-check admission and return **one deferred**
-   `PipelineTaskHandle`, regardless of the selected solution.
-7. `execution/PipelineTaskHandle` — when `start()` is called by the platform, owns the
-   complete preparation, submission, cancellation and completion sequence.
-8. `pipeline/PipelineBuilder` — compile verified routes into Source/Sink, YakFlow
-   `StreamGraph` and execution configuration. It is not a task scheduler.
-9. `execution/TableExecutionProgress` — collect live state and metrics;
-   `PipelineExecutionReport` projects them into the existing public JSON reports.
+- `io.yak.ops.core.definition`: `PipelineDef`, `SourceDef`, `SinkDef`,
+  `RouteDef`, `TransformDef`. Only one complete V5 definition is accepted.
+- `io.yak.ops.core.parser`: strict JSON-to-`PipelineDef` parsing.
+- `io.yak.ops.core.composer`: `PipelineComposer`, `PipelineExecution`,
+  `PipelinePlan`, `PipelineContext` and host-provided `PipelineRuntime`.
+  This API is process-local; it is not a durable remote job registry.
+- `PipelineTaskPlugin`: DolphinScheduler-style Task SPI, registration,
+  validation, admission and a thin deferred execution handle.
+- `execution/YakFlowPipelineRuntime`: binds the V5 composer to the verified
+  `JobPlanner`, `PipelineBuilder` and YakFlow executor.
+- `config/JobConfig`: internal typed per-table execution projection of V5,
+  **not a persisted V4 wire format**. Source/Sink/Route are read from V5.
+- `solution/SolutionCatalog`: advertised user-facing choices such as
+  single-table/batch and database/CDC. Product `solutionType` is derived and
+  must not be persisted in a V5 pipeline.
+- `plan/JobPlanner`: authorized datasource metadata, table identities and
+  resource admission; preserves existing Schema and CDC checks.
+- `execution/PipelineTaskExecutor` and `PipelineTaskHandle`: physical
+  preparation and lifecycle behind the composer.
+- `pipeline/PipelineBuilder`: table-aware Source and Sink factories, stream
+  graph and runtime settings.
 
-## Execution sequence
+## Execution
 
 ```text
-V4 parameters
-  -> JobConfig / JobConfigValidator (static and publication checks)
-  -> JobPlanner (authorized metadata and TaskExecutionResources)
-  -> PipelineTaskExecutor.start (admission fence, no engine submission)
-  -> platform registers TaskHandle and persists RUNNING
-  -> PipelineTaskHandle.start
-     -> JobPlanner (re-admission)
-     -> IncrementalBatchPreparation (only for bounded offline incremental:
-        source-clock upper bound, durable TaskCursorStore.freeze)
-     -> SchemaPreparation (only when SCHEMA is requested:
-        perform DDL, read back and validate each target)
-     -> JobPlanner (re-read all metadata after possible DDL, re-admission)
-     -> IncrementalRun.apply (restore frozen source scan range if relevant)
-     -> PipelineBuilder.build (physical Source/Sink and runtime configuration)
-     -> PipelineExecutor.execute / YakFlowTaskHandle
-     -> outcome, cancellation, progress and report
+V5 JSON -> JsonPipelineDefinitionParser -> PipelineDef
+        -> PipelineComposer.plan
+        -> JobPlanner (authorized metadata and admission)
+        -> PipelineTaskPlugin registers deferred PipelineExecutionTaskHandle
+        -> PipelineExecution.start() (after Task Instance registration)
+        -> PipelineTaskHandle (schema/cursor preparation, re-admission)
+        -> PipelineBuilder -> YakFlow PipelineExecutor
+        -> completion / status / cancellation / report
 ```
 
-A single table and multiple explicitly mapped tables use the same collection-based JobPlan.
-The physical graph normally contains one table-aware Source and one table-aware Sink;
-runtime data stages are driven by the Source, not by a generic workflow graph.
+Source and sink credentials, workspace identity, execution IDs, and checkpoint
+paths come from trusted application context and datasource lookup, never from
+user-supplied pipeline JSON. `getJob` and `cancel` are currently restricted
+to the owning process. Cross-worker recovery remains the Task platform's
+responsibility.
 
-## Module boundaries
+## Current execution capabilities
 
-| Owner | Responsible for | Must not do |
-| --- | --- | --- |
-| `config` | V4 shape, table mappings, connector-specific option projections | Open connections or execute DDL |
-| `solution` | Advertised product choices and their static constraints | Inspect physical tables |
-| `validation` | Publication-time checks, schema plan and safety | Launch jobs |
-| `plan` | Physical metadata, bound table routes and admission fingerprint | Freeze cursor or submit jobs |
-| `execution` | Preparation, TaskHandle lifecycle, report observations | Reimplement CDC split/checkpoint algorithms |
-| `pipeline` | Source/Sink factory calls, stream graph and engine configuration | Decide Task status or own cancellation |
+JDBC batch and incremental sources, MySQL CDC sources and JDBC sinks,
+with 1:1 explicit physical table routes. Unsupported Flink CDC routing
+patterns and transforms are rejected rather than silently ignored.
+The V5 schema version is 5; V4 definitions are deliberately no longer
+readable or executable. Do not silently migrate stored V4 data.
 
-## Correctness boundaries
-
-- Persisted V4 JSON remains the product contract; `SCHEMA` is a derived preparation
-  stage, not a separately persisted user-selected data step.
-- Admission ties the job to approved datasource revisions and physical schemas.
-  It is checked again immediately before physical execution and after target DDL.
-- Bounded offline incremental freezes its cursor window **before** modifying targets.
-  Retries reuse the frozen window; they cannot silently advance the upper bound.
-- The same Task Instance may restore its own Checkpoint. Another Instance does not
-  inherit that Checkpoint state.
-- CDC Snapshot/Hybrid/Binlog handling belongs to the MySQL CDC Connector.
-  The task plugin consumes its boundedness and StartupOptions; it does not copy CDC
-  assignment, backfill or handoff state machines.
-- Requesting cancellation is not proof of a terminal CANCELED outcome. Unknown driver
-  DDL or engine submission outcomes remain distinguishable from confirmed failures.
-- Public progress and reports must not expose credentials, record payloads or raw
-  database exceptions. Existing JSON versions and count/recovery semantics stay stable.
-
-## When changing code
-
-Change a rule in its owning layer rather than repeating it in the UI, catalog and
-planner. Use existing Flink/SeaTunnel-style names only where they reflect the actual
-responsibility. Avoid generic managers, codec wrappers, abstract processor chains and
-future-connector scaffolding. Keep regression tests for admission, cursor freezing,
-CDC startup modes, schema readback, cancellation and report compatibility.
+Preserve existing CDC snapshot, binlog handoff, checkpoint restoration,
+schema evolution, XA and cancellation semantics when changing this code.
