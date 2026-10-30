@@ -1,12 +1,13 @@
 package io.yak.ops.plugin.task.api.execution;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
-import java.util.concurrent.CompletionStage;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.Test;
 
 /** Manual execution plugins do not acquire scheduling capability implicitly. */

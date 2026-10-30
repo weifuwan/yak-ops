@@ -5,9 +5,9 @@ import io.yak.ops.core.composer.PipelineExecution;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;
-import java.util.concurrent.CompletionStage;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.CompletionStage;
 
 /** Thin DolphinScheduler-style Task lifecycle adapter for a Core PipelineExecution. */
 public final class PipelineTask implements TaskHandle {
