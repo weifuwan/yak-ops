@@ -80,6 +80,21 @@ class PipelineYamlConverterTest {
     }
 
     @Test
+    void treatsBlankDatabaseAsAbsentForSchemaNamespaces() {
+        String json = V6.replace("\"database\": \"app\"",
+                        "\"database\": \"\", \"schema\": \"app\"")
+                .replace("\"schema\": \"public\"",
+                        "\"database\": \"\", \"schema\": \"public\"");
+        String yaml = PipelineYamlConverter.convert(ConfigParser.parseJson(json));
+        PipelineDef definition = new YamlPipelineDefinitionParser().parse(yaml);
+        assertEquals("SCHEMA", definition.getSource().getConfig().toMap().get("yak.namespace-kind"));
+        assertEquals("SCHEMA", definition.getSink().getConfig().toMap().get("yak.namespace-kind"));
+        PipelineExecutionPlan plan = PipelineExecutionPlan.from(definition);
+        assertEquals("app", plan.tables().getFirst().source().getSourceMap().get("schema"));
+        assertEquals("public", plan.tables().getFirst().sink().getSourceMap().get("schema"));
+    }
+
+    @Test
     void retainsSnapshotOnlyAsBatch() {
         String json = V6.replace(
                 "\"mode\": \"SPECIFIC_OFFSETS\", \"file\": \"mysql-bin.000123\", \"pos\": 45678",

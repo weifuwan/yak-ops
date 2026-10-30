@@ -5,9 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.yak.ops.configuration.ConfigParser;
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.base.factory.TableSourceFactory;
@@ -18,6 +16,7 @@ import io.yak.ops.connector.jdbc.source.JdbcSourceFactory;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.Source;
 import io.yak.ops.core.data.TableRecord;
+import io.yak.ops.core.parser.YamlPipelineDefinitionParser;
 import io.yak.ops.sync.runtime.config.JobOptions;
 import io.yak.ops.sync.runtime.validation.PipelineDefinitionValidator;
 import java.util.List;
@@ -42,19 +41,26 @@ class FactoryUtilContractTest {
         FactoryUtil factories = new FactoryUtil(
                 List.of(new JdbcSourceFactory(), new ExternalSourceFactory()),
                 List.of(new JdbcSinkFactory()));
-        var source = ReadonlyConfig.fromMap(java.util.Map.of(
+        ReadonlyConfig source = ReadonlyConfig.fromMap(java.util.Map.of(
                 "type", "EXTERNAL", "datasourceId", "source", "table", "orders"));
         FactoryUtil.validate(source, factories.source("EXTERNAL"), JobOptions.ENDPOINT_RULE);
         assertEquals("EXTERNAL", factories.source(source.get(JobOptions.TYPE)).factoryIdentifier());
         // A registered Connector is not an automatically enabled product solution.
-        assertThrows(TaskPluginException.class, () -> PipelineDefinitionValidator.validateConfig(
-                ConfigParser.parseJson("""
-                    {
-                      "source":{"type":"EXTERNAL","datasourceId":"source","table":"orders"},
-                      "transform":[],
-                      "sink":{"type":"JDBC","datasourceId":"target","table":"copy","writeMode":"APPEND"}
-                    }
-                    """), factories));
+        assertThrows(IllegalArgumentException.class, () -> PipelineDefinitionValidator.validateConfig(
+                new YamlPipelineDefinitionParser().parse("""
+                        source:
+                          type: external
+                          datasource-id: source
+                          tables: orders
+                        sink:
+                          type: jdbc
+                          datasource-id: target
+                        route:
+                          - source-table: orders
+                            sink-table: copy
+                        pipeline:
+                          execution.runtime-mode: BATCH
+                        """), factories));
     }
 
     @Test

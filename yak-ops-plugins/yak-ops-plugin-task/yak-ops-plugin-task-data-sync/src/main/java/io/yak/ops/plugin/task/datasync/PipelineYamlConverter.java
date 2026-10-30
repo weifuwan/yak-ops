@@ -63,7 +63,7 @@ public final class PipelineYamlConverter {
             checkKeys(table, "source.table", "database", "schema", "table", "snapshot", "incremental");
             String path = path(table);
             selectedTables.add(path);
-            sourceDatabase |= text(table, "database") != null;
+            sourceDatabase |= hasDatabase(table);
             String prefix = "yak.table." + path + ".";
             if (table.containsKey("snapshot")) {
                 Map<String, Object> snapshot = object(table.get("snapshot"), "snapshot");
@@ -136,7 +136,7 @@ public final class PipelineYamlConverter {
             String targetPath = path(table);
             selectedSinkTables.add(targetPath);
             String prefix = "yak.table." + targetPath + ".";
-            sinkDatabase |= text(table, "database") != null;
+            sinkDatabase |= hasDatabase(table);
             Map<String, Object> write = object(table.get("write"), "write");
             checkKeys(write, "write", "mode", "primaryKeys", "transaction");
             sink.put(prefix + "write.mode", required(write, "mode"));
@@ -208,6 +208,11 @@ public final class PipelineYamlConverter {
         } catch (JsonProcessingException failure) {
             throw new TaskPluginException("Failed to convert DATA_SYNC JSON into Pipeline YAML", failure);
         }
+    }
+
+    private static boolean hasDatabase(Map<String, Object> table) {
+        String database = text(table, "database");
+        return database != null && !database.isBlank();
     }
 
     private static String path(Map<String, Object> table) {

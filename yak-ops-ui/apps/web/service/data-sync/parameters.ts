@@ -77,8 +77,8 @@ export function parseSyncParameters(schemaVersion: number, content: unknown): Da
   if (schemaVersion !== 6) throw new Error("不支持的同步任务参数版本");
   if (!content || typeof content !== "object" || Array.isArray(content))
     throw new Error("无效的 V6 JSON Pipeline 定义");
-  const { index, ...definition } = content as DataSyncParameters & { index?: unknown };
-  const value = definition as DataSyncParameters;
+  const value = { ...(content as DataSyncParameters & { index?: unknown }) };
+  delete value.index;
   if (!hasOnlyKeys(value, ["source", "sink", "route", "transform", "pipeline"]))
     throw new Error("Pipeline 包含未识别的配置项");
   validateSyncParameters(value);
