@@ -1,3 +1,4 @@
+import { decodePipelineYaml } from "./pipeline-yaml";
 import type {
   DataSyncParameters,
   DataSyncIncrementalConfig,
@@ -72,12 +73,10 @@ export const validIncrementalConfig = (
   return true;
 };
 
-/** Strict V5-only parser. V4 data is not upgraded or reinterpreted. */
+/** Persisted V6 YAML is projected into a transient visual editor model. */
 export function parseSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
-  if (schemaVersion !== 5) throw new Error("不支持的同步任务参数版本");
-  if (!content || typeof content !== "object" || Array.isArray(content))
-    throw new Error("无效的 Pipeline 定义");
-  const value = content as DataSyncParameters;
+  if (schemaVersion !== 6) throw new Error("不支持的同步任务参数版本");
+  const value = decodePipelineYaml(content);
   if (!hasOnlyKeys(value, ["source", "sink", "route", "transform", "pipeline"]))
     throw new Error("Pipeline 包含未识别的配置项");
   validateSyncParameters(value);
@@ -156,7 +155,7 @@ export function validateSyncParameters(value: DataSyncParameters): void {
         (value.pipeline["execution.runtime-mode"] !== undefined &&
           !["BATCH", "STREAMING"].includes(value.pipeline["execution.runtime-mode"]))))
   ) {
-    throw new Error("不支持的 V5 Pipeline 定义");
+    throw new Error("不支持的 V6 Pipeline 定义");
   }
   const realtime = value.source.type === "MYSQL_CDC";
   const sourceKeys = ["database", "schema", "table", "snapshot", "incremental"];

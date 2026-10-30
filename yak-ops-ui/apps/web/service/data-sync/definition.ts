@@ -1,3 +1,4 @@
+import { encodePipelineYaml } from "./pipeline-yaml";
 import type {
   DataSyncTaskPageParams,
   DataSyncTaskPageResult,
@@ -131,7 +132,7 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
     taskType: "DATA_SYNC",
     debug: task.debug,
     remark: task.remark,
-    parameters: buildSyncParameters(task),
+    parameters: encodePipelineYaml(buildSyncParameters(task)),
   };
 }
 
@@ -140,14 +141,14 @@ export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload) {
   const request: {
     name: string;
     remark?: string;
-    parameters?: DataSyncParameters;
+    parameters?: { pipelineYaml: string };
     debug?: boolean;
   } = {
     name: task.name,
     remark: task.remark,
     debug: task.debug,
   };
-  if ("solutionType" in task) request.parameters = buildSyncParameters(task);
+  if ("solutionType" in task) request.parameters = encodePipelineYaml(buildSyncParameters(task));
   return request;
 }
 

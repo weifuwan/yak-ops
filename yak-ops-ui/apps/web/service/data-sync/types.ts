@@ -122,7 +122,7 @@ export interface DataSyncStageReport extends DataSyncExecutionSummary {
 
 export type DataSyncExecutionReport = DataSyncBatchReport | DataSyncStageReport;
 
-/** The one persisted pipeline format; product SolutionType is derived, never serialized. */
+/** Transient editor projection. Only V6 pipelineYaml is persisted. */
 export interface DataSyncParameters {
   source: {
     type: "JDBC" | "MYSQL_CDC";
@@ -171,12 +171,12 @@ export interface DataSyncParameters {
   transform: [];
   pipeline: {
     "execution.runtime-mode": "BATCH" | "STREAMING";
-    /** V5-only product scope; never persist the old solutionType enum. */
+    /** Editor-only product scope; never persist the old solutionType enum. */
     "pipeline.table-scope"?: "SINGLE" | "DATABASE";
   };
 }
 
-/** V5 MySQL CDC startup position, including specific file/GTID/timestamp fields. */
+/** MySQL CDC startup position, including specific file/GTID/timestamp fields. */
 export type DataSyncStartupOptions = NonNullable<DataSyncParameters["source"]["startup"]>;
 
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";
@@ -191,7 +191,7 @@ export interface DataSyncTaskRecord {
   allowDropColumns?: boolean;
   tableMappings: DataSyncTableMapping[];
   incremental?: DataSyncIncrementalConfig;
-  /** Read-only in the current editor; preserve the full V5 startup intent on parameter edits. */
+  /** Read-only in the current editor; preserve the full CDC startup intent on parameter edits. */
   startup?: DataSyncStartupOptions;
   solutionType: DataSyncSolutionType;
   steps: DataSyncStep[];
@@ -251,7 +251,7 @@ export interface TaskDefinitionRecord {
   status: DataSyncTaskStatus | string;
   definitionVersion: number;
   parameterSchemaVersion: number;
-  parameters: DataSyncParameters;
+  parameters: { pipelineYaml: string };
   debug: boolean;
   remark?: string;
   createTime?: string;
