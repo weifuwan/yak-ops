@@ -4,10 +4,14 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import java.util.concurrent.CompletionStage;
 
 /** DolphinScheduler TaskChannel: validates a task and creates deferred physical execution. */
 public interface TaskChannel extends TaskPlugin {
+
+    /** Parses the Task parameter envelope, independently of physical Pipeline execution. */
+    AbstractParameters parseParameters(String taskParams);
 
     /**
      * Declares whether these parsed parameters permit periodic submission without external access.

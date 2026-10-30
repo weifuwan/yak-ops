@@ -42,6 +42,7 @@ import io.yak.ops.plugin.scheduler.api.ScheduleTrigger;
 import io.yak.ops.plugin.scheduler.quartz.QuartzCronService;
 import io.yak.ops.plugin.scheduler.quartz.QuartzScheduler;
 import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
@@ -842,6 +843,16 @@ class ScheduleAdmissionIT {
         @Override
         public OptionRule optionRule() {
             return OptionRule.builder().build();
+        }
+
+        @Override
+        public AbstractParameters parseParameters(String content) {
+            return new AbstractParameters() {
+                @Override
+                public boolean checkParameters() {
+                    return true;
+                }
+            };
         }
 
         @Override

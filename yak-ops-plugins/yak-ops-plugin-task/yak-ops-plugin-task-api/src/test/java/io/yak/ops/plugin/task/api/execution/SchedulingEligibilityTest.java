@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.parameters.AbstractParameters;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -28,6 +29,16 @@ class SchedulingEligibilityTest {
             @Override
             public OptionRule optionRule() {
                 return OptionRule.builder().build();
+            }
+
+            @Override
+            public AbstractParameters parseParameters(String content) {
+                return new AbstractParameters() {
+                    @Override
+                    public boolean checkParameters() {
+                        return true;
+                    }
+                };
             }
 
             @Override
