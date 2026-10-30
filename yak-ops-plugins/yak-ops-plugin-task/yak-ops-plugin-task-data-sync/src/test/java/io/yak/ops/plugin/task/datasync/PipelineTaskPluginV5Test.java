@@ -3,6 +3,7 @@ package io.yak.ops.plugin.task.datasync;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.yak.ops.configuration.ConfigParser;
 import io.yak.ops.configuration.ReadonlyConfig;
@@ -16,11 +17,13 @@ import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 
 /** Verifies that the Task SPI only adapts and rechecks the Flink-style composer. */
@@ -59,10 +62,37 @@ class PipelineTaskPluginV5Test {
         assertInstanceOf(PipelineExecution.class, composer.last);
     }
 
+    @Test
+    void rejectsChangedAdmissionBeforeComposition() {
+        StubComposer composer = new StubComposer();
+        PipelineTaskPlugin plugin = new PipelineTaskPlugin(new FactoryUtil(), composer);
+        TaskExecutionIdentity identity = new TaskExecutionIdentity("ws", "def", 1, "instance");
+        ReadonlyConfig parameters = ConfigParser.parseJson(V5);
+        TaskExecutionResources admitted = plugin.plan(parameters, identity);
+        composer.revision = "changed";
+        assertThrows(CompletionException.class,
+                () -> plugin.start(parameters, admitted, identity, false).toCompletableFuture().join());
+        assertEquals(0, composer.compositions);
+    }
+
+    @Test
+    void cancelFlowsThroughTheTaskHandleWithoutComposerRegistry() {
+        StubComposer composer = new StubComposer();
+        PipelineTaskPlugin plugin = new PipelineTaskPlugin(new FactoryUtil(), composer);
+        TaskExecutionIdentity identity = new TaskExecutionIdentity("ws", "def", 1, "instance");
+        ReadonlyConfig parameters = ConfigParser.parseJson(V5);
+        TaskExecutionResources admitted = plugin.plan(parameters, identity);
+        TaskHandle handle = plugin.start(parameters, admitted, identity, false).toCompletableFuture().join();
+        handle.cancel().toCompletableFuture().join();
+        assertEquals(TaskOutcome.CANCELED, handle.completion().toCompletableFuture().join());
+        assertEquals(0, composer.starts);
+    }
+
     private static final class StubComposer implements PipelineComposer {
         private int plans;
         private int compositions;
         private int starts;
+        private String revision = "revision";
         private PipelineExecution last;
 
         @Override
@@ -70,12 +100,12 @@ class PipelineTaskPluginV5Test {
             assertEquals("ws", context.workspaceId());
             assertEquals("JDBC", definition.getSource().getType());
             plans++;
-            return new PipelinePlan(List.of(), "revision");
+            return new PipelinePlan(List.of(), revision);
         }
 
         @Override
         public PipelineExecution compose(PipelineDef definition, PipelinePlan plan, PipelineContext context) {
-            assertEquals("revision", plan.resourceRevision());
+            assertEquals(revision, plan.resourceRevision());
             compositions++;
             last = new StubExecution(this, context.instanceId());
             return last;
