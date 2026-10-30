@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '22.13.1'
       - name: Apply Java formatting
-        run: mvn -q -ntp -pl yak-ops-core,yak-ops-data-sync-runtime,yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync -am spotless:apply -DskipTests
+        run: mvn -q -ntp -pl yak-ops-core,yak-ops-data-sync-runtime,yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync -am com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply -DskipTests
       - name: Apply frontend formatting
         working-directory: yak-ops-ui
         run: |
