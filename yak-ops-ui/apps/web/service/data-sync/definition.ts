@@ -53,7 +53,8 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
     schema: mapping.source.schema,
     table: mapping.source.table,
     ...(mapping.source.chunkKeyColumn
-      ? { snapshot: { chunkKeyColumn: mapping.source.chunkKeyColumn } } : {}),
+      ? { snapshot: { chunkKeyColumn: mapping.source.chunkKeyColumn } }
+      : {}),
     ...(mapping.incremental ? { incremental: { ...mapping.incremental } } : {}),
   }));
   const sinkTables = mappings.map((mapping) => ({
@@ -63,29 +64,46 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
     write: {
       mode: mapping.writeMode,
       ...(mapping.target.primaryKeys?.length
-        ? { primaryKeys: [...mapping.target.primaryKeys] } : {}),
+        ? { primaryKeys: [...mapping.target.primaryKeys] }
+        : {}),
       ...(mapping.writeMode === "RETRACT"
-        ? { transaction: { mode: "CHECKPOINT_XA" as const } } : {}),
+        ? { transaction: { mode: "CHECKPOINT_XA" as const } }
+        : {}),
     },
   }));
   return {
     source: {
-      type: realtime ? "MYSQL_CDC" as const : "JDBC" as const,
+      type: realtime ? ("MYSQL_CDC" as const) : ("JDBC" as const),
       datasourceId: task.sourceDataSourceId,
       ...(realtime
-        ? { startup: { mode: task.steps.includes("FULL")
-              ? task.steps.includes("INCREMENTAL") ? "INITIAL" as const : "SNAPSHOT" as const
-              : "LATEST_OFFSET" as const } }
-        : { syncMode: dataSteps.length === 2 ? "FULL_AND_INCREMENTAL" as const
-              : dataSteps.includes("INCREMENTAL") ? "INCREMENTAL" as const : "FULL" as const }),
+        ? {
+            startup: {
+              mode: task.steps.includes("FULL")
+                ? task.steps.includes("INCREMENTAL")
+                  ? ("INITIAL" as const)
+                  : ("SNAPSHOT" as const)
+                : ("LATEST_OFFSET" as const),
+            },
+          }
+        : {
+            syncMode:
+              dataSteps.length === 2
+                ? ("FULL_AND_INCREMENTAL" as const)
+                : dataSteps.includes("INCREMENTAL")
+                  ? ("INCREMENTAL" as const)
+                  : ("FULL" as const),
+          }),
       tables: sourceTables,
     },
     sink: {
       type: "JDBC" as const,
       datasourceId: task.targetDataSourceId,
       schemaPolicy: {
-        initial: task.steps.includes("SCHEMA") ? "CREATE_OR_ALTER" as const : "VERIFY" as const,
-        evolution: { enabled: evolution, allowDropColumns: Boolean(evolution && task.allowDropColumns) },
+        initial: task.steps.includes("SCHEMA") ? ("CREATE_OR_ALTER" as const) : ("VERIFY" as const),
+        evolution: {
+          enabled: evolution,
+          allowDropColumns: Boolean(evolution && task.allowDropColumns),
+        },
       },
       tables: sinkTables,
     },
@@ -94,7 +112,9 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
       "sink-table": physicalPath(mapping.target),
     })),
     transform: [] as [],
-    pipeline: { "execution.runtime-mode": continuous ? "STREAMING" as const : "BATCH" as const },
+    pipeline: {
+      "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
+    },
   };
 }
 

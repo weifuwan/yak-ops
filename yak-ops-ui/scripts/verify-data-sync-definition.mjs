@@ -1,14 +1,27 @@
 import assert from "node:assert/strict";
-import { buildSyncParameters, createDefinitionRequest, toSyncTaskRecord } from
-  "../apps/web/service/data-sync/definition.ts";
-import { readSyncParameters, pipelineSolutionType, syncTableMappings, displaySyncSteps } from
-  "../apps/web/service/data-sync/parameters.ts";
+import {
+  buildSyncParameters,
+  createDefinitionRequest,
+  toSyncTaskRecord,
+} from "../apps/web/service/data-sync/definition.ts";
+import {
+  readSyncParameters,
+  pipelineSolutionType,
+  syncTableMappings,
+  displaySyncSteps,
+} from "../apps/web/service/data-sync/parameters.ts";
 
 const base = {
-  name: "orders", debug: false, solutionType: "SINGLE_TABLE_REALTIME",
-  steps: ["FULL", "INCREMENTAL"], writeMode: "UPSERT",
-  sourceDataSourceId: "source", sourceTable: "orders",
-  targetDataSourceId: "target", targetSchema: "public", targetTable: "ods_orders",
+  name: "orders",
+  debug: false,
+  solutionType: "SINGLE_TABLE_REALTIME",
+  steps: ["FULL", "INCREMENTAL"],
+  writeMode: "UPSERT",
+  sourceDataSourceId: "source",
+  sourceTable: "orders",
+  targetDataSourceId: "target",
+  targetSchema: "public",
+  targetTable: "ods_orders",
 };
 const definition = createDefinitionRequest(base);
 const v5 = definition.parameters;
@@ -28,12 +41,21 @@ assert.throws(() => readSyncParameters(4, v5));
 assert.throws(() => readSyncParameters(5, { ...v5, solutionType: "SINGLE_TABLE_REALTIME" }));
 assert.throws(() => readSyncParameters(5, { ...v5, route: [] }));
 const record = {
-  id: "d-1", name: "orders", taskType: "DATA_SYNC", status: "UNPUBLISHED",
-  debug: false, definitionVersion: 1, parameterSchemaVersion: 5, parameters: v5,
+  id: "d-1",
+  name: "orders",
+  taskType: "DATA_SYNC",
+  status: "UNPUBLISHED",
+  debug: false,
+  definitionVersion: 1,
+  parameterSchemaVersion: 5,
+  parameters: v5,
 };
 assert.equal(toSyncTaskRecord(record).solutionType, "SINGLE_TABLE_REALTIME");
 const batch = buildSyncParameters({
-  ...base, solutionType: "DATABASE_OFFLINE", steps: ["FULL"], writeMode: "APPEND",
+  ...base,
+  solutionType: "DATABASE_OFFLINE",
+  steps: ["FULL"],
+  writeMode: "APPEND",
   tableMappings: [
     { source: { table: "orders" }, target: { table: "orders_copy" }, writeMode: "APPEND" },
     { source: { table: "users" }, target: { table: "users_copy" }, writeMode: "APPEND" },

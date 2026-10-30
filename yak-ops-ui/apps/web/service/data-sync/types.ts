@@ -129,8 +129,13 @@ export interface DataSyncParameters {
     datasourceId: string;
     syncMode?: "FULL" | "INCREMENTAL" | "FULL_AND_INCREMENTAL";
     startup?: {
-      mode: "INITIAL" | "SNAPSHOT" | "EARLIEST_OFFSET" | "LATEST_OFFSET"
-        | "SPECIFIC_OFFSETS" | "TIMESTAMP";
+      mode:
+        | "INITIAL"
+        | "SNAPSHOT"
+        | "EARLIEST_OFFSET"
+        | "LATEST_OFFSET"
+        | "SPECIFIC_OFFSETS"
+        | "TIMESTAMP";
       file?: string;
       pos?: number;
       gtidSet?: string;
@@ -138,10 +143,12 @@ export interface DataSyncParameters {
       skipEvents?: number;
       skipRows?: number;
     };
-    tables: Array<DataSyncTablePath & {
-      snapshot?: { chunkKeyColumn: string };
-      incremental?: DataSyncIncrementalConfig;
-    }>;
+    tables: Array<
+      DataSyncTablePath & {
+        snapshot?: { chunkKeyColumn: string };
+        incremental?: DataSyncIncrementalConfig;
+      }
+    >;
   };
   sink: {
     type: "JDBC";
@@ -150,13 +157,15 @@ export interface DataSyncParameters {
       initial: "VERIFY" | "CREATE_OR_ALTER";
       evolution: { enabled: boolean; allowDropColumns: boolean };
     };
-    tables: Array<DataSyncTablePath & {
-      write: {
-        mode: DataSyncWriteMode;
-        primaryKeys?: string[];
-        transaction?: { mode: "CHECKPOINT_XA" };
-      };
-    }>;
+    tables: Array<
+      DataSyncTablePath & {
+        write: {
+          mode: DataSyncWriteMode;
+          primaryKeys?: string[];
+          transaction?: { mode: "CHECKPOINT_XA" };
+        };
+      }
+    >;
   };
   route: Array<{ "source-table": string; "sink-table": string }>;
   transform: [];

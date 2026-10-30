@@ -5,17 +5,13 @@ import io.yak.ops.configuration.Options;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.configuration.rule.OptionRule;
-import io.yak.ops.connector.cdc.mysql.table.StartupMode;
 import io.yak.ops.connector.cdc.mysql.table.StartupOptions;
 import io.yak.ops.plugin.task.datasync.solution.SolutionType;
 import io.yak.ops.plugin.task.datasync.solution.Step;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /** Validated internal execution plan derived exclusively from V5 PipelineDef. */
 public final class JobConfig {
@@ -94,17 +90,14 @@ public final class JobConfig {
         this.allowDropColumns = allowDropColumns;
     }
 
-
     /** Converts the one persisted V5 pipeline into typed, per-table execution inputs. */
     public static JobConfig from(ReadonlyConfig parameters) {
         Objects.requireNonNull(parameters, "parameters");
-        io.yak.ops.core.definition.PipelineDef definition =
-                new io.yak.ops.core.parser.JsonPipelineDefinitionParser()
-                        .parse(io.yak.ops.configuration.ConfigParser.toJson(parameters));
+        io.yak.ops.core.definition.PipelineDef definition = new io.yak.ops.core.parser.JsonPipelineDefinitionParser()
+                .parse(io.yak.ops.configuration.ConfigParser.toJson(parameters));
         String sourceType = definition.getSource().getType();
         String sinkType = definition.getSink().getType();
-        if (!"JDBC".equals(sinkType)
-                || (!"JDBC".equals(sourceType) && !"MYSQL_CDC".equals(sourceType))) {
+        if (!"JDBC".equals(sinkType) || (!"JDBC".equals(sourceType) && !"MYSQL_CDC".equals(sourceType))) {
             throw new IllegalArgumentException("Unsupported pipeline connector combination");
         }
         boolean realtime = "MYSQL_CDC".equals(sourceType);
@@ -117,7 +110,8 @@ public final class JobConfig {
         }
         List<Object> rawSources = from.get(TABLES);
         List<Object> rawSinks = to.get(TABLES);
-        if (rawSources.isEmpty() || rawSources.size() > MAX_TABLES
+        if (rawSources.isEmpty()
+                || rawSources.size() > MAX_TABLES
                 || rawSources.size() != rawSinks.size()
                 || rawSources.size() != definition.getRoute().size()) {
             throw new IllegalArgumentException("Invalid pipeline table mappings");
@@ -132,17 +126,17 @@ public final class JobConfig {
             if (from.getSourceMap().containsKey("syncMode")) {
                 throw new IllegalArgumentException("CDC pipelines use startup, not syncMode");
             }
-            String requested = startupSettings == null ? "INITIAL"
-                    : String.valueOf(startupSettings.get("mode"));
-            String mode = switch (requested) {
-                case "INITIAL" -> "initial";
-                case "SNAPSHOT" -> "snapshot";
-                case "EARLIEST_OFFSET" -> "earliest-offset";
-                case "LATEST_OFFSET" -> "latest-offset";
-                case "SPECIFIC_OFFSETS" -> "specific-offset";
-                case "TIMESTAMP" -> "timestamp";
-                default -> throw new IllegalArgumentException("Unsupported CDC startup mode");
-            };
+            String requested = startupSettings == null ? "INITIAL" : String.valueOf(startupSettings.get("mode"));
+            String mode =
+                    switch (requested) {
+                        case "INITIAL" -> "initial";
+                        case "SNAPSHOT" -> "snapshot";
+                        case "EARLIEST_OFFSET" -> "earliest-offset";
+                        case "LATEST_OFFSET" -> "latest-offset";
+                        case "SPECIFIC_OFFSETS" -> "specific-offset";
+                        case "TIMESTAMP" -> "timestamp";
+                        default -> throw new IllegalArgumentException("Unsupported CDC startup mode");
+                    };
             Map<String, Object> normalized = startupSettings == null
                     ? new java.util.LinkedHashMap<>()
                     : new java.util.LinkedHashMap<>(startupSettings);
@@ -150,9 +144,13 @@ public final class JobConfig {
             ReadonlyConfig startup = ReadonlyConfig.fromMap(normalized);
             validate(startup, STARTUP_RULE, "source.startup");
             startupOptions = StartupOptions.from(
-                    mode, startup.get(STARTUP_FILE), startup.get(STARTUP_POSITION),
-                    startup.get(STARTUP_GTID), startup.get(STARTUP_TIMESTAMP),
-                    startup.get(STARTUP_SKIP_EVENTS), startup.get(STARTUP_SKIP_ROWS));
+                    mode,
+                    startup.get(STARTUP_FILE),
+                    startup.get(STARTUP_POSITION),
+                    startup.get(STARTUP_GTID),
+                    startup.get(STARTUP_TIMESTAMP),
+                    startup.get(STARTUP_SKIP_EVENTS),
+                    startup.get(STARTUP_SKIP_ROWS));
             dataSteps = switch (requested) {
                 case "INITIAL" -> List.of(Step.FULL, Step.INCREMENTAL);
                 case "SNAPSHOT" -> List.of(Step.FULL);
@@ -218,10 +216,9 @@ public final class JobConfig {
             sourceTable.put("id", route.getSourceTable());
             Map<String, Object> targetTable = new java.util.LinkedHashMap<>(target.getSourceMap());
             targetTable.put("input", route.getSourceTable());
-            SourceConfig input = SourceConfig.from(
-                    ReadonlyConfig.fromMap(sourceTable), fromId, type, dataSteps, startupOptions);
-            SinkConfig output = SinkConfig.from(
-                    ReadonlyConfig.fromMap(targetTable), toId, type, dataSteps, evolve);
+            SourceConfig input =
+                    SourceConfig.from(ReadonlyConfig.fromMap(sourceTable), fromId, type, dataSteps, startupOptions);
+            SinkConfig output = SinkConfig.from(ReadonlyConfig.fromMap(targetTable), toId, type, dataSteps, evolve);
             routes.add(new TableConfig(
                     input.options(), output.options(), input.incremental(), output.targetPrimaryKeys()));
         }
