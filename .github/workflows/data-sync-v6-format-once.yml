@@ -22,7 +22,7 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Apply repository Java formatter
-        run: mvn -B -ntp -pl yak-ops-engine,yak-ops-plugin-task-data-sync spotless:apply
+        run: mvn -B -ntp -pl yak-ops-engine,yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync spotless:apply
       - uses: actions/setup-node@v4
         with:
           node-version: '22.13'
