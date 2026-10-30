@@ -51,6 +51,10 @@ public class JdbcRegistryDataRepository {
         jdbcRegistryDataMapper.deleteByKey(key);
     }
 
+    public boolean deleteOrphanByIdAndClientId(Long id, Long clientId) {
+        return jdbcRegistryDataMapper.deleteOrphanByIdAndClientId(id, clientId) == 1;
+    }
+
     public void insert(JdbcRegistryDataDTO jdbcRegistryData) {
         JdbcRegistryData jdbcRegistryDataDO = JdbcRegistryDataDTO.toJdbcRegistryData(jdbcRegistryData);
         jdbcRegistryDataMapper.insert(jdbcRegistryDataDO);
