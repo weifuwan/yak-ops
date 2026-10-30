@@ -117,8 +117,8 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    PipelineComposer pipelineComposer(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
-        return new YakFlowPipelineComposer(planner, executor, factories);
+    PipelineComposer pipelineComposer(JobPlanner planner, PipelineTaskExecutor executor) {
+        return new YakFlowPipelineComposer(planner, executor);
     }
 
     @Bean

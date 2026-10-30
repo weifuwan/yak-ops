@@ -28,6 +28,7 @@ interface Props {
   continuous: boolean;
   useIncremental: boolean;
   initialLoad: boolean;
+  startupMode?: string;
   patchSource: <K extends keyof EditorSource>(key: K, value: EditorSource[K]) => void;
   onSourceSchemaChange: (schema: string) => void;
   onSourceTableChange: (table: DataSourceCatalogTable) => void;
@@ -48,6 +49,7 @@ export function SourceSection({
   continuous,
   useIncremental,
   initialLoad,
+  startupMode,
   patchSource,
   onSourceSchemaChange,
   onSourceTableChange,
@@ -129,7 +131,11 @@ export function SourceSection({
             <Alert>仅全量同步会读取当前表快照，完成后自动结束，不会持续读取 Binlog。</Alert>
           ) : null}
           {usesChangelog && !initialLoad ? (
-            <Alert>仅从任务启动时的最新 Binlog 位点同步变更，不会补录已有数据。</Alert>
+            <Alert>
+              {startupMode && startupMode !== "LATEST_OFFSET"
+                ? `当前使用 ${startupMode} 启动位置，修改其他参数不会重置该位置。`
+                : "仅从任务启动时的最新 Binlog 位点同步变更，不会补录已有数据。"}
+            </Alert>
           ) : null}
           {columnsError && usesChangelog && !allowChunkKey ? <Alert>来源字段加载失败</Alert> : null}
           {allowChunkKey ? (

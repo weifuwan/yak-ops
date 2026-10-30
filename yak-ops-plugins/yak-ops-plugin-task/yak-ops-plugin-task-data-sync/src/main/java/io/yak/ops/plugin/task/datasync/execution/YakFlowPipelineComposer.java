@@ -1,7 +1,6 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.composer.PipelineComposer;
 import io.yak.ops.core.composer.PipelineContext;
 import io.yak.ops.core.composer.PipelineExecution;
@@ -20,12 +19,10 @@ import java.util.Objects;
 public final class YakFlowPipelineComposer implements PipelineComposer {
     private final JobPlanner planner;
     private final PipelineTaskExecutor executor;
-    private final FactoryUtil factories;
 
-    public YakFlowPipelineComposer(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
+    public YakFlowPipelineComposer(JobPlanner planner, PipelineTaskExecutor executor) {
         this.planner = Objects.requireNonNull(planner, "planner");
         this.executor = Objects.requireNonNull(executor, "executor");
-        this.factories = Objects.requireNonNull(factories, "factories");
     }
 
     @Override

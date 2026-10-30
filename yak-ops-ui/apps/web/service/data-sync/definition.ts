@@ -77,13 +77,17 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
       datasourceId: task.sourceDataSourceId,
       ...(realtime
         ? {
-            startup: {
-              mode: task.steps.includes("FULL")
-                ? task.steps.includes("INCREMENTAL")
-                  ? ("INITIAL" as const)
-                  : ("SNAPSHOT" as const)
-                : ("LATEST_OFFSET" as const),
-            },
+            // Retain the full V5 offset when editing: steps alone cannot identify
+            // EARLIEST_OFFSET, SPECIFIC_OFFSETS or TIMESTAMP (or their parameters).
+            startup: task.startup
+              ? { ...task.startup }
+              : {
+                  mode: task.steps.includes("FULL")
+                    ? task.steps.includes("INCREMENTAL")
+                      ? ("INITIAL" as const)
+                      : ("SNAPSHOT" as const)
+                    : ("LATEST_OFFSET" as const),
+                },
           }
         : {
             syncMode:
@@ -184,6 +188,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     name: definition.name,
     solutionType: pipelineSolutionType(parameters),
     steps: displaySyncSteps(parameters),
+    ...(parameters.source.startup ? { startup: { ...parameters.source.startup } } : {}),
     schemaChangesEnabled: parameters.sink.schemaPolicy.evolution.enabled,
     allowDropColumns: parameters.sink.schemaPolicy.evolution.allowDropColumns,
     syncType: solutionSyncType(pipelineSolutionType(parameters)),

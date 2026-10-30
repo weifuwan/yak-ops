@@ -52,6 +52,30 @@ const record = {
   parameters: v5,
 };
 assert.equal(toSyncTaskRecord(record).solutionType, "SINGLE_TABLE_REALTIME");
+
+// V5 edit/save round trips must not turn pinned Binlog offsets into LATEST_OFFSET.
+// For modes without an editable form, the existing startup object is read-only.
+for (const startup of [
+  { mode: "INITIAL" },
+  { mode: "SNAPSHOT" },
+  { mode: "EARLIEST_OFFSET" },
+  { mode: "LATEST_OFFSET" },
+  { mode: "SPECIFIC_OFFSETS", file: "mysql-bin.000123", pos: 45678, skipEvents: 2, skipRows: 3 },
+  { mode: "SPECIFIC_OFFSETS", gtidSet: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-9" },
+  { mode: "TIMESTAMP", timestampMillis: 1700000000123 },
+]) {
+  const original = { ...v5, source: { ...v5.source, startup } };
+  const loaded = toSyncTaskRecord({ ...record, parameters: original });
+  assert.deepEqual(loaded.startup, startup);
+  const saved = buildSyncParameters({
+    ...base,
+    solutionType: loaded.solutionType,
+    steps: loaded.steps,
+    startup: loaded.startup,
+  });
+  assert.deepEqual(saved.source.startup, startup);
+  assert.deepEqual(readSyncParameters(5, saved).source.startup, startup);
+}
 const batch = buildSyncParameters({
   ...base,
   solutionType: "DATABASE_OFFLINE",
@@ -80,6 +104,20 @@ const singleRouteDatabase = buildSyncParameters({
 assert.equal(singleRouteDatabase.route.length, 1);
 assert.equal(singleRouteDatabase.pipeline["pipeline.table-scope"], "DATABASE");
 assert.equal(pipelineSolutionType(singleRouteDatabase), "DATABASE_REALTIME");
+assert.throws(() =>
+  readSyncParameters(5, {
+    ...singleRouteDatabase,
+    sink: {
+      ...singleRouteDatabase.sink,
+      tables: [
+        {
+          ...singleRouteDatabase.sink.tables[0],
+          write: { mode: "RETRACT", transaction: { mode: "CHECKPOINT_XA" } },
+        },
+      ],
+    },
+  }),
+);
 assert.equal(
   toSyncTaskRecord({ ...record, parameters: singleRouteDatabase }).solutionType,
   "DATABASE_REALTIME",

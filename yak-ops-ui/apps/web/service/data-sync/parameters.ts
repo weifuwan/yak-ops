@@ -263,7 +263,7 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     const retract =
       realtime &&
       write.mode === "RETRACT" &&
-      value.source.tables.length === 1 &&
+      pipelineSolutionType(value) === "SINGLE_TABLE_REALTIME" &&
       write.transaction?.mode === "CHECKPOINT_XA" &&
       !write.primaryKeys &&
       !policy.evolution.enabled &&

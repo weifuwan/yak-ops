@@ -67,6 +67,15 @@ class V5PipelineDefinitionTest {
     }
 
     @Test
+    void databaseScopeWithSingleRouteCannotUseRetract() {
+        String database = V5.replace("\"execution.runtime-mode\": \"STREAMING\"",
+                        "\"execution.runtime-mode\": \"STREAMING\", \"pipeline.table-scope\": \"DATABASE\"")
+                .replace("\"write\": {\"mode\": \"UPSERT\"}",
+                        "\"write\": {\"mode\": \"RETRACT\", \"transaction\": {\"mode\": \"CHECKPOINT_XA\"}}");
+        assertThrows(IllegalArgumentException.class, () -> JobConfig.from(ConfigParser.parseJson(database)));
+    }
+
+    @Test
     void rejectsV4Fields() {
         assertThrows(IllegalArgumentException.class, () ->
                 JobConfig.from(ConfigParser.parseJson(

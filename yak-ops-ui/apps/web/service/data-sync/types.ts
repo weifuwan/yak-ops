@@ -176,6 +176,9 @@ export interface DataSyncParameters {
   };
 }
 
+/** V5 MySQL CDC startup position, including specific file/GTID/timestamp fields. */
+export type DataSyncStartupOptions = NonNullable<DataSyncParameters["source"]["startup"]>;
+
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";
 
 export interface DataSyncTaskRecord {
@@ -188,6 +191,8 @@ export interface DataSyncTaskRecord {
   allowDropColumns?: boolean;
   tableMappings: DataSyncTableMapping[];
   incremental?: DataSyncIncrementalConfig;
+  /** Read-only in the current editor; preserve the full V5 startup intent on parameter edits. */
+  startup?: DataSyncStartupOptions;
   solutionType: DataSyncSolutionType;
   steps: DataSyncStep[];
   name: string;
@@ -283,6 +288,7 @@ export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
   steps: DataSyncStep[];
   writeMode: DataSyncWriteMode;
   incremental?: DataSyncIncrementalConfig;
+  startup?: DataSyncStartupOptions;
 }
 
 export type DataSyncTaskUpdatePayload =
