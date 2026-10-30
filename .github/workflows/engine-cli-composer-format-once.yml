@@ -1,0 +1,35 @@
+name: Format CLI Composer PR once
+on:
+  push:
+    branches:
+      - refactor/engine-flink-cdc-cli-composer-alignment
+    paths:
+      - .github/workflows/engine-cli-composer-format-once.yml
+permissions:
+  contents: write
+jobs:
+  format-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/engine-flink-cdc-cli-composer-alignment
+          persist-credentials: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Apply repository Java formatter
+        run: mvn -B -ntp -pl yak-ops-engine,yak-ops-boot,yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync spotless:apply
+      - name: Commit format changes and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -- .github/workflows/engine-cli-composer-format-once.yml
+          git add -u
+          git diff --cached --quiet && exit 0
+          git commit -m "style(engine): apply Spotless to Flink CDC CLI Composer alignment"
+          git push origin HEAD:refactor/engine-flink-cdc-cli-composer-alignment
