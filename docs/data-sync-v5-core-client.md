@@ -1,4 +1,4 @@
-# YOIP-21: Core Data Sync Client and V5 Pipeline Definition
+# Core Data Sync Client and V5 Pipeline Definition
 
 Status: Implementation PR (draft; V4 editor remains default)
 

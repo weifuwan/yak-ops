@@ -55,6 +55,10 @@ public final class DataSyncClient {
         PipelineDef definition = parse(json);
         engine.validate(definition, context);
         String key = key(context.workspaceId(), context.instanceId());
+        if (jobs.size() >= MAX_TRACKED_JOBS) {
+            jobs.entrySet().removeIf(entry ->
+                    entry.getValue().job.completion().toCompletableFuture().isDone());
+        }
         RegisteredJob registered = jobs.compute(key, (ignored, previous) -> {
             if (previous != null) {
                 if (!previous.definition.getOriginal().getSourceMap()
@@ -66,11 +70,7 @@ public final class DataSyncClient {
                 return previous;
             }
             if (jobs.size() >= MAX_TRACKED_JOBS) {
-                jobs.entrySet().removeIf(entry ->
-                        entry.getValue().job.completion().toCompletableFuture().isDone());
-                if (jobs.size() >= MAX_TRACKED_JOBS) {
-                    throw new IllegalStateException("Too many tracked Data Sync jobs");
-                }
+                throw new IllegalStateException("Too many tracked Data Sync jobs");
             }
             DataSyncPlan plan = engine.plan(definition, context);
             DataSyncJob job = Objects.requireNonNull(

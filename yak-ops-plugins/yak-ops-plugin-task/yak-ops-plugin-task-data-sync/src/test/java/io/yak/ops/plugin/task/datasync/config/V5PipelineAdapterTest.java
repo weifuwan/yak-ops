@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
-import java.util.List;
 import io.yak.ops.plugin.task.datasync.solution.Step;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class V5PipelineAdapterTest {
@@ -43,8 +43,7 @@ class V5PipelineAdapterTest {
         assertEquals(1, config.tables().size());
         assertEquals(List.of(Step.FULL, Step.INCREMENTAL),
                 config.steps().stream().filter(step -> step != Step.SCHEMA).toList());
-        assertEquals("app.orders", config.tables().getFirst().source().get(JobOptions.TABLE)
-                .equals("orders") ? "app.orders" : "");
+        assertEquals("orders", config.tables().getFirst().source().get(JobOptions.TABLE));
     }
 
     @Test

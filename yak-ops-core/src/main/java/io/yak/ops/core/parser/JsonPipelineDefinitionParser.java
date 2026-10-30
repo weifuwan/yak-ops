@@ -79,6 +79,13 @@ public final class JsonPipelineDefinitionParser implements PipelineDefinitionPar
             }
             mapped.add(new RouteDef(from, to));
         }
+        Set<String> physicalSources = new HashSet<>();
+        Set<String> physicalSinks = new HashSet<>();
+        for (Object entry : sourceTables) physicalSources.add(tablePath(object(entry, "source.tables")));
+        for (Object entry : sinkTables) physicalSinks.add(tablePath(object(entry, "sink.tables")));
+        if (!sources.equals(physicalSources) || !sinks.equals(physicalSinks)) {
+            throw new IllegalArgumentException("V5 route must reference each configured physical table once");
+        }
         Map<String, Object> pipeline = values.containsKey("pipeline")
                 ? object(values.get("pipeline"), "pipeline") : Map.of();
         checkKeys(pipeline, Set.of("execution.runtime-mode"), "pipeline");
@@ -114,6 +121,20 @@ public final class JsonPipelineDefinitionParser implements PipelineDefinitionPar
             if (table.containsKey("snapshot")) object(table.get("snapshot"), "source.tables.snapshot");
             if (table.containsKey("incremental")) object(table.get("incremental"), "source.tables.incremental");
         }
+    }
+
+    private static String tablePath(Map<String, Object> table) {
+        List<String> names = new ArrayList<>();
+        for (String field : List.of("database", "schema", "table")) {
+            if (table.containsKey(field)) {
+                String value = requiredString(table, field, "table");
+                if (value.indexOf('.') >= 0) {
+                    throw new IllegalArgumentException("Dots in V5 physical table names are not yet supported");
+                }
+                names.add(value);
+            }
+        }
+        return String.join(".", names);
     }
 
     private static void checkKeys(Map<String, Object> map, Set<String> allowed, String section) {

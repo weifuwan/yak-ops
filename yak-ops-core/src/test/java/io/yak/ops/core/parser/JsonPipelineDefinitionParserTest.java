@@ -62,8 +62,7 @@ class JsonPipelineDefinitionParserTest {
         assertThrows(IllegalArgumentException.class, () -> parser.parse(V5.replace(
                 "\"transform\": []", "\"unexpected\": 1, \"transform\": []")));
         assertThrows(IllegalArgumentException.class, () -> parser.parse(V5.replace(
-                "\"source-table\": \"app.orders\"", "\"source-table\": \"different\"")
-                .replace("\"route\":", "\"route\":")));
+                "\"source-table\": \"app.orders\"", "\"source-table\": \"different\"")));
     }
 
     @Test
