@@ -20,10 +20,10 @@ import java.util.Objects;
 /** Compiles V5 definitions with the existing YakFlow execution algorithm. */
 public final class YakFlowPipelineRuntime implements PipelineRuntime {
     private final JobPlanner planner;
-    private final DataSyncTaskExecutor executor;
+    private final PipelineTaskExecutor executor;
     private final FactoryUtil factories;
 
-    public YakFlowPipelineRuntime(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
+    public YakFlowPipelineRuntime(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
         this.planner = Objects.requireNonNull(planner, "planner");
         this.executor = Objects.requireNonNull(executor, "executor");
         this.factories = Objects.requireNonNull(factories, "factories");

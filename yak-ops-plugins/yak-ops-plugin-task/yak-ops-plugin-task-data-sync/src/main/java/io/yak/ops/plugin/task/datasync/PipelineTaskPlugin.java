@@ -55,7 +55,7 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
     private final JobPlanner planner;
     private final PipelineTaskExecutor executor;
     private final FactoryUtil factories;
-    private final PipelineComposer client;
+    private final PipelineComposer composer;
 
     public PipelineTaskPlugin(JobPlanner planner, PipelineTaskExecutor executor, FactoryUtil factories) {
         this(planner, executor, factories, null);
@@ -66,7 +66,7 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
         this.planner = Objects.requireNonNull(planner, "planner");
         this.executor = Objects.requireNonNull(executor, "executor");
         this.factories = Objects.requireNonNull(factories, "factories");
-        this.client = client;
+        this.composer = composer;
     }
 
     @Override
@@ -156,8 +156,8 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
 
     @Override
     public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity context) {
-        if (client != null) {
-            return admission(client.plan(ConfigParser.toJson(parameters), context(context, false)));
+        if (composer != null) {
+            return admission(composer.plan(ConfigParser.toJson(parameters), context(context, false)));
         }
         return planner.admissionPlan(parameters, context);
     }
@@ -165,15 +165,15 @@ public final class PipelineTaskPlugin implements ExecutableTaskPlugin {
     @Override
     public CompletionStage<TaskHandle> start(
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
-        if (client == null) return executor.start(parameters, plan, context, debug);
+        if (composer == null) return executor.start(parameters, plan, context, debug);
         try {
             PipelineContext trusted = context(context, debug);
             String json = ConfigParser.toJson(parameters);
-            TaskExecutionResources actual = admission(client.plan(json, trusted));
+            TaskExecutionResources actual = admission(composer.plan(json, trusted));
             if (!plan.equals(actual)) {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
             }
-            PipelineExecution job = client.compose(json, trusted);
+            PipelineExecution job = composer.compose(json, trusted);
             return CompletableFuture.completedFuture(new PipelineExecutionTaskHandle(job));
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(
