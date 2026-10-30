@@ -17,8 +17,11 @@ public interface TaskGroupQueueRepository {
     /** Whether no resource is waiting for acquisition. */
     boolean allAcquired(String workspaceId, String instanceId);
 
-    /** Lists waiting queue entries by descending priority, then FIFO. */
-    List<TaskGroupQueueEntity> waiting(int limit);
+    /**
+     * Lists the next waiting page using the stable priority/time/id ordering.
+     * A null cursor starts from the highest-priority entry.
+     */
+    List<TaskGroupQueueEntity> waiting(int limit, TaskGroupQueueEntity after);
 
     /** Reconciles capacity counters against durable acquired rows, preserving uncertain runs. */
     void reconcile();
