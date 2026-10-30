@@ -241,6 +241,26 @@ public class JdbcRegistryDataManager
         });
     }
 
+    /**
+     * Remove an orphaned ephemeral row only if its heartbeat is still absent.
+     * The conditional delete and DELETE notification share a transaction.
+     */
+    public void deleteOrphanedJdbcRegistryData(JdbcRegistryDataDTO orphan) {
+        checkNotNull(orphan);
+        jdbcRegistryTransactionTemplate.execute(status -> {
+            if (!jdbcRegistryDataRepository.deleteOrphanByIdAndClientId(orphan.getId(), orphan.getClientId())) {
+                return null;
+            }
+            JdbcRegistryDataChangeEventDTO event = JdbcRegistryDataChangeEventDTO.builder()
+                    .jdbcRegistryData(orphan)
+                    .eventType(JdbcRegistryDataChangeEventDTO.EventType.DELETE)
+                    .createTime(new Date())
+                    .build();
+            jdbcRegistryDataChangeEventRepository.insert(event);
+            return null;
+        });
+    }
+
     private void doTriggerJdbcRegistryDataAddedListener(List<JdbcRegistryDataDTO> valuesToAdd) {
         if (CollectionUtils.isEmpty(valuesToAdd)) {
             return;
