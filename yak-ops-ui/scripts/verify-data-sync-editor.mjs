@@ -157,18 +157,17 @@ const offsetEdit = params.buildEditorPayload(
   true,
   persistedStartup,
 );
-assert.deepEqual(
-  JSON.parse(JSON.stringify(transport.createDefinitionRequest(offsetEdit).parameters.source.startup)),
+const savedStartup = transport.createDefinitionRequest(offsetEdit).parameters.source.startup;
+assert.deepEqual(JSON.parse(JSON.stringify(savedStartup)), persistedStartup);
+const offlineStartupPayload = params.buildEditorPayload(
+  form,
+  { ...draft, solutionType: "SINGLE_TABLE_OFFLINE" },
+  false,
+  [],
+  false,
   persistedStartup,
 );
-assert.equal("startup" in params.buildEditorPayload(
-    form,
-    { ...draft, solutionType: "SINGLE_TABLE_OFFLINE" },
-    false,
-    [],
-    false,
-    persistedStartup,
-  ), false);
+assert.equal("startup" in offlineStartupPayload, false);
 
 const snapshotDraft = { ...draft, steps: ["FULL"] };
 const snapshotPayload = params.buildEditorPayload(form, snapshotDraft, false, [], true);
