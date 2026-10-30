@@ -48,4 +48,14 @@ public interface JdbcRegistryDataMapper extends BaseMapper<JdbcRegistryData> {
             "</script>"})
     void deleteByClientIds(@Param("clientIds") List<Long> clientIds, @Param("dataType") String dataType);
 
+    /**
+     * Only purge the exact orphaned ephemeral row after rechecking its owner in the database.
+     * A client registered after a purge snapshot must never have its live data removed.
+     */
+    @Delete("delete from yak_ops_jdbc_registry_data where id = #{id} and client_id = #{clientId}"
+            + " and data_type = 'EPHEMERAL'"
+            + " and not exists (select 1 from yak_ops_jdbc_registry_client_heartbeat"
+            + " where id = #{clientId})")
+    int deleteOrphanByIdAndClientId(@Param("id") Long id, @Param("clientId") Long clientId);
+
 }
