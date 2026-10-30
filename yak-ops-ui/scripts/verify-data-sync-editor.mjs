@@ -141,6 +141,35 @@ const realtimeOnlyDefinition = transport.createDefinitionRequest(realtimeOnlyPay
 assert.equal(realtimeOnlyDefinition.source.startup.mode, "LATEST_OFFSET");
 assert.equal(realtimeOnlyDefinition.pipeline["execution.runtime-mode"], "STREAMING");
 
+// Real editor payload path must preserve a V5 offset even when editing other fields.
+const persistedStartup = {
+  mode: "SPECIFIC_OFFSETS",
+  file: "mysql-bin.000123",
+  pos: 45678,
+  skipEvents: 2,
+  skipRows: 3,
+};
+const offsetEdit = params.buildEditorPayload(
+  form,
+  realtimeOnly,
+  false,
+  [],
+  true,
+  persistedStartup,
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(transport.createDefinitionRequest(offsetEdit).parameters.source.startup)),
+  persistedStartup,
+);
+assert.equal("startup" in params.buildEditorPayload(
+    form,
+    { ...draft, solutionType: "SINGLE_TABLE_OFFLINE" },
+    false,
+    [],
+    false,
+    persistedStartup,
+  ), false);
+
 const snapshotDraft = { ...draft, steps: ["FULL"] };
 const snapshotPayload = params.buildEditorPayload(form, snapshotDraft, false, [], true);
 const snapshotDefinition = transport.createDefinitionRequest(snapshotPayload).parameters;
