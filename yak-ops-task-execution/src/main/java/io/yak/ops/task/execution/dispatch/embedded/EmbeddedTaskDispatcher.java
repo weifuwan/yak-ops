@@ -115,6 +115,11 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
     @Override
     public void dispatch(String workspaceId, String instanceId) {
         owner.incarnation();
+        // A queued Task cannot consume a Worker slot or claim its Instance until
+        // the Master has atomically acquired every required TaskGroup slot.
+        if (!claims.allAcquired(workspaceId, instanceId)) {
+            return;
+        }
         try {
             worker.dispatch(workspaceId, instanceId, registry, this::preparePhysicalTask);
         } catch (TaskExecutorRuntimeException busy) {
