@@ -122,40 +122,45 @@ export interface DataSyncStageReport extends DataSyncExecutionSummary {
 
 export type DataSyncExecutionReport = DataSyncBatchReport | DataSyncStageReport;
 
+/** The one persisted pipeline format; product SolutionType is derived, never serialized. */
 export interface DataSyncParameters {
-  solutionType: DataSyncSolutionType;
-  /** Data steps only; SCHEMA is an execution stage derived from Sink policy. */
-  steps: Array<"FULL" | "INCREMENTAL">;
   source: {
+    type: "JDBC" | "MYSQL_CDC";
     datasourceId: string;
-    startup?: { mode: "initial" | "snapshot" | "latest-offset" };
-    tables: Array<
-      DataSyncTablePath & {
-        id: string;
-        snapshot?: { chunkKeyColumn: string };
-        incremental?: DataSyncIncrementalConfig;
-      }
-    >;
+    syncMode?: "FULL" | "INCREMENTAL" | "FULL_AND_INCREMENTAL";
+    startup?: {
+      mode: "INITIAL" | "SNAPSHOT" | "EARLIEST_OFFSET" | "LATEST_OFFSET"
+        | "SPECIFIC_OFFSETS" | "TIMESTAMP";
+      file?: string;
+      pos?: number;
+      gtidSet?: string;
+      timestampMillis?: number;
+      skipEvents?: number;
+      skipRows?: number;
+    };
+    tables: Array<DataSyncTablePath & {
+      snapshot?: { chunkKeyColumn: string };
+      incremental?: DataSyncIncrementalConfig;
+    }>;
   };
-  transform: [];
   sink: {
+    type: "JDBC";
     datasourceId: string;
     schemaPolicy: {
       initial: "VERIFY" | "CREATE_OR_ALTER";
       evolution: { enabled: boolean; allowDropColumns: boolean };
     };
-    tables: Array<
-      DataSyncTablePath & {
-        input: string;
-        write: {
-          mode: DataSyncWriteMode;
-          primaryKeys?: string[];
-          transaction?: { mode: "CHECKPOINT_XA" };
-        };
-      }
-    >;
+    tables: Array<DataSyncTablePath & {
+      write: {
+        mode: DataSyncWriteMode;
+        primaryKeys?: string[];
+        transaction?: { mode: "CHECKPOINT_XA" };
+      };
+    }>;
   };
-  env: Record<string, never>;
+  route: Array<{ "source-table": string; "sink-table": string }>;
+  transform: [];
+  pipeline: { "execution.runtime-mode": "BATCH" | "STREAMING" };
 }
 
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";

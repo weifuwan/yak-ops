@@ -138,13 +138,13 @@ const realtimeOnly = {
 const realtimeOnlyPayload = params.buildEditorPayload(form, realtimeOnly, false, [], true);
 assert.equal("chunkKeyColumn" in realtimeOnlyPayload, false);
 const realtimeOnlyDefinition = transport.createDefinitionRequest(realtimeOnlyPayload).parameters;
-assert.equal(realtimeOnlyDefinition.source.startup.mode, "latest-offset");
+assert.equal(realtimeOnlyDefinition.source.startup.mode, "LATEST_OFFSET");
 assert.deepEqual(Array.from(realtimeOnlyDefinition.steps), ["INCREMENTAL"]);
 
 const snapshotDraft = { ...draft, steps: ["FULL"] };
 const snapshotPayload = params.buildEditorPayload(form, snapshotDraft, false, [], true);
 const snapshotDefinition = transport.createDefinitionRequest(snapshotPayload).parameters;
-assert.equal(snapshotDefinition.source.startup.mode, "snapshot");
+assert.equal(snapshotDefinition.source.startup.mode, "SNAPSHOT");
 assert.equal(snapshotDefinition.sink.schemaPolicy.evolution.enabled, false);
 assert.deepEqual(Array.from(snapshotDefinition.steps), ["FULL"]);
 
@@ -169,7 +169,7 @@ const offlinePayload = params.buildEditorPayload(offlineForm, offlineDraft, fals
 assert.equal(offlinePayload.incremental.column, "updated_at");
 assert.equal(offlinePayload.incremental.lookbackSeconds, 5);
 const offlineParameters = transport.createDefinitionRequest(offlinePayload).parameters;
-assert.equal(offlineParameters.solutionType, "SINGLE_TABLE_OFFLINE");
+assert.equal(offlineParameters.source.type, "JDBC");
 assert.deepEqual(Array.from(offlineParameters.steps), ["FULL", "INCREMENTAL"]);
 assert.equal(offlineParameters.source.tables.length, 1);
 assert.deepEqual(

@@ -1,126 +1,77 @@
 import type {
-  DataSyncParameters,
-  DataSyncIncrementalConfig,
-  DataSyncSolutionType,
-  DataSyncStep,
-  DataSyncTableMapping,
+  DataSyncParameters, DataSyncIncrementalConfig, DataSyncSolutionType,
+  DataSyncStep, DataSyncTableMapping, DataSyncTablePath,
 } from "./types";
 
-const SOLUTIONS = new Set([
-  "SINGLE_TABLE_OFFLINE",
-  "SINGLE_TABLE_REALTIME",
-  "DATABASE_OFFLINE",
-  "DATABASE_REALTIME",
-]);
 const WRITES = new Set(["APPEND", "UPSERT", "RETRACT"]);
+const STARTUP = new Set([
+  "INITIAL", "SNAPSHOT", "EARLIEST_OFFSET", "LATEST_OFFSET", "SPECIFIC_OFFSETS", "TIMESTAMP",
+]);
+const hasOnlyKeys = (value: object, keys: string[]) =>
+  Object.keys(value).every((key) => keys.includes(key));
+const path = (table: DataSyncTablePath) =>
+  [table.database, table.schema, table.table].filter(Boolean).join(".");
 
 export const solutionSyncType = (type: DataSyncSolutionType) =>
   type === "SINGLE_TABLE_REALTIME" || type === "DATABASE_REALTIME" ? "REALTIME" : "OFFLINE";
-
 export const supportsMultipleTables = (type: DataSyncSolutionType) =>
   type === "DATABASE_OFFLINE" || type === "DATABASE_REALTIME";
-
 export const offlineIncremental = (solution: DataSyncSolutionType, steps: DataSyncStep[]) =>
   solutionSyncType(solution) === "OFFLINE" && steps.includes("INCREMENTAL");
+
+/** Product category is inferred from Connector and table count, not persisted in V5. */
+export function pipelineSolutionType(value: DataSyncParameters): DataSyncSolutionType {
+  const multiple = value.source.tables.length > 1;
+  const realtime = value.source.type === "MYSQL_CDC";
+  return realtime
+    ? (multiple ? "DATABASE_REALTIME" : "SINGLE_TABLE_REALTIME")
+    : (multiple ? "DATABASE_OFFLINE" : "SINGLE_TABLE_OFFLINE");
+}
 
 export const validIncrementalConfig = (
   value: DataSyncIncrementalConfig | undefined,
   requireStart: boolean,
 ) => {
-  if (
-    !value ||
-    !["TIMESTAMP", "INCREASING"].includes(value.mode) ||
-    !value.column.trim() ||
-    value.column.length > 128
-  )
-    return false;
+  if (!value || !["TIMESTAMP", "INCREASING"].includes(value.mode)
+      || !value.column?.trim() || value.column.length > 128) return false;
   if (requireStart && !value.initialValue?.trim()) return false;
-  if (
-    value.initialValue &&
-    (value.mode === "INCREASING"
-      ? !/^-?\d+$/.test(value.initialValue)
-      : !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(value.initialValue))
-  )
+  if (value.initialValue &&
+      (value.mode === "INCREASING"
+        ? !/^-?\d+$/.test(value.initialValue)
+        : !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(value.initialValue)))
     return false;
-  if (
-    [value.delaySeconds, value.lookbackSeconds].some(
-      (v) => v !== undefined && (!Number.isSafeInteger(v) || v < 0),
-    )
-  )
-    return false;
+  if ([value.delaySeconds, value.lookbackSeconds].some(
+    (v) => v !== undefined && (!Number.isSafeInteger(v) || v < 0))) return false;
   if (value.mode === "INCREASING" && (value.delaySeconds || value.lookbackSeconds)) return false;
   return true;
 };
 
-/** One readable configuration contract; no V2/V3 conversion or protocol fallback. */
+/** Strict V5-only parser. V4 data is not upgraded or reinterpreted. */
 export function parseSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
-  if (schemaVersion !== 4) throw new Error("不支持的同步任务参数版本");
+  if (schemaVersion !== 5) throw new Error("不支持的同步任务参数版本");
+  if (!content || typeof content !== "object" || Array.isArray(content))
+    throw new Error("无效的 Pipeline 定义");
   const value = content as DataSyncParameters;
-  const allowed = (object: object, keys: string[]) =>
-    Object.keys(object).every((key) => keys.includes(key));
-  if (
-    !value ||
-    typeof value !== "object" ||
-    !allowed(value, ["solutionType", "steps", "source", "transform", "sink", "env"]) ||
-    !SOLUTIONS.has(value.solutionType) ||
-    !Array.isArray(value.steps) ||
-    !Array.isArray(value.transform) ||
-    value.transform.length !== 0 ||
-    !value.env ||
-    Object.keys(value.env).length !== 0 ||
-    !value.source?.datasourceId ||
-    !value.sink?.datasourceId ||
-    !Array.isArray(value.source.tables) ||
-    !Array.isArray(value.sink.tables) ||
-    !value.source.tables.length ||
-    value.source.tables.length > 100 ||
-    value.source.tables.length !== value.sink.tables.length ||
-    !allowed(value.source, ["datasourceId", "tables", "startup"]) ||
-    !allowed(value.sink, ["datasourceId", "tables", "schemaPolicy"])
-  ) {
-    throw new Error("不支持的同步任务定义");
-  }
-  for (const source of value.source.tables) {
-    if (
-      !source?.id ||
-      !source.table ||
-      !allowed(source, ["id", "database", "schema", "table", "snapshot", "incremental"])
-    ) {
-      throw new Error("不支持的来源表配置");
-    }
-  }
-  for (const target of value.sink.tables) {
-    if (
-      !target?.input ||
-      !target.table ||
-      !target.write?.mode ||
-      !allowed(target, ["input", "database", "schema", "table", "write"]) ||
-      !allowed(target.write, ["mode", "primaryKeys", "transaction"])
-    ) {
-      throw new Error("不支持的目标表配置");
-    }
-  }
+  if (!hasOnlyKeys(value, ["source", "sink", "route", "transform", "pipeline"]))
+    throw new Error("Pipeline 包含未识别的配置项");
   validateSyncParameters(value);
   return value;
 }
 
-/** Returns a read-only UI projection, not an alternative persisted table-mapping model. */
 export function syncTableMappings(value: DataSyncParameters): DataSyncTableMapping[] {
-  const targets = new Map(value.sink.tables.map((target) => [target.input, target]));
-  return value.source.tables.map((table) => {
-    const target = targets.get(table.id);
-    if (!target) throw new Error("找不到目标表映射");
+  const sources = new Map(value.source.tables.map((table) => [path(table), table]));
+  const sinks = new Map(value.sink.tables.map((table) => [path(table), table]));
+  return value.route.map((route) => {
+    const table = sources.get(route["source-table"]);
+    const target = sinks.get(route["sink-table"]);
+    if (!table || !target) throw new Error("找不到 Pipeline 表映射");
     return {
       source: {
-        database: table.database,
-        schema: table.schema,
-        table: table.table,
+        database: table.database, schema: table.schema, table: table.table,
         ...(table.snapshot ? { chunkKeyColumn: table.snapshot.chunkKeyColumn } : {}),
       },
       target: {
-        database: target.database,
-        schema: target.schema,
-        table: target.table,
+        database: target.database, schema: target.schema, table: target.table,
         ...(target.write.primaryKeys ? { primaryKeys: target.write.primaryKeys } : {}),
       },
       writeMode: target.write.mode,
@@ -129,124 +80,121 @@ export function syncTableMappings(value: DataSyncParameters): DataSyncTableMappi
   });
 }
 
-/** SCHEMA is derived for the current stage viewer and editor; it is never persisted as a data step. */
 export function displaySyncSteps(value: DataSyncParameters): DataSyncStep[] {
+  const dataSteps: DataSyncStep[] = value.source.type === "MYSQL_CDC"
+    ? value.source.startup?.mode === "SNAPSHOT"
+      ? ["FULL"]
+      : value.source.startup?.mode === undefined || value.source.startup.mode === "INITIAL"
+        ? ["FULL", "INCREMENTAL"] : ["INCREMENTAL"]
+    : value.source.syncMode === "INCREMENTAL"
+      ? ["INCREMENTAL"]
+      : value.source.syncMode === "FULL_AND_INCREMENTAL"
+        ? ["FULL", "INCREMENTAL"] : ["FULL"];
   return [
     ...(value.sink.schemaPolicy.initial === "CREATE_OR_ALTER" ? (["SCHEMA"] as const) : []),
-    ...value.steps,
+    ...dataSteps,
   ];
 }
 
 export function validateSyncParameters(value: DataSyncParameters): void {
-  const realtime = solutionSyncType(value.solutionType) === "REALTIME";
-  const steps = value.steps;
-  if (
-    new Set(steps).size !== steps.length ||
-    steps.some((step) => step !== "FULL" && step !== "INCREMENTAL") ||
-    (realtime &&
-      ![["FULL", "INCREMENTAL"], ["FULL"], ["INCREMENTAL"]].some(
-        (candidate) => JSON.stringify(candidate) === JSON.stringify(steps),
-      )) ||
-    (!realtime &&
-      ![["FULL"], ["INCREMENTAL"], ["FULL", "INCREMENTAL"]].some(
-        (candidate) => JSON.stringify(candidate) === JSON.stringify(steps),
-      )) ||
-    (!supportsMultipleTables(value.solutionType) && value.source.tables.length !== 1)
-  )
-    throw new Error("不支持的同步步骤或表数量");
-  const startup = value.source.startup;
-  if (
-    (realtime &&
-      (steps.includes("FULL")
-        ? startup !== undefined &&
-          (startup?.mode !== (steps.includes("INCREMENTAL") ? "initial" : "snapshot") ||
-            Object.keys(startup).some((key) => key !== "mode"))
-        : startup?.mode !== "latest-offset" ||
-          Object.keys(startup).some((key) => key !== "mode"))) ||
-    (!realtime && startup !== undefined)
-  )
-    throw new Error("CDC 启动位置与同步步骤不匹配");
+  if (!value?.source || !value.sink ||
+      !hasOnlyKeys(value.source, ["type", "datasourceId", "syncMode", "startup", "tables"]) ||
+      !hasOnlyKeys(value.sink, ["type", "datasourceId", "schemaPolicy", "tables"]) ||
+      !["JDBC", "MYSQL_CDC"].includes(value.source.type) || value.sink.type !== "JDBC" ||
+      !value.source.datasourceId || !value.sink.datasourceId ||
+      !Array.isArray(value.source.tables) || !Array.isArray(value.sink.tables) ||
+      !Array.isArray(value.route) || !Array.isArray(value.transform) || value.transform.length !== 0 ||
+      !value.source.tables.length || value.source.tables.length > 100 ||
+      value.source.tables.length !== value.sink.tables.length ||
+      value.route.length !== value.source.tables.length ||
+      (value.pipeline !== undefined && (!hasOnlyKeys(value.pipeline, ["execution.runtime-mode"]) ||
+        (value.pipeline["execution.runtime-mode"] !== undefined &&
+          !["BATCH", "STREAMING"].includes(value.pipeline["execution.runtime-mode"]))))) {
+    throw new Error("不支持的 V5 Pipeline 定义");
+  }
+  const realtime = value.source.type === "MYSQL_CDC";
+  const sourceKeys = ["database", "schema", "table", "snapshot", "incremental"];
+  const sinkKeys = ["database", "schema", "table", "write"];
+  for (const table of value.source.tables) {
+    if (!table?.table || !hasOnlyKeys(table, sourceKeys) ||
+        [table.database, table.schema, table.table].some((name) => name?.includes(".")))
+      throw new Error("无效的来源表配置");
+  }
+  for (const table of value.sink.tables) {
+    if (!table?.table || !table.write?.mode || !hasOnlyKeys(table, sinkKeys) ||
+        !hasOnlyKeys(table.write, ["mode", "primaryKeys", "transaction"]) ||
+        [table.database, table.schema, table.table].some((name) => name?.includes(".")))
+      throw new Error("无效的目标表配置");
+  }
+  if (realtime) {
+    if (value.source.syncMode !== undefined ||
+        (value.source.startup !== undefined &&
+          (!STARTUP.has(value.source.startup.mode) ||
+           !hasOnlyKeys(value.source.startup,
+             ["mode", "file", "pos", "gtidSet", "timestampMillis", "skipEvents", "skipRows"]))))
+      throw new Error("CDC 启动位置配置无效");
+  } else if (value.source.startup !== undefined ||
+      (value.source.syncMode !== undefined &&
+        !["FULL", "INCREMENTAL", "FULL_AND_INCREMENTAL"].includes(value.source.syncMode))) {
+    throw new Error("JDBC 同步模式配置无效");
+  }
+  const steps = displaySyncSteps(value);
   const policy = value.sink.schemaPolicy;
-  if (
-    !policy ||
-    !["VERIFY", "CREATE_OR_ALTER"].includes(policy.initial) ||
-    typeof policy.evolution?.enabled !== "boolean" ||
-    typeof policy.evolution.allowDropColumns !== "boolean" ||
-    Object.keys(policy).some((key) => !["initial", "evolution"].includes(key)) ||
-    Object.keys(policy.evolution).some((key) => !["enabled", "allowDropColumns"].includes(key)) ||
-    (policy.evolution.allowDropColumns && !policy.evolution.enabled) ||
-    (!realtime && policy.evolution.enabled) ||
-    (policy.initial === "CREATE_OR_ALTER" && !steps.includes("FULL")) ||
-    (realtime && steps.length === 1 && steps[0] === "FULL" && policy.evolution.enabled)
-  )
-    throw new Error("不支持的目标结构策略");
-
-  const ids = new Set<string>();
-  const sourcePaths = new Set<string>();
-  const targetPaths = new Set<string>();
+  if (!policy || !["VERIFY", "CREATE_OR_ALTER"].includes(policy.initial) ||
+      !policy.evolution || typeof policy.evolution.enabled !== "boolean" ||
+      typeof policy.evolution.allowDropColumns !== "boolean" ||
+      !hasOnlyKeys(policy, ["initial", "evolution"]) ||
+      !hasOnlyKeys(policy.evolution, ["enabled", "allowDropColumns"]) ||
+      (policy.evolution.allowDropColumns && !policy.evolution.enabled) ||
+      (policy.evolution.enabled && (!realtime || !steps.includes("INCREMENTAL"))) ||
+      (policy.initial === "CREATE_OR_ALTER" && !steps.includes("FULL")))
+    throw new Error("无效的目标 Schema 策略");
+  const allSources = new Set(value.source.tables.map(path));
+  const allSinks = new Set(value.sink.tables.map(path));
+  const mappedSources = new Set<string>();
+  const mappedSinks = new Set<string>();
+  if (allSources.size !== value.source.tables.length ||
+      allSinks.size !== value.sink.tables.length)
+    throw new Error("表配置不可重复");
+  for (const route of value.route) {
+    if (!route || !hasOnlyKeys(route, ["source-table", "sink-table"]) ||
+        !allSources.has(route["source-table"]) || !allSinks.has(route["sink-table"]) ||
+        mappedSources.has(route["source-table"]) || mappedSinks.has(route["sink-table"]))
+      throw new Error("无效或重复的表路由");
+    mappedSources.add(route["source-table"]);
+    mappedSinks.add(route["sink-table"]);
+  }
   for (const source of value.source.tables) {
-    const sourcePath = JSON.stringify([source.database || "", source.schema || "", source.table]);
-    if (!source.id || ids.has(source.id) || sourcePaths.has(sourcePath)) {
-      throw new Error("来源表不能重复");
-    }
-    ids.add(source.id);
-    sourcePaths.add(sourcePath);
-    if (
-      source.snapshot !== undefined &&
-      (solutionSyncType(value.solutionType) !== "REALTIME" ||
-        !steps.includes("FULL") ||
-        typeof source.snapshot?.chunkKeyColumn !== "string" ||
-        !source.snapshot.chunkKeyColumn.trim() ||
-        source.snapshot.chunkKeyColumn.length > 128 ||
-        Object.keys(source.snapshot).some((key) => key !== "chunkKeyColumn"))
-    ) {
-      throw new Error("快照分片字段配置无效");
-    }
-    if (offlineIncremental(value.solutionType, steps)) {
-      if (!validIncrementalConfig(source.incremental, !steps.includes("FULL"))) {
+    if (source.snapshot && (!realtime || !steps.includes("FULL") ||
+        !source.snapshot.chunkKeyColumn?.trim() ||
+        !hasOnlyKeys(source.snapshot, ["chunkKeyColumn"])))
+      throw new Error("Snapshot 配置无效");
+    if (offlineIncremental(pipelineSolutionType(value), steps)) {
+      if (!validIncrementalConfig(source.incremental, !steps.includes("FULL")))
         throw new Error("离线增量配置不完整");
-      }
-    } else if (source.incremental !== undefined) {
-      throw new Error("来源增量配置与同步方案不匹配");
-    }
+    } else if (source.incremental !== undefined) throw new Error("无效的增量配置");
   }
-  const mapped = new Set<string>();
   for (const target of value.sink.tables) {
-    if (!ids.has(target.input) || mapped.has(target.input)) throw new Error("目标表关联无效");
-    mapped.add(target.input);
-    const path = JSON.stringify([target.database || "", target.schema || "", target.table]);
-    if (targetPaths.has(path)) throw new Error("目标表不能重复");
-    targetPaths.add(path);
     const write = target.write;
-    if (
-      !WRITES.has(write.mode) ||
-      (write.primaryKeys !== undefined &&
-        (!write.primaryKeys.length ||
-          new Set(write.primaryKeys).size !== write.primaryKeys.length ||
-          write.primaryKeys.some((key) => !key?.trim()))) ||
-      (write.primaryKeys && policy.evolution.enabled)
-    )
-      throw new Error("目标写入主键无效");
-    const retract =
-      realtime &&
-      write.mode === "RETRACT" &&
+    if (!WRITES.has(write.mode) || (write.primaryKeys &&
+      (!write.primaryKeys.length || new Set(write.primaryKeys).size !== write.primaryKeys.length ||
+       policy.evolution.enabled))) throw new Error("目标写入配置无效");
+    const retract = realtime && write.mode === "RETRACT" &&
+      value.source.tables.length === 1 &&
       write.transaction?.mode === "CHECKPOINT_XA" &&
-      !write.primaryKeys &&
-      !policy.evolution.enabled;
-    if (
-      (write.mode === "RETRACT" && !retract) ||
-      (write.transaction !== undefined && !retract) ||
-      ((realtime || offlineIncremental(value.solutionType, steps)) &&
-        write.mode !== "UPSERT" &&
-        !retract) ||
-      (realtime && steps.length === 1 && steps[0] === "FULL" && write.mode !== "UPSERT")
-    ) {
-      throw new Error("不支持的目标写入协议");
-    }
+      !write.primaryKeys && !policy.evolution.enabled && steps.includes("INCREMENTAL");
+    if ((write.mode === "RETRACT" && !retract) ||
+        (write.transaction !== undefined && !retract) ||
+        ((realtime || (steps.includes("INCREMENTAL") && !realtime)) &&
+          write.mode !== "UPSERT" && !retract))
+      throw new Error("不支持的写入模式");
   }
+  const expectedMode = realtime && steps.includes("INCREMENTAL") ? "STREAMING" : "BATCH";
+  if (value.pipeline?.["execution.runtime-mode"] !== undefined &&
+      value.pipeline["execution.runtime-mode"] !== expectedMode)
+    throw new Error("Pipeline 运行模式与 Source 不一致");
 }
 
-/** Enforces the same current strict contract used for creating a new definition. */
 export function readSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
   return parseSyncParameters(schemaVersion, content);
 }
