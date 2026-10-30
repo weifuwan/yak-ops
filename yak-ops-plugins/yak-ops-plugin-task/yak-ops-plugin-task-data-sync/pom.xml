@@ -20,7 +20,7 @@
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-configuration</artifactId></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-core</artifactId></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-task-api</artifactId></dependency>
-        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-data-sync-runtime</artifactId></dependency>
+        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-engine</artifactId></dependency>
         <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
     </dependencies>
 

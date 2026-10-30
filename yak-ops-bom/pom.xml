@@ -74,7 +74,7 @@
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-datasource-jdbc</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-datasource-all</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-task-api</artifactId><version>${project.version}</version></dependency>
-            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-data-sync-runtime</artifactId><version>${project.version}</version></dependency>
+            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-engine</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-task-data-sync</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-task-all</artifactId><version>${project.version}</version></dependency>
         </dependencies>
