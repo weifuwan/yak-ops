@@ -11,6 +11,18 @@ import java.util.Optional;
 public interface TaskGroupQueueRepository {
     void add(TaskGroupQueueEntity queue);
 
+    /** Atomically grants all waiting resource slots to a SUBMITTED Instance, if eligible. */
+    boolean tryAcquire(String workspaceId, String instanceId);
+
+    /** Whether no resource is waiting for acquisition. */
+    boolean allAcquired(String workspaceId, String instanceId);
+
+    /** Lists waiting queue entries by descending priority, then FIFO. */
+    List<TaskGroupQueueEntity> waiting(int limit);
+
+    /** Reconciles capacity counters against durable acquired rows, preserving uncertain runs. */
+    void reconcile();
+
     Optional<TaskGroupQueueEntity> findResourceForUpdate(String workspaceId, String type, String key);
 
     List<TaskGroupQueueEntity> findByInstance(String workspaceId, String instanceId);
