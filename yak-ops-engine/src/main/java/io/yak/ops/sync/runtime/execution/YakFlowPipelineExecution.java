@@ -114,7 +114,7 @@ public final class YakFlowPipelineExecution implements PipelineExecution {
                 // Schema preparation and cursor freezing change the physical plan. Revalidate
                 // its resource binding before submission; otherwise reuse the just-admitted plan.
                 JobPlan current = config.steps().contains(Step.SCHEMA) || incremental != null
-                        ? planner.plan(parameters, identity)
+                        ? planner.plan(definition, identity)
                         : plan;
                 verifyAdmission(current);
                 io.yak.ops.sync.runtime.pipeline.CompiledPipeline pipeline = builder.build(

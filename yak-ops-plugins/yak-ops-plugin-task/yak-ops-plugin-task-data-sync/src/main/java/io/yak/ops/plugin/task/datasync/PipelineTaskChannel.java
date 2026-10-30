@@ -39,7 +39,7 @@ public final class PipelineTaskChannel implements TaskChannel {
 
     @Override
     public int parameterSchemaVersion() {
-        return 1;
+        return 6;
     }
 
     @Override

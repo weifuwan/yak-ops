@@ -1,14 +1,13 @@
-# Yak Ops Data Sync Runtime
+# Yak Ops Engine
 
-Owns V5 Pipeline planning and execution independently of the scheduler Task plugin.
-`io.yak.ops.sync.runtime.PipelineService` is the single V5 definition,
-resource admission and deferred execution submission facade used by the DATA_SYNC plugin.
+The engine accepts **Flink CDC 3.7 Pipeline YAML**, parses it to `PipelineDef`,
+plans authorized source and sink bindings, translates the supported pipeline to
+YakFlow's `StreamGraph`, and executes it. It does not parse API JSON or serialize
+editor request bodies.
 
-The runtime contains the internal configuration projection, authenticated datasource
-planning, JDBC and CDC connector selection, schema and cursor preparation,
-physical PipelineBuilder, metrics and YakFlow PipelineExecution implementation.
+The DATA_SYNC Task Plugin owns the public JSON-to-YAML conversion and task
+parameters. Engine-specific resource admission, schema preparation and checkpoint
+ownership stay in Yak Ops; parser and definition semantics follow Flink CDC 3.7.
 
-These are engine implementation details, not Task parameters. Persistent definitions
-are V5 Pipeline JSON; legacy V4 is unsupported. JobClient reports physical runtime status,
-cancel completion and authoritative terminal outcomes. The Task platform retains
-ownership of TaskGroup admission, Instance state and recovery.
+Unsupported Flink CDC operations must be rejected before submission rather than
+accepted and silently discarded. Physical execution remains YakFlow, not Flink.

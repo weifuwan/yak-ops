@@ -26,7 +26,7 @@ import java.util.Set;
 public final class PipelineExecutionPlan {
     public static final int MAX_TABLES = 100;
     private static final String YAML = "pipelineYaml";
-        private final SolutionType solutionType;
+    private final SolutionType solutionType;
     private final List<TableConfig> tables;
     private final List<Step> steps;
     private final boolean schemaChangesEnabled;
@@ -66,6 +66,9 @@ public final class PipelineExecutionPlan {
         boolean realtime = "mysql".equals(sourceType);
         if ((!realtime && !"jdbc".equals(sourceType)) || !"jdbc".equals(sinkType)) {
             throw new IllegalArgumentException("Unsupported V6 pipeline connector combination");
+        }
+        if (!definition.getUdfs().isEmpty() || !definition.getModels().isEmpty()) {
+            throw new IllegalArgumentException("YakFlow does not support Pipeline UDF or AI model operators");
         }
         if (!definition.getTransforms().isEmpty()) {
             throw new IllegalArgumentException("YakFlow does not yet support Flink CDC transform operators");
@@ -305,7 +308,7 @@ public final class PipelineExecutionPlan {
     private static List<RouteDef> defaultRoutes(List<String> tables) {
         List<RouteDef> routes = new ArrayList<>();
         for (String table : tables) {
-            routes.add(new RouteDef(table, table));
+            routes.add(new RouteDef(table, table, null, null));
         }
         return routes;
     }
