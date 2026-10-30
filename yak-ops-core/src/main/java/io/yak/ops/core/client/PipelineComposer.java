@@ -10,18 +10,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Unified local submission entry point for V5 or pinned V4 pipeline JSON.
+ * Local Flink CDC-style pipeline composition and submission entry point.
  * Preparation is deliberately separate from start so Task Instance registration
  * and persistence can precede physical execution.
  */
-public final class DataSyncClient {
+public final class PipelineComposer {
     private static final int MAX_TRACKED_JOBS = 2048;
 
     private final PipelineDefinitionParser parser;
-    private final DataSyncEngine engine;
+    private final PipelineRuntime engine;
     private final ConcurrentMap<String, RegisteredJob> jobs = new ConcurrentHashMap<>();
 
-    public DataSyncClient(PipelineDefinitionParser parser, DataSyncEngine engine) {
+    public PipelineComposer(PipelineDefinitionParser parser, PipelineRuntime engine) {
         this.parser = Objects.requireNonNull(parser, "parser");
         this.engine = Objects.requireNonNull(engine, "engine");
     }
@@ -30,27 +30,27 @@ public final class DataSyncClient {
         return parser.parse(json);
     }
 
-    public void validate(String json, DataSyncContext context) {
+    public void validate(String json, PipelineContext context) {
         engine.validate(parse(json), Objects.requireNonNull(context, "context"));
     }
 
-    public DataSyncPlan plan(String json, DataSyncContext context) {
+    public PipelinePlan plan(String json, PipelineContext context) {
         PipelineDef definition = parse(json);
         engine.validate(definition, Objects.requireNonNull(context, "context"));
         return engine.plan(definition, context);
     }
 
     /**
-     * Accepts a job and immediately starts it. For Task scheduling, call prepare()
+     * Accepts a job and immediately starts it. For Task scheduling, call compose()
      * and start the returned job only after durable Task Instance registration.
      */
-    public DataSyncJob submit(String json, DataSyncContext context) {
-        DataSyncJob job = prepare(json, context);
+    public PipelineExecution submit(String json, PipelineContext context) {
+        PipelineExecution job = compose(json, context);
         job.start();
         return job;
     }
 
-    public DataSyncJob prepare(String json, DataSyncContext context) {
+    public PipelineExecution compose(String json, PipelineContext context) {
         Objects.requireNonNull(context, "context");
         PipelineDef definition = parse(json);
         engine.validate(definition, context);
@@ -78,8 +78,8 @@ public final class DataSyncClient {
             if (jobs.size() >= MAX_TRACKED_JOBS) {
                 throw new IllegalStateException("Too many tracked Data Sync jobs");
             }
-            DataSyncPlan plan = engine.plan(definition, context);
-            DataSyncJob job =
+            PipelinePlan plan = engine.plan(definition, context);
+            PipelineExecution job =
                     Objects.requireNonNull(engine.prepare(definition, plan, context), "engine.prepare returned null");
             if (!context.instanceId().equals(job.getJobId())) {
                 throw new IllegalStateException("Data Sync job identity differs from trusted Instance");
@@ -90,15 +90,15 @@ public final class DataSyncClient {
     }
 
     /** Only jobs owned by this process are observable; this is not durable recovery. */
-    public Optional<DataSyncJob> getJob(String jobId, DataSyncContext context) {
+    public Optional<PipelineExecution> getJob(String jobId, PipelineContext context) {
         Objects.requireNonNull(context, "context");
         RegisteredJob job = jobs.get(key(context.workspaceId(), jobId));
         return job == null ? Optional.empty() : Optional.of(job.job);
     }
 
-    public CompletionStage<Void> cancel(String jobId, DataSyncContext context) {
+    public CompletionStage<Void> cancel(String jobId, PipelineContext context) {
         return getJob(jobId, context)
-                .map(DataSyncJob::cancel)
+                .map(PipelineExecution::cancel)
                 .orElseGet(() -> CompletableFuture.failedFuture(
                         new IllegalArgumentException("Data Sync job is not owned by this process")));
     }
@@ -111,9 +111,9 @@ public final class DataSyncClient {
         private final PipelineDef definition;
         private final String definitionId;
         private final int definitionVersion;
-        private final DataSyncJob job;
+        private final PipelineExecution job;
 
-        private RegisteredJob(PipelineDef definition, String definitionId, int definitionVersion, DataSyncJob job) {
+        private RegisteredJob(PipelineDef definition, String definitionId, int definitionVersion, PipelineExecution job) {
             this.definition = definition;
             this.definitionId = definitionId;
             this.definitionVersion = definitionVersion;

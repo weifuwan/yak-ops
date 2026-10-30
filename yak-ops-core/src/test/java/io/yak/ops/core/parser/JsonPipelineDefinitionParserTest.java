@@ -66,10 +66,7 @@ class JsonPipelineDefinitionParserTest {
     }
 
     @Test
-    void retainsLegacyV4InputForPinnedDefinitions() {
-        PipelineDef definition = parser.parse("""
-                {"solutionType": "SINGLE_TABLE_OFFLINE", "steps": ["FULL"]}
-                """);
-        assertEquals(4, definition.getVersion());
+    void rejectsV4() {
+        assertThrows(IllegalArgumentException.class, () -> parser.parse("{\\"solutionType\\":\\"SINGLE_TABLE_OFFLINE\\"}"));
     }
 }

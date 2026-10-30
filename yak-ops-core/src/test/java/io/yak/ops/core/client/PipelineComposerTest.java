@@ -16,40 +16,40 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.Test;
 
-class DataSyncClientTest {
+class PipelineComposerTest {
     private static final String V4 = "{\"solutionType\":\"SINGLE_TABLE_OFFLINE\"}";
-    private static final DataSyncContext CONTEXT =
-            new DataSyncContext("ws", "definition", 1, "instance", false);
+    private static final PipelineContext CONTEXT =
+            new PipelineContext("ws", "definition", 1, "instance", false);
 
     @Test
     void submitStartsImmediatelyWhilePrepareRemainsDeferred() {
         StubEngine engine = new StubEngine();
-        DataSyncClient client = new DataSyncClient(new JsonPipelineDefinitionParser(), engine);
-        DataSyncJob job = client.prepare(V4, CONTEXT);
+        PipelineComposer client = new PipelineComposer(new JsonPipelineDefinitionParser(), engine);
+        PipelineExecution job = client.compose(V5, CONTEXT);
         assertEquals(JobStatus.CREATED, job.getStatus());
         assertEquals(0, engine.starts);
-        assertSame(job, client.prepare(V4, CONTEXT));
+        assertSame(job, client.compose(V5, CONTEXT));
         assertEquals(1, engine.preparations);
-        client.submit(V4, CONTEXT);
+        client.submit(V5, CONTEXT);
         assertEquals(1, engine.starts);
         assertEquals(JobStatus.RUNNING, job.getStatus());
     }
 
     @Test
     void duplicateIdentityWithDifferentDefinitionIsRejected() {
-        DataSyncClient client = new DataSyncClient(new JsonPipelineDefinitionParser(), new StubEngine());
-        client.prepare(V4, CONTEXT);
+        PipelineComposer client = new PipelineComposer(new JsonPipelineDefinitionParser(), new StubEngine());
+        client.compose(V5, CONTEXT);
         assertThrows(IllegalArgumentException.class,
-                () -> client.prepare("{\"solutionType\":\"SINGLE_TABLE_REALTIME\"}", CONTEXT));
+                () -> client.compose("{\"solutionType\":\"SINGLE_TABLE_REALTIME\"}", CONTEXT));
     }
 
     @Test
     void cancellationIsWorkspaceScopedAndCompletesJob() {
         StubEngine engine = new StubEngine();
-        DataSyncClient client = new DataSyncClient(new JsonPipelineDefinitionParser(), engine);
-        DataSyncJob job = client.submit(V4, CONTEXT);
-        DataSyncContext other =
-                new DataSyncContext("other", "definition", 1, "instance", false);
+        PipelineComposer client = new PipelineComposer(new JsonPipelineDefinitionParser(), engine);
+        PipelineExecution job = client.submit(V5, CONTEXT);
+        PipelineContext other =
+                new PipelineContext("other", "definition", 1, "instance", false);
         assertFalse(client.getJob("instance", other).isPresent());
         assertThrows(Exception.class, () -> client.cancel("instance", other).toCompletableFuture().join());
         client.cancel("instance", CONTEXT).toCompletableFuture().join();
@@ -57,26 +57,26 @@ class DataSyncClientTest {
         assertTrue(client.getJob("instance", CONTEXT).isPresent());
     }
 
-    private static final class StubEngine implements DataSyncEngine {
+    private static final class StubEngine implements PipelineRuntime {
         private int preparations;
         private int starts;
 
         @Override
-        public void validate(PipelineDef definition, DataSyncContext context) {}
+        public void validate(PipelineDef definition, PipelineContext context) {}
 
         @Override
-        public DataSyncPlan plan(PipelineDef definition, DataSyncContext context) {
-            return new DataSyncPlan(List.of(), "revision");
+        public PipelinePlan plan(PipelineDef definition, PipelineContext context) {
+            return new PipelinePlan(List.of(), "revision");
         }
 
         @Override
-        public DataSyncJob prepare(PipelineDef definition, DataSyncPlan plan, DataSyncContext context) {
+        public PipelineExecution prepare(PipelineDef definition, PipelinePlan plan, PipelineContext context) {
             preparations++;
             return new StubJob(context.instanceId(), this);
         }
     }
 
-    private static final class StubJob implements DataSyncJob {
+    private static final class StubJob implements PipelineExecution {
         private final String id;
         private final StubEngine engine;
         private final CompletableFuture<JobStatus> result = new CompletableFuture<>();

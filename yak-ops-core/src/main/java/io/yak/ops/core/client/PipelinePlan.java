@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.Objects;
 
 /** Stable, non-secret resource claims and revision for a planned pipeline. */
-public final class DataSyncPlan {
+public final class PipelinePlan {
     private final List<ResourceClaim> resources;
     private final String resourceRevision;
 
-    public DataSyncPlan(List<ResourceClaim> resources, String resourceRevision) {
+    public PipelinePlan(List<ResourceClaim> resources, String resourceRevision) {
         this.resources = List.copyOf(Objects.requireNonNull(resources, "resources"));
         this.resourceRevision = Objects.requireNonNull(resourceRevision, "resourceRevision");
         if (resourceRevision.isBlank()) throw new IllegalArgumentException("Resource revision is required");

@@ -6,7 +6,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.CompletionStage;
 
 /** A process-owned logical submission, including preparation before YakFlow gets a physical Job ID. */
-public interface DataSyncJob {
+public interface PipelineExecution {
 
     String getJobId();
 

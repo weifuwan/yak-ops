@@ -4,7 +4,7 @@ Status: Implementation PR (draft; V4 editor remains default)
 
 ## Architecture
 
-Core owns `DataSyncClient`, `PipelineDef`, `SourceDef`, `SinkDef`,
+Core owns `PipelineComposer`, `PipelineDef`, `SourceDef`, `SinkDef`,
 `RouteDef`, `TransformDef`, and the JSON definition parser.
 The runtime-specific adapter still resides in the existing Data Sync task artifact,
 and delegates to the existing `JobPlanner`, `DataSyncTaskExecutor`,
@@ -58,7 +58,7 @@ checkpoint overrides are supported. Unimplemented constructs are rejected.
 
 Identity is supplied separately by trusted application code; JSON must not
 contain credentials, Workspace identity, execution identity, or state paths.
-`DataSyncJob` covers pre-submission preparation as well as physical YakFlow execution.
+`PipelineExecution` covers pre-submission preparation as well as physical YakFlow execution.
 
 ## Compatibility and limits
 

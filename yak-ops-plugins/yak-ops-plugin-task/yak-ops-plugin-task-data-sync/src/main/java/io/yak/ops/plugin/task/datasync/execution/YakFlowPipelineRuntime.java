@@ -2,10 +2,10 @@ package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
-import io.yak.ops.core.client.DataSyncContext;
-import io.yak.ops.core.client.DataSyncEngine;
-import io.yak.ops.core.client.DataSyncJob;
-import io.yak.ops.core.client.DataSyncPlan;
+import io.yak.ops.core.client.PipelineContext;
+import io.yak.ops.core.client.PipelineRuntime;
+import io.yak.ops.core.client.PipelineExecution;
+import io.yak.ops.core.client.PipelinePlan;
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
@@ -19,47 +19,47 @@ import java.util.List;
 import java.util.Objects;
 
 /** Bridges the Core client to the existing YakFlow-backed synchronization implementation. */
-public final class YakFlowDataSyncEngine implements DataSyncEngine {
+public final class YakFlowPipelineRuntime implements PipelineRuntime {
     private final JobPlanner planner;
     private final DataSyncTaskExecutor executor;
     private final FactoryUtil factories;
 
-    public YakFlowDataSyncEngine(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
+    public YakFlowPipelineRuntime(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
         this.planner = Objects.requireNonNull(planner, "planner");
         this.executor = Objects.requireNonNull(executor, "executor");
         this.factories = Objects.requireNonNull(factories, "factories");
     }
 
     @Override
-    public void validate(PipelineDef definition, DataSyncContext context) {
+    public void validate(PipelineDef definition, PipelineContext context) {
         JobConfigValidator.validateConfig(V5PipelineAdapter.toV4(definition), factories);
     }
 
     @Override
-    public DataSyncPlan plan(PipelineDef definition, DataSyncContext context) {
+    public PipelinePlan plan(PipelineDef definition, PipelineContext context) {
         TaskExecutionResources resources = planner.admissionPlan(V5PipelineAdapter.toV4(definition), identity(context));
-        List<DataSyncPlan.ResourceClaim> claims = new ArrayList<>();
+        List<PipelinePlan.ResourceClaim> claims = new ArrayList<>();
         for (ExecutionResource resource : resources.exclusiveResources()) {
-            claims.add(new DataSyncPlan.ResourceClaim(resource.type(), resource.key()));
+            claims.add(new PipelinePlan.ResourceClaim(resource.type(), resource.key()));
         }
-        return new DataSyncPlan(claims, resources.resourceRevision());
+        return new PipelinePlan(claims, resources.resourceRevision());
     }
 
     @Override
-    public DataSyncJob prepare(PipelineDef definition, DataSyncPlan plan, DataSyncContext context) {
+    public PipelineExecution prepare(PipelineDef definition, PipelinePlan plan, PipelineContext context) {
         ReadonlyConfig parameters = V5PipelineAdapter.toV4(definition);
         List<ExecutionResource> claims = new ArrayList<>();
-        for (DataSyncPlan.ResourceClaim resource : plan.resources()) {
+        for (PipelinePlan.ResourceClaim resource : plan.resources()) {
             claims.add(new ExecutionResource(resource.type(), resource.key()));
         }
         TaskExecutionResources admission = new TaskExecutionResources(claims, plan.resourceRevision());
         TaskHandle handle = executor.start(parameters, admission, identity(context), context.debug())
                 .toCompletableFuture()
                 .join();
-        return new YakFlowDataSyncJob(context.instanceId(), handle);
+        return new YakFlowPipelineExecution(context.instanceId(), handle);
     }
 
-    private static TaskExecutionIdentity identity(DataSyncContext context) {
+    private static TaskExecutionIdentity identity(PipelineContext context) {
         return new TaskExecutionIdentity(
                 context.workspaceId(), context.definitionId(), context.definitionVersion(), context.instanceId());
     }

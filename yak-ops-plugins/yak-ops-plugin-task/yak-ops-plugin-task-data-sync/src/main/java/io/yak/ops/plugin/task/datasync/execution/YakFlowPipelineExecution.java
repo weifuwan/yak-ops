@@ -1,7 +1,7 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.core.api.common.JobStatus;
-import io.yak.ops.core.client.DataSyncJob;
+import io.yak.ops.core.client.PipelineExecution;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;
@@ -11,12 +11,12 @@ import java.util.OptionalInt;
 import java.util.concurrent.CompletionStage;
 
 /** Adapts the verified Task execution handle without introducing a second physical runtime. */
-public final class YakFlowDataSyncJob implements DataSyncJob {
+public final class YakFlowPipelineExecution implements PipelineExecution {
     private final String jobId;
     private final TaskHandle handle;
     private volatile JobStatus status = JobStatus.CREATED;
 
-    public YakFlowDataSyncJob(String jobId, TaskHandle handle) {
+    public YakFlowPipelineExecution(String jobId, TaskHandle handle) {
         this.jobId = Objects.requireNonNull(jobId, "jobId");
         this.handle = Objects.requireNonNull(handle, "handle");
         handle.completion().whenComplete((outcome, failure) -> {
@@ -44,7 +44,7 @@ public final class YakFlowDataSyncJob implements DataSyncJob {
 
     @Override
     public CompletionStage<JobStatus> completion() {
-        return handle.completion().thenApply(YakFlowDataSyncJob::status);
+        return handle.completion().thenApply(YakFlowPipelineExecution::status);
     }
 
     @Override

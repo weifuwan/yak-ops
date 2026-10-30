@@ -1,7 +1,7 @@
 package io.yak.ops.plugin.task.datasync.execution;
 
 import io.yak.ops.core.api.common.JobStatus;
-import io.yak.ops.core.client.DataSyncJob;
+import io.yak.ops.core.client.PipelineExecution;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.plugin.task.api.execution.TaskRuntimeReference;
@@ -9,11 +9,11 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletionStage;
 
-/** Thin DolphinScheduler-style Task lifecycle adapter for a Core DataSyncJob. */
-public final class DataSyncClientTaskHandle implements TaskHandle {
-    private final DataSyncJob job;
+/** Thin DolphinScheduler-style Task lifecycle adapter for a Core PipelineExecution. */
+public final class PipelineComposerTaskHandle implements TaskHandle {
+    private final PipelineExecution job;
 
-    public DataSyncClientTaskHandle(DataSyncJob job) {
+    public PipelineComposerTaskHandle(PipelineExecution job) {
         this.job = java.util.Objects.requireNonNull(job, "job");
     }
 
@@ -24,7 +24,7 @@ public final class DataSyncClientTaskHandle implements TaskHandle {
 
     @Override
     public CompletionStage<TaskOutcome> completion() {
-        return job.completion().thenApply(DataSyncClientTaskHandle::toOutcome);
+        return job.completion().thenApply(PipelineComposerTaskHandle::toOutcome);
     }
 
     @Override

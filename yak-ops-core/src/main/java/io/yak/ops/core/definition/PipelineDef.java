@@ -6,7 +6,7 @@ import java.util.Objects;
 
 /**
  * Declarative pipeline definition, based on Flink CDC 3.7's PipelineDef boundaries.
- * V4 remains a pinned legacy input and is interpreted by the existing V4 job planner.
+ * V5 is the only supported pipeline definition.
  */
 public final class PipelineDef {
     private final int version;
@@ -31,20 +31,6 @@ public final class PipelineDef {
         this.routes = List.copyOf(routes);
         this.transforms = List.copyOf(transforms);
         this.config = Objects.requireNonNull(config, "config");
-    }
-
-    private PipelineDef(ReadonlyConfig legacy) {
-        this.version = 4;
-        this.original = Objects.requireNonNull(legacy, "legacy");
-        this.source = null;
-        this.sink = null;
-        this.routes = List.of();
-        this.transforms = List.of();
-        this.config = ReadonlyConfig.fromMap(java.util.Map.of());
-    }
-
-    public static PipelineDef legacyV4(ReadonlyConfig legacy) {
-        return new PipelineDef(legacy);
     }
 
     public int getVersion() {

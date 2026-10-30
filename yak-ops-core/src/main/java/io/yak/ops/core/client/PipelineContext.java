@@ -3,14 +3,14 @@ package io.yak.ops.core.client;
 import java.util.Objects;
 
 /** Trusted per-submission identity, never populated from user-authored pipeline JSON. */
-public final class DataSyncContext {
+public final class PipelineContext {
     private final String workspaceId;
     private final String definitionId;
     private final int definitionVersion;
     private final String instanceId;
     private final boolean debug;
 
-    public DataSyncContext(
+    public PipelineContext(
             String workspaceId, String definitionId, int definitionVersion, String instanceId, boolean debug) {
         this.workspaceId = require(workspaceId, "workspaceId");
         this.definitionId = require(definitionId, "definitionId");

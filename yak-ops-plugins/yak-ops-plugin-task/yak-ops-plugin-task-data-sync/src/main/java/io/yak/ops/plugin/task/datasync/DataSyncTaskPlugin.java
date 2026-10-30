@@ -5,10 +5,10 @@ import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.api.connector.source.Boundedness;
-import io.yak.ops.core.client.DataSyncClient;
-import io.yak.ops.core.client.DataSyncContext;
-import io.yak.ops.core.client.DataSyncJob;
-import io.yak.ops.core.client.DataSyncPlan;
+import io.yak.ops.core.client.PipelineComposer;
+import io.yak.ops.core.client.PipelineContext;
+import io.yak.ops.core.client.PipelineExecution;
+import io.yak.ops.core.client.PipelinePlan;
 import io.yak.ops.core.definition.PipelineDef;
 import io.yak.ops.core.parser.JsonPipelineDefinitionParser;
 import io.yak.ops.plugin.task.api.TaskPluginException;
@@ -22,7 +22,7 @@ import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import io.yak.ops.plugin.task.datasync.config.JobConfig;
 import io.yak.ops.plugin.task.datasync.config.SolutionOptions;
 import io.yak.ops.plugin.task.datasync.config.V5PipelineAdapter;
-import io.yak.ops.plugin.task.datasync.execution.DataSyncClientTaskHandle;
+import io.yak.ops.plugin.task.datasync.execution.PipelineComposerTaskHandle;
 import io.yak.ops.plugin.task.datasync.execution.DataSyncTaskExecutor;
 import io.yak.ops.plugin.task.datasync.plan.JobPlanner;
 import io.yak.ops.plugin.task.datasync.solution.Solution;
@@ -42,14 +42,14 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
     private final JobPlanner planner;
     private final DataSyncTaskExecutor executor;
     private final FactoryUtil factories;
-    private final DataSyncClient client;
+    private final PipelineComposer client;
 
     public DataSyncTaskPlugin(JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories) {
         this(planner, executor, factories, null);
     }
 
     public DataSyncTaskPlugin(
-            JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories, DataSyncClient client) {
+            JobPlanner planner, DataSyncTaskExecutor executor, FactoryUtil factories, PipelineComposer client) {
         this.planner = Objects.requireNonNull(planner, "planner");
         this.executor = Objects.requireNonNull(executor, "executor");
         this.factories = Objects.requireNonNull(factories, "factories");
@@ -101,8 +101,8 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
         return V5PipelineAdapter.toV4(definition);
     }
 
-    private static DataSyncContext context(TaskExecutionIdentity identity, boolean debug) {
-        return new DataSyncContext(
+    private static PipelineContext context(TaskExecutionIdentity identity, boolean debug) {
+        return new PipelineContext(
                 identity.workspaceId(),
                 identity.definitionId(),
                 identity.definitionVersion(),
@@ -110,9 +110,9 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
                 debug);
     }
 
-    private static TaskExecutionResources admission(DataSyncPlan plan) {
+    private static TaskExecutionResources admission(PipelinePlan plan) {
         List<ExecutionResource> claims = new ArrayList<>();
-        for (DataSyncPlan.ResourceClaim claim : plan.resources()) {
+        for (PipelinePlan.ResourceClaim claim : plan.resources()) {
             claims.add(new ExecutionResource(claim.type(), claim.key()));
         }
         return new TaskExecutionResources(claims, plan.resourceRevision());
@@ -174,14 +174,14 @@ public final class DataSyncTaskPlugin implements ExecutableTaskPlugin {
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug) {
         if (client == null) return executor.start(executable(parameters), plan, context, debug);
         try {
-            DataSyncContext trusted = context(context, debug);
+            PipelineContext trusted = context(context, debug);
             String json = ConfigParser.toJson(parameters);
             TaskExecutionResources actual = admission(client.plan(json, trusted));
             if (!plan.equals(actual)) {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
             }
-            DataSyncJob job = client.prepare(json, trusted);
-            return CompletableFuture.completedFuture(new DataSyncClientTaskHandle(job));
+            PipelineExecution job = client.compose(json, trusted);
+            return CompletableFuture.completedFuture(new PipelineComposerTaskHandle(job));
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(
                     new TaskStartRejectedException("DATA_SYNC rejected before engine submission", failure));

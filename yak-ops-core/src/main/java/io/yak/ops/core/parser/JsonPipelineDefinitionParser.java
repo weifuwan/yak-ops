@@ -15,7 +15,7 @@ import java.util.Set;
 
 /**
  * JSON implementation of Flink CDC-style declarative pipeline parsing.
- * V4 definitions are passed through unchanged for their pinned legacy planner.
+ * V5 is the only supported pipeline schema.
  */
 public final class JsonPipelineDefinitionParser implements PipelineDefinitionParser {
     private static final Set<String> ROOT_FIELDS = Set.of("source", "sink", "route", "transform", "pipeline");
@@ -26,10 +26,6 @@ public final class JsonPipelineDefinitionParser implements PipelineDefinitionPar
     public PipelineDef parse(String content) {
         ReadonlyConfig raw = ConfigParser.parseJson(content);
         Map<String, Object> values = raw.getSourceMap();
-        if (values.containsKey("solutionType")) {
-            // V4 remains subject to its original strict JobConfig and Connector validation.
-            return PipelineDef.legacyV4(raw);
-        }
         checkKeys(values, ROOT_FIELDS, "pipeline definition");
         Map<String, Object> source = object(values.get("source"), "source");
         Map<String, Object> sink = object(values.get("sink"), "sink");

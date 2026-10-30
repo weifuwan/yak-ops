@@ -6,12 +6,12 @@ import io.yak.ops.core.definition.PipelineDef;
  * Host-provided pipeline planner and runner. Core does not depend on YakFlow runtime,
  * workspace persistence, Spring, or individual connectors.
  */
-public interface DataSyncEngine {
+public interface PipelineRuntime {
 
-    void validate(PipelineDef definition, DataSyncContext context);
+    void validate(PipelineDef definition, PipelineContext context);
 
-    DataSyncPlan plan(PipelineDef definition, DataSyncContext context);
+    PipelinePlan plan(PipelineDef definition, PipelineContext context);
 
     /** Creates a deferred logical submission; must not start physical work. */
-    DataSyncJob prepare(PipelineDef definition, DataSyncPlan plan, DataSyncContext context);
+    PipelineExecution prepare(PipelineDef definition, PipelinePlan plan, PipelineContext context);
 }
