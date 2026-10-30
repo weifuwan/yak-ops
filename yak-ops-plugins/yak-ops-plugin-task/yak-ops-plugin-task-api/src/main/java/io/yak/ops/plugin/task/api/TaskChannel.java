@@ -37,6 +37,6 @@ public interface TaskChannel extends TaskPlugin {
      * @param debug detailed diagnostics captured for this Instance
      * @return execution handle
      */
-    CompletionStage<TaskHandle> start(
+    CompletionStage<TaskHandle> createTask(
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity context, boolean debug);
 }

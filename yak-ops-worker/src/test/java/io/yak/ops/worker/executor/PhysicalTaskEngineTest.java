@@ -1,5 +1,6 @@
 package io.yak.ops.worker.executor;
 
+import io.yak.ops.plugin.task.api.AbstractTask;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -126,7 +127,7 @@ class PhysicalTaskEngineTest {
         PhysicalTaskPluginFactory factory = new PhysicalTaskPluginFactory(registry, (ctx, lazyChannel) -> {
             ctx.setTaskType("DATA_SYNC");
             assertEquals(channel, lazyChannel.get());
-            return new PhysicalTask() {
+            return new AbstractTask() {
                 @Override public CompletionStage<TaskOutcome> handle() {
                     return CompletableFuture.completedFuture(TaskOutcome.FINISHED);
                 }
@@ -143,7 +144,7 @@ class PhysicalTaskEngineTest {
             String id, CompletionStage<TaskOutcome> completion, AtomicInteger kills) {
         TaskExecutionContext context = new TaskExecutionContext("workspace", id);
         PhysicalTaskPluginFactory factory = new PhysicalTaskPluginFactory(
-                mock(TaskPluginManager.class), (ignored, taskChannel) -> new PhysicalTask() {
+                mock(TaskPluginManager.class), (ignored, taskChannel) -> new AbstractTask() {
             @Override public CompletionStage<TaskOutcome> handle() { return completion; }
             @Override public void cancel() {
                 kills.incrementAndGet();

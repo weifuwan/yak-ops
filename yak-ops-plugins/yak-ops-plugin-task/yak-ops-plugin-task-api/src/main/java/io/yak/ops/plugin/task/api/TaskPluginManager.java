@@ -2,6 +2,8 @@ package io.yak.ops.plugin.task.api;
 
 import io.yak.ops.spi.SpiRegistry;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Objects;
 import java.util.NoSuchElementException;
 
 /**
@@ -34,6 +36,19 @@ public final class TaskPluginManager {
         } catch (IllegalStateException exception) {
             throw new TaskPluginException(exception.getMessage(), exception);
         }
+    }
+
+    /** Constructs the registry from DolphinScheduler-style channel factories. */
+    public static TaskPluginManager fromFactories(Iterable<? extends TaskChannelFactory> factories) {
+        List<TaskPlugin> channels = new ArrayList<>();
+        for (TaskChannelFactory factory : factories) {
+            TaskChannel channel = Objects.requireNonNull(factory.create(), "TaskChannelFactory returned null");
+            if (!factory.getName().equals(channel.type())) {
+                throw new TaskPluginException("TaskChannelFactory name must match channel type");
+            }
+            channels.add(channel);
+        }
+        return new TaskPluginManager(channels);
     }
 
     /**

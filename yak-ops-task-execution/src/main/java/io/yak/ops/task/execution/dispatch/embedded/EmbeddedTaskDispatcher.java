@@ -18,7 +18,7 @@ import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskOutcome;
 import io.yak.ops.task.execution.dispatch.TaskExecutionCoordinator;
 import io.yak.ops.task.execution.owner.EmbeddedExecutionOwner;
-import io.yak.ops.worker.executor.PhysicalTask;
+import io.yak.ops.plugin.task.api.AbstractTask;
 import io.yak.ops.worker.executor.PhysicalTaskEngineDelegator;
 import io.yak.ops.worker.task.executor.TaskExecutionContext;
 import io.yak.ops.worker.task.executor.exceptions.TaskExecutorRuntimeException;
@@ -149,7 +149,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
      * Master-side durable admission. The physical plugin is initialized and triggered
      * by PhysicalTaskExecutor; this method never starts a TaskHandle.
      */
-    private PhysicalTask preparePhysicalTask(
+    private AbstractTask preparePhysicalTask(
             TaskExecutionContext taskContext, Supplier<TaskChannel> taskPluginSupplier) {
         String workspaceId = taskContext.getWorkspaceId();
         String instanceId = taskContext.getTaskInstanceId();
@@ -189,7 +189,7 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
             }
 
             DispatchTicket launched = ticket;
-            return new PhysicalTask() {
+            return new AbstractTask() {
                 @Override
                 public CompletionStage<TaskOutcome> handle() {
                     synchronized (launchFence(instanceId)) {
@@ -232,8 +232,8 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
         }
     }
 
-    private static PhysicalTask completedPhysicalTask(TaskOutcome outcome) {
-        return new PhysicalTask() {
+    private static AbstractTask completedPhysicalTask(TaskOutcome outcome) {
+        return new AbstractTask() {
             @Override
             public CompletionStage<TaskOutcome> handle() {
                 return CompletableFuture.completedFuture(outcome);
@@ -244,8 +244,8 @@ public class EmbeddedTaskDispatcher implements TaskExecutionCoordinator, AutoClo
         };
     }
 
-    private static PhysicalTask uncertainPhysicalTask(RuntimeException failure) {
-        return new PhysicalTask() {
+    private static AbstractTask uncertainPhysicalTask(RuntimeException failure) {
+        return new AbstractTask() {
             @Override
             public CompletionStage<TaskOutcome> handle() {
                 return CompletableFuture.failedFuture(failure);

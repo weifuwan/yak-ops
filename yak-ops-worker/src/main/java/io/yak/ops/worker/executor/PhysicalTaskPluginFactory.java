@@ -17,6 +17,7 @@
 
 package io.yak.ops.worker.executor;
 
+import io.yak.ops.plugin.task.api.AbstractTask;
 import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.TaskChannel;
@@ -32,16 +33,16 @@ import java.util.function.Supplier;
  */
 public final class PhysicalTaskPluginFactory {
     private final TaskPluginManager taskPluginRegistry;
-    private final BiFunction<TaskExecutionContext, Supplier<TaskChannel>, PhysicalTask> taskPreparation;
+    private final BiFunction<TaskExecutionContext, Supplier<TaskChannel>, AbstractTask> taskPreparation;
 
     public PhysicalTaskPluginFactory(
             TaskPluginManager taskPluginRegistry,
-            BiFunction<TaskExecutionContext, Supplier<TaskChannel>, PhysicalTask> taskPreparation) {
+            BiFunction<TaskExecutionContext, Supplier<TaskChannel>, AbstractTask> taskPreparation) {
         this.taskPluginRegistry = Objects.requireNonNull(taskPluginRegistry);
         this.taskPreparation = Objects.requireNonNull(taskPreparation);
     }
 
-    public PhysicalTask createPhysicalTask(final PhysicalTaskExecutor physicalTaskExecutor) {
+    public AbstractTask createPhysicalTask(final PhysicalTaskExecutor physicalTaskExecutor) {
         return taskPreparation.apply(
                 physicalTaskExecutor.getTaskExecutionContext(), () -> getTaskChannel(physicalTaskExecutor));
     }
