@@ -71,6 +71,15 @@ class PipelineYamlConverterTest {
     }
 
     @Test
+    void rejectsRoutesToUndeclaredDestinations() {
+        String changed = V6.replace(
+                "\"sink-table\": \"public.ods_orders\"",
+                "\"sink-table\": \"public.other_table\"");
+        assertThrows(RuntimeException.class,
+                () -> PipelineYamlConverter.convert(ConfigParser.parseJson(changed)));
+    }
+
+    @Test
     void retainsSnapshotOnlyAsBatch() {
         String json = V6.replace(
                 "\"mode\": \"SPECIFIC_OFFSETS\", \"file\": \"mysql-bin.000123\", \"pos\": 45678",

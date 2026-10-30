@@ -5,6 +5,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,10 +129,13 @@ public final class PipelineYamlConverter {
         sink.put("type", "jdbc");
         sink.put("datasource-id", required(inputSink, "datasourceId"));
         boolean sinkDatabase = false;
+        List<String> selectedSinkTables = new ArrayList<>();
         for (Object item : sinkTables) {
             Map<String, Object> table = object(item, "sink.table");
             checkKeys(table, "sink.table", "database", "schema", "table", "write");
-            String prefix = "yak.table." + path(table) + ".";
+            String targetPath = path(table);
+            selectedSinkTables.add(targetPath);
+            String prefix = "yak.table." + targetPath + ".";
             sinkDatabase |= text(table, "database") != null;
             Map<String, Object> write = object(table.get("write"), "write");
             checkKeys(write, "write", "mode", "primaryKeys", "transaction");
@@ -162,13 +166,26 @@ public final class PipelineYamlConverter {
         sink.put("yak.schema.evolution.enabled", bool(evolution, "enabled"));
         sink.put("yak.schema.evolution.allow-drop-columns", bool(evolution, "allowDropColumns"));
 
+        Set<String> declaredSources = new HashSet<>(selectedTables);
+        Set<String> declaredSinks = new HashSet<>(selectedSinkTables);
+        if (declaredSources.size() != sourceTables.size() || declaredSinks.size() != sinkTables.size()) {
+            throw new TaskPluginException("Duplicate source or sink table in DATA_SYNC JSON");
+        }
+        Set<String> routedSources = new HashSet<>();
+        Set<String> routedSinks = new HashSet<>();
         List<Map<String, String>> yamlRoutes = new ArrayList<>();
         for (Object item : routes) {
             Map<String, Object> route = object(item, "route");
             checkKeys(route, "route", "source-table", "sink-table");
-            yamlRoutes.add(Map.of(
-                    "source-table", required(route, "source-table"),
-                    "sink-table", required(route, "sink-table")));
+            String fromTable = required(route, "source-table");
+            String toTable = required(route, "sink-table");
+            if (!declaredSources.contains(fromTable)
+                    || !declaredSinks.contains(toTable)
+                    || !routedSources.add(fromTable)
+                    || !routedSinks.add(toTable)) {
+                throw new TaskPluginException("DATA_SYNC route must bind declared tables exactly once");
+            }
+            yamlRoutes.add(Map.of("source-table", fromTable, "sink-table", toTable));
         }
         Map<String, String> pipeline = new LinkedHashMap<>();
         String runtime = text(inputPipeline, "execution.runtime-mode");
