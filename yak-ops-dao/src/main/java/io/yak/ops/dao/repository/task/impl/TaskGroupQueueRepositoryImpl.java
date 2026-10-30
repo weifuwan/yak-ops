@@ -102,7 +102,6 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                         + " ORDER BY g.resource_type, g.resource_key FOR UPDATE",
                 (rows, rowNum) -> new QueueSlot(
                         rows.getString("id"),
-                        rows.getString("task_id"),
                         rows.getLong("group_id"),
                         rows.getInt("status"),
                         rows.getInt("group_size"),
@@ -112,14 +111,14 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
         if (slots.isEmpty()) {
             return true;
         }
-        if (slots.stream().allMatch(slot -> slot.status() == ACQUIRED)) {
+        if (slots.stream().allMatch(slot -> slot.status == ACQUIRED)) {
             return true;
         }
-        if (slots.stream().anyMatch(slot -> slot.status() != WAITING)) {
+        if (slots.stream().anyMatch(slot -> slot.status != WAITING)) {
             throw new IllegalStateException("Partial TaskGroup acquisition is not supported");
         }
         for (QueueSlot slot : slots) {
-            if (slot.useSize() >= slot.groupSize()) {
+            if (slot.useSize >= slot.groupSize) {
                 return false;
             }
             List<String> heads = jdbc.queryForList(
@@ -127,7 +126,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                             + " WHERE group_id = ? AND status = ? AND in_queue = ?"
                             + " ORDER BY priority DESC, create_time ASC, id ASC LIMIT 1",
                     String.class,
-                    slot.groupId(),
+                    slot.groupId,
                     WAITING,
                     Flag.YES.getCode());
             if (heads.isEmpty() || !instanceId.equals(heads.get(0))) {
@@ -135,7 +134,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             }
         }
         for (QueueSlot slot : slots) {
-            if (taskGroupMapper.acquireTaskGroupSlot(slot.groupId()) != 1) {
+            if (taskGroupMapper.acquireTaskGroupSlot(slot.groupId) != 1) {
                 throw new IllegalStateException("TaskGroup capacity changed while locked");
             }
             if (jdbc.update(
@@ -143,7 +142,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                                     + " WHERE id = ? AND status = ?",
                             ACQUIRED,
                             LocalDateTime.now(),
-                            slot.id(),
+                            slot.id,
                             WAITING)
                     != 1) {
                 throw new IllegalStateException("TaskGroup queue status changed while locked");
@@ -211,7 +210,6 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                         + " ORDER BY g.resource_type, g.resource_key FOR UPDATE",
                 (rows, rowNum) -> new QueueSlot(
                         rows.getString("id"),
-                        rows.getString("task_id"),
                         rows.getLong("group_id"),
                         rows.getInt("status"),
                         rows.getInt("group_size"),
@@ -231,7 +229,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             throw new IllegalStateException("TaskGroupQueue release was not atomic");
         }
         for (QueueSlot slot : slots) {
-            if (slot.status() == ACQUIRED && taskGroupMapper.releaseTaskGroupSlot(slot.groupId()) != 1) {
+            if (slot.status == ACQUIRED && taskGroupMapper.releaseTaskGroupSlot(slot.groupId) != 1) {
                 throw new IllegalStateException("TaskGroup slot counter is inconsistent");
             }
         }
@@ -256,10 +254,9 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                         + " WHERE t.id IS NULL OR t.status IN ('FINISHED', 'FAILED', 'CANCELED')",
                 (rows, rowNum) -> new QueueOwner(rows.getString("workspace_id"), rows.getString("task_id")));
         for (QueueOwner owner : stale) {
-            releaseOwned(owner.workspaceId(), owner.instanceId());
+            releaseOwned(owner.workspaceId, owner.instanceId);
         }
-        List<Long> groupIds =
-                jdbc.queryForList("SELECT id FROM yak_ops_task_group ORDER BY id FOR UPDATE", Long.class);
+        List<Long> groupIds = jdbc.queryForList("SELECT id FROM yak_ops_task_group ORDER BY id FOR UPDATE", Long.class);
         for (Long groupId : groupIds) {
             Integer count = jdbc.queryForObject(
                     "SELECT COUNT(*) FROM yak_ops_task_group_queue"
@@ -270,8 +267,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
                     Flag.YES.getCode(),
                     Flag.NO.getCode());
             jdbc.update(
-                    "UPDATE yak_ops_task_group SET use_size = ?, update_time = ?"
-                            + " WHERE id = ? AND use_size <> ?",
+                    "UPDATE yak_ops_task_group SET use_size = ?, update_time = ?" + " WHERE id = ? AND use_size <> ?",
                     count,
                     LocalDateTime.now(),
                     groupId,
@@ -301,8 +297,6 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             this.instanceId = instanceId;
         }
 
-        private String workspaceId() { return workspaceId; }
-        private String instanceId() { return instanceId; }
     }
 
     private static final class QueueSlot {
@@ -312,7 +306,7 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
         private final int groupSize;
         private final int useSize;
 
-        private QueueSlot(String id, String taskId, long groupId, int status, int groupSize, int useSize) {
+        private QueueSlot(String id, long groupId, int status, int groupSize, int useSize) {
             this.id = id;
             this.groupId = groupId;
             this.status = status;
@@ -320,10 +314,5 @@ public class TaskGroupQueueRepositoryImpl implements TaskGroupQueueRepository {
             this.useSize = useSize;
         }
 
-        private String id() { return id; }
-        private long groupId() { return groupId; }
-        private int status() { return status; }
-        private int groupSize() { return groupSize; }
-        private int useSize() { return useSize; }
     }
 }
