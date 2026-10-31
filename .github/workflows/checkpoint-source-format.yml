@@ -1,0 +1,34 @@
+name: Temporary Checkpoint Source Formatting
+
+on:
+  push:
+    branches:
+      - refactor/flink-1203-checkpoint-storage-source
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Apply repository Palantir Java Format to changed modules
+        run: |
+          bash mvnw -B -ntp -pl yak-flow/yak-flow-runtime,yak-ops-engine com.diffplug.spotless:spotless-maven-plugin:3.10.2:apply
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git add yak-flow/yak-flow-runtime yak-ops-engine
+            git commit -m "style(runtime): apply repository Palantir Java Format to migrated Flink sources"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
