@@ -9,8 +9,8 @@ import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.core.configuration.SchemaEvolutionOptions;
+import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Objects;
@@ -88,11 +88,20 @@ public final class ExecutionConfigurationFactory {
         // Only the same Instance can own this directory. A corrupted checkpoint must fail restore,
         // not silently restart CDC from the beginning and duplicate committed target rows.
         return configuration
-                .set(CheckpointingOptions.RESTORE_LATEST, Files.exists(stateDirectory.resolve("checkpoint.bin")))
+                .set(CheckpointingOptions.RESTORE_LATEST, hasCheckpointData(stateDirectory))
                 .set(ExecutionOptions.RUNTIME_MODE, RuntimeExecutionMode.STREAMING)
                 .set(CheckpointingOptions.CHECKPOINTING_INTERVAL, options.get(EnvironmentOptions.CHECKPOINT_INTERVAL))
                 .set(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS, 1)
                 .set(ExecutionOptions.MAX_RESTART_ATTEMPTS, options.get(EnvironmentOptions.MAX_RESTARTS));
+    }
+
+    private static boolean hasCheckpointData(Path directory) {
+        try {
+            return LocalCompletedCheckpointStore.hasCheckpointData(directory);
+        } catch (java.io.IOException failure) {
+            // State inspection failures must not allow a new CDC run at a fresh offset.
+            throw new IllegalStateException("Cannot inspect existing checkpoint state", failure);
+        }
     }
 
     private static String checkpointDefinitionIdentity(TaskExecutionIdentity identity) {
