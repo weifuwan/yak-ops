@@ -1,13 +1,20 @@
 import { offlineIncremental, validIncrementalConfig } from "@/service/data-sync/parameters";
 import { transformEditingError } from "@/service/data-sync/transforms";
-import { validTableMappings } from "./table-mapping-editor";
+import {
+  validateBatchSize,
+  validateSourceOptions,
+  validateSqlHooks,
+  validateTypeMappings,
+} from "@/service/data-sync/table-configuration";
+import { validTableMappings } from "./table-selection";
 import { sameScheduleRule } from "@/app/schedule/schedule-presentation";
-import { selectedTableKey } from "./table-section";
+import { selectedTableKey } from "./table-catalog";
 import type {
   DataSyncDraft,
   DataSyncTaskSavePayload,
   DataSyncTableMapping,
   DataSyncWriteMode,
+  DataSyncCapabilities,
 } from "@/service/data-sync";
 import type { ScheduleRecord, ScheduleTimeRule } from "@/service/schedule";
 import type { DataSourceRecord } from "@/service/datasource";
@@ -41,10 +48,28 @@ export function buildEditorPayload(
     transforms: form.transforms,
     pipelineOptions: form.pipelineOptions,
     tableScope: form.tableScope,
+    selection: replication ? form.selection : undefined,
+    mappingTemplate: replication ? form.mappingTemplate : undefined,
+    typeMappings: form.typeMappings,
     steps: draft.steps,
     ...(replication && form.startup ? { startup: { ...form.startup } } : {}),
     writeMode: form.sink.writeMode,
     targetPrimaryKeys: form.sink.targetPrimaryKeys?.filter(Boolean) ?? [],
+    ...(!replication
+      ? {
+          sourceRead:
+            form.source.where.trim() || form.source.splitKey.trim()
+              ? {
+                  where: form.source.where.trim() || undefined,
+                  splitKey: form.source.splitKey.trim() || undefined,
+                }
+              : undefined,
+          preSql: form.sink.preSql.length ? [...form.sink.preSql] : undefined,
+          postSql: form.sink.postSql.length ? [...form.sink.postSql] : undefined,
+          sourceOptions: form.source.options,
+          sinkBatchSize: form.sink.batchSize,
+        }
+      : {}),
     ...(!replication &&
     offlineIncremental(draft.productType, draft.steps) &&
     form.source.incremental
@@ -62,6 +87,7 @@ export function buildEditorPayload(
 
 interface ValidationInput {
   combination?: { writeModes: DataSyncWriteMode[] };
+  capabilities?: DataSyncCapabilities;
   solutionsLoading: boolean;
   solutionsError: string;
   useIncremental: boolean;
@@ -85,6 +111,7 @@ interface ValidationInput {
 
 export function editorValidationIssue({
   combination,
+  capabilities,
   solutionsLoading,
   solutionsError,
   useIncremental,
@@ -105,12 +132,47 @@ export function editorValidationIssue({
   targetCatalog,
   sourceCatalog,
 }: ValidationInput): EditorIssue | undefined {
+  let extraIssue: EditorIssue | undefined;
+  try {
+    validateSourceOptions(form.source.options);
+  } catch (failure) {
+    extraIssue = { message: (failure as Error).message, location: "source" };
+  }
+  try {
+    validateSqlHooks({
+      mode: form.sink.writeMode,
+      preSql: form.sink.preSql,
+      postSql: form.sink.postSql,
+    });
+    validateBatchSize(form.sink.batchSize);
+    validateTypeMappings(form.typeMappings);
+  } catch (failure) {
+    extraIssue = { message: (failure as Error).message, location: "target" };
+  }
+  if (form.selection) {
+    if (!capabilities?.regexSelection)
+      extraIssue = { message: "当前连接器不支持正则选表", location: "source" };
+    else if (!form.selectionResolved)
+      extraIssue = { message: "请先匹配并应用当前正则规则", location: "source" };
+    else if (
+      !draft.steps.includes("FULL") ||
+      !draft.steps.includes("INCREMENTAL") ||
+      (form.startup && form.startup.mode !== "INITIAL") ||
+      !prepareSchema ||
+      !form.sink.schemaChangesEnabled
+    )
+      extraIssue = {
+        message: "正则选表需从全量开始持续同步，并创建目标表和同步结构变更",
+        location: "source",
+      };
+  }
   const valid = Boolean(
     Boolean(combination) &&
     !solutionsLoading &&
     !solutionsError &&
     (replication || combination!.writeModes.includes(form.sink.writeMode)) &&
     !replicationError &&
+    !extraIssue &&
     !transformEditingError(form.transforms) &&
     (!useIncremental || validIncrementalConfig(form.source.incremental, !initialLoad)) &&
     selectedSourceDataSource?.dbType === draft.sourceType &&
@@ -129,6 +191,7 @@ export function editorValidationIssue({
           targetCatalog.tables,
           combination?.writeModes || [],
           prepareSchema,
+          capabilities?.maxTables ?? 100,
         )
       : Boolean(
           form.source.table &&
@@ -183,19 +246,18 @@ export function editorValidationIssue({
     return { message: sourceCatalog.error || "正在加载来源表", location: "source" };
   if (targetCatalog.loading || targetCatalog.error)
     return { message: targetCatalog.error || "正在加载目标表", location: "target" };
+  if (extraIssue) return extraIssue;
   if (useIncremental && !validIncrementalConfig(form.source.incremental, !initialLoad))
     return { message: "请完善增量字段和初始起点", location: "source" };
   if (transformEditingError(form.transforms))
     return {
       message: transformEditingError(form.transforms) || "转换规则无效",
-      location: replication ? "advanced-transforms" : "field-mapping",
+      location: replication ? "target" : "field-mapping",
     };
   if (!replication && !combination.writeModes.includes(form.sink.writeMode))
     return {
       message: "请选择当前策略支持的写入方式",
-      location: "advanced",
-      tab: "parameters",
-      parameterTab: "write",
+      location: "target",
     };
   if (replicationError) return { message: replicationError, location: "target" };
   return {
@@ -206,14 +268,7 @@ export function editorValidationIssue({
 
 export interface EditorIssue {
   message: string;
-  location:
-    | "properties"
-    | "advanced"
-    | "datasource"
-    | "source"
-    | "target"
-    | "field-mapping"
-    | "advanced-transforms";
+  location: "properties" | "advanced" | "datasource" | "source" | "target" | "field-mapping";
   tab?: "parameters" | "ddl" | "engine";
   parameterTab?: "read" | "write" | "runtime";
 }

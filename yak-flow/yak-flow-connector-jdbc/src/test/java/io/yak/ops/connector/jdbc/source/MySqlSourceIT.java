@@ -58,6 +58,62 @@ class MySqlSourceIT extends JdbcSourceTestBase {
     }
 
     @Test
+    void mysqlWhereAndUniqueSplitKeyRetainThePredicateAcrossCursorRestore() throws Exception {
+        JdbcConnectionOptions settings = new JdbcConnectionOptions(database().url(), database().username(), database().password());
+        var provider = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(settings);
+        JdbcDialect dialect = JdbcDialects.forUrl(settings.url());
+        try (Connection connection = provider.getConnection(); Statement statement = connection.createStatement()) {
+            TableId table = new TableId(connection.getCatalog(), null, TestNames.unique("filtered_source"));
+            String tableSql = dialect.qualifiedTable(table);
+            statement.execute("CREATE TABLE " + tableSql
+                    + " (ID BIGINT PRIMARY KEY, SEQUENCE_ID BIGINT NOT NULL UNIQUE, LABEL VARCHAR(32))");
+            try {
+                statement.execute("INSERT INTO " + tableSql
+                        + " VALUES (1,10,'one'),(2,20,'excluded'),(3,30,'three'),(4,40,'four'),(5,50,'five')");
+                Configuration options = new Configuration();
+                options.set(JdbcSourceOptions.MAX_SPLITS_PER_TABLE, 1);
+                options.set(JdbcSourceOptions.READER_FETCH_BATCH_SIZE, 2);
+                JdbcReadOptions read = new JdbcReadOptions("ID = 1 OR ID >= 3", "SEQUENCE_ID", 2, 5);
+                JdbcSourceSplit split = new JdbcSplitPlanner(provider, dialect, options,
+                        Map.of(table, List.of("LABEL")), Map.of(), Map.of(table, read)).plan(table, 0).getFirst();
+                assertEquals("SEQUENCE_ID", split.splitColumn());
+                assertEquals(List.of("LABEL", "SEQUENCE_ID", "ID"), split.readColumns());
+                JdbcSourceSplit resumed;
+                try (JdbcSourceSplitReader reader = new JdbcSourceSplitReader(provider, dialect, options)) {
+                    reader.addSplits(List.of(split));
+                    var batch = reader.fetch();
+                    assertEquals(split.splitId(), batch.nextSplit());
+                    var first = batch.nextRecordFromSplit();
+                    var second = batch.nextRecordFromSplit();
+                    assertEquals("one", first.record().row().getString(0));
+                    assertEquals("three", second.record().row().getString(0));
+                    assertEquals(1, second.record().row().getArity());
+                    resumed = split.withLastEmittedKey(30L);
+                }
+                var serializer = new io.yak.ops.connector.jdbc.source.split.JdbcSourceSplitSerializer();
+                resumed = serializer.deserialize(serializer.getVersion(), serializer.serialize(resumed));
+                List<String> remaining = new java.util.ArrayList<>();
+                try (JdbcSourceSplitReader reader = new JdbcSourceSplitReader(provider, dialect, options)) {
+                    reader.addSplits(List.of(resumed));
+                    boolean finished = false;
+                    for (int attempt = 0; attempt < 5 && !finished; attempt++) {
+                        var batch = reader.fetch();
+                        if (resumed.splitId().equals(batch.nextSplit())) {
+                            io.yak.ops.connector.jdbc.source.reader.JdbcRecordAndPosition record;
+                            while ((record = batch.nextRecordFromSplit()) != null) remaining.add(record.record().row().getString(0));
+                        }
+                        finished = batch.finishedSplits().contains(resumed.splitId());
+                    }
+                    assertTrue(finished);
+                }
+                assertEquals(List.of("four", "five"), remaining);
+            } finally {
+                statement.execute("DROP TABLE " + tableSql);
+            }
+        }
+    }
+
+    @Test
     void mysqlCatalogPreservesFractionalSecondsForTargetSchema() throws Exception {
         JdbcConnectionOptions options =
                 new JdbcConnectionOptions(database().url(), database().username(), database().password());

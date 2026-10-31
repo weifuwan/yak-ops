@@ -38,6 +38,58 @@ class TransformTranslatorTest {
             new PhysicalColumn("amount", LogicalTypes.INTEGER)), List.of("id"));
 
     @Test
+    void targetTypeRulesChangeActualRowsAndKeepInjectivePhysicalKeys() throws Exception {
+        PipelineDef definition = new YamlPipelineDefinitionParser().parse("""
+                source:
+                  type: mysql
+                  datasource-id: source
+                  tables: shop.orders
+                sink:
+                  type: jdbc-mysql
+                  datasource-id: sink
+                  yak.type-mappings: '[{"sourceType":"INT","targetType":"BIGINT"}]'
+                """);
+        TransformTranslator translator = new TransformTranslator(definition);
+        Schema mapped = translator.transformSchema(TABLE, SCHEMA);
+        assertEquals(LogicalTypes.BIGINT.copy(false), mapped.column("id").orElseThrow().type());
+        assertEquals(List.of("id"), mapped.primaryKeys());
+        List<Event> events = new ArrayList<>();
+        OneInputStreamOperator<Event, Event> operator = translator.createOperator();
+        operator.processElement(new CreateTableEvent(TABLE, SCHEMA), events::add);
+        operator.processElement(DataChangeEvent.insertEvent(TABLE, GenericRowData.of(7, "a", 5)), events::add);
+        assertEquals(GenericRowData.of(7L, "a", 5L), ((DataChangeEvent) events.getLast()).after());
+        DataSourceTable metadata = translator.transformMetadata(new DataSourceTable("MYSQL", TABLE,
+                SCHEMA.toTableSchema(), 1, null, Map.of(), Set.of(), Map.of(), List.of(List.of("id"))));
+        assertEquals(List.of(List.of("id")), metadata.uniqueKeys());
+        assertEquals(mapped.toTableSchema(), metadata.schema());
+    }
+
+    @Test
+    void explicitFieldCastWinsAndConditionalTypeMappingsRejectLoss() {
+        String yaml = """
+                source:
+                  type: mysql
+                  datasource-id: source
+                  tables: shop.orders
+                sink:
+                  type: jdbc-mysql
+                  datasource-id: sink
+                  yak.type-mappings: '[{"sourceType":"INT","targetType":"BIGINT"}]'
+                transform:
+                  - source-table: shop.orders
+                    projection: CAST(id AS DECIMAL(20,0)) AS id, name, amount
+                """;
+        Schema mapped = new TransformTranslator(new YamlPipelineDefinitionParser().parse(yaml)).transformSchema(TABLE, SCHEMA);
+        assertEquals(LogicalTypes.decimal(20, 0).getTypeRoot(), mapped.column("id").orElseThrow().type().getTypeRoot());
+        assertEquals(LogicalTypes.BIGINT, mapped.column("amount").orElseThrow().type());
+        String shorter = yaml.substring(0, yaml.indexOf("transform:"))
+                .replace("{\"sourceType\":\"INT\",\"targetType\":\"BIGINT\"}",
+                        "{\"sourceType\":\"VARCHAR\",\"targetType\":\"VARCHAR(255)\"}");
+        assertThrows(IllegalArgumentException.class, () ->
+                new TransformTranslator(new YamlPipelineDefinitionParser().parse(shorter)).transformSchema(TABLE, SCHEMA));
+    }
+
+    @Test
     void projectionAndFilterUseTheUpstreamSqlProcessors() throws Exception {
         OneInputStreamOperator<Event, Event> operator = translator("id, UPPER(name) AS label, amount * 2 AS total", "total > 10").createOperator();
         List<Event> events = new ArrayList<>();

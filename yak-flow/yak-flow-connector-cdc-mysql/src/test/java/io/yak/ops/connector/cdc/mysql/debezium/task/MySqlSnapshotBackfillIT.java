@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import io.yak.ops.connector.cdc.mysql.source.MySqlSource;
 import io.yak.ops.connector.cdc.mysql.source.assigners.ChunkRange;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceConfig;
+import io.yak.ops.connector.cdc.mysql.source.config.MySqlTableOptions;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
@@ -87,6 +88,55 @@ class MySqlSnapshotBackfillIT {
             assertThat(prepared.output().high().compareTo(prepared.output().low())).isGreaterThan(0);
             assertThat(values(prepared)).containsExactlyInAnyOrderEntriesOf(
                     Map.of(1L, "updated", 2L, "low-gap", 3L, "after"));
+        }
+    }
+
+    @Test
+    void snapshotPredicateDoesNotFilterSubsequentOriginalBinlogMutations() throws Exception {
+        execute("INSERT INTO snapshot_contract VALUES (1,'included'),(2,'outside-snapshot')");
+        MySqlSourceConfig selected = config(SCHEMA, new MySqlTableOptions(false, "id = 1", true, true, true));
+        MySqlSnapshotSplit prepared;
+        try (MySqlSnapshotSplitReadTask reader = new MySqlSnapshotSplitReadTask(selected, 0)) {
+            prepared = reader.read(split(null, null));
+            assertThat(values(prepared)).containsExactlyInAnyOrderEntriesOf(Map.of(1L, "included"));
+        }
+        assertMutationAfterSnapshot(selected, prepared,
+                "UPDATE snapshot_contract SET name='incremental-visible' WHERE id=2", 2L, "incremental-visible");
+    }
+
+    @Test
+    void skippedSnapshotPersistsAnEmptyWatermarkFenceAndStartsIncrementalFromIt() throws Exception {
+        execute("INSERT INTO snapshot_contract VALUES (1,'not-loaded'),(2,'not-loaded')");
+        MySqlSourceConfig selected = config(SCHEMA, new MySqlTableOptions(true, null, true, true, true));
+        MySqlSnapshotSplit prepared;
+        try (MySqlSnapshotSplitReadTask reader = new MySqlSnapshotSplitReadTask(selected, 0)) {
+            prepared = reader.read(split(null, null));
+            assertThat(prepared.output().rows()).isEmpty();
+            assertThat(prepared.output().low()).isEqualTo(prepared.output().high());
+            assertThat(prepared.output().schemaHistory()).isNotEmpty();
+        }
+        assertMutationAfterSnapshot(selected, prepared,
+                "INSERT INTO snapshot_contract VALUES (3,'after-skip')", 3L, "after-skip");
+    }
+
+    private static void assertMutationAfterSnapshot(MySqlSourceConfig config, MySqlSnapshotSplit prepared,
+            String mutation, long id, String value) throws Exception {
+        MySqlSnapshotSplit finished = prepared.withOutputPosition(prepared.output().rows().size());
+        var high = finished.finished().highWatermark();
+        var initial = io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit.forCompletedSnapshot(
+                high, finished.finishedSchemaHistory(), high, List.of(finished.finished()));
+        execute(mutation);
+        try (MySqlBinlogSplitReadTask binlog = new MySqlBinlogSplitReadTask(config)) {
+            binlog.start(initial);
+            long deadline = System.nanoTime() + java.time.Duration.ofSeconds(60).toNanos();
+            boolean received = false;
+            while (System.nanoTime() < deadline && !received) {
+                var event = binlog.poll();
+                received = event != null && event.records().stream().anyMatch(row ->
+                        ((Number) row.row().getField(0)).longValue() == id
+                                && value.equals(row.row().getString(1)));
+            }
+            assertThat(received).as("Mutation after the persisted snapshot boundary").isTrue();
         }
     }
 
@@ -314,6 +364,10 @@ class MySqlSnapshotBackfillIT {
     }
 
     private static MySqlSourceConfig config(TableSchema schema) {
+        return config(schema, MySqlTableOptions.DEFAULT);
+    }
+
+    private static MySqlSourceConfig config(TableSchema schema, MySqlTableOptions tableOptions) {
         var database = MYSQL.metadata();
         return MySqlSource.builder()
                 .hostname(database.host())
@@ -324,6 +378,7 @@ class MySqlSnapshotBackfillIT {
                 .topicPrefix("yak-snapshot-contract")
                 .connectionProperties(Map.of("useSSL", "false", "allowPublicKeyRetrieval", "true"))
                 .table(TABLE, schema)
+                .tableOptions(TABLE, tableOptions)
                 .buildHybrid(32)
                 .config();
     }

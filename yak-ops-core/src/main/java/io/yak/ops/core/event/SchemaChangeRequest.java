@@ -31,7 +31,8 @@ public record SchemaChangeRequest(
         Schema sourceSchemaAfter,
         Schema targetSchemaBefore,
         Schema targetSchemaAfter,
-        List<SchemaChangeEvent> targetChanges)
+        List<SchemaChangeEvent> targetChanges,
+        boolean newlyAdded)
         implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -48,7 +49,10 @@ public record SchemaChangeRequest(
         if (eventId.isBlank()) {
             throw new IllegalArgumentException("Schema change event ID must not be blank");
         }
-        if (sourceSchemaBefore.equals(sourceSchemaAfter)
+        boolean creation =
+                newlyAdded && targetChanges.size() == 1 && targetChanges.getFirst() instanceof CreateTableEvent;
+        if (!newlyAdded
+                && sourceSchemaBefore.equals(sourceSchemaAfter)
                 && (!targetSchemaBefore.equals(targetSchemaAfter) || !targetChanges.isEmpty())) {
             throw new IllegalArgumentException("An unchanged input schema cannot request target DDL");
         }
@@ -61,7 +65,9 @@ public record SchemaChangeRequest(
             if (!targetTable.equals(change.tableId())) {
                 throw new IllegalArgumentException("Target schema event identity does not match the request");
             }
-            if (change instanceof AddColumnEvent add) {
+            if (change instanceof CreateTableEvent create && creation) {
+                expectedTarget = create.getPhysicalSchema();
+            } else if (change instanceof AddColumnEvent add) {
                 expectedTarget = addColumns(expectedTarget, add);
             } else if (change instanceof AlterColumnTypeEvent alter) {
                 expectedTarget = alterColumnTypes(expectedTarget, alter);
@@ -76,6 +82,27 @@ public record SchemaChangeRequest(
         if (!expectedTarget.equals(targetSchemaAfter)) {
             throw new IllegalArgumentException("Target change events do not produce the declared target schema");
         }
+    }
+
+    public SchemaChangeRequest(
+            String eventId,
+            TableId sourceTable,
+            TableId targetTable,
+            Schema sourceSchemaBefore,
+            Schema sourceSchemaAfter,
+            Schema targetSchemaBefore,
+            Schema targetSchemaAfter,
+            List<SchemaChangeEvent> targetChanges) {
+        this(
+                eventId,
+                sourceTable,
+                targetTable,
+                sourceSchemaBefore,
+                sourceSchemaAfter,
+                targetSchemaBefore,
+                targetSchemaAfter,
+                targetChanges,
+                false);
     }
 
     private static Schema addColumns(Schema schema, AddColumnEvent event) {

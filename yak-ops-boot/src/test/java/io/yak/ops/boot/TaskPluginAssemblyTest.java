@@ -2,6 +2,8 @@ package io.yak.ops.boot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import io.yak.ops.boot.config.TaskPluginConfiguration;
 import io.yak.ops.configuration.ReadonlyConfig;
@@ -28,13 +30,32 @@ class TaskPluginAssemblyTest {
             TaskPluginManager registry = context.getBean(TaskPluginManager.class);
             assertEquals(1, registry.types().size());
             TaskChannel channel = assertInstanceOf(TaskChannel.class, registry.get(PipelineTaskChannel.TYPE));
-            assertEquals(7, channel.parameterSchemaVersion());
+            assertEquals(8, channel.parameterSchemaVersion());
             PipelineConnectorCatalog catalog = context.getBean(PipelineConnectorCatalog.class);
             List<PipelineConnectorCatalog.ConnectorPair> pairs = catalog.list("MYSQL", "POSTGRE_SQL");
             assertEquals(List.of("jdbc-mysql", "mysql"),
                     pairs.stream().map(PipelineConnectorCatalog.ConnectorPair::sourceConnector).sorted().toList());
             assertEquals(List.of("jdbc-postgres"),
                     pairs.stream().map(PipelineConnectorCatalog.ConnectorPair::sinkConnector).distinct().toList());
+            java.util.Map<String, Object> batch = pairs.stream()
+                    .filter(pair -> pair.sourceConnector().equals("jdbc-mysql")).findFirst().orElseThrow().capabilities();
+            java.util.Map<String, Object> cdc = pairs.stream()
+                    .filter(pair -> pair.sourceConnector().equals("mysql")).findFirst().orElseThrow().capabilities();
+            assertEquals(100, batch.get("maxTables"));
+            assertEquals(true, batch.get("sourceRead"));
+            assertEquals(true, batch.get("dataPreview"));
+            assertEquals(true, batch.get("sqlHooks"));
+            assertEquals(false, batch.get("regexSelection"));
+            assertEquals(true, batch.get("typeMapping"));
+            assertFalse(((List<?>) batch.get("typeMappingRules")).isEmpty());
+            assertFalse(((List<?>) batch.get("writeModes")).contains("REPLACE"));
+            assertEquals(false, cdc.get("sourceRead"));
+            assertEquals(false, cdc.get("sqlHooks"));
+            assertEquals(true, cdc.get("regexSelection"));
+            assertEquals(true, cdc.get("dmlEvents"));
+            assertTrue(catalog.list("MYSQL", "MYSQL").stream()
+                    .filter(pair -> pair.sourceConnector().equals("jdbc-mysql"))
+                    .anyMatch(pair -> ((List<?>) pair.capabilities().get("writeModes")).contains("REPLACE")));
         }
     }
 

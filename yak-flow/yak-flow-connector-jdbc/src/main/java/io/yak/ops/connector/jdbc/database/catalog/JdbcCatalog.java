@@ -59,6 +59,41 @@ public interface JdbcCatalog extends AutoCloseable, Serializable {
             throws SQLException;
 
     /**
+     * Searches all matching metadata before taking a page; a limited first batch is never
+     * treated as the complete namespace.
+     *
+     * @param database optional exact database
+     * @param schema optional exact schema
+     * @param keyword optional table-name substring
+     * @param databasePattern optional full-match database or schema expression
+     * @param tablePattern optional full-match table-name expression
+     * @param offset number of matching entries to skip
+     * @param limit page size between one and 500
+     * @return the page in stable table-identifier order
+     * @throws SQLException when metadata cannot be read
+     */
+    JdbcTablePage listTablePage(
+            String database,
+            String schema,
+            String keyword,
+            String databasePattern,
+            String tablePattern,
+            int offset,
+            int limit)
+            throws SQLException;
+
+    /**
+     * Reads at most 100 source rows under a validated predicate and strict size/time limits.
+     *
+     * @param tableId authorized physical table identity
+     * @param where optional predicate without a WHERE keyword
+     * @param limit maximum rows to return
+     * @return precision-preserving cells and truncation information
+     * @throws SQLException when the read cannot complete
+     */
+    JdbcDataPreview preview(TableId tableId, String where, int limit) throws SQLException;
+
+    /**
      * Resolves a single physical table or view using exact JDBC identifiers.
      *
      * @param tableId source table identity

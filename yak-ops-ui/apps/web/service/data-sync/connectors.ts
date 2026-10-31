@@ -1,4 +1,9 @@
-import type { DataSyncSolution, DataSyncStep, DataSyncWriteMode } from "./types";
+import type {
+  DataSyncCapabilities,
+  DataSyncSolution,
+  DataSyncStep,
+  DataSyncWriteMode,
+} from "./types";
 
 /** Capabilities discovered from the installed source and sink Factory SPIs. */
 export interface PipelineConnectorPair {
@@ -9,6 +14,7 @@ export interface PipelineConnectorPair {
   supportsSchemaChanges: boolean;
   supportsRetract: boolean;
   boundedness: "BOUNDED" | "CONTINUOUS_UNBOUNDED";
+  capabilities: DataSyncCapabilities;
 }
 
 /** One workflow per installed channel; snapshot and continuous reads are strategies. */
@@ -24,13 +30,17 @@ export function connectorChoices(pairs: PipelineConnectorPair[]): DataSyncSoluti
         : [["FULL"]];
     const allowedCombinations: DataSyncSolution["allowedCombinations"] = dataSteps.map((steps) => {
       const continuous = replication && steps.includes("INCREMENTAL");
-      const writeModes: DataSyncWriteMode[] = continuous
-        ? pair.supportsRetract
-          ? ["UPSERT", "RETRACT"]
-          : ["UPSERT"]
-        : steps.includes("INCREMENTAL")
-          ? ["UPSERT"]
-          : ["APPEND", "UPSERT"];
+      const writeModes: DataSyncWriteMode[] = !replication
+        ? pair.capabilities.writeModes.filter(
+            (mode) => mode !== "RETRACT" && (!steps.includes("INCREMENTAL") || mode === "UPSERT"),
+          )
+        : continuous
+          ? pair.supportsRetract
+            ? ["UPSERT", "RETRACT"]
+            : ["UPSERT"]
+          : steps.includes("INCREMENTAL")
+            ? ["UPSERT"]
+            : ["APPEND", "UPSERT"];
       return { steps, supportsScheduling: !continuous, writeModes };
     });
     if (pair.supportsSchemaChanges) {
@@ -49,6 +59,7 @@ export function connectorChoices(pairs: PipelineConnectorPair[]): DataSyncSoluti
         sinkConnector: pair.sinkConnector,
         producesChangelog: pair.producesChangelog,
         productType,
+        capabilities: pair.capabilities,
         displayName: replication ? "整库实时" : "单表离线",
         steps: [
           ...(pair.supportsSchemaChanges ? ["SCHEMA" as const] : []),

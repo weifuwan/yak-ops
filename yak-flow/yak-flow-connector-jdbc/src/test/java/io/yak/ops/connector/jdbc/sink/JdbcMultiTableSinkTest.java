@@ -143,6 +143,28 @@ class JdbcMultiTableSinkTest {
     }
 
     @Test
+    void routeBatchLimitFlushesTheSharedTransactionBeforeTheLargerGlobalLimit() throws Exception {
+        String url = databaseUrl();
+        createTables(url);
+        JdbcSink sink = JdbcSink.builder().withConnectionProvider(() -> open(url))
+                .withDialect(new AnsiJdbcDialect()).withTablePlans(appendPlans())
+                .withBatchFlushPolicy(new BatchFlushPolicy(5, Duration.ZERO))
+                .withTableWriteOptions(Map.of(SOURCE_A, new JdbcWriteOptions(2, List.of(), List.of()),
+                        SOURCE_B, new JdbcWriteOptions(5, List.of(), List.of())))
+                .build();
+        try (JdbcWriter writer = sink.createWriter(context())) {
+            writer.write(b(RowKind.INSERT, 7L, new byte[] {7}), RECORD_CONTEXT);
+            writer.write(a(RowKind.INSERT, "one", 1L), RECORD_CONTEXT);
+            assertEquals(0L, rowCount(url, "TARGET_A", 1L));
+            assertEquals(0L, rowCount(url, "TARGET_B", 7L));
+            writer.write(a(RowKind.INSERT, "two", 2L), RECORD_CONTEXT);
+            assertEquals(1L, rowCount(url, "TARGET_A", 1L));
+            assertEquals(1L, rowCount(url, "TARGET_A", 2L));
+            assertEquals(1L, rowCount(url, "TARGET_B", 7L));
+        }
+    }
+
+    @Test
     void rejectsUnknownRoutesInvalidMappingsNullKeysAndAppendChangelog() throws Exception {
         assertThrows(
                 IllegalArgumentException.class,

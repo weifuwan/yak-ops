@@ -17,6 +17,8 @@ import io.yak.ops.connector.cdc.mysql.source.events.LatestFinishedSplitsNumberEv
 import io.yak.ops.connector.cdc.mysql.source.events.LatestFinishedSplitsNumberRequestEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlLowWatermarkEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlResumeBinlogEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.TableDiscoveryAckEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.TableDiscoveryEvent;
 import io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlFetchedRecord;
@@ -61,6 +63,7 @@ public final class MySqlSourceReader
     private final BinlogSplitMetaGroupAssembler binlogMetadata = new BinlogSplitMetaGroupAssembler();
     private final java.util.Set<String> acknowledged = new java.util.HashSet<>();
     private final Map<String, Long> finishedCheckpoint = new LinkedHashMap<>();
+    private TableDiscoveryEvent discoveredTable;
 
     public MySqlSourceReader(
             MySqlSourceConfig config, SourceReaderContext context, TableMetrics metrics, boolean initial) {
@@ -112,12 +115,26 @@ public final class MySqlSourceReader
 
     @Override
     public final InputStatus pollNext(ReaderOutput<TableRecord> output) throws Exception {
-        return schemaChanges.tryCompleteSchemaChange() ? super.pollNext(output) : InputStatus.NOTHING_AVAILABLE;
+        if (!schemaChanges.tryCompleteSchemaChange()) return InputStatus.NOTHING_AVAILABLE;
+        if (discoveredTable != null) {
+            TableDiscoveryEvent discovery = discoveredTable;
+            discoveredTable = null;
+            schemaChanges.submitSchemaChange(
+                    new io.yak.ops.core.event.SourceSchemaChange(
+                            discovery.eventId(), discovery.table(), null, discovery.schema()),
+                    () -> {
+                        splits.registerDiscoveredTable(discovery.table(), discovery.schema());
+                        context.sendSourceEventToCoordinator(new TableDiscoveryAckEvent(discovery.table()));
+                    });
+            return InputStatus.NOTHING_AVAILABLE;
+        }
+        return super.pollNext(output);
     }
 
     @Override
     public final CompletableFuture<Void> isAvailable() {
         CompletableFuture<Void> pending = schemaChanges.getAvailableFuture();
+        if (pending == null && discoveredTable != null) return CompletableFuture.completedFuture(null);
         return pending == null ? super.isAvailable() : pending;
     }
 
@@ -308,7 +325,12 @@ public final class MySqlSourceReader
     @Override
     public void handleSourceEvents(SourceEvent event) {
         if (!initial) throw new IllegalArgumentException("Binlog-only reader does not accept hybrid events");
-        if (event instanceof BinlogSplitUpdateRequestEvent update) {
+        if (event instanceof TableDiscoveryEvent discovery) {
+            if (discoveredTable != null && !discoveredTable.table().equals(discovery.table())) {
+                throw new IllegalStateException("Previous discovered table has not been admitted");
+            }
+            discoveredTable = discovery;
+        } else if (event instanceof BinlogSplitUpdateRequestEvent update) {
             if (update.getGeneration() < pendingBinlogUpdateGeneration) return;
             pendingBinlogUpdateGeneration = update.getGeneration();
             readerContext.suspendBinlogSplitReader();

@@ -46,7 +46,7 @@ public final class MySqlSplitReader implements SplitReader<MySqlFetchedRecord, M
     private final int readerIndex;
     private final TableMetrics metrics;
     private final long generation;
-    private final Set<TableId> tables;
+    private volatile Set<TableId> tables;
     private final Deque<MySqlSnapshotSplit> pending = new ArrayDeque<>();
     private volatile MySqlBinlogSplitReadTask binlog;
     private volatile byte[] history = new byte[0];
@@ -91,6 +91,16 @@ public final class MySqlSplitReader implements SplitReader<MySqlFetchedRecord, M
 
     TableSchema snapshotSchema(TableId tableId) {
         return Objects.requireNonNull(config.schemas().get(tableId), "snapshot table schema");
+    }
+
+    io.yak.ops.connector.cdc.mysql.source.config.MySqlTableOptions tableOptions(TableId tableId) {
+        return config.tableOptions(tableId);
+    }
+
+    void registerDiscoveredTable(TableId table, io.yak.ops.core.schema.Schema schema) {
+        config.registerDiscoveredTable(table, schema);
+        tables = Set.copyOf(config.schemas().keySet());
+        metrics.register(table);
     }
 
     @Override

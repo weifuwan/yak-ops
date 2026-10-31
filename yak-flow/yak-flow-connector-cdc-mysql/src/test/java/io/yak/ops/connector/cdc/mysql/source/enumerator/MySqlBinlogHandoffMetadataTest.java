@@ -15,6 +15,7 @@ import io.yak.ops.connector.cdc.mysql.source.events.LatestFinishedSplitsNumberEv
 import io.yak.ops.connector.cdc.mysql.source.events.LatestFinishedSplitsNumberRequestEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlResumeBinlogEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlStopSnapshotEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.TableDiscoveryEvent;
 import io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplit;
 import io.yak.ops.connector.cdc.mysql.table.StartupOptions;
@@ -25,6 +26,7 @@ import io.yak.ops.core.api.connector.source.SplitsAssignment;
 import io.yak.ops.core.api.metrics.Gauge;
 import io.yak.ops.core.api.metrics.groups.SplitEnumeratorMetricGroup;
 import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.core.types.TableSchema;
@@ -152,6 +154,12 @@ class MySqlBinlogHandoffMetadataTest {
                 StartupOptions.initial(), context, source.config(), 2, restored, new TableMetrics());
         enumerator.start();
 
+        assertThat(context.periodicDiscovery).isNotNull();
+        TableId anotherTable = new TableId("shop", null, "new_orders");
+        Schema anotherSchema = source.config().physicalSchemas().get(TABLE);
+        context.completeDiscovery(Map.of(anotherTable, anotherSchema));
+        assertThat(context.toReader0).noneMatch(TableDiscoveryEvent.class::isInstance);
+
         var update = (BinlogSplitUpdateRequestEvent) context.toReader0.getFirst();
         assertThat(update.getGeneration()).isPositive();
         enumerator.addReader(0);
@@ -190,6 +198,9 @@ class MySqlBinlogHandoffMetadataTest {
         assertThat(((HybridPendingSplitsState) enumerator.snapshotState(2))
                         .getSnapshotPendingSplits().getSnapshotAssignerStatus())
                 .isEqualTo(AssignerStatus.NEWLY_ADDED_ASSIGNING_FINISHED);
+        context.completeDiscovery(Map.of(anotherTable, anotherSchema));
+        assertThat(context.toReader0.getLast()).isInstanceOf(TableDiscoveryEvent.class);
+        assertThat(((TableDiscoveryEvent) context.toReader0.getLast()).table()).isEqualTo(anotherTable);
         enumerator.close();
     }
 
@@ -216,6 +227,11 @@ class MySqlBinlogHandoffMetadataTest {
         private final List<SourceEvent> toReader0 = new ArrayList<>();
         private final List<SourceEvent> toReader1 = new ArrayList<>();
         private final List<MySqlSplit> assignedToBinlogReader = new ArrayList<>();
+        private BiConsumer<Map<TableId, Schema>, Throwable> periodicDiscovery;
+
+        private void completeDiscovery(Map<TableId, Schema> tables) {
+            periodicDiscovery.accept(tables, null);
+        }
 
         @Override
         public int currentParallelism() {
@@ -268,12 +284,16 @@ class MySqlBinlogHandoffMetadataTest {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public <T> void callAsync(
                 Callable<T> action,
                 BiConsumer<T, Throwable> handler,
                 long initialDelayMillis,
                 long periodMillis) {
-            throw new AssertionError("Completed handoff must not schedule discovery");
+            assertThat(periodicDiscovery).isNull();
+            assertThat(initialDelayMillis).isPositive();
+            assertThat(periodMillis).isPositive();
+            periodicDiscovery = (result, failure) -> handler.accept((T) result, failure);
         }
     }
 }

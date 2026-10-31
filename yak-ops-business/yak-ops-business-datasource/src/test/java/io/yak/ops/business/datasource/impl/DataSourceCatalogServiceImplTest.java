@@ -11,6 +11,8 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.business.datasource.impl.DataSourceLookupServiceImpl;
 import io.yak.ops.common.bean.dto.datasource.DataSourceCatalogQueryDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceTablePathDTO;
+import io.yak.ops.common.bean.dto.datasource.DataSourceTablePageDTO;
+import io.yak.ops.common.bean.dto.datasource.DataSourcePreviewDTO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.core.data.TableId;
@@ -35,6 +37,7 @@ class DataSourceCatalogServiceImplTest {
             ddl.execute("CREATE SCHEMA APP");
             ddl.execute("CREATE TABLE APP.PRODUCTS (TENANT INT, ID BIGINT, NAME VARCHAR(64),"
                     + " PRIMARY KEY(ID, TENANT))");
+            ddl.execute("INSERT INTO APP.PRODUCTS VALUES (1, 9007199254740993, 'visible')");
         }
         H2TestDataSourcePlugin.CONNECTION_OPENS.set(0);
 
@@ -90,10 +93,39 @@ class DataSourceCatalogServiceImplTest {
                 assertEquals(0, H2TestDataSourcePlugin.CONNECTION_OPENS.get(),
                         "Catalog connections are opened by the shared JDBC implementation");
 
+                DataSourceTablePageDTO page = new DataSourceTablePageDTO();
+                page.setSchema("APP");
+                page.setTablePattern("PROD.*");
+                assertEquals("PRODUCTS", catalog.listTablePage("h2-source", page).getItems().getFirst().getName());
+                DataSourcePreviewDTO preview = new DataSourcePreviewDTO();
+                preview.setSchema("APP");
+                preview.setTable("PRODUCTS");
+                preview.setWhere("TENANT = 1");
+                assertEquals("9007199254740993", catalog.preview("h2-source", preview).getRows().getFirst().get(1));
+
+                page.setSchema(null);
+                assertEquals("APP", catalog.listTablePage("h2-source", page).getItems().getFirst().getSchema());
+                preview.setSchema(null);
+                assertEquals("9007199254740993", catalog.preview("h2-source", preview).getRows().getFirst().get(1));
+                page.setSchema("OTHER");
+                assertEquals(DataSourceErrorCode.INVALID_CATALOG_FILTER,
+                        assertThrows(DataSourceException.class, () -> catalog.listTablePage("h2-source", page)).getErrorCode());
+                preview.setSchema("OTHER");
+                assertEquals(DataSourceErrorCode.INVALID_PREVIEW_CONFIGURATION,
+                        assertThrows(DataSourceException.class, () -> catalog.preview("h2-source", preview)).getErrorCode());
+                page.setSchema("APP");
+                preview.setSchema("APP");
+
                 WorkspaceContext.bind("another-workspace");
                 DataSourceException exception = assertThrows(
                         DataSourceException.class, () -> catalog.getTableSchema("h2-source", table));
                 assertEquals(DataSourceErrorCode.NOT_FOUND, exception.getErrorCode());
+                assertEquals(DataSourceErrorCode.NOT_FOUND,
+                        assertThrows(DataSourceException.class, () -> catalog.listTablePage("h2-source", page))
+                                .getErrorCode());
+                assertEquals(DataSourceErrorCode.NOT_FOUND,
+                        assertThrows(DataSourceException.class, () -> catalog.preview("h2-source", preview))
+                                .getErrorCode());
             } finally {
                 WorkspaceContext.clear();
             }

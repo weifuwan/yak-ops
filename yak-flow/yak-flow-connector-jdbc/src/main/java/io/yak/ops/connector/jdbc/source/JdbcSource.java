@@ -52,6 +52,7 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
     private final List<TableId> tables;
     private final Map<TableId, List<String>> projections;
     private final Map<TableId, JdbcIncrementalRange> ranges;
+    private final Map<TableId, JdbcReadOptions> reads;
     private final Configuration configuration;
     private final JdbcDialect dialect;
     private final String fingerprint;
@@ -128,7 +129,24 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
             Map<TableId, List<String>> projections,
             TableMetrics metrics,
             Map<TableId, JdbcIncrementalRange> ranges) {
+        this(connectionProvider, jdbcUrl, tables, configuration, projections, metrics, ranges, Map.of());
+    }
+
+    /** Freezes per-table read predicates, split keys and fetch settings independently from connection options. */
+    public JdbcSource(
+            JdbcConnectionProvider connectionProvider,
+            String jdbcUrl,
+            List<TableId> tables,
+            Configuration configuration,
+            Map<TableId, List<String>> projections,
+            TableMetrics metrics,
+            Map<TableId, JdbcIncrementalRange> ranges,
+            Map<TableId, JdbcReadOptions> reads) {
         this.ranges = Map.copyOf(Objects.requireNonNull(ranges, "ranges"));
+        this.reads = Map.copyOf(Objects.requireNonNull(reads, "reads"));
+        if (!tables.containsAll(this.reads.keySet())) {
+            throw new IllegalArgumentException("Read settings must belong to selected source tables");
+        }
         if (!tables.containsAll(this.ranges.keySet())) {
             throw new IllegalArgumentException("Incremental ranges must belong to selected source tables");
         }
@@ -204,7 +222,7 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
             SplitEnumeratorContext<JdbcSourceSplit> context, JdbcEnumeratorState restored) {
         return new JdbcSourceEnumerator(
                 context,
-                new JdbcSplitPlanner(connectionProvider, dialect, configuration, projections, ranges),
+                new JdbcSplitPlanner(connectionProvider, dialect, configuration, projections, ranges, reads),
                 tables,
                 fingerprint,
                 restored,
@@ -251,6 +269,14 @@ public final class JdbcSource implements Source<TableRecord, JdbcSourceSplit, Jd
                         .append(identifierPart(range.lower()))
                         .append('|')
                         .append(identifierPart(range.upper()));
+            }
+            JdbcReadOptions read = reads.get(table);
+            if (read != null && (read.where() != null || read.splitKey() != null)) {
+                definition
+                        .append("|read:")
+                        .append(identifierPart(read.where()))
+                        .append('|')
+                        .append(identifierPart(read.splitKey()));
             }
             List<String> projected = projections.get(table);
             if (projected != null) {

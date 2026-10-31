@@ -4,6 +4,7 @@ import {
   fieldProjection,
   mappedSourcePrimaryKeys,
   readDirectProjection,
+  replaceTableTransforms,
   sameNameFieldMappings,
   transformEditingError,
   transformTableSelector,
@@ -143,6 +144,37 @@ assert.equal(original[0].filter, "label <> 'x,y'");
 const cleared = updateTransformRule(filtered, 0, selector, { filter: undefined });
 assert.equal("filter" in cleared[0], false);
 assert.equal(cleared[0].projection, original[0].projection);
+
+const interleaved = [
+  original[1],
+  original[0],
+  { "source-table": "other.*" },
+  { ...original[0], filter: "id > 0" },
+  original[1],
+];
+const replacementRules = [
+  { "source-table": selector, projection: "`id`" },
+  { "source-table": selector, projection: "`name`" },
+  { "source-table": selector, filter: "id > 3" },
+];
+assert.deepEqual(replaceTableTransforms(interleaved, selector, replacementRules), [
+  interleaved[0],
+  replacementRules[0],
+  interleaved[2],
+  replacementRules[1],
+  replacementRules[2],
+  interleaved[4],
+]);
+assert.deepEqual(replaceTableTransforms(interleaved, selector, []), [
+  interleaved[0],
+  interleaved[2],
+  interleaved[4],
+]);
+assert.deepEqual(replaceTableTransforms([original[1]], selector, replacementRules), [
+  original[1],
+  ...replacementRules,
+]);
+assert.throws(() => replaceTableTransforms(interleaved, selector, [{ "source-table": "other.*" }]));
 
 const created = updateTransformRule([], 0, selector, { projection });
 assert.deepEqual(created, [{ "source-table": selector, projection }]);

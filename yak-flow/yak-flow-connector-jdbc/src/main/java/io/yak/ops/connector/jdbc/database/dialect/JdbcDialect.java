@@ -36,6 +36,11 @@ public interface JdbcDialect extends java.io.Serializable {
      */
     String quoteIdentifier(String identifier);
 
+    /** Builds native bounded replacement SQL when the target vendor explicitly supports it. */
+    default String replaceSql(TableId table, TableSchema schema) {
+        throw new UnsupportedOperationException("Native REPLACE is not supported by this JDBC dialect");
+    }
+
     /**
      * Qualifies a table using the database's supported catalog and schema namespace.
      *
@@ -138,7 +143,7 @@ public interface JdbcDialect extends java.io.Serializable {
             String tableComment,
             Map<String, String> columnComments,
             Map<String, ColumnProperties> properties) {
-        for (var entry : properties.entrySet()) {
+        for (Map.Entry<String, ColumnProperties> entry : properties.entrySet()) {
             if (!entry.getValue().isKnown() || entry.getValue().hasFeatures()) {
                 throw new IllegalArgumentException(
                         "Target dialect cannot preserve column properties: " + entry.getKey());

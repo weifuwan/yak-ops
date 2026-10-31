@@ -345,6 +345,15 @@ public final class MySqlJdbcDialect extends AbstractDialect {
         return insertSql(table, schema) + " ON DUPLICATE KEY UPDATE " + updateClause;
     }
 
+    @Override
+    public String replaceSql(TableId table, TableSchema schema) {
+        String columns = schema.columns().stream()
+                .map(column -> quoteIdentifier(column.name()))
+                .collect(Collectors.joining(", "));
+        String values = schema.columns().stream().map(column -> "?").collect(Collectors.joining(", "));
+        return "REPLACE INTO " + qualifiedTable(table) + " (" + columns + ") VALUES (" + values + ")";
+    }
+
     private String noOpUpdate(String primaryKey) {
         String name = quoteIdentifier(primaryKey);
         return name + " = VALUES(" + name + ")";

@@ -117,7 +117,8 @@ public class DefinitionServiceImpl implements DefinitionService {
                     plugin.parse(updated),
                     validationContext);
             String existing = stored.getParameters();
-            if (!updated.equals(existing)) {
+            if (!updated.equals(existing)
+                    || !Objects.equals(stored.getParameterSchemaVersion(), plugin.parameterSchemaVersion())) {
                 definition.setCurrentVersion(Math.addExact(definition.getCurrentVersion(), 1));
                 appendVersion(definition, updated, operatorId);
             }

@@ -20,11 +20,15 @@ public record SourceSchemaChange(String eventId, TableId tableId, Schema before,
             throw new IllegalArgumentException("Source schema event ID is required");
         }
         tableId = Objects.requireNonNull(tableId, "tableId");
-        before = Objects.requireNonNull(before, "before");
         after = Objects.requireNonNull(after, "after");
-        if (before.equals(after)) {
+        if (after.equals(before)) {
             throw new IllegalArgumentException("Source schema change must modify the schema");
         }
+    }
+
+    /** A null previous schema admits a newly discovered table through the schema coordinator. */
+    public boolean newlyAdded() {
+        return before == null;
     }
 
     @Override

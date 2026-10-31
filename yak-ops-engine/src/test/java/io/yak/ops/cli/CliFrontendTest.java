@@ -313,6 +313,19 @@ class CliFrontendTest {
         }
 
         @Override
+        public io.yak.ops.connector.jdbc.database.catalog.JdbcTablePage listTablePage(
+                String database, String schema, String keyword, String databasePattern,
+                String tablePattern, int offset, int limit) {
+            throw new UnsupportedOperationException("This fixture does not page catalog metadata");
+        }
+
+        @Override
+        public io.yak.ops.connector.jdbc.database.catalog.JdbcDataPreview preview(
+                TableId table, String where, int limit) {
+            throw new UnsupportedOperationException("This fixture does not preview rows");
+        }
+
+        @Override
         public Optional<JdbcTableInfo> findTable(TableId tableId) {
             return tables.contains(tableId) ? Optional.of(new JdbcTableInfo(tableId, "TABLE", null)) : Optional.empty();
         }

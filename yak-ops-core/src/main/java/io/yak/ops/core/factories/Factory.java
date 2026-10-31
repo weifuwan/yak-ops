@@ -18,6 +18,11 @@ public interface Factory {
     /** Public operation options, validated before resolving any connection credentials. */
     OptionRule optionRule();
 
+    /** Executable features supplied by this connector, independent of product presentation. */
+    default Set<ConnectorFeature> supportedFeatures() {
+        return Set.of();
+    }
+
     /** Complete connector creation contract, including authorized connection settings. */
     default OptionRule creationOptionRule() {
         return optionRule();

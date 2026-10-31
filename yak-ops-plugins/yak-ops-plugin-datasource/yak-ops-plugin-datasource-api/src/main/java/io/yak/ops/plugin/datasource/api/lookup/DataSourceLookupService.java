@@ -14,6 +14,19 @@ public interface DataSourceLookupService {
     DataSourceInfo dataSource(String workspaceId, String datasourceId);
 
     /**
+     * Compares physical server identities through authorized, read-only metadata queries.
+     * Implementations must fail closed when they cannot verify the identity.
+     *
+     * @param workspaceId authorized Workspace shared by both saved datasource references
+     * @param firstDatasourceId first saved datasource
+     * @param secondDatasourceId second saved datasource
+     * @return whether both connections resolve to the same physical server
+     */
+    default boolean samePhysicalServer(String workspaceId, String firstDatasourceId, String secondDatasourceId) {
+        throw new UnsupportedOperationException("Physical server identity verification is unavailable");
+    }
+
+    /**
      * Resolves a table and reads its physical schema.
      * @param workspaceId authorized Workspace
      * @param datasourceId saved datasource identifier

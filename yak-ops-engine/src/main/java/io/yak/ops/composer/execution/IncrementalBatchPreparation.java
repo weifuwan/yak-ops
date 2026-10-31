@@ -76,7 +76,8 @@ public final class IncrementalBatchPreparation {
                     + '|'
                     + table.targetDatasource().revision()
                     + '|'
-                    + table.transformRevision());
+                    + table.transformRevision()
+                    + readRevision(table));
             proposals.add(TaskCursorBatch.proposal(
                     tableId,
                     binding,
@@ -128,6 +129,15 @@ public final class IncrementalBatchPreparation {
             enriched.add(table.withSourceOptions(ReadonlyConfig.fromMap(opts)));
         }
         return new IncrementalRun(plan.withTables(enriched), initialLoad);
+    }
+
+    private static String readRevision(TableBinding table) {
+        Map<String, Object> selected = new java.util.TreeMap<>();
+        for (String key : List.of("read.where", "read.split-key")) {
+            Object value = table.sourceOptions().getSourceMap().get(key);
+            if (value != null) selected.put(key, value);
+        }
+        return selected.isEmpty() ? "" : "|read:" + sha(selected.toString());
     }
 
     private static String digest(String sourceId, TableId source, String targetId, TableId target) {

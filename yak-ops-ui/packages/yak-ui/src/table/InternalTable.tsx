@@ -117,6 +117,7 @@ export function InternalTable<RecordType extends object>({
   columns,
   dataSource = [],
   emptyText,
+  emptyClassName,
   footer,
   loading = false,
   onChange,
@@ -412,7 +413,10 @@ export function InternalTable<RecordType extends object>({
                       bordered && "border-x border-t",
                     )}
                   >
-                    <Empty className="min-h-48" description={emptyText ?? "No data"} />
+                    <Empty
+                      className={cn("min-h-48", emptyClassName)}
+                      description={emptyText ?? "No data"}
+                    />
                   </td>
                 </tr>
               ) : null}

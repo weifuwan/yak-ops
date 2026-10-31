@@ -24,6 +24,19 @@ import java.time.Duration;
 
 /** Configurations for {@link MySqlSource}. */
 public class MySqlSourceOptions {
+    public static final Option<String> DISCOVERY_DEFAULTS =
+            Options.key("scan.newly-added-table.defaults").stringType().noDefaultValue();
+
+    public static final Option<Boolean> SNAPSHOT_SKIP =
+            Options.key("snapshot.skip").booleanType().defaultValue(false);
+    public static final Option<String> SNAPSHOT_WHERE =
+            Options.key("snapshot.where").stringType().noDefaultValue();
+    public static final Option<Boolean> DML_INSERT =
+            Options.key("dml.insert").booleanType().defaultValue(true);
+    public static final Option<Boolean> DML_UPDATE =
+            Options.key("dml.update").booleanType().defaultValue(true);
+    public static final Option<Boolean> DML_DELETE =
+            Options.key("dml.delete").booleanType().defaultValue(true);
 
     public static final Option<String> HOSTNAME = Options.key("hostname")
             .stringType()
@@ -198,7 +211,7 @@ public class MySqlSourceOptions {
             .booleanType()
             .defaultValue(false)
             .withDescription(
-                    "Whether capture the scan the newly added tables or not, by default is false. This option is only useful when we start the job from a savepoint/checkpoint.");
+                    "Discovers newly matching tables during INITIAL streaming and restores their snapshot progress from checkpoints.");
     public static final Option<Boolean> SCAN_INCREMENTAL_SNAPSHOT_METADATA_RELEASE_ENABLED = Options.key(
                     "scan.incremental.snapshot.metadata.release.enabled")
             .booleanType()

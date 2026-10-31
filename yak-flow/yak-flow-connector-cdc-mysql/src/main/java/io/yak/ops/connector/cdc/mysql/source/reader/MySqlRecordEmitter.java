@@ -5,13 +5,16 @@ import io.yak.ops.connector.base.source.reader.RecordEmitter;
 import io.yak.ops.connector.cdc.base.source.reader.SchemaChangeHandler;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlLowWatermarkEvent;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlFetchedRecord;
+import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplitState;
 import io.yak.ops.connector.cdc.mysql.source.utils.MySqlChangeEventIds;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
 import io.yak.ops.core.data.ChangeEventId;
 import io.yak.ops.core.data.TableRecord;
+import io.yak.ops.core.types.TableSchema;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -51,14 +54,14 @@ public final class MySqlRecordEmitter implements RecordEmitter<MySqlFetchedRecor
         if (event.preparedSnapshot() != null) {
             // Incremental Snapshot commits the completed split after all normalized rows
             // have been emitted together in this mailbox operation.
-            var prepared = event.preparedSnapshot();
-            var rows = prepared.output().rows();
+            MySqlSnapshotSplit prepared = event.preparedSnapshot();
+            List<TableRecord> rows = prepared.output().rows();
             // A split can be re-scanned after a failed mailbox attempt. Assigning
             // identities by output position would reuse an ID for a different row
             // when the reconstructed result contains inserted/deleted keys.
             // Flink CDC's backfill uses physical keys for keyed images and full-row
             // identity for keyless ones; use the same distinction here.
-            var schema = splits.snapshotSchema(prepared.tableId());
+            TableSchema schema = splits.snapshotSchema(prepared.tableId());
             Map<String, Integer> occurrences = new HashMap<>();
             for (TableRecord row : rows) {
                 String rowIdentity = MySqlChangeEventIds.fromSnapshot(row, schema);
@@ -73,6 +76,15 @@ public final class MySqlRecordEmitter implements RecordEmitter<MySqlFetchedRecor
             return;
         }
         int count = event.rows().size();
+        boolean selected = true;
+        for (int index = 0; index < count; index++) {
+            TableRecord row = event.rows().get(index);
+            boolean accepted = splits.tableOptions(row.tableId()).accepts(row.rowKind());
+            if (index != 0 && accepted != selected) {
+                throw new IllegalStateException("A Binlog mutation cannot be partially selected");
+            }
+            selected = accepted;
+        }
         String eventPosition = event.binlogOffset() != null && !event.lowWatermark()
                 ? MySqlChangeEventIds.fromBinlog(event.binlogOffset())
                 : null;
@@ -80,7 +92,7 @@ public final class MySqlRecordEmitter implements RecordEmitter<MySqlFetchedRecor
             TableRecord row = event.rows().get(index);
             ChangeEventId identity =
                     eventPosition == null ? null : new ChangeEventId(sourceId, eventPosition, index, count);
-            output.collect(identity == null ? row : row.withChangeEventId(identity));
+            if (selected) output.collect(identity == null ? row : row.withChangeEventId(identity));
             metrics.read(generation, row.tableId(), state.binlog());
         }
         metrics.observed(generation);

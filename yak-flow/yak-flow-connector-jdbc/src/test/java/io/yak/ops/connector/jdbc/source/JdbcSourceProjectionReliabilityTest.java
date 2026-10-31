@@ -45,6 +45,64 @@ import org.junit.jupiter.api.Test;
 class JdbcSourceProjectionReliabilityTest {
 
     @Test
+    void filteredAlternateKeyRemainsBoundToProjectionAndRecovery() throws Exception {
+        JdbcConnectionOptions database = createRows("jdbc:h2:mem:jdbc_filtered_resume;DB_CLOSE_DELAY=-1", 10);
+        JdbcConnectionProvider provider = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(database);
+        try (Connection connection = provider.getConnection(); Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE DATASET ADD SEQUENCE_ID BIGINT NOT NULL DEFAULT 0");
+            statement.execute("UPDATE DATASET SET SEQUENCE_ID = ID * 10");
+            statement.execute("CREATE UNIQUE INDEX DATASET_SEQUENCE ON DATASET(SEQUENCE_ID)");
+        }
+        TableId table = new TableId(null, "PUBLIC", "DATASET");
+        Configuration options = new Configuration();
+        options.set(JdbcSourceOptions.MAX_SPLITS_PER_TABLE, 1);
+        options.set(JdbcSourceOptions.READER_FETCH_BATCH_SIZE, 2);
+        JdbcReadOptions read = new JdbcReadOptions("ID = 1 OR ID >= 5", "SEQUENCE_ID", 2, 3);
+        JdbcSource source = new JdbcSource(provider, database.url(), List.of(table), options,
+                Map.of(table, List.of("LABEL")), new io.yak.ops.connector.base.metrics.TableMetrics(), Map.of(),
+                Map.of(table, read));
+        PlanningContext planning = new PlanningContext();
+        JdbcEnumeratorState state;
+        try (var enumerator = source.createEnumerator(planning)) {
+            enumerator.handleSplitRequest(0, null);
+            enumerator.start();
+            state = enumerator.snapshotState(1);
+        }
+        assertEquals(List.of("LABEL", "SEQUENCE_ID", "ID"), planning.assigned.getFirst().readColumns());
+        JdbcSource changed = new JdbcSource(provider, database.url(), List.of(table), options,
+                Map.of(table, List.of("LABEL")), new io.yak.ops.connector.base.metrics.TableMetrics(), Map.of(),
+                Map.of(table, new JdbcReadOptions("ID >= 5", "SEQUENCE_ID", 2, 3)));
+        assertThrows(IllegalArgumentException.class, () -> changed.restoreEnumerator(null, state));
+
+        JdbcSourceSplit saved;
+        List<TableRecord> first = new ArrayList<>();
+        try (JdbcSourceReader reader = (JdbcSourceReader) source.createReader(new ReaderContext())) {
+            reader.addSplits(List.copyOf(planning.assigned));
+            reader.start();
+            reader.notifyNoMoreSplits();
+            pollUntil(reader, first, 2);
+            assertEquals(List.of("row1", "row5"), first.stream().map(row -> row.row().getString(0)).toList());
+            saved = reader.snapshotState(1).getFirst();
+            assertEquals(50L, saved.lastEmittedKey());
+        }
+        List<TableRecord> remaining = new ArrayList<>();
+        try (JdbcSourceReader reader = (JdbcSourceReader) source.createReader(new ReaderContext())) {
+            reader.addSplits(List.of(saved));
+            reader.start();
+            reader.notifyNoMoreSplits();
+            for (int count = 0; count < 1000; count++) {
+                InputStatus status = reader.pollNext(remaining::add);
+                if (status == InputStatus.END_OF_INPUT) break;
+                if (status == InputStatus.NOTHING_AVAILABLE) reader.isAvailable().get(3, TimeUnit.SECONDS);
+            }
+            assertTrue(reader.snapshotState(2).isEmpty());
+        }
+        assertEquals(List.of("row6", "row7", "row8", "row9", "row10"),
+                remaining.stream().map(row -> row.row().getString(0)).toList());
+        assertTrue(remaining.stream().allMatch(row -> row.row().getArity() == 1));
+    }
+
+    @Test
     void projectedSourceHidesPrimaryKeyButResumesFromItsCheckpoint() throws Exception {
         JdbcConnectionOptions database = createRows("jdbc:h2:mem:jdbc_project_resume;DB_CLOSE_DELAY=-1", 10);
         TableId table = new TableId(null, "PUBLIC", "DATASET");
