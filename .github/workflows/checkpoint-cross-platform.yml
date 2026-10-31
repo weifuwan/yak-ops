@@ -1,0 +1,39 @@
+name: Checkpoint Cross-platform Storage
+
+on:
+  pull_request:
+    paths:
+      - 'yak-flow/yak-flow-runtime/**'
+      - '.github/workflows/checkpoint-cross-platform.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checkpoint-storage:
+    name: Checkpoint Storage (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Checkpoint storage / recovery tests (Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          bash mvnw -B -ntp -pl yak-flow/yak-flow-runtime -am \
+            -Dtest=LocalRecoverableWriterTest,FsCheckpointStorageLocationTest,LocalCompletedCheckpointStoreTest,CheckpointRecoveryTest \
+            -Dsurefire.failIfNoSpecifiedTests=false test
+      - name: Checkpoint storage / recovery tests (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\mvnw.cmd -B -ntp -pl yak-flow/yak-flow-runtime -am "-Dtest=LocalRecoverableWriterTest,FsCheckpointStorageLocationTest,LocalCompletedCheckpointStoreTest,CheckpointRecoveryTest" "-Dsurefire.failIfNoSpecifiedTests=false" test

@@ -46,7 +46,7 @@ import io.yak.ops.core.schema.SchemaVersionedTableState;
 import io.yak.ops.core.sink.DefaultDataChangeEventHashFunctionProvider;
 import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
-import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
 import io.yak.ops.flow.runtime.checkpoint.SchemaManagerSnapshotSerializer;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
@@ -158,7 +158,7 @@ class SchemaCheckpointRecoveryTest {
                 completed.enumeratorState(), completed.readerSplits(), completed.assignments(), completed.completedAtMillis(),
                 completed.operatorStates(), completed.fullyFinishedOperators(), completed.finishedSubtasks(),
                 new CheckpointSnapshot.SerializedState(serializer.getVersion(), serializer.serialize(new SchemaManagerSnapshot(List.of()))));
-        try (FileCheckpointStore store = new FileCheckpointStore(stateDirectory)) {
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(stateDirectory)) {
             store.save(withoutBaseline);
         }
 
@@ -210,8 +210,8 @@ class SchemaCheckpointRecoveryTest {
     }
 
     private CheckpointSnapshot latest(StreamGraph graph, Configuration config) throws IOException {
-        try (FileCheckpointStore store = new FileCheckpointStore(stateDirectory)) {
-            return store.loadLatest(FileCheckpointStore.graphSignature(graph,
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(stateDirectory)) {
+            return store.loadLatest(LocalCompletedCheckpointStore.graphSignature(graph,
                     config.get(PipelineOptions.MAX_PARALLELISM), config.get(CheckpointingOptions.DEFINITION_IDENTITY))).orElseThrow();
         }
     }

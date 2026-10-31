@@ -8,11 +8,10 @@ import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointCoordinator;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
-import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
 import io.yak.ops.flow.runtime.jobgraph.JobVertex;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -217,12 +216,8 @@ public final class ExecutionGraph {
         if (directory == null || directory.isBlank()) {
             return false;
         }
-        Path file = Path.of(directory, "checkpoint.bin");
-        if (!Files.isRegularFile(file)) {
-            return false;
-        }
-        try (FileCheckpointStore store = new FileCheckpointStore(Path.of(directory))) {
-            return store.loadLatest(FileCheckpointStore.graphSignature(
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(Path.of(directory))) {
+            return store.loadLatest(LocalCompletedCheckpointStore.graphSignature(
                             jobGraph.graph(),
                             jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM),
                             jobGraph.configuration().get(CheckpointingOptions.DEFINITION_IDENTITY)))

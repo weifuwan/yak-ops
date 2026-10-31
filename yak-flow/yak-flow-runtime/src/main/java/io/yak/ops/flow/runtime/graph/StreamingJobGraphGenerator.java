@@ -8,7 +8,7 @@ import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
-import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
 import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
 import io.yak.ops.flow.runtime.jobgraph.JobEdge;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
@@ -201,7 +201,7 @@ public final class StreamingJobGraphGenerator {
                 throw new IllegalArgumentException("Stateful Sink requires a non-null writer state serializer");
             }
         }
-        FileCheckpointStore.graphSignature(
+        LocalCompletedCheckpointStore.graphSignature(
                 streamGraph,
                 configuration.get(PipelineOptions.MAX_PARALLELISM),
                 configuration.get(CheckpointingOptions.DEFINITION_IDENTITY));

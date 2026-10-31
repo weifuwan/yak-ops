@@ -142,3 +142,31 @@ Run targeted unit/runtime tests and the existing Maven verification as appropria
 - **Revoke CP-100 or automatically restore CP-99 when its completion notification fails:** Confuses durable publication with best-effort post-publication callbacks.
 - **Blindly retry completion listeners in place:** Existing Enumerator/assignment and async Source event callbacks do not universally guarantee repeatable side effects.
 - **Merge transactional Sink commit, distributed failover, rescaling, or mixed-source execution into YOIP-1:** Those mechanisms need their own contracts and executable acceptance.
+
+## Implementation note: Flink 1.20.3 source-level local storage alignment (PR #1820)
+
+The current source migration replaces the previous `FileCheckpointStore` with
+`LocalCompletedCheckpointStore` and relocates the Flink 1.20.3 local
+`RecoverableWriter` / `LocalRecoverableFsDataOutputStream` and metadata-finalization
+protocol into `yak-flow-runtime`. No Flink Runtime/Core JAR is introduced.
+
+- `CheckpointMetadataSerializer` still owns YakFlow's versioned payload; the bytes are
+  **not** compatible with native Flink `CheckpointMetadata`.
+- Metadata is written into `checkpoints/chk-<id>/_metadata` through the
+  Flink-derived `closeForCommit().commit()` lifecycle. A separately committed,
+  immutable `completed/chk-<id>` marker records the checkpoint's external pointer.
+  Only checkpoints with a completed marker are candidates for recovery; a marker
+  referencing missing or corrupt metadata fails closed.
+- The previous `checkpoint.bin` pointer format is not automatically upgraded.
+  A directory with legacy state must be explicitly migrated/reinitialized only
+  after resolving any outstanding external transactions.
+- In contrast to Flink's highly available completed checkpoint store, the
+  completed marker index is a small, local-only YakFlow adaptation. The filesystem
+  controls the actual durability of rename and metadata persistence; the local
+  RecoverableWriter does not guarantee distributed fault tolerance.
+- The storage migration is independent of the pre-existing Flink CDC dependencies
+  in `yak-ops-engine`. Full Engine dependency removal remains separate.
+
+This implementation note supersedes the earlier `checkpoint.bin` storage-layout
+example above but does not change YOIP-1's checkpoint ACK, publication,
+completion-notification, or fail-closed recovery semantics.

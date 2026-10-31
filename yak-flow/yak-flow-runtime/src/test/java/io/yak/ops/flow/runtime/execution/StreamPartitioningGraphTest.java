@@ -16,7 +16,7 @@ import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.core.configuration.PipelineOptions;
-import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
 import io.yak.ops.flow.runtime.graph.StreamingJobGraphGenerator;
 import io.yak.ops.flow.runtime.graph.StreamEdge;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
@@ -108,9 +108,9 @@ class StreamPartitioningGraphTest {
         destination.keyBy((String row) -> row.substring(0, 1));
         StreamGraph keyed = new StreamGraphGenerator(destination, new Configuration()).generate();
 
-        String priorHashPartitionSignature = FileCheckpointStore.graphSignature(keyed);
-        String keyGroup128 = FileCheckpointStore.graphSignature(keyed, 128);
-        String keyGroup256 = FileCheckpointStore.graphSignature(keyed, 256);
+        String priorHashPartitionSignature = LocalCompletedCheckpointStore.graphSignature(keyed);
+        String keyGroup128 = LocalCompletedCheckpointStore.graphSignature(keyed, 128);
+        String keyGroup256 = LocalCompletedCheckpointStore.graphSignature(keyed, 256);
         assertNotEquals(priorHashPartitionSignature, keyGroup128);
         assertNotEquals(keyGroup128, keyGroup256);
 
@@ -121,8 +121,8 @@ class StreamPartitioningGraphTest {
 
         destination.setInputPartitioning(StreamPartitioning.REBALANCE);
         StreamGraph unkeyed = new StreamGraphGenerator(destination, new Configuration()).generate();
-        assertEquals(FileCheckpointStore.graphSignature(unkeyed),
-                FileCheckpointStore.graphSignature(unkeyed, 256));
+        assertEquals(LocalCompletedCheckpointStore.graphSignature(unkeyed),
+                LocalCompletedCheckpointStore.graphSignature(unkeyed, 256));
     }
 
     @Test

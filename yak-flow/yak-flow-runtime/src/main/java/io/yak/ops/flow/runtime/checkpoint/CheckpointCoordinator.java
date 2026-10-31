@@ -119,7 +119,7 @@ public final class CheckpointCoordinator implements AutoCloseable {
         this.sourceTasks = List.copyOf(sourceTasks);
         this.inputTasks = List.copyOf(inputTasks);
         this.storage = Objects.requireNonNull(storage, "storage must not be null");
-        this.graphSignature = FileCheckpointStore.graphSignature(
+        this.graphSignature = LocalCompletedCheckpointStore.graphSignature(
                 plan.graph(),
                 plan.configuration().get(PipelineOptions.MAX_PARALLELISM),
                 plan.configuration().get(CheckpointingOptions.DEFINITION_IDENTITY));

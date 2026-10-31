@@ -177,7 +177,7 @@ class CheckpointRecoveryTest {
             return new Committer<>() {
                 @Override
                 public void commit(Collection<Integer> committables, boolean recovered) {
-                    assertTrue(Files.isRegularFile(directory.resolve("checkpoint.bin")),
+                    assertTrue(hasCompletedMarker(directory),
                             "The checkpoint must be durable before a transaction commits");
                     int count = committables.stream().mapToInt(Integer::intValue).sum();
                     if (recovered) {
@@ -345,7 +345,7 @@ class CheckpointRecoveryTest {
         }
         assertTrue(source.createdReaders.get() >= 4);
         assertTrue(source.restoredOffsets.contains(4));
-        assertTrue(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+        assertTrue(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
 
         source.setLimit(6);
         awaitCount(sink.rows, 12);
@@ -371,7 +371,7 @@ class CheckpointRecoveryTest {
             assertTrue(source.completionNotificationEntered.await(5, TimeUnit.SECONDS));
             CheckpointSnapshot published = checkpoint.get(5, TimeUnit.SECONDS);
             assertEquals(1, published.checkpointId(), "Durable publication must not await the listener");
-            assertTrue(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+            assertTrue(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
         } finally {
             source.releaseCompletionNotification.countDown();
         }
@@ -381,8 +381,8 @@ class CheckpointRecoveryTest {
         assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));
         assertEquals(0, job.getExecutionGraph().getJobVertices().getFirst()
                 .getTaskVertex(0).getCurrentExecutionAttempt().getAttemptNumber());
-        try (FileCheckpointStore store = new FileCheckpointStore(checkpointDirectory)) {
-            assertEquals(1, store.loadLatest(FileCheckpointStore.graphSignature(graph(source, sink)))
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(checkpointDirectory)) {
+            assertEquals(1, store.loadLatest(LocalCompletedCheckpointStore.graphSignature(graph(source, sink)))
                     .orElseThrow().checkpointId());
         }
     }
@@ -445,7 +445,7 @@ class CheckpointRecoveryTest {
         assertThrows(java.util.concurrent.ExecutionException.class,
                 () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
         assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));
-        assertTrue(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+        assertTrue(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
     }
 
     @Test
@@ -462,7 +462,19 @@ class CheckpointRecoveryTest {
         assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));
         assertEquals(0, job.getExecutionGraph().getJobVertices().getFirst()
                 .getTaskVertex(0).getCurrentExecutionAttempt().getAttemptNumber());
-        assertFalse(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+        assertFalse(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
+    }
+
+    private static boolean hasCompletedMarker(Path directory) {
+        Path completed = directory.resolve("completed");
+        if (!Files.isDirectory(completed)) {
+            return false;
+        }
+        try (java.nio.file.DirectoryStream<Path> markers = Files.newDirectoryStream(completed, "chk-*")) {
+            return markers.iterator().hasNext();
+        } catch (IOException failure) {
+            throw new java.io.UncheckedIOException(failure);
+        }
     }
 
     private static void awaitAttempt(EmbeddedJobClient client, int expected) throws Exception {
@@ -534,15 +546,15 @@ class CheckpointRecoveryTest {
 
         awaitCount(sink.rows, 4);
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while ((!Files.exists(checkpointDirectory.resolve("checkpoint.bin"))
+        while ((!hasCompletedMarker(checkpointDirectory)
                 || sink.checkpointFlushes.get() == 0) && System.nanoTime() < deadline) {
             Thread.sleep(10);
         }
-        assertTrue(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+        assertTrue(hasCompletedMarker(checkpointDirectory));
         assertTrue(sink.checkpointFlushes.get() > 0);
         job.cancel().get(5, TimeUnit.SECONDS);
-        try (FileCheckpointStore store = new FileCheckpointStore(checkpointDirectory)) {
-            assertTrue(store.loadLatest(FileCheckpointStore.graphSignature(
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(checkpointDirectory)) {
+            assertTrue(store.loadLatest(LocalCompletedCheckpointStore.graphSignature(
                     graph(new OffsetSource(2), new CapturedSink()))).isPresent());
         }
     }
@@ -563,7 +575,7 @@ class CheckpointRecoveryTest {
     void shouldRejectPartialFinishedCheckpointRestoreWithoutReplayingBusinessWork() throws Exception {
         OffsetSource source = new OffsetSource(4);
         CapturedSink sink = new CapturedSink();
-        String signature = FileCheckpointStore.graphSignature(graph(source, sink));
+        String signature = LocalCompletedCheckpointStore.graphSignature(graph(source, sink));
         var enumerator = new CheckpointSnapshot.SerializedState(
                 source.getEnumeratorCheckpointSerializer().getVersion(),
                 source.getEnumeratorCheckpointSerializer().serialize(0));
@@ -577,7 +589,7 @@ class CheckpointRecoveryTest {
                 Map.of(),
                 Set.of("checkpoint-stable-source"),
                 Set.of());
-        try (FileCheckpointStore store = new FileCheckpointStore(checkpointDirectory)) {
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(checkpointDirectory)) {
             store.save(snapshot);
         }
 
@@ -608,8 +620,8 @@ class CheckpointRecoveryTest {
         assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
         assertEquals(1, sink.finalFlushes.get());
         assertEquals(6, sink.rows.size());
-        try (FileCheckpointStore store = new FileCheckpointStore(checkpointDirectory)) {
-            CheckpointSnapshot snapshot = store.loadLatest(FileCheckpointStore.graphSignature(graph(source, sink)))
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(checkpointDirectory)) {
+            CheckpointSnapshot snapshot = store.loadLatest(LocalCompletedCheckpointStore.graphSignature(graph(source, sink)))
                     .orElseThrow();
             assertTrue(snapshot.hasFinishedOperators());
             assertEquals(Set.of("checkpoint-stable-source", "checkpoint-stable-sink"),
@@ -719,9 +731,9 @@ class CheckpointRecoveryTest {
         assertEquals(JobStatus.FINISHED, job.getJobStatus().get(5, TimeUnit.SECONDS));
         assertEquals(2, source.enumeratorSnapshots.get(), "One safe in-attempt retry is allowed");
         assertEquals(1, sink.finalFlushes.get(), "A checkpoint retry must not repeat final Sink flush");
-        try (FileCheckpointStore store = new FileCheckpointStore(checkpointDirectory)) {
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(checkpointDirectory)) {
             assertEquals(2,
-                    store.loadLatest(FileCheckpointStore.graphSignature(graph(source, sink)))
+                    store.loadLatest(LocalCompletedCheckpointStore.graphSignature(graph(source, sink)))
                             .orElseThrow().checkpointId());
         }
     }
@@ -740,7 +752,7 @@ class CheckpointRecoveryTest {
                 () -> job.getJobExecutionResult().get(10, TimeUnit.SECONDS));
         assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));
         assertEquals(1, sink.finalFlushes.get());
-        assertFalse(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+        assertFalse(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
     }
 
     @Test
@@ -756,7 +768,7 @@ class CheckpointRecoveryTest {
         assertThrows(java.util.concurrent.ExecutionException.class,
                 () -> job.getJobExecutionResult().get(5, TimeUnit.SECONDS));
         assertEquals(JobStatus.FAILED, job.getJobStatus().get(5, TimeUnit.SECONDS));
-        assertFalse(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+        assertFalse(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
     }
 
     @Test
@@ -774,7 +786,7 @@ class CheckpointRecoveryTest {
         assertEquals(1, sink.checkpointFlushes.get());
         assertEquals(0, sink.finalFlushes.get(), "A failed checkpoint cannot be treated as a normal finish");
         assertEquals(1, sink.closedWriters.get());
-        assertFalse(Files.exists(checkpointDirectory.resolve("checkpoint.bin")));
+        assertFalse(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
     }
 
     @Test

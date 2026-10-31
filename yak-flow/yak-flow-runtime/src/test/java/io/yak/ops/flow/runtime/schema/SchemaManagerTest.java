@@ -16,7 +16,7 @@ import io.yak.ops.core.types.LogicalType;
 import io.yak.ops.core.types.LogicalTypeRoot;
 import io.yak.ops.core.types.VarCharType;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
-import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
 import io.yak.ops.flow.runtime.checkpoint.SchemaManagerSnapshotSerializer;
 import java.nio.file.Path;
 import java.util.Map;
@@ -176,7 +176,7 @@ class SchemaManagerTest {
                 Set.of(),
                 schemaState);
 
-        try (FileCheckpointStore store = new FileCheckpointStore(directory)) {
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(directory)) {
             store.save(checkpoint);
             CheckpointSnapshot restored = store.loadLatest("schema-test-graph").orElseThrow();
             assertEquals(schemaState, restored.schemaManagerState());

@@ -12,7 +12,7 @@ import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.core.schema.SchemaVersionedTableState;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointCoordinator;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
-import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
 import io.yak.ops.flow.runtime.configuration.RuntimeOptions;
 import io.yak.ops.flow.runtime.execution.TaskEnvironment;
 import io.yak.ops.flow.runtime.graph.StreamNode;
@@ -65,7 +65,7 @@ final class TaskDeployment {
 
     private SourceCoordinator<SourceSplit, Object> coordinator;
     private CheckpointSnapshot restoredCheckpoint;
-    private FileCheckpointStore checkpointStore;
+    private LocalCompletedCheckpointStore checkpointStore;
     private CheckpointCoordinator checkpointCoordinator;
     private SchemaCoordinator schemaCoordinator;
 
@@ -170,10 +170,10 @@ final class TaskDeployment {
 
         if (checkpointEnabled()) {
             String directory = jobGraph.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
-            checkpointStore = new FileCheckpointStore(Path.of(directory));
+            checkpointStore = new LocalCompletedCheckpointStore(Path.of(directory));
             if (recoverFromLatestCheckpoint || jobGraph.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
                 restoredCheckpoint = checkpointStore
-                        .loadLatest(FileCheckpointStore.graphSignature(
+                        .loadLatest(LocalCompletedCheckpointStore.graphSignature(
                                 jobGraph.graph(),
                                 jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM),
                                 jobGraph.configuration().get(CheckpointingOptions.DEFINITION_IDENTITY)))
@@ -486,9 +486,11 @@ final class TaskDeployment {
     @SuppressWarnings("unchecked")
     private void reconcileSinkCommits() throws Exception {
         String directory = jobGraph.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
-        try (FileCheckpointStore store = new FileCheckpointStore(Path.of(directory))) {
-            CheckpointSnapshot durable = store.loadLatest(FileCheckpointStore.graphSignature(
-                            jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM)))
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(Path.of(directory))) {
+            CheckpointSnapshot durable = store.loadLatest(LocalCompletedCheckpointStore.graphSignature(
+                            jobGraph.graph(),
+                            jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM),
+                            jobGraph.configuration().get(CheckpointingOptions.DEFINITION_IDENTITY)))
                     .orElse(null);
             for (JobVertex vertex : jobGraph.getVertices()) {
                 StreamNode node = vertex.getHeadOperator();
