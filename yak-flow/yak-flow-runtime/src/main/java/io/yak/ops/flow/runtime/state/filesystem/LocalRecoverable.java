@@ -46,8 +46,8 @@ class LocalRecoverable implements CommitRecoverable, ResumeRecoverable {
      */
     LocalRecoverable(File targetFile, File tempFile, long offset) {
         if (offset < 0) { throw new IllegalArgumentException("offset must be >= 0"); }
-        this.targetFile = checkNotNull(targetFile, "targetFile");
-        this.tempFile = checkNotNull(tempFile, "tempFile");
+        this.targetFile = requireNonNull(targetFile, "targetFile");
+        this.tempFile = requireNonNull(tempFile, "tempFile");
         this.offset = offset;
     }
 
