@@ -77,6 +77,30 @@ class SourceOperatorStreamTaskContextTest {
     }
 
     @Test
+    void restoredReaderCanReportMetadataAfterRegistrationAndBeforeStart() throws Exception {
+        for (int attempt : List.of(0, 1)) {
+            TestSource source = new TestSource(true);
+            List<String> received = new CopyOnWriteArrayList<>();
+            RuntimeTaskInfo info = new RuntimeTaskInfo(JobID.generate(), 17, 0, 1, attempt, 128);
+            OperatorCoordinatorContext coordinatorContext =
+                    new OperatorCoordinatorContext(info.jobID(), info.operatorId(), info.parallelism());
+            try (SourceCoordinator<TestSplit, Integer> coordinator = new SourceCoordinator<>(source, coordinatorContext)) {
+                coordinator.start().get(5, TimeUnit.SECONDS);
+                SourceOperatorStreamTask<String, TestSplit> task = new SourceOperatorStreamTask<>(
+                        source, coordinator, new TaskEnvironment(info, new Configuration()), received::add,
+                        null, List.of(new TestSplit("checkpointed")));
+                task.start().get(5, TimeUnit.SECONDS);
+                task.completionFuture().get(5, TimeUnit.SECONDS);
+                assertEquals(1, source.restoredEvents.get());
+                assertEquals(1, source.registrationEvents.get());
+                assertTrue(source.startedWithRestoredSplits.get());
+                assertEquals(List.of("checkpointed", "split-0"), received);
+                assertTrue(source.readerClosed.get());
+            }
+        }
+    }
+
+    @Test
     void finishedPhysicalSourceOutputDeclinesCheckpointWhileReaderIsClosing() throws Exception {
         TestSource source = new TestSource();
         source.holdReaderClose();
@@ -136,10 +160,22 @@ class SourceOperatorStreamTaskContextTest {
     private static final class TestSource implements Source<String, TestSplit, Integer> {
 
         private final AtomicInteger splitRequests = new AtomicInteger();
+        private final AtomicInteger restoredEvents = new AtomicInteger();
+        private final AtomicInteger registrationEvents = new AtomicInteger();
+        private final AtomicBoolean startedWithRestoredSplits = new AtomicBoolean();
         private final AtomicBoolean readerClosed = new AtomicBoolean();
+        private final boolean reportRestored;
         private CountDownLatch readerCloseEntered = new CountDownLatch(0);
         private CountDownLatch releaseReaderClose = new CountDownLatch(0);
         private volatile SourceReaderContext readerContext;
+
+        private TestSource() {
+            this(false);
+        }
+
+        private TestSource(boolean reportRestored) {
+            this.reportRestored = reportRestored;
+        }
 
         private void holdReaderClose() {
             readerCloseEntered = new CountDownLatch(1);
@@ -154,7 +190,7 @@ class SourceOperatorStreamTaskContextTest {
 
         @Override
         public SplitEnumerator<TestSplit, Integer> createEnumerator(SplitEnumeratorContext<TestSplit> context) {
-            return new TestEnumerator(context, splitRequests);
+            return new TestEnumerator(context, splitRequests, restoredEvents, reportRestored);
         }
 
         @Override
@@ -167,7 +203,7 @@ class SourceOperatorStreamTaskContextTest {
         public SourceReader<String, TestSplit> createReader(SourceReaderContext context) {
             readerContext = context;
             return new TestReader(context, readerClosed, readerSourceEvent,
-                    readerCloseEntered, releaseReaderClose);
+                    readerCloseEntered, releaseReaderClose, reportRestored, startedWithRestoredSplits, registrationEvents);
         }
 
         @Override
@@ -185,10 +221,15 @@ class SourceOperatorStreamTaskContextTest {
 
         private final SplitEnumeratorContext<TestSplit> context;
         private final AtomicInteger requests;
+        private final AtomicInteger restoredEvents;
+        private final boolean reportRestored;
 
-        private TestEnumerator(SplitEnumeratorContext<TestSplit> context, AtomicInteger requests) {
+        private TestEnumerator(SplitEnumeratorContext<TestSplit> context, AtomicInteger requests, AtomicInteger restoredEvents,
+                boolean reportRestored) {
             this.context = context;
             this.requests = requests;
+            this.restoredEvents = restoredEvents;
+            this.reportRestored = reportRestored;
         }
 
         @Override
@@ -203,7 +244,16 @@ class SourceOperatorStreamTaskContextTest {
         }
 
         @Override
-        public void addReader(int subtaskId) {}
+        public void addReader(int subtaskId) {
+            if (reportRestored) context.sendEventToSourceReader(subtaskId, new ProbeSourceEvent("registered"));
+        }
+
+        @Override
+        public void handleSourceEvent(int subtaskId, SourceEvent event) {
+            assertEquals(new ProbeSourceEvent("restored"), event);
+            assertTrue(context.registeredReaders().containsKey(subtaskId));
+            restoredEvents.incrementAndGet();
+        }
 
         @Override
         public void addSplitsBack(List<TestSplit> splits, int subtaskId) {
@@ -226,25 +276,37 @@ class SourceOperatorStreamTaskContextTest {
         private final AtomicReference<SourceEvent> receivedSourceEvent;
         private final CountDownLatch readerCloseEntered;
         private final CountDownLatch releaseReaderClose;
+        private final boolean reportRestored;
+        private final AtomicBoolean startedWithRestoredSplits;
+        private final AtomicInteger registrationEvents;
         private final List<TestSplit> pending = new ArrayList<>();
         private CompletableFuture<Void> available = new CompletableFuture<>();
         private boolean noMoreSplits;
+        private boolean started;
 
         private TestReader(
                 SourceReaderContext context,
                 AtomicBoolean closed,
                 AtomicReference<SourceEvent> receivedSourceEvent,
                 CountDownLatch readerCloseEntered,
-                CountDownLatch releaseReaderClose) {
+                CountDownLatch releaseReaderClose,
+                boolean reportRestored,
+                AtomicBoolean startedWithRestoredSplits,
+                AtomicInteger registrationEvents) {
             this.context = context;
             this.closed = closed;
             this.receivedSourceEvent = receivedSourceEvent;
             this.readerCloseEntered = readerCloseEntered;
             this.releaseReaderClose = releaseReaderClose;
+            this.reportRestored = reportRestored;
+            this.startedWithRestoredSplits = startedWithRestoredSplits;
+            this.registrationEvents = registrationEvents;
         }
 
         @Override
         public void start() {
+            startedWithRestoredSplits.set(!pending.isEmpty());
+            started = true;
             context.sendSplitRequest();
         }
 
@@ -269,11 +331,19 @@ class SourceOperatorStreamTaskContextTest {
         @Override
         public void addSplits(List<TestSplit> splits) {
             pending.addAll(splits);
+            if (reportRestored && !started) {
+                context.sendSourceEventToCoordinator(new ProbeSourceEvent("restored"));
+            }
             available.complete(null);
         }
 
         @Override
         public void handleSourceEvents(SourceEvent event) {
+            if (event.equals(new ProbeSourceEvent("registered"))) {
+                assertTrue(started, "Registration callback must wait for the reader mailbox to start");
+                assertTrue(startedWithRestoredSplits.get(), "Restored offsets must precede registration callback consumption");
+                registrationEvents.incrementAndGet();
+            }
             receivedSourceEvent.set(event);
         }
 
