@@ -31,11 +31,7 @@ import static java.util.Objects.requireNonNull;
 /** A {@link RecoverableWriter} for the {@link LocalFileSystem}. */
 public class LocalRecoverableWriter implements RecoverableWriter {
 
-    private final LocalFileSystem fs;
-
-    public LocalRecoverableWriter(LocalFileSystem fs) {
-        this.fs = checkNotNull(fs);
-    }
+    public LocalRecoverableWriter() {}
 
     @Override
     public RecoverableFsDataOutputStream open(java.nio.file.Path filePath) throws IOException {
