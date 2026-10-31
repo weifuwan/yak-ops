@@ -36,7 +36,7 @@ import java.nio.file.StandardOpenOption;
 
 import static java.util.Objects.requireNonNull;
 
-/** A {@link RecoverableFsDataOutputStream} for the {@link LocalFileSystem}. */
+/** A {@link RecoverableFsDataOutputStream} for the local filesystem. */
 public class LocalRecoverableFsDataOutputStream
         extends CommitterFromPersistRecoverableFsDataOutputStream<LocalRecoverable> {
 
@@ -76,7 +76,6 @@ public class LocalRecoverableFsDataOutputStream
         this.fos = Channels.newOutputStream(fileChannel);
     }
 
-    @VisibleForTesting
     LocalRecoverableFsDataOutputStream(
             File targetFile, File tempFile, FileChannel fileChannel, OutputStream fos) {
         this.targetFile = requireNonNull(targetFile);
