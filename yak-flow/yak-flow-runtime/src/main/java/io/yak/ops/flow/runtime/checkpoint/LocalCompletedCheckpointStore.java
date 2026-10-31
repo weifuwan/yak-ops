@@ -1,14 +1,14 @@
 package io.yak.ops.flow.runtime.checkpoint;
 
+import io.yak.ops.flow.runtime.graph.StreamEdge;
+import io.yak.ops.flow.runtime.graph.StreamGraph;
+import io.yak.ops.flow.runtime.graph.StreamNode;
 import io.yak.ops.flow.runtime.state.filesystem.CheckpointMetadataOutputStream;
 import io.yak.ops.flow.runtime.state.filesystem.FsCheckpointStorageAccess;
 import io.yak.ops.flow.runtime.state.filesystem.FsCheckpointStorageLocation;
 import io.yak.ops.flow.runtime.state.filesystem.FsCompletedCheckpointStorageLocation;
 import io.yak.ops.flow.runtime.state.filesystem.LocalRecoverableWriter;
 import io.yak.ops.flow.runtime.state.filesystem.RecoverableFsDataOutputStream;
-import io.yak.ops.flow.runtime.graph.StreamEdge;
-import io.yak.ops.flow.runtime.graph.StreamGraph;
-import io.yak.ops.flow.runtime.graph.StreamNode;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -151,7 +151,8 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
             }
             Files.delete(metadataFile);
         }
-        FsCheckpointStorageLocation target = checkpointStorage.initializeLocationForCheckpoint(checkpoint.checkpointId());
+        FsCheckpointStorageLocation target =
+                checkpointStorage.initializeLocationForCheckpoint(checkpoint.checkpointId());
         try (CheckpointMetadataOutputStream out = target.createMetadataOutputStream()) {
             out.write(metadata);
             out.closeAndFinalizeCheckpoint();
@@ -165,7 +166,9 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
         }
         long previousCheckpointId = lastCheckpointId;
         Files.createDirectories(marker.getParent());
-        byte[] pointerBytes = completedPointer(checkpoint.checkpointId(), target.getCheckpointDirectory().toUri().toString());
+        byte[] pointerBytes = completedPointer(
+                checkpoint.checkpointId(),
+                target.getCheckpointDirectory().toUri().toString());
         try (RecoverableFsDataOutputStream out = new LocalRecoverableWriter().open(marker)) {
             out.write(pointerBytes);
             out.closeForCommit().commit();
@@ -248,7 +251,8 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
 
     private static String readCompletedPointer(Path marker, long expectedId) throws IOException {
         if (!Files.isRegularFile(marker, LinkOption.NOFOLLOW_LINKS)
-                || Files.size(marker) > 16 * 1024 || Files.size(marker) < 24) {
+                || Files.size(marker) > 16 * 1024
+                || Files.size(marker) < 24) {
             throw new IOException("Invalid completed checkpoint marker: " + marker);
         }
         byte[] data = Files.readAllBytes(marker);
@@ -313,8 +317,11 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
                     String name = marker.getFileName().toString();
                     if (!name.matches("chk-[1-9][0-9]*")) continue;
                     long id;
-                    try { id = Long.parseLong(name.substring(4)); }
-                    catch (NumberFormatException invalid) { continue; }
+                    try {
+                        id = Long.parseLong(name.substring(4));
+                    } catch (NumberFormatException invalid) {
+                        continue;
+                    }
                     if (id != current && id != previous && Files.isRegularFile(marker, LinkOption.NOFOLLOW_LINKS)) {
                         Files.deleteIfExists(marker);
                     }

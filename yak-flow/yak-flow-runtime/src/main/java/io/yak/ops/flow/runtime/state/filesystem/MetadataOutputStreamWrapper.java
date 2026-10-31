@@ -18,7 +18,6 @@
 
 package io.yak.ops.flow.runtime.state.filesystem;
 
-
 import java.io.IOException;
 
 /** The wrapper manages metadata output stream close and commit. */

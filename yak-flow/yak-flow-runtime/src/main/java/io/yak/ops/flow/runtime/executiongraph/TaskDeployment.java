@@ -488,7 +488,8 @@ final class TaskDeployment {
         String directory = jobGraph.configuration().get(CheckpointingOptions.STATE_DIRECTORY);
         try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(Path.of(directory))) {
             CheckpointSnapshot durable = store.loadLatest(LocalCompletedCheckpointStore.graphSignature(
-                            jobGraph.graph(), jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM),
+                            jobGraph.graph(),
+                            jobGraph.configuration().get(PipelineOptions.MAX_PARALLELISM),
                             jobGraph.configuration().get(CheckpointingOptions.DEFINITION_IDENTITY)))
                     .orElse(null);
             for (JobVertex vertex : jobGraph.getVertices()) {

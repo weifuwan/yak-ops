@@ -19,7 +19,6 @@
 package io.yak.ops.flow.runtime.state.filesystem;
 
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;

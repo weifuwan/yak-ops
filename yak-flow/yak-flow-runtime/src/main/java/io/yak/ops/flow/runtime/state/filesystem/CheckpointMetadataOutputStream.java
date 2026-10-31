@@ -18,7 +18,6 @@
 
 package io.yak.ops.flow.runtime.state.filesystem;
 
-
 import java.io.IOException;
 
 /**
@@ -37,8 +36,7 @@ public abstract class CheckpointMetadataOutputStream extends FSDataOutputStream 
      * @return An object representing a finalized checkpoint storage location.
      * @throws IOException Thrown, if the stream cannot be closed or the finalization fails.
      */
-    public abstract FsCompletedCheckpointStorageLocation closeAndFinalizeCheckpoint()
-            throws IOException;
+    public abstract FsCompletedCheckpointStorageLocation closeAndFinalizeCheckpoint() throws IOException;
 
     /**
      * This method should close the stream, if has not been closed before. If this method actually

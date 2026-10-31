@@ -18,9 +18,9 @@
 
 package io.yak.ops.flow.runtime.state.filesystem;
 
+import static java.util.Objects.requireNonNull;
+
 import io.yak.ops.flow.runtime.state.filesystem.RecoverableWriter.CommitRecoverable;
-
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -33,8 +33,6 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-
-import static java.util.Objects.requireNonNull;
 
 /** A {@link RecoverableFsDataOutputStream} for the local filesystem. */
 public class LocalRecoverableFsDataOutputStream
@@ -52,9 +50,7 @@ public class LocalRecoverableFsDataOutputStream
         this.targetFile = requireNonNull(targetFile);
         this.tempFile = requireNonNull(tempFile);
 
-        this.fileChannel =
-                FileChannel.open(
-                        tempFile.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        this.fileChannel = FileChannel.open(tempFile.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
         this.fos = Channels.newOutputStream(fileChannel);
     }
 
@@ -66,9 +62,7 @@ public class LocalRecoverableFsDataOutputStream
             throw new FileNotFoundException("File Not Found: " + tempFile.getAbsolutePath());
         }
 
-        this.fileChannel =
-                FileChannel.open(
-                        tempFile.toPath(), StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+        this.fileChannel = FileChannel.open(tempFile.toPath(), StandardOpenOption.WRITE, StandardOpenOption.APPEND);
         if (this.fileChannel.position() < resumable.offset()) {
             throw new IOException("Missing data in tmp file: " + tempFile.getAbsolutePath());
         }
@@ -76,8 +70,7 @@ public class LocalRecoverableFsDataOutputStream
         this.fos = Channels.newOutputStream(fileChannel);
     }
 
-    LocalRecoverableFsDataOutputStream(
-            File targetFile, File tempFile, FileChannel fileChannel, OutputStream fos) {
+    LocalRecoverableFsDataOutputStream(File targetFile, File tempFile, FileChannel fileChannel, OutputStream fos) {
         this.targetFile = requireNonNull(targetFile);
         this.tempFile = requireNonNull(tempFile);
         this.fileChannel = fileChannel;
@@ -157,12 +150,10 @@ public class LocalRecoverableFsDataOutputStream
                 Files.move(src.toPath(), dest.toPath(), StandardCopyOption.ATOMIC_MOVE);
             } catch (UnsupportedOperationException | AtomicMoveNotSupportedException e) {
                 if (!src.renameTo(dest)) {
-                    throw new IOException(
-                            "Committing file failed, could not rename " + src + " -> " + dest);
+                    throw new IOException("Committing file failed, could not rename " + src + " -> " + dest);
                 }
             } catch (FileAlreadyExistsException e) {
-                throw new IOException(
-                        "Committing file failed. Target file already exists: " + dest);
+                throw new IOException("Committing file failed. Target file already exists: " + dest);
             }
         }
 

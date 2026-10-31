@@ -50,12 +50,15 @@ public final class FsCheckpointStorageAccess {
     public FsCompletedCheckpointStorageLocation resolveCheckpoint(String externalPointer) throws IOException {
         Path path;
         try {
-            path = Path.of(java.net.URI.create(externalPointer)).toAbsolutePath().normalize();
+            path = Path.of(java.net.URI.create(externalPointer))
+                    .toAbsolutePath()
+                    .normalize();
         } catch (IllegalArgumentException failure) {
             throw new IOException("Invalid completed checkpoint external pointer", failure);
         }
         if (!path.startsWith(checkpointsDirectory.toAbsolutePath().normalize())
-                || !path.getParent().equals(checkpointsDirectory.toAbsolutePath().normalize())
+                || !path.getParent()
+                        .equals(checkpointsDirectory.toAbsolutePath().normalize())
                 || !path.getFileName().toString().matches("chk-[1-9][0-9]*")) {
             throw new IOException("Checkpoint pointer escapes the task instance directory");
         }

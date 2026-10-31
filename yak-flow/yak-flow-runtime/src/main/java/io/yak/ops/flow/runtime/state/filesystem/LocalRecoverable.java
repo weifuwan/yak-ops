@@ -18,13 +18,11 @@
 
 package io.yak.ops.flow.runtime.state.filesystem;
 
+import static java.util.Objects.requireNonNull;
+
 import io.yak.ops.flow.runtime.state.filesystem.RecoverableWriter.CommitRecoverable;
 import io.yak.ops.flow.runtime.state.filesystem.RecoverableWriter.ResumeRecoverable;
-
-
 import java.io.File;
-
-import static java.util.Objects.requireNonNull;
 
 /** An implementation of the resume and commit descriptor objects for local recoverable streams. */
 class LocalRecoverable implements CommitRecoverable, ResumeRecoverable {
@@ -45,7 +43,9 @@ class LocalRecoverable implements CommitRecoverable, ResumeRecoverable {
      * @param offset The position to resume from.
      */
     LocalRecoverable(File targetFile, File tempFile, long offset) {
-        if (offset < 0) { throw new IllegalArgumentException("offset must be >= 0"); }
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset must be >= 0");
+        }
         this.targetFile = requireNonNull(targetFile, "targetFile");
         this.tempFile = requireNonNull(tempFile, "tempFile");
         this.offset = offset;

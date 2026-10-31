@@ -18,15 +18,12 @@
 
 package io.yak.ops.flow.runtime.state.filesystem;
 
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
-
-import static java.util.Objects.requireNonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link CheckpointMetadataOutputStream} that writes a specified file and directory, and returns
@@ -34,8 +31,7 @@ import static java.util.Objects.requireNonNull;
  */
 public final class FsCheckpointMetadataOutputStream extends CheckpointMetadataOutputStream {
 
-    private static final Logger LOG =
-            LoggerFactory.getLogger(FsCheckpointMetadataOutputStream.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FsCheckpointMetadataOutputStream.class);
 
     // ------------------------------------------------------------------------
 
@@ -47,9 +43,7 @@ public final class FsCheckpointMetadataOutputStream extends CheckpointMetadataOu
 
     private final MetadataOutputStreamWrapper outputStreamWrapper;
 
-    public FsCheckpointMetadataOutputStream(
-            Path metadataFilePath, Path exclusiveCheckpointDir)
-            throws IOException {
+    public FsCheckpointMetadataOutputStream(Path metadataFilePath, Path exclusiveCheckpointDir) throws IOException {
 
         this.metadataFilePath = requireNonNull(metadataFilePath);
         this.exclusiveCheckpointDir = requireNonNull(exclusiveCheckpointDir);
@@ -127,10 +121,7 @@ public final class FsCheckpointMetadataOutputStream extends CheckpointMetadataOu
                     try {
                         outputStreamWrapper.cleanup();
                     } catch (Exception deleteException) {
-                        LOG.warn(
-                                "Could not delete the checkpoint stream file {}.",
-                                metadataFilePath,
-                                deleteException);
+                        LOG.warn("Could not delete the checkpoint stream file {}.", metadataFilePath, deleteException);
                     }
 
                     throw new IOException(

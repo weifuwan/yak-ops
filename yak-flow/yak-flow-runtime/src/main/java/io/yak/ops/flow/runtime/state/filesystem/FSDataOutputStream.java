@@ -18,7 +18,6 @@
 
 package io.yak.ops.flow.runtime.state.filesystem;
 
-
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -41,8 +40,8 @@ import java.io.OutputStream;
  * Instances of {@code FSDataOutputStream} should not be passed between threads, because there are
  * no guarantees about the order of visibility of operations across threads.
  *
-  * @see java.io.OutputStream
-  */
+ * @see java.io.OutputStream
+ */
 public abstract class FSDataOutputStream extends OutputStream {
 
     /**

@@ -167,14 +167,16 @@ final class CheckpointMetadataSerializer {
             throw new IOException("Checkpoint Operator subtask count exceeds limit");
         }
         out.writeInt(groups.size());
-        for (Map.Entry<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> entry : groups.entrySet()) {
+        for (Map.Entry<CheckpointSnapshot.OperatorSubtask, Map<String, CheckpointSnapshot.SerializedState>> entry :
+                groups.entrySet()) {
             out.writeUTF(entry.getKey().uid());
             out.writeInt(entry.getKey().subtaskIndex());
             if (entry.getValue().size() > MAX_SPLITS_PER_GROUP) {
                 throw new IOException("Checkpoint Operator state count exceeds limit");
             }
             out.writeInt(entry.getValue().size());
-            for (Map.Entry<String, CheckpointSnapshot.SerializedState> named : entry.getValue().entrySet()) {
+            for (Map.Entry<String, CheckpointSnapshot.SerializedState> named :
+                    entry.getValue().entrySet()) {
                 out.writeUTF(named.getKey());
                 writeState(out, named.getValue());
             }
@@ -281,5 +283,4 @@ final class CheckpointMetadataSerializer {
         }
         return new CheckpointSnapshot.SerializedState(version, in.readNBytes(count));
     }
-
 }

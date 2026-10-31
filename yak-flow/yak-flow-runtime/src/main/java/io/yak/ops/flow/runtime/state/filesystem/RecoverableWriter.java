@@ -19,7 +19,6 @@
 package io.yak.ops.flow.runtime.state.filesystem;
 
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
-
 import java.io.IOException;
 
 /**
@@ -150,8 +149,7 @@ public interface RecoverableWriter {
      * @return A committer that publishes the target file.
      * @throws IOException Thrown, if recovery fails.
      */
-    RecoverableFsDataOutputStream.Committer recoverForCommit(CommitRecoverable resumable)
-            throws IOException;
+    RecoverableFsDataOutputStream.Committer recoverForCommit(CommitRecoverable resumable) throws IOException;
 
     /**
      * The serializer for the CommitRecoverable types created in this writer. This serializer should

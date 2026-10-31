@@ -42,8 +42,7 @@ public abstract class CommitterFromPersistRecoverableFsDataOutputStream<
      *     is the return value of {@link #persist()}.
      * @return the committer created from recoverable.
      */
-    protected abstract Committer createCommitterFromResumeRecoverable(
-            RESUME_RECOVERABLE recoverable);
+    protected abstract Committer createCommitterFromResumeRecoverable(RESUME_RECOVERABLE recoverable);
 
     /**
      * @see RecoverableFsDataOutputStream#closeForCommit()

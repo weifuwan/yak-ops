@@ -18,14 +18,11 @@
 
 package io.yak.ops.flow.runtime.state.filesystem;
 
-import io.yak.ops.flow.runtime.state.filesystem.RecoverableFsDataOutputStream.Committer;
-
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
-
+import io.yak.ops.flow.runtime.state.filesystem.RecoverableFsDataOutputStream.Committer;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
-
 
 /** A {@link RecoverableWriter} for the local filesystem. */
 public class LocalRecoverableWriter implements RecoverableWriter {
@@ -52,8 +49,7 @@ public class LocalRecoverableWriter implements RecoverableWriter {
             return new LocalRecoverableFsDataOutputStream((LocalRecoverable) recoverable);
         } else {
             throw new IllegalArgumentException(
-                    "LocalFileSystem cannot recover recoverable for other file system: "
-                            + recoverable);
+                    "LocalFileSystem cannot recover recoverable for other file system: " + recoverable);
         }
     }
 
@@ -70,21 +66,18 @@ public class LocalRecoverableWriter implements RecoverableWriter {
     @Override
     public Committer recoverForCommit(CommitRecoverable recoverable) throws IOException {
         if (recoverable instanceof LocalRecoverable) {
-            return new LocalRecoverableFsDataOutputStream.LocalCommitter(
-                    (LocalRecoverable) recoverable);
+            return new LocalRecoverableFsDataOutputStream.LocalCommitter((LocalRecoverable) recoverable);
         } else {
             throw new IllegalArgumentException(
-                    "LocalFileSystem cannot recover recoverable for other file system: "
-                            + recoverable);
+                    "LocalFileSystem cannot recover recoverable for other file system: " + recoverable);
         }
     }
 
     @Override
     public SimpleVersionedSerializer<CommitRecoverable> getCommitRecoverableSerializer() {
         @SuppressWarnings("unchecked")
-        SimpleVersionedSerializer<CommitRecoverable> typedSerializer =
-                (SimpleVersionedSerializer<CommitRecoverable>)
-                        (SimpleVersionedSerializer<?>) LocalRecoverableSerializer.INSTANCE;
+        SimpleVersionedSerializer<CommitRecoverable> typedSerializer = (SimpleVersionedSerializer<CommitRecoverable>)
+                (SimpleVersionedSerializer<?>) LocalRecoverableSerializer.INSTANCE;
 
         return typedSerializer;
     }
@@ -92,9 +85,8 @@ public class LocalRecoverableWriter implements RecoverableWriter {
     @Override
     public SimpleVersionedSerializer<ResumeRecoverable> getResumeRecoverableSerializer() {
         @SuppressWarnings("unchecked")
-        SimpleVersionedSerializer<ResumeRecoverable> typedSerializer =
-                (SimpleVersionedSerializer<ResumeRecoverable>)
-                        (SimpleVersionedSerializer<?>) LocalRecoverableSerializer.INSTANCE;
+        SimpleVersionedSerializer<ResumeRecoverable> typedSerializer = (SimpleVersionedSerializer<ResumeRecoverable>)
+                (SimpleVersionedSerializer<?>) LocalRecoverableSerializer.INSTANCE;
 
         return typedSerializer;
     }
@@ -117,8 +109,8 @@ public class LocalRecoverableWriter implements RecoverableWriter {
         }
 
         while (true) {
-            File candidate =
-                    new File(parent, "." + name + ".inprogress." + UUID.randomUUID().toString());
+            File candidate = new File(
+                    parent, "." + name + ".inprogress." + UUID.randomUUID().toString());
             if (!candidate.exists()) {
                 return candidate;
             }
