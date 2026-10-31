@@ -18,6 +18,8 @@
 
 package io.yak.ops.flow.runtime.state.filesystem;
 
+import io.yak.ops.flow.runtime.state.filesystem.RecoverableFsDataOutputStream.Committer;
+
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 
 import java.io.File;
