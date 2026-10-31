@@ -18,6 +18,9 @@
 
 package io.yak.ops.flow.runtime.state.filesystem;
 
+import io.yak.ops.flow.runtime.state.filesystem.RecoverableWriter.CommitRecoverable;
+import io.yak.ops.flow.runtime.state.filesystem.RecoverableWriter.ResumeRecoverable;
+
 
 import java.io.File;
 
