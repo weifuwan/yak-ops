@@ -164,7 +164,7 @@ async def pick_option(page, trigger, option):
     listbox = popup.get_by_role("listbox")
     list_id = await listbox.get_attribute("id")
     assert list_id, "Select listbox must have an ID"
-    await listbox.get_by_role("option", name=option).click()
+    await listbox.get_by_role("option", name=option, exact=True).click()
     await expect(page.locator(f'[id="{list_id}"]')).to_be_hidden()
     await expect(page.locator('[data-base-ui-portal] [role="presentation"][data-side][data-open]')).to_have_count(0)
 

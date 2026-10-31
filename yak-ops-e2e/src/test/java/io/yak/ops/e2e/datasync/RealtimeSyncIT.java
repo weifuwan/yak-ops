@@ -20,7 +20,9 @@ class RealtimeSyncIT extends BackendTestBase {
     void transformProjectionAndFilterApplySnapshotAndBinlogBoundaryCrossings() throws Exception {
         fixture.source.execute("ALTER TABLE orders ADD COLUMN eligible INT NOT NULL DEFAULT 0");
         fixture.source.execute("UPDATE orders SET eligible=1 WHERE id=1");
-        fixture.createTarget("filtered_orders");
+        // Flink CDC infers a nullable STRING for UPPER, even from a non-null VARCHAR input.
+        fixture.target.execute("CREATE TABLE " + fixture.table("filtered_orders")
+                + " (id BIGINT PRIMARY KEY, name TEXT)");
         Map<String, Object> route = new LinkedHashMap<>(fixture.route("orders", "filtered_orders"));
         route.put("source", Map.of("database", fixture.sourceName, "table", "orders"));
         Map<String, Object> parameters = fixture.parameters(

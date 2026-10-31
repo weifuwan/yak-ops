@@ -1,5 +1,6 @@
 package io.yak.ops.composer.yakflow.translator;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,6 +49,32 @@ class TransformTranslatorTest {
         assertEquals(List.of("id", "label", "total"), metadata.getPhysicalSchema().columns().stream().map(PhysicalColumn::name).toList());
         assertEquals(List.of("id"), metadata.getSchema().primaryKeys());
         assertEquals(GenericRowData.of(1, "ALICE", 12), ((DataChangeEvent) events.getLast()).after());
+    }
+
+    @Test
+    void computedStringNullabilityUsesUpstreamInferenceInJdbcWriteValidation() {
+        Schema source = new Schema(List.of(
+                new PhysicalColumn("id", LogicalTypes.BIGINT.copy(false)),
+                new PhysicalColumn("name", LogicalTypes.varchar(32).copy(false)),
+                new PhysicalColumn("eligible", LogicalTypes.INTEGER.copy(false))), List.of("id"));
+        Schema projected = translator("id, UPPER(name) AS name", "eligible = 1").transformSchema(TABLE, source);
+
+        assertEquals(List.of("id"), projected.primaryKeys());
+        assertEquals(LogicalTypes.BIGINT.copy(false), projected.column("id").orElseThrow().type());
+        assertEquals(LogicalTypes.STRING, projected.column("name").orElseThrow().type());
+        assertTrue(projected.column("name").orElseThrow().type().isNullable());
+
+        Schema requiredTarget = new Schema(List.of(
+                new PhysicalColumn("id", LogicalTypes.BIGINT.copy(false)),
+                new PhysicalColumn("name", LogicalTypes.varchar(32).copy(false))), List.of("id"));
+        assertThrows(IllegalArgumentException.class, () -> JdbcSinkSchemaValidator.validate(
+                projected.toTableSchema(), requiredTarget.toTableSchema(), JdbcWriteMode.UPSERT));
+
+        Schema nullableTarget = new Schema(List.of(
+                new PhysicalColumn("id", LogicalTypes.BIGINT.copy(false)),
+                new PhysicalColumn("name", LogicalTypes.STRING)), List.of("id"));
+        assertDoesNotThrow(() -> JdbcSinkSchemaValidator.validate(
+                projected.toTableSchema(), nullableTarget.toTableSchema(), JdbcWriteMode.UPSERT));
     }
 
     @Test
