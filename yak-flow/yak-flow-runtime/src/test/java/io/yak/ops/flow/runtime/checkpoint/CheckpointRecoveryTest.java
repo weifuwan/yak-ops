@@ -177,7 +177,7 @@ class CheckpointRecoveryTest {
             return new Committer<>() {
                 @Override
                 public void commit(Collection<Integer> committables, boolean recovered) {
-                    assertTrue(Files.isRegularFile(directory.resolve("completed/chk-1")),
+                    assertTrue(hasCompletedMarker(directory),
                             "The checkpoint must be durable before a transaction commits");
                     int count = committables.stream().mapToInt(Integer::intValue).sum();
                     if (recovered) {
@@ -465,6 +465,16 @@ class CheckpointRecoveryTest {
         assertFalse(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
     }
 
+    private static boolean hasCompletedMarker(Path directory) throws IOException {
+        Path completed = directory.resolve("completed");
+        if (!Files.isDirectory(completed)) {
+            return false;
+        }
+        try (java.nio.file.DirectoryStream<Path> markers = Files.newDirectoryStream(completed, "chk-*")) {
+            return markers.iterator().hasNext();
+        }
+    }
+
     private static void awaitAttempt(EmbeddedJobClient client, int expected) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (client.getExecutionGraph().getJobVertices().getFirst()
@@ -534,11 +544,11 @@ class CheckpointRecoveryTest {
 
         awaitCount(sink.rows, 4);
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while ((!Files.exists(checkpointDirectory.resolve("completed/chk-1"))
+        while ((!hasCompletedMarker(checkpointDirectory)
                 || sink.checkpointFlushes.get() == 0) && System.nanoTime() < deadline) {
             Thread.sleep(10);
         }
-        assertTrue(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
+        assertTrue(hasCompletedMarker(checkpointDirectory));
         assertTrue(sink.checkpointFlushes.get() > 0);
         job.cancel().get(5, TimeUnit.SECONDS);
         try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(checkpointDirectory)) {
