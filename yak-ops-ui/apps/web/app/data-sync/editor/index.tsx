@@ -413,7 +413,7 @@ export function TaskEditor({
           aria-busy={saving}
           className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto pb-8 pt-5"
         >
-          <fieldset disabled={saving} className="contents">
+          <fieldset disabled={saving} className="min-w-0 space-y-4">
             {solutionsError ? (
               <Alert>
                 {solutionsError}
