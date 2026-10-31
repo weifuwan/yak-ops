@@ -1,6 +1,7 @@
 package io.yak.ops.business.task.definition;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -10,6 +11,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
+import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.dao.mapper.task.DefinitionMapper;
 import io.yak.ops.dao.repository.task.DefinitionPageQuery;
 import io.yak.ops.testutils.DatabaseMetadata;
@@ -147,6 +149,73 @@ class DefinitionPageQueryIT {
         assertEquals(2, result.getRecords().getFirst().getCurrentVersion());
     }
 
+    @Test
+    void clearingPublicationPersistsNullsWithoutChangingSavedParameters() {
+        insert("published", parameters("jdbc-mysql", "BATCH", "SINGLE", null, 1));
+        DefinitionEntity definition = mapper.selectById("published");
+        assertEquals(1, definition.getPublishedVersion());
+        definition.setStatus(DefinitionStatus.UNPUBLISHED);
+        definition.setPublishedVersion(null);
+        definition.setPublishedDebug(null);
+        definition.setRevision(2);
+        assertEquals(1, mapper.updateById(definition));
+        DefinitionEntity reloaded = mapper.selectById("published");
+        assertNull(reloaded.getPublishedVersion());
+        assertNull(reloaded.getPublishedDebug());
+        assertEquals(1, reloaded.getCurrentVersion());
+        assertEquals(2, reloaded.getRevision());
+    }
+
+    @Test
+    void upgradeBackfillsOnlyCurrentPublicationWithoutInventingHistory() throws Exception {
+        DatabaseMetadata metadata = MYSQL.metadata();
+        String upgradeDatabase = TestNames.unique("publication_upgrade");
+        metadata.execute("CREATE DATABASE " + upgradeDatabase);
+        try {
+            DataSource source = new DriverManagerDataSource(
+                    "jdbc:mysql://" + metadata.host() + ":" + metadata.port() + "/" + upgradeDatabase
+                            + "?useSSL=false&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=30000",
+                    metadata.username(), metadata.password());
+            Flyway.configure().dataSource(source).locations("classpath:db/migration/yak-ops")
+                    .target("1").load().migrate();
+            JdbcTemplate upgrade = new JdbcTemplate(source);
+            for (int status = 0; status <= 1; status++) {
+                String id = "task-" + status;
+                upgrade.update("""
+                        INSERT INTO yak_ops_task_definition
+                          (id,workspace_id,name,task_type,status,current_version,debug,
+                           create_time,update_time,create_by,update_by)
+                        VALUES (?,'ws',?,'DATA_SYNC',?,3,1,?,?,'original-author','original-author')
+                        """, id, id, status, UPDATED, UPDATED);
+                upgrade.update("""
+                        INSERT INTO yak_ops_task_definition_version
+                          (id,workspace_id,definition_id,version,parameters,parameter_schema_version,
+                           create_time,update_time,create_by,update_by)
+                        VALUES (?,'ws',?,3,?,7,?,?,'original-author','original-author')
+                        """, id + "-v3", id, "{\"sourceTable\":\"orders\"}", UPDATED, UPDATED);
+            }
+            Flyway.configure().dataSource(source).locations("classpath:db/migration/yak-ops").load().migrate();
+
+            assertEquals(3, upgrade.queryForObject(
+                    "SELECT published_version FROM yak_ops_task_definition WHERE id='task-1'", Integer.class));
+            assertEquals(true, upgrade.queryForObject(
+                    "SELECT published_debug FROM yak_ops_task_definition WHERE id='task-1'", Boolean.class));
+            assertNull(upgrade.queryForObject(
+                    "SELECT published_version FROM yak_ops_task_definition WHERE id='task-0'", Integer.class));
+            assertNull(upgrade.queryForObject(
+                    "SELECT published_debug FROM yak_ops_task_definition WHERE id='task-0'", Boolean.class));
+            assertEquals(2L, upgrade.queryForObject(
+                    "SELECT COUNT(*) FROM yak_ops_task_definition WHERE revision=1 AND current_version=3 AND debug=1", Long.class));
+            assertEquals(0L, upgrade.queryForObject("SELECT COUNT(*) FROM yak_ops_task_publication", Long.class));
+            assertEquals(2L, upgrade.queryForObject("""
+                    SELECT COUNT(*) FROM yak_ops_task_definition_version
+                    WHERE parameters=? AND version=3 AND create_by='original-author' AND create_time=?
+                    """, Long.class, "{\"sourceTable\":\"orders\"}", UPDATED));
+        } finally {
+            metadata.execute("DROP DATABASE " + upgradeDatabase);
+        }
+    }
+
     private IPage<DefinitionEntity> page(int pageNo, int pageSize, Map<String, String> filters) {
         return select(new DefinitionPageQuery("ws", pageNo, pageSize, null, "DATA_SYNC", null, filters));
     }
@@ -166,10 +235,11 @@ class DefinitionPageQueryIT {
     private void insert(String id, String workspace, int status, int version, boolean deleted, String parameters) {
         jdbc.update("""
                 INSERT INTO yak_ops_task_definition
-                    (id, workspace_id, name, task_type, status, current_version, deleted_at,
+                    (id, workspace_id, name, task_type, status, current_version, published_version, published_debug, deleted_at,
                      create_time, update_time, create_by, update_by)
-                VALUES (?, ?, ?, 'DATA_SYNC', ?, ?, ?, ?, ?, 'test', 'test')
-                """, id, workspace, id, status, version, deleted ? UPDATED : null, UPDATED, UPDATED);
+                VALUES (?, ?, ?, 'DATA_SYNC', ?, ?, ?, ?, ?, ?, ?, 'test', 'test')
+                """, id, workspace, id, status, version, status == 1 ? version : null, status == 1 ? false : null,
+                deleted ? UPDATED : null, UPDATED, UPDATED);
         insertVersion(id, workspace, version, parameters);
     }
 

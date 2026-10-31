@@ -27,6 +27,7 @@ class PreparedTaskSubmissionTest {
 
         PreparedTaskSubmission request = new PreparedTaskSubmission(
                 identity,
+                true,
                 TaskTriggerType.MANUAL,
                 "private-request-key",
                 "intent",
@@ -39,6 +40,7 @@ class PreparedTaskSubmissionTest {
                 null);
         PreparedTaskSubmission another = new PreparedTaskSubmission(
                 identity,
+                true,
                 TaskTriggerType.MANUAL,
                 "private-request-key",
                 "intent",
@@ -51,6 +53,7 @@ class PreparedTaskSubmissionTest {
                 null);
 
         assertSame(identity, request.identity());
+        assertTrue(request.debug());
         assertEquals(TaskTriggerType.MANUAL, request.triggerType());
         assertEquals("private-request-key", request.requestId());
         assertEquals("intent", request.requestFingerprint());
@@ -69,6 +72,7 @@ class PreparedTaskSubmissionTest {
         ReadonlyConfig parameters = mock(ReadonlyConfig.class);
         PreparedTaskSubmission request = new PreparedTaskSubmission(
                 new TaskExecutionIdentity("workspace", "definition", 2, "instance"),
+                false,
                 TaskTriggerType.WORKFLOW,
                 "private-request-key",
                 "private-fingerprint",

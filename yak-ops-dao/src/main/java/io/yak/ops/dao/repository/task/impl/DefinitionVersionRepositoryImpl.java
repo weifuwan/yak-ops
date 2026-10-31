@@ -1,11 +1,12 @@
 package io.yak.ops.dao.repository.task.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.mapper.task.DefinitionVersionMapper;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import jakarta.annotation.Resource;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
@@ -30,10 +31,20 @@ public class DefinitionVersionRepositoryImpl implements DefinitionVersionReposit
     }
 
     @Override
-    public List<DefinitionVersionEntity> queryByDefinition(String workspaceId, String definitionId) {
-        return versionMapper.selectList(Wrappers.<DefinitionVersionEntity>lambdaQuery()
-                .eq(DefinitionVersionEntity::getWorkspaceId, workspaceId)
-                .eq(DefinitionVersionEntity::getDefinitionId, definitionId)
-                .orderByDesc(DefinitionVersionEntity::getVersion));
+    public PageData<DefinitionVersionEntity> queryPage(
+            String workspaceId, String definitionId, int pageNo, int pageSize) {
+        Page<DefinitionVersionEntity> page = versionMapper.selectPage(
+                new Page<>(pageNo, pageSize),
+                Wrappers.<DefinitionVersionEntity>lambdaQuery()
+                        .select(
+                                DefinitionVersionEntity::getDefinitionId,
+                                DefinitionVersionEntity::getVersion,
+                                DefinitionVersionEntity::getParameterSchemaVersion,
+                                DefinitionVersionEntity::getCreateTime,
+                                DefinitionVersionEntity::getCreateBy)
+                        .eq(DefinitionVersionEntity::getWorkspaceId, workspaceId)
+                        .eq(DefinitionVersionEntity::getDefinitionId, definitionId)
+                        .orderByDesc(DefinitionVersionEntity::getVersion));
+        return new PageData<>(page.getRecords(), page.getTotal(), page.getPages(), page.getCurrent(), page.getSize());
     }
 }

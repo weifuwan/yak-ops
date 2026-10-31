@@ -30,7 +30,11 @@ export function useTaskListActions(scope: string) {
           await cancelDataSyncInstance(command.instance.id);
           break;
         case "publish":
-          await publishDataSyncTask(command.task.id);
+          await publishDataSyncTask(command.task.id, {
+            version: command.task.definitionVersion,
+            expectedRevision: command.task.revision,
+            requestId: crypto.randomUUID(),
+          });
           break;
         case "unpublish":
           await unpublishDataSyncTask(command.task.id);
@@ -47,7 +51,7 @@ export function useTaskListActions(scope: string) {
       const messages = {
         run: "运行请求已提交",
         stop: "已发送停止请求",
-        publish: "同步任务已上线",
+        publish: "同步任务已发布",
         unpublish: "同步任务已下线",
         delete: "同步任务已删除",
         schedule: command.kind === "schedule" && command.enabled ? "调度已启用" : "调度已停止",

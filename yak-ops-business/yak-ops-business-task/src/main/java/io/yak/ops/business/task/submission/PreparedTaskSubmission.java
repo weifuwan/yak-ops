@@ -17,6 +17,7 @@ import java.time.Instant;
 public final class PreparedTaskSubmission {
 
     private final TaskExecutionIdentity identity;
+    private final boolean debug;
     private final TaskTriggerType triggerType;
     private final String requestId;
     private final String requestFingerprint;
@@ -32,6 +33,7 @@ public final class PreparedTaskSubmission {
      * Creates the inputs of a validated Task submission.
      *
      * @param identity trusted execution identity and pinned Definition version
+     * @param debug diagnostics setting captured from the published Definition
      * @param triggerType namespace of the idempotent submission
      * @param requestId caller-stable idempotency key
      * @param requestFingerprint non-secret submission intent fingerprint
@@ -45,6 +47,7 @@ public final class PreparedTaskSubmission {
      */
     public PreparedTaskSubmission(
             TaskExecutionIdentity identity,
+            boolean debug,
             TaskTriggerType triggerType,
             String requestId,
             String requestFingerprint,
@@ -56,6 +59,7 @@ public final class PreparedTaskSubmission {
             Long scheduleRevision,
             Instant scheduledTime) {
         this.identity = identity;
+        this.debug = debug;
         this.triggerType = triggerType;
         this.requestId = requestId;
         this.requestFingerprint = requestFingerprint;
@@ -71,6 +75,11 @@ public final class PreparedTaskSubmission {
     /** Returns the pinned execution identity. */
     public TaskExecutionIdentity identity() {
         return identity;
+    }
+
+    /** Returns the diagnostics setting pinned with the published Definition version. */
+    public boolean debug() {
+        return debug;
     }
 
     /** Returns the idempotent submission trigger. */

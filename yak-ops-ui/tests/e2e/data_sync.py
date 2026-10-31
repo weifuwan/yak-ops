@@ -6,7 +6,7 @@ import os
 import re
 from pathlib import Path
 from playwright.async_api import expect
-from mock_api import instance, mock, state
+from mock_api import definition_response, instance, mock, remember_definition, state
 
 def site(path):
     return os.environ["YAK_UI_BASE_URL"].rstrip("/") + path
@@ -20,6 +20,87 @@ async def close_notifications(page):
             break
         await close.first.click()
         await expect(close).to_have_count(count - 1)
+
+
+async def open_properties(page):
+    await page.get_by_role("button", name="属性", exact=True).click()
+    drawer = page.get_by_role("dialog", name="属性", exact=True)
+    await expect(drawer).to_be_visible()
+    return drawer
+
+
+async def expect_task_name(page, name):
+    drawer = await open_properties(page)
+    await expect(drawer.get_by_role("textbox", name="任务名称", exact=True)).to_have_value(name)
+    await drawer.get_by_role("button", name="取消", exact=True).click()
+    await expect(drawer).to_be_hidden()
+
+
+async def rename_task(page, name):
+    drawer = await open_properties(page)
+    await drawer.get_by_role("textbox", name="任务名称", exact=True).fill(name)
+    await apply_drawer(drawer)
+
+
+async def open_advanced(page, tab="高级参数", parameter_tab="读端配置"):
+    drawer = page.get_by_role("dialog", name="高级配置", exact=True)
+    if not await drawer.count():
+        await page.get_by_role("button", name="高级配置", exact=True).click()
+    await expect(drawer).to_be_visible()
+    await drawer.get_by_role("tab", name=tab, exact=True).click()
+    if tab == "高级参数":
+        await drawer.get_by_role("tab", name=parameter_tab, exact=True).click()
+    return drawer
+
+
+async def apply_drawer(drawer):
+    await drawer.get_by_role("button", name="确认", exact=True).click()
+    await expect(drawer).to_be_hidden()
+
+
+async def set_read_strategy(page, label):
+    drawer = await open_advanced(page)
+    await pick_option(page, drawer.get_by_role("combobox", name="读取策略", exact=True), label)
+    await apply_drawer(drawer)
+
+
+async def expect_read_strategy(page, label, disabled=False):
+    drawer = await open_advanced(page)
+    strategy = drawer.get_by_role("combobox", name="读取策略", exact=True)
+    await expect(strategy).to_contain_text(label)
+    if disabled:
+        await expect(strategy).to_be_disabled()
+    await drawer.get_by_role("button", name="取消", exact=True).click()
+    await expect(drawer).to_be_hidden()
+
+
+async def set_schema_changes(page, enabled):
+    drawer = await open_advanced(page, "DDL 能力配置")
+    toggle = drawer.get_by_role("switch", name="同步结构变更", exact=True)
+    await toggle.set_checked(enabled)
+    await apply_drawer(drawer)
+
+
+async def configure_editor_cron(page, expression):
+    drawer = await open_advanced(page, parameter_tab="运行时配置")
+    await configure_cron(page, expression)
+    await apply_drawer(drawer)
+
+
+async def leave_editor(page):
+    await page.get_by_role("button", name="任务列表", exact=True).click()
+    guard = page.get_by_role("dialog", name="离开当前页面", exact=True)
+    await expect(guard).to_be_visible()
+    await guard.get_by_role("button", name="放弃修改并离开", exact=True).click()
+    await expect(page).to_have_url(re.compile(r"/data-sync$"))
+
+
+async def expect_save_rejected(page, message):
+    """Validation must reveal the offending field and must never submit invalid parameters."""
+    before = (state["created_tasks"], state["updated_tasks"])
+    await page.get_by_role("button", name="保存", exact=True).click()
+    await expect(page.get_by_text(message, exact=True).first).to_be_visible()
+    assert (state["created_tasks"], state["updated_tasks"]) == before
 
 async def choose_solution(page, kind, name, target_type="PostgreSQL"):
     dialog = page.get_by_role("dialog", name="新建同步任务", exact=True)
@@ -60,35 +141,44 @@ async def verify_solution_creation(page):
     await page.goto(site("/data-sync?create=1"))
     await choose_solution(page, "整库实时", "CDC draft")
     await expect(page).to_have_url(re.compile("/data-sync/new$"))
-    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("CDC draft")
-    await expect(page.locator("#schedule")).to_have_count(0)
+    await expect_task_name(page, "CDC draft")
     await expect(page.locator("#field-mapping")).to_have_count(0)
     await expect(page.locator("#datasource").get_by_role("combobox", name="数据源", exact=True)).to_have_count(2)
-    await expect(page.locator("#env").get_by_text("持续运行", exact=True)).to_be_visible()
-    schema_switch = page.get_by_role("switch", name="同步结构变更", exact=True)
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await expect(advanced.locator("#schedule")).to_have_count(0)
+    await expect(advanced.locator("#env").get_by_text("持续运行", exact=True)).to_be_visible()
+    await advanced.get_by_role("tab", name="DDL 能力配置", exact=True).click()
+    schema_switch = advanced.get_by_role("switch", name="同步结构变更", exact=True)
     await expect(schema_switch).to_be_checked()
     await schema_switch.click()
-    await page.get_by_role("textbox", name="任务名称", exact=True).fill("Restored draft")
-    await page.reload()
-    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("Restored draft")
     await expect(schema_switch).not_to_be_checked()
-    await pick_option(page, page.get_by_role("combobox", name="读取策略", exact=True), "全量后结束")
-    await expect(page.locator("#schedule")).to_be_visible()
-    await expect(schema_switch).to_have_count(0)
+    await apply_drawer(advanced)
+    await rename_task(page, "Restored draft")
     await page.reload()
-    await expect(page.get_by_role("combobox", name="读取策略", exact=True)).to_contain_text("全量后结束")
+    await expect_task_name(page, "Restored draft")
+    advanced = await open_advanced(page, "DDL 能力配置")
+    await expect(schema_switch).not_to_be_checked()
+    await advanced.get_by_role("button", name="取消", exact=True).click()
+    await set_read_strategy(page, "全量后结束")
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await expect(advanced.locator("#schedule")).to_be_visible()
+    await advanced.get_by_role("tab", name="DDL 能力配置", exact=True).click()
+    await expect(schema_switch).to_have_count(0)
+    await advanced.get_by_role("button", name="取消", exact=True).click()
+    await page.reload()
+    await expect_read_strategy(page, "全量后结束")
     await page.screenshot(path=str(Path(os.environ["YAK_UI_ARTIFACT_DIR"]) / "solution-editor-desktop.png"), full_page=True)
 
     # Re-selecting the same product restores the complete strategy-bearing draft.
-    await page.get_by_role("button", name="取消", exact=True).click()
+    await leave_editor(page)
     await page.get_by_role("button", name="新建同步任务", exact=True).click()
     dialog = page.get_by_role("dialog", name="新建同步任务", exact=True)
     await pick_option(page, dialog.get_by_role("combobox").nth(2), "单表离线")
     await pick_option(page, dialog.get_by_role("combobox").nth(2), "整库实时")
     await dialog.get_by_role("button", name="下一步", exact=True).click()
-    await expect(page.get_by_role("combobox", name="读取策略", exact=True)).to_contain_text("全量后结束")
-    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("Restored draft")
-    await page.get_by_role("button", name="取消", exact=True).click()
+    await expect_read_strategy(page, "全量后结束")
+    await expect_task_name(page, "Restored draft")
+    await leave_editor(page)
     await page.get_by_role("button", name="新建同步任务", exact=True).click()
     await pick_option(page, dialog.get_by_role("combobox").nth(2), "单表离线")
     await dialog.get_by_role("button", name="下一步", exact=True).click()
@@ -105,9 +195,12 @@ async def verify_solution_creation(page):
     await page.get_by_role("button", name="新建同步任务", exact=True).click()
     await expect(dialog.get_by_role("textbox", name="名称", exact=True)).to_have_value("")
     await choose_solution(page, "单表离线", "Workspace B draft")
-    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("Workspace B draft")
+    await expect_task_name(page, "Workspace B draft")
     await page.get_by_role("button", name=re.compile("Tester")).click()
     await page.get_by_role("menuitem", name="退出登录", exact=True).click()
+    await page.get_by_role("dialog", name="离开当前页面", exact=True).get_by_role(
+        "button", name="放弃修改并离开", exact=True
+    ).click()
     await expect(page).to_have_url(re.compile(r"/login(?:\?|$)"))
     assert not await page.evaluate("Object.keys(sessionStorage).some(k => k.startsWith('yak.data-sync.draft:'))")
     assert [request for request in state["requests"] if request[1].endswith("/account/logout")][-1][3] is None
@@ -117,7 +210,7 @@ async def configure_cron(page, expression):
     await page.get_by_role("button", name="打开 Cron 调度配置", exact=True).click()
     await page.get_by_role("tab", name="高级 Cron", exact=True).click()
     await page.get_by_role("textbox", name="Cron 表达式", exact=True).fill(expression)
-    await page.get_by_role("button", name="确认", exact=True).click()
+    await page.get_by_role("button", name="确认", exact=True).last.click()
 
 
 async def verify_revision_conflict(page):
@@ -145,11 +238,11 @@ async def verify_partial_task_save(page):
     await expect(page).to_have_url(re.compile("/data-sync/new$"))
     assert state["created_tasks"] == 0
     await page.reload()
-    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("Partial save")
+    await expect_task_name(page, "Partial save")
     await pick_datasources(page)
     await pick_option(page, page.locator("#source").get_by_role("combobox", name="表", exact=True), "orders")
     await pick_option(page, page.locator("#target").get_by_role("combobox", name="表", exact=True), "public.ods_orders")
-    await configure_cron(page, "0 0 6 * * ?")
+    await configure_editor_cron(page, "0 0 6 * * ?")
 
     gate = asyncio.Event()
     started = asyncio.Event()
@@ -161,37 +254,53 @@ async def verify_partial_task_save(page):
     try:
         await page.get_by_role("button", name="保存", exact=True).click()
         await asyncio.wait_for(started.wait(), timeout=10)
-        await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_be_disabled()
-        await expect(page.get_by_role("combobox", name="读取策略", exact=True)).to_be_disabled()
+        await expect(page.get_by_role("button", name="属性", exact=True)).to_be_disabled()
+        await expect(page.get_by_role("button", name="高级配置", exact=True)).to_be_disabled()
+        await expect(page.locator("#datasource").get_by_role("combobox", name="数据源", exact=True).first).to_be_disabled()
     finally:
         gate.set()
     await expect(page).to_have_url(re.compile("/data-sync/new-task/edit$"))
     await page.unroute("**/api/v1/task-definitions", hold_creation)
     await expect(page.get_by_text(re.compile("任务已保存，调度未确认保存"))).to_be_visible()
-    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
+    advanced = page.get_by_role("dialog", name="高级配置", exact=True)
+    await expect(advanced.get_by_role("button", name="打开 Cron 调度配置", exact=True)).to_be_disabled()
+    await expect(advanced.get_by_role("button", name="打开 Cron 调度配置", exact=True)).to_contain_text("0 0 6 * * ?")
     assert state["created_tasks"] == 1
     state["fail_schedule"] = False
-    await page.get_by_role("button", name="重新加载状态", exact=True).click()
+    await advanced.get_by_role("button", name="重新加载状态", exact=True).click()
+    await expect(advanced.get_by_role("button", name="打开 Cron 调度配置", exact=True)).to_be_enabled()
+    await configure_cron(page, "0 0 7 * * ?")
+    await apply_drawer(advanced)
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
     await page.get_by_role("button", name="保存", exact=True).click()
-    await expect(page.get_by_text("同步任务已保存，当前仍为已下线", exact=True)).to_be_visible()
+    await expect(page.get_by_text("同步任务已保存", exact=True)).to_be_visible()
     assert state["created_tasks"] == 1 and state["updated_tasks"] == 0
     assert state["schedule"]["targetId"] == "new-task"
-    assert state["schedule"]["cronExpression"] == "0 0 6 * * ?"
+    assert state["schedule"]["cronExpression"] == "0 0 7 * * ?"
     assert state["schedule"]["enabled"] is False
+
+    # The first creation's recovery state must not replay the failed Cron after a later save.
+    await page.reload()
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await expect(advanced.get_by_role("button", name="打开 Cron 调度配置", exact=True)).to_contain_text("0 0 7 * * ?")
+    await expect(advanced.get_by_text(re.compile("任务已保存，调度未确认保存"))).to_have_count(0)
+    await advanced.get_by_role("button", name="取消", exact=True).click()
 
     await close_notifications(page)
     state["fail_publish"] = True
-    await page.get_by_role("button", name="保存并上线", exact=True).click()
-    await expect(page.get_by_text(re.compile("任务已保存，仍处于下线状态。上线失败"))).to_be_visible()
+    await page.get_by_role("button", name="发布", exact=True).click()
+    await expect(page.get_by_text(re.compile("任务已保存，发布失败"))).to_be_visible()
     assert state["task"]["status"] == "UNPUBLISHED"
     assert state["created_tasks"] == 1 and state["updated_tasks"] == 0
-    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value("Partial save")
+    await expect_task_name(page, "Partial save")
     await close_notifications(page)
     state["fail_publish"] = False
-    await page.get_by_role("button", name="保存并上线", exact=True).click()
-    await expect(page).to_have_url(re.compile(r"/data-sync$"))
+    await page.get_by_role("button", name="发布", exact=True).click()
+    await expect(page.get_by_text("本次发布 V1 已确认", exact=True)).to_be_visible()
+    await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
     assert state["task"]["status"] == "PUBLISHED"
+    assert state["task"]["publishedVersion"] == state["task"]["definitionVersion"]
+    assert len(state["publications"]) == 1
     assert state["created_tasks"] == 1
 
 
@@ -240,8 +349,8 @@ async def verify_multitable_mapping(page):
             page,
             page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?" + table + r"$")),
             re.compile(r"(.*\.)?batch_a_copy$"))
-    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
     await expect(page.get_by_text("去向表不能重复", exact=True).first).to_be_visible()
+    await expect_save_rejected(page, "去向表不能重复")
     await pick_option(
         page,
         page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?batch_b$")),
@@ -271,7 +380,7 @@ async def verify_multitable_selection(page):
     state["catalog_mode"] = "multi"
     dialog = await prepare_database_task(page, "整库实时")
     await dialog.get_by_role("button", name="下一步", exact=True).click()
-    await pick_option(page, page.get_by_role("combobox", name="读取策略", exact=True), "全量后结束")
+    await set_read_strategy(page, "全量后结束")
     await pick_datasources(page)
 
     source = page.locator("#source")
@@ -331,8 +440,10 @@ async def verify_schema_configuration(page):
     await pick_option(page, page.locator("#source").get_by_role("combobox", name="表", exact=True),
                       re.compile(r"(.*\.)?sm_browser_source$"))
     target = page.locator("#target")
-    await expect(target.get_by_role("combobox", name="目标表结构", exact=True)).to_contain_text("校验已有表")
-    await pick_option(page, target.get_by_role("combobox", name="目标表结构", exact=True), "创建或调整目标表")
+    advanced = await open_advanced(page, "DDL 能力配置")
+    await expect(advanced.get_by_role("combobox", name="目标表结构", exact=True)).to_contain_text("校验已有表")
+    await pick_option(page, advanced.get_by_role("combobox", name="目标表结构", exact=True), "创建或调整目标表")
+    await apply_drawer(advanced)
     schema_select = target.get_by_role("combobox", name="Schema", exact=True)
     if await schema_select.count():
         await pick_option(page, schema_select, "public")
@@ -345,7 +456,9 @@ async def verify_schema_configuration(page):
     assert not any(req[1] == "/api/v1/data-sync/schema/preview" for req in state["requests"])
     await page.reload()
     await expect(field).to_have_value("sm_browser_target")
-    await expect(target.get_by_role("combobox", name="目标表结构", exact=True)).to_contain_text("创建或调整目标表")
+    advanced = await open_advanced(page, "DDL 能力配置")
+    await expect(advanced.get_by_role("combobox", name="目标表结构", exact=True)).to_contain_text("创建或调整目标表")
+    await advanced.get_by_role("button", name="取消", exact=True).click()
     await page.get_by_role("button", name="保存", exact=True).click()
     await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
     created = [req[2] for req in state["requests"]
@@ -364,7 +477,7 @@ async def verify_realtime_stages(page):
     state["catalog_mode"] = "multi"
     dialog = await prepare_database_task(page, "整库实时")
     await dialog.get_by_role("button", name="下一步", exact=True).click()
-    await expect(page.get_by_role("combobox", name="读取策略", exact=True)).to_contain_text("全量后持续增量")
+    await expect_read_strategy(page, "全量后持续增量")
     await pick_datasources(page)
     for table in ("batch_a", "batch_b"):
         await page.get_by_role("checkbox", name=re.compile(r"选择 (.*\.)?" + table + r"$")).check()
@@ -372,7 +485,9 @@ async def verify_realtime_stages(page):
                           page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?" + table + r"$")),
                           re.compile(r"(.*\.)?" + table + r"_copy$"))
     await expect(batch_write_mode(page)).to_be_disabled()
-    await expect(page.locator("#schedule")).to_have_count(0)
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await expect(advanced.locator("#schedule")).to_have_count(0)
+    await advanced.get_by_role("button", name="取消", exact=True).click()
     await page.reload()
     await expect(page.get_by_text("已选 2 / 100", exact=True)).to_be_visible()
     await page.get_by_role("button", name="保存", exact=True).click()
@@ -398,7 +513,12 @@ async def verify_realtime_stages(page):
               "stages": [full, incremental],
               "tables": [{"mappingIndex": index, "stages": [full, incremental]}
                          for index in range(2)]}
-    state["task"]["status"] = "PUBLISHED"
+    state["task"] = definition_response({
+        **state["task"], "status": "PUBLISHED",
+        "publishedVersion": state["task"]["definitionVersion"],
+        "publishedDebug": state["task"]["debug"],
+        "revision": state["task"]["revision"] + 1,
+    })
     state["show_instances"] = True
     instance.update({"definitionId": "new-task", "status": "RUNNING",
                      "executionReport": json.dumps(report), "progressPercent": None})
@@ -434,26 +554,34 @@ async def verify_editor_round_trip(page):
         "schema.change.behavior": "evolve", "name": "orders-pipeline",
         "parallelism": 2, "local-time-zone": "Asia/Shanghai",
     }
-    state["task"] = {**task, "status": "UNPUBLISHED", "parameters": config}
+    state["task"] = definition_response({
+        **task, "status": "UNPUBLISHED", "parameters": config,
+        "publishedVersion": None, "publishedDebug": None,
+    })
     await page.goto(site("/data-sync/task1/edit"))
-    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value(task["name"])
-    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
-    await expect(page.locator("#env").get_by_text("持续运行", exact=True)).to_be_visible()
+    await expect_task_name(page, task["name"])
+    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await expect(advanced.locator("#env").get_by_text("持续运行", exact=True)).to_be_visible()
+    await advanced.get_by_role("button", name="取消", exact=True).click()
     assert any("/src/catalog/columns" in request[1] for request in state["requests"])
-    await page.get_by_role("textbox", name="任务名称", exact=True).fill("Renamed replication")
+    await rename_task(page, "Renamed replication")
     async with page.expect_response(lambda response: response.request.method == "PUT"
                                     and response.url.endswith("/api/v1/task-definitions/task1")):
         await page.get_by_role("button", name="保存", exact=True).click()
     metadata_request = [request[2] for request in state["requests"]
                         if request[0] == "PUT" and request[1] == "/api/v1/task-definitions/task1"][-1]
     assert "parameters" not in metadata_request
+    assert metadata_request["expectedRevision"] == 1 and state["task"]["revision"] == 2
     assert state["task"]["parameters"] == config
     assert state["task"]["definitionVersion"] == 1
 
-    schema_switch = page.get_by_role("switch", name="同步结构变更", exact=True)
+    advanced = await open_advanced(page, "DDL 能力配置")
+    schema_switch = advanced.get_by_role("switch", name="同步结构变更", exact=True)
     await expect(schema_switch).to_be_checked()
+    await advanced.get_by_role("button", name="取消", exact=True).click()
     for enabled in (False, True):
-        await schema_switch.click()
+        await set_schema_changes(page, enabled)
         async with page.expect_response(lambda response: response.request.method == "PUT"
                                         and response.url.endswith("/api/v1/task-definitions/task1")):
             await page.get_by_role("button", name="保存", exact=True).click()
@@ -470,11 +598,13 @@ async def verify_editor_round_trip(page):
         for key in ("name", "parallelism", "local-time-zone"):
             assert saved["pipeline"][key] == config["pipeline"][key]
         await page.reload()
-        await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
+        await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
+        advanced = await open_advanced(page, "DDL 能力配置")
         if enabled:
             await expect(schema_switch).to_be_checked()
         else:
             await expect(schema_switch).not_to_be_checked()
+        await advanced.get_by_role("button", name="取消", exact=True).click()
 
     positioned = deepcopy(state["task"]["parameters"])
     positioned["source"]["startup"] = {
@@ -482,12 +612,12 @@ async def verify_editor_round_trip(page):
         "gtidSet": "24bc7850-2c16-11e6-a073-0242ac110002:1-12", "skipEvents": 2, "skipRows": 1,
     }
     state["task"] = {**state["task"], "parameters": positioned,
-                     "definitionVersion": state["task"]["definitionVersion"] + 1}
+                     "definitionVersion": state["task"]["definitionVersion"] + 1,
+                     "revision": state["task"]["revision"] + 1}
     await page.reload()
-    strategy = page.get_by_role("combobox", name="读取策略", exact=True)
-    await expect(strategy).to_contain_text("仅增量")
-    await pick_option(page, strategy, "仅增量")
-    await schema_switch.click()
+    await expect_read_strategy(page, "仅增量")
+    await set_read_strategy(page, "仅增量")
+    await set_schema_changes(page, False)
     async with page.expect_response(lambda response: response.request.method == "PUT"
                                     and response.url.endswith("/api/v1/task-definitions/task1")):
         await page.get_by_role("button", name="保存", exact=True).click()
@@ -507,9 +637,8 @@ async def verify_editor_round_trip(page):
         await pick_option(page, page.locator("#datasource").get_by_role("combobox", name="数据源", exact=True).nth(index), label)
     await page.get_by_role("checkbox", name="选择 app.orders", exact=True).check()
     await pick_option(page, page.get_by_role("combobox", name="去向表 app.orders", exact=True), "ods.ods_orders")
-    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
-    await schema_switch.click()
-    await expect(schema_switch).not_to_be_checked()
+    await expect_save_rejected(page, "无主键来源表需关闭同步结构变更")
+    await set_schema_changes(page, False)
     await pick_option(page, page.get_by_role("combobox", name="快照分片字段", exact=True), "bucket")
     # An explicit change of write identity must not retain hidden target-key overrides.
     await page.get_by_role("textbox", name="目标主键", exact=True).fill("bucket")
@@ -517,7 +646,7 @@ async def verify_editor_round_trip(page):
     await pick_option(page, writer, "逐行更新")
     await expect(page.get_by_role("textbox", name="目标主键", exact=True)).to_have_count(0)
     await expect(page.get_by_role("checkbox", name="选择 app.other_orders", exact=True)).to_be_disabled()
-    await expect(page.get_by_role("combobox", name="读取策略", exact=True)).to_be_disabled()
+    await expect_read_strategy(page, "全量后持续增量", disabled=True)
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
     await page.get_by_role("button", name="保存", exact=True).click()
     await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
@@ -530,7 +659,141 @@ async def verify_editor_round_trip(page):
     await page.reload()
     await expect(writer).to_contain_text("逐行更新")
     await expect(page.get_by_role("combobox", name="快照分片字段", exact=True)).to_contain_text("bucket")
+    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
+
+
+async def verify_version_publication(page):
+    """Drawer drafts, immutable history, explicit publication and route protection via real UI."""
+    from mock_api import params, task
+
+    original = deepcopy(params)
+    original["pipeline"]["pipeline.table-scope"] = "SINGLE"
+    state["task"] = definition_response({**task, "parameters": original})
+    historical_instance = deepcopy(instance)
+    await page.goto(site("/data-sync/task1/edit"))
+    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
+    await expect(page.get_by_role("button", name="发布", exact=True)).to_be_disabled()
+    await expect(page.get_by_role("button", name="转为脚本", exact=True)).to_have_count(0)
+
+    # Cancel is local to a drawer, and applying a drawer still does not save the task.
+    properties = await open_properties(page)
+    await properties.get_by_role("textbox", name="任务名称", exact=True).fill("Canceled name")
+    await properties.get_by_role("button", name="取消", exact=True).click()
+    await expect_task_name(page, task["name"])
+    assert state["updated_tasks"] == 0
+    await rename_task(page, "Versioned orders")
+    assert state["updated_tasks"] == 0 and state["task"]["name"] == task["name"]
+    await page.get_by_role("button", name="任务列表", exact=True).click()
+    guard = page.get_by_role("dialog", name="离开当前页面", exact=True)
+    await expect(guard).to_be_visible()
+    await guard.get_by_role("button", name="继续编辑", exact=True).click()
+    await expect_task_name(page, "Versioned orders")
+    async with page.expect_response(lambda response: response.request.method == "PUT"
+                                    and response.url.endswith("/api/v1/task-definitions/task1")):
+        await page.get_by_role("button", name="保存", exact=True).click()
+    assert state["task"]["definitionVersion"] == 1 and state["task"]["revision"] == 2
+
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await advanced.get_by_role("textbox", name="并行度", exact=True).fill("9")
+    await advanced.get_by_role("button", name="取消", exact=True).click()
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await expect(advanced.get_by_role("textbox", name="并行度", exact=True)).to_have_value("")
+    await advanced.get_by_role("textbox", name="并行度", exact=True).fill("4")
+    await advanced.get_by_role("switch", name="Debug", exact=True).click()
+    await expect(advanced.get_by_role("switch", name="Debug", exact=True)).to_be_checked()
+    await apply_drawer(advanced)
+    assert state["task"]["definitionVersion"] == 1 and not state["task"]["debug"]
+    async with page.expect_response(lambda response: response.request.method == "PUT"
+                                    and response.url.endswith("/api/v1/task-definitions/task1")):
+        await page.get_by_role("button", name="保存", exact=True).click()
+    assert state["task"]["status"] == "PUBLISHED"
+    assert state["task"]["definitionVersion"] == 2 and state["task"]["publishedVersion"] == 1
+    assert state["task"]["debug"] and state["task"]["publishedDebug"] is False
+    assert state["task"]["hasUnpublishedChanges"] and not state["publications"]
+    assert instance == historical_instance
+    saved_v2 = deepcopy(state["task"])
+
+    await page.get_by_role("button", name="版本", exact=True).click()
+    versions = page.get_by_role("dialog", name="版本", exact=True)
+    old_row = versions.locator("tbody tr").filter(has=page.get_by_text("V1", exact=True))
+    await old_row.get_by_role("button", name="查看", exact=True).click()
+    snapshot = versions.locator('pre[aria-label="参数版本 V1"]')
+    await expect(snapshot).to_be_visible()
+    assert json.loads(await snapshot.inner_text()) == original
+    await expect(page).to_have_url(re.compile(r"[?&]version=1(?:&|$)"))
+    await old_row.get_by_role("button", name="对比", exact=True).click()
+    await expect(versions.get_by_role("heading", name="V1 → V2", exact=True)).to_be_visible()
+    await expect(versions.get_by_text("引擎 / 并行度", exact=True)).to_be_visible()
+    await expect(guard).to_have_count(0)
+    await page.screenshot(path=str(Path(os.environ["YAK_UI_ARTIFACT_DIR"]) / "version-comparison.png"), full_page=True)
+    await versions.get_by_role("button", name="还原到当前编辑", exact=True).click()
+    restore = page.get_by_role("dialog", name="还原参数版本 V1", exact=True)
+    await expect(restore).to_be_visible()
+    await restore.get_by_role("button", name="确认", exact=True).click()
+    await expect(restore).to_be_hidden()
+    assert state["task"] == saved_v2, "Restoring history must not save or publish automatically"
+    assert state["versions"][("task1", 1)]["parameters"] == original
+    await expect_task_name(page, "Versioned orders")
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await expect(advanced.get_by_role("switch", name="Debug", exact=True)).to_be_checked()
+    await expect(advanced.get_by_role("textbox", name="并行度", exact=True)).to_have_value("")
+    await advanced.get_by_role("button", name="取消", exact=True).click()
+
+    # History query changes must remain usable while the restored page has unsaved parameters.
+    await page.get_by_role("button", name="版本", exact=True).click()
+    current_row = versions.locator("tbody tr").filter(has=page.get_by_text("V2", exact=True))
+    await current_row.get_by_role("button", name="查看", exact=True).click()
+    await expect(versions.locator('pre[aria-label="参数版本 V2"]')).to_be_visible()
+    await versions.get_by_role("tab", name="发布记录", exact=True).click()
+    await expect(versions.get_by_text("暂无发布记录", exact=True)).to_be_visible()
+    await expect(guard).to_have_count(0)
+    await versions.get_by_role("button", name="关闭", exact=True).click()
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
+    async with page.expect_response(lambda response: response.request.method == "PUT"
+                                    and response.url.endswith("/api/v1/task-definitions/task1")):
+        await page.get_by_role("button", name="保存", exact=True).click()
+    assert state["task"]["definitionVersion"] == 3 and state["task"]["parameters"] == original
+    assert state["task"]["publishedVersion"] == 1 and state["task"]["publishedDebug"] is False
+    assert state["versions"][("task1", 2)]["parameters"] == saved_v2["parameters"]
+    async with page.expect_response(lambda response: response.request.method == "POST"
+                                    and response.url.endswith("/api/v1/task-definitions/task1/publish")):
+        await page.get_by_role("button", name="发布", exact=True).click()
+    await expect(page.get_by_role("button", name="发布", exact=True)).to_be_disabled()
+    assert state["task"]["publishedVersion"] == 3 and state["task"]["publishedDebug"] is True
+    assert not state["task"]["hasUnpublishedChanges"] and len(state["publications"]) == 1
+    assert instance == historical_instance
+
+    # Debug-only saves have their own revision/publication without inventing a parameter version.
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await advanced.get_by_role("switch", name="Debug", exact=True).click()
+    await apply_drawer(advanced)
+    async with page.expect_response(lambda response: response.request.method == "PUT"
+                                    and response.url.endswith("/api/v1/task-definitions/task1")):
+        await page.get_by_role("button", name="保存", exact=True).click()
+    last_write = [request[2] for request in state["requests"]
+                  if request[0] == "PUT" and request[1] == "/api/v1/task-definitions/task1"][-1]
+    assert "parameters" not in last_write
+    assert state["task"]["definitionVersion"] == 3 and state["task"]["publishedDebug"] is True
+    async with page.expect_response(lambda response: response.request.method == "POST"
+                                    and response.url.endswith("/api/v1/task-definitions/task1/publish")):
+        await page.get_by_role("button", name="发布", exact=True).click()
+    await expect(page.get_by_role("button", name="发布", exact=True)).to_be_disabled()
+    assert state["task"]["publishedDebug"] is False and len(state["publications"]) == 2
+    assert len(state["versions"]) == 3 and instance == historical_instance
+    await page.get_by_role("button", name="版本", exact=True).click()
+    await versions.get_by_role("tab", name="发布记录", exact=True).click()
+    await expect(versions.locator("tbody tr")).to_have_count(2)
+    await expect(versions.get_by_role("cell", name="开启", exact=True)).to_be_visible()
+    await expect(versions.get_by_role("cell", name="关闭", exact=True)).to_be_visible()
+    await versions.get_by_role("button", name="关闭", exact=True).click()
+    requests = [request[2] for request in state["requests"] if request[1].endswith("/publish")]
+    assert len({request["requestId"] for request in requests}) == 2
+    assert all(request["version"] == 3 and request["expectedRevision"] >= 1 for request in requests)
+
+    saved = deepcopy(state["task"])
+    await rename_task(page, "Unsaved title")
+    await leave_editor(page)
+    assert state["task"] == saved
 
 
 async def verify_field_mapping(page):
@@ -557,7 +820,7 @@ async def verify_field_mapping(page):
     await fields.get_by_role("checkbox", name="同步字段 memo", exact=True).uncheck()
     await pick_option(page, fields.get_by_role("combobox", name="amount 的输出字段", exact=True), "order_id")
     await expect(fields.get_by_text("输出字段名称不能重复", exact=True)).to_be_visible()
-    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
+    await expect_save_rejected(page, "输出字段名称不能重复")
     await pick_option(page, fields.get_by_role("combobox", name="amount 的输出字段", exact=True), "amount")
     await fields.get_by_role("button", name="上移 amount", exact=True).click()
     await fields.get_by_role("button", name="使用映射后的来源主键", exact=True).click()
@@ -591,7 +854,7 @@ async def verify_field_mapping(page):
     await page.reload()
     await expect(fields.get_by_role("textbox", name="投影表达式", exact=True)).to_have_value(projection)
     await expect(fields.get_by_role("textbox", name="行过滤", exact=True)).to_have_value(row_filter)
-    await page.get_by_role("textbox", name="任务名称", exact=True).fill("Mapped orders renamed")
+    await rename_task(page, "Mapped orders renamed")
     async with page.expect_response(lambda response: response.request.method == "PUT"
                                     and response.url.endswith("/api/v1/task-definitions/new-task")):
         await page.get_by_role("button", name="保存", exact=True).click()
@@ -618,16 +881,19 @@ async def verify_snapshot_replication(page):
     state["catalog_mode"] = "multi"
     dialog = await prepare_database_task(page, "整库实时")
     await dialog.get_by_role("button", name="下一步", exact=True).click()
-    await pick_option(page, page.get_by_role("combobox", name="读取策略", exact=True), "全量后结束")
+    await set_read_strategy(page, "全量后结束")
     await pick_datasources(page)
     for table in ("batch_a", "batch_b"):
         await page.get_by_role("checkbox", name="选择 app." + table, exact=True).check()
         await pick_option(page, page.get_by_role("combobox", name="去向表 app." + table, exact=True),
                           "ods.public." + table + "_copy")
-    await expect(page.locator("#schedule")).to_be_visible()
-    await expect(page.locator("#env").get_by_text("执行完成后结束", exact=True)).to_be_visible()
-    await expect(page.get_by_role("switch", name="同步结构变更", exact=True)).to_have_count(0)
+    advanced = await open_advanced(page, "DDL 能力配置")
+    await expect(advanced.get_by_role("switch", name="同步结构变更", exact=True)).to_have_count(0)
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await expect(advanced.locator("#schedule")).to_be_visible()
+    await expect(advanced.locator("#env").get_by_text("执行完成后结束", exact=True)).to_be_visible()
     await configure_cron(page, "0 0 8 * * ?")
+    await apply_drawer(advanced)
     await page.get_by_role("button", name="保存", exact=True).click()
     await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
     saved = deepcopy(state["task"]["parameters"])
@@ -638,10 +904,16 @@ async def verify_snapshot_replication(page):
     assert len(saved["route"]) == 2 and saved["transform"] == []
     assert state["schedule"]["targetId"] == "new-task" and state["schedule"]["enabled"] is False
     await page.reload()
-    await expect(page.get_by_role("combobox", name="读取策略", exact=True)).to_contain_text("全量后结束")
-    await expect(page.locator("#basic").get_by_text("整库实时 · 全量后结束", exact=True)).to_be_visible()
-    await expect(page.locator("#schedule")).to_be_visible()
-    await page.get_by_role("button", name="保存并上线", exact=True).click()
+    await expect_read_strategy(page, "全量后结束")
+    properties = await open_properties(page)
+    await expect(properties.get_by_text("整库实时 · 全量后结束", exact=True)).to_be_visible()
+    await properties.get_by_role("button", name="取消", exact=True).click()
+    advanced = await open_advanced(page, parameter_tab="运行时配置")
+    await expect(advanced.locator("#schedule")).to_be_visible()
+    await advanced.get_by_role("button", name="取消", exact=True).click()
+    await page.get_by_role("button", name="发布", exact=True).click()
+    await expect(page.get_by_text("本次发布 V1 已确认", exact=True)).to_be_visible()
+    await page.get_by_role("button", name="任务列表", exact=True).click()
     await expect(page).to_have_url(re.compile(r"/data-sync$"))
     await pick_option(page, page.get_by_role("combobox").filter(has_text="全部同步类型"), "整库实时")
     await expect(page).to_have_url(re.compile(r"productType=DATABASE_REPLICATION"))
@@ -670,13 +942,16 @@ async def verify_snapshot_replication(page):
     await expect(page.get_by_role("button", name="停止", exact=True)).to_have_count(0)
     await page.screenshot(path=str(Path(os.environ["YAK_UI_ARTIFACT_DIR"]) / "snapshot-finished.png"), full_page=True)
 
-    # Change only the current definition fixture; the selected instance is still version 1.
+    # Publish a new current definition fixture; the selected instance is still version 1.
     current = deepcopy(saved)
     current["source"]["startup"] = {"mode": "INITIAL"}
     current["pipeline"]["execution.runtime-mode"] = "STREAMING"
     for table in current["sink"]["tables"]:
         table["write"] = {"mode": "UPSERT"}
-    state["task"] = {**state["task"], "definitionVersion": 2, "parameters": current}
+    state["task"] = definition_response({
+        **state["task"], "definitionVersion": 2, "parameters": current,
+        "publishedVersion": 2, "revision": state["task"]["revision"] + 1,
+    })
     history_schedule_id = "snapshot-history-schedule"
     instance.update({"triggerType": "SCHEDULE", "scheduleId": history_schedule_id,
                      "scheduleRevision": 3, "scheduledTime": "2030-10-14T00:01:00Z"})

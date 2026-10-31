@@ -14,6 +14,7 @@ import {
   pipelineProductType,
   parseSyncParameters,
   pipelineSyncType,
+  pipelineTableScope,
   syncTableMappings,
   usesCdcStartup,
   validateSyncParameters,
@@ -136,10 +137,12 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
         : {}),
       "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
       "pipeline.table-scope":
-        task.productType === "DATABASE_REPLICATION" &&
-        !mappings.some((mapping) => mapping.writeMode === "RETRACT")
-          ? ("DATABASE" as const)
-          : ("SINGLE" as const),
+        mappings.some((mapping) => mapping.writeMode === "RETRACT") ||
+        task.productType === "SINGLE_TABLE_BATCH"
+          ? ("SINGLE" as const)
+          : mappings.length > 1
+            ? ("DATABASE" as const)
+            : task.tableScope || ("DATABASE" as const),
     },
   };
 }
@@ -155,16 +158,18 @@ export function createDefinitionRequest(task: DataSyncTaskSavePayload) {
 }
 
 /** Omitting parameters edits metadata only and preserves the existing immutable parameter version. */
-export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload) {
+export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload, expectedRevision: number) {
   const request: {
     name: string;
     remark?: string;
     parameters?: DataSyncParameters;
     debug?: boolean;
+    expectedRevision: number;
   } = {
     name: task.name,
     remark: task.remark,
     debug: task.debug,
+    expectedRevision,
   };
   if ("productType" in task) request.parameters = buildSyncParameters(task);
   return request;
@@ -205,7 +210,12 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     sinkConnector: parameters.sink.type,
     sourceProducesChangelog: usesCdcStartup(parameters),
     transforms: parameters.transform.map((transform) => ({ ...transform })),
-    pipelineOptions: { ...parameters.pipeline },
+    pipelineOptions: Object.fromEntries(
+      Object.entries(parameters.pipeline).filter(
+        ([key]) => !["execution.runtime-mode", "pipeline.table-scope"].includes(key),
+      ),
+    ),
+    tableScope: pipelineTableScope(parameters),
     ...(configurationError ? { configurationError } : {}),
     tableMappings,
 
@@ -231,6 +241,10 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     targetSchema: mapping.target.schema ?? undefined,
     targetTable: mapping.target.table,
     definitionVersion: definition.definitionVersion,
+    revision: definition.revision,
+    publishedVersion: definition.publishedVersion,
+    publishedDebug: definition.publishedDebug,
+    hasUnpublishedChanges: definition.hasUnpublishedChanges,
     remark: definition.remark,
     createTime: definition.createTime,
     updateTime: definition.updateTime,
@@ -255,6 +269,10 @@ export function projectSyncTaskPage(page: TaskDefinitionPageResult): DataSyncTas
           name: definition.name,
           status: definition.status,
           definitionVersion: definition.definitionVersion,
+          revision: definition.revision,
+          publishedVersion: definition.publishedVersion,
+          publishedDebug: definition.publishedDebug,
+          hasUnpublishedChanges: definition.hasUnpublishedChanges,
           updateBy: definition.updateBy,
           updateTime: definition.updateTime,
           configurationError:

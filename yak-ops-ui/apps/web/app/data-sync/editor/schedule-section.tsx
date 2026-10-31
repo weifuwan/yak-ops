@@ -9,6 +9,7 @@ interface Props {
   scheduleNeedsReload: boolean;
   scheduleLoading: boolean;
   saving: boolean;
+  applicable?: boolean;
   onReload: () => void;
   onChange: (value: ScheduleTimeRule) => void;
 }
@@ -19,6 +20,7 @@ export function EditorScheduleSection({
   scheduleNeedsReload,
   scheduleLoading,
   saving,
+  applicable = true,
   onReload,
   onChange,
 }: Props) {
@@ -53,7 +55,7 @@ export function EditorScheduleSection({
             onChange={(value) => {
               onChange(value);
             }}
-            disabled={saving || scheduleNeedsReload || Boolean(schedule?.enabled)}
+            disabled={saving || scheduleNeedsReload || Boolean(schedule?.enabled) || !applicable}
             allowClear={!schedule}
           />
         )}
@@ -61,6 +63,11 @@ export function EditorScheduleSection({
           <div className="text-xs text-[var(--yak-components-collapse-section-icon)]">
             请先在任务列表停止调度再修改配置
           </div>
+        ) : null}
+        {!applicable ? (
+          <p className="text-xs text-[var(--yak-components-muted-text)]">
+            当前编辑方案不支持调度，已有调度仍按已发布版本执行。
+          </p>
         ) : null}
       </div>
     </CollapseSection>

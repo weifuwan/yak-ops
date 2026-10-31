@@ -1,6 +1,7 @@
 """Deterministic HTTP fixtures for UI interaction tests; never evidence for backend E2E."""
 
 import json
+import re
 from copy import deepcopy
 from urllib.parse import urlparse, parse_qs
 
@@ -33,6 +34,10 @@ task = {
     "taskType": "DATA_SYNC",
     "status": "PUBLISHED",
     "definitionVersion": 1,
+    "revision": 1,
+    "publishedVersion": 1,
+    "publishedDebug": False,
+    "hasUnpublishedChanges": False,
     "parameterSchemaVersion": 7,
     "parameters": params,
     "debug": False,
@@ -80,6 +85,7 @@ state = {
     "fail_publish": False,
     "logged_out": False,
     "versions": {},
+    "publications": [],
     "solution_requests": [],
     "task": task,
     "unexpected_requests": [],
@@ -99,6 +105,30 @@ def paging(rows, page_no=1, page_size=200):
 def remember_definition(definition):
     key = (definition["id"], definition["definitionVersion"])
     state["versions"].setdefault(key, deepcopy(definition))
+
+
+def definition_response(definition):
+    """Expose draft and published state separately, as the definition HTTP API does."""
+    return {
+        **definition,
+        "hasUnpublishedChanges": (
+            definition["definitionVersion"] != definition.get("publishedVersion")
+            or definition["debug"] != definition.get("publishedDebug")
+        ),
+    }
+
+
+def version_response(definition, include_parameters=False):
+    result = {
+        "definitionId": definition["id"],
+        "version": definition["definitionVersion"],
+        "parameterSchemaVersion": definition["parameterSchemaVersion"],
+        "createBy": definition.get("updateBy", "user1"),
+        "createTime": definition["updateTime"],
+    }
+    if include_parameters:
+        result["parameters"] = deepcopy(definition["parameters"])
+    return result
 
 
 def task_profile(definition):
@@ -195,46 +225,111 @@ async def mock(route):
             rows = [row for row in rows if row["status"] == b["status"]]
         if b.get("keyword"):
             rows = [row for row in rows if b["keyword"].lower() in row["name"].lower()]
-        data = paging(rows, b.get("pageNo", 1), b.get("pageSize", 20))
+        data = paging([definition_response(row) for row in rows], b.get("pageNo", 1), b.get("pageSize", 20))
     elif p == "/api/v1/task-definitions" and method == "POST":
         state["created_tasks"] += 1
-        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED",
-                         "definitionVersion": 1, "parameterSchemaVersion": 7}
+        state["task"] = definition_response({
+            **task, **b, "id": "new-task", "status": "UNPUBLISHED",
+            "definitionVersion": 1, "parameterSchemaVersion": 7, "revision": 1,
+            "publishedVersion": None, "publishedDebug": None,
+        })
         remember_definition(state["task"])
         data = state["task"]
     elif p.startswith("/api/v1/task-definitions/"):
-        if p.endswith("/publish"):
-            if state["fail_publish"]:
-                status, code = 400, 400
+        definition = state["task"]
+        remember_definition(definition)
+        path = p.removeprefix("/api/v1/task-definitions/").split("/")
+        if path[0] != definition["id"]:
+            status, code = 404, 404
+        elif len(path) > 1 and path[1] == "versions":
+            if len(path) == 2:
+                query = parse_qs(urlparse(r.url).query)
+                rows = [version_response(value) for (definition_id, _), value in state["versions"].items()
+                        if definition_id == definition["id"]]
+                rows.sort(key=lambda row: row["version"], reverse=True)
+                data = paging(rows, int(query.get("pageNo", [1])[0]), int(query.get("pageSize", [20])[0]))
+            else:
+                version = state["versions"].get((definition["id"], int(path[2])))
+                if version:
+                    data = version_response(version, include_parameters=True)
+                else:
+                    status, code = 404, 404
+        elif p.endswith("/publications"):
+            query = parse_qs(urlparse(r.url).query)
+            rows = [receipt for receipt in reversed(state["publications"])
+                    if receipt["definitionId"] == definition["id"]]
+            data = paging(rows, int(query.get("pageNo", [1])[0]), int(query.get("pageSize", [20])[0]))
+        elif p.endswith("/publish"):
+            receipt = next((entry for entry in state["publications"]
+                            if entry["definitionId"] == definition["id"]
+                            and entry["requestId"] == b.get("requestId")), None)
+            if (not isinstance(b.get("version"), int) or b["version"] < 1
+                    or not isinstance(b.get("expectedRevision"), int) or b["expectedRevision"] < 1
+                    or not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", b.get("requestId", ""))):
+                status, code, message = 400, 400, "发布请求缺少版本、revision 或 requestId"
+            elif receipt:
+                if (receipt["version"] != b["version"]
+                        or receipt["sourceRevision"] != b["expectedRevision"]):
+                    status, code, message = 409, 19002, "发布请求标识已用于其他请求"
+            elif b["expectedRevision"] != definition["revision"]:
+                status, code, message = 409, 19001, "任务已变更，请重新加载后重试"
+            elif (definition["id"], b["version"]) not in state["versions"]:
+                status, code = 404, 404
+            elif state["fail_publish"]:
+                status, code = 400, 19003
                 message = "同步配置校验失败"
             else:
-                state["task"] = {**state["task"], "status": "PUBLISHED"}
-            data = state["task"]
+                state["task"] = definition_response({
+                    **definition, "status": "PUBLISHED", "publishedVersion": b["version"],
+                    "publishedDebug": definition["debug"], "revision": definition["revision"] + 1,
+                })
+                state["publications"].append({
+                    "id": "publication-" + str(len(state["publications"]) + 1),
+                    "definitionId": definition["id"], "version": b["version"],
+                    "debug": definition["debug"], "requestId": b["requestId"],
+                    "sourceRevision": b["expectedRevision"], "createBy": "user1",
+                    "createTime": "2030-10-14T00:02:00",
+                })
+            if status == 200:
+                data = definition_response(state["task"])
         elif p.endswith("/unpublish"):
-            state["task"] = {**state["task"], "status": "UNPUBLISHED"}
+            state["task"] = definition_response({
+                **definition, "status": "UNPUBLISHED", "publishedVersion": None,
+                "publishedDebug": None, "revision": definition["revision"] + 1,
+            })
             data = state["task"]
         elif p.endswith("/instances"):
-            remember_definition(state["task"])
-            instance.update({"id": "i1", "definitionId": state["task"]["id"],
-                             "definitionVersion": state["task"]["definitionVersion"],
-                             "triggerType": "MANUAL", "scheduleId": None,
-                             "scheduleRevision": None, "scheduledTime": None,
-                             "status": "RUNNING", "progressPercent": 0,
-                             "endTime": None, "executionReport": state.get("run_report")})
-            state["show_instances"] = True
-            data = {"instanceId": instance["id"]}
+            if definition["status"] != "PUBLISHED" or definition.get("publishedVersion") is None:
+                status, code = 400, 400
+            else:
+                instance.update({"id": "i1", "definitionId": definition["id"],
+                                 "definitionVersion": definition["publishedVersion"],
+                                 "debug": definition["publishedDebug"],
+                                 "triggerType": "MANUAL", "scheduleId": None,
+                                 "scheduleRevision": None, "scheduledTime": None,
+                                 "status": "RUNNING", "progressPercent": 0,
+                                 "endTime": None, "executionReport": state.get("run_report")})
+                state["show_instances"] = True
+                status, data = 202, {"instanceId": instance["id"]}
         elif method == "PUT":
-            state["updated_tasks"] += 1
-            remember_definition(state["task"])
-            changed = "parameters" in b and b["parameters"] != state["task"]["parameters"]
-            state["task"] = {**state["task"], **b,
-                             "definitionVersion": state["task"]["definitionVersion"] + int(changed),
-                             **({"parameterSchemaVersion": 7} if "parameters" in b else {})}
-            remember_definition(state["task"])
-            data = state["task"]
+            if not isinstance(b.get("expectedRevision"), int) or b["expectedRevision"] < 1:
+                status, code, message = 400, 400, "保存请求缺少 expectedRevision"
+            elif b["expectedRevision"] != definition["revision"]:
+                status, code, message = 409, 19001, "任务已变更，请重新加载后重试"
+            else:
+                state["updated_tasks"] += 1
+                changed = "parameters" in b and b["parameters"] != definition["parameters"]
+                fields = {key: value for key, value in b.items() if key != "expectedRevision"}
+                state["task"] = definition_response({
+                    **definition, **fields,
+                    "definitionVersion": definition["definitionVersion"] + int(changed),
+                    "revision": definition["revision"] + 1,
+                    **({"parameterSchemaVersion": 7} if "parameters" in b else {}),
+                })
+                remember_definition(state["task"])
+                data = state["task"]
         else:
-            remember_definition(state["task"])
-            data = state["task"]
+            data = definition_response(definition)
     elif p == "/api/v1/task-instances/latest":
         data = (
             [instance]

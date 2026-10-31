@@ -5,8 +5,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { readTaskDraft, taskDraftKey } from "@/service/data-sync/draft";
 import { getDataSource } from "@/service/datasource";
-import { getDataSyncTask, type DataSyncDraft } from "@/service/data-sync";
+import { getTaskDefinition, type DataSyncDraft } from "@/service/data-sync";
+import { toSyncTaskRecord } from "@/service/data-sync/definition";
 import { TaskEditor } from "./index";
+import { ReadonlyTaskEditor } from "./readonly-editor";
 
 /** Resolve the workflow from its saved definition and isolate reads by identity and workspace. */
 export function DataSyncTaskEditorPage() {
@@ -22,7 +24,17 @@ export function DataSyncTaskEditorPage() {
     refetchOnReconnect: false,
     gcTime: 0,
     queryFn: async ({ signal }) => {
-      const task = await getDataSyncTask(id!, signal);
+      const definition = await getTaskDefinition(id!, signal);
+      let task;
+      try {
+        task = toSyncTaskRecord(definition);
+      } catch (failure) {
+        return {
+          kind: "readonly" as const,
+          definition,
+          error: failure instanceof Error ? failure.message : "任务参数无法解析",
+        };
+      }
       const connections = await Promise.all([
         getDataSource(task.sourceDataSourceId, signal),
         getDataSource(task.targetDataSourceId, signal),
@@ -37,7 +49,7 @@ export function DataSyncTaskEditorPage() {
         sourceType: connections[0].dbType || "",
         targetType: connections[1].dbType || "",
       };
-      return { task, connections, draft };
+      return { kind: "editable" as const, task, connections, draft };
     },
   });
   if (!id) {
@@ -63,7 +75,22 @@ export function DataSyncTaskEditorPage() {
         正在加载同步任务...
       </div>
     );
-  return <TaskEditor key={`${key}:${id}`} {...query.data} />;
+  if (query.data.kind === "readonly")
+    return (
+      <ReadonlyTaskEditor
+        key={`${key}:${id}`}
+        definition={query.data.definition}
+        error={query.data.error}
+      />
+    );
+  return (
+    <TaskEditor
+      key={`${key}:${id}`}
+      draft={query.data.draft}
+      task={query.data.task}
+      connections={query.data.connections}
+    />
+  );
 }
 
 export default DataSyncTaskEditorPage;

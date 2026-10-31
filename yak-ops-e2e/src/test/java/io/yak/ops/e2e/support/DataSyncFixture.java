@@ -187,7 +187,7 @@ public final class DataSyncFixture implements AutoCloseable {
                                 parameters))
                 .path("id")
                 .asText();
-        if (publish) api.call("POST", "/api/v1/task-definitions/" + definition + "/publish");
+        if (publish) api.publish(definition);
         return definition;
     }
 

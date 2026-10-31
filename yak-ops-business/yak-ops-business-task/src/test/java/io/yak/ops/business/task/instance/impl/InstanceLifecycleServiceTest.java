@@ -52,6 +52,21 @@ class InstanceLifecycleServiceTest {
     }
 
     @Test
+    void queuedInstanceDispatchKeepsItsAdmittedVersionAndDebug() {
+        InstanceEntity queued = instance(TaskInstanceStatus.SUBMITTED);
+        queued.setDefinitionVersion(2);
+        queued.setDebug(true);
+        when(instances.findByIdForUpdate("ws", "i")).thenReturn(Optional.of(queued));
+        when(instances.claim("ws", "i", "owner-1", "token-1")).thenReturn(true);
+
+        DispatchTicket ticket = service.claim("ws", "i", "owner-1", "token-1");
+
+        assertEquals(2, ticket.definitionVersion());
+        assertEquals(true, ticket.debug());
+        assertEquals("d", ticket.definitionId());
+    }
+
+    @Test
     void recordsJobIdentityUnderTheWinningToken() {
         when(instances.markRunning("ws", "i", "token-1", "YAKFLOW", "job-1"))
                 .thenReturn(true);

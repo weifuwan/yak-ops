@@ -25,6 +25,26 @@ Changes only does not copy existing rows. Full load only remains a database-real
 
 The replication selection contains between 1 and 100 tables and is fixed for the execution. Selecting all current tables does not automatically subscribe to tables created later. Single-table replication and CDC snapshots are strategies within this product, not additional creation choices. Multi-table JDBC is not a Data Sync application product; the underlying Pipeline execution boundary remains separate from the two product workflows.
 
+## Edit, save, and publish
+
+The editor header shows **Task list / task name** (`任务列表 / 任务名称`). The main area contains datasource selection, source tables, and target table or field mappings. The header opens three right-side drawers:
+
+| Drawer | Contents |
+| --- | --- |
+| Properties (`属性`) | Task name, synchronization solution, task ID, and description |
+| Advanced configuration (`高级配置`) | Read strategy, write settings, runtime parameters and diagnostics, supported scheduling, DDL policy, and supported engine options |
+| Versions (`版本`) | Saved parameter versions, parameter details and comparisons, restoration, and successful publication history |
+
+Per-table write modes and keys remain with target table mappings. Advanced configuration exposes the capabilities supported by the selected connectors and execution strategy; the DDL and engine controls do not add support for arbitrary engine options. Confirming Properties or Advanced configuration applies its values to the page. Canceling or closing that drawer discards its unapplied edits. Use the fixed **Save** (`保存`) and **Publish** (`发布`) actions at the bottom to persist the page. There is no conversion-to-script action.
+
+**Save** updates the task's latest saved configuration. Tasks can be saved while published or while an instance is active. A parameter change appends an immutable parameter version; changing only the name, description, or Debug setting does not append a parameter version. These saves leave the currently published parameter version and diagnostics setting unchanged.
+
+**Publish** first saves pending page changes, then validates and publishes a saved parameter version together with the saved Debug setting. Publication selects the configuration for subsequent execution submissions. It does not start an instance, restart an active instance, or enable a schedule. Existing admitted and queued instances retain their captured parameter version and Debug setting. The footer distinguishes unsaved edits, the latest saved version, the currently published version, and saved changes awaiting publication. Changes to Debug can require publication even when the parameter version number is unchanged.
+
+Periodic scheduling has its own configuration and revision. Saving task changes and a changed schedule uses separate requests, so they are not one atomic operation. If the task save succeeds but the schedule request fails or its result is unknown, the editor reports that the task was saved, retains the schedule input, and stops before publication. Reload the schedule state before deciding how to continue. A saved schedule is not automatically enabled. Stop an enabled schedule before changing its timing rule; publishing a version that cannot use periodic scheduling is also rejected while that schedule remains enabled. Unpublishing requires no active instance, disables the task's schedule, and clears the published configuration while retaining saved parameter versions.
+
+Task writes use a task revision to detect concurrent edits; schedule writes use the separate schedule revision. On a conflict, the editor retains local input so the user can inspect remote state before replacing it. A publish request uses an idempotency key: retrying that same request does not create a second publication. A successful task save remains saved if later publication validation fails, and the previous published configuration remains available for execution.
+
 ## Definition format
 
 The Task API persists immutable JSON definitions with parameter schema version **7**. Source and sink types are installed Connector factory identifiers. The Task plugin converts JSON to YAML before validation and composition; the engine accepts Pipeline definitions independently of the UI transport.
@@ -99,8 +119,32 @@ The exact filters `sourceType`, `sinkType`, `runtimeMode`, `tableScope`, `source
 
 ## Versions and execution
 
-Task submission checks authorized resources and metadata revisions. Composition produces a deferred execution, and physical start follows durable Instance registration. Cancellation, terminal outcome, physical job identity, and progress flow through the Task handle. Editing executable parameters creates a new immutable version; changing only the task name or description does not. Execution history uses the definition version bound to each Instance and does not reinterpret existing checkpoints or executions using the latest task configuration.
+The Versions drawer separates **Development history** (`开发记录`) from **Publication history** (`发布记录`). Development history lists saved parameter versions with their author and creation time. Open a version to view its parameters or compare two saved versions. **Restore to current edit** (`还原到当前编辑`) replaces the page's parameter edits after confirmation; it preserves the current name, description, Debug setting, and schedule. Restoration does not modify a historical version or change the published task. Save the restored parameters to append a new version when they differ from the latest saved parameters, then publish when ready. Unsupported historical parameter schemas are not silently converted into the current schema.
+
+Publication history records successful publications with parameter version, the captured Debug setting, publisher, time, and request ID. It is independent of parameter version numbering: the same parameter version can be published more than once, including with a different Debug setting. A repeated request with the same idempotency key and intent returns the current task state without publishing again. Reusing that key with a different version or source revision is rejected. Failed publication attempts are not success-history entries.
+
+The Task API distinguishes the following fields on a task definition:
+
+| Field | Meaning |
+| --- | --- |
+| `definitionVersion` | Latest saved immutable parameter version |
+| `debug` | Latest saved diagnostics setting |
+| `revision` | Task edit/publication revision used for concurrent-write checks |
+| `publishedVersion`, `publishedDebug` | Published configuration for subsequent submissions; both are null while unpublished |
+| `hasUnpublishedChanges` | Whether saved parameters or diagnostics differ from the published configuration |
+
+`PUT /api/v1/task-definitions/{id}` requires `expectedRevision`. `POST /api/v1/task-definitions/{id}/publish` requires `{ "version": 3, "expectedRevision": 8, "requestId": "client-generated-unique-key" }` and returns the current task definition. The selected version must already be saved. Publication freezes the saved Debug setting at the supplied task revision; Debug is not part of the immutable parameter JSON. Name and description remain task metadata and are not restored by selecting a parameter version.
+
+`GET /api/v1/task-definitions/{id}/versions?pageNo=1&pageSize=20` returns a paginated summary without parameter payloads. Fetch the full parameter-version record with `GET /api/v1/task-definitions/{id}/versions/{version}`. `GET /api/v1/task-definitions/{id}/publications?pageNo=1&pageSize=20` returns paginated publication history. Both lists use `bizData` and `pagination`, accept page sizes from 1 to 200, and are restricted to the current authorized Workspace. Parameter schema version, parameter version, task revision, and schedule revision are separate values.
+
+Task submission uses the published parameter version and diagnostics setting and checks authorized resources and metadata revisions. Composition produces a deferred execution, and physical start follows durable Instance registration. Cancellation, terminal outcome, physical job identity, and progress flow through the Task handle. Execution history uses the definition version bound to each Instance and does not reinterpret existing checkpoints or executions using the latest saved or published task configuration. Saving a new version or changing Debug does not alter subsequent submissions until that configuration is published.
 
 Bounded JDBC cursor bindings include the effective transform and its expression settings. Changing projection, filter, transformed keys, time zone, or decimal precision behavior requires explicit initialization under a new definition; an existing committed cursor is not silently reused for changed semantics. Cosmetic task changes retain the cursor. JDBC changelog writes assign each target table to one writer, preserving the order of output-key changes and key reuse while allowing different tables to run in parallel.
 
 Earlier parameter schema versions are explicitly rejected and must be recreated using the current contract. No legacy execution adapter or automatic checkpoint conversion is provided.
+
+## Upgrade existing tasks
+
+The forward Flyway migration `V2__v1_4_0.sql` adds the task revision, the published parameter/diagnostics reference, and successful publication history. Existing tasks start at revision 1. For an already published task, the migration sets `publishedVersion` to its existing current parameter version and `publishedDebug` to its existing Debug setting. Unpublished tasks keep both published fields null. Existing immutable parameter versions, instance bindings, and checkpoints are unchanged. History records begin with successful publications made after the upgrade; the migration does not fabricate earlier publication events.
+
+Upgrade backend processes together with the updated frontend/API client. Stop all old backend processes before applying V2 and starting the new backend; do not run old and new backend versions against the same database. Old backends select the latest saved version for execution and do not implement the published-reference or revision contract. This migration does not provide a mixed-version deployment or an automatic database downgrade. API clients must supply the required task revision and publication request body and handle the paginated version-summary response.

@@ -47,12 +47,13 @@ class OfflineIncrementalIT extends BackendTestBase {
         fixture.assertTarget("orders", List.of(List.of(1L, "one")));
         assertEquals("2", committedCursor(definition));
 
-        fixture.api.call("POST", "/api/v1/task-definitions/" + definition + "/unpublish");
+        var saved = fixture.api.call("GET", "/api/v1/task-definitions/" + definition);
         parameters.put("transform", List.of(Map.of(
                 "source-table", fixture.sourceName + ".orders", "projection", "id, name", "filter", "id < 4")));
         var updated = fixture.api.call("PUT", "/api/v1/task-definitions/" + definition,
-                Map.of("name", "filtered-incremental", "debug", true, "parameters", parameters));
-        fixture.api.call("POST", "/api/v1/task-definitions/" + definition + "/publish");
+                Map.of("name", "filtered-incremental", "debug", true, "parameters", parameters,
+                        "expectedRevision", saved.path("revision").asLong()));
+        fixture.api.publish(definition);
         fixture.source.execute("INSERT INTO orders VALUES(3,'three')");
         String changed = fixture.submit(definition);
         fixture.awaitState(changed, "FAILED");

@@ -57,6 +57,10 @@ const definition = (parameters, changes = {}) => ({
   debug: false,
   definitionVersion: 1,
   parameterSchemaVersion: 7,
+  revision: 4,
+  publishedVersion: null,
+  publishedDebug: null,
+  hasUnpublishedChanges: true,
   parameters,
   ...changes,
 });
@@ -79,13 +83,17 @@ assert.deepEqual(syncTableMappings(parameters), [
     target: { ...mapping.target, schema: undefined },
   },
 ]);
-assert.deepEqual(updateDefinitionRequest({ name: "renamed", remark: "new remark", debug: true }), {
-  name: "renamed",
-  remark: "new remark",
-  debug: true,
-});
-assert.equal("parameters" in updateDefinitionRequest({ name: "renamed" }), false);
-assert.deepEqual(updateDefinitionRequest(replication).parameters, parameters);
+assert.deepEqual(
+  updateDefinitionRequest({ name: "renamed", remark: "new remark", debug: true }, 4),
+  {
+    name: "renamed",
+    remark: "new remark",
+    debug: true,
+    expectedRevision: 4,
+  },
+);
+assert.equal("parameters" in updateDefinitionRequest({ name: "renamed" }, 4), false);
+assert.deepEqual(updateDefinitionRequest(replication, 4).parameters, parameters);
 
 for (const [steps, mode, runtime] of [
   [["FULL", "INCREMENTAL"], "INITIAL", "STREAMING"],
@@ -109,6 +117,23 @@ for (const scope of ["SINGLE", "DATABASE", undefined]) {
   assert.equal(pipelineSyncType(scoped), "OFFLINE");
   assert.equal(pipelineTableScope(scoped), scope ?? "SINGLE");
 }
+const singleScopeParameters = {
+  ...parameters,
+  pipeline: { ...parameters.pipeline, "pipeline.table-scope": "SINGLE" },
+};
+const singleScopeTask = toSyncTaskRecord(definition(singleScopeParameters));
+assert.equal(singleScopeTask.tableScope, "SINGLE");
+assert.equal("pipeline.table-scope" in singleScopeTask.pipelineOptions, false);
+assert.equal("execution.runtime-mode" in singleScopeTask.pipelineOptions, false);
+assert.equal(
+  buildSyncParameters({
+    ...singleScopeTask,
+    pipelineOptions: { ...singleScopeTask.pipelineOptions, parallelism: 2 },
+  }).pipeline["pipeline.table-scope"],
+  "SINGLE",
+);
+assert.equal(singleScopeTask.revision, 4);
+assert.equal(singleScopeTask.publishedVersion, null);
 const appendSnapshot = buildSyncParameters({
   ...replication,
   steps: ["FULL"],

@@ -208,6 +208,7 @@ export type DataSyncStartupOptions = NonNullable<DataSyncParameters["source"]["s
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";
 
 export interface DataSyncTaskRecord {
+  tableScope?: "SINGLE" | "DATABASE";
   sourceConnector: string;
   sinkConnector: string;
   sourceProducesChangelog: boolean;
@@ -240,6 +241,10 @@ export interface DataSyncTaskRecord {
   targetSchema?: string;
   targetTable: string;
   definitionVersion: number;
+  revision: number;
+  publishedVersion: number | null;
+  publishedDebug: boolean | null;
+  hasUnpublishedChanges: boolean;
   remark?: string;
   updateBy?: string;
   createTime?: string;
@@ -263,6 +268,10 @@ export interface DataSyncUnreadableTaskRecord {
   name: string;
   status: DataSyncTaskStatus | string;
   definitionVersion: number;
+  revision: number;
+  publishedVersion: number | null;
+  publishedDebug: boolean | null;
+  hasUnpublishedChanges: boolean;
   updateBy?: string;
   updateTime?: string;
   configurationError: string;
@@ -281,6 +290,10 @@ export interface TaskDefinitionRecord {
   taskType: string;
   status: DataSyncTaskStatus | string;
   definitionVersion: number;
+  revision: number;
+  publishedVersion: number | null;
+  publishedDebug: boolean | null;
+  hasUnpublishedChanges: boolean;
   parameterSchemaVersion: number;
   parameters: DataSyncParameters & { index?: Record<string, string> };
   debug: boolean;
@@ -293,6 +306,40 @@ export interface TaskDefinitionRecord {
 export interface TaskDefinitionPageResult {
   bizData: TaskDefinitionRecord[];
   pagination: PaginationInfo;
+}
+
+export interface TaskParameterVersionSummary {
+  definitionId: string;
+  version: number;
+  parameterSchemaVersion: number;
+  createBy: string;
+  createTime: string;
+}
+
+/** Historical JSON is inspected before schema-specific editing is allowed. */
+export interface TaskParameterVersion extends TaskParameterVersionSummary {
+  parameters: unknown;
+}
+
+export interface TaskPublicationRecord {
+  id: string;
+  definitionId: string;
+  version: number;
+  debug: boolean;
+  requestId: string;
+  createBy: string;
+  createTime: string;
+}
+
+export interface TaskVersionPage<T> {
+  bizData: T[];
+  pagination: PaginationInfo;
+}
+
+export interface PublishTaskRequest {
+  version: number;
+  expectedRevision: number;
+  requestId: string;
 }
 
 interface DataSyncTaskSaveBase {
@@ -310,6 +357,7 @@ interface DataSyncTaskSaveBase {
 }
 
 export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
+  tableScope?: "SINGLE" | "DATABASE";
   sourceConnector: string;
   sinkConnector: string;
   sourceProducesChangelog: boolean;

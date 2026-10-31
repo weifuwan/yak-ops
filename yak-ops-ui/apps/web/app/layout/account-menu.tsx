@@ -11,17 +11,20 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { logout } from "@/service/auth";
+import { useLeaveGuard } from "@/context/leave-guard-context";
 
 export default function AccountMenu() {
   const navigate = useNavigate();
   const { currentUser, clearCurrentUser } = useAuth();
   const { clearWorkspace } = useWorkspace();
+  const { confirmLeave } = useLeaveGuard();
   const [loggingOut, setLoggingOut] = useState(false);
   const displayName = currentUser?.name ?? currentUser?.userName ?? "当前用户";
   const initial = displayName.slice(0, 1).toUpperCase();
 
   const handleLogout = async () => {
     if (loggingOut) return;
+    if (!(await confirmLeave())) return;
     setLoggingOut(true);
     try {
       await logout();

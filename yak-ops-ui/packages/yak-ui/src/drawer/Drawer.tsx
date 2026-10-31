@@ -66,5 +66,10 @@ export function DrawerContent({
 export type DrawerBodyProps = HTMLAttributes<HTMLDivElement>;
 
 export function DrawerBody({ className, ...props }: DrawerBodyProps) {
-  return <div className={cn("min-h-0 flex-1 overflow-y-auto p-5", className)} {...props} />;
+  return (
+    <BaseDrawer.Content
+      className={cn("min-h-0 flex-1 overflow-y-auto p-5", className)}
+      {...props}
+    />
+  );
 }

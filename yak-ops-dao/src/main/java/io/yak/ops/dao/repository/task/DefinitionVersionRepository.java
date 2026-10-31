@@ -1,7 +1,7 @@
 package io.yak.ops.dao.repository.task;
 
+import io.yak.ops.common.page.PageData;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
-import java.util.List;
 import java.util.Optional;
 
 /** Append-only immutable Definition version persistence. */
@@ -26,11 +26,13 @@ public interface DefinitionVersionRepository {
     Optional<DefinitionVersionEntity> queryCurrent(String workspaceId, String definitionId, int version);
 
     /**
-     * Lists all immutable versions of a Definition.
+     * Lists a bounded page of immutable versions without loading parameter payloads.
      *
      * @param workspaceId authorized Workspace identifier
      * @param definitionId stable Definition identifier
-     * @return version snapshots in descending version order
+     * @param pageNo one-based page number
+     * @param pageSize validated maximum records per page
+     * @return version metadata in descending version order
      */
-    List<DefinitionVersionEntity> queryByDefinition(String workspaceId, String definitionId);
+    PageData<DefinitionVersionEntity> queryPage(String workspaceId, String definitionId, int pageNo, int pageSize);
 }

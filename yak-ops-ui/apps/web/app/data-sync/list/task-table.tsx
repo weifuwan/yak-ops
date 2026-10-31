@@ -1,4 +1,4 @@
-import { Skeleton, Table, type TableColumns } from "@yak-ops/yak-ui";
+import { Button, Skeleton, Table, type TableColumns } from "@yak-ops/yak-ui";
 import { useNavigate } from "react-router-dom";
 
 import { TaskScheduleCell } from "@/app/schedule/task-schedule-cell";
@@ -97,7 +97,9 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
             {record.name}
           </div>
           <div className="mt-0.5 text-xs text-[var(--yak-components-muted-text)]">
-            v{record.definitionVersion}
+            最新 V{record.definitionVersion} ·{" "}
+            {record.publishedVersion ? `已发布 V${record.publishedVersion}` : "未发布"}
+            {record.hasUnpublishedChanges ? " · 待发布" : ""}
           </div>
         </div>
       ),
@@ -151,7 +153,8 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
       title: "调度",
       width: 200,
       render: (_value, record) =>
-        !isUnreadable(record) && record.syncType === "OFFLINE" ? (
+        !isUnreadable(record) &&
+        (record.syncType === "OFFLINE" || schedules.records.has(record.id)) ? (
           <TaskScheduleCell
             schedule={schedules.records.get(record.id)}
             name={record.name}
@@ -239,7 +242,13 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
       align: "center",
       render: (_value, record) =>
         isUnreadable(record) ? (
-          <span className="text-xs text-[var(--yak-components-muted-text)]">不可操作</span>
+          <Button
+            size="small"
+            variant="ghost"
+            onClick={() => navigate(`/data-sync/${record.id}/edit`)}
+          >
+            查看
+          </Button>
         ) : (
           <DataSyncTaskLifecycleActions
             record={record}
@@ -270,7 +279,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
             onPublish={(value) => publishTask(value)}
             onUnpublish={(value) => unpublishTask(value)}
             onEdit={(value) => {
-              if (canManageTask(value)) navigate(`/data-sync/${value.id}/edit`);
+              navigate(`/data-sync/${value.id}/edit`);
             }}
             onDetail={(value) => navigate(`/data-sync/${value.id}/detail`)}
             onDelete={(value) => {

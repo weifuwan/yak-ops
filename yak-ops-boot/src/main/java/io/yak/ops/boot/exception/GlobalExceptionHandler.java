@@ -4,6 +4,7 @@ import io.yak.ops.business.datasource.exception.DataSourceException;
 import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.enums.schedule.ScheduleErrorCode;
+import io.yak.ops.common.enums.task.DefinitionErrorCode;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.result.ErrorCode;
 import io.yak.ops.common.result.Result;
@@ -123,7 +124,15 @@ public class GlobalExceptionHandler {
         if (errorCode == CommonErrorCode.PARAM_NOT_VALID) return HttpStatus.BAD_REQUEST;
         if (errorCode == CommonErrorCode.RESOURCE_NOT_EXISTS) return HttpStatus.NOT_FOUND;
         if (errorCode == CommonErrorCode.RESOURCE_DUPLICATION) return HttpStatus.CONFLICT;
+        if (errorCode == CommonErrorCode.TASK_INSTANCE_ACTIVE) return HttpStatus.CONFLICT;
         if (errorCode == CommonErrorCode.COMMON_FAIL) return HttpStatus.INTERNAL_SERVER_ERROR;
+
+        if (errorCode instanceof DefinitionErrorCode code) {
+            return switch (code) {
+                case PUBLICATION_INVALID -> HttpStatus.BAD_REQUEST;
+                case REVISION_CONFLICT, PUBLICATION_REQUEST_CONFLICT, SCHEDULE_INCOMPATIBLE -> HttpStatus.CONFLICT;
+            };
+        }
 
         if (errorCode instanceof DataSourceErrorCode code) {
             return switch (code) {

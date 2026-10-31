@@ -16,6 +16,7 @@ export function createEditorForm(draft: DataSyncDraft, task?: DataSyncTaskRecord
     transforms: value?.transforms ?? [],
     startup: value?.startup,
     pipelineOptions: value?.pipelineOptions,
+    tableScope: value?.tableScope,
     source: {
       dataSourceId: value?.sourceDataSourceId || "",
       database: value?.sourceDatabase || "",

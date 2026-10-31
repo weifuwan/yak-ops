@@ -4,7 +4,7 @@ import { checkDataSyncStyleTokens } from "./data-sync-style-architecture.mjs";
 
 const check = (path, source) => checkDataSyncStyleTokens(path, source);
 const detail = "apps/web/app/data-sync/detail/task-summary.tsx";
-const editor = "apps/web/app/data-sync/editor/basic-section.tsx";
+const editor = "apps/web/app/data-sync/editor/properties-drawer.tsx";
 const list = "apps/web/app/data-sync/list/task-table.tsx";
 
 test("migrated Data Sync components reject fixed Tailwind colors", () => {

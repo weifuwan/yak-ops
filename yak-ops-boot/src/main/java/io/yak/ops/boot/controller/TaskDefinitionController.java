@@ -3,8 +3,11 @@ package io.yak.ops.boot.controller;
 import io.yak.ops.business.task.definition.DefinitionService;
 import io.yak.ops.common.bean.dto.task.CreateDefinitionDTO;
 import io.yak.ops.common.bean.dto.task.DefinitionQueryDTO;
+import io.yak.ops.common.bean.dto.task.PublishDefinitionDTO;
 import io.yak.ops.common.bean.dto.task.UpdateDefinitionDTO;
+import io.yak.ops.common.bean.vo.task.DefinitionPublicationVO;
 import io.yak.ops.common.bean.vo.task.DefinitionVO;
+import io.yak.ops.common.bean.vo.task.DefinitionVersionSummaryVO;
 import io.yak.ops.common.bean.vo.task.DefinitionVersionVO;
 import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.page.PagingData;
@@ -12,7 +15,6 @@ import io.yak.ops.common.result.Result;
 import io.yak.ops.security.authentication.AuthenticationManager;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Canonical Task Definition API; all writes share one plugin-independent business transaction. */
@@ -53,13 +56,29 @@ public class TaskDefinitionController {
     }
 
     @GetMapping("/{id}/versions")
-    public Result<List<DefinitionVersionVO>> versions(@PathVariable String id) {
-        return Result.success(service.queryVersions(id));
+    public Result<PagingData<DefinitionVersionSummaryVO>> versions(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "1") int pageNo,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        return Result.success(service.queryVersions(id, pageNo, pageSize));
+    }
+
+    @GetMapping("/{id}/versions/{version}")
+    public Result<DefinitionVersionVO> version(@PathVariable String id, @PathVariable int version) {
+        return Result.success(service.queryVersion(id, version));
+    }
+
+    @GetMapping("/{id}/publications")
+    public Result<PagingData<DefinitionPublicationVO>> publications(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "1") int pageNo,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        return Result.success(service.queryPublications(id, pageNo, pageSize));
     }
 
     @PostMapping("/{id}/publish")
-    public Result<DefinitionVO> publish(@PathVariable String id) {
-        return Result.success(service.publish(id, authenticationManager.getLoginUserId()));
+    public Result<DefinitionVO> publish(@PathVariable String id, @Valid @RequestBody PublishDefinitionDTO dto) {
+        return Result.success(service.publish(id, dto, authenticationManager.getLoginUserId()));
     }
 
     @PostMapping("/{id}/unpublish")

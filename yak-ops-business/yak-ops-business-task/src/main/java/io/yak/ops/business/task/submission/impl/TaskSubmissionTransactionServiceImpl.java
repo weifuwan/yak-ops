@@ -38,10 +38,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.dolphinscheduler.registry.api.Registry;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
@@ -96,7 +98,8 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
         }
         TaskExecutionIdentity context = request.identity();
         String workspaceId = context.workspaceId();
-        var replay = instances.findByRequest(workspaceId, request.triggerType(), request.requestId());
+        Optional<InstanceEntity> replay =
+                instances.findByRequest(workspaceId, request.triggerType(), request.requestId());
         if (replay.isPresent()) {
             InstanceEntity existing = replay.orElseThrow();
             if (!existing.getRequestFingerprint().equals(request.requestFingerprint())) {
@@ -109,7 +112,8 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
                 .queryByIdForUpdate(workspaceId, context.definitionId())
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
         if (definition.getStatus() != DefinitionStatus.PUBLISHED
-                || !definition.getCurrentVersion().equals(context.definitionVersion())
+                || !Objects.equals(definition.getPublishedVersion(), context.definitionVersion())
+                || !Objects.equals(definition.getPublishedDebug(), request.debug())
                 || !definition.getTaskType().equals(request.plugin().type())
                 || versions.queryCurrent(workspaceId, definition.getId(), context.definitionVersion())
                         .isEmpty()) {
@@ -131,7 +135,7 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
         instance.setDefinitionId(context.definitionId());
         instance.setDefinitionVersion(context.definitionVersion());
         instance.setDefinitionName(definition.getName());
-        instance.setDebug(definition.isDebug());
+        instance.setDebug(request.debug());
         instance.setTaskType(definition.getTaskType());
         instance.setTriggerType(request.triggerType());
         instance.setRequestId(request.requestId());
@@ -195,8 +199,9 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
             admissionController.stop();
             throw new IllegalStateException("Schedule database ownership was lost");
         }
-        var fire = fires.findForUpdate(trigger.workspaceId(), key);
-        var instance = instances.findByRequestForUpdate(trigger.workspaceId(), TaskTriggerType.SCHEDULE, key);
+        Optional<ScheduleFireEntity> fire = fires.findForUpdate(trigger.workspaceId(), key);
+        Optional<InstanceEntity> instance =
+                instances.findByRequestForUpdate(trigger.workspaceId(), TaskTriggerType.SCHEDULE, key);
         if (fire.isPresent() || instance.isPresent()) {
             if (!workspaces.isActiveMember(trigger.workspaceId(), schedule.getEnabledBy())) {
                 throw new BusinessException(ScheduleErrorCode.ACCESS_DENIED);
@@ -239,7 +244,8 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
         if (request == null) {
             throw new IllegalStateException("New schedule occurrence has no prepared Task input");
         }
-        if (definition.getCurrentVersion() != request.identity().definitionVersion()
+        if (!Objects.equals(definition.getPublishedVersion(), request.identity().definitionVersion())
+                || !Objects.equals(definition.getPublishedDebug(), request.debug())
                 || !definition.getTaskType().equals(request.plugin().type())
                 || versions.queryCurrent(
                                 trigger.workspaceId(),
@@ -263,7 +269,7 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
         }
         // The savepoint is inside this interceptor boundary: expected conflict never marks the outer transaction
         // rollback-only.
-        var status = TransactionAspectSupport.currentTransactionStatus();
+        TransactionStatus status = TransactionAspectSupport.currentTransactionStatus();
         Object savepoint = status.createSavepoint();
         try {
             SubmissionResult admitted = persist(request, definition, currentPlan);
@@ -309,7 +315,9 @@ public class TaskSubmissionTransactionServiceImpl implements TaskSubmissionTrans
         if (definition.getDeletedAt() != null) {
             return ScheduleFireReason.TARGET_DELETED;
         }
-        if (definition.getStatus() != DefinitionStatus.PUBLISHED) {
+        if (definition.getStatus() != DefinitionStatus.PUBLISHED
+                || definition.getPublishedVersion() == null
+                || definition.getPublishedDebug() == null) {
             return ScheduleFireReason.TARGET_UNPUBLISHED;
         }
         if (!workspaces.isActiveMember(trigger.workspaceId(), schedule.getEnabledBy())) {

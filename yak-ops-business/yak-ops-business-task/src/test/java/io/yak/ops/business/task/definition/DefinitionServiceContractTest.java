@@ -1,6 +1,7 @@
 package io.yak.ops.business.task.definition;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -13,12 +14,18 @@ import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.page.PageData;
+import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
+import io.yak.ops.dao.entity.task.DefinitionPublicationEntity;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionPageQuery;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
-import java.lang.reflect.Field;
+import io.yak.ops.dao.repository.task.DefinitionPublicationRepository;
+import io.yak.ops.dao.repository.task.InstanceRepository;
+import io.yak.ops.dao.repository.schedule.ScheduleRepository;
+import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,14 +43,12 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 class DefinitionServiceContractTest {
 
-    private final DefinitionServiceImpl service = new DefinitionServiceImpl();
     private final DefinitionRepository definitions = mock(DefinitionRepository.class);
     private final DefinitionVersionRepository versions = mock(DefinitionVersionRepository.class);
-
-    DefinitionServiceContractTest() {
-        inject("definitionRepository", definitions);
-        inject("versionRepository", versions);
-    }
+    private final DefinitionPublicationRepository publications = mock(DefinitionPublicationRepository.class);
+    private final DefinitionServiceImpl service = new DefinitionServiceImpl(
+            definitions, versions, mock(TaskPluginManager.class), mock(TaskValidationContext.class),
+            mock(PublicationService.class), mock(ScheduleRepository.class), mock(InstanceRepository.class), publications);
 
     @AfterEach
     void clearWorkspace() {
@@ -60,26 +65,57 @@ class DefinitionServiceContractTest {
         definition.setTaskType("DATA_SYNC");
         definition.setStatus(DefinitionStatus.PUBLISHED);
         definition.setCurrentVersion(5);
+        definition.setPublishedVersion(5);
+        definition.setPublishedDebug(false);
+        definition.setRevision(8);
         when(definitions.queryById("ws", "task-1")).thenReturn(Optional.of(definition));
 
         DefinitionVersionEntity version = new DefinitionVersionEntity();
         version.setDefinitionId("task-1");
-                version.setVersion(5);
+        version.setVersion(5);
+        version.setCreateBy("editor");
         version.setParameters("{\"sourceTable\":\"orders\"}");
         when(versions.queryCurrent("ws", "task-1", 5)).thenReturn(Optional.of(version));
-        when(versions.queryByDefinition("ws", "task-1")).thenReturn(List.of(version));
+        when(versions.queryPage("ws", "task-1", 1, 20)).thenReturn(PageData.of(List.of(version), 1, 1, 20));
 
         assertEquals("PUBLISHED", service.query("task-1").getStatus());
         assertEquals(5, service.query("task-1").getDefinitionVersion());
-        assertEquals(1, service.queryVersions("task-1").size());
-        assertEquals(5, service.queryVersions("task-1").getFirst().getVersion());
+        assertEquals(1, service.queryVersions("task-1", 1, 20).getBizData().size());
+        assertEquals(5, service.queryVersions("task-1", 1, 20).getBizData().getFirst().getVersion());
+        assertEquals("editor", service.queryVersions("task-1", 1, 20).getBizData().getFirst().getCreateBy());
+        assertFalse(JSONUtils.toJson(service.queryVersions("task-1", 1, 20)).contains("sourceTable"));
+        assertEquals(version.getParameters(), service.queryVersion("task-1", 5).getParameters());
+        assertEquals("editor", service.queryVersion("task-1", 5).getCreateBy());
+        assertFalse(service.query("task-1").isHasUnpublishedChanges());
+
+        DefinitionPublicationEntity publication = new DefinitionPublicationEntity();
+        publication.setId("receipt");
+        publication.setDefinitionId("task-1");
+        publication.setVersion(5);
+        publication.setCreateBy("publisher");
+        publication.setRequestId("request-1");
+        when(publications.queryPage("ws", "task-1", 1, 20))
+                .thenReturn(PageData.of(List.of(publication), 1, 1, 20));
+        assertEquals("publisher", service.queryPublications("task-1", 1, 20).getBizData().getFirst().getCreateBy());
+        assertEquals("request-1", service.queryPublications("task-1", 1, 20).getBizData().getFirst().getRequestId());
     }
 
     @Test
     void shouldRejectMissingWorkspaceScopedDefinition() {
         WorkspaceContext.bind("another-workspace");
         assertThrows(BusinessException.class, () -> service.query("task-1"));
-        assertThrows(BusinessException.class, () -> service.queryVersions("task-1"));
+        assertThrows(BusinessException.class, () -> service.queryVersions("task-1", 1, 20));
+        assertThrows(BusinessException.class, () -> service.queryVersion("task-1", 5));
+        assertThrows(BusinessException.class, () -> service.queryPublications("task-1", 1, 20));
+    }
+
+    @Test
+    void historyPaginationIsBounded() {
+        WorkspaceContext.bind("ws");
+        assertEquals(CommonErrorCode.PARAM_NOT_VALID, assertThrows(BusinessException.class,
+                () -> service.queryVersions("task-1", 0, 20)).getErrorCode());
+        assertEquals(CommonErrorCode.PARAM_NOT_VALID, assertThrows(BusinessException.class,
+                () -> service.queryPublications("task-1", 1, 201)).getErrorCode());
     }
 
     @ParameterizedTest
@@ -134,13 +170,4 @@ class DefinitionServiceContractTest {
                 Arguments.of(null, "SINGLE_TABLE_BATCH"));
     }
 
-    private void inject(String name, Object dependency) {
-        try {
-            Field field = DefinitionServiceImpl.class.getDeclaredField(name);
-            field.setAccessible(true);
-            field.set(service, dependency);
-        } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException(exception);
-        }
-    }
 }

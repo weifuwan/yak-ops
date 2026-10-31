@@ -22,6 +22,7 @@ import io.yak.ops.common.util.BeanCopyUtils;
 import io.yak.ops.common.util.DateUtils;
 import io.yak.ops.dao.entity.schedule.ScheduleEntity;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
+import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.repository.schedule.ScheduleFireRepository;
 import io.yak.ops.dao.repository.schedule.SchedulePageQuery;
 import io.yak.ops.dao.repository.schedule.ScheduleRepository;
@@ -29,6 +30,7 @@ import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.plugin.scheduler.api.CronService;
 import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPlugin;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.workspace.WorkspaceService;
 import jakarta.annotation.Resource;
@@ -170,7 +172,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                                 .anyMatch(id -> id == null || id.isBlank() || id.length() > 64))) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
-        var page = schedules.queryPage(new SchedulePageQuery(
+        PageData<ScheduleEntity> page = schedules.queryPage(new SchedulePageQuery(
                 workspaceId,
                 dto.getPageNo(),
                 dto.getPageSize(),
@@ -250,7 +252,10 @@ public class ScheduleServiceImpl implements ScheduleService {
         requireRevision(schedule, revision);
         Instant now = scheduleClock.instant().truncatedTo(ChronoUnit.MILLIS);
         if (enabled) {
-            if (definition.getDeletedAt() != null || definition.getStatus() != DefinitionStatus.PUBLISHED) {
+            if (definition.getDeletedAt() != null
+                    || definition.getStatus() != DefinitionStatus.PUBLISHED
+                    || definition.getPublishedVersion() == null
+                    || definition.getPublishedDebug() == null) {
                 throw new BusinessException(ScheduleErrorCode.TARGET_UNPUBLISHED);
             }
             if (!detail(schedule, definition).isSchedulable()) {
@@ -291,7 +296,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                         && !query.getFrom().isBefore(query.getUntil()))) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
-        var schedule = schedules
+        ScheduleEntity schedule = schedules
                 .queryIncludingDeleted(workspaceId, id)
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
         definitions
@@ -379,16 +384,19 @@ public class ScheduleServiceImpl implements ScheduleService {
             result.setEligibilityReason("TARGET_DELETED");
             return result;
         }
-        if (definition.getStatus() != DefinitionStatus.PUBLISHED) {
+        if (definition.getStatus() != DefinitionStatus.PUBLISHED
+                || definition.getPublishedVersion() == null
+                || definition.getPublishedDebug() == null) {
             result.setEligibilityReason("TARGET_UNPUBLISHED");
             return result;
         }
-        var plugin = plugins.get(definition.getTaskType());
+        TaskPlugin plugin = plugins.get(definition.getTaskType());
         if (!(plugin instanceof TaskChannel executable)) {
             result.setEligibilityReason("NOT_SCHEDULABLE");
             return result;
         }
-        var version = versions.queryCurrent(entity.getWorkspaceId(), definition.getId(), definition.getCurrentVersion())
+        DefinitionVersionEntity version = versions.queryCurrent(
+                        entity.getWorkspaceId(), definition.getId(), definition.getPublishedVersion())
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
         boolean eligible = executable.supportsScheduling(
                 executable.parse(version.getParameterSchemaVersion(), version.getParameters()));

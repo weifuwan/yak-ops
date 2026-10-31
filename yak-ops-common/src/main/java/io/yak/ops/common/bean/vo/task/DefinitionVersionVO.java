@@ -18,4 +18,6 @@ public class DefinitionVersionVO {
     private String parameters;
     /** Timestamp when the immutable version was created. */
     private LocalDateTime createTime;
+    /** Actor who saved this immutable parameter snapshot. */
+    private String createBy;
 }

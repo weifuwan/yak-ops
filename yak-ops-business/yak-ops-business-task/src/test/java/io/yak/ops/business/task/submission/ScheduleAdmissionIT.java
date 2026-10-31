@@ -267,7 +267,8 @@ class ScheduleAdmissionIT {
             assertEquals(1, admitted);
             assertEquals(1, count("yak_ops_task_instance"));
             assertEquals(1, count("yak_ops_schedule_fire"));
-            jdbc.update("UPDATE yak_ops_task_definition SET current_version=2 WHERE id='task'");
+            saveNextDraft(true);
+            jdbc.update("UPDATE yak_ops_task_definition SET published_version=2,published_debug=1 WHERE id='task'");
             assertTrue(submissions.submitScheduled(trigger()).replayed());
             assertEquals(1, jdbc.queryForObject("SELECT definition_version FROM yak_ops_task_instance", Integer.class));
         }
@@ -346,13 +347,14 @@ class ScheduleAdmissionIT {
     }
 
     @Test
-    void definitionChangedAfterPreparationDoesNotMixVersions() throws Exception {
+    void publicationChangedAfterPreparationDoesNotMixVersions() throws Exception {
         PLUGIN.blockCall = 1;
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             var fire = executor.submit(() -> submissions.submitScheduled(trigger()));
             try {
                 assertTrue(PLUGIN.entered.await(10, TimeUnit.SECONDS));
-                jdbc.update("UPDATE yak_ops_task_definition SET current_version=2 WHERE id='task'");
+                saveNextDraft(false);
+                jdbc.update("UPDATE yak_ops_task_definition SET published_version=2 WHERE id='task'");
             } finally {
                 PLUGIN.release.countDown();
             }
@@ -360,6 +362,41 @@ class ScheduleAdmissionIT {
                     ScheduleFireReason.DEFINITION_CHANGED,
                     fire.get(15, TimeUnit.SECONDS).reason());
             assertEquals(0, count("yak_ops_task_instance"));
+        }
+    }
+
+    @Test
+    void draftSaveAfterPreparationDoesNotInterruptScheduledAdmission() throws Exception {
+        PLUGIN.blockCall = 1;
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var fire = executor.submit(() -> submissions.submitScheduled(trigger()));
+            try {
+                assertTrue(PLUGIN.entered.await(10, TimeUnit.SECONDS));
+                saveNextDraft(true);
+            } finally {
+                PLUGIN.release.countDown();
+            }
+            assertEquals(ScheduleFireOutcome.ADMITTED, fire.get(15, TimeUnit.SECONDS).outcome());
+            assertEquals(1, jdbc.queryForObject("SELECT definition_version FROM yak_ops_task_instance", Integer.class));
+            assertEquals(false, jdbc.queryForObject("SELECT debug FROM yak_ops_task_instance", Boolean.class));
+            assertEquals(2L, jdbc.queryForObject("SELECT revision FROM yak_ops_schedule", Long.class));
+        }
+    }
+
+    @Test
+    void debugOnlyPublicationAfterPreparationRejectsTheStaleScheduledAdmission() throws Exception {
+        PLUGIN.blockCall = 1;
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var fire = executor.submit(() -> submissions.submitScheduled(trigger()));
+            try {
+                assertTrue(PLUGIN.entered.await(10, TimeUnit.SECONDS));
+                jdbc.update("UPDATE yak_ops_task_definition SET debug=1,published_debug=1,revision=revision+1 WHERE id='task'");
+            } finally {
+                PLUGIN.release.countDown();
+            }
+            assertEquals(ScheduleFireReason.DEFINITION_CHANGED, fire.get(15, TimeUnit.SECONDS).reason());
+            assertEquals(0, count("yak_ops_task_instance"));
+            assertEquals(1, count("yak_ops_schedule_fire"));
         }
     }
 
@@ -517,9 +554,15 @@ class ScheduleAdmissionIT {
 
     private static void insertDefinition() {
         jdbc.update(
-                "INSERT INTO yak_ops_task_definition (id,workspace_id,name,task_type,status,current_version,create_time,update_time,create_by,update_by) VALUES ('task','ws','test task','SCHEDULE_TEST',1,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')");
+                "INSERT INTO yak_ops_task_definition (id,workspace_id,name,task_type,status,current_version,published_version,published_debug,create_time,update_time,create_by,update_by) VALUES ('task','ws','test task','SCHEDULE_TEST',1,1,1,0,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')");
         jdbc.update(
                 "INSERT INTO yak_ops_task_definition_version (id,workspace_id,definition_id,version,parameters,create_time,update_time,create_by,update_by) VALUES ('version','ws','task',1,'{}',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')");
+    }
+
+    private static void saveNextDraft(boolean debug) {
+        jdbc.update(
+                "INSERT INTO yak_ops_task_definition_version (id,workspace_id,definition_id,version,parameters,create_time,update_time,create_by,update_by) VALUES ('draft-version','ws','task',2,'{}',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),'actor','actor')");
+        jdbc.update("UPDATE yak_ops_task_definition SET current_version=2,debug=?,revision=revision+1 WHERE id='task'", debug);
     }
 
     @Test
@@ -719,6 +762,8 @@ class ScheduleAdmissionIT {
                     "ws", ScheduleTargetType.TASK, "task", LocalDateTime.now(ZoneOffset.UTC), "actor");
             if (unpublish) {
                 definition.setStatus(DefinitionStatus.UNPUBLISHED);
+                definition.setPublishedVersion(null);
+                definition.setPublishedDebug(null);
                 definitions.update("ws", definition);
             }
         });

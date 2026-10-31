@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   getTaskSchedule,
   scheduleErrorMessage,
@@ -6,73 +9,62 @@ import {
   type ScheduleTimeRule,
 } from "@/service/schedule";
 import { EMPTY_SCHEDULE } from "@/app/schedule/schedule-presentation";
-import type { DataSyncTaskRecord } from "@/service/data-sync";
 
 interface PendingSchedule {
   scheduleDraft?: ScheduleTimeRule;
   scheduleSaveError?: string;
 }
-export function useEditorSchedule(
-  id: string | undefined,
-  supportsScheduling: boolean,
-  initialTask: DataSyncTaskRecord | undefined,
-  pendingSchedule: PendingSchedule | null,
-) {
-  const [schedule, setSchedule] = useState<ScheduleRecord | null>(null);
-  const [scheduleForm, setScheduleForm] = useState<ScheduleTimeRule>(
-    pendingSchedule?.scheduleDraft || { ...EMPTY_SCHEDULE },
+
+/** Existing schedule identity is independent of the currently edited task strategy. */
+export function useEditorSchedule(id: string | undefined, pendingSchedule: PendingSchedule | null) {
+  const { currentUser } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
+  const queryKey = ["data-sync-editor-schedule", currentUser?.id, currentWorkspace?.id, id];
+  const query = useQuery({
+    queryKey,
+    enabled: Boolean(id && currentUser && currentWorkspace),
+    queryFn: ({ signal }) => getTaskSchedule(id!, signal),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const [authored, setAuthored] = useState<ScheduleTimeRule | undefined>(
+    pendingSchedule?.scheduleDraft,
   );
-  const [scheduleLoading, setScheduleLoading] = useState(
-    Boolean(initialTask && initialTask.syncType === "OFFLINE"),
-  );
-  const [scheduleError, setScheduleError] = useState(pendingSchedule?.scheduleSaveError || "");
-  const [scheduleNeedsReload, setScheduleNeedsReload] = useState(
+  const [writeError, setScheduleError] = useState(pendingSchedule?.scheduleSaveError || "");
+  const [needsReload, setScheduleNeedsReload] = useState(
     Boolean(pendingSchedule?.scheduleSaveError),
   );
-  const [scheduleReload, setScheduleReload] = useState(0);
   const scheduleDraft = useRef(pendingSchedule?.scheduleDraft);
-
-  useEffect(() => {
-    if (!supportsScheduling || !id) return;
-    const controller = new AbortController();
-    setScheduleLoading(true);
-    void getTaskSchedule(id, controller.signal)
-      .then((value) => {
-        if (controller.signal.aborted) return;
-        setSchedule(value);
-        if (!scheduleDraft.current) setScheduleForm(value || { ...EMPTY_SCHEDULE });
-        if (scheduleReload > 0) {
-          setScheduleError("");
-          setScheduleNeedsReload(false);
-        }
-      })
-      .catch((failure) => {
-        if (!controller.signal.aborted) {
-          setScheduleError(scheduleErrorMessage(failure));
-          setScheduleNeedsReload(true);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setScheduleLoading(false);
-      });
-    return () => controller.abort();
-  }, [id, supportsScheduling, scheduleReload]);
-
-  const reloadSchedule = () => {
+  const schedule = query.data || null;
+  const scheduleForm = authored || schedule || { ...EMPTY_SCHEDULE };
+  const setSchedule: Dispatch<SetStateAction<ScheduleRecord | null>> = (value) =>
+    queryClient.setQueryData<ScheduleRecord | null>(queryKey, (current) =>
+      typeof value === "function" ? value(current || null) : value,
+    );
+  const setScheduleForm: Dispatch<SetStateAction<ScheduleTimeRule>> = (value) =>
+    setAuthored((current) =>
+      typeof value === "function" ? value(current || schedule || EMPTY_SCHEDULE) : value,
+    );
+  const reloadSchedule = async () => {
     scheduleDraft.current = scheduleForm;
-    setScheduleReload((value) => value + 1);
+    const result = await query.refetch();
+    if (!result.isError) {
+      setScheduleError("");
+      setScheduleNeedsReload(false);
+    }
   };
   const changeSchedule = (value: ScheduleTimeRule) => {
-    setScheduleForm(value);
+    setAuthored(value);
     scheduleDraft.current = value;
     setScheduleError("");
   };
   return {
     schedule,
     scheduleForm,
-    scheduleLoading,
-    scheduleError,
-    scheduleNeedsReload,
+    scheduleLoading: Boolean(id) && query.isPending,
+    scheduleError: writeError || (query.error ? scheduleErrorMessage(query.error) : ""),
+    scheduleNeedsReload: needsReload || query.isError,
     scheduleDraft,
     setSchedule,
     setScheduleForm,
