@@ -167,7 +167,7 @@ export function DataSyncTaskDetailPage() {
           </div>
         </div>
       </div>
-      {supportsScheduling ? (
+      {supportsScheduling || Boolean(historyScheduleId) ? (
         <ScheduleDialog
           targetId={task.id}
           published={task.status === "PUBLISHED" && !task.configurationError}

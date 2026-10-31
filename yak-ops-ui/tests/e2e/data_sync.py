@@ -677,9 +677,39 @@ async def verify_snapshot_replication(page):
     for table in current["sink"]["tables"]:
         table["write"] = {"mode": "UPSERT"}
     state["task"] = {**state["task"], "definitionVersion": 2, "parameters": current}
+    history_schedule_id = "snapshot-history-schedule"
+    instance.update({"triggerType": "SCHEDULE", "scheduleId": history_schedule_id,
+                     "scheduleRevision": 3, "scheduledTime": "2030-10-14T00:01:00Z"})
+    state["fires"] = [{"id": "snapshot-fire", "scheduleId": history_schedule_id,
+                       "scheduleRevision": 3, "scheduledTime": instance["scheduledTime"],
+                       "fireTime": "2030-10-14T00:01:01Z", "outcome": "ADMITTED",
+                       "instanceId": instance["id"]}]
+    current_schedule = deepcopy(state["schedule"])
+    requests_before_history = len(state["requests"])
     await page.reload()
     await expect(page.get_by_text("整库实时 · 全量后持续增量", exact=True)).to_be_visible()
     await expect(page.get_by_role("heading", name="整库实时 · 全量后结束", exact=True)).to_be_visible()
     assert state["versions"][("new-task", 1)]["parameters"] == saved
     await expect(page.get_by_role("button", name="启动", exact=True)).to_be_visible()
     await expect(page.get_by_role("button", name="调度", exact=True)).to_have_count(0)
+    await expect(page.get_by_text("调度版本：3", exact=True)).to_be_visible()
+    await page.get_by_role("button", name="触发记录", exact=True).click()
+    history = page.get_by_role("dialog", name="触发记录", exact=True)
+    await expect(history).to_be_visible()
+    await expect(history.get_by_role("button", name="查看实例", exact=True)).to_be_visible()
+    await expect(history.get_by_role("tab", name="配置", exact=True)).to_have_count(0)
+    await expect(history.get_by_role("button", name="打开 Cron 调度配置", exact=True)).to_have_count(0)
+    await expect(history.get_by_role("switch", name="启用调度", exact=True)).to_have_count(0)
+    await expect(history.get_by_role("button", name="保存", exact=True)).to_have_count(0)
+    await expect(history.get_by_role("button", name="删除调度", exact=True)).to_have_count(0)
+    history_requests = [request for request in state["requests"][requests_before_history:]
+                        if request[1].startswith("/api/v1/schedules")]
+    assert history_requests and all(
+        request[0] == "POST" and request[1] == f"/api/v1/schedules/{history_schedule_id}/fires/page"
+        and request[3] == "ws1" for request in history_requests
+    ), history_requests
+    await history.get_by_role("button", name="关闭", exact=True).click()
+    await expect(page.get_by_role("dialog")).to_have_count(0)
+    await expect(page.get_by_role("button", name="调度", exact=True)).to_have_count(0)
+    await expect(page.get_by_role("button", name="启动", exact=True)).to_be_visible()
+    assert state["schedule"] == current_schedule
