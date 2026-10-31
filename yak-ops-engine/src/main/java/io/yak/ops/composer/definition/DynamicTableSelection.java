@@ -3,6 +3,7 @@ package io.yak.ops.composer.definition;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlTableOptions;
+import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.core.data.TableId;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,14 +48,14 @@ public final class DynamicTableSelection {
         if (!mode.equals("UPSERT") || to.containsKey("yak.mapping.write.transaction.mode")) {
             throw new IllegalArgumentException("Dynamic tables require UPSERT without checkpoint XA");
         }
-        write.put("write.mode", mode);
+        write.put(JdbcSinkOptions.WRITE_MODE.key(), mode);
         if (to.containsKey("yak.mapping.write.primary-keys")) {
             throw new IllegalArgumentException("Dynamic table defaults use each source table's physical primary key");
         }
         if (to.containsKey("yak.mapping.write.batch-size")) {
             int batch = Integer.parseInt(to.get("yak.mapping.write.batch-size"));
             if (batch < 1 || batch > 10000) throw new IllegalArgumentException("Invalid dynamic write batch size");
-            write.put("write.batch-size", batch);
+            write.put(JdbcSinkOptions.BATCH_SIZE.key(), batch);
         }
         sinkDefaults = Map.copyOf(write);
     }

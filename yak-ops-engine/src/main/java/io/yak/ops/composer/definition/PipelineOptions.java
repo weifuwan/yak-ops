@@ -372,7 +372,7 @@ public final class PipelineOptions {
             if (to.containsKey(sinkPrefix + "write.batch-size")) {
                 long size = numeric(to, sinkPrefix + "write.batch-size", 0);
                 if (size < 1 || size > 10000) throw new IllegalArgumentException("Invalid write batch size");
-                sinkOptions.put("write.batch-size", size);
+                sinkOptions.put(JdbcSinkOptions.BATCH_SIZE.key(), size);
             }
             if (xa) {
                 sinkOptions.put(JdbcSinkOptions.XA_ENABLED.key(), true);
