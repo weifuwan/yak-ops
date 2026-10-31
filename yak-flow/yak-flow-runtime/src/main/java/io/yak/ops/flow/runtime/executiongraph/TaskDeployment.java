@@ -253,12 +253,20 @@ final class TaskDeployment {
                 throw new UnsupportedOperationException(
                         "The configured Sink does not declare runtime schema evolution support");
             }
-            MetadataApplier applier =
-                    Objects.requireNonNull(schemaSink.createMetadataApplier(), "Sink returned a null MetadataApplier");
             SchemaManager manager = SchemaCoordinator.restoreManager(
                     restoredCheckpoint == null ? null : restoredCheckpoint.schemaManagerState());
+            List<SchemaVersionedTableState> initialSchemaStates = List.copyOf(schemaSink.initialSchemaState());
+            if (initialSchemaStates.isEmpty()
+                    && io.yak.ops.core.event.Event.class.isAssignableFrom(
+                            vertices.getFirst().getHeadOperator().getOutputType())) {
+                throw new IllegalStateException("Schema evolution requires admitted initial source/target schemas");
+            }
+            if (restoredCheckpoint == null) {
+                manager.initialize(initialSchemaStates);
+            } else {
+                manager.validateRestoredRoutes(initialSchemaStates);
+            }
             List<SchemaVersionedTableState> restoredSchemaStates = manager.snapshot().tables().stream()
-                    .filter(state -> state.version() > 0)
                     .map(state -> new SchemaVersionedTableState(
                             state.sourceTable(),
                             state.targetTable(),
@@ -278,6 +286,8 @@ final class TaskDeployment {
             List<OneInputStreamTask> sinkTasks = orderedInputs.stream()
                     .filter(OneInputStreamTask::isSinkTask)
                     .toList();
+            MetadataApplier applier =
+                    Objects.requireNonNull(schemaSink.createMetadataApplier(), "Sink returned a null MetadataApplier");
             schemaCoordinator = new SchemaCoordinator(
                     manager,
                     applier,

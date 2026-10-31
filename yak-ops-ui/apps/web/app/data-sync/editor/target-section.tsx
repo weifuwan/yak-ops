@@ -126,7 +126,7 @@ export function TargetSection({
             <DataSyncSearchableSelect
               placeholder="请选择写入方式"
               value={form.sink.writeMode}
-              disabled={!combination || combination.writeModes.length === 1 || usesChangelog}
+              disabled={!combination || combination.writeModes.length === 1 || continuous}
               options={(combination?.writeModes || []).map((mode) => ({
                 value: mode,
                 label:
@@ -135,7 +135,9 @@ export function TargetSection({
               onValueChange={(value) => patchSink("writeMode", value as DataSyncWriteMode)}
             />
           </Field>
-          {usesChangelog && form.source.sourceHasPrimaryKey === false ? (
+          {usesChangelog &&
+          form.source.sourceHasPrimaryKey === false &&
+          (continuous || form.sink.writeMode === "UPSERT") ? (
             <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
               <FieldLabel>目标主键</FieldLabel>
               <Input
@@ -148,7 +150,7 @@ export function TargetSection({
                     ? event.target.value.split(",").map((key) => key.trim())
                     : [];
                   patchSink("targetPrimaryKeys", keys);
-                  patchSink("writeMode", keys.some(Boolean) ? "UPSERT" : "RETRACT");
+                  patchSink("writeMode", !continuous || keys.some(Boolean) ? "UPSERT" : "RETRACT");
                 }}
               />
             </Field>

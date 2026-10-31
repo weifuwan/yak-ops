@@ -130,6 +130,11 @@ public final class SourceReaderRuntimeContext implements SourceReaderContext {
         return schemaCoordinator == null ? Optional.empty() : schemaCoordinator.sourceSchema(sourceTable);
     }
 
+    @Override
+    public long sourceSchemaVersion(TableId sourceTable) {
+        return schemaCoordinator == null ? 0 : schemaCoordinator.sourceSchemaVersion(sourceTable);
+    }
+
     private void send(io.yak.ops.flow.runtime.operators.coordination.OperatorEvent event) {
         if (environment.isCancellationRequested()) {
             return;

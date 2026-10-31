@@ -13,11 +13,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { taskDraftKey } from "@/service/data-sync/draft";
-import {
-  offlineIncremental,
-  solutionSyncType,
-  supportsMultipleTables,
-} from "@/service/data-sync/parameters";
+import { offlineIncremental, supportsMultipleTables } from "@/service/data-sync/parameters";
 import { EMPTY_INCREMENTAL } from "./incremental-fields";
 import { selectSourceSchema, selectSourceTable, setSourcePrimaryKeys } from "./source-selection";
 import { findStepCombination } from "../solution/presentation";
@@ -67,13 +63,18 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
     error: solutionsError,
     refresh: reloadSolutions,
   } = useSolutions(draft.sourceType, draft.targetType);
-  const solution = choices.find((value) => value.solutionType === draft.solutionType);
+  const solution = choices.find(
+    (value) =>
+      value.solutionType === draft.solutionType &&
+      value.sourceConnector === draft.sourceConnector &&
+      value.sinkConnector === draft.sinkConnector,
+  );
   const combination = findStepCombination(solution, draft.steps);
   const supportsScheduling = Boolean(combination?.supportsScheduling);
   const prepareSchema = draft.steps.includes("SCHEMA");
   const useIncremental = offlineIncremental(draft.solutionType, draft.steps);
   const initialLoad = draft.steps.includes("FULL");
-  const usesChangelog = solutionSyncType(draft.solutionType) === "REALTIME";
+  const usesChangelog = draft.sourceProducesChangelog;
   const continuous = usesChangelog && draft.steps.includes("INCREMENTAL");
 
   const [form, setForm] = useState<EditorForm>(() => {
@@ -103,7 +104,7 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
         writeMode:
           value?.writeMode === "RETRACT"
             ? "RETRACT"
-            : value?.writeMode === "UPSERT" || usesChangelog || useIncremental
+            : value?.writeMode === "UPSERT" || continuous || useIncremental
               ? "UPSERT"
               : "APPEND",
         targetPrimaryKeys: value?.targetPrimaryKeys ?? [],
@@ -223,7 +224,7 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
         sink: {
           ...current.sink,
           targetPrimaryKeys: [],
-          writeMode: usesChangelog ? "UPSERT" : current.sink.writeMode,
+          writeMode: continuous ? "UPSERT" : current.sink.writeMode,
         },
       }));
     } else {
@@ -246,7 +247,16 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
   };
 
   const payload = () =>
-    buildEditorPayload(form, draft, batch, mappings, usesChangelog, initialTask?.startup);
+    buildEditorPayload(
+      form,
+      draft,
+      batch,
+      mappings,
+      usesChangelog,
+      initialTask?.startup,
+      initialTask?.transforms,
+      initialTask?.pipelineOptions,
+    );
 
   const published = editing && taskStatus === "PUBLISHED";
   const canSave = canSaveEditor({
@@ -397,13 +407,13 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
             startupMode={initialTask?.startup?.mode}
             patchSource={patchSource}
             onSourceSchemaChange={(schema) =>
-              updateSourceSelection((current) => selectSourceSchema(current, schema, usesChangelog))
+              updateSourceSelection((current) => selectSourceSchema(current, schema, continuous))
             }
             onSourceTableChange={(table) =>
-              updateSourceSelection((current) => selectSourceTable(current, table, usesChangelog))
+              updateSourceSelection((current) => selectSourceTable(current, table, continuous))
             }
             onSourcePrimaryKeys={(hasPrimaryKey) =>
-              setForm((current) => setSourcePrimaryKeys(current, hasPrimaryKey))
+              setForm((current) => setSourcePrimaryKeys(current, hasPrimaryKey, continuous))
             }
           />
 

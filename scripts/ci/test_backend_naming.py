@@ -128,6 +128,16 @@ class BackendNamingTest(unittest.TestCase):
             "",
         ))
 
+    def test_retired_sync_runtime_packages_are_rejected(self):
+        for package in ("io.yak.ops.sync.runtime", "io.yak.ops.sync.runtime.pipeline"):
+            with self.subTest(package=package):
+                self.assertTrue(self.check(
+                    "yak-ops-engine/src/main/java/io/yak/ops/sync/runtime/Legacy.java", package,
+                    "class Legacy {}"))
+        self.assertEqual([], self.check(
+            "yak-ops-engine/src/main/java/io/yak/ops/composer/PipelineComposer.java",
+            "io.yak.ops.composer", "interface PipelineComposer {}"))
+
     def test_obsolete_datasync_packages_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = (Path(directory) / "yak-ops-common/src/main/java/io/yak/ops/common/bean/dto/datasync")

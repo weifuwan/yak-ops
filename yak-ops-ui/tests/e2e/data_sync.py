@@ -219,7 +219,7 @@ async def verify_multitable_mapping(page):
                 if req[0] == "POST" and req[1] == "/api/v1/task-definitions"]
     assert len(requests) == 1, requests
     parameters = requests[0]["parameters"]
-    assert parameters["source"]["type"] == "JDBC" and len(parameters["route"]) == 2, parameters
+    assert parameters["source"]["type"] == "jdbc-mysql" and len(parameters["route"]) == 2, parameters
     assert [row["table"] for row in parameters["source"]["tables"]] == ["batch_a", "batch_b"]
     assert [row["table"] for row in parameters["sink"]["tables"]] == ["batch_a_copy", "batch_b_copy"]
     assert all(row["write"]["mode"] == "UPSERT" for row in parameters["sink"]["tables"])
@@ -347,7 +347,7 @@ async def verify_realtime_stages(page):
     saved = [item[2] for item in state["requests"]
              if item[0] == "POST" and item[1] == "/api/v1/task-definitions"][-1]
     config = saved["parameters"]
-    assert config["source"]["type"] == "MYSQL_CDC" and len(config["route"]) == 2, config
+    assert config["source"]["type"] == "mysql" and len(config["route"]) == 2, config
     assert config["source"]["startup"]["mode"] == "INITIAL"
     assert len(config["sink"]["tables"]) == 2
     assert all(row["write"]["mode"] == "UPSERT" for row in config["sink"]["tables"])

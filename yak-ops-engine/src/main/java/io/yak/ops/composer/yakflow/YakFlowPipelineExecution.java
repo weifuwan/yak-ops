@@ -1,22 +1,20 @@
 package io.yak.ops.composer.yakflow;
 
+import io.yak.ops.composer.PipelineContext;
 import io.yak.ops.composer.PipelineExecution;
+import io.yak.ops.composer.PipelinePlan;
 import io.yak.ops.composer.definition.PipelineDef;
+import io.yak.ops.composer.definition.PipelineOptions;
+import io.yak.ops.composer.execution.ExecutionPhase;
+import io.yak.ops.composer.execution.IncrementalBatchPreparation;
+import io.yak.ops.composer.execution.SchemaPreparation;
+import io.yak.ops.composer.execution.TableExecutionProgress;
 import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.core.api.common.JobStatus;
 import io.yak.ops.core.exceptions.SchemaEvolveException;
 import io.yak.ops.core.execution.JobClient;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
-import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
-import io.yak.ops.sync.runtime.config.PipelineExecutionPlan;
-import io.yak.ops.sync.runtime.execution.IncrementalBatchPreparation;
-import io.yak.ops.sync.runtime.execution.SchemaPreparation;
-import io.yak.ops.sync.runtime.execution.TableExecutionProgress;
-import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;
-import io.yak.ops.sync.runtime.plan.JobPlan;
-import io.yak.ops.sync.runtime.plan.JobPlanner;
-import io.yak.ops.sync.runtime.solution.Step;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CancellationException;
@@ -31,11 +29,11 @@ import org.slf4j.MDC;
 public final class YakFlowPipelineExecution implements PipelineExecution {
     private static final Logger LOG = LoggerFactory.getLogger(YakFlowPipelineExecution.class);
     private final PipelineDef definition;
-    private final TaskExecutionResources admission;
+    private final PipelinePlan admission;
+    private final PipelineContext context;
     private final TaskExecutionIdentity identity;
     private final boolean debug;
-    private final JobPlanner planner;
-    private final PipelineBuilder builder;
+    private final YakFlowPipelineComposer composer;
     private final PipelineExecutor executor;
     private final SchemaPreparation preparation;
     private final IncrementalBatchPreparation incrementalPreparation;
@@ -51,22 +49,23 @@ public final class YakFlowPipelineExecution implements PipelineExecution {
 
     public YakFlowPipelineExecution(
             PipelineDef definition,
-            TaskExecutionResources admission,
-            TaskExecutionIdentity identity,
-            boolean debug,
-            JobPlanner planner,
-            PipelineBuilder builder,
+            PipelinePlan admission,
+            PipelineContext context,
+            YakFlowPipelineComposer composer,
             PipelineExecutor executor,
             IncrementalBatchPreparation incrementalPreparation) {
-        this.incrementalPreparation = incrementalPreparation;
         this.definition = definition;
         this.admission = admission;
-        this.identity = identity;
-        this.debug = debug;
-        this.planner = planner;
-        this.builder = builder;
+        this.context = context;
+        this.identity = new TaskExecutionIdentity(
+                context.workspaceId(), context.definitionId(), context.definitionVersion(), context.instanceId());
+        this.debug = context.debug();
+        this.composer = composer;
         this.executor = executor;
-        this.preparation = new SchemaPreparation(builder, planner);
+        this.incrementalPreparation = incrementalPreparation;
+        this.preparation = new SchemaPreparation(
+                table -> composer.createMetadataApplier(table, identity),
+                table -> composer.preparedTarget(table, identity));
     }
 
     @Override
@@ -92,22 +91,31 @@ public final class YakFlowPipelineExecution implements PipelineExecution {
         try (MDC.MDCCloseable ignored = MDC.putCloseable("taskLogId", identity.instanceId())) {
             try {
                 checkCanceled();
-                JobPlan plan = planner.plan(definition, identity);
+                PipelinePlan plan = composer.plan(definition, context);
                 verifyAdmission(plan);
-                PipelineExecutionPlan config = PipelineExecutionPlan.from(definition);
+                PipelineOptions config = PipelineOptions.from(definition);
                 IncrementalBatchPreparation.IncrementalRun incremental =
-                        config.solutionType().supportsScheduling()
-                                        && config.steps().contains(Step.INCREMENTAL)
+                        config.bounded() && config.steps().contains(ExecutionPhase.INCREMENTAL)
                                 ? incrementalPreparation.prepare(plan, config, identity)
                                 : null;
-                boolean continuous = !config.solutionType().supportsScheduling()
-                        && config.steps().contains(Step.INCREMENTAL);
+                boolean continuous = !config.bounded() && config.steps().contains(ExecutionPhase.INCREMENTAL);
                 String dataStep = continuous
-                        ? (config.steps().contains(Step.FULL) ? "FULL" : "INCREMENTAL")
+                        ? (config.steps().contains(ExecutionPhase.FULL) ? "FULL" : "INCREMENTAL")
                         : (incremental == null || incremental.initialLoad() ? "FULL" : "INCREMENTAL");
                 progress = new TableExecutionProgress(plan.tables(), new TableMetrics(), continuous, dataStep);
+                checkCanceled();
+                io.yak.ops.configuration.Configuration configuration =
+                        composer.configuration(definition, identity, debug);
+                io.yak.ops.flow.runtime.transformations.SourceTransformation<io.yak.ops.core.event.Event> source =
+                        composer.translateSource(
+                                definition,
+                                incremental == null ? plan : incremental.plan(),
+                                identity,
+                                progress,
+                                configuration);
+                checkCanceled();
                 status = JobStatus.RUNNING;
-                if (config.steps().contains(Step.SCHEMA)) {
+                if (config.steps().contains(ExecutionPhase.SCHEMA)) {
                     LOG.info(
                             "Schema preparation started, tableCount={}",
                             plan.tables().size());
@@ -116,25 +124,24 @@ public final class YakFlowPipelineExecution implements PipelineExecution {
                 checkCanceled();
                 // Schema preparation and cursor freezing change the physical plan. Revalidate
                 // its resource binding before submission; otherwise reuse the just-admitted plan.
-                JobPlan current = config.steps().contains(Step.SCHEMA) || incremental != null
-                        ? planner.plan(definition, identity)
+                PipelinePlan current = config.steps().contains(ExecutionPhase.SCHEMA) || incremental != null
+                        ? composer.plan(definition, context)
                         : plan;
                 verifyAdmission(current);
-                io.yak.ops.sync.runtime.pipeline.CompiledPipeline pipeline = builder.build(
+                io.yak.ops.flow.runtime.graph.StreamGraph graph = composer.translate(
+                        definition,
                         incremental == null ? current : incremental.apply(current),
                         identity,
-                        debug,
                         progress,
-                        config.schemaChangesEnabled(),
-                        config.allowDropColumns());
+                        configuration,
+                        source);
                 synchronized (this) {
                     checkCanceled();
                     submissionInvoked = true;
                     progress.dataSubmissionStarted();
                 }
-                io.yak.ops.core.execution.JobClient client = executor.execute(
-                                pipeline.graph(), pipeline.configuration())
-                        .join();
+                io.yak.ops.core.execution.JobClient client =
+                        executor.execute(graph, configuration).join();
                 runtime = client;
                 reference.complete(Optional.of(client.getJobID().toString()));
                 if (canceled) runtime.cancel();
@@ -181,8 +188,8 @@ public final class YakFlowPipelineExecution implements PipelineExecution {
                 }));
     }
 
-    private void verifyAdmission(JobPlan plan) {
-        if (!admission.equals(plan.admissionPlan())) {
+    private void verifyAdmission(PipelinePlan plan) {
+        if (!admission.sameAdmission(plan)) {
             throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
         }
     }

@@ -172,10 +172,14 @@ public final class SchemaCoordinator implements AutoCloseable {
 
     /** Returns the committed source schema for restoring the Debezium converter at the same offset. */
     public java.util.Optional<Schema> sourceSchema(TableId sourceTable) {
-        return manager.snapshot().tables().stream()
-                .filter(state -> state.sourceTable().equals(sourceTable))
-                .findFirst()
-                .map(io.yak.ops.flow.runtime.schema.SchemaManagerSnapshot.TableState::sourceSchema);
+        return manager.sourceState(sourceTable).map(SchemaManagerSnapshot.TableState::sourceSchema);
+    }
+
+    /** Returns the version persisted with this source table's current schema and offset. */
+    public long sourceSchemaVersion(TableId sourceTable) {
+        return manager.sourceState(sourceTable)
+                .map(SchemaManagerSnapshot.TableState::version)
+                .orElse(0L);
     }
 
     /** Fences new schema requests and waits for the active transition to finish. */

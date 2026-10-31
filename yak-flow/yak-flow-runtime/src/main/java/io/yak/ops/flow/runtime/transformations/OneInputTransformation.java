@@ -65,7 +65,7 @@ public class OneInputTransformation<IN, OUT> extends Transformation<OUT> {
         return operatorFactory;
     }
 
-    /** Selects FORWARD or REBALANCE routing; default routing depends on parallelism. */
+    /** Selects unkeyed routing, including explicit CDC event destinations; defaults depend on parallelism. */
     public final void setInputPartitioning(StreamPartitioning partitioning) {
         Objects.requireNonNull(partitioning, "partitioning must not be null");
         if (partitioning == StreamPartitioning.KEYED) {

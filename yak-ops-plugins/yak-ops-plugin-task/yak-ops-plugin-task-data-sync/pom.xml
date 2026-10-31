@@ -14,7 +14,7 @@
     <artifactId>yak-ops-plugin-task-data-sync</artifactId>
 
     <name>Yak Ops Data Sync Task Plugin</name>
-    <description>DolphinScheduler-style V6 JSON-to-YAML Task adapter</description>
+    <description>Connector-based JSON-to-YAML Task adapter</description>
 
     <dependencies>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-configuration</artifactId></dependency>

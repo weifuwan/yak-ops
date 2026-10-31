@@ -16,6 +16,14 @@ const STARTUP = new Set([
   "SPECIFIC_OFFSETS",
   "TIMESTAMP",
 ]);
+const PIPELINE_STRING_OPTIONS = [
+  "name",
+  "local-time-zone",
+  "schema.change.behavior",
+  "schema.operator.uid",
+  "route-mode",
+  "transform.decimal.precision.mode",
+] as const;
 const hasOnlyKeys = (value: object, keys: string[]) =>
   Object.keys(value).every((key) => keys.includes(key));
 const path = (table: DataSyncTablePath) =>
@@ -33,7 +41,7 @@ export function pipelineSolutionType(value: DataSyncParameters): DataSyncSolutio
   const multiple =
     value.pipeline?.["pipeline.table-scope"] === "DATABASE" ||
     (value.pipeline?.["pipeline.table-scope"] === undefined && value.source.tables.length > 1);
-  const realtime = value.source.type === "MYSQL_CDC";
+  const realtime = value.pipeline["execution.runtime-mode"] === "STREAMING";
   return realtime
     ? multiple
       ? "DATABASE_REALTIME"
@@ -72,13 +80,14 @@ export const validIncrementalConfig = (
   return true;
 };
 
-/** Parse the persisted V6 JSON without converting YAML in the frontend. */
+/** Parse the persisted Task JSON without converting YAML in the frontend. */
 export function parseSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
-  if (schemaVersion !== 6) throw new Error("不支持的同步任务参数版本");
+  if (schemaVersion !== 7) throw new Error("不支持的同步任务参数版本");
   if (!content || typeof content !== "object" || Array.isArray(content))
-    throw new Error("无效的 V6 JSON Pipeline 定义");
+    throw new Error("无效的 JSON Pipeline 定义");
   const value = { ...(content as DataSyncParameters & { index?: unknown }) };
   delete value.index;
+  if (value.transform === undefined) value.transform = [];
   if (!hasOnlyKeys(value, ["source", "sink", "route", "transform", "pipeline"]))
     throw new Error("Pipeline 包含未识别的配置项");
   validateSyncParameters(value);
@@ -113,7 +122,7 @@ export function syncTableMappings(value: DataSyncParameters): DataSyncTableMappi
 
 export function displaySyncSteps(value: DataSyncParameters): DataSyncStep[] {
   const dataSteps: DataSyncStep[] =
-    value.source.type === "MYSQL_CDC"
+    value.source.startup !== undefined
       ? value.source.startup?.mode === "SNAPSHOT"
         ? ["FULL"]
         : value.source.startup?.mode === undefined || value.source.startup.mode === "INITIAL"
@@ -136,32 +145,54 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     !value.sink ||
     !hasOnlyKeys(value.source, ["type", "datasourceId", "syncMode", "startup", "tables"]) ||
     !hasOnlyKeys(value.sink, ["type", "datasourceId", "schemaPolicy", "tables"]) ||
-    !["JDBC", "MYSQL_CDC"].includes(value.source.type) ||
-    value.sink.type !== "JDBC" ||
+    typeof value.source.type !== "string" ||
+    typeof value.sink.type !== "string" ||
+    !/^[a-z][a-z0-9-]*$/.test(value.source.type) ||
+    !/^[a-z][a-z0-9-]*$/.test(value.sink.type) ||
     !value.source.datasourceId ||
     !value.sink.datasourceId ||
     !Array.isArray(value.source.tables) ||
     !Array.isArray(value.sink.tables) ||
     !Array.isArray(value.route) ||
     !Array.isArray(value.transform) ||
-    value.transform.length !== 0 ||
     !value.source.tables.length ||
     value.source.tables.length > 100 ||
     value.source.tables.length !== value.sink.tables.length ||
     value.route.length !== value.source.tables.length ||
-    (value.pipeline !== undefined &&
-      (!hasOnlyKeys(value.pipeline, ["execution.runtime-mode", "pipeline.table-scope"]) ||
-        (value.pipeline["pipeline.table-scope"] !== undefined &&
-          !["SINGLE", "DATABASE"].includes(value.pipeline["pipeline.table-scope"])) ||
-        (value.pipeline["pipeline.table-scope"] === "SINGLE" && value.source.tables.length !== 1) ||
-        (value.pipeline["execution.runtime-mode"] !== undefined &&
-          !["BATCH", "STREAMING"].includes(value.pipeline["execution.runtime-mode"]))))
+    !value.pipeline ||
+    !hasOnlyKeys(value.pipeline, [
+      "execution.runtime-mode",
+      "pipeline.table-scope",
+      "parallelism",
+      ...PIPELINE_STRING_OPTIONS,
+    ]) ||
+    (value.pipeline["pipeline.table-scope"] !== undefined &&
+      !["SINGLE", "DATABASE"].includes(value.pipeline["pipeline.table-scope"])) ||
+    (value.pipeline["pipeline.table-scope"] === "SINGLE" && value.source.tables.length !== 1) ||
+    !["BATCH", "STREAMING"].includes(value.pipeline["execution.runtime-mode"])
   ) {
-    throw new Error("不支持的 V6 Pipeline 定义");
+    throw new Error("不支持的 Pipeline 定义");
   }
-  const realtime = value.source.type === "MYSQL_CDC";
+  const parallelism = value.pipeline.parallelism;
+  if (
+    PIPELINE_STRING_OPTIONS.some(
+      (key) => value.pipeline[key] !== undefined && typeof value.pipeline[key] !== "string",
+    ) ||
+    (parallelism !== undefined &&
+      (!/^\d+$/.test(String(parallelism)) ||
+        !Number.isSafeInteger(Number(parallelism)) ||
+        Number(parallelism) < 1))
+  ) {
+    throw new Error("无效的 Pipeline 配置项");
+  }
+  const realtime = value.source.startup !== undefined;
   const sourceKeys = ["database", "schema", "table", "snapshot", "incremental"];
   const sinkKeys = ["database", "schema", "table", "write"];
+  for (const tables of [value.source.tables, value.sink.tables]) {
+    const hasDatabase = Boolean(tables[0]?.database?.trim());
+    if (tables.some((table) => Boolean(table?.database?.trim()) !== hasDatabase))
+      throw new Error("同一端的表必须使用一致的数据库命名方式");
+  }
   for (const table of value.source.tables) {
     if (
       !table?.table ||
@@ -272,11 +303,30 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     if (
       (write.mode === "RETRACT" && !retract) ||
       (write.transaction !== undefined && !retract) ||
-      ((realtime || (steps.includes("INCREMENTAL") && !realtime)) &&
-        write.mode !== "UPSERT" &&
-        !retract)
+      (steps.includes("INCREMENTAL") && write.mode !== "UPSERT" && !retract)
     )
       throw new Error("不支持的写入模式");
+  }
+  for (const transform of value.transform) {
+    if (
+      !transform ||
+      typeof transform["source-table"] !== "string" ||
+      !transform["source-table"].trim() ||
+      !hasOnlyKeys(transform, [
+        "source-table",
+        "projection",
+        "filter",
+        "primary-keys",
+        "partition-keys",
+        "table-options",
+        "table-options.delimiter",
+        "description",
+        "converter-after-transform",
+      ]) ||
+      Object.values(transform).some((field) => typeof field !== "string")
+    ) {
+      throw new Error("无效的转换规则");
+    }
   }
   const expectedMode = realtime && steps.includes("INCREMENTAL") ? "STREAMING" : "BATCH";
   if (

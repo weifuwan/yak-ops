@@ -178,7 +178,9 @@ public class DefinitionServiceImpl implements DefinitionService {
                         .anyMatch(k -> k == null
                                 || !java.util.Set.of(
                                                 "sourceType",
-                                                "solutionType",
+                                                "sinkType",
+                                                "runtimeMode",
+                                                "tableScope",
                                                 "sourceDataSourceId",
                                                 "targetDataSourceId")
                                         .contains(k))) {

@@ -5,22 +5,21 @@ import java.util.Map;
 
 /** Typed product filters target nested canonical JSON paths; bound filter values remain parameters. */
 public final class DefinitionSqlProvider {
-    /** Immutable V6 search projection produced by the Task plugin from validated YAML. */
-    public static final String SOURCE_TYPE = """
-            (CASE WHEN v.parameter_schema_version = 6
-              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.index.sourceType'))
-            END)
-            """;
-
-    public static final String SOLUTION_TYPE = """
-            (CASE WHEN v.parameter_schema_version = 6
-              THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.index.solutionType'))
-            END)
-            """;
+    /** Runtime mode used by product views independently of the selected Connector family. */
+    public static final String RUNTIME_MODE = indexed("runtimeMode");
 
     private static final Map<String, String> JSON_FILTER_PATHS = Map.of(
-            "sourceDataSourceId", "$.index.sourceDataSourceId",
-            "targetDataSourceId", "$.index.targetDataSourceId");
+            "sourceType", "sourceType",
+            "sinkType", "sinkType",
+            "runtimeMode", "runtimeMode",
+            "tableScope", "tableScope",
+            "sourceDataSourceId", "sourceDataSourceId",
+            "targetDataSourceId", "targetDataSourceId");
+
+    private static String indexed(String field) {
+        return "(CASE WHEN v.parameter_schema_version = 7 THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.index."
+                + field + "')) END)";
+    }
 
     private DefinitionSqlProvider() {}
 
@@ -40,19 +39,11 @@ public final class DefinitionSqlProvider {
             sql.append(" OR v.parameters LIKE CONCAT('%', #{filter.keyword}, '%'))");
         }
         for (String key : filter.parameterFilters().keySet()) {
-            if ("sourceType".equals(key)) {
-                sql.append(" AND ").append(SOURCE_TYPE).append(" = #{filter.parameterFilters.sourceType}");
-                continue;
-            }
-            if ("solutionType".equals(key)) {
-                sql.append(" AND ").append(SOLUTION_TYPE).append(" = #{filter.parameterFilters.solutionType}");
-                continue;
-            }
-            String path = JSON_FILTER_PATHS.get(key);
-            if (path == null) throw new IllegalArgumentException("Unsupported definition parameter filter");
-            sql.append(" AND JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '")
-                    .append(path)
-                    .append("')) = #{filter.parameterFilters.")
+            String field = JSON_FILTER_PATHS.get(key);
+            if (field == null) throw new IllegalArgumentException("Unsupported definition parameter filter");
+            sql.append(" AND ")
+                    .append(indexed(field))
+                    .append(" = #{filter.parameterFilters.")
                     .append(key)
                     .append("}");
         }

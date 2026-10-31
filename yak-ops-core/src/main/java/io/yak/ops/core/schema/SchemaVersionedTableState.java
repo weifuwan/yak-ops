@@ -4,7 +4,7 @@ import io.yak.ops.core.data.TableId;
 import java.io.Serializable;
 import java.util.Objects;
 
-/** Committed source/target schema version exposed to a Sink when restoring a checkpoint. */
+/** Committed source/target schema, including version zero before the first DDL transition. */
 public record SchemaVersionedTableState(
         TableId sourceTable, TableId targetTable, Schema sourceSchema, Schema targetSchema, long version)
         implements Serializable {
@@ -16,8 +16,8 @@ public record SchemaVersionedTableState(
         targetTable = Objects.requireNonNull(targetTable, "targetTable");
         sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
         targetSchema = Objects.requireNonNull(targetSchema, "targetSchema");
-        if (version <= 0) {
-            throw new IllegalArgumentException("Restored evolved schema version must be positive");
+        if (version < 0) {
+            throw new IllegalArgumentException("Schema version must not be negative");
         }
     }
 }

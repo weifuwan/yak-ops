@@ -17,6 +17,11 @@ import java.util.Objects;
  * identity). The source connector supplies the before/after source schema; planning supplies the
  * before/after target schema and the ordered, validated target events. The runtime never guesses
  * a target mapping or translates arbitrary SQL.
+ *
+ * <p>A source projection can hide a schema change from a writer. Such an internal writer request
+ * has equal input and target shapes with no target events; the coordinator retains the original
+ * raw source transition and its replay identity. Target field names can differ from raw source
+ * names, so connectors own source-column attribution and destructive-change authorization.
  */
 public record SchemaChangeRequest(
         String eventId,
@@ -43,8 +48,9 @@ public record SchemaChangeRequest(
         if (eventId.isBlank()) {
             throw new IllegalArgumentException("Schema change event ID must not be blank");
         }
-        if (sourceSchemaBefore.equals(sourceSchemaAfter)) {
-            throw new IllegalArgumentException("Schema change must change the source schema");
+        if (sourceSchemaBefore.equals(sourceSchemaAfter)
+                && (!targetSchemaBefore.equals(targetSchemaAfter) || !targetChanges.isEmpty())) {
+            throw new IllegalArgumentException("An unchanged input schema cannot request target DDL");
         }
         if (targetChanges.isEmpty() && !targetSchemaBefore.equals(targetSchemaAfter)) {
             throw new IllegalArgumentException("Target schema was changed without executable target events");
@@ -60,12 +66,8 @@ public record SchemaChangeRequest(
             } else if (change instanceof AlterColumnTypeEvent alter) {
                 expectedTarget = alterColumnTypes(expectedTarget, alter);
             } else if (change instanceof DropColumnEvent drop) {
-                for (String name : drop.droppedColumnNames()) {
-                    if (sourceSchemaBefore.column(name).isEmpty()
-                            || sourceSchemaAfter.column(name).isPresent()) {
-                        throw new IllegalArgumentException("DROP COLUMN must match a removed source column");
-                    }
-                }
+                // A transform may rename a source field. The connector planner verifies source
+                // ownership and DROP authorization; this contract validates the actual target.
                 expectedTarget = SchemaUtils.applySchemaChangeEvent(expectedTarget, drop);
             } else {
                 throw new UnsupportedOperationException("Unsupported runtime target schema event: " + change.getType());
@@ -111,7 +113,8 @@ public record SchemaChangeRequest(
 
     private static Schema alterColumnTypes(Schema schema, AlterColumnTypeEvent event) {
         List<PhysicalColumn> columns = new ArrayList<>(schema.columns());
-        for (var entry : event.typeMapping().entrySet()) {
+        for (java.util.Map.Entry<String, LogicalType> entry :
+                event.typeMapping().entrySet()) {
             int index = -1;
             for (int candidate = 0; candidate < columns.size(); candidate++) {
                 if (columns.get(candidate).name().equals(entry.getKey())) {

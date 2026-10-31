@@ -94,7 +94,7 @@ public final class DataSyncFixture implements AutoCloseable {
                 "UPSERT");
     }
 
-    /** Produces mutable test scenario inputs. The public API receives V6 JSON; the Task Plugin converts to YAML. */
+    /** Produces mutable test scenario inputs. The public API receives Connector-based JSON; the Task Plugin converts to YAML. */
     public Map<String, Object> parameters(String solution, List<String> steps, List<Map<String, Object>> routes) {
         boolean realtime = solution.endsWith("_REALTIME");
         List<Map<String, Object>> sourceTables = new ArrayList<>();
@@ -124,7 +124,7 @@ public final class DataSyncFixture implements AutoCloseable {
             tableRoutes.add(Map.of("source-table", path(input), "sink-table", path(output)));
         }
         Map<String, Object> source = new LinkedHashMap<>();
-        source.put("type", realtime ? "MYSQL_CDC" : "JDBC");
+        source.put("type", realtime ? "mysql" : "jdbc-mysql");
         source.put("datasourceId", sourceId);
         source.put("tables", sourceTables);
         if (realtime) {
@@ -137,7 +137,7 @@ public final class DataSyncFixture implements AutoCloseable {
                     : steps.contains("INCREMENTAL") ? "INCREMENTAL" : "FULL");
         }
         Map<String, Object> sink = new LinkedHashMap<>();
-        sink.put("type", "JDBC");
+        sink.put("type", "jdbc-postgres");
         sink.put("datasourceId", targetId);
         sink.put("schemaPolicy", Map.of(
                 "initial", steps.contains("SCHEMA") ? "CREATE_OR_ALTER" : "VERIFY",
@@ -212,12 +212,12 @@ public final class DataSyncFixture implements AutoCloseable {
         source.execute("INSERT INTO keyless_source VALUES (1,10.00),(1,10.00),(2,NULL)");
         Map<String, Object> parameters = new LinkedHashMap<>();
         parameters.put("source", Map.of(
-                "type", "MYSQL_CDC", "datasourceId", sourceId,
+                "type", "mysql", "datasourceId", sourceId,
                 "startup", Map.of("mode", "INITIAL"),
                 "tables", List.of(Map.of("table", "keyless_source",
                         "snapshot", Map.of("chunkKeyColumn", "bucket")))));
         parameters.put("sink", Map.of(
-                "type", "JDBC", "datasourceId", sourceId,
+                "type", "jdbc-mysql", "datasourceId", sourceId,
                 "schemaPolicy", Map.of("initial", "VERIFY",
                         "evolution", Map.of("enabled", false, "allowDropColumns", false)),
                 "tables", List.of(Map.of("table", "keyless_target",

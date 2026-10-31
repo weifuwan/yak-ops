@@ -109,6 +109,9 @@ public final class MySqlSource implements Source<TableRecord, MySqlSplit, Pendin
         if (startupOptions.isStreamOnly() && parallelism != 1) {
             throw new UnsupportedOperationException("Stream-only MySQL CDC requires Source parallelism 1");
         }
+        if (!startupOptions.isStreamOnly()) {
+            config.snapshotServerId(parallelism - 1);
+        }
     }
 
     @Override

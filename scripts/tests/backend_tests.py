@@ -28,7 +28,7 @@ SUITES = {
     "pipeline": (JDBC, "pipeline", {name: 2 for name in ("MySqlToMySqlIT", "MySqlToPostgresIT", "PostgresToOracleIT", "OracleToMySqlIT")}),
     "business": (BUSINESS, "business", {"TaskCursorIT": 5, "ScheduleAdmissionIT": 13}),
     "cdc": (CDC, "cdc", {"MySqlSnapshotBackfillIT": 6, "MySqlDebeziumRecoveryIT": 1, "MySqlUnsignedChunkIT": 1, "MySqlStartupModesIT": 2}),
-    "backend-e2e": (E2E, "backend-e2e", {"TaskExecutionIT": 5, "BatchSyncIT": 2, "RealtimeSyncIT": 1, "SnapshotBackfillSinkIT": 1, "SingleTableRealtimeSchemaIT": 2, "OfflineIncrementalIT": 2, "SchemaMigrationIT": 2, "ScheduleIT": 1}),
+    "backend-e2e": (E2E, "backend-e2e", {"TaskExecutionIT": 5, "BatchSyncIT": 2, "RealtimeSyncIT": 3, "SnapshotBackfillSinkIT": 1, "SingleTableRealtimeSchemaIT": 2, "OfflineIncrementalIT": 2, "SchemaMigrationIT": 2, "ScheduleIT": 1}),
     "recovery-e2e": (E2E, "recovery-e2e", {"ProcessRecoveryIT": 2}),
 }
 

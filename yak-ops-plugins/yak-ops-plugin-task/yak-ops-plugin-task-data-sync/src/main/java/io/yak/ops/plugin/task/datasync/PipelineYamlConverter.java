@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Task-boundary adapter: public V6 JSON -> Flink CDC 3.7 Pipeline YAML.
+ * Converts the Task JSON transport into a Flink CDC Pipeline YAML definition.
  *
  * <p>Only the Task Plugin knows the product's JSON contract. The engine accepts YAML and
  * uses the upstream Flink CDC parser; it never depends on this JSON representation.
@@ -30,16 +30,21 @@ public final class PipelineYamlConverter {
         Map<String, Object> inputPipeline = object(root.get("pipeline"), "pipeline");
         checkKeys(inputSource, "source", "type", "datasourceId", "syncMode", "startup", "tables");
         checkKeys(inputSink, "sink", "type", "datasourceId", "schemaPolicy", "tables");
-        checkKeys(inputPipeline, "pipeline", "execution.runtime-mode", "pipeline.table-scope");
+        checkKeys(
+                inputPipeline,
+                "pipeline",
+                "execution.runtime-mode",
+                "pipeline.table-scope",
+                "name",
+                "parallelism",
+                "local-time-zone",
+                "schema.change.behavior",
+                "schema.operator.uid",
+                "route-mode",
+                "transform.decimal.precision.mode");
 
-        String sourceType = required(inputSource, "type");
-        if (!"MYSQL_CDC".equals(sourceType) && !"JDBC".equals(sourceType)) {
-            throw new TaskPluginException("Unsupported DATA_SYNC source type");
-        }
-        if (!"JDBC".equals(required(inputSink, "type"))) {
-            throw new TaskPluginException("Unsupported DATA_SYNC sink type");
-        }
-        boolean realtime = "MYSQL_CDC".equals(sourceType);
+        String sourceType = identifier(inputSource);
+        String sinkType = identifier(inputSink);
         List<Object> sourceTables = array(inputSource.get("tables"), "source.tables");
         List<Object> sinkTables = array(inputSink.get("tables"), "sink.tables");
         List<Object> routes = array(root.get("route"), "route");
@@ -48,22 +53,17 @@ public final class PipelineYamlConverter {
                 || routes.size() != sourceTables.size()) {
             throw new TaskPluginException("DATA_SYNC requires one route per source and target table");
         }
-        if (root.containsKey("transform")
-                && !array(root.get("transform"), "transform").isEmpty()) {
-            throw new TaskPluginException("YakFlow does not support transforms");
-        }
 
         Map<String, String> source = new LinkedHashMap<>();
-        source.put("type", realtime ? "mysql" : "jdbc");
+        source.put("type", sourceType);
         source.put("datasource-id", required(inputSource, "datasourceId"));
         List<String> selectedTables = new ArrayList<>();
-        boolean sourceDatabase = false;
+        boolean sourceDatabase = databaseNamespace(sourceTables, "source.table");
         for (Object item : sourceTables) {
             Map<String, Object> table = object(item, "source.table");
             checkKeys(table, "source.table", "database", "schema", "table", "snapshot", "incremental");
             String path = path(table);
             selectedTables.add(path);
-            sourceDatabase |= hasDatabase(table);
             String prefix = "yak.table." + path + ".";
             if (table.containsKey("snapshot")) {
                 Map<String, Object> snapshot = object(table.get("snapshot"), "snapshot");
@@ -90,13 +90,11 @@ public final class PipelineYamlConverter {
         source.put("tables", String.join(",", selectedTables));
         source.put("yak.namespace-kind", sourceDatabase ? "DATABASE" : "SCHEMA");
 
-        if (realtime) {
+        if (inputSource.containsKey("startup")) {
             if (inputSource.containsKey("syncMode")) {
-                throw new TaskPluginException("MySQL CDC does not support JDBC syncMode");
+                throw new TaskPluginException("A source cannot combine CDC startup and JDBC syncMode");
             }
-            Map<String, Object> startup = inputSource.containsKey("startup")
-                    ? object(inputSource.get("startup"), "startup")
-                    : Map.of("mode", "INITIAL");
+            Map<String, Object> startup = object(inputSource.get("startup"), "startup");
             checkKeys(
                     startup, "startup", "mode", "file", "pos", "gtidSet", "timestampMillis", "skipEvents", "skipRows");
             String mode = required(startup, "mode");
@@ -117,18 +115,14 @@ public final class PipelineYamlConverter {
             copy(startup, "timestampMillis", source, "scan.startup.timestamp-millis");
             copy(startup, "skipEvents", source, "scan.startup.specific-offset.skip-events");
             copy(startup, "skipRows", source, "scan.startup.specific-offset.skip-rows");
-        } else {
-            if (inputSource.containsKey("startup")) {
-                throw new TaskPluginException("JDBC source does not support CDC startup");
-            }
-            source.put(
-                    "yak.sync.mode", inputSource.containsKey("syncMode") ? required(inputSource, "syncMode") : "FULL");
+        } else if (inputSource.containsKey("syncMode")) {
+            source.put("yak.sync.mode", required(inputSource, "syncMode"));
         }
 
         Map<String, String> sink = new LinkedHashMap<>();
-        sink.put("type", "jdbc");
+        sink.put("type", sinkType);
         sink.put("datasource-id", required(inputSink, "datasourceId"));
-        boolean sinkDatabase = false;
+        boolean sinkDatabase = databaseNamespace(sinkTables, "sink.table");
         List<String> selectedSinkTables = new ArrayList<>();
         for (Object item : sinkTables) {
             Map<String, Object> table = object(item, "sink.table");
@@ -136,7 +130,6 @@ public final class PipelineYamlConverter {
             String targetPath = path(table);
             selectedSinkTables.add(targetPath);
             String prefix = "yak.table." + targetPath + ".";
-            sinkDatabase |= hasDatabase(table);
             Map<String, Object> write = object(table.get("write"), "write");
             checkKeys(write, "write", "mode", "primaryKeys", "transaction");
             sink.put(prefix + "write.mode", required(write, "mode"));
@@ -188,12 +181,12 @@ public final class PipelineYamlConverter {
             yamlRoutes.add(Map.of("source-table", fromTable, "sink-table", toTable));
         }
         Map<String, String> pipeline = new LinkedHashMap<>();
-        String runtime = text(inputPipeline, "execution.runtime-mode");
-        if (runtime == null) {
-            String startup = source.getOrDefault("scan.startup.mode", "initial");
-            boolean streaming = realtime && !"snapshot".equals(startup);
-            runtime = streaming ? "STREAMING" : "BATCH";
+        for (String option : inputPipeline.keySet()) {
+            if (!"pipeline.table-scope".equals(option)) {
+                copy(inputPipeline, option, pipeline, option);
+            }
         }
+        String runtime = required(inputPipeline, "execution.runtime-mode");
         pipeline.put("execution.runtime-mode", runtime);
         String scope = text(inputPipeline, "pipeline.table-scope");
         pipeline.put("yak.table-scope", scope == null ? (sourceTables.size() == 1 ? "SINGLE" : "DATABASE") : scope);
@@ -202,6 +195,9 @@ public final class PipelineYamlConverter {
         definition.put("source", source);
         definition.put("sink", sink);
         definition.put("route", yamlRoutes);
+        if (root.containsKey("transform")) {
+            definition.put("transform", array(root.get("transform"), "transform"));
+        }
         definition.put("pipeline", pipeline);
         try {
             return YAML_MAPPER.writeValueAsString(definition);
@@ -210,9 +206,27 @@ public final class PipelineYamlConverter {
         }
     }
 
+    private static String identifier(Map<String, Object> endpoint) {
+        String type = required(endpoint, "type");
+        if (!type.matches("[a-z][a-z0-9-]*")) {
+            throw new TaskPluginException("DATA_SYNC requires a Connector factory identifier");
+        }
+        return type;
+    }
+
     private static boolean hasDatabase(Map<String, Object> table) {
         String database = text(table, "database");
         return database != null && !database.isBlank();
+    }
+
+    private static boolean databaseNamespace(List<Object> tables, String context) {
+        boolean database = hasDatabase(object(tables.getFirst(), context));
+        for (Object table : tables) {
+            if (hasDatabase(object(table, context)) != database) {
+                throw new TaskPluginException("DATA_SYNC endpoint tables require a consistent namespace shape");
+            }
+        }
+        return database;
     }
 
     private static String path(Map<String, Object> table) {

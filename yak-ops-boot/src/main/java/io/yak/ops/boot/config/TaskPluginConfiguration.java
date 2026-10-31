@@ -1,6 +1,9 @@
 package io.yak.ops.boot.config;
 
 import io.yak.ops.composer.PipelineComposer;
+import io.yak.ops.composer.execution.IncrementalBatchPreparation;
+import io.yak.ops.composer.yakflow.EnvironmentOptions;
+import io.yak.ops.composer.yakflow.ExecutionConfigurationFactory;
 import io.yak.ops.composer.yakflow.YakFlowPipelineComposer;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.ConfigValidator;
@@ -10,13 +13,8 @@ import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.datasync.PipelineConnectorCatalog;
 import io.yak.ops.plugin.task.datasync.PipelineTaskChannelFactory;
-import io.yak.ops.sync.runtime.PipelineService;
-import io.yak.ops.sync.runtime.pipeline.EnvironmentOptions;
-import io.yak.ops.sync.runtime.pipeline.ExecutionConfigurationFactory;
-import io.yak.ops.sync.runtime.pipeline.PipelineBuilder;
-import io.yak.ops.sync.runtime.plan.JobPlanner;
-import io.yak.ops.sync.runtime.solution.SolutionCatalog;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -37,11 +35,6 @@ public class TaskPluginConfiguration {
     @Bean
     FactoryUtil connectorFactoryUtil() {
         return new FactoryUtil();
-    }
-
-    @Bean
-    JobPlanner jobPlanner(DataSourceLookupService resources, FactoryUtil factories) {
-        return new JobPlanner(resources, factories);
     }
 
     @Bean
@@ -87,49 +80,39 @@ public class TaskPluginConfiguration {
     }
 
     @Bean
-    PipelineBuilder pipelineBuilder(
-            DataSourceLookupService resources,
-            FactoryUtil factories,
-            ReadonlyConfig runtimeOptions,
-            ExecutionConfigurationFactory configurationFactory,
-            io.yak.ops.configuration.Configuration connectorConfiguration) {
-        return new PipelineBuilder(
-                resources,
-                factories,
-                runtimeOptions,
-                configurationFactory,
-                Map.of("MYSQL_CDC", connectorConfiguration.toReadonlyConfig()),
-                Map.of());
-    }
-
-    @Bean
-    io.yak.ops.sync.runtime.execution.IncrementalBatchPreparation incrementalBatchPlanner(
+    IncrementalBatchPreparation incrementalBatchPreparation(
             DataSourceLookupService resources, io.yak.ops.plugin.task.api.execution.TaskCursorStore cursors) {
-        return new io.yak.ops.sync.runtime.execution.IncrementalBatchPreparation(resources, cursors);
+        return new IncrementalBatchPreparation(resources, cursors);
     }
 
     @Bean
     PipelineComposer pipelineComposer(
-            JobPlanner planner,
-            PipelineBuilder builder,
+            DataSourceLookupService resources,
+            FactoryUtil factories,
+            ReadonlyConfig runtimeOptions,
+            ExecutionConfigurationFactory configurationFactory,
+            io.yak.ops.configuration.Configuration connectorConfiguration,
             PipelineExecutor executor,
-            io.yak.ops.sync.runtime.execution.IncrementalBatchPreparation incrementalPreparation) {
-        return new YakFlowPipelineComposer(planner, builder, executor, incrementalPreparation);
+            IncrementalBatchPreparation incrementalPreparation) {
+        return new YakFlowPipelineComposer(
+                resources,
+                factories,
+                runtimeOptions,
+                configurationFactory,
+                Map.of("mysql", connectorConfiguration.toReadonlyConfig()),
+                Map.of(),
+                executor,
+                incrementalPreparation);
     }
 
     @Bean
-    SolutionCatalog dataSyncSolutionCatalog(FactoryUtil factories) {
-        return new SolutionCatalog(factories);
+    PipelineConnectorCatalog pipelineConnectorCatalog(FactoryUtil factories) {
+        return new PipelineConnectorCatalog(factories);
     }
 
     @Bean
-    PipelineService pipelineService(FactoryUtil factories, PipelineComposer composer) {
-        return new PipelineService(factories, composer);
-    }
-
-    @Bean
-    PipelineTaskChannelFactory pipelineTaskChannelFactory(PipelineService service) {
-        return new PipelineTaskChannelFactory(service);
+    PipelineTaskChannelFactory pipelineTaskChannelFactory(FactoryUtil factories, PipelineComposer composer) {
+        return new PipelineTaskChannelFactory(factories, composer);
     }
 
     @Bean

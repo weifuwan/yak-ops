@@ -18,16 +18,16 @@ const version = {
   version: 2,
   name: "orders",
   taskType: "DATA_SYNC",
-  parameterSchemaVersion: 6,
+  parameterSchemaVersion: 7,
   parameters: {
     source: {
-      type: "MYSQL_CDC",
+      type: "mysql",
       datasourceId: "mysql-source",
       startup: { mode: "INITIAL" },
       tables: [{ table: "orders" }],
     },
     sink: {
-      type: "JDBC",
+      type: "jdbc-postgres",
       datasourceId: "pg-target",
       schemaPolicy: {
         initial: "VERIFY",

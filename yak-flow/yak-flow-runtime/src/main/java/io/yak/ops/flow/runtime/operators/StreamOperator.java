@@ -1,5 +1,7 @@
 package io.yak.ops.flow.runtime.operators;
 
+import io.yak.ops.flow.runtime.execution.RuntimeTaskInfo;
+
 /**
  * Common lifecycle of an operator confined to its owning StreamTask mailbox thread.
  *
@@ -7,6 +9,9 @@ package io.yak.ops.flow.runtime.operators;
  * lifecycle does not itself own snapshots or checkpoint coordination.
  */
 public interface StreamOperator extends AutoCloseable {
+
+    /** Binds the owning subtask before state initialization and opening runtime resources. */
+    default void setup(RuntimeTaskInfo taskInfo) throws Exception {}
 
     default void open() throws Exception {}
 

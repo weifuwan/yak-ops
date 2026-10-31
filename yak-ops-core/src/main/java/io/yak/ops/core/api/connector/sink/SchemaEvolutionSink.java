@@ -13,6 +13,14 @@ import java.util.List;
  */
 public interface SchemaEvolutionSink {
 
+    /**
+     * Returns the admitted raw source and target schemas before any reader or writer is opened.
+     * Version-zero states are checkpointed so recovery never guesses from a newer catalog.
+     */
+    default List<SchemaVersionedTableState> initialSchemaState() {
+        return List.of();
+    }
+
     /** Creates an independent metadata applier owned by the active Job attempt. */
     MetadataApplier createMetadataApplier() throws Exception;
 
@@ -41,7 +49,7 @@ public interface SchemaEvolutionSink {
      * Restores the committed schema version before any Writer is created.
      *
      * <p>The default is fail-closed: a Sink must explicitly implement restoration if the
-     * checkpoint contains evolved schema state.
+     * checkpoint contains source/target schema state, including the version-zero baseline.
      */
     default void restoreSchemaState(List<SchemaVersionedTableState> states) throws Exception {
         if (!List.copyOf(states).isEmpty()) {

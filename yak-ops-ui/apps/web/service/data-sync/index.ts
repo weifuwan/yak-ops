@@ -1,4 +1,5 @@
 import HttpUtils from "@/service/http/HttpUtils";
+import { connectorChoices, type PipelineConnectorPair } from "./connectors";
 import {
   cancelTaskInstance,
   createTaskRunIdempotencyKey,
@@ -40,13 +41,17 @@ export type * from "./types";
 
 const TASK_DEFINITION_API_PREFIX = "/api/v1/task-definitions";
 
-export const listDataSyncSolutions = (
+export const listDataSyncSolutions = async (
   sourceType: string,
   targetType: string,
   signal?: AbortSignal,
 ): Promise<DataSyncSolution[]> => {
   const query = new URLSearchParams({ sourceType, targetType });
-  return HttpUtils.getData<DataSyncSolution[]>(`/api/v1/data-sync/solutions?${query}`, { signal });
+  return connectorChoices(
+    await HttpUtils.getData<PipelineConnectorPair[]>(`/api/v1/data-sync/connectors?${query}`, {
+      signal,
+    }),
+  );
 };
 
 export const listDataSyncTasks = async (

@@ -11,6 +11,10 @@ import io.yak.ops.core.api.connector.sink.StatefulSinkWriter;
 import io.yak.ops.core.api.connector.sink.SupportsWriterState;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
 import io.yak.ops.core.api.connector.sink.SinkWriter;
+import io.yak.ops.core.api.connector.sink.CancellableSinkWriter;
+import io.yak.ops.core.api.connector.sink.Committer;
+import io.yak.ops.core.api.connector.sink.CommittingSinkWriter;
+import io.yak.ops.core.api.connector.sink.SupportsCommitter;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.source.InputStatus;
 import io.yak.ops.core.api.connector.source.ReaderOutput;
@@ -28,11 +32,24 @@ import io.yak.ops.configuration.Configuration;
 import io.yak.ops.core.configuration.CoreOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.execution.JobClient;
+import io.yak.ops.core.data.GenericRowData;
+import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.event.CreateTableEvent;
+import io.yak.ops.core.event.DataChangeEvent;
+import io.yak.ops.core.event.Event;
+import io.yak.ops.core.schema.PhysicalColumn;
+import io.yak.ops.core.schema.Schema;
+import io.yak.ops.core.sink.DefaultDataChangeEventHashFunctionProvider;
+import io.yak.ops.core.types.VarCharType;
 import io.yak.ops.flow.runtime.execution.EmbeddedJobClient;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.flow.runtime.executiongraph.ExecutionState;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.graph.StreamPartitioning;
+import io.yak.ops.flow.runtime.partitioning.PartitioningEvent;
+import io.yak.ops.flow.runtime.partitioning.PostPartitionProcessor;
+import io.yak.ops.flow.runtime.partitioning.RegularPrePartitionOperator;
 import io.yak.ops.flow.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.flow.runtime.operators.CheckpointedStreamOperator;
 import io.yak.ops.flow.runtime.state.OperatorStateBackend;
@@ -64,6 +81,171 @@ class CheckpointRecoveryTest {
 
     @TempDir
     Path checkpointDirectory;
+
+    @Test
+    void eventPipelineRestoresOffsetsAndCommitsOnlyAfterDurabilityAcrossRepartitioning() throws Exception {
+        CommittingEventSink initialSink = new CommittingEventSink(checkpointDirectory);
+        EmbeddedJobClient first = (EmbeddedJobClient) new EmbeddedPipelineExecutor()
+                .execute(eventGraph(new OffsetSource(4), initialSink), configuration(false)).get(5, TimeUnit.SECONDS);
+        try {
+            awaitCount(initialSink.rows, 8);
+            assertEquals(0, initialSink.committedRows.get(), "Writing Event records must not commit a transaction");
+            CheckpointSnapshot snapshot = first.checkpoint().get(5, TimeUnit.SECONDS);
+            assertTrue(initialSink.committed.await(5, TimeUnit.SECONDS));
+            assertEquals(8, initialSink.committedRows.get());
+            assertEquals(2, snapshot.readerSplits().size());
+            assertEquals(3, snapshot.operatorStates().keySet().stream()
+                    .filter(key -> key.uid().equals("event-sink")).count());
+        } finally {
+            first.cancel().get(5, TimeUnit.SECONDS);
+        }
+        assertEquals(JobStatus.CANCELED, first.getJobStatus().get(5, TimeUnit.SECONDS));
+        assertEquals(0, initialSink.finalFlushes.get());
+        assertEquals(3, initialSink.closedWriters.get());
+        assertEquals(3, initialSink.cancelledWriters.get());
+
+        CommittingEventSink restoredSink = new CommittingEventSink(checkpointDirectory);
+        EmbeddedJobClient restored = (EmbeddedJobClient) new EmbeddedPipelineExecutor()
+                .execute(eventGraph(new OffsetSource(6), restoredSink), configuration(true)).get(5, TimeUnit.SECONDS);
+        try {
+            awaitCount(restoredSink.rows, 4);
+            assertEquals(Set.of("stream-0-4", "stream-0-5", "stream-1-4", "stream-1-5"), Set.copyOf(restoredSink.rows));
+            assertEquals(8, restoredSink.recoveredRows.get(), "Only durable committables may be replayed");
+            restored.checkpoint().get(5, TimeUnit.SECONDS);
+            assertTrue(restoredSink.committed.await(5, TimeUnit.SECONDS));
+            assertEquals(4, restoredSink.committedRows.get());
+        } finally {
+            restored.cancel().get(5, TimeUnit.SECONDS);
+        }
+        assertEquals(0, restoredSink.finalFlushes.get());
+        assertEquals(3, restoredSink.closedWriters.get());
+    }
+
+    private static StreamGraph eventGraph(OffsetSource source, Sink<Event> sink) {
+        TableId table = new TableId("inventory", null, "events");
+        Schema schema = new Schema(List.of(new PhysicalColumn("id", new VarCharType(64))), List.of("id"));
+        SourceTransformation<String> input = new SourceTransformation<>("source", source, String.class, 2);
+        OneInputTransformation<String, Event> events = new OneInputTransformation<>(input, "events", () ->
+                new OneInputStreamOperator<>() {
+                    private boolean announced;
+
+                    @Override
+                    public void processElement(String element, Collector<Event> output) throws Exception {
+                        if (!announced) {
+                            output.collect(new CreateTableEvent(table, schema));
+                            announced = true;
+                        }
+                        output.collect(DataChangeEvent.insertEvent(table, GenericRowData.of(element)));
+                    }
+                }, Event.class, 2);
+        OneInputTransformation<Event, PartitioningEvent> pre = new OneInputTransformation<>(
+                events, "PrePartition", () -> new RegularPrePartitionOperator(3,
+                        new DefaultDataChangeEventHashFunctionProvider()), PartitioningEvent.class, 2);
+        OneInputTransformation<PartitioningEvent, Event> post = new OneInputTransformation<>(
+                pre, "PostPartition", PostPartitionProcessor::new, Event.class, 3);
+        post.setInputPartitioning(StreamPartitioning.EVENT);
+        SinkTransformation<Event> output = new SinkTransformation<>(post, "sink", sink, 3);
+        input.setUid("event-source");
+        events.setUid("event-converter");
+        pre.setUid("event-pre-partition");
+        post.setUid("event-post-partition");
+        output.setUid("event-sink");
+        return new StreamGraphGenerator(output, new Configuration()).generate();
+    }
+
+    private static final class CommittingEventSink implements SupportsCommitter<Event, Integer> {
+        private final Path directory;
+        private final List<String> rows = new CopyOnWriteArrayList<>();
+        private final AtomicInteger committedRows = new AtomicInteger();
+        private final AtomicInteger recoveredRows = new AtomicInteger();
+        private final AtomicInteger finalFlushes = new AtomicInteger();
+        private final AtomicInteger closedWriters = new AtomicInteger();
+        private final AtomicInteger cancelledWriters = new AtomicInteger();
+        private final java.util.concurrent.CountDownLatch committed = new java.util.concurrent.CountDownLatch(3);
+
+        private CommittingEventSink(Path directory) {
+            this.directory = directory;
+        }
+
+        @Override
+        public CommittingSinkWriter<Event, Integer> createWriter(WriterInitContext context) {
+            return new EventWriter();
+        }
+
+        @Override
+        public Committer<Integer> createCommitter(WriterInitContext context) {
+            return new Committer<>() {
+                @Override
+                public void commit(Collection<Integer> committables, boolean recovered) {
+                    assertTrue(Files.isRegularFile(directory.resolve("checkpoint.bin")),
+                            "The checkpoint must be durable before a transaction commits");
+                    int count = committables.stream().mapToInt(Integer::intValue).sum();
+                    if (recovered) {
+                        recoveredRows.addAndGet(count);
+                    } else {
+                        committedRows.addAndGet(count);
+                        committed.countDown();
+                    }
+                }
+
+                @Override
+                public void recover(Collection<Integer> committables) {}
+
+                @Override
+                public void close() {}
+            };
+        }
+
+        @Override
+        public SimpleVersionedSerializer<Integer> getCommittableSerializer() {
+            return intStateSerializer();
+        }
+
+        private final class EventWriter implements CommittingSinkWriter<Event, Integer>, CancellableSinkWriter<Event> {
+            private int pending;
+            private boolean schemaKnown;
+            private final java.util.concurrent.atomic.AtomicBoolean cancelled = new java.util.concurrent.atomic.AtomicBoolean();
+
+            @Override
+            public void write(Event event, Context context) {
+                if (event instanceof CreateTableEvent) {
+                    schemaKnown = true;
+                } else if (event instanceof DataChangeEvent data) {
+                    assertTrue(schemaKnown, "Every sink subtask must observe schema before data, including after restore");
+                    rows.add(data.after().getString(0));
+                    pending++;
+                } else {
+                    throw new AssertionError("Unexpected pipeline event");
+                }
+            }
+
+            @Override
+            public Collection<Integer> prepareCommit(long checkpointId) {
+                int prepared = pending;
+                pending = 0;
+                return List.of(prepared);
+            }
+
+            @Override
+            public void flush(boolean endOfInput) {
+                if (endOfInput) {
+                    finalFlushes.incrementAndGet();
+                }
+            }
+
+            @Override
+            public void cancel() {
+                if (cancelled.compareAndSet(false, true)) {
+                    cancelledWriters.incrementAndGet();
+                }
+            }
+
+            @Override
+            public void close() {
+                closedWriters.incrementAndGet();
+            }
+        }
+    }
 
     @Test
     void shouldCheckpointTwoSourceReadersFlushSinkThenRestoreFromSavedOffsets() throws Exception {

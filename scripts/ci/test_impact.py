@@ -76,6 +76,19 @@ class ImpactTest(unittest.TestCase):
         self.assertIn("yak-ops-boot", check["modules"])
         self.assertEqual({"business", "backend-e2e"}, check["suites"])
 
+    def test_pipeline_composition_selects_database_and_recovery_suites(self):
+        path = impact.ENGINE + "src/main/java/io/yak/ops/composer/yakflow/YakFlowPipelineComposer.java"
+        result = impact.analyze([path])
+        self.assertEqual({"pipeline", "cdc", "backend-e2e", "recovery-e2e"}, result["suites"])
+        self.assertIn("yak-ops-engine", result["modules"])
+        self.assertIn("yak-ops-boot", result["modules"])
+        self.assertEqual([], impact.select_suites([
+            impact.ENGINE + "src/test/java/io/yak/ops/composer/PipelineComposerTest.java"]))
+
+    def test_task_parameter_contract_selects_recovery_acceptance(self):
+        path = "yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync/src/main/java/PipelineTaskChannel.java"
+        self.assertEqual({"backend-e2e", "recovery-e2e"}, set(impact.select_suites([path])))
+
     def test_downstream_checks_follow_runtime_dependencies(self):
         selected = impact.affected_modules(["yak-flow/yak-flow-runtime"])
         self.assertIn("yak-flow/yak-flow-runtime", selected)

@@ -2,18 +2,18 @@ import type { DataSourceCatalogTable } from "@/service/datasource";
 import type { EditorForm } from "./types";
 
 /** Source selection resets dependent write intent atomically; it never creates physical options. */
-function clearTargetWriteIdentity(form: EditorForm, usesChangelog: boolean): EditorForm["sink"] {
+function clearTargetWriteIdentity(form: EditorForm, continuous: boolean): EditorForm["sink"] {
   return {
     ...form.sink,
     targetPrimaryKeys: [],
-    writeMode: usesChangelog ? "UPSERT" : form.sink.writeMode,
+    writeMode: continuous ? "UPSERT" : form.sink.writeMode,
   };
 }
 
 export function selectSourceSchema(
   form: EditorForm,
   schema: string,
-  usesChangelog: boolean,
+  continuous: boolean,
 ): EditorForm {
   return {
     ...form,
@@ -24,14 +24,14 @@ export function selectSourceSchema(
       sourceHasPrimaryKey: undefined,
       chunkKeyColumn: "",
     },
-    sink: clearTargetWriteIdentity(form, usesChangelog),
+    sink: clearTargetWriteIdentity(form, continuous),
   };
 }
 
 export function selectSourceTable(
   form: EditorForm,
   table: DataSourceCatalogTable,
-  usesChangelog: boolean,
+  continuous: boolean,
 ): EditorForm {
   return {
     ...form,
@@ -43,22 +43,28 @@ export function selectSourceTable(
       sourceHasPrimaryKey: undefined,
       chunkKeyColumn: "",
     },
-    sink: clearTargetWriteIdentity(form, usesChangelog),
+    sink: clearTargetWriteIdentity(form, continuous),
   };
 }
 
 /** Real source metadata selects the write intent without a product-level keyless flag. */
-export function setSourcePrimaryKeys(form: EditorForm, hasPrimaryKey: boolean): EditorForm {
+export function setSourcePrimaryKeys(
+  form: EditorForm,
+  hasPrimaryKey: boolean,
+  continuous: boolean,
+): EditorForm {
   if (form.source.sourceHasPrimaryKey === hasPrimaryKey) return form;
   const retract = !hasPrimaryKey && form.sink.targetPrimaryKeys.length === 0;
   return {
     ...form,
     source: { ...form.source, sourceHasPrimaryKey: hasPrimaryKey },
-    sink: {
-      ...form.sink,
-      writeMode: retract ? "RETRACT" : "UPSERT",
-      schemaChangesEnabled: hasPrimaryKey ? form.sink.schemaChangesEnabled : false,
-      allowDropColumns: hasPrimaryKey ? form.sink.allowDropColumns : false,
-    },
+    sink: continuous
+      ? {
+          ...form.sink,
+          writeMode: retract ? "RETRACT" : "UPSERT",
+          schemaChangesEnabled: hasPrimaryKey ? form.sink.schemaChangesEnabled : false,
+          allowDropColumns: hasPrimaryKey ? form.sink.allowDropColumns : false,
+        }
+      : form.sink,
   };
 }

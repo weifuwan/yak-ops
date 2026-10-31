@@ -24,6 +24,8 @@ class BackendArchitectureTest {
             .dependOnClassesThat()
             .resideInAnyPackage(
                     "io.yak.ops.flow.runtime..",
+                    "io.yak.ops.cli..",
+                    "io.yak.ops.composer..",
                     "io.yak.ops.connector..",
                     "io.yak.ops.business..",
                     "io.yak.ops.task.execution..",
@@ -35,6 +37,8 @@ class BackendArchitectureTest {
     void checksAllExpectedModulePackages() {
         for (String prefix : new String[] {
             "io.yak.ops.core.",
+            "io.yak.ops.cli.",
+            "io.yak.ops.composer.",
             "io.yak.ops.flow.runtime.",
             "io.yak.ops.connector.",
             "io.yak.ops.business.",
@@ -58,7 +62,7 @@ class BackendArchitectureTest {
                 .resideInAPackage("io.yak.ops.flow.runtime..")
                 .should()
                 .dependOnClassesThat()
-                .resideInAnyPackage("io.yak.ops.business..", "io.yak.ops.dao..", "io.yak.ops.boot..")
+                .resideInAnyPackage("io.yak.ops.business..", "io.yak.ops.dao..", "io.yak.ops.boot..", "io.yak.ops.composer..", "io.yak.ops.cli..")
                 .check(PRODUCTION);
     }
 
@@ -75,8 +79,23 @@ class BackendArchitectureTest {
                         "io.yak.ops.boot..",
                         "io.yak.ops.plugin.task..",
                         "io.yak.ops.plugin.datasource..",
-                        "io.yak.ops.plugin.database..")
+                        "io.yak.ops.plugin.database..",
+                        "io.yak.ops.composer..",
+                        "io.yak.ops.cli..")
                 .check(PRODUCTION);
+    }
+
+    @Test
+    void pipelineCompositionCannotDependOnProductPersistenceOrTaskImplementation() {
+        noClasses()
+                .that()
+                .resideInAnyPackage("io.yak.ops.cli..", "io.yak.ops.composer..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("io.yak.ops.business..", "io.yak.ops.dao..", "io.yak.ops.boot..",
+                        "io.yak.ops.plugin.task.datasync..")
+                .check(PRODUCTION);
+        assertTrue(PRODUCTION.stream().noneMatch(type -> type.getPackageName().startsWith("io.yak.ops.sync.runtime")));
     }
 
     @Test

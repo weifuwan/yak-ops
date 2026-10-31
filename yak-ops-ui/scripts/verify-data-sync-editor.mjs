@@ -41,6 +41,9 @@ const draft = {
   name: "orders",
   sourceType: "MYSQL",
   targetType: "POSTGRE_SQL",
+  sourceConnector: "mysql",
+  sinkConnector: "jdbc-postgres",
+  sourceProducesChangelog: true,
   solutionType: "SINGLE_TABLE_REALTIME",
   steps: ["SCHEMA", "FULL", "INCREMENTAL"],
 };
@@ -97,16 +100,23 @@ assert.equal(selectedTable.source.sourceHasPrimaryKey, undefined);
 assert.equal(selectedTable.sink.writeMode, "UPSERT");
 assert.equal(selectedTable.sink.table, "ods_orders");
 
-const selectedKeyless = selection.setSourcePrimaryKeys(form, false);
+const selectedKeyless = selection.setSourcePrimaryKeys(form, false, true);
 assert.equal(selectedKeyless.source.sourceHasPrimaryKey, false);
 assert.equal(selectedKeyless.sink.writeMode, "RETRACT");
 assert.equal(selectedKeyless.sink.schemaChangesEnabled, false);
 assert.equal(selectedKeyless.sink.allowDropColumns, false);
 assert.equal(selectedKeyless.sink.targetPrimaryKeys.length, 0);
 assert.equal(
-  selection.setSourcePrimaryKeys(selectedKeyless, true).source.sourceHasPrimaryKey,
+  selection.setSourcePrimaryKeys(selectedKeyless, true, true).source.sourceHasPrimaryKey,
   true,
 );
+const selectedSnapshotKeyless = selection.setSourcePrimaryKeys(
+  { ...form, sink: { ...form.sink, writeMode: "APPEND" } },
+  false,
+  false,
+);
+assert.equal(selectedSnapshotKeyless.source.sourceHasPrimaryKey, false);
+assert.equal(selectedSnapshotKeyless.sink.writeMode, "APPEND");
 
 const request = params.buildEditorPayload(form, draft, false, [], true);
 assert.equal(request.name, "orders");
@@ -152,6 +162,29 @@ const persistedStartup = {
 const offsetEdit = params.buildEditorPayload(form, realtimeOnly, false, [], true, persistedStartup);
 const savedStartup = transport.createDefinitionRequest(offsetEdit).parameters.source.startup;
 assert.deepEqual(JSON.parse(JSON.stringify(savedStartup)), persistedStartup);
+const persistedPipelineOptions = {
+  name: "orders-pipeline",
+  parallelism: 3,
+  "local-time-zone": "Asia/Shanghai",
+};
+const optionsEdit = params.buildEditorPayload(
+  form,
+  realtimeOnly,
+  false,
+  [],
+  true,
+  persistedStartup,
+  [],
+  persistedPipelineOptions,
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(transport.createDefinitionRequest(optionsEdit).parameters.pipeline)),
+  {
+    ...persistedPipelineOptions,
+    "execution.runtime-mode": "STREAMING",
+    "pipeline.table-scope": "SINGLE",
+  },
+);
 const offlineStartupPayload = params.buildEditorPayload(
   form,
   { ...draft, solutionType: "SINGLE_TABLE_OFFLINE" },
@@ -179,6 +212,8 @@ const incremental = {
 const offlineDraft = {
   ...draft,
   solutionType: "SINGLE_TABLE_OFFLINE",
+  sourceConnector: "jdbc-mysql",
+  sourceProducesChangelog: false,
   steps: ["FULL", "INCREMENTAL"],
 };
 const offlineForm = {
@@ -190,7 +225,7 @@ const offlinePayload = params.buildEditorPayload(offlineForm, offlineDraft, fals
 assert.equal(offlinePayload.incremental.column, "updated_at");
 assert.equal(offlinePayload.incremental.lookbackSeconds, 5);
 const offlineParameters = transport.createDefinitionRequest(offlinePayload).parameters;
-assert.equal(offlineParameters.source.type, "JDBC");
+assert.equal(offlineParameters.source.type, "jdbc-mysql");
 assert.equal(offlineParameters.source.syncMode, "FULL_AND_INCREMENTAL");
 assert.equal(offlineParameters.source.tables.length, 1);
 assert.deepEqual(
@@ -304,6 +339,26 @@ const options = {
   sourceCatalog: { schemas: [], tables: [], loading: false, error: "" },
 };
 assert.equal(params.canSaveEditor(options), true);
+const snapshotOptions = {
+  ...options,
+  draft: { ...draft, solutionType: "SINGLE_TABLE_OFFLINE", steps: ["FULL"] },
+  combination: { writeModes: ["APPEND", "UPSERT"] },
+  form: {
+    ...selectedSnapshotKeyless,
+    source: { ...selectedSnapshotKeyless.source, chunkKeyColumn: "bucket" },
+  },
+};
+assert.equal(params.canSaveEditor(snapshotOptions), true);
+assert.equal(
+  params.canSaveEditor({
+    ...snapshotOptions,
+    form: {
+      ...snapshotOptions.form,
+      source: { ...snapshotOptions.form.source, chunkKeyColumn: "" },
+    },
+  }),
+  false,
+);
 assert.equal(
   params.canSaveEditor({
     ...options,

@@ -91,7 +91,9 @@ class JdbcMetadataApplierTest {
                     .set(JdbcConnectionOptions.DRIVER_CLASS, "driver.must.not.be.loaded.WhileCreating")
                     .set(JdbcConnectionOptions.PASSWORD, "sensitive-password")
                     .set(JdbcSinkOptions.WRITE_MODE, JdbcWriteMode.APPEND);
-            try (JdbcMetadataApplier applier = new JdbcSinkFactory().createMetadataApplier(configuration.toReadonlyConfig())) {
+            JdbcDataSinkFactory factory = url.startsWith("jdbc:mysql:")
+                    ? new MySqlDataSinkFactory() : new PostgresDataSinkFactory();
+            try (JdbcMetadataApplier applier = factory.createMetadataApplier(configuration.toReadonlyConfig())) {
                 assertEquals(Set.of(
                         SchemaChangeEventType.CREATE_TABLE,
                         SchemaChangeEventType.ADD_COLUMN,
@@ -106,7 +108,7 @@ class JdbcMetadataApplierTest {
                 .set(JdbcSinkOptions.WRITE_MODE, JdbcWriteMode.APPEND);
         assertThrows(
                 UnsupportedOperationException.class,
-                () -> new JdbcSinkFactory().createMetadataApplier(oracle.toReadonlyConfig()));
+                () -> new OracleDataSinkFactory().createMetadataApplier(oracle.toReadonlyConfig()));
     }
 
     @Test

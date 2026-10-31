@@ -1,0 +1,52 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Modified for Yak Ops: package, local schema types and validation utilities.
+ */
+
+package io.yak.ops.core.function;
+
+/**
+ * The hash function used to calculate the hash code from a given event.
+ *
+ * @param <T> the type of given event.
+ */
+public interface HashFunction<T> {
+
+    /** Runtime context for calculating an event hash code. */
+    interface HashContext {
+        int getSourceSubtaskIndex();
+
+        int getDownstreamParallelism();
+    }
+
+    /** Creates a hash context. */
+    static HashContext createContext(int sourceSubtaskIndex, int downstreamParallelism) {
+        return new DefaultHashContext(sourceSubtaskIndex, downstreamParallelism);
+    }
+
+    int hashcode(T event);
+
+    /**
+     * Calculates the hash code with the runtime hash context.
+     *
+     * <p>Implementations that do not depend on the context can continue implementing {@link
+     * #hashcode(Object)} only.
+     */
+    default int hashcode(HashContext context, T event) {
+        return hashcode(event);
+    }
+}

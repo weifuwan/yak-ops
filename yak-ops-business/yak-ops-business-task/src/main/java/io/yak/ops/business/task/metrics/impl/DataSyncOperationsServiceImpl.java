@@ -24,10 +24,10 @@ public class DataSyncOperationsServiceImpl implements DataSyncOperationsService 
 
     @Override
     public DataSyncOperationsVO dashboard(String workspaceId, String syncType, String range) {
-        String sourceType =
+        String runtimeMode =
                 switch (syncType) {
-                    case "OFFLINE" -> "JDBC";
-                    case "REALTIME" -> "MYSQL_CDC";
+                    case "OFFLINE" -> "BATCH";
+                    case "REALTIME" -> "STREAMING";
                     default -> throw new IllegalArgumentException("Unsupported Data Sync type");
                 };
         LocalDateTime end = LocalDateTime.now();
@@ -39,8 +39,8 @@ public class DataSyncOperationsServiceImpl implements DataSyncOperationsService 
                     default -> throw new IllegalArgumentException("Unsupported Data Sync operations range");
                 };
         boolean hourly = range.equals("TODAY");
-        DataSyncOperationsVO.Summary counts = repository.summary(workspaceId, sourceType, start, end);
-        long running = repository.runningCount(workspaceId, sourceType);
+        DataSyncOperationsVO.Summary counts = repository.summary(workspaceId, runtimeMode, start, end);
+        long running = repository.runningCount(workspaceId, runtimeMode);
         DataSyncOperationsVO.Summary summary = new DataSyncOperationsVO.Summary(
                 counts.executionCount(),
                 counts.succeededCount(),
@@ -48,8 +48,8 @@ public class DataSyncOperationsServiceImpl implements DataSyncOperationsService 
                 counts.canceledCount(),
                 running);
         List<DataSyncOperationsVO.TrendPoint> trend =
-                completeTrend(start, end, hourly, repository.trend(workspaceId, sourceType, start, end, hourly));
-        List<DataSyncOperationsVO.Failure> failures = repository.recentFailures(workspaceId, sourceType, start, end);
+                completeTrend(start, end, hourly, repository.trend(workspaceId, runtimeMode, start, end, hourly));
+        List<DataSyncOperationsVO.Failure> failures = repository.recentFailures(workspaceId, runtimeMode, start, end);
         return new DataSyncOperationsVO(summary, trend, failures);
     }
 

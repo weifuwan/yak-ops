@@ -8,8 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.TableSourceFactoryContext;
-import io.yak.ops.connector.jdbc.source.JdbcSource;
-import io.yak.ops.connector.jdbc.source.JdbcSourceFactory;
+import io.yak.ops.core.api.connector.source.Boundedness;
+import io.yak.ops.connector.base.factory.SourceFactoryContext;
+import io.yak.ops.connector.jdbc.source.MySqlDataSourceFactory;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalTypes;
@@ -30,7 +31,9 @@ class JdbcConnectionOptionsTest {
         TableSchema schema = new TableSchema(List.of(new Column("id", LogicalTypes.BIGINT.copy(false))), List.of("id"));
         TableSourceFactoryContext context =
                 new TableSourceFactoryContext(config, new TableId("app", null, "items"), schema);
-        assertInstanceOf(JdbcSource.class, new JdbcSourceFactory().createSource(context));
+        assertEquals(Boundedness.BOUNDED, new MySqlDataSourceFactory()
+                .createDataSource(new SourceFactoryContext(List.of(context), new Configuration(), getClass().getClassLoader()))
+                .getEventSourceProvider().getSource().getBoundedness());
     }
 
     @Test

@@ -5,13 +5,13 @@ from urllib.parse import urlparse, parse_qs
 
 params = {
     "source": {
-        "type": "JDBC",
+        "type": "jdbc-mysql",
         "datasourceId": "src",
         "syncMode": "FULL",
         "tables": [{"database": "app", "table": "orders"}],
     },
     "sink": {
-        "type": "JDBC",
+        "type": "jdbc-postgres",
         "datasourceId": "dst",
         "schemaPolicy": {
             "initial": "VERIFY",
@@ -32,7 +32,7 @@ task = {
     "taskType": "DATA_SYNC",
     "status": "PUBLISHED",
     "definitionVersion": 1,
-    "parameterSchemaVersion": 5,
+    "parameterSchemaVersion": 7,
     "parameters": params,
     "debug": False,
     "updateBy": "user1",
@@ -115,34 +115,23 @@ async def mock(route):
         data = []
     elif "/users/" in p or p.endswith("/user/batch") or p == "/api/v1/user":
         data = []
-    elif p == "/api/v1/data-sync/solutions":
+    elif p == "/api/v1/data-sync/connectors":
         query = parse_qs(urlparse(r.url).query)
         state["solution_requests"].append(query)
-        choices = [{"solutionType": "SINGLE_TABLE_OFFLINE", "displayName": "单表离线",
-                    "steps": ["SCHEMA", "FULL"], "defaultSteps": ["FULL"],
-                    "allowedCombinations": [
-                        {"steps": ["FULL"], "supportsScheduling": True, "writeModes": ["APPEND", "UPSERT"]},
-                        {"steps": ["SCHEMA", "FULL"], "supportsScheduling": True, "writeModes": ["APPEND", "UPSERT"]}]}]
-        if query.get("sourceType") == ["MYSQL"]:
-            choices.extend([
-                {"solutionType": "SINGLE_TABLE_REALTIME", "displayName": "单表实时",
-                 "steps": ["FULL", "INCREMENTAL"], "defaultSteps": ["FULL", "INCREMENTAL"],
-                 "allowedCombinations": [{"steps": ["FULL", "INCREMENTAL"],
-                                          "supportsScheduling": False, "writeModes": ["UPSERT"]},
-                                         {"steps": ["INCREMENTAL"],
-                                          "supportsScheduling": False, "writeModes": ["UPSERT"]}]},
-                {"solutionType": "DATABASE_OFFLINE", "displayName": "整库离线",
-                 "steps": ["SCHEMA", "FULL"], "defaultSteps": ["FULL"],
-                 "allowedCombinations": [
-                     {"steps": ["FULL"], "supportsScheduling": True, "writeModes": ["APPEND", "UPSERT"]},
-                     {"steps": ["SCHEMA", "FULL"], "supportsScheduling": True, "writeModes": ["APPEND", "UPSERT"]}]},
-                {"solutionType": "DATABASE_REALTIME", "displayName": "整库实时",
-                 "steps": ["FULL", "INCREMENTAL"], "defaultSteps": ["FULL", "INCREMENTAL"],
-                 "allowedCombinations": [{"steps": ["FULL", "INCREMENTAL"],
-                                          "supportsScheduling": False, "writeModes": ["UPSERT"]},
-                                         {"steps": ["INCREMENTAL"],
-                                          "supportsScheduling": False, "writeModes": ["UPSERT"]}]},
-            ])
+        identifiers = {"MYSQL": "jdbc-mysql", "POSTGRE_SQL": "jdbc-postgres", "ORACLE": "jdbc-oracle"}
+        source_type = query.get("sourceType", [None])[0]
+        target_type = query.get("targetType", [None])[0]
+        choices = []
+        if source_type in identifiers and target_type in identifiers:
+            capabilities = {"sinkConnector": identifiers[target_type],
+                            "supportsSchemaChanges": target_type in ("MYSQL", "POSTGRE_SQL"),
+                            "supportsRetract": target_type == "MYSQL"}
+            choices.append({**capabilities, "sourceConnector": identifiers[source_type],
+                            "producesChangelog": False, "boundedness": "BOUNDED",
+                            "supportsIncrementalBatch": source_type in ("MYSQL", "POSTGRE_SQL")})
+            if source_type == "MYSQL":
+                choices.append({**capabilities, "sourceConnector": "mysql", "producesChangelog": True,
+                                "boundedness": "CONTINUOUS_UNBOUNDED", "supportsIncrementalBatch": False})
         if state["fail_solutions"]:
             status, code = 503, 500
         else:
@@ -171,12 +160,12 @@ async def mock(route):
         data = paging([state["task"]])
     elif p == "/api/v1/task-definitions" and method == "POST":
         state["created_tasks"] += 1
-        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED", "parameterSchemaVersion": 5}
+        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED", "parameterSchemaVersion": 7}
         data = state["task"]
     elif p.startswith("/api/v1/task-definitions/"):
         if method == "PUT":
             state["updated_tasks"] += 1
-            state["task"] = {**state["task"], **b, **({"parameterSchemaVersion": 5} if "parameters" in b else {})}
+            state["task"] = {**state["task"], **b, **({"parameterSchemaVersion": 7} if "parameters" in b else {})}
         data = state["task"]
     elif p == "/api/v1/task-instances/latest":
         data = (

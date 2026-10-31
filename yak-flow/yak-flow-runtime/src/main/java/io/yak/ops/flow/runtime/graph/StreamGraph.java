@@ -2,6 +2,7 @@ package io.yak.ops.flow.runtime.graph;
 
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.dag.Pipeline;
+import io.yak.ops.flow.runtime.partitioning.PartitioningEvent;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,6 +81,10 @@ public final class StreamGraph implements Pipeline {
             if (source.isSink() || target.isSource()) {
                 throw new IllegalArgumentException(
                         "Edges cannot originate from Sinks or terminate at Sources: " + edge);
+            }
+            if (edge.partitioning() == StreamPartitioning.EVENT
+                    && !PartitioningEvent.class.isAssignableFrom(source.getOutputType())) {
+                throw new IllegalArgumentException("EVENT partitioning requires PartitioningEvent output: " + edge);
             }
             Class<?> expectedInput = target.getInputType().orElseThrow();
             if (!expectedInput.isAssignableFrom(source.getOutputType())) {
