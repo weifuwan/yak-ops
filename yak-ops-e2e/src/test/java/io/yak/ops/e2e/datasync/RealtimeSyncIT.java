@@ -65,19 +65,19 @@ class RealtimeSyncIT extends BackendTestBase {
         String definition = fixture.create(parameters, true);
         String instance = fixture.submit(definition);
         fixture.awaitState(instance, "RUNNING");
-        fixture.awaitTarget("initial_override", List.of(List.of(1L, "one"), List.of(2L, "two")));
+        awaitPreparedTarget("initial_override", List.of(List.of(1L, "one"), List.of(2L, "two")));
         awaitStreaming(instance);
 
         fixture.source.execute("DELETE FROM orders WHERE id=2");
         fixture.source.execute("INSERT INTO orders VALUES(3,'after-delete')");
         fixture.awaitTarget("initial_override", List.of(List.of(1L, "one"), List.of(2L, "two"), List.of(3L, "after-delete")));
         createSourceTable("orders_2", 10L, "new-table-snapshot");
-        fixture.awaitTarget("dyn_orders_2", List.of(List.of(10L, "new-table-snapshot")));
+        awaitPreparedTarget("dyn_orders_2", List.of(List.of(10L, "new-table-snapshot")));
         fixture.source.execute("DELETE FROM orders_2 WHERE id=10");
         fixture.source.execute("INSERT INTO orders_2 VALUES (11,'new-table-incremental')");
         fixture.awaitTarget("dyn_orders_2", List.of(List.of(11L, "new-table-incremental")));
         createSourceTable("orders_3", 12L, "third-table");
-        fixture.awaitTarget("dyn_orders_3", List.of(List.of(12L, "third-table")));
+        awaitPreparedTarget("dyn_orders_3", List.of(List.of(12L, "third-table")));
         JsonNode saved = fixture.api.call("GET", "/api/v1/task-definitions/" + definition);
         assertEquals(1, saved.path("parameters").path("source").path("tables").size(),
                 "Discovery belongs to runtime state, not mutable task parameters");
@@ -100,8 +100,8 @@ class RealtimeSyncIT extends BackendTestBase {
                 .parse(PipelineYamlConverter.convert(ReadonlyConfig.fromMap(parameters)));
         PipelineContext identity = new PipelineContext(fixture.api.workspace(), "dynamic-definition", 1, "dynamic-instance", true);
         EngineRun first = new EngineRun(definition, identity);
-        first.start();
-        try {
+        try (first) {
+            first.start();
             first.awaitRows("initial_override", List.of(List.of(1L, "one"), List.of(2L, "two")));
             first.awaitStreaming();
             createSourceTable("orders_2", 10L, "checkpointed-snapshot");
@@ -109,17 +109,14 @@ class RealtimeSyncIT extends BackendTestBase {
             long observed = first.report().path("checkpoints").path("completedId").asLong(-1);
             await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofMillis(200))
                     .until(() -> first.report().path("checkpoints").path("completedId").asLong(-1) > observed);
-        } finally {
-            first.close();
         }
         first.assertCheckpointContains(new TableId(fixture.sourceName, null, "orders_2"));
 
         // A recovery must replay the saved offset, not re-snapshot an already completed table.
         fixture.target.execute("UPDATE " + fixture.table("dyn_orders_2") + " SET name='checkpoint-preserved' WHERE id=10");
         fixture.source.execute("INSERT INTO orders_2 VALUES (11,'while-stopped')");
-        EngineRun restored = new EngineRun(definition, identity);
-        restored.start();
-        try {
+        try (EngineRun restored = new EngineRun(definition, identity)) {
+            restored.start();
             restored.awaitRows("dyn_orders_2", List.of(List.of(10L, "checkpoint-preserved"), List.of(11L, "while-stopped")));
             assertTrue(restored.configuration.get(CheckpointingOptions.RESTORE_LATEST));
             restored.awaitStreaming();
@@ -127,8 +124,6 @@ class RealtimeSyncIT extends BackendTestBase {
             restored.awaitRows("dyn_orders_3", List.of(List.of(12L, "after-recovery")));
             fixture.source.execute("UPDATE orders_3 SET name='third-incremental' WHERE id=12");
             restored.awaitRows("dyn_orders_3", List.of(List.of(12L, "third-incremental")));
-        } finally {
-            restored.close();
         }
     }
 
@@ -215,6 +210,26 @@ class RealtimeSyncIT extends BackendTestBase {
         }
     }
 
+    private void awaitPreparedTarget(String table, List<? extends List<?>> rows) {
+        await().alias("Prepared target " + fixture.table(table))
+                .atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofMillis(200))
+                .untilAsserted(() -> assertPreparedTargetRows(table, rows));
+    }
+
+    private void assertPreparedTargetRows(String table, List<? extends List<?>> expected) throws Exception {
+        // Dynamic target DDL is asynchronous. Only absence is retried; a real SQL error still fails immediately.
+        try (Connection connection = fixture.target.connect();
+                var statement = connection.prepareStatement(
+                        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=? AND table_name=?")) {
+            statement.setString(1, fixture.targetSchema);
+            statement.setString(2, table);
+            try (var rows = statement.executeQuery()) {
+                assertTrue(rows.next() && rows.getInt(1) == 1, "Target table has not been prepared yet: " + table);
+            }
+        }
+        fixture.assertTarget(table, expected);
+    }
+
     /** Exercises durable engine recovery without claiming the HTTP process automatically resumes uncertain instances. */
     private final class EngineRun implements AutoCloseable {
         private final PipelineExecution execution;
@@ -226,8 +241,7 @@ class RealtimeSyncIT extends BackendTestBase {
             DataSourceLookupService lookup = new EngineLookup();
             var composer = new YakFlowPipelineComposer(lookup, new FactoryUtil(), settings,
                     new ExecutionConfigurationFactory(settings, engineState),
-                    Map.of("mysql", ReadonlyConfig.fromMap(Map.of("server-id", "31700-31716",
-                            "topic-prefix", "dynamic-" + fixture.sourceName))), Map.of(),
+                    Map.of(), Map.of(),
                     (pipeline, config) -> {
                         graph = (StreamGraph) pipeline;
                         configuration = config;
@@ -257,7 +271,7 @@ class RealtimeSyncIT extends BackendTestBase {
         private void awaitRows(String table, List<? extends List<?>> rows) {
             await().atMost(Duration.ofSeconds(120)).pollInterval(Duration.ofMillis(200)).untilAsserted(() -> {
                 report();
-                fixture.assertTarget(table, rows);
+                assertPreparedTargetRows(table, rows);
             });
         }
 
