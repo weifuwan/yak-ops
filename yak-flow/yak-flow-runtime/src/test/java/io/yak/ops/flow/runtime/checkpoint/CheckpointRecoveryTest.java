@@ -465,13 +465,15 @@ class CheckpointRecoveryTest {
         assertFalse(Files.exists(checkpointDirectory.resolve("completed/chk-1")));
     }
 
-    private static boolean hasCompletedMarker(Path directory) throws IOException {
+    private static boolean hasCompletedMarker(Path directory) {
         Path completed = directory.resolve("completed");
         if (!Files.isDirectory(completed)) {
             return false;
         }
         try (java.nio.file.DirectoryStream<Path> markers = Files.newDirectoryStream(completed, "chk-*")) {
             return markers.iterator().hasNext();
+        } catch (IOException failure) {
+            throw new java.io.UncheckedIOException(failure);
         }
     }
 
