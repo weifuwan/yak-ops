@@ -26,9 +26,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-import static java.util.Objects.requireNonNull;
 
-/** A {@link RecoverableWriter} for the {@link LocalFileSystem}. */
+/** A {@link RecoverableWriter} for the local filesystem. */
 public class LocalRecoverableWriter implements RecoverableWriter {
 
     public LocalRecoverableWriter() {}
@@ -105,14 +104,17 @@ public class LocalRecoverableWriter implements RecoverableWriter {
         return true;
     }
 
-    @VisibleForTesting
     public static File generateStagingTempFilePath(File targetFile) {
-        if (targetFile.isDirectory()) { throw new IllegalArgumentException("targetFile must not be a directory"); }
+        if (targetFile.isDirectory()) {
+            throw new IllegalArgumentException("targetFile must not be a directory");
+        }
 
         final File parent = targetFile.getParentFile();
         final String name = targetFile.getName();
 
-        if (parent == null) { throw new IllegalArgumentException("targetFile must not be the root directory"); }
+        if (parent == null) {
+            throw new IllegalArgumentException("targetFile must not be the root directory");
+        }
 
         while (true) {
             File candidate =
