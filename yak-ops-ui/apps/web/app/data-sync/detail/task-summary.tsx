@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import DatabaseIcons from "@/app/datasource/icons/DatabaseIcons";
 import type { DataSourceRecord } from "@/service/datasource";
 import type { DataSyncTaskRecord } from "@/service/data-sync";
-import { solutionSummary } from "../solution/presentation";
+import { syncSummary } from "../solution/presentation";
 
 function BasicInfoField({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -59,8 +59,9 @@ export function TaskSummary({ task, updatedBy, dataSources, onCopyTaskId }: Prop
           </div>
         </BasicInfoField>
         <BasicInfoField label="同步方案">
-          {solutionSummary(task.solutionType, task.steps)}
+          {syncSummary(task.productType, task.steps)}
         </BasicInfoField>
+        <BasicInfoField label="同步表数">{task.tableMappings.length} 张表</BasicInfoField>
         <BasicInfoField label="创建时间">{task.createTime || "-"}</BasicInfoField>
         <BasicInfoField label="更新时间">{task.updateTime || "-"}</BasicInfoField>
         <BasicInfoField label="当前版本">v{task.definitionVersion}</BasicInfoField>

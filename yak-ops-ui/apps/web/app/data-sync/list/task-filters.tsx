@@ -11,7 +11,7 @@ import {
 } from "@yak-ops/yak-ui";
 import { Plus } from "lucide-react";
 import { DATA_SYNC_TASK_STATUS_ITEMS } from "./task-lifecycle";
-import { SOLUTION_LABELS } from "../solution/presentation";
+import { PRODUCT_LABELS } from "../solution/presentation";
 import type { TaskListFilters } from "./filters";
 
 interface Props {
@@ -47,11 +47,11 @@ export function TaskFilters({
       <div className="w-[165px]">
         <Select
           size="small"
-          items={{ ALL: "全部同步类型", ...SOLUTION_LABELS }}
-          value={filters.solutionType}
+          items={{ ALL: "全部同步类型", ...PRODUCT_LABELS }}
+          value={filters.productType}
           onValueChange={(value) =>
             onFilterChange({
-              solutionType: String(value) as TaskListFilters["solutionType"],
+              productType: String(value) as TaskListFilters["productType"],
               pageNo: 1,
             })
           }
@@ -64,7 +64,7 @@ export function TaskFilters({
               <SelectItemText>全部同步类型</SelectItemText>
               <SelectItemIndicator />
             </SelectItem>
-            {Object.entries(SOLUTION_LABELS).map(([value, label]) => (
+            {Object.entries(PRODUCT_LABELS).map(([value, label]) => (
               <SelectItem key={value} value={value}>
                 <SelectItemText>{label}</SelectItemText>
                 <SelectItemIndicator />

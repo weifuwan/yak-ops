@@ -7,7 +7,6 @@ import type {
   DataSyncWriteMode,
 } from "@/service/data-sync";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
-import { IncrementalFields } from "./incremental-fields";
 
 export const tableKey = (table: DataSyncTablePath) =>
   JSON.stringify([table.database || "", table.schema || "", table.table]);
@@ -46,6 +45,7 @@ export function ExplicitTableSelection({
 }: Props) {
   const [keyword, setKeyword] = useState("");
   const selected = new Set(mappings.map((mapping) => tableKey(mapping.source)));
+  const singleOnly = mappings.some((mapping) => mapping.writeMode === "RETRACT");
   const available = useMemo(
     () =>
       sourceTables.map((table) => ({ ...catalogPath(table), id: tableKey(catalogPath(table)) })),
@@ -57,7 +57,7 @@ export function ExplicitTableSelection({
   const add = (tables: DataSyncTablePath[]) => {
     if (!writeMode) return;
     const missing = tables.filter((table) => !selected.has(tableKey(table)));
-    if (mappings.length + missing.length > 100) return;
+    if (mappings.length + missing.length > 100 || (singleOnly && missing.length > 0)) return;
     onChange([
       ...mappings,
       ...missing.map((source) => {
@@ -83,7 +83,11 @@ export function ExplicitTableSelection({
         <Checkbox
           aria-label={`选择 ${pathText(row)}`}
           checked={selected.has(row.id)}
-          disabled={loading || !writeMode || (!selected.has(row.id) && mappings.length >= 100)}
+          disabled={
+            loading ||
+            !writeMode ||
+            (!selected.has(row.id) && (mappings.length >= 100 || singleOnly))
+          }
           onCheckedChange={(checked) =>
             checked
               ? add([row])
@@ -99,7 +103,7 @@ export function ExplicitTableSelection({
     },
   ];
   return (
-    <div className="space-y-3 rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-4">
+    <div className="space-y-3 rounded-lg border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Input
           size="small"
@@ -113,6 +117,7 @@ export function ExplicitTableSelection({
           onClick={() => add(visible)}
           disabled={
             loading ||
+            singleOnly ||
             !writeMode ||
             mappings.length + visible.filter((table) => !selected.has(table.id)).length > 100
           }
@@ -126,6 +131,7 @@ export function ExplicitTableSelection({
           已选 {mappings.length} / 100
         </span>
       </div>
+      {singleOnly ? <Alert>逐行更新仅支持单表。请先修改写入方式，再添加其他表。</Alert> : null}
       {error ? <Alert>{error}</Alert> : null}
       <div className="max-h-72 overflow-auto">
         <Table
@@ -144,8 +150,6 @@ export function ExplicitTableSelection({
 
 interface MappingProps {
   prepareSchema?: boolean;
-  incremental?: boolean;
-  initialLoad?: boolean;
   writeModes: DataSyncWriteMode[];
   mappings: DataSyncTableMapping[];
   targetTables: DataSourceCatalogTable[];
@@ -157,8 +161,6 @@ interface MappingProps {
 
 export function TableMappingEditor({
   prepareSchema = false,
-  incremental = false,
-  initialLoad = false,
   writeModes,
   mappings,
   targetTables,
@@ -169,7 +171,7 @@ export function TableMappingEditor({
 }: MappingProps) {
   const writeOptions = writeModes.map((value) => ({
     value,
-    label: value === "UPSERT" ? "按主键更新" : "追加写入",
+    label: value === "UPSERT" ? "按主键更新" : value === "RETRACT" ? "逐行更新" : "追加写入",
   }));
   const targetOptions = targetTables.map((table) => ({
     value: tableKey(catalogPath(table)),
@@ -238,34 +240,23 @@ export function TableMappingEditor({
         );
       },
     },
-    ...(incremental
-      ? [
-          {
-            key: "incremental",
-            title: "增量设置",
-            minWidth: 260,
-            render: (_value: unknown, row: (typeof rows)[number]) => (
-              <IncrementalFields
-                value={row.incremental}
-                initialLoad={initialLoad}
-                disabled={loading}
-                onChange={(value) => patch(row.index, { incremental: value })}
-              />
-            ),
-          },
-        ]
-      : []),
     {
       key: "writeMode",
       title: "写入方式",
       width: 160,
       render: (_value, row) => (
         <DataSyncSearchableSelect
+          ariaLabel={`写入方式 ${pathText(row.source)}`}
           placeholder="请选择写入方式"
           value={row.writeMode}
           disabled={writeModes.length < 2}
           options={writeOptions}
-          onValueChange={(value) => patch(row.index, { writeMode: value as DataSyncWriteMode })}
+          onValueChange={(value) =>
+            patch(row.index, {
+              writeMode: value as DataSyncWriteMode,
+              ...(value === "RETRACT" ? { target: { ...row.target, primaryKeys: undefined } } : {}),
+            })
+          }
         />
       ),
     },
@@ -285,7 +276,7 @@ export function TableMappingEditor({
     },
   ];
   return (
-    <div className="space-y-3 rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-4">
+    <div className="space-y-3 rounded-lg border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4">
       <div className="flex items-center gap-2">
         <div className="w-44">
           <DataSyncSearchableSelect
@@ -296,7 +287,13 @@ export function TableMappingEditor({
             options={writeOptions}
             onValueChange={(value) =>
               onChange(
-                mappings.map((mapping) => ({ ...mapping, writeMode: value as DataSyncWriteMode })),
+                mappings.map((mapping) => ({
+                  ...mapping,
+                  writeMode: value as DataSyncWriteMode,
+                  ...(value === "RETRACT"
+                    ? { target: { ...mapping.target, primaryKeys: undefined } }
+                    : {}),
+                })),
               )
             }
           />
@@ -311,7 +308,7 @@ export function TableMappingEditor({
         dataSource={rows}
         rowKey="id"
         size="small"
-        scroll={{ x: incremental ? 1050 : 750 }}
+        scroll={{ x: 750 }}
         pagination={false}
         emptyText="请选择来源表"
       />

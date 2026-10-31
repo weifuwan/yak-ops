@@ -1,5 +1,5 @@
-import { Alert, Button, Checkbox, Field, FieldLabel, Input, Modal } from "@yak-ops/yak-ui";
-import { useEffect, useId, useRef, useState } from "react";
+import { Alert, Button, Field, FieldLabel, Input, Modal } from "@yak-ops/yak-ui";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { COMMON_DB_OPTIONS } from "@/app/datasource/constants";
@@ -9,11 +9,10 @@ import type { DataSyncDraft, DataSyncStep } from "@/service/data-sync";
 import { readTaskDraft, taskDraftKey, writeTaskDraft } from "@/service/data-sync/draft";
 
 import { DataSyncSearchableSelect } from "../components/searchable-select";
-import { findStepCombination, STEP_LABELS } from "../solution/presentation";
+import { findStepCombination } from "../solution/presentation";
 import { useSolutions } from "../solution/use-solutions";
 
 export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
-  const stepLabelId = useId();
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const key = taskDraftKey(currentUser!.id, currentWorkspace!.id);
@@ -22,12 +21,11 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const [targetType, setTargetType] = useState(stored.current?.targetType || "");
   const [connectorChoice, setConnectorChoice] = useState<string | undefined>(
     stored.current
-      ? `${stored.current.sourceConnector}:${stored.current.sinkConnector}:${stored.current.solutionType}`
+      ? `${stored.current.sourceConnector}:${stored.current.sinkConnector}:${stored.current.productType}`
       : undefined,
   );
   const [steps, setSteps] = useState<DataSyncStep[]>(stored.current?.steps || []);
-  const [name, setName] = useState(stored.current?.name || "");
-  const nameEdited = useRef(Boolean(stored.current?.name));
+  const [customName, setCustomName] = useState<string | undefined>(stored.current?.name);
   const timestamp = useRef(
     new Date()
       .toISOString()
@@ -40,13 +38,11 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const selected = choices.find((choice) => choice.id === connectorChoice);
   const combination = findStepCombination(selected, steps);
 
-  useEffect(() => {
-    if (!nameEdited.current && sourceType && targetType) {
-      setName(
-        `sync_${sourceType.toLowerCase()}_to_${targetType.toLowerCase()}_${timestamp.current}`,
-      );
-    }
-  }, [sourceType, targetType]);
+  const name =
+    customName ??
+    (sourceType && targetType
+      ? `sync_${sourceType.toLowerCase()}_to_${targetType.toLowerCase()}_${timestamp.current}`
+      : "");
 
   const changeType = (side: "source" | "target", value: string) => {
     if (side === "source") setSourceType(value);
@@ -67,7 +63,7 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
       sourceConnector: selected.sourceConnector,
       sinkConnector: selected.sinkConnector,
       sourceProducesChangelog: selected.producesChangelog,
-      solutionType: selected.solutionType,
+      productType: selected.productType,
       steps: [...combination.steps],
       name: name.trim(),
     };
@@ -76,7 +72,7 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
       if (
         previous.sourceType !== sourceType ||
         previous.targetType !== targetType ||
-        previous.solutionType !== selected.solutionType ||
+        previous.productType !== selected.productType ||
         previous.sourceConnector !== selected.sourceConnector ||
         previous.sinkConnector !== selected.sinkConnector ||
         !findStepCombination(selected, previous.steps)
@@ -84,6 +80,7 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
         setPending(draft);
         return;
       }
+      draft.steps = [...previous.steps];
       draft.form = { ...previous.form, name: draft.name, steps: draft.steps };
     }
     openEditor(draft);
@@ -162,38 +159,6 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
           {!error && !loading && sourceType && targetType && choices.length === 0 ? (
             <Alert>当前链路暂无可用同步方案</Alert>
           ) : null}
-          {selected && selected.solutionType.endsWith("_REALTIME") && !steps.includes("FULL") ? (
-            <Alert>仅增量同步不会复制现有数据，目标表需要提前准备好。</Alert>
-          ) : null}
-          {selected ? (
-            <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
-              <FieldLabel required>同步步骤</FieldLabel>
-              <div className="flex flex-wrap gap-4">
-                {selected.steps.map((step) => {
-                  const selectedSteps = steps.includes(step)
-                    ? steps.filter((value) => value !== step)
-                    : [...steps, step];
-                  const nextSteps = selected.steps.filter((value) => selectedSteps.includes(value));
-                  return (
-                    <label
-                      key={step}
-                      id={`${stepLabelId}-${step}`}
-                      className="flex items-center gap-2 text-xs text-[#344054]"
-                    >
-                      <Checkbox
-                        id={`${stepLabelId}-${step}-control`}
-                        aria-labelledby={`${stepLabelId}-${step}`}
-                        checked={steps.includes(step)}
-                        disabled={!findStepCombination(selected, nextSteps)}
-                        onCheckedChange={() => setSteps(nextSteps)}
-                      />
-                      {STEP_LABELS[step]}
-                    </label>
-                  );
-                })}
-              </div>
-            </Field>
-          ) : null}
           <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
             <FieldLabel required>名称</FieldLabel>
             <Input
@@ -203,8 +168,7 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
               value={name}
               placeholder="同步任务名称"
               onChange={(event) => {
-                nameEdited.current = true;
-                setName(event.target.value);
+                setCustomName(event.target.value);
               }}
             />
           </Field>
@@ -228,7 +192,9 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
             </>
           }
         >
-          <p className="text-sm text-[#475467]">更改方案将清除草稿中已填写的连接与表映射。</p>
+          <p className="text-sm text-[var(--yak-components-collapse-section-icon)]">
+            更改具体类型将清除草稿中的连接、表映射、字段映射及转换表达式。
+          </p>
         </Modal>
       ) : null}
     </>

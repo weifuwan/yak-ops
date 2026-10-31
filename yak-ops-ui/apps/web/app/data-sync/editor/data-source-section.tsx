@@ -12,7 +12,7 @@ interface Props {
   sourceDataSourceId: string;
   targetDataSourceId: string;
   loading: boolean;
-  onRefresh: () => Promise<void>;
+  onRefresh: () => void | Promise<void>;
   onSourceChange: (value: string) => void;
   onTargetChange: (value: string) => void;
 }

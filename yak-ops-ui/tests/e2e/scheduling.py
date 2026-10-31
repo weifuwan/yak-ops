@@ -7,7 +7,7 @@ from mock_api import state
 from data_sync import verify_revision_conflict, site
 
 async def verify_schedule_history(page):
-    await page.goto(site("/data-sync?solutionType=SINGLE_TABLE_OFFLINE"))
+    await page.goto(site("/data-sync?productType=SINGLE_TABLE_BATCH"))
     await expect(
         page.get_by_role("button", name="手动", exact=True)
     ).to_be_visible()
@@ -108,7 +108,7 @@ async def verify_schedule_history(page):
 
 async def verify_schedule_errors(page):
     state["fail_batch"] = True
-    await page.goto(site("/data-sync?solutionType=SINGLE_TABLE_OFFLINE"))
+    await page.goto(site("/data-sync?productType=SINGLE_TABLE_BATCH"))
     await expect(page.get_by_role("button", name="调度加载失败", exact=True)).to_be_visible()
     await expect(page.get_by_role("button", name="手动", exact=True)).to_have_count(0)
     state["fail_batch"] = False

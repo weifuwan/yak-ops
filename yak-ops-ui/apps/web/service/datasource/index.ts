@@ -90,25 +90,35 @@ export const testDataSourceConnectionWithParams = (
 export const listDataSourceDatabases = (id: DataSourceId): Promise<string[]> =>
   HttpUtils.getData<string[]>(`${DATA_SOURCE_API_PREFIX}/${id}/catalog/databases`);
 
-export const listDataSourceSchemas = (id: DataSourceId, database?: string): Promise<string[]> => {
+export const listDataSourceSchemas = (
+  id: DataSourceId,
+  database?: string,
+  signal?: AbortSignal,
+): Promise<string[]> => {
   const query = database ? `?database=${encodeURIComponent(database)}` : "";
-  return HttpUtils.getData<string[]>(`${DATA_SOURCE_API_PREFIX}/${id}/catalog/schemas${query}`);
+  return HttpUtils.getData<string[]>(`${DATA_SOURCE_API_PREFIX}/${id}/catalog/schemas${query}`, {
+    signal,
+  });
 };
 
 export const listDataSourceTables = (
   id: DataSourceId,
   query: DataSourceCatalogQuery,
+  signal?: AbortSignal,
 ): Promise<DataSourceCatalogTable[]> =>
   HttpUtils.postData<DataSourceCatalogTable[]>(
     `${DATA_SOURCE_API_PREFIX}/${id}/catalog/tables`,
     query,
+    { signal },
   );
 
 export const listDataSourceColumns = (
   id: DataSourceId,
   path: DataSourceCatalogTablePath,
+  signal?: AbortSignal,
 ): Promise<DataSourceCatalogColumn[]> =>
   HttpUtils.postData<DataSourceCatalogColumn[]>(
     `${DATA_SOURCE_API_PREFIX}/${id}/catalog/columns`,
     path,
+    { signal },
   );

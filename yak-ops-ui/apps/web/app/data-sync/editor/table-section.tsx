@@ -72,10 +72,10 @@ export function TableSection({
   const tableDisabled = !dataSourceId || (requiresSchema && !schema);
 
   return (
-    <div className="rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-4">
+    <div className="rounded-lg border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4">
       <div className="space-y-3">
         {requiresSchema ? (
-          <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
+          <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
             <FieldLabel>Schema</FieldLabel>
             <DataSyncSearchableSelect
               value={schema || null}
@@ -89,7 +89,7 @@ export function TableSection({
             />
           </Field>
         ) : null}
-        <Field className="grid grid-cols-[112px_minmax(0,1fr)] items-center !gap-3">
+        <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
           <FieldLabel required>表</FieldLabel>
           <div className="w-1/2 min-w-0 max-lg:w-auto max-lg:flex-1">
             {prepareSchema ? (

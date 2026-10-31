@@ -1,4 +1,5 @@
 import { offlineIncremental, validIncrementalConfig } from "@/service/data-sync/parameters";
+import { transformEditingError } from "@/service/data-sync/transforms";
 import { validTableMappings } from "./table-mapping-editor";
 import { sameScheduleRule } from "@/app/schedule/schedule-presentation";
 import { selectedTableKey } from "./table-section";
@@ -15,12 +16,8 @@ import type { CatalogOptions, EditorForm } from "./types";
 export function buildEditorPayload(
   form: EditorForm,
   draft: DataSyncDraft,
-  batch: boolean,
+  replication: boolean,
   mappings: DataSyncTableMapping[],
-  usesChangelog: boolean,
-  startup?: DataSyncTaskSavePayload["startup"],
-  transforms?: DataSyncTaskSavePayload["transforms"],
-  pipelineOptions?: DataSyncTaskSavePayload["pipelineOptions"],
 ): DataSyncTaskSavePayload {
   const common = {
     name: form.name.trim(),
@@ -37,29 +34,28 @@ export function buildEditorPayload(
   };
   return {
     ...common,
-    solutionType: draft.solutionType,
+    productType: draft.productType,
     sourceConnector: draft.sourceConnector,
     sinkConnector: draft.sinkConnector,
     sourceProducesChangelog: draft.sourceProducesChangelog,
-    transforms: transforms ?? draft.form?.transforms,
-    pipelineOptions: pipelineOptions ?? draft.form?.pipelineOptions,
+    transforms: form.transforms,
+    pipelineOptions: form.pipelineOptions,
     steps: draft.steps,
-    ...(usesChangelog && startup ? { startup: { ...startup } } : {}),
+    ...(replication && form.startup ? { startup: { ...form.startup } } : {}),
     writeMode: form.sink.writeMode,
     targetPrimaryKeys: form.sink.targetPrimaryKeys?.filter(Boolean) ?? [],
-    ...(!batch && offlineIncremental(draft.solutionType, draft.steps) && form.source.incremental
+    ...(!replication &&
+    offlineIncremental(draft.productType, draft.steps) &&
+    form.source.incremental
       ? { incremental: { ...form.source.incremental } }
       : {}),
-    ...(usesChangelog && form.source.chunkKeyColumn && !batch
-      ? { chunkKeyColumn: form.source.chunkKeyColumn }
-      : {}),
-    ...(usesChangelog
+    ...(replication
       ? {
           schemaChangesEnabled: form.sink.schemaChangesEnabled,
           allowDropColumns: form.sink.schemaChangesEnabled && form.sink.allowDropColumns,
         }
       : {}),
-    tableMappings: batch ? mappings : undefined,
+    tableMappings: replication ? mappings : undefined,
   };
 }
 
@@ -70,12 +66,12 @@ interface ValidationInput {
   solutionsError: string;
   useIncremental: boolean;
   initialLoad: boolean;
-  batch: boolean;
+  replication: boolean;
   mappings: DataSyncTableMapping[];
   selectedSourceDataSource?: DataSourceRecord;
   selectedTargetDataSource?: DataSourceRecord;
   draft: DataSyncDraft;
-  hasTransforms?: boolean;
+  replicationError: string;
   supportsScheduling: boolean;
   scheduleLoading: boolean;
   scheduleNeedsReload: boolean;
@@ -94,12 +90,12 @@ export function canSaveEditor({
   solutionsError,
   useIncremental,
   initialLoad,
-  batch,
+  replication,
   mappings,
   selectedSourceDataSource,
   selectedTargetDataSource,
   draft,
-  hasTransforms = false,
+  replicationError,
   supportsScheduling,
   scheduleLoading,
   scheduleNeedsReload,
@@ -110,34 +106,15 @@ export function canSaveEditor({
   targetCatalog,
   sourceCatalog,
 }: ValidationInput): boolean {
-  const continuous = draft.sourceProducesChangelog && draft.steps.includes("INCREMENTAL");
-  const projectedRetract =
-    hasTransforms &&
-    continuous &&
-    draft.targetType === "MYSQL" &&
-    !form.sink.targetPrimaryKeys.length &&
-    !form.sink.schemaChangesEnabled;
   return Boolean(
     !published &&
     Boolean(combination) &&
     !solutionsLoading &&
     !solutionsError &&
-    combination!.writeModes.includes(form.sink.writeMode) &&
-    (!(!batch && draft.sourceProducesChangelog) ||
-      (form.source.sourceHasPrimaryKey !== undefined &&
-        (form.source.sourceHasPrimaryKey
-          ? form.sink.writeMode !== "RETRACT" || projectedRetract
-          : initialLoad &&
-            (!continuous || draft.targetType === "MYSQL") &&
-            !form.sink.schemaChangesEnabled &&
-            Boolean(form.source.chunkKeyColumn.trim()) &&
-            (form.sink.targetPrimaryKeys.length
-              ? form.sink.writeMode === "UPSERT" && form.sink.targetPrimaryKeys.every(Boolean)
-              : form.sink.writeMode === (continuous ? "RETRACT" : "APPEND"))))) &&
-    (!useIncremental ||
-      (batch
-        ? mappings.every((mapping) => validIncrementalConfig(mapping.incremental, !initialLoad))
-        : validIncrementalConfig(form.source.incremental, !initialLoad))) &&
+    (replication || combination!.writeModes.includes(form.sink.writeMode)) &&
+    !replicationError &&
+    !transformEditingError(form.transforms) &&
+    (!useIncremental || validIncrementalConfig(form.source.incremental, !initialLoad)) &&
     selectedSourceDataSource?.dbType === draft.sourceType &&
     selectedTargetDataSource?.dbType === draft.targetType &&
     (!supportsScheduling ||
@@ -148,7 +125,7 @@ export function canSaveEditor({
     Boolean(form.source.dataSourceId && form.sink.dataSourceId) &&
     (!prepareSchema ||
       Boolean(form.sink.database && (draft.targetType !== "POSTGRE_SQL" || form.sink.schema))) &&
-    (batch
+    (replication
       ? validTableMappings(
           mappings,
           targetCatalog.tables,

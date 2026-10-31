@@ -13,7 +13,7 @@ export function readTaskDraft(key: string): DataSyncDraft | undefined {
     const value = JSON.parse(content) as { version?: number; draft?: DataSyncDraft };
     const draft = value.draft;
     if (
-      value.version !== 2 ||
+      value.version !== 3 ||
       !draft ||
       typeof draft.name !== "string" ||
       typeof draft.sourceConnector !== "string" ||
@@ -21,12 +21,7 @@ export function readTaskDraft(key: string): DataSyncDraft | undefined {
       typeof draft.sourceProducesChangelog !== "boolean" ||
       !["MYSQL", "POSTGRE_SQL", "ORACLE"].includes(draft.sourceType) ||
       !["MYSQL", "POSTGRE_SQL", "ORACLE"].includes(draft.targetType) ||
-      ![
-        "SINGLE_TABLE_OFFLINE",
-        "SINGLE_TABLE_REALTIME",
-        "DATABASE_OFFLINE",
-        "DATABASE_REALTIME",
-      ].includes(draft.solutionType) ||
+      !["SINGLE_TABLE_BATCH", "DATABASE_REPLICATION"].includes(draft.productType) ||
       !Array.isArray(draft.steps)
     )
       return undefined;
@@ -38,7 +33,7 @@ export function readTaskDraft(key: string): DataSyncDraft | undefined {
 
 export function writeTaskDraft(key: string, draft: DataSyncDraft) {
   try {
-    window.sessionStorage.setItem(key, JSON.stringify({ version: 2, draft }));
+    window.sessionStorage.setItem(key, JSON.stringify({ version: 3, draft }));
   } catch {
     // The in-memory editor remains usable when session storage is unavailable.
   }

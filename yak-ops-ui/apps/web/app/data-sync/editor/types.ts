@@ -4,6 +4,9 @@ import type {
   DataSyncTaskRecord,
   DataSyncIncrementalConfig,
   DataSyncWriteMode,
+  DataSyncTransform,
+  DataSyncStartupOptions,
+  DataSyncPipelineOptions,
 } from "@/service/data-sync";
 
 export interface EditorSource {
@@ -11,9 +14,6 @@ export interface EditorSource {
   database: string;
   schema: string;
   table: string;
-  /** Derived from physical Catalog metadata; never persisted in the task definition. */
-  sourceHasPrimaryKey?: boolean;
-  chunkKeyColumn: string;
   incremental?: DataSyncIncrementalConfig;
 }
 
@@ -28,11 +28,14 @@ export interface EditorSink {
   allowDropColumns: boolean;
 }
 
-/** UI state groups settings by the component that owns them, not by the V3 JSON layout. */
+/** Authored editor state; replication table options live on their individual mappings. */
 export interface EditorForm {
   name: string;
   remark: string;
   debug: boolean;
+  transforms: DataSyncTransform[];
+  startup?: DataSyncStartupOptions;
+  pipelineOptions?: DataSyncPipelineOptions;
   source: EditorSource;
   sink: EditorSink;
 }
@@ -49,13 +52,12 @@ export const EMPTY_FORM: EditorForm = {
   name: "",
   remark: "",
   debug: false,
+  transforms: [],
   source: {
     dataSourceId: "",
     database: "",
     schema: "",
     table: "",
-    sourceHasPrimaryKey: undefined,
-    chunkKeyColumn: "",
     incremental: undefined,
   },
   sink: {
