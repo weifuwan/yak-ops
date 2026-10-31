@@ -394,7 +394,8 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
                     for (Path file : metadata) {
                         String filename = file.getFileName().toString();
                         if (filename.equals(METADATA_FILE)
-                                || (filename.startsWith(".checkpoint-") && filename.endsWith(".pending"))) {
+                                || (filename.startsWith(".checkpoint-") && filename.endsWith(".pending"))
+                                || filename.startsWith("._metadata.inprogress.")) {
                             Files.deleteIfExists(file);
                         }
                     }
