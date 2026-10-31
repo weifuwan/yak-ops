@@ -1,38 +1,28 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { listDataSyncSolutions } from "@/service/data-sync";
 
-import { listDataSyncSolutions, type DataSyncSolution } from "@/service/data-sync";
-
-/** Type-level discovery has no connection dependency; aborts protect rapidly changed selections. */
+/** Discovery is connection-independent and scoped to the active authenticated workspace. */
 export function useSolutions(sourceType?: string, targetType?: string) {
-  const [result, setResult] = useState<{
-    key: string;
-    choices: DataSyncSolution[];
-    loading: boolean;
-    error: string;
-  }>({ key: "", choices: [], loading: false, error: "" });
-  const [reload, setReload] = useState(0);
-  const key = `${sourceType || ""}:${targetType || ""}`;
-  const refresh = useCallback(() => setReload((value) => value + 1), []);
-  useEffect(() => {
-    if (!sourceType || !targetType) return;
-    const controller = new AbortController();
-    setResult({ key, choices: [], loading: true, error: "" });
-    void listDataSyncSolutions(sourceType, targetType, controller.signal)
-      .then((choices) => {
-        if (!controller.signal.aborted) setResult({ key, choices, loading: false, error: "" });
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setResult({ key, choices: [], loading: false, error: "同步方案加载失败，请重试" });
-        }
-      });
-    return () => controller.abort();
-  }, [key, reload, sourceType, targetType]);
-  const current = result.key === key;
+  const { currentUser } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const enabled = Boolean(currentUser?.id && currentWorkspace?.id && sourceType && targetType);
+  const query = useQuery({
+    queryKey: [
+      "data-sync-solutions",
+      currentUser?.id,
+      currentWorkspace?.id,
+      sourceType,
+      targetType,
+    ],
+    queryFn: ({ signal }) => listDataSyncSolutions(sourceType!, targetType!, signal),
+    enabled,
+  });
   return {
-    choices: current ? result.choices : [],
-    loading: Boolean(sourceType && targetType) && (!current || result.loading),
-    error: current ? result.error : "",
-    refresh,
+    choices: query.data ?? [],
+    loading: enabled && query.isPending,
+    error: query.isError ? "同步方案加载失败，请重试" : "",
+    refresh: () => void query.refetch(),
   };
 }

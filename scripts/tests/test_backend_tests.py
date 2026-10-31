@@ -114,7 +114,7 @@ class MavenIntegrationProfileTest(unittest.TestCase):
 
 
 class ReportTest(unittest.TestCase):
-    COUNTS = {"TaskCursorIT": 6, "ScheduleAdmissionIT": 13}
+    COUNTS = {"TaskCursorIT": 6, "ScheduleAdmissionIT": 13, "DefinitionPageQueryIT": 3}
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -153,15 +153,13 @@ class ReportTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "TaskCursorIT"):
             subject.check_reports(["business"], self.root)
 
-    def test_both_registered_reports_are_required(self):
-        self.complete_reports()
-        self.write("TaskCursorIT")
-        with self.assertRaisesRegex(ValueError, "TaskCursorIT"):
-            subject.check_reports(["business"], self.root)
-        self.complete_reports()
-        self.write("ScheduleAdmissionIT")
-        with self.assertRaisesRegex(ValueError, "ScheduleAdmissionIT"):
-            subject.check_reports(["business"], self.root)
+    def test_every_registered_report_is_required(self):
+        for name in self.COUNTS:
+            with self.subTest(name=name):
+                self.complete_reports()
+                self.write(name)
+                with self.assertRaisesRegex(ValueError, name):
+                    subject.check_reports(["business"], self.root)
 
     def test_xml_summary_errors_block_even_without_testcase(self):
         self.complete_reports()

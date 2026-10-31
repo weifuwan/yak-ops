@@ -8,7 +8,7 @@ import { TaskRoute } from "./task-route";
 import { DataSyncTaskLifecycleActions, DataSyncTaskStatusBadge } from "./task-lifecycle";
 import { readExecutionSummary } from "@/service/data-sync/report";
 import { canCancelTaskInstance, canManageTaskDefinition } from "@/service/data-sync/execution";
-import { solutionSummary } from "../solution/presentation";
+import { syncSummary } from "../solution/presentation";
 import type { DataSourceRecord } from "@/service/datasource";
 import type { UserRecord } from "@/service/user";
 import type {
@@ -126,7 +126,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
       },
     },
     {
-      key: "solution",
+      key: "product",
       title: "同步方案",
       minWidth: 220,
       render: (_value, record) =>
@@ -138,9 +138,12 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
             配置异常：{record.configurationError}
           </span>
         ) : (
-          <span className="text-xs text-[var(--yak-components-tab-text-hover)]">
-            {solutionSummary(record.solutionType, record.steps)}
-          </span>
+          <div className="text-xs text-[var(--yak-components-tab-text-hover)]">
+            <div>{syncSummary(record.productType, record.steps)}</div>
+            <div className="mt-0.5 text-[var(--yak-components-muted-text)]">
+              {record.tableMappings.length} 张表
+            </div>
+          </div>
         ),
     },
     {
@@ -182,6 +185,7 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
           if (instancesLoading) return <Skeleton width="100%" height={22} />;
           return <ExecutionProgressBar realtime={record.syncType === "REALTIME"} />;
         }
+        const summary = readExecutionSummary(instance.executionReport);
         return (
           <button
             type="button"
@@ -189,13 +193,8 @@ export function TaskTable({ records, pageNo, total, loading, failed, data, actio
             title="查看本次执行"
             onClick={() => navigate(`/data-sync/${record.id}/detail?executionId=${instance.id}`)}
           >
-            {record.syncType === "REALTIME" ||
-            readExecutionSummary(instance.executionReport)?.version === 3 ? (
-              <ExecutionStages
-                compact
-                status={instance.status}
-                summary={readExecutionSummary(instance.executionReport)}
-              />
+            {summary ? (
+              <ExecutionStages compact status={instance.status} summary={summary} />
             ) : (
               <ExecutionProgressBar
                 status={instance.status}

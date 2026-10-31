@@ -34,4 +34,18 @@ class DefinitionSqlProviderTest {
         assertThrows(IllegalArgumentException.class,
                 () -> DefinitionSqlProvider.selectDefinitionPage(Map.of("filter", filter)));
     }
+
+    @Test
+    void productFilterBindsItsValueAndCombinesWithPhysicalRuntime() {
+        DefinitionPageQuery filter = new DefinitionPageQuery(
+                "ws", 1, 2, null, "DATA_SYNC", null,
+                Map.of("dataSyncProfile", "DATABASE_REPLICATION", "runtimeMode", "BATCH"));
+        String sql = DefinitionSqlProvider.selectDefinitionPage(Map.of("filter", filter));
+
+        assertTrue(sql.contains("#{filter.parameterFilters.dataSyncProfile}"));
+        assertTrue(sql.contains("#{filter.parameterFilters.runtimeMode}"));
+        assertTrue(sql.contains("$.source.startup"));
+        assertFalse(sql.contains("$.index.dataSyncProfile"));
+        assertFalse(sql.contains(" = 'BATCH'"));
+    }
 }

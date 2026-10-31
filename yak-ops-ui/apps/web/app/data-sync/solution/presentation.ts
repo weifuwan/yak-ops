@@ -1,13 +1,11 @@
-import type { DataSyncSolution, DataSyncSolutionType, DataSyncStep } from "@/service/data-sync";
+import type { DataSyncSolution, DataSyncProductType, DataSyncStep } from "@/service/data-sync";
 
-export const SOLUTION_LABELS: Record<DataSyncSolutionType, string> = {
-  SINGLE_TABLE_OFFLINE: "单表离线",
-  DATABASE_OFFLINE: "整库离线",
-  DATABASE_REALTIME: "整库实时",
-  SINGLE_TABLE_REALTIME: "单表实时",
+export const PRODUCT_LABELS: Record<DataSyncProductType, string> = {
+  SINGLE_TABLE_BATCH: "单表离线",
+  DATABASE_REPLICATION: "整库实时",
 };
 export const STEP_LABELS: Record<DataSyncStep, string> = {
-  SCHEMA: "结构迁移",
+  SCHEMA: "准备目标表结构",
   FULL: "全量同步",
   INCREMENTAL: "增量同步",
 };
@@ -21,8 +19,14 @@ export function findStepCombination(solution: DataSyncSolution | undefined, step
   );
 }
 
-export const solutionSummary = (type: DataSyncSolutionType, steps: DataSyncStep[]) =>
-  `${SOLUTION_LABELS[type]} · ${steps
-    .filter((step) => step !== "SCHEMA")
-    .map((step) => (step === "FULL" ? "全量" : "增量"))
-    .join("＋")}`;
+export function strategyLabel(type: DataSyncProductType, steps: DataSyncStep[]): string {
+  if (type === "DATABASE_REPLICATION") {
+    if (!steps.includes("INCREMENTAL")) return "全量后结束";
+    return steps.includes("FULL") ? "全量后持续增量" : "仅增量";
+  }
+  if (!steps.includes("INCREMENTAL")) return "全量同步";
+  return steps.includes("FULL") ? "首次全量，后续按字段增量" : "按字段增量";
+}
+
+export const syncSummary = (type: DataSyncProductType, steps: DataSyncStep[]) =>
+  `${PRODUCT_LABELS[type]} · ${strategyLabel(type, steps)}`;

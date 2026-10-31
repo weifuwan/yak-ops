@@ -55,7 +55,6 @@ export function ExecutionTabs({
             onViewScheduleHistory={() => {
               onViewScheduleHistory(selectedInstance.scheduleId || undefined);
             }}
-            realtime={selectedInstance.syncType === "REALTIME"}
             controls={
               <>
                 <label className="flex items-center gap-2 text-xs text-[var(--yak-components-collapse-section-icon)]">

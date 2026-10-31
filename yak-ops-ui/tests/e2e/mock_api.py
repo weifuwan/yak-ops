@@ -1,6 +1,7 @@
 """Deterministic HTTP fixtures for UI interaction tests; never evidence for backend E2E."""
 
 import json
+from copy import deepcopy
 from urllib.parse import urlparse, parse_qs
 
 params = {
@@ -76,6 +77,9 @@ state = {
     "conflict": False,
     "fires": [],
     "fail_solutions": False,
+    "fail_publish": False,
+    "logged_out": False,
+    "versions": {},
     "solution_requests": [],
     "task": task,
     "unexpected_requests": [],
@@ -83,11 +87,25 @@ state = {
 }
 
 
-def paging(rows):
+def paging(rows, page_no=1, page_size=200):
+    total = len(rows)
     return {
-        "bizData": rows,
-        "pagination": {"pageNo": 1, "pageSize": 200, "total": len(rows), "pages": 1},
+        "bizData": rows[(page_no - 1) * page_size:page_no * page_size],
+        "pagination": {"pageNo": page_no, "pageSize": page_size, "total": total,
+                       "pages": (total + page_size - 1) // page_size},
     }
+
+
+def remember_definition(definition):
+    key = (definition["id"], definition["definitionVersion"])
+    state["versions"].setdefault(key, deepcopy(definition))
+
+
+def task_profile(definition):
+    config = definition["parameters"]
+    if config["source"].get("startup") or config["pipeline"]["execution.runtime-mode"] == "STREAMING":
+        return "DATABASE_REPLICATION"
+    return "SINGLE_TABLE_BATCH"
 
 
 async def mock(route):
@@ -99,6 +117,7 @@ async def mock(route):
     status = 200
     data = None
     code = 200
+    message = "test"
     if p.endswith("/account/current"):
         data = {
             "id": "user1",
@@ -106,6 +125,11 @@ async def mock(route):
             "realName": "Tester",
             "status": "ACTIVE",
         }
+        if state["logged_out"]:
+            status, code, data = 401, 401, None
+    elif p.endswith("/account/logout"):
+        state["logged_out"] = True
+        data = True
     elif p == "/api/v1/workspaces":
         data = [
             {"id": "ws1", "name": "Workspace A", "role": "OWNER"},
@@ -141,19 +165,19 @@ async def mock(route):
     elif "/catalog/schemas" in p:
         data = []
     elif "/catalog/columns" in p:
-        data = state.get("source_columns", [
+        data = state.get("source_columns" if "/src/" in p else "target_columns", [
             {"name": "id", "typeName": "BIGINT", "nullable": False, "primaryKey": True}
         ])
     elif "/catalog/tables" in p:
         mode = state["catalog_mode"]
         if "/src/" in p:
-            names = ["orders"] if mode == "single" else (
-                ["sm_browser_source"] if mode == "schema" else ["batch_a", "batch_b"])
+            names = state.get("source_tables", ["orders"] if mode == "single" else (
+                ["sm_browser_source"] if mode == "schema" else ["batch_a", "batch_b"]))
             data = [{"database": "app", "schema": None, "name": name, "type": "TABLE"}
                     for name in names]
         else:
-            names = ["ods_orders"] if mode == "single" else (
-                [] if mode == "schema" else ["batch_a_copy", "batch_b_copy"])
+            names = state.get("target_tables", ["ods_orders"] if mode == "single" else (
+                [] if mode == "schema" else ["batch_a_copy", "batch_b_copy"]))
             datasource = next(source for source in state.get("data_sources", sources)
                               if source["id"] == p.split("/")[4])
             data = [{"database": datasource["database"], "schema": datasource.get("schema"),
@@ -163,16 +187,54 @@ async def mock(route):
         data = next((x for x in state.get("data_sources", sources)
                      if x["id"] == p.rsplit("/", 1)[-1]), {})
     elif p == "/api/v1/task-definitions/page":
-        data = paging([state["task"]])
+        rows = state.get("task_rows", [state["task"]])
+        filters = b.get("parameterFilters", {})
+        if filters.get("dataSyncProfile"):
+            rows = [row for row in rows if task_profile(row) == filters["dataSyncProfile"]]
+        if b.get("status"):
+            rows = [row for row in rows if row["status"] == b["status"]]
+        if b.get("keyword"):
+            rows = [row for row in rows if b["keyword"].lower() in row["name"].lower()]
+        data = paging(rows, b.get("pageNo", 1), b.get("pageSize", 20))
     elif p == "/api/v1/task-definitions" and method == "POST":
         state["created_tasks"] += 1
-        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED", "parameterSchemaVersion": 7}
+        state["task"] = {**task, **b, "id": "new-task", "status": "UNPUBLISHED",
+                         "definitionVersion": 1, "parameterSchemaVersion": 7}
+        remember_definition(state["task"])
         data = state["task"]
     elif p.startswith("/api/v1/task-definitions/"):
-        if method == "PUT":
+        if p.endswith("/publish"):
+            if state["fail_publish"]:
+                status, code = 400, 400
+                message = "同步配置校验失败"
+            else:
+                state["task"] = {**state["task"], "status": "PUBLISHED"}
+            data = state["task"]
+        elif p.endswith("/unpublish"):
+            state["task"] = {**state["task"], "status": "UNPUBLISHED"}
+            data = state["task"]
+        elif p.endswith("/instances"):
+            remember_definition(state["task"])
+            instance.update({"id": "i1", "definitionId": state["task"]["id"],
+                             "definitionVersion": state["task"]["definitionVersion"],
+                             "triggerType": "MANUAL", "scheduleId": None,
+                             "scheduleRevision": None, "scheduledTime": None,
+                             "status": "RUNNING", "progressPercent": 0,
+                             "endTime": None, "executionReport": state.get("run_report")})
+            state["show_instances"] = True
+            data = {"instanceId": instance["id"]}
+        elif method == "PUT":
             state["updated_tasks"] += 1
-            state["task"] = {**state["task"], **b, **({"parameterSchemaVersion": 7} if "parameters" in b else {})}
-        data = state["task"]
+            remember_definition(state["task"])
+            changed = "parameters" in b and b["parameters"] != state["task"]["parameters"]
+            state["task"] = {**state["task"], **b,
+                             "definitionVersion": state["task"]["definitionVersion"] + int(changed),
+                             **({"parameterSchemaVersion": 7} if "parameters" in b else {})}
+            remember_definition(state["task"])
+            data = state["task"]
+        else:
+            remember_definition(state["task"])
+            data = state["task"]
     elif p == "/api/v1/task-instances/latest":
         data = (
             [instance]
@@ -182,7 +244,9 @@ async def mock(route):
             else []
         )
     elif p == "/api/v1/task-instances/page":
-        data = paging([instance] if state.get("show_instances") else [])
+        data = paging([instance] if state.get("show_instances")
+                      and instance["definitionId"] == b.get("definitionId")
+                      and (not b.get("status") or b["status"] == instance["status"]) else [])
     elif p.startswith("/api/v1/task-instances/"):
         if "/logs" in p:
             data = {
@@ -191,15 +255,19 @@ async def mock(route):
                 "hasMore": False,
             }
         elif p.endswith("/definition"):
-            definition = state["task"]
+            remember_definition(state["task"])
+            definition = state["versions"][(instance["definitionId"], instance["definitionVersion"])]
             data = {
                 "definitionId": instance["definitionId"],
-                "version": definition.get("definitionVersion", 1),
+                "version": instance["definitionVersion"],
                 "name": definition["name"],
                 "taskType": "DATA_SYNC",
                 "parameterSchemaVersion": definition["parameterSchemaVersion"],
                 "parameters": definition["parameters"],
             }
+        elif p.endswith("/cancel"):
+            instance["status"] = "CANCELED"
+            data = "CANCELED"
         elif p.endswith("/metrics"):
             data = {}
         else:
@@ -271,7 +339,5 @@ async def mock(route):
     await route.fulfill(
         status=status,
         content_type="application/json",
-        body=json.dumps({"code": code, "data": data, "msg": "test"}),
+        body=json.dumps({"code": code, "data": data, "msg": message}),
     )
-
-

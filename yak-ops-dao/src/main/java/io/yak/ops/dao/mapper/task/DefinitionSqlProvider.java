@@ -16,6 +16,18 @@ public final class DefinitionSqlProvider {
             "sourceDataSourceId", "sourceDataSourceId",
             "targetDataSourceId", "targetDataSourceId");
 
+    // A bounded CDC snapshot remains replication. The effective scope is derived by the Task plugin.
+    private static final String DATA_SYNC_PROFILE = """
+            (CASE WHEN v.parameter_schema_version = 7 THEN
+                CASE WHEN JSON_CONTAINS_PATH(v.parameters, 'one', '$.source.startup') = 1
+                          OR JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.index.runtimeMode')) = 'STREAMING'
+                     THEN 'DATABASE_REPLICATION'
+                     WHEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.index.tableScope')) = 'SINGLE'
+                     THEN 'SINGLE_TABLE_BATCH'
+                END
+            END)
+            """;
+
     private static String indexed(String field) {
         return "(CASE WHEN v.parameter_schema_version = 7 THEN JSON_UNQUOTE(JSON_EXTRACT(v.parameters, '$.index."
                 + field + "')) END)";
@@ -39,6 +51,12 @@ public final class DefinitionSqlProvider {
             sql.append(" OR v.parameters LIKE CONCAT('%', #{filter.keyword}, '%'))");
         }
         for (String key : filter.parameterFilters().keySet()) {
+            if ("dataSyncProfile".equals(key)) {
+                sql.append(" AND d.task_type = 'DATA_SYNC' AND ")
+                        .append(DATA_SYNC_PROFILE)
+                        .append(" = #{filter.parameterFilters.dataSyncProfile}");
+                continue;
+            }
             String field = JSON_FILTER_PATHS.get(key);
             if (field == null) throw new IllegalArgumentException("Unsupported definition parameter filter");
             sql.append(" AND ")

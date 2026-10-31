@@ -2,7 +2,7 @@
 
 Build, move, and operate data with confidence.
 
-Yak Ops 是面向数据集成与同步场景的数据平台。当前 `main` 分支仍处于开发阶段：Task Definition 与 YakFlow Core / Runtime / Connectors 独立存在，产品侧同步执行尚未重新接通。已发布版本的能力请查看对应 Release。
+Yak Ops 是面向数据集成与同步场景的数据平台，通过 Task Definition 管理同步配置、发布和执行，由 YakFlow 执行 JDBC 批量读取与 MySQL CDC 同步。已发布版本的能力请查看对应 Release。
 
 ## Build and Run
 
@@ -20,6 +20,17 @@ docker compose up -d
 在非本地环境必须修改示例数据库密码并设置新的 `YAK_OPS_DATASOURCE_MASTER_KEY`。使用外部数据库可选择 `compose.without-mysql.yaml`，两种部署方式都使用 `YAK_DATABASE_*` 连接元数据库。
 
 正式 Distribution 为 `yak-ops-{version}.tar.gz`，解压后通过 `./bin/run-yak-ops.sh` 启动。
+
+## Data Sync
+
+新建同步任务时，选择来源和目标类型，再选择链路支持的产品：
+
+- **单表离线**：选择一张表，配置目标字段、映射表达式和行过滤，手动执行或按计划执行有界批次。
+- **整库实时**：选择一张或多张表，配置表映射，并选择全量后持续增量、仅增量或全量后结束。
+
+“整库实时”的全量后结束策略仍归入该产品，但执行是可结束的批次；它不持续监听后续变更。保存、发布、执行和调度是不同操作。数据源凭据由 Workspace 中的数据源管理，任务参数不保存凭据。
+
+配置示例、增量约束、字段 Transform 和产品筛选接口见 [Data Sync 使用与 Pipeline 定义](docs/data-sync-pipeline.md)。
 
 ## Development
 

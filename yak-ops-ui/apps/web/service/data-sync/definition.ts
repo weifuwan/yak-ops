@@ -11,38 +11,44 @@ import type {
 } from "./types";
 import {
   displaySyncSteps,
-  pipelineSolutionType,
+  pipelineProductType,
   parseSyncParameters,
-  solutionSyncType,
+  pipelineSyncType,
   syncTableMappings,
-  supportsMultipleTables,
   usesCdcStartup,
   validateSyncParameters,
 } from "./parameters.ts";
 
 /** Writes the selected Connector identifiers into the single public Task configuration. */
 export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncParameters {
-  const mappings: DataSyncTableMapping[] = supportsMultipleTables(task.solutionType)
-    ? (task.tableMappings ?? [])
-    : [
-        {
-          source: {
-            database: task.sourceDatabase,
-            schema: task.sourceSchema,
-            table: task.sourceTable,
-            ...(task.chunkKeyColumn ? { chunkKeyColumn: task.chunkKeyColumn } : {}),
+  const mappings: DataSyncTableMapping[] =
+    task.productType === "DATABASE_REPLICATION"
+      ? (task.tableMappings ?? [])
+      : [
+          {
+            source: {
+              database: task.sourceDatabase,
+              schema: task.sourceSchema,
+              table: task.sourceTable,
+              ...(task.chunkKeyColumn ? { chunkKeyColumn: task.chunkKeyColumn } : {}),
+            },
+            target: {
+              database: task.targetDatabase,
+              schema: task.targetSchema,
+              table: task.targetTable,
+              ...(task.targetPrimaryKeys?.length
+                ? { primaryKeys: [...task.targetPrimaryKeys] }
+                : {}),
+            },
+            writeMode: task.writeMode,
+            ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
           },
-          target: {
-            database: task.targetDatabase,
-            schema: task.targetSchema,
-            table: task.targetTable,
-            ...(task.targetPrimaryKeys?.length ? { primaryKeys: [...task.targetPrimaryKeys] } : {}),
-          },
-          writeMode: task.writeMode,
-          ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
-        },
-      ];
+        ];
   if (!mappings.length) throw new Error("请选择同步表");
+  if (mappings.some((mapping) => mapping.writeMode === "RETRACT") && mappings.length !== 1)
+    throw new Error("逐行更新仅支持选择一张表，请先调整写入方式");
+  if ((task.productType === "DATABASE_REPLICATION") !== task.sourceProducesChangelog)
+    throw new Error("同步产品与来源能力不一致");
   const realtime = task.sourceProducesChangelog;
   const continuous = realtime && task.steps.includes("INCREMENTAL");
   const evolution = continuous && (task.schemaChangesEnabled ?? true);
@@ -129,9 +135,11 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
         ? { "schema.change.behavior": evolution ? "evolve" : "exception" }
         : {}),
       "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
-      "pipeline.table-scope": supportsMultipleTables(task.solutionType)
-        ? ("DATABASE" as const)
-        : ("SINGLE" as const),
+      "pipeline.table-scope":
+        task.productType === "DATABASE_REPLICATION" &&
+        !mappings.some((mapping) => mapping.writeMode === "RETRACT")
+          ? ("DATABASE" as const)
+          : ("SINGLE" as const),
     },
   };
 }
@@ -158,19 +166,13 @@ export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload) {
     remark: task.remark,
     debug: task.debug,
   };
-  if ("solutionType" in task) request.parameters = buildSyncParameters(task);
+  if ("productType" in task) request.parameters = buildSyncParameters(task);
   return request;
 }
 
 export function definitionPageRequest(params: DataSyncTaskPageParams) {
   const parameterFilters: Record<string, string> = {};
-  if (params.solutionType) {
-    parameterFilters.runtimeMode =
-      solutionSyncType(params.solutionType) === "REALTIME" ? "STREAMING" : "BATCH";
-    parameterFilters.tableScope = supportsMultipleTables(params.solutionType)
-      ? "DATABASE"
-      : "SINGLE";
-  }
+  if (params.productType) parameterFilters.dataSyncProfile = params.productType;
   if (params.syncType === "OFFLINE") parameterFilters.runtimeMode = "BATCH";
   if (params.syncType === "REALTIME") parameterFilters.runtimeMode = "STREAMING";
   if (params.sourceDataSourceId) parameterFilters.sourceDataSourceId = params.sourceDataSourceId;
@@ -208,12 +210,12 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     tableMappings,
 
     name: definition.name,
-    solutionType: pipelineSolutionType(parameters),
+    productType: pipelineProductType(parameters),
     steps: displaySyncSteps(parameters),
     ...(parameters.source.startup ? { startup: { ...parameters.source.startup } } : {}),
     schemaChangesEnabled: parameters.sink.schemaPolicy.evolution.enabled,
     allowDropColumns: parameters.sink.schemaPolicy.evolution.allowDropColumns,
-    syncType: solutionSyncType(pipelineSolutionType(parameters)),
+    syncType: pipelineSyncType(parameters),
     status: definition.status,
     debug: definition.debug ?? false,
     writeMode: mapping.writeMode,

@@ -7,7 +7,7 @@ import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-/** Plugin-neutral page request, including optional safe top-level JSON parameter filters. */
+/** Task page request with exact indexed parameter filters and an optional Data Sync product filter. */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class DefinitionQueryDTO extends PageQueryDTO {
@@ -19,6 +19,10 @@ public class DefinitionQueryDTO extends PageQueryDTO {
     private String taskType;
     /** Optional publication status filter, independent of runtime state. */
     private DefinitionStatus status;
-    /** Safe exact-match filters on top-level plugin parameter keys. */
+    /**
+     * Exact filters on server-generated parameter indexes. For {@code taskType=DATA_SYNC},
+     * {@code dataSyncProfile} also accepts {@code SINGLE_TABLE_BATCH} or {@code DATABASE_REPLICATION};
+     * it filters the product view derived from the definition without changing its execution mode.
+     */
     private Map<String, String> parameterFilters;
 }

@@ -19,9 +19,10 @@ export function DataSyncTaskDetailPage() {
   const scope = useDetailScope();
   const { task, taskLoading, dataSources, updatedBy } = useTaskInformation(taskId, scope);
   const realtime = task?.syncType === "REALTIME";
+  const supportsScheduling = task?.syncType === "OFFLINE";
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [historyScheduleId, setHistoryScheduleId] = useState<string>();
-  const schedules = useTaskSchedules(!realtime && taskId ? [taskId] : []);
+  const schedules = useTaskSchedules(supportsScheduling && taskId ? [taskId] : []);
   const hasEnabledSchedule = Boolean(taskId && schedules.records.get(taskId)?.enabled);
   const {
     activeInstance,
@@ -94,7 +95,7 @@ export function DataSyncTaskDetailPage() {
           className="shrink-0 bg-white px-6 max-md:px-4"
           extra={
             <>
-              {!realtime ? (
+              {supportsScheduling ? (
                 <Button
                   size="small"
                   disabled={Boolean(task.configurationError)}
@@ -166,7 +167,7 @@ export function DataSyncTaskDetailPage() {
           </div>
         </div>
       </div>
-      {!realtime ? (
+      {supportsScheduling || Boolean(historyScheduleId) ? (
         <ScheduleDialog
           targetId={task.id}
           published={task.status === "PUBLISHED" && !task.configurationError}

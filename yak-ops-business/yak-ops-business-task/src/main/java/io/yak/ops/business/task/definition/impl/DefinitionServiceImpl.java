@@ -182,9 +182,19 @@ public class DefinitionServiceImpl implements DefinitionService {
                                                 "runtimeMode",
                                                 "tableScope",
                                                 "sourceDataSourceId",
-                                                "targetDataSourceId")
+                                                "targetDataSourceId",
+                                                "dataSyncProfile")
                                         .contains(k))) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
+        }
+        if (filters.containsKey("dataSyncProfile")) {
+            String profile = filters.get("dataSyncProfile");
+            if (!"DATA_SYNC".equals(StringUtils.trimToNull(dto.getTaskType()))
+                    || profile == null
+                    || !java.util.Set.of("SINGLE_TABLE_BATCH", "DATABASE_REPLICATION")
+                            .contains(profile)) {
+                throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
+            }
         }
         Integer status = null;
         if (dto.getStatus() != null) {

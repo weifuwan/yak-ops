@@ -11,11 +11,7 @@ export interface PaginationInfo {
 
 export type DataSyncType = "OFFLINE" | "REALTIME";
 
-export type DataSyncSolutionType =
-  | "SINGLE_TABLE_OFFLINE"
-  | "SINGLE_TABLE_REALTIME"
-  | "DATABASE_OFFLINE"
-  | "DATABASE_REALTIME";
+export type DataSyncProductType = "SINGLE_TABLE_BATCH" | "DATABASE_REPLICATION";
 export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
 
 export interface DataSyncSolution {
@@ -23,8 +19,7 @@ export interface DataSyncSolution {
   sourceConnector: string;
   sinkConnector: string;
   producesChangelog: boolean;
-  runtimeMode: "BATCH" | "STREAMING";
-  solutionType: DataSyncSolutionType;
+  productType: DataSyncProductType;
   displayName: string;
   steps: DataSyncStep[];
   defaultSteps: DataSyncStep[];
@@ -41,7 +36,7 @@ export interface DataSyncDraft {
   sourceProducesChangelog: boolean;
   sourceType: string;
   targetType: string;
-  solutionType: DataSyncSolutionType;
+  productType: DataSyncProductType;
   steps: DataSyncStep[];
   name: string;
   form?: DataSyncTaskSavePayload;
@@ -202,7 +197,7 @@ export interface DataSyncParameters {
   transform: DataSyncTransform[];
   pipeline: DataSyncPipelineOptions & {
     "execution.runtime-mode": "BATCH" | "STREAMING";
-    /** Editor-only product scope; never persist the old solutionType enum. */
+    /** Effective execution scope, independent of the application product profile. */
     "pipeline.table-scope"?: "SINGLE" | "DATABASE";
   };
 }
@@ -229,7 +224,7 @@ export interface DataSyncTaskRecord {
   incremental?: DataSyncIncrementalConfig;
   /** Read-only in the current editor; preserve the full CDC startup intent on parameter edits. */
   startup?: DataSyncStartupOptions;
-  solutionType: DataSyncSolutionType;
+  productType: DataSyncProductType;
   steps: DataSyncStep[];
   name: string;
   syncType: DataSyncType | string;
@@ -256,7 +251,7 @@ export interface DataSyncTaskPageParams {
   pageSize: number;
   keyword?: string;
   syncType?: DataSyncType;
-  solutionType?: DataSyncSolutionType;
+  productType?: DataSyncProductType;
   status?: DataSyncTaskStatus;
   sourceDataSourceId?: string;
   targetDataSourceId?: string;
@@ -325,7 +320,7 @@ export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
   schemaChangesEnabled?: boolean;
   allowDropColumns?: boolean;
   tableMappings?: DataSyncTableMapping[];
-  solutionType: DataSyncSolutionType;
+  productType: DataSyncProductType;
   steps: DataSyncStep[];
   writeMode: DataSyncWriteMode;
   incremental?: DataSyncIncrementalConfig;
@@ -350,7 +345,7 @@ export interface DataSyncEndpointSnapshot {
 export interface DataSyncDefinitionSnapshot {
   tableMappings?: DataSyncTableMapping[];
   taskId: string;
-  solutionType?: DataSyncSolutionType;
+  productType?: DataSyncProductType;
   steps?: DataSyncStep[];
   taskName: string;
   taskVersion: number;
@@ -363,7 +358,7 @@ export interface DataSyncDefinitionSnapshot {
 export interface DataSyncInstanceRecord {
   executionReport?: DataSyncExecutionReport;
   id: string;
-  solutionType: DataSyncSolutionType;
+  productType: DataSyncProductType;
   steps: DataSyncStep[];
   taskId: string;
   taskName: string;

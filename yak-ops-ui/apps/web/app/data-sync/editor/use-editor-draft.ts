@@ -8,7 +8,7 @@ export function useEditorDraft(
   draftKey: string,
   draft: DataSyncDraft,
   form: EditorForm,
-  batch: boolean,
+  replication: boolean,
   mappings: DataSyncTableMapping[],
   savedTask: MutableRefObject<DataSyncTaskRecord | undefined>,
 ) {
@@ -20,10 +20,10 @@ export function useEditorDraft(
       sourceConnector: draft.sourceConnector,
       sinkConnector: draft.sinkConnector,
       sourceProducesChangelog: draft.sourceProducesChangelog,
-      solutionType: draft.solutionType,
+      productType: draft.productType,
       steps: draft.steps,
       name: form.name,
-      form: buildEditorPayload(form, draft, batch, mappings, draft.sourceProducesChangelog),
+      form: buildEditorPayload(form, draft, replication, mappings),
     });
   }, [
     id,
@@ -33,10 +33,10 @@ export function useEditorDraft(
     draft.sourceConnector,
     draft.sinkConnector,
     draft.sourceProducesChangelog,
-    draft.solutionType,
+    draft.productType,
     draft.steps,
     form,
-    batch,
+    replication,
     mappings,
   ]);
 }

@@ -43,7 +43,7 @@ export function DataSourceEndpointCard({
     [dataSources],
   );
   return (
-    <div className="rounded-lg border border-[var(--yak-components-panel-border)] bg-white p-4">
+    <div className="rounded-lg border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4">
       <div className="text-sm font-semibold text-[var(--yak-components-field-label)]">{title}</div>
       <div className="mt-4 space-y-3">
         <Field className="grid grid-cols-[90px_minmax(0,1fr)] items-center !gap-3">

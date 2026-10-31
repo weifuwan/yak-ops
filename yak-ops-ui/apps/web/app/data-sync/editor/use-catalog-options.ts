@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  listDataSourceSchemas,
-  listDataSourceTables,
-  type DataSourceCatalogTable,
-} from "@/service/datasource";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { listDataSourceSchemas, listDataSourceTables } from "@/service/datasource";
 import type { CatalogOptions } from "./types";
 
 export function useCatalogOptions(
@@ -11,45 +9,36 @@ export function useCatalogOptions(
   database: string,
   schema: string,
 ): CatalogOptions {
-  const key = JSON.stringify([dataSourceId, database, schema]);
-  const [result, setResult] = useState<{
-    key: string;
-    schemas: string[];
-    tables: DataSourceCatalogTable[];
-    loading: boolean;
-    error: string;
-  }>({ key: "", schemas: [], tables: [], loading: false, error: "" });
-  const [revision, setRevision] = useState(0);
-  const refresh = useCallback(() => setRevision((value) => value + 1), []);
-  useEffect(() => {
-    if (!dataSourceId) return;
-    let active = true;
-    setResult({ key, schemas: [], tables: [], loading: true, error: "" });
-    void Promise.all([
-      listDataSourceSchemas(dataSourceId, database || undefined),
-      listDataSourceTables(dataSourceId, {
-        database: database || undefined,
-        schema: schema || undefined,
-        limit: 500,
-      }),
-    ])
-      .then(([schemas, tables]) => {
-        if (active) setResult({ key, schemas, tables, loading: false, error: "" });
-      })
-      .catch(() => {
-        if (active)
-          setResult({ key, schemas: [], tables: [], loading: false, error: "表信息加载失败" });
-      });
-    return () => {
-      active = false;
-    };
-  }, [key, dataSourceId, database, schema, revision]);
-  const current = Boolean(dataSourceId) && result.key === key;
+  const { currentUser } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const enabled = Boolean(currentUser?.id && currentWorkspace?.id && dataSourceId);
+  const query = useQuery({
+    queryKey: [
+      "data-sync-catalog",
+      currentUser?.id,
+      currentWorkspace?.id,
+      dataSourceId,
+      database,
+      schema,
+    ],
+    queryFn: async ({ signal }) => {
+      const [schemas, tables] = await Promise.all([
+        listDataSourceSchemas(dataSourceId, database || undefined, signal),
+        listDataSourceTables(
+          dataSourceId,
+          { database: database || undefined, schema: schema || undefined, limit: 500 },
+          signal,
+        ),
+      ]);
+      return { schemas, tables };
+    },
+    enabled,
+  });
   return {
-    schemas: current ? result.schemas : [],
-    tables: current ? result.tables : [],
-    loading: Boolean(dataSourceId) && (!current || result.loading),
-    error: current ? result.error : "",
-    refresh,
+    schemas: query.data?.schemas ?? [],
+    tables: query.data?.tables ?? [],
+    loading: enabled && query.isPending,
+    error: query.isError ? "表信息加载失败" : "",
+    refresh: () => void query.refetch(),
   };
 }

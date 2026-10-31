@@ -1,7 +1,7 @@
 import type {
   DataSyncParameters,
   DataSyncIncrementalConfig,
-  DataSyncSolutionType,
+  DataSyncProductType,
   DataSyncStep,
   DataSyncTableMapping,
   DataSyncTablePath,
@@ -29,30 +29,27 @@ const hasOnlyKeys = (value: object, keys: string[]) =>
 const path = (table: DataSyncTablePath) =>
   [table.database, table.schema, table.table].filter(Boolean).join(".");
 
-export const solutionSyncType = (type: DataSyncSolutionType) =>
-  type === "SINGLE_TABLE_REALTIME" || type === "DATABASE_REALTIME" ? "REALTIME" : "OFFLINE";
-export const supportsMultipleTables = (type: DataSyncSolutionType) =>
-  type === "DATABASE_OFFLINE" || type === "DATABASE_REALTIME";
-export const offlineIncremental = (solution: DataSyncSolutionType, steps: DataSyncStep[]) =>
-  solutionSyncType(solution) === "OFFLINE" && steps.includes("INCREMENTAL");
+/** Physical execution mode drives scheduling and instance actions. */
+export const pipelineSyncType = (value: DataSyncParameters) =>
+  value.pipeline["execution.runtime-mode"] === "STREAMING" ? "REALTIME" : "OFFLINE";
+
+export const offlineIncremental = (product: DataSyncProductType, steps: DataSyncStep[]) =>
+  product === "SINGLE_TABLE_BATCH" && steps.includes("INCREMENTAL");
 
 /** Streaming definitions use INITIAL when no CDC startup position is supplied. */
 export const usesCdcStartup = (value: DataSyncParameters) =>
   value.source.startup !== undefined || value.pipeline["execution.runtime-mode"] === "STREAMING";
 
-/** Product category is inferred from the JSON source and table scope. */
-export function pipelineSolutionType(value: DataSyncParameters): DataSyncSolutionType {
-  const multiple =
-    value.pipeline?.["pipeline.table-scope"] === "DATABASE" ||
-    (value.pipeline?.["pipeline.table-scope"] === undefined && value.source.tables.length > 1);
-  const realtime = value.pipeline["execution.runtime-mode"] === "STREAMING";
-  return realtime
-    ? multiple
-      ? "DATABASE_REALTIME"
-      : "SINGLE_TABLE_REALTIME"
-    : multiple
-      ? "DATABASE_OFFLINE"
-      : "SINGLE_TABLE_OFFLINE";
+/** Execution scope is independent of the replication product and selected strategy. */
+export const pipelineTableScope = (value: DataSyncParameters) =>
+  value.pipeline["pipeline.table-scope"] ??
+  (value.source.tables.length > 1 ? "DATABASE" : "SINGLE");
+
+/** Derive the application workflow from validated JSON, never from connector names. */
+export function pipelineProductType(value: DataSyncParameters): DataSyncProductType {
+  if (usesCdcStartup(value)) return "DATABASE_REPLICATION";
+  if (pipelineTableScope(value) === "SINGLE") return "SINGLE_TABLE_BATCH";
+  throw new Error("多表 JDBC 定义不属于当前同步产品，请使用整库实时或分别创建单表离线任务");
 }
 
 export const validIncrementalConfig = (
@@ -287,7 +284,7 @@ export function validateSyncParameters(value: DataSyncParameters): void {
         !hasOnlyKeys(source.snapshot, ["chunkKeyColumn"]))
     )
       throw new Error("Snapshot 配置无效");
-    if (offlineIncremental(pipelineSolutionType(value), steps)) {
+    if (!realtime && steps.includes("INCREMENTAL")) {
       if (!validIncrementalConfig(source.incremental, !steps.includes("FULL")))
         throw new Error("离线增量配置不完整");
     } else if (source.incremental !== undefined) throw new Error("无效的增量配置");
@@ -305,7 +302,7 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     const retract =
       realtime &&
       write.mode === "RETRACT" &&
-      pipelineSolutionType(value) === "SINGLE_TABLE_REALTIME" &&
+      pipelineTableScope(value) === "SINGLE" &&
       write.transaction?.mode === "CHECKPOINT_XA" &&
       !write.primaryKeys &&
       !policy.evolution.enabled &&

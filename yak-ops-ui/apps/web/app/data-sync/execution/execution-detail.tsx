@@ -17,7 +17,7 @@ import type { DataSyncInstanceRecord, DataSyncInstanceStatus } from "@/service/d
 
 import { ExecutionProgressBar } from "./execution-progress-bar";
 import { ExecutionStages } from "./execution-stages";
-import { supportsMultipleTables } from "@/service/data-sync/parameters";
+import { syncSummary } from "../solution/presentation";
 import { TableExecutionResults } from "./table-execution-results";
 import "./execution-detail.css";
 
@@ -106,21 +106,17 @@ const tablePath = (database?: string, schema?: string, table?: string) =>
 const rowCountText = (value?: number) =>
   value === undefined ? "-" : value.toLocaleString("zh-CN");
 
-function ExecutionProgressCard({ record, realtime }: DetailProps) {
-  const label = realtime ? "实时同步" : "离线同步";
+function ExecutionProgressCard({ record }: DetailProps) {
+  const realtime = record.syncType === "REALTIME";
+  const summary =
+    record.executionReport && record.executionReport.version !== 1
+      ? record.executionReport
+      : undefined;
 
   return (
     <div className="border border-[#eef0f3] bg-white px-3 py-3 text-center">
-      {realtime || record.steps.includes("SCHEMA") ? (
-        <ExecutionStages
-          status={record.status}
-          steps={record.steps}
-          summary={
-            record.executionReport && record.executionReport.version !== 1
-              ? record.executionReport
-              : undefined
-          }
-        />
+      {realtime || summary || record.steps.includes("SCHEMA") ? (
+        <ExecutionStages status={record.status} steps={record.steps} summary={summary} />
       ) : (
         <ExecutionProgressBar
           status={record.status}
@@ -129,7 +125,9 @@ function ExecutionProgressCard({ record, realtime }: DetailProps) {
         />
       )}
 
-      <h3 className="mt-2 text-sm font-semibold text-[#344054]">{label}</h3>
+      <h3 className="mt-2 text-sm font-semibold text-[#344054]">
+        {syncSummary(record.productType, record.steps)}
+      </h3>
       <div className="mt-1 text-xs text-[#98a2b3]">
         v{record.taskVersion} · {dataSyncTriggerText(record.triggerType)}
       </div>
@@ -139,7 +137,6 @@ function ExecutionProgressCard({ record, realtime }: DetailProps) {
 
 interface DetailProps {
   record: DataSyncInstanceRecord;
-  realtime: boolean;
   controls?: ReactNode;
   onViewScheduleHistory?: () => void;
 }
@@ -158,10 +155,10 @@ interface TableExecutionRow {
 
 export function DataSyncExecutionDetailContent({
   record,
-  realtime,
   controls,
   onViewScheduleHistory,
 }: DetailProps) {
+  const realtime = record.syncType === "REALTIME";
   const meta = dataSyncInstanceStatusMeta(record.status, realtime);
   const snapshot = record.definitionSnapshot;
   const rows: TableExecutionRow[] = snapshot
@@ -268,9 +265,9 @@ export function DataSyncExecutionDetailContent({
           ) : null}
         </div>
       ) : null}
-      <ExecutionProgressCard record={record} realtime={realtime} />
+      <ExecutionProgressCard record={record} />
       <div className="min-w-0 pt-4">
-        {supportsMultipleTables(record.solutionType) || record.executionReport ? (
+        {record.productType === "DATABASE_REPLICATION" || record.executionReport ? (
           <TableExecutionResults record={record} />
         ) : (
           <Table<TableExecutionRow>

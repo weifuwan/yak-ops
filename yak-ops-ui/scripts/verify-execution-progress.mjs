@@ -101,5 +101,7 @@ assert.match(router, /path="\/data-sync"/);
 assert.match(router, /path="\/data-sync\/:id\/edit"/);
 assert.match(router, /path="\/data-sync\/:id\/detail"/);
 assert.doesNotMatch(router, /from "@\/app\/(offline-sync|realtime-sync)"/);
-assert.match(tabs, /selectedInstance.syncType === "REALTIME"/);
+assert.match(tabs, /record=\{selectedInstance\}/);
+assert.match(detail, /const realtime = record.syncType === "REALTIME"/);
+assert.match(detail, /syncSummary\(record.productType, record.steps\)/);
 console.log("Unified Data Sync execution progress and presentation checks passed");
