@@ -169,7 +169,7 @@ class DefinitionPageQueryIT {
     @Test
     void upgradeBackfillsOnlyCurrentPublicationWithoutInventingHistory() throws Exception {
         DatabaseMetadata metadata = MYSQL.metadata();
-        String upgradeDatabase = TestNames.unique("publication_upgrade");
+        String upgradeDatabase = TestNames.unique("pub_upgrade");
         metadata.execute("CREATE DATABASE " + upgradeDatabase);
         try {
             DataSource source = new DriverManagerDataSource(
