@@ -57,6 +57,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -110,6 +111,7 @@ class ScheduleAdmissionIT {
     private static final Instant BASE = Instant.parse("2026-10-13T00:00:00Z");
     private static final AtomicReference<Instant> NOW = new AtomicReference<>(BASE);
     private static final AtomicBoolean LOSE_COMMIT_RESPONSE = new AtomicBoolean();
+    private static final AtomicReference<ReconcilePause> RECONCILE_PAUSE = new AtomicReference<>();
     private static final WorkspaceService AUTHORITY = mock(WorkspaceService.class);
     private static final TestPlugin PLUGIN = new TestPlugin();
     private static AnnotationConfigApplicationContext context;
@@ -137,6 +139,9 @@ class ScheduleAdmissionIT {
                                 (proxy, method, args) -> {
                                     try {
                                         Object result = method.invoke(connection, args);
+                                        if (method.getName().equals("createStatement") && result instanceof Statement statement) {
+                                            return pauseReconcileWorkspaceRead(statement);
+                                        }
                                         if (method.getName().equals("commit")
                                                 && LOSE_COMMIT_RESPONSE.compareAndSet(true, false)) {
                                             throw new SQLException("Injected loss of commit acknowledgement");
@@ -200,6 +205,7 @@ class ScheduleAdmissionIT {
         admissionController.stop();
         admissionController.awaitQuiescence();
         LOSE_COMMIT_RESPONSE.set(false);
+        RECONCILE_PAUSE.set(null);
         reset(REGISTRY);
         when(REGISTRY.isConnected()).thenReturn(true);
         when(REGISTRY.get("/yak-ops/masters/embedded")).thenReturn("test-owner");
@@ -652,6 +658,198 @@ class ScheduleAdmissionIT {
     }
 
     @Test
+    void dynamicTargetScopeConflictsWithEveryTableButStaticTablesRemainConcurrent() {
+        enqueue("table-a", "DATA_SYNC_TARGET", "4:sink2:db-1:1:a", 0);
+        enqueue("table-b", "DATA_SYNC_TARGET", "4:sink2:db-1:1:b", 0);
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        assertTrue(groups.tryAcquire("ws", "table-a"));
+        assertTrue(groups.tryAcquire("ws", "table-b"));
+
+        enqueue("dynamic", "DATA_SYNC_TARGET_SCOPE", "4:sink", 10);
+        enqueue("other-datasource", "DATA_SYNC_TARGET_SCOPE", "5:sink2", 0);
+        assertFalse(groups.tryAcquire("ws", "dynamic"));
+        assertTrue(groups.tryAcquire("ws", "other-datasource"));
+        groups.releaseOwned("ws", "table-a");
+        assertFalse(groups.tryAcquire("ws", "dynamic"));
+        groups.releaseOwned("ws", "table-b");
+        assertTrue(groups.tryAcquire("ws", "dynamic"));
+
+        // This table did not exist in the dynamic task's initial published table list.
+        enqueue("new-table", "DATA_SYNC_TARGET", "4:sink2:db-1:9:new_table", 0);
+        assertFalse(groups.tryAcquire("ws", "new-table"));
+        groups.reconcile();
+        assertFalse(groups.tryAcquire("ws", "new-table"));
+        groups.releaseOwned("ws", "dynamic");
+        assertTrue(groups.tryAcquire("ws", "new-table"));
+    }
+
+    @Test
+    void dynamicAndStaticTargetWaitersSharePriorityWithoutHoldingPartialSlots() {
+        enqueue("low-dynamic", "DATA_SYNC_TARGET_SCOPE", "4:sink", 1);
+        enqueue("high-static", "DATA_SYNC_TARGET", "4:sink2:db-1:1:a", 10);
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        assertFalse(groups.tryAcquire("ws", "low-dynamic"));
+        assertTrue(groups.tryAcquire("ws", "high-static"));
+        assertFalse(groups.tryAcquire("ws", "low-dynamic"));
+        groups.releaseOwned("ws", "high-static");
+        assertTrue(groups.tryAcquire("ws", "low-dynamic"));
+    }
+
+    @Test
+    void concurrentScopeAndTableAdmissionsUseCurrentRowsDespiteRepeatableReadSnapshots() throws Exception {
+        enqueue("race-dynamic", "DATA_SYNC_TARGET_SCOPE", "4:sink", 0);
+        enqueue("race-static", "DATA_SYNC_TARGET", "4:sink2:db-1:1:a", 0);
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        CountDownLatch snapshots = new CountDownLatch(2);
+        CountDownLatch proceed = new CountDownLatch(1);
+        try (java.util.concurrent.ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            List<java.util.concurrent.Future<Boolean>> acquired = new ArrayList<>();
+            for (String instanceId : List.of("race-dynamic", "race-static")) {
+                acquired.add(executor.submit(() -> new TransactionTemplate(context.getBean(PlatformTransactionManager.class))
+                        .execute(status -> {
+                            jdbc.queryForObject("SELECT COUNT(*) FROM yak_ops_task_group_queue", Integer.class);
+                            snapshots.countDown();
+                            try {
+                                if (!proceed.await(10, TimeUnit.SECONDS)) {
+                                    throw new IllegalStateException("Concurrent admission did not start");
+                                }
+                            } catch (InterruptedException error) {
+                                Thread.currentThread().interrupt();
+                                throw new IllegalStateException(error);
+                            }
+                            return groups.tryAcquire("ws", instanceId);
+                        })));
+            }
+            assertTrue(snapshots.await(10, TimeUnit.SECONDS));
+            proceed.countDown();
+            assertEquals(1, (acquired.get(0).get(15, TimeUnit.SECONDS) ? 1 : 0)
+                    + (acquired.get(1).get(15, TimeUnit.SECONDS) ? 1 : 0));
+        }
+    }
+
+    @Test
+    void reconciliationUsesCurrentAcquisitionsAndDefersWorkspacesCreatedAfterItsScan() throws Exception {
+        enqueue("acquired-during-scan", "reconcile-resource", 10);
+        enqueue("waiting-during-scan", "reconcile-resource", 0);
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        ReconcilePause pause = new ReconcilePause();
+        RECONCILE_PAUSE.set(pause);
+        try (java.util.concurrent.ExecutorService executor = Executors.newSingleThreadExecutor()) {
+            var repaired = executor.submit(groups::reconcile);
+            try {
+                assertTrue(pause.scanned.await(10, TimeUnit.SECONDS));
+                assertTrue(groups.tryAcquire("ws", "acquired-during-scan"));
+                // This Workspace is absent from the reconciliation round's locked set.
+                jdbc.update("INSERT INTO yak_ops_task_group"
+                        + " (name,workspace_id,resource_type,resource_key,group_size,use_size,status,create_time,update_time)"
+                        + " VALUES ('TEST','later-workspace','TEST','later-resource',1,1,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+                Long groupId = jdbc.queryForObject("SELECT id FROM yak_ops_task_group WHERE workspace_id='later-workspace'", Long.class);
+                jdbc.update("INSERT INTO yak_ops_task_group_queue"
+                        + " (id,task_id,group_id,priority,status,force_start,in_queue,create_time,update_time)"
+                        + " VALUES ('later-orphan','later-orphan',?,0,1,0,1,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))", groupId);
+            } finally {
+                pause.resume.countDown();
+            }
+            repaired.get(15, TimeUnit.SECONDS);
+        } finally {
+            RECONCILE_PAUSE.set(null);
+        }
+        assertEquals(1, jdbc.queryForObject("SELECT use_size FROM yak_ops_task_group WHERE workspace_id='ws' AND resource_key='reconcile-resource'", Integer.class));
+        assertEquals(1, jdbc.queryForObject("SELECT use_size FROM yak_ops_task_group WHERE workspace_id='later-workspace' AND resource_key='later-resource'", Integer.class));
+        assertEquals(1, groups.releaseOwned("ws", "acquired-during-scan"));
+        assertTrue(groups.tryAcquire("ws", "waiting-during-scan"));
+        assertEquals(1, groups.releaseOwned("ws", "waiting-during-scan"));
+        groups.reconcile();
+        assertEquals(0, jdbc.queryForObject("SELECT use_size FROM yak_ops_task_group WHERE workspace_id='later-workspace' AND resource_key='later-resource'", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM yak_ops_task_group_queue WHERE id='later-orphan'", Integer.class));
+    }
+
+    @Test
+    void nonTargetPriorityUsesRowsCommittedAfterAnOuterRepeatableReadSnapshot() throws Exception {
+        enqueue("older-low", "current-priority", 0);
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        CountDownLatch observed = new CountDownLatch(1);
+        CountDownLatch proceed = new CountDownLatch(1);
+        try (java.util.concurrent.ExecutorService executor = Executors.newSingleThreadExecutor()) {
+            var acquisition = executor.submit(() -> new TransactionTemplate(context.getBean(PlatformTransactionManager.class))
+                    .execute(status -> {
+                        jdbc.queryForObject("SELECT COUNT(*) FROM yak_ops_task_group_queue", Integer.class);
+                        observed.countDown();
+                        try {
+                            if (!proceed.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("New priority row was not committed");
+                        } catch (InterruptedException failure) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(failure);
+                        }
+                        return groups.tryAcquire("ws", "older-low");
+                    }));
+            try {
+                assertTrue(observed.await(10, TimeUnit.SECONDS));
+                enqueue("newer-high", "current-priority", 10);
+            } finally {
+                proceed.countDown();
+            }
+            assertFalse(acquisition.get(15, TimeUnit.SECONDS));
+        }
+        assertTrue(groups.tryAcquire("ws", "newer-high"));
+        groups.releaseOwned("ws", "newer-high");
+        assertTrue(groups.tryAcquire("ws", "older-low"));
+    }
+
+    @Test
+    void identicalTimestampsAndReverseQueueIdsCannotFormAMultiResourceWaitCycle() {
+        enqueue("instance-a", "DATA_SYNC_TARGET", "4:sink2:db-1:1:a", 0);
+        enqueueClaim("instance-a", "MYSQL_CDC_SERVER_ID", "31700", 0);
+        enqueue("instance-b", "DATA_SYNC_TARGET_SCOPE", "4:sink", 0);
+        enqueueClaim("instance-b", "MYSQL_CDC_SERVER_ID", "31700", 0);
+        jdbc.update("UPDATE yak_ops_task_group_queue SET create_time='2026-10-31 01:00:00.000'");
+        // The CDC resource would prefer B by queue ID while the target would prefer A by Instance ID.
+        jdbc.update("UPDATE yak_ops_task_group_queue SET id=CASE task_id WHEN 'instance-a' THEN 'reverse-z' ELSE 'reverse-a' END"
+                + " WHERE group_id IN (SELECT id FROM yak_ops_task_group WHERE resource_type='MYSQL_CDC_SERVER_ID')");
+        TaskGroupQueueRepository groups = context.getBean(TaskGroupQueueRepository.class);
+        assertFalse(groups.tryAcquire("ws", "instance-b"));
+        assertTrue(groups.tryAcquire("ws", "instance-a"));
+        assertFalse(groups.tryAcquire("ws", "instance-b"));
+        assertEquals(2, groups.releaseOwned("ws", "instance-a"));
+        assertTrue(groups.tryAcquire("ws", "instance-b"));
+        assertEquals(2, groups.releaseOwned("ws", "instance-b"));
+
+        enqueue("capacity-first", "MYSQL_CDC_SERVER_ID", "31700", 0);
+        enqueue("capacity-second", "MYSQL_CDC_SERVER_ID", "31700", 0);
+        jdbc.update("UPDATE yak_ops_task_group SET group_size=2 WHERE resource_type='MYSQL_CDC_SERVER_ID'");
+        assertTrue(groups.tryAcquire("ws", "capacity-first"));
+        assertTrue(groups.tryAcquire("ws", "capacity-second"),
+                "An acquired non-target member consumes capacity without becoming an exclusive waiter");
+    }
+
+    private static Statement pauseReconcileWorkspaceRead(Statement statement) {
+        return (Statement) Proxy.newProxyInstance(Statement.class.getClassLoader(), new Class<?>[] {Statement.class},
+                (proxy, method, args) -> {
+                    try {
+                        Object result = method.invoke(statement, args);
+                        ReconcilePause pause = RECONCILE_PAUSE.get();
+                        if (pause != null && method.getName().equals("executeQuery") && args != null
+                                && args[0].equals("SELECT DISTINCT workspace_id FROM yak_ops_task_group ORDER BY workspace_id")
+                                && RECONCILE_PAUSE.compareAndSet(pause, null)) {
+                            pause.scanned.countDown();
+                            if (!pause.resume.await(15, TimeUnit.SECONDS)) throw new SQLException("Reconcile read was not released");
+                        }
+                        return result;
+                    } catch (InvocationTargetException failure) {
+                        throw failure.getCause();
+                    } catch (InterruptedException failure) {
+                        Thread.currentThread().interrupt();
+                        throw new SQLException("Reconcile read was interrupted", failure);
+                    }
+                });
+    }
+
+    private static final class ReconcilePause {
+        private final CountDownLatch scanned = new CountDownLatch(1);
+        private final CountDownLatch resume = new CountDownLatch(1);
+    }
+
+    @Test
     void registryPurgePreservesClientRegisteredAfterHeartbeatSnapshot() throws Exception {
         JdbcRegistryClientRepository clients = context.getBean(JdbcRegistryClientRepository.class);
         JdbcRegistryClientRepository snapshotClients = org.mockito.Mockito.spy(clients);
@@ -714,6 +912,10 @@ class ScheduleAdmissionIT {
     }
 
     private static void enqueue(String instanceId, String resource, int priority) {
+        enqueue(instanceId, "TEST", resource, priority);
+    }
+
+    private static void enqueue(String instanceId, String type, String resource, int priority) {
         jdbc.update(
                 "INSERT INTO yak_ops_task_instance"
                         + " (id,workspace_id,definition_id,definition_version,task_type,trigger_type,"
@@ -723,9 +925,13 @@ class ScheduleAdmissionIT {
                         + " 'SUBMITTED', 0, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3), 'actor', 'actor')",
                 instanceId,
                 "request-" + instanceId);
+        enqueueClaim(instanceId, type, resource, priority);
+    }
+
+    private static void enqueueClaim(String instanceId, String type, String resource, int priority) {
         TaskGroupQueueEntity queue = new TaskGroupQueueEntity();
         queue.setWorkspaceId("ws");
-        queue.setResourceType("TEST");
+        queue.setResourceType(type);
         queue.setResourceKey(resource);
         queue.setInstanceId(instanceId);
         queue.setPriority(priority);

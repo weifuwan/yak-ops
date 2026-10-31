@@ -145,6 +145,21 @@ class ExecutionConfigurationFactoryTest {
     }
 
     @Test
+    void boundedInstanceRestoresHookJournalEvenWithoutARuntimeCheckpoint() throws Exception {
+        ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(EnvironmentOptions.defaults(), stateRoot);
+        Path directory = Files.createDirectories(stateRoot.resolve(FIRST.instanceId()));
+        assertEquals(false, factory.create(FIRST, Boundedness.BOUNDED, false)
+                .get(CheckpointingOptions.RESTORE_LATEST));
+        // Even damaged journal bytes must take the restore path and fail closed there.
+        Files.createFile(directory.resolve("batch-execution.bin"));
+        assertEquals(true, factory.create(FIRST, Boundedness.BOUNDED, false)
+                .get(CheckpointingOptions.RESTORE_LATEST));
+        TaskExecutionIdentity other = new TaskExecutionIdentity("ws", "definition", 1, "instance-101");
+        assertEquals(false, factory.create(other, Boundedness.BOUNDED, false)
+                .get(CheckpointingOptions.RESTORE_LATEST));
+    }
+
+    @Test
     void rejectsUnsafeInstanceIdentifiers() {
         ExecutionConfigurationFactory factory = new ExecutionConfigurationFactory(EnvironmentOptions.defaults(), stateRoot);
         TaskExecutionIdentity unsafe =

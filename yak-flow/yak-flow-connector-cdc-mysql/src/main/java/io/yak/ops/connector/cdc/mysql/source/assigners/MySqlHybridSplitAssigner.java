@@ -461,6 +461,10 @@ public final class MySqlHybridSplitAssigner implements MySqlSplitAssigner {
         snapshots.startAssignNewlyAddedTables();
     }
 
+    public void addDiscoveredTable(TableId table) {
+        snapshots.addDiscoveredTable(table);
+    }
+
     @Override
     public boolean noMoreSplits() {
         return snapshots.noMoreSplits() && (snapshotOnly || binlogAssigned);

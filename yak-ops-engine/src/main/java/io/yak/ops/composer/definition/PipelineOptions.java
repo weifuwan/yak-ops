@@ -3,7 +3,9 @@ package io.yak.ops.composer.definition;
 import io.yak.ops.composer.execution.ExecutionPhase;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
+import io.yak.ops.connector.cdc.mysql.source.config.MySqlTableOptions;
 import io.yak.ops.connector.cdc.mysql.table.StartupOptions;
+import io.yak.ops.connector.jdbc.database.query.JdbcReadQuery;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
 import java.util.ArrayList;
@@ -35,6 +37,7 @@ public final class PipelineOptions {
     private final List<ExecutionPhase> steps;
     private final boolean schemaChangesEnabled;
     private final boolean allowDropColumns;
+    private final DynamicTableSelection dynamicSelection;
 
     private PipelineOptions(
             String sourceIdentifier,
@@ -44,7 +47,8 @@ public final class PipelineOptions {
             List<TableConfig> tables,
             List<ExecutionPhase> steps,
             boolean schemaChangesEnabled,
-            boolean allowDropColumns) {
+            boolean allowDropColumns,
+            DynamicTableSelection dynamicSelection) {
         this.sourceIdentifier = sourceIdentifier;
         this.sinkIdentifier = sinkIdentifier;
         this.runtimeMode = runtimeMode;
@@ -53,6 +57,7 @@ public final class PipelineOptions {
         this.steps = List.copyOf(steps);
         this.schemaChangesEnabled = schemaChangesEnabled;
         this.allowDropColumns = allowDropColumns;
+        this.dynamicSelection = dynamicSelection;
     }
 
     public static PipelineOptions from(PipelineDef definition) {
@@ -112,10 +117,30 @@ public final class PipelineOptions {
         }
         validateExtensionKeys(
                 from,
-                Set.of("yak.namespace-kind", "yak.sync.mode"),
+                Set.of(
+                        "yak.namespace-kind",
+                        "yak.sync.mode",
+                        "yak.selection.mode",
+                        "yak.selection.database-pattern",
+                        "yak.selection.table-pattern",
+                        "yak.selection.snapshot.chunk-key-column",
+                        "yak.selection.snapshot.skip",
+                        "yak.selection.snapshot.where",
+                        "yak.selection.dml.insert",
+                        "yak.selection.dml.update",
+                        "yak.selection.dml.delete"),
                 sourceTables,
                 Set.of(
                         "chunk-key-column",
+                        "snapshot.skip",
+                        "snapshot.where",
+                        "dml.insert",
+                        "dml.update",
+                        "dml.delete",
+                        "read.where",
+                        "read.split-key",
+                        "read.fetch-size",
+                        "read.query-timeout-seconds",
                         "incremental.mode",
                         "incremental.column",
                         "incremental.initial-value",
@@ -128,9 +153,23 @@ public final class PipelineOptions {
                         "yak.namespace-kind",
                         "yak.schema.initial",
                         "yak.schema.evolution.enabled",
-                        "yak.schema.evolution.allow-drop-columns"),
+                        "yak.schema.evolution.allow-drop-columns",
+                        "yak.type-mappings",
+                        "yak.mapping.database",
+                        "yak.mapping.schema",
+                        "yak.mapping.table",
+                        "yak.mapping.write.mode",
+                        "yak.mapping.write.primary-keys",
+                        "yak.mapping.write.transaction.mode",
+                        "yak.mapping.write.batch-size"),
                 mappedSink,
-                Set.of("write.mode", "write.primary-keys", "write.transaction.mode"),
+                Set.of(
+                        "write.mode",
+                        "write.primary-keys",
+                        "write.transaction.mode",
+                        "write.pre-sql",
+                        "write.post-sql",
+                        "write.batch-size"),
                 "sink");
         validateNamespaceKind(from);
         validateNamespaceKind(to);
@@ -243,6 +282,19 @@ public final class PipelineOptions {
             stages.add(ExecutionPhase.SCHEMA);
         }
         stages.addAll(dataSteps);
+        DynamicTableSelection dynamic = DynamicTableSelection.from(definition);
+        if (dynamic != null
+                && (!"STREAMING".equals(runtime)
+                        || !"DATABASE".equals(scope)
+                        || !"initial".equals(optional(from, "scan.startup.mode", "initial"))
+                        || !"CREATE_OR_ALTER".equals(initial)
+                        || !evolve)) {
+            throw new IllegalArgumentException(
+                    "REGEX selection requires database streaming, INITIAL startup, CREATE_OR_ALTER and schema evolution");
+        }
+        if (dynamic != null && sourceId.equals(sinkId)) {
+            throw new IllegalArgumentException("Dynamic source and target must use distinct datasources");
+        }
 
         List<TableConfig> mappings = new ArrayList<>();
         for (RouteDef route : routes) {
@@ -255,10 +307,28 @@ public final class PipelineOptions {
             addTablePath(
                     sourceOptions, sourceTable, optional(from, "yak.namespace-kind", realtime ? "DATABASE" : "SCHEMA"));
             String sourcePrefix = "yak.table." + sourceTable + ".";
+            if (dynamic != null) {
+                sourceOptions.putAll(dynamic.sourceDefaults());
+                sourceOptions.put(MySqlSourceOptions.SCAN_NEWLY_ADDED_TABLE_ENABLED.key(), true);
+                sourceOptions.put(MySqlSourceOptions.DATABASE_NAME.key(), dynamic.databasePattern());
+                sourceOptions.put(MySqlSourceOptions.TABLE_NAME.key(), dynamic.tablePattern());
+                try {
+                    sourceOptions.put(
+                            MySqlSourceOptions.DISCOVERY_DEFAULTS.key(),
+                            new com.fasterxml.jackson.databind.ObjectMapper()
+                                    .writeValueAsString(dynamic.sourceDefaults()));
+                } catch (com.fasterxml.jackson.core.JsonProcessingException failure) {
+                    throw new IllegalArgumentException("Cannot encode discovery defaults", failure);
+                }
+                if (!dynamic.matches(EndpointOptions.selectedTable(ReadonlyConfig.fromMap(sourceOptions)))) {
+                    throw new IllegalArgumentException("Initial source table does not match the REGEX selection");
+                }
+            }
             String chunkKey = optional(
                     from,
                     sourcePrefix + "chunk-key-column",
-                    optional(from, MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN.key(), null));
+                    optional(from, MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN.key(), (String)
+                            sourceOptions.get(MySqlSourceOptions.SCAN_INCREMENTAL_SNAPSHOT_CHUNK_KEY_COLUMN.key())));
             if (chunkKey != null) {
                 if (!realtime || !dataSteps.contains(ExecutionPhase.FULL)) {
                     throw new IllegalArgumentException("Snapshot Chunk Key requires initial CDC snapshot");
@@ -267,6 +337,7 @@ public final class PipelineOptions {
             }
             IncrementalConfig incremental =
                     incremental(from, sourcePrefix, !realtime && dataSteps.contains(ExecutionPhase.INCREMENTAL));
+            copyReadOptions(from, sourceOptions, sourcePrefix, realtime, dataSteps.contains(ExecutionPhase.FULL));
 
             Map<String, Object> sinkOptions = new LinkedHashMap<>();
             copyConnectorOptions(
@@ -290,6 +361,19 @@ public final class PipelineOptions {
             if (transaction != null && !xa) {
                 throw new IllegalArgumentException("Unsupported transaction mode");
             }
+            for (String hook : List.of("write.pre-sql", "write.post-sql")) {
+                if (to.containsKey(sinkPrefix + hook)) {
+                    if (realtime || !"BATCH".equals(runtime) || !sourceType.startsWith("jdbc-")) {
+                        throw new IllegalArgumentException("SQL hooks require bounded JDBC batch execution");
+                    }
+                    putIfPresent(to, sinkOptions, sinkPrefix + hook, hook);
+                }
+            }
+            if (to.containsKey(sinkPrefix + "write.batch-size")) {
+                long size = numeric(to, sinkPrefix + "write.batch-size", 0);
+                if (size < 1 || size > 10000) throw new IllegalArgumentException("Invalid write batch size");
+                sinkOptions.put(JdbcSinkOptions.BATCH_SIZE.key(), size);
+            }
             if (xa) {
                 sinkOptions.put(JdbcSinkOptions.XA_ENABLED.key(), true);
             }
@@ -310,6 +394,17 @@ public final class PipelineOptions {
             if (xa && mode != JdbcWriteMode.RETRACT) {
                 throw new IllegalArgumentException("Checkpoint XA requires RETRACT");
             }
+            if (dynamic != null && (xa || mode != JdbcWriteMode.UPSERT)) {
+                throw new IllegalArgumentException("Dynamic initial tables require UPSERT without checkpoint XA");
+            }
+            if (mode == JdbcWriteMode.REPLACE
+                    && (realtime
+                            || !"BATCH".equals(runtime)
+                            || !sourceType.startsWith("jdbc-")
+                            || !"jdbc-mysql".equals(sinkType)
+                            || !dataSteps.equals(List.of(ExecutionPhase.FULL)))) {
+                throw new IllegalArgumentException("REPLACE requires a JDBC full batch with a MySQL target");
+            }
             if (("STREAMING".equals(runtime) || dataSteps.contains(ExecutionPhase.INCREMENTAL))
                     && mode != JdbcWriteMode.UPSERT
                     && mode != JdbcWriteMode.RETRACT) {
@@ -321,7 +416,39 @@ public final class PipelineOptions {
                     incremental,
                     targetPrimaryKeys));
         }
-        return new PipelineOptions(sourceType, sinkType, runtime, scope, mappings, stages, evolve, drop);
+        TypeMappingRules.from(definition);
+        return new PipelineOptions(sourceType, sinkType, runtime, scope, mappings, stages, evolve, drop, dynamic);
+    }
+
+    private static void copyReadOptions(
+            Map<String, Object> from, Map<String, Object> target, String prefix, boolean cdc, boolean full) {
+        for (String name : List.of("read.where", "read.split-key", "read.fetch-size", "read.query-timeout-seconds")) {
+            if (!from.containsKey(prefix + name)) continue;
+            if (cdc) throw new IllegalArgumentException("JDBC read options cannot configure CDC snapshot reads");
+            String destination =
+                    switch (name) {
+                        case "read.fetch-size" -> "connector.jdbc.source.result-set-fetch-size";
+                        case "read.query-timeout-seconds" -> "connector.jdbc.source.query-timeout-seconds";
+                        default -> name;
+                    };
+            Object value = from.get(prefix + name);
+            if (name.equals("read.where")) value = JdbcReadQuery.validateWhere((String) value);
+            if (name.equals("read.fetch-size") || name.equals("read.query-timeout-seconds")) {
+                long number = numeric(from, prefix + name, 0);
+                long maximum = name.equals("read.fetch-size") ? 10000 : 300;
+                if (number < 1 || number > maximum) throw new IllegalArgumentException("Invalid table read limit");
+            }
+            target.put(destination, value);
+        }
+        for (String name : List.of("snapshot.skip", "snapshot.where", "dml.insert", "dml.update", "dml.delete")) {
+            if (!from.containsKey(prefix + name)) continue;
+            if (!cdc) throw new IllegalArgumentException("CDC table options require a CDC source");
+            if (name.startsWith("snapshot.") && !full) {
+                throw new IllegalArgumentException("Snapshot options require an initial full phase");
+            }
+            target.put(name, from.get(prefix + name));
+        }
+        if (cdc) MySqlTableOptions.from(ReadonlyConfig.fromMap(target));
     }
 
     private static void validateExtensionKeys(
@@ -510,5 +637,9 @@ public final class PipelineOptions {
 
     public boolean allowDropColumns() {
         return allowDropColumns;
+    }
+
+    public DynamicTableSelection dynamicSelection() {
+        return dynamicSelection;
     }
 }

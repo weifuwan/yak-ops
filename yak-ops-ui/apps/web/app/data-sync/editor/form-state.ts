@@ -17,12 +17,19 @@ export function createEditorForm(draft: DataSyncDraft, task?: DataSyncTaskRecord
     startup: value?.startup,
     pipelineOptions: value?.pipelineOptions,
     tableScope: value?.tableScope,
+    selection: value?.selection ? structuredClone(value.selection) : undefined,
+    mappingTemplate: value?.mappingTemplate ? structuredClone(value.mappingTemplate) : undefined,
+    selectionResolved: !value?.selection || Boolean(task),
+    typeMappings: value?.typeMappings ? structuredClone(value.typeMappings) : undefined,
     source: {
       dataSourceId: value?.sourceDataSourceId || "",
       database: value?.sourceDatabase || "",
       schema: value?.sourceSchema || "",
       table: value?.sourceTable || "",
       incremental: useIncremental ? value?.incremental || EMPTY_INCREMENTAL : undefined,
+      where: value?.sourceRead?.where || "",
+      splitKey: value?.sourceRead?.splitKey || "",
+      options: value?.sourceOptions ? { ...value.sourceOptions } : undefined,
     },
     sink: {
       dataSourceId: value?.targetDataSourceId || "",
@@ -33,12 +40,15 @@ export function createEditorForm(draft: DataSyncDraft, task?: DataSyncTaskRecord
         continuous && (value?.schemaChangesEnabled ?? draft.targetType !== "ORACLE"),
       allowDropColumns: continuous && (value?.allowDropColumns ?? false),
       writeMode:
-        value?.writeMode === "RETRACT"
-          ? "RETRACT"
+        value?.writeMode === "RETRACT" || value?.writeMode === "REPLACE"
+          ? value.writeMode
           : value?.writeMode === "UPSERT" || continuous || useIncremental
             ? "UPSERT"
             : "APPEND",
       targetPrimaryKeys: value?.targetPrimaryKeys ?? [],
+      preSql: value?.preSql ? [...value.preSql] : [],
+      postSql: value?.postSql ? [...value.postSql] : [],
+      batchSize: value?.sinkBatchSize,
     },
   };
 }

@@ -1,4 +1,4 @@
-import { CollapseSection } from "@yak-ops/yak-ui";
+import { ContentSection } from "./content-layout";
 import { useNavigate } from "react-router-dom";
 import { DataSourceEndpointCard } from "./data-source-endpoint-card";
 import type { DataSourceRecord } from "@/service/datasource";
@@ -38,8 +38,8 @@ export function DataSourceSection({
     );
 
   return (
-    <CollapseSection id="datasource" title="数据源">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <ContentSection id="datasource" title="数据源">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <DataSourceEndpointCard
           title="来源"
           dataSourceType={sourceType}
@@ -61,6 +61,6 @@ export function DataSourceSection({
           onDataSourceChange={onTargetChange}
         />
       </div>
-    </CollapseSection>
+    </ContentSection>
   );
 }

@@ -8,6 +8,7 @@ import io.yak.ops.connector.jdbc.database.schema.JdbcSchemaDerivator;
 import io.yak.ops.connector.jdbc.database.schema.SchemaChangePlan;
 import io.yak.ops.connector.jdbc.internal.JdbcOutputFormat;
 import io.yak.ops.connector.jdbc.sink.writer.JdbcWriter;
+import io.yak.ops.core.api.connector.sink.BatchExecutionHook;
 import io.yak.ops.core.api.connector.sink.MetadataApplier;
 import io.yak.ops.core.api.connector.sink.SchemaEvolutionSink;
 import io.yak.ops.core.api.connector.sink.Sink;
@@ -26,6 +27,7 @@ import io.yak.ops.core.schema.SchemaVersionedTableState;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -51,6 +53,7 @@ public final class JdbcSink implements Sink<TableRecord>, SchemaEvolutionSink {
     private final JdbcBatchOrder batchOrder;
     private final int statementCacheSize;
     private final Supplier<? extends MetadataApplier> metadataApplierFactory;
+    private final Map<TableId, JdbcWriteOptions> tableWriteOptions;
 
     public JdbcSink(
             JdbcConnectionProvider connections,
@@ -118,6 +121,29 @@ public final class JdbcSink implements Sink<TableRecord>, SchemaEvolutionSink {
             JdbcBatchOrder batchOrder,
             int statementCacheSize,
             Supplier<? extends MetadataApplier> metadataApplierFactory) {
+        this(
+                connections,
+                dialect,
+                plans,
+                batchPolicy,
+                metrics,
+                batchOrder,
+                statementCacheSize,
+                metadataApplierFactory,
+                Map.of());
+    }
+
+    public JdbcSink(
+            JdbcConnectionProvider connections,
+            JdbcDialect dialect,
+            List<JdbcTableWritePlan> plans,
+            BatchFlushPolicy batchPolicy,
+            TableMetrics metrics,
+            JdbcBatchOrder batchOrder,
+            int statementCacheSize,
+            Supplier<? extends MetadataApplier> metadataApplierFactory,
+            Map<TableId, JdbcWriteOptions> tableWriteOptions) {
+        this.tableWriteOptions = Map.copyOf(tableWriteOptions);
         this.batchOrder = Objects.requireNonNull(batchOrder, "batchOrder");
         if (statementCacheSize < 1) {
             throw new IllegalArgumentException("JDBC statement cache size must be positive");
@@ -145,6 +171,29 @@ public final class JdbcSink implements Sink<TableRecord>, SchemaEvolutionSink {
                 dialect.exactRowDeleteSql(plan.targetTable(), plan.schema());
             }
         }
+        if (!sources.containsAll(this.tableWriteOptions.keySet())) {
+            throw new IllegalArgumentException("JDBC write settings reference an unconfigured source route");
+        }
+        // Validate hook table scope before any SQL or writer is opened.
+        batchExecutionHooks();
+    }
+
+    @Override
+    public List<BatchExecutionHook> batchExecutionHooks() {
+        List<BatchExecutionHook> hooks = new ArrayList<>();
+        for (JdbcTableWritePlan plan : plans) {
+            JdbcWriteOptions options = tableWriteOptions.get(plan.sourceTable());
+            if (options == null) continue;
+            for (String sql : options.preSql()) {
+                hooks.add(JdbcSqlHooks.operation(
+                        connections, plan.targetTable(), BatchExecutionHook.Phase.BEFORE_DATA, sql));
+            }
+            for (String sql : options.postSql()) {
+                hooks.add(JdbcSqlHooks.operation(
+                        connections, plan.targetTable(), BatchExecutionHook.Phase.AFTER_DATA, sql));
+            }
+        }
+        return List.copyOf(hooks);
     }
 
     /** Starts configuring a single-table or multi-table JDBC Sink. */
@@ -316,8 +365,16 @@ public final class JdbcSink implements Sink<TableRecord>, SchemaEvolutionSink {
     @Override
     public JdbcWriter createWriter(WriterInitContext context) throws Exception {
         Objects.requireNonNull(context, "context");
-        JdbcOutputFormat output =
-                new JdbcOutputFormat(connections, dialect, plans, metrics, batchOrder, statementCacheSize);
+        JdbcOutputFormat output = new JdbcOutputFormat(
+                connections,
+                dialect,
+                plans,
+                metrics,
+                batchOrder,
+                statementCacheSize,
+                tableWriteOptions.entrySet().stream()
+                        .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                                Map.Entry::getKey, entry -> entry.getValue().batchSize())));
         try {
             return new JdbcWriter(output, batchPolicy, context);
         } catch (RuntimeException | Error failure) {

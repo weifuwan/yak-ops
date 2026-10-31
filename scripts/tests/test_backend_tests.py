@@ -114,7 +114,7 @@ class MavenIntegrationProfileTest(unittest.TestCase):
 
 
 class ReportTest(unittest.TestCase):
-    COUNTS = {"TaskCursorIT": 6, "ScheduleAdmissionIT": 13, "DefinitionPageQueryIT": 3}
+    COUNTS = {"TaskCursorIT": 6, "ScheduleAdmissionIT": 26, "DefinitionPageQueryIT": 3}
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

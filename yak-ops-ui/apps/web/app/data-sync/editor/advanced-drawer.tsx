@@ -11,10 +11,9 @@ import {
   TabsTab,
   Textarea,
 } from "@yak-ops/yak-ui";
-import type { DataSyncSolution, DataSyncWriteMode } from "@/service/data-sync";
+import type { DataSyncSolution } from "@/service/data-sync";
 import type { ScheduleTimeRule } from "@/service/schedule";
 import { parameterFingerprint } from "@/service/data-sync/versions";
-import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { findStepCombination } from "../solution/presentation";
 import { EditorDrawer } from "./editor-drawer";
 import {
@@ -176,34 +175,11 @@ export function AdvancedDrawer({
               ) : null}
             </TabsPanel>
             <TabsPanel value="write" className="pt-5">
-              {replication ? (
-                <p className="text-sm text-[var(--yak-components-muted-text)]">
-                  写入方式和主键按表配置，请在目标表映射中设置。
-                </p>
-              ) : (
-                <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
-                  <FieldLabel>写入方式</FieldLabel>
-                  <DataSyncSearchableSelect
-                    ariaLabel="写入方式"
-                    placeholder="请选择写入方式"
-                    value={form.sink.writeMode}
-                    options={(combination?.writeModes || []).map((mode) => ({
-                      value: mode,
-                      label: mode === "UPSERT" ? "按主键更新" : "追加写入",
-                    }))}
-                    disabled={(combination?.writeModes.length || 0) < 2}
-                    onValueChange={(writeMode) =>
-                      update({
-                        ...configuration,
-                        form: {
-                          ...form,
-                          sink: { ...form.sink, writeMode: writeMode as DataSyncWriteMode },
-                        },
-                      })
-                    }
-                  />
-                </Field>
-              )}
+              <p className="text-sm text-[var(--yak-components-muted-text)]">
+                {replication
+                  ? "写入方式和主键在目标表映射中设置。"
+                  : "主键冲突策略和写入参数在数据去向中设置。"}
+              </p>
             </TabsPanel>
             <TabsPanel value="runtime" className="space-y-5 pt-4">
               <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">

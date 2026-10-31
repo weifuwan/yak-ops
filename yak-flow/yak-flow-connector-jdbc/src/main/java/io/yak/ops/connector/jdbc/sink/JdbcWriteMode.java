@@ -1,8 +1,9 @@
 package io.yak.ops.connector.jdbc.sink;
 
-/** JDBC write semantics. RETRACT is reserved until transactional keyless writing is implemented. */
+/** JDBC write semantics; REPLACE is bounded MySQL replacement, RETRACT requires coordinated XA. */
 public enum JdbcWriteMode {
     APPEND,
     UPSERT,
+    REPLACE,
     RETRACT
 }

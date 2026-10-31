@@ -31,7 +31,8 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
               database: task.sourceDatabase,
               schema: task.sourceSchema,
               table: task.sourceTable,
-              ...(task.chunkKeyColumn ? { chunkKeyColumn: task.chunkKeyColumn } : {}),
+              ...(task.sourceRead ? { read: { ...task.sourceRead } } : {}),
+              ...(task.sourceOptions ? { options: { ...task.sourceOptions } } : {}),
             },
             target: {
               database: task.targetDatabase,
@@ -42,6 +43,9 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
                 : {}),
             },
             writeMode: task.writeMode,
+            ...(task.preSql?.length ? { preSql: [...task.preSql] } : {}),
+            ...(task.postSql?.length ? { postSql: [...task.postSql] } : {}),
+            ...(task.sinkBatchSize !== undefined ? { batchSize: task.sinkBatchSize } : {}),
             ...(task.incremental ? { incremental: { ...task.incremental } } : {}),
           },
         ];
@@ -66,9 +70,10 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
     database: mapping.source.database,
     schema: mapping.source.schema,
     table: mapping.source.table,
-    ...(mapping.source.chunkKeyColumn
-      ? { snapshot: { chunkKeyColumn: mapping.source.chunkKeyColumn } }
-      : {}),
+    ...(mapping.source.read ? { read: { ...mapping.source.read } } : {}),
+    ...(mapping.source.options ? { options: { ...mapping.source.options } } : {}),
+    ...(mapping.source.snapshot ? { snapshot: { ...mapping.source.snapshot } } : {}),
+    ...(mapping.source.dml ? { dml: { events: [...mapping.source.dml.events] } } : {}),
     ...(mapping.incremental ? { incremental: { ...mapping.incremental } } : {}),
   }));
   const sinkTables = mappings.map((mapping) => ({
@@ -77,6 +82,9 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
     table: mapping.target.table,
     write: {
       mode: mapping.writeMode,
+      ...(mapping.preSql?.length ? { preSql: [...mapping.preSql] } : {}),
+      ...(mapping.postSql?.length ? { postSql: [...mapping.postSql] } : {}),
+      ...(mapping.batchSize !== undefined ? { batchSize: mapping.batchSize } : {}),
       ...(mapping.target.primaryKeys?.length
         ? { primaryKeys: [...mapping.target.primaryKeys] }
         : {}),
@@ -89,6 +97,7 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
     source: {
       type: task.sourceConnector,
       datasourceId: task.sourceDataSourceId,
+      ...(task.selection ? { selection: structuredClone(task.selection) } : {}),
       ...(realtime
         ? {
             // Retain the full JSON offset when editing: steps alone cannot identify
@@ -116,6 +125,8 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
     sink: {
       type: task.sinkConnector,
       datasourceId: task.targetDataSourceId,
+      ...(task.mappingTemplate ? { mapping: structuredClone(task.mappingTemplate) } : {}),
+      ...(task.typeMappings?.length ? { typeMappings: structuredClone(task.typeMappings) } : {}),
       schemaPolicy: {
         initial: task.steps.includes("SCHEMA") ? ("CREATE_OR_ALTER" as const) : ("VERIFY" as const),
         evolution: {
@@ -229,7 +240,18 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     status: definition.status,
     debug: definition.debug ?? false,
     writeMode: mapping.writeMode,
-    chunkKeyColumn: mapping.source.chunkKeyColumn,
+    sourceRead: mapping.source.read ? { ...mapping.source.read } : undefined,
+    sourceOptions: mapping.source.options ? { ...mapping.source.options } : undefined,
+    sinkBatchSize: mapping.batchSize,
+    typeMappings: parameters.sink.typeMappings
+      ? structuredClone(parameters.sink.typeMappings)
+      : undefined,
+    selection: parameters.source.selection
+      ? structuredClone(parameters.source.selection)
+      : undefined,
+    mappingTemplate: parameters.sink.mapping ? structuredClone(parameters.sink.mapping) : undefined,
+    preSql: mapping.preSql ? [...mapping.preSql] : undefined,
+    postSql: mapping.postSql ? [...mapping.postSql] : undefined,
     targetPrimaryKeys: mapping.target.primaryKeys,
     incremental: mapping.incremental ? { ...mapping.incremental } : undefined,
     sourceDataSourceId: parameters.source.datasourceId,

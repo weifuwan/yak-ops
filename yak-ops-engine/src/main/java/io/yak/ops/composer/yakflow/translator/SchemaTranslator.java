@@ -22,6 +22,16 @@ public final class SchemaTranslator {
             int parallelism,
             String definitionId,
             String operatorUid) {
+        return translate(input, tables, parallelism, definitionId, operatorUid, null);
+    }
+
+    public Transformation<Event> translate(
+            Transformation<Event> input,
+            List<TableBinding> tables,
+            int parallelism,
+            String definitionId,
+            String operatorUid,
+            java.util.function.Function<TableId, TableId> discoveryRoutes) {
         Map<TableId, TableId> routes = new LinkedHashMap<>();
         for (TableBinding table : tables) {
             if (routes.putIfAbsent(table.source().table(), table.targetTable()) != null) {
@@ -30,7 +40,7 @@ public final class SchemaTranslator {
         }
         Map<TableId, TableId> admitted = Map.copyOf(routes);
         OneInputTransformation<Event, Event> schema = new OneInputTransformation<>(
-                input, "Schema", () -> new SchemaOperator(admitted), Event.class, parallelism);
+                input, "Schema", () -> new SchemaOperator(admitted, discoveryRoutes), Event.class, parallelism);
         schema.setUid(
                 operatorUid == null
                         ? new OperatorUidGenerator("data-sync-schema").generateUid(definitionId)
@@ -40,9 +50,12 @@ public final class SchemaTranslator {
 
     private static final class SchemaOperator implements OneInputStreamOperator<Event, Event> {
         private final Map<TableId, TableId> routes;
+        private final java.util.function.Function<TableId, TableId> discoveryRoutes;
 
-        private SchemaOperator(Map<TableId, TableId> routes) {
+        private SchemaOperator(
+                Map<TableId, TableId> routes, java.util.function.Function<TableId, TableId> discoveryRoutes) {
             this.routes = routes;
+            this.discoveryRoutes = discoveryRoutes;
         }
 
         @Override
@@ -50,6 +63,7 @@ public final class SchemaTranslator {
             if (!(event instanceof ChangeEvent change))
                 throw new UnsupportedOperationException("Unsupported schema input event");
             TableId target = routes.get(change.tableId());
+            if (target == null && discoveryRoutes != null) target = discoveryRoutes.apply(change.tableId());
             if (target == null) throw new IllegalStateException("Event references an unadmitted source table");
             if (event instanceof SchemaChangeEvent schema) output.collect(schema.copy(target));
             else if (event instanceof DataChangeEvent data) output.collect(DataChangeEvent.route(data, target));

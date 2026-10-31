@@ -1,14 +1,19 @@
 package io.yak.ops.plugin.task.datasync;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.yak.ops.composer.definition.PipelineOptions;
+import io.yak.ops.composer.definition.TypeMappingRules;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
+import io.yak.ops.core.factories.ConnectorFeature;
 import io.yak.ops.core.factories.DataSinkFactory;
 import io.yak.ops.core.factories.DataSourceFactory;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /** Read-only Connector capabilities for the Task editor; execution uses the selected factory identifiers. */
 public final class PipelineConnectorCatalog {
@@ -49,6 +54,7 @@ public final class PipelineConnectorCatalog {
         private final boolean supportsSchemaChanges;
         private final boolean supportsRetract;
         private final String boundedness;
+        private final Map<String, Object> capabilities;
 
         private ConnectorPair(DataSourceFactory source, DataSinkFactory sink) {
             this.sourceConnector = source.identifier();
@@ -59,6 +65,7 @@ public final class PipelineConnectorCatalog {
             this.supportsRetract = sink.supportsRetract();
             this.boundedness =
                     source.boundedness(ReadonlyConfig.fromMap(Map.of())).name();
+            this.capabilities = capabilities(source, sink);
         }
 
         @JsonProperty("sourceConnector")
@@ -94,6 +101,41 @@ public final class PipelineConnectorCatalog {
         @JsonProperty("boundedness")
         public String boundedness() {
             return boundedness;
+        }
+
+        @JsonProperty("capabilities")
+        public Map<String, Object> capabilities() {
+            return capabilities;
+        }
+
+        private static Map<String, Object> capabilities(DataSourceFactory source, DataSinkFactory sink) {
+            Set<ConnectorFeature> reader = source.supportedFeatures();
+            Set<ConnectorFeature> writer = sink.supportedFeatures();
+            boolean jdbcRead = reader.contains(ConnectorFeature.READ_PREDICATE);
+            boolean hooks = writer.contains(ConnectorFeature.SQL_HOOKS) && !source.producesChangelog();
+            List<String> modes = new ArrayList<>(List.of("APPEND", "UPSERT"));
+            if (sink.supportsRetract() && source.producesChangelog()) modes.add("RETRACT");
+            if (writer.contains(ConnectorFeature.REPLACE_WRITE) && !source.producesChangelog()) modes.add("REPLACE");
+            Map<String, Object> values = new LinkedHashMap<>();
+            values.put("maxTables", PipelineOptions.MAX_TABLES);
+            values.put("sourceRead", jdbcRead);
+            values.put("explicitSplitKey", reader.contains(ConnectorFeature.EXPLICIT_SPLIT_KEY));
+            values.put("dataPreview", reader.contains(ConnectorFeature.PREVIEW));
+            values.put("sqlHooks", hooks);
+            values.put(
+                    "regexSelection", reader.contains(ConnectorFeature.DYNAMIC_TABLES) && sink.supportsSchemaChanges());
+            values.put("snapshotFilter", reader.contains(ConnectorFeature.SNAPSHOT_FILTER));
+            values.put("snapshotSkip", reader.contains(ConnectorFeature.SNAPSHOT_SKIP));
+            values.put("dmlEvents", reader.contains(ConnectorFeature.DML_FILTER));
+            values.put("typeMapping", writer.contains(ConnectorFeature.TYPE_MAPPING));
+            values.put(
+                    "typeMappingRules",
+                    writer.contains(ConnectorFeature.TYPE_MAPPING) ? TypeMappingRules.supportedRules() : List.of());
+            values.put("writeModes", List.copyOf(modes));
+            values.put("sourceEngineKeys", jdbcRead ? List.of("fetchSize", "queryTimeoutSeconds") : List.of());
+            values.put(
+                    "sinkEngineKeys", writer.contains(ConnectorFeature.SQL_HOOKS) ? List.of("batchSize") : List.of());
+            return Map.copyOf(values);
         }
     }
 }

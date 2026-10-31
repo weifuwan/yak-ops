@@ -183,6 +183,29 @@ class DefinitionCrudContractTest {
     }
 
     @Test
+    void unchangedPayloadUnderNewParameterSchemaCreatesOnlyOneNewSavedVersion() {
+        when(plugin.parameterSchemaVersion()).thenReturn(7);
+        create();
+        service.publish(stored.getId(), publication("publish-v7"), "publisher");
+        String historical = snapshots.get(1).getParameters();
+
+        when(plugin.parameterSchemaVersion()).thenReturn(8);
+        DefinitionVO saved = service.update(stored.getId(), edit("orders", "orders"), "editor");
+        assertEquals(2, saved.getDefinitionVersion());
+        assertEquals(8, saved.getParameterSchemaVersion());
+        assertEquals(1, saved.getPublishedVersion());
+        assertTrue(saved.isHasUnpublishedChanges());
+        assertEquals(7, snapshots.get(1).getParameterSchemaVersion());
+        assertEquals(historical, snapshots.get(1).getParameters());
+        assertEquals(8, snapshots.get(2).getParameterSchemaVersion());
+
+        DefinitionVO repeated = service.update(stored.getId(), edit("orders", "orders"), "editor");
+        assertEquals(2, repeated.getDefinitionVersion());
+        assertEquals(2, snapshots.size());
+        assertEquals(1, receipts.size());
+    }
+
+    @Test
     void successfulPublishRetryDoesNotRevalidateOrChangeLaterEdits() {
         create();
         PublishDefinitionDTO request = publication("publish-1");

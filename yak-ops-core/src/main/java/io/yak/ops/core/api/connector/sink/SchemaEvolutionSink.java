@@ -13,6 +13,11 @@ import java.util.List;
  */
 public interface SchemaEvolutionSink {
 
+    /** Returns whether checkpointed routes may include tables admitted by immutable discovery rules. */
+    default boolean supportsTableDiscovery() {
+        return false;
+    }
+
     /**
      * Returns the admitted raw source and target schemas before any reader or writer is opened.
      * Version-zero states are checkpointed so recovery never guesses from a newer catalog.

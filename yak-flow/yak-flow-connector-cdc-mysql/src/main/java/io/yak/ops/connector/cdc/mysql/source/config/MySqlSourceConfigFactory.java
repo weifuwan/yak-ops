@@ -77,6 +77,38 @@ public class MySqlSourceConfigFactory implements Serializable {
     private boolean treatTinyInt1AsBoolean = true;
     private boolean useLegacyJsonFormat = true;
     private boolean assignUnboundedChunkFirst = false;
+    private final Map<TableId, MySqlTableOptions> tableOptions = new LinkedHashMap<>();
+    private MySqlTableOptions defaultTableOptions = MySqlTableOptions.DEFAULT;
+    private String defaultChunkKeyColumn;
+    private String discoveryTablePattern;
+
+    /** Matches unqualified table names independently of the database expression. */
+    public MySqlSourceConfigFactory discoveryTablePattern(String pattern) {
+        String value = Objects.requireNonNull(pattern, "pattern");
+        if (value.isBlank() || value.length() > 256) {
+            throw new IllegalArgumentException("Dynamic table pattern must contain 1 to 256 characters");
+        }
+        Pattern.compile(value);
+        discoveryTablePattern = value;
+        return this;
+    }
+
+    /** Configures snapshot scope and original mutation selection for one admitted table. */
+    public MySqlSourceConfigFactory tableOptions(TableId table, MySqlTableOptions options) {
+        tableOptions.put(Objects.requireNonNull(table, "table"), Objects.requireNonNull(options, "options"));
+        return this;
+    }
+
+    /** Supplies the published default for subsequently discovered tables. */
+    public MySqlSourceConfigFactory defaultTableOptions(MySqlTableOptions options) {
+        defaultTableOptions = Objects.requireNonNull(options, "options");
+        return this;
+    }
+
+    public MySqlSourceConfigFactory defaultChunkKeyColumn(String column) {
+        defaultChunkKeyColumn = column;
+        return this;
+    }
 
     public MySqlSourceConfigFactory hostname(String hostname) {
         this.hostname = hostname;
@@ -519,7 +551,11 @@ public class MySqlSourceConfigFactory implements Serializable {
                 useLegacyJsonFormat,
                 assignUnboundedChunkFirst,
                 releaseSnapshotMetadataEnabled,
-                debezium);
+                debezium,
+                Map.copyOf(tableOptions),
+                defaultTableOptions,
+                defaultChunkKeyColumn,
+                discoveryTablePattern);
     }
 
     /** Immutable data kept in MySqlSourceConfig across reader creation and checkpoint recovery. */
@@ -550,7 +586,11 @@ public class MySqlSourceConfigFactory implements Serializable {
             boolean useLegacyJsonFormat,
             boolean assignUnboundedChunkFirst,
             boolean releaseSnapshotMetadataEnabled,
-            Properties dbzProperties) {}
+            Properties dbzProperties,
+            Map<TableId, MySqlTableOptions> tableOptions,
+            MySqlTableOptions defaultTableOptions,
+            String defaultChunkKeyColumn,
+            String discoveryTablePattern) {}
 
     /** Builds the snapshot and binlog Source with a single configuration contract. */
     public MySqlSource buildHybrid(int chunkSize) {

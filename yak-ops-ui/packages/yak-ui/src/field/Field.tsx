@@ -72,3 +72,5 @@ export function FieldError({ className, ...props }: FieldErrorProps) {
 
 export const FieldValidity = BaseField.Validity;
 export type FieldValidityProps = BaseFieldNS.Validity.Props;
+export const FieldItem = BaseField.Item;
+export type FieldItemProps = BaseFieldNS.Item.Props;

@@ -8,9 +8,15 @@ import java.util.List;
 public final class JdbcSinkOptions {
 
     public static final Option<JdbcWriteMode> WRITE_MODE = Options.key("writeMode")
-            .singleChoice(
-                    JdbcWriteMode.class, List.of(JdbcWriteMode.APPEND, JdbcWriteMode.UPSERT, JdbcWriteMode.RETRACT))
+            .singleChoice(JdbcWriteMode.class, List.of(JdbcWriteMode.values()))
             .noDefaultValue();
+
+    public static final Option<String> PRE_SQL =
+            Options.key("write.pre-sql").stringType().noDefaultValue();
+    public static final Option<String> POST_SQL =
+            Options.key("write.post-sql").stringType().noDefaultValue();
+    public static final Option<Integer> BATCH_SIZE =
+            Options.key("write.batch-size").intType().defaultValue(500);
 
     /** Physical opt-in; callers must establish that target tables can be reordered independently. */
     public static final Option<JdbcBatchOrder> BATCH_ORDER = Options.key("connector.jdbc.sink.batch-order")

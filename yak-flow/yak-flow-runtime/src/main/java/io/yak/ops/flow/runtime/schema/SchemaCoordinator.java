@@ -156,18 +156,24 @@ public final class SchemaCoordinator implements AutoCloseable {
         return result;
     }
 
-    /** Plans a source change synchronously without I/O, then queues the normal coordination protocol. */
+    /** Plans on the coordinator thread so new-table target validation never blocks the reader mailbox. */
     public CompletionStage<Long> applySourceSchemaChange(SourceSchemaChange change, int sourceSubtask) {
         Objects.requireNonNull(change, "change");
         if (schemaSink == null) {
             return CompletableFuture.failedFuture(
                     new UnsupportedOperationException("Runtime schema evolution requires a Sink schema planner"));
         }
-        try {
-            return applySchemaChange(schemaSink.planSchemaChange(change, allowDropColumns), sourceSubtask);
-        } catch (RuntimeException failure) {
-            return CompletableFuture.failedFuture(failure);
-        }
+        CompletableFuture<Long> result = new CompletableFuture<>();
+        submit(
+                () -> {
+                    SchemaChangeRequest request = schemaSink.planSchemaChange(change, allowDropColumns);
+                    applySchemaChange(request, sourceSubtask).whenComplete((version, failure) -> {
+                        if (failure == null) result.complete(version);
+                        else result.completeExceptionally(failure);
+                    });
+                },
+                result);
+        return result;
     }
 
     /** Returns the committed source schema for restoring the Debezium converter at the same offset. */

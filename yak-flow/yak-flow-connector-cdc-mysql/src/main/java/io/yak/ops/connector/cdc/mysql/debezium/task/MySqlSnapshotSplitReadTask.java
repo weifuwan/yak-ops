@@ -1,5 +1,6 @@
 package io.yak.ops.connector.cdc.mysql.debezium.task;
 
+import io.yak.ops.connector.base.source.reader.RecordsWithSplitIds;
 import io.yak.ops.connector.cdc.mysql.debezium.BinlogEvent;
 import io.yak.ops.connector.cdc.mysql.debezium.DebeziumOffset;
 import io.yak.ops.connector.cdc.mysql.debezium.DebeziumUtils;
@@ -11,6 +12,8 @@ import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotOutput;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSnapshotSplit;
 import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.data.TableRecord;
+import io.yak.ops.core.types.TableSchema;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -80,7 +83,15 @@ public final class MySqlSnapshotSplitReadTask implements AutoCloseable {
             throw new IllegalArgumentException("MySQL snapshot execution requires a typed ChunkRange");
         }
         ensureBinlog();
-        var schema = Objects.requireNonNull(config.schemas().get(split.tableId()), "chunk schema");
+        if (config.tableOptions(split.tableId()).skipSnapshot()) {
+            DebeziumOffset boundary = watermark();
+            byte[] schemaHistory = binlog.snapshotHistory();
+            if (schemaHistory.length == 0) {
+                throw new IllegalStateException("Skipped MySQL Snapshot lacks recoverable Schema History");
+            }
+            return split.withOutput(new MySqlSnapshotOutput(boundary, boundary, java.util.List.of(), schemaHistory));
+        }
+        TableSchema schema = Objects.requireNonNull(config.schemas().get(split.tableId()), "chunk schema");
         // Flink CDC retains the normalized split in memory until bounded backfill completes.
         // Use the existing 64 MiB per-chunk budget instead of rejecting valid, wide chunks
         // at the old hard-coded 4 MiB limit. Keep the fail-closed row/byte bound.
@@ -91,7 +102,7 @@ public final class MySqlSnapshotSplitReadTask implements AutoCloseable {
             boolean complete = false;
             while (!complete) {
                 checkCancelled();
-                var batch = snapshots.fetch();
+                RecordsWithSplitIds<TableRecord> batch = snapshots.fetch();
                 while (batch.nextSplit() != null) {
                     io.yak.ops.core.data.TableRecord record;
                     while ((record = batch.nextRecordFromSplit()) != null) {

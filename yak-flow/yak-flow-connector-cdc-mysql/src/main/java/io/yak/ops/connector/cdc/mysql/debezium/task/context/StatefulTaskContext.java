@@ -53,7 +53,10 @@ public final class StatefulTaskContext {
         }
         this.serverId = serverId;
         this.converter = new MySqlDebeziumRecordConverter(
-                sourceConfig.schemas(), sourceConfig.physicalSchemas(), sourceConfig.schemaEvolutionEnabled());
+                sourceConfig.schemas(),
+                sourceConfig.physicalSchemas(),
+                sourceConfig.schemaEvolutionEnabled(),
+                sourceConfig.isScanNewlyAddedTableEnabled());
         this.queue = new ArrayBlockingQueue<>(sourceConfig.queueCapacity());
     }
 

@@ -1,9 +1,13 @@
 package io.yak.ops.business.datasource;
 
 import io.yak.ops.common.bean.dto.datasource.DataSourceCatalogQueryDTO;
+import io.yak.ops.common.bean.dto.datasource.DataSourcePreviewDTO;
+import io.yak.ops.common.bean.dto.datasource.DataSourceTablePageDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceTablePathDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
+import io.yak.ops.common.bean.vo.datasource.DataSourcePreviewVO;
+import io.yak.ops.common.bean.vo.datasource.DataSourceTablePageVO;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
 import java.util.List;
@@ -40,6 +44,24 @@ public interface DataSourceCatalogService {
      * @return metadata for matching tables and views
      */
     List<DataSourceCatalogTableVO> listTables(String datasourceId, DataSourceCatalogQueryDTO query);
+
+    /**
+     * Searches complete Workspace-authorized metadata and returns a filtered page.
+     *
+     * @param datasourceId datasource in the active Workspace
+     * @param query exact namespace, patterns and continuation offset
+     * @return matching tables and an explicit next offset, without credentials
+     */
+    DataSourceTablePageVO listTablePage(String datasourceId, DataSourceTablePageDTO query);
+
+    /**
+     * Previews an unsaved source read without creating or changing any Task state.
+     *
+     * @param datasourceId datasource in the active Workspace
+     * @param query physical table, source predicate and bounded result count
+     * @return precision-preserving data and truncation information
+     */
+    DataSourcePreviewVO preview(String datasourceId, DataSourcePreviewDTO query);
 
     /**
      * Lists column metadata for a physical table.

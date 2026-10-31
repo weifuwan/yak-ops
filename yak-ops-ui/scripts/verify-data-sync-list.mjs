@@ -174,8 +174,7 @@ assert.equal(projected.bizData[5].syncType, "OFFLINE");
 assert.deepEqual(projected.bizData[5].steps, ["FULL"]);
 assert.equal(projected.bizData[6].productType, "SINGLE_TABLE_BATCH");
 assert.equal(projected.bizData[6].syncType, "OFFLINE");
-assert.equal(projected.bizData[2].chunkKeyColumn, "bucket");
-assert.equal(projected.bizData[2].tableMappings[0].source.chunkKeyColumn, "bucket");
+assert.equal(projected.bizData[2].tableMappings[0].source.snapshot.chunkKeyColumn, "bucket");
 assert.equal(projected.bizData[2].writeMode, "RETRACT");
 for (const record of [projected.bizData[1], projected.bizData[3], projected.bizData[4]]) {
   assert.equal(record.name, "task-" + record.id);

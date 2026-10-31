@@ -56,6 +56,43 @@ class PipelineTaskChannelTest {
     }
 
     @Test
+    void readsPublishedSevenAndWritesEightWithoutInventingHistoricalOptions() {
+        PipelineTaskChannel channel = channel(new TestComposer());
+        assertEquals(8, channel.parameterSchemaVersion());
+        assertEquals(channel.parse(7, JSON).getSourceMap(), channel.parse(8, JSON).getSourceMap());
+        assertThrows(TaskPluginException.class, () -> channel.parse(9, JSON));
+        String optionalSnapshot = JSON.replace("\"table\":\"orders\"}]", "\"table\":\"orders\",\"snapshot\":{}}]");
+        assertEquals(channel.parse(7, optionalSnapshot).getSourceMap(), channel.parse(8, optionalSnapshot).getSourceMap());
+    }
+
+    @Test
+    void rejectsNewTableOptionsWhenLabeledAsPublishedSchemaSeven() {
+        PipelineTaskChannel channel = channel(new TestComposer());
+        String dml = JSON.replace("\"table\":\"orders\"}]",
+                "\"table\":\"orders\",\"dml\":{\"events\":[\"INSERT\",\"UPDATE\"]}}]");
+        assertThrows(TaskPluginException.class, () -> channel.parse(7, dml));
+        assertTrue(channel.parse(8, dml).getSourceMap().containsKey("source"));
+    }
+
+    @Test
+    void acceptsBoundedJdbcReadAndWriteOptionsUnderSchemaEight() {
+        PipelineTaskChannel channel = channel(new TestComposer());
+        String batch = JSON.replace("\"type\":\"mysql\"", "\"type\":\"jdbc-mysql\"")
+                .replace("\"startup\":{\"mode\":\"LATEST_OFFSET\"}", "\"syncMode\":\"FULL\"")
+                .replace("\"table\":\"orders\"}]", """
+                        "table":"orders","read":{"where":"id > 5","splitKey":"id"},
+                        "options":{"fetchSize":250,"queryTimeoutSeconds":15}}]
+                        """)
+                .replace("\"write\":{\"mode\":\"UPSERT\"}", """
+                        "write":{"mode":"REPLACE","batchSize":100,
+                                 "preSql":["DELETE FROM ods.orders WHERE id > 5"],"postSql":[]}
+                        """)
+                .replace("STREAMING", "BATCH");
+        assertTrue(channel.supportsScheduling(channel.parse(8, batch)));
+        assertThrows(TaskPluginException.class, () -> channel.parse(7, batch));
+    }
+
+    @Test
     void schedulesBoundedCdcSnapshotsUsingTheirRuntimeMode() {
         PipelineTaskChannel channel = channel(new TestComposer());
         String snapshot = JSON.replace("LATEST_OFFSET", "SNAPSHOT").replace("STREAMING", "BATCH");

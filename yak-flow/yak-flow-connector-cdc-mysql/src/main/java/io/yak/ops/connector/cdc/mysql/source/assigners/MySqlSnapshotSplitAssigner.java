@@ -609,6 +609,21 @@ public final class MySqlSnapshotSplitAssigner implements MySqlSplitAssigner {
         assignerStatus = assignerStatus.startAssignNewlyTables();
     }
 
+    /** Queues a table only after the schema coordinator has acknowledged all reader subtasks. */
+    public void addDiscoveredTable(TableId table) {
+        if (!scanNewlyAddedTablesEnabled || capturedTables.contains(table)) {
+            throw new IllegalArgumentException("Table is already captured or dynamic discovery is disabled");
+        }
+        if (!AssignerStatus.isAssigningFinished(assignerStatus)) {
+            throw new IllegalStateException("Previous table assignment has not completed");
+        }
+        List<TableId> updated = new ArrayList<>(capturedTables);
+        updated.add(table);
+        capturedTables = List.copyOf(updated);
+        remainingTables.add(table);
+        startAssignNewlyAddedTables();
+    }
+
     @Override
     public boolean noMoreSplits() {
         return snapshotPlanned && remainingSplits.isEmpty() && remainingTables.isEmpty() && nextChunkRange == null;

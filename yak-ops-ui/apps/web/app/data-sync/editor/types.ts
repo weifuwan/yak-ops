@@ -7,6 +7,10 @@ import type {
   DataSyncTransform,
   DataSyncStartupOptions,
   DataSyncPipelineOptions,
+  DataSyncTableSelection,
+  DataSyncMappingTemplate,
+  DataSyncSourceOptions,
+  DataSyncTypeMapping,
 } from "@/service/data-sync";
 
 export interface EditorSource {
@@ -15,6 +19,9 @@ export interface EditorSource {
   schema: string;
   table: string;
   incremental?: DataSyncIncrementalConfig;
+  where: string;
+  splitKey: string;
+  options?: DataSyncSourceOptions;
 }
 
 export interface EditorSink {
@@ -26,6 +33,9 @@ export interface EditorSink {
   targetPrimaryKeys: string[];
   schemaChangesEnabled: boolean;
   allowDropColumns: boolean;
+  preSql: string[];
+  postSql: string[];
+  batchSize?: number;
 }
 
 /** Authored editor state; replication table options live on their individual mappings. */
@@ -37,6 +47,10 @@ export interface EditorForm {
   transforms: DataSyncTransform[];
   startup?: DataSyncStartupOptions;
   pipelineOptions?: DataSyncPipelineOptions;
+  selection?: DataSyncTableSelection;
+  mappingTemplate?: DataSyncMappingTemplate;
+  selectionResolved?: boolean;
+  typeMappings?: DataSyncTypeMapping[];
   source: EditorSource;
   sink: EditorSink;
 }
@@ -60,6 +74,8 @@ export const EMPTY_FORM: EditorForm = {
     schema: "",
     table: "",
     incremental: undefined,
+    where: "",
+    splitKey: "",
   },
   sink: {
     dataSourceId: "",
@@ -70,6 +86,8 @@ export const EMPTY_FORM: EditorForm = {
     targetPrimaryKeys: [],
     schemaChangesEnabled: true,
     allowDropColumns: false,
+    preSql: [],
+    postSql: [],
   },
 };
 

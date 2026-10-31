@@ -86,6 +86,10 @@ public final class PipelineDefinitionValidator {
             String sinkId = job.targetDataSourceId();
             DataSourceInfo from = context.dataSource(sourceId);
             DataSourceInfo to = context.dataSource(sinkId);
+            boolean sameDynamicServer = schemas
+                    && job.dynamicSelection() != null
+                    && "MYSQL".equals(to.type())
+                    && context.samePhysicalServer(sourceId, sinkId);
             boolean prepareSchema = job.steps().contains(ExecutionPhase.SCHEMA);
             Set<TableId> sources = new HashSet<>();
             Set<TableId> targets = new HashSet<>();
@@ -98,6 +102,19 @@ public final class PipelineDefinitionValidator {
                 sourceFactory.validateDatasource(from.type());
                 TableId source = tablePath(from, table.source());
                 TableId target = tablePath(to, table.sink());
+                if (job.dynamicSelection() != null) {
+                    if (!job.dynamicSelection().matches(source))
+                        throw new IllegalArgumentException("Initial table does not match the selection rule");
+                    TableId mapped = job.dynamicSelection().target(source);
+                    TableId defaultTarget = to.resolveTable(mapped.catalog(), mapped.schema(), mapped.table());
+                    SchemaValidator.validateNamespace(to, defaultTarget);
+                    if (sameDynamicServer
+                            && (job.dynamicSelection().matches(target)
+                                    || job.dynamicSelection().matches(defaultTarget))) {
+                        throw new IllegalArgumentException(
+                                "Dynamic target would be captured again by the source selection");
+                    }
+                }
                 if (!sources.add(source) || !targets.add(target)) {
                     throw new IllegalArgumentException("Duplicate resolved source or destination table");
                 }

@@ -15,6 +15,17 @@ import io.yak.ops.core.api.io.SimpleVersionedSerializer;
  */
 public interface Source<T, SplitT extends SourceSplit, EnumStateT> {
 
+    /**
+     * Restores discovered table schemas before any enumerator or reader is created. Only a
+     * source supporting dynamic discovery may accept this checkpoint-owned collection.
+     *
+     * @param schemas committed source schemas, including the admitted initial tables
+     */
+    default void restoreDiscoveredTables(
+            java.util.Map<io.yak.ops.core.data.TableId, io.yak.ops.core.schema.Schema> schemas) {
+        throw new UnsupportedOperationException("Source does not support table discovery restoration");
+    }
+
     /** Returns whether the source produces a finite or unbounded stream. */
     Boundedness getBoundedness();
 

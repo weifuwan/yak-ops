@@ -26,6 +26,13 @@ public final class JdbcSourceOptions {
 
     public static final Option<Integer> CONNECTION_ATTEMPTS = option("connector.jdbc.source.connection-attempts", 3);
 
+    /** Product read intent, resolved independently for each selected source table. */
+    public static final Option<String> READ_WHERE =
+            Options.key("read.where").stringType().noDefaultValue();
+
+    public static final Option<String> SPLIT_KEY =
+            Options.key("read.split-key").stringType().noDefaultValue();
+
     /** Engine-supplied, per-table cursor window; never provided as executable SQL. */
     public static final Option<String> RANGE_MODE =
             Options.key("connector.jdbc.source.range-mode").stringType().noDefaultValue();
@@ -39,7 +46,8 @@ public final class JdbcSourceOptions {
 
     public static io.yak.ops.connector.jdbc.source.JdbcIncrementalRange range(ReadonlyConfig options) {
         if (!options.getSourceMap().containsKey(RANGE_MODE.key())) return null;
-        var mode = io.yak.ops.connector.jdbc.source.JdbcIncrementalRange.Mode.valueOf(options.get(RANGE_MODE));
+        io.yak.ops.connector.jdbc.source.JdbcIncrementalRange.Mode mode =
+                io.yak.ops.connector.jdbc.source.JdbcIncrementalRange.Mode.valueOf(options.get(RANGE_MODE));
         String lower = options.getSourceMap().containsKey(RANGE_LOWER.key()) ? options.get(RANGE_LOWER) : null;
         return new io.yak.ops.connector.jdbc.source.JdbcIncrementalRange(
                 mode, options.get(RANGE_COLUMN), lower, options.get(RANGE_UPPER));
@@ -56,6 +64,7 @@ public final class JdbcSourceOptions {
     public static final OptionRule RULE = OptionRule.builder()
             .optional(OPTIONS.toArray(Option<?>[]::new))
             .optional(RANGE_MODE, RANGE_COLUMN, RANGE_LOWER, RANGE_UPPER)
+            .optional(READ_WHERE, SPLIT_KEY)
             .build();
 
     /** Copies source planning and reader settings without copying connection credentials. */
