@@ -86,7 +86,7 @@ public abstract class FSDataOutputStream extends OutputStream {
 
     /**
      * Closes the output stream. After this method returns, the implementation must guarantee that
-     * all data written to the stream is persistent/visible, as defined in the {@link FileSystem
+     * all data written to the stream is persistent/visible, as defined in the file system
      * class-level docs}.
      *
      * <p>The above implies that the method must block until persistence can be guaranteed. For
