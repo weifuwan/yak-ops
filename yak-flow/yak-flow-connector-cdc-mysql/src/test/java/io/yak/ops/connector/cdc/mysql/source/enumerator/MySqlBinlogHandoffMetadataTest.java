@@ -204,6 +204,72 @@ class MySqlBinlogHandoffMetadataTest {
         enumerator.close();
     }
 
+    @Test
+    void restoredCompletedAssignmentDefersNextTableUntilCurrentMetadataUpdateIsAcknowledged() {
+        var context = new Context();
+        var source = MySqlSource.builder()
+                .hostname("localhost")
+                .username("user")
+                .password("secret")
+                .serverId(9323)
+                .topicPrefix("restored-completed-handoff")
+                .scanNewlyAddedTableEnabled(true)
+                .splitMetaGroupSize(2)
+                .table(TABLE, new TableSchema(
+                        List.of(new Column("id", LogicalTypes.BIGINT.copy(false))), List.of("id")))
+                .buildHybrid(2);
+        var snapshots = new SnapshotPendingSplitsState(
+                true,
+                3,
+                List.of(),
+                Map.of(),
+                Set.of("chunk-0", "chunk-1", "chunk-2"),
+                List.of(info("chunk-0", 100), info("chunk-1", 200), info("chunk-2", 300)),
+                1,
+                0,
+                null,
+                List.of(TABLE),
+                List.of(),
+                AssignerStatus.NEWLY_ADDED_ASSIGNING_FINISHED,
+                false,
+                true,
+                false);
+        var restored = new HybridPendingSplitsState(
+                snapshots, true, null, HybridPendingSplitsState.Phase.STREAMING, offset(50), offset(300));
+        var enumerator = new MySqlSourceEnumerator(
+                StartupOptions.initial(), context, source.config(), 2, restored, new TableMetrics());
+        enumerator.start();
+        var update = (BinlogSplitUpdateRequestEvent) context.toReader0.getFirst();
+        long generation = update.getGeneration();
+        TableId anotherTable = new TableId("shop", null, "new_orders");
+        Map<TableId, Schema> discovered = Map.of(anotherTable, source.config().physicalSchemas().get(TABLE));
+
+        enumerator.handleSourceEvent(0, new BinlogSplitMetaRequestEvent(0, generation));
+        BinlogSplitMetaEvent first = (BinlogSplitMetaEvent) context.toReader0.getLast();
+        assertThat(first.getTotalGroups()).isEqualTo(2);
+        assertThat(first.getTotalFinishedSplitSize()).isEqualTo(3);
+        context.completeDiscovery(discovered);
+        assertThat(context.toReader0).noneMatch(TableDiscoveryEvent.class::isInstance);
+        assertThat(context.toReader1).noneMatch(TableDiscoveryEvent.class::isInstance);
+
+        enumerator.handleSourceEvent(0, new BinlogSplitMetaRequestEvent(1, generation));
+        BinlogSplitMetaEvent second = (BinlogSplitMetaEvent) context.toReader0.getLast();
+        assertThat(second.getTotalGroups()).isEqualTo(first.getTotalGroups());
+        assertThat(second.getTotalFinishedSplitSize()).isEqualTo(first.getTotalFinishedSplitSize());
+        enumerator.handleSourceEvent(0, new BinlogSplitMetaAssembledEvent(generation));
+        assertThat(context.toReader0.getLast()).isInstanceOf(MySqlResumeBinlogEvent.class);
+        enumerator.handleSourceEvent(0, new BinlogSplitUpdateAckEvent(generation - 1));
+        context.completeDiscovery(discovered);
+        assertThat(context.toReader0).noneMatch(TableDiscoveryEvent.class::isInstance);
+
+        enumerator.handleSourceEvent(0, new BinlogSplitUpdateAckEvent(generation));
+        context.completeDiscovery(discovered);
+        assertThat(context.toReader0.getLast()).isInstanceOf(TableDiscoveryEvent.class);
+        assertThat(((TableDiscoveryEvent) context.toReader0.getLast()).table()).isEqualTo(anotherTable);
+        assertThat(context.toReader1.getLast()).isSameAs(context.toReader0.getLast());
+        enumerator.close();
+    }
+
     private static HybridPendingSplitsState handoffState() {
         List<FinishedSnapshotSplitInfo> infos = List.of(
                 info("chunk-0", 100), info("chunk-1", 200), info("chunk-2", 300));

@@ -129,8 +129,6 @@ public final class MySqlSplitReader implements SplitReader<MySqlFetchedRecord, M
                     readerContext.setHasAssignedBinlogSplit(true);
                     if (stream.isSuspended() && stream.phase() == MySqlBinlogSplit.Phase.PAUSED) {
                         readerContext.suspendBinlogSplitReader();
-                    } else {
-                        readerContext.wakeupSuspendedBinlogSplitReader();
                     }
                 }
                 history = stream.schemaHistory();
@@ -317,7 +315,8 @@ public final class MySqlSplitReader implements SplitReader<MySqlFetchedRecord, M
         startBinlog(split);
         streaming = true;
         binlogPauseReported = false;
-        if (readerContext != null) readerContext.wakeupSuspendedBinlogSplitReader();
+        // A mailbox metadata update can suspend the reader before or during this
+        // asynchronous startup. Only an explicit resume command may clear that request.
     }
 
     /** Stores a paused Binlog split after the fetcher has stopped its live Debezium task. */

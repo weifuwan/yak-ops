@@ -401,6 +401,7 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
         if (closed) return;
         if (failure != null) throw new IllegalStateException("MySQL table discovery failed", failure);
         if (pendingDiscovery != null
+                || pendingBinlogUpdateGeneration >= 0
                 || assigner.phase() != HybridPendingSplitsState.Phase.STREAMING
                 || !AssignerStatus.isAssigningFinished(assigner.getAssignerStatus())
                 || context.registeredReaders().size() != context.currentParallelism()) return;

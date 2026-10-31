@@ -5,16 +5,28 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.connector.base.metrics.TableMetrics;
+import io.yak.ops.connector.cdc.mysql.source.events.BinlogSplitMetaAssembledEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.BinlogSplitMetaEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.BinlogSplitMetaRequestEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.BinlogSplitUpdateAckEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.BinlogSplitUpdateRequestEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.MySqlResumeBinlogEvent;
 import io.yak.ops.connector.cdc.mysql.source.reader.MySqlRecordEmitter;
+import io.yak.ops.connector.cdc.mysql.source.reader.MySqlSourceReader;
 import io.yak.ops.connector.cdc.mysql.source.reader.MySqlSourceReaderContext;
 import io.yak.ops.connector.cdc.mysql.source.reader.MySqlSplitReader;
+import io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo;
+import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlFetchedRecord;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplitSerializer;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplitState;
+import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
 import io.yak.ops.core.data.TableRecord;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 import io.yak.ops.connector.cdc.mysql.source.MySqlSource;
 import io.yak.ops.connector.cdc.mysql.source.assigners.ChunkRange;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceConfig;
@@ -240,6 +252,77 @@ class MySqlSnapshotBackfillIT {
     }
 
     @Test
+    void restoredStreamingSplitPreservesPendingPauseAndResumesAfterMetadataAcknowledgement() throws Exception {
+        execute("INSERT INTO snapshot_contract VALUES (1,'snapshot')");
+        MySqlSourceConfig sourceConfig = config();
+        MySqlSnapshotSplit finished;
+        try (MySqlSnapshotSplitReadTask snapshotReader = new MySqlSnapshotSplitReadTask(sourceConfig, 0)) {
+            MySqlSnapshotSplit prepared = snapshotReader.read(split(null, null));
+            finished = prepared.withOutputPosition(prepared.output().rows().size());
+        }
+        var high = finished.finished().highWatermark();
+        MySqlBinlogSplit checkpoint = MySqlBinlogSplit.forCompletedSnapshot(
+                high, finished.finishedSchemaHistory(), high, List.of(finished.finished()));
+        MySqlSplitSerializer serializer = MySqlSplitSerializer.INSTANCE;
+        checkpoint = (MySqlBinlogSplit) serializer.deserialize(
+                serializer.getVersion(), serializer.serialize(checkpoint));
+        List<SourceEvent> events = new ArrayList<>();
+        List<TableRecord> rows = new ArrayList<>();
+        long updateGeneration = 17;
+
+        try (MySqlSourceReader restored = new MySqlSourceReader(
+                sourceConfig, context(events), new TableMetrics(), true)) {
+            restored.start();
+            // The mailbox can receive the coordinator's restored-generation update
+            // before the asynchronous fetcher installs the checkpointed Binlog split.
+            restored.handleSourceEvents(new BinlogSplitUpdateRequestEvent(updateGeneration));
+            restored.addSplits(List.of(checkpoint));
+            pollUntil(restored, rows, () -> events.stream().anyMatch(event ->
+                    event instanceof BinlogSplitMetaRequestEvent request
+                            && request.getGeneration() == updateGeneration));
+
+            // This request is sent only after the mailbox consumes the fetcher's
+            // finished marker, removes the active split and stores its paused state.
+            assertThat(rows).isEmpty();
+            assertThat(restored.snapshotState(1)).singleElement().satisfies(split -> {
+                assertThat(split).isInstanceOf(MySqlBinlogSplit.class);
+                MySqlBinlogSplit paused = (MySqlBinlogSplit) split;
+                assertThat(paused.phase()).isEqualTo(MySqlBinlogSplit.Phase.PAUSED);
+                assertThat(paused.offset()).isEqualTo(high);
+                assertThat(paused.finishedSplits()).hasSize(1);
+                assertThat(paused.schemaHistory()).isNotEmpty();
+            });
+            restored.handleSourceEvents(new BinlogSplitMetaEvent(
+                    0, 1, 1, updateGeneration,
+                    List.of(FinishedSnapshotSplitInfo.serialize(finished.finished()))));
+            assertThat(events).anyMatch(event -> event instanceof BinlogSplitMetaAssembledEvent assembled
+                    && assembled.getBinlogAssignmentGeneration() == updateGeneration);
+            restored.handleSourceEvents(new MySqlResumeBinlogEvent(high));
+            assertThat(events).anyMatch(event -> event instanceof BinlogSplitUpdateAckEvent acknowledgement
+                    && acknowledgement.getGeneration() == updateGeneration);
+
+            execute("INSERT INTO snapshot_contract VALUES (2,'after-explicit-resume')");
+            pollUntil(restored, rows, () -> rows.stream().anyMatch(row ->
+                    ((Number) row.row().getField(0)).longValue() == 2L
+                            && "after-explicit-resume".equals(row.row().getString(1))));
+            assertThat(rows).noneMatch(row -> ((Number) row.row().getField(0)).longValue() == 1L);
+            assertThat(restored.snapshotState(2)).singleElement().satisfies(split ->
+                    assertThat(((MySqlBinlogSplit) split).phase()).isEqualTo(MySqlBinlogSplit.Phase.STREAMING));
+        }
+    }
+
+    private static void pollUntil(MySqlSourceReader reader, List<TableRecord> rows, BooleanSupplier completed)
+            throws Exception {
+        long deadline = System.nanoTime() + java.time.Duration.ofSeconds(60).toNanos();
+        while (!completed.getAsBoolean()) {
+            long remaining = deadline - System.nanoTime();
+            assertThat(remaining).as("Reader must complete the requested metadata or data transition").isPositive();
+            reader.isAvailable().get(remaining, TimeUnit.NANOSECONDS);
+            reader.pollNext(rows::add);
+        }
+    }
+
+    @Test
     void realMysqlWideChunkLargerThanFourMiBCompletesWithoutDroppingImages() throws Exception {
         execute("ALTER TABLE snapshot_contract MODIFY name VARCHAR(16000) NOT NULL");
         String payload = "w".repeat(12_000);
@@ -325,6 +408,10 @@ class MySqlSnapshotBackfillIT {
     }
 
     private static SourceReaderContext context() {
+        return context(new ArrayList<>());
+    }
+
+    private static SourceReaderContext context(List<SourceEvent> events) {
         return new SourceReaderContext() {
             @Override
             public Configuration getConfiguration() {
@@ -343,6 +430,11 @@ class MySqlSnapshotBackfillIT {
 
             @Override
             public void sendSplitRequest() {}
+
+            @Override
+            public void sendSourceEventToCoordinator(SourceEvent event) {
+                events.add(event);
+            }
         };
     }
 
