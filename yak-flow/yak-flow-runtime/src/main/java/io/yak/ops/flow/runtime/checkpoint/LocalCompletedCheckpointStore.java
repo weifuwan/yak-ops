@@ -289,6 +289,21 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
                 .resolve(METADATA_FILE);
     }
 
+    /** Used at submission to fail closed when legacy or uncommitted checkpoint state exists. */
+    public static boolean hasCheckpointData(Path directory) throws IOException {
+        Objects.requireNonNull(directory, "directory");
+        if (Files.exists(directory.resolve(LEGACY_POINTER))) return true;
+        Path completed = directory.resolve(COMPLETED_DIRECTORY);
+        if (latestCompletedId(completed) > 0) return true;
+        Path checkpoints = directory.resolve(CHECKPOINT_DIRECTORY);
+        if (Files.isDirectory(checkpoints)) {
+            try (DirectoryStream<Path> entries = Files.newDirectoryStream(checkpoints, "chk-*")) {
+                if (entries.iterator().hasNext()) return true;
+            }
+        }
+        return false;
+    }
+
     private static long latestCompletedId(Path completedDirectory) throws IOException {
         if (!Files.exists(completedDirectory)) return 0L;
         if (!Files.isDirectory(completedDirectory, LinkOption.NOFOLLOW_LINKS)) {
