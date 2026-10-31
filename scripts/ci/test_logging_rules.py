@@ -5,11 +5,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS))
 
-from verify_logging_rules import ROOT, chinese_connector_exceptions, chinese_engine_literals, production_java_files, verify_file
+from verify_logging_rules import CLI_CONSOLE_ENTRYPOINT, ROOT, chinese_connector_exceptions, chinese_engine_literals, production_java_files, verify_file
 
 
 class LoggingChecksTest(unittest.TestCase):
@@ -45,6 +46,40 @@ class LoggingChecksTest(unittest.TestCase):
 
     def test_direct_console_output_is_rejected(self):
         self.assertTrue(self.check('System.out.println("unsafe");'))
+
+    def check_cli(self, statement, relative=CLI_CONSOLE_ENTRYPOINT):
+        with tempfile.TemporaryDirectory(dir=ROOT) as tempdir:
+            root = Path(tempdir)
+            source = root / relative
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "class CliFrontend {\n"
+                "    public static void main(String[] args) {\n"
+                f"        {statement}\n"
+                "    }\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            with patch("verify_logging_rules.ROOT", root):
+                return verify_file(source)
+
+    def test_cli_main_can_bind_standard_streams_to_the_command_runner(self):
+        self.assertEqual([], self.check_cli('int exitCode = run(args, System.out, System.err);'))
+
+    def test_cli_console_binding_does_not_exempt_other_calls(self):
+        for statement in (
+            'System.out.println("unsafe");',
+            'System.err.println("unsafe");',
+            'int exitCode = run(args, System.err, System.out);',
+            'int exitCode = run(args, System.out, System.err); System.out.println("unsafe");',
+        ):
+            with self.subTest(statement=statement):
+                self.assertTrue(self.check_cli(statement))
+
+    def test_cli_console_binding_does_not_exempt_other_files(self):
+        statement = 'int exitCode = run(args, System.out, System.err);'
+        self.assertTrue(self.check(statement))
+        self.assertTrue(self.check_cli(statement, CLI_CONSOLE_ENTRYPOINT.with_name("OtherCommand.java")))
 
     def test_chinese_log_template_is_rejected(self):
         self.assertTrue(self.check('LOG.warn("检查点超时, id={}", id);'))

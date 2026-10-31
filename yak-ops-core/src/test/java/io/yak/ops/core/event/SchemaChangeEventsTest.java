@@ -174,6 +174,47 @@ class SchemaChangeEventsTest {
     }
 
     @Test
+    void typeChangeCanInvalidateOldNativePropertiesWithoutChangingRawCheckpointMetadata() throws Exception {
+        ColumnProperties nativeProperties = new ColumnProperties(null, false, false, null, false, "varchar(20)");
+        Schema before = new Schema(List.of(
+                INITIAL.columns().getFirst(),
+                new PhysicalColumn("name", LogicalTypes.varchar(20), "name-comment", nativeProperties)),
+                INITIAL.primaryKeys(), INITIAL.comment());
+        Schema after = new Schema(List.of(
+                INITIAL.columns().getFirst(),
+                new PhysicalColumn("name", LogicalTypes.varchar(40), "name-comment", null)),
+                INITIAL.primaryKeys(), INITIAL.comment());
+        List<SchemaChangeEvent> events = SchemaUtils.diff(TABLE, before, after);
+        assertEquals(List.of(new AlterColumnTypeEvent(TABLE,
+                Map.of("name", LogicalTypes.varchar(40)), Map.of("name", LogicalTypes.varchar(20)))), events);
+        assertEquals(after.toTableSchema(), SchemaUtils.applySchemaChangeEvent(before, events.getFirst()).toTableSchema());
+        SourceSchemaChange raw = new SourceSchemaChange("ddl:100", TABLE, before, after);
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
+            output.writeObject(raw);
+        }
+        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
+            assertEquals(raw, input.readObject());
+        }
+        assertEquals(nativeProperties, raw.before().column("name").orElseThrow().properties());
+        assertEquals(null, raw.after().column("name").orElseThrow().properties());
+    }
+
+    @Test
+    void diffRejectsUnchangedTypeMetadataLossAndNewCommentsDuringTypeChanges() {
+        Schema before = new Schema(List.of(new PhysicalColumn("id", LogicalTypes.INTEGER,
+                "comment", new ColumnProperties("1", false, false, null, false, "int"))), List.of());
+        Schema lostDefault = new Schema(List.of(new PhysicalColumn("id", LogicalTypes.INTEGER, "comment", null)), List.of());
+        Schema lostComment = new Schema(List.of(new PhysicalColumn("id", LogicalTypes.INTEGER,
+                null, before.columns().getFirst().properties())), List.of());
+        Schema changedCommentAndType = new Schema(List.of(new PhysicalColumn("id", LogicalTypes.BIGINT,
+                "changed", null)), List.of());
+        assertThrows(UnsupportedOperationException.class, () -> SchemaUtils.diff(TABLE, before, lostDefault));
+        assertThrows(UnsupportedOperationException.class, () -> SchemaUtils.diff(TABLE, before, lostComment));
+        assertThrows(UnsupportedOperationException.class, () -> SchemaUtils.diff(TABLE, before, changedCommentAndType));
+    }
+
+    @Test
     void oldAndNewSchemaEventsSerializeAndCopySafely() throws Exception {
         List<AddColumnEvent.ColumnWithPosition> columns = new ArrayList<>(
                 List.of(AddColumnEvent.last(new PhysicalColumn("hidden", LogicalTypes.STRING, "private"))));

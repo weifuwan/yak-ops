@@ -19,6 +19,11 @@ export type DataSyncSolutionType =
 export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
 
 export interface DataSyncSolution {
+  id: string;
+  sourceConnector: string;
+  sinkConnector: string;
+  producesChangelog: boolean;
+  runtimeMode: "BATCH" | "STREAMING";
   solutionType: DataSyncSolutionType;
   displayName: string;
   steps: DataSyncStep[];
@@ -31,6 +36,9 @@ export interface DataSyncSolution {
 }
 
 export interface DataSyncDraft {
+  sourceConnector: string;
+  sinkConnector: string;
+  sourceProducesChangelog: boolean;
   sourceType: string;
   targetType: string;
   solutionType: DataSyncSolutionType;
@@ -122,10 +130,33 @@ export interface DataSyncStageReport extends DataSyncExecutionSummary {
 
 export type DataSyncExecutionReport = DataSyncBatchReport | DataSyncStageReport;
 
-/** V6 JSON task definition persisted through the API; the Task Plugin converts it to YAML. */
+export interface DataSyncTransform {
+  "source-table": string;
+  projection?: string;
+  filter?: string;
+  "primary-keys"?: string;
+  "partition-keys"?: string;
+  "table-options"?: string;
+  "table-options.delimiter"?: string;
+  description?: string;
+  "converter-after-transform"?: string;
+}
+
+/** Supported upstream options retained even when the editor has no form field for them. */
+export interface DataSyncPipelineOptions {
+  name?: string;
+  parallelism?: number | string;
+  "local-time-zone"?: string;
+  "schema.change.behavior"?: string;
+  "schema.operator.uid"?: string;
+  "route-mode"?: string;
+  "transform.decimal.precision.mode"?: string;
+}
+
+/** Task JSON uses installed Connector identifiers; the Task Plugin converts it to Pipeline YAML. */
 export interface DataSyncParameters {
   source: {
-    type: "JDBC" | "MYSQL_CDC";
+    type: string;
     datasourceId: string;
     syncMode?: "FULL" | "INCREMENTAL" | "FULL_AND_INCREMENTAL";
     startup?: {
@@ -151,7 +182,7 @@ export interface DataSyncParameters {
     >;
   };
   sink: {
-    type: "JDBC";
+    type: string;
     datasourceId: string;
     schemaPolicy: {
       initial: "VERIFY" | "CREATE_OR_ALTER";
@@ -168,8 +199,8 @@ export interface DataSyncParameters {
     >;
   };
   route: Array<{ "source-table": string; "sink-table": string }>;
-  transform: [];
-  pipeline: {
+  transform: DataSyncTransform[];
+  pipeline: DataSyncPipelineOptions & {
     "execution.runtime-mode": "BATCH" | "STREAMING";
     /** Editor-only product scope; never persist the old solutionType enum. */
     "pipeline.table-scope"?: "SINGLE" | "DATABASE";
@@ -182,6 +213,11 @@ export type DataSyncStartupOptions = NonNullable<DataSyncParameters["source"]["s
 export type DataSyncTaskStatus = "UNPUBLISHED" | "PUBLISHED";
 
 export interface DataSyncTaskRecord {
+  sourceConnector: string;
+  sinkConnector: string;
+  sourceProducesChangelog: boolean;
+  transforms: DataSyncTransform[];
+  pipelineOptions: DataSyncPipelineOptions;
   id: string;
   /** Persisted definition can be displayed, but fails current static execution validation. */
   configurationError?: string;
@@ -279,6 +315,11 @@ interface DataSyncTaskSaveBase {
 }
 
 export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
+  sourceConnector: string;
+  sinkConnector: string;
+  sourceProducesChangelog: boolean;
+  transforms?: DataSyncTransform[];
+  pipelineOptions?: DataSyncPipelineOptions;
   chunkKeyColumn?: string;
   targetPrimaryKeys?: string[];
   schemaChangesEnabled?: boolean;

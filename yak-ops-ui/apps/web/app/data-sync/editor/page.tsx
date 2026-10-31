@@ -38,6 +38,9 @@ export function DataSyncTaskEditorPage() {
           connections,
           draft: {
             name: task.name,
+            sourceConnector: task.sourceConnector,
+            sinkConnector: task.sinkConnector,
+            sourceProducesChangelog: task.sourceProducesChangelog,
             solutionType: task.solutionType,
             steps: task.steps,
             sourceType: connections[0].dbType || "",

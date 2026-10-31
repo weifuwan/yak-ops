@@ -19,6 +19,18 @@ public interface Source<T, SplitT extends SourceSplit, EnumStateT> {
     Boundedness getBoundedness();
 
     /**
+     * Validates source-specific parallelism constraints before creating the execution graph.
+     *
+     * <p>Connectors own their requirements; a Pipeline translator must not depend on concrete
+     * Source classes or special-case their startup modes.
+     */
+    default void validateParallelism(int parallelism) {
+        if (parallelism <= 0) {
+            throw new IllegalArgumentException("Source parallelism must be positive");
+        }
+    }
+
+    /**
      * Creates an enumerator for a fresh job execution.
      *
      * @param context the runtime-managed coordinator context

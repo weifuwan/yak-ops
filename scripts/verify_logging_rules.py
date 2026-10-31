@@ -8,6 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 # modules. Keep source intact for upstream diffs; native Yak Ops code is checked.
 UPSTREAM_REGISTRY_MODULES = {"yak-ops-registry-api", "yak-ops-registry-jdbc"}
 
+CLI_CONSOLE_ENTRYPOINT = Path("yak-ops-engine/src/main/java/io/yak/ops/cli/CliFrontend.java")
+CLI_CONSOLE_BINDING = "int exitCode = run(args, System.out, System.err);"
+
 FORBIDDEN_SNIPPETS = {
     "@Slf4j": "禁止使用 Lombok @Slf4j，统一显式声明 SLF4J Logger",
     "lombok.extern.slf4j.Slf4j": "禁止导入 Lombok @Slf4j",
@@ -174,6 +177,12 @@ def verify_file(path):
         if snippet == "ch.qos.logback" and relative in logback_components:
             continue
         for match in re.finditer(re.escape(snippet), text):
+            if relative == CLI_CONSOLE_ENTRYPOINT and snippet in {"System.out", "System.err"}:
+                start = text.rfind("\n", 0, match.start()) + 1
+                end = text.find("\n", match.end())
+                # The command entry point injects standard I/O into its runner exactly once.
+                if text[start:end if end >= 0 else len(text)].strip() == CLI_CONSOLE_BINDING:
+                    continue
             violations.append((line_number(text, match.start()), reason))
 
     wrapper = FORBIDDEN_WRAPPER_TYPES.search(text)

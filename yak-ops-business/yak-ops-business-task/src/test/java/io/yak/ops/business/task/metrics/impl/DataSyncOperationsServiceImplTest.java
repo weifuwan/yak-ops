@@ -18,7 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-/** Validates period boundaries and historical source-type isolation for Instance metrics. */
+/** Validates period boundaries and historical runtime-mode isolation for Instance metrics. */
 class DataSyncOperationsServiceImplTest {
 
     private final DataSyncOperationsRepository repository = mock(DataSyncOperationsRepository.class);
@@ -39,7 +39,7 @@ class DataSyncOperationsServiceImplTest {
 
     @Test
     void aggregatesOfflineHistoryAndCurrentRunningIndependently() {
-        when(repository.runningCount("workspace", "JDBC")).thenReturn(2L);
+        when(repository.runningCount("workspace", "BATCH")).thenReturn(2L);
         DataSyncOperationsVO result = service.dashboard("workspace", "OFFLINE", "LAST_7_DAYS");
 
         assertEquals(3, result.summary().executionCount());
@@ -49,8 +49,8 @@ class DataSyncOperationsServiceImplTest {
         assertEquals(2, result.summary().runningCount());
         assertEquals(7, result.trend().size());
         assertTrue(result.trend().stream().allMatch(point -> point.executionCount() == 0));
-        verify(repository).runningCount("workspace", "JDBC");
-        verify(repository).summary(eq("workspace"), eq("JDBC"), any(), any());
+        verify(repository).runningCount("workspace", "BATCH");
+        verify(repository).summary(eq("workspace"), eq("BATCH"), any(), any());
     }
 
     @Test
@@ -58,7 +58,7 @@ class DataSyncOperationsServiceImplTest {
         DataSyncOperationsVO result = service.dashboard("workspace", "REALTIME", "TODAY");
         assertTrue(result.trend().size() >= 1);
         assertTrue(result.trend().size() <= 24);
-        verify(repository).trend(eq("workspace"), eq("MYSQL_CDC"), any(), any(), eq(true));
+        verify(repository).trend(eq("workspace"), eq("STREAMING"), any(), any(), eq(true));
     }
 
     @Test
@@ -72,7 +72,7 @@ class DataSyncOperationsServiceImplTest {
     void startsThirtyDayRangeAtTheBeginningOfItsFirstDay() {
         service.dashboard("workspace", "OFFLINE", "LAST_30_DAYS");
         ArgumentCaptor<LocalDateTime> start = ArgumentCaptor.forClass(LocalDateTime.class);
-        verify(repository).summary(eq("workspace"), eq("JDBC"), start.capture(), any());
+        verify(repository).summary(eq("workspace"), eq("BATCH"), start.capture(), any());
         assertEquals(0, start.getValue().getHour());
         assertEquals(0, start.getValue().getMinute());
     }

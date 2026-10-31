@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { COMMON_DB_OPTIONS } from "@/app/datasource/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
-import type { DataSyncDraft, DataSyncSolutionType, DataSyncStep } from "@/service/data-sync";
+import type { DataSyncDraft, DataSyncStep } from "@/service/data-sync";
 import { readTaskDraft, taskDraftKey, writeTaskDraft } from "@/service/data-sync/draft";
 
 import { DataSyncSearchableSelect } from "../components/searchable-select";
@@ -20,8 +20,10 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const stored = useRef(readTaskDraft(key));
   const [sourceType, setSourceType] = useState(stored.current?.sourceType || "");
   const [targetType, setTargetType] = useState(stored.current?.targetType || "");
-  const [solutionType, setSolutionType] = useState<DataSyncSolutionType | undefined>(
-    stored.current?.solutionType,
+  const [connectorChoice, setConnectorChoice] = useState<string | undefined>(
+    stored.current
+      ? `${stored.current.sourceConnector}:${stored.current.sinkConnector}:${stored.current.solutionType}`
+      : undefined,
   );
   const [steps, setSteps] = useState<DataSyncStep[]>(stored.current?.steps || []);
   const [name, setName] = useState(stored.current?.name || "");
@@ -35,7 +37,7 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const [pending, setPending] = useState<DataSyncDraft>();
   const navigate = useNavigate();
   const { choices, loading, error, refresh } = useSolutions(sourceType, targetType);
-  const selected = choices.find((choice) => choice.solutionType === solutionType);
+  const selected = choices.find((choice) => choice.id === connectorChoice);
   const combination = findStepCombination(selected, steps);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
   const changeType = (side: "source" | "target", value: string) => {
     if (side === "source") setSourceType(value);
     else setTargetType(value);
-    setSolutionType(undefined);
+    setConnectorChoice(undefined);
     setSteps([]);
   };
   const openEditor = (draft: DataSyncDraft) => {
@@ -62,6 +64,9 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
     const draft: DataSyncDraft = {
       sourceType,
       targetType,
+      sourceConnector: selected.sourceConnector,
+      sinkConnector: selected.sinkConnector,
+      sourceProducesChangelog: selected.producesChangelog,
       solutionType: selected.solutionType,
       steps: [...combination.steps],
       name: name.trim(),
@@ -72,6 +77,8 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
         previous.sourceType !== sourceType ||
         previous.targetType !== targetType ||
         previous.solutionType !== selected.solutionType ||
+        previous.sourceConnector !== selected.sourceConnector ||
+        previous.sinkConnector !== selected.sinkConnector ||
         !findStepCombination(selected, previous.steps)
       ) {
         setPending(draft);
@@ -128,17 +135,17 @@ export function CreateSyncTaskDialog({ onClose }: { onClose: () => void }) {
           <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
             <FieldLabel required>具体类型</FieldLabel>
             <DataSyncSearchableSelect
-              value={selected?.solutionType || null}
+              value={selected?.id || null}
               options={choices.map((choice) => ({
-                value: choice.solutionType,
+                value: choice.id,
                 label: choice.displayName,
               }))}
               disabled={!sourceType || !targetType || loading || Boolean(error)}
               placeholder={loading ? "加载同步方案…" : "请选择具体类型"}
               onValueChange={(value) => {
-                const choice = choices.find((item) => item.solutionType === value);
+                const choice = choices.find((item) => item.id === value);
                 if (choice) {
-                  setSolutionType(choice.solutionType);
+                  setConnectorChoice(choice.id);
                   setSteps([...choice.defaultSteps]);
                 }
               }}

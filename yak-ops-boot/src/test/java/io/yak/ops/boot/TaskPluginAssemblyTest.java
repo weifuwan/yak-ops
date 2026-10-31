@@ -10,7 +10,9 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
 import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
+import io.yak.ops.plugin.task.datasync.PipelineConnectorCatalog;
 import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -25,7 +27,14 @@ class TaskPluginAssemblyTest {
                 TaskPluginConfiguration.class, TestDatasourceLookup.class)) {
             TaskPluginManager registry = context.getBean(TaskPluginManager.class);
             assertEquals(1, registry.types().size());
-            assertInstanceOf(TaskChannel.class, registry.get(PipelineTaskChannel.TYPE));
+            TaskChannel channel = assertInstanceOf(TaskChannel.class, registry.get(PipelineTaskChannel.TYPE));
+            assertEquals(7, channel.parameterSchemaVersion());
+            PipelineConnectorCatalog catalog = context.getBean(PipelineConnectorCatalog.class);
+            List<PipelineConnectorCatalog.ConnectorPair> pairs = catalog.list("MYSQL", "POSTGRE_SQL");
+            assertEquals(List.of("jdbc-mysql", "mysql"),
+                    pairs.stream().map(PipelineConnectorCatalog.ConnectorPair::sourceConnector).sorted().toList());
+            assertEquals(List.of("jdbc-postgres"),
+                    pairs.stream().map(PipelineConnectorCatalog.ConnectorPair::sinkConnector).distinct().toList());
         }
     }
 

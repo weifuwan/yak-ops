@@ -65,4 +65,9 @@ public interface SourceReaderContext {
     default Optional<Schema> restoredSourceSchema(TableId sourceTable) {
         return Optional.empty();
     }
+
+    /** Returns the committed schema version used to identify native Event schema transitions. */
+    default long sourceSchemaVersion(TableId sourceTable) {
+        return 0;
+    }
 }

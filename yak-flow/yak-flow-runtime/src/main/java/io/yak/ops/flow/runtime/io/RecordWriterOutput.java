@@ -4,6 +4,7 @@ import io.yak.ops.core.api.connector.source.ReaderOutput;
 import io.yak.ops.core.api.operators.KeySelector;
 import io.yak.ops.flow.runtime.graph.StreamEdge;
 import io.yak.ops.flow.runtime.io.partition.ResultPartition;
+import io.yak.ops.flow.runtime.io.partitioner.EventPartitioner;
 import io.yak.ops.flow.runtime.io.partitioner.ForwardPartitioner;
 import io.yak.ops.flow.runtime.io.partitioner.KeyedPartitioner;
 import io.yak.ops.flow.runtime.io.partitioner.RebalancePartitioner;
@@ -46,6 +47,7 @@ public final class RecordWriterOutput<T> implements ReaderOutput<T> {
             case FORWARD -> new ForwardPartitioner<>(upstreamSubtask, upstreamParallelism, channels);
             case REBALANCE -> new RebalancePartitioner<>(upstreamSubtask, channels);
             case KEYED -> new KeyedPartitioner<>(keySelector(edge), maxParallelism);
+            case EVENT -> new EventPartitioner<>();
         };
     }
 

@@ -58,6 +58,9 @@ def verify_source(path: str, source: str) -> list[tuple[int, str]]:
         return []
 
     violations = []
+    if package.group(1) == "io.yak.ops.sync.runtime" or package.group(1).startswith("io.yak.ops.sync.runtime."):
+        violations.append((line_number(code, package.start()), "The retired Data Sync runtime package must not return"))
+
     for segment in package.group(1).split("."):
         if CODEC.search(segment):
             violations.append((

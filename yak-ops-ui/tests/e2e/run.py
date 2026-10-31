@@ -11,7 +11,7 @@ import sys
 import time
 import traceback
 
-SCENARIOS = ("table-layout", "solution-selection", "schedule-save-recovery", "multitable-mapping", "multitable-selection", "schema-configuration", "realtime-stages", "schedule-history", "schedule-errors")
+SCENARIOS = ("table-layout", "solution-selection", "schedule-save-recovery", "multitable-mapping", "multitable-selection", "schema-configuration", "editor-round-trip", "realtime-stages", "schedule-history", "schedule-errors")
 LOGIN = "login-smoke"
 ALL = (*SCENARIOS, LOGIN)
 
@@ -19,7 +19,8 @@ async def check(name, directory):
     from playwright.async_api import async_playwright
     from mock_api import mock, state
     from data_sync import (verify_solution_creation, verify_partial_task_save,
-                           verify_multitable_mapping, verify_multitable_selection, verify_schema_configuration, verify_realtime_stages)
+                           verify_multitable_mapping, verify_multitable_selection, verify_schema_configuration,
+                           verify_editor_round_trip, verify_realtime_stages)
     from table_layout import verify_table_layout
     from scheduling import verify_schedule_history, verify_schedule_errors
     from login import verify_login
@@ -31,6 +32,7 @@ async def check(name, directory):
         "multitable-mapping": verify_multitable_mapping,
         "multitable-selection": verify_multitable_selection,
         "schema-configuration": verify_schema_configuration,
+        "editor-round-trip": verify_editor_round_trip,
         "realtime-stages": verify_realtime_stages,
         "schedule-history": verify_schedule_history,
         "schedule-errors": verify_schedule_errors,

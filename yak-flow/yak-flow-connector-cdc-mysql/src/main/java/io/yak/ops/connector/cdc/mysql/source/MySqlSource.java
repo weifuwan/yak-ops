@@ -104,6 +104,17 @@ public final class MySqlSource implements Source<TableRecord, MySqlSplit, Pendin
     }
 
     @Override
+    public void validateParallelism(int parallelism) {
+        Source.super.validateParallelism(parallelism);
+        if (startupOptions.isStreamOnly() && parallelism != 1) {
+            throw new UnsupportedOperationException("Stream-only MySQL CDC requires Source parallelism 1");
+        }
+        if (!startupOptions.isStreamOnly()) {
+            config.snapshotServerId(parallelism - 1);
+        }
+    }
+
+    @Override
     public Boundedness getBoundedness() {
         return startupOptions.isSnapshotOnly() ? Boundedness.BOUNDED : Boundedness.CONTINUOUS_UNBOUNDED;
     }

@@ -155,7 +155,7 @@
                 <version>${maven-checkstyle-plugin.version}</version>
                 <configuration>
                     <configLocation>${maven.multiModuleProjectDirectory}/tools/maven/checkstyle.xml</configLocation>
-                    <includes>**/io/yak/ops/core/**/*.java,**/io/yak/ops/flow/runtime/**/*.java,**/io/yak/ops/connector/**/*.java,**/io/yak/ops/business/datasource/**/*.java,**/io/yak/ops/business/task/**/*.java,**/io/yak/ops/business/schedule/**/*.java,**/io/yak/ops/task/execution/**/*.java,**/io/yak/ops/plugin/**/*.java,**/io/yak/ops/common/bean/dto/**/*.java,**/io/yak/ops/common/bean/vo/**/*.java,**/io/yak/ops/common/enums/**/*.java,**/io/yak/ops/dao/entity/**/*.java,**/io/yak/ops/dao/mapper/**/*.java,**/io/yak/ops/dao/repository/**/*.java,**/io/yak/ops/boot/controller/**/*.java</includes>
+                    <includes>**/io/yak/ops/core/**/*.java,**/io/yak/ops/composer/**/*.java,**/io/yak/ops/cli/**/*.java,**/io/yak/ops/flow/runtime/**/*.java,**/io/yak/ops/connector/**/*.java,**/io/yak/ops/business/datasource/**/*.java,**/io/yak/ops/business/task/**/*.java,**/io/yak/ops/business/schedule/**/*.java,**/io/yak/ops/task/execution/**/*.java,**/io/yak/ops/plugin/**/*.java,**/io/yak/ops/common/bean/dto/**/*.java,**/io/yak/ops/common/bean/vo/**/*.java,**/io/yak/ops/common/enums/**/*.java,**/io/yak/ops/dao/entity/**/*.java,**/io/yak/ops/dao/mapper/**/*.java,**/io/yak/ops/dao/repository/**/*.java,**/io/yak/ops/boot/controller/**/*.java</includes>
                     <includeTestSourceDirectory>false</includeTestSourceDirectory>
                     <includeResources>false</includeResources>
                     <includeTestResources>false</includeTestResources>

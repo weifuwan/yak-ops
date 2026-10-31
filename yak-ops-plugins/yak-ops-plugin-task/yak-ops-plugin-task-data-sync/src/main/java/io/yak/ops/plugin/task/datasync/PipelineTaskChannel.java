@@ -1,16 +1,27 @@
 package io.yak.ops.plugin.task.datasync;
 
+import io.yak.ops.cli.parser.YamlPipelineDefinitionParser;
+import io.yak.ops.composer.PipelineComposer;
+import io.yak.ops.composer.PipelineContext;
+import io.yak.ops.composer.PipelinePlan;
+import io.yak.ops.composer.definition.PipelineDef;
+import io.yak.ops.composer.definition.PipelineOptions;
+import io.yak.ops.composer.validation.PipelineDefinitionValidator;
 import io.yak.ops.configuration.ConfigParser;
 import io.yak.ops.configuration.Option;
 import io.yak.ops.configuration.Options;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.configuration.rule.OptionRule;
+import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPluginException;
+import io.yak.ops.plugin.task.api.execution.ExecutionResource;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
+import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
-import io.yak.ops.sync.runtime.PipelineService;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +30,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Thin DATA_SYNC Task adapter: API JSON -> V6 YAML -> engine.
+ * DATA_SYNC Task boundary for JSON conversion, authorization, and deferred Pipeline execution.
  *
  * <p>Only JSON and a server-generated search index are persisted. The YAML representation is
  * produced at the Task boundary for each validation, plan, and execution invocation.
@@ -43,10 +54,13 @@ public final class PipelineTaskChannel implements TaskChannel {
             .optional(TRANSFORM, INDEX)
             .build();
 
-    private final PipelineService service;
+    private final FactoryUtil factories;
+    private final PipelineComposer composer;
+    private final YamlPipelineDefinitionParser parser = new YamlPipelineDefinitionParser();
 
-    public PipelineTaskChannel(PipelineService service) {
-        this.service = Objects.requireNonNull(service, "service");
+    public PipelineTaskChannel(FactoryUtil factories, PipelineComposer composer) {
+        this.factories = Objects.requireNonNull(factories, "factories");
+        this.composer = Objects.requireNonNull(composer, "composer");
     }
 
     @Override
@@ -56,7 +70,7 @@ public final class PipelineTaskChannel implements TaskChannel {
 
     @Override
     public int parameterSchemaVersion() {
-        return 6;
+        return 7;
     }
 
     @Override
@@ -72,51 +86,98 @@ public final class PipelineTaskChannel implements TaskChannel {
     public ReadonlyConfig parse(String content) {
         ReadonlyConfig request = parseParameters(content).getJson();
         String yaml = PipelineYamlConverter.convert(request);
-        ReadonlyConfig derived = service.parse(yaml);
-        Map<String, Object> stored = new LinkedHashMap<>(request.getSourceMap());
-        // Never trust client-provided index values; derive from the validated YAML.
-        stored.remove("index");
-        stored.putAll(derived.getSourceMap());
-        return ReadonlyConfig.fromMap(stored);
+        try {
+            PipelineOptions options = PipelineDefinitionValidator.validateConfig(parser.parse(yaml), factories);
+            Map<String, Object> stored = new LinkedHashMap<>(request.getSourceMap());
+            // Never trust client-provided index values; derive from the validated Pipeline.
+            stored.put(
+                    "index",
+                    Map.of(
+                            "sourceType", options.sourceIdentifier(),
+                            "sinkType", options.sinkIdentifier(),
+                            "runtimeMode", options.runtimeMode(),
+                            "tableScope", options.tableScope(),
+                            "sourceDataSourceId", options.sourceDataSourceId(),
+                            "targetDataSourceId", options.targetDataSourceId()));
+            return ReadonlyConfig.fromMap(stored);
+        } catch (RuntimeException failure) {
+            throw new TaskPluginException("Invalid DATA_SYNC Pipeline definition", failure);
+        }
     }
 
     @Override
     public void validateUpdate(ReadonlyConfig previous, ReadonlyConfig updated, TaskValidationContext context) {
-        service.validateUpdate(yaml(previous), yaml(updated), context);
+        PipelineOptions before = PipelineDefinitionValidator.validateConfig(definition(previous), factories);
+        PipelineOptions after = PipelineDefinitionValidator.validateConfig(definition(updated), factories);
+        if (!before.sourceIdentifier().equals(after.sourceIdentifier())
+                || !before.sinkIdentifier().equals(after.sinkIdentifier())
+                || !context.dataSource(before.sourceDataSourceId())
+                        .type()
+                        .equals(context.dataSource(after.sourceDataSourceId()).type())
+                || !context.dataSource(before.targetDataSourceId())
+                        .type()
+                        .equals(context.dataSource(after.targetDataSourceId()).type())) {
+            throw new TaskPluginException("Changing connectors or datasource types requires a new task");
+        }
     }
 
     @Override
     public void validateReferences(ReadonlyConfig parameters, TaskValidationContext context) {
-        service.validateReferences(yaml(parameters), context);
+        PipelineDefinitionValidator.validateReferences(definition(parameters), context, factories);
     }
 
     @Override
     public void validate(ReadonlyConfig parameters, TaskValidationContext context) {
-        service.validate(yaml(parameters), context);
+        PipelineDefinitionValidator.validateResources(definition(parameters), context, factories);
     }
 
     @Override
     public boolean supportsScheduling(ReadonlyConfig parameters) {
-        return service.supportsScheduling(yaml(parameters));
+        return "BATCH"
+                .equals(PipelineDefinitionValidator.validateConfig(definition(parameters), factories)
+                        .runtimeMode());
     }
 
     @Override
     public TaskExecutionResources plan(ReadonlyConfig parameters, TaskExecutionIdentity identity) {
-        return service.plan(yaml(parameters), identity);
+        return admission(composer.plan(definition(parameters), context(identity, false)));
     }
 
     @Override
     public CompletionStage<TaskHandle> createTask(
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity identity, boolean debug) {
         try {
-            return CompletableFuture.completedFuture(
-                    new PipelineTask(service.submit(yaml(parameters), plan, identity, debug)));
+            PipelineContext trusted = context(identity, debug);
+            PipelineDef definition = definition(parameters);
+            PipelinePlan admitted = composer.plan(definition, trusted);
+            if (!plan.equals(admission(admitted))) {
+                throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
+            }
+            return CompletableFuture.completedFuture(new PipelineTask(composer.compose(definition, admitted, trusted)));
         } catch (RuntimeException failure) {
-            return CompletableFuture.failedFuture(failure);
+            return CompletableFuture.failedFuture(
+                    new TaskStartRejectedException("DATA_SYNC rejected before engine submission", failure));
         }
     }
 
-    private static String yaml(ReadonlyConfig json) {
-        return PipelineYamlConverter.convert(json);
+    private PipelineDef definition(ReadonlyConfig json) {
+        return parser.parse(PipelineYamlConverter.convert(json));
+    }
+
+    private static PipelineContext context(TaskExecutionIdentity identity, boolean debug) {
+        return new PipelineContext(
+                identity.workspaceId(),
+                identity.definitionId(),
+                identity.definitionVersion(),
+                identity.instanceId(),
+                debug);
+    }
+
+    private static TaskExecutionResources admission(PipelinePlan plan) {
+        List<ExecutionResource> claims = new ArrayList<>();
+        for (PipelinePlan.ResourceClaim claim : plan.resources()) {
+            claims.add(new ExecutionResource(claim.type(), claim.key()));
+        }
+        return new TaskExecutionResources(claims, plan.resourceRevision());
     }
 }

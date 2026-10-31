@@ -1,16 +1,19 @@
 package io.yak.ops.plugin.task.datasync;
 
+import io.yak.ops.composer.PipelineComposer;
+import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.TaskChannelFactory;
-import io.yak.ops.sync.runtime.PipelineService;
 import java.util.Objects;
 
-/** Factory registers the DATA_SYNC TaskChannel; engine details remain behind PipelineService. */
+/** Registers the DATA_SYNC Task boundary with the shared Connector factories and Pipeline composer. */
 public final class PipelineTaskChannelFactory implements TaskChannelFactory {
-    private final PipelineService service;
+    private final FactoryUtil factories;
+    private final PipelineComposer composer;
 
-    public PipelineTaskChannelFactory(PipelineService service) {
-        this.service = Objects.requireNonNull(service, "service");
+    public PipelineTaskChannelFactory(FactoryUtil factories, PipelineComposer composer) {
+        this.factories = Objects.requireNonNull(factories, "factories");
+        this.composer = Objects.requireNonNull(composer, "composer");
     }
 
     @Override
@@ -20,6 +23,6 @@ public final class PipelineTaskChannelFactory implements TaskChannelFactory {
 
     @Override
     public TaskChannel create() {
-        return new PipelineTaskChannel(service);
+        return new PipelineTaskChannel(factories, composer);
     }
 }

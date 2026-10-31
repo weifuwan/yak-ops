@@ -9,12 +9,14 @@ import io.yak.ops.core.event.SchemaChangeEvent;
 import io.yak.ops.core.event.SchemaChangeRequest;
 import io.yak.ops.core.schema.PhysicalColumn;
 import io.yak.ops.core.schema.Schema;
+import io.yak.ops.core.schema.SchemaVersionedTableState;
 import io.yak.ops.core.types.LogicalType;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,6 +34,49 @@ public final class SchemaManager {
     private final Map<TableId, SchemaManagerSnapshot.TableState> tables = new LinkedHashMap<>();
     private final Map<TableId, SchemaChangeRequest> pending = new LinkedHashMap<>();
     private final Map<TableId, Long> pendingVersions = new LinkedHashMap<>();
+
+    /** Freezes the initial raw source/target shapes before any checkpoint can capture offsets. */
+    public synchronized void initialize(List<SchemaVersionedTableState> initialStates) {
+        if (!tables.isEmpty() || !pending.isEmpty()) {
+            throw new IllegalStateException("Schema manager is already initialized");
+        }
+        Map<TableId, SchemaManagerSnapshot.TableState> initial = new LinkedHashMap<>();
+        java.util.Set<TableId> sources = new java.util.HashSet<>();
+        for (SchemaVersionedTableState state : List.copyOf(initialStates)) {
+            if (state.version() != 0
+                    || !sources.add(state.sourceTable())
+                    || initial.putIfAbsent(
+                                    state.targetTable(),
+                                    new SchemaManagerSnapshot.TableState(
+                                            state.sourceTable(),
+                                            state.targetTable(),
+                                            state.sourceSchema(),
+                                            state.targetSchema(),
+                                            0,
+                                            Map.of()))
+                            != null) {
+                throw new IllegalArgumentException("Initial schema routes must be unique and have version zero");
+            }
+        }
+        tables.putAll(initial);
+    }
+
+    /** Checks restored route coverage without replacing old checkpoint schemas with live metadata. */
+    public synchronized void validateRestoredRoutes(List<SchemaVersionedTableState> admitted) {
+        if (admitted.isEmpty()) return;
+        java.util.Set<TableId> expected = new java.util.HashSet<>();
+        for (SchemaVersionedTableState route : List.copyOf(admitted)) {
+            SchemaManagerSnapshot.TableState restored = tables.get(route.targetTable());
+            if (!expected.add(route.targetTable())
+                    || restored == null
+                    || !restored.sourceTable().equals(route.sourceTable())) {
+                throw new IllegalStateException("Checkpoint lacks the admitted initial source/target schema route");
+            }
+        }
+        if (!tables.keySet().equals(expected)) {
+            throw new IllegalStateException("Checkpoint schema routes differ from the admitted table collection");
+        }
+    }
 
     /** Begins a target transition or reports an already committed, identical replay. */
     public synchronized Change begin(SchemaChangeRequest request) {
@@ -123,6 +168,14 @@ public final class SchemaManager {
 
     public synchronized Optional<SchemaManagerSnapshot.TableState> state(TableId target) {
         return Optional.ofNullable(tables.get(Objects.requireNonNull(target, "target")));
+    }
+
+    /** Reads committed source state without exposing a pending target transition. */
+    public synchronized Optional<SchemaManagerSnapshot.TableState> sourceState(TableId source) {
+        Objects.requireNonNull(source, "source");
+        return tables.values().stream()
+                .filter(state -> state.sourceTable().equals(source))
+                .findFirst();
     }
 
     /** A checkpoint may only include a committed version, never a partially applied DDL. */

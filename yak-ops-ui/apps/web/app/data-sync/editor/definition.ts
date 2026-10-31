@@ -19,6 +19,8 @@ export function buildEditorPayload(
   mappings: DataSyncTableMapping[],
   usesChangelog: boolean,
   startup?: DataSyncTaskSavePayload["startup"],
+  transforms?: DataSyncTaskSavePayload["transforms"],
+  pipelineOptions?: DataSyncTaskSavePayload["pipelineOptions"],
 ): DataSyncTaskSavePayload {
   const common = {
     name: form.name.trim(),
@@ -36,6 +38,11 @@ export function buildEditorPayload(
   return {
     ...common,
     solutionType: draft.solutionType,
+    sourceConnector: draft.sourceConnector,
+    sinkConnector: draft.sinkConnector,
+    sourceProducesChangelog: draft.sourceProducesChangelog,
+    transforms: transforms ?? draft.form?.transforms,
+    pipelineOptions: pipelineOptions ?? draft.form?.pipelineOptions,
     steps: draft.steps,
     ...(usesChangelog && startup ? { startup: { ...startup } } : {}),
     writeMode: form.sink.writeMode,
@@ -68,6 +75,7 @@ interface ValidationInput {
   selectedSourceDataSource?: DataSourceRecord;
   selectedTargetDataSource?: DataSourceRecord;
   draft: DataSyncDraft;
+  hasTransforms?: boolean;
   supportsScheduling: boolean;
   scheduleLoading: boolean;
   scheduleNeedsReload: boolean;
@@ -91,6 +99,7 @@ export function canSaveEditor({
   selectedSourceDataSource,
   selectedTargetDataSource,
   draft,
+  hasTransforms = false,
   supportsScheduling,
   scheduleLoading,
   scheduleNeedsReload,
@@ -101,23 +110,30 @@ export function canSaveEditor({
   targetCatalog,
   sourceCatalog,
 }: ValidationInput): boolean {
+  const continuous = draft.sourceProducesChangelog && draft.steps.includes("INCREMENTAL");
+  const projectedRetract =
+    hasTransforms &&
+    continuous &&
+    draft.targetType === "MYSQL" &&
+    !form.sink.targetPrimaryKeys.length &&
+    !form.sink.schemaChangesEnabled;
   return Boolean(
     !published &&
     Boolean(combination) &&
     !solutionsLoading &&
     !solutionsError &&
     combination!.writeModes.includes(form.sink.writeMode) &&
-    (!(!batch && draft.solutionType === "SINGLE_TABLE_REALTIME") ||
+    (!(!batch && draft.sourceProducesChangelog) ||
       (form.source.sourceHasPrimaryKey !== undefined &&
         (form.source.sourceHasPrimaryKey
-          ? form.sink.writeMode !== "RETRACT"
+          ? form.sink.writeMode !== "RETRACT" || projectedRetract
           : initialLoad &&
-            draft.targetType === "MYSQL" &&
+            (!continuous || draft.targetType === "MYSQL") &&
             !form.sink.schemaChangesEnabled &&
             Boolean(form.source.chunkKeyColumn.trim()) &&
             (form.sink.targetPrimaryKeys.length
               ? form.sink.writeMode === "UPSERT" && form.sink.targetPrimaryKeys.every(Boolean)
-              : form.sink.writeMode === "RETRACT")))) &&
+              : form.sink.writeMode === (continuous ? "RETRACT" : "APPEND"))))) &&
     (!useIncremental ||
       (batch
         ? mappings.every((mapping) => validIncrementalConfig(mapping.incremental, !initialLoad))

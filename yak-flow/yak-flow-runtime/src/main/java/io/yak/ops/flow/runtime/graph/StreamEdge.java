@@ -8,7 +8,8 @@ import java.util.Objects;
  *
  * <p>FORWARD requires matching upstream and downstream parallelism. REBALANCE distributes
  * records in round-robin order, and KEYED routes the same stable business key to the
- * same destination subtask. StreamGraph validates edge endpoints and owns their uniqueness.
+ * same destination subtask. EVENT uses the destination selected by a CDC pre-partition operator.
+ * StreamGraph validates edge endpoints and owns their uniqueness.
  */
 public final class StreamEdge {
 

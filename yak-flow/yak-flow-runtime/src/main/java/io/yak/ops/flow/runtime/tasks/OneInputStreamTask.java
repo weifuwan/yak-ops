@@ -216,6 +216,7 @@ public final class OneInputStreamTask extends StreamTask implements SchemaChange
                     node.getOperatorFactory().orElseThrow().createOperator(), "Operator factory returned null");
             activeOperator = operator;
         }
+        activeOperator.setup(taskInfo());
         if (activeOperator instanceof CheckpointedStreamOperator checkpointed) {
             checkpointed.initializeState(stateBackend);
         } else if (!restoredState.isEmpty()) {

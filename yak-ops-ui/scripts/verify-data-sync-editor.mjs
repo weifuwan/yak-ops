@@ -22,12 +22,9 @@ function compile(file, mocks) {
   return exports;
 }
 
+const parameterContract = compile("../apps/web/service/data-sync/parameters.ts", {});
 const params = compile("../apps/web/app/data-sync/editor/definition.ts", {
-  "@/service/data-sync/parameters": {
-    validIncrementalConfig: (x) => Boolean(x?.column),
-    offlineIncremental: (solution, steps) =>
-      solution.endsWith("_OFFLINE") && steps.includes("INCREMENTAL"),
-  },
+  "@/service/data-sync/parameters": parameterContract,
   "./table-mapping-editor": { validTableMappings: (rows) => rows.length > 0 },
   "@/app/schedule/schedule-presentation": {
     sameScheduleRule: (a, b) => a.cronExpression === b.cronExpression,
@@ -41,6 +38,9 @@ const draft = {
   name: "orders",
   sourceType: "MYSQL",
   targetType: "POSTGRE_SQL",
+  sourceConnector: "mysql",
+  sinkConnector: "jdbc-postgres",
+  sourceProducesChangelog: true,
   solutionType: "SINGLE_TABLE_REALTIME",
   steps: ["SCHEMA", "FULL", "INCREMENTAL"],
 };
@@ -97,16 +97,23 @@ assert.equal(selectedTable.source.sourceHasPrimaryKey, undefined);
 assert.equal(selectedTable.sink.writeMode, "UPSERT");
 assert.equal(selectedTable.sink.table, "ods_orders");
 
-const selectedKeyless = selection.setSourcePrimaryKeys(form, false);
+const selectedKeyless = selection.setSourcePrimaryKeys(form, false, true);
 assert.equal(selectedKeyless.source.sourceHasPrimaryKey, false);
 assert.equal(selectedKeyless.sink.writeMode, "RETRACT");
 assert.equal(selectedKeyless.sink.schemaChangesEnabled, false);
 assert.equal(selectedKeyless.sink.allowDropColumns, false);
 assert.equal(selectedKeyless.sink.targetPrimaryKeys.length, 0);
 assert.equal(
-  selection.setSourcePrimaryKeys(selectedKeyless, true).source.sourceHasPrimaryKey,
+  selection.setSourcePrimaryKeys(selectedKeyless, true, true).source.sourceHasPrimaryKey,
   true,
 );
+const selectedSnapshotKeyless = selection.setSourcePrimaryKeys(
+  { ...form, sink: { ...form.sink, writeMode: "APPEND" } },
+  false,
+  false,
+);
+assert.equal(selectedSnapshotKeyless.source.sourceHasPrimaryKey, false);
+assert.equal(selectedSnapshotKeyless.sink.writeMode, "APPEND");
 
 const request = params.buildEditorPayload(form, draft, false, [], true);
 assert.equal(request.name, "orders");
@@ -126,10 +133,7 @@ assert.equal("sink" in request, false);
 assert.equal("env" in request, false);
 
 const transport = compile("../apps/web/service/data-sync/definition.ts", {
-  "./parameters.ts": {
-    solutionSyncType: (solution) => (solution.endsWith("_REALTIME") ? "REALTIME" : "OFFLINE"),
-    supportsMultipleTables: (solution) => solution.startsWith("DATABASE_"),
-  },
+  "./parameters.ts": parameterContract,
 });
 const realtimeOnly = {
   ...draft,
@@ -152,6 +156,29 @@ const persistedStartup = {
 const offsetEdit = params.buildEditorPayload(form, realtimeOnly, false, [], true, persistedStartup);
 const savedStartup = transport.createDefinitionRequest(offsetEdit).parameters.source.startup;
 assert.deepEqual(JSON.parse(JSON.stringify(savedStartup)), persistedStartup);
+const persistedPipelineOptions = {
+  name: "orders-pipeline",
+  parallelism: 3,
+  "local-time-zone": "Asia/Shanghai",
+};
+const optionsEdit = params.buildEditorPayload(
+  form,
+  realtimeOnly,
+  false,
+  [],
+  true,
+  persistedStartup,
+  [],
+  persistedPipelineOptions,
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(transport.createDefinitionRequest(optionsEdit).parameters.pipeline)),
+  {
+    ...persistedPipelineOptions,
+    "execution.runtime-mode": "STREAMING",
+    "pipeline.table-scope": "SINGLE",
+  },
+);
 const offlineStartupPayload = params.buildEditorPayload(
   form,
   { ...draft, solutionType: "SINGLE_TABLE_OFFLINE" },
@@ -179,6 +206,8 @@ const incremental = {
 const offlineDraft = {
   ...draft,
   solutionType: "SINGLE_TABLE_OFFLINE",
+  sourceConnector: "jdbc-mysql",
+  sourceProducesChangelog: false,
   steps: ["FULL", "INCREMENTAL"],
 };
 const offlineForm = {
@@ -190,7 +219,7 @@ const offlinePayload = params.buildEditorPayload(offlineForm, offlineDraft, fals
 assert.equal(offlinePayload.incremental.column, "updated_at");
 assert.equal(offlinePayload.incremental.lookbackSeconds, 5);
 const offlineParameters = transport.createDefinitionRequest(offlinePayload).parameters;
-assert.equal(offlineParameters.source.type, "JDBC");
+assert.equal(offlineParameters.source.type, "jdbc-mysql");
 assert.equal(offlineParameters.source.syncMode, "FULL_AND_INCREMENTAL");
 assert.equal(offlineParameters.source.tables.length, 1);
 assert.deepEqual(
@@ -304,6 +333,26 @@ const options = {
   sourceCatalog: { schemas: [], tables: [], loading: false, error: "" },
 };
 assert.equal(params.canSaveEditor(options), true);
+const snapshotOptions = {
+  ...options,
+  draft: { ...draft, solutionType: "SINGLE_TABLE_OFFLINE", steps: ["FULL"] },
+  combination: { writeModes: ["APPEND", "UPSERT"] },
+  form: {
+    ...selectedSnapshotKeyless,
+    source: { ...selectedSnapshotKeyless.source, chunkKeyColumn: "bucket" },
+  },
+};
+assert.equal(params.canSaveEditor(snapshotOptions), true);
+assert.equal(
+  params.canSaveEditor({
+    ...snapshotOptions,
+    form: {
+      ...snapshotOptions.form,
+      source: { ...snapshotOptions.form.source, chunkKeyColumn: "" },
+    },
+  }),
+  false,
+);
 assert.equal(
   params.canSaveEditor({
     ...options,
@@ -376,6 +425,156 @@ assert.equal(
   }),
   false,
 );
+
+// The editor loads a valid projected writer before the raw catalog callback arrives.
+const projectedParameters = transport.buildSyncParameters({
+  ...request,
+  sinkConnector: "jdbc-mysql",
+  targetSchema: undefined,
+  steps: ["FULL", "INCREMENTAL"],
+  writeMode: "RETRACT",
+  schemaChangesEnabled: false,
+  transforms: [{ "source-table": "test.orders", projection: "bucket" }],
+});
+const storedDefinition = {
+  id: "projected-task",
+  name: "Projected orders",
+  taskType: "DATA_SYNC",
+  status: "UNPUBLISHED",
+  debug: false,
+  definitionVersion: 1,
+  parameterSchemaVersion: 7,
+  parameters: projectedParameters,
+};
+const projectedTask = transport.toSyncTaskRecord(storedDefinition);
+const projectedDraft = {
+  ...draft,
+  targetType: "MYSQL",
+  sinkConnector: projectedTask.sinkConnector,
+  steps: projectedTask.steps,
+};
+const loadedProjectedForm = {
+  ...form,
+  source: { ...form.source, sourceHasPrimaryKey: undefined },
+  sink: {
+    ...form.sink,
+    schema: "",
+    writeMode: projectedTask.writeMode,
+    schemaChangesEnabled: projectedTask.schemaChangesEnabled,
+  },
+};
+const projectedForm = selection.setSourcePrimaryKeys(loadedProjectedForm, true, true, true);
+const projectedOptions = {
+  ...options,
+  draft: projectedDraft,
+  hasTransforms: true,
+  selectedTargetDataSource: { dbType: "MYSQL" },
+  combination: { writeModes: ["UPSERT", "RETRACT"] },
+  prepareSchema: false,
+  form: projectedForm,
+  targetCatalog: { ...options.targetCatalog, tables: [{ name: "ods_orders" }] },
+};
+assert.equal(projectedForm.source.sourceHasPrimaryKey, true);
+assert.equal(projectedForm.sink.writeMode, "RETRACT");
+assert.equal(params.canSaveEditor(projectedOptions), true);
+const projectedEdit = params.buildEditorPayload(
+  projectedForm,
+  projectedDraft,
+  false,
+  [],
+  true,
+  projectedTask.startup,
+  projectedTask.transforms,
+  projectedTask.pipelineOptions,
+);
+const savedProjected = transport.updateDefinitionRequest(projectedEdit).parameters;
+parameterContract.validateSyncParameters(savedProjected);
+assert.equal(savedProjected.sink.tables[0].write.mode, "RETRACT");
+assert.equal(savedProjected.sink.tables[0].write.transaction.mode, "CHECKPOINT_XA");
+assert.equal(savedProjected.transform[0].projection, "bucket");
+assert.equal(params.canSaveEditor({ ...projectedOptions, hasTransforms: false }), false);
+for (const sink of [
+  { ...projectedForm.sink, schemaChangesEnabled: true },
+  { ...projectedForm.sink, targetPrimaryKeys: ["bucket"] },
+]) {
+  assert.equal(
+    params.canSaveEditor({
+      ...projectedOptions,
+      form: { ...projectedForm, sink },
+    }),
+    false,
+  );
+}
+assert.equal(
+  params.canSaveEditor({
+    ...projectedOptions,
+    draft: { ...projectedDraft, targetType: "POSTGRE_SQL" },
+    selectedTargetDataSource: { dbType: "POSTGRE_SQL" },
+  }),
+  false,
+);
+const keylessProjected = selection.setSourcePrimaryKeys(loadedProjectedForm, false, true, true);
+assert.equal(params.canSaveEditor({ ...projectedOptions, form: keylessProjected }), false);
+assert.equal(
+  params.canSaveEditor({
+    ...projectedOptions,
+    form: { ...keylessProjected, source: { ...keylessProjected.source, chunkKeyColumn: "bucket" } },
+  }),
+  true,
+);
+
+for (const enabled of [true, false]) {
+  const configured = transport.buildSyncParameters({
+    ...request,
+    schemaChangesEnabled: enabled,
+    allowDropColumns: enabled,
+    pipelineOptions: {
+      ...persistedPipelineOptions,
+      "schema.change.behavior": enabled ? "evolve" : "exception",
+    },
+  });
+  const loaded = transport.toSyncTaskRecord({ ...storedDefinition, parameters: configured });
+  const afterMetadata = selection.setSourcePrimaryKeys(
+    {
+      ...form,
+      source: { ...form.source, sourceHasPrimaryKey: undefined },
+      sink: {
+        ...form.sink,
+        schemaChangesEnabled: loaded.schemaChangesEnabled,
+        allowDropColumns: loaded.allowDropColumns,
+      },
+    },
+    true,
+    true,
+  );
+  const edited = {
+    ...afterMetadata,
+    sink: { ...afterMetadata.sink, schemaChangesEnabled: !enabled, allowDropColumns: false },
+  };
+  assert.equal(params.canSaveEditor({ ...options, form: edited }), true);
+  const payload = params.buildEditorPayload(
+    edited,
+    draft,
+    false,
+    [],
+    true,
+    loaded.startup,
+    loaded.transforms,
+    loaded.pipelineOptions,
+  );
+  const saved = transport.updateDefinitionRequest(payload).parameters;
+  parameterContract.validateSyncParameters(saved);
+  assert.equal(saved.sink.schemaPolicy.evolution.enabled, !enabled);
+  assert.equal(saved.sink.schemaPolicy.evolution.allowDropColumns, false);
+  assert.equal(saved.pipeline["schema.change.behavior"], enabled ? "exception" : "evolve");
+  for (const [key, value] of Object.entries(persistedPipelineOptions)) {
+    assert.equal(saved.pipeline[key], value);
+  }
+  assert.equal(
+    transport.toSyncTaskRecord({ ...storedDefinition, parameters: saved }).schemaChangesEnabled,
+    !enabled,
+  );
+}
 
 function createHarness({ failSchedule = false, failPublish = false } = {}) {
   const calls = [];

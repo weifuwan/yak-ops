@@ -16,10 +16,11 @@ import {
   solutionSyncType,
   syncTableMappings,
   supportsMultipleTables,
+  usesCdcStartup,
   validateSyncParameters,
 } from "./parameters.ts";
 
-/** Writes the single public product configuration; connector identifiers are resolved by the backend. */
+/** Writes the selected Connector identifiers into the single public Task configuration. */
 export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncParameters {
   const mappings: DataSyncTableMapping[] = supportsMultipleTables(task.solutionType)
     ? (task.tableMappings ?? [])
@@ -42,9 +43,15 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
         },
       ];
   if (!mappings.length) throw new Error("请选择同步表");
-  const realtime = solutionSyncType(task.solutionType) === "REALTIME";
+  const realtime = task.sourceProducesChangelog;
   const continuous = realtime && task.steps.includes("INCREMENTAL");
   const evolution = continuous && (task.schemaChangesEnabled ?? true);
+  const schemaBehavior = task.pipelineOptions?.["schema.change.behavior"];
+  if (
+    schemaBehavior !== undefined &&
+    !["evolve", "exception"].includes(schemaBehavior.toLowerCase())
+  )
+    throw new Error("不支持的 Schema 变更行为");
   const dataSteps = (["FULL", "INCREMENTAL"] as const).filter((step) => task.steps.includes(step));
   const physicalPath = (table: { database?: string; schema?: string; table: string }) =>
     [table.database, table.schema, table.table].filter(Boolean).join(".");
@@ -73,11 +80,11 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
   }));
   return {
     source: {
-      type: realtime ? ("MYSQL_CDC" as const) : ("JDBC" as const),
+      type: task.sourceConnector,
       datasourceId: task.sourceDataSourceId,
       ...(realtime
         ? {
-            // Retain the full V6 JSON offset when editing: steps alone cannot identify
+            // Retain the full JSON offset when editing: steps alone cannot identify
             // EARLIEST_OFFSET, SPECIFIC_OFFSETS or TIMESTAMP (or their parameters).
             startup: task.startup
               ? { ...task.startup }
@@ -100,7 +107,7 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
       tables: sourceTables,
     },
     sink: {
-      type: "JDBC" as const,
+      type: task.sinkConnector,
       datasourceId: task.targetDataSourceId,
       schemaPolicy: {
         initial: task.steps.includes("SCHEMA") ? ("CREATE_OR_ALTER" as const) : ("VERIFY" as const),
@@ -115,8 +122,12 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
       "source-table": physicalPath(mapping.source),
       "sink-table": physicalPath(mapping.target),
     })),
-    transform: [] as [],
+    transform: task.transforms?.map((transform) => ({ ...transform })) ?? [],
     pipeline: {
+      ...task.pipelineOptions,
+      ...(schemaBehavior !== undefined
+        ? { "schema.change.behavior": evolution ? "evolve" : "exception" }
+        : {}),
       "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
       "pipeline.table-scope": supportsMultipleTables(task.solutionType)
         ? ("DATABASE" as const)
@@ -153,9 +164,15 @@ export function updateDefinitionRequest(task: DataSyncTaskUpdatePayload) {
 
 export function definitionPageRequest(params: DataSyncTaskPageParams) {
   const parameterFilters: Record<string, string> = {};
-  if (params.solutionType) parameterFilters.solutionType = params.solutionType;
-  if (params.syncType === "OFFLINE") parameterFilters.sourceType = "JDBC";
-  if (params.syncType === "REALTIME") parameterFilters.sourceType = "MYSQL_CDC";
+  if (params.solutionType) {
+    parameterFilters.runtimeMode =
+      solutionSyncType(params.solutionType) === "REALTIME" ? "STREAMING" : "BATCH";
+    parameterFilters.tableScope = supportsMultipleTables(params.solutionType)
+      ? "DATABASE"
+      : "SINGLE";
+  }
+  if (params.syncType === "OFFLINE") parameterFilters.runtimeMode = "BATCH";
+  if (params.syncType === "REALTIME") parameterFilters.runtimeMode = "STREAMING";
   if (params.sourceDataSourceId) parameterFilters.sourceDataSourceId = params.sourceDataSourceId;
   if (params.targetDataSourceId) parameterFilters.targetDataSourceId = params.targetDataSourceId;
   return {
@@ -168,7 +185,7 @@ export function definitionPageRequest(params: DataSyncTaskPageParams) {
   };
 }
 
-/** Projects one immutable V6 JSON definition into the editor's transient UI state. */
+/** Projects one immutable Pipeline definition into the editor's transient UI state. */
 export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTaskRecord {
   if (definition.taskType !== "DATA_SYNC") throw new Error("不支持的同步任务定义");
   const parameters = parseSyncParameters(definition.parameterSchemaVersion, definition.parameters);
@@ -182,6 +199,11 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
   const mapping = tableMappings[0];
   return {
     id: definition.id,
+    sourceConnector: parameters.source.type,
+    sinkConnector: parameters.sink.type,
+    sourceProducesChangelog: usesCdcStartup(parameters),
+    transforms: parameters.transform.map((transform) => ({ ...transform })),
+    pipelineOptions: { ...parameters.pipeline },
     ...(configurationError ? { configurationError } : {}),
     tableMappings,
 

@@ -61,13 +61,13 @@ console.log("Data Sync list filter and scope checks passed.");
 
 const baseParameters = {
   source: {
-    type: "MYSQL_CDC",
+    type: "mysql",
     datasourceId: "source",
     startup: { mode: "INITIAL" },
     tables: [{ table: "orders" }],
   },
   sink: {
-    type: "JDBC",
+    type: "jdbc-postgres",
     datasourceId: "target",
     schemaPolicy: {
       initial: "VERIFY",
@@ -79,7 +79,7 @@ const baseParameters = {
   transform: [],
   pipeline: { "execution.runtime-mode": "STREAMING" },
 };
-const definition = (id, parameters, parameterSchemaVersion = 6) => ({
+const definition = (id, parameters, parameterSchemaVersion = 7) => ({
   id,
   name: "task-" + id,
   status: "PUBLISHED",
@@ -150,4 +150,6 @@ assert.match(projected.bizData[4].configurationError, /不支持的同步任务�
 assert.equal("configurationError" in projected.bizData[0], false);
 assert.equal("configurationError" in projected.bizData[2], false);
 assert.throws(() => projectSyncTaskPage({ bizData: null, pagination: page.pagination }));
-console.log("Data Sync strict V6 list projection and unreadable definition isolation passed.");
+console.log(
+  "Data Sync strict Pipeline list projection and unreadable definition isolation passed.",
+);

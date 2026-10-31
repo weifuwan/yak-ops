@@ -1,16 +1,14 @@
 # DATA_SYNC Task Plugin
 
-This module is intentionally only a DolphinScheduler-style adapter:
+The Task plugin owns the JSON API boundary and converts each validated definition into Pipeline YAML.
 
-- `PipelineTaskChannelFactory` registers the stable `DATA_SYNC` type.
-- `PipelineTaskChannel` parses the parameter envelope and delegates validation and admission to `PipelineService`.
-- `PipelineParameters` carries the persisted V5 Pipeline JSON (schema version 5).
-- `PipelineTask` adapts the deferred PipelineExecution lifecycle to the TaskHandle contract.
+- `PipelineTaskChannelFactory` registers the stable `DATA_SYNC` Task type.
+- `PipelineTaskChannel` validates definitions, derives query indexes, checks authorized references, and revalidates admission resources before composing deferred execution.
+- `PipelineParameters` carries the immutable schema-version-7 JSON definition. Source and sink types are installed Connector factory identifiers such as `mysql`, `jdbc-mysql`, and `jdbc-postgres`.
+- `PipelineYamlConverter` preserves source options, explicit table routes, transforms, and the selected BATCH or STREAMING mode.
+- `PipelineConnectorCatalog` exposes installed Connector capabilities to the editor. Product display categories do not select the execution graph.
+- `PipelineTask` adapts `PipelineExecution` to the Task lifecycle, including cancellation, terminal outcomes, physical job identity, and progress.
 
-No engine planning, schema changes, CDC handling, cursor planning, connector configuration,
-or running-job registry belongs in this plugin. Those implementations live in
-`yak-ops-data-sync-runtime`. The V5 PipelineDef and PipelineComposer APIs stay in
-`yak-ops-core`; actual Job submission is performed by YakFlow via PipelineExecutor.
+The engine module owns Pipeline definitions, resource planning, translators, schema preparation, and composition. YakFlow owns physical execution and checkpoints. A Task Instance must be durably registered before `PipelineExecution.start()`.
 
-A Task instance must be durable before invoking PipelineExecution.start(). Cancellation,
-resource admission and uncertain submission outcomes retain their existing semantics.
+Previously persisted parameter versions are explicitly rejected. Existing definitions and checkpoints are never silently reinterpreted. Search projections are rebuilt from validated definitions; client-supplied indexes are ignored.

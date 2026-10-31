@@ -9,7 +9,7 @@ import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-/** Database-side Instance metrics scoped by Workspace and the pinned source configuration. */
+/** Database-side Instance metrics scoped by Workspace and the pinned Pipeline runtime mode. */
 @Repository
 public class DataSyncOperationsRepositoryImpl implements DataSyncOperationsRepository {
 
@@ -24,7 +24,7 @@ public class DataSyncOperationsRepositoryImpl implements DataSyncOperationsRepos
     private static final String INSTANCE_FILTER = """
             WHERE i.workspace_id = ?
               AND i.task_type = 'DATA_SYNC'
-            """ + " AND " + DefinitionSqlProvider.SOURCE_TYPE + " = ? ";
+            """ + " AND " + DefinitionSqlProvider.RUNTIME_MODE + " = ? ";
 
     private static final String INSTANCE_SCOPE = INSTANCE_JOIN + INSTANCE_FILTER;
 
@@ -40,7 +40,7 @@ public class DataSyncOperationsRepositoryImpl implements DataSyncOperationsRepos
 
     @Override
     public DataSyncOperationsVO.Summary summary(
-            String workspaceId, String sourceType, LocalDateTime start, LocalDateTime end) {
+            String workspaceId, String runtimeMode, LocalDateTime start, LocalDateTime end) {
         String sql = "SELECT " + OUTCOMES + INSTANCE_SCOPE + " AND i.create_time >= ? AND i.create_time < ?";
         return jdbc.queryForObject(
                 sql,
@@ -51,21 +51,21 @@ public class DataSyncOperationsRepositoryImpl implements DataSyncOperationsRepos
                         rs.getLong("canceled_count"),
                         0),
                 workspaceId,
-                sourceType,
+                runtimeMode,
                 start,
                 end);
     }
 
     @Override
-    public long runningCount(String workspaceId, String sourceType) {
+    public long runningCount(String workspaceId, String runtimeMode) {
         String sql = "SELECT COUNT(*) " + INSTANCE_SCOPE + " AND i.status = 'RUNNING'";
-        Long count = jdbc.queryForObject(sql, Long.class, workspaceId, sourceType);
+        Long count = jdbc.queryForObject(sql, Long.class, workspaceId, runtimeMode);
         return count == null ? 0 : count;
     }
 
     @Override
     public List<DataSyncOperationsVO.TrendPoint> trend(
-            String workspaceId, String sourceType, LocalDateTime start, LocalDateTime end, boolean hourly) {
+            String workspaceId, String runtimeMode, LocalDateTime start, LocalDateTime end, boolean hourly) {
         String bucketExpression;
         if (hourly) {
             bucketExpression = "DATE_FORMAT(i.create_time, '%Y-%m-%d %H:00:00')";
@@ -84,14 +84,14 @@ public class DataSyncOperationsRepositoryImpl implements DataSyncOperationsRepos
                         rs.getLong("failed_count"),
                         rs.getLong("canceled_count")),
                 workspaceId,
-                sourceType,
+                runtimeMode,
                 start,
                 end);
     }
 
     @Override
     public List<DataSyncOperationsVO.Failure> recentFailures(
-            String workspaceId, String sourceType, LocalDateTime start, LocalDateTime end) {
+            String workspaceId, String runtimeMode, LocalDateTime start, LocalDateTime end) {
         String sql = """
                 SELECT i.id AS instance_id, i.definition_id, d.name AS task_name,
                        i.failure_code, i.create_time
@@ -112,7 +112,7 @@ public class DataSyncOperationsRepositoryImpl implements DataSyncOperationsRepos
                         rs.getString("failure_code"),
                         rs.getTimestamp("create_time").toLocalDateTime()),
                 workspaceId,
-                sourceType,
+                runtimeMode,
                 start,
                 end);
     }

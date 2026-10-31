@@ -9,5 +9,8 @@ public enum StreamPartitioning {
     REBALANCE,
 
     /** Routes records with an equal business key to the same downstream subtask. */
-    KEYED
+    KEYED,
+
+    /** Routes a CDC PartitioningEvent to its already selected target subtask without rehashing. */
+    EVENT
 }

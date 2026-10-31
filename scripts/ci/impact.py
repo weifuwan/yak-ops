@@ -16,6 +16,7 @@ JDBC = "yak-flow/yak-flow-connector-jdbc/"
 CDC = "yak-flow/yak-flow-connector-cdc-mysql/"
 CDC_BASE = "yak-flow/yak-flow-connector-cdc-base/"
 RUNTIME = "yak-flow/yak-flow-runtime/"
+ENGINE = "yak-ops-engine/"
 E2E = "yak-ops-e2e/"
 BUSINESS = "yak-ops-business/"
 NAMESPACE = {"m": "http://maven.apache.org/POM/4.0.0"}
@@ -115,6 +116,10 @@ def test_suites(path: str) -> set[str]:
         return {"cdc", "backend-e2e", "recovery-e2e"}
     if path.startswith(RUNTIME):
         return {"pipeline", "recovery-e2e", "backend-e2e"}
+    if path.startswith(ENGINE):
+        return {"pipeline", "cdc", "backend-e2e", "recovery-e2e"}
+    if path.startswith("yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync/"):
+        return {"backend-e2e", "recovery-e2e"}
     if path.startswith("yak-flow/yak-flow-connector-base/"):
         return {"pipeline", "backend-e2e", "recovery-e2e"}
     if path.startswith("yak-ops-core/"):

@@ -59,10 +59,20 @@ public final class OperatorChain implements ReaderOutput<Object>, AutoCloseable 
                 sourceTask.maxParallelism()));
         sinkOperator =
                 new SinkWriterOperator<>((Sink<Object>) sinkNode.getSink().orElseThrow(), sinkEnvironment);
+        sinkOperator.setup(sinkEnvironment.taskInfo());
         sinkOperator.open();
         for (StreamNode node : operatorNodes) {
-            operators.add((OneInputStreamOperator<Object, Object>) Objects.requireNonNull(
-                    node.getOperatorFactory().orElseThrow().createOperator(), "Operator factory returned null"));
+            OneInputStreamOperator<Object, Object> operator =
+                    (OneInputStreamOperator<Object, Object>) Objects.requireNonNull(
+                            node.getOperatorFactory().orElseThrow().createOperator(), "Operator factory returned null");
+            operators.add(operator);
+            operator.setup(new RuntimeTaskInfo(
+                    sourceTask.jobID(),
+                    node.getId(),
+                    sourceTask.subtaskIndex(),
+                    node.getParallelism(),
+                    sourceTask.attemptNumber(),
+                    sourceTask.maxParallelism()));
         }
         for (int i = operators.size() - 1; i >= 0; i--) {
             operators.get(i).open();

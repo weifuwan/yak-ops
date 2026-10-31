@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.connector.base.factory.TableSinkFactoryContext;
+import io.yak.ops.connector.base.factory.SinkFactoryContext;
 import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.database.internal.dialect.MySqlJdbcDialect;
 import io.yak.ops.core.data.GenericRowData;
@@ -67,13 +68,13 @@ class JdbcExactRowValidationTest {
                 .set(JdbcConnectionOptions.URL, "jdbc:mysql://localhost:3306/test")
                 .set(JdbcConnectionOptions.USERNAME, "user")
                 .set(JdbcConnectionOptions.PASSWORD, "secret");
-        var factory = new JdbcSinkFactory();
+        var factory = new MySqlDataSinkFactory();
         var withoutXa = new Configuration().set(JdbcSinkOptions.WRITE_MODE, JdbcWriteMode.RETRACT);
         assertThrows(UnsupportedOperationException.class, () -> factory.validate(withoutXa.toReadonlyConfig(), true));
         factory.validate(options.toReadonlyConfig(), true);
         factory.validateSchema(options.toReadonlyConfig(), KEYLESS, KEYLESS, true);
-        factory.createSink(new TableSinkFactoryContext(
-                options.toReadonlyConfig(), TABLE, KEYLESS, TABLE, KEYLESS));
+        factory.createDataSink(new SinkFactoryContext(List.of(new TableSinkFactoryContext(
+                options.toReadonlyConfig(), TABLE, KEYLESS, TABLE, KEYLESS)), new Configuration(), getClass().getClassLoader()));
         var plan = new JdbcTableWritePlan(TABLE, TABLE, KEYLESS, JdbcWriteMode.RETRACT);
         assertEquals(JdbcWriteMode.RETRACT, plan.writeMode());
         assertTrue(plan.sql(new MySqlJdbcDialect()).startsWith("INSERT INTO"));
