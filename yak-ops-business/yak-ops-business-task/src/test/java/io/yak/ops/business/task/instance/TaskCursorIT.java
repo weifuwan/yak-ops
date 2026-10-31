@@ -168,6 +168,33 @@ class TaskCursorIT {
         assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM yak_ops_task_cursor", Integer.class));
     }
 
+    @Test
+    void changedSemanticBindingInNewDefinitionVersionRollsBackEveryStagedWindow() {
+        List<TaskCursorBatch> initial =
+                store.freeze(identity("initial"), List.of(proposal(KEY, "10"), proposal(OTHER, "20")));
+        transactions.executeWithoutResult(status -> initial.forEach(batch -> repository.commit("ws", "task", row(batch))));
+
+        TaskExecutionIdentity unchangedVersion = new TaskExecutionIdentity("ws", "task", 2, "unchanged-version");
+        List<TaskCursorBatch> continued =
+                store.freeze(unchangedVersion, List.of(proposal(KEY, "30"), proposal(OTHER, "40")));
+        assertEquals(List.of("10", "20"), continued.stream().map(TaskCursorBatch::lower).toList());
+        assertFalse(continued.stream().anyMatch(TaskCursorBatch::initialLoad));
+        transactions.executeWithoutResult(status -> continued.forEach(batch -> repository.commit("ws", "task", row(batch))));
+
+        TaskExecutionIdentity changedVersion = new TaskExecutionIdentity("ws", "task", 3, "changed-version");
+        TaskCursorBatch changed = TaskCursorBatch.proposal(OTHER, "d".repeat(64), "INCREASING", "id", "0", "60", true);
+        assertThrows(IllegalStateException.class,
+                () -> store.freeze(changedVersion, List.of(proposal(KEY, "50"), changed)));
+        assertEquals(List.of("30", "40"), jdbc.queryForList(
+                "SELECT cursor_value FROM yak_ops_task_cursor ORDER BY table_key", String.class));
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM yak_ops_task_cursor WHERE pending_value IS NOT NULL", Integer.class));
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM yak_ops_task_cursor_batch WHERE instance_id = 'changed-version'", Integer.class));
+        assertEquals(List.of(BINDING, BINDING), jdbc.queryForList(
+                "SELECT binding FROM yak_ops_task_cursor ORDER BY table_key", String.class));
+    }
+
     private static TaskExecutionIdentity identity(String instance) {
         return new TaskExecutionIdentity("ws", "task", 1, instance);
     }

@@ -22,12 +22,9 @@ function compile(file, mocks) {
   return exports;
 }
 
+const parameterContract = compile("../apps/web/service/data-sync/parameters.ts", {});
 const params = compile("../apps/web/app/data-sync/editor/definition.ts", {
-  "@/service/data-sync/parameters": {
-    validIncrementalConfig: (x) => Boolean(x?.column),
-    offlineIncremental: (solution, steps) =>
-      solution.endsWith("_OFFLINE") && steps.includes("INCREMENTAL"),
-  },
+  "@/service/data-sync/parameters": parameterContract,
   "./table-mapping-editor": { validTableMappings: (rows) => rows.length > 0 },
   "@/app/schedule/schedule-presentation": {
     sameScheduleRule: (a, b) => a.cronExpression === b.cronExpression,
@@ -136,10 +133,7 @@ assert.equal("sink" in request, false);
 assert.equal("env" in request, false);
 
 const transport = compile("../apps/web/service/data-sync/definition.ts", {
-  "./parameters.ts": {
-    solutionSyncType: (solution) => (solution.endsWith("_REALTIME") ? "REALTIME" : "OFFLINE"),
-    supportsMultipleTables: (solution) => solution.startsWith("DATABASE_"),
-  },
+  "./parameters.ts": parameterContract,
 });
 const realtimeOnly = {
   ...draft,
@@ -431,6 +425,156 @@ assert.equal(
   }),
   false,
 );
+
+// The editor loads a valid projected writer before the raw catalog callback arrives.
+const projectedParameters = transport.buildSyncParameters({
+  ...request,
+  sinkConnector: "jdbc-mysql",
+  targetSchema: undefined,
+  steps: ["FULL", "INCREMENTAL"],
+  writeMode: "RETRACT",
+  schemaChangesEnabled: false,
+  transforms: [{ "source-table": "test.orders", projection: "bucket" }],
+});
+const storedDefinition = {
+  id: "projected-task",
+  name: "Projected orders",
+  taskType: "DATA_SYNC",
+  status: "UNPUBLISHED",
+  debug: false,
+  definitionVersion: 1,
+  parameterSchemaVersion: 7,
+  parameters: projectedParameters,
+};
+const projectedTask = transport.toSyncTaskRecord(storedDefinition);
+const projectedDraft = {
+  ...draft,
+  targetType: "MYSQL",
+  sinkConnector: projectedTask.sinkConnector,
+  steps: projectedTask.steps,
+};
+const loadedProjectedForm = {
+  ...form,
+  source: { ...form.source, sourceHasPrimaryKey: undefined },
+  sink: {
+    ...form.sink,
+    schema: "",
+    writeMode: projectedTask.writeMode,
+    schemaChangesEnabled: projectedTask.schemaChangesEnabled,
+  },
+};
+const projectedForm = selection.setSourcePrimaryKeys(loadedProjectedForm, true, true, true);
+const projectedOptions = {
+  ...options,
+  draft: projectedDraft,
+  hasTransforms: true,
+  selectedTargetDataSource: { dbType: "MYSQL" },
+  combination: { writeModes: ["UPSERT", "RETRACT"] },
+  prepareSchema: false,
+  form: projectedForm,
+  targetCatalog: { ...options.targetCatalog, tables: [{ name: "ods_orders" }] },
+};
+assert.equal(projectedForm.source.sourceHasPrimaryKey, true);
+assert.equal(projectedForm.sink.writeMode, "RETRACT");
+assert.equal(params.canSaveEditor(projectedOptions), true);
+const projectedEdit = params.buildEditorPayload(
+  projectedForm,
+  projectedDraft,
+  false,
+  [],
+  true,
+  projectedTask.startup,
+  projectedTask.transforms,
+  projectedTask.pipelineOptions,
+);
+const savedProjected = transport.updateDefinitionRequest(projectedEdit).parameters;
+parameterContract.validateSyncParameters(savedProjected);
+assert.equal(savedProjected.sink.tables[0].write.mode, "RETRACT");
+assert.equal(savedProjected.sink.tables[0].write.transaction.mode, "CHECKPOINT_XA");
+assert.equal(savedProjected.transform[0].projection, "bucket");
+assert.equal(params.canSaveEditor({ ...projectedOptions, hasTransforms: false }), false);
+for (const sink of [
+  { ...projectedForm.sink, schemaChangesEnabled: true },
+  { ...projectedForm.sink, targetPrimaryKeys: ["bucket"] },
+]) {
+  assert.equal(
+    params.canSaveEditor({
+      ...projectedOptions,
+      form: { ...projectedForm, sink },
+    }),
+    false,
+  );
+}
+assert.equal(
+  params.canSaveEditor({
+    ...projectedOptions,
+    draft: { ...projectedDraft, targetType: "POSTGRE_SQL" },
+    selectedTargetDataSource: { dbType: "POSTGRE_SQL" },
+  }),
+  false,
+);
+const keylessProjected = selection.setSourcePrimaryKeys(loadedProjectedForm, false, true, true);
+assert.equal(params.canSaveEditor({ ...projectedOptions, form: keylessProjected }), false);
+assert.equal(
+  params.canSaveEditor({
+    ...projectedOptions,
+    form: { ...keylessProjected, source: { ...keylessProjected.source, chunkKeyColumn: "bucket" } },
+  }),
+  true,
+);
+
+for (const enabled of [true, false]) {
+  const configured = transport.buildSyncParameters({
+    ...request,
+    schemaChangesEnabled: enabled,
+    allowDropColumns: enabled,
+    pipelineOptions: {
+      ...persistedPipelineOptions,
+      "schema.change.behavior": enabled ? "evolve" : "exception",
+    },
+  });
+  const loaded = transport.toSyncTaskRecord({ ...storedDefinition, parameters: configured });
+  const afterMetadata = selection.setSourcePrimaryKeys(
+    {
+      ...form,
+      source: { ...form.source, sourceHasPrimaryKey: undefined },
+      sink: {
+        ...form.sink,
+        schemaChangesEnabled: loaded.schemaChangesEnabled,
+        allowDropColumns: loaded.allowDropColumns,
+      },
+    },
+    true,
+    true,
+  );
+  const edited = {
+    ...afterMetadata,
+    sink: { ...afterMetadata.sink, schemaChangesEnabled: !enabled, allowDropColumns: false },
+  };
+  assert.equal(params.canSaveEditor({ ...options, form: edited }), true);
+  const payload = params.buildEditorPayload(
+    edited,
+    draft,
+    false,
+    [],
+    true,
+    loaded.startup,
+    loaded.transforms,
+    loaded.pipelineOptions,
+  );
+  const saved = transport.updateDefinitionRequest(payload).parameters;
+  parameterContract.validateSyncParameters(saved);
+  assert.equal(saved.sink.schemaPolicy.evolution.enabled, !enabled);
+  assert.equal(saved.sink.schemaPolicy.evolution.allowDropColumns, false);
+  assert.equal(saved.pipeline["schema.change.behavior"], enabled ? "exception" : "evolve");
+  for (const [key, value] of Object.entries(persistedPipelineOptions)) {
+    assert.equal(saved.pipeline[key], value);
+  }
+  assert.equal(
+    transport.toSyncTaskRecord({ ...storedDefinition, parameters: saved }).schemaChangesEnabled,
+    !enabled,
+  );
+}
 
 function createHarness({ failSchedule = false, failPublish = false } = {}) {
   const calls = [];

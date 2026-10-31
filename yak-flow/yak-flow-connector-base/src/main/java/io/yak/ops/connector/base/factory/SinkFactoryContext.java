@@ -18,22 +18,25 @@ public final class SinkFactoryContext implements Factory.Context {
     private final ClassLoader classLoader;
     private final BiFunction<TableId, Schema, Schema> sourceSchemaTransform;
     private final Map<TableId, Schema> sourceSchemas;
+    private final boolean sourceProducesChangelog;
 
     public SinkFactoryContext(
             List<TableSinkFactoryContext> tables, Configuration pipelineConfiguration, ClassLoader classLoader) {
-        this(tables, pipelineConfiguration, classLoader, (table, schema) -> schema, sourceSchemas(tables));
+        this(tables, pipelineConfiguration, classLoader, (table, schema) -> schema, sourceSchemas(tables), true);
     }
 
     /**
      * Carries the same deterministic schema projection used by the pipeline's data transform.
      * The callback must not access credentials, mutate operator state or perform external I/O.
+     * The source's configured mutation capability is independent of its boundedness.
      */
     public SinkFactoryContext(
             List<TableSinkFactoryContext> tables,
             Configuration pipelineConfiguration,
             ClassLoader classLoader,
             BiFunction<TableId, Schema, Schema> sourceSchemaTransform,
-            Map<TableId, Schema> sourceSchemas) {
+            Map<TableId, Schema> sourceSchemas,
+            boolean sourceProducesChangelog) {
 
         this.tables = List.copyOf(Objects.requireNonNull(tables, "tables"));
         if (this.tables.isEmpty()) {
@@ -44,6 +47,7 @@ public final class SinkFactoryContext implements Factory.Context {
         this.classLoader = Objects.requireNonNull(classLoader, "classLoader");
         this.sourceSchemaTransform = Objects.requireNonNull(sourceSchemaTransform, "sourceSchemaTransform");
         this.sourceSchemas = Map.copyOf(Objects.requireNonNull(sourceSchemas, "sourceSchemas"));
+        this.sourceProducesChangelog = sourceProducesChangelog;
         if (!this.sourceSchemas
                 .keySet()
                 .equals(this.tables.stream()
@@ -64,6 +68,11 @@ public final class SinkFactoryContext implements Factory.Context {
     /** Returns unprojected source metadata used to establish the initial checkpoint baseline. */
     public Map<TableId, Schema> sourceSchemas() {
         return sourceSchemas;
+    }
+
+    /** Whether the configured source can emit updates or deletes, including in a bounded job. */
+    public boolean sourceProducesChangelog() {
+        return sourceProducesChangelog;
     }
 
     private static Map<TableId, Schema> sourceSchemas(List<TableSinkFactoryContext> tables) {

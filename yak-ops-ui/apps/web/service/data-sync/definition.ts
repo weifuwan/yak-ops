@@ -16,6 +16,7 @@ import {
   solutionSyncType,
   syncTableMappings,
   supportsMultipleTables,
+  usesCdcStartup,
   validateSyncParameters,
 } from "./parameters.ts";
 
@@ -45,6 +46,12 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
   const realtime = task.sourceProducesChangelog;
   const continuous = realtime && task.steps.includes("INCREMENTAL");
   const evolution = continuous && (task.schemaChangesEnabled ?? true);
+  const schemaBehavior = task.pipelineOptions?.["schema.change.behavior"];
+  if (
+    schemaBehavior !== undefined &&
+    !["evolve", "exception"].includes(schemaBehavior.toLowerCase())
+  )
+    throw new Error("不支持的 Schema 变更行为");
   const dataSteps = (["FULL", "INCREMENTAL"] as const).filter((step) => task.steps.includes(step));
   const physicalPath = (table: { database?: string; schema?: string; table: string }) =>
     [table.database, table.schema, table.table].filter(Boolean).join(".");
@@ -118,6 +125,9 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
     transform: task.transforms?.map((transform) => ({ ...transform })) ?? [],
     pipeline: {
       ...task.pipelineOptions,
+      ...(schemaBehavior !== undefined
+        ? { "schema.change.behavior": evolution ? "evolve" : "exception" }
+        : {}),
       "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
       "pipeline.table-scope": supportsMultipleTables(task.solutionType)
         ? ("DATABASE" as const)
@@ -191,7 +201,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     id: definition.id,
     sourceConnector: parameters.source.type,
     sinkConnector: parameters.sink.type,
-    sourceProducesChangelog: parameters.source.startup !== undefined,
+    sourceProducesChangelog: usesCdcStartup(parameters),
     transforms: parameters.transform.map((transform) => ({ ...transform })),
     pipelineOptions: { ...parameters.pipeline },
     ...(configurationError ? { configurationError } : {}),

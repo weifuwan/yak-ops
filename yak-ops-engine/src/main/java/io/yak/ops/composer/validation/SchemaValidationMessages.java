@@ -38,7 +38,11 @@ public final class SchemaValidationMessages {
                     "JDBC RETRACT requires source and target schemas without physical primary keys",
                     "逐行更新要求来源和目标表均无主键；若来源有非空唯一索引，请填写目标主键改用按主键更新"
                 },
-                {"JDBC RETRACT requires a complete full-row field mapping", "逐行更新要求来源和目标字段完全对应，请检查目标表结构"}
+                {"JDBC RETRACT requires a complete full-row field mapping", "逐行更新要求来源和目标字段完全对应，请检查目标表结构"},
+                {
+                    "RETRACT transforms require deterministic expressions without event-dependent metadata",
+                    "逐行更新的转换和筛选必须只依赖来源行及固定表信息，不能使用当前时间、随机值或事件类型"
+                }
             };
             for (String[] reason : exactReasons) {
                 if (message.equals(reason[0])) return reason[1];

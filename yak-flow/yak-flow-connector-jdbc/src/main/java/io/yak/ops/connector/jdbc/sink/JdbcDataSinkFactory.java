@@ -124,7 +124,8 @@ public abstract class JdbcDataSinkFactory implements DataSinkFactory {
                 resolved.tables(),
                 () -> createMetadataApplier(context.getFactoryConfiguration()),
                 resolved.sourceSchemaTransform(),
-                resolved.sourceSchemas());
+                resolved.sourceSchemas(),
+                new JdbcDataChangeEventHashFunctionProvider(resolved.sourceProducesChangelog()));
     }
 
     private Sink<TableRecord> createSink(List<TableSinkFactoryContext> contexts) {

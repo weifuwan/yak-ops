@@ -137,11 +137,13 @@ async def mock(route):
         else:
             data = choices
     elif p == "/api/v1/data-source/page":
-        data = paging(sources)
+        data = paging(state.get("data_sources", sources))
     elif "/catalog/schemas" in p:
         data = []
     elif "/catalog/columns" in p:
-        data = [{"name": "id", "typeName": "BIGINT", "nullable": False, "primaryKey": True}]
+        data = state.get("source_columns", [
+            {"name": "id", "typeName": "BIGINT", "nullable": False, "primaryKey": True}
+        ])
     elif "/catalog/tables" in p:
         mode = state["catalog_mode"]
         if "/src/" in p:
@@ -152,10 +154,14 @@ async def mock(route):
         else:
             names = ["ods_orders"] if mode == "single" else (
                 [] if mode == "schema" else ["batch_a_copy", "batch_b_copy"])
-            data = [{"database": "ods", "schema": "public", "name": name, "type": "TABLE"}
+            datasource = next(source for source in state.get("data_sources", sources)
+                              if source["id"] == p.split("/")[4])
+            data = [{"database": datasource["database"], "schema": datasource.get("schema"),
+                     "name": name, "type": "TABLE"}
                     for name in names]
     elif p.startswith("/api/v1/data-source/"):
-        data = next((x for x in sources if x["id"] == p.rsplit("/", 1)[-1]), {})
+        data = next((x for x in state.get("data_sources", sources)
+                     if x["id"] == p.rsplit("/", 1)[-1]), {})
     elif p == "/api/v1/task-definitions/page":
         data = paging([state["task"]])
     elif p == "/api/v1/task-definitions" and method == "POST":

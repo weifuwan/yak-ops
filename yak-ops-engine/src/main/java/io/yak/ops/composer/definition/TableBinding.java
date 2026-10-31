@@ -31,6 +31,7 @@ public final class TableBinding {
     private final SchemaChangePlan schemaPlan;
     private final DataSourceTable targetMetadata;
     private final TableSchema writeSourceSchema;
+    private final String transformRevision;
 
     @JsonCreator
     public TableBinding(
@@ -44,11 +45,13 @@ public final class TableBinding {
             @JsonProperty("sourceOptions") ReadonlyConfig sourceOptions,
             @JsonProperty("schemaPlan") SchemaChangePlan schemaPlan,
             @JsonProperty("targetMetadata") DataSourceTable targetMetadata,
-            @JsonProperty("writeSourceSchema") TableSchema writeSourceSchema) {
+            @JsonProperty("writeSourceSchema") TableSchema writeSourceSchema,
+            @JsonProperty("transformRevision") String transformRevision) {
         Objects.requireNonNull(sourceParameters, "sourceParameters");
         Objects.requireNonNull(sinkParameters, "sinkParameters");
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(writeSourceSchema, "writeSourceSchema");
+        Objects.requireNonNull(transformRevision, "transformRevision");
         Objects.requireNonNull(targetDatasource, "targetDatasource");
         Objects.requireNonNull(targetTable, "targetTable");
         Objects.requireNonNull(sourceOptions, "sourceOptions");
@@ -77,6 +80,7 @@ public final class TableBinding {
         this.schemaPlan = schemaPlan;
         this.targetMetadata = targetMetadata;
         this.writeSourceSchema = writeSourceSchema;
+        this.transformRevision = transformRevision;
     }
 
     @JsonProperty("sourceParameters")
@@ -134,6 +138,12 @@ public final class TableBinding {
         return writeSourceSchema;
     }
 
+    /** Stable row-selection and projection semantics for persisted incremental cursor bindings. */
+    @JsonProperty("transformRevision")
+    public String transformRevision() {
+        return transformRevision;
+    }
+
     @Override
     public boolean equals(Object value) {
         if (this == value) return true;
@@ -148,7 +158,8 @@ public final class TableBinding {
                 && java.util.Objects.equals(sourceOptions, other.sourceOptions)
                 && java.util.Objects.equals(schemaPlan, other.schemaPlan)
                 && java.util.Objects.equals(targetMetadata, other.targetMetadata)
-                && java.util.Objects.equals(writeSourceSchema, other.writeSourceSchema);
+                && java.util.Objects.equals(writeSourceSchema, other.writeSourceSchema)
+                && java.util.Objects.equals(transformRevision, other.transformRevision);
     }
 
     @Override
@@ -164,7 +175,8 @@ public final class TableBinding {
                 sourceOptions,
                 schemaPlan,
                 targetMetadata,
-                writeSourceSchema);
+                writeSourceSchema,
+                transformRevision);
     }
 
     /** Ordered physical changes for one target table. */
@@ -185,7 +197,8 @@ public final class TableBinding {
                 physical,
                 schemaPlan,
                 targetMetadata,
-                writeSourceSchema);
+                writeSourceSchema,
+                transformRevision);
     }
 
     /** Returns the admitted desired schema; creating the target does not change this value. */
@@ -211,6 +224,7 @@ public final class TableBinding {
                 sourceOptions,
                 schemaPlan,
                 target,
-                writeSourceSchema);
+                writeSourceSchema,
+                transformRevision);
     }
 }

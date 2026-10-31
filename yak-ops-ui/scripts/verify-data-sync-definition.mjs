@@ -67,6 +67,33 @@ const record = {
 };
 assert.equal(toSyncTaskRecord(record).solutionType, "SINGLE_TABLE_REALTIME");
 
+const defaultStartup = structuredClone(definitionJson);
+delete defaultStartup.source.startup;
+const defaultStartupTask = toSyncTaskRecord({ ...record, parameters: defaultStartup });
+assert.equal(defaultStartupTask.configurationError, undefined);
+assert.equal(defaultStartupTask.sourceProducesChangelog, true);
+assert.deepEqual(defaultStartupTask.steps, ["FULL", "INCREMENTAL"]);
+const savedDefaultStartup = buildSyncParameters(defaultStartupTask);
+assert.equal(savedDefaultStartup.source.startup.mode, "INITIAL");
+assert.equal(savedDefaultStartup.source.syncMode, undefined);
+assert.equal(savedDefaultStartup.pipeline["execution.runtime-mode"], "STREAMING");
+assert.deepEqual(displaySyncSteps(readSyncParameters(7, savedDefaultStartup)), [
+  "FULL",
+  "INCREMENTAL",
+]);
+assert.throws(() =>
+  readSyncParameters(7, {
+    ...defaultStartup,
+    source: { ...defaultStartup.source, syncMode: "FULL" },
+  }),
+);
+assert.throws(() =>
+  readSyncParameters(7, {
+    ...definitionJson,
+    pipeline: { ...definitionJson.pipeline, "execution.runtime-mode": "BATCH" },
+  }),
+);
+
 for (const startup of [
   { mode: "INITIAL" },
   { mode: "SNAPSHOT" },
@@ -226,6 +253,8 @@ for (const invalidOptions of [
   { parallelism: 0 },
   { parallelism: {} },
   { "route-mode": false },
+  { "schema.change.behavior": "ignore" },
+  { "schema.change.behavior": "exception" },
 ]) {
   assert.throws(() =>
     readSyncParameters(7, {
@@ -234,4 +263,10 @@ for (const invalidOptions of [
     }),
   );
 }
+assert.throws(() =>
+  buildSyncParameters({
+    ...base,
+    pipelineOptions: { "schema.change.behavior": "ignore" },
+  }),
+);
 console.log("Supported Pipeline option round-trip and unsupported option rejection passed");

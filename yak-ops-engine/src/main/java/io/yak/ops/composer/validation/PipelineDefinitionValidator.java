@@ -9,6 +9,8 @@ import io.yak.ops.composer.yakflow.translator.TransformTranslator;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.connector.jdbc.database.schema.SchemaChangePlan;
+import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
+import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.CreateTableEvent;
@@ -114,7 +116,7 @@ public final class PipelineDefinitionValidator {
                             table.targetPrimaryKeys(),
                             sourceFactory.producesChangelog(EndpointOptions.connectorOptions(table.source())),
                             job.schemaChangesEnabled());
-                    DataSourceTable projected = project(definition, sourceTable, table.source());
+                    DataSourceTable projected = project(definition, sourceTable, table.source(), table.sink());
                     TableSchema writeSource = SchemaValidator.writeSchema(projected, table.targetPrimaryKeys());
                     SchemaValidator.validateWrite(() -> sourceFactory.validateSchema(
                             EndpointOptions.connectorOptions(table.source()), sourceTable.schema()));
@@ -149,7 +151,7 @@ public final class PipelineDefinitionValidator {
                             sourceFactory.producesChangelog(EndpointOptions.connectorOptions(table.source())),
                             job.schemaChangesEnabled());
                     TableSchema writeSource = SchemaValidator.writeSchema(
-                            project(definition, context.tableMetadata(sourceId, source), table.source()),
+                            project(definition, context.tableMetadata(sourceId, source), table.source(), table.sink()),
                             table.targetPrimaryKeys());
                     SchemaValidator.validateWrite(() -> sourceFactory.validateSchema(
                             EndpointOptions.connectorOptions(table.source()), sourceSchema));
@@ -181,10 +183,14 @@ public final class PipelineDefinitionValidator {
         }
     }
 
-    private static DataSourceTable project(PipelineDef definition, DataSourceTable table, ReadonlyConfig source) {
-        return new TransformTranslator(
-                        definition, java.util.Map.of(table.table(), EndpointOptions.selectedTable(source)))
-                .transformMetadata(table);
+    private static DataSourceTable project(
+            PipelineDef definition, DataSourceTable table, ReadonlyConfig source, ReadonlyConfig sink) {
+        TransformTranslator transforms = new TransformTranslator(
+                definition, java.util.Map.of(table.table(), EndpointOptions.selectedTable(source)));
+        if (sink.get(JdbcSinkOptions.WRITE_MODE) == JdbcWriteMode.RETRACT) {
+            transforms.validateRetraction(table.table());
+        }
+        return transforms.transformMetadata(table);
     }
 
     /** Validates platform features against the actual endpoint capabilities. */

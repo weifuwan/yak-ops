@@ -36,6 +36,10 @@ export const supportsMultipleTables = (type: DataSyncSolutionType) =>
 export const offlineIncremental = (solution: DataSyncSolutionType, steps: DataSyncStep[]) =>
   solutionSyncType(solution) === "OFFLINE" && steps.includes("INCREMENTAL");
 
+/** Streaming definitions use INITIAL when no CDC startup position is supplied. */
+export const usesCdcStartup = (value: DataSyncParameters) =>
+  value.source.startup !== undefined || value.pipeline["execution.runtime-mode"] === "STREAMING";
+
 /** Product category is inferred from the JSON source and table scope. */
 export function pipelineSolutionType(value: DataSyncParameters): DataSyncSolutionType {
   const multiple =
@@ -121,18 +125,17 @@ export function syncTableMappings(value: DataSyncParameters): DataSyncTableMappi
 }
 
 export function displaySyncSteps(value: DataSyncParameters): DataSyncStep[] {
-  const dataSteps: DataSyncStep[] =
-    value.source.startup !== undefined
-      ? value.source.startup?.mode === "SNAPSHOT"
-        ? ["FULL"]
-        : value.source.startup?.mode === undefined || value.source.startup.mode === "INITIAL"
-          ? ["FULL", "INCREMENTAL"]
-          : ["INCREMENTAL"]
-      : value.source.syncMode === "INCREMENTAL"
-        ? ["INCREMENTAL"]
-        : value.source.syncMode === "FULL_AND_INCREMENTAL"
-          ? ["FULL", "INCREMENTAL"]
-          : ["FULL"];
+  const dataSteps: DataSyncStep[] = usesCdcStartup(value)
+    ? value.source.startup?.mode === "SNAPSHOT"
+      ? ["FULL"]
+      : value.source.startup?.mode === undefined || value.source.startup.mode === "INITIAL"
+        ? ["FULL", "INCREMENTAL"]
+        : ["INCREMENTAL"]
+    : value.source.syncMode === "INCREMENTAL"
+      ? ["INCREMENTAL"]
+      : value.source.syncMode === "FULL_AND_INCREMENTAL"
+        ? ["FULL", "INCREMENTAL"]
+        : ["FULL"];
   return [
     ...(value.sink.schemaPolicy.initial === "CREATE_OR_ALTER" ? (["SCHEMA"] as const) : []),
     ...dataSteps,
@@ -185,7 +188,7 @@ export function validateSyncParameters(value: DataSyncParameters): void {
   ) {
     throw new Error("无效的 Pipeline 配置项");
   }
-  const realtime = value.source.startup !== undefined;
+  const realtime = usesCdcStartup(value);
   const sourceKeys = ["database", "schema", "table", "snapshot", "incremental"];
   const sinkKeys = ["database", "schema", "table", "write"];
   for (const tables of [value.source.tables, value.sink.tables]) {
@@ -249,6 +252,13 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     (policy.initial === "CREATE_OR_ALTER" && !steps.includes("FULL"))
   )
     throw new Error("无效的目标 Schema 策略");
+  const schemaBehavior = value.pipeline["schema.change.behavior"]?.toLowerCase();
+  if (schemaBehavior !== undefined) {
+    if (!["evolve", "exception"].includes(schemaBehavior))
+      throw new Error("不支持的 Schema 变更行为");
+    if ((schemaBehavior === "evolve") !== policy.evolution.enabled)
+      throw new Error("Pipeline 与目标 Schema 变更策略不一致");
+  }
   const allSources = new Set(value.source.tables.map(path));
   const allSinks = new Set(value.sink.tables.map(path));
   const mappedSources = new Set<string>();

@@ -30,6 +30,7 @@ import io.yak.ops.connector.base.factory.TableSourceFactoryContext;
 import io.yak.ops.connector.base.metrics.TableMetrics;
 import io.yak.ops.connector.jdbc.database.schema.SchemaChangePlan;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
+import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
 import io.yak.ops.core.api.connector.sink.MetadataApplier;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.dag.Transformation;
@@ -207,8 +208,11 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
         }
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         TransformTranslator transforms = new TransformTranslator(definition, selectedTables);
-        DataSink sink = sinkFactory.createDataSink(
-                new SinkFactoryContext(sinks, configuration, classLoader, transforms::transformSchema, schemas));
+        boolean sourceProducesChangelog = factories
+                .source(definition.getSource().getType())
+                .producesChangelog(EndpointOptions.connectorOptions(first.sourceParameters()));
+        DataSink sink = sinkFactory.createDataSink(new SinkFactoryContext(
+                sinks, configuration, classLoader, transforms::transformSchema, schemas, sourceProducesChangelog));
         Transformation<Event> events = transforms.translate(source, sourceParallelism, identity.definitionId());
         events = new SchemaTranslator()
                 .translate(
@@ -353,9 +357,12 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
                     mapping.targetPrimaryKeys(),
                     sourceFactory.producesChangelog(EndpointOptions.connectorOptions(source)),
                     job.schemaChangesEnabled());
-            DataSourceTable projected = new TransformTranslator(
-                            definition, Map.of(from.table(), EndpointOptions.selectedTable(source)))
-                    .transformMetadata(from);
+            TransformTranslator transforms =
+                    new TransformTranslator(definition, Map.of(from.table(), EndpointOptions.selectedTable(source)));
+            if (sink.get(JdbcSinkOptions.WRITE_MODE) == JdbcWriteMode.RETRACT) {
+                transforms.validateRetraction(from.table());
+            }
+            DataSourceTable projected = transforms.transformMetadata(from);
             TableSchema writeSource = SchemaValidator.writeSchema(projected, mapping.targetPrimaryKeys());
             CreateTableEvent event = prepareSchema
                     ? SchemaPlanner.createEvent(projected, targetInfo, targetTable, mapping.targetPrimaryKeys())
@@ -427,7 +434,8 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
                     prepared,
                     schema,
                     actual,
-                    writeSource));
+                    writeSource,
+                    transforms.semanticRevision(from.table())));
         }
         if (job.sourceDataSourceId().equals(job.targetDataSourceId())
                 && sources.stream().anyMatch(targets::contains)) {

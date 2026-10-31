@@ -75,6 +75,7 @@ interface ValidationInput {
   selectedSourceDataSource?: DataSourceRecord;
   selectedTargetDataSource?: DataSourceRecord;
   draft: DataSyncDraft;
+  hasTransforms?: boolean;
   supportsScheduling: boolean;
   scheduleLoading: boolean;
   scheduleNeedsReload: boolean;
@@ -98,6 +99,7 @@ export function canSaveEditor({
   selectedSourceDataSource,
   selectedTargetDataSource,
   draft,
+  hasTransforms = false,
   supportsScheduling,
   scheduleLoading,
   scheduleNeedsReload,
@@ -109,6 +111,12 @@ export function canSaveEditor({
   sourceCatalog,
 }: ValidationInput): boolean {
   const continuous = draft.sourceProducesChangelog && draft.steps.includes("INCREMENTAL");
+  const projectedRetract =
+    hasTransforms &&
+    continuous &&
+    draft.targetType === "MYSQL" &&
+    !form.sink.targetPrimaryKeys.length &&
+    !form.sink.schemaChangesEnabled;
   return Boolean(
     !published &&
     Boolean(combination) &&
@@ -118,7 +126,7 @@ export function canSaveEditor({
     (!(!batch && draft.sourceProducesChangelog) ||
       (form.source.sourceHasPrimaryKey !== undefined &&
         (form.source.sourceHasPrimaryKey
-          ? form.sink.writeMode !== "RETRACT"
+          ? form.sink.writeMode !== "RETRACT" || projectedRetract
           : initialLoad &&
             (!continuous || draft.targetType === "MYSQL") &&
             !form.sink.schemaChangesEnabled &&

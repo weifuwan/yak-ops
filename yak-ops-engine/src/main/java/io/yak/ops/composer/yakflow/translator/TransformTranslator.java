@@ -20,6 +20,9 @@ import io.yak.ops.core.schema.SchemaUtils;
 import io.yak.ops.flow.runtime.operators.OneInputStreamOperator;
 import io.yak.ops.flow.runtime.transformations.OneInputTransformation;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -27,11 +30,26 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.flink.cdc.common.pipeline.DecimalPrecisionMode;
 import org.apache.flink.cdc.common.schema.Selectors;
 import org.apache.flink.cdc.common.source.SupportedMetadataColumn;
@@ -42,6 +60,8 @@ import org.apache.flink.cdc.runtime.operators.transform.TransformFilter;
 import org.apache.flink.cdc.runtime.operators.transform.TransformFilterProcessor;
 import org.apache.flink.cdc.runtime.operators.transform.TransformProjectionProcessor;
 import org.apache.flink.cdc.runtime.parser.TransformParser;
+import org.apache.flink.cdc.runtime.parser.metadata.MetadataColumns;
+import org.apache.flink.cdc.runtime.parser.metadata.TransformSqlOperatorTable;
 
 /** Uses Flink CDC's SQL parser and expression processors in YakFlow mailbox operators. */
 public final class TransformTranslator {
@@ -94,6 +114,143 @@ public final class TransformTranslator {
     public Schema transformSchema(TableId table, Schema source) {
         CompiledTransform transform = compile(table, source);
         return transform == null ? source : transform.output;
+    }
+
+    /** Pins the effective row semantics independently of task versions, presentation and execution identity. */
+    public String semanticRevision(TableId table) {
+        TransformDef transform = rule(table);
+        String projection = transform == null || !present(transform.getProjection()) ? "*" : transform.getProjection();
+        String filter = transform == null ? null : transform.getFilter();
+        String keys = transform == null || !present(transform.getPrimaryKeys())
+                ? ""
+                : Arrays.stream(transform.getPrimaryKeys().split(",", -1))
+                        .map(String::trim)
+                        .collect(Collectors.joining(","));
+        SqlNode where = TransformParser.parseFilterExpression(filter).getWhere();
+        String semantics = "transform-v1"
+                + encodePart(projectionExpression(projection).toString())
+                + encodePart(where == null ? null : where.toString())
+                + encodePart(keys)
+                + encodePart(timezone)
+                + encodePart(decimalMode.name());
+        try {
+            return HexFormat.of()
+                    .formatHex(MessageDigest.getInstance("SHA-256").digest(semantics.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 is unavailable", impossible);
+        }
+    }
+
+    /** Full-row retractions must reproduce the original projected row and its filter result. */
+    public void validateRetraction(TableId table) {
+        TransformDef transform = rule(table);
+        if (transform == null) return;
+        String projection = present(transform.getProjection()) ? transform.getProjection() : "*";
+        for (SqlNode column : projectionExpression(projection)) {
+            SqlNode expression =
+                    column instanceof SqlCall call && call.getKind() == SqlKind.AS ? call.operand(0) : column;
+            if (expression instanceof SqlIdentifier identifier) {
+                requireRepeatable(identifier, true);
+            } else {
+                requireRepeatable(expression);
+            }
+        }
+        requireRepeatable(
+                TransformParser.parseFilterExpression(transform.getFilter()).getWhere());
+    }
+
+    private static SqlNodeList projectionExpression(String projection) {
+        return TransformParser.parseSelect("SELECT " + projection + " FROM TB").getSelectList();
+    }
+
+    private static String encodePart(String value) {
+        return value == null ? "-1:" : value.length() + ":" + value;
+    }
+
+    private static void requireRepeatable(SqlNode expression) {
+        if (expression == null) return;
+        if (expression instanceof SqlIdentifier identifier) {
+            requireRepeatable(identifier, false);
+        } else if (expression instanceof SqlNodeList nodes) {
+            for (SqlNode node : nodes) requireRepeatable(node);
+        } else if (expression instanceof SqlCall call) {
+            if (call.getKind() == SqlKind.AS) {
+                requireRepeatable(call.operand(0));
+                return;
+            }
+            SqlOperator operator = call.getOperator();
+            if (operator instanceof SqlFunction) {
+                List<SqlOperator> resolved = operators(operator.getNameAsId(), operator.getSyntax()).stream()
+                        .filter(candidate -> candidate.getOperandCountRange().isValidCount(call.operandCount()))
+                        .toList();
+                if (resolved.isEmpty()) throw unstableRetraction();
+                for (SqlOperator candidate : resolved) requireRepeatable(candidate, call.operandCount());
+            } else {
+                requireRepeatable(operator, call.operandCount());
+            }
+            for (SqlNode operand : call.getOperandList()) requireRepeatable(operand);
+        } else if (!(expression instanceof SqlLiteral)
+                && !(expression instanceof SqlDataTypeSpec)
+                && !(expression instanceof SqlIntervalQualifier)) {
+            throw unstableRetraction();
+        }
+    }
+
+    private static void requireRepeatable(SqlIdentifier identifier, boolean directProjection) {
+        if (identifier.isStar()) return;
+        requireStableMetadata(identifier);
+        // Direct projections forward quoted columns and names of functions that require parentheses.
+        // Nested calculations and filters use Janino, which also resolves these temporal names.
+        if (directProjection && identifier.isComponentQuoted(identifier.names.size() - 1)) return;
+        List<SqlSyntax> syntaxes =
+                directProjection ? List.of(SqlSyntax.FUNCTION_ID) : List.of(SqlSyntax.FUNCTION, SqlSyntax.FUNCTION_ID);
+        String name = identifier.names.getLast();
+        for (SqlSyntax syntax : syntaxes) {
+            for (SqlOperator operator : operators(new SqlIdentifier(name, SqlParserPos.ZERO), syntax)) {
+                if (operator instanceof SqlFunction function
+                        && function.getFunctionType() == SqlFunctionCategory.TIMEDATE
+                        && operator.getOperandCountRange().isValidCount(0)) requireRepeatable(operator, 0);
+            }
+        }
+    }
+
+    private static void requireStableMetadata(SqlIdentifier identifier) {
+        String name = identifier.names.getLast();
+        boolean metadata = MetadataColumns.METADATA_COLUMNS.stream().anyMatch(column -> column.f0.equals(name))
+                || Arrays.stream(METADATA).anyMatch(column -> column.getName().equals(name));
+        if (metadata
+                && !Set.of(
+                                MetadataColumns.DEFAULT_NAMESPACE_NAME,
+                                MetadataColumns.DEFAULT_SCHEMA_NAME,
+                                MetadataColumns.DEFAULT_TABLE_NAME)
+                        .contains(name)) {
+            throw unstableRetraction();
+        }
+    }
+
+    private static List<SqlOperator> operators(SqlIdentifier name, SqlSyntax syntax) {
+        List<SqlOperator> operators = new ArrayList<>();
+        TransformSqlOperatorTable.instance()
+                .lookupOperatorOverloads(name, null, syntax, operators, SqlNameMatchers.withCaseSensitive(false));
+        return operators;
+    }
+
+    private static void requireRepeatable(SqlOperator operator, int arguments) {
+        // The upstream UNIX_TIMESTAMP declaration combines clock-based and input-based overloads.
+        if (!operator.isDeterministic()
+                || operator.isDynamicFunction()
+                || (operator == TransformSqlOperatorTable.UNIX_TIMESTAMP && arguments == 0)
+                || (operator instanceof SqlFunction function
+                        && function.getFunctionType().isUserDefined()
+                        && operator != TransformSqlOperatorTable.PARSE_JSON
+                        && operator != TransformSqlOperatorTable.TRY_PARSE_JSON)) {
+            throw unstableRetraction();
+        }
+    }
+
+    private static IllegalArgumentException unstableRetraction() {
+        return new IllegalArgumentException(
+                "RETRACT transforms require deterministic expressions without event-dependent metadata");
     }
 
     /** Retains physical uniqueness only for columns forwarded without a calculation or rename. */

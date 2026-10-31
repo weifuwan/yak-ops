@@ -17,10 +17,16 @@ import io.yak.ops.connector.jdbc.source.MySqlDataSourceFactory;
 import io.yak.ops.connector.jdbc.sink.MySqlDataSinkFactory;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
+import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.api.connector.sink.SchemaEvolutionSink;
+import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.data.GenericRowData;
+import io.yak.ops.core.event.DataChangeEvent;
 import io.yak.ops.core.factories.DataSourceFactory;
+import io.yak.ops.core.function.HashFunction;
+import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.source.DataSource;
 import io.yak.ops.core.sink.DataSink;
 import io.yak.ops.core.types.Column;
@@ -89,6 +95,34 @@ class JdbcFactoryCreationTest {
         assertThrows(IllegalArgumentException.class, () -> factories.source("JDBC"));
         assertThrows(IllegalArgumentException.class, () -> factories.source("MYSQL_CDC"));
         assertThrows(IllegalArgumentException.class, () -> factories.sink("jdbc-mysql").validateDatasource("ORACLE"));
+    }
+
+    @Test
+    void configuredMutationCapabilitySelectsTableOrderingWithoutDisablingAppendOnlyKeyDistribution() {
+        Configuration options = configuration().set(JdbcSinkOptions.WRITE_MODE, JdbcWriteMode.UPSERT);
+        TableSinkFactoryContext table = new TableSinkFactoryContext(
+                options.toReadonlyConfig(), TABLE, SCHEMA, TABLE, SCHEMA);
+        Schema schema = Schema.from(SCHEMA, null, Map.of(), Map.of());
+        MySqlDataSinkFactory factory = new MySqlDataSinkFactory();
+        DataSink unknownSource = factory.createDataSink(sinkContext(table));
+        DataSink appendOnly = factory.createDataSink(new SinkFactoryContext(
+                List.of(table), new Configuration(), getClass().getClassLoader(), (id, value) -> value,
+                Map.of(TABLE, schema), false));
+        DataSink boundedChangelog = factory.createDataSink(new SinkFactoryContext(
+                List.of(table), new Configuration().set(ExecutionOptions.RUNTIME_MODE, RuntimeExecutionMode.BATCH),
+                getClass().getClassLoader(), (id, value) -> value,
+                Map.of(TABLE, schema), true));
+        DataChangeEvent first = DataChangeEvent.insertEvent(TABLE, GenericRowData.of(1L));
+        DataChangeEvent second = DataChangeEvent.insertEvent(TABLE, GenericRowData.of(2L));
+        for (DataSink changelog : List.of(unknownSource, boundedChangelog)) {
+            HashFunction<DataChangeEvent> hash = changelog.getDataChangeEventHashFunctionProvider(3)
+                    .getHashFunction(TABLE, schema);
+            assertEquals(hash.hashcode(first), hash.hashcode(second));
+        }
+        HashFunction<DataChangeEvent> hash = appendOnly.getDataChangeEventHashFunctionProvider(3)
+                .getHashFunction(TABLE, schema);
+        assertTrue(Math.floorMod(hash.hashcode(first), 3) != Math.floorMod(hash.hashcode(second), 3),
+                "Append-only rows must retain the existing key distribution");
     }
 
     private static Configuration configuration() {

@@ -76,6 +76,7 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
   const initialLoad = draft.steps.includes("FULL");
   const usesChangelog = draft.sourceProducesChangelog;
   const continuous = usesChangelog && draft.steps.includes("INCREMENTAL");
+  const hasTransforms = Boolean((initialTask?.transforms ?? draft.form?.transforms)?.length);
 
   const [form, setForm] = useState<EditorForm>(() => {
     const value = initialTask || draft.form;
@@ -271,6 +272,7 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
     selectedSourceDataSource,
     selectedTargetDataSource,
     draft,
+    hasTransforms,
     supportsScheduling,
     scheduleLoading,
     scheduleNeedsReload,
@@ -413,7 +415,9 @@ export function TaskEditor({ draft, task: initialTask, connections = [] }: TaskE
               updateSourceSelection((current) => selectSourceTable(current, table, continuous))
             }
             onSourcePrimaryKeys={(hasPrimaryKey) =>
-              setForm((current) => setSourcePrimaryKeys(current, hasPrimaryKey, continuous))
+              setForm((current) =>
+                setSourcePrimaryKeys(current, hasPrimaryKey, continuous, hasTransforms),
+              )
             }
           />
 

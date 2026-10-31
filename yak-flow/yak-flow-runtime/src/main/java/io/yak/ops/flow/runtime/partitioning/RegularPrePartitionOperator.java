@@ -5,6 +5,7 @@ import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.CreateTableEvent;
 import io.yak.ops.core.event.DataChangeEvent;
 import io.yak.ops.core.event.Event;
+import io.yak.ops.core.event.OperationType;
 import io.yak.ops.core.event.SchemaChangeEvent;
 import io.yak.ops.core.function.HashFunction;
 import io.yak.ops.core.function.HashFunctionProvider;
@@ -80,11 +81,23 @@ public final class RegularPrePartitionOperator implements OneInputStreamOperator
             if (hashFunction == null) {
                 throw new IllegalStateException("Data change precedes the table's CREATE_TABLE event");
             }
-            int target = Math.floorMod(hashFunction.hashcode(hashContext, dataChange), downstreamParallelism);
+            int target = partition(hashFunction, dataChange);
+            if (dataChange.op() == OperationType.UPDATE && downstreamParallelism > 1) {
+                int before = partition(hashFunction, dataChange.withImages(dataChange.before(), dataChange.before()));
+                int after = partition(hashFunction, dataChange.withImages(dataChange.after(), dataChange.after()));
+                if (before != target || after != target) {
+                    throw new UnsupportedOperationException(
+                            "Atomic UPDATE images must belong to the same sink partition");
+                }
+            }
             output.collect(PartitioningEvent.ofRegular(dataChange, target));
         } else {
             throw new UnsupportedOperationException(
                     "Unsupported pipeline event: " + element.getClass().getName());
         }
+    }
+
+    private int partition(HashFunction<DataChangeEvent> hashFunction, DataChangeEvent event) {
+        return Math.floorMod(hashFunction.hashcode(hashContext, event), downstreamParallelism);
     }
 }

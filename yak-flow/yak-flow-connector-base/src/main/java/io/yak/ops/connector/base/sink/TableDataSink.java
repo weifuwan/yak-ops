@@ -5,7 +5,9 @@ import io.yak.ops.core.api.connector.sink.MetadataApplier;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
+import io.yak.ops.core.event.DataChangeEvent;
 import io.yak.ops.core.event.Event;
+import io.yak.ops.core.function.HashFunctionProvider;
 import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.sink.DataSink;
 import io.yak.ops.core.sink.EventSinkProvider;
@@ -19,25 +21,19 @@ import java.util.function.Supplier;
 public final class TableDataSink implements DataSink {
     private final EventSinkProvider provider;
     private final Supplier<? extends MetadataApplier> metadata;
-
-    public TableDataSink(
-            Sink<TableRecord> sink,
-            List<TableSinkFactoryContext> tables,
-            Supplier<? extends MetadataApplier> metadata) {
-        Sink<Event> eventSink = TableEventSink.of(sink, tables);
-        this.provider = () -> eventSink;
-        this.metadata = Objects.requireNonNull(metadata, "metadata");
-    }
+    private final HashFunctionProvider<DataChangeEvent> hashFunctionProvider;
 
     public TableDataSink(
             Sink<TableRecord> sink,
             List<TableSinkFactoryContext> tables,
             Supplier<? extends MetadataApplier> metadata,
             BiFunction<TableId, Schema, Schema> sourceSchemaTransform,
-            Map<TableId, Schema> sourceSchemas) {
+            Map<TableId, Schema> sourceSchemas,
+            HashFunctionProvider<DataChangeEvent> hashFunctionProvider) {
         Sink<Event> eventSink = TableEventSink.of(sink, tables, sourceSchemaTransform, sourceSchemas);
         this.provider = () -> eventSink;
         this.metadata = Objects.requireNonNull(metadata, "metadata");
+        this.hashFunctionProvider = Objects.requireNonNull(hashFunctionProvider, "hashFunctionProvider");
     }
 
     @Override
@@ -48,5 +44,10 @@ public final class TableDataSink implements DataSink {
     @Override
     public MetadataApplier getMetadataApplier() {
         return Objects.requireNonNull(metadata.get(), "metadata");
+    }
+
+    @Override
+    public HashFunctionProvider<DataChangeEvent> getDataChangeEventHashFunctionProvider() {
+        return hashFunctionProvider;
     }
 }

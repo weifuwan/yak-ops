@@ -74,7 +74,9 @@ public final class IncrementalBatchPreparation {
                     + '|'
                     + table.source().revision()
                     + '|'
-                    + table.targetDatasource().revision());
+                    + table.targetDatasource().revision()
+                    + '|'
+                    + table.transformRevision());
             proposals.add(TaskCursorBatch.proposal(
                     tableId,
                     binding,

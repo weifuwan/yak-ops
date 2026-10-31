@@ -47,11 +47,12 @@ export function selectSourceTable(
   };
 }
 
-/** Real source metadata selects the write intent without a product-level keyless flag. */
+/** Raw keys select defaults only when no transform can change the sink write identity. */
 export function setSourcePrimaryKeys(
   form: EditorForm,
   hasPrimaryKey: boolean,
   continuous: boolean,
+  hasTransforms = false,
 ): EditorForm {
   if (form.source.sourceHasPrimaryKey === hasPrimaryKey) return form;
   const retract = !hasPrimaryKey && form.sink.targetPrimaryKeys.length === 0;
@@ -61,7 +62,7 @@ export function setSourcePrimaryKeys(
     sink: continuous
       ? {
           ...form.sink,
-          writeMode: retract ? "RETRACT" : "UPSERT",
+          writeMode: hasTransforms ? form.sink.writeMode : retract ? "RETRACT" : "UPSERT",
           schemaChangesEnabled: hasPrimaryKey ? form.sink.schemaChangesEnabled : false,
           allowDropColumns: hasPrimaryKey ? form.sink.allowDropColumns : false,
         }

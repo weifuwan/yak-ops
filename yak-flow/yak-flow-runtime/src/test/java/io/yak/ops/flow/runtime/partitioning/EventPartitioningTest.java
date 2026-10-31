@@ -3,11 +3,13 @@ package io.yak.ops.flow.runtime.partitioning;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.connector.source.InputStatus;
+import io.yak.ops.core.data.ChangeEventId;
 import io.yak.ops.core.data.GenericRowData;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.AddColumnEvent;
@@ -15,6 +17,7 @@ import io.yak.ops.core.event.CreateTableEvent;
 import io.yak.ops.core.event.DataChangeEvent;
 import io.yak.ops.core.event.Event;
 import io.yak.ops.core.function.HashFunction;
+import io.yak.ops.core.function.HashFunctionProvider;
 import io.yak.ops.core.schema.PhysicalColumn;
 import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.sink.DefaultDataChangeEventHashFunctionProvider;
@@ -31,6 +34,7 @@ import io.yak.ops.flow.runtime.io.partition.ResultPartition;
 import io.yak.ops.flow.runtime.io.partitioner.EventPartitioner;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class EventPartitioningTest {
@@ -105,6 +109,45 @@ class EventPartitioningTest {
         assertTrue(first >= 0);
         assertThrows(IllegalArgumentException.class, () -> hash.hashcode(DataChangeEvent.insertEvent(
                 new TableId("other", null, "products"), GenericRowData.of(new byte[] {1, 2, 3}))));
+    }
+
+    @Test
+    void rejectsCrossPartitionAtomicUpdatesBeforeEmittingEitherImage() throws Exception {
+        HashFunctionProvider<DataChangeEvent> beforeImageHash = (table, schema) -> event ->
+                (event.before() == null ? event.after() : event.before()).getInt(0);
+        for (HashFunctionProvider<DataChangeEvent> provider :
+                List.of(new DefaultDataChangeEventHashFunctionProvider(), beforeImageHash)) {
+            RegularPrePartitionOperator operator = new RegularPrePartitionOperator(2, provider);
+            operator.setup(taskInfo(0, 1));
+            List<PartitioningEvent> events = new ArrayList<>();
+            operator.processElement(new CreateTableEvent(TABLE, SCHEMA), events::add);
+            events.clear();
+            DataChangeEvent update = DataChangeEvent.updateEvent(
+                    TABLE, GenericRowData.of(1), GenericRowData.of(2), Map.of("origin", "native-source"))
+                    .withChangeEventId(new ChangeEventId("source", "update-1", 0, 2));
+            assertThrows(UnsupportedOperationException.class, () -> operator.processElement(update, events::add));
+            assertTrue(events.isEmpty(), "A rejected UPDATE must emit neither image");
+        }
+    }
+
+    @Test
+    void updatesWithinOneDestinationRetainTheirAtomicEventAndCheckpointIdentity() throws Exception {
+        for (int parallelism : List.of(1, 2)) {
+            RegularPrePartitionOperator operator = new RegularPrePartitionOperator(
+                    parallelism, new DefaultDataChangeEventHashFunctionProvider());
+            operator.setup(taskInfo(0, 1));
+            List<PartitioningEvent> events = new ArrayList<>();
+            operator.processElement(new CreateTableEvent(TABLE, SCHEMA), events::add);
+            events.clear();
+            ChangeEventId identity = new ChangeEventId("source", "update-2", 0, 2);
+            DataChangeEvent update = DataChangeEvent.updateEvent(
+                    TABLE, GenericRowData.of(1), GenericRowData.of(3), Map.of("origin", "native-source"))
+                    .withChangeEventId(identity);
+            operator.processElement(update, events::add);
+            assertEquals(1, events.size());
+            assertSame(update, events.getFirst().getPayload());
+            assertEquals(identity, ((DataChangeEvent) events.getFirst().getPayload()).changeEventId());
+        }
     }
 
     @Test

@@ -10,6 +10,14 @@ public interface DataSink {
 
     MetadataApplier getMetadataApplier();
 
+    /**
+     * Returns deterministic routing that keeps mutations of the same write identity together.
+     *
+     * <p>An UPDATE stays indivisible. Its before image, after image and complete event must
+     * select the same writer; the runtime rejects a change crossing writer partitions.
+     * Sinks accepting mutable write keys can preserve ordering by routing the whole table
+     * to one writer, including earlier mutations and reuse of a previous key.
+     */
     default HashFunctionProvider<DataChangeEvent> getDataChangeEventHashFunctionProvider() {
         return new DefaultDataChangeEventHashFunctionProvider();
     }

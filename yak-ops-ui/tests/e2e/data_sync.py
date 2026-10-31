@@ -382,3 +382,90 @@ async def verify_realtime_stages(page):
     await page.reload()
     await expect(page.get_by_role("progressbar", name="增量同步", exact=True)).to_have_attribute(
         "aria-valuetext", "观测已过期")
+
+
+async def verify_editor_round_trip(page):
+    """Load saved Pipeline intent, resolve raw metadata, then edit and save the actual form."""
+    from copy import deepcopy
+    from mock_api import params, sources, task
+
+    config = deepcopy(params)
+    config["source"]["type"] = "mysql"
+    del config["source"]["syncMode"]
+    config["sink"]["tables"][0]["write"] = {"mode": "UPSERT"}
+    config["sink"]["schemaPolicy"]["evolution"] = {"enabled": True, "allowDropColumns": True}
+    config["pipeline"] = {
+        "execution.runtime-mode": "STREAMING", "pipeline.table-scope": "SINGLE",
+        "schema.change.behavior": "evolve", "name": "orders-pipeline",
+        "parallelism": 2, "local-time-zone": "Asia/Shanghai",
+    }
+    state["task"] = {**task, "status": "UNPUBLISHED", "parameters": config}
+    await page.goto(site("/data-sync/task1/edit"))
+    await expect(page.get_by_role("textbox", name="任务名称", exact=True)).to_have_value(task["name"])
+    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
+    await expect(page.locator("#env").get_by_text("流式", exact=True)).to_be_visible()
+    assert any("/src/catalog/columns" in request[1] for request in state["requests"])
+
+    schema_switch = page.get_by_role("switch", name="同步结构变更", exact=True)
+    await expect(schema_switch).to_be_checked()
+    for enabled in (False, True):
+        await schema_switch.click()
+        async with page.expect_response(
+                lambda response: response.request.method == "PUT"
+                and response.url.endswith("/api/v1/task-definitions/task1")):
+            await page.get_by_role("button", name="保存", exact=True).click()
+        saved = [request[2]["parameters"] for request in state["requests"]
+                 if request[0] == "PUT" and request[1] == "/api/v1/task-definitions/task1"][-1]
+        assert saved["source"]["startup"] == {"mode": "INITIAL"}, saved
+        assert "syncMode" not in saved["source"]
+        assert saved["pipeline"]["execution.runtime-mode"] == "STREAMING"
+        assert saved["sink"]["schemaPolicy"]["evolution"] == {
+            "enabled": enabled, "allowDropColumns": False,
+        }
+        assert saved["pipeline"]["schema.change.behavior"] == ("evolve" if enabled else "exception")
+        for key in ("name", "parallelism", "local-time-zone"):
+            assert saved["pipeline"][key] == config["pipeline"][key]
+        await page.reload()
+        await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
+        if enabled:
+            await expect(schema_switch).to_be_checked()
+        else:
+            await expect(schema_switch).not_to_be_checked()
+
+    state["data_sources"] = [*sources, {
+        "id": "mysql-dst", "name": "MySQL target", "dbType": "MYSQL", "database": "ods",
+    }]
+    state["source_columns"] = [
+        {"name": "id", "typeName": "BIGINT", "nullable": False, "primaryKey": True},
+        {"name": "bucket", "typeName": "INT", "nullable": False, "primaryKey": False},
+    ]
+    projected = deepcopy(saved)
+    projected["sink"]["type"] = "jdbc-mysql"
+    projected["sink"]["datasourceId"] = "mysql-dst"
+    projected["sink"]["schemaPolicy"]["evolution"] = {"enabled": False, "allowDropColumns": False}
+    projected["sink"]["tables"] = [{"database": "ods", "table": "ods_orders", "write": {
+        "mode": "RETRACT", "transaction": {"mode": "CHECKPOINT_XA"},
+    }}]
+    projected["route"] = [{"source-table": "app.orders", "sink-table": "ods.ods_orders"}]
+    projected["transform"] = [{"source-table": "app.orders", "projection": "bucket"}]
+    projected["pipeline"]["schema.change.behavior"] = "exception"
+    state["task"] = {**state["task"], "parameters": projected}
+    await page.reload()
+    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
+    writer = page.locator("#target").get_by_role("combobox").last
+    await expect(writer).to_contain_text("逐行更新")
+    await pick_option(page, page.locator("#source").get_by_role("combobox").last, "id")
+    async with page.expect_response(
+            lambda response: response.request.method == "PUT"
+            and response.url.endswith("/api/v1/task-definitions/task1")):
+        await page.get_by_role("button", name="保存", exact=True).click()
+    saved_projection = [request[2]["parameters"] for request in state["requests"]
+                        if request[0] == "PUT" and request[1] == "/api/v1/task-definitions/task1"][-1]
+    assert saved_projection["source"]["tables"][0]["snapshot"] == {"chunkKeyColumn": "id"}
+    assert saved_projection["sink"]["tables"][0]["write"] == {
+        "mode": "RETRACT", "transaction": {"mode": "CHECKPOINT_XA"},
+    }
+    assert saved_projection["transform"] == projected["transform"]
+    await page.reload()
+    await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
+    await expect(writer).to_contain_text("逐行更新")

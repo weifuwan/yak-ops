@@ -209,6 +209,93 @@ class TransformTranslatorTest {
         assertEquals(GenericRowData.of(4, "+U"), ((DataChangeEvent) events.getLast()).after());
     }
 
+    @Test
+    void retractRejectsNestedClockRandomAndEventContextExpressions() {
+        for (String projection : List.of(
+                "id, UNIX_TIMESTAMP() AS stamp",
+                "id, CAST(unix_timestamp /* clock */ () AS BIGINT) AS stamp",
+                "id, NOW() AS stamp",
+                "id, CURRENT_TIMESTAMP AS stamp",
+                "id, LOCALTIMESTAMP AS stamp",
+                "id, CURRENT_TIME AS stamp",
+                "id, LOCALTIME AS stamp",
+                "id, CURRENT_DATE AS stamp",
+                "id, UUID() AS stamp",
+                "id, CASE WHEN __data_event_type__ = '+I' THEN amount ELSE amount + 1 END AS stamp",
+                "id, unknown_function(amount) AS stamp")) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> translator(projection, null).validateRetraction(TABLE), projection);
+        }
+        for (String filter : List.of("UNIX_TIMESTAMP() > 0", "__data_event_type__ = '+I'",
+                "CURRENT_TIMESTAMP > TO_TIMESTAMP('2026-01-01 00:00:00')")) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> translator("id, amount", filter).validateRetraction(TABLE), filter);
+        }
+    }
+
+    @Test
+    void retractKeepsDeterministicSqlAndReconstructsTheSameBeforeImage() throws Exception {
+        TransformTranslator translator = translator(
+                "id, ABS(amount) AS magnitude, UNIX_TIMESTAMP('2026-01-01 00:00:00') AS stamp, "
+                        + "CHAR_LENGTH('UNIX_TIMESTAMP() __data_event_type__') AS literal_length",
+                "amount > 0 AND __table_name__ = 'orders'");
+        assertDoesNotThrow(() -> translator.validateRetraction(TABLE));
+        assertDoesNotThrow(() -> translator("id AS NOW, amount AS UUID", null).validateRetraction(TABLE));
+        assertDoesNotThrow(() -> translator("UUID, CAST(PARSE_JSON('1') AS BIGINT) AS numeric_json", null)
+                .validateRetraction(TABLE));
+        OneInputStreamOperator<Event, Event> operator = translator.createOperator();
+        List<Event> events = new ArrayList<>();
+        operator.processElement(new CreateTableEvent(TABLE, SCHEMA), events::add);
+        GenericRowData row = GenericRowData.of(1, "alice", 5);
+        operator.processElement(DataChangeEvent.insertEvent(TABLE, row, Map.of("origin", "snapshot")), events::add);
+        operator.processElement(DataChangeEvent.deleteEvent(TABLE, row, Map.of("origin", "binlog")), events::add);
+        assertEquals(3, events.size());
+        assertEquals(((DataChangeEvent) events.get(1)).after(), ((DataChangeEvent) events.get(2)).before());
+    }
+
+    @Test
+    void retractChecksOnlyTheEffectiveRuleForTheAdmittedTable() {
+        PipelineDef definition = definition("id, amount", null);
+        definition.getTransforms().add(new TransformDef("shop.orders", "id, UNIX_TIMESTAMP() AS stamp", null,
+                null, null, null, null, null));
+        assertDoesNotThrow(() -> new TransformTranslator(definition).validateRetraction(TABLE));
+        TableId physical = new TableId("application", "shop", "orders");
+        assertThrows(IllegalArgumentException.class, () -> new TransformTranslator(definition("id, UNIX_TIMESTAMP() AS stamp", null),
+                Map.of(physical, new TableId(null, "shop", "orders"))).validateRetraction(physical));
+    }
+
+    @Test
+    void retractPreservesPhysicalTimeNamesWithoutAllowingNestedClockExpressions() throws Exception {
+        Schema physical = new Schema(List.of(
+                new PhysicalColumn("CURRENT_TIMESTAMP", LogicalTypes.BIGINT.copy(false)),
+                new PhysicalColumn("CURRENT_DATE", LogicalTypes.BIGINT.copy(false)),
+                new PhysicalColumn("NOW", LogicalTypes.BIGINT.copy(false)),
+                new PhysicalColumn("UNIX_TIMESTAMP", LogicalTypes.BIGINT.copy(false))), List.of());
+        TransformTranslator translator = translator(
+                "`CURRENT_TIMESTAMP`, `CURRENT_DATE` AS stored_date, NOW AS stored_now, UNIX_TIMESTAMP AS stored_epoch", null);
+        assertDoesNotThrow(() -> translator.validateRetraction(TABLE));
+        Schema projected = translator.transformSchema(TABLE, physical);
+        assertEquals(List.of("CURRENT_TIMESTAMP", "stored_date", "stored_now", "stored_epoch"),
+                projected.columns().stream().map(PhysicalColumn::name).toList());
+        assertTrue(projected.columns().stream().allMatch(column -> column.type().equals(LogicalTypes.BIGINT.copy(false))));
+        OneInputStreamOperator<Event, Event> operator = translator.createOperator();
+        List<Event> events = new ArrayList<>();
+        operator.processElement(new CreateTableEvent(TABLE, physical), events::add);
+        GenericRowData row = GenericRowData.of(7L, 8L, 9L, 10L);
+        operator.processElement(DataChangeEvent.insertEvent(TABLE, row), events::add);
+        operator.processElement(DataChangeEvent.deleteEvent(TABLE, row), events::add);
+        assertEquals(3, events.size());
+        assertEquals(row, ((DataChangeEvent) events.get(1)).after());
+        assertEquals(row, ((DataChangeEvent) events.get(2)).before());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> translator("CAST(`CURRENT_TIMESTAMP` AS BIGINT) AS clock_value", null).validateRetraction(TABLE));
+        assertThrows(IllegalArgumentException.class,
+                () -> translator("id", "`CURRENT_DATE` > 0").validateRetraction(TABLE));
+        assertThrows(IllegalArgumentException.class,
+                () -> translator("`__data_event_type__` AS operation", null).validateRetraction(TABLE));
+    }
+
     private static TransformTranslator withKeys(String projection, String keys) {
         PipelineDef definition = definition(projection, null);
         definition.getTransforms().set(0, new TransformDef("shop.orders", projection, null, keys, null, null, null, null));
