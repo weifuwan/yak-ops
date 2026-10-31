@@ -49,8 +49,8 @@ public class LocalRecoverableFsDataOutputStream
     private final OutputStream fos;
 
     public LocalRecoverableFsDataOutputStream(File targetFile, File tempFile) throws IOException {
-        this.targetFile = checkNotNull(targetFile);
-        this.tempFile = checkNotNull(tempFile);
+        this.targetFile = requireNonNull(targetFile);
+        this.tempFile = requireNonNull(tempFile);
 
         this.fileChannel =
                 FileChannel.open(
@@ -59,8 +59,8 @@ public class LocalRecoverableFsDataOutputStream
     }
 
     LocalRecoverableFsDataOutputStream(LocalRecoverable resumable) throws IOException {
-        this.targetFile = checkNotNull(resumable.targetFile());
-        this.tempFile = checkNotNull(resumable.tempFile());
+        this.targetFile = requireNonNull(resumable.targetFile());
+        this.tempFile = requireNonNull(resumable.tempFile());
 
         if (!tempFile.exists()) {
             throw new FileNotFoundException("File Not Found: " + tempFile.getAbsolutePath());
@@ -79,8 +79,8 @@ public class LocalRecoverableFsDataOutputStream
     @VisibleForTesting
     LocalRecoverableFsDataOutputStream(
             File targetFile, File tempFile, FileChannel fileChannel, OutputStream fos) {
-        this.targetFile = checkNotNull(targetFile);
-        this.tempFile = checkNotNull(tempFile);
+        this.targetFile = requireNonNull(targetFile);
+        this.tempFile = requireNonNull(tempFile);
         this.fileChannel = fileChannel;
         this.fos = fos;
     }
@@ -137,7 +137,7 @@ public class LocalRecoverableFsDataOutputStream
         private final LocalRecoverable recoverable;
 
         LocalCommitter(LocalRecoverable recoverable) {
-            this.recoverable = checkNotNull(recoverable);
+            this.recoverable = requireNonNull(recoverable);
         }
 
         @Override
