@@ -30,10 +30,10 @@ jobs:
         shell: bash
         run: |
           bash mvnw -B -ntp -pl yak-flow/yak-flow-runtime -am \
-            -Dtest=LocalRecoverableWriterTest,LocalCompletedCheckpointStoreTest,CheckpointRecoveryTest \
+            -Dtest=LocalRecoverableWriterTest,FsCheckpointStorageLocationTest,LocalCompletedCheckpointStoreTest,CheckpointRecoveryTest \
             -Dsurefire.failIfNoSpecifiedTests=false test
       - name: Checkpoint storage / recovery tests (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          .\mvnw.cmd -B -ntp -pl yak-flow/yak-flow-runtime -am "-Dtest=LocalRecoverableWriterTest,LocalCompletedCheckpointStoreTest,CheckpointRecoveryTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+          .\mvnw.cmd -B -ntp -pl yak-flow/yak-flow-runtime -am "-Dtest=LocalRecoverableWriterTest,FsCheckpointStorageLocationTest,LocalCompletedCheckpointStoreTest,CheckpointRecoveryTest" "-Dsurefire.failIfNoSpecifiedTests=false" test

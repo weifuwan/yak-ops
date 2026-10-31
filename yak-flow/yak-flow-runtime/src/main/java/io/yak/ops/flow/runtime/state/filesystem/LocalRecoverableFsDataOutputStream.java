@@ -31,8 +31,12 @@ import java.nio.channels.FileChannel;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Set;
 
 /** A {@link RecoverableFsDataOutputStream} for the local filesystem. */
 public class LocalRecoverableFsDataOutputStream
@@ -50,7 +54,18 @@ public class LocalRecoverableFsDataOutputStream
         this.targetFile = requireNonNull(targetFile);
         this.tempFile = requireNonNull(tempFile);
 
-        this.fileChannel = FileChannel.open(tempFile.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        Path tempFilePath = tempFile.toPath();
+        // Checkpoint payloads retain owner-only POSIX permissions from creation through commit.
+        // Other filesystems keep their native access-control inheritance.
+        if (Files.getFileStore(tempFilePath.toAbsolutePath().getParent())
+                .supportsFileAttributeView(PosixFileAttributeView.class)) {
+            this.fileChannel = FileChannel.open(
+                    tempFilePath,
+                    Set.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
+        } else {
+            this.fileChannel = FileChannel.open(tempFilePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+        }
         this.fos = Channels.newOutputStream(fileChannel);
     }
 
@@ -63,11 +78,21 @@ public class LocalRecoverableFsDataOutputStream
         }
 
         this.fileChannel = FileChannel.open(tempFile.toPath(), StandardOpenOption.WRITE, StandardOpenOption.APPEND);
-        if (this.fileChannel.position() < resumable.offset()) {
-            throw new IOException("Missing data in tmp file: " + tempFile.getAbsolutePath());
+        try {
+            if (this.fileChannel.position() < resumable.offset()) {
+                throw new IOException("Missing data in tmp file: " + tempFile.getAbsolutePath());
+            }
+            this.fileChannel.truncate(resumable.offset());
+            this.fos = Channels.newOutputStream(fileChannel);
+        } catch (IOException | RuntimeException failure) {
+            // A failed constructor has no stream owner to close the recovered file handle.
+            try {
+                fileChannel.close();
+            } catch (IOException closeFailure) {
+                failure.addSuppressed(closeFailure);
+            }
+            throw failure;
         }
-        this.fileChannel.truncate(resumable.offset());
-        this.fos = Channels.newOutputStream(fileChannel);
     }
 
     LocalRecoverableFsDataOutputStream(File targetFile, File tempFile, FileChannel fileChannel, OutputStream fos) {

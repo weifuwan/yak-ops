@@ -18,7 +18,7 @@ import java.util.zip.CRC32;
 final class CheckpointMetadataSerializer {
     private static final int MAGIC = 0x59414B43;
     private static final int FORMAT_VERSION = 2;
-    private static final int MAX_FILE_BYTES = 64 * 1024 * 1024;
+    static final int MAX_FILE_BYTES = 64 * 1024 * 1024;
     private static final int MAX_STATE_BYTES = 32 * 1024 * 1024;
     private static final int MAX_GROUPS = 64;
     private static final int MAX_SPLITS_PER_GROUP = 100_000;

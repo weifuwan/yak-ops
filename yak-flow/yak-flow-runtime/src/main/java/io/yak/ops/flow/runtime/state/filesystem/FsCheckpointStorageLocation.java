@@ -17,7 +17,12 @@
 package io.yak.ops.flow.runtime.state.filesystem;
 
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Objects;
 
 /** Local-only counterpart of Flink's FsCheckpointStorageLocation. */
@@ -41,7 +46,34 @@ public final class FsCheckpointStorageLocation {
     }
 
     public void disposeOnFailure() throws IOException {
-        java.nio.file.Files.deleteIfExists(getMetadataFilePath());
-        java.nio.file.Files.deleteIfExists(checkpointDirectory);
+        deleteCheckpointDirectory(checkpointDirectory);
+    }
+
+    /** Deletes the exclusively owned directory, including recoverable staging files, without following links. */
+    static void deleteCheckpointDirectory(Path checkpointDirectory) throws IOException {
+        Files.walkFileTree(checkpointDirectory, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) throws IOException {
+                Files.deleteIfExists(file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path file, IOException failure) throws IOException {
+                if (failure instanceof NoSuchFileException) {
+                    return FileVisitResult.CONTINUE;
+                }
+                throw failure;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path directory, IOException failure) throws IOException {
+                if (failure != null) {
+                    throw failure;
+                }
+                Files.deleteIfExists(directory);
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 }

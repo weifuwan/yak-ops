@@ -17,7 +17,6 @@
 package io.yak.ops.flow.runtime.state.filesystem;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -45,8 +44,8 @@ public final class FsCompletedCheckpointStorageLocation {
         return metadataSize;
     }
 
+    /** Discards this location's metadata and staging files together with its exclusively owned directory. */
     public void disposeStorageLocation() throws IOException {
-        Files.deleteIfExists(metadataFilePath);
-        Files.deleteIfExists(checkpointDirectory);
+        FsCheckpointStorageLocation.deleteCheckpointDirectory(checkpointDirectory);
     }
 }

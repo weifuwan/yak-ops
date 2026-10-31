@@ -44,11 +44,17 @@ public final class FsCheckpointMetadataOutputStream extends CheckpointMetadataOu
     private final MetadataOutputStreamWrapper outputStreamWrapper;
 
     public FsCheckpointMetadataOutputStream(Path metadataFilePath, Path exclusiveCheckpointDir) throws IOException {
+        this(
+                requireNonNull(metadataFilePath),
+                requireNonNull(exclusiveCheckpointDir),
+                getOutputStreamWrapper(metadataFilePath));
+    }
 
+    FsCheckpointMetadataOutputStream(
+            Path metadataFilePath, Path exclusiveCheckpointDir, MetadataOutputStreamWrapper outputStreamWrapper) {
         this.metadataFilePath = requireNonNull(metadataFilePath);
         this.exclusiveCheckpointDir = requireNonNull(exclusiveCheckpointDir);
-
-        this.outputStreamWrapper = getOutputStreamWrapper(metadataFilePath);
+        this.outputStreamWrapper = requireNonNull(outputStreamWrapper);
     }
 
     // ------------------------------------------------------------------------
@@ -118,9 +124,20 @@ public final class FsCheckpointMetadataOutputStream extends CheckpointMetadataOu
 
                     return new FsCompletedCheckpointStorageLocation(exclusiveCheckpointDir, metadataFilePath, size);
                 } catch (Exception e) {
+                    // A failed persist may leave the stream open; release it before removing its files.
+                    try {
+                        outputStreamWrapper.close();
+                    } catch (Exception closeException) {
+                        if (closeException != e) {
+                            e.addSuppressed(closeException);
+                        }
+                    }
                     try {
                         outputStreamWrapper.cleanup();
                     } catch (Exception deleteException) {
+                        if (deleteException != e) {
+                            e.addSuppressed(deleteException);
+                        }
                         LOG.warn("Could not delete the checkpoint stream file {}.", metadataFilePath, deleteException);
                     }
 

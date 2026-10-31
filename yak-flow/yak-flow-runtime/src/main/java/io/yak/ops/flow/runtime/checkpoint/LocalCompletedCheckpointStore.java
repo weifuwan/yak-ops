@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
@@ -27,6 +28,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,9 +51,12 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
     private static final String METADATA_FILE = "_metadata";
     private static final String COMPLETED_DIRECTORY = "completed";
     private static final String LEGACY_POINTER = "checkpoint.bin";
+    private static final Pattern MARKER_STAGING_FILE = Pattern.compile(
+            "\\.chk-([1-9][0-9]*)\\.inprogress\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
 
     private final Path directory;
     private final FsCheckpointStorageAccess checkpointStorage;
+    private final LocalRecoverableWriter markerWriter;
     private final FileChannel lockChannel;
     private final FileLock lock;
     private boolean closed;
@@ -58,9 +64,14 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
     private long lastCheckpointId;
 
     public LocalCompletedCheckpointStore(Path directory) throws IOException {
+        this(directory, new LocalRecoverableWriter());
+    }
+
+    LocalCompletedCheckpointStore(Path directory, LocalRecoverableWriter markerWriter) throws IOException {
         this.directory = Objects.requireNonNull(directory, "directory must not be null")
                 .toAbsolutePath()
                 .normalize();
+        this.markerWriter = Objects.requireNonNull(markerWriter, "markerWriter must not be null");
         Files.createDirectories(this.directory);
         this.checkpointStorage = new FsCheckpointStorageAccess(this.directory);
         lockChannel = FileChannel.open(
@@ -76,6 +87,16 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
             throw new IllegalStateException("Checkpoint state directory is locked by another job");
         }
         lock = acquired;
+        try {
+            discardMarkerStagingFiles();
+        } catch (IOException | RuntimeException failure) {
+            try {
+                close();
+            } catch (IOException | RuntimeException cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+            throw failure;
+        }
     }
 
     /**
@@ -103,7 +124,16 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
         String pointer = readCompletedPointer(marker, publishedId);
         FsCompletedCheckpointStorageLocation location = checkpointStorage.resolveCheckpoint(pointer);
         Path file = location.getMetadataFilePath();
-        CheckpointSnapshot snapshot = CheckpointMetadataSerializer.deserialize(Files.readAllBytes(file));
+        if (location.getMetadataSize() < 16
+                || location.getMetadataSize() > CheckpointMetadataSerializer.MAX_FILE_BYTES) {
+            throw new IOException("Invalid checkpoint file size");
+        }
+        CheckpointSnapshot snapshot;
+        try (InputStream in = Files.newInputStream(file)) {
+            // Bound the read as well as the size check in case the file grows after inspection.
+            snapshot = CheckpointMetadataSerializer.deserialize(
+                    in.readNBytes(CheckpointMetadataSerializer.MAX_FILE_BYTES + 1));
+        }
         if (snapshot.checkpointId() != publishedId) {
             throw new IOException("Checkpoint pointer references a different checkpoint ID");
         }
@@ -165,13 +195,23 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
             throw failure;
         }
         long previousCheckpointId = lastCheckpointId;
-        Files.createDirectories(marker.getParent());
-        byte[] pointerBytes = completedPointer(
-                checkpoint.checkpointId(),
-                target.getCheckpointDirectory().toUri().toString());
-        try (RecoverableFsDataOutputStream out = new LocalRecoverableWriter().open(marker)) {
-            out.write(pointerBytes);
-            out.closeForCommit().commit();
+        try {
+            Files.createDirectories(marker.getParent());
+            byte[] pointerBytes = completedPointer(
+                    checkpoint.checkpointId(),
+                    target.getCheckpointDirectory().toUri().toString());
+            try (RecoverableFsDataOutputStream out = markerWriter.open(marker)) {
+                out.write(pointerBytes);
+                out.closeForCommit().commit();
+            }
+        } catch (IOException | RuntimeException failure) {
+            try {
+                discardMarkerStagingFiles();
+            } catch (IOException | RuntimeException cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+            // A failed commit can have an uncertain outcome. Keep finalized metadata and markers.
+            throw failure;
         }
         lastCheckpointId = checkpoint.checkpointId();
         try {
@@ -270,6 +310,31 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
         }
     }
 
+    /** The exclusive store lock makes leftover local writer staging files safe to discard. */
+    private void discardMarkerStagingFiles() throws IOException {
+        Path completed = directory.resolve(COMPLETED_DIRECTORY);
+        if (!Files.exists(completed, LinkOption.NOFOLLOW_LINKS)) {
+            return;
+        }
+        if (!Files.isDirectory(completed, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("Checkpoint completed index is not a directory");
+        }
+        try (DirectoryStream<Path> entries = Files.newDirectoryStream(completed, ".chk-*.inprogress.*")) {
+            for (Path file : entries) {
+                Matcher name = MARKER_STAGING_FILE.matcher(file.getFileName().toString());
+                if (!name.matches() || !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                    continue;
+                }
+                try {
+                    Long.parseLong(name.group(1));
+                } catch (NumberFormatException invalid) {
+                    continue;
+                }
+                Files.deleteIfExists(file);
+            }
+        }
+    }
+
     /**
      * Keep the latest published checkpoint and its preceding completed checkpoint.
      *
@@ -277,6 +342,7 @@ public final class LocalCompletedCheckpointStore implements CompletedCheckpointS
      * restore. Cleanup is best effort and never invalidates a published checkpoint.
      */
     private void discardSubsumedCheckpoints(long current, long previous) throws IOException {
+        discardMarkerStagingFiles();
         Path checkpoints = directory.resolve(CHECKPOINT_DIRECTORY);
         try (DirectoryStream<Path> entries = Files.newDirectoryStream(checkpoints, "chk-*")) {
             for (Path child : entries) {

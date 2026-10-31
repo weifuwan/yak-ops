@@ -18,12 +18,17 @@ import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.configuration.Configuration;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
+import io.yak.ops.flow.runtime.state.filesystem.LocalRecoverableWriter;
+import io.yak.ops.flow.runtime.state.filesystem.RecoverableFsDataOutputStream;
 import io.yak.ops.flow.runtime.transformations.SinkTransformation;
 import io.yak.ops.flow.runtime.transformations.SourceTransformation;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -134,6 +139,143 @@ class LocalCompletedCheckpointStoreTest {
         Files.delete(folder.resolve("checkpoints/chk-1/_metadata"));
         try (LocalCompletedCheckpointStore reopened = new LocalCompletedCheckpointStore(folder)) {
             assertThrows(IOException.class, () -> reopened.loadLatest(signature));
+        }
+    }
+
+    @Test
+    void shouldRejectOversizedMetadataBeforeAllocatingItsContents() throws Exception {
+        String signature = LocalCompletedCheckpointStore.graphSignature(graph(1));
+        CheckpointSnapshot.SerializedState state = new CheckpointSnapshot.SerializedState(1, new byte[] {1});
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder)) {
+            store.save(new CheckpointSnapshot(1, signature, state, Map.of(), Map.of(), 100L));
+            Path metadata = folder.resolve("checkpoints/chk-1/_metadata");
+            for (long size : new long[] {CheckpointMetadataSerializer.MAX_FILE_BYTES + 1L, Integer.MAX_VALUE + 1L}) {
+                Files.delete(metadata);
+                // A sparse file beyond the maximum byte-array length detects an unbounded read
+                // without allocating a large byte array or writing gigabytes of test data.
+                try (FileChannel channel = FileChannel.open(
+                        metadata, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, StandardOpenOption.SPARSE)) {
+                    channel.position(size - 1);
+                    channel.write(ByteBuffer.wrap(new byte[] {0}));
+                }
+                assertEquals(size, Files.size(metadata));
+                IOException failure = assertThrows(IOException.class, () -> store.loadLatest(signature));
+                assertEquals("Invalid checkpoint file size", failure.getMessage());
+            }
+        }
+    }
+
+    @Test
+    void shouldCleanMarkerStagingAfterCommitFailureWithoutDiscardingFinalizedMetadata() throws Exception {
+        String signature = LocalCompletedCheckpointStore.graphSignature(graph(1));
+        CheckpointSnapshot.SerializedState state = new CheckpointSnapshot.SerializedState(1, new byte[] {1});
+        CheckpointSnapshot first = new CheckpointSnapshot(1, signature, state, Map.of(), Map.of(), 100L);
+        CheckpointSnapshot second = new CheckpointSnapshot(2, signature, state, Map.of(), Map.of(), 200L);
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder)) {
+            store.save(first);
+        }
+        Path metadata = folder.resolve("checkpoints/chk-2/_metadata");
+        Path marker = folder.resolve("completed/chk-2");
+        LocalRecoverableWriter failingWriter = new LocalRecoverableWriter() {
+            @Override
+            public RecoverableFsDataOutputStream open(Path target) throws IOException {
+                assertTrue(Files.isRegularFile(metadata), "Metadata must be finalized before marker publication");
+                RecoverableFsDataOutputStream stream = super.open(target);
+                // The marker was absent at validation and staging creation. A nonempty target
+                // directory now forces the real filesystem commit to fail on Linux and Windows.
+                Files.createDirectory(target);
+                Files.write(target.resolve("keep"), new byte[] {9});
+                return stream;
+            }
+        };
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder, failingWriter)) {
+            assertThrows(IOException.class, () -> store.save(second));
+            assertEquals(second, CheckpointMetadataSerializer.deserialize(Files.readAllBytes(metadata)));
+            assertArrayEquals(new byte[] {9}, Files.readAllBytes(marker.resolve("keep")));
+            assertNoMarkerStagingFiles();
+            // An unexpected completed-index entry must still fail closed.
+            assertThrows(IOException.class, () -> store.loadLatest(signature));
+            Files.delete(marker.resolve("keep"));
+            Files.delete(marker);
+            assertEquals(first, store.loadLatest(signature).orElseThrow());
+        }
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder)) {
+            assertEquals(first, store.loadLatest(signature).orElseThrow());
+            store.save(second);
+            assertEquals(second, store.loadLatest(signature).orElseThrow());
+        }
+    }
+
+    @Test
+    void shouldRemoveOnlyOwnedMarkerStagingFilesWhenReopened() throws Exception {
+        String signature = LocalCompletedCheckpointStore.graphSignature(graph(1));
+        CheckpointSnapshot.SerializedState state = new CheckpointSnapshot.SerializedState(1, new byte[] {1});
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder)) {
+            store.save(new CheckpointSnapshot(1, signature, state, Map.of(), Map.of(), 100L));
+        }
+        Path completed = folder.resolve("completed");
+        String uuid = "cbb40e4a-7975-4df0-9b3e-69947faf5eb6";
+        Path stale = Files.write(completed.resolve(".chk-2.inprogress." + uuid), new byte[] {1});
+        Path malformedId = Files.write(completed.resolve(".chk-0.inprogress." + uuid), new byte[] {2});
+        Path overflowingId = Files.write(
+                completed.resolve(".chk-9223372036854775808.inprogress." + uuid), new byte[] {3});
+        Path unrelated = Files.write(completed.resolve(".chk-2.inprogress.notes"), new byte[] {4});
+        Path stagingDirectory = Files.createDirectory(completed.resolve(".chk-3.inprogress." + uuid));
+        Path corruptMarker = Files.write(completed.resolve("chk-2"), new byte[] {5});
+        byte[] committed = Files.readAllBytes(completed.resolve("chk-1"));
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder)) {
+            assertFalse(Files.exists(stale));
+            assertArrayEquals(new byte[] {2}, Files.readAllBytes(malformedId));
+            assertArrayEquals(new byte[] {3}, Files.readAllBytes(overflowingId));
+            assertArrayEquals(new byte[] {4}, Files.readAllBytes(unrelated));
+            assertTrue(Files.isDirectory(stagingDirectory));
+            assertArrayEquals(new byte[] {5}, Files.readAllBytes(corruptMarker));
+            assertArrayEquals(committed, Files.readAllBytes(completed.resolve("chk-1")));
+            assertThrows(IOException.class, () -> store.loadLatest(signature));
+        }
+    }
+
+    @Test
+    void shouldAcquireTheStoreLockBeforeCleaningStaleMarkers() throws Exception {
+        Path staging;
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder)) {
+            Path completed = Files.createDirectory(folder.resolve("completed"));
+            staging = Files.write(
+                    completed.resolve(".chk-1.inprogress.cbb40e4a-7975-4df0-9b3e-69947faf5eb6"), new byte[] {1});
+            assertThrows(IllegalStateException.class, () -> new LocalCompletedCheckpointStore(folder));
+            assertTrue(Files.exists(staging));
+        }
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder)) {
+            assertFalse(Files.exists(staging));
+        }
+    }
+
+    @Test
+    void shouldReleaseTheStoreLockIfStartupCleanupFails() throws Exception {
+        Path completed = Files.write(folder.resolve("completed"), new byte[] {1});
+        IOException failure = assertThrows(IOException.class, () -> new LocalCompletedCheckpointStore(folder));
+        assertEquals("Checkpoint completed index is not a directory", failure.getMessage());
+        Files.delete(completed);
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder)) {
+            assertTrue(store.loadLatest("unused-signature").isEmpty());
+        }
+    }
+
+    @Test
+    void shouldCleanStaleMarkerFilesAfterSuccessfulPublication() throws Exception {
+        String signature = LocalCompletedCheckpointStore.graphSignature(graph(1));
+        CheckpointSnapshot.SerializedState state = new CheckpointSnapshot.SerializedState(1, new byte[] {1});
+        try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(folder)) {
+            store.save(new CheckpointSnapshot(1, signature, state, Map.of(), Map.of(), 100L));
+            Path completed = folder.resolve("completed");
+            Path stale = Files.write(
+                    completed.resolve(".chk-1.inprogress.cbb40e4a-7975-4df0-9b3e-69947faf5eb6"), new byte[] {1});
+            Path unrelated = Files.write(completed.resolve(".chk-1.inprogress.notes"), new byte[] {2});
+            store.save(new CheckpointSnapshot(2, signature, state, Map.of(), Map.of(), 200L));
+            assertFalse(Files.exists(stale));
+            assertArrayEquals(new byte[] {2}, Files.readAllBytes(unrelated));
+            assertTrue(Files.isRegularFile(completed.resolve("chk-1")));
+            assertEquals(2, store.loadLatest(signature).orElseThrow().checkpointId());
         }
     }
 
@@ -266,6 +408,12 @@ class LocalCompletedCheckpointStoreTest {
         Files.write(folder.resolve("checkpoint.bin"), new byte[] {1});
         try (LocalCompletedCheckpointStore reopened = new LocalCompletedCheckpointStore(folder)) {
             assertThrows(IOException.class, () -> reopened.loadLatest(signature));
+        }
+    }
+
+    private void assertNoMarkerStagingFiles() throws IOException {
+        try (DirectoryStream<Path> staging = Files.newDirectoryStream(folder.resolve("completed"), ".chk-*.inprogress.*")) {
+            assertFalse(staging.iterator().hasNext());
         }
     }
 
