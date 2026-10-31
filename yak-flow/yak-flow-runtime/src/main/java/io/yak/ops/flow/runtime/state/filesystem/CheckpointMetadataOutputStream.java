@@ -37,7 +37,7 @@ public abstract class CheckpointMetadataOutputStream extends FSDataOutputStream 
      * @return An object representing a finalized checkpoint storage location.
      * @throws IOException Thrown, if the stream cannot be closed or the finalization fails.
      */
-    public abstract CompletedCheckpointStorageLocation closeAndFinalizeCheckpoint()
+    public abstract FsCompletedCheckpointStorageLocation closeAndFinalizeCheckpoint()
             throws IOException;
 
     /**
