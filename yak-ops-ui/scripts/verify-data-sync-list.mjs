@@ -248,7 +248,7 @@ useTaskPage("user-a:workspace-a", { ...replicationFilter, productType: "SINGLE_T
 assert.notDeepEqual([...pageQuery.queryKey], replicationKey);
 
 const { TaskTable } = compile("../apps/web/app/data-sync/list/task-table.tsx", {
-  "@yak-ops/yak-ui": { Table: "Table", Skeleton: "Skeleton" },
+  "@yak-ops/yak-ui": { Table: "Table", Skeleton: "Skeleton", Button: "Button" },
   "react-router-dom": { useNavigate: () => () => {} },
   "@/app/schedule/task-schedule-cell": { TaskScheduleCell: "TaskScheduleCell" },
   "../execution/execution-progress-bar": { ExecutionProgressBar: "ExecutionProgressBar" },
@@ -295,7 +295,7 @@ assert.notEqual(renderCell("schedule", projected.bizData[0]).type, "TaskSchedule
 activeByTask.set(boundedReplication.id, { id: "active-snapshot", status: "RUNNING" });
 assert.equal(renderCell("actions", boundedReplication).props.runtimeAction.label, "停止");
 assert.equal(renderCell("actions", boundedReplication).props.runtimeAction.disabled, false);
-assert.equal(renderCell("actions", projected.bizData[1]).props.children, "不可操作");
+assert.equal(renderCell("actions", projected.bizData[1]).props.children, "查看");
 latestByTask.set(projected.bizData[0].id, {
   id: "previous-snapshot",
   status: "FINISHED",

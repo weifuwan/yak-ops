@@ -1,4 +1,5 @@
 import HttpUtils from "@/service/http/HttpUtils";
+import { BizError } from "@/service/http/request";
 import { connectorChoices, type PipelineConnectorPair } from "./connectors";
 import {
   cancelTaskInstance,
@@ -35,11 +36,18 @@ import type {
   DataSyncTaskUpdatePayload,
   TaskDefinitionPageResult,
   TaskDefinitionRecord,
+  TaskParameterVersion,
+  TaskParameterVersionSummary,
+  TaskPublicationRecord,
+  TaskVersionPage,
+  PublishTaskRequest,
 } from "./types";
 
 export type * from "./types";
 
 const TASK_DEFINITION_API_PREFIX = "/api/v1/task-definitions";
+
+export const isRejectedTaskWrite = (failure: unknown) => failure instanceof BizError;
 
 export const listDataSyncSolutions = async (
   sourceType: string,
@@ -92,11 +100,12 @@ export const createDataSyncTask = async (
 export const updateDataSyncTask = async (
   id: string,
   payload: DataSyncTaskUpdatePayload,
+  expectedRevision: number,
   signal?: AbortSignal,
 ): Promise<DataSyncTaskRecord> => {
   const definition = await HttpUtils.putData<TaskDefinitionRecord>(
     `${TASK_DEFINITION_API_PREFIX}/${id}`,
-    updateDefinitionRequest(payload),
+    updateDefinitionRequest(payload, expectedRevision),
     { signal },
   );
   return toSyncTaskRecord(definition);
@@ -108,16 +117,50 @@ export const deleteDataSyncTask = async (id: string): Promise<void> => {
 
 export const publishDataSyncTask = async (
   id: string,
+  payload: PublishTaskRequest,
   signal?: AbortSignal,
   locallyHandled = false,
 ): Promise<DataSyncTaskRecord> => {
   const definition = await HttpUtils.postData<TaskDefinitionRecord>(
     `${TASK_DEFINITION_API_PREFIX}/${id}/publish`,
-    undefined,
+    payload,
     { signal, skipErrorHandler: locallyHandled },
   );
   return toSyncTaskRecord(definition);
 };
+
+export const getTaskDefinition = (id: string, signal?: AbortSignal) =>
+  HttpUtils.getData<TaskDefinitionRecord>(`${TASK_DEFINITION_API_PREFIX}/${id}`, { signal });
+
+export const listTaskParameterVersions = (
+  id: string,
+  pageNo: number,
+  pageSize: number,
+  signal?: AbortSignal,
+) =>
+  HttpUtils.getData<TaskVersionPage<TaskParameterVersionSummary>>(
+    `${TASK_DEFINITION_API_PREFIX}/${id}/versions?${new URLSearchParams({ pageNo: String(pageNo), pageSize: String(pageSize) })}`,
+    { signal },
+  );
+
+export const getTaskParameterVersion = (id: string, version: number, signal?: AbortSignal) =>
+  HttpUtils.getData<TaskParameterVersion>(
+    `${TASK_DEFINITION_API_PREFIX}/${id}/versions/${version}`,
+    {
+      signal,
+    },
+  );
+
+export const listTaskPublications = (
+  id: string,
+  pageNo: number,
+  pageSize: number,
+  signal?: AbortSignal,
+) =>
+  HttpUtils.getData<TaskVersionPage<TaskPublicationRecord>>(
+    `${TASK_DEFINITION_API_PREFIX}/${id}/publications?${new URLSearchParams({ pageNo: String(pageNo), pageSize: String(pageSize) })}`,
+    { signal },
+  );
 
 export const unpublishDataSyncTask = async (id: string): Promise<DataSyncTaskRecord> => {
   const definition = await HttpUtils.postData<TaskDefinitionRecord>(

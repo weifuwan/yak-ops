@@ -1,42 +1,59 @@
-import { Alert, Button, Modal, PageHeader } from "@yak-ops/yak-ui";
-import { useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Alert, Button } from "@yak-ops/yak-ui";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { taskDraftKey } from "@/service/data-sync/draft";
 import { offlineIncremental } from "@/service/data-sync/parameters";
 import type {
   DataSyncDraft,
-  DataSyncStep,
   DataSyncTableMapping,
-  DataSyncTaskStatus,
+  DataSyncTaskSavePayload,
 } from "@/service/data-sync";
 import type { ScheduleTimeRule } from "@/service/schedule";
 import { findStepCombination } from "../solution/presentation";
 import { useSolutions } from "../solution/use-solutions";
 import { EditorAnchorStepper, type EditorAnchorItem } from "./anchor-stepper";
-import { BasicSection } from "./basic-section";
 import { DataSourceSection } from "./data-source-section";
 import { FieldMappingSection } from "./field-mapping-section";
 import { ExistingTransformRules } from "./existing-transform-rules";
 import { createEditorForm } from "./form-state";
 import { EMPTY_INCREMENTAL } from "./incremental-fields";
 import { replicationConfigurationError } from "./replication-options";
-import { RunConfigurationSection } from "./run-configuration-section";
 import { SourceSection } from "./source-section";
 import { selectSourceSchema, selectSourceTable } from "./source-selection";
-import { StrategySection } from "./strategy-section";
 import { tableKey } from "./table-mapping-editor";
 import { selectedTableKey } from "./table-section";
 import { TargetSection } from "./target-section";
-import { buildEditorPayload, canSaveEditor } from "./definition";
+import { buildEditorPayload, editorValidationIssue, type EditorIssue } from "./definition";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
 import { useEditorDraft } from "./use-editor-draft";
+import { useEditorHandoff } from "./use-editor-handoff";
 import { useEditorSchedule } from "./use-editor-schedule";
 import { useEditorSubmission } from "./use-editor-submission";
 import { useReplicationMetadata } from "./use-replication-metadata";
 import { type TaskEditorInput, type EditorForm, type EditorSource, type EditorSink } from "./types";
+
+import { PropertiesDrawer } from "./properties-drawer";
+import { AdvancedDrawer, type AdvancedTab, type AdvancedParameterTab } from "./advanced-drawer";
+import { VersionsDrawer } from "./versions-drawer";
+import { parameterFingerprint } from "@/service/data-sync/versions";
+import { type DataSourceRecord } from "@/service/datasource";
+import { EMPTY_SCHEDULE, sameScheduleRule } from "@/app/schedule/schedule-presentation";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import type { EditorConfiguration } from "./configuration";
+import { useDefinitionRestoration, type EditorConfirmation } from "./use-definition-restoration";
+import { EditorHeader, EditorFooter } from "./editor-chrome";
+import { EditorConfirmationDialog, EditorRecoveryNotice } from "./editor-feedback";
+
+type OpenDrawer =
+  | { kind: "properties" | "versions" }
+  | { kind: "advanced"; tab?: AdvancedTab; parameterTab?: AdvancedParameterTab };
+const parameterPart = (value: DataSyncTaskSavePayload) =>
+  Object.fromEntries(
+    Object.entries(value).filter(([key]) => !["name", "remark", "debug"].includes(key)),
+  );
 
 export function TaskEditor({
   draft: initialDraft,
@@ -48,15 +65,10 @@ export function TaskEditor({
   const [mappings, setMappings] = useState<DataSyncTableMapping[]>(
     initialTask?.tableMappings || draft.form?.tableMappings || [],
   );
-  const [pendingChange, setPendingChange] = useState<{
-    title: string;
-    message: string;
-    apply: () => void;
-  }>();
+  const [pendingChange, setPendingChange] = useState<EditorConfirmation>();
   const { id } = useParams<{ id: string }>();
-  const editing = Boolean(id);
   const navigate = useNavigate();
-  const location = useLocation();
+  const pendingSchedule = useEditorHandoff(id);
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const draftKey = taskDraftKey(currentUser!.id, currentWorkspace!.id);
@@ -79,18 +91,22 @@ export function TaskEditor({
   const initialLoad = draft.steps.includes("FULL");
   const continuous = replication && draft.steps.includes("INCREMENTAL");
   const [form, setForm] = useState<EditorForm>(() => createEditorForm(draft, initialTask));
-  const [taskStatus] = useState<DataSyncTaskStatus>(
-    initialTask?.status === "PUBLISHED" ? "PUBLISHED" : "UNPUBLISHED",
-  );
-  const [parametersDirty, setParametersDirty] = useState(false);
-  const [taskDirty, setTaskDirty] = useState(!editing);
   const savedTask = useRef(initialTask);
+  const [saved, setSaved] = useState(initialTask);
+  const [baseline, setBaseline] = useState(() =>
+    buildEditorPayload(form, draft, replication, mappings),
+  );
+  const [drawer, setDrawer] = useState<OpenDrawer | undefined>(() =>
+    pendingSchedule?.scheduleSaveError
+      ? { kind: "advanced", tab: "parameters", parameterTab: "runtime" }
+      : undefined,
+  );
+  const [drawerDirty, setDrawerDirty] = useState(false);
+  const [pageError, setPageError] = useState("");
+  const [completedTaskId, setCompletedTaskId] = useState<string>();
+  const [restoredConnections, setRestoredConnections] = useState<DataSourceRecord[]>([]);
   const { dataSources, dataSourcesLoading, dataSourcesError, loadDataSources } =
-    useEditorDataSources(connections);
-  const pendingSchedule = location.state as {
-    scheduleDraft?: ScheduleTimeRule;
-    scheduleSaveError?: string;
-  } | null;
+    useEditorDataSources([...connections, ...restoredConnections]);
   const {
     schedule,
     scheduleForm,
@@ -104,19 +120,16 @@ export function TaskEditor({
     setScheduleNeedsReload,
     reloadSchedule,
     changeSchedule,
-  } = useEditorSchedule(id, supportsScheduling, initialTask, pendingSchedule);
+  } = useEditorSchedule(id, pendingSchedule);
   const hasAdvancedTransforms = replication && form.transforms.length > 0;
   const editorScrollRef = useRef<HTMLElement | null>(null);
   const anchorItems = useMemo<EditorAnchorItem[]>(
     () => [
-      { id: "basic", label: "基本信息" },
       { id: "datasource", label: "数据源" },
-      { id: "strategy", label: "同步策略" },
       { id: "source", label: "数据来源" },
       { id: "target", label: "数据去向" },
       ...(!replication ? [{ id: "field-mapping", label: "字段加工" }] : []),
       ...(hasAdvancedTransforms ? [{ id: "advanced-transforms", label: "高级转换规则" }] : []),
-      { id: "env", label: "运行配置" },
     ],
     [replication, hasAdvancedTransforms],
   );
@@ -151,30 +164,15 @@ export function TaskEditor({
   const selectedTargetDataSource = dataSources.find((item) => item.id === form.sink.dataSourceId);
   useEditorDraft(id, draftKey, draft, form, replication, mappings, savedTask);
 
-  const markParametersDirty = () => {
-    setTaskDirty(true);
-    setParametersDirty(true);
-  };
-  const patch = <K extends keyof EditorForm>(key: K, value: EditorForm[K]) => {
-    setTaskDirty(true);
-    if (key !== "name" && key !== "remark" && key !== "debug") setParametersDirty(true);
+  const patch = <K extends keyof EditorForm>(key: K, value: EditorForm[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
-  };
-  const patchSource = <K extends keyof EditorSource>(key: K, value: EditorSource[K]) => {
-    markParametersDirty();
+  const patchSource = <K extends keyof EditorSource>(key: K, value: EditorSource[K]) =>
     setForm((current) => ({ ...current, source: { ...current.source, [key]: value } }));
-  };
-  const patchSink = <K extends keyof EditorSink>(key: K, value: EditorSink[K]) => {
-    markParametersDirty();
+  const patchSink = <K extends keyof EditorSink>(key: K, value: EditorSink[K]) =>
     setForm((current) => ({ ...current, sink: { ...current.sink, [key]: value } }));
-  };
-  const updateMappings = (value: DataSyncTableMapping[]) => {
-    setMappings(value);
-    markParametersDirty();
-  };
+  const updateMappings = (value: DataSyncTableMapping[]) => setMappings(value);
   const requestSourceChange = (update: (current: EditorForm) => EditorForm) => {
     const apply = () => {
-      markParametersDirty();
       setForm((current) =>
         update({
           ...current,
@@ -208,7 +206,6 @@ export function TaskEditor({
     const apply = () => {
       const selected = dataSources.find((item) => item.id === value);
       setMappings([]);
-      markParametersDirty();
       setForm((current) => ({
         ...current,
         transforms: [],
@@ -244,67 +241,6 @@ export function TaskEditor({
       });
     else apply();
   };
-  const changeSteps = (steps: DataSyncStep[]) => {
-    const currentSteps: DataSyncStep[] = draft.steps.filter((step) => step !== "SCHEMA");
-    if (currentSteps.length === steps.length && steps.every((step) => currentSteps.includes(step)))
-      return;
-    const nextSteps: DataSyncStep[] =
-      prepareSchema && steps.includes("FULL") ? ["SCHEMA", ...steps] : steps;
-    const next = findStepCombination(solution, nextSteps);
-    if (!next) return;
-    markParametersDirty();
-    setDraft((current) => ({ ...current, steps: nextSteps }));
-    const nextContinuous = replication && steps.includes("INCREMENTAL");
-    setForm((current) => ({
-      ...current,
-      startup: undefined,
-      source: {
-        ...current.source,
-        incremental: offlineIncremental(draft.productType, steps)
-          ? current.source.incremental || EMPTY_INCREMENTAL
-          : undefined,
-      },
-      sink: {
-        ...current.sink,
-        writeMode: next.writeModes.includes(current.sink.writeMode)
-          ? current.sink.writeMode
-          : next.writeModes[0],
-        schemaChangesEnabled: nextContinuous && current.sink.schemaChangesEnabled,
-        allowDropColumns: nextContinuous && current.sink.allowDropColumns,
-      },
-    }));
-    setMappings((current) =>
-      current.map((mapping) => ({
-        ...mapping,
-        source: steps.includes("FULL")
-          ? mapping.source
-          : { ...mapping.source, chunkKeyColumn: undefined },
-        writeMode: next.writeModes.includes(mapping.writeMode)
-          ? mapping.writeMode
-          : next.writeModes[0],
-      })),
-    );
-  };
-  const changePrepareSchema = (enabled: boolean) => {
-    if (enabled === prepareSchema) return;
-    const steps: DataSyncStep[] = draft.steps.filter((step) => step !== "SCHEMA");
-    if (enabled) steps.unshift("SCHEMA");
-    if (!findStepCombination(solution, steps)) return;
-    markParametersDirty();
-    setDraft((current) => ({ ...current, steps }));
-    if (enabled)
-      setMappings((current) =>
-        current.map((mapping) => ({
-          ...mapping,
-          target: {
-            ...mapping.target,
-            database: mapping.target.database || form.sink.database || undefined,
-            schema: mapping.target.schema || form.sink.schema || undefined,
-            table: mapping.target.table || mapping.source.table,
-          },
-        })),
-      );
-  };
   const singleColumns =
     mappings.length === 1
       ? replicationMetadata.columns.get(tableKey(mappings[0].source))
@@ -317,9 +253,7 @@ export function TaskEditor({
       mode !== "RETRACT" ||
       (mappings.length === 1 && (singleKeyless || mappings[0].writeMode === "RETRACT")),
   );
-  const published = editing && taskStatus === "PUBLISHED";
-  const canSave = canSaveEditor({
-    published,
+  const validationIssue = editorValidationIssue({
     combination,
     solutionsLoading,
     solutionsError,
@@ -341,11 +275,40 @@ export function TaskEditor({
     targetCatalog,
     sourceCatalog,
   });
-  const { save, saving } = useEditorSubmission({
-    id,
-    editing,
+  const payload = buildEditorPayload(form, draft, replication, mappings);
+  const taskDirty = !saved || parameterFingerprint(payload) !== parameterFingerprint(baseline);
+  const parametersDirty =
+    !saved ||
+    parameterFingerprint(parameterPart(payload)) !== parameterFingerprint(parameterPart(baseline));
+  const scheduleDirty = !sameScheduleRule(scheduleForm, schedule || EMPTY_SCHEDULE);
+  const closeDrawer = () => {
+    setDrawer(undefined);
+    setDrawerDirty(false);
+  };
+  const applyConfiguration = (value: EditorConfiguration, rule?: ScheduleTimeRule) => {
+    setDraft(value.draft);
+    setForm(value.form);
+    setMappings(value.mappings);
+    if (rule) changeSchedule(rule);
+    closeDrawer();
+    setPageError("");
+  };
+  const locateIssue = (issue: EditorIssue) => {
+    setPageError(issue.message);
+    if (issue.location === "properties") setDrawer({ kind: "properties" });
+    else if (issue.location === "advanced")
+      setDrawer({ kind: "advanced", tab: issue.tab, parameterTab: issue.parameterTab });
+    else
+      requestAnimationFrame(() => {
+        const section = document.getElementById(issue.location);
+        section?.scrollIntoView({ block: "center", behavior: "auto" });
+        section?.querySelector<HTMLElement>("input,button,textarea")?.focus();
+      });
+  };
+  const submission = useEditorSubmission({
     draftKey,
-    canSave,
+    recovery: pendingSchedule?.writeRecovery,
+    scope: { userId: currentUser!.id, workspaceId: currentWorkspace!.id },
     taskDirty,
     parametersDirty,
     supportsScheduling,
@@ -353,59 +316,98 @@ export function TaskEditor({
     scheduleForm,
     savedTask,
     scheduleDraft,
-    payload: () => buildEditorPayload(form, draft, replication, mappings),
-    setTaskDirty,
-    setParametersDirty,
+    payload: () => payload,
+    onPersisted: (task, request) => {
+      setSaved(task);
+      if (!id) setCompletedTaskId(task.id);
+      if (request) setBaseline(request);
+    },
+    onComplete: (task) => {
+      if (!id) setCompletedTaskId(task.id);
+    },
+    onScheduleFailure: () =>
+      setDrawer({ kind: "advanced", tab: "parameters", parameterTab: "runtime" }),
     setSchedule,
     setScheduleForm,
     setScheduleError,
     setScheduleNeedsReload,
-    navigate,
   });
-  const pageTitle = editing ? form.name || "编辑同步任务" : "新建同步任务";
-  if (published)
-    return (
-      <div className="min-h-full bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-        <PageHeader
-          title={pageTitle}
-          bordered
-          className="bg-[var(--yak-components-panel-bg)] px-6 max-md:px-4"
-          extra={
-            <Button size="small" onClick={() => navigate("/data-sync")}>
-              返回任务列表
-            </Button>
-          }
-        />
-        <div className="px-6 pt-5 max-md:px-4">
-          <Alert>任务已上线，当前不可编辑。请先在任务列表下线，再修改任务定义。</Alert>
-        </div>
-      </div>
-    );
+  const { saving } = submission;
+  const locked = saving || Boolean(submission.pendingWrite || submission.retryPublication);
+  const transferringSavedTask = Boolean(completedTaskId && !id && !saving && !taskDirty);
+  useUnsavedChanges((taskDirty || scheduleDirty || drawerDirty) && !transferringSavedTask);
+  useEffect(() => {
+    if (!transferringSavedTask) return;
+    navigate(`/data-sync/${completedTaskId}/edit`, {
+      replace: true,
+      state: {
+        ...(scheduleDirty ? { scheduleDraft: scheduleForm } : {}),
+        ...(scheduleError ? { scheduleSaveError: scheduleError } : {}),
+        writeRecovery: {
+          error: submission.error,
+          pendingWrite: submission.pendingWrite,
+          retryPublication: submission.retryPublication,
+        },
+      },
+    });
+  }, [
+    transferringSavedTask,
+    completedTaskId,
+    scheduleDirty,
+    scheduleForm,
+    scheduleError,
+    submission.error,
+    submission.pendingWrite,
+    submission.retryPublication,
+    navigate,
+  ]);
+  const submit = (publish = false) => {
+    if (validationIssue && !submission.retryPublication) {
+      locateIssue(validationIssue);
+      return;
+    }
+    setPageError("");
+    void submission.save(publish);
+  };
+  const {
+    restore,
+    reloadRemote,
+    cancel: cancelRestoration,
+  } = useDefinitionRestoration({
+    task: saved,
+    form,
+    closeDrawer,
+    confirm: setPendingChange,
+    apply: (value, connections) => {
+      setRestoredConnections(connections);
+      applyConfiguration(value);
+    },
+    replaceRemote: (remote, value, connections) => {
+      savedTask.current = remote;
+      setSaved(remote);
+      setRestoredConnections(connections);
+      setBaseline(
+        buildEditorPayload(
+          value.form,
+          value.draft,
+          value.draft.productType === "DATABASE_REPLICATION",
+          value.mappings,
+        ),
+      );
+      applyConfiguration(value);
+      submission.clearRecovery();
+    },
+  });
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
-      <PageHeader
-        title={pageTitle}
-        bordered
-        className="shrink-0 bg-[var(--yak-components-panel-bg)] px-6 max-md:px-4"
-        extra={
-          <>
-            <Button size="small" disabled={saving} onClick={() => navigate("/data-sync")}>
-              取消
-            </Button>
-            <Button size="small" loading={saving} disabled={!canSave} onClick={() => void save()}>
-              保存
-            </Button>
-            <Button
-              size="small"
-              variant="primary"
-              loading={saving}
-              disabled={!canSave}
-              onClick={() => void save(true)}
-            >
-              保存并上线
-            </Button>
-          </>
-        }
+      <EditorHeader
+        name={form.name}
+        locked={locked}
+        saving={saving}
+        onBack={() => navigate("/data-sync")}
+        onProperties={() => setDrawer({ kind: "properties" })}
+        onAdvanced={() => setDrawer({ kind: "advanced" })}
+        onVersions={() => setDrawer({ kind: "versions" })}
       />
       <div className="flex min-h-0 flex-1 gap-5 px-6 max-md:px-4">
         <main
@@ -413,7 +415,23 @@ export function TaskEditor({
           aria-busy={saving}
           className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto pb-8 pt-5"
         >
-          <fieldset disabled={saving} className="min-w-0 space-y-4">
+          {pageError ? <Alert>{pageError}</Alert> : null}
+          {submission.error ? (
+            <EditorRecoveryNotice
+              error={submission.error}
+              saving={saving}
+              canReconcile={Boolean(
+                submission.pendingWrite && submission.pendingWrite.kind !== "create",
+              )}
+              canRetry={Boolean(submission.retryPublication)}
+              hasTask={Boolean(saved)}
+              onReconcile={() => void submission.reconcile()}
+              onRetry={() => void submission.save(true)}
+              onReload={() => void reloadRemote()}
+              onBack={() => navigate("/data-sync")}
+            />
+          ) : null}
+          <fieldset disabled={locked} className="min-w-0 space-y-4">
             {solutionsError ? (
               <Alert>
                 {solutionsError}
@@ -433,7 +451,6 @@ export function TaskEditor({
             {!solutionsLoading && !solutionsError && !combination ? (
               <Alert>当前链路不再支持所选同步方案</Alert>
             ) : null}
-            <BasicSection draft={draft} form={form} patch={patch} />
             <DataSourceSection
               id={id}
               sourceType={draft.sourceType}
@@ -446,18 +463,6 @@ export function TaskEditor({
               onRefresh={loadDataSources}
               onSourceChange={(value) => requestConnectionChange("source", value)}
               onTargetChange={(value) => requestConnectionChange("target", value)}
-            />
-            <StrategySection
-              draft={draft}
-              solution={solution}
-              disabled={Boolean(
-                schedule?.enabled ||
-                scheduleNeedsReload ||
-                scheduleLoading ||
-                mappings.some((mapping) => mapping.writeMode === "RETRACT"),
-              )}
-              startupMode={form.startup?.mode}
-              onChange={changeSteps}
             />
             <SourceSection
               replication={replication}
@@ -482,8 +487,6 @@ export function TaskEditor({
             <TargetSection
               replication={replication}
               prepareSchema={prepareSchema}
-              canPrepareSchema={Boolean(initialLoad && solution?.steps.includes("SCHEMA"))}
-              onPrepareSchemaChange={changePrepareSchema}
               form={form}
               targetCatalog={targetCatalog}
               selectedTargetDataSource={selectedTargetDataSource}
@@ -491,13 +494,8 @@ export function TaskEditor({
               updateMappings={updateMappings}
               writeModes={writeModes}
               replicationMetadata={replicationMetadata}
-              continuous={continuous}
               initialLoad={initialLoad}
-              targetType={draft.targetType}
-              saving={saving}
               patchSink={patchSink}
-              setTaskDirty={setTaskDirty}
-              setParametersDirty={setParametersDirty}
               setForm={setForm}
               requestTargetChange={requestTargetChange}
             />
@@ -526,59 +524,75 @@ export function TaskEditor({
                 onChange={(value) => patch("transforms", value)}
               />
             ) : null}
-            <RunConfigurationSection
-              replication={replication}
-              continuous={continuous}
-              debug={form.debug}
-              onDebugChange={(value) => patch("debug", value)}
-              schedule={
-                supportsScheduling
-                  ? {
-                      schedule,
-                      scheduleForm,
-                      scheduleError,
-                      scheduleNeedsReload,
-                      scheduleLoading,
-                      saving,
-                      onReload: reloadSchedule,
-                      onChange: changeSchedule,
-                    }
-                  : undefined
-              }
-            />
           </fieldset>
         </main>
         <aside className="hidden h-fit w-44 shrink-0 self-start pt-5 lg:block">
           <EditorAnchorStepper items={anchorItems} scrollRootRef={editorScrollRef} />
         </aside>
       </div>
-      {pendingChange ? (
-        <Modal
-          open
-          centered
-          width={440}
-          title={pendingChange.title}
-          onClose={() => setPendingChange(undefined)}
-          footer={
-            <>
-              <Button size="small" onClick={() => setPendingChange(undefined)}>
-                取消
-              </Button>
-              <Button
-                size="small"
-                variant="primary"
-                onClick={() => {
-                  pendingChange.apply();
-                  setPendingChange(undefined);
-                }}
-              >
-                确认
-              </Button>
-            </>
+      <EditorFooter
+        task={saved}
+        dirty={taskDirty || scheduleDirty}
+        locked={locked}
+        saving={saving}
+        onSave={() => submit()}
+        onPublish={() => submit(true)}
+      />
+      {drawer?.kind === "properties" ? (
+        <PropertiesDrawer
+          id={saved?.id}
+          draft={draft}
+          value={form}
+          onApply={(value) => {
+            setForm((current) => ({ ...current, ...value }));
+            closeDrawer();
+          }}
+          onClose={closeDrawer}
+          onDirtyChange={setDrawerDirty}
+        />
+      ) : null}
+      {drawer?.kind === "advanced" ? (
+        <AdvancedDrawer
+          value={{ draft, form, mappings }}
+          solution={solution}
+          strategyDisabled={Boolean(scheduleNeedsReload || scheduleLoading)}
+          initialTab={drawer.tab}
+          initialParameterTab={drawer.parameterTab}
+          schedule={
+            supportsScheduling || schedule
+              ? {
+                  schedule,
+                  scheduleForm,
+                  scheduleError,
+                  scheduleNeedsReload,
+                  scheduleLoading,
+                  saving,
+                  onReload: () => void reloadSchedule(),
+                  onChange: changeSchedule,
+                }
+              : undefined
           }
-        >
-          <p className="text-sm">{pendingChange.message}</p>
-        </Modal>
+          onApply={applyConfiguration}
+          onClose={closeDrawer}
+          onDirtyChange={setDrawerDirty}
+        />
+      ) : null}
+      {drawer?.kind === "versions" ? (
+        <VersionsDrawer
+          task={saved}
+          allowRestore={!locked}
+          onRestore={(value) => void restore(value)}
+          onClose={() => {
+            cancelRestoration();
+            closeDrawer();
+          }}
+        />
+      ) : null}
+      {pendingChange ? (
+        <EditorConfirmationDialog
+          value={pendingChange}
+          onClose={() => setPendingChange(undefined)}
+        />
       ) : null}
     </div>
   );

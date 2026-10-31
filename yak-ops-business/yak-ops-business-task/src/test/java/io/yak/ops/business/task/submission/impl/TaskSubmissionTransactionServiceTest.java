@@ -1,6 +1,7 @@
 package io.yak.ops.business.task.submission.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
@@ -12,6 +13,7 @@ import io.yak.ops.business.task.submission.PreparedTaskSubmission;
 import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.common.enums.task.TaskInstanceStatus;
 import io.yak.ops.common.enums.task.TaskTriggerType;
+import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
@@ -39,6 +41,7 @@ class TaskSubmissionTransactionServiceTest {
     private final InstanceRepository instances = mock(InstanceRepository.class);
     private final TaskGroupQueueRepository claims = mock(TaskGroupQueueRepository.class);
     private final TaskChannel plugin = mock(TaskChannel.class);
+    private final DefinitionEntity definition = new DefinitionEntity();
     private final ReadonlyConfig parameters = ReadonlyConfig.fromMap(java.util.Map.of());
     private final TaskExecutionIdentity context = new TaskExecutionIdentity("ws", "definition-1", 2, "instance-1");
     private final ExecutionResource target = new ExecutionResource("DATA_SYNC_TARGET", "source/table");
@@ -50,10 +53,11 @@ class TaskSubmissionTransactionServiceTest {
         inject("instances", instances);
         inject("claims", claims);
 
-        DefinitionEntity definition = new DefinitionEntity();
         definition.setWorkspaceId("ws");
         definition.setId("definition-1");
         definition.setCurrentVersion(2);
+        definition.setPublishedVersion(2);
+        definition.setPublishedDebug(true);
         definition.setStatus(DefinitionStatus.PUBLISHED);
         definition.setTaskType("DATA_SYNC");
         definition.setDebug(true);
@@ -81,6 +85,40 @@ class TaskSubmissionTransactionServiceTest {
         assertEquals("instance-1", claim.getValue().getInstanceId());
         assertEquals("source/table", claim.getValue().getResourceKey());
         verify(plugin, never()).createTask(any(), any(), any(), anyBoolean());
+    }
+
+    @Test
+    void draftSaveDuringPreparationDoesNotChangeAdmittedVersionOrDebug() {
+        PreparedTaskSubmission prepared = request();
+        definition.setCurrentVersion(3);
+        definition.setDebug(false);
+        definition.setRevision(9);
+
+        service.admit(prepared);
+
+        ArgumentCaptor<InstanceEntity> instance = ArgumentCaptor.forClass(InstanceEntity.class);
+        verify(instances).add(instance.capture());
+        assertEquals(2, instance.getValue().getDefinitionVersion());
+        assertEquals(true, instance.getValue().isDebug());
+        verify(versions, never()).queryCurrent("ws", "definition-1", 3);
+    }
+
+    @Test
+    void publicationChangeDuringPreparationRejectsTheStaleAdmission() {
+        PreparedTaskSubmission prepared = request();
+        definition.setPublishedVersion(3);
+        assertThrows(BusinessException.class, () -> service.admit(prepared));
+        verify(instances, never()).add(any());
+        verify(claims, never()).add(any());
+    }
+
+    @Test
+    void debugOnlyPublicationChangeDuringPreparationRejectsTheStaleAdmission() {
+        PreparedTaskSubmission prepared = request();
+        definition.setPublishedDebug(false);
+        assertThrows(BusinessException.class, () -> service.admit(prepared));
+        verify(instances, never()).add(any());
+        verify(claims, never()).add(any());
     }
 
     @Test
@@ -113,6 +151,7 @@ class TaskSubmissionTransactionServiceTest {
     void workflowAdmissionPersistsTheTriggerWithExplicitWorkspace() {
         PreparedTaskSubmission workflow = new PreparedTaskSubmission(
                 context,
+                true,
                 TaskTriggerType.WORKFLOW,
                 "workflow-123",
                 "WORKFLOW:definition-1",
@@ -135,6 +174,7 @@ class TaskSubmissionTransactionServiceTest {
     private PreparedTaskSubmission request() {
         return new PreparedTaskSubmission(
                 context,
+                true,
                 TaskTriggerType.MANUAL,
                 "request-123",
                 "MANUAL:definition-1",

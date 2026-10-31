@@ -3,6 +3,7 @@ import { createContext, useEffect, useState, type ReactNode } from "react";
 import { WORKSPACE_STORAGE_KEY, workspacePreferenceStorageKey } from "@/constants/workspace";
 import { clearTaskDrafts } from "@/service/data-sync/draft";
 import { useAuth } from "@/hooks/use-auth";
+import { useLeaveGuard } from "./leave-guard-context";
 import {
   createWorkspace as createWorkspaceRequest,
   listWorkspaces,
@@ -14,8 +15,8 @@ export interface WorkspaceContextValue {
   workspaces: WorkspaceRecord[];
   currentWorkspace?: WorkspaceRecord;
   loading: boolean;
-  selectWorkspace: (workspaceId: string) => void;
-  createWorkspace: (payload: WorkspaceCreatePayload) => Promise<WorkspaceRecord>;
+  selectWorkspace: (workspaceId: string) => Promise<void>;
+  createWorkspace: (payload: WorkspaceCreatePayload) => Promise<WorkspaceRecord | undefined>;
   refreshWorkspaces: () => Promise<WorkspaceRecord[]>;
   clearWorkspace: () => void;
 }
@@ -66,6 +67,7 @@ const resolveCurrentWorkspace = (
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { currentUser, loading: authLoading } = useAuth();
+  const { confirmLeave } = useLeaveGuard();
   const [workspaces, setWorkspaces] = useState<WorkspaceRecord[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<WorkspaceRecord>();
   const [loading, setLoading] = useState(true);
@@ -93,15 +95,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return applyWorkspaces(nextWorkspaces);
   };
 
-  const selectWorkspace = (workspaceId: string) => {
+  const selectWorkspace = async (workspaceId: string) => {
     const nextWorkspace = workspaces.find((workspace) => workspace.id === workspaceId);
     if (!nextWorkspace || nextWorkspace.id === currentWorkspace?.id) return;
+    if (!(await confirmLeave())) return;
     clearTaskDrafts();
     persistWorkspaceSelection(nextWorkspace, currentUser?.id);
     setCurrentWorkspace(nextWorkspace);
   };
 
   const createWorkspace = async (payload: WorkspaceCreatePayload) => {
+    if (!(await confirmLeave())) return undefined;
     const workspace = await createWorkspaceRequest(payload);
     clearTaskDrafts();
     setWorkspaces((current) => [workspace, ...current.filter((item) => item.id !== workspace.id)]);

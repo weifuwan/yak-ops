@@ -102,6 +102,8 @@ class ScheduleServiceTest {
         definition.setWorkspaceId("ws");
         definition.setTaskType("TEST");
         definition.setCurrentVersion(1);
+        definition.setPublishedVersion(1);
+        definition.setPublishedDebug(false);
         definition.setStatus(DefinitionStatus.PUBLISHED);
         when(definitions.queryByIdForUpdate("ws", "task")).thenReturn(Optional.of(definition));
         when(definitions.queryByIdIncludingDeleted("ws", "task")).thenReturn(Optional.of(definition));
@@ -152,6 +154,33 @@ class ScheduleServiceTest {
         definition.setStatus(DefinitionStatus.PUBLISHED);
         when(plugin.supportsScheduling(any())).thenReturn(false);
         assertEquals("NOT_SCHEDULABLE", service.create("ws", create(), "actor").getEligibilityReason());
+    }
+
+    @Test
+    void schedulingEligibilityUsesPublishedVersionDespiteNewerDraft() {
+        definition.setCurrentVersion(2);
+        definition.setDebug(true);
+        definition.setRevision(8);
+        when(cron.nextFireTimes(any(), any(), any(), eq(1)))
+                .thenReturn(List.of(clock.instant().plusSeconds(60)));
+        when(schedules.setEnabled(eq("ws"), eq("schedule"), eq(1L), eq(true), any(), eq("actor")))
+                .thenReturn(true);
+
+        assertTrue(service.enable("ws", "schedule", 1, "actor").isSchedulable());
+        assertEquals(2, schedule.getRevision());
+        assertEquals(8, definition.getRevision());
+        verify(versions, never()).queryCurrent("ws", "task", 2);
+    }
+
+    @Test
+    void incompletePublicationCannotEnableTheDraftVersion() {
+        definition.setPublishedVersion(null);
+        assertEquals(
+                ScheduleErrorCode.TARGET_UNPUBLISHED,
+                assertThrows(BusinessException.class, () -> service.enable("ws", "schedule", 1, "actor"))
+                        .getErrorCode());
+        verify(versions, never()).queryCurrent(any(), any(), anyInt());
+        verify(schedules, never()).setEnabled(any(), any(), anyLong(), eq(true), any(), any());
     }
 
     @Test

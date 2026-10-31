@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.yak.ops.common.enums.task.DefinitionErrorCode;
 import io.yak.ops.e2e.support.BackendTestBase;
 import io.yak.ops.e2e.support.BootProcess;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -87,10 +89,10 @@ class TaskExecutionIT extends BackendTestBase {
     @Test
     void historicalInstanceKeepsItsPublishedDefinitionVersion() throws Exception {
         String definition = fixture.batch();
+        var saved = fixture.api.call("GET", "/api/v1/task-definitions/" + definition);
         String instance = fixture.submit(definition);
         fixture.awaitState(instance, "FINISHED");
         var old = fixture.api.call("GET", "/api/v1/task-instances/" + instance + "/definition");
-        fixture.api.call("POST", "/api/v1/task-definitions/" + definition + "/unpublish");
         fixture.createTarget("changed_orders");
         var replacement = fixture.parameters(
                 "SINGLE_TABLE_OFFLINE", List.of("FULL"), List.of(fixture.route("orders", "changed_orders")));
@@ -100,11 +102,30 @@ class TaskExecutionIT extends BackendTestBase {
                 Map.of(
                         "name", "renamed-task",
                         "debug", false,
-                        "parameters", replacement));
+                        "parameters", replacement,
+                        "expectedRevision", saved.path("revision").asLong()));
         assertTrue(updated.path("definitionVersion").asInt() > old.path("version").asInt());
-        fixture.api.call("POST", "/api/v1/task-definitions/" + definition + "/publish");
+        assertEquals("PUBLISHED", updated.path("status").asText());
+        assertEquals(old.path("version").asInt(), updated.path("publishedVersion").asInt());
+        assertTrue(updated.path("publishedDebug").asBoolean());
+        assertFalse(updated.path("debug").asBoolean());
+        assertTrue(updated.path("hasUnpublishedChanges").asBoolean());
+
+        String beforePublication = fixture.submit(definition);
+        var stillPublished = fixture.awaitState(beforePublication, "FINISHED");
+        assertEquals(old.path("version").asInt(), stillPublished.path("definitionVersion").asInt());
+        assertTrue(stillPublished.path("debug").asBoolean());
+        assertEquals(old.path("parameters"), fixture.api.call(
+                "GET", "/api/v1/task-instances/" + beforePublication + "/definition").path("parameters"));
+        fixture.assertTarget("changed_orders", List.of());
+
+        var published = fixture.api.publish(definition);
+        assertEquals(updated.path("definitionVersion").asInt(), published.path("publishedVersion").asInt());
+        assertFalse(published.path("publishedDebug").asBoolean());
+        assertFalse(published.path("hasUnpublishedChanges").asBoolean());
         String next = fixture.submit(definition);
-        fixture.awaitState(next, "FINISHED");
+        var nextInstance = fixture.awaitState(next, "FINISHED");
+        assertFalse(nextInstance.path("debug").asBoolean());
         var retained = fixture.api.call("GET", "/api/v1/task-instances/" + instance + "/definition");
         assertEquals(old, retained);
         assertEquals(
@@ -112,5 +133,53 @@ class TaskExecutionIT extends BackendTestBase {
                 fixture.api.call("GET", "/api/v1/task-instances/" + next + "/definition")
                         .path("version").asInt());
         fixture.assertTarget("changed_orders", List.of(List.of(1L, "one"), List.of(2L, "two")));
+    }
+
+    @Test
+    void publicationRetryAndStaleEditorsCannotOverwriteNewerSavedState() throws Exception {
+        String definition = fixture.batch();
+        String path = "/api/v1/task-definitions/" + definition;
+        long previousPublications = fixture.api.call("GET", path + "/publications")
+                .path("pagination").path("total").asLong();
+        Map<String, Object> request = fixture.api.publicationRequest(definition);
+        var published = fixture.api.call("POST", path + "/publish", request);
+        assertEquals(published, fixture.api.call("POST", path + "/publish", request));
+        assertEquals(previousPublications + 1, fixture.api.call("GET", path + "/publications")
+                .path("pagination").path("total").asLong());
+
+        var edited = fixture.api.call("PUT", path, Map.of(
+                "name", "saved-after-publication",
+                "debug", false,
+                "expectedRevision", published.path("revision").asLong()));
+        assertEquals(published.path("definitionVersion"), edited.path("definitionVersion"));
+        assertTrue(edited.path("publishedDebug").asBoolean());
+        assertTrue(edited.path("hasUnpublishedChanges").asBoolean());
+        assertEquals(edited, fixture.api.call("POST", path + "/publish", request));
+
+        Map<String, Object> conflictingRequest = new LinkedHashMap<>(request);
+        conflictingRequest.put("expectedRevision", edited.path("revision").asLong());
+        fixture.api.expectError("POST", path + "/publish", conflictingRequest, 409,
+                DefinitionErrorCode.PUBLICATION_REQUEST_CONFLICT.getCode());
+        Map<String, Object> staleRequest = new LinkedHashMap<>(request);
+        staleRequest.put("requestId", UUID.randomUUID().toString());
+        fixture.api.expectError("POST", path + "/publish", staleRequest, 409,
+                DefinitionErrorCode.REVISION_CONFLICT.getCode());
+        fixture.api.expectError("PUT", path,
+                Map.of("name", "stale-editor", "expectedRevision", published.path("revision").asLong()),
+                409, DefinitionErrorCode.REVISION_CONFLICT.getCode());
+        assertEquals(edited, fixture.api.call("GET", path));
+        assertEquals(previousPublications + 1, fixture.api.call("GET", path + "/publications")
+                .path("pagination").path("total").asLong());
+        assertEquals(1, fixture.api.call("GET", path + "/versions")
+                .path("pagination").path("total").asInt());
+
+        var diagnosticsPublication = fixture.api.publish(definition);
+        assertEquals(published.path("definitionVersion"), diagnosticsPublication.path("definitionVersion"));
+        assertFalse(diagnosticsPublication.path("publishedDebug").asBoolean());
+        assertFalse(diagnosticsPublication.path("hasUnpublishedChanges").asBoolean());
+        String instance = fixture.submit(definition);
+        var execution = fixture.awaitState(instance, "FINISHED");
+        assertEquals(published.path("definitionVersion"), execution.path("definitionVersion"));
+        assertFalse(execution.path("debug").asBoolean());
     }
 }

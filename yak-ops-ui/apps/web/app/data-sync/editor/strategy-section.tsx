@@ -43,7 +43,7 @@ export function StrategySection({
           />
         </Field>
         {disabled ? (
-          <Alert>请先停用调度并重新打开任务，或将逐行更新改为按主键更新，再修改同步策略。</Alert>
+          <Alert>请先加载调度状态，或将逐行更新改为按主键更新，再修改同步策略。</Alert>
         ) : null}
         {replication && !incremental ? (
           <Alert>读取所选表的全量数据，完成后结束。可手动运行或配置调度。</Alert>

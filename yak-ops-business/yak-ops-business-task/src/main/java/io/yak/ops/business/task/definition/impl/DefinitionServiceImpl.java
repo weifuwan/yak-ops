@@ -4,12 +4,16 @@ import io.yak.ops.business.task.definition.DefinitionService;
 import io.yak.ops.business.task.definition.PublicationService;
 import io.yak.ops.common.bean.dto.task.CreateDefinitionDTO;
 import io.yak.ops.common.bean.dto.task.DefinitionQueryDTO;
+import io.yak.ops.common.bean.dto.task.PublishDefinitionDTO;
 import io.yak.ops.common.bean.dto.task.UpdateDefinitionDTO;
+import io.yak.ops.common.bean.vo.task.DefinitionPublicationVO;
 import io.yak.ops.common.bean.vo.task.DefinitionVO;
+import io.yak.ops.common.bean.vo.task.DefinitionVersionSummaryVO;
 import io.yak.ops.common.bean.vo.task.DefinitionVersionVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.schedule.ScheduleTargetType;
+import io.yak.ops.common.enums.task.DefinitionErrorCode;
 import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.page.PagingData;
@@ -19,44 +23,56 @@ import io.yak.ops.common.util.StringUtils;
 import io.yak.ops.configuration.ConfigParser;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
+import io.yak.ops.dao.entity.task.DefinitionPublicationEntity;
 import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionPageQuery;
+import io.yak.ops.dao.repository.task.DefinitionPublicationRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
 import io.yak.ops.dao.repository.task.DefinitionVersionRepository;
 import io.yak.ops.dao.repository.task.InstanceRepository;
+import io.yak.ops.plugin.task.api.TaskChannel;
 import io.yak.ops.plugin.task.api.TaskPlugin;
+import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
-import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Task Definition is the sole owner of identity, immutable versions and publication. */
 @Service
 public class DefinitionServiceImpl implements DefinitionService {
-    @Resource
-    private DefinitionRepository definitionRepository;
+    private final DefinitionRepository definitionRepository;
+    private final DefinitionVersionRepository versionRepository;
+    private final TaskPluginManager pluginRegistry;
+    private final TaskValidationContext validationContext;
+    private final PublicationService publicationService;
+    private final ScheduleRepository schedules;
+    private final InstanceRepository instances;
+    private final DefinitionPublicationRepository publications;
 
-    @Resource
-    private DefinitionVersionRepository versionRepository;
-
-    @Resource
-    private TaskPluginManager pluginRegistry;
-
-    @Resource
-    private TaskValidationContext validationContext;
-
-    @Resource
-    private PublicationService publicationService;
-
-    @Resource
-    private ScheduleRepository schedules;
-
-    @Resource
-    private InstanceRepository instances;
+    public DefinitionServiceImpl(
+            DefinitionRepository definitionRepository,
+            DefinitionVersionRepository versionRepository,
+            TaskPluginManager pluginRegistry,
+            TaskValidationContext validationContext,
+            PublicationService publicationService,
+            ScheduleRepository schedules,
+            InstanceRepository instances,
+            DefinitionPublicationRepository publications) {
+        this.definitionRepository = definitionRepository;
+        this.versionRepository = versionRepository;
+        this.pluginRegistry = pluginRegistry;
+        this.validationContext = validationContext;
+        this.publicationService = publicationService;
+        this.schedules = schedules;
+        this.instances = instances;
+        this.publications = publications;
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -73,6 +89,7 @@ public class DefinitionServiceImpl implements DefinitionService {
         definition.setTaskType(type);
         definition.setStatus(DefinitionStatus.UNPUBLISHED);
         definition.setCurrentVersion(1);
+        definition.setRevision(1);
         definition.setDebug(Boolean.TRUE.equals(dto.getDebug()));
         definition.setRemark(dto.getRemark());
         definition.initCreate(operatorId);
@@ -84,10 +101,11 @@ public class DefinitionServiceImpl implements DefinitionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DefinitionVO update(String id, UpdateDefinitionDTO dto, String operatorId) {
-        if (dto == null) throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
+        if (dto == null || dto.getExpectedRevision() == null || dto.getExpectedRevision() < 1) {
+            throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
+        }
         DefinitionEntity definition = requireDefinition(id, true);
-        requireUnpublished(definition);
-        requireNoActiveInstance(definition);
+        requireRevision(definition, dto.getExpectedRevision());
         String name = requiredName(dto.getName());
         checkNameAvailable(definition.getWorkspaceId(), name, id);
         if (StringUtils.isNotBlank(dto.getParameters())) {
@@ -100,7 +118,7 @@ public class DefinitionServiceImpl implements DefinitionService {
                     validationContext);
             String existing = stored.getParameters();
             if (!updated.equals(existing)) {
-                definition.setCurrentVersion(definition.getCurrentVersion() + 1);
+                definition.setCurrentVersion(Math.addExact(definition.getCurrentVersion(), 1));
                 appendVersion(definition, updated, operatorId);
             }
         }
@@ -109,6 +127,7 @@ public class DefinitionServiceImpl implements DefinitionService {
         if (dto.getDebug() != null) {
             definition.setDebug(dto.getDebug());
         }
+        definition.setRevision(Math.addExact(definition.getRevision(), 1));
         definition.initUpdate(operatorId);
         if (definitionRepository.update(definition.getWorkspaceId(), definition) == null) {
             throw new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS);
@@ -117,11 +136,37 @@ public class DefinitionServiceImpl implements DefinitionService {
     }
 
     @Override
-    public DefinitionVO publish(String id, String operatorId) {
+    public DefinitionVO publish(String id, PublishDefinitionDTO dto, String operatorId) {
+        if (dto == null
+                || dto.getVersion() == null
+                || dto.getVersion() < 1
+                || dto.getExpectedRevision() == null
+                || dto.getExpectedRevision() < 1
+                || dto.getRequestId() == null
+                || !dto.getRequestId().matches("[A-Za-z0-9_-]{8,128}")) {
+            throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
+        }
         DefinitionEntity definition = requireDefinition(id, false);
-        int expectedVersion = definition.getCurrentVersion();
-        validatePublication(definition.getTaskType(), currentVersion(definition));
-        return toVO(publicationService.publish(id, expectedVersion, operatorId));
+        Optional<DefinitionPublicationEntity> replay =
+                publications.findByRequest(definition.getWorkspaceId(), id, dto.getRequestId());
+        if (replay.isPresent()) {
+            PublicationServiceImpl.requireSameRequest(
+                    replay.orElseThrow(), dto.getVersion(), dto.getExpectedRevision());
+            return toVO(requireDefinition(id, false));
+        }
+        requireRevision(definition, dto.getExpectedRevision());
+        DefinitionVersionEntity selected = versionRepository
+                .queryCurrent(definition.getWorkspaceId(), id, dto.getVersion())
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
+        boolean schedulable = validatePublication(definition.getTaskType(), selected);
+        return toVO(publicationService.publish(
+                id,
+                dto.getVersion(),
+                dto.getExpectedRevision(),
+                dto.getRequestId(),
+                definition.isDebug(),
+                schedulable,
+                operatorId));
     }
 
     @Override
@@ -130,6 +175,9 @@ public class DefinitionServiceImpl implements DefinitionService {
         DefinitionEntity definition = requireDefinition(id, true);
         requireNoActiveInstance(definition);
         definition.setStatus(DefinitionStatus.UNPUBLISHED);
+        definition.setPublishedVersion(null);
+        definition.setPublishedDebug(null);
+        definition.setRevision(Math.addExact(definition.getRevision(), 1));
         definition.initUpdate(operatorId);
         schedules.disableForTarget(
                 definition.getWorkspaceId(), ScheduleTargetType.TASK, id, definition.getUpdateTime(), operatorId);
@@ -212,14 +260,43 @@ public class DefinitionServiceImpl implements DefinitionService {
     }
 
     @Override
-    public List<DefinitionVersionVO> queryVersions(String id) {
+    public PagingData<DefinitionVersionSummaryVO> queryVersions(String id, int pageNo, int pageSize) {
+        requirePage(pageNo, pageSize);
         DefinitionEntity definition = requireDefinition(id, false);
-        return versionRepository.queryByDefinition(definition.getWorkspaceId(), definition.getId()).stream()
-                .map(v -> {
-                    DefinitionVersionVO vo = BeanCopyUtils.copy(v, DefinitionVersionVO.class);
-                    return vo;
-                })
-                .toList();
+        return PagingData.from(versionRepository
+                .queryPage(definition.getWorkspaceId(), id, pageNo, pageSize)
+                .map(version -> BeanCopyUtils.copy(version, DefinitionVersionSummaryVO.class)));
+    }
+
+    @Override
+    public DefinitionVersionVO queryVersion(String id, int version) {
+        if (version < 1) throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
+        DefinitionEntity definition = requireDefinition(id, false);
+        DefinitionVersionEntity selected = versionRepository
+                .queryCurrent(definition.getWorkspaceId(), id, version)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
+        return BeanCopyUtils.copy(selected, DefinitionVersionVO.class);
+    }
+
+    @Override
+    public PagingData<DefinitionPublicationVO> queryPublications(String id, int pageNo, int pageSize) {
+        requirePage(pageNo, pageSize);
+        DefinitionEntity definition = requireDefinition(id, false);
+        return PagingData.from(publications
+                .queryPage(definition.getWorkspaceId(), id, pageNo, pageSize)
+                .map(publication -> BeanCopyUtils.copy(publication, DefinitionPublicationVO.class)));
+    }
+
+    private void requirePage(int pageNo, int pageSize) {
+        if (pageNo < 1 || pageSize < 1 || pageSize > 200) {
+            throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
+        }
+    }
+
+    private void requireRevision(DefinitionEntity definition, long expectedRevision) {
+        if (definition.getRevision() != expectedRevision) {
+            throw new BusinessException(DefinitionErrorCode.REVISION_CONFLICT);
+        }
     }
 
     private DefinitionVersionEntity currentVersion(DefinitionEntity entity) {
@@ -263,6 +340,8 @@ public class DefinitionServiceImpl implements DefinitionService {
         vo.setDefinitionVersion(entity.getCurrentVersion());
         vo.setParameters(version.getParameters());
         vo.setParameterSchemaVersion(version.getParameterSchemaVersion());
+        vo.setHasUnpublishedChanges(!Objects.equals(entity.getCurrentVersion(), entity.getPublishedVersion())
+                || !Objects.equals(entity.isDebug(), entity.getPublishedDebug()));
         return vo;
     }
 
@@ -273,11 +352,16 @@ public class DefinitionServiceImpl implements DefinitionService {
         return ConfigParser.toJson(parsed);
     }
 
-    private void validatePublication(String type, DefinitionVersionEntity version) {
-        TaskPlugin plugin = pluginRegistry.get(type);
-        ReadonlyConfig parsed = plugin.parse(version.getParameterSchemaVersion(), version.getParameters());
-        plugin.validateReferences(parsed, validationContext);
-        plugin.validate(parsed, validationContext);
+    private boolean validatePublication(String type, DefinitionVersionEntity version) {
+        try {
+            TaskPlugin plugin = pluginRegistry.get(type);
+            ReadonlyConfig parsed = plugin.parse(version.getParameterSchemaVersion(), version.getParameters());
+            plugin.validateReferences(parsed, validationContext);
+            plugin.validate(parsed, validationContext);
+            return plugin instanceof TaskChannel executable && executable.supportsScheduling(parsed);
+        } catch (TaskPluginException | IllegalArgumentException failure) {
+            throw new BusinessException(DefinitionErrorCode.PUBLICATION_INVALID, failure);
+        }
     }
 
     private void appendVersion(DefinitionEntity entity, String json, String operator) {

@@ -17,6 +17,14 @@ public class DefinitionVO {
     private String status;
     /** Current immutable definition version number. */
     private Integer definitionVersion;
+    /** Revision required when saving or publishing this task. */
+    private long revision;
+    /** Parameter version used for future executions; null while unpublished. */
+    private Integer publishedVersion;
+    /** Diagnostics setting frozen by publication; null while unpublished. */
+    private Boolean publishedDebug;
+    /** Whether saved parameters or diagnostics differ from the current publication. */
+    private boolean hasUnpublishedChanges;
     /** Schema version used by the plugin to interpret parameters. */
     private Integer parameterSchemaVersion;
     /** Validated plugin-specific JSON for the current definition version. */

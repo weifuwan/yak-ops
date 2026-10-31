@@ -30,6 +30,7 @@ export interface EditorSink {
 
 /** Authored editor state; replication table options live on their individual mappings. */
 export interface EditorForm {
+  tableScope?: "SINGLE" | "DATABASE";
   name: string;
   remark: string;
   debug: boolean;

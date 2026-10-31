@@ -40,6 +40,7 @@ export function buildEditorPayload(
     sourceProducesChangelog: draft.sourceProducesChangelog,
     transforms: form.transforms,
     pipelineOptions: form.pipelineOptions,
+    tableScope: form.tableScope,
     steps: draft.steps,
     ...(replication && form.startup ? { startup: { ...form.startup } } : {}),
     writeMode: form.sink.writeMode,
@@ -60,7 +61,6 @@ export function buildEditorPayload(
 }
 
 interface ValidationInput {
-  published: boolean;
   combination?: { writeModes: DataSyncWriteMode[] };
   solutionsLoading: boolean;
   solutionsError: string;
@@ -83,8 +83,7 @@ interface ValidationInput {
   sourceCatalog: CatalogOptions;
 }
 
-export function canSaveEditor({
-  published,
+export function editorValidationIssue({
   combination,
   solutionsLoading,
   solutionsError,
@@ -105,9 +104,8 @@ export function canSaveEditor({
   prepareSchema,
   targetCatalog,
   sourceCatalog,
-}: ValidationInput): boolean {
-  return Boolean(
-    !published &&
+}: ValidationInput): EditorIssue | undefined {
+  const valid = Boolean(
     Boolean(combination) &&
     !solutionsLoading &&
     !solutionsError &&
@@ -148,4 +146,76 @@ export function canSaveEditor({
     !sourceCatalog.error &&
     !targetCatalog.error,
   );
+  if (valid) return undefined;
+  if (!form.name.trim()) return { message: "请输入任务名称", location: "properties" };
+  if (solutionsLoading) return { message: "正在加载同步方案", location: "datasource" };
+  if (solutionsError || !combination)
+    return {
+      message: solutionsError || "当前链路不支持所选同步方案",
+      location: "advanced",
+      tab: "parameters",
+      parameterTab: "read",
+    };
+  if (
+    !form.source.dataSourceId ||
+    !form.sink.dataSourceId ||
+    selectedSourceDataSource?.dbType !== draft.sourceType ||
+    selectedTargetDataSource?.dbType !== draft.targetType
+  )
+    return { message: "请选择有效的来源和去向数据源", location: "datasource" };
+  if (
+    supportsScheduling &&
+    (scheduleLoading ||
+      scheduleNeedsReload ||
+      (schedule?.enabled && !sameScheduleRule(scheduleForm, schedule)))
+  )
+    return {
+      message: scheduleNeedsReload
+        ? "请先重新加载调度状态"
+        : scheduleLoading
+          ? "正在加载调度"
+          : "请先停用调度再修改 Cron",
+      location: "advanced",
+      tab: "parameters",
+      parameterTab: "runtime",
+    };
+  if (sourceCatalog.loading || sourceCatalog.error)
+    return { message: sourceCatalog.error || "正在加载来源表", location: "source" };
+  if (targetCatalog.loading || targetCatalog.error)
+    return { message: targetCatalog.error || "正在加载目标表", location: "target" };
+  if (useIncremental && !validIncrementalConfig(form.source.incremental, !initialLoad))
+    return { message: "请完善增量字段和初始起点", location: "source" };
+  if (transformEditingError(form.transforms))
+    return {
+      message: transformEditingError(form.transforms) || "转换规则无效",
+      location: replication ? "advanced-transforms" : "field-mapping",
+    };
+  if (!replication && !combination.writeModes.includes(form.sink.writeMode))
+    return {
+      message: "请选择当前策略支持的写入方式",
+      location: "advanced",
+      tab: "parameters",
+      parameterTab: "write",
+    };
+  if (replicationError) return { message: replicationError, location: "target" };
+  return {
+    message: replication && !mappings.length ? "请选择来源表" : "请完善目标表和表映射",
+    location: replication && !mappings.length ? "source" : "target",
+  };
 }
+
+export interface EditorIssue {
+  message: string;
+  location:
+    | "properties"
+    | "advanced"
+    | "datasource"
+    | "source"
+    | "target"
+    | "field-mapping"
+    | "advanced-transforms";
+  tab?: "parameters" | "ddl" | "engine";
+  parameterTab?: "read" | "write" | "runtime";
+}
+
+export const canSaveEditor = (input: ValidationInput) => !editorValidationIssue(input);

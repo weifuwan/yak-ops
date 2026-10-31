@@ -17,7 +17,9 @@ import io.yak.ops.common.enums.task.TaskTriggerType;
 import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.common.util.IdUtils;
 import io.yak.ops.configuration.ReadonlyConfig;
+import io.yak.ops.dao.entity.schedule.ScheduleEntity;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
+import io.yak.ops.dao.entity.task.DefinitionVersionEntity;
 import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.dao.repository.schedule.ScheduleFireRepository;
 import io.yak.ops.dao.repository.schedule.ScheduleRepository;
@@ -34,6 +36,7 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContextFactory;
 import io.yak.ops.workspace.WorkspaceService;
 import jakarta.annotation.Resource;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -99,7 +102,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         String definitionId = command.definitionId();
         String requestId = command.requestId();
         String fingerprint = command.triggerType().name() + ":" + definitionId;
-        var existing = instances.findByRequest(workspaceId, command.triggerType(), requestId);
+        Optional<InstanceEntity> existing = instances.findByRequest(workspaceId, command.triggerType(), requestId);
         if (existing.isPresent()) {
             return replay(existing.orElseThrow(), fingerprint);
         }
@@ -122,15 +125,18 @@ public class SubmissionServiceImpl implements SubmissionService {
         DefinitionEntity definition = definitions
                 .queryById(workspaceId, definitionId)
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
-        if (definition.getStatus() != DefinitionStatus.PUBLISHED) {
+        if (definition.getStatus() != DefinitionStatus.PUBLISHED
+                || definition.getPublishedVersion() == null
+                || definition.getPublishedDebug() == null) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
         TaskPlugin plugin = plugins.get(definition.getTaskType());
         if (!(plugin instanceof TaskChannel executable)) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
-        int version = definition.getCurrentVersion();
-        var snapshot = versions.queryCurrent(workspaceId, definitionId, version)
+        int version = definition.getPublishedVersion();
+        boolean debug = definition.getPublishedDebug();
+        DefinitionVersionEntity snapshot = versions.queryCurrent(workspaceId, definitionId, version)
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_EXISTS));
         ReadonlyConfig parameters = executable.parse(snapshot.getParameterSchemaVersion(), snapshot.getParameters());
         if (command.triggerType() == TaskTriggerType.SCHEDULE && !executable.supportsScheduling(parameters)) {
@@ -141,6 +147,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         TaskExecutionResources plan = executable.plan(parameters, context);
         return new PreparedTaskSubmission(
                 context,
+                debug,
                 command.triggerType(),
                 requestId,
                 fingerprint,
@@ -168,12 +175,13 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
         try (ScheduleAdmissionController.Permit ignored = admissionController.enter()) {
-            var selected = schedules.queryIncludingDeleted(trigger.workspaceId(), trigger.scheduleId());
+            Optional<ScheduleEntity> selected =
+                    schedules.queryIncludingDeleted(trigger.workspaceId(), trigger.scheduleId());
             if (selected.isEmpty()) {
                 return new ScheduleFireResult(
                         ScheduleFireOutcome.REJECTED, ScheduleFireReason.STALE_SCHEDULE, null, false);
             }
-            var schedule = selected.orElseThrow();
+            ScheduleEntity schedule = selected.orElseThrow();
             String key = ScheduleRequestId.of(
                     trigger.workspaceId(), trigger.scheduleId(), trigger.revision(), trigger.scheduledTime());
             if (fires.find(trigger.workspaceId(), key).isPresent()

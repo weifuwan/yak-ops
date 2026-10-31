@@ -23,7 +23,8 @@ export default function WorkspaceCreateDialog({
     if (!trimmed || creating) return;
     setCreating(true);
     try {
-      await createWorkspace({ name: trimmed });
+      const workspace = await createWorkspace({ name: trimmed });
+      if (!workspace) return;
       setName("");
       onClose();
       toast.success("工作空间创建成功");

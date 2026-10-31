@@ -2,6 +2,7 @@ package io.yak.ops.business.task.submission.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.yak.ops.business.task.submission.PreparedTaskSubmission;
 import io.yak.ops.business.task.submission.SubmissionResult;
 import io.yak.ops.business.task.submission.TaskSubmissionCommand;
 import io.yak.ops.business.task.submission.TaskSubmissionTransactionService;
@@ -32,6 +34,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DuplicateKeyException;
 
 /** Validates request replay and admission without physical runtime submission. */
@@ -45,6 +48,7 @@ class SubmissionServiceTest {
     private final TaskValidationContextFactory validationContexts = mock(TaskValidationContextFactory.class);
     private final TaskSubmissionTransactionService admission = mock(TaskSubmissionTransactionService.class);
     private final TaskChannel plugin = mock(TaskChannel.class);
+    private final DefinitionEntity definition = new DefinitionEntity();
     private final ReadonlyConfig params = ReadonlyConfig.fromMap(java.util.Map.of());
 
     SubmissionServiceTest() {
@@ -56,11 +60,12 @@ class SubmissionServiceTest {
         inject("admission", admission);
         when(validationContexts.forWorkspace("ws")).thenReturn(validation);
 
-        DefinitionEntity definition = new DefinitionEntity();
         definition.setId("definition-1");
         definition.setWorkspaceId("ws");
         definition.setTaskType("DATA_SYNC");
         definition.setCurrentVersion(2);
+        definition.setPublishedVersion(2);
+        definition.setPublishedDebug(false);
         definition.setStatus(DefinitionStatus.PUBLISHED);
         when(definitions.queryById("ws", "definition-1")).thenReturn(Optional.of(definition));
         DefinitionVersionEntity version = new DefinitionVersionEntity();
@@ -79,6 +84,33 @@ class SubmissionServiceTest {
         when(admission.admit(any())).thenReturn(accepted);
         assertEquals(accepted, service.submit(manual("request-123")));
         verify(plugin, never()).createTask(any(), any(), any(), anyBoolean());
+    }
+
+    @Test
+    void preparesPublishedParametersAndDebugWhileNewerDraftRemainsEditable() {
+        definition.setCurrentVersion(3);
+        definition.setDebug(false);
+        definition.setPublishedDebug(true);
+        definition.setRevision(7);
+
+        service.submit(manual("request-123"));
+
+        ArgumentCaptor<PreparedTaskSubmission> prepared = ArgumentCaptor.forClass(PreparedTaskSubmission.class);
+        verify(admission).admit(prepared.capture());
+        assertEquals(2, prepared.getValue().identity().definitionVersion());
+        assertTrue(prepared.getValue().debug());
+        assertEquals(params, prepared.getValue().parameters());
+        verify(versions, never()).queryCurrent("ws", "definition-1", 3);
+    }
+
+    @Test
+    void publishedStatusWithoutCompletePublicationCannotFallBackToDraft() {
+        definition.setPublishedDebug(null);
+        assertThrows(BusinessException.class, () -> service.submit(manual("request-123")));
+        definition.setPublishedDebug(false);
+        definition.setPublishedVersion(null);
+        assertThrows(BusinessException.class, () -> service.submit(manual("request-456")));
+        verify(admission, never()).admit(any());
     }
 
     @Test

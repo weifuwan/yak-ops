@@ -22,6 +22,8 @@ function compile(file, mocks) {
     AbortController,
     Error,
     Promise,
+    structuredClone,
+    crypto: { randomUUID: () => "test-publication-id" },
   });
   return exports;
 }
@@ -360,7 +362,6 @@ const options = {
 };
 assert.equal(params.canSaveEditor(options), true);
 for (const change of [
-  { published: true },
   { solutionsLoading: true },
   { solutionsError: "unavailable" },
   { scheduleNeedsReload: true },
@@ -407,6 +408,20 @@ assert.equal(
   false,
 );
 
+assert.equal(
+  params.canSaveEditor({ ...options, published: true }),
+  true,
+  "Published tasks remain editable",
+);
+assert.equal(
+  params.editorValidationIssue({ ...options, form: { ...form, name: "" } }).location,
+  "properties",
+);
+assert.equal(
+  params.editorValidationIssue({ ...options, scheduleNeedsReload: true }).parameterTab,
+  "runtime",
+);
+
 // Session storage accepts the current two-workflow draft only and stays scoped by identity.
 const stored = new Map();
 const draftText = readFileSync(
@@ -441,25 +456,84 @@ assert.equal(
 stored.set(key, JSON.stringify({ version: 2, draft: completeDraft }));
 assert.equal(draftModule.readTaskDraft(key), undefined);
 
-function createHarness({ failSchedule = false, failPublish = false } = {}) {
+const versions = compile("../apps/web/service/data-sync/versions.ts", {
+  "./parameters": parameterContract,
+  "./definition": transport,
+});
+const baseTask = transport.toSyncTaskRecord({
+  id: "t-1",
+  name: request.name,
+  taskType: "DATA_SYNC",
+  status: "UNPUBLISHED",
+  debug: request.debug,
+  remark: request.remark,
+  definitionVersion: 1,
+  revision: 1,
+  publishedVersion: null,
+  publishedDebug: null,
+  hasUnpublishedChanges: true,
+  parameterSchemaVersion: 7,
+  parameters: transport.createDefinitionRequest(request).parameters,
+});
+function createHarness({
+  failSchedule = false,
+  failPublish,
+  existing = false,
+  concurrentPublish = false,
+} = {}) {
   const calls = [];
-  const savedTask = { current: undefined };
+  const savedTask = { current: existing ? baseTask : undefined };
   const scheduleDraft = { current: undefined };
-  const setter = (name) => (value) => calls.push(name + ":" + String(value));
+  const state = [];
+  const refs = [];
+  let stateIndex = 0,
+    refIndex = 0,
+    initialized = false;
+  let publication;
+  let remote = baseTask;
+  let receipts = [];
+  let publishFailure = failPublish;
   const task = {
     createDataSyncTask: async () => {
       calls.push("create");
-      return { id: "t-1" };
+      return baseTask;
     },
-    updateDataSyncTask: async () => {
-      calls.push("update");
-      return { id: "t-1" };
+    updateDataSyncTask: async (_id, _request, revision) => {
+      calls.push("update:" + revision);
+      return { ...baseTask, revision: revision + 1 };
     },
-    publishDataSyncTask: async () => {
+    publishDataSyncTask: async (_id, intent) => {
       calls.push("publish");
-      if (failPublish) throw Error("publish failed");
+      publication = plain(intent);
+      if (publishFailure) {
+        const error = Error("publish failed");
+        error.rejected = publishFailure === "rejected";
+        throw error;
+      }
+      return {
+        ...baseTask,
+        definitionVersion: concurrentPublish ? 2 : 1,
+        pipelineOptions: concurrentPublish
+          ? { ...baseTask.pipelineOptions, parallelism: 6 }
+          : baseTask.pipelineOptions,
+        status: "PUBLISHED",
+        revision: concurrentPublish ? 4 : 2,
+        publishedVersion: 1,
+        publishedDebug: false,
+        hasUnpublishedChanges: concurrentPublish,
+      };
+    },
+    isRejectedTaskWrite: (error) => error.rejected === true,
+    getDataSyncTask: async () => {
+      calls.push("readTask");
+      return remote;
+    },
+    listTaskPublications: async () => {
+      calls.push("readPublications");
+      return { bizData: receipts, pagination: { total: receipts.length } };
     },
   };
+  const setter = (name) => (value) => calls.push(name + ":" + String(value));
   const schedule = {
     previewSchedule: async () => {
       calls.push("preview");
@@ -482,24 +556,40 @@ function createHarness({ failSchedule = false, failPublish = false } = {}) {
   };
   const module = compile("../apps/web/app/data-sync/editor/use-editor-submission.ts", {
     react: {
-      useState: (initial) => [initial, setter("saving")],
-      useRef: (initial) => ({ current: initial }),
-      useEffect: (effect) => effect(),
+      useState: (initial) => {
+        const index = stateIndex++;
+        if (!(index in state)) state[index] = typeof initial === "function" ? initial() : initial;
+        return [
+          state[index],
+          (value) => {
+            state[index] = typeof value === "function" ? value(state[index]) : value;
+          },
+        ];
+      },
+      useRef: (initial) => {
+        const index = refIndex++;
+        return (refs[index] ||= { current: initial });
+      },
+      useEffect: (effect) => {
+        if (!initialized) effect();
+      },
     },
-    "@yak-ops/yak-ui": { toast: { success: setter("success"), error: setter("error") } },
+    "@tanstack/react-query": {
+      useQueryClient: () => ({ invalidateQueries: async () => calls.push("invalidate") }),
+    },
+    "@yak-ops/yak-ui": { toast: { success: setter("success"), error: setter("toastError") } },
     "@/service/data-sync/draft": { clearTaskDraft: () => calls.push("clearDraft") },
     "@/service/data-sync": task,
+    "@/service/data-sync/versions": versions,
     "@/service/schedule": schedule,
     "@/app/schedule/schedule-presentation": {
       EMPTY_SCHEDULE: { cronExpression: "", timeZone: "UTC" },
       sameScheduleRule: (a, b) => a.cronExpression === b.cronExpression,
     },
   });
-  const hook = module.useEditorSubmission({
-    id: undefined,
-    editing: false,
+  const input = {
     draftKey: "draft",
-    canSave: true,
+    scope: { userId: "alice", workspaceId: "workspace-1" },
     taskDirty: true,
     parametersDirty: true,
     supportsScheduling: true,
@@ -508,33 +598,294 @@ function createHarness({ failSchedule = false, failPublish = false } = {}) {
     savedTask,
     scheduleDraft,
     payload: () => request,
-    setTaskDirty: setter("taskDirty"),
-    setParametersDirty: setter("parametersDirty"),
-    setSchedule: setter("schedule"),
-    setScheduleForm: setter("scheduleForm"),
+    onPersisted: (task, payload) => {
+      calls.push("persisted:" + task.id);
+      if (payload) {
+        input.taskDirty = false;
+        input.parametersDirty = false;
+      }
+    },
+    onComplete: (task) => calls.push("complete:" + task.id),
+    onScheduleFailure: () => calls.push("focusSchedule"),
+    setSchedule: (value) => {
+      input.schedule = value;
+    },
+    setScheduleForm: (value) => {
+      input.scheduleForm = value;
+    },
     setScheduleError: setter("scheduleError"),
     setScheduleNeedsReload: setter("needsReload"),
-    navigate: (route) => calls.push("navigate:" + route),
-  });
-  return { save: hook.save, calls, savedTask };
+  };
+  const render = () => {
+    stateIndex = 0;
+    refIndex = 0;
+    const result = module.useEditorSubmission(input);
+    initialized = true;
+    return result;
+  };
+  return {
+    render,
+    calls,
+    savedTask,
+    input,
+    publication: () => publication,
+    confirmReceipt: () => {
+      remote = {
+        ...baseTask,
+        status: "PUBLISHED",
+        revision: 2,
+        publishedVersion: 1,
+        publishedDebug: false,
+        hasUnpublishedChanges: false,
+      };
+      receipts = [{ requestId: publication.requestId, version: 1 }];
+    },
+    retrySucceeds: () => {
+      publishFailure = undefined;
+    },
+  };
 }
 const success = createHarness();
-await success.save(true);
+await success.render().save(true);
 assert.deepEqual(
   success.calls.filter((x) => ["preview", "create", "schedule", "publish"].includes(x)),
   ["preview", "create", "schedule", "publish"],
 );
+assert.deepEqual(success.publication(), {
+  version: 1,
+  expectedRevision: 1,
+  requestId: "test-publication-id",
+});
 assert.equal(success.savedTask.current.id, "t-1");
-const unknown = createHarness({ failSchedule: true });
-await unknown.save(true);
-assert.equal(unknown.savedTask.current.id, "t-1");
-assert.ok(unknown.calls.includes("clearDraft"));
-assert.ok(unknown.calls.includes("needsReload:true"));
-assert.ok(unknown.calls.includes("navigate:/data-sync/t-1/edit"));
-assert.ok(!unknown.calls.includes("publish"));
-const rejected = createHarness({ failPublish: true });
-await rejected.save(true);
-assert.ok(rejected.calls.includes("publish"));
-assert.ok(rejected.calls.some((x) => x.startsWith("error:任务已保存，仍处于下线状态")));
-assert.ok(rejected.calls.includes("navigate:/data-sync/t-1/edit"));
+assert.equal(success.savedTask.current.publishedVersion, 1);
+const update = createHarness({ existing: true });
+await update.render().save();
+assert.ok(update.calls.includes("update:1"));
+const unknownSchedule = createHarness({ failSchedule: true });
+await unknownSchedule.render().save(true);
+assert.equal(unknownSchedule.savedTask.current.id, "t-1");
+assert.ok(
+  unknownSchedule.calls.includes("persisted:t-1"),
+  "Created identity must reach the page before schedule failure",
+);
+assert.ok(unknownSchedule.calls.includes("clearDraft"));
+assert.ok(unknownSchedule.calls.includes("needsReload:true"));
+assert.ok(unknownSchedule.calls.includes("focusSchedule"));
+assert.ok(!unknownSchedule.calls.includes("publish"));
+const rejected = createHarness({ failPublish: "rejected" });
+await rejected.render().save(true);
+assert.match(rejected.render().error, /任务已保存，发布失败/);
+assert.equal(rejected.render().pendingWrite, undefined);
+assert.equal(rejected.savedTask.current.id, "t-1");
+const unknownPublish = createHarness({ failPublish: "unknown" });
+await unknownPublish.render().save(true);
+assert.equal(unknownPublish.render().pendingWrite.kind, "publish");
+await unknownPublish.render().save(true);
+assert.equal(
+  unknownPublish.calls.filter((x) => x === "publish").length,
+  1,
+  "Unknown writes cannot blindly retry",
+);
+unknownPublish.confirmReceipt();
+await unknownPublish.render().reconcile();
+assert.equal(unknownPublish.render().pendingWrite, undefined);
+assert.equal(unknownPublish.savedTask.current.publishedVersion, 1);
+assert.equal(unknownPublish.calls.filter((x) => x === "publish").length, 1);
+const retry = createHarness({ failPublish: "unknown" });
+await retry.render().save(true);
+const originalIntent = retry.publication();
+await retry.render().reconcile();
+assert.deepEqual(plain(retry.render().retryPublication), originalIntent);
+retry.input.taskDirty = true;
+await retry.render().save(true);
+assert.equal(
+  retry.calls.filter((x) => x === "publish").length,
+  1,
+  "Recovery cannot attach an old key to new edits",
+);
+retry.input.taskDirty = false;
+retry.retrySucceeds();
+await retry.render().save(true);
+assert.deepEqual(retry.publication(), originalIntent);
+const concurrent = createHarness({ concurrentPublish: true });
+await concurrent.render().save(true);
+assert.equal(concurrent.render().pendingWrite.kind, "conflict");
+assert.equal(
+  concurrent.savedTask.current.revision,
+  1,
+  "Concurrent publication response cannot rebase the editor",
+);
+const duplicate = createHarness();
+const duplicateHook = duplicate.render();
+await Promise.all([duplicateHook.save(), duplicateHook.save()]);
+assert.equal(duplicate.calls.filter((x) => x === "create").length, 1);
 console.log("Editor payload, validation, ordered saves and partial failure recovery passed");
+
+// History is parameter-only, immutable, and compared by table identity.
+const oldVersion = {
+  definitionId: baseTask.id,
+  version: 1,
+  parameterSchemaVersion: 7,
+  parameters: transport.createDefinitionRequest(request).parameters,
+};
+const latestTask = {
+  ...baseTask,
+  name: "current name",
+  remark: "current remark",
+  debug: true,
+  definitionVersion: 5,
+  revision: 8,
+  publishedVersion: 3,
+  publishedDebug: false,
+  hasUnpublishedChanges: true,
+};
+const oldJson = JSON.stringify(oldVersion);
+const restoredVersion = versions.restoreParameterVersion(latestTask, oldVersion);
+assert.equal(restoredVersion.name, latestTask.name);
+assert.equal(restoredVersion.remark, latestTask.remark);
+assert.equal(restoredVersion.debug, true);
+assert.equal(restoredVersion.definitionVersion, 5);
+assert.equal(restoredVersion.revision, 8);
+assert.equal(restoredVersion.publishedVersion, 3);
+assert.equal(JSON.stringify(oldVersion), oldJson);
+assert.throws(
+  () => versions.restoreParameterVersion(latestTask, { ...oldVersion, parameterSchemaVersion: 99 }),
+  /不支持/,
+);
+assert.throws(
+  () =>
+    versions.restoreParameterVersion(latestTask, { ...oldVersion, definitionId: "another-task" }),
+  /不属于/,
+);
+const historical = {
+  ...oldVersion,
+  parameters: transport.createDefinitionRequest(
+    params.buildEditorPayload(form, replicationDraft, true, multiple),
+  ).parameters,
+};
+const reordered = structuredClone(historical);
+reordered.parameters.source.tables.reverse();
+reordered.parameters.sink.tables.reverse();
+reordered.parameters.route.reverse();
+assert.equal(versions.compareParameterVersions(historical, reordered).length, 0);
+reordered.parameters.pipeline.parallelism = 9;
+const differences = versions.compareParameterVersions(historical, reordered);
+assert.equal(differences.length, 1);
+assert.match(differences[0].field, /并行度/);
+assert.equal(differences[0].before, "3");
+assert.equal(differences[0].after, "9");
+const configurationContract = compile("../apps/web/app/data-sync/editor/configuration.ts", {
+  "@/service/data-sync/parameters": parameterContract,
+  "../solution/presentation": compile("../apps/web/app/data-sync/solution/presentation.ts", {}),
+  "./incremental-fields": { EMPTY_INCREMENTAL: { mode: "TIMESTAMP", column: "" } },
+});
+assert.deepEqual(
+  plain(
+    configurationContract.parseEngineOptions(
+      '{"parallelism":3,"local-time-zone":"Asia/Shanghai"}',
+      false,
+    ),
+  ),
+  { parallelism: 3, "local-time-zone": "Asia/Shanghai" },
+);
+assert.throws(
+  () => configurationContract.parseEngineOptions('{"unsupported-option":true}', false),
+  /不支持/,
+);
+assert.throws(() => configurationContract.parseEngineOptions('{"parallelism":0}', false), /正整数/);
+assert.throws(
+  () => configurationContract.parseEngineOptions('{"schema.change.behavior":"evolve"}', false),
+  /不一致/,
+);
+
+// An asynchronous restore cannot replace newer metadata or close a subsequently opened drawer.
+const restorationRefs = [];
+let restorationRefIndex = 0,
+  restorationMounted = false,
+  disposeRestoration;
+const connectionRequests = [];
+const confirmations = [];
+const appliedConfigurations = [];
+let closedDrawers = 0;
+const restorationModule = compile(
+  "../apps/web/app/data-sync/editor/use-definition-restoration.ts",
+  {
+    react: {
+      useRef: (initial) => {
+        const index = restorationRefIndex++;
+        return (restorationRefs[index] ||= { current: initial });
+      },
+      useEffect: (effect) => {
+        if (!restorationMounted) disposeRestoration = effect();
+      },
+    },
+    "@yak-ops/yak-ui": {
+      toast: {
+        error: (message) => {
+          throw Error(message);
+        },
+      },
+    },
+    "@/service/data-sync": { getDataSyncTask: async () => baseTask },
+    "@/service/data-sync/versions": versions,
+    "@/service/datasource": {
+      getDataSource: (id, signal) =>
+        new Promise((resolve) => connectionRequests.push({ id, signal, resolve })),
+    },
+    "./form-state": initialFormContract,
+  },
+);
+const renderRestoration = (currentForm = form) => {
+  restorationRefIndex = 0;
+  const result = restorationModule.useDefinitionRestoration({
+    task: baseTask,
+    form: currentForm,
+    closeDrawer: () => {
+      closedDrawers += 1;
+    },
+    confirm: (value) => confirmations.push(value),
+    apply: (value) => appliedConfigurations.push(value),
+    replaceRemote: () => {},
+  });
+  restorationMounted = true;
+  return result;
+};
+const fulfillConnections = (requests) => {
+  for (const pending of requests)
+    pending.resolve({ id: pending.id, dbType: pending.id === "mysql" ? "MYSQL" : "POSTGRE_SQL" });
+};
+const firstRestoration = renderRestoration();
+const pendingRestoration = firstRestoration.restore(oldVersion);
+fulfillConnections(connectionRequests.splice(0));
+await pendingRestoration;
+renderRestoration({ ...form, name: "edited while preparing", remark: "new remark", debug: true });
+confirmations.pop().apply();
+assert.equal(appliedConfigurations.at(-1).form.name, "edited while preparing");
+assert.equal(appliedConfigurations.at(-1).form.remark, "new remark");
+assert.equal(appliedConfigurations.at(-1).form.debug, true);
+const pendingCanceled = renderRestoration().restore(oldVersion);
+const canceledRequests = connectionRequests.splice(0);
+renderRestoration().cancel();
+fulfillConnections(canceledRequests);
+await pendingCanceled;
+assert.equal(confirmations.length, 0, "Closing the version drawer cancels delayed confirmation");
+assert.equal(closedDrawers, 1, "Canceled restore cannot close a different drawer");
+const reopened = renderRestoration().restore({ ...oldVersion, version: 2 });
+fulfillConnections(connectionRequests.splice(0));
+await reopened;
+assert.match(confirmations.pop().title, /V2/);
+const superseded = renderRestoration().restore(oldVersion);
+const olderRequests = connectionRequests.splice(0);
+const newer = renderRestoration().restore({ ...oldVersion, version: 3 });
+fulfillConnections(olderRequests);
+await superseded;
+assert.equal(confirmations.length, 0);
+fulfillConnections(connectionRequests.splice(0));
+await newer;
+assert.match(confirmations.pop().title, /V3/);
+const unmounted = renderRestoration().restore(oldVersion);
+disposeRestoration();
+fulfillConnections(connectionRequests.splice(0));
+await unmounted;
+assert.equal(confirmations.length, 0, "An old Workspace response cannot change the next editor");
+console.log("History, engine validation and canceled asynchronous restoration contracts passed");
