@@ -31,7 +31,7 @@ import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.LogicalTypes;
 import io.yak.ops.core.types.TableSchema;
 import io.yak.ops.flow.runtime.checkpoint.CheckpointSnapshot;
-import io.yak.ops.flow.runtime.checkpoint.FileCheckpointStore;
+import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
 import io.yak.ops.flow.runtime.execution.EmbeddedPipelineExecutor;
 import io.yak.ops.flow.runtime.graph.StreamGraph;
 import io.yak.ops.flow.runtime.graph.StreamGraphGenerator;
@@ -217,8 +217,8 @@ abstract class JdbcPipelineTestBase {
                 }
                 assertEquals(expected, rows(targetConnection, targetDialect, targetTable, false));
 
-                try (FileCheckpointStore store = new FileCheckpointStore(checkpointDirectory)) {
-                    CheckpointSnapshot published = store.loadLatest(FileCheckpointStore.graphSignature(graph))
+                try (LocalCompletedCheckpointStore store = new LocalCompletedCheckpointStore(checkpointDirectory)) {
+                    CheckpointSnapshot published = store.loadLatest(LocalCompletedCheckpointStore.graphSignature(graph))
                             .orElseThrow();
                     assertEquals(
                             java.util.Set.of("jdbc-jdbc-source", "jdbc-jdbc-sink"), published.fullyFinishedOperators());
