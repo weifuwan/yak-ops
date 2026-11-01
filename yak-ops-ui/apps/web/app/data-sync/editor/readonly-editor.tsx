@@ -11,7 +11,7 @@ export function ReadonlyTaskEditor({
   definition: TaskDefinitionRecord;
   error: string;
 }) {
-  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState<boolean | undefined>();
   const navigate = useNavigate();
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
@@ -46,12 +46,14 @@ export function ReadonlyTaskEditor({
           发布
         </Button>
       </footer>
-      {versionsOpen ? (
+      {versionsOpen !== undefined ? (
         <VersionsDrawer
           task={definition}
+          open={versionsOpen}
           allowRestore={false}
           onRestore={() => {}}
           onClose={() => setVersionsOpen(false)}
+          onClosed={() => setVersionsOpen((current) => (current === false ? undefined : current))}
         />
       ) : null}
     </div>

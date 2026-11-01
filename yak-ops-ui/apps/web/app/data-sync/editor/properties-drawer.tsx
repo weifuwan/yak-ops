@@ -11,15 +11,19 @@ export function PropertiesDrawer({
   id,
   draft,
   value,
+  open,
   onApply,
   onClose,
+  onClosed,
   onDirtyChange,
 }: {
   id?: string;
   draft: DataSyncDraft;
   value: Properties;
+  open: boolean;
   onApply: (value: Properties) => void;
   onClose: () => void;
+  onClosed: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const [form, setForm] = useState(value);
@@ -40,7 +44,9 @@ export function PropertiesDrawer({
     <EditorDrawer
       title="属性"
       width={480}
+      open={open}
       onClose={onClose}
+      onClosed={onClosed}
       footer={
         <>
           <Button size="small" variant="primary" onClick={apply}>

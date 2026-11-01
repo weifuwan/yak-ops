@@ -38,8 +38,10 @@ export function AdvancedDrawer({
   initialTab = "parameters",
   initialParameterTab = "read",
   schedule,
+  open,
   onApply,
   onClose,
+  onClosed,
   onDirtyChange,
 }: {
   value: EditorConfiguration;
@@ -48,8 +50,10 @@ export function AdvancedDrawer({
   initialTab?: AdvancedTab;
   initialParameterTab?: AdvancedParameterTab;
   schedule?: ComponentProps<typeof EditorScheduleSection>;
+  open: boolean;
   onApply: (value: EditorConfiguration, scheduleForm?: ScheduleTimeRule) => void;
   onClose: () => void;
+  onClosed: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const [configuration, setConfiguration] = useState(() => structuredClone(value));
@@ -115,6 +119,8 @@ export function AdvancedDrawer({
   };
   return (
     <EditorDrawer
+      open={open}
+      onClosed={onClosed}
       title="高级配置"
       width={800}
       onClose={onClose}

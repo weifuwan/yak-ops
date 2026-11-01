@@ -1,25 +1,38 @@
 import { Button, Drawer, DrawerBody, DrawerContent, DrawerTitle } from "@yak-ops/yak-ui";
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export function EditorDrawer({
   title,
   width = 760,
+  open,
   children,
   footer,
   onClose,
+  onClosed,
 }: {
   title: string;
   width?: number;
+  open: boolean;
   children: ReactNode;
   footer?: ReactNode;
   onClose: () => void;
+  onClosed: () => void;
 }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // Base UI skips enter transitions for roots that mount already open.
+    setMounted(true);
+  }, []);
+
   return (
     <Drawer
-      open
+      open={open && mounted}
       onOpenChange={(open) => {
         if (!open) onClose();
+      }}
+      onOpenChangeComplete={(open) => {
+        if (!open) onClosed();
       }}
       disablePointerDismissal
     >
