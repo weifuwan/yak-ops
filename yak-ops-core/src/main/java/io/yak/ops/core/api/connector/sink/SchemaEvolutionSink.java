@@ -1,5 +1,6 @@
 package io.yak.ops.core.api.connector.sink;
 
+import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.core.event.SchemaChangeRequest;
 import io.yak.ops.core.event.SourceSchemaChange;
 import io.yak.ops.core.schema.SchemaVersionedTableState;
@@ -43,6 +44,16 @@ public interface SchemaEvolutionSink {
             throw new UnsupportedOperationException("Sink does not support authorized DROP COLUMN");
         }
         return planSchemaChange(change);
+    }
+
+    /**
+     * Plans a source transition under a fully specified policy.
+     *
+     * <p>Connectors must explicitly implement IGNORE semantics and source/target projection;
+     * the legacy planning method is deliberately not used as a fallback.
+     */
+    default SchemaChangeRequest planSchemaChange(SourceSchemaChange change, DdlStrategies strategies) {
+        throw new UnsupportedOperationException("Sink does not implement per-event DDL strategies");
     }
 
     /** Publishes a completed target route update for subsequent source schema events. */
