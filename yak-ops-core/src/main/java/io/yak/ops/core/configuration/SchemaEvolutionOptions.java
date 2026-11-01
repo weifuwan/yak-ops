@@ -15,5 +15,9 @@ public final class SchemaEvolutionOptions {
             .booleanType()
             .defaultValue(false);
 
+    /** Optional v9 policy, encoded from a strict eight-event matrix. Empty preserves v7/v8 behavior. */
+    public static final Option<String> DDL_STRATEGIES =
+            Options.key("execution.schema-evolution.ddl-strategies").stringType().defaultValue("");
+
     private SchemaEvolutionOptions() {}
 }
