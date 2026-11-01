@@ -113,12 +113,16 @@ function VersionDetail({
 
 export function VersionsDrawer({
   task,
+  open,
   onClose,
+  onClosed,
   onRestore,
   allowRestore = true,
 }: {
   task?: VersionTask;
+  open: boolean;
   onClose: () => void;
+  onClosed: () => void;
   onRestore: (value: TaskParameterVersion) => void;
   allowRestore?: boolean;
 }) {
@@ -222,7 +226,7 @@ export function VersionsDrawer({
     onChange: (next: number) => updateSearch({ versionsPage: String(next) }),
   };
   return (
-    <EditorDrawer title="版本" width={920} onClose={onClose}>
+    <EditorDrawer title="版本" width={920} open={open} onClose={onClose} onClosed={onClosed}>
       {!task ? (
         <p className="text-sm text-[var(--yak-components-muted-text)]">
           保存任务后可查看参数版本。

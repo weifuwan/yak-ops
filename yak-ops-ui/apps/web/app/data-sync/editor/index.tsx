@@ -94,9 +94,9 @@ export function TaskEditor({
   const [baseline, setBaseline] = useState(() =>
     buildEditorPayload(form, draft, replication, mappings),
   );
-  const [drawer, setDrawer] = useState<OpenDrawer | undefined>(() =>
+  const [drawer, setDrawer] = useState<(OpenDrawer & { open: boolean }) | undefined>(() =>
     pendingSchedule?.scheduleSaveError
-      ? { kind: "advanced", tab: "parameters", parameterTab: "runtime" }
+      ? { kind: "advanced", tab: "parameters", parameterTab: "runtime", open: true }
       : undefined,
   );
   const [drawerDirty, setDrawerDirty] = useState(false);
@@ -308,9 +308,11 @@ export function TaskEditor({
     parameterFingerprint(parameterPart(payload)) !== parameterFingerprint(parameterPart(baseline));
   const scheduleDirty = !sameScheduleRule(scheduleForm, schedule || EMPTY_SCHEDULE);
   const closeDrawer = () => {
-    setDrawer(undefined);
+    setDrawer((current) => (current ? { ...current, open: false } : undefined));
     setDrawerDirty(false);
   };
+  const openDrawer = (next: OpenDrawer) => setDrawer({ ...next, open: true });
+  const finishCloseDrawer = () => setDrawer((current) => (current?.open ? current : undefined));
   const applyConfiguration = (value: EditorConfiguration, rule?: ScheduleTimeRule) => {
     setDraft(value.draft);
     setForm(value.form);
@@ -321,9 +323,9 @@ export function TaskEditor({
   };
   const locateIssue = (issue: EditorIssue) => {
     setPageError(issue.message);
-    if (issue.location === "properties") setDrawer({ kind: "properties" });
+    if (issue.location === "properties") openDrawer({ kind: "properties" });
     else if (issue.location === "advanced")
-      setDrawer({ kind: "advanced", tab: issue.tab, parameterTab: issue.parameterTab });
+      openDrawer({ kind: "advanced", tab: issue.tab, parameterTab: issue.parameterTab });
     else
       requestAnimationFrame(() => {
         const section = document.getElementById(issue.location);
@@ -352,7 +354,7 @@ export function TaskEditor({
       if (!id) setCompletedTaskId(task.id);
     },
     onScheduleFailure: () =>
-      setDrawer({ kind: "advanced", tab: "parameters", parameterTab: "runtime" }),
+      openDrawer({ kind: "advanced", tab: "parameters", parameterTab: "runtime" }),
     setSchedule,
     setScheduleForm,
     setScheduleError,
@@ -431,9 +433,9 @@ export function TaskEditor({
         locked={locked}
         saving={saving}
         onBack={() => navigate("/data-sync")}
-        onProperties={() => setDrawer({ kind: "properties" })}
-        onAdvanced={() => setDrawer({ kind: "advanced" })}
-        onVersions={() => setDrawer({ kind: "versions" })}
+        onProperties={() => openDrawer({ kind: "properties" })}
+        onAdvanced={() => openDrawer({ kind: "advanced" })}
+        onVersions={() => openDrawer({ kind: "versions" })}
       />
       <div className="flex min-h-0 flex-1 gap-4 px-4">
         <main
@@ -605,6 +607,8 @@ export function TaskEditor({
           id={saved?.id}
           draft={draft}
           value={form}
+          open={drawer.open}
+          onClosed={finishCloseDrawer}
           onApply={(value) => {
             setForm((current) => ({ ...current, ...value }));
             closeDrawer();
@@ -615,6 +619,8 @@ export function TaskEditor({
       ) : null}
       {drawer?.kind === "advanced" ? (
         <AdvancedDrawer
+          open={drawer.open}
+          onClosed={finishCloseDrawer}
           value={{ draft, form, mappings }}
           solution={solution}
           strategyDisabled={Boolean(scheduleNeedsReload || scheduleLoading)}
@@ -642,6 +648,8 @@ export function TaskEditor({
       {drawer?.kind === "versions" ? (
         <VersionsDrawer
           task={saved}
+          open={drawer.open}
+          onClosed={finishCloseDrawer}
           allowRestore={!locked}
           onRestore={(value) => void restore(value)}
           onClose={() => {

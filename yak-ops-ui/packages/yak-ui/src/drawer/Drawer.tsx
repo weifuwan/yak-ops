@@ -40,7 +40,7 @@ export function DrawerContent({
         className={cn(
           "fixed inset-0 z-50 bg-[var(--yak-components-overlay)]",
           animated &&
-            "transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0 motion-reduce:transition-none",
+            "transition-opacity duration-[280ms] ease-out data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-[260ms] motion-reduce:transition-none",
         )}
       />
       <BaseDrawer.Viewport className="fixed inset-0 z-50 overflow-hidden outline-none">
@@ -51,8 +51,9 @@ export function DrawerContent({
             "fixed inset-y-0 flex max-w-[calc(100vw-1rem)] flex-col overflow-hidden border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)] shadow-[var(--yak-components-dialog-shadow)] outline-none",
             "data-[swipe-direction=right]:right-0 data-[swipe-direction=right]:border-l",
             "data-[swipe-direction=left]:left-0 data-[swipe-direction=left]:border-r",
+            "[transform:translate3d(var(--drawer-swipe-movement-x,0px),0,0)]",
             animated &&
-              "transition-transform duration-200 motion-reduce:transition-none data-starting-style:data-[swipe-direction=right]:translate-x-full data-ending-style:data-[swipe-direction=right]:translate-x-full data-starting-style:data-[swipe-direction=left]:-translate-x-full data-ending-style:data-[swipe-direction=left]:-translate-x-full",
+              "will-change-transform transition-transform duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] data-swiping:transition-none data-ending-style:duration-[280ms] data-ending-style:ease-[cubic-bezier(0.4,0,0.2,1)] data-starting-style:data-[swipe-direction=right]:[transform:translate3d(100%,0,0)] data-ending-style:data-[swipe-direction=right]:[transform:translate3d(100%,0,0)] data-starting-style:data-[swipe-direction=left]:[transform:translate3d(-100%,0,0)] data-ending-style:data-[swipe-direction=left]:[transform:translate3d(-100%,0,0)] motion-reduce:transition-none",
             className,
           )}
         >
