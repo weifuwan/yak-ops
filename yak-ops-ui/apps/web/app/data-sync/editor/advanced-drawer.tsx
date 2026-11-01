@@ -69,7 +69,17 @@ export function AdvancedDrawer({
   const continuous = replication && draft.steps.includes("INCREMENTAL");
   const combination = findStepCombination(solution, draft.steps);
   const update = (next: EditorConfiguration) => {
-    if (next.form.pipelineOptions?.["schema.change.behavior"] !== undefined)
+    if (next.form.sink.ddlStrategies && next.form.pipelineOptions?.["schema.change.behavior"] !== undefined)
+      next = {
+        ...next,
+        form: {
+          ...next.form,
+          pipelineOptions: Object.fromEntries(
+            Object.entries(next.form.pipelineOptions).filter(([key]) => key !== "schema.change.behavior"),
+          ),
+        },
+      };
+    else if (next.form.pipelineOptions?.["schema.change.behavior"] !== undefined)
       next = {
         ...next,
         form: {
@@ -90,7 +100,7 @@ export function AdvancedDrawer({
   };
   const parseEngine = () => {
     try {
-      return parseEngineOptions(engineText, form.sink.schemaChangesEnabled);
+      return parseEngineOptions(engineText, form.sink.schemaChangesEnabled, Boolean(form.sink.ddlStrategies));
     } catch (failure) {
       setError(
         failure instanceof SyntaxError
