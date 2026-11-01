@@ -65,6 +65,18 @@ export type DataSyncType = "OFFLINE" | "REALTIME";
 export type DataSyncProductType = "SINGLE_TABLE_BATCH" | "DATABASE_REPLICATION";
 export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
 
+export type DataSyncDdlAction = "NORMAL" | "IGNORE" | "ERROR";
+export interface DataSyncDdlStrategies {
+  createTable: DataSyncDdlAction;
+  dropTable: DataSyncDdlAction;
+  addColumn: DataSyncDdlAction;
+  dropColumn: DataSyncDdlAction;
+  renameTable: DataSyncDdlAction;
+  renameColumn: DataSyncDdlAction;
+  modifyColumnType: DataSyncDdlAction;
+  truncateTable: DataSyncDdlAction;
+}
+
 export interface DataSyncCapabilities {
   maxTables: number;
   sourceRead: boolean;
@@ -72,6 +84,8 @@ export interface DataSyncCapabilities {
   dataPreview: boolean;
   sqlHooks: boolean;
   regexSelection: boolean;
+  /** Available per-event strategies; absent when the connector pair does not support v9. */
+  ddlPolicies?: Partial<Record<keyof DataSyncDdlStrategies, DataSyncDdlAction[]>>;
   snapshotFilter: boolean;
   snapshotSkip: boolean;
   dmlEvents: boolean;
@@ -264,7 +278,10 @@ export interface DataSyncParameters {
     typeMappings?: DataSyncTypeMapping[];
     schemaPolicy: {
       initial: "VERIFY" | "CREATE_OR_ALTER";
-      evolution: { enabled: boolean; allowDropColumns: boolean };
+      /** v7/v8 only; never combined with v9 ddl. */
+      evolution?: { enabled: boolean; allowDropColumns: boolean };
+      /** v9 continuous CDC only. */
+      ddl?: DataSyncDdlStrategies;
     };
     tables: Array<
       DataSyncTablePath & {
@@ -307,6 +324,8 @@ export interface DataSyncTaskRecord {
   targetPrimaryKeys?: string[];
   schemaChangesEnabled?: boolean;
   allowDropColumns?: boolean;
+  ddlStrategies?: DataSyncDdlStrategies;
+  parameterSchemaVersion?: number;
   tableMappings: DataSyncTableMapping[];
   incremental?: DataSyncIncrementalConfig;
   /** Read-only in the current editor; preserve the full CDC startup intent on parameter edits. */
@@ -460,6 +479,7 @@ export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
   targetPrimaryKeys?: string[];
   schemaChangesEnabled?: boolean;
   allowDropColumns?: boolean;
+  ddlStrategies?: DataSyncDdlStrategies;
   tableMappings?: DataSyncTableMapping[];
   productType: DataSyncProductType;
   steps: DataSyncStep[];
