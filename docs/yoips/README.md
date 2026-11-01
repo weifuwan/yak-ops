@@ -14,7 +14,7 @@ YOIPs record **long-lived architectural decisions** for significant subsystems, 
 | YOIP-6 | [MySQL Chunk Backfill and Durable Snapshot Output](YOIP-6-mysql-chunk-backfill-checkpoints.md) | Discussion (implementation merged) |
 | YOIP-20 | [Data Sync V4 Component-Owned Configuration Contract](YOIP-20-data-sync-v4-configuration-contract.md) | Accepted |
 | YOIP-21 | [Data Integration Workflows Aligned with DataWorks](YOIP-21-dataworks-data-integration-workflows.md) | Discussion |
-| YOIP-22 | [Per-Event DDL Strategies for Data Sync](YOIP-22-per-event-ddl-strategies.md) | Discussion |
+| YOIP-22 | [Per-Event DDL Strategies for Data Sync](YOIP-22-per-event-ddl-strategies.md) | Accepted |
 
 YOIP-3 retains its original Accepted label, but no independent decision permalink was recorded. YOIP-6 is still Discussion even though its implementation PR was merged. YOIP-20 supersedes the V3 persisted parameter shape described in YOIP-5, not the entire product model. Neither implementation merges nor passing CI substitute for a design decision.
 
