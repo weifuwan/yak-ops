@@ -70,7 +70,7 @@ public final class PipelineTaskChannel implements TaskChannel {
 
     @Override
     public int parameterSchemaVersion() {
-        return 8;
+        return 9;
     }
 
     @Override
@@ -89,7 +89,7 @@ public final class PipelineTaskChannel implements TaskChannel {
 
     /**
      * Reads immutable published schema 7 definitions without rewriting their stored payload.
-     * New writes use schema 8; both versions share the same validated execution path.
+     * New writes use schema 9; earlier versions retain their exact validated execution path.
      *
      * @param schemaVersion version recorded on the immutable definition
      * @param content original parameter JSON
@@ -97,7 +97,7 @@ public final class PipelineTaskChannel implements TaskChannel {
      */
     @Override
     public ReadonlyConfig parse(int schemaVersion, String content) {
-        if (schemaVersion != 7 && schemaVersion != parameterSchemaVersion()) {
+        if (schemaVersion != 7 && schemaVersion != 8 && schemaVersion != parameterSchemaVersion()) {
             throw new TaskPluginException("Unsupported DATA_SYNC parameter schema version");
         }
         ReadonlyConfig request = parseParameters(content).getJson();
