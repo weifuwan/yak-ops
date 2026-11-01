@@ -1,5 +1,6 @@
 import type { DataSyncDraft, DataSyncTaskRecord } from "@/service/data-sync";
 import { offlineIncremental } from "@/service/data-sync/parameters";
+import { DEFAULT_DDL_STRATEGIES } from "@/service/data-sync/ddl-policy";
 import { EMPTY_INCREMENTAL } from "./incremental-fields";
 import { EMPTY_FORM, type EditorForm } from "./types";
 
@@ -39,6 +40,13 @@ export function createEditorForm(draft: DataSyncDraft, task?: DataSyncTaskRecord
       schemaChangesEnabled:
         continuous && (value?.schemaChangesEnabled ?? draft.targetType !== "ORACLE"),
       allowDropColumns: continuous && (value?.allowDropColumns ?? false),
+      ddlStrategies:
+        continuous && value?.ddlStrategies
+          ? { ...value.ddlStrategies }
+          : continuous && !task && draft.sourceConnector === "mysql" &&
+              ["jdbc-mysql", "jdbc-postgres"].includes(draft.sinkConnector)
+            ? { ...DEFAULT_DDL_STRATEGIES }
+            : undefined,
       writeMode:
         value?.writeMode === "RETRACT" || value?.writeMode === "REPLACE"
           ? value.writeMode
