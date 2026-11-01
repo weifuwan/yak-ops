@@ -17,7 +17,11 @@ import java.util.Objects;
  * The compact encoding is internal to a Job configuration; the public Task JSON uses named fields.
  */
 public final class DdlStrategies {
-    public enum Action { NORMAL, IGNORE, ERROR }
+    public enum Action {
+        NORMAL,
+        IGNORE,
+        ERROR
+    }
 
     public enum Event {
         CREATE_TABLE("createTable", "create-table"),
@@ -37,8 +41,13 @@ public final class DdlStrategies {
             this.yamlKey = yamlKey;
         }
 
-        public String jsonKey() { return jsonKey; }
-        public String yamlKey() { return yamlKey; }
+        public String jsonKey() {
+            return jsonKey;
+        }
+
+        public String yamlKey() {
+            return yamlKey;
+        }
 
         public static Event ofJsonKey(String key) {
             for (Event event : values()) if (event.jsonKey.equals(key)) return event;
@@ -59,8 +68,8 @@ public final class DdlStrategies {
                 case RENAME_COLUMN -> RENAME_COLUMN;
                 case ALTER_COLUMN_TYPE -> MODIFY_COLUMN_TYPE;
                 case TRUNCATE_TABLE -> TRUNCATE_TABLE;
-                case ALTER_TABLE_COMMENT -> throw new UnsupportedOperationException(
-                        "ALTER TABLE COMMENT has no configured DDL strategy");
+                case ALTER_TABLE_COMMENT ->
+                    throw new UnsupportedOperationException("ALTER TABLE COMMENT has no configured DDL strategy");
             };
         }
     }
@@ -75,14 +84,16 @@ public final class DdlStrategies {
         EnumMap<Event, Action> copy = new EnumMap<>(Event.class);
         for (Event event : Event.values()) {
             Action action = Objects.requireNonNull(configured.get(event), "DDL action for " + event.jsonKey());
-            if (action == Action.NORMAL && List.of(
-                    Event.DROP_TABLE, Event.RENAME_TABLE, Event.RENAME_COLUMN, Event.TRUNCATE_TABLE).contains(event)) {
+            if (action == Action.NORMAL
+                    && List.of(Event.DROP_TABLE, Event.RENAME_TABLE, Event.RENAME_COLUMN, Event.TRUNCATE_TABLE)
+                            .contains(event)) {
                 throw new UnsupportedOperationException(
                         "DDL NORMAL is not available until the connector has a complete runtime implementation: "
                                 + event.jsonKey());
             }
-            if (action == Action.IGNORE && List.of(
-                    Event.DROP_TABLE, Event.RENAME_TABLE, Event.RENAME_COLUMN, Event.TRUNCATE_TABLE).contains(event)) {
+            if (action == Action.IGNORE
+                    && List.of(Event.DROP_TABLE, Event.RENAME_TABLE, Event.RENAME_COLUMN, Event.TRUNCATE_TABLE)
+                            .contains(event)) {
                 throw new UnsupportedOperationException(
                         "DDL IGNORE is not supported by the current source identity/recovery protocol: "
                                 + event.jsonKey());
@@ -102,7 +113,8 @@ public final class DdlStrategies {
 
     public Map<String, String> toJsonValues() {
         Map<String, String> result = new LinkedHashMap<>();
-        for (Event event : Event.values()) result.put(event.jsonKey(), action(event).name());
+        for (Event event : Event.values())
+            result.put(event.jsonKey(), action(event).name());
         return Collections.unmodifiableMap(result);
     }
 
