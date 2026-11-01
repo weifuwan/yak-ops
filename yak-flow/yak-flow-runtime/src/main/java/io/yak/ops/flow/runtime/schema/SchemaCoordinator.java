@@ -99,8 +99,16 @@ public final class SchemaCoordinator implements AutoCloseable {
             Consumer<Throwable> onFailure,
             SchemaEvolutionSink schemaSink,
             boolean allowDropColumns) {
-        this(manager, metadataApplier, sourceTasks, pipelineParticipants, sinkParticipants,
-                onFailure, schemaSink, allowDropColumns, null);
+        this(
+                manager,
+                metadataApplier,
+                sourceTasks,
+                pipelineParticipants,
+                sinkParticipants,
+                onFailure,
+                schemaSink,
+                allowDropColumns,
+                null);
     }
 
     /** The v9 policy is evaluated at the same source offset and before any target DDL. */
