@@ -2,6 +2,7 @@ package io.yak.ops.flow.runtime.schema;
 
 import io.yak.ops.core.api.connector.sink.MetadataApplier;
 import io.yak.ops.core.api.connector.sink.SchemaEvolutionSink;
+import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.SchemaChangeEvent;
 import io.yak.ops.core.event.SchemaChangeEventType;
@@ -44,6 +45,7 @@ public final class SchemaCoordinator implements AutoCloseable {
     private final MetadataApplier metadataApplier;
     private final SchemaEvolutionSink schemaSink;
     private final boolean allowDropColumns;
+    private final DdlStrategies ddlStrategies;
     private volatile List<SchemaSourceParticipant> sourceTasks;
     private final List<SchemaChangeParticipant> pipelineParticipants;
     private final List<SchemaChangeParticipant> sinkParticipants;
@@ -97,7 +99,23 @@ public final class SchemaCoordinator implements AutoCloseable {
             Consumer<Throwable> onFailure,
             SchemaEvolutionSink schemaSink,
             boolean allowDropColumns) {
+        this(manager, metadataApplier, sourceTasks, pipelineParticipants, sinkParticipants,
+                onFailure, schemaSink, allowDropColumns, null);
+    }
+
+    /** The v9 policy is evaluated at the same source offset and before any target DDL. */
+    public SchemaCoordinator(
+            SchemaManager manager,
+            MetadataApplier metadataApplier,
+            List<? extends SchemaSourceParticipant> sourceTasks,
+            List<? extends SchemaChangeParticipant> pipelineParticipants,
+            List<? extends SchemaChangeParticipant> sinkParticipants,
+            Consumer<Throwable> onFailure,
+            SchemaEvolutionSink schemaSink,
+            boolean allowDropColumns,
+            DdlStrategies ddlStrategies) {
         this.allowDropColumns = allowDropColumns;
+        this.ddlStrategies = ddlStrategies;
         this.manager = Objects.requireNonNull(manager, "manager");
         this.schemaSink = schemaSink;
         this.metadataApplier = Objects.requireNonNull(metadataApplier, "metadataApplier");
@@ -166,7 +184,9 @@ public final class SchemaCoordinator implements AutoCloseable {
         CompletableFuture<Long> result = new CompletableFuture<>();
         submit(
                 () -> {
-                    SchemaChangeRequest request = schemaSink.planSchemaChange(change, allowDropColumns);
+                    SchemaChangeRequest request = ddlStrategies == null
+                            ? schemaSink.planSchemaChange(change, allowDropColumns)
+                            : schemaSink.planSchemaChange(change, ddlStrategies);
                     applySchemaChange(request, sourceSubtask).whenComplete((version, failure) -> {
                         if (failure == null) result.complete(version);
                         else result.completeExceptionally(failure);
