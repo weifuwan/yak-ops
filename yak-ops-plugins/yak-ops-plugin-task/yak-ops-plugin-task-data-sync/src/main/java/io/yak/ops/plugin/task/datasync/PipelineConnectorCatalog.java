@@ -3,6 +3,7 @@ package io.yak.ops.plugin.task.datasync;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.yak.ops.composer.definition.PipelineOptions;
 import io.yak.ops.composer.definition.TypeMappingRules;
+import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.base.factory.FactoryUtil;
 import io.yak.ops.core.factories.ConnectorFeature;
@@ -132,6 +133,22 @@ public final class PipelineConnectorCatalog {
                     "typeMappingRules",
                     writer.contains(ConnectorFeature.TYPE_MAPPING) ? TypeMappingRules.supportedRules() : List.of());
             values.put("writeModes", List.copyOf(modes));
+            boolean perEvent = source.identifier().equals("mysql")
+                    && Set.of("jdbc-mysql", "jdbc-postgres").contains(sink.identifier())
+                    && source.producesChangelog()
+                    && sink.supportsSchemaChanges();
+            if (perEvent) {
+                Map<String, List<String>> ddl = new LinkedHashMap<>();
+                for (DdlStrategies.Event event : DdlStrategies.Event.values()) {
+                    List<String> actions = switch (event) {
+                        case CREATE_TABLE -> List.of("NORMAL", "IGNORE", "ERROR");
+                        case ADD_COLUMN, DROP_COLUMN, MODIFY_COLUMN_TYPE -> List.of("NORMAL", "IGNORE", "ERROR");
+                        case DROP_TABLE, RENAME_TABLE, RENAME_COLUMN, TRUNCATE_TABLE -> List.of("ERROR");
+                    };
+                    ddl.put(event.jsonKey(), actions);
+                }
+                values.put("ddlPolicies", Map.copyOf(ddl));
+            }
             values.put("sourceEngineKeys", jdbcRead ? List.of("fetchSize", "queryTimeoutSeconds") : List.of());
             values.put(
                     "sinkEngineKeys", writer.contains(ConnectorFeature.SQL_HOOKS) ? List.of("batchSize") : List.of());
