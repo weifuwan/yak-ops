@@ -133,7 +133,7 @@ export function DdlConfiguration({
           </Field>
           {allowedPolicies ? (
             <Button
-              variant="outline"
+              variant="secondary"
               size="small"
               onClick={() =>
                 patch({
