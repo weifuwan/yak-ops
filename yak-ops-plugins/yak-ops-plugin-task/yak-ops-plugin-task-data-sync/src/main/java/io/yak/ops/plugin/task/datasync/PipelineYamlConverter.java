@@ -3,8 +3,8 @@ package io.yak.ops.plugin.task.datasync;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.configuration.ReadonlyConfig;
+import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -239,8 +239,7 @@ public final class PipelineYamlConverter {
                 throw new TaskPluginException("v9 DDL strategies cannot combine with legacy evolution options");
             }
             Map<String, Object> ddl = object(policy.get("ddl"), "ddl");
-            Map<DdlStrategies.Event, DdlStrategies.Action> actions =
-                    new java.util.EnumMap<>(DdlStrategies.Event.class);
+            Map<DdlStrategies.Event, DdlStrategies.Action> actions = new java.util.EnumMap<>(DdlStrategies.Event.class);
             for (DdlStrategies.Event event : DdlStrategies.Event.values()) {
                 String selected = required(ddl, event.jsonKey());
                 try {
