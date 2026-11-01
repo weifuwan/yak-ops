@@ -124,7 +124,12 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
                 .boundedness(EndpointOptions.connectorOptions(
                         inputs.tables().getFirst().source()));
         Configuration configuration = configurationFactory.create(
-                identity, boundedness, debug, inputs.schemaChangesEnabled(), inputs.allowDropColumns(), inputs.ddlStrategies());
+                identity,
+                boundedness,
+                debug,
+                inputs.schemaChangesEnabled(),
+                inputs.allowDropColumns(),
+                inputs.ddlStrategies());
         String name = definition.getConfig().toMap().get("name");
         if (name != null) configuration.set(io.yak.ops.core.configuration.PipelineOptions.NAME, name);
         return configuration;
