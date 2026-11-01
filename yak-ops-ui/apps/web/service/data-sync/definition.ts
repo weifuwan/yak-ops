@@ -239,9 +239,11 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     productType: pipelineProductType(parameters),
     steps: displaySyncSteps(parameters),
     ...(parameters.source.startup ? { startup: { ...parameters.source.startup } } : {}),
-    schemaChangesEnabled: parameters.sink.schemaPolicy.ddl !== undefined ||
+    schemaChangesEnabled:
+      parameters.sink.schemaPolicy.ddl !== undefined ||
       Boolean(parameters.sink.schemaPolicy.evolution?.enabled),
-    allowDropColumns: parameters.sink.schemaPolicy.ddl?.dropColumn === "NORMAL" ||
+    allowDropColumns:
+      parameters.sink.schemaPolicy.ddl?.dropColumn === "NORMAL" ||
       Boolean(parameters.sink.schemaPolicy.evolution?.allowDropColumns),
     ...(parameters.sink.schemaPolicy.ddl
       ? { ddlStrategies: { ...parameters.sink.schemaPolicy.ddl } }
