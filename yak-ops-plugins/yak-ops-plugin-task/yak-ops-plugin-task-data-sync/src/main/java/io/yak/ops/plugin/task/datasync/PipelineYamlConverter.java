@@ -3,6 +3,7 @@ package io.yak.ops.plugin.task.datasync;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import java.util.ArrayList;
@@ -231,12 +232,37 @@ public final class PipelineYamlConverter {
             sink.put("yak.type-mappings", json(rules));
         }
         Map<String, Object> policy = object(inputSink.get("schemaPolicy"), "schemaPolicy");
-        checkKeys(policy, "schemaPolicy", "initial", "evolution");
-        Map<String, Object> evolution = object(policy.get("evolution"), "evolution");
-        checkKeys(evolution, "evolution", "enabled", "allowDropColumns");
+        checkKeys(policy, "schemaPolicy", "initial", "evolution", "ddl");
         sink.put("yak.schema.initial", required(policy, "initial"));
-        sink.put("yak.schema.evolution.enabled", bool(evolution, "enabled"));
-        sink.put("yak.schema.evolution.allow-drop-columns", bool(evolution, "allowDropColumns"));
+        if (policy.containsKey("ddl")) {
+            if (policy.containsKey("evolution") || inputPipeline.containsKey("schema.change.behavior")) {
+                throw new TaskPluginException("v9 DDL strategies cannot combine with legacy evolution options");
+            }
+            Map<String, Object> ddl = object(policy.get("ddl"), "ddl");
+            Map<DdlStrategies.Event, DdlStrategies.Action> actions =
+                    new java.util.EnumMap<>(DdlStrategies.Event.class);
+            for (DdlStrategies.Event event : DdlStrategies.Event.values()) {
+                String selected = required(ddl, event.jsonKey());
+                try {
+                    actions.put(event, DdlStrategies.Action.valueOf(selected));
+                } catch (IllegalArgumentException unsupported) {
+                    throw new TaskPluginException("Unsupported DDL action for " + event.jsonKey(), unsupported);
+                }
+            }
+            if (ddl.size() != actions.size()) {
+                throw new TaskPluginException("DDL policy must contain exactly eight known event keys");
+            }
+            // Runtime capability validation: never persist an action the active connector cannot execute.
+            new DdlStrategies(actions);
+            for (DdlStrategies.Event event : DdlStrategies.Event.values()) {
+                sink.put("yak.schema.ddl." + event.yamlKey(), actions.get(event).name());
+            }
+        } else {
+            Map<String, Object> evolution = object(policy.get("evolution"), "evolution");
+            checkKeys(evolution, "evolution", "enabled", "allowDropColumns");
+            sink.put("yak.schema.evolution.enabled", bool(evolution, "enabled"));
+            sink.put("yak.schema.evolution.allow-drop-columns", bool(evolution, "allowDropColumns"));
+        }
 
         Set<String> declaredSources = new HashSet<>(selectedTables);
         Set<String> declaredSinks = new HashSet<>(selectedSinkTables);
