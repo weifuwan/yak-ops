@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Alert, Button, FieldItem, FieldLabel, Radio, RadioGroup, toast } from "@yak-ops/yak-ui";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import type { DataSourceCatalogTable } from "@/service/datasource";
 import { resolvePastedDataSourceTables } from "@/service/datasource/table-selection";
 import type {
@@ -63,6 +63,7 @@ export function ReplicationTableSelection({
   const [targetChecked, setTargetChecked] = useState<string[]>([]);
   const [paste, setPaste] = useState<"source" | "selected">();
   const [error, setError] = useState("");
+  const regexHintId = useId();
   useEffect(() => {
     const timer = setTimeout(() => {
       setQueryFilters(sourceFilters);
@@ -81,6 +82,7 @@ export function ReplicationTableSelection({
       : !prepareSchema || !form.sink.schemaChangesEnabled
         ? "正则选表需创建目标表并同步结构变更"
         : "";
+  const regexHint = regexReason || "支持运行中按正则加载表";
   const included = new Set(mappings.map((mapping) => tableKey(mapping.source)));
   const available = catalog.tables.map(catalogPath);
   let filterError = "";
@@ -165,33 +167,50 @@ export function ReplicationTableSelection({
   };
   return (
     <ContentSection id="source" title="数据来源">
+      {capabilities?.regexSelection ? (
+        <div
+          role="note"
+          className="flex items-start gap-2 rounded-[var(--yak-radius-control-small)] bg-[var(--yak-color-primary-halo)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-field-label)]"
+        >
+          <Info
+            aria-hidden="true"
+            className="mt-0.5 size-4 shrink-0 text-[var(--yak-color-primary)]"
+          />
+          <span>任务仅支持一种选表方式，切换后将清空当前已选库表及其目标映射。</span>
+        </div>
+      ) : null}
       <ContentField label="选表方式" wide>
         <RadioGroup
           value={form.selection ? "REGEX" : "EXPLICIT"}
           disabled={disabled || resolution.loading}
           onValueChange={(mode) => switchMode(mode === "REGEX")}
-          className="flex min-h-7 flex-wrap items-center gap-6"
+          className="flex min-h-7 flex-wrap items-start gap-x-6 gap-y-2"
         >
           <FieldItem>
-            <FieldLabel className="flex items-center gap-2 text-xs font-normal">
+            <FieldLabel className="flex min-h-7 items-center gap-2 text-xs font-normal">
               <Radio value="EXPLICIT" />
               选择指定库表
             </FieldLabel>
           </FieldItem>
           {capabilities?.regexSelection ? (
-            <FieldItem>
-              <FieldLabel className="flex items-center gap-2 text-xs font-normal">
-                <Radio value="REGEX" disabled={Boolean(regexReason)} />
+            <FieldItem className="flex min-w-0 flex-col gap-1">
+              <FieldLabel className="flex min-h-7 items-center gap-2 text-xs font-normal">
+                <Radio
+                  value="REGEX"
+                  disabled={Boolean(regexReason)}
+                  aria-describedby={regexHintId}
+                />
                 使用正则选表
               </FieldLabel>
+              <span
+                id={regexHintId}
+                className="pl-6 text-xs leading-5 text-[var(--yak-components-muted-text)]"
+              >
+                {regexHint}
+              </span>
             </FieldItem>
           ) : null}
         </RadioGroup>
-        {capabilities?.regexSelection && regexReason ? (
-          <span className="mt-1 block text-xs text-[var(--yak-components-muted-text)]">
-            {regexReason}
-          </span>
-        ) : null}
       </ContentField>
       {form.selection && form.mappingTemplate && capabilities ? (
         <RegexTableSelection
