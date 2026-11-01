@@ -13,6 +13,7 @@ import io.yak.ops.core.api.connector.sink.MetadataApplier;
 import io.yak.ops.core.api.connector.sink.SchemaEvolutionSink;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
+import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.TableRecord;
 import io.yak.ops.core.event.AddColumnEvent;
@@ -24,6 +25,7 @@ import io.yak.ops.core.event.SourceSchemaChange;
 import io.yak.ops.core.schema.PhysicalColumn;
 import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.schema.SchemaVersionedTableState;
+import io.yak.ops.core.schema.SchemaUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -299,6 +301,92 @@ public final class JdbcSink implements Sink<TableRecord>, SchemaEvolutionSink {
             }
         }
         Schema nextTarget = currentTarget.withColumns(columns);
+        return new SchemaChangeRequest(
+                change.eventId(),
+                change.tableId(),
+                plan.targetTable(),
+                change.before(),
+                change.after(),
+                currentTarget,
+                nextTarget,
+                diff.changes());
+    }
+
+    /**
+     * Applies v9 per-event decisions before producing a single, fully preflighted target plan.
+     *
+     * <p>IGNORED operations still update the raw source schema. The immutable JDBC projection
+     * is rebuilt against the unchanged target schema, and the request fails before any SQL if
+     * source and target can no longer be mapped safely.
+     */
+    @Override
+    public synchronized SchemaChangeRequest planSchemaChange(SourceSchemaChange change, DdlStrategies strategies) {
+        Objects.requireNonNull(change, "change");
+        Objects.requireNonNull(strategies, "strategies");
+        if (change.newlyAdded()) {
+            throw new UnsupportedOperationException("New tables require the explicit dynamic discovery planner");
+        }
+        JdbcTableWritePlan plan = plans.stream()
+                .filter(route -> route.sourceTable().equals(change.tableId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("CDC DDL references an unconfigured table"));
+        if (plan.writeMode() == JdbcWriteMode.RETRACT) {
+            throw new UnsupportedOperationException("RETRACT does not support per-event DDL changes");
+        }
+        Schema previous = Schema.from(plan.sourceSchema(), null, Map.of(), Map.of());
+        if (!previous.toTableSchema().equals(change.before().toTableSchema())) {
+            throw new IllegalStateException("MySQL CDC DDL is stale relative to the configured write route");
+        }
+        // A before/after column diff cannot distinguish RENAME COLUMN from simultaneous DROP/ADD.
+        // Fail closed instead of silently applying the wrong combination of policies.
+        List<SchemaChangeEvent> sourceEvents =
+                SchemaUtils.diff(change.tableId(), change.before(), change.after());
+        if (sourceEvents.isEmpty()) {
+            throw new UnsupportedOperationException("No classifiable source DDL event");
+        }
+        boolean added = sourceEvents.stream().anyMatch(AddColumnEvent.class::isInstance);
+        boolean removed = sourceEvents.stream().anyMatch(DropColumnEvent.class::isInstance);
+        if (added && removed) {
+            throw new UnsupportedOperationException(
+                    "Mixed ADD/DROP is ambiguous with RENAME COLUMN and requires explicit source classification");
+        }
+
+        Schema currentTarget = Schema.from(plan.schema(), null, Map.of(), Map.of());
+        Schema desiredTarget = currentTarget;
+        Set<String> authorizedDrop = new HashSet<>();
+        for (SchemaChangeEvent event : sourceEvents) {
+            DdlStrategies.Event type = DdlStrategies.Event.ofSchemaType(event.getType());
+            DdlStrategies.Action action = strategies.action(type);
+            if (action == DdlStrategies.Action.ERROR) {
+                throw new UnsupportedOperationException("DDL policy ERROR for " + type.jsonKey());
+            }
+            if (action == DdlStrategies.Action.IGNORE) {
+                continue;
+            }
+            if (event instanceof DropColumnEvent drop) {
+                if (currentTarget.primaryKeys().stream().anyMatch(drop.droppedColumnNames()::contains)) {
+                    throw new UnsupportedOperationException("Cannot remove a primary-key column");
+                }
+                authorizedDrop.addAll(drop.droppedColumnNames());
+            }
+            desiredTarget = SchemaUtils.applySchemaChangeEvent(desiredTarget, event);
+        }
+        SchemaChangePlan diff = JdbcSchemaDerivator.derive(
+                plan.targetTable(), desiredTarget, Optional.of(currentTarget), dialect, authorizedDrop);
+        if (diff.blocked()) {
+            throw new UnsupportedOperationException("DDL policy cannot be executed safely against target: "
+                    + diff.differences().stream()
+                            .filter(d -> d.kind() == SchemaChangePlan.Kind.INCOMPATIBLE)
+                            .map(SchemaChangePlan.Difference::reason)
+                            .distinct()
+                            .toList());
+        }
+        Schema nextTarget = currentTarget;
+        for (SchemaChangeEvent targetChange : diff.changes()) {
+            nextTarget = SchemaUtils.applySchemaChangeEvent(nextTarget, targetChange);
+        }
+        // Validates name-based projection, key identity, and supported conversion before SQL.
+        plan.withSchemas(change.after().toTableSchema(), nextTarget.toTableSchema());
         return new SchemaChangeRequest(
                 change.eventId(),
                 change.tableId(),
