@@ -10,6 +10,7 @@ import io.yak.ops.core.api.connector.sink.SinkWriter;
 import io.yak.ops.core.api.connector.sink.SupportsCommitter;
 import io.yak.ops.core.api.connector.sink.SupportsWriterState;
 import io.yak.ops.core.api.connector.sink.WriterInitContext;
+import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.ChangeEvent;
 import io.yak.ops.core.event.DataChangeEvent;
@@ -155,6 +156,21 @@ final class DynamicTableSink implements DataSink, Sink<Event>, SchemaEvolutionSi
         }
         if (registration == null) throw new IllegalArgumentException("Schema change refers to an unadmitted table");
         return registration.schemas.planSchemaChange(change, allowDropColumns);
+    }
+
+    @Override
+    public synchronized SchemaChangeRequest planSchemaChange(SourceSchemaChange change, DdlStrategies strategies) {
+        if (change.newlyAdded()) {
+            if (strategies.action(DdlStrategies.Event.CREATE_TABLE) != DdlStrategies.Action.NORMAL) {
+                throw new UnsupportedOperationException("Dynamic CREATE_TABLE admission is not enabled");
+            }
+            return planSchemaChange(change, strategies.dropsColumns());
+        }
+        Registration registration = tables.get(change.tableId());
+        if (registration == null) {
+            throw new IllegalArgumentException("Schema change refers to an unadmitted table");
+        }
+        return registration.schemas.planSchemaChange(change, strategies);
     }
 
     @Override
