@@ -170,7 +170,7 @@ export function ReplicationTableSelection({
       {capabilities?.regexSelection ? (
         <div
           role="note"
-          className="flex items-start gap-2 rounded-[var(--yak-radius-control-small)] bg-[var(--yak-color-primary-halo)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-field-label)]"
+          className="flex items-start gap-2 rounded-[var(--yak-radius-control-small)] bg-[var(--yak-components-notice-info-bg)] px-3 py-2 text-xs leading-5 text-[var(--yak-components-field-label)]"
         >
           <Info
             aria-hidden="true"
