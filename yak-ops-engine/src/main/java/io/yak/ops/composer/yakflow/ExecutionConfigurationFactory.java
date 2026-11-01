@@ -7,6 +7,7 @@ import io.yak.ops.core.api.RuntimeExecutionMode;
 import io.yak.ops.core.api.connector.source.Boundedness;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
+import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.core.configuration.SchemaEvolutionOptions;
 import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
@@ -60,6 +61,17 @@ public final class ExecutionConfigurationFactory {
             boolean debug,
             boolean schemaChangesEnabled,
             boolean allowDropColumns) {
+        return create(identity, boundedness, debug, schemaChangesEnabled, allowDropColumns, null);
+    }
+
+    /** Binds a fully validated per-event policy to this immutable Job attempt. */
+    public Configuration create(
+            TaskExecutionIdentity identity,
+            Boundedness boundedness,
+            boolean debug,
+            boolean schemaChangesEnabled,
+            boolean allowDropColumns,
+            DdlStrategies ddlStrategies) {
         Objects.requireNonNull(identity, "identity");
         Objects.requireNonNull(boundedness, "boundedness");
         if (schemaChangesEnabled && boundedness == Boundedness.BOUNDED) {
@@ -77,6 +89,7 @@ public final class ExecutionConfigurationFactory {
                 .set(ExecutionOptions.DEBUG, debug)
                 .set(SchemaEvolutionOptions.ENABLED, schemaChangesEnabled)
                 .set(SchemaEvolutionOptions.ALLOW_DROP_COLUMNS, allowDropColumns)
+                .set(SchemaEvolutionOptions.DDL_STRATEGIES, ddlStrategies == null ? "" : ddlStrategies.encode())
                 .set(CheckpointingOptions.RESTORE_LATEST, false);
 
         if (boundedness == Boundedness.BOUNDED) {
