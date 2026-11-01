@@ -51,10 +51,7 @@ export function DdlConfiguration({
             忽略仍会更新来源字段结构，不兼容的数据将使任务失败。
           </p>
           {DDL_FIELDS.map(({ key, label, help }) => {
-            const available = (allowedPolicies?.[key] || []).filter(
-              (option) =>
-                key !== "createTable" || option !== "NORMAL" || Boolean(value.form.selection),
-            );
+            const available = allowedPolicies?.[key] || [];
             const current = sink.ddlStrategies![key];
             const supported = available.includes(current);
             return (
