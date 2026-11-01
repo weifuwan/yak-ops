@@ -1,7 +1,6 @@
 package io.yak.ops.composer.definition;
 
 import io.yak.ops.composer.execution.ExecutionPhase;
-import io.yak.ops.core.configuration.DdlStrategies;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.connector.cdc.mysql.source.config.MySqlTableOptions;
@@ -9,6 +8,7 @@ import io.yak.ops.connector.cdc.mysql.table.StartupOptions;
 import io.yak.ops.connector.jdbc.database.query.JdbcReadQuery;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
+import io.yak.ops.core.configuration.DdlStrategies;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -253,8 +253,7 @@ public final class PipelineOptions {
         }
         DdlStrategies ddlStrategies = null;
         int ddlKeys = 0;
-        Map<DdlStrategies.Event, DdlStrategies.Action> ddlActions =
-                new java.util.EnumMap<>(DdlStrategies.Event.class);
+        Map<DdlStrategies.Event, DdlStrategies.Action> ddlActions = new java.util.EnumMap<>(DdlStrategies.Event.class);
         for (DdlStrategies.Event event : DdlStrategies.Event.values()) {
             String value = optional(to, "yak.schema.ddl." + event.yamlKey(), null);
             if (value == null) continue;
@@ -276,7 +275,8 @@ public final class PipelineOptions {
             if (!"STREAMING".equals(runtime)
                     || !"mysql".equals(sourceType)
                     || !Set.of("jdbc-mysql", "jdbc-postgres").contains(sinkType)) {
-                throw new UnsupportedOperationException("Per-event DDL strategies require streaming MySQL CDC to MySQL/PostgreSQL JDBC");
+                throw new UnsupportedOperationException(
+                        "Per-event DDL strategies require streaming MySQL CDC to MySQL/PostgreSQL JDBC");
             }
             ddlStrategies = new DdlStrategies(ddlActions);
         } else if (schemaBehavior != null
@@ -300,7 +300,9 @@ public final class PipelineOptions {
             throw new UnsupportedOperationException(
                     "The selected metadata appliers require the configured schema evolution events");
         }
-        boolean drop = ddlStrategies != null ? ddlStrategies.dropsColumns() : flag(to, "yak.schema.evolution.allow-drop-columns", false);
+        boolean drop = ddlStrategies != null
+                ? ddlStrategies.dropsColumns()
+                : flag(to, "yak.schema.evolution.allow-drop-columns", false);
         if (drop
                 && !definition
                         .getSink()
@@ -337,7 +339,8 @@ public final class PipelineOptions {
                 && dynamic == null) {
             throw new IllegalArgumentException("CREATE_TABLE NORMAL requires admitted REGEX discovery");
         }
-        if (ddlStrategies != null && dynamic != null
+        if (ddlStrategies != null
+                && dynamic != null
                 && ddlStrategies.action(DdlStrategies.Event.CREATE_TABLE) != DdlStrategies.Action.NORMAL) {
             throw new IllegalArgumentException("REGEX discovery requires CREATE_TABLE NORMAL");
         }
@@ -466,7 +469,8 @@ public final class PipelineOptions {
                     targetPrimaryKeys));
         }
         TypeMappingRules.from(definition);
-        return new PipelineOptions(sourceType, sinkType, runtime, scope, mappings, stages, evolve, drop, ddlStrategies, dynamic);
+        return new PipelineOptions(
+                sourceType, sinkType, runtime, scope, mappings, stages, evolve, drop, ddlStrategies, dynamic);
     }
 
     private static void copyReadOptions(
