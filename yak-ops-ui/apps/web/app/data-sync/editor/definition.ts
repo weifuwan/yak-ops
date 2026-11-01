@@ -79,6 +79,9 @@ export function buildEditorPayload(
       ? {
           schemaChangesEnabled: form.sink.schemaChangesEnabled,
           allowDropColumns: form.sink.schemaChangesEnabled && form.sink.allowDropColumns,
+          ...(form.sink.ddlStrategies
+            ? { ddlStrategies: { ...form.sink.ddlStrategies } }
+            : {}),
         }
       : {}),
     tableMappings: replication ? mappings : undefined,
