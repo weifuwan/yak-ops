@@ -105,6 +105,7 @@ export function editableEngineOptions(value?: DataSyncPipelineOptions): DataSync
 export function parseEngineOptions(
   content: string,
   schemaChangesEnabled: boolean,
+  hasDdlStrategies = false,
 ): DataSyncPipelineOptions {
   const value = JSON.parse(content) as DataSyncPipelineOptions;
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -120,6 +121,8 @@ export function parseEngineOptions(
         throw new Error("并行度必须是正整数");
     } else if (typeof option !== "string") throw new Error(`${key} 必须是字符串`);
   }
+  if (hasDdlStrategies && value["schema.change.behavior"] !== undefined)
+    throw new Error("逐项 DDL 策略不能与旧版引擎结构变更配置同时使用");
   if (
     value["schema.change.behavior"] !== undefined &&
     value["schema.change.behavior"].toLowerCase() !==
