@@ -1,10 +1,10 @@
 # YOIP-22: Per-Event DDL Strategies for Data Sync
 
-Status: Discussion
+Status: Accepted
 
 Discussion: https://github.com/weifuwan/yak-ops/pull/1828
 
-Decision: Pending
+Decision: [VOTE] Accepted by maintainer: https://github.com/weifuwan/yak-ops/pull/1828#issuecomment-6552219949
 
 Implementation: N/A until accepted
 
