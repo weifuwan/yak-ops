@@ -43,7 +43,9 @@ export function createEditorForm(draft: DataSyncDraft, task?: DataSyncTaskRecord
       ddlStrategies:
         continuous && value?.ddlStrategies
           ? { ...value.ddlStrategies }
-          : continuous && !task && draft.sourceConnector === "mysql" &&
+          : continuous &&
+              !task &&
+              draft.sourceConnector === "mysql" &&
               ["jdbc-mysql", "jdbc-postgres"].includes(draft.sinkConnector)
             ? { ...DEFAULT_DDL_STRATEGIES }
             : undefined,
