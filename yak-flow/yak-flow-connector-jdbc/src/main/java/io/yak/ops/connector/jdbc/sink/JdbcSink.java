@@ -24,8 +24,8 @@ import io.yak.ops.core.event.SchemaChangeRequest;
 import io.yak.ops.core.event.SourceSchemaChange;
 import io.yak.ops.core.schema.PhysicalColumn;
 import io.yak.ops.core.schema.Schema;
-import io.yak.ops.core.schema.SchemaVersionedTableState;
 import io.yak.ops.core.schema.SchemaUtils;
+import io.yak.ops.core.schema.SchemaVersionedTableState;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -339,8 +339,7 @@ public final class JdbcSink implements Sink<TableRecord>, SchemaEvolutionSink {
         }
         // A before/after column diff cannot distinguish RENAME COLUMN from simultaneous DROP/ADD.
         // Fail closed instead of silently applying the wrong combination of policies.
-        List<SchemaChangeEvent> sourceEvents =
-                SchemaUtils.diff(change.tableId(), change.before(), change.after());
+        List<SchemaChangeEvent> sourceEvents = SchemaUtils.diff(change.tableId(), change.before(), change.after());
         if (sourceEvents.isEmpty()) {
             throw new UnsupportedOperationException("No classifiable source DDL event");
         }
