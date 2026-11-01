@@ -1,3 +1,4 @@
+import { isDdlPolicy } from "./ddl-policy";
 import type {
   DataSyncParameters,
   DataSyncIncrementalConfig,
@@ -93,7 +94,7 @@ export const validIncrementalConfig = (
 
 /** Parse the persisted Task JSON without converting YAML in the frontend. */
 export function parseSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
-  if (schemaVersion !== 7 && schemaVersion !== 8) throw new Error("不支持的同步任务参数版本");
+  if (![7, 8, 9].includes(schemaVersion)) throw new Error("不支持的同步任务参数版本");
   if (!content || typeof content !== "object" || Array.isArray(content))
     throw new Error("无效的 JSON Pipeline 定义");
   const value = { ...(content as DataSyncParameters & { index?: unknown }) };
@@ -165,14 +166,14 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
       "syncMode",
       "startup",
       "tables",
-      ...(schemaVersion === 8 ? ["selection"] : []),
+      ...(schemaVersion >= 8 ? ["selection"] : []),
     ]) ||
     !hasOnlyKeys(value.sink, [
       "type",
       "datasourceId",
       "schemaPolicy",
       "tables",
-      ...(schemaVersion === 8 ? ["mapping", "typeMappings"] : []),
+      ...(schemaVersion >= 8 ? ["mapping", "typeMappings"] : []),
     ]) ||
     typeof value.source.type !== "string" ||
     typeof value.sink.type !== "string" ||
@@ -221,7 +222,7 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
     "table",
     "snapshot",
     "incremental",
-    ...(schemaVersion === 8 ? ["read", "dml", "options"] : []),
+    ...(schemaVersion >= 8 ? ["read", "dml", "options"] : []),
   ];
   const sinkKeys = ["database", "schema", "table", "write"];
   for (const tables of [value.source.tables, value.sink.tables]) {
@@ -246,7 +247,7 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
         "mode",
         "primaryKeys",
         "transaction",
-        ...(schemaVersion === 8 ? ["preSql", "postSql", "batchSize"] : []),
+        ...(schemaVersion >= 8 ? ["preSql", "postSql", "batchSize"] : []),
       ]) ||
       [table.database, table.schema, table.table].some((name) => name?.includes("."))
     )
@@ -277,26 +278,47 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
   }
   const steps = displaySyncSteps(value);
   const policy = value.sink.schemaPolicy;
+  const continuous = realtime && steps.includes("INCREMENTAL");
   if (
     !policy ||
     !["VERIFY", "CREATE_OR_ALTER"].includes(policy.initial) ||
-    !policy.evolution ||
-    typeof policy.evolution.enabled !== "boolean" ||
-    typeof policy.evolution.allowDropColumns !== "boolean" ||
-    !hasOnlyKeys(policy, ["initial", "evolution"]) ||
-    !hasOnlyKeys(policy.evolution, ["enabled", "allowDropColumns"]) ||
-    (policy.evolution.allowDropColumns && !policy.evolution.enabled) ||
-    (policy.evolution.enabled && (!realtime || !steps.includes("INCREMENTAL"))) ||
     (policy.initial === "CREATE_OR_ALTER" && !steps.includes("FULL"))
   )
     throw new Error("无效的目标 Schema 策略");
   const schemaBehavior = value.pipeline["schema.change.behavior"]?.toLowerCase();
-  if (schemaBehavior !== undefined) {
-    if (!["evolve", "exception"].includes(schemaBehavior))
-      throw new Error("不支持的 Schema 变更行为");
-    if ((schemaBehavior === "evolve") !== policy.evolution.enabled)
-      throw new Error("Pipeline 与目标 Schema 变更策略不一致");
+  if (schemaVersion === 9 && policy.ddl !== undefined) {
+    if (
+      !continuous ||
+      !hasOnlyKeys(policy, ["initial", "ddl"]) ||
+      !isDdlPolicy(policy.ddl) ||
+      schemaBehavior !== undefined ||
+      (value.source.selection && policy.ddl.createTable !== "NORMAL") ||
+      (!value.source.selection && policy.ddl.createTable === "NORMAL")
+    )
+      throw new Error("无效的逐项 DDL 处理策略");
+    for (const key of ["dropTable", "renameTable", "renameColumn", "truncateTable"] as const) {
+      if (policy.ddl[key] !== "ERROR")
+        throw new Error(`${key} 当前链路只支持出错策略`);
+    }
+  } else {
+    if (
+      !policy.evolution ||
+      typeof policy.evolution.enabled !== "boolean" ||
+      typeof policy.evolution.allowDropColumns !== "boolean" ||
+      !hasOnlyKeys(policy, ["initial", "evolution"]) ||
+      !hasOnlyKeys(policy.evolution, ["enabled", "allowDropColumns"]) ||
+      (policy.evolution.allowDropColumns && !policy.evolution.enabled) ||
+      (policy.evolution.enabled && !continuous)
+    )
+      throw new Error("无效的旧版目标 Schema 策略");
+    if (schemaBehavior !== undefined) {
+      if (!["evolve", "exception"].includes(schemaBehavior))
+        throw new Error("不支持的 Schema 变更行为");
+      if ((schemaBehavior === "evolve") !== policy.evolution.enabled)
+        throw new Error("Pipeline 与目标 Schema 变更策略不一致");
+    }
   }
+  const evolutionEnabled = policy.ddl !== undefined || Boolean(policy.evolution?.enabled);
   const allSources = new Set(value.source.tables.map(path));
   const allSinks = new Set(value.sink.tables.map(path));
   const mappedSources = new Set<string>();
@@ -342,7 +364,7 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
     const write = target.write;
     if (
       write.mode === "REPLACE" &&
-      (schemaVersion !== 8 || realtime || value.sink.type !== "jdbc-mysql")
+      (schemaVersion < 8 || realtime || value.sink.type !== "jdbc-mysql")
     )
       throw new Error("替换写入仅支持 MySQL 目标的单表离线同步");
     validateSqlHooks(write);
@@ -354,7 +376,7 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
       (write.primaryKeys &&
         (!write.primaryKeys.length ||
           new Set(write.primaryKeys).size !== write.primaryKeys.length ||
-          policy.evolution.enabled))
+          evolutionEnabled))
     )
       throw new Error("目标写入配置无效");
     const retract =
@@ -363,7 +385,7 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
       pipelineTableScope(value) === "SINGLE" &&
       write.transaction?.mode === "CHECKPOINT_XA" &&
       !write.primaryKeys &&
-      !policy.evolution.enabled &&
+      !evolutionEnabled &&
       steps.includes("INCREMENTAL");
     if (
       (write.mode === "RETRACT" && !retract) ||
@@ -404,7 +426,7 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
       !steps.includes("INCREMENTAL") ||
       !steps.includes("FULL") ||
       policy.initial !== "CREATE_OR_ALTER" ||
-      !policy.evolution.enabled
+      !evolutionEnabled
     )
       throw new Error("正则选表需要从全量开始持续同步并创建和同步表结构");
     validateTableSnapshot(selection.snapshot);
