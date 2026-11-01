@@ -72,7 +72,12 @@ export function DdlConfiguration({
                         label: DDL_ACTION_LABELS[action],
                       })),
                       ...(!supported
-                        ? [{ value: current, label: `${DDL_ACTION_LABELS[current]}（当前链路不可用）` }]
+                        ? [
+                            {
+                              value: current,
+                              label: `${DDL_ACTION_LABELS[current]}（当前链路不可用）`,
+                            },
+                          ]
                         : []),
                     ]}
                     onValueChange={(next) =>
@@ -85,9 +90,7 @@ export function DdlConfiguration({
                     }
                   />
                 </Field>
-                <p className="pl-[116px] text-xs text-[var(--yak-components-muted-text)]">
-                  {help}
-                </p>
+                <p className="pl-[116px] text-xs text-[var(--yak-components-muted-text)]">{help}</p>
                 {!supported ? (
                   <p className="pl-[116px] text-xs text-[var(--yak-components-danger-text)]">
                     当前连接器不支持此策略，请选择可用项。
@@ -103,8 +106,8 @@ export function DdlConfiguration({
       ) : continuous ? (
         <div className="space-y-4">
           <Alert>
-            这是旧版“整体结构演进”配置。它与逐事件的“忽略/出错”不完全等价；
-            升级将影响新发布任务的 DDL 捕获及异常行为，旧运行实例不受影响。
+            这是旧版“整体结构演进”配置。它与逐事件的“忽略/出错”不完全等价； 升级将影响新发布任务的
+            DDL 捕获及异常行为，旧运行实例不受影响。
           </Alert>
           <Field className="grid grid-cols-[104px_minmax(0,1fr)] items-center !gap-3">
             <FieldLabel>同步结构变更</FieldLabel>
