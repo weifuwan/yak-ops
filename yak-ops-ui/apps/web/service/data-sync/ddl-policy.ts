@@ -10,7 +10,11 @@ export const DDL_FIELDS = [
   { key: "renameColumn", label: "重命名列", help: "不能将重命名推断为新增列加删除列" },
   { key: "modifyColumnType", label: "修改列类型", help: "正常处理仅支持已经验证的安全扩宽" },
   { key: "truncateTable", label: "清空表", help: "需要验证执行顺序与崩溃恢复，暂不开放正常处理" },
-] as const satisfies ReadonlyArray<{ key: keyof DataSyncDdlStrategies; label: string; help: string }>;
+] as const satisfies ReadonlyArray<{
+  key: keyof DataSyncDdlStrategies;
+  label: string;
+  help: string;
+}>;
 
 export const DDL_ACTION_LABELS: Record<DataSyncDdlAction, string> = {
   NORMAL: "正常处理",
