@@ -11,6 +11,7 @@ import type {
   DataSyncMappingTemplate,
   DataSyncSourceOptions,
   DataSyncTypeMapping,
+  DataSyncDdlStrategies,
 } from "@/service/data-sync";
 
 export interface EditorSource {
@@ -33,6 +34,7 @@ export interface EditorSink {
   targetPrimaryKeys: string[];
   schemaChangesEnabled: boolean;
   allowDropColumns: boolean;
+  ddlStrategies?: DataSyncDdlStrategies;
   preSql: string[];
   postSql: string[];
   batchSize?: number;
