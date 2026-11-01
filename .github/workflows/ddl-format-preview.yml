@@ -1,0 +1,36 @@
+name: DDL Formatting Preview (temporary)
+on:
+  pull_request:
+    paths:
+      - 'yak-ops-core/**'
+      - 'yak-flow/**'
+      - 'yak-ops-engine/**'
+      - 'yak-ops-ui/**'
+      - 'yak-ops-plugins/**'
+      - '.github/workflows/ddl-format-preview.yml'
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate formatting patch (no push)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash mvnw -B -ntp -pl yak-ops-engine,yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync,yak-flow/yak-flow-connector-jdbc -am spotless:apply >/tmp/ddl-mvn-format.log 2>&1
+          cd yak-ops-ui
+          npm ci >/tmp/ddl-npm-install.log 2>&1
+          npm run format >/tmp/ddl-npm-format.log 2>&1
+          cd ..
+          echo '<<<DDL_FORMAT_PATCH_START>>>'
+          git diff --no-color --             yak-ops-core/src/main/java/io/yak/ops/core/configuration             yak-ops-core/src/main/java/io/yak/ops/core/api/connector/sink/SchemaEvolutionSink.java             yak-ops-engine/src/main             yak-ops-plugins/yak-ops-plugin-task/yak-ops-plugin-task-data-sync/src/main             yak-flow/yak-flow-runtime/src/main             yak-flow/yak-flow-connector-jdbc/src/main             yak-ops-ui/apps/web/app/data-sync             yak-ops-ui/apps/web/service/data-sync
+          echo '<<<DDL_FORMAT_PATCH_END>>>'
