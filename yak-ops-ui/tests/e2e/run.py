@@ -12,7 +12,7 @@ import sys
 import time
 import traceback
 
-SCENARIOS = ("table-layout", "solution-selection", "schedule-save-recovery", "multitable-mapping", "multitable-selection", "schema-configuration", "editor-round-trip", "version-publication", "field-mapping", "snapshot-replication", "realtime-stages", "schedule-history", "schedule-errors")
+SCENARIOS = ("table-layout", "solution-selection", "schedule-save-recovery", "multitable-mapping", "multitable-selection", "schema-configuration", "editor-round-trip", "version-publication", "field-mapping", "batch-table-options", "replication-table-options", "snapshot-replication", "realtime-stages", "schedule-history", "schedule-errors")
 LOGIN = "login-smoke"
 ALL = (*SCENARIOS, LOGIN)
 
@@ -22,7 +22,8 @@ async def check(name, directory, browser_executable=None):
     from data_sync import (verify_solution_creation, verify_partial_task_save,
                            verify_multitable_mapping, verify_multitable_selection, verify_schema_configuration,
                            verify_editor_round_trip, verify_version_publication, verify_realtime_stages,
-                           verify_field_mapping, verify_snapshot_replication)
+                           verify_field_mapping, verify_snapshot_replication,
+                           verify_batch_table_options, verify_replication_table_options)
     from table_layout import verify_table_layout
     from scheduling import verify_schedule_history, verify_schedule_errors
     from login import verify_login
@@ -37,6 +38,8 @@ async def check(name, directory, browser_executable=None):
         "editor-round-trip": verify_editor_round_trip,
         "version-publication": verify_version_publication,
         "field-mapping": verify_field_mapping,
+        "batch-table-options": verify_batch_table_options,
+        "replication-table-options": verify_replication_table_options,
         "snapshot-replication": verify_snapshot_replication,
         "realtime-stages": verify_realtime_stages,
         "schedule-history": verify_schedule_history,

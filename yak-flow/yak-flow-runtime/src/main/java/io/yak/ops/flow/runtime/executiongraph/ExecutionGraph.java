@@ -3,6 +3,7 @@ package io.yak.ops.flow.runtime.executiongraph;
 import io.yak.ops.core.api.common.JobExecutionResult;
 import io.yak.ops.core.api.common.JobID;
 import io.yak.ops.core.api.common.JobStatus;
+import io.yak.ops.core.api.connector.sink.BatchExecutionHook;
 import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
@@ -49,6 +50,7 @@ public final class ExecutionGraph {
 
     private volatile JobStatus status = JobStatus.CREATED;
     private volatile boolean cancellationRequested;
+    private volatile BatchExecutionHook activeHook;
     private Thread worker;
 
     public ExecutionGraph(JobGraph jobGraph) {
@@ -164,45 +166,107 @@ public final class ExecutionGraph {
 
         LOG.info("YakFlow Job started, jobId={}", getJobID());
         long startedNanos = System.nanoTime();
+        List<BatchExecutionHook> hooks;
+        try {
+            hooks = jobGraph.graph().getStreamNodes().stream()
+                    .filter(node -> node.isSink())
+                    .flatMap(node -> node.getSink().orElseThrow().batchExecutionHooks().stream())
+                    .toList();
+        } catch (Throwable failure) {
+            completeFailed(failure);
+            return;
+        }
+        BatchExecutionJournal journal = null;
+        Throwable problem = null;
+        try {
+            journal = hooks.isEmpty() ? null : new BatchExecutionJournal(jobGraph, hooks);
+            if (journal != null && journal.dataStarted() && !hasCompletedCheckpoint()) {
+                throw new IllegalStateException(
+                        "Started batch data has no verified checkpoint; replay is not authorized");
+            }
+            runAttempts(journal);
+        } catch (Throwable failure) {
+            problem = failure;
+        } finally {
+            if (journal != null) {
+                try {
+                    journal.close();
+                } catch (IOException closing) {
+                    if (problem == null) problem = closing;
+                    else problem.addSuppressed(closing);
+                }
+            }
+        }
+        // A terminal result releases ownership of the state directory before a caller can recover it.
+        if (problem == null) {
+            completeNormally(TimeUnit.NANOSECONDS.toMillis(Math.max(0, System.nanoTime() - startedNanos)));
+        } else if (cancellationRequested
+                && (journal == null || !journal.hasUnconfirmedHook())
+                && (isCancellationSignal(problem)
+                        || problem instanceof io.yak.ops.core.api.connector.sink.BatchExecutionHookException)) {
+            completeCanceled();
+        } else {
+            completeFailed(problem);
+        }
+    }
+
+    private void runAttempts(BatchExecutionJournal journal) throws Throwable {
         int maxRestarts = jobGraph.configuration().get(ExecutionOptions.MAX_RESTART_ATTEMPTS);
         int attempt = 0;
         while (true) {
             plannedSplits.set(0);
             completedSplits.set(0);
             try {
-                new TaskDeployment(this, attempt > 0).deployAndAwait();
-                if (!jobGraph.isBounded() && !cancellationRequested) {
-                    completeFailed(new IllegalStateException("Unbounded pipeline terminated without cancellation"));
-                    return;
+                if (journal != null) {
+                    journal.execute(
+                            BatchExecutionHook.Phase.BEFORE_DATA,
+                            this::isCancellationRequested,
+                            hook -> activeHook = hook);
                 }
-                completeNormally(TimeUnit.NANOSECONDS.toMillis(Math.max(0, System.nanoTime() - startedNanos)));
+                if (journal == null || !journal.dataCompleted()) {
+                    if (cancellationRequested) throw new CancellationException("Data execution was cancelled");
+                    if (journal != null) journal.beginData();
+                    new TaskDeployment(this, attempt > 0).deployAndAwait();
+                    if (cancellationRequested) throw new CancellationException("Data execution was cancelled");
+                    if (journal != null) journal.completeData();
+                }
+                if (journal != null) {
+                    journal.execute(
+                            BatchExecutionHook.Phase.AFTER_DATA,
+                            this::isCancellationRequested,
+                            hook -> activeHook = hook);
+                }
+                if (!jobGraph.isBounded() && !cancellationRequested) {
+                    throw new IllegalStateException("Unbounded pipeline terminated without cancellation");
+                }
                 return;
             } catch (Throwable failure) {
                 if (failure instanceof InterruptedException) {
                     Thread.currentThread().interrupt();
                 }
-                if (cancellationRequested && isCancellationSignal(failure)) {
-                    completeCanceled();
-                    return;
-                }
-                if (!cancellationRequested && attempt < maxRestarts && hasCompletedCheckpoint()) {
+                boolean uncertainHook = journal != null && journal.hasUnconfirmedHook();
+                if (!cancellationRequested
+                        && !uncertainHook
+                        && attempt < maxRestarts
+                        && ((journal != null && journal.dataCompleted()) || hasCompletedCheckpoint())) {
                     try {
-                        for (ExecutionJobVertex vertex : jobVertices) {
-                            for (ExecutionVertex subtask : vertex.getTaskVertices()) {
-                                subtask.resetForNewAttempt();
+                        if (journal == null || !journal.dataCompleted()) {
+                            for (ExecutionJobVertex vertex : jobVertices) {
+                                for (ExecutionVertex subtask : vertex.getTaskVertices()) {
+                                    subtask.resetForNewAttempt();
+                                }
                             }
                         }
                         // A checkpoint request for the old attempt must never access its closed coordinator.
                         checkpointController = new CompletableFuture<>();
                         attempt++;
-                        LOG.warn("YakFlow Job restarting from checkpoint, jobId={}, restart={}", getJobID(), attempt);
+                        LOG.warn("YakFlow Job resuming durable execution, jobId={}, restart={}", getJobID(), attempt);
                         continue;
                     } catch (Throwable resetFailure) {
                         failure.addSuppressed(resetFailure);
                     }
                 }
-                completeFailed(failure);
-                return;
+                throw failure;
             }
         }
     }
@@ -303,7 +367,16 @@ public final class ExecutionGraph {
             status = JobStatus.CANCELLING;
             running = worker;
         }
-        if (running != null) {
+        BatchExecutionHook hook = activeHook;
+        if (hook != null) {
+            Thread.ofVirtual().name("yak-batch-hook-cancel-" + getJobID()).start(() -> {
+                try {
+                    hook.cancel();
+                } catch (Exception failure) {
+                    cancellation.completeExceptionally(failure);
+                }
+            });
+        } else if (running != null) {
             running.interrupt();
         }
         return cancellation.copy();

@@ -9,6 +9,7 @@ import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
 import io.yak.ops.connector.jdbc.database.catalog.factory.JdbcCatalogFactory;
 import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
+import io.yak.ops.connector.jdbc.database.connection.MySqlServerIdentity;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.ColumnProperties;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
@@ -43,6 +44,16 @@ public class DataSourceLookupServiceImpl implements DataSourceLookupService {
         DataSourceEntity entity = find(workspaceId, datasourceId);
         DataSourceConnection connection = parse(entity, plugin(entity));
         return new DataSourceInfo(entity.getDbType(), connection.database(), connection.schema(), entity.getRevision());
+    }
+
+    @Override
+    public boolean samePhysicalServer(String workspaceId, String firstDatasourceId, String secondDatasourceId) {
+        DataSourceEntity first = find(workspaceId, firstDatasourceId);
+        DataSourceEntity second = find(workspaceId, secondDatasourceId);
+        if (!"MYSQL".equals(first.getDbType()) || !"MYSQL".equals(second.getDbType())) {
+            throw new UnsupportedOperationException("Physical identity verification requires MySQL datasources");
+        }
+        return MySqlServerIdentity.sameServer(connectionOptions(first), connectionOptions(second));
     }
 
     @Override

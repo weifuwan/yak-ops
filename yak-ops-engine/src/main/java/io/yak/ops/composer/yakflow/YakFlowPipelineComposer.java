@@ -4,6 +4,7 @@ import io.yak.ops.composer.PipelineComposer;
 import io.yak.ops.composer.PipelineContext;
 import io.yak.ops.composer.PipelineExecution;
 import io.yak.ops.composer.PipelinePlan;
+import io.yak.ops.composer.definition.DynamicTableSelection;
 import io.yak.ops.composer.definition.EndpointOptions;
 import io.yak.ops.composer.definition.PipelineDef;
 import io.yak.ops.composer.definition.PipelineOptions;
@@ -28,6 +29,7 @@ import io.yak.ops.connector.base.factory.SourceFactoryContext;
 import io.yak.ops.connector.base.factory.TableSinkFactoryContext;
 import io.yak.ops.connector.base.factory.TableSourceFactoryContext;
 import io.yak.ops.connector.base.metrics.TableMetrics;
+import io.yak.ops.connector.cdc.mysql.source.config.MySqlSourceOptions;
 import io.yak.ops.connector.jdbc.database.schema.SchemaChangePlan;
 import io.yak.ops.connector.jdbc.sink.JdbcSinkOptions;
 import io.yak.ops.connector.jdbc.sink.JdbcWriteMode;
@@ -38,10 +40,14 @@ import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.ColumnProperties;
 import io.yak.ops.core.event.CreateTableEvent;
 import io.yak.ops.core.event.Event;
+import io.yak.ops.core.event.SchemaChangeEvent;
+import io.yak.ops.core.event.SchemaChangeRequest;
 import io.yak.ops.core.execution.PipelineExecutor;
 import io.yak.ops.core.factories.DataSinkFactory;
 import io.yak.ops.core.factories.DataSourceFactory;
 import io.yak.ops.core.schema.Schema;
+import io.yak.ops.core.schema.SchemaUtils;
+import io.yak.ops.core.schema.SchemaVersionedTableState;
 import io.yak.ops.core.sink.DataSink;
 import io.yak.ops.core.source.DataSource;
 import io.yak.ops.core.types.Column;
@@ -141,20 +147,27 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
                 identity.workspaceId(),
                 inputs.sourceDataSourceId(),
                 first.source().revision());
+        DataSourceInfo sourceInfo = resources.dataSource(identity.workspaceId(), inputs.sourceDataSourceId());
+        if (sourceInfo.revision() != first.source().revision()) {
+            throw new IllegalStateException("Source datasource changed before connector creation");
+        }
         TableMetrics metrics = progress.metrics();
         List<TableSourceFactoryContext> sources = new ArrayList<>();
         Map<TableId, Schema> schemas = new LinkedHashMap<>();
         for (TableBinding table : plan.tables()) {
             metrics.register(table.source().table());
+            ReadonlyConfig sourceOptions = creationOptions(
+                    sourceConnectorOptions, sourceFactory.identifier(), table.sourceOptions(), sourceConnection);
+            if (inputs.dynamicSelection() != null
+                    && sourceInfo.database() != null
+                    && !sourceInfo.database().isBlank()) {
+                Map<String, Object> scoped = new LinkedHashMap<>(sourceOptions.getSourceMap());
+                scoped.put(
+                        MySqlSourceOptions.DATABASE_NAME.key(), java.util.regex.Pattern.quote(sourceInfo.database()));
+                sourceOptions = ReadonlyConfig.fromMap(scoped);
+            }
             sources.add(new TableSourceFactoryContext(
-                    creationOptions(
-                            sourceConnectorOptions,
-                            sourceFactory.identifier(),
-                            table.sourceOptions(),
-                            sourceConnection),
-                    table.source().table(),
-                    table.source().schema(),
-                    metrics));
+                    sourceOptions, table.source().table(), table.source().schema(), metrics));
             schemas.put(table.source().table(), physicalSchema(table.source()));
         }
         DataSource source = sourceFactory.createDataSource(new SourceFactoryContext(
@@ -211,8 +224,60 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
         boolean sourceProducesChangelog = factories
                 .source(definition.getSource().getType())
                 .producesChangelog(EndpointOptions.connectorOptions(first.sourceParameters()));
-        DataSink sink = sinkFactory.createDataSink(new SinkFactoryContext(
-                sinks, configuration, classLoader, transforms::transformSchema, schemas, sourceProducesChangelog));
+        DataSink sink;
+        DynamicTableSink dynamicSink;
+        if (inputs.dynamicSelection() == null) {
+            dynamicSink = null;
+            sink = sinkFactory.createDataSink(new SinkFactoryContext(
+                    sinks, configuration, classLoader, transforms::transformSchema, schemas, sourceProducesChangelog));
+        } else {
+            DynamicTableSelection selection = inputs.dynamicSelection();
+            boolean sameServer = "MYSQL".equals(first.targetDatasource().type())
+                    && resources.samePhysicalServer(
+                            identity.workspaceId(), inputs.sourceDataSourceId(), inputs.targetDataSourceId());
+            Map<TableId, DataSink> initialSinks = new LinkedHashMap<>();
+            for (TableSinkFactoryContext table : sinks) {
+                initialSinks.put(
+                        table.sourceTable(),
+                        sinkFactory.createDataSink(new SinkFactoryContext(
+                                List.of(table),
+                                configuration,
+                                classLoader,
+                                transforms::transformSchema,
+                                Map.of(table.sourceTable(), schemas.get(table.sourceTable())),
+                                true)));
+            }
+            java.util.function.Function<TableId, TableId> naming = table -> {
+                TableId selected = selection.target(table);
+                TableId target =
+                        first.targetDatasource().resolveTable(selected.catalog(), selected.schema(), selected.table());
+                SchemaValidator.validateNamespace(first.targetDatasource(), target);
+                if (sameServer && selection.matches(target)) {
+                    throw new IllegalArgumentException(
+                            "Dynamic target would be captured again by the source selection");
+                }
+                return target;
+            };
+            dynamicSink = new DynamicTableSink(
+                    initialSinks,
+                    naming,
+                    (table, raw, restored) -> discoveredSink(
+                            selection,
+                            naming.apply(table),
+                            table,
+                            raw,
+                            restored,
+                            inputs,
+                            first,
+                            identity,
+                            sinkFactory,
+                            sinkConnection,
+                            metrics,
+                            configuration,
+                            classLoader,
+                            transforms));
+            sink = dynamicSink;
+        }
         Transformation<Event> events = transforms.translate(source, sourceParallelism, identity.definitionId());
         events = new SchemaTranslator()
                 .translate(
@@ -220,13 +285,106 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
                         plan.tables(),
                         sourceParallelism,
                         identity.definitionId(),
-                        definition.getConfig().toMap().get("schema.operator.uid"));
+                        definition.getConfig().toMap().get("schema.operator.uid"),
+                        dynamicSink == null ? null : dynamicSink::target);
         events = new PartitioningTranslator()
                 .translate(events, sink, sourceParallelism, sinkParallelism, identity.definitionId());
         io.yak.ops.flow.runtime.transformations.SinkTransformation<Event> output =
                 new DataSinkTranslator().translate(events, sink, sinkParallelism, identity.definitionId());
         definition.getSink().getName().ifPresent(output::setName);
         return new StreamGraphGenerator(output, configuration).generate();
+    }
+
+    private DynamicTableSink.Registration discoveredSink(
+            DynamicTableSelection selection,
+            TableId target,
+            TableId source,
+            Schema raw,
+            SchemaVersionedTableState restored,
+            PipelineOptions inputs,
+            TableBinding initial,
+            TaskExecutionIdentity identity,
+            DataSinkFactory sinkFactory,
+            ReadonlyConfig sinkConnection,
+            TableMetrics metrics,
+            Configuration configuration,
+            ClassLoader loader,
+            TransformTranslator transforms) {
+        DataSourceInfo targetInfo = initial.targetDatasource();
+        if (restored == null) {
+            DataSourceInfo current = resources.dataSource(identity.workspaceId(), inputs.targetDataSourceId());
+            DataSourceInfo sourceInfo = resources.dataSource(identity.workspaceId(), inputs.sourceDataSourceId());
+            if (current.revision() != targetInfo.revision()
+                    || sourceInfo.revision() != initial.source().revision()) {
+                throw new IllegalStateException("Datasource revision changed after dynamic task admission");
+            }
+            sourceInfo.resolveTable(source.catalog(), source.schema(), source.table());
+        } else if (!target.equals(restored.targetTable())) {
+            throw new IllegalArgumentException("Checkpointed target differs from the published naming rule");
+        }
+        DataSourceTable sourceMetadata = new DataSourceTable(
+                initial.source().datasourceType(),
+                source,
+                raw.toTableSchema(),
+                initial.source().revision(),
+                raw.comment(),
+                raw.columnComments(),
+                raw.columnProperties().values().stream().anyMatch(properties -> !properties.isKnown())
+                        ? Set.of("UNKNOWN_GENERATION")
+                        : Set.of(),
+                raw.columnProperties(),
+                List.of(raw.primaryKeys()));
+        DataSourceTable projected = transforms.transformMetadata(sourceMetadata);
+        TableSchema write = SchemaValidator.writeSchema(projected, null);
+        ReadonlyConfig sinkOptions = creationOptions(
+                sinkConnectorOptions,
+                sinkFactory.identifier(),
+                ReadonlyConfig.fromMap(selection.sinkDefaults()),
+                sinkConnection);
+        Schema before;
+        Schema after;
+        List<SchemaChangeEvent> changes;
+        if (restored == null) {
+            CreateTableEvent desired = SchemaPlanner.createEvent(projected, targetInfo, target);
+            DataSourceTable existing = resources
+                    .findTable(
+                            identity.workspaceId(),
+                            inputs.targetDataSourceId(),
+                            target.catalog(),
+                            target.schema(),
+                            target.table())
+                    .orElse(null);
+            if (existing != null && existing.revision() != targetInfo.revision()) {
+                throw new IllegalStateException("Target revision changed during dynamic table planning");
+            }
+            SchemaChangePlan plan = SchemaPlanner.plan(desired, targetInfo.type(), existing);
+            SchemaValidator.requireCompatible(plan);
+            changes = plan.changes();
+            before = existing == null
+                    ? desired.getPhysicalSchema()
+                    : Schema.from(existing.schema(), null, Map.of(), Map.of());
+            after = before;
+            for (SchemaChangeEvent change : changes) after = SchemaUtils.applySchemaChangeEvent(after, change);
+        } else {
+            before = restored.targetSchema();
+            after = before;
+            changes = List.of();
+        }
+        sinkFactory.validateSchema(sinkOptions, write, after.toTableSchema(), true);
+        metrics.register(source);
+        DataSink sink = sinkFactory.createDataSink(new SinkFactoryContext(
+                List.of(new TableSinkFactoryContext(
+                        sinkOptions, source, write, target, after.toTableSchema(), metrics)),
+                configuration,
+                loader,
+                transforms::transformSchema,
+                Map.of(source, raw),
+                true));
+        String eventId = new io.yak.ops.connector.cdc.mysql.source.events.TableDiscoveryEvent(source, raw).eventId();
+        SchemaChangeRequest request = restored == null
+                ? new SchemaChangeRequest(eventId, source, target, raw, raw, before, after, changes, true)
+                : null;
+        return new DynamicTableSink.Registration(sink, request);
     }
 
     private ReadonlyConfig effectiveEnvironment(PipelineDef definition) {
@@ -410,7 +568,7 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
                     binding += encodePart(comment.getKey()) + encodePart(comment.getValue());
                 }
             }
-            claims.add(new ExecutionResource("DATA_SYNC_TARGET", target));
+            if (job.dynamicSelection() == null) claims.add(new ExecutionResource("DATA_SYNC_TARGET", target));
             ReadonlyConfig prepared =
                     sourceFactory.prepareExecutionOptions(EndpointOptions.connectorOptions(source), instanceId);
             if (tables.isEmpty() && instanceId != null) {
@@ -440,6 +598,24 @@ public final class YakFlowPipelineComposer implements PipelineComposer {
         if (job.sourceDataSourceId().equals(job.targetDataSourceId())
                 && sources.stream().anyMatch(targets::contains)) {
             throw new IllegalArgumentException("Destinations overlap their source tables");
+        }
+        if (job.dynamicSelection() != null) {
+            claims.add(new ExecutionResource("DATA_SYNC_TARGET_SCOPE", encodePart(job.targetDataSourceId())));
+            boolean sameServer = "MYSQL"
+                            .equals(tables.getFirst().targetDatasource().type())
+                    && resources.samePhysicalServer(workspaceId, job.sourceDataSourceId(), job.targetDataSourceId());
+            for (TableBinding table : tables) {
+                TableId mapped = job.dynamicSelection().target(table.source().table());
+                TableId defaultTarget =
+                        table.targetDatasource().resolveTable(mapped.catalog(), mapped.schema(), mapped.table());
+                SchemaValidator.validateNamespace(table.targetDatasource(), defaultTarget);
+                if (sameServer
+                        && (job.dynamicSelection().matches(table.targetTable())
+                                || job.dynamicSelection().matches(defaultTarget))) {
+                    throw new IllegalArgumentException(
+                            "Dynamic target would be captured again by the source selection");
+                }
+            }
         }
         TaskExecutionResources admission = new TaskExecutionResources(claims, sha256(bindings.toString()));
         return new PipelinePlan(

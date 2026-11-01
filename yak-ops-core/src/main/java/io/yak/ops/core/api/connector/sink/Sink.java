@@ -21,4 +21,14 @@ public interface Sink<T> {
      * @throws Exception if Writer creation fails
      */
     SinkWriter<T> createWriter(WriterInitContext context) throws Exception;
+
+    /**
+     * Creates independent ordered hooks for one bounded execution, outside all writer subtasks.
+     * Hooks require a durable instance state directory; they never run during validation or preview.
+     *
+     * @return immutable configuration-derived operations with no shared active connection
+     */
+    default java.util.List<BatchExecutionHook> batchExecutionHooks() {
+        return java.util.List.of();
+    }
 }

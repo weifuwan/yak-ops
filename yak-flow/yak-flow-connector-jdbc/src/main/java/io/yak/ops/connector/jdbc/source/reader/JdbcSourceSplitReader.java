@@ -12,6 +12,9 @@ import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionProvider;
 import io.yak.ops.connector.jdbc.database.connection.JdbcConnectionRetry;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.database.dialect.JdbcDialectConverter;
+import io.yak.ops.connector.jdbc.database.query.JdbcReadQuery;
+import io.yak.ops.connector.jdbc.source.JdbcIncrementalRange;
+import io.yak.ops.connector.jdbc.source.JdbcReadOptions;
 import io.yak.ops.connector.jdbc.source.split.JdbcSchemaFingerprint;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.core.data.GenericRowData;
@@ -346,7 +349,7 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
                 bounds.add(split.lastEmittedKey());
             }
         }
-        var range = split.incrementalRange();
+        JdbcIncrementalRange range = split.incrementalRange();
         if (range != null) {
             String quoted = dialect.quoteIdentifier(range.column());
             if (range.lower() != null) {
@@ -362,15 +365,16 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
                             : " <= ?"));
             bounds.add(range.upperParameter());
         }
-        if (!predicates.isEmpty()) sql += " WHERE " + String.join(" AND ", predicates);
+        JdbcReadOptions read = split.readOptions();
+        sql += JdbcReadQuery.whereClause(read == null ? null : read.where(), predicates);
         if (key != null) sql += " ORDER BY " + dialect.quoteIdentifier(key);
         statement = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         cancellableStatement = statement;
         if (cancellationRequested) {
             throw new SQLException("JDBC source read was cancelled");
         }
-        statement.setFetchSize(resultSetFetchSize);
-        statement.setQueryTimeout(queryTimeoutSeconds);
+        statement.setFetchSize(read == null ? resultSetFetchSize : read.fetchSize());
+        statement.setQueryTimeout(read == null ? queryTimeoutSeconds : read.queryTimeoutSeconds());
         for (int index = 0; index < bounds.size(); index++) {
             Object value = bounds.get(index);
             if (value instanceof Long number) statement.setLong(index + 1, number);
@@ -380,9 +384,10 @@ public final class JdbcSourceSplitReader implements SplitReader<JdbcRecordAndPos
         resultSet = statement.executeQuery();
         if ("true".equals(MDC.get("taskLogDebug"))) {
             LOG.debug(
-                    "JDBC query executed, split={}, sql={}, executeQueryMs={}",
+                    "JDBC query executed, split={}, projectedColumns={}, filtered={}, executeQueryMs={}",
                     split.splitId(),
-                    sql,
+                    readColumns.size(),
+                    read != null && read.where() != null,
                     (System.nanoTime() - queryStartedNanos) / 1_000_000);
         }
         converter = dialect.createRowConverter(resultSet.getMetaData());

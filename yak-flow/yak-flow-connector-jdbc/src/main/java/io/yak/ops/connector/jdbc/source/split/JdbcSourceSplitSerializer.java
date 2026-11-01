@@ -1,6 +1,7 @@
 package io.yak.ops.connector.jdbc.source.split;
 
 import io.yak.ops.connector.jdbc.source.JdbcIncrementalRange;
+import io.yak.ops.connector.jdbc.source.JdbcReadOptions;
 import io.yak.ops.core.api.io.SimpleVersionedSerializer;
 import io.yak.ops.core.data.TableId;
 import java.io.ByteArrayInputStream;
@@ -20,7 +21,7 @@ import java.util.Objects;
  */
 public final class JdbcSourceSplitSerializer implements SimpleVersionedSerializer<JdbcSourceSplit> {
 
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
     private static final int MAX_SPLIT_BYTES = 1_048_576;
     private static final int MAX_COLUMNS = 8_192;
 
@@ -47,13 +48,21 @@ public final class JdbcSourceSplitSerializer implements SimpleVersionedSerialize
             writeNullableLong(out, split.upperBound());
             writeNullableLong(out, split.lastEmittedKey());
             out.writeUTF(split.schemaFingerprint());
-            var range = split.incrementalRange();
+            JdbcIncrementalRange range = split.incrementalRange();
             out.writeBoolean(range != null);
             if (range != null) {
                 out.writeUTF(range.mode().name());
                 out.writeUTF(range.column());
                 writeNullableString(out, range.lower());
                 out.writeUTF(range.upper());
+            }
+            JdbcReadOptions read = split.readOptions();
+            out.writeBoolean(read != null);
+            if (read != null) {
+                writeNullableString(out, read.where());
+                writeNullableString(out, read.splitKey());
+                out.writeInt(read.fetchSize());
+                out.writeInt(read.queryTimeoutSeconds());
             }
             out.flush();
             if (buffer.size() > MAX_SPLIT_BYTES) {
@@ -65,7 +74,7 @@ public final class JdbcSourceSplitSerializer implements SimpleVersionedSerialize
 
     @Override
     public JdbcSourceSplit deserialize(int version, byte[] serialized) throws IOException {
-        if ((version != 2 && version != VERSION) || serialized == null || serialized.length > MAX_SPLIT_BYTES) {
+        if ((version < 2 || version > VERSION) || serialized == null || serialized.length > MAX_SPLIT_BYTES) {
             throw new IOException("Unsupported JDBC split state version or length");
         }
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(serialized))) {
@@ -94,6 +103,10 @@ public final class JdbcSourceSplitSerializer implements SimpleVersionedSerialize
                         readNullableString(in),
                         in.readUTF());
             }
+            JdbcReadOptions read = null;
+            if (version >= 4 && in.readBoolean()) {
+                read = new JdbcReadOptions(readNullableString(in), readNullableString(in), in.readInt(), in.readInt());
+            }
             if (in.available() != 0) {
                 throw new IOException("Unexpected bytes after JDBC split state");
             }
@@ -106,7 +119,8 @@ public final class JdbcSourceSplitSerializer implements SimpleVersionedSerialize
                     upper,
                     position,
                     schemaFingerprint,
-                    range);
+                    range,
+                    read);
         } catch (RuntimeException exception) {
             throw new IOException("Invalid JDBC split state", exception);
         }

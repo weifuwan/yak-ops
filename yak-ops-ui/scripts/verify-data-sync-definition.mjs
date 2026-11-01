@@ -201,7 +201,11 @@ const retract = buildSyncParameters({
   ...replication,
   schemaChangesEnabled: false,
   tableMappings: [
-    { ...mapping, source: { ...mapping.source, chunkKeyColumn: "bucket" }, writeMode: "RETRACT" },
+    {
+      ...mapping,
+      source: { ...mapping.source, snapshot: { chunkKeyColumn: "bucket" } },
+      writeMode: "RETRACT",
+    },
   ],
 });
 assert.equal(retract.pipeline["pipeline.table-scope"], "SINGLE");
@@ -361,6 +365,7 @@ const choices = connectorChoices([
     supportsSchemaChanges: false,
     supportsRetract: false,
     boundedness: "BOUNDED",
+    capabilities: { writeModes: ["APPEND", "UPSERT", "REPLACE"] },
   },
 ]);
 assert.deepEqual(
@@ -385,6 +390,12 @@ assert.deepEqual(copyStrategies[0].writeModes, ["UPSERT", "RETRACT"]);
 assert.deepEqual(copyStrategies[2].writeModes, ["APPEND", "UPSERT"]);
 assert.ok(choices[1].allowedCombinations.every((choice) => choice.supportsScheduling));
 assert.ok(choices[1].allowedCombinations.every((choice) => !choice.steps.includes("SCHEMA")));
+assert.deepEqual(choices[1].allowedCombinations[0].writeModes, ["APPEND", "UPSERT", "REPLACE"]);
+assert.ok(
+  choices[1].allowedCombinations
+    .filter((choice) => choice.steps.includes("INCREMENTAL"))
+    .every((choice) => JSON.stringify(choice.writeModes) === '["UPSERT"]'),
+);
 assert.deepEqual(connectorChoices([]), []);
 assert.deepEqual(
   connectorChoices([
@@ -414,7 +425,110 @@ for (const invalidOptions of [
       pipeline: { ...parameters.pipeline, ...invalidOptions },
     }),
   );
-for (const version of [5, 6, 8]) assert.throws(() => readSyncParameters(version, parameters));
+for (const version of [5, 6, 9]) assert.throws(() => readSyncParameters(version, parameters));
+const offlineConfiguration = buildSyncParameters({
+  ...offline,
+  writeMode: "REPLACE",
+  sourceRead: { where: "tenant_id = 12 AND amount > 0", splitKey: "id" },
+  sourceOptions: { fetchSize: 256, queryTimeoutSeconds: 90 },
+  preSql: ["DELETE FROM ods.orders_copy WHERE tenant_id = 12"],
+  postSql: ["UPDATE ods.orders_copy SET ready = 1 WHERE tenant_id = 12"],
+  sinkBatchSize: 128,
+  typeMappings: [{ sourceType: "INT", targetType: "BIGINT" }],
+});
+assert.deepEqual(readSyncParameters(8, offlineConfiguration), offlineConfiguration);
+assert.deepEqual(
+  buildSyncParameters(
+    toSyncTaskRecord(
+      definition(offlineConfiguration, {
+        parameterSchemaVersion: 8,
+      }),
+    ),
+  ),
+  offlineConfiguration,
+);
+assert.throws(() => readSyncParameters(7, offlineConfiguration));
+const regexConfiguration = buildSyncParameters({
+  ...replication,
+  steps: ["SCHEMA", "FULL", "INCREMENTAL"],
+  selection: {
+    mode: "REGEX",
+    databasePattern: "^app$",
+    tablePattern: "^orders.*$",
+    snapshot: { skip: true },
+    dml: { events: ["INSERT", "DELETE"] },
+  },
+  mappingTemplate: {
+    database: "ods",
+    table: "copy_${table}",
+    write: { mode: "UPSERT", batchSize: 333 },
+  },
+  tableMappings: [
+    {
+      ...mapping,
+      source: {
+        ...mapping.source,
+        snapshot: { chunkKeyColumn: "id", where: "tenant_id = 99" },
+        dml: { events: ["UPDATE"] },
+      },
+      batchSize: 44,
+    },
+  ],
+});
+const regexLoaded = toSyncTaskRecord(definition(regexConfiguration, { parameterSchemaVersion: 8 }));
+assert.deepEqual(buildSyncParameters(regexLoaded), regexConfiguration);
+assert.equal(regexLoaded.tableMappings[0].source.snapshot.where, "tenant_id = 99");
+assert.equal(regexLoaded.selection.snapshot.skip, true);
+assert.equal(regexLoaded.sinkBatchSize, 44);
+assert.equal(regexLoaded.mappingTemplate.write.batchSize, 333);
+for (const modify of [
+  (next) => {
+    next.source.tables[0].dml.events = [];
+  },
+  (next) => {
+    next.source.startup.mode = "LATEST_OFFSET";
+  },
+  (next) => {
+    next.sink.mapping.table = "${arbitrary}";
+  },
+  (next) => {
+    next.sink.mapping.write.primaryKeys = ["id"];
+  },
+  (next) => {
+    next.sink.mapping.write.transaction = { mode: "CHECKPOINT_XA" };
+  },
+  (next) => {
+    next.sink.schemaPolicy.evolution.enabled = false;
+  },
+  (next) => {
+    next.source.selection.snapshot.where = "id > 0";
+  },
+]) {
+  const invalid = structuredClone(regexConfiguration);
+  modify(invalid);
+  assert.throws(() => readSyncParameters(8, invalid));
+}
+for (const modify of [
+  (next) => {
+    next.source.tables[0].options.fetchSize = 10001;
+  },
+  (next) => {
+    next.source.tables[0].options.queryTimeoutSeconds = 0;
+  },
+  (next) => {
+    next.sink.tables[0].write.batchSize = 1.5;
+  },
+  (next) => {
+    next.sink.tables[0].write.preSql = [""];
+  },
+  (next) => {
+    next.sink.type = "jdbc-postgres";
+  },
+]) {
+  const invalid = structuredClone(offlineConfiguration);
+  modify(invalid);
+  assert.throws(() => readSyncParameters(8, invalid));
+}
 assert.throws(() => readSyncParameters(7, { source: [] }));
 assert.throws(() => readSyncParameters(7, { ...parameters, unknown: 1 }));
 assert.throws(() =>

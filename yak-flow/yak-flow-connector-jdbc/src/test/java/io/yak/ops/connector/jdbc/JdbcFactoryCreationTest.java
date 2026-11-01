@@ -25,6 +25,7 @@ import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.data.GenericRowData;
 import io.yak.ops.core.event.DataChangeEvent;
 import io.yak.ops.core.factories.DataSourceFactory;
+import io.yak.ops.core.factories.ConnectorFeature;
 import io.yak.ops.core.function.HashFunction;
 import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.source.DataSource;
@@ -95,6 +96,11 @@ class JdbcFactoryCreationTest {
         assertThrows(IllegalArgumentException.class, () -> factories.source("JDBC"));
         assertThrows(IllegalArgumentException.class, () -> factories.source("MYSQL_CDC"));
         assertThrows(IllegalArgumentException.class, () -> factories.sink("jdbc-mysql").validateDatasource("ORACLE"));
+        for (String identifier : List.of("jdbc-mysql", "jdbc-postgres", "jdbc-oracle")) {
+            assertTrue(factories.sink(identifier).supportedFeatures().contains(ConnectorFeature.TYPE_MAPPING));
+        }
+        assertTrue(factories.sink("jdbc-mysql").supportedFeatures().contains(ConnectorFeature.REPLACE_WRITE));
+        assertFalse(factories.sink("jdbc-postgres").supportedFeatures().contains(ConnectorFeature.REPLACE_WRITE));
     }
 
     @Test
@@ -123,6 +129,29 @@ class JdbcFactoryCreationTest {
                 .getHashFunction(TABLE, schema);
         assertTrue(Math.floorMod(hash.hashcode(first), 3) != Math.floorMod(hash.hashcode(second), 3),
                 "Append-only rows must retain the existing key distribution");
+    }
+
+    @Test
+    void knownMutationCapabilityGuardsHooksAndAppendWithoutInferringItFromWriteMode() {
+        MySqlDataSinkFactory factory = new MySqlDataSinkFactory();
+        Configuration options = configuration().set(JdbcSinkOptions.WRITE_MODE, JdbcWriteMode.APPEND);
+        Schema schema = Schema.from(SCHEMA, null, Map.of(), Map.of());
+        TableSinkFactoryContext append = new TableSinkFactoryContext(options.toReadonlyConfig(), TABLE, SCHEMA, TABLE, SCHEMA);
+        assertThrows(IllegalArgumentException.class, () -> factory.createDataSink(new SinkFactoryContext(
+                List.of(append), new Configuration(), getClass().getClassLoader(), (id, value) -> value,
+                Map.of(TABLE, schema), true)));
+
+        options.set(JdbcSinkOptions.WRITE_MODE, JdbcWriteMode.UPSERT)
+                .set(JdbcSinkOptions.PRE_SQL, "[\"DELETE FROM items\"]");
+        TableSinkFactoryContext withHook = new TableSinkFactoryContext(options.toReadonlyConfig(), TABLE, SCHEMA, TABLE, SCHEMA);
+        assertThrows(IllegalArgumentException.class, () -> factory.createDataSink(sinkContext(withHook)));
+        assertThrows(IllegalArgumentException.class, () -> factory.createDataSink(new SinkFactoryContext(
+                List.of(withHook), new Configuration(), getClass().getClassLoader(), (id, value) -> value,
+                Map.of(TABLE, schema), true)));
+        DataSink boundedUpsert = factory.createDataSink(new SinkFactoryContext(
+                List.of(withHook), new Configuration(), getClass().getClassLoader(), (id, value) -> value,
+                Map.of(TABLE, schema), false));
+        assertEquals(1, boundedUpsert.getEventSinkProvider().getSink().batchExecutionHooks().size());
     }
 
     private static Configuration configuration() {

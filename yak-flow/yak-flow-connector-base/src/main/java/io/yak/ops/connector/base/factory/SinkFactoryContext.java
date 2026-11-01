@@ -18,11 +18,12 @@ public final class SinkFactoryContext implements Factory.Context {
     private final ClassLoader classLoader;
     private final BiFunction<TableId, Schema, Schema> sourceSchemaTransform;
     private final Map<TableId, Schema> sourceSchemas;
-    private final boolean sourceProducesChangelog;
+    private final Boolean sourceProducesChangelog;
 
     public SinkFactoryContext(
             List<TableSinkFactoryContext> tables, Configuration pipelineConfiguration, ClassLoader classLoader) {
-        this(tables, pipelineConfiguration, classLoader, (table, schema) -> schema, sourceSchemas(tables), true);
+        this(tables, pipelineConfiguration, classLoader, (table, schema) -> schema, sourceSchemas(tables), (Boolean)
+                null);
     }
 
     /**
@@ -37,6 +38,22 @@ public final class SinkFactoryContext implements Factory.Context {
             BiFunction<TableId, Schema, Schema> sourceSchemaTransform,
             Map<TableId, Schema> sourceSchemas,
             boolean sourceProducesChangelog) {
+        this(
+                tables,
+                pipelineConfiguration,
+                classLoader,
+                sourceSchemaTransform,
+                sourceSchemas,
+                Boolean.valueOf(sourceProducesChangelog));
+    }
+
+    private SinkFactoryContext(
+            List<TableSinkFactoryContext> tables,
+            Configuration pipelineConfiguration,
+            ClassLoader classLoader,
+            BiFunction<TableId, Schema, Schema> sourceSchemaTransform,
+            Map<TableId, Schema> sourceSchemas,
+            Boolean sourceProducesChangelog) {
 
         this.tables = List.copyOf(Objects.requireNonNull(tables, "tables"));
         if (this.tables.isEmpty()) {
@@ -70,9 +87,14 @@ public final class SinkFactoryContext implements Factory.Context {
         return sourceSchemas;
     }
 
-    /** Whether the configured source can emit updates or deletes, including in a bounded job. */
+    /** Whether ordering must allow updates or deletes; an unspecified source is treated conservatively. */
     public boolean sourceProducesChangelog() {
-        return sourceProducesChangelog;
+        return sourceProducesChangelog == null || sourceProducesChangelog;
+    }
+
+    /** Whether the caller supplied the source's actual mutation capability for admission checks. */
+    public boolean isSourceMutationCapabilityKnown() {
+        return sourceProducesChangelog != null;
     }
 
     private static Map<TableId, Schema> sourceSchemas(List<TableSinkFactoryContext> tables) {

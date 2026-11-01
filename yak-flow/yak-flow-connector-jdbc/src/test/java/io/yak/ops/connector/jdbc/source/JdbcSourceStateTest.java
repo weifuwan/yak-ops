@@ -10,6 +10,9 @@ import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplit;
 import io.yak.ops.connector.jdbc.source.split.JdbcSourceSplitSerializer;
 import io.yak.ops.core.data.TableId;
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.util.HexFormat;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +45,43 @@ class JdbcSourceStateTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new JdbcIncrementalRange(JdbcIncrementalRange.Mode.TIMESTAMP, "updated_at",
                         "2026-10-03T00:00:00", "2026-10-02T00:00:00"));
+    }
+
+    @Test
+    void readIntentAndItsHiddenPredicateColumnsSurviveCheckpointRoundTrip() throws Exception {
+        JdbcReadOptions read = new JdbcReadOptions("enabled = 1 OR id = 7", "sequence_id", 25, 4);
+        JdbcSourceSplit split = new JdbcSourceSplit("filtered", table, List.of("name"), "sequence_id",
+                10L, 99L, 12L, "d".repeat(64), null, read);
+        JdbcSourceSplit restored = splitSerializer.deserialize(splitSerializer.getVersion(), splitSerializer.serialize(split));
+        assertEquals(split, restored);
+        assertEquals(List.of("name", "sequence_id", "enabled", "id"), restored.readColumns());
+        assertEquals(read, restored.withLastEmittedKey(13L).readOptions());
+        assertThrows(IllegalArgumentException.class, () -> new JdbcReadOptions("1 = 1", "", 25, 4));
+    }
+
+    @Test
+    void historicalSplitAndEnumeratorFormatsRetainTheirOriginalReadSemantics() throws Exception {
+        String oldSplit = "00066c656761637901000573746f72650100067075626c696300066f7264657273000000020002696400046e616d65"
+                + "010002696401000000000000000101000000000000000a0100000000000000030040" + "61".repeat(64);
+        for (int version : List.of(2, 3)) {
+            byte[] split = HexFormat.of().parseHex(oldSplit + (version == 3
+                    ? "01000a494e4352454153494e47000269640100013000023130" : ""));
+            JdbcIncrementalRange range = version == 3
+                    ? new JdbcIncrementalRange(JdbcIncrementalRange.Mode.INCREASING, "id", "0", "10") : null;
+            JdbcSourceSplit expected = new JdbcSourceSplit("legacy", table, List.of("id", "name"),
+                    "id", 1L, 10L, 3L, "a".repeat(64), range);
+            assertEquals(expected, splitSerializer.deserialize(version, split));
+            try (ByteArrayOutputStream bytes = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(bytes)) {
+                out.writeUTF("legacy-definition");
+                out.writeInt(1);
+                out.writeInt(1);
+                out.writeInt(split.length);
+                out.write(split);
+                out.flush();
+                assertEquals(new JdbcEnumeratorState("legacy-definition", 1, List.of(expected)),
+                        new JdbcEnumeratorStateSerializer().deserialize(version, bytes.toByteArray()));
+            }
+        }
     }
 
     @Test

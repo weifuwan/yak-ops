@@ -16,6 +16,10 @@ import type {
   DataSourcePageResult,
   DataSourceRecord,
   DataSourceSavePayload,
+  DataSourceTablePage,
+  DataSourceTablePageQuery,
+  DataSourcePreview,
+  DataSourcePreviewQuery,
 } from "./types";
 
 export type * from "./types";
@@ -122,3 +126,23 @@ export const listDataSourceColumns = (
     path,
     { signal },
   );
+
+export const pageDataSourceTables = (
+  id: DataSourceId,
+  query: DataSourceTablePageQuery,
+  signal?: AbortSignal,
+): Promise<DataSourceTablePage> =>
+  HttpUtils.postData<DataSourceTablePage>(
+    `${DATA_SOURCE_API_PREFIX}/${id}/catalog/table-page`,
+    query,
+    { signal },
+  );
+
+export const previewDataSourceTable = (
+  id: DataSourceId,
+  query: DataSourcePreviewQuery,
+  signal?: AbortSignal,
+): Promise<DataSourcePreview> =>
+  HttpUtils.postData<DataSourcePreview>(`${DATA_SOURCE_API_PREFIX}/${id}/catalog/preview`, query, {
+    signal,
+  });

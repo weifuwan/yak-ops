@@ -1,6 +1,7 @@
 package io.yak.ops.plugin.task.datasync;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.TaskPluginException;
@@ -19,6 +20,7 @@ import java.util.Set;
  */
 public final class PipelineYamlConverter {
     private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     private PipelineYamlConverter() {}
 
@@ -28,8 +30,8 @@ public final class PipelineYamlConverter {
         Map<String, Object> inputSource = object(root.get("source"), "source");
         Map<String, Object> inputSink = object(root.get("sink"), "sink");
         Map<String, Object> inputPipeline = object(root.get("pipeline"), "pipeline");
-        checkKeys(inputSource, "source", "type", "datasourceId", "syncMode", "startup", "tables");
-        checkKeys(inputSink, "sink", "type", "datasourceId", "schemaPolicy", "tables");
+        checkKeys(inputSource, "source", "type", "datasourceId", "syncMode", "startup", "tables", "selection");
+        checkKeys(inputSink, "sink", "type", "datasourceId", "schemaPolicy", "tables", "mapping", "typeMappings");
         checkKeys(
                 inputPipeline,
                 "pipeline",
@@ -61,14 +63,38 @@ public final class PipelineYamlConverter {
         boolean sourceDatabase = databaseNamespace(sourceTables, "source.table");
         for (Object item : sourceTables) {
             Map<String, Object> table = object(item, "source.table");
-            checkKeys(table, "source.table", "database", "schema", "table", "snapshot", "incremental");
+            checkKeys(
+                    table,
+                    "source.table",
+                    "database",
+                    "schema",
+                    "table",
+                    "snapshot",
+                    "incremental",
+                    "read",
+                    "options",
+                    "dml");
             String path = path(table);
             selectedTables.add(path);
             String prefix = "yak.table." + path + ".";
+            if (table.containsKey("read")) {
+                Map<String, Object> read = object(table.get("read"), "read");
+                checkKeys(read, "read", "where", "splitKey");
+                copyText(read, "where", source, prefix + "read.where");
+                copyText(read, "splitKey", source, prefix + "read.split-key");
+            }
+            if (table.containsKey("options")) {
+                Map<String, Object> options = object(table.get("options"), "source.options");
+                checkKeys(options, "source.options", "fetchSize", "queryTimeoutSeconds");
+                copyInteger(options, "fetchSize", source, prefix + "read.fetch-size", 10000);
+                copyInteger(options, "queryTimeoutSeconds", source, prefix + "read.query-timeout-seconds", 300);
+            }
             if (table.containsKey("snapshot")) {
                 Map<String, Object> snapshot = object(table.get("snapshot"), "snapshot");
-                checkKeys(snapshot, "snapshot", "chunkKeyColumn");
-                source.put(prefix + "chunk-key-column", required(snapshot, "chunkKeyColumn"));
+                snapshot(snapshot, source, prefix, false);
+            }
+            if (table.containsKey("dml")) {
+                dml(object(table.get("dml"), "dml"), source, prefix);
             }
             if (table.containsKey("incremental")) {
                 Map<String, Object> incremental = object(table.get("incremental"), "incremental");
@@ -89,6 +115,25 @@ public final class PipelineYamlConverter {
         }
         source.put("tables", String.join(",", selectedTables));
         source.put("yak.namespace-kind", sourceDatabase ? "DATABASE" : "SCHEMA");
+        if (inputSource.containsKey("selection") != inputSink.containsKey("mapping")) {
+            throw new TaskPluginException("Dynamic table selection requires a target mapping template");
+        }
+        if (inputSource.containsKey("selection")) {
+            Map<String, Object> selection = object(inputSource.get("selection"), "selection");
+            checkKeys(selection, "selection", "mode", "databasePattern", "tablePattern", "snapshot", "dml");
+            if (!"REGEX".equals(required(selection, "mode"))) {
+                throw new TaskPluginException("Only REGEX selection is explicit; fixed tables omit selection");
+            }
+            source.put("yak.selection.mode", "REGEX");
+            source.put("yak.selection.database-pattern", required(selection, "databasePattern"));
+            source.put("yak.selection.table-pattern", required(selection, "tablePattern"));
+            if (selection.containsKey("snapshot")) {
+                snapshot(object(selection.get("snapshot"), "selection.snapshot"), source, "yak.selection.", true);
+            }
+            if (selection.containsKey("dml")) {
+                dml(object(selection.get("dml"), "selection.dml"), source, "yak.selection.");
+            }
+        }
 
         if (inputSource.containsKey("startup")) {
             if (inputSource.containsKey("syncMode")) {
@@ -131,8 +176,11 @@ public final class PipelineYamlConverter {
             selectedSinkTables.add(targetPath);
             String prefix = "yak.table." + targetPath + ".";
             Map<String, Object> write = object(table.get("write"), "write");
-            checkKeys(write, "write", "mode", "primaryKeys", "transaction");
+            checkKeys(write, "write", "mode", "primaryKeys", "transaction", "preSql", "postSql", "batchSize");
             sink.put(prefix + "write.mode", required(write, "mode"));
+            copyInteger(write, "batchSize", sink, prefix + "write.batch-size", 10000);
+            copySql(write, "preSql", sink, prefix + "write.pre-sql");
+            copySql(write, "postSql", sink, prefix + "write.post-sql");
             if (write.containsKey("primaryKeys")) {
                 List<Object> keys = array(write.get("primaryKeys"), "write.primaryKeys");
                 List<String> values = new ArrayList<>();
@@ -151,6 +199,37 @@ public final class PipelineYamlConverter {
             }
         }
         sink.put("yak.namespace-kind", sinkDatabase ? "DATABASE" : "SCHEMA");
+        if (inputSink.containsKey("mapping")) {
+            Map<String, Object> mapping = object(inputSink.get("mapping"), "mapping");
+            checkKeys(mapping, "mapping", "database", "schema", "table", "write");
+            copyText(mapping, "database", sink, "yak.mapping.database");
+            copyText(mapping, "schema", sink, "yak.mapping.schema");
+            sink.put("yak.mapping.table", required(mapping, "table"));
+            Map<String, Object> write = object(mapping.get("write"), "mapping.write");
+            checkKeys(write, "mapping.write", "mode", "primaryKeys", "transaction", "batchSize");
+            sink.put("yak.mapping.write.mode", required(write, "mode"));
+            copyInteger(write, "batchSize", sink, "yak.mapping.write.batch-size", 10000);
+            if (write.containsKey("primaryKeys")) {
+                List<String> keys = strings(write.get("primaryKeys"), "mapping.write.primaryKeys", 64);
+                sink.put("yak.mapping.write.primary-keys", String.join(",", keys));
+            }
+            if (write.containsKey("transaction")) {
+                Map<String, Object> tx = object(write.get("transaction"), "mapping.write.transaction");
+                checkKeys(tx, "mapping.write.transaction", "mode");
+                sink.put("yak.mapping.write.transaction.mode", required(tx, "mode"));
+            }
+        }
+        if (inputSink.containsKey("typeMappings")) {
+            List<Object> rules = array(inputSink.get("typeMappings"), "typeMappings");
+            if (rules.size() > 32) throw new TaskPluginException("Too many type mapping rules");
+            for (Object item : rules) {
+                Map<String, Object> rule = object(item, "typeMapping");
+                checkKeys(rule, "typeMapping", "sourceType", "targetType");
+                required(rule, "sourceType");
+                required(rule, "targetType");
+            }
+            sink.put("yak.type-mappings", json(rules));
+        }
         Map<String, Object> policy = object(inputSink.get("schemaPolicy"), "schemaPolicy");
         checkKeys(policy, "schemaPolicy", "initial", "evolution");
         Map<String, Object> evolution = object(policy.get("evolution"), "evolution");
@@ -214,6 +293,70 @@ public final class PipelineYamlConverter {
         return type;
     }
 
+    private static void snapshot(
+            Map<String, Object> options, Map<String, String> target, String prefix, boolean defaults) {
+        checkKeys(options, "snapshot", "chunkKeyColumn", "skip", "where");
+        copyText(
+                options,
+                "chunkKeyColumn",
+                target,
+                prefix + (defaults ? "snapshot.chunk-key-column" : "chunk-key-column"));
+        copyText(options, "where", target, prefix + "snapshot.where");
+        if (options.containsKey("skip")) target.put(prefix + "snapshot.skip", bool(options, "skip"));
+    }
+
+    private static void dml(Map<String, Object> options, Map<String, String> target, String prefix) {
+        checkKeys(options, "dml", "events");
+        List<String> events = strings(options.get("events"), "dml.events", 3);
+        Set<String> allowed = Set.of("INSERT", "UPDATE", "DELETE");
+        if (events.isEmpty() || new HashSet<>(events).size() != events.size() || !allowed.containsAll(events)) {
+            throw new TaskPluginException("DML events must be a nonempty unique subset of INSERT, UPDATE and DELETE");
+        }
+        for (String event : allowed) {
+            target.put(
+                    prefix + "dml." + event.toLowerCase(java.util.Locale.ROOT), String.valueOf(events.contains(event)));
+        }
+    }
+
+    private static void copyInteger(
+            Map<String, Object> input, String name, Map<String, String> target, String key, int maximum) {
+        if (!input.containsKey(name)) return;
+        Object value = input.get(name);
+        if (!(value instanceof Number)) throw new TaskPluginException("Expected an integer: " + name);
+        try {
+            int number = new java.math.BigDecimal(value.toString()).intValueExact();
+            if (number < 1 || number > maximum) throw new ArithmeticException("Out of range");
+            target.put(key, String.valueOf(number));
+        } catch (ArithmeticException | NumberFormatException failure) {
+            throw new TaskPluginException("Invalid integer range: " + name, failure);
+        }
+    }
+
+    private static void copySql(Map<String, Object> input, String name, Map<String, String> target, String key) {
+        if (input.containsKey(name)) target.put(key, json(strings(input.get(name), name, 32)));
+    }
+
+    private static List<String> strings(Object input, String context, int maximum) {
+        List<Object> items = array(input, context);
+        if (items.size() > maximum) throw new TaskPluginException("Too many entries: " + context);
+        List<String> result = new ArrayList<>();
+        for (Object item : items) {
+            if (!(item instanceof String value) || value.isBlank() || value.length() > 16384) {
+                throw new TaskPluginException("Invalid string entry: " + context);
+            }
+            result.add(value);
+        }
+        return List.copyOf(result);
+    }
+
+    private static String json(Object value) {
+        try {
+            return JSON_MAPPER.writeValueAsString(value);
+        } catch (JsonProcessingException failure) {
+            throw new TaskPluginException("Failed to serialize connector options", failure);
+        }
+    }
+
     private static boolean hasDatabase(Map<String, Object> table) {
         String database = text(table, "database");
         return database != null && !database.isBlank();
@@ -254,6 +397,14 @@ public final class PipelineYamlConverter {
             }
             target.put(to, String.valueOf(value));
         }
+    }
+
+    private static void copyText(Map<String, Object> source, String from, Map<String, String> target, String to) {
+        if (!source.containsKey(from)) return;
+        if (!(source.get(from) instanceof String value) || value.length() > 16384) {
+            throw new TaskPluginException("Invalid string DATA_SYNC option: " + from);
+        }
+        target.put(to, value);
     }
 
     private static String bool(Map<String, Object> values, String field) {

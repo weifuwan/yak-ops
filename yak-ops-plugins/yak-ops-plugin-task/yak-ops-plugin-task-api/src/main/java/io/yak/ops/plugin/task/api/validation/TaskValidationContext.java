@@ -18,6 +18,17 @@ public interface TaskValidationContext {
     DataSourceInfo dataSource(String id);
 
     /**
+     * Verifies whether two authorized datasource references share one physical server.
+     *
+     * @param firstDatasourceId first datasource in this context's Workspace
+     * @param secondDatasourceId second datasource in this context's Workspace
+     * @return whether both references resolve to the same physical server
+     */
+    default boolean samePhysicalServer(String firstDatasourceId, String secondDatasourceId) {
+        throw new UnsupportedOperationException("Physical server identity verification is unavailable");
+    }
+
+    /**
      * Looks up the physical columns and keys of the requested table.
      *
      * @param datasourceId authorized Datasource identity

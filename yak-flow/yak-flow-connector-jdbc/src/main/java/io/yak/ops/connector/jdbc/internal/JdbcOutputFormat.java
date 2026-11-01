@@ -54,6 +54,7 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
     private final TableMetrics metrics;
     private final long metricsGeneration;
     private final Map<TableId, Long> pendingTableRows = new LinkedHashMap<>();
+    private final Map<TableId, Integer> batchLimits;
     private final TableBufferedStatementExecutor<TableRecord> executor;
     private final TableChangelogStatementExecutor statements;
     private volatile boolean cancelled;
@@ -113,6 +114,26 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
             JdbcBatchOrder batchOrder,
             int statementCacheSize)
             throws SQLException {
+        this(connections, dialect, plans, metrics, batchOrder, statementCacheSize, Map.of());
+    }
+
+    public JdbcOutputFormat(
+            JdbcConnectionProvider connections,
+            JdbcDialect dialect,
+            List<JdbcTableWritePlan> plans,
+            TableMetrics metrics,
+            JdbcBatchOrder batchOrder,
+            int statementCacheSize,
+            Map<TableId, Integer> batchLimits)
+            throws SQLException {
+        this.batchLimits = Map.copyOf(batchLimits);
+        for (Map.Entry<TableId, Integer> limit : this.batchLimits.entrySet()) {
+            if (limit.getValue() < 1
+                    || limit.getValue() > 10_000
+                    || plans.stream().noneMatch(plan -> plan.sourceTable().equals(limit.getKey()))) {
+                throw new IllegalArgumentException("Invalid JDBC route batch limit");
+            }
+        }
         Objects.requireNonNull(batchOrder, "batchOrder");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
         this.plans = List.copyOf(Objects.requireNonNull(plans, "plans"));
@@ -175,6 +196,16 @@ public final class JdbcOutputFormat implements BatchOutput<TableRecord> {
     @Override
     public int bufferedRecords() {
         return executor.bufferedRecords();
+    }
+
+    @Override
+    public boolean automaticFlushRequired(int maximumBatchSize) {
+        if (bufferedRecords() >= maximumBatchSize) return true;
+        for (Map.Entry<TableId, Long> pending : pendingTableRows.entrySet()) {
+            Integer limit = batchLimits.get(pending.getKey());
+            if (limit != null && pending.getValue() >= limit) return true;
+        }
+        return false;
     }
 
     /**

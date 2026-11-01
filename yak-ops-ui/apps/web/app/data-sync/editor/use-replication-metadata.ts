@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { listDataSourceColumns, type DataSourceCatalogColumn } from "@/service/datasource";
 import type { DataSyncTableMapping } from "@/service/data-sync";
-import { tableKey } from "./table-mapping-editor";
+import { tableKey } from "./table-catalog";
 
 export function useReplicationMetadata(
   dataSourceId: string,
@@ -25,7 +25,15 @@ export function useReplicationMetadata(
         source.table,
       ],
       queryFn: ({ signal }: { signal: AbortSignal }) =>
-        listDataSourceColumns(dataSourceId, source, signal),
+        listDataSourceColumns(
+          dataSourceId,
+          {
+            database: source.database,
+            schema: source.schema,
+            table: source.table,
+          },
+          signal,
+        ),
     })),
   });
   return {

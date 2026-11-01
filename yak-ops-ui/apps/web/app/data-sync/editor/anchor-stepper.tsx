@@ -72,10 +72,7 @@ export function EditorAnchorStepper({ items, scrollRootRef }: EditorAnchorSteppe
   };
 
   return (
-    <nav
-      aria-label="任务配置导航"
-      className="rounded-xl border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] px-4 py-3"
-    >
+    <nav aria-label="任务配置导航" className="bg-[var(--yak-components-panel-bg)] px-1 py-1">
       {items.map((item, index) => {
         const active = item.id === activeId;
         const last = index === items.length - 1;

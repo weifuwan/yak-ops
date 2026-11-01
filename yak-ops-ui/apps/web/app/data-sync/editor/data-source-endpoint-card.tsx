@@ -43,9 +43,9 @@ export function DataSourceEndpointCard({
     [dataSources],
   );
   return (
-    <div className="rounded-lg border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-4">
-      <div className="text-sm font-semibold text-[var(--yak-components-field-label)]">{title}</div>
-      <div className="mt-4 space-y-3">
+    <div className="rounded-sm border border-[var(--yak-components-panel-border)] bg-[var(--yak-components-panel-bg)] p-3">
+      <div className="text-xs font-semibold text-[var(--yak-components-field-label)]">{title}</div>
+      <div className="mt-2 space-y-2">
         <Field className="grid grid-cols-[90px_minmax(0,1fr)] items-center !gap-3">
           <FieldLabel>类型</FieldLabel>
           <div className="flex items-center gap-2 text-[13px] text-[var(--yak-components-field-label)]">

@@ -11,9 +11,20 @@ import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.event.ColumnProperties;
 import io.yak.ops.core.event.CreateTableEvent;
+import io.yak.ops.core.api.connector.sink.BatchExecutionHook;
+import io.yak.ops.core.api.connector.sink.BatchExecutionHookException;
+import io.yak.ops.core.data.GenericRowData;
+import io.yak.ops.core.data.RowKind;
+import io.yak.ops.core.data.TableRecord;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.LogicalTypes;
+import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.connector.jdbc.internal.JdbcOutputFormat;
 import io.yak.ops.testutils.DatabaseMetadata;
 import io.yak.ops.testutils.TestNames;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -34,6 +45,86 @@ class MySqlSinkIT extends JdbcSinkTestBase {
     @Override
     protected String fields() {
         return "`ID` DECIMAL(18,0) PRIMARY KEY, `LABEL` VARCHAR(48), `AMOUNT` DECIMAL(18,2), `PAYLOAD` BLOB";
+    }
+
+    @Test
+    void nativeBatchModesPreserveAppendFailureUpsertAndReplaceSemantics() throws Exception {
+        JdbcDialect dialect = JdbcFactoryLoader.loadDialect(database().url());
+        try (Connection connection = database().connect(); var statement = connection.createStatement()) {
+            TableId table = new TableId(connection.getCatalog(), null, TestNames.unique("write_modes"));
+            String qualified = dialect.qualifiedTable(table);
+            TableSchema schema = new TableSchema(List.of(
+                    new Column("ID", LogicalTypes.BIGINT.copy(false)),
+                    new Column("EMAIL", LogicalTypes.varchar(64).copy(false)),
+                    new Column("LABEL", LogicalTypes.varchar(64))), List.of("ID"));
+            statement.execute("CREATE TABLE " + qualified
+                    + " (ID BIGINT PRIMARY KEY, EMAIL VARCHAR(64) NOT NULL UNIQUE, LABEL VARCHAR(64)) ENGINE=InnoDB");
+            try {
+                statement.execute("INSERT INTO " + qualified + " VALUES (1,'same@example.test','old')");
+                try (JdbcOutputFormat output = new JdbcOutputFormat(database()::connect, dialect,
+                        new JdbcTableWritePlan(table, table, schema, JdbcWriteMode.APPEND))) {
+                    output.add(new TableRecord(table, RowKind.INSERT, GenericRowData.of(1L, "same@example.test", "duplicate")));
+                    assertThrows(SQLException.class, output::flush);
+                }
+                try (var rows = statement.executeQuery("SELECT ID, LABEL FROM " + qualified)) {
+                    assertTrue(rows.next());
+                    assertEquals(1L, rows.getLong(1));
+                    assertEquals("old", rows.getString(2));
+                    assertFalse(rows.next());
+                }
+                try (JdbcOutputFormat output = new JdbcOutputFormat(database()::connect, dialect,
+                        new JdbcTableWritePlan(table, table, schema, JdbcWriteMode.UPSERT))) {
+                    output.add(new TableRecord(table, RowKind.INSERT, GenericRowData.of(1L, "same@example.test", "updated")));
+                    output.flush();
+                }
+                try (var rows = statement.executeQuery("SELECT LABEL FROM " + qualified + " WHERE ID = 1")) {
+                    assertTrue(rows.next());
+                    assertEquals("updated", rows.getString(1));
+                }
+                try (JdbcOutputFormat output = new JdbcOutputFormat(database()::connect, dialect,
+                        new JdbcTableWritePlan(table, table, schema, JdbcWriteMode.REPLACE))) {
+                    output.add(new TableRecord(table, RowKind.INSERT, GenericRowData.of(2L, "same@example.test", "replaced")));
+                    output.flush();
+                }
+                try (var rows = statement.executeQuery("SELECT ID, LABEL FROM " + qualified)) {
+                    assertTrue(rows.next());
+                    assertEquals(2L, rows.getLong(1));
+                    assertEquals("replaced", rows.getString(2));
+                    assertFalse(rows.next());
+                }
+            } finally {
+                statement.execute("DROP TABLE " + qualified);
+            }
+        }
+    }
+
+    @Test
+    void mysqlHooksExecuteTargetScopedSqlAndDistinguishConfirmedRollback() throws Exception {
+        JdbcDialect dialect = JdbcFactoryLoader.loadDialect(database().url());
+        try (Connection connection = database().connect(); var statement = connection.createStatement()) {
+            TableId table = new TableId(connection.getCatalog(), null, TestNames.unique("sql_hooks"));
+            String qualified = dialect.qualifiedTable(table);
+            statement.execute("CREATE TABLE " + qualified + " (ID BIGINT PRIMARY KEY, LABEL VARCHAR(32)) ENGINE=InnoDB");
+            try {
+                statement.execute("INSERT INTO " + qualified + " VALUES (99,'old')");
+                JdbcSqlHooks.operation(database()::connect, table, BatchExecutionHook.Phase.BEFORE_DATA,
+                        "TRUNCATE TABLE " + qualified).execute();
+                JdbcSqlHooks.operation(database()::connect, table, BatchExecutionHook.Phase.AFTER_DATA,
+                        "INSERT INTO " + qualified + " VALUES (1,'after')").execute();
+                BatchExecutionHookException duplicate = assertThrows(BatchExecutionHookException.class,
+                        () -> JdbcSqlHooks.operation(database()::connect, table, BatchExecutionHook.Phase.AFTER_DATA,
+                                "INSERT INTO " + qualified + " VALUES (1,'duplicate')").execute());
+                assertFalse(duplicate.isOutcomeUnknown());
+                try (var rows = statement.executeQuery("SELECT ID, LABEL FROM " + qualified)) {
+                    assertTrue(rows.next());
+                    assertEquals(1L, rows.getLong(1));
+                    assertEquals("after", rows.getString(2));
+                    assertFalse(rows.next());
+                }
+            } finally {
+                statement.execute("DROP TABLE " + qualified);
+            }
+        }
     }
 
     @Test

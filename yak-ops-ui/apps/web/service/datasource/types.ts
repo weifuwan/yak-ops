@@ -104,6 +104,28 @@ export interface DataSourceCatalogQuery {
   limit?: number;
 }
 
+export interface DataSourceTablePageQuery extends DataSourceCatalogQuery {
+  databasePattern?: string;
+  tablePattern?: string;
+  offset?: number;
+}
+
+export interface DataSourceTablePage {
+  items: DataSourceCatalogTable[];
+  nextOffset: number | null;
+}
+
+export interface DataSourcePreviewQuery extends DataSourceCatalogTablePath {
+  where?: string;
+  limit?: number;
+}
+
+export interface DataSourcePreview {
+  columns: Array<{ name: string; typeName: string }>;
+  rows: Array<Array<string | boolean | null>>;
+  truncated: boolean;
+}
+
 export interface DataSourceCatalogTablePath {
   database?: string;
   schema?: string;

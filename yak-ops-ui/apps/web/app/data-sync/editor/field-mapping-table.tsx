@@ -80,7 +80,7 @@ export function FieldMappingTable({
     },
     {
       key: "target",
-      title: "输出字段",
+      title: "去向字段",
       width: "29%",
       render: (_, row) => {
         if (!targetColumns)
@@ -151,6 +151,7 @@ export function FieldMappingTable({
       dataSource={rows}
       rowKey="source"
       size="small"
+      rowHeight={36}
       pagination={false}
       scroll={{ x: 720 }}
       emptyText="暂无来源字段"

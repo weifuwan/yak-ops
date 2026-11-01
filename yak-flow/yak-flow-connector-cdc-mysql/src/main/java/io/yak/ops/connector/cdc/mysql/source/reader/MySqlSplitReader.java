@@ -46,7 +46,7 @@ public final class MySqlSplitReader implements SplitReader<MySqlFetchedRecord, M
     private final int readerIndex;
     private final TableMetrics metrics;
     private final long generation;
-    private final Set<TableId> tables;
+    private volatile Set<TableId> tables;
     private final Deque<MySqlSnapshotSplit> pending = new ArrayDeque<>();
     private volatile MySqlBinlogSplitReadTask binlog;
     private volatile byte[] history = new byte[0];
@@ -93,6 +93,16 @@ public final class MySqlSplitReader implements SplitReader<MySqlFetchedRecord, M
         return Objects.requireNonNull(config.schemas().get(tableId), "snapshot table schema");
     }
 
+    io.yak.ops.connector.cdc.mysql.source.config.MySqlTableOptions tableOptions(TableId tableId) {
+        return config.tableOptions(tableId);
+    }
+
+    void registerDiscoveredTable(TableId table, io.yak.ops.core.schema.Schema schema) {
+        config.registerDiscoveredTable(table, schema);
+        tables = Set.copyOf(config.schemas().keySet());
+        metrics.register(table);
+    }
+
     @Override
     public void addSplits(List<MySqlSplit> splits) throws Exception {
         for (MySqlSplit split : splits) {
@@ -119,8 +129,6 @@ public final class MySqlSplitReader implements SplitReader<MySqlFetchedRecord, M
                     readerContext.setHasAssignedBinlogSplit(true);
                     if (stream.isSuspended() && stream.phase() == MySqlBinlogSplit.Phase.PAUSED) {
                         readerContext.suspendBinlogSplitReader();
-                    } else {
-                        readerContext.wakeupSuspendedBinlogSplitReader();
                     }
                 }
                 history = stream.schemaHistory();
@@ -307,7 +315,8 @@ public final class MySqlSplitReader implements SplitReader<MySqlFetchedRecord, M
         startBinlog(split);
         streaming = true;
         binlogPauseReported = false;
-        if (readerContext != null) readerContext.wakeupSuspendedBinlogSplitReader();
+        // A mailbox metadata update can suspend the reader before or during this
+        // asynchronous startup. Only an explicit resume command may clear that request.
     }
 
     /** Stores a paused Binlog split after the fetcher has stopped its live Debezium task. */

@@ -20,7 +20,7 @@ import java.util.Objects;
  */
 public final class JdbcEnumeratorStateSerializer implements SimpleVersionedSerializer<JdbcEnumeratorState> {
 
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
     private static final int MAX_SPLITS = 100_000;
     private static final int MAX_SPLIT_SIZE = 1_048_576;
     private final JdbcSourceSplitSerializer splitSerializer = new JdbcSourceSplitSerializer();
@@ -53,7 +53,7 @@ public final class JdbcEnumeratorStateSerializer implements SimpleVersionedSeria
 
     @Override
     public JdbcEnumeratorState deserialize(int version, byte[] serialized) throws IOException {
-        if ((version != 2 && version != VERSION) || serialized == null) {
+        if ((version < 2 || version > VERSION) || serialized == null) {
             throw new IOException("Unsupported JDBC enumerator state version");
         }
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(serialized))) {
@@ -69,8 +69,7 @@ public final class JdbcEnumeratorStateSerializer implements SimpleVersionedSeria
                 if (length < 0 || length > MAX_SPLIT_SIZE || length > in.available()) {
                     throw new IOException("Invalid JDBC split block size");
                 }
-                pending.add(splitSerializer.deserialize(
-                        version == 2 ? 2 : splitSerializer.getVersion(), in.readNBytes(length)));
+                pending.add(splitSerializer.deserialize(version, in.readNBytes(length)));
             }
             if (in.available() != 0) {
                 throw new IOException("Unexpected bytes after JDBC enumerator state");

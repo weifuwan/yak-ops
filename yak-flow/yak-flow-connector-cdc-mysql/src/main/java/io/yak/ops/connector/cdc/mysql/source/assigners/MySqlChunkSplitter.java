@@ -108,7 +108,7 @@ public final class MySqlChunkSplitter {
         LinkedHashSet<TableId> discovered = new LinkedHashSet<>();
         try (Connection connection = connections.getConnection()) {
             DatabaseMetaData metadata = connection.getMetaData();
-            var filter = sourceConfig.getTableFilter();
+            java.util.function.Predicate<io.debezium.relational.TableId> filter = sourceConfig.getTableFilter();
             try (ResultSet result = metadata.getTables(null, null, "%", new String[] {"TABLE"})) {
                 while (result.next()) {
                     String catalog = result.getString("TABLE_CAT");
@@ -120,7 +120,8 @@ public final class MySqlChunkSplitter {
                             new io.debezium.relational.TableId(catalog, schema, name);
                     if (!filter.test(debeziumId)) continue;
                     TableId table = new TableId(catalog, schema, name);
-                    String configuredKey = sourceConfig.chunkKeyColumns().get(table);
+                    String configuredKey =
+                            sourceConfig.chunkKeyColumns().getOrDefault(table, sourceConfig.defaultChunkKeyColumn());
                     TableSchema tableSchema = sourceConfig.discoverTable(connection, table, configuredKey);
                     String selectedKey = configuredKey == null
                             ? ChunkUtils.requireSupportedSnapshot(tableSchema, null)
@@ -129,6 +130,9 @@ public final class MySqlChunkSplitter {
                     schemas.put(table, tableSchema);
                     chunkKeyColumns.put(table, selectedKey);
                     discovered.add(table);
+                    if (sourceConfig.isScanNewlyAddedTableEnabled() && discovered.size() > 100) {
+                        throw new IllegalArgumentException("MySQL dynamic discovery exceeds the 100-table limit");
+                    }
                 }
             }
         }
@@ -145,6 +149,13 @@ public final class MySqlChunkSplitter {
                         .thenComparing(TableId::table))
                 .forEach(ordered::add);
         return List.copyOf(ordered);
+    }
+
+    /** Adopts an admitted table into the existing chunk planner without scanning the table. */
+    public void registerTable(TableId table, io.yak.ops.core.schema.Schema schema) {
+        sourceConfig.registerDiscoveredTable(table, schema);
+        schemas.put(table, schema.toTableSchema());
+        chunkKeyColumns.put(table, sourceConfig.chunkKeyColumns().get(table));
     }
 
     /**
@@ -174,6 +185,10 @@ public final class MySqlChunkSplitter {
         TableSchema schema = Objects.requireNonNull(schemas.get(table), "table schema");
         Column column = selectedChunkColumn(schema, chunkKeyColumns.get(table));
         LogicalTypeRoot type = column.dataType().getTypeRoot();
+        if (sourceConfig != null && sourceConfig.tableOptions(table).skipSnapshot()) {
+            if (lower != null) throw new IllegalArgumentException("Skipped snapshot cannot restore a partial scan");
+            return new ChunkRange(table, column.name(), type, null, null);
+        }
         // Validate scalar family and caller-supplied resume boundary before opening JDBC.
         new ChunkRange(table, column.name(), type, lower, null);
         try (Connection connection = connections.getConnection()) {

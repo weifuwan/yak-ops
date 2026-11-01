@@ -138,6 +138,44 @@ def task_profile(definition):
     return "SINGLE_TABLE_BATCH"
 
 
+def connector_capabilities(source_type, target_type, cdc):
+    modes = ["APPEND", "UPSERT"]
+    if target_type == "MYSQL":
+        modes.append("RETRACT" if cdc else "REPLACE")
+    return {
+        "maxTables": 100,
+        "sourceRead": not cdc, "explicitSplitKey": not cdc, "dataPreview": not cdc,
+        "sqlHooks": not cdc,
+        "regexSelection": cdc and target_type in ("MYSQL", "POSTGRE_SQL"),
+        "snapshotFilter": cdc, "snapshotSkip": cdc, "dmlEvents": cdc,
+        "typeMapping": True,
+        "writeModes": modes,
+        "sourceEngineKeys": [] if cdc else ["fetchSize", "queryTimeoutSeconds"],
+        "sinkEngineKeys": ["batchSize"],
+        "typeMappingRules": [
+            {"sourceType": "INT", "targetTypes": ["BIGINT"], "conditional": False},
+            {"sourceType": "VARCHAR", "targetTypes": ["VARCHAR(255)", "VARCHAR(1024)", "VARCHAR(65535)"], "conditional": True},
+        ],
+    }
+
+
+def catalog_tables(path):
+    mode = state["catalog_mode"]
+    if "/src/" in path:
+        names = state.get("source_tables", ["orders"] if mode == "single" else (
+            ["sm_browser_source"] if mode == "schema" else ["batch_a", "batch_b"]))
+        database, schema = "app", None
+    else:
+        names = state.get("target_tables", ["ods_orders"] if mode == "single" else (
+            [] if mode == "schema" else ["batch_a_copy", "batch_b_copy"]))
+        datasource = next(source for source in state.get("data_sources", sources)
+                          if source["id"] == path.split("/")[4])
+        database, schema = datasource["database"], datasource.get("schema")
+    return [item if isinstance(item, dict) else
+            {"database": database, "schema": schema, "name": item, "type": "TABLE"}
+            for item in names]
+
+
 async def mock(route):
     r = route.request
     p = urlparse(r.url).path
@@ -182,10 +220,12 @@ async def mock(route):
                             "supportsRetract": target_type == "MYSQL"}
             choices.append({**capabilities, "sourceConnector": identifiers[source_type],
                             "producesChangelog": False, "boundedness": "BOUNDED",
-                            "supportsIncrementalBatch": source_type in ("MYSQL", "POSTGRE_SQL")})
+                            "supportsIncrementalBatch": source_type in ("MYSQL", "POSTGRE_SQL"),
+                            "capabilities": connector_capabilities(source_type, target_type, False)})
             if source_type == "MYSQL":
                 choices.append({**capabilities, "sourceConnector": "mysql", "producesChangelog": True,
-                                "boundedness": "CONTINUOUS_UNBOUNDED", "supportsIncrementalBatch": False})
+                                "boundedness": "CONTINUOUS_UNBOUNDED", "supportsIncrementalBatch": False,
+                                "capabilities": connector_capabilities(source_type, target_type, True)})
         if state["fail_solutions"]:
             status, code = 503, 500
         else:
@@ -194,25 +234,39 @@ async def mock(route):
         data = paging(state.get("data_sources", sources))
     elif "/catalog/schemas" in p:
         data = []
+    elif "/catalog/databases" in p:
+        data = sorted({row["database"] for row in catalog_tables(p)})
     elif "/catalog/columns" in p:
         data = state.get("source_columns" if "/src/" in p else "target_columns", [
             {"name": "id", "typeName": "BIGINT", "nullable": False, "primaryKey": True}
         ])
-    elif "/catalog/tables" in p:
-        mode = state["catalog_mode"]
-        if "/src/" in p:
-            names = state.get("source_tables", ["orders"] if mode == "single" else (
-                ["sm_browser_source"] if mode == "schema" else ["batch_a", "batch_b"]))
-            data = [{"database": "app", "schema": None, "name": name, "type": "TABLE"}
-                    for name in names]
+    elif "/catalog/table-page" in p:
+        gate = state.get("table_page_gate")
+        if gate is not None and b.get("tablePattern"):
+            state["table_page_started"].set()
+            await gate.wait()
+        try:
+            tables = [row for row in catalog_tables(p)
+                      if (not b.get("database") or row.get("database") == b["database"])
+                      and (not b.get("schema") or row.get("schema") == b["schema"])
+                      and (not b.get("keyword") or b["keyword"].lower() in row["name"].lower())
+                      and (not b.get("databasePattern") or re.fullmatch(b["databasePattern"], row.get("database") or ""))
+                      and (not b.get("tablePattern") or re.fullmatch(b["tablePattern"], row["name"]))]
+            offset, limit = b.get("offset", 0), min(b.get("limit", 100), state.get("catalog_page_size", 100))
+            data = {"items": tables[offset:offset + limit],
+                    "nextOffset": offset + limit if offset + limit < len(tables) else None}
+        except re.error:
+            status, code, message = 400, 400, "库表过滤正则无效"
+    elif "/catalog/preview" in p:
+        if state.get("fail_preview"):
+            status, code, message = 400, 400, "数据预览失败"
         else:
-            names = state.get("target_tables", ["ods_orders"] if mode == "single" else (
-                [] if mode == "schema" else ["batch_a_copy", "batch_b_copy"]))
-            datasource = next(source for source in state.get("data_sources", sources)
-                              if source["id"] == p.split("/")[4])
-            data = [{"database": datasource["database"], "schema": datasource.get("schema"),
-                     "name": name, "type": "TABLE"}
-                    for name in names]
+            data = deepcopy(state.get("preview", {
+                "columns": [{"name": "id", "typeName": "BIGINT"}, {"name": "amount", "typeName": "DECIMAL"}],
+                "rows": [["9007199254740993", "123456789012345.678900"]], "truncated": False,
+            }))
+    elif "/catalog/tables" in p:
+        data = catalog_tables(p)
     elif p.startswith("/api/v1/data-source/"):
         data = next((x for x in state.get("data_sources", sources)
                      if x["id"] == p.rsplit("/", 1)[-1]), {})
@@ -230,7 +284,7 @@ async def mock(route):
         state["created_tasks"] += 1
         state["task"] = definition_response({
             **task, **b, "id": "new-task", "status": "UNPUBLISHED",
-            "definitionVersion": 1, "parameterSchemaVersion": 7, "revision": 1,
+            "definitionVersion": 1, "parameterSchemaVersion": 8, "revision": 1,
             "publishedVersion": None, "publishedDebug": None,
         })
         remember_definition(state["task"])
@@ -318,13 +372,14 @@ async def mock(route):
                 status, code, message = 409, 19001, "任务已变更，请重新加载后重试"
             else:
                 state["updated_tasks"] += 1
-                changed = "parameters" in b and b["parameters"] != definition["parameters"]
+                changed = "parameters" in b and (b["parameters"] != definition["parameters"]
+                                                  or definition["parameterSchemaVersion"] != 8)
                 fields = {key: value for key, value in b.items() if key != "expectedRevision"}
                 state["task"] = definition_response({
                     **definition, **fields,
                     "definitionVersion": definition["definitionVersion"] + int(changed),
                     "revision": definition["revision"] + 1,
-                    **({"parameterSchemaVersion": 7} if "parameters" in b else {}),
+                    **({"parameterSchemaVersion": 8} if "parameters" in b else {}),
                 })
                 remember_definition(state["task"])
                 data = state["task"]

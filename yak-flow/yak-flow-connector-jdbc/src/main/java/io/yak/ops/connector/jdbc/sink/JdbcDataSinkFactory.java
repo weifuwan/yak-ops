@@ -13,11 +13,14 @@ import io.yak.ops.connector.jdbc.database.dialect.JdbcDialect;
 import io.yak.ops.connector.jdbc.xa.MySqlXaSink;
 import io.yak.ops.core.api.connector.sink.Sink;
 import io.yak.ops.core.data.TableRecord;
+import io.yak.ops.core.factories.ConnectorFeature;
 import io.yak.ops.core.factories.DataSinkFactory;
 import io.yak.ops.core.sink.DataSink;
 import io.yak.ops.core.types.TableSchema;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Declares JDBC write options and builds schema-aware JDBC Sink definitions. */
 public abstract class JdbcDataSinkFactory implements DataSinkFactory {
@@ -56,7 +59,15 @@ public abstract class JdbcDataSinkFactory implements DataSinkFactory {
         return OptionRule.builder()
                 .required(JdbcSinkOptions.WRITE_MODE)
                 .optional(JdbcSinkOptions.XA_ENABLED, JdbcSinkOptions.XA_INSTANCE_ID)
+                .optional(JdbcSinkOptions.PRE_SQL, JdbcSinkOptions.POST_SQL, JdbcSinkOptions.BATCH_SIZE)
                 .build();
+    }
+
+    @Override
+    public Set<ConnectorFeature> supportedFeatures() {
+        return "MYSQL".equals(datasourceType)
+                ? Set.of(ConnectorFeature.SQL_HOOKS, ConnectorFeature.REPLACE_WRITE, ConnectorFeature.TYPE_MAPPING)
+                : Set.of(ConnectorFeature.SQL_HOOKS, ConnectorFeature.TYPE_MAPPING);
     }
 
     @Override
@@ -73,6 +84,16 @@ public abstract class JdbcDataSinkFactory implements DataSinkFactory {
         JdbcWriteMode mode = options.get(JdbcSinkOptions.WRITE_MODE);
         if (mode == null) {
             throw new IllegalArgumentException("JDBC Sink requires a write mode");
+        }
+        JdbcWriteOptions write = JdbcWriteOptions.from(options);
+        if (mode == JdbcWriteMode.REPLACE && (!"MYSQL".equals(datasourceType) || sourceProducesChangelog)) {
+            throw new IllegalArgumentException("Native REPLACE requires bounded MySQL writes");
+        }
+        if (write.hasSqlHooks() && (sourceProducesChangelog || options.get(JdbcSinkOptions.XA_ENABLED))) {
+            throw new IllegalArgumentException("SQL hooks require bounded non-XA writes");
+        }
+        if (mode == JdbcWriteMode.RETRACT && options.getSourceMap().containsKey(JdbcSinkOptions.BATCH_SIZE.key())) {
+            throw new IllegalArgumentException("Per-table batch sizing is unavailable for checkpoint XA writes");
         }
         if (mode == JdbcWriteMode.RETRACT && !supportsRetract()) {
             throw new UnsupportedOperationException("This JDBC sink does not support exact-row RETRACT");
@@ -120,7 +141,10 @@ public abstract class JdbcDataSinkFactory implements DataSinkFactory {
             throw new IllegalArgumentException("JDBC sink requires resolved, authorized table metadata");
         }
         return new TableDataSink(
-                createSink(resolved.tables()),
+                createSink(
+                        resolved.tables(),
+                        resolved.sourceProducesChangelog(),
+                        resolved.isSourceMutationCapabilityKnown()),
                 resolved.tables(),
                 () -> createMetadataApplier(context.getFactoryConfiguration()),
                 resolved.sourceSchemaTransform(),
@@ -128,26 +152,39 @@ public abstract class JdbcDataSinkFactory implements DataSinkFactory {
                 new JdbcDataChangeEventHashFunctionProvider(resolved.sourceProducesChangelog()));
     }
 
-    private Sink<TableRecord> createSink(List<TableSinkFactoryContext> contexts) {
+    private Sink<TableRecord> createSink(
+            List<TableSinkFactoryContext> contexts, boolean sourceProducesChangelog, boolean sourceCapabilityKnown) {
         if (contexts.isEmpty()) throw new IllegalArgumentException("Sink needs table routes");
         TableSinkFactoryContext first = contexts.getFirst();
         JdbcConnectionOptions connection = new JdbcConnectionOptions(first.options());
         List<JdbcTableWritePlan> plans = new java.util.ArrayList<>();
+        Map<io.yak.ops.core.data.TableId, JdbcWriteOptions> writes = new LinkedHashMap<>();
         Map<String, Object> common =
                 new java.util.LinkedHashMap<>(first.options().getSourceMap());
         common.remove(JdbcSinkOptions.WRITE_MODE.key());
+        common.remove(JdbcSinkOptions.PRE_SQL.key());
+        common.remove(JdbcSinkOptions.POST_SQL.key());
+        common.remove(JdbcSinkOptions.BATCH_SIZE.key());
         for (TableSinkFactoryContext context : contexts) {
             FactoryUtil.validateCreation(context.options(), this);
             Map<String, Object> configured =
                     new java.util.LinkedHashMap<>(context.options().getSourceMap());
             configured.remove(JdbcSinkOptions.WRITE_MODE.key());
+            configured.remove(JdbcSinkOptions.PRE_SQL.key());
+            configured.remove(JdbcSinkOptions.POST_SQL.key());
+            configured.remove(JdbcSinkOptions.BATCH_SIZE.key());
             if (!common.equals(configured))
                 throw new IllegalArgumentException("JDBC routes must share connection settings");
             validateSchema(
                     context.options(),
                     context.sourceSchema(),
                     context.targetSchema(),
-                    context.options().get(JdbcSinkOptions.WRITE_MODE) != JdbcWriteMode.APPEND);
+                    sourceCapabilityKnown && sourceProducesChangelog);
+            JdbcWriteOptions write = JdbcWriteOptions.from(context.options());
+            if (write.hasSqlHooks() && !sourceCapabilityKnown) {
+                throw new IllegalArgumentException("SQL hooks require an explicitly append-only source capability");
+            }
+            writes.put(context.sourceTable(), write);
             plans.add(new JdbcTableWritePlan(
                     context.sourceTable(),
                     context.targetTable(),
@@ -181,6 +218,13 @@ public abstract class JdbcDataSinkFactory implements DataSinkFactory {
                         JdbcFactoryLoader.loadCatalog(url, connections),
                         JdbcMetadataApplier.DEFAULT_STATEMENT_TIMEOUT_SECONDS))
                 .withTablePlans(plans)
+                .withTableWriteOptions(writes)
+                .withBatchFlushPolicy(new io.yak.ops.connector.base.sink.writer.BatchFlushPolicy(
+                        writes.values().stream()
+                                .mapToInt(JdbcWriteOptions::batchSize)
+                                .max()
+                                .orElse(500),
+                        java.time.Duration.ZERO))
                 .withBatchOrder(first.options().get(JdbcSinkOptions.BATCH_ORDER))
                 .withStatementCacheSize(first.options().get(JdbcSinkOptions.STATEMENT_CACHE_SIZE))
                 .withTableMetrics(first.metrics())

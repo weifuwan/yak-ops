@@ -1,6 +1,8 @@
 package io.yak.ops.connector.jdbc.source.split;
 
+import io.yak.ops.connector.jdbc.database.query.JdbcReadQuery;
 import io.yak.ops.connector.jdbc.source.JdbcIncrementalRange;
+import io.yak.ops.connector.jdbc.source.JdbcReadOptions;
 import io.yak.ops.core.api.connector.source.SourceSplit;
 import io.yak.ops.core.data.TableId;
 import java.util.ArrayList;
@@ -24,8 +26,32 @@ public record JdbcSourceSplit(
         Long upperBound,
         Long lastEmittedKey,
         String schemaFingerprint,
-        JdbcIncrementalRange incrementalRange)
+        JdbcIncrementalRange incrementalRange,
+        JdbcReadOptions readOptions)
         implements SourceSplit {
+
+    public JdbcSourceSplit(
+            String splitId,
+            TableId tableId,
+            List<String> columns,
+            String splitColumn,
+            Long lowerBound,
+            Long upperBound,
+            Long lastEmittedKey,
+            String schemaFingerprint,
+            JdbcIncrementalRange incrementalRange) {
+        this(
+                splitId,
+                tableId,
+                columns,
+                splitColumn,
+                lowerBound,
+                upperBound,
+                lastEmittedKey,
+                schemaFingerprint,
+                incrementalRange,
+                null);
+    }
 
     /** Constructs a normal full-table split without an incremental cursor filter. */
     public JdbcSourceSplit(
@@ -76,7 +102,7 @@ public record JdbcSourceSplit(
      * it must not become part of the emitted RowData.
      */
     public List<String> readColumns() {
-        return readColumns(columns, splitColumn);
+        return readColumns(columns, splitColumn, readOptions == null ? null : readOptions.where());
     }
 
     /**
@@ -87,11 +113,16 @@ public record JdbcSourceSplit(
      * @return physical read columns, with an extra key only when necessary
      */
     public static List<String> readColumns(List<String> projectedColumns, String splitColumn) {
-        if (splitColumn == null || projectedColumns.contains(splitColumn)) {
-            return projectedColumns;
-        }
+        return readColumns(projectedColumns, splitColumn, null);
+    }
+
+    /** Includes predicate columns in the physical schema fingerprint without emitting hidden columns. */
+    public static List<String> readColumns(List<String> projectedColumns, String splitColumn, String where) {
         List<String> selected = new ArrayList<>(projectedColumns);
-        selected.add(splitColumn);
+        if (splitColumn != null && !selected.contains(splitColumn)) selected.add(splitColumn);
+        for (String column : JdbcReadQuery.referencedColumns(where)) {
+            if (!selected.contains(column)) selected.add(column);
+        }
         return List.copyOf(selected);
     }
 
@@ -106,6 +137,7 @@ public record JdbcSourceSplit(
                 upperBound,
                 key,
                 schemaFingerprint,
-                incrementalRange);
+                incrementalRange,
+                readOptions);
     }
 }

@@ -123,9 +123,10 @@ public final class SourceOperatorStreamTask<T, SplitT extends SourceSplit> exten
             operatorChain.open(taskEnvironment());
         }
         operator.initialize();
-        operator.restoreSplits(restoredSplits);
-        // Register the gateway before starting the Reader, which may immediately request splits.
+        // Restored splits may immediately report metadata to the coordinator, just like start().
+        // Registration callbacks only enqueue mailbox events, so restoration still precedes their consumption.
         coordinator.registerReader(taskInfo(), this).get();
+        operator.restoreSplits(restoredSplits);
         operator.start();
     }
 

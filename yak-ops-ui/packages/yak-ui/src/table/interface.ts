@@ -120,6 +120,8 @@ export interface TableProps<RecordType extends object> {
   sticky?: boolean;
   scroll?: TableScroll;
   emptyText?: ReactNode;
+  /** Styles the empty body independently of the table's row density. */
+  emptyClassName?: string;
   rowHoverable?: boolean;
   className?: string;
   onChange?: (

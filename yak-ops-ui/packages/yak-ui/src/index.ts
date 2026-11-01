@@ -19,6 +19,7 @@ export * from "./number-field";
 export * from "./page-header";
 export * from "./pagination";
 export * from "./popover";
+export * from "./radio";
 export * from "./select";
 export * from "./skeleton";
 export * from "./spinner";

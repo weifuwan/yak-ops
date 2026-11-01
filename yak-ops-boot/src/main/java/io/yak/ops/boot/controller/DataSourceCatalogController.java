@@ -4,9 +4,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.yak.ops.business.datasource.DataSourceCatalogService;
 import io.yak.ops.common.bean.dto.datasource.DataSourceCatalogQueryDTO;
+import io.yak.ops.common.bean.dto.datasource.DataSourcePreviewDTO;
+import io.yak.ops.common.bean.dto.datasource.DataSourceTablePageDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourceTablePathDTO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
+import io.yak.ops.common.bean.vo.datasource.DataSourcePreviewVO;
+import io.yak.ops.common.bean.vo.datasource.DataSourceTablePageVO;
 import io.yak.ops.common.constant.CommonConstants;
 import io.yak.ops.common.result.Result;
 import jakarta.annotation.Resource;
@@ -47,6 +51,20 @@ public class DataSourceCatalogController {
     public Result<List<DataSourceCatalogTableVO>> catalogTables(
             @PathVariable("id") String id, @Valid @RequestBody DataSourceCatalogQueryDTO dto) {
         return Result.success(catalogService.listTables(id, dto));
+    }
+
+    @Operation(summary = "分页查询数据源库表")
+    @PostMapping("/{id}/catalog/table-page")
+    public Result<DataSourceTablePageVO> catalogTablePage(
+            @PathVariable("id") String id, @Valid @RequestBody DataSourceTablePageDTO dto) {
+        return Result.success(catalogService.listTablePage(id, dto));
+    }
+
+    @Operation(summary = "预览未保存的来源读取配置")
+    @PostMapping("/{id}/catalog/preview")
+    public Result<DataSourcePreviewVO> preview(
+            @PathVariable("id") String id, @Valid @RequestBody DataSourcePreviewDTO dto) {
+        return Result.success(catalogService.preview(id, dto));
     }
 
     @Operation(summary = "查询数据源字段元数据")

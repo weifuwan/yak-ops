@@ -1,6 +1,7 @@
 package io.yak.ops.connector.base.sink;
 
 import io.yak.ops.connector.base.factory.TableSinkFactoryContext;
+import io.yak.ops.core.api.connector.sink.BatchExecutionHook;
 import io.yak.ops.core.api.connector.sink.CancellableSinkWriter;
 import io.yak.ops.core.api.connector.sink.Committer;
 import io.yak.ops.core.api.connector.sink.CommittingSinkWriter;
@@ -239,6 +240,11 @@ public final class TableEventSink {
 
         public SchemaMapping mapping() {
             return mapping;
+        }
+
+        @Override
+        public List<BatchExecutionHook> batchExecutionHooks() {
+            return delegate.batchExecutionHooks();
         }
 
         @Override

@@ -264,7 +264,7 @@ final class TaskDeployment {
             if (restoredCheckpoint == null) {
                 manager.initialize(initialSchemaStates);
             } else {
-                manager.validateRestoredRoutes(initialSchemaStates);
+                manager.validateRestoredRoutes(initialSchemaStates, schemaSink.supportsTableDiscovery());
             }
             List<SchemaVersionedTableState> restoredSchemaStates = manager.snapshot().tables().stream()
                     .map(state -> new SchemaVersionedTableState(
@@ -275,6 +275,14 @@ final class TaskDeployment {
                             state.version()))
                     .toList();
             schemaSink.restoreSchemaState(restoredSchemaStates);
+            if (schemaSink.supportsTableDiscovery()) {
+                Map<io.yak.ops.core.data.TableId, io.yak.ops.core.schema.Schema> sourceSchemas =
+                        new java.util.LinkedHashMap<>();
+                for (SchemaVersionedTableState state : restoredSchemaStates) {
+                    sourceSchemas.put(state.sourceTable(), state.sourceSchema());
+                }
+                castSource(vertices.getFirst().getHeadOperator()).restoreDiscoveredTables(Map.copyOf(sourceSchemas));
+            }
             Map<Integer, Integer> topologicalOrder = new java.util.HashMap<>();
             for (int index = 0; index < vertices.size(); index++) {
                 topologicalOrder.put(vertices.get(index).getHeadOperator().getId(), index);

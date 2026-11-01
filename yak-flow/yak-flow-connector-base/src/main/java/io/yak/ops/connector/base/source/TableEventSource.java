@@ -43,11 +43,17 @@ import java.util.concurrent.CompletionStage;
  */
 public final class TableEventSource<SplitT extends SourceSplit, StateT> implements Source<Event, SplitT, StateT> {
     private final Source<TableRecord, SplitT, StateT> source;
-    private final Map<TableId, Schema> schemas;
+    private Map<TableId, Schema> schemas;
 
     public TableEventSource(Source<TableRecord, SplitT, StateT> source, Map<TableId, Schema> schemas) {
         this.source = Objects.requireNonNull(source, "source");
         this.schemas = Collections.unmodifiableMap(new LinkedHashMap<>(Objects.requireNonNull(schemas, "schemas")));
+    }
+
+    @Override
+    public void restoreDiscoveredTables(Map<TableId, Schema> restored) {
+        source.restoreDiscoveredTables(restored);
+        schemas = Map.copyOf(restored);
     }
 
     @Override
@@ -144,12 +150,16 @@ public final class TableEventSource<SplitT extends SourceSplit, StateT> implemen
                     try {
                         synchronized (metadata) {
                             Schema announced = announcedSchemas.get(change.tableId());
-                            if (announced == null
-                                    || !announced.equals(change.before()) && !announced.equals(change.after())) {
+                            if (announced == null && !change.newlyAdded()
+                                    || announced != null
+                                            && !announced.equals(change.before())
+                                            && !announced.equals(change.after())) {
                                 throw new IllegalStateException(
                                         "Source schema history does not match the emitted metadata");
                             }
-                            events = SchemaUtils.diff(change.tableId(), announced, change.after());
+                            events = announced == null
+                                    ? List.of(new CreateTableEvent(change.tableId(), change.after()))
+                                    : SchemaUtils.diff(change.tableId(), announced, change.after());
                         }
                     } catch (RuntimeException failure) {
                         return CompletableFuture.failedFuture(failure);

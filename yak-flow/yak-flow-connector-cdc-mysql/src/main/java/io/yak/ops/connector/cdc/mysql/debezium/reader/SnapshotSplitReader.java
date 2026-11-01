@@ -44,8 +44,9 @@ public final class SnapshotSplitReader implements AutoCloseable {
 
     private final JdbcConnectionProvider connections;
     private final JdbcDialect dialect;
-    private final Map<TableId, TableSchema> schemas;
+    private java.util.function.Function<TableId, TableSchema> schemas;
     private final int fetchSize;
+    private java.util.function.Function<TableId, String> snapshotPredicates = table -> null;
 
     private Connection connection;
     private volatile PreparedStatement statement;
@@ -64,6 +65,8 @@ public final class SnapshotSplitReader implements AutoCloseable {
                 JdbcDialects.forUrl("jdbc:mysql:"),
                 config.schemas(),
                 config.getFetchSize());
+        snapshotPredicates = table -> config.tableOptions(table).snapshotWhere();
+        schemas = table -> config.schemas().get(table);
     }
 
     public SnapshotSplitReader(
@@ -75,7 +78,8 @@ public final class SnapshotSplitReader implements AutoCloseable {
             JdbcConnectionProvider connections, JdbcDialect dialect, Map<TableId, TableSchema> schemas, int fetchSize) {
         this.connections = Objects.requireNonNull(connections, "connections");
         this.dialect = Objects.requireNonNull(dialect, "dialect");
-        this.schemas = Map.copyOf(Objects.requireNonNull(schemas, "schemas"));
+        Map<TableId, TableSchema> frozen = Map.copyOf(Objects.requireNonNull(schemas, "schemas"));
+        this.schemas = frozen::get;
         if (fetchSize <= 0) throw new IllegalArgumentException("Snapshot fetch size must be positive");
         this.fetchSize = fetchSize;
     }
@@ -103,7 +107,7 @@ public final class SnapshotSplitReader implements AutoCloseable {
         splitStartedNanos = System.nanoTime();
         fetchedRows = 0;
         batchId = 0;
-        TableSchema schema = Objects.requireNonNull(schemas.get(split.tableId()), "snapshot table schema");
+        TableSchema schema = Objects.requireNonNull(schemas.apply(split.tableId()), "snapshot table schema");
         ChunkRange range = split.chunkRange();
         String key = range.column();
         if (range != null) {
@@ -119,8 +123,14 @@ public final class SnapshotSplitReader implements AutoCloseable {
         }
         Object lower = range.start();
         Object upper = range.end();
-        String sql =
-                StatementUtils.buildSplitScanQuery(dialect, split.tableId(), schema, key, lower == null, upper == null);
+        String sql = StatementUtils.buildSplitScanQuery(
+                dialect,
+                split.tableId(),
+                schema,
+                key,
+                lower == null,
+                upper == null,
+                snapshotPredicates.apply(split.tableId()));
         try {
             connection = consistentView == null ? connections.getConnection() : consistentView;
             if (consistentView == null) connection.setReadOnly(true);
@@ -140,9 +150,8 @@ public final class SnapshotSplitReader implements AutoCloseable {
             results = statement.executeQuery();
             if ("true".equals(MDC.get("taskLogDebug"))) {
                 LOG.debug(
-                        "CDC snapshot query executed, split={}, sql={}, executeQueryMs={}",
+                        "CDC snapshot query executed, split={}, executeQueryMs={}",
                         split.splitId(),
-                        sql,
                         (System.nanoTime() - executeStartedNanos) / 1_000_000);
             }
             converter = dialect.createRowConverter(results.getMetaData());

@@ -22,13 +22,13 @@ BUSINESS = "yak-ops-business/yak-ops-business-task"
 E2E = "yak-ops-e2e"
 # Minimum method counts prevent an empty subclass, lost inherited tests or partial run from passing.
 SUITES = {
-    "jdbc-mysql": (JDBC, "jdbc & mysql", {"MySqlSourceIT": 6, "MySqlSinkIT": 3, "MySqlKeylessRetractIT": 8, "MySqlXaSinkIT": 3}),
+    "jdbc-mysql": (JDBC, "jdbc & mysql", {"MySqlSourceIT": 8, "MySqlSinkIT": 10, "MySqlKeylessRetractIT": 8, "MySqlXaSinkIT": 3}),
     "jdbc-postgres": (JDBC, "jdbc & postgres", {"PostgresSourceIT": 5, "PostgresSinkIT": 3, "PostgresKeylessRetractIT": 3}),
     "jdbc-oracle": (JDBC, "jdbc & oracle", {"OracleSourceIT": 5, "OracleSinkIT": 3, "OracleKeylessRetractIT": 4}),
     "pipeline": (JDBC, "pipeline", {name: 2 for name in ("MySqlToMySqlIT", "MySqlToPostgresIT", "PostgresToOracleIT", "OracleToMySqlIT")}),
-    "business": (BUSINESS, "business", {"TaskCursorIT": 6, "ScheduleAdmissionIT": 13, "DefinitionPageQueryIT": 3}),
-    "cdc": (CDC, "cdc", {"MySqlSnapshotBackfillIT": 6, "MySqlDebeziumRecoveryIT": 1, "MySqlUnsignedChunkIT": 1, "MySqlStartupModesIT": 2}),
-    "backend-e2e": (E2E, "backend-e2e", {"TaskExecutionIT": 5, "BatchSyncIT": 2, "RealtimeSyncIT": 4, "SnapshotBackfillSinkIT": 1, "SingleTableRealtimeSchemaIT": 2, "OfflineIncrementalIT": 3, "SchemaMigrationIT": 2, "ScheduleIT": 1}),
+    "business": (BUSINESS, "business", {"TaskCursorIT": 6, "ScheduleAdmissionIT": 26, "DefinitionPageQueryIT": 3}),
+    "cdc": (CDC, "cdc", {"MySqlSnapshotBackfillIT": 9, "MySqlDebeziumRecoveryIT": 1, "MySqlUnsignedChunkIT": 1, "MySqlStartupModesIT": 2}),
+    "backend-e2e": (E2E, "backend-e2e", {"TaskExecutionIT": 5, "BatchSyncIT": 3, "RealtimeSyncIT": 7, "SnapshotBackfillSinkIT": 1, "SingleTableRealtimeSchemaIT": 2, "OfflineIncrementalIT": 3, "SchemaMigrationIT": 2, "ScheduleIT": 1}),
     "recovery-e2e": (E2E, "recovery-e2e", {"ProcessRecoveryIT": 2}),
 }
 

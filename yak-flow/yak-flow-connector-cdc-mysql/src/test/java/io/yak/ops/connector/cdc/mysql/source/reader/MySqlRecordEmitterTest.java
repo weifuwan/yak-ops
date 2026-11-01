@@ -42,6 +42,37 @@ class MySqlRecordEmitterTest {
     private static final TableId TABLE = new TableId("shop", null, "entries");
 
     @Test
+    void originalMutationSelectionPreservesSnapshotsAndAdvancesRejectedBinlogOffsets() throws Exception {
+        TableSchema schema = new TableSchema(List.of(new Column("id", LogicalTypes.BIGINT.copy(false))), List.of("id"));
+        var config = MySqlSource.builder().hostname("localhost").username("user").password("secret")
+                .serverId(9001).topicPrefix("selection-test").table(TABLE, schema)
+                .tableOptions(TABLE, new io.yak.ops.connector.cdc.mysql.source.config.MySqlTableOptions(false, null, false, true, false))
+                .build().config();
+        try (MySqlSplitReader reader = new MySqlSplitReader(config)) {
+            MySqlRecordEmitter emitter = new MySqlRecordEmitter(new MySqlSourceReaderContext(context()), reader,
+                    new TableMetrics(), "selection-test");
+            MySqlSplitState state = MySqlSplitState.fromSplit(new MySqlBinlogSplit(null, new byte[0]));
+            List<TableRecord> output = new ArrayList<>();
+            emitter.emitRecord(MySqlFetchedRecord.binlog(new BinlogEvent(List.of(
+                    new TableRecord(TABLE, RowKind.INSERT, GenericRowData.of(1L))), position(20, 1))), output::add, state);
+            emitter.emitRecord(MySqlFetchedRecord.binlog(new BinlogEvent(List.of(
+                    new TableRecord(TABLE, RowKind.UPDATE_BEFORE, GenericRowData.of(1L)),
+                    new TableRecord(TABLE, RowKind.UPDATE_AFTER, GenericRowData.of(2L))), position(30, 1))), output::add, state);
+            emitter.emitRecord(MySqlFetchedRecord.binlog(new BinlogEvent(List.of(
+                    new TableRecord(TABLE, RowKind.DELETE, GenericRowData.of(2L))), position(40, 1))), output::add, state);
+            assertEquals(List.of(RowKind.UPDATE_BEFORE, RowKind.UPDATE_AFTER), output.stream().map(TableRecord::rowKind).toList());
+            assertEquals(position(40, 1), ((MySqlBinlogSplit) state.checkpoint(new byte[] {1})).offset());
+
+            MySqlSnapshotSplit split = new MySqlSnapshotSplit("filtered-snapshot", TABLE, null, null, null);
+            MySqlSnapshotSplit prepared = split.withOutput(new MySqlSnapshotOutput(position(10, 1), position(15, 1),
+                    List.of(new TableRecord(TABLE, RowKind.INSERT, GenericRowData.of(7L))), new byte[] {1}));
+            emitter.emitRecord(MySqlFetchedRecord.prepared(prepared), output::add, MySqlSplitState.fromSplit(split));
+            assertEquals(7L, output.getLast().row().getLong(0));
+            assertEquals(RowKind.INSERT, output.getLast().rowKind());
+        }
+    }
+
+    @Test
     void reorderingOffsetMapsOrIntegralNumberTypesNeverChangesIdentity() {
         var partition = new LinkedHashMap<String, Object>();
         partition.put("server", "yak");

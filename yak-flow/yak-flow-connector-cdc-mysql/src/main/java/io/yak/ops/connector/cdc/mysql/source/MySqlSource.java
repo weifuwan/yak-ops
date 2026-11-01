@@ -96,6 +96,15 @@ public final class MySqlSource implements Source<TableRecord, MySqlSplit, Pendin
         return config;
     }
 
+    @Override
+    public void restoreDiscoveredTables(
+            java.util.Map<io.yak.ops.core.data.TableId, io.yak.ops.core.schema.Schema> schemas) {
+        if (!schemas.keySet().containsAll(config.schemas().keySet())) {
+            throw new IllegalArgumentException("Dynamic checkpoint omits an initially admitted table");
+        }
+        schemas.forEach(config::registerDiscoveredTable);
+    }
+
     public int snapshotChunkSize() {
         if (startupOptions.isStreamOnly()) {
             throw new IllegalStateException("Stream-only MySQL CDC does not use snapshot chunks");

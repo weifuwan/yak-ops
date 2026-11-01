@@ -4,6 +4,7 @@ import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.configuration.ReadonlyConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
@@ -48,6 +49,14 @@ class DataSourceTaskValidationContextFactoryTest {
                 observedWorkspace.set(workspaceId);
                 return new DataSourceInfo("MYSQL", "app", null, 1);
             }
+
+            @Override
+            public boolean samePhysicalServer(String workspaceId, String first, String second) {
+                observedWorkspace.set(workspaceId);
+                assertEquals("source", first);
+                assertEquals("source-alias", second);
+                return true;
+            }
         };
         DataSourceTaskValidationContextFactory factory = new DataSourceTaskValidationContextFactory();
         inject(factory, resources);
@@ -61,6 +70,10 @@ class DataSourceTaskValidationContextFactoryTest {
         assertSame(schema, first.tableSchema("source", tableId));
         assertEquals("workspace-a", observedWorkspace.get());
         assertSame(schema, second.tableSchema("source", tableId));
+        assertEquals("workspace-b", observedWorkspace.get());
+        assertTrue(first.samePhysicalServer("source", "source-alias"));
+        assertEquals("workspace-a", observedWorkspace.get());
+        assertTrue(second.samePhysicalServer("source", "source-alias"));
         assertEquals("workspace-b", observedWorkspace.get());
     }
 

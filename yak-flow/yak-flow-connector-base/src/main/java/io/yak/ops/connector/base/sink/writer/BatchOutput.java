@@ -28,6 +28,11 @@ public interface BatchOutput<T> extends AutoCloseable {
      */
     int bufferedRecords();
 
+    /** Allows an output with route-specific limits to request an earlier batch flush. */
+    default boolean automaticFlushRequired(int maximumBatchSize) {
+        return bufferedRecords() >= maximumBatchSize;
+    }
+
     /**
      * Whether automatic size and processing-time triggers may flush this output.
      *

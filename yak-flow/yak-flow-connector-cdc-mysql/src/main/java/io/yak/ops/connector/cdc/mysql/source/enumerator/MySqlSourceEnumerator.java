@@ -23,6 +23,8 @@ import io.yak.ops.connector.cdc.mysql.source.events.LatestFinishedSplitsNumberEv
 import io.yak.ops.connector.cdc.mysql.source.events.LatestFinishedSplitsNumberRequestEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlResumeBinlogEvent;
 import io.yak.ops.connector.cdc.mysql.source.events.MySqlStopSnapshotEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.TableDiscoveryAckEvent;
+import io.yak.ops.connector.cdc.mysql.source.events.TableDiscoveryEvent;
 import io.yak.ops.connector.cdc.mysql.source.split.FinishedSnapshotSplitInfo;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlBinlogSplit;
 import io.yak.ops.connector.cdc.mysql.source.split.MySqlSplit;
@@ -32,6 +34,8 @@ import io.yak.ops.core.api.connector.source.SourceEvent;
 import io.yak.ops.core.api.connector.source.SplitEnumerator;
 import io.yak.ops.core.api.connector.source.SplitEnumeratorContext;
 import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.types.Column;
+import io.yak.ops.core.types.TableSchema;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -52,6 +56,9 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
     private boolean snapshotOnlyFinished;
     private final int splitMetaGroupSize;
     private final List<TableId> tables;
+    private final MySqlSourceConfig sourceConfig;
+    private TableDiscoveryEvent pendingDiscovery;
+    private final Set<Integer> discoveryAcknowledgments = new LinkedHashSet<>();
     private final Set<Integer> waitingReaders = new LinkedHashSet<>();
     private final TableMetrics metrics;
     private final long generation;
@@ -100,7 +107,8 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
         this.context = Objects.requireNonNull(context, "context");
         Objects.requireNonNull(startupOptions, "startupOptions");
         this.metrics = Objects.requireNonNull(metrics, "metrics");
-        tables = List.copyOf(config.schemas().keySet());
+        sourceConfig = config;
+        tables = new ArrayList<>(config.schemas().keySet());
         this.initial = !startupOptions.isStreamOnly();
         this.snapshotOnly = startupOptions.isSnapshotOnly();
         if (initial && config.isReleaseSnapshotMetadataEnabled() && config.isScanNewlyAddedTableEnabled()) {
@@ -118,11 +126,11 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
         HybridPendingSplitsState restoredHybrid = initial ? (HybridPendingSplitsState) restored : null;
         if (restoredHybrid != null && restoredHybrid.getSnapshotPendingSplits().nextChunkRange() != null) {
             ChunkRange cursor = restoredHybrid.getSnapshotPendingSplits().nextChunkRange();
-            var schema = config.schemas().get(cursor.tableId());
+            TableSchema schema = config.schemas().get(cursor.tableId());
             // A removed table is reconciled by the Snapshot Assigner below. For a still-captured
             // table, fail closed if the checkpointed typed cursor no longer matches its key.
             if (schema != null) {
-                var selected = ChunkUtils.requireSupportedSnapshot(
+                Column selected = ChunkUtils.requireSupportedSnapshot(
                         schema, config.chunkKeyColumns().get(cursor.tableId()));
                 if (!cursor.column().equals(selected.name())
                         || cursor.type() != selected.dataType().getTypeRoot()) {
@@ -184,6 +192,9 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
         if (initial) assigner.open();
         else streamAssigner.open();
         if (!initial) return;
+        if (sourceConfig.isScanNewlyAddedTableEnabled()) {
+            context.callAsync(this::discoverCandidates, this::admitCandidate, 1000L, 5000L);
+        }
         if (snapshotOnly && assigner.snapshotComplete()) {
             finishSnapshotOnly();
         } else if (assigner.phase() == HybridPendingSplitsState.Phase.STREAMING) {
@@ -229,6 +240,10 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
     @Override
     public void addReader(int reader) {
         if (closed || !initial) return;
+        if (pendingDiscovery != null) {
+            discoveryAcknowledgments.remove(reader);
+            context.sendEventToSourceReader(reader, pendingDiscovery);
+        }
         if (snapshotOnly && assigner.snapshotComplete()) {
             if (snapshotOnlyFinished) stopSnapshotOnlyReader(reader);
             else finishSnapshotOnly();
@@ -266,7 +281,23 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
     public void handleSourceEvent(int reader, SourceEvent event) {
         if (closed) return;
         if (!initial) throw new IllegalArgumentException("Binlog-only coordinator does not receive snapshot events");
-        if (event instanceof LatestFinishedSplitsNumberRequestEvent request) {
+        if (event instanceof TableDiscoveryAckEvent ack) {
+            if (pendingDiscovery == null || !pendingDiscovery.table().equals(ack.table())) return;
+            if (!context.registeredReaders().containsKey(reader))
+                throw new IllegalArgumentException("Unregistered discovery acknowledgment");
+            discoveryAcknowledgments.add(reader);
+            if (discoveryAcknowledgments.size() == context.currentParallelism()) {
+                TableDiscoveryEvent discovery = pendingDiscovery;
+                pendingDiscovery = null;
+                discoveryAcknowledgments.clear();
+                splitter.registerTable(discovery.table(), discovery.schema());
+                tables.add(discovery.table());
+                metrics.register(discovery.table());
+                assigner.addDiscoveredTable(discovery.table());
+                waitingReaders.addAll(context.registeredReaders().keySet());
+                requestBinlogSplitUpdateIfNeed(false);
+            }
+        } else if (event instanceof LatestFinishedSplitsNumberRequestEvent request) {
             if (reader != 0) {
                 throw new IllegalArgumentException("Only the Binlog owner may request finished Snapshot count");
             }
@@ -359,6 +390,33 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
         } else throw new IllegalArgumentException("Unsupported MySQL Hybrid source event");
     }
 
+    private Map<TableId, io.yak.ops.core.schema.Schema> discoverCandidates() throws Exception {
+        MySqlSourceConfig copy = sourceConfig.discoveryCopy();
+        MySqlChunkSplitter discovery = new MySqlChunkSplitter(copy, copy.getSplitSize());
+        discovery.discoverTables();
+        return copy.physicalSchemas();
+    }
+
+    private void admitCandidate(Map<TableId, io.yak.ops.core.schema.Schema> discovered, Throwable failure) {
+        if (closed) return;
+        if (failure != null) throw new IllegalStateException("MySQL table discovery failed", failure);
+        if (pendingDiscovery != null
+                || pendingBinlogUpdateGeneration >= 0
+                || assigner.phase() != HybridPendingSplitsState.Phase.STREAMING
+                || !AssignerStatus.isAssigningFinished(assigner.getAssignerStatus())
+                || context.registeredReaders().size() != context.currentParallelism()) return;
+        for (Map.Entry<TableId, io.yak.ops.core.schema.Schema> entry : discovered.entrySet()) {
+            if (tables.contains(entry.getKey())) continue;
+            if (tables.size() >= 100)
+                throw new IllegalArgumentException("MySQL dynamic discovery exceeds the 100-table limit");
+            pendingDiscovery = new TableDiscoveryEvent(entry.getKey(), entry.getValue());
+            discoveryAcknowledgments.clear();
+            for (int reader : context.registeredReaders().keySet())
+                context.sendEventToSourceReader(reader, pendingDiscovery);
+            return;
+        }
+    }
+
     @Override
     public void addSplitsBack(List<MySqlSplit> splits, int reader) {
         if (closed || reader < 0 || reader >= context.currentParallelism())
@@ -446,7 +504,7 @@ public final class MySqlSourceEnumerator implements SplitEnumerator<MySqlSplit, 
     }
 
     private void enterHandoff() {
-        var high = assigner.finishedSplits().stream()
+        DebeziumOffset high = assigner.finishedSplits().stream()
                 .map(FinishedSnapshotSplitInfo::highWatermark)
                 .max(DebeziumOffset::compareTo)
                 .orElseThrow();

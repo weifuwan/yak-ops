@@ -52,9 +52,7 @@ export function changeReadStrategy(
     },
     mappings: value.mappings.map((mapping) => ({
       ...mapping,
-      source: steps.includes("FULL")
-        ? mapping.source
-        : { ...mapping.source, chunkKeyColumn: undefined },
+      source: steps.includes("FULL") ? mapping.source : { ...mapping.source, snapshot: undefined },
       writeMode: next.writeModes.includes(mapping.writeMode)
         ? mapping.writeMode
         : next.writeModes[0],

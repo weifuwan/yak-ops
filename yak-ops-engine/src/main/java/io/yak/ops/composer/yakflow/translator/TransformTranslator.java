@@ -2,6 +2,7 @@ package io.yak.ops.composer.yakflow.translator;
 
 import io.yak.ops.composer.definition.PipelineDef;
 import io.yak.ops.composer.definition.TransformDef;
+import io.yak.ops.composer.definition.TypeMappingRules;
 import io.yak.ops.composer.validation.SchemaValidator;
 import io.yak.ops.core.api.dag.Transformation;
 import io.yak.ops.core.api.operators.Collector;
@@ -70,6 +71,7 @@ public final class TransformTranslator {
     private final String timezone;
     private final DecimalPrecisionMode decimalMode;
     private final Map<TableId, TableId> selectedTables;
+    private final TypeMappingRules typeMappings;
 
     public TransformTranslator(PipelineDef definition) {
         this(definition, Map.of());
@@ -78,6 +80,7 @@ public final class TransformTranslator {
     /** Keeps selectors tied to the admitted definition while events retain physical checkpoint identities. */
     public TransformTranslator(PipelineDef definition, Map<TableId, TableId> selectedTables) {
         definitions = List.copyOf(definition.getTransforms());
+        typeMappings = TypeMappingRules.from(definition);
         this.selectedTables = Map.copyOf(selectedTables);
         timezone = definition
                 .getConfig()
@@ -99,7 +102,7 @@ public final class TransformTranslator {
     }
 
     public Transformation<Event> translate(Transformation<Event> input, int parallelism, String definitionId) {
-        if (definitions.isEmpty()) return input;
+        if (definitions.isEmpty() && typeMappings.isEmpty()) return input;
         OneInputTransformation<Event, Event> transform =
                 new OneInputTransformation<>(input, "Transform", this::createOperator, Event.class, parallelism);
         transform.setUid(new OperatorUidGenerator("data-sync-transform").generateUid(definitionId));
@@ -132,7 +135,8 @@ public final class TransformTranslator {
                 + encodePart(where == null ? null : where.toString())
                 + encodePart(keys)
                 + encodePart(timezone)
-                + encodePart(decimalMode.name());
+                + encodePart(decimalMode.name())
+                + (typeMappings.isEmpty() ? "" : encodePart(typeMappings.semanticRevision()));
         try {
             return HexFormat.of()
                     .formatHex(MessageDigest.getInstance("SHA-256").digest(semantics.getBytes(StandardCharsets.UTF_8)));
@@ -301,8 +305,11 @@ public final class TransformTranslator {
 
     private CompiledTransform compile(TableId table, Schema source) {
         TransformDef definition = rule(table);
-        if (definition == null) return null;
-        String projection = present(definition.getProjection()) ? definition.getProjection() : "*";
+        if (definition == null && typeMappings.isEmpty()) return null;
+        String projection =
+                definition != null && present(definition.getProjection()) ? definition.getProjection() : "*";
+        Map<String, String> widened = new LinkedHashMap<>();
+        if (!typeMappings.isEmpty()) projection = mappedProjection(source, projection, widened);
         org.apache.flink.cdc.common.schema.Schema pre = FlinkSchemaConverter.schema(source);
         List<ProjectionColumn> projected = TransformParser.generateProjectionColumns(
                 projection, pre.getColumns(), List.of(), METADATA, decimalMode);
@@ -314,6 +321,9 @@ public final class TransformTranslator {
                                 .equals(column.getOriginalColumnNames().getFirst()))
                 .map(ProjectionColumn::getColumnName)
                 .collect(Collectors.toSet());
+        widened.forEach((output, original) -> {
+            if (output.equals(original)) preserved.add(output);
+        });
         Map<String, String> forwarded = new LinkedHashMap<>();
         for (ProjectionColumn column : projected) {
             if (column.getOriginalColumnNames().size() == 1
@@ -323,7 +333,8 @@ public final class TransformTranslator {
                         column.getColumnName(), column.getOriginalColumnNames().getFirst());
             }
         }
-        boolean overridesKeys = present(definition.getPrimaryKeys());
+        forwarded.putAll(widened);
+        boolean overridesKeys = definition != null && present(definition.getPrimaryKeys());
         List<String> keys = overridesKeys
                 ? Arrays.stream(definition.getPrimaryKeys().split(",", -1))
                         .map(String::trim)
@@ -359,11 +370,45 @@ public final class TransformTranslator {
                 FlinkSchemaConverter.tableId(table), pre, FlinkSchemaConverter.schema(output));
         TransformProjectionProcessor projector = new TransformProjectionProcessor(
                 info, projection, timezone, decimalMode, List.of(), List.of(), METADATA, Map.of());
-        TransformFilterProcessor filter = TransformFilter.of(definition.getFilter())
+        TransformFilterProcessor filter = TransformFilter.of(definition == null ? null : definition.getFilter())
                 .map(expression -> TransformFilterProcessor.of(
                         info, expression, timezone, decimalMode, List.of(), List.of(), METADATA, Map.of()))
                 .orElse(null);
         return new CompiledTransform(source, output, projector, filter, preserved, forwarded, overridesKeys);
+    }
+
+    private String mappedProjection(Schema source, String projection, Map<String, String> widened) {
+        List<String> expressions = new ArrayList<>();
+        for (SqlNode node : projectionExpression(projection)) {
+            SqlNode expression = node instanceof SqlCall call && call.getKind() == SqlKind.AS ? call.operand(0) : node;
+            String alias = node instanceof SqlCall call && call.getKind() == SqlKind.AS
+                    ? ((SqlIdentifier) call.operand(1)).getSimple()
+                    : null;
+            if (expression instanceof SqlIdentifier identifier && identifier.isStar()) {
+                for (PhysicalColumn column : source.columns()) {
+                    expressions.add(mappedColumn(column, column.name(), widened));
+                }
+            } else if (expression instanceof SqlIdentifier identifier && identifier.isSimple()) {
+                PhysicalColumn column = source.column(identifier.getSimple()).orElse(null);
+                expressions.add(
+                        column == null
+                                ? node.toString()
+                                : mappedColumn(column, alias == null ? column.name() : alias, widened));
+            } else {
+                // An explicit expression, including a CAST, takes precedence over the global rule.
+                expressions.add(node.toString());
+            }
+        }
+        return String.join(", ", expressions);
+    }
+
+    private String mappedColumn(PhysicalColumn column, String alias, Map<String, String> widened) {
+        String target = typeMappings.target(column.type());
+        String original = "`" + column.name().replace("`", "``") + "`";
+        String output = "`" + alias.replace("`", "``") + "`";
+        if (target == null) return original + " AS " + output;
+        widened.put(alias, column.name());
+        return "CAST(" + original + " AS " + target + ") AS " + output;
     }
 
     private static boolean present(String text) {

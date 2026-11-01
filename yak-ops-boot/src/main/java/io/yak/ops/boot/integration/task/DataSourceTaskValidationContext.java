@@ -24,6 +24,12 @@ public class DataSourceTaskValidationContext implements TaskValidationContext {
     }
 
     @Override
+    public boolean samePhysicalServer(String firstDatasourceId, String secondDatasourceId) {
+        return contexts.forWorkspace(WorkspaceContext.requireWorkspaceId())
+                .samePhysicalServer(firstDatasourceId, secondDatasourceId);
+    }
+
+    @Override
     public DataSourceTable tableMetadata(String datasourceId, TableId tableId) {
         return contexts.forWorkspace(WorkspaceContext.requireWorkspaceId()).tableMetadata(datasourceId, tableId);
     }

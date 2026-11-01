@@ -92,6 +92,29 @@ export function updateTransformRule(
   return next;
 }
 
+/** Keep other selectors in place because overlapping rules are evaluated in authored order. */
+export function replaceTableTransforms(
+  rules: readonly DataSyncTransform[],
+  selector: string,
+  replacements: readonly DataSyncTransform[],
+): DataSyncTransform[] {
+  if (replacements.some((rule) => rule["source-table"] !== selector))
+    throw new Error("表级规则不能更改来源表范围");
+  const last = rules.reduce(
+    (found, rule, index) => (rule["source-table"] === selector ? index : found),
+    -1,
+  );
+  if (last < 0) return [...rules, ...replacements];
+  const result: DataSyncTransform[] = [];
+  let replacement = 0;
+  rules.forEach((rule, index) => {
+    if (rule["source-table"] !== selector) result.push(rule);
+    else if (replacement < replacements.length) result.push(replacements[replacement++]);
+    if (index === last) result.push(...replacements.slice(replacement));
+  });
+  return result;
+}
+
 export function sameNameFieldMappings(
   source: readonly DataSourceCatalogColumn[],
   target?: readonly DataSourceCatalogColumn[],

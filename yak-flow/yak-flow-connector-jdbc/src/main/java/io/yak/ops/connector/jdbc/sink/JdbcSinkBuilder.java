@@ -11,6 +11,7 @@ import io.yak.ops.core.data.TableId;
 import io.yak.ops.core.types.TableSchema;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -22,6 +23,7 @@ import java.util.function.Supplier;
  * all write routes are validated when {@link #build()} is called.
  */
 public final class JdbcSinkBuilder {
+    private Map<TableId, JdbcWriteOptions> tableWriteOptions = Map.of();
 
     private io.yak.ops.connector.base.metrics.TableMetrics metrics =
             new io.yak.ops.connector.base.metrics.TableMetrics();
@@ -111,6 +113,12 @@ public final class JdbcSinkBuilder {
         return this;
     }
 
+    /** Sets route-owned SQL hooks and maximum batch sizes without changing connection ownership. */
+    public JdbcSinkBuilder withTableWriteOptions(Map<TableId, JdbcWriteOptions> options) {
+        tableWriteOptions = Map.copyOf(options);
+        return this;
+    }
+
     /**
      * Selects physical ordering; independent-table grouping requires an explicit caller decision.
      *
@@ -184,7 +192,8 @@ public final class JdbcSinkBuilder {
                     metrics,
                     batchOrder,
                     statementCacheSize,
-                    applierFactory);
+                    applierFactory,
+                    tableWriteOptions);
         }
         TableId target = Objects.requireNonNull(targetTable, "targetTable");
         JdbcTableWritePlan plan = new JdbcTableWritePlan(
@@ -197,6 +206,7 @@ public final class JdbcSinkBuilder {
                 metrics,
                 batchOrder,
                 statementCacheSize,
-                applierFactory);
+                applierFactory,
+                tableWriteOptions);
     }
 }

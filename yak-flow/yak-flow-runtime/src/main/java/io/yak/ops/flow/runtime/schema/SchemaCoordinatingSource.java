@@ -48,7 +48,7 @@ import java.util.concurrent.CompletionStage;
 public final class SchemaCoordinatingSource<SplitT extends SourceSplit, StateT>
         implements Source<Event, SplitT, StateT> {
     private final Source<Event, SplitT, StateT> source;
-    private final Map<TableId, Schema> initialSchemas;
+    private Map<TableId, Schema> initialSchemas;
 
     public SchemaCoordinatingSource(Source<Event, SplitT, StateT> source, Map<TableId, Schema> initialSchemas) {
         this.source = Objects.requireNonNull(source, "source");
@@ -56,6 +56,12 @@ public final class SchemaCoordinatingSource<SplitT extends SourceSplit, StateT>
         if (this.initialSchemas.isEmpty()) {
             throw new IllegalArgumentException("An Event source requires admitted table metadata");
         }
+    }
+
+    @Override
+    public void restoreDiscoveredTables(Map<TableId, Schema> restored) {
+        source.restoreDiscoveredTables(restored);
+        initialSchemas = Map.copyOf(restored);
     }
 
     @Override
@@ -200,11 +206,16 @@ public final class SchemaCoordinatingSource<SplitT extends SourceSplit, StateT>
                 Event event = pending.element();
                 if (event instanceof CreateTableEvent create) {
                     Schema expected = schemas.get(create.tableId());
-                    if (expected == null) throw new IllegalArgumentException("Source announced an unadmitted table");
+                    if (expected == null) {
+                        if (!consumeAcknowledgement(create))
+                            throw new IllegalArgumentException("Source announced an unadmitted table");
+                        expected = schemas.get(create.tableId());
+                    }
                     boolean first = announced.add(create.tableId());
                     Schema currentCatalog = initialSchemas.get(create.tableId());
                     boolean restoredCatalogDifference = first
                             && !expected.equals(currentCatalog)
+                            && currentCatalog != null
                             && currentCatalog.equals(create.getPhysicalSchema());
                     if (!expected.equals(create.getPhysicalSchema()) && !restoredCatalogDifference) {
                         throw new IllegalStateException(
@@ -365,7 +376,9 @@ public final class SchemaCoordinatingSource<SplitT extends SourceSplit, StateT>
         private SchemaAcknowledgement(TableId table, Schema before, Schema after) {
             this.table = table;
             this.after = after;
-            events = SchemaUtils.diff(table, before, after);
+            events = before == null
+                    ? List.of(new CreateTableEvent(table, after))
+                    : SchemaUtils.diff(table, before, after);
         }
     }
 }

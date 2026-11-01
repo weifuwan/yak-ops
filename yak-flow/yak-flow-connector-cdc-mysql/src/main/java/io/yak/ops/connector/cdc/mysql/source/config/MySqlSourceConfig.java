@@ -25,21 +25,22 @@ import io.yak.ops.connector.cdc.mysql.debezium.CheckpointOffsetBackingStore;
 import io.yak.ops.connector.cdc.mysql.debezium.DebeziumUtils;
 import io.yak.ops.connector.cdc.mysql.source.utils.ChunkUtils;
 import io.yak.ops.connector.cdc.mysql.table.StartupOptions;
-import io.yak.ops.connector.jdbc.database.internal.convert.MySqlTypeConverter;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcColumnInfo;
+import io.yak.ops.connector.jdbc.database.catalog.JdbcTableMetadata;
+import io.yak.ops.connector.jdbc.database.dialect.JdbcDialects;
+import io.yak.ops.connector.jdbc.database.query.JdbcReadQuery;
 import io.yak.ops.core.api.connector.source.SourceReaderContext;
 import io.yak.ops.core.configuration.SchemaEvolutionOptions;
 import io.yak.ops.core.data.TableId;
+import io.yak.ops.core.event.ColumnProperties;
 import io.yak.ops.core.schema.Schema;
 import io.yak.ops.core.types.Column;
 import io.yak.ops.core.types.TableSchema;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -302,6 +302,11 @@ public final class MySqlSourceConfig {
         return value;
     }
 
+    /** Returns immutable options without exposing connection or authentication information. */
+    public MySqlTableOptions tableOptions(TableId table) {
+        return sourceSettings.tableOptions().getOrDefault(table, sourceSettings.defaultTableOptions());
+    }
+
     /**
      * Use a numeric UTC offset for new JDBC sessions when no time zone was explicitly configured.
      * This avoids ambiguous OS names and does not require MySQL named time zone tables.
@@ -346,7 +351,7 @@ public final class MySqlSourceConfig {
     }
 
     private static String getIgnoreCase(Map<String, String> values, String key) {
-        for (var entry : values.entrySet()) {
+        for (Map.Entry<String, String> entry : values.entrySet()) {
             if (entry.getKey().equalsIgnoreCase(key)) return entry.getValue();
         }
         return null;
@@ -374,6 +379,47 @@ public final class MySqlSourceConfig {
         Map<TableId, Schema> result = new LinkedHashMap<>(physicalSchemas);
         result.putAll(discoveredPhysicalSchemas);
         return Collections.unmodifiableMap(result);
+    }
+
+    public String defaultChunkKeyColumn() {
+        return sourceSettings.defaultChunkKeyColumn();
+    }
+
+    /** A private metadata-discovery copy cannot mutate an active reader or checkpoint. */
+    public MySqlSourceConfig discoveryCopy() {
+        return new MySqlSourceConfig(
+                hostname,
+                port,
+                username,
+                password,
+                serverId,
+                topicPrefix,
+                schemas(),
+                queueCapacity,
+                connectionProperties,
+                chunkKeyColumns(),
+                physicalSchemas(),
+                schemaEvolutionEnabled,
+                sourceSettings);
+    }
+
+    /** Installs a coordinator-admitted or checkpoint-restored schema before planning its splits. */
+    public synchronized void registerDiscoveredTable(TableId table, Schema schema) {
+        if (!scanNewlyAddedTableEnabled
+                || !getTableFilter()
+                        .test(new io.debezium.relational.TableId(table.catalog(), table.schema(), table.table()))) {
+            throw new IllegalArgumentException("Discovered table is outside the configured capture filters");
+        }
+        if (!schemas().containsKey(table) && schemas().size() >= 100) {
+            throw new IllegalArgumentException("MySQL dynamic discovery exceeds the 100-table limit");
+        }
+        String selected = chunkKeyColumns().getOrDefault(table, defaultChunkKeyColumn());
+        String key = ChunkUtils.requireSupportedSnapshot(schema.toTableSchema(), selected)
+                .name();
+        validateSnapshotColumns(table, schema.toTableSchema());
+        discoveredSchemas.put(table, schema.toTableSchema());
+        discoveredPhysicalSchemas.put(table, schema);
+        discoveredChunkKeyColumns.put(table, key);
     }
 
     /** Discovers a table's logical shape from live JDBC metadata. */
@@ -404,31 +450,24 @@ public final class MySqlSourceConfig {
             return existing;
         }
 
-        DatabaseMetaData metadata = connection.getMetaData();
         String catalog = table.catalog() == null ? connection.getCatalog() : table.catalog();
-        TreeMap<Integer, Column> columns = new TreeMap<>();
-        try (ResultSet result = metadata.getColumns(catalog, table.schema(), table.table(), null)) {
-            while (result.next()) {
-                if (!table.table().equals(result.getString("TABLE_NAME"))) continue;
-                String name = result.getString("COLUMN_NAME");
-                int jdbcType = result.getInt("DATA_TYPE");
-                String nativeType = result.getString("TYPE_NAME");
-                int precision = result.getInt("COLUMN_SIZE");
-                int scale = result.getInt("DECIMAL_DIGITS");
-                boolean nullable = result.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls;
-                var logicalType =
-                        new MySqlTypeConverter().convertColumn(jdbcType, nativeType, precision, scale, nullable, name);
-                columns.put(result.getInt("ORDINAL_POSITION"), new Column(name, logicalType));
-            }
-        }
-        if (columns.isEmpty()) throw new SQLException("Cannot discover columns for newly added MySQL table " + table);
-
-        TreeMap<Short, String> primaryKeys = new TreeMap<>();
-        try (ResultSet result = metadata.getPrimaryKeys(catalog, table.schema(), table.table())) {
-            while (result.next()) primaryKeys.put(result.getShort("KEY_SEQ"), result.getString("COLUMN_NAME"));
-        }
         TableSchema discovered =
-                new TableSchema(new ArrayList<>(columns.values()), new ArrayList<>(primaryKeys.values()));
+                JdbcTableMetadata.readTable(connection, JdbcDialects.forUrl("jdbc:mysql:"), table, catalog, null);
+        Map<String, String> comments = new LinkedHashMap<>();
+        Map<String, ColumnProperties> properties = new LinkedHashMap<>();
+        for (JdbcColumnInfo column : JdbcTableMetadata.readColumns(connection, table, catalog, null)) {
+            if (column.remarks() != null) comments.put(column.name(), column.remarks());
+            properties.put(
+                    column.name(),
+                    new ColumnProperties(
+                            column.defaultExpression(),
+                            column.autoIncrement(),
+                            column.generated(),
+                            column.onUpdateExpression(),
+                            column.defaultGenerated(),
+                            column.nativeType()));
+        }
+        validateSnapshotColumns(table, discovered);
         String selectedKey;
         try {
             selectedKey = ChunkUtils.requireSupportedSnapshot(discovered, requestedChunkKey)
@@ -439,8 +478,16 @@ public final class MySqlSourceConfig {
         }
         discoveredSchemas.put(table, discovered);
         discoveredChunkKeyColumns.put(table, selectedKey);
-        discoveredPhysicalSchemas.put(table, Schema.from(discovered, null, Map.of(), Map.of()));
+        discoveredPhysicalSchemas.put(table, Schema.from(discovered, null, comments, properties));
         return discovered;
+    }
+
+    private void validateSnapshotColumns(TableId table, TableSchema schema) {
+        Set<String> columns = schema.columns().stream().map(Column::name).collect(Collectors.toSet());
+        if (!columns.containsAll(
+                JdbcReadQuery.referencedColumns(tableOptions(table).snapshotWhere()))) {
+            throw new IllegalArgumentException("Snapshot condition refers to an unknown source column");
+        }
     }
 
     public boolean schemaEvolutionEnabled() {
@@ -456,8 +503,8 @@ public final class MySqlSourceConfig {
         boolean enabled = context.getConfiguration().get(SchemaEvolutionOptions.ENABLED);
         Map<TableId, Schema> models = new LinkedHashMap<>(physicalSchemas());
         Map<TableId, TableSchema> shape = new LinkedHashMap<>(schemas());
-        for (TableId table : schemas.keySet()) {
-            var restored = context.restoredSourceSchema(table);
+        for (TableId table : shape.keySet()) {
+            java.util.Optional<Schema> restored = context.restoredSourceSchema(table);
             if (restored.isPresent()) {
                 if (!enabled) {
                     throw new IllegalStateException("Cannot restore a CDC schema version with evolution disabled");
@@ -476,7 +523,7 @@ public final class MySqlSourceConfig {
                 shape,
                 queueCapacity,
                 connectionProperties,
-                chunkKeyColumns,
+                chunkKeyColumns(),
                 models,
                 enabled,
                 sourceSettings);
@@ -491,11 +538,11 @@ public final class MySqlSourceConfig {
                 password,
                 serverId,
                 topicPrefix,
-                schemas,
+                schemas(),
                 queueCapacity,
                 connectionProperties,
-                chunkKeyColumns,
-                physicalSchemas,
+                chunkKeyColumns(),
+                physicalSchemas(),
                 false,
                 sourceSettings);
     }
@@ -581,7 +628,17 @@ public final class MySqlSourceConfig {
             if (!databaseList.isEmpty())
                 properties.setProperty("database.include.list", String.join(",", databaseList));
             else properties.remove("database.include.list");
-            if (!tableList.isEmpty()) {
+            if (sourceSettings.discoveryTablePattern() != null) {
+                // Discovery matches the two identifier components independently. Only
+                // admitted schemas may enter row decoding; a new reader expands this
+                // exact capture list after the checkpointed new-table handoff.
+                properties.setProperty(
+                        "table.include.list",
+                        schemas().keySet().stream()
+                                .map(table -> Pattern.quote(table.catalog()) + "\\." + Pattern.quote(table.table()))
+                                .collect(Collectors.joining(",")));
+                properties.remove("table.exclude.list");
+            } else if (!tableList.isEmpty()) {
                 properties.setProperty(
                         "table.include.list",
                         String.join(",", MySqlSourceConfigFactory.includeTablesExcept(tableList, excludeTableList)));
@@ -774,6 +831,21 @@ public final class MySqlSourceConfig {
                         .filter(value -> !value.isEmpty())
                         .map(Pattern::compile)
                         .toList();
+        if (sourceSettings.discoveryTablePattern() != null) {
+            Pattern tablePattern = Pattern.compile(sourceSettings.discoveryTablePattern());
+            List<Pattern> databasePatterns =
+                    databaseList.stream().map(Pattern::compile).toList();
+            return tableId -> tableId.catalog() != null
+                    && tableId.schema() == null
+                    && (databasePatterns.isEmpty()
+                            || databasePatterns.stream()
+                                    .anyMatch(pattern ->
+                                            pattern.matcher(tableId.catalog()).matches()))
+                    && tablePattern.matcher(tableId.table()).matches()
+                    && exclusions.stream()
+                            .noneMatch(pattern ->
+                                    pattern.matcher(tableId.toString()).matches());
+        }
         return tableId -> tableFilters.dataCollectionFilter().isIncluded(tableId)
                 && exclusions.stream()
                         .noneMatch(

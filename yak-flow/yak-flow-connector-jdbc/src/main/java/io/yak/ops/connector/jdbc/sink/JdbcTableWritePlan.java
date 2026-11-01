@@ -132,6 +132,7 @@ public record JdbcTableWritePlan(
         return switch (writeMode) {
             case APPEND -> dialect.insertSql(targetTable, schema);
             case UPSERT -> dialect.upsertSql(targetTable, schema);
+            case REPLACE -> dialect.replaceSql(targetTable, schema);
             case RETRACT -> dialect.insertSql(targetTable, schema);
         };
     }
@@ -225,8 +226,8 @@ public record JdbcTableWritePlan(
         if (row.getArity() != sourceSchema.columnCount()) {
             throw new IllegalArgumentException("JDBC input arity does not match the source schema");
         }
-        if (writeMode == JdbcWriteMode.APPEND && kind != RowKind.INSERT) {
-            throw new UnsupportedOperationException("APPEND mode accepts INSERT records only");
+        if ((writeMode == JdbcWriteMode.APPEND || writeMode == JdbcWriteMode.REPLACE) && kind != RowKind.INSERT) {
+            throw new UnsupportedOperationException("APPEND and REPLACE modes accept INSERT records only");
         }
         if (writeMode != JdbcWriteMode.RETRACT && (kind == RowKind.DELETE || kind == RowKind.UPDATE_BEFORE)) {
             GenericRowData keys = new GenericRowData(schema.primaryKeys().size());

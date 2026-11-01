@@ -15,16 +15,14 @@ import { findStepCombination } from "../solution/presentation";
 import { useSolutions } from "../solution/use-solutions";
 import { EditorAnchorStepper, type EditorAnchorItem } from "./anchor-stepper";
 import { DataSourceSection } from "./data-source-section";
-import { FieldMappingSection } from "./field-mapping-section";
-import { ExistingTransformRules } from "./existing-transform-rules";
+import { SingleTableBatchBody } from "./single-table-body";
+import { DatabaseReplicationBody } from "./database-replication-body";
+import { transformTableSelector } from "@/service/data-sync/transforms";
 import { createEditorForm } from "./form-state";
 import { EMPTY_INCREMENTAL } from "./incremental-fields";
-import { replicationConfigurationError } from "./replication-options";
-import { SourceSection } from "./source-section";
+import { replicationConfigurationError } from "./replication-validation";
 import { selectSourceSchema, selectSourceTable } from "./source-selection";
-import { tableKey } from "./table-mapping-editor";
-import { selectedTableKey } from "./table-section";
-import { TargetSection } from "./target-section";
+import { tableKey } from "./table-catalog";
 import { buildEditorPayload, editorValidationIssue, type EditorIssue } from "./definition";
 import { useCatalogOptions } from "./use-catalog-options";
 import { useEditorDataSources } from "./use-editor-data-sources";
@@ -121,22 +119,21 @@ export function TaskEditor({
     reloadSchedule,
     changeSchedule,
   } = useEditorSchedule(id, pendingSchedule);
-  const hasAdvancedTransforms = replication && form.transforms.length > 0;
   const editorScrollRef = useRef<HTMLElement | null>(null);
   const anchorItems = useMemo<EditorAnchorItem[]>(
     () => [
       { id: "datasource", label: "数据源" },
       { id: "source", label: "数据来源" },
-      { id: "target", label: "数据去向" },
-      ...(!replication ? [{ id: "field-mapping", label: "字段加工" }] : []),
-      ...(hasAdvancedTransforms ? [{ id: "advanced-transforms", label: "高级转换规则" }] : []),
+      { id: "target", label: replication ? "目标表映射" : "数据去向" },
+      ...(!replication ? [{ id: "field-mapping", label: "去向字段映射" }] : []),
     ],
-    [replication, hasAdvancedTransforms],
+    [replication],
   );
   const sourceCatalog = useCatalogOptions(
     form.source.dataSourceId,
     form.source.database,
     form.source.schema,
+    !replication,
   );
   const targetCatalog = useCatalogOptions(
     form.sink.dataSourceId,
@@ -170,7 +167,20 @@ export function TaskEditor({
     setForm((current) => ({ ...current, source: { ...current.source, [key]: value } }));
   const patchSink = <K extends keyof EditorSink>(key: K, value: EditorSink[K]) =>
     setForm((current) => ({ ...current, sink: { ...current.sink, [key]: value } }));
-  const updateMappings = (value: DataSyncTableMapping[]) => setMappings(value);
+  const updateMappings = (value: DataSyncTableMapping[]) => {
+    const keys = new Set(value.map((mapping) => tableKey(mapping.source)));
+    const removed = new Set(
+      mappings
+        .filter((mapping) => !keys.has(tableKey(mapping.source)))
+        .map((mapping) => transformTableSelector(mapping.source)),
+    );
+    setMappings(value);
+    if (removed.size)
+      setForm((current) => ({
+        ...current,
+        transforms: current.transforms.filter((rule) => !removed.has(rule["source-table"])),
+      }));
+  };
   const requestSourceChange = (update: (current: EditorForm) => EditorForm) => {
     const apply = () => {
       setForm((current) =>
@@ -179,15 +189,22 @@ export function TaskEditor({
           transforms: [],
           source: {
             ...current.source,
+            where: "",
+            splitKey: "",
             incremental: useIncremental ? EMPTY_INCREMENTAL : undefined,
           },
         }),
       );
     };
-    if (form.transforms.length || form.source.incremental?.column)
+    if (
+      form.transforms.length ||
+      form.source.incremental?.column ||
+      form.source.where ||
+      form.source.splitKey
+    )
       setPendingChange({
         title: "更换来源表",
-        message: "更换来源表将清除字段映射、转换表达式和增量字段设置。",
+        message: "更换来源表将清除字段映射、数据过滤、切分键和增量字段设置。",
         apply,
       });
     else apply();
@@ -209,6 +226,10 @@ export function TaskEditor({
       setForm((current) => ({
         ...current,
         transforms: [],
+        selection: undefined,
+        mappingTemplate: undefined,
+        selectionResolved: true,
+        typeMappings: undefined,
         startup: side === "source" ? undefined : current.startup,
         ...(side === "source"
           ? {
@@ -218,6 +239,8 @@ export function TaskEditor({
                 database: selected?.database || "",
                 schema: selected?.schema || "",
                 table: "",
+                where: "",
+                splitKey: "",
                 incremental: useIncremental ? EMPTY_INCREMENTAL : undefined,
               },
             }
@@ -229,6 +252,8 @@ export function TaskEditor({
                 schema: selected?.schema || "",
                 table: "",
                 targetPrimaryKeys: [],
+                preSql: [],
+                postSql: [],
               },
             }),
       }));
@@ -255,6 +280,7 @@ export function TaskEditor({
   );
   const validationIssue = editorValidationIssue({
     combination,
+    capabilities: solution?.capabilities,
     solutionsLoading,
     solutionsError,
     useIncremental,
@@ -399,7 +425,7 @@ export function TaskEditor({
     },
   });
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--yak-color-hover)] text-[var(--yak-components-panel-text)]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--yak-components-panel-bg)] text-[var(--yak-components-panel-text)]">
       <EditorHeader
         name={form.name}
         locked={locked}
@@ -409,11 +435,11 @@ export function TaskEditor({
         onAdvanced={() => setDrawer({ kind: "advanced" })}
         onVersions={() => setDrawer({ kind: "versions" })}
       />
-      <div className="flex min-h-0 flex-1 gap-5 px-6 max-md:px-4">
+      <div className="flex min-h-0 flex-1 gap-4 px-4">
         <main
           ref={editorScrollRef}
           aria-busy={saving}
-          className="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto pb-8 pt-5"
+          className="min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto pb-6 pt-4"
         >
           {pageError ? <Alert>{pageError}</Alert> : null}
           {submission.error ? (
@@ -431,7 +457,7 @@ export function TaskEditor({
               onBack={() => navigate("/data-sync")}
             />
           ) : null}
-          <fieldset disabled={locked} className="min-w-0 space-y-4">
+          <fieldset disabled={locked} className="min-w-0 space-y-3">
             {solutionsError ? (
               <Alert>
                 {solutionsError}
@@ -464,69 +490,105 @@ export function TaskEditor({
               onSourceChange={(value) => requestConnectionChange("source", value)}
               onTargetChange={(value) => requestConnectionChange("target", value)}
             />
-            <SourceSection
-              replication={replication}
-              prepareSchema={prepareSchema}
-              form={form}
-              sourceCatalog={sourceCatalog}
-              targetCatalog={targetCatalog}
-              selectedSourceDataSource={selectedSourceDataSource}
-              mappings={mappings}
-              updateMappings={updateMappings}
-              writeMode={combination?.writeModes[0]}
-              useIncremental={useIncremental}
-              initialLoad={initialLoad}
-              patchSource={patchSource}
-              onSourceSchemaChange={(schema) =>
-                requestSourceChange((current) => selectSourceSchema(current, schema))
-              }
-              onSourceTableChange={(table) =>
-                requestSourceChange((current) => selectSourceTable(current, table))
-              }
-            />
-            <TargetSection
-              replication={replication}
-              prepareSchema={prepareSchema}
-              form={form}
-              targetCatalog={targetCatalog}
-              selectedTargetDataSource={selectedTargetDataSource}
-              mappings={mappings}
-              updateMappings={updateMappings}
-              writeModes={writeModes}
-              replicationMetadata={replicationMetadata}
-              initialLoad={initialLoad}
-              patchSink={patchSink}
-              setForm={setForm}
-              requestTargetChange={requestTargetChange}
-            />
+            {replication ? (
+              <DatabaseReplicationBody
+                selection={{
+                  form,
+                  mappings,
+                  targetTables: targetCatalog.tables,
+                  capabilities: solution?.capabilities,
+                  prepareSchema,
+                  initialLoad,
+                  continuous,
+                  writeModes,
+                  onMappingsChange: updateMappings,
+                  onRulesChange: (selection, mappingTemplate, selectionResolved) =>
+                    setForm((current) => ({
+                      ...current,
+                      selection,
+                      mappingTemplate,
+                      selectionResolved,
+                    })),
+                  confirm: setPendingChange,
+                }}
+                mapping={{
+                  mappings,
+                  baseline: saved?.tableMappings || [],
+                  targetCatalog,
+                  capabilities: solution?.capabilities,
+                  writeModes,
+                  initialLoad,
+                  prepareSchema,
+                  schemaChanges: form.sink.schemaChangesEnabled,
+                  regex: Boolean(form.selection),
+                  transforms: form.transforms,
+                  typeMappings: form.typeMappings,
+                  onChange: updateMappings,
+                  onTransformsChange: (value) => patch("transforms", value),
+                  onTypeMappingsChange: (value) => patch("typeMappings", value),
+                  confirm: setPendingChange,
+                }}
+              />
+            ) : (
+              <SingleTableBatchBody
+                form={form}
+                capabilities={solution?.capabilities}
+                writeModes={combination?.writeModes || []}
+                useIncremental={useIncremental}
+                initialLoad={initialLoad}
+                patchSource={patchSource}
+                patchSink={patchSink}
+                onTransformsChange={(value) => patch("transforms", value)}
+                onTypeMappingsChange={(value) => patch("typeMappings", value)}
+                source={{
+                  side: "source",
+                  dataSourceId: form.source.dataSourceId,
+                  boundSchema: selectedSourceDataSource?.schema,
+                  database: form.source.database,
+                  schema: form.source.schema,
+                  table: form.source.table,
+                  catalog: sourceCatalog,
+                  onSchemaChange: (schema) =>
+                    requestSourceChange((current) => selectSourceSchema(current, schema)),
+                  onTableChange: (table) =>
+                    requestSourceChange((current) => selectSourceTable(current, table)),
+                }}
+                target={{
+                  side: "target",
+                  prepareSchema,
+                  dataSourceId: form.sink.dataSourceId,
+                  boundSchema: selectedTargetDataSource?.schema,
+                  database: form.sink.database,
+                  schema: form.sink.schema,
+                  table: form.sink.table,
+                  catalog: targetCatalog,
+                  onTableNameChange: (value) => patchSink("table", value),
+                  onSchemaChange: (schema) =>
+                    requestTargetChange(() =>
+                      setForm((current) => ({
+                        ...current,
+                        sink: { ...current.sink, schema, table: "" },
+                      })),
+                    ),
+                  onTableChange: (table) =>
+                    requestTargetChange(() =>
+                      setForm((current) => ({
+                        ...current,
+                        sink: {
+                          ...current.sink,
+                          database: table.database || current.sink.database,
+                          schema: table.schema || current.sink.schema,
+                          table: table.name,
+                        },
+                      })),
+                    ),
+                }}
+              />
+            )}
             {replicationError && mappings.length ? <Alert>{replicationError}</Alert> : null}
-            {!replication ? (
-              <FieldMappingSection
-                source={form.source}
-                target={form.sink}
-                targetTableExists={Boolean(
-                  selectedTableKey(
-                    targetCatalog.tables,
-                    form.sink.database,
-                    form.sink.schema,
-                    form.sink.table,
-                  ),
-                )}
-                value={form.transforms}
-                onChange={(value) => patch("transforms", value)}
-                disabled={saving}
-              />
-            ) : null}
-            {hasAdvancedTransforms ? (
-              <ExistingTransformRules
-                value={form.transforms}
-                disabled={saving}
-                onChange={(value) => patch("transforms", value)}
-              />
-            ) : null}
           </fieldset>
         </main>
-        <aside className="hidden h-fit w-44 shrink-0 self-start pt-5 lg:block">
+        <aside className="hidden h-fit w-32 shrink-0 self-start pt-4 lg:block">
           <EditorAnchorStepper items={anchorItems} scrollRootRef={editorScrollRef} />
         </aside>
       </div>

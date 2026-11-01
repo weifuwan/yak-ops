@@ -168,6 +168,30 @@ public final class StatementUtils {
         return sql.append(" ORDER BY ").append(quotedColumn).toString();
     }
 
+    /** Combines the snapshot-only predicate with the same half-open chunk range. */
+    public static String buildSplitScanQuery(
+            JdbcDialect dialect,
+            TableId table,
+            TableSchema schema,
+            String splitColumn,
+            boolean isFirstSplit,
+            boolean isLastSplit,
+            String where) {
+        if (where == null) {
+            return buildSplitScanQuery(dialect, table, schema, splitColumn, isFirstSplit, isLastSplit);
+        }
+        String key = dialect.quoteIdentifier(splitColumn);
+        java.util.List<String> ranges = new java.util.ArrayList<>();
+        if (!isFirstSplit) ranges.add(key + " >= ?");
+        if (!isLastSplit) ranges.add(key + " < ?");
+        String projection = schema.columns().stream()
+                .map(column -> dialect.quoteIdentifier(column.name()))
+                .collect(Collectors.joining(", "));
+        return "SELECT " + projection + " FROM " + dialect.qualifiedTable(table)
+                + io.yak.ops.connector.jdbc.database.query.JdbcReadQuery.whereClause(where, ranges)
+                + " ORDER BY " + key;
+    }
+
     private static Object read(ResultSet result, LogicalTypeRoot type) throws SQLException {
         return read(result, 1, type);
     }

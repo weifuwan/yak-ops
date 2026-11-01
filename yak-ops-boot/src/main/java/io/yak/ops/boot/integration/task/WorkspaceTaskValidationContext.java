@@ -26,6 +26,11 @@ final class WorkspaceTaskValidationContext implements TaskValidationContext {
     }
 
     @Override
+    public boolean samePhysicalServer(String firstDatasourceId, String secondDatasourceId) {
+        return resources.samePhysicalServer(workspaceId, firstDatasourceId, secondDatasourceId);
+    }
+
+    @Override
     public DataSourceTable tableMetadata(String datasourceId, TableId tableId) {
         return resources.table(workspaceId, datasourceId, tableId.catalog(), tableId.schema(), tableId.table());
     }

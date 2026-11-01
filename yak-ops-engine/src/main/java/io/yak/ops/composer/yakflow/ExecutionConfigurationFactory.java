@@ -10,6 +10,7 @@ import io.yak.ops.core.configuration.ExecutionOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.core.configuration.SchemaEvolutionOptions;
 import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
+import io.yak.ops.flow.runtime.executiongraph.BatchExecutionJournal;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -80,6 +81,7 @@ public final class ExecutionConfigurationFactory {
 
         if (boundedness == Boundedness.BOUNDED) {
             return configuration
+                    .set(CheckpointingOptions.RESTORE_LATEST, hasBatchExecutionState(stateDirectory))
                     .set(ExecutionOptions.RUNTIME_MODE, RuntimeExecutionMode.BATCH)
                     .set(CheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ZERO)
                     .set(ExecutionOptions.MAX_RESTART_ATTEMPTS, 0);
@@ -93,6 +95,14 @@ public final class ExecutionConfigurationFactory {
                 .set(CheckpointingOptions.CHECKPOINTING_INTERVAL, options.get(EnvironmentOptions.CHECKPOINT_INTERVAL))
                 .set(CheckpointingOptions.MAX_CONCURRENT_CHECKPOINTS, 1)
                 .set(ExecutionOptions.MAX_RESTART_ATTEMPTS, options.get(EnvironmentOptions.MAX_RESTARTS));
+    }
+
+    private static boolean hasBatchExecutionState(Path directory) {
+        try {
+            return BatchExecutionJournal.hasExecutionState(directory);
+        } catch (java.io.IOException failure) {
+            throw new IllegalStateException("Cannot inspect existing batch execution state", failure);
+        }
     }
 
     private static boolean hasCheckpointData(Path directory) {

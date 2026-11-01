@@ -240,8 +240,8 @@ async def verify_partial_task_save(page):
     await page.reload()
     await expect_task_name(page, "Partial save")
     await pick_datasources(page)
-    await pick_option(page, page.locator("#source").get_by_role("combobox", name="表", exact=True), "orders")
-    await pick_option(page, page.locator("#target").get_by_role("combobox", name="表", exact=True), "public.ods_orders")
+    await pick_option(page, page.locator("#source").get_by_role("combobox", name="表", exact=True), "app.orders")
+    await pick_option(page, page.locator("#target").get_by_role("combobox", name="表", exact=True), "ods.public.ods_orders")
     await configure_editor_cron(page, "0 0 6 * * ?")
 
     gate = asyncio.Event()
@@ -331,9 +331,282 @@ async def pick_datasources(page):
         await pick_option(page, page.locator("#datasource").get_by_role("combobox", name="数据源", exact=True).nth(index), name)
 
 
-def batch_write_mode(page):
-    """Select the Sink-wide write-mode control, not the target datasource."""
-    return page.locator("#target").get_by_role("combobox", name="批量设置写入方式", exact=True)
+def transfer_panel(page, title):
+    return page.locator("#source section").filter(has=page.get_by_role("heading", name=title, exact=True))
+
+
+def mapping_row(page, table):
+    return page.locator("#target").get_by_role("row").filter(
+        has=page.get_by_role("checkbox", name="选择映射 " + table, exact=True))
+
+
+async def select_source_tables(page, tables):
+    panel = transfer_panel(page, "源端库表")
+    for table in tables:
+        await panel.get_by_role("checkbox", name="选择 " + table, exact=True).check()
+    await page.get_by_role("button", name="加入已选库表", exact=True).click()
+    for table in tables:
+        await expect(transfer_panel(page, "已选库表").get_by_role("checkbox", name="选择 " + table, exact=True)).to_be_visible()
+
+
+async def expect_selected_tables(page, count):
+    await expect(transfer_panel(page, "已选库表").get_by_role("checkbox", name=re.compile(r"^选择 "))).to_have_count(count)
+
+
+async def open_mapping(page, table, tab="目标映射"):
+    await mapping_row(page, table).get_by_role("button", name="配置", exact=True).last.click()
+    dialog = page.get_by_role("dialog", name="目标表配置", exact=True)
+    await expect(dialog).to_be_visible()
+    await expect(dialog.get_by_text(table, exact=True)).to_be_visible()
+    await dialog.get_by_role("tab", name=tab, exact=True).click()
+    return dialog
+
+
+async def set_mapping_target(page, source, target):
+    dialog = await open_mapping(page, source)
+    await pick_option(page, dialog.get_by_role("combobox", name="目标表", exact=True), target)
+    await apply_drawer(dialog)
+
+
+async def expect_mapping_write_mode(page, table, label, disabled=False):
+    dialog = await open_mapping(page, table)
+    control = dialog.get_by_role("combobox", name="写入方式", exact=True)
+    await expect(control).to_contain_text(label)
+    if disabled:
+        await expect(control).to_be_disabled()
+    await dialog.get_by_role("button", name="取消", exact=True).click()
+
+
+async def open_field_expressions(page):
+    await page.locator("#field-mapping").get_by_role("button", name="表达式", exact=True).click()
+    dialog = page.get_by_role("dialog", name="字段表达式配置", exact=True)
+    await expect(dialog).to_be_visible()
+    return dialog
+
+
+async def capture_editor_widths(page, name, replication=False):
+    artifacts = Path(os.environ["YAK_UI_ARTIFACT_DIR"])
+    for width, height in ((1440, 900), (1920, 1080)):
+        await page.set_viewport_size({"width": width, "height": height})
+        await page.locator("#datasource").scroll_into_view_if_needed()
+        await page.screenshot(path=str(artifacts / f"{name}-{width}.png"), full_page=True)
+        anchor = "目标表映射" if replication else "数据去向"
+        await page.get_by_role("navigation", name="任务配置导航").get_by_role("button", name=anchor, exact=True).click()
+        await page.locator("#target").scroll_into_view_if_needed()
+        if replication:
+            await page.locator("#target table").evaluate("table => { table.parentElement.scrollLeft = table.parentElement.scrollWidth; }")
+        await page.screenshot(path=str(artifacts / f"{name}-target-{width}.png"), full_page=True)
+        if replication:
+            await page.locator("#target table").evaluate("table => { table.parentElement.scrollLeft = 0; }")
+    await page.set_viewport_size({"width": 1440, "height": 900})
+
+
+async def verify_batch_table_options(page):
+    """Author read/write intent and preview exact values without pretending to execute JDBC."""
+    from mock_api import sources
+    state["data_sources"] = [*sources, {
+        "id": "mysql-dst", "name": "MySQL target", "dbType": "MYSQL", "database": "ods",
+    }]
+    await page.goto(site("/data-sync?create=1"))
+    await choose_solution(page, "单表离线", "Batch table options", target_type="MySQL")
+    for index, label in enumerate(("MySQL source", "MySQL target")):
+        await pick_option(page, page.locator("#datasource").get_by_role("combobox", name="数据源", exact=True).nth(index), label)
+    source, target = page.locator("#source"), page.locator("#target")
+    await pick_option(page, source.get_by_role("combobox", name="表", exact=True), "app.orders")
+    await pick_option(page, target.get_by_role("combobox", name="表", exact=True), "ods.ods_orders")
+    predicate = "id >= 1 OR id = 0"
+    await source.get_by_role("textbox", name="数据过滤", exact=True).fill(predicate)
+    await source.get_by_role("textbox", name="切分键", exact=True).fill("id")
+    await source.get_by_role("button", name="来源高级配置", exact=True).click()
+    await source.get_by_role("spinbutton", name="读取批次大小", exact=True).fill("128")
+    await source.get_by_role("spinbutton", name="查询超时（秒）", exact=True).fill("30")
+
+    state["fail_preview"] = True
+    await source.get_by_role("button", name="数据预览", exact=True).click()
+    preview = page.get_by_role("dialog", name="数据预览", exact=True)
+    await expect(preview.get_by_role("alert")).to_contain_text("数据预览失败")
+    state["fail_preview"] = False
+    await preview.get_by_role("button", name="重试", exact=True).click()
+    await expect(preview.get_by_text("9007199254740993", exact=True)).to_be_visible()
+    await expect(preview.get_by_text("123456789012345.678900", exact=True)).to_be_visible()
+    requests = [request for request in state["requests"] if request[1].endswith("/catalog/preview")]
+    assert len(requests) == 2 and all(request[3] == "ws1" for request in requests)
+    assert requests[-1][2] == {"database": "app", "table": "orders", "where": predicate, "limit": 20}
+    assert state["created_tasks"] == state["updated_tasks"] == 0
+    await preview.get_by_role("button", name="关闭", exact=True).click()
+
+    await expect(target.get_by_role("combobox", name="主键冲突", exact=True)).to_contain_text("insert into（主键冲突时报错）")
+    await pick_option(page, target.get_by_role("combobox", name="主键冲突", exact=True), "replace into（替换冲突记录）")
+    await target.get_by_role("textbox", name="导入前准备语句 1", exact=True).fill("DELETE FROM ods_orders")
+    await target.get_by_role("button", name="添加", exact=True).first.click()
+    await target.get_by_role("textbox", name="导入前准备语句 2", exact=True).fill("INSERT INTO ods_orders (id) VALUES (0)")
+    await target.get_by_role("textbox", name="导入后完成语句 1", exact=True).fill("DELETE FROM ods_orders WHERE id = 0")
+    await target.get_by_role("button", name="去向高级配置", exact=True).click()
+    await target.get_by_role("spinbutton", name="写入批次大小", exact=True).fill("64")
+    await page.get_by_role("button", name="编辑字段类型映射", exact=True).click()
+    types = page.get_by_role("dialog", name="编辑字段类型映射", exact=True)
+    await types.get_by_role("button", name="添加类型映射", exact=True).click()
+    await pick_option(page, types.get_by_role("combobox", name="来源类型 1", exact=True), "INT")
+    await pick_option(page, types.get_by_role("combobox", name="目标类型 1", exact=True), "BIGINT")
+    await apply_drawer(types)
+    assert state["created_tasks"] == 0
+    await page.reload()
+    await expect(source.get_by_role("textbox", name="数据过滤", exact=True)).to_have_value(predicate)
+    await expect(source.get_by_role("textbox", name="切分键", exact=True)).to_have_value("id")
+    await expect(target.get_by_role("textbox", name="导入前准备语句 2", exact=True)).to_have_value("INSERT INTO ods_orders (id) VALUES (0)")
+    await page.get_by_role("button", name="保存", exact=True).click()
+    await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
+    saved = deepcopy(state["task"]["parameters"])
+    assert state["task"]["parameterSchemaVersion"] == 8
+    assert saved["source"]["tables"][0]["read"] == {"where": predicate, "splitKey": "id"}
+    assert saved["source"]["tables"][0]["options"] == {"fetchSize": 128, "queryTimeoutSeconds": 30}
+    assert saved["sink"]["tables"][0]["write"] == {
+        "mode": "REPLACE", "batchSize": 64,
+        "preSql": ["DELETE FROM ods_orders", "INSERT INTO ods_orders (id) VALUES (0)"],
+        "postSql": ["DELETE FROM ods_orders WHERE id = 0"],
+    }
+    assert saved["sink"]["typeMappings"] == [{"sourceType": "INT", "targetType": "BIGINT"}]
+    await page.reload()
+    await expect(target.get_by_role("combobox", name="主键冲突", exact=True)).to_contain_text("replace into（替换冲突记录）")
+    await source.get_by_role("button", name="来源高级配置", exact=True).click()
+    await expect(source.get_by_role("spinbutton", name="读取批次大小", exact=True)).to_have_value("128")
+    await expect(source.get_by_role("spinbutton", name="查询超时（秒）", exact=True)).to_have_value("30")
+    await capture_editor_widths(page, "batch-table-options")
+    assert state["task"]["parameters"] == saved and state["updated_tasks"] == 0
+
+
+async def verify_replication_table_options(page):
+    """Per-table edits, selective bulk changes and serialized dynamic-selection intent."""
+    state["catalog_mode"] = "multi"
+    state["catalog_page_size"] = 1
+    dialog = await prepare_database_task(page, "整库实时")
+    await dialog.get_by_role("button", name="下一步", exact=True).click()
+    await pick_datasources(page)
+    await expect(page.get_by_role("radio", name="使用正则选表", exact=True)).to_be_disabled()
+    advanced = await open_advanced(page, "DDL 能力配置")
+    await pick_option(page, advanced.get_by_role("combobox", name="目标表结构", exact=True), "创建或调整目标表")
+    await apply_drawer(advanced)
+    await transfer_panel(page, "源端库表").get_by_role("button", name="加载更多", exact=True).click()
+    await select_source_tables(page, ["app.batch_a", "app.batch_b"])
+    await expect_selected_tables(page, 2)
+    pages = [request[2] for request in state["requests"] if request[1] == "/api/v1/data-source/src/catalog/table-page"]
+    assert {request["offset"] for request in pages} >= {0, 1}
+    mapping = await open_mapping(page, "app.batch_a", "同步配置")
+    await mapping.get_by_role("textbox", name="全量条件", exact=True).fill("id > 99")
+    await mapping.get_by_role("button", name="取消", exact=True).click()
+    mapping = await open_mapping(page, "app.batch_a", "同步配置")
+    await expect(mapping.get_by_role("textbox", name="全量条件", exact=True)).to_have_value("")
+    await mapping.get_by_role("textbox", name="源端切分列", exact=True).fill("id")
+    await mapping.get_by_role("textbox", name="全量条件", exact=True).fill("id > 0")
+    await mapping.get_by_role("checkbox", name="DELETE", exact=True).uncheck()
+    await mapping.get_by_role("tab", name="引擎参数", exact=True).click()
+    await mapping.get_by_role("spinbutton", name="写入批次大小", exact=True).fill("64")
+    await apply_drawer(mapping)
+    mapping = await open_mapping(page, "app.batch_b", "同步配置")
+    await mapping.get_by_role("checkbox", name="是否跳过全量同步", exact=True).check()
+    await apply_drawer(mapping)
+    for table in ("app.batch_a", "app.batch_b"):
+        await mapping_row(page, table).get_by_role("checkbox", name="选择映射 " + table, exact=True).check()
+    await page.locator("#target").get_by_role("button", name="批量修改", exact=True).click()
+    bulk = page.get_by_role("dialog", name="批量修改 2 张表", exact=True)
+    await bulk.get_by_role("checkbox", name="目标表模板", exact=True).check()
+    await bulk.get_by_role("textbox", name="目标表模板", exact=True).fill("dw_${table}")
+    await bulk.get_by_role("checkbox", name="写入批次大小", exact=True).check()
+    await bulk.get_by_role("spinbutton", name="写入批次大小", exact=True).fill("128")
+    await apply_drawer(bulk)
+    assert state["created_tasks"] == state["updated_tasks"] == 0
+    await page.get_by_role("button", name="保存", exact=True).click()
+    await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
+    saved = deepcopy(state["task"]["parameters"])
+    assert saved["source"]["tables"][0]["snapshot"] == {"chunkKeyColumn": "id", "where": "id > 0"}
+    assert saved["source"]["tables"][0]["dml"] == {"events": ["INSERT", "UPDATE"]}
+    assert saved["source"]["tables"][1]["snapshot"] == {"skip": True}
+    assert "dml" not in saved["source"]["tables"][1]
+    assert [table["table"] for table in saved["sink"]["tables"]] == ["dw_batch_a", "dw_batch_b"]
+    assert all(table["write"]["batchSize"] == 128 for table in saved["sink"]["tables"])
+    await page.reload()
+    mapping = await open_mapping(page, "app.batch_a", "同步配置")
+    await expect(mapping.get_by_role("textbox", name="全量条件", exact=True)).to_have_value("id > 0")
+    await expect(mapping.get_by_role("checkbox", name="DELETE", exact=True)).not_to_be_checked()
+    await mapping.get_by_role("button", name="取消", exact=True).click()
+    await capture_editor_widths(page, "replication-explicit", replication=True)
+    await page.get_by_role("radio", name="使用正则选表", exact=True).click()
+    change = page.get_by_role("dialog", name="切换选表方式", exact=True)
+    await change.get_by_role("button", name="取消", exact=True).click()
+    await expect(page.get_by_role("radio", name="使用正则选表", exact=True)).not_to_be_checked()
+    await expect_selected_tables(page, 2)
+    await page.get_by_role("radio", name="使用正则选表", exact=True).click()
+    await change.get_by_role("button", name="确认", exact=True).click()
+    await page.get_by_role("textbox", name="库名正则", exact=True).fill("^app$")
+    await page.get_by_role("textbox", name="表名正则", exact=True).fill("^batch_[ab]$")
+    await page.get_by_role("textbox", name="新表目标表模板", exact=True).fill("regex_${table}")
+    await page.get_by_role("button", name="新表默认配置", exact=True).click()
+    await page.locator("#source").get_by_role("textbox", name="全量条件", exact=True).fill("id > 5")
+    await page.locator("#source").get_by_role("checkbox", name="DELETE", exact=True).uncheck()
+    await expect_save_rejected(page, "请先匹配并应用当前正则规则")
+    await page.get_by_role("button", name="匹配库表", exact=True).click()
+    await expect(page.get_by_text("已匹配 2 张表", exact=True)).to_be_visible()
+    assert state["task"]["parameters"] == saved
+    async with page.expect_response(lambda response: response.request.method == "PUT"
+                                    and response.url.endswith("/api/v1/task-definitions/new-task")):
+        await page.get_by_role("button", name="保存", exact=True).click()
+    selected = state["task"]["parameters"]
+    assert selected["source"]["selection"] == {
+        "mode": "REGEX", "databasePattern": "^app$", "tablePattern": "^batch_[ab]$",
+        "snapshot": {"where": "id > 5"}, "dml": {"events": ["INSERT", "UPDATE"]},
+    }
+    assert selected["sink"]["mapping"]["table"] == "regex_${table}"
+    assert [table["table"] for table in selected["sink"]["tables"]] == ["regex_batch_a", "regex_batch_b"]
+    assert state["task"]["definitionVersion"] == 2 and state["task"]["parameterSchemaVersion"] == 8
+    assert not state["publications"], "Editing selection must not publish or run a CDC consumer"
+    await page.reload()
+    await expect(page.get_by_role("radio", name="使用正则选表", exact=True)).to_be_checked()
+    await expect(page.get_by_role("textbox", name="新表目标表模板", exact=True)).to_have_value("regex_${table}")
+    await capture_editor_widths(page, "replication-table-options", replication=True)
+
+    # A delayed rematch must not let a dialog edit a row that its response can remove.
+    persisted = deepcopy(state["task"]["parameters"])
+    writes = (state["created_tasks"], state["updated_tasks"])
+    await page.get_by_role("textbox", name="表名正则", exact=True).fill("^batch_a$")
+    state["table_page_gate"] = asyncio.Event()
+    state["table_page_started"] = asyncio.Event()
+    await page.get_by_role("button", name="匹配库表", exact=True).click()
+    try:
+        await asyncio.wait_for(state["table_page_started"].wait(), timeout=5)
+        for table in ("app.batch_a", "app.batch_b"):
+            await expect(mapping_row(page, table).get_by_role("button", name="配置", exact=True).last).to_be_disabled()
+        await expect(page.get_by_role("button", name="匹配库表", exact=True)).to_be_disabled()
+        assert (state["created_tasks"], state["updated_tasks"]) == writes
+        assert state["task"]["parameters"] == persisted
+    finally:
+        state.pop("table_page_gate").set()
+        state.pop("table_page_started")
+    await expect(page.get_by_text("已匹配 1 张表", exact=True)).to_be_visible()
+    await expect(mapping_row(page, "app.batch_b")).to_have_count(0)
+    await expect(mapping_row(page, "app.batch_a").get_by_role("button", name="配置", exact=True).last).to_be_enabled()
+    mapping = await open_mapping(page, "app.batch_a", "同步配置")
+    await expect(page.get_by_role("button", name="匹配库表", exact=True, include_hidden=True)).to_be_disabled()
+    await mapping.get_by_role("textbox", name="全量条件", exact=True).fill("id > 99")
+    await mapping.get_by_role("button", name="取消", exact=True).click()
+    await expect(page.get_by_role("button", name="匹配库表", exact=True)).to_be_enabled()
+    mapping = await open_mapping(page, "app.batch_a", "同步配置")
+    await expect(mapping.get_by_role("textbox", name="全量条件", exact=True)).to_have_value("id > 5")
+    await mapping.get_by_role("textbox", name="全量条件", exact=True).fill("id > 6")
+    await apply_drawer(mapping)
+    assert state["task"]["parameters"] == persisted
+    assert (state["created_tasks"], state["updated_tasks"]) == writes
+    async with page.expect_response(lambda response: response.request.method == "PUT"
+                                    and response.url.endswith("/api/v1/task-definitions/new-task")):
+        await page.get_by_role("button", name="保存", exact=True).click()
+    final = state["task"]["parameters"]
+    assert final["source"]["selection"]["tablePattern"] == "^batch_a$"
+    assert final["source"]["selection"]["snapshot"] == {"where": "id > 5"}
+    assert len(final["source"]["tables"]) == 1
+    assert final["source"]["tables"][0]["snapshot"] == {"where": "id > 6"}
+    await page.reload()
+    mapping = await open_mapping(page, "app.batch_a", "同步配置")
+    await expect(mapping.get_by_role("textbox", name="全量条件", exact=True)).to_have_value("id > 6")
+    await mapping.get_by_role("button", name="取消", exact=True).click()
 
 
 async def verify_multitable_mapping(page):
@@ -343,21 +616,16 @@ async def verify_multitable_mapping(page):
     dialog = await prepare_database_task(page, "整库实时")
     await dialog.get_by_role("button", name="下一步", exact=True).click()
     await pick_datasources(page)
+    await select_source_tables(page, ["app.batch_a", "app.batch_b"])
     for table in ("batch_a", "batch_b"):
-        await page.get_by_role("checkbox", name=re.compile(r"选择 (.*\.)?" + table + r"$")).check()
-        await pick_option(
-            page,
-            page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?" + table + r"$")),
-            re.compile(r"(.*\.)?batch_a_copy$"))
-    await expect(page.get_by_text("去向表不能重复", exact=True).first).to_be_visible()
-    await expect_save_rejected(page, "去向表不能重复")
-    await pick_option(
-        page,
-        page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?batch_b$")),
-        re.compile(r"(.*\.)?batch_b_copy$"))
-    await expect(batch_write_mode(page)).to_be_disabled()
+        await set_mapping_target(page, "app." + table, "ods.public.batch_a_copy")
+    await expect(mapping_row(page, "app.batch_a").get_by_text("目标冲突", exact=True)).to_be_visible()
+    await expect(mapping_row(page, "app.batch_b").get_by_text("目标冲突", exact=True)).to_be_visible()
+    await expect_save_rejected(page, "请完善目标表和表映射")
+    await set_mapping_target(page, "app.batch_b", "ods.public.batch_b_copy")
+    await expect_mapping_write_mode(page, "app.batch_a", "按主键更新", disabled=True)
     await page.reload()
-    await expect(page.get_by_text("已选 2 / 100", exact=True)).to_be_visible()
+    await expect_selected_tables(page, 2)
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
     await page.get_by_role("button", name="保存", exact=True).click()
     await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
@@ -383,39 +651,40 @@ async def verify_multitable_selection(page):
     await set_read_strategy(page, "全量后结束")
     await pick_datasources(page)
 
-    source = page.locator("#source")
-    search = source.get_by_placeholder("搜索来源表", exact=True)
+    source = transfer_panel(page, "源端库表")
+    search = source.get_by_role("textbox", name="源端库表表过滤", exact=True)
     checkbox_a = source.get_by_role("checkbox", name=re.compile(r"选择 (.*\.)?batch_a$"))
     checkbox_b = source.get_by_role("checkbox", name=re.compile(r"选择 (.*\.)?batch_b$"))
 
     await search.fill("batch_b")
+    await search.press("Enter")
     await expect(checkbox_a).to_have_count(0)
-    await source.get_by_role("button", name="选择当前结果", exact=True).click()
+    await source.get_by_role("checkbox").first.check()
     await expect(checkbox_b).to_be_checked()
-    await expect(page.get_by_text("已选 1 / 100", exact=True)).to_be_visible()
+    await page.get_by_role("button", name="加入已选库表", exact=True).click()
+    await expect_selected_tables(page, 1)
 
     await search.fill("")
-    await checkbox_a.check()
-    await expect(page.get_by_text("已选 2 / 100", exact=True)).to_be_visible()
+    await search.press("Enter")
+    await select_source_tables(page, ["app.batch_a"])
+    await expect_selected_tables(page, 2)
 
-    await checkbox_b.uncheck()
-    await expect(page.get_by_text("已选 1 / 100", exact=True)).to_be_visible()
-    await checkbox_b.check()
-    await expect(page.get_by_text("已选 2 / 100", exact=True)).to_be_visible()
+    await transfer_panel(page, "已选库表").get_by_role("checkbox", name="选择 app.batch_b", exact=True).check()
+    await page.get_by_role("button", name="移除已选库表", exact=True).click()
+    await page.get_by_role("dialog", name="移除已选库表", exact=True).get_by_role("button", name="确认", exact=True).click()
+    await expect_selected_tables(page, 1)
+    await select_source_tables(page, ["app.batch_b"])
+    await expect_selected_tables(page, 2)
 
-    await page.locator("#target").get_by_role("row").filter(
-        has_text=re.compile(r"(?:^|\.)batch_b")
-    ).get_by_role("button", name="移除", exact=True).click()
+    await mapping_row(page, "app.batch_b").get_by_role("checkbox", name="选择映射 app.batch_b", exact=True).check()
+    await page.locator("#target").get_by_role("button", name="批量移除", exact=True).click()
+    await page.get_by_role("dialog", name="批量移除库表", exact=True).get_by_role("button", name="确认", exact=True).click()
     await expect(checkbox_b).not_to_be_checked()
-    await expect(page.get_by_text("已选 1 / 100", exact=True)).to_be_visible()
+    await expect_selected_tables(page, 1)
 
-    await pick_option(
-        page,
-        page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?batch_a$")),
-        re.compile(r"(.*\.)?batch_a_copy$"),
-    )
+    await set_mapping_target(page, "app.batch_a", "ods.public.batch_a_copy")
     await page.reload()
-    await expect(page.get_by_text("已选 1 / 100", exact=True)).to_be_visible()
+    await expect_selected_tables(page, 1)
     await expect(source.get_by_role("checkbox", name=re.compile(r"选择 (.*\.)?batch_b$"))).not_to_be_checked()
     await page.get_by_role("button", name="保存", exact=True).click()
     await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
@@ -479,17 +748,15 @@ async def verify_realtime_stages(page):
     await dialog.get_by_role("button", name="下一步", exact=True).click()
     await expect_read_strategy(page, "全量后持续增量")
     await pick_datasources(page)
+    await select_source_tables(page, ["app.batch_a", "app.batch_b"])
     for table in ("batch_a", "batch_b"):
-        await page.get_by_role("checkbox", name=re.compile(r"选择 (.*\.)?" + table + r"$")).check()
-        await pick_option(page,
-                          page.get_by_role("combobox", name=re.compile(r"去向表 (.*\.)?" + table + r"$")),
-                          re.compile(r"(.*\.)?" + table + r"_copy$"))
-    await expect(batch_write_mode(page)).to_be_disabled()
+        await set_mapping_target(page, "app." + table, "ods.public." + table + "_copy")
+    await expect_mapping_write_mode(page, "app.batch_a", "按主键更新", disabled=True)
     advanced = await open_advanced(page, parameter_tab="运行时配置")
     await expect(advanced.locator("#schedule")).to_have_count(0)
     await advanced.get_by_role("button", name="取消", exact=True).click()
     await page.reload()
-    await expect(page.get_by_text("已选 2 / 100", exact=True)).to_be_visible()
+    await expect_selected_tables(page, 2)
     await page.get_by_role("button", name="保存", exact=True).click()
     await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
     saved = [item[2] for item in state["requests"]
@@ -635,17 +902,22 @@ async def verify_editor_round_trip(page):
     await choose_solution(page, "整库实时", "Keyless replication", target_type="MySQL")
     for index, label in enumerate(("MySQL source", "MySQL target")):
         await pick_option(page, page.locator("#datasource").get_by_role("combobox", name="数据源", exact=True).nth(index), label)
-    await page.get_by_role("checkbox", name="选择 app.orders", exact=True).check()
-    await pick_option(page, page.get_by_role("combobox", name="去向表 app.orders", exact=True), "ods.ods_orders")
+    await select_source_tables(page, ["app.orders"])
+    await set_mapping_target(page, "app.orders", "ods.ods_orders")
     await expect_save_rejected(page, "无主键来源表需关闭同步结构变更")
     await set_schema_changes(page, False)
-    await pick_option(page, page.get_by_role("combobox", name="快照分片字段", exact=True), "bucket")
+    mapping = await open_mapping(page, "app.orders", "同步配置")
+    await mapping.get_by_role("textbox", name="源端切分列", exact=True).fill("bucket")
     # An explicit change of write identity must not retain hidden target-key overrides.
-    await page.get_by_role("textbox", name="目标主键", exact=True).fill("bucket")
-    writer = page.get_by_role("combobox", name="写入方式 app.orders", exact=True)
+    await mapping.get_by_role("textbox", name="目标表同步主键", exact=True).fill("bucket")
+    await mapping.get_by_role("tab", name="目标映射", exact=True).click()
+    writer = mapping.get_by_role("combobox", name="写入方式", exact=True)
     await pick_option(page, writer, "逐行更新")
-    await expect(page.get_by_role("textbox", name="目标主键", exact=True)).to_have_count(0)
-    await expect(page.get_by_role("checkbox", name="选择 app.other_orders", exact=True)).to_be_disabled()
+    await mapping.get_by_role("tab", name="同步配置", exact=True).click()
+    await expect(mapping.get_by_role("textbox", name="目标表同步主键", exact=True)).to_be_disabled()
+    await expect(mapping.get_by_role("textbox", name="目标表同步主键", exact=True)).to_have_value("")
+    await apply_drawer(mapping)
+    await expect(transfer_panel(page, "源端库表").get_by_role("checkbox", name="选择 app.other_orders", exact=True)).to_be_disabled()
     await expect_read_strategy(page, "全量后持续增量", disabled=True)
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
     await page.get_by_role("button", name="保存", exact=True).click()
@@ -657,8 +929,11 @@ async def verify_editor_round_trip(page):
         "mode": "RETRACT", "transaction": {"mode": "CHECKPOINT_XA"},
     }
     await page.reload()
+    mapping = await open_mapping(page, "app.orders")
     await expect(writer).to_contain_text("逐行更新")
-    await expect(page.get_by_role("combobox", name="快照分片字段", exact=True)).to_contain_text("bucket")
+    await mapping.get_by_role("tab", name="同步配置", exact=True).click()
+    await expect(mapping.get_by_role("textbox", name="源端切分列", exact=True)).to_have_value("bucket")
+    await mapping.get_by_role("button", name="取消", exact=True).click()
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
 
 
@@ -692,6 +967,7 @@ async def verify_version_publication(page):
                                     and response.url.endswith("/api/v1/task-definitions/task1")):
         await page.get_by_role("button", name="保存", exact=True).click()
     assert state["task"]["definitionVersion"] == 1 and state["task"]["revision"] == 2
+    assert state["task"]["parameterSchemaVersion"] == 7, "Metadata-only saves preserve the historical parameter contract"
 
     advanced = await open_advanced(page, parameter_tab="运行时配置")
     await advanced.get_by_role("textbox", name="并行度", exact=True).fill("9")
@@ -708,6 +984,7 @@ async def verify_version_publication(page):
         await page.get_by_role("button", name="保存", exact=True).click()
     assert state["task"]["status"] == "PUBLISHED"
     assert state["task"]["definitionVersion"] == 2 and state["task"]["publishedVersion"] == 1
+    assert state["task"]["parameterSchemaVersion"] == 8
     assert state["task"]["debug"] and state["task"]["publishedDebug"] is False
     assert state["task"]["hasUnpublishedChanges"] and not state["publications"]
     assert instance == historical_instance
@@ -733,6 +1010,7 @@ async def verify_version_publication(page):
     await expect(restore).to_be_hidden()
     assert state["task"] == saved_v2, "Restoring history must not save or publish automatically"
     assert state["versions"][("task1", 1)]["parameters"] == original
+    assert state["versions"][("task1", 1)]["parameterSchemaVersion"] == 7
     await expect_task_name(page, "Versioned orders")
     advanced = await open_advanced(page, parameter_tab="运行时配置")
     await expect(advanced.get_by_role("switch", name="Debug", exact=True)).to_be_checked()
@@ -753,6 +1031,7 @@ async def verify_version_publication(page):
                                     and response.url.endswith("/api/v1/task-definitions/task1")):
         await page.get_by_role("button", name="保存", exact=True).click()
     assert state["task"]["definitionVersion"] == 3 and state["task"]["parameters"] == original
+    assert state["task"]["parameterSchemaVersion"] == 8, "Saving restored history creates a current-contract version"
     assert state["task"]["publishedVersion"] == 1 and state["task"]["publishedDebug"] is False
     assert state["versions"][("task1", 2)]["parameters"] == saved_v2["parameters"]
     async with page.expect_response(lambda response: response.request.method == "POST"
@@ -812,8 +1091,8 @@ async def verify_field_mapping(page):
     await choose_solution(page, "单表离线", "Mapped orders")
     await pick_datasources(page)
     source_select = page.locator("#source").get_by_role("combobox", name="表", exact=True)
-    await pick_option(page, source_select, "orders")
-    await pick_option(page, page.locator("#target").get_by_role("combobox", name="表", exact=True), "public.ods_orders")
+    await pick_option(page, source_select, "app.orders")
+    await pick_option(page, page.locator("#target").get_by_role("combobox", name="表", exact=True), "ods.public.ods_orders")
     fields = page.locator("#field-mapping")
     await expect(fields.get_by_role("checkbox", name="同步字段 id", exact=True)).to_be_checked()
     await pick_option(page, fields.get_by_role("combobox", name="id 的输出字段", exact=True), "order_id")
@@ -824,12 +1103,16 @@ async def verify_field_mapping(page):
     await pick_option(page, fields.get_by_role("combobox", name="amount 的输出字段", exact=True), "amount")
     await fields.get_by_role("button", name="上移 amount", exact=True).click()
     await fields.get_by_role("button", name="使用映射后的来源主键", exact=True).click()
-    await fields.get_by_role("textbox", name="行过滤", exact=True).fill("amount > 0")
+    expressions = await open_field_expressions(page)
+    await expressions.get_by_role("textbox", name="行过滤", exact=True).fill("amount > 0")
+    await apply_drawer(expressions)
     await page.reload()
     await expect(fields.get_by_role("combobox", name="id 的输出字段", exact=True)).to_contain_text("order_id")
     await expect(fields.get_by_role("checkbox", name="同步字段 memo", exact=True)).not_to_be_checked()
-    await expect(fields.get_by_role("textbox", name="输出主键", exact=True)).to_have_value("order_id")
-    await expect(fields.get_by_role("textbox", name="行过滤", exact=True)).to_have_value("amount > 0")
+    expressions = await open_field_expressions(page)
+    await expect(expressions.get_by_role("textbox", name="输出主键", exact=True)).to_have_value("order_id")
+    await expect(expressions.get_by_role("textbox", name="行过滤", exact=True)).to_have_value("amount > 0")
+    await expressions.get_by_role("button", name="取消", exact=True).click()
     await fields.scroll_into_view_if_needed()
     await page.screenshot(path=str(Path(os.environ["YAK_UI_ARTIFACT_DIR"]) / "field-mapping.png"), full_page=True)
     await page.get_by_role("button", name="保存", exact=True).click()
@@ -840,11 +1123,12 @@ async def verify_field_mapping(page):
     }]
     await page.reload()
     await expect(fields.get_by_role("combobox", name="id 的输出字段", exact=True)).to_contain_text("order_id")
-    await fields.get_by_role("button", name="表达式", exact=True).click()
+    expressions = await open_field_expressions(page)
     projection = "id AS order_id, ABS(amount) AS amount"
     row_filter = "amount > 10 AND memo <> 'skip,me'"
-    await fields.get_by_role("textbox", name="投影表达式", exact=True).fill(projection)
-    await fields.get_by_role("textbox", name="行过滤", exact=True).fill(row_filter)
+    await expressions.get_by_role("textbox", name="投影表达式", exact=True).fill(projection)
+    await expressions.get_by_role("textbox", name="行过滤", exact=True).fill(row_filter)
+    await apply_drawer(expressions)
     async with page.expect_response(lambda response: response.request.method == "PUT"
                                     and response.url.endswith("/api/v1/task-definitions/new-task")):
         await page.get_by_role("button", name="保存", exact=True).click()
@@ -852,8 +1136,10 @@ async def verify_field_mapping(page):
     assert authored["transform"][0]["projection"] == projection
     assert authored["transform"][0]["filter"] == row_filter
     await page.reload()
-    await expect(fields.get_by_role("textbox", name="投影表达式", exact=True)).to_have_value(projection)
-    await expect(fields.get_by_role("textbox", name="行过滤", exact=True)).to_have_value(row_filter)
+    expressions = await open_field_expressions(page)
+    await expect(expressions.get_by_role("textbox", name="投影表达式", exact=True)).to_have_value(projection)
+    await expect(expressions.get_by_role("textbox", name="行过滤", exact=True)).to_have_value(row_filter)
+    await expressions.get_by_role("button", name="取消", exact=True).click()
     await rename_task(page, "Mapped orders renamed")
     async with page.expect_response(lambda response: response.request.method == "PUT"
                                     and response.url.endswith("/api/v1/task-definitions/new-task")):
@@ -863,15 +1149,19 @@ async def verify_field_mapping(page):
     assert "parameters" not in last_write
     assert state["task"]["parameters"] == authored
 
-    await pick_option(page, source_select, "orders_archive")
+    await pick_option(page, source_select, "app.orders_archive")
     confirm = page.get_by_role("dialog", name="更换来源表", exact=True)
     await expect(confirm).to_be_visible()
     await confirm.get_by_role("button", name="取消", exact=True).click()
-    await expect(fields.get_by_role("textbox", name="投影表达式", exact=True)).to_have_value(projection)
-    await pick_option(page, source_select, "orders_archive")
+    expressions = await open_field_expressions(page)
+    await expect(expressions.get_by_role("textbox", name="投影表达式", exact=True)).to_have_value(projection)
+    await expressions.get_by_role("button", name="取消", exact=True).click()
+    await pick_option(page, source_select, "app.orders_archive")
     await confirm.get_by_role("button", name="确认", exact=True).click()
-    await expect(fields.get_by_role("textbox", name="行过滤", exact=True)).to_have_value("")
-    await expect(fields.get_by_role("textbox", name="输出主键", exact=True)).to_have_value("")
+    expressions = await open_field_expressions(page)
+    await expect(expressions.get_by_role("textbox", name="行过滤", exact=True)).to_have_value("")
+    await expect(expressions.get_by_role("textbox", name="输出主键", exact=True)).to_have_value("")
+    await expressions.get_by_role("button", name="取消", exact=True).click()
     assert state["task"]["parameters"] == authored, "Unsaved reset must not modify the saved definition"
 
 
@@ -883,10 +1173,9 @@ async def verify_snapshot_replication(page):
     await dialog.get_by_role("button", name="下一步", exact=True).click()
     await set_read_strategy(page, "全量后结束")
     await pick_datasources(page)
+    await select_source_tables(page, ["app.batch_a", "app.batch_b"])
     for table in ("batch_a", "batch_b"):
-        await page.get_by_role("checkbox", name="选择 app." + table, exact=True).check()
-        await pick_option(page, page.get_by_role("combobox", name="去向表 app." + table, exact=True),
-                          "ods.public." + table + "_copy")
+        await set_mapping_target(page, "app." + table, "ods.public." + table + "_copy")
     advanced = await open_advanced(page, "DDL 能力配置")
     await expect(advanced.get_by_role("switch", name="同步结构变更", exact=True)).to_have_count(0)
     advanced = await open_advanced(page, parameter_tab="运行时配置")

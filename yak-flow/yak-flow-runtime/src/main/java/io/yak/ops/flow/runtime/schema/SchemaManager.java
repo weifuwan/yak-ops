@@ -63,6 +63,11 @@ public final class SchemaManager {
 
     /** Checks restored route coverage without replacing old checkpoint schemas with live metadata. */
     public synchronized void validateRestoredRoutes(List<SchemaVersionedTableState> admitted) {
+        validateRestoredRoutes(admitted, false);
+    }
+
+    /** Dynamic sinks validate additional checkpointed routes against their immutable naming rules. */
+    public synchronized void validateRestoredRoutes(List<SchemaVersionedTableState> admitted, boolean discovered) {
         if (admitted.isEmpty()) return;
         java.util.Set<TableId> expected = new java.util.HashSet<>();
         for (SchemaVersionedTableState route : List.copyOf(admitted)) {
@@ -73,7 +78,7 @@ public final class SchemaManager {
                 throw new IllegalStateException("Checkpoint lacks the admitted initial source/target schema route");
             }
         }
-        if (!tables.keySet().equals(expected)) {
+        if (!discovered && !tables.keySet().equals(expected)) {
             throw new IllegalStateException("Checkpoint schema routes differ from the admitted table collection");
         }
     }
@@ -209,6 +214,7 @@ public final class SchemaManager {
         StringBuilder value = new StringBuilder();
         appendTableId(value, request.sourceTable());
         appendTableId(value, request.targetTable());
+        if (request.newlyAdded()) appendToken(value, "new-table");
         appendSchema(value, request.sourceSchemaBefore());
         appendSchema(value, request.sourceSchemaAfter());
         appendSchema(value, request.targetSchemaBefore());

@@ -54,6 +54,7 @@ final class CliDataSourceLookupService implements DataSourceLookupService {
     private final Function<JdbcConnectionOptions, JdbcCatalog> catalogs;
     private Set<TableId> sourceTables;
     private Set<TableId> sinkTables;
+    private io.yak.ops.composer.definition.DynamicTableSelection dynamicSelection;
 
     CliDataSourceLookupService(PipelineDef definition, FactoryUtil factories, String workspaceId, String executionId) {
         this(definition, factories, workspaceId, executionId, JdbcCatalogFactory::create);
@@ -76,7 +77,7 @@ final class CliDataSourceLookupService implements DataSourceLookupService {
                 definition.getSink().getConfig());
     }
 
-    /** Freezes regex discovery before admission; running jobs never expand their authorized tables. */
+    /** Freezes the initial selection; an explicit dynamic rule retains its published capture scope. */
     PipelineDef resolve(PipelineDef definition) {
         if (sourceTables != null) throw new IllegalStateException("CLI tables have already been admitted");
         String inclusion = required(source.operation, "tables");
@@ -121,6 +122,7 @@ final class CliDataSourceLookupService implements DataSourceLookupService {
                 definition.getModels(),
                 Configuration.fromMap(definition.getConfig().toMap()));
         PipelineOptions options = PipelineOptions.from(resolved);
+        dynamicSelection = options.dynamicSelection();
         if (options.bounded() && options.incremental()) {
             throw new IllegalArgumentException(
                     "CLI supports full JDBC batches and MySQL CDC; incremental JDBC batches require a durable Task cursor store");
@@ -171,7 +173,8 @@ final class CliDataSourceLookupService implements DataSourceLookupService {
         Endpoint endpoint = endpoint(workspaceId, datasourceId);
         TableId selected = endpoint.info.resolveTable(database, schema, table);
         Set<TableId> admitted = endpoint == source ? sourceTables : sinkTables;
-        if (admitted == null || !admitted.contains(selected)) {
+        boolean dynamic = dynamicSelection != null && (endpoint == sink || dynamicSelection.matches(selected));
+        if (admitted == null || !admitted.contains(selected) && !dynamic) {
             throw new IllegalArgumentException("Table is outside the CLI selection");
         }
         try (JdbcCatalog catalog = catalogs.apply(endpoint.connection)) {
@@ -225,6 +228,13 @@ final class CliDataSourceLookupService implements DataSourceLookupService {
         Endpoint endpoint = endpoint(workspaceId, datasourceId);
         if (expectedRevision != 1) throw new IllegalStateException("CLI connection revision changed");
         return endpoint.connection.configuration();
+    }
+
+    @Override
+    public boolean samePhysicalServer(String workspaceId, String firstDatasourceId, String secondDatasourceId) {
+        return io.yak.ops.connector.jdbc.database.connection.MySqlServerIdentity.sameServer(
+                endpoint(workspaceId, firstDatasourceId).connection.configuration(),
+                endpoint(workspaceId, secondDatasourceId).connection.configuration());
     }
 
     private Endpoint endpoint(String requestedWorkspace, String datasourceId) {

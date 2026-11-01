@@ -1,6 +1,57 @@
 import type { TaskInstanceStatus } from "../task-execution/types";
 
-export type DataSyncWriteMode = "APPEND" | "UPSERT" | "RETRACT";
+export type DataSyncWriteMode = "APPEND" | "UPSERT" | "REPLACE" | "RETRACT";
+
+export type DataSyncDmlEvent = "INSERT" | "UPDATE" | "DELETE";
+
+export interface DataSyncTableRead {
+  where?: string;
+  splitKey?: string;
+}
+
+export interface DataSyncSourceOptions {
+  fetchSize?: number;
+  queryTimeoutSeconds?: number;
+}
+
+export interface DataSyncTypeMapping {
+  sourceType: string;
+  targetType: string;
+}
+
+export interface DataSyncTableSnapshot {
+  chunkKeyColumn?: string;
+  skip?: boolean;
+  where?: string;
+}
+
+export interface DataSyncDml {
+  events: DataSyncDmlEvent[];
+}
+
+export interface DataSyncTableSelection {
+  mode: "REGEX";
+  databasePattern: string;
+  tablePattern: string;
+  snapshot?: DataSyncTableSnapshot;
+  dml?: DataSyncDml;
+}
+
+export interface DataSyncTableWrite {
+  mode: DataSyncWriteMode;
+  primaryKeys?: string[];
+  transaction?: { mode: "CHECKPOINT_XA" };
+  preSql?: string[];
+  postSql?: string[];
+  batchSize?: number;
+}
+
+export interface DataSyncMappingTemplate {
+  database?: string;
+  schema?: string;
+  table: string;
+  write: DataSyncTableWrite;
+}
 
 export interface PaginationInfo {
   pageNo: number;
@@ -14,6 +65,23 @@ export type DataSyncType = "OFFLINE" | "REALTIME";
 export type DataSyncProductType = "SINGLE_TABLE_BATCH" | "DATABASE_REPLICATION";
 export type DataSyncStep = "SCHEMA" | "FULL" | "INCREMENTAL";
 
+export interface DataSyncCapabilities {
+  maxTables: number;
+  sourceRead: boolean;
+  explicitSplitKey: boolean;
+  dataPreview: boolean;
+  sqlHooks: boolean;
+  regexSelection: boolean;
+  snapshotFilter: boolean;
+  snapshotSkip: boolean;
+  dmlEvents: boolean;
+  typeMapping: boolean;
+  writeModes: DataSyncWriteMode[];
+  sourceEngineKeys: string[];
+  sinkEngineKeys: string[];
+  typeMappingRules: Array<{ sourceType: string; targetTypes: string[]; conditional: boolean }>;
+}
+
 export interface DataSyncSolution {
   id: string;
   sourceConnector: string;
@@ -21,6 +89,7 @@ export interface DataSyncSolution {
   producesChangelog: boolean;
   productType: DataSyncProductType;
   displayName: string;
+  capabilities: DataSyncCapabilities;
   steps: DataSyncStep[];
   defaultSteps: DataSyncStep[];
   allowedCombinations: Array<{
@@ -57,9 +126,17 @@ export interface DataSyncIncrementalConfig {
 }
 
 export interface DataSyncTableMapping {
-  source: DataSyncTablePath & { chunkKeyColumn?: string };
+  source: DataSyncTablePath & {
+    read?: DataSyncTableRead;
+    options?: DataSyncSourceOptions;
+    snapshot?: DataSyncTableSnapshot;
+    dml?: DataSyncDml;
+  };
   target: DataSyncTablePath & { primaryKeys?: string[] };
   writeMode: DataSyncWriteMode;
+  preSql?: string[];
+  postSql?: string[];
+  batchSize?: number;
   incremental?: DataSyncIncrementalConfig;
 }
 
@@ -153,6 +230,7 @@ export interface DataSyncParameters {
   source: {
     type: string;
     datasourceId: string;
+    selection?: DataSyncTableSelection;
     syncMode?: "FULL" | "INCREMENTAL" | "FULL_AND_INCREMENTAL";
     startup?: {
       mode:
@@ -171,7 +249,10 @@ export interface DataSyncParameters {
     };
     tables: Array<
       DataSyncTablePath & {
-        snapshot?: { chunkKeyColumn: string };
+        read?: DataSyncTableRead;
+        options?: DataSyncSourceOptions;
+        snapshot?: DataSyncTableSnapshot;
+        dml?: DataSyncDml;
         incremental?: DataSyncIncrementalConfig;
       }
     >;
@@ -179,17 +260,15 @@ export interface DataSyncParameters {
   sink: {
     type: string;
     datasourceId: string;
+    mapping?: DataSyncMappingTemplate;
+    typeMappings?: DataSyncTypeMapping[];
     schemaPolicy: {
       initial: "VERIFY" | "CREATE_OR_ALTER";
       evolution: { enabled: boolean; allowDropColumns: boolean };
     };
     tables: Array<
       DataSyncTablePath & {
-        write: {
-          mode: DataSyncWriteMode;
-          primaryKeys?: string[];
-          transaction?: { mode: "CHECKPOINT_XA" };
-        };
+        write: DataSyncTableWrite;
       }
     >;
   };
@@ -217,7 +296,14 @@ export interface DataSyncTaskRecord {
   id: string;
   /** Persisted definition can be displayed, but fails current static execution validation. */
   configurationError?: string;
-  chunkKeyColumn?: string;
+  sourceRead?: DataSyncTableRead;
+  sourceOptions?: DataSyncSourceOptions;
+  sinkBatchSize?: number;
+  typeMappings?: DataSyncTypeMapping[];
+  selection?: DataSyncTableSelection;
+  mappingTemplate?: DataSyncMappingTemplate;
+  preSql?: string[];
+  postSql?: string[];
   targetPrimaryKeys?: string[];
   schemaChangesEnabled?: boolean;
   allowDropColumns?: boolean;
@@ -363,7 +449,14 @@ export interface DataSyncTaskSavePayload extends DataSyncTaskSaveBase {
   sourceProducesChangelog: boolean;
   transforms?: DataSyncTransform[];
   pipelineOptions?: DataSyncPipelineOptions;
-  chunkKeyColumn?: string;
+  sourceRead?: DataSyncTableRead;
+  sourceOptions?: DataSyncSourceOptions;
+  sinkBatchSize?: number;
+  typeMappings?: DataSyncTypeMapping[];
+  selection?: DataSyncTableSelection;
+  mappingTemplate?: DataSyncMappingTemplate;
+  preSql?: string[];
+  postSql?: string[];
   targetPrimaryKeys?: string[];
   schemaChangesEnabled?: boolean;
   allowDropColumns?: boolean;

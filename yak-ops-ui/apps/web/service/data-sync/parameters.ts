@@ -6,8 +6,18 @@ import type {
   DataSyncTableMapping,
   DataSyncTablePath,
 } from "./types";
+import {
+  templateTarget,
+  validateBatchSize,
+  validateSourceOptions,
+  validateSqlHooks,
+  validateTableDml,
+  validateTableRead,
+  validateTableSnapshot,
+  validateTypeMappings,
+} from "./table-configuration.ts";
 
-const WRITES = new Set(["APPEND", "UPSERT", "RETRACT"]);
+const WRITES = new Set(["APPEND", "UPSERT", "REPLACE", "RETRACT"]);
 const STARTUP = new Set([
   "INITIAL",
   "SNAPSHOT",
@@ -83,7 +93,7 @@ export const validIncrementalConfig = (
 
 /** Parse the persisted Task JSON without converting YAML in the frontend. */
 export function parseSyncParameters(schemaVersion: number, content: unknown): DataSyncParameters {
-  if (schemaVersion !== 7) throw new Error("不支持的同步任务参数版本");
+  if (schemaVersion !== 7 && schemaVersion !== 8) throw new Error("不支持的同步任务参数版本");
   if (!content || typeof content !== "object" || Array.isArray(content))
     throw new Error("无效的 JSON Pipeline 定义");
   const value = { ...(content as DataSyncParameters & { index?: unknown }) };
@@ -91,7 +101,7 @@ export function parseSyncParameters(schemaVersion: number, content: unknown): Da
   if (value.transform === undefined) value.transform = [];
   if (!hasOnlyKeys(value, ["source", "sink", "route", "transform", "pipeline"]))
     throw new Error("Pipeline 包含未识别的配置项");
-  validateSyncParameters(value);
+  validateSyncParameters(value, schemaVersion);
   return value;
 }
 
@@ -107,7 +117,10 @@ export function syncTableMappings(value: DataSyncParameters): DataSyncTableMappi
         database: table.database,
         schema: table.schema,
         table: table.table,
-        ...(table.snapshot ? { chunkKeyColumn: table.snapshot.chunkKeyColumn } : {}),
+        ...(table.read ? { read: { ...table.read } } : {}),
+        ...(table.options ? { options: { ...table.options } } : {}),
+        ...(table.snapshot ? { snapshot: { ...table.snapshot } } : {}),
+        ...(table.dml ? { dml: { events: [...table.dml.events] } } : {}),
       },
       target: {
         database: target.database,
@@ -116,6 +129,9 @@ export function syncTableMappings(value: DataSyncParameters): DataSyncTableMappi
         ...(target.write.primaryKeys ? { primaryKeys: target.write.primaryKeys } : {}),
       },
       writeMode: target.write.mode,
+      ...(target.write.preSql ? { preSql: [...target.write.preSql] } : {}),
+      ...(target.write.postSql ? { postSql: [...target.write.postSql] } : {}),
+      ...(target.write.batchSize !== undefined ? { batchSize: target.write.batchSize } : {}),
       ...(table.incremental ? { incremental: table.incremental } : {}),
     };
   });
@@ -139,12 +155,25 @@ export function displaySyncSteps(value: DataSyncParameters): DataSyncStep[] {
   ];
 }
 
-export function validateSyncParameters(value: DataSyncParameters): void {
+export function validateSyncParameters(value: DataSyncParameters, schemaVersion = 8): void {
   if (
     !value?.source ||
     !value.sink ||
-    !hasOnlyKeys(value.source, ["type", "datasourceId", "syncMode", "startup", "tables"]) ||
-    !hasOnlyKeys(value.sink, ["type", "datasourceId", "schemaPolicy", "tables"]) ||
+    !hasOnlyKeys(value.source, [
+      "type",
+      "datasourceId",
+      "syncMode",
+      "startup",
+      "tables",
+      ...(schemaVersion === 8 ? ["selection"] : []),
+    ]) ||
+    !hasOnlyKeys(value.sink, [
+      "type",
+      "datasourceId",
+      "schemaPolicy",
+      "tables",
+      ...(schemaVersion === 8 ? ["mapping", "typeMappings"] : []),
+    ]) ||
     typeof value.source.type !== "string" ||
     typeof value.sink.type !== "string" ||
     !/^[a-z][a-z0-9-]*$/.test(value.source.type) ||
@@ -186,7 +215,14 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     throw new Error("无效的 Pipeline 配置项");
   }
   const realtime = usesCdcStartup(value);
-  const sourceKeys = ["database", "schema", "table", "snapshot", "incremental"];
+  const sourceKeys = [
+    "database",
+    "schema",
+    "table",
+    "snapshot",
+    "incremental",
+    ...(schemaVersion === 8 ? ["read", "dml", "options"] : []),
+  ];
   const sinkKeys = ["database", "schema", "table", "write"];
   for (const tables of [value.source.tables, value.sink.tables]) {
     const hasDatabase = Boolean(tables[0]?.database?.trim());
@@ -206,7 +242,12 @@ export function validateSyncParameters(value: DataSyncParameters): void {
       !table?.table ||
       !table.write?.mode ||
       !hasOnlyKeys(table, sinkKeys) ||
-      !hasOnlyKeys(table.write, ["mode", "primaryKeys", "transaction"]) ||
+      !hasOnlyKeys(table.write, [
+        "mode",
+        "primaryKeys",
+        "transaction",
+        ...(schemaVersion === 8 ? ["preSql", "postSql", "batchSize"] : []),
+      ]) ||
       [table.database, table.schema, table.table].some((name) => name?.includes("."))
     )
       throw new Error("无效的目标表配置");
@@ -280,10 +321,18 @@ export function validateSyncParameters(value: DataSyncParameters): void {
       source.snapshot &&
       (!realtime ||
         !steps.includes("FULL") ||
-        !source.snapshot.chunkKeyColumn?.trim() ||
-        !hasOnlyKeys(source.snapshot, ["chunkKeyColumn"]))
+        (schemaVersion === 7 &&
+          (!source.snapshot.chunkKeyColumn?.trim() ||
+            !hasOnlyKeys(source.snapshot, ["chunkKeyColumn"]))))
     )
       throw new Error("Snapshot 配置无效");
+    validateTableSnapshot(source.snapshot);
+    validateTableRead(source.read);
+    validateSourceOptions(source.options);
+    validateTableDml(source.dml);
+    if (source.read !== undefined && realtime) throw new Error("读取过滤和切分键仅用于单表离线");
+    if (source.options !== undefined && realtime) throw new Error("读取引擎参数仅用于单表离线");
+    if (source.dml !== undefined && !realtime) throw new Error("DML 事件配置仅用于实时同步");
     if (!realtime && steps.includes("INCREMENTAL")) {
       if (!validIncrementalConfig(source.incremental, !steps.includes("FULL")))
         throw new Error("离线增量配置不完整");
@@ -291,6 +340,15 @@ export function validateSyncParameters(value: DataSyncParameters): void {
   }
   for (const target of value.sink.tables) {
     const write = target.write;
+    if (
+      write.mode === "REPLACE" &&
+      (schemaVersion !== 8 || realtime || value.sink.type !== "jdbc-mysql")
+    )
+      throw new Error("替换写入仅支持 MySQL 目标的单表离线同步");
+    validateSqlHooks(write);
+    validateBatchSize(write.batchSize);
+    if (realtime && (write.preSql !== undefined || write.postSql !== undefined))
+      throw new Error("准备语句和完成语句仅用于离线同步");
     if (
       !WRITES.has(write.mode) ||
       (write.primaryKeys &&
@@ -310,10 +368,53 @@ export function validateSyncParameters(value: DataSyncParameters): void {
     if (
       (write.mode === "RETRACT" && !retract) ||
       (write.transaction !== undefined && !retract) ||
-      (steps.includes("INCREMENTAL") && write.mode !== "UPSERT" && !retract)
+      (steps.includes("INCREMENTAL") && write.mode !== "UPSERT" && !retract) ||
+      (retract && write.batchSize !== undefined)
     )
       throw new Error("不支持的写入模式");
   }
+  const selection = value.source.selection;
+  const mapping = value.sink.mapping;
+  if (selection !== undefined || mapping !== undefined) {
+    if (
+      !realtime ||
+      !selection ||
+      !mapping ||
+      selection.mode !== "REGEX" ||
+      !hasOnlyKeys(selection, ["mode", "databasePattern", "tablePattern", "snapshot", "dml"]) ||
+      typeof selection.databasePattern !== "string" ||
+      !selection.databasePattern.trim() ||
+      typeof selection.tablePattern !== "string" ||
+      !selection.tablePattern.trim() ||
+      !hasOnlyKeys(mapping, ["database", "schema", "table", "write"]) ||
+      !mapping.write ||
+      !hasOnlyKeys(mapping.write, ["mode", "primaryKeys", "transaction", "batchSize"]) ||
+      !WRITES.has(mapping.write.mode) ||
+      mapping.write.mode !== "UPSERT" ||
+      mapping.write.transaction !== undefined ||
+      mapping.write.primaryKeys !== undefined ||
+      (mapping.database !== undefined && typeof mapping.database !== "string") ||
+      (mapping.schema !== undefined && typeof mapping.schema !== "string") ||
+      typeof mapping.table !== "string"
+    )
+      throw new Error("正则选表或目标映射规则无效");
+    if (pipelineTableScope(value) !== "DATABASE") throw new Error("正则选表需要整库范围");
+    if (
+      value.source.startup?.mode !== "INITIAL" ||
+      !steps.includes("INCREMENTAL") ||
+      !steps.includes("FULL") ||
+      policy.initial !== "CREATE_OR_ALTER" ||
+      !policy.evolution.enabled
+    )
+      throw new Error("正则选表需要从全量开始持续同步并创建和同步表结构");
+    validateTableSnapshot(selection.snapshot);
+    validateTableDml(selection.dml);
+    validateBatchSize(mapping.write.batchSize);
+    if (selection.snapshot && !steps.includes("FULL"))
+      throw new Error("当前读取策略不支持全量配置");
+    for (const source of value.source.tables) templateTarget(mapping, source);
+  }
+  validateTypeMappings(value.sink.typeMappings);
   for (const transform of value.transform) {
     if (
       !transform ||

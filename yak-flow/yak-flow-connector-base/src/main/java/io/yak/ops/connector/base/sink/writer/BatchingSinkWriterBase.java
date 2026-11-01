@@ -59,7 +59,7 @@ public abstract class BatchingSinkWriterBase<T> implements CancellableSinkWriter
             throw error;
         }
         int pending = output.bufferedRecords();
-        if (pending >= policy.maxBatchSize() && output.canAutomaticallyFlush()) {
+        if (output.automaticFlushRequired(policy.maxBatchSize()) && output.canAutomaticallyFlush()) {
             flush(false);
         } else if (pending > 0 && policy.hasTimedFlush() && timer == null && output.canAutomaticallyFlush()) {
             scheduleTimer();

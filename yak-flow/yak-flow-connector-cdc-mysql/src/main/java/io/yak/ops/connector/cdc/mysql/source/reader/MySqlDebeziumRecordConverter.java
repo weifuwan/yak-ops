@@ -43,6 +43,7 @@ public final class MySqlDebeziumRecordConverter {
     private final Map<TableId, Schema> physicalSchemas;
     private final MySqlSchemaChangeConverter schemaChanges;
     private final boolean evolve;
+    private final boolean discoverTables;
 
     public MySqlDebeziumRecordConverter(Map<TableId, TableSchema> schemas) {
         this(schemas, Map.of(), false);
@@ -50,6 +51,12 @@ public final class MySqlDebeziumRecordConverter {
 
     public MySqlDebeziumRecordConverter(
             Map<TableId, TableSchema> schemas, Map<TableId, Schema> restored, boolean evolve) {
+        this(schemas, restored, evolve, false);
+    }
+
+    public MySqlDebeziumRecordConverter(
+            Map<TableId, TableSchema> schemas, Map<TableId, Schema> restored, boolean evolve, boolean discoverTables) {
+        this.discoverTables = discoverTables;
         this.schemas = new LinkedHashMap<>(Objects.requireNonNull(schemas, "schemas"));
         this.physicalSchemas = new LinkedHashMap<>();
         this.schemas.forEach((table, model) -> this.physicalSchemas.put(
@@ -117,6 +124,9 @@ public final class MySqlDebeziumRecordConverter {
         TableId table = new TableId(origin.getString("db"), null, origin.getString("table"));
         TableSchema schema = schemas.get(table);
         if (schema == null) {
+            // Discovery snapshots and their low/high fences own pre-admission rows. A resumed
+            // Binlog reader is rebuilt with the admitted schemas before consuming those rows.
+            if (discoverTables) return new BinlogEvent(List.of(), progress);
             throw new IllegalArgumentException("Debezium MySQL event targets an unregistered table");
         }
         List<TableRecord> rows = new ArrayList<>(2);

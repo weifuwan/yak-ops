@@ -16,6 +16,7 @@ import io.yak.ops.core.data.TableId;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -82,5 +83,27 @@ class JdbcSplitPlannerTest {
         assertEquals("\"a\"\"b\"", JdbcDialects.forUrl("jdbc:postgresql://localhost/test").quoteIdentifier("a\"b"));
         assertEquals("\"TEST\"", JdbcDialects.forUrl("jdbc:oracle:thin:@localhost:1521/X").quoteIdentifier("TEST"));
         assertThrows(IllegalStateException.class, () -> JdbcDialects.forUrl("jdbc:sqlserver://localhost"));
+    }
+
+    @Test
+    void configuredSplitKeyRequiresACompleteEnforcedUniqueIndex() throws Exception {
+        TableId table = new TableId(null, "PUBLIC", "ORDERS");
+        try (Connection opened = new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connection).getConnection();
+                Statement statement = opened.createStatement()) {
+            statement.execute("ALTER TABLE ORDERS ADD ALT BIGINT NOT NULL DEFAULT 0");
+            statement.execute("UPDATE ORDERS SET ALT = ID * 10");
+            JdbcReadOptions read = new JdbcReadOptions("ID > 2 OR ID = 1", "ALT", 20, 5);
+            JdbcSplitPlanner planner = new JdbcSplitPlanner(
+                    new io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider(connection),
+                    new AnsiJdbcDialect(), new Configuration(), Map.of(table, List.of("LABEL")), Map.of(), Map.of(table, read));
+            assertThrows(java.sql.SQLException.class, () -> planner.plan(table, 0));
+            statement.execute("CREATE UNIQUE INDEX ALT_UNIQUE ON ORDERS(ALT)");
+            JdbcSourceSplit split = planner.plan(table, 0).getFirst();
+            assertEquals("ALT", split.splitColumn());
+            assertEquals(List.of("LABEL", "ALT", "ID"), split.readColumns());
+            assertEquals(read, split.readOptions());
+            assertEquals(10L, split.lowerBound());
+            assertEquals(250L, split.upperBound());
+        }
     }
 }

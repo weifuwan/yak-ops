@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, CollapseSection, Field, FieldError, Modal } from "@yak-ops/yak-ui";
-import { useState } from "react";
-
+import { Alert, Button, Modal, Table, type TableColumns } from "@yak-ops/yak-ui";
+import { useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { listDataSourceColumns, type DataSourceCatalogTablePath } from "@/service/datasource";
@@ -17,13 +16,13 @@ import {
   updateTransformRule,
   type DirectFieldMapping,
 } from "@/service/data-sync/transforms";
+import { ContentSection } from "./content-layout";
 import { FieldMappingTable } from "./field-mapping-table";
-import { TransformExpressionFields } from "./transform-expression-fields";
+import { TransformRulesDialog } from "./transform-rules-dialog";
 
 interface FieldEndpoint extends DataSourceCatalogTablePath {
   dataSourceId: string;
 }
-
 interface Props {
   source: FieldEndpoint;
   target: FieldEndpoint;
@@ -31,6 +30,7 @@ interface Props {
   value: DataSyncTransform[];
   onChange: (rules: DataSyncTransform[]) => void;
   disabled?: boolean;
+  extra?: ReactNode;
 }
 
 function useFieldColumns(endpoint: FieldEndpoint, enabled: boolean) {
@@ -58,7 +58,6 @@ function useFieldColumns(endpoint: FieldEndpoint, enabled: boolean) {
   });
 }
 
-/** Owns physical field reads and edits the existing transform rule array. */
 export function FieldMappingSection({
   source,
   target,
@@ -66,6 +65,7 @@ export function FieldMappingSection({
   value,
   onChange,
   disabled = false,
+  extra,
 }: Props) {
   const sourceQuery = useFieldColumns(source, true);
   const targetQuery = useFieldColumns(target, targetTableExists);
@@ -73,170 +73,148 @@ export function FieldMappingSection({
   const targetColumns = targetTableExists ? targetQuery.data : undefined;
   const selector = transformTableSelector(source);
   const rule = value[0] ?? { "source-table": selector };
-  const single = canEditFieldMapping(value, selector);
-  const direct = single ? readDirectProjection(rule.projection) : undefined;
+  const direct = canEditFieldMapping(value, selector)
+    ? readDirectProjection(rule.projection)
+    : undefined;
   const fields = direct
     ? direct.all
       ? sameNameFieldMappings(sourceColumns)
       : direct.fields
     : undefined;
-  const [expressionView, setExpressionView] = useState(false);
+  const [expressions, setExpressions] = useState(false);
   const [replacement, setReplacement] = useState<string>();
   const signature = JSON.stringify([source, value]);
-  const showFields = single && Boolean(direct) && !expressionView;
-  const ready = Boolean(source.dataSourceId && source.table);
-  const editingDisabled = disabled || !ready;
+  const ready = Boolean(source.dataSourceId && source.table && target.dataSourceId && target.table);
   const fieldsDisabled =
-    editingDisabled || !sourceQuery.isSuccess || (targetTableExists && !targetQuery.isSuccess);
+    disabled || !ready || !sourceQuery.isSuccess || (targetTableExists && !targetQuery.isSuccess);
   const defaults = sameNameFieldMappings(sourceColumns, targetColumns);
-  const keys = fields ? mappedSourcePrimaryKeys(fields, sourceColumns) : undefined;
-  const error = transformEditingError(value);
+  const setFields = (next: DirectFieldMapping[]) =>
+    onChange(updateTransformRule(value, 0, selector, { projection: fieldProjection(next) }));
+  const applyDefaults = () => {
+    setFields(defaults);
+    setReplacement(undefined);
+  };
   const missingTargets =
     fields && targetColumns
       ? targetColumns.filter((column) => !fields.some((field) => field.target === column.name))
       : [];
-  const patch = (index: number, change: Partial<DataSyncTransform>) =>
-    onChange(updateTransformRule(value, index, selector, change));
-  const setFields = (next: DirectFieldMapping[]) => patch(0, { projection: fieldProjection(next) });
-  const applyDefaults = () => {
-    setFields(defaults);
-    setExpressionView(false);
-    setReplacement(undefined);
-  };
+  const error = transformEditingError(value);
+  const primaryKeys = fields ? mappedSourcePrimaryKeys(fields, sourceColumns) : undefined;
+  const summaryColumns: TableColumns<DataSyncTransform & { index: number }> = [
+    { key: "source", title: "来源表规则", render: (_, row) => row["source-table"] },
+    {
+      key: "projection",
+      title: "字段表达式",
+      render: (_, row) => (
+        <span className="block max-w-lg truncate font-mono text-xs">{row.projection || "*"}</span>
+      ),
+    },
+    { key: "filter", title: "行过滤", render: (_, row) => row.filter || "—" },
+  ];
   return (
-    <CollapseSection id="field-mapping" title="字段加工">
-      {!ready ? <div className="text-sm">请选择来源表</div> : null}
-      {ready && sourceQuery.isError ? (
-        <Alert>
-          来源字段加载失败
-          <Button size="small" onClick={() => void sourceQuery.refetch()}>
-            重试
-          </Button>
-        </Alert>
-      ) : null}
-      {ready && targetTableExists && targetQuery.isError ? (
-        <Alert>
-          去向字段加载失败
-          <Button size="small" onClick={() => void targetQuery.refetch()}>
-            重试
-          </Button>
-        </Alert>
-      ) : null}
-      {single ? (
-        <div className="space-y-4">
+    <ContentSection id="field-mapping" title="去向字段映射">
+      {extra ? <div className="flex justify-end">{extra}</div> : null}
+      {!ready ? (
+        <Alert>暂无字段数据，请选择数据来源与数据去向表</Alert>
+      ) : (
+        <>
+          {sourceQuery.isError || (targetTableExists && targetQuery.isError) ? (
+            <Alert>
+              {sourceQuery.isError ? "来源字段加载失败" : "去向字段加载失败"}
+              <Button
+                size="small"
+                onClick={() => {
+                  void sourceQuery.refetch();
+                  if (targetTableExists) void targetQuery.refetch();
+                }}
+              >
+                重试
+              </Button>
+            </Alert>
+          ) : null}
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="small"
-              variant={showFields ? "primary" : "secondary"}
-              aria-pressed={showFields}
-              disabled={editingDisabled || !direct}
-              onClick={() => setExpressionView(false)}
-            >
-              字段映射
-            </Button>
-            <Button
-              size="small"
-              variant={showFields ? "secondary" : "primary"}
-              aria-pressed={!showFields}
-              disabled={editingDisabled}
-              onClick={() => setExpressionView(true)}
-            >
-              表达式
-            </Button>
-            <Button
-              size="small"
-              variant="ghost"
-              disabled={fieldsDisabled || defaults.length === 0}
+              disabled={fieldsDisabled || !defaults.length || !canEditFieldMapping(value, selector)}
               onClick={() => {
                 if (!direct) setReplacement(signature);
                 else applyDefaults();
               }}
             >
-              {direct ? "同名映射" : "改为同名映射"}
+              同名映射
             </Button>
-            {direct && !direct.all && showFields ? (
+            {direct && !direct.all ? (
               <Button
                 size="small"
-                variant="ghost"
-                disabled={editingDisabled}
-                onClick={() => patch(0, { projection: "*" })}
+                disabled={disabled}
+                onClick={() =>
+                  onChange(updateTransformRule(value, 0, selector, { projection: "*" }))
+                }
               >
                 全部字段
               </Button>
             ) : null}
-            {showFields && direct?.all ? (
-              <span className="text-xs text-[var(--yak-components-field-description)]">
-                全部字段
-              </span>
-            ) : null}
+            <Button size="small" disabled={disabled} onClick={() => setExpressions(true)}>
+              表达式
+            </Button>
+            <span className="ml-auto text-xs text-[var(--yak-components-muted-text)]">
+              {fields ? `已映射 ${fields.length} 个字段` : `已配置 ${value.length} 条表达式规则`}
+            </span>
           </div>
-          {showFields ? (
-            sourceQuery.isPending && ready ? (
-              <div className="py-6 text-sm" role="status">
-                字段加载中
-              </div>
-            ) : (
-              <FieldMappingTable
-                fields={fields ?? []}
-                sourceColumns={sourceColumns}
-                targetColumns={targetColumns}
-                disabled={fieldsDisabled}
-                onChange={setFields}
-              />
-            )
+          {direct ? (
+            <FieldMappingTable
+              fields={fields ?? []}
+              sourceColumns={sourceColumns}
+              targetColumns={targetColumns}
+              disabled={fieldsDisabled}
+              onChange={setFields}
+            />
+          ) : (
+            <Table
+              columns={summaryColumns}
+              dataSource={value.map((item, index) => ({ ...item, index }))}
+              rowKey="index"
+              size="small"
+              pagination={false}
+            />
+          )}
+          {primaryKeys ? (
+            <Button
+              size="small"
+              disabled={fieldsDisabled}
+              onClick={() =>
+                onChange(
+                  updateTransformRule(value, 0, selector, {
+                    "primary-keys": primaryKeys.join(", "),
+                  }),
+                )
+              }
+            >
+              使用映射后的来源主键
+            </Button>
           ) : null}
-          {missingTargets.length > 0 && showFields ? (
+          {missingTargets.length ? (
             <Alert>
               去向字段尚未映射：{missingTargets.map((column) => column.name).join("、")}
             </Alert>
           ) : null}
-          <TransformExpressionFields
-            rule={rule}
-            showProjection={!showFields}
-            disabled={editingDisabled}
-            onChange={(change) => patch(0, change)}
-            keyAction={
-              keys ? (
-                <Button
-                  size="small"
-                  disabled={fieldsDisabled}
-                  onClick={() => patch(0, { "primary-keys": keys.join(", ") })}
-                >
-                  使用映射后的来源主键
-                </Button>
-              ) : undefined
-            }
-          />
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {value.map((item, index) => (
-            <div
-              key={index}
-              className="space-y-3 rounded-lg border border-[var(--yak-components-panel-border)] p-4"
-            >
-              <div className="text-sm font-medium">转换规则 {index + 1}</div>
-              <TransformExpressionFields
-                rule={item}
-                index={index}
-                showSelector
-                disabled={disabled}
-                onChange={(change) => patch(index, change)}
-              />
-            </div>
-          ))}
-        </div>
+          {error ? <Alert>{error}</Alert> : null}
+        </>
       )}
-      {error ? (
-        <Field invalid>
-          <FieldError match>{error}</FieldError>
-        </Field>
+      {expressions ? (
+        <TransformRulesDialog
+          value={value.length ? value : [{ "source-table": selector }]}
+          onApply={(next) => {
+            onChange(next);
+            setExpressions(false);
+          }}
+          onClose={() => setExpressions(false)}
+        />
       ) : null}
       <Modal
         open={replacement === signature}
         onClose={() => setReplacement(undefined)}
         title="替换投影表达式"
-        closeLabel="关闭"
         footer={
           <>
             <Button size="small" onClick={() => setReplacement(undefined)}>
@@ -245,7 +223,7 @@ export function FieldMappingSection({
             <Button
               size="small"
               variant="primary"
-              disabled={fieldsDisabled || !defaults.length}
+              disabled={fieldsDisabled || !defaults.length || !canEditFieldMapping(value, selector)}
               onClick={applyDefaults}
             >
               替换为同名映射
@@ -253,8 +231,8 @@ export function FieldMappingSection({
           </>
         }
       >
-        将替换当前字段选择、别名和投影表达式。确认后请检查行过滤与输出主键。
+        将替换当前字段选择、别名和投影表达式。行过滤与输出主键保留。
       </Modal>
-    </CollapseSection>
+    </ContentSection>
   );
 }

@@ -28,34 +28,28 @@ function compile(file, mocks) {
   return exports;
 }
 
-const parameterContract = compile("../apps/web/service/data-sync/parameters.ts", {});
-const transformContract = compile("../apps/web/service/data-sync/transforms.ts", {});
-const tableContract = compile("../apps/web/app/data-sync/editor/table-mapping-editor.tsx", {
-  react: {},
-  "react/jsx-runtime": {},
-  "@yak-ops/yak-ui": {},
-  "../components/searchable-select": {},
+const tableConfiguration = compile("../apps/web/service/data-sync/table-configuration.ts", {});
+const parameterContract = compile("../apps/web/service/data-sync/parameters.ts", {
+  "./table-configuration.ts": tableConfiguration,
 });
-const replicationContract = compile("../apps/web/app/data-sync/editor/replication-options.tsx", {
-  "react/jsx-runtime": {},
-  "@yak-ops/yak-ui": {},
-  "../components/searchable-select": {},
-  "./table-mapping-editor": tableContract,
+const transformContract = compile("../apps/web/service/data-sync/transforms.ts", {});
+const tableCatalog = compile("../apps/web/app/data-sync/editor/table-catalog.ts", {});
+const tableContract = compile("../apps/web/app/data-sync/editor/table-selection.ts", {
+  "./table-catalog": tableCatalog,
+  "@/service/data-sync/table-configuration": tableConfiguration,
+});
+const replicationContract = compile("../apps/web/app/data-sync/editor/replication-validation.ts", {
+  "./table-catalog": tableCatalog,
+  "@/service/data-sync/table-configuration": tableConfiguration,
 });
 const params = compile("../apps/web/app/data-sync/editor/definition.ts", {
   "@/service/data-sync/parameters": parameterContract,
   "@/service/data-sync/transforms": transformContract,
-  "./table-mapping-editor": tableContract,
+  "@/service/data-sync/table-configuration": tableConfiguration,
+  "./table-selection": tableContract,
+  "./table-catalog": tableCatalog,
   "@/app/schedule/schedule-presentation": {
     sameScheduleRule: (a, b) => a.cronExpression === b.cronExpression,
-  },
-  "./table-section": {
-    selectedTableKey: (tables, db, schema, name) =>
-      tables.some(
-        (t) => t.name === name && (t.database || "") === db && (t.schema || "") === schema,
-      )
-        ? name
-        : null,
   },
 });
 const transport = compile("../apps/web/service/data-sync/definition.ts", {
@@ -88,7 +82,8 @@ const form = {
     database: "test",
     schema: "",
     table: "orders",
-    chunkKeyColumn: "",
+    where: "",
+    splitKey: "",
     incremental,
   },
   sink: {
@@ -100,6 +95,8 @@ const form = {
     allowDropColumns: true,
     writeMode: "UPSERT",
     targetPrimaryKeys: [],
+    preSql: [],
+    postSql: [],
   },
   transforms: [
     {
@@ -237,7 +234,7 @@ assert.equal(
 );
 const retract = {
   ...mapping,
-  source: { ...mapping.source, chunkKeyColumn: "bucket" },
+  source: { ...mapping.source, snapshot: { chunkKeyColumn: "bucket" } },
   writeMode: "RETRACT",
 };
 const retractPipeline = transport.createDefinitionRequest(
@@ -272,12 +269,104 @@ assert.equal(
   tableContract.validTableMappings([{ ...mapping, target: { table: "" } }], [], ["UPSERT"], true),
   false,
 );
+const overridden = {
+  ...mapping,
+  source: { ...mapping.source, snapshot: { where: "tenant_id = 9" }, dml: { events: ["UPDATE"] } },
+  batchSize: 37,
+};
+const selectionDefaults = {
+  mode: "REGEX",
+  databasePattern: ".*",
+  tablePattern: ".*",
+  snapshot: { skip: true },
+  dml: { events: ["INSERT", "DELETE"] },
+};
+const mappingDefaults = {
+  database: "new_ods",
+  table: "copy_${table}",
+  write: { mode: "UPSERT", batchSize: 250 },
+};
+const matched = tableContract.resolveMatchedMappings(
+  [overridden],
+  [
+    { ...mapping.source, name: mapping.source.table },
+    { database: "next", name: "customers" },
+  ],
+  selectionDefaults,
+  mappingDefaults,
+);
+assert.equal(
+  matched[0],
+  overridden,
+  "Existing table overrides retain their identity and authored options",
+);
+assert.deepEqual(plain(matched[1]), {
+  source: {
+    database: "next",
+    table: "customers",
+    snapshot: { skip: true },
+    dml: { events: ["INSERT", "DELETE"] },
+  },
+  target: { database: "new_ods", table: "copy_customers" },
+  writeMode: "UPSERT",
+  batchSize: 250,
+});
+matched[1].source.dml.events.push("UPDATE");
+assert.deepEqual(
+  selectionDefaults.dml.events,
+  ["INSERT", "DELETE"],
+  "New rows do not share mutable defaults",
+);
+assert.throws(
+  () => tableContract.resolveMatchedMappings([], [], selectionDefaults, mappingDefaults),
+  /未匹配/,
+);
+assert.throws(
+  () =>
+    tableContract.resolveMatchedMappings(
+      [],
+      [
+        { database: "a", name: "orders" },
+        { database: "b", name: "orders" },
+      ],
+      selectionDefaults,
+      mappingDefaults,
+    ),
+  /重复表/,
+);
+const selectedOnce = tableContract.addSelectedTables(
+  [overridden],
+  [mapping.source, multiple[1].source],
+  [],
+  {},
+  "UPSERT",
+  true,
+  2,
+);
+assert.equal(selectedOnce[0], overridden);
+assert.equal(selectedOnce.length, 2);
+assert.throws(
+  () => tableContract.addSelectedTables([mapping], [multiple[1].source], [], {}, "UPSERT", true, 1),
+  /最多/,
+);
+assert.throws(
+  () => tableContract.addSelectedTables([retract], [multiple[1].source], [], {}, "UPSERT", true, 2),
+  /逐行更新/,
+);
+assert.deepEqual(
+  plain(tableContract.parsePastedTableNames(" app.orders\n app.orders, app.customers \r\n")),
+  ["app.orders", "app.customers"],
+);
+assert.throws(
+  () => tableConfiguration.validateTableSnapshot({ skip: true, where: "id > 0" }),
+  /不能同时/,
+);
 const columns = [
   { name: "id", typeName: "BIGINT", nullable: false, primaryKey: true },
   { name: "bucket", typeName: "BIGINT", nullable: false, primaryKey: false },
 ];
 const metadata = (rows = [mapping], values = columns) => ({
-  columns: new Map(rows.map((row) => [tableContract.tableKey(row.source), values])),
+  columns: new Map(rows.map((row) => [tableCatalog.tableKey(row.source), values])),
   loading: false,
   error: "",
 });
