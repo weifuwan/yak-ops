@@ -48,6 +48,7 @@ export function changeReadStrategy(
           : next.writeModes[0],
         schemaChangesEnabled: continuous && value.form.sink.schemaChangesEnabled,
         allowDropColumns: continuous && value.form.sink.allowDropColumns,
+        ddlStrategies: continuous ? value.form.sink.ddlStrategies : undefined,
       },
     },
     mappings: value.mappings.map((mapping) => ({
