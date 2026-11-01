@@ -80,9 +80,7 @@ export function buildEditorPayload(
       ? {
           schemaChangesEnabled: form.sink.schemaChangesEnabled,
           allowDropColumns: form.sink.schemaChangesEnabled && form.sink.allowDropColumns,
-          ...(form.sink.ddlStrategies
-            ? { ddlStrategies: { ...form.sink.ddlStrategies } }
-            : {}),
+          ...(form.sink.ddlStrategies ? { ddlStrategies: { ...form.sink.ddlStrategies } } : {}),
         }
       : {}),
     tableMappings: replication ? mappings : undefined,
@@ -161,7 +159,11 @@ export function editorValidationIssue({
         !allowed.includes(selected[key]) ||
         (key === "createTable" && selected[key] === "NORMAL" && !form.selection)
       ) {
-        extraIssue = { message: `${label}的 DDL 策略不被当前链路支持`, location: "advanced", tab: "ddl" };
+        extraIssue = {
+          message: `${label}的 DDL 策略不被当前链路支持`,
+          location: "advanced",
+          tab: "ddl",
+        };
         break;
       }
     }
