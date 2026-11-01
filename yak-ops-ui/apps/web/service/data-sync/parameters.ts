@@ -297,8 +297,7 @@ export function validateSyncParameters(value: DataSyncParameters, schemaVersion 
     )
       throw new Error("无效的逐项 DDL 处理策略");
     for (const key of ["dropTable", "renameTable", "renameColumn", "truncateTable"] as const) {
-      if (policy.ddl[key] !== "ERROR")
-        throw new Error(`${key} 当前链路只支持出错策略`);
+      if (policy.ddl[key] !== "ERROR") throw new Error(`${key} 当前链路只支持出错策略`);
     }
   } else {
     if (
