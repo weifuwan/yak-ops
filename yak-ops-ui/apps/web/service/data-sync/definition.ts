@@ -129,10 +129,14 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
       ...(task.typeMappings?.length ? { typeMappings: structuredClone(task.typeMappings) } : {}),
       schemaPolicy: {
         initial: task.steps.includes("SCHEMA") ? ("CREATE_OR_ALTER" as const) : ("VERIFY" as const),
-        evolution: {
-          enabled: evolution,
-          allowDropColumns: Boolean(evolution && task.allowDropColumns),
-        },
+        ...(task.ddlStrategies && continuous
+          ? { ddl: { ...task.ddlStrategies } }
+          : {
+              evolution: {
+                enabled: evolution,
+                allowDropColumns: Boolean(evolution && task.allowDropColumns),
+              },
+            }),
       },
       tables: sinkTables,
     },
@@ -143,7 +147,8 @@ export function buildSyncParameters(task: DataSyncTaskSavePayload): DataSyncPara
     transform: task.transforms?.map((transform) => ({ ...transform })) ?? [],
     pipeline: {
       ...task.pipelineOptions,
-      ...(schemaBehavior !== undefined
+      ...(task.ddlStrategies ? { "schema.change.behavior": undefined } : {}),
+      ...(!task.ddlStrategies && schemaBehavior !== undefined
         ? { "schema.change.behavior": evolution ? "evolve" : "exception" }
         : {}),
       "execution.runtime-mode": continuous ? ("STREAMING" as const) : ("BATCH" as const),
@@ -209,7 +214,7 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
   const parameters = parseSyncParameters(definition.parameterSchemaVersion, definition.parameters);
   let configurationError: string | undefined;
   try {
-    validateSyncParameters(parameters);
+    validateSyncParameters(parameters, definition.parameterSchemaVersion);
   } catch (failure) {
     configurationError = failure instanceof Error ? failure.message : "任务参数校验失败";
   }
@@ -234,8 +239,14 @@ export function toSyncTaskRecord(definition: TaskDefinitionRecord): DataSyncTask
     productType: pipelineProductType(parameters),
     steps: displaySyncSteps(parameters),
     ...(parameters.source.startup ? { startup: { ...parameters.source.startup } } : {}),
-    schemaChangesEnabled: parameters.sink.schemaPolicy.evolution.enabled,
-    allowDropColumns: parameters.sink.schemaPolicy.evolution.allowDropColumns,
+    schemaChangesEnabled: parameters.sink.schemaPolicy.ddl !== undefined ||
+      Boolean(parameters.sink.schemaPolicy.evolution?.enabled),
+    allowDropColumns: parameters.sink.schemaPolicy.ddl?.dropColumn === "NORMAL" ||
+      Boolean(parameters.sink.schemaPolicy.evolution?.allowDropColumns),
+    ...(parameters.sink.schemaPolicy.ddl
+      ? { ddlStrategies: { ...parameters.sink.schemaPolicy.ddl } }
+      : {}),
+    parameterSchemaVersion: definition.parameterSchemaVersion,
     syncType: pipelineSyncType(parameters),
     status: definition.status,
     debug: definition.debug ?? false,
