@@ -79,8 +79,11 @@ export function ReplicationTableSelection({
   const regexReason =
     !initialLoad || !continuous || (form.startup?.mode && form.startup.mode !== "INITIAL")
       ? "正则选表需从全量开始持续同步"
-      : !prepareSchema || !form.sink.schemaChangesEnabled
-        ? "正则选表需创建目标表并同步结构变更"
+      : !prepareSchema ||
+        (form.sink.ddlStrategies
+          ? form.sink.ddlStrategies.createTable !== "NORMAL"
+          : !form.sink.schemaChangesEnabled)
+        ? "正则选表需创建目标表并启用新建表的正常处理策略"
         : "";
   const regexHint = regexReason || "支持运行中按正则加载表";
   const included = new Set(mappings.map((mapping) => tableKey(mapping.source)));
