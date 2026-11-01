@@ -1,4 +1,5 @@
 import { offlineIncremental, validIncrementalConfig } from "@/service/data-sync/parameters";
+import { DDL_FIELDS } from "@/service/data-sync/ddl-policy";
 import { transformEditingError } from "@/service/data-sync/transforms";
 import {
   validateBatchSize,
@@ -152,6 +153,19 @@ export function editorValidationIssue({
   } catch (failure) {
     extraIssue = { message: (failure as Error).message, location: "target" };
   }
+  if (replication && draft.steps.includes("INCREMENTAL") && form.sink.ddlStrategies) {
+    const selected = form.sink.ddlStrategies;
+    for (const { key, label } of DDL_FIELDS) {
+      const allowed = capabilities?.ddlPolicies?.[key] || [];
+      if (
+        !allowed.includes(selected[key]) ||
+        (key === "createTable" && selected[key] === "NORMAL" && !form.selection)
+      ) {
+        extraIssue = { message: `${label}的 DDL 策略不被当前链路支持`, location: "advanced", tab: "ddl" };
+        break;
+      }
+    }
+  }
   if (form.selection) {
     if (!capabilities?.regexSelection)
       extraIssue = { message: "当前连接器不支持正则选表", location: "source" };
@@ -162,7 +176,9 @@ export function editorValidationIssue({
       !draft.steps.includes("INCREMENTAL") ||
       (form.startup && form.startup.mode !== "INITIAL") ||
       !prepareSchema ||
-      !form.sink.schemaChangesEnabled
+      (form.sink.ddlStrategies
+        ? form.sink.ddlStrategies.createTable !== "NORMAL"
+        : !form.sink.schemaChangesEnabled)
     )
       extraIssue = {
         message: "正则选表需从全量开始持续同步，并创建目标表和同步结构变更",
