@@ -20,8 +20,8 @@ import java.nio.channels.OverlappingFileLockException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -85,7 +85,8 @@ public final class BatchExecutionJournal implements AutoCloseable {
         }
         try (DirectoryStream<Path> entries = Files.newDirectoryStream(versions)) {
             for (Path entry : entries) {
-                if (!STAGING_FILE.matcher(entry.getFileName().toString()).matches()) {
+                if (!STAGING_FILE.matcher(entry.getFileName().toString()).matches()
+                        || !Files.isRegularFile(entry, LinkOption.NOFOLLOW_LINKS)) {
                     return true;
                 }
             }
@@ -159,7 +160,11 @@ public final class BatchExecutionJournal implements AutoCloseable {
             }
             // Orphaned staging files cannot represent a committed state. Only the
             // exclusive job owner may remove them after verifying the latest version.
-            discardStagingFiles();
+            try {
+                discardStagingFiles();
+            } catch (IOException cleanupFailure) {
+                LOG.warn("Could not remove batch journal staging files in {}", journalDirectory, cleanupFailure);
+            }
         } catch (IOException | RuntimeException failure) {
             try {
                 close();
