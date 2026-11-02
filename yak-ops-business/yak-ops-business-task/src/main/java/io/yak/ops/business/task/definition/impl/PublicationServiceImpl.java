@@ -13,6 +13,8 @@ import io.yak.ops.dao.entity.task.DefinitionPublicationEntity;
 import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionPublicationRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
+import io.yak.ops.dao.repository.task.InstanceRepository;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,14 +26,17 @@ public class PublicationServiceImpl implements PublicationService {
     private final DefinitionRepository definitions;
     private final DefinitionPublicationRepository publications;
     private final ScheduleRepository schedules;
+    private final InstanceRepository instances;
 
     public PublicationServiceImpl(
             DefinitionRepository definitions,
             DefinitionPublicationRepository publications,
-            ScheduleRepository schedules) {
+            ScheduleRepository schedules,
+            InstanceRepository instances) {
         this.definitions = definitions;
         this.publications = publications;
         this.schedules = schedules;
+        this.instances = instances;
     }
 
     @Override
@@ -52,6 +57,11 @@ public class PublicationServiceImpl implements PublicationService {
         if (replay.isPresent()) {
             requireSameRequest(replay.orElseThrow(), version, expectedRevision);
             return definition;
+        }
+        // Admission acquires the same Definition row lock before inserting a new Instance.
+        // Do not publish a different version while an execution is nonterminal.
+        if (!instances.latest(workspaceId, List.of(id), true).isEmpty()) {
+            throw new BusinessException(CommonErrorCode.TASK_INSTANCE_ACTIVE);
         }
         if (definition.getRevision() != expectedRevision || definition.isDebug() != debug) {
             throw new BusinessException(DefinitionErrorCode.REVISION_CONFLICT);
