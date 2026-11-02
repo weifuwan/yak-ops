@@ -1,12 +1,16 @@
 package io.yak.ops.plugin.task.datasync;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.task.api.TaskPluginException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +27,123 @@ public final class PipelineYamlConverter {
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     private PipelineYamlConverter() {}
+
+    // Only known, non-sensitive structural options may enter downloadable Task logs.
+    // Future options are redacted until explicitly reviewed here.
+    private static final Set<String> TASK_LOG_ENDPOINT_OPTIONS = Set.of(
+            "type",
+            "datasource-id",
+            "tables",
+            "yak.namespace-kind",
+            "yak.sync.mode",
+            "yak.selection.mode",
+            "yak.selection.database-pattern",
+            "yak.selection.table-pattern",
+            "yak.selection.snapshot.skip",
+            "yak.selection.snapshot.chunk-key-column",
+            "yak.selection.dml.insert",
+            "yak.selection.dml.update",
+            "yak.selection.dml.delete",
+            "scan.startup.mode",
+            "scan.startup.specific-offset.file",
+            "scan.startup.specific-offset.pos",
+            "scan.startup.specific-offset.skip-events",
+            "scan.startup.specific-offset.skip-rows",
+            "scan.startup.timestamp-millis",
+            "yak.mapping.database",
+            "yak.mapping.schema",
+            "yak.mapping.table",
+            "yak.mapping.write.mode",
+            "yak.mapping.write.primary-keys",
+            "yak.mapping.write.transaction.mode",
+            "yak.mapping.write.batch-size",
+            "yak.schema.initial",
+            "yak.schema.evolution.enabled",
+            "yak.schema.evolution.allow-drop-columns",
+            "yak.type-mappings");
+
+    private static final Set<String> TASK_LOG_TABLE_SUFFIXES = Set.of(
+            ".read.split-key",
+            ".read.fetch-size",
+            ".read.query-timeout-seconds",
+            ".chunk-key-column",
+            ".snapshot.skip",
+            ".dml.insert",
+            ".dml.update",
+            ".dml.delete",
+            ".incremental.mode",
+            ".incremental.column",
+            ".incremental.delay-seconds",
+            ".incremental.lookback-seconds",
+            ".write.mode",
+            ".write.primary-keys",
+            ".write.transaction.mode",
+            ".write.batch-size");
+
+    private static final Set<String> TASK_LOG_PIPELINE_OPTIONS = Set.of(
+            "execution.runtime-mode",
+            "yak.table-scope",
+            "parallelism",
+            "local-time-zone",
+            "schema.change.behavior",
+            "schema.operator.uid",
+            "route-mode",
+            "transform.decimal.precision.mode");
+
+    /**
+     * Renders the already-generated Pipeline YAML for Task diagnostics without exposing
+     * arbitrary SQL predicates, statements, transforms, cursor values, or new options.
+     * This never changes the YAML passed to the parser or execution engine.
+     */
+    static String forTaskLog(String yaml) {
+        try {
+            JsonNode document = YAML_MAPPER.readTree(yaml);
+            if (document == null || !document.isObject()) return "# Pipeline YAML unavailable for logging";
+            redactForTaskLog(document, "");
+            return YAML_MAPPER.writeValueAsString(document);
+        } catch (JsonProcessingException failure) {
+            // Diagnostic formatting must not fail an otherwise valid Task or print the raw YAML.
+            return "# Pipeline YAML unavailable for logging";
+        }
+    }
+
+    private static void redactForTaskLog(JsonNode node, String section) {
+        if (node instanceof ObjectNode object) {
+            Iterator<Map.Entry<String, JsonNode>> fields = object.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> field = fields.next();
+                String key = field.getKey();
+                JsonNode value = field.getValue();
+                if (value.isContainerNode()) {
+                    redactForTaskLog(value, section.isEmpty() ? key : section);
+                } else if (!isSafeTaskLogOption(section, key)) {
+                    object.put(key, "[REDACTED]");
+                }
+            }
+        } else if (node instanceof ArrayNode array) {
+            for (int index = 0; index < array.size(); index++) {
+                JsonNode value = array.get(index);
+                if (value.isContainerNode()) {
+                    redactForTaskLog(value, section);
+                } else {
+                    array.set(index, com.fasterxml.jackson.databind.node.TextNode.valueOf("[REDACTED]"));
+                }
+            }
+        }
+    }
+
+    private static boolean isSafeTaskLogOption(String section, String key) {
+        if ("route".equals(section)) return "source-table".equals(key) || "sink-table".equals(key);
+        if ("transform".equals(section)) return "source-table".equals(key);
+        if ("pipeline".equals(section)) return TASK_LOG_PIPELINE_OPTIONS.contains(key);
+        if (!"source".equals(section) && !"sink".equals(section)) return false;
+        if (TASK_LOG_ENDPOINT_OPTIONS.contains(key)) return true;
+        if (!key.startsWith("yak.table.")) return false;
+        for (String suffix : TASK_LOG_TABLE_SUFFIXES) {
+            if (key.endsWith(suffix)) return true;
+        }
+        return false;
+    }
 
     public static String convert(ReadonlyConfig parameters) {
         Map<String, Object> root = parameters.getSourceMap();

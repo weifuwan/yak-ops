@@ -3,6 +3,7 @@ package io.yak.ops.plugin.task.datasync;
 import io.yak.ops.cli.parser.YamlPipelineDefinitionParser;
 import io.yak.ops.composer.PipelineComposer;
 import io.yak.ops.composer.PipelineContext;
+import io.yak.ops.composer.PipelineExecution;
 import io.yak.ops.composer.PipelinePlan;
 import io.yak.ops.composer.definition.PipelineDef;
 import io.yak.ops.composer.definition.PipelineOptions;
@@ -20,6 +21,7 @@ import io.yak.ops.plugin.task.api.execution.TaskExecutionIdentity;
 import io.yak.ops.plugin.task.api.execution.TaskExecutionResources;
 import io.yak.ops.plugin.task.api.execution.TaskHandle;
 import io.yak.ops.plugin.task.api.execution.TaskStartRejectedException;
+import io.yak.ops.plugin.task.api.log.TaskLogMarkers;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,6 +30,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * DATA_SYNC Task boundary for JSON conversion, authorization, and deferred Pipeline execution.
@@ -37,6 +41,7 @@ import java.util.concurrent.CompletionStage;
  */
 public final class PipelineTaskChannel implements TaskChannel {
     public static final String TYPE = "DATA_SYNC";
+    private static final Logger LOG = LoggerFactory.getLogger(PipelineTaskChannel.class);
     private static final Option<Map<String, Object>> SOURCE =
             Options.key("source").mapObjectType().noDefaultValue();
     private static final Option<Map<String, Object>> SINK =
@@ -169,12 +174,22 @@ public final class PipelineTaskChannel implements TaskChannel {
             ReadonlyConfig parameters, TaskExecutionResources plan, TaskExecutionIdentity identity, boolean debug) {
         try {
             PipelineContext trusted = context(identity, debug);
-            PipelineDef definition = definition(parameters);
+            // Parse exactly the YAML that is handed to the engine. Do not rebuild it from JSON for logging.
+            String yaml = PipelineYamlConverter.convert(parameters);
+            PipelineDef definition = parser.parse(yaml);
             PipelinePlan admitted = composer.plan(definition, trusted);
             if (!plan.equals(admission(admitted))) {
                 throw new IllegalStateException("DATA_SYNC resource binding changed before execution");
             }
-            return CompletableFuture.completedFuture(new PipelineTask(composer.compose(definition, admitted, trusted)));
+            PipelineExecution execution = composer.compose(definition, admitted, trusted);
+            // One entry per physical Task creation, after admission/composition, not during validation.
+            LOG.info(
+                    TaskLogMarkers.includeInTaskLog(),
+                    "DATA_SYNC Pipeline YAML, instanceId={}, definitionVersion={} (sensitive values redacted):\n{}",
+                    identity.instanceId(),
+                    identity.definitionVersion(),
+                    PipelineYamlConverter.forTaskLog(yaml));
+            return CompletableFuture.completedFuture(new PipelineTask(execution));
         } catch (RuntimeException failure) {
             return CompletableFuture.failedFuture(
                     new TaskStartRejectedException("DATA_SYNC rejected before engine submission", failure));
