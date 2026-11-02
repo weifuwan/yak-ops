@@ -75,7 +75,7 @@ async def expect_read_strategy(page, label, disabled=False):
 
 
 async def set_schema_changes(page, enabled):
-    drawer = await open_advanced(page, "DDL 能力配置")
+    drawer = await open_advanced(page, "表结构同步")
     toggle = drawer.get_by_role("switch", name="同步结构变更", exact=True)
     await toggle.set_checked(enabled)
     await apply_drawer(drawer)
@@ -147,7 +147,7 @@ async def verify_solution_creation(page):
     advanced = await open_advanced(page, parameter_tab="运行时配置")
     await expect(advanced.locator("#schedule")).to_have_count(0)
     await expect(advanced.locator("#env").get_by_text("持续运行", exact=True)).to_be_visible()
-    await advanced.get_by_role("tab", name="DDL 能力配置", exact=True).click()
+    await advanced.get_by_role("tab", name="表结构同步", exact=True).click()
     schema_switch = advanced.get_by_role("switch", name="同步结构变更", exact=True)
     await expect(schema_switch).to_be_checked()
     await schema_switch.click()
@@ -156,13 +156,13 @@ async def verify_solution_creation(page):
     await rename_task(page, "Restored draft")
     await page.reload()
     await expect_task_name(page, "Restored draft")
-    advanced = await open_advanced(page, "DDL 能力配置")
+    advanced = await open_advanced(page, "表结构同步")
     await expect(schema_switch).not_to_be_checked()
     await advanced.get_by_role("button", name="取消", exact=True).click()
     await set_read_strategy(page, "全量后结束")
     advanced = await open_advanced(page, parameter_tab="运行时配置")
     await expect(advanced.locator("#schedule")).to_be_visible()
-    await advanced.get_by_role("tab", name="DDL 能力配置", exact=True).click()
+    await advanced.get_by_role("tab", name="表结构同步", exact=True).click()
     await expect(schema_switch).to_have_count(0)
     await advanced.get_by_role("button", name="取消", exact=True).click()
     await page.reload()
@@ -476,7 +476,7 @@ async def verify_batch_table_options(page):
 
 
 async def verify_replication_table_options(page):
-    """Per-table edits, selective bulk changes and serialized dynamic-selection intent."""
+    """Per-table mapping, default DML behavior, and dynamic selection without hidden controls."""
     state["catalog_mode"] = "multi"
     state["catalog_page_size"] = 1
     dialog = await prepare_database_task(page, "整库实时")
@@ -488,7 +488,9 @@ async def verify_replication_table_options(page):
     await expect(reason).to_be_visible()
     assert await regex_radio.get_attribute("aria-describedby") == await reason.get_attribute("id")
     await expect(page.locator('#source [role="note"]')).to_contain_text("切换后将清空当前已选库表")
-    advanced = await open_advanced(page, "DDL 能力配置")
+    advanced = await open_advanced(page, "表结构同步")
+    await expect(advanced.get_by_role("region", name="目标表初始化")).to_be_visible()
+    await expect(advanced.get_by_role("region", name="运行期间结构变更")).to_be_visible()
     await pick_option(page, advanced.get_by_role("combobox", name="目标表结构", exact=True), "创建或调整目标表")
     await apply_drawer(advanced)
     await expect(regex_radio).to_be_enabled()
@@ -498,16 +500,16 @@ async def verify_replication_table_options(page):
     await expect_selected_tables(page, 2)
     pages = [request[2] for request in state["requests"] if request[1] == "/api/v1/data-source/src/catalog/table-page"]
     assert {request["offset"] for request in pages} >= {0, 1}
+
+    # Individual edits retain cancel/apply semantics; DML filtering is no longer user-editable.
+    await expect(page.locator("#target").get_by_text("DML 规则配置", exact=True)).to_have_count(0)
     mapping = await open_mapping(page, "app.batch_a", "同步配置")
-    await mapping.get_by_role("textbox", name="全量条件", exact=True).fill("id > 99")
+    await expect(mapping.get_by_role("checkbox", name="DELETE", exact=True)).to_have_count(0)
+    await mapping.get_by_role("textbox", name="源端切分列", exact=True).fill("id")
     await mapping.get_by_role("button", name="取消", exact=True).click()
     mapping = await open_mapping(page, "app.batch_a", "同步配置")
-    await expect(mapping.get_by_role("textbox", name="全量条件", exact=True)).to_have_value("")
+    await expect(mapping.get_by_role("textbox", name="源端切分列", exact=True)).to_have_value("")
     await mapping.get_by_role("textbox", name="源端切分列", exact=True).fill("id")
-    await mapping.get_by_role("textbox", name="全量条件", exact=True).fill("id > 0")
-    await mapping.get_by_role("checkbox", name="DELETE", exact=True).uncheck()
-    await mapping.get_by_role("tab", name="引擎参数", exact=True).click()
-    await mapping.get_by_role("spinbutton", name="写入批次大小", exact=True).fill("64")
     await apply_drawer(mapping)
     mapping = await open_mapping(page, "app.batch_b", "同步配置")
     await mapping.get_by_role("checkbox", name="是否跳过全量同步", exact=True).check()
@@ -518,25 +520,23 @@ async def verify_replication_table_options(page):
     bulk = page.get_by_role("dialog", name="批量修改 2 张表", exact=True)
     await bulk.get_by_role("checkbox", name="目标表模板", exact=True).check()
     await bulk.get_by_role("textbox", name="目标表模板", exact=True).fill("dw_${table}")
-    await bulk.get_by_role("checkbox", name="写入批次大小", exact=True).check()
-    await bulk.get_by_role("spinbutton", name="写入批次大小", exact=True).fill("128")
+    await expect(bulk.get_by_role("checkbox", name="DML 规则", exact=True)).to_have_count(0)
     await apply_drawer(bulk)
     assert state["created_tasks"] == state["updated_tasks"] == 0
     await page.get_by_role("button", name="保存", exact=True).click()
     await expect(page).to_have_url(re.compile(r"/data-sync/new-task/edit$"))
     saved = deepcopy(state["task"]["parameters"])
-    assert saved["source"]["tables"][0]["snapshot"] == {"chunkKeyColumn": "id", "where": "id > 0"}
-    assert saved["source"]["tables"][0]["dml"] == {"events": ["INSERT", "UPDATE"]}
+    assert saved["source"]["tables"][0]["snapshot"] == {"chunkKeyColumn": "id"}
     assert saved["source"]["tables"][1]["snapshot"] == {"skip": True}
-    assert "dml" not in saved["source"]["tables"][1]
+    assert all("dml" not in table for table in saved["source"]["tables"])
     assert [table["table"] for table in saved["sink"]["tables"]] == ["dw_batch_a", "dw_batch_b"]
-    assert all(table["write"]["batchSize"] == 128 for table in saved["sink"]["tables"])
+    assert all("batchSize" not in table["write"] for table in saved["sink"]["tables"])
     await page.reload()
     mapping = await open_mapping(page, "app.batch_a", "同步配置")
-    await expect(mapping.get_by_role("textbox", name="全量条件", exact=True)).to_have_value("id > 0")
-    await expect(mapping.get_by_role("checkbox", name="DELETE", exact=True)).not_to_be_checked()
+    await expect(mapping.get_by_role("textbox", name="源端切分列", exact=True)).to_have_value("id")
     await mapping.get_by_role("button", name="取消", exact=True).click()
     await capture_editor_widths(page, "replication-explicit", replication=True)
+
     await page.get_by_role("radio", name="使用正则选表", exact=True).click()
     change = page.get_by_role("dialog", name="切换选表方式", exact=True)
     await change.get_by_role("button", name="取消", exact=True).click()
@@ -548,8 +548,8 @@ async def verify_replication_table_options(page):
     await page.get_by_role("textbox", name="表名正则", exact=True).fill("^batch_[ab]$")
     await page.get_by_role("textbox", name="新表目标表模板", exact=True).fill("regex_${table}")
     await page.get_by_role("button", name="新表默认配置", exact=True).click()
-    await page.locator("#source").get_by_role("textbox", name="全量条件", exact=True).fill("id > 5")
-    await page.locator("#source").get_by_role("checkbox", name="DELETE", exact=True).uncheck()
+    await page.locator("#source").get_by_role("textbox", name="源端切分列", exact=True).fill("id")
+    await expect(page.locator("#source").get_by_role("checkbox", name="DELETE", exact=True)).to_have_count(0)
     await expect_save_rejected(page, "请先匹配并应用当前正则规则")
     await page.get_by_role("button", name="匹配库表", exact=True).click()
     await expect(page.get_by_text("已匹配 2 张表", exact=True)).to_be_visible()
@@ -560,7 +560,7 @@ async def verify_replication_table_options(page):
     selected = state["task"]["parameters"]
     assert selected["source"]["selection"] == {
         "mode": "REGEX", "databasePattern": "^app$", "tablePattern": "^batch_[ab]$",
-        "snapshot": {"where": "id > 5"}, "dml": {"events": ["INSERT", "UPDATE"]},
+        "snapshot": {"chunkKeyColumn": "id"},
     }
     assert selected["sink"]["mapping"]["table"] == "regex_${table}"
     assert [table["table"] for table in selected["sink"]["tables"]] == ["regex_batch_a", "regex_batch_b"]
@@ -571,7 +571,7 @@ async def verify_replication_table_options(page):
     await expect(page.get_by_role("textbox", name="新表目标表模板", exact=True)).to_have_value("regex_${table}")
     await capture_editor_widths(page, "replication-table-options", replication=True)
 
-    # A delayed rematch must not let a dialog edit a row that its response can remove.
+    # A delayed rematch must not allow editing a row that its response will remove.
     persisted = deepcopy(state["task"]["parameters"])
     writes = (state["created_tasks"], state["updated_tasks"])
     await page.get_by_role("textbox", name="表名正则", exact=True).fill("^batch_a$")
@@ -593,12 +593,12 @@ async def verify_replication_table_options(page):
     await expect(mapping_row(page, "app.batch_a").get_by_role("button", name="配置", exact=True).last).to_be_enabled()
     mapping = await open_mapping(page, "app.batch_a", "同步配置")
     await expect(page.get_by_role("button", name="匹配库表", exact=True, include_hidden=True)).to_be_disabled()
-    await mapping.get_by_role("textbox", name="全量条件", exact=True).fill("id > 99")
+    await mapping.get_by_role("checkbox", name="是否跳过全量同步", exact=True).check()
     await mapping.get_by_role("button", name="取消", exact=True).click()
     await expect(page.get_by_role("button", name="匹配库表", exact=True)).to_be_enabled()
     mapping = await open_mapping(page, "app.batch_a", "同步配置")
-    await expect(mapping.get_by_role("textbox", name="全量条件", exact=True)).to_have_value("id > 5")
-    await mapping.get_by_role("textbox", name="全量条件", exact=True).fill("id > 6")
+    await expect(mapping.get_by_role("checkbox", name="是否跳过全量同步", exact=True)).not_to_be_checked()
+    await mapping.get_by_role("checkbox", name="是否跳过全量同步", exact=True).check()
     await apply_drawer(mapping)
     assert state["task"]["parameters"] == persisted
     assert (state["created_tasks"], state["updated_tasks"]) == writes
@@ -607,12 +607,12 @@ async def verify_replication_table_options(page):
         await page.get_by_role("button", name="保存", exact=True).click()
     final = state["task"]["parameters"]
     assert final["source"]["selection"]["tablePattern"] == "^batch_a$"
-    assert final["source"]["selection"]["snapshot"] == {"where": "id > 5"}
+    assert final["source"]["selection"]["snapshot"] == {"chunkKeyColumn": "id"}
     assert len(final["source"]["tables"]) == 1
-    assert final["source"]["tables"][0]["snapshot"] == {"where": "id > 6"}
+    assert final["source"]["tables"][0]["snapshot"] == {"chunkKeyColumn": "id", "skip": True}
     await page.reload()
     mapping = await open_mapping(page, "app.batch_a", "同步配置")
-    await expect(mapping.get_by_role("textbox", name="全量条件", exact=True)).to_have_value("id > 6")
+    await expect(mapping.get_by_role("checkbox", name="是否跳过全量同步", exact=True)).to_be_checked()
     await mapping.get_by_role("button", name="取消", exact=True).click()
 
 
@@ -716,7 +716,7 @@ async def verify_schema_configuration(page):
     await pick_option(page, page.locator("#source").get_by_role("combobox", name="表", exact=True),
                       re.compile(r"(.*\.)?sm_browser_source$"))
     target = page.locator("#target")
-    advanced = await open_advanced(page, "DDL 能力配置")
+    advanced = await open_advanced(page, "表结构同步")
     await expect(advanced.get_by_role("combobox", name="目标表结构", exact=True)).to_contain_text("校验已有表")
     await pick_option(page, advanced.get_by_role("combobox", name="目标表结构", exact=True), "创建或调整目标表")
     await apply_drawer(advanced)
@@ -732,7 +732,7 @@ async def verify_schema_configuration(page):
     assert not any(req[1] == "/api/v1/data-sync/schema/preview" for req in state["requests"])
     await page.reload()
     await expect(field).to_have_value("sm_browser_target")
-    advanced = await open_advanced(page, "DDL 能力配置")
+    advanced = await open_advanced(page, "表结构同步")
     await expect(advanced.get_by_role("combobox", name="目标表结构", exact=True)).to_contain_text("创建或调整目标表")
     await advanced.get_by_role("button", name="取消", exact=True).click()
     await page.get_by_role("button", name="保存", exact=True).click()
@@ -850,7 +850,7 @@ async def verify_editor_round_trip(page):
     assert state["task"]["parameters"] == config
     assert state["task"]["definitionVersion"] == 1
 
-    advanced = await open_advanced(page, "DDL 能力配置")
+    advanced = await open_advanced(page, "表结构同步")
     schema_switch = advanced.get_by_role("switch", name="同步结构变更", exact=True)
     await expect(schema_switch).to_be_checked()
     await advanced.get_by_role("button", name="取消", exact=True).click()
@@ -873,7 +873,7 @@ async def verify_editor_round_trip(page):
             assert saved["pipeline"][key] == config["pipeline"][key]
         await page.reload()
         await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
-        advanced = await open_advanced(page, "DDL 能力配置")
+        advanced = await open_advanced(page, "表结构同步")
         if enabled:
             await expect(schema_switch).to_be_checked()
         else:
@@ -1183,7 +1183,7 @@ async def verify_snapshot_replication(page):
     await select_source_tables(page, ["app.batch_a", "app.batch_b"])
     for table in ("batch_a", "batch_b"):
         await set_mapping_target(page, "app." + table, "ods.public." + table + "_copy")
-    advanced = await open_advanced(page, "DDL 能力配置")
+    advanced = await open_advanced(page, "表结构同步")
     await expect(advanced.get_by_role("switch", name="同步结构变更", exact=True)).to_have_count(0)
     advanced = await open_advanced(page, parameter_tab="运行时配置")
     await expect(advanced.locator("#schedule")).to_be_visible()
