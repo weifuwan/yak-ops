@@ -11,13 +11,15 @@ import {
   mappedSourcePrimaryKeys,
   readDirectProjection,
   sameNameFieldMappings,
+  samePositionFieldMappings,
   transformEditingError,
   transformTableSelector,
   updateTransformRule,
   type DirectFieldMapping,
 } from "@/service/data-sync/transforms";
 import { ContentSection } from "./content-layout";
-import { FieldMappingTable } from "./field-mapping-table";
+import { FieldMappingCanvas } from "./field-mapping-canvas";
+import { ManualFieldMappingDialog } from "./manual-field-mapping-dialog";
 import { TransformRulesDialog } from "./transform-rules-dialog";
 
 interface FieldEndpoint extends DataSourceCatalogTablePath {
@@ -80,6 +82,7 @@ export function FieldMappingSection({
       : direct.fields
     : undefined;
   const [expressions, setExpressions] = useState(false);
+  const [manualEditorOpen, setManualEditorOpen] = useState(false);
   const [replacement, setReplacement] = useState<string>();
   const signature = JSON.stringify([source, value]);
   const ready = Boolean(source.dataSourceId && source.table && target.dataSourceId && target.table);
@@ -88,6 +91,10 @@ export function FieldMappingSection({
   const defaults = sameNameFieldMappings(sourceColumns, targetColumns);
   const setFields = (next: DirectFieldMapping[]) =>
     onChange(updateTransformRule(value, 0, selector, { projection: fieldProjection(next) }));
+  const applyPositionMapping = () => {
+    const destination = targetColumns ?? sourceColumns;
+    setFields(samePositionFieldMappings(sourceColumns, destination));
+  };
   const applyDefaults = () => {
     setFields(defaults);
     setReplacement(undefined);
@@ -140,6 +147,20 @@ export function FieldMappingSection({
             >
               同名映射
             </Button>
+            {direct ? (
+              <Button
+                size="small"
+                disabled={fieldsDisabled || !sourceColumns.length || Boolean(targetColumns && !targetColumns.length)}
+                onClick={applyPositionMapping}
+              >
+                同行映射
+              </Button>
+            ) : null}
+            {direct ? (
+              <Button size="small" disabled={fieldsDisabled} onClick={() => setManualEditorOpen(true)}>
+                手动编辑映射关系
+              </Button>
+            ) : null}
             {direct && !direct.all ? (
               <Button
                 size="small"
@@ -159,7 +180,7 @@ export function FieldMappingSection({
             </span>
           </div>
           {direct ? (
-            <FieldMappingTable
+            <FieldMappingCanvas
               fields={fields ?? []}
               sourceColumns={sourceColumns}
               targetColumns={targetColumns}
@@ -198,6 +219,15 @@ export function FieldMappingSection({
           {error ? <Alert>{error}</Alert> : null}
         </>
       )}
+      {manualEditorOpen && fields ? (
+        <ManualFieldMappingDialog
+          fields={fields}
+          sourceColumns={sourceColumns}
+          targetColumns={targetColumns}
+          onApply={setFields}
+          onClose={() => setManualEditorOpen(false)}
+        />
+      ) : null}
       {expressions ? (
         <TransformRulesDialog
           value={value.length ? value : [{ "source-table": selector }]}

@@ -119,10 +119,22 @@ export function sameNameFieldMappings(
   source: readonly DataSourceCatalogColumn[],
   target?: readonly DataSourceCatalogColumn[],
 ): DirectFieldMapping[] {
-  const targetNames = target ? new Set(target.map((column) => column.name)) : undefined;
-  return source
-    .filter((column) => !targetNames || targetNames.has(column.name))
-    .map((column) => ({ source: column.name, target: column.name }));
+  if (!target) return source.map((column) => ({ source: column.name, target: column.name }));
+  const byName = new Map(target.map((column) => [column.name.trim().toLocaleLowerCase(), column.name]));
+  return source.flatMap((column) => {
+    const targetName = byName.get(column.name.trim().toLocaleLowerCase());
+    return targetName ? [{ source: column.name, target: targetName }] : [];
+  });
+}
+
+export function samePositionFieldMappings(
+  source: readonly DataSourceCatalogColumn[],
+  target: readonly DataSourceCatalogColumn[],
+): DirectFieldMapping[] {
+  return source.slice(0, Math.min(source.length, target.length)).map((column, index) => ({
+    source: column.name,
+    target: target[index].name,
+  }));
 }
 
 /** Only a complete, directly forwarded physical key can be offered as an output key. */
