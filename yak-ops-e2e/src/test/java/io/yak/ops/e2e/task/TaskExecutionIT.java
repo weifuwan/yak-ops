@@ -72,6 +72,7 @@ class TaskExecutionIT extends BackendTestBase {
                         .contains("JDBC sink summary"));
         String text = fixture.api.download("/api/v1/task-instances/" + instance + "/logs/download");
         for (String event : List.of(
+                "DATA_SYNC Pipeline YAML",
                 "YakFlow Job started",
                 "JDBC query executed",
                 "JDBC fetch completed",
@@ -81,6 +82,8 @@ class TaskExecutionIT extends BackendTestBase {
                 "JDBC sink summary")) {
             assertTrue(text.contains(event), "Missing log event: " + event);
         }
+        assertTrue(text.contains("execution.runtime-mode"));
+        assertEquals(1, text.split("DATA_SYNC Pipeline YAML", -1).length - 1);
         assertFalse(text.contains(BootProcess.PASSWORD));
         assertFalse(text.contains(fixture.source.password()));
         fixture.api.expect("GET", "/api/v1/task-instances/" + instance + "/logs?cursor=bad!!", null, 400);
