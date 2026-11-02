@@ -7,7 +7,7 @@ import type {
 } from "@/service/data-sync";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { ContentField } from "./content-layout";
-import { DmlFields, SinkEngineFields, SnapshotFields } from "./table-option-fields";
+import { DmlFields, SnapshotFields } from "./table-option-fields";
 
 export function ReplicationDefaults({
   selection,
@@ -78,13 +78,11 @@ export function ReplicationDefaults({
           }
         />
       </ContentField>
-      <SinkEngineFields
-        batchSize={template.write.batchSize}
-        keys={capabilities.sinkEngineKeys}
-        onChange={(batchSize) =>
-          onChange(selection, { ...template, write: { ...template.write, batchSize } })
-        }
-      />
+      {template.write.batchSize !== undefined ? (
+        <p className="text-xs text-[var(--yak-components-muted-text)]">
+          已保存的新表写入批次参数仍会生效，当前页面不提供编辑。
+        </p>
+      ) : null}
     </CollapseSection>
   );
 }

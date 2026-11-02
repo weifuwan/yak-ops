@@ -7,13 +7,11 @@ import type {
   DataSyncTypeMapping,
   DataSyncWriteMode,
 } from "@/service/data-sync";
-import { replaceTableTransforms, transformTableSelector } from "@/service/data-sync/transforms";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { ContentSection } from "./content-layout";
 import { tableKey, tablePathLabel } from "./table-catalog";
 import { MappingSettingsDialog, type MappingTab } from "./mapping-settings-dialog";
 import { BatchMappingDialog } from "./batch-mapping-dialog";
-import { TransformRulesDialog } from "./transform-rules-dialog";
 import { TypeMappingDialog } from "./type-mapping-dialog";
 import type { CatalogOptions } from "./types";
 import type { EditorConfirmation } from "./use-definition-restoration";
@@ -21,7 +19,6 @@ import type { EditorConfirmation } from "./use-definition-restoration";
 export type MappingDialog =
   | { type: "table"; key: string; tab: MappingTab }
   | { type: "batch" }
-  | { type: "expressions"; selector?: string }
   | { type: "types" };
 
 interface Props {
@@ -40,7 +37,6 @@ interface Props {
   onDialogChange: (dialog: MappingDialog | undefined) => void;
   disabled: boolean;
   onChange: (mappings: DataSyncTableMapping[]) => void;
-  onTransformsChange: (rules: DataSyncTransform[]) => void;
   onTypeMappingsChange: (rules: DataSyncTypeMapping[]) => void;
   confirm: (confirmation: EditorConfirmation) => void;
 }
@@ -61,7 +57,6 @@ export function ReplicationMappingTable({
   onDialogChange,
   disabled,
   onChange,
-  onTransformsChange,
   onTypeMappingsChange,
   confirm,
 }: Props) {
@@ -142,26 +137,6 @@ export function ReplicationMappingTable({
       render: (_, row) => action(row, "mapping", row.target.table || "请选择目标表"),
     },
     {
-      key: "assignments",
-      title: "目标表字段赋值",
-      width: 160,
-      render: (_, row) => {
-        const selector = transformTableSelector(row.source);
-        const count = transforms.filter((rule) => rule["source-table"] === selector).length;
-        return (
-          <Button
-            size="small"
-            variant="ghost"
-            className="px-1 text-[var(--yak-color-primary)]"
-            disabled={disabled}
-            onClick={() => onDialogChange({ type: "expressions", selector })}
-          >
-            {count ? `${count} 条规则` : "配置"}
-          </Button>
-        );
-      },
-    },
-    {
       key: "primaryKeys",
       title: "目标表同步主键",
       width: 180,
@@ -196,39 +171,6 @@ export function ReplicationMappingTable({
       render: (_, row) =>
         initialLoad && capabilities?.snapshotSkip
           ? action(row, "sync", row.source.snapshot?.skip ? "是" : "否")
-          : "—",
-    },
-    {
-      key: "advanced",
-      title: "自定义高级参数",
-      width: 150,
-      render: (_, row) =>
-        action(
-          row,
-          "mapping",
-          row.writeMode === "UPSERT"
-            ? "按主键更新"
-            : row.writeMode === "RETRACT"
-              ? "逐行更新"
-              : "追加写入",
-        ),
-    },
-    {
-      key: "where",
-      title: "全量条件",
-      width: 190,
-      render: (_, row) =>
-        initialLoad && capabilities?.snapshotFilter
-          ? action(row, "sync", row.source.snapshot?.where || "配置")
-          : "—",
-    },
-    {
-      key: "engine",
-      title: "引擎参数配置",
-      width: 150,
-      render: (_, row) =>
-        capabilities?.sourceEngineKeys.length || capabilities?.sinkEngineKeys.length
-          ? action(row, "engine", row.batchSize ? `批次 ${row.batchSize}` : "默认")
           : "—",
     },
     {
@@ -284,20 +226,6 @@ export function ReplicationMappingTable({
           仅展示本次编辑增加的表
         </label>
         <div className="ml-auto flex gap-2">
-          {transforms.some(
-            (rule) =>
-              !mappings.some(
-                (mapping) => transformTableSelector(mapping.source) === rule["source-table"],
-              ),
-          ) ? (
-            <Button
-              size="small"
-              disabled={disabled}
-              onClick={() => onDialogChange({ type: "expressions" })}
-            >
-              字段表达式配置
-            </Button>
-          ) : null}
           {capabilities?.typeMapping ? (
             <Button
               size="small"
@@ -315,7 +243,7 @@ export function ReplicationMappingTable({
         rowKey="key"
         size="small"
         rowHeight={40}
-        scroll={{ x: 2460, y: 420 }}
+        scroll={{ x: 1810, y: 420 }}
         pagination={false}
         emptyText="请选择来源库表"
         emptyClassName="!min-h-24 !py-2"
@@ -351,6 +279,11 @@ export function ReplicationMappingTable({
           已选 {selected.length} / {mappings.length}
         </span>
       </div>
+      {transforms.length > 0 ? (
+        <p className="text-xs text-[var(--yak-components-muted-text)]">
+          已保存的 {transforms.length} 条字段表达式仍会执行，当前页面不提供编辑。
+        </p>
+      ) : null}
       {targetCatalog.error ? <Alert>{targetCatalog.error}</Alert> : null}
       {dialog?.type === "table" && current && capabilities ? (
         <MappingSettingsDialog
@@ -383,23 +316,6 @@ export function ReplicationMappingTable({
           onClose={() => onDialogChange(undefined)}
           onApply={(next) => {
             onChange(next);
-            onDialogChange(undefined);
-          }}
-        />
-      ) : null}
-      {dialog?.type === "expressions" ? (
-        <TransformRulesDialog
-          value={
-            dialog.selector
-              ? transforms.filter((rule) => rule["source-table"] === dialog.selector)
-              : transforms
-          }
-          selector={dialog.selector}
-          onClose={() => onDialogChange(undefined)}
-          onApply={(next) => {
-            onTransformsChange(
-              dialog.selector ? replaceTableTransforms(transforms, dialog.selector, next) : next,
-            );
             onDialogChange(undefined);
           }}
         />

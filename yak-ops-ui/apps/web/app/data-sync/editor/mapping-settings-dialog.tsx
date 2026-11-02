@@ -16,15 +16,10 @@ import { parameterFingerprint } from "@/service/data-sync/versions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { ContentField } from "./content-layout";
-import {
-  DmlFields,
-  SinkEngineFields,
-  SnapshotFields,
-  SourceEngineFields,
-} from "./table-option-fields";
+import { DmlFields, SnapshotFields } from "./table-option-fields";
 import { catalogPath, tableKey, tablePathLabel } from "./table-catalog";
 
-export type MappingTab = "mapping" | "sync" | "engine";
+export type MappingTab = "mapping" | "sync";
 
 export function MappingSettingsDialog({
   value,
@@ -105,9 +100,6 @@ export function MappingSettingsDialog({
         <TabsList>
           <TabsTab value="mapping">目标映射</TabsTab>
           <TabsTab value="sync">同步配置</TabsTab>
-          {capabilities.sourceEngineKeys.length || capabilities.sinkEngineKeys.length ? (
-            <TabsTab value="engine">引擎参数</TabsTab>
-          ) : null}
         </TabsList>
         <TabsPanel value="mapping" className="space-y-3 pt-4">
           {prepareSchema ? (
@@ -243,22 +235,12 @@ export function MappingSettingsDialog({
             />
           ) : null}
         </TabsPanel>
-        <TabsPanel value="engine" className="space-y-3 pt-4">
-          <SourceEngineFields
-            value={mapping.source.options}
-            keys={capabilities.sourceEngineKeys}
-            onChange={(options) =>
-              setMapping({ ...mapping, source: { ...mapping.source, options } })
-            }
-          />
-          <SinkEngineFields
-            batchSize={mapping.batchSize}
-            keys={capabilities.sinkEngineKeys}
-            disabled={mapping.writeMode === "RETRACT"}
-            onChange={(batchSize) => setMapping({ ...mapping, batchSize })}
-          />
-        </TabsPanel>
       </Tabs>
+      {mapping.source.options !== undefined || mapping.batchSize !== undefined ? (
+        <p className="mt-3 text-xs text-[var(--yak-components-muted-text)]">
+          已保存的表级引擎参数仍会生效，当前页面不提供编辑。
+        </p>
+      ) : null}
       {error ? <Alert className="mt-3">{error}</Alert> : null}
     </Modal>
   );

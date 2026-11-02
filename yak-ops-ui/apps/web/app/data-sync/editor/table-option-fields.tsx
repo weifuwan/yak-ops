@@ -1,4 +1,4 @@
-import { Checkbox, FieldItem, FieldLabel, Input, Textarea } from "@yak-ops/yak-ui";
+import { Checkbox, FieldItem, FieldLabel, Input } from "@yak-ops/yak-ui";
 import type {
   DataSyncCapabilities,
   DataSyncDml,
@@ -42,27 +42,17 @@ export function SnapshotFields({
               checked={value?.skip ?? false}
               aria-label="跳过全量同步"
               disabled={Boolean(value?.where)}
-              title={value?.where ? "请先清除全量条件" : undefined}
+              title={value?.where ? "已有全量条件的任务不能同时跳过全量" : undefined}
               onCheckedChange={(checked) => patch({ skip: checked || undefined })}
             />
             跳过
           </label>
         </ContentField>
       ) : null}
-      {capabilities.snapshotFilter ? (
-        <ContentField label="全量条件" wide>
-          <Textarea
-            size="small"
-            variant="outlined"
-            aria-label="全量条件"
-            className="!min-h-16 font-mono text-xs"
-            value={value?.where || ""}
-            disabled={Boolean(value?.skip)}
-            title={value?.skip ? "跳过全量同步时不设置全量条件" : undefined}
-            placeholder="不包含 WHERE 关键字"
-            onValueChange={(where) => patch({ where: String(where) || undefined })}
-          />
-        </ContentField>
+      {value?.where ? (
+        <p className="text-xs text-[var(--yak-components-muted-text)]">
+          已保存的全量条件仍会生效，当前页面不提供编辑。
+        </p>
       ) : null}
     </>
   );

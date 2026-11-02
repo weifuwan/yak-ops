@@ -526,7 +526,6 @@ export function TaskEditor({
                   transforms: form.transforms,
                   typeMappings: form.typeMappings,
                   onChange: updateMappings,
-                  onTransformsChange: (value) => patch("transforms", value),
                   onTypeMappingsChange: (value) => patch("typeMappings", value),
                   confirm: setPendingChange,
                 }}

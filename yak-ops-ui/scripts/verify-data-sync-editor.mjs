@@ -274,6 +274,20 @@ const overridden = {
   source: { ...mapping.source, snapshot: { where: "tenant_id = 9" }, dml: { events: ["UPDATE"] } },
   batchSize: 37,
 };
+// Hiding replication-only controls must not drop previously authored execution settings.
+const preservedPipeline = transport.createDefinitionRequest(
+  params.buildEditorPayload(
+    { ...form, transforms: [{ "source-table": "test.orders", projection: "id" }] },
+    replicationDraft,
+    true,
+    [overridden],
+  ),
+).parameters;
+assert.equal(preservedPipeline.source.tables[0].snapshot.where, "tenant_id = 9");
+assert.deepEqual(plain(preservedPipeline.source.tables[0].dml.events), ["UPDATE"]);
+assert.equal(preservedPipeline.sink.tables[0].write.batchSize, 37);
+assert.equal(preservedPipeline.transform[0].projection, "id");
+
 const selectionDefaults = {
   mode: "REGEX",
   databasePattern: ".*",
@@ -977,4 +991,44 @@ disposeRestoration();
 fulfillConnections(connectionRequests.splice(0));
 await unmounted;
 assert.equal(confirmations.length, 0, "An old Workspace response cannot change the next editor");
-console.log("History, engine validation and canceled asynchronous restoration contracts passed");
+
+// The replication editor exposes table-mapping controls but not data transforms,
+// snapshot predicates, or per-table engine tuning. Existing parameter serialization
+// is covered above by the DATA_SYNC definition and restoration assertions.
+const replicationTableUi = readFileSync(
+  new URL("../apps/web/app/data-sync/editor/replication-mapping-table.tsx", import.meta.url),
+  "utf8",
+);
+for (const label of [
+  "目标表字段赋值",
+  "引擎参数配置",
+  "全量条件",
+  "自定义高级参数",
+  "字段表达式配置",
+]) {
+  assert.doesNotMatch(replicationTableUi, new RegExp(label));
+}
+assert.match(replicationTableUi, /已保存的.*字段表达式仍会执行/);
+const mappingDialogUi = readFileSync(
+  new URL("../apps/web/app/data-sync/editor/mapping-settings-dialog.tsx", import.meta.url),
+  "utf8",
+);
+assert.doesNotMatch(mappingDialogUi, /value="engine"/);
+assert.match(mappingDialogUi, /value="mapping"/);
+assert.match(mappingDialogUi, /value="sync"/);
+assert.match(mappingDialogUi, /已保存的表级引擎参数仍会生效/);
+const snapshotUi = readFileSync(
+  new URL("../apps/web/app/data-sync/editor/table-option-fields.tsx", import.meta.url),
+  "utf8",
+);
+assert.doesNotMatch(snapshotUi, /label="全量条件"/);
+assert.match(snapshotUi, /已保存的全量条件仍会生效/);
+const batchUi = readFileSync(
+  new URL("../apps/web/app/data-sync/editor/batch-mapping-dialog.tsx", import.meta.url),
+  "utf8",
+);
+assert.doesNotMatch(batchUi, /value: "where"|value: "batchSize"/);
+assert.match(batchUi, /目标表模板/);
+assert.match(mappingDialogUi, /写入方式/);
+
+console.log("History, engine validation, preserved mapping options and UI simplification contracts passed");
