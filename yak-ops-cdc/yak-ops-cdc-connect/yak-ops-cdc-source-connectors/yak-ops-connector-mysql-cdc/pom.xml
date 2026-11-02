@@ -12,7 +12,7 @@
 
     <artifactId>yak-ops-connector-mysql-cdc</artifactId>
     <name>Yak Ops MySQL CDC Source Connector</name>
-    <description>MySQL snapshot and binlog source connector integration</description>
+    <description>Flink CDC 3.7 MySQL snapshot and binlog source implementation</description>
 
     <dependencies>
         <dependency>
@@ -26,6 +26,54 @@
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-cdc-runtime-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-debezium</artifactId>
+            <version>3.7.0-1.20</version>
+        </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-connector-mysql</artifactId>
+            <version>1.9.8.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>com.esri.geometry</groupId>
+            <artifactId>esri-geometry-api</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>4.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-core</artifactId>
+            <version>1.20.3</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-base</artifactId>
+            <version>1.20.3</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-streaming-java</artifactId>
+            <version>1.20.3</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-common</artifactId>
+            <version>1.20.3</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>
