@@ -20,10 +20,8 @@
             <artifactId>yak-ops-cdc-common</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-connector-debezium</artifactId>
-            <version>3.7.0-1.20</version>
-            <exclusions><exclusion><groupId>org.apache.kafka</groupId><artifactId>kafka-log4j-appender</artifactId></exclusion></exclusions>
+            <groupId>io.yak.ops</groupId>
+            <artifactId>yak-ops-connector-debezium</artifactId>
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
