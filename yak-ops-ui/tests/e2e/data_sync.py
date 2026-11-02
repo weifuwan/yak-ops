@@ -648,9 +648,10 @@ async def verify_multitable_selection(page):
     await select_source_tables(page, ["app.batch_b"])
     await expect_selected_tables(page, 2)
 
-    await mapping_row(page, "app.batch_b").get_by_role("checkbox", name="选择映射 app.batch_b", exact=True).check()
-    await page.locator("#target").get_by_role("button", name="批量移除", exact=True).click()
-    await page.get_by_role("dialog", name="批量移除库表", exact=True).get_by_role("button", name="确认", exact=True).click()
+    await mapping_row(page, "app.batch_b").get_by_role("button", name="移除", exact=True).click()
+    await page.get_by_role("dialog", name="移除库表", exact=True).get_by_role(
+        "button", name="确认", exact=True
+    ).click()
     await expect(checkbox_b).not_to_be_checked()
     await expect_selected_tables(page, 1)
 
@@ -878,17 +879,17 @@ async def verify_editor_round_trip(page):
     await set_mapping_target(page, "app.orders", "ods.ods_orders")
     await expect_save_rejected(page, "无主键来源表需关闭同步结构变更")
     await set_schema_changes(page, False)
-    mapping = await open_mapping(page, "app.orders", "同步配置")
-    await mapping.get_by_role("textbox", name="源端切分列", exact=True).fill("bucket")
-    # An explicit change of write identity must not retain hidden target-key overrides.
-    await mapping.get_by_role("textbox", name="目标表同步主键", exact=True).fill("bucket")
-    await mapping.get_by_role("tab", name="目标映射", exact=True).click()
-    writer = mapping.get_by_role("combobox", name="写入方式", exact=True)
+    await edit_mapping_cell(page, "app.orders", "源端切分列", "bucket")
+    await edit_mapping_cell(page, "app.orders", "目标表同步主键", "bucket")
+    writer = mapping_row(page, "app.orders").get_by_role(
+        "combobox", name="写入方式 app.orders", exact=True
+    )
     await pick_option(page, writer, "逐行更新")
-    await mapping.get_by_role("tab", name="同步配置", exact=True).click()
-    await expect(mapping.get_by_role("textbox", name="目标表同步主键", exact=True)).to_be_disabled()
-    await expect(mapping.get_by_role("textbox", name="目标表同步主键", exact=True)).to_have_value("")
-    await apply_drawer(mapping)
+    key_button = mapping_row(page, "app.orders").get_by_role(
+        "button", name="编辑目标表同步主键 app.orders", exact=True
+    )
+    await expect(key_button).to_be_disabled()
+    await expect(key_button).to_have_text("逐行更新")
     await expect(transfer_panel(page, "源端库表").get_by_role("checkbox", name="选择 app.other_orders", exact=True)).to_be_disabled()
     await expect_read_strategy(page, "全量后持续增量", disabled=True)
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_enabled()
@@ -901,11 +902,13 @@ async def verify_editor_round_trip(page):
         "mode": "RETRACT", "transaction": {"mode": "CHECKPOINT_XA"},
     }
     await page.reload()
-    mapping = await open_mapping(page, "app.orders")
+    writer = mapping_row(page, "app.orders").get_by_role(
+        "combobox", name="写入方式 app.orders", exact=True
+    )
     await expect(writer).to_contain_text("逐行更新")
-    await mapping.get_by_role("tab", name="同步配置", exact=True).click()
-    await expect(mapping.get_by_role("textbox", name="源端切分列", exact=True)).to_have_value("bucket")
-    await mapping.get_by_role("button", name="取消", exact=True).click()
+    await expect(mapping_row(page, "app.orders").get_by_role(
+        "button", name="编辑源端切分列 app.orders", exact=True
+    )).to_have_text("bucket")
     await expect(page.get_by_role("button", name="保存", exact=True)).to_be_disabled()
 
 
