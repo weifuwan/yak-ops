@@ -106,6 +106,7 @@ public class DefinitionServiceImpl implements DefinitionService {
         }
         DefinitionEntity definition = requireDefinition(id, true);
         requireRevision(definition, dto.getExpectedRevision());
+        requireNoActiveInstance(definition);
         String name = requiredName(dto.getName());
         checkNameAvailable(definition.getWorkspaceId(), name, id);
         if (StringUtils.isNotBlank(dto.getParameters())) {
