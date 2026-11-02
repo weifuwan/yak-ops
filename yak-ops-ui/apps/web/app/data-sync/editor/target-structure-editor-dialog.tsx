@@ -71,17 +71,12 @@ export function TargetStructureEditorDialog({
       if (structure.columns.length === 0) throw new Error("至少需要一个字段");
       if (structure.columns.some((col) => !col.name.trim())) throw new Error("字段名不能为空");
       if (structure.columns.some((col) => !col.type.trim())) throw new Error("字段类型不能为空");
-      if (
-        new Set(structure.columns.map((col) => col.name)).size !== structure.columns.length
-      ) {
+      if (new Set(structure.columns.map((col) => col.name)).size !== structure.columns.length) {
         throw new Error("字段名不能重复");
       }
       if (structure.partitions) {
-        if (structure.partitions.some((p) => !p.name.trim()))
-          throw new Error("分区字段名不能为空");
-        if (
-          new Set(structure.partitions.map((p) => p.name)).size !== structure.partitions.length
-        ) {
+        if (structure.partitions.some((p) => !p.name.trim())) throw new Error("分区字段名不能为空");
+        if (new Set(structure.partitions.map((p) => p.name)).size !== structure.partitions.length) {
           throw new Error("分区字段名不能重复");
         }
       }
@@ -606,7 +601,11 @@ function PartitionAssignmentDialog({
               </Select>
             </ContentField>
 
-            <ContentField label="目标格式" description="分区命名格式，如: yyyyMMdd, yyyyMM" required>
+            <ContentField
+              label="目标格式"
+              description="分区命名格式，如: yyyyMMdd, yyyyMM"
+              required
+            >
               <Input
                 size="small"
                 variant="outlined"

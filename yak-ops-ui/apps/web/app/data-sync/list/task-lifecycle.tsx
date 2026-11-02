@@ -89,6 +89,7 @@ export function DataSyncTaskLifecycleActions({
     {
       key: "edit",
       label: "编辑",
+      disabled: !canManage,
       className:
         "text-[var(--yak-components-collapse-section-icon)] hover:text-[var(--yak-color-primary)]",
       onClick: () => onEdit(record),

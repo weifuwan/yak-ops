@@ -57,6 +57,8 @@ export function TaskEditor({
   draft: initialDraft,
   task: initialTask,
   connections = [],
+  executionLocked = false,
+  executionLockMessage,
 }: TaskEditorInput) {
   const [draft, setDraft] = useState<DataSyncDraft>(initialDraft);
   const replication = draft.productType === "DATABASE_REPLICATION";
@@ -311,9 +313,13 @@ export function TaskEditor({
     setDrawer((current) => (current ? { ...current, open: false } : undefined));
     setDrawerDirty(false);
   };
-  const openDrawer = (next: OpenDrawer) => setDrawer({ ...next, open: true });
+  const openDrawer = (next: OpenDrawer) => {
+    if (executionLocked && next.kind !== "versions") return;
+    setDrawer({ ...next, open: true });
+  };
   const finishCloseDrawer = () => setDrawer((current) => (current?.open ? current : undefined));
   const applyConfiguration = (value: EditorConfiguration, rule?: ScheduleTimeRule) => {
+    if (executionLocked) return;
     setDraft(value.draft);
     setForm(value.form);
     setMappings(value.mappings);
@@ -361,7 +367,14 @@ export function TaskEditor({
     setScheduleNeedsReload,
   });
   const { saving } = submission;
-  const locked = saving || Boolean(submission.pendingWrite || submission.retryPublication);
+  const locked =
+    executionLocked || saving || Boolean(submission.pendingWrite || submission.retryPublication);
+  useEffect(() => {
+    if (!executionLocked) return;
+    setDrawer(undefined);
+    setDrawerDirty(false);
+    setPendingChange(undefined);
+  }, [executionLocked]);
   const transferringSavedTask = Boolean(completedTaskId && !id && !saving && !taskDirty);
   useUnsavedChanges((taskDirty || scheduleDirty || drawerDirty) && !transferringSavedTask);
   useEffect(() => {
@@ -390,6 +403,7 @@ export function TaskEditor({
     navigate,
   ]);
   const submit = (publish = false) => {
+    if (locked) return;
     if (validationIssue && !submission.retryPublication) {
       locateIssue(validationIssue);
       return;
@@ -443,6 +457,9 @@ export function TaskEditor({
           aria-busy={saving}
           className="min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto pb-6 pt-4"
         >
+          {executionLocked ? (
+            <Alert>{executionLockMessage || "无法确认任务运行状态，暂不可编辑。"}</Alert>
+          ) : null}
           {pageError ? <Alert>{pageError}</Alert> : null}
           {submission.error ? (
             <EditorRecoveryNotice
@@ -454,7 +471,9 @@ export function TaskEditor({
               canRetry={Boolean(submission.retryPublication)}
               hasTask={Boolean(saved)}
               onReconcile={() => void submission.reconcile()}
-              onRetry={() => void submission.save(true)}
+              onRetry={() => {
+                if (!locked) void submission.save(true);
+              }}
               onReload={() => void reloadRemote()}
               onBack={() => navigate("/data-sync")}
             />
@@ -600,7 +619,7 @@ export function TaskEditor({
         onSave={() => submit()}
         onPublish={() => submit(true)}
       />
-      {drawer?.kind === "properties" ? (
+      {!executionLocked && drawer?.kind === "properties" ? (
         <PropertiesDrawer
           id={saved?.id}
           draft={draft}
@@ -608,6 +627,7 @@ export function TaskEditor({
           open={drawer.open}
           onClosed={finishCloseDrawer}
           onApply={(value) => {
+            if (locked) return;
             setForm((current) => ({ ...current, ...value }));
             closeDrawer();
           }}
@@ -615,7 +635,7 @@ export function TaskEditor({
           onDirtyChange={setDrawerDirty}
         />
       ) : null}
-      {drawer?.kind === "advanced" ? (
+      {!executionLocked && drawer?.kind === "advanced" ? (
         <AdvancedDrawer
           open={drawer.open}
           onClosed={finishCloseDrawer}
@@ -649,14 +669,16 @@ export function TaskEditor({
           open={drawer.open}
           onClosed={finishCloseDrawer}
           allowRestore={!locked}
-          onRestore={(value) => void restore(value)}
+          onRestore={(value) => {
+            if (!locked) void restore(value);
+          }}
           onClose={() => {
             cancelRestoration();
             closeDrawer();
           }}
         />
       ) : null}
-      {pendingChange ? (
+      {!executionLocked && pendingChange ? (
         <EditorConfirmationDialog
           value={pendingChange}
           onClose={() => setPendingChange(undefined)}

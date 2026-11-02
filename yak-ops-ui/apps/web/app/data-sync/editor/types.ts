@@ -95,4 +95,6 @@ export interface TaskEditorInput {
   draft: DataSyncDraft;
   task?: DataSyncTaskRecord;
   connections?: DataSourceRecord[];
+  executionLocked?: boolean;
+  executionLockMessage?: string;
 }

@@ -62,7 +62,7 @@ class DefinitionCrudContractTest {
     private final InstanceRepository instances = mock(InstanceRepository.class);
     private final DefinitionServiceImpl service = new DefinitionServiceImpl(
             definitions, versions, registry, context,
-            new PublicationServiceImpl(definitions, publications, schedules),
+            new PublicationServiceImpl(definitions, publications, schedules, instances),
             schedules, instances, publications);
     private final Map<Integer, DefinitionVersionEntity> snapshots = new HashMap<>();
     private final Map<String, DefinitionPublicationEntity> receipts = new HashMap<>();
@@ -103,7 +103,7 @@ class DefinitionCrudContractTest {
     }
 
     @Test
-    void savingRunningPublishedTaskKeepsPublicationAndHistoricalParameters() {
+    void runningTaskRejectsEditsAndPublicationUntilInstanceIsTerminal() {
         create();
         DefinitionVO published = service.publish(stored.getId(), publication("publish-1"), "publisher");
         assertEquals(1, published.getPublishedVersion());
@@ -113,8 +113,21 @@ class DefinitionCrudContractTest {
 
         UpdateDefinitionDTO edit = edit("orders renamed", "orders_new");
         edit.setDebug(true);
-        DefinitionVO saved = service.update(stored.getId(), edit, "editor");
+        assertEquals(CommonErrorCode.TASK_INSTANCE_ACTIVE, assertThrows(
+                BusinessException.class, () -> service.update(stored.getId(), edit, "editor")).getErrorCode());
+        assertEquals(CommonErrorCode.TASK_INSTANCE_ACTIVE, assertThrows(
+                BusinessException.class, () -> service.update(
+                        stored.getId(), edit("metadata-only", null), "editor")).getErrorCode());
+        assertEquals(CommonErrorCode.TASK_INSTANCE_ACTIVE, assertThrows(
+                BusinessException.class, () -> service.publish(
+                        stored.getId(), publication("publish-while-running"), "publisher")).getErrorCode());
+        assertEquals(1, stored.getCurrentVersion());
+        assertEquals(2, stored.getRevision());
+        assertEquals(1, snapshots.size());
+        assertEquals(1, receipts.size());
 
+        when(instances.latest("ws", List.of(stored.getId()), true)).thenReturn(List.of());
+        DefinitionVO saved = service.update(stored.getId(), edit, "editor");
         assertEquals("PUBLISHED", saved.getStatus());
         assertEquals(2, saved.getDefinitionVersion());
         assertEquals(1, saved.getPublishedVersion());

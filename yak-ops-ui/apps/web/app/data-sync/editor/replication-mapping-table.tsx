@@ -97,7 +97,9 @@ export function ReplicationMappingTable({
       if (
         !prepareSchema &&
         next.target.table &&
-        !targetCatalog.tables.some((table) => tableKey(catalogPath(table)) === tableKey(next.target))
+        !targetCatalog.tables.some(
+          (table) => tableKey(catalogPath(table)) === tableKey(next.target),
+        )
       )
         throw new Error("请选择已有目标表");
       if (!writeModes.includes(next.writeMode)) throw new Error("请选择支持的写入方式");
@@ -157,10 +159,11 @@ export function ReplicationMappingTable({
       onCommit={apply}
     />
   );
-  const hasSchema = mappings.some((mapping) => mapping.target.schema !== undefined) ||
+  const hasSchema =
+    mappings.some((mapping) => mapping.target.schema !== undefined) ||
     targetCatalog.tables.some((table) => Boolean(table.schema));
-  const showWriteMode = writeModes.length > 1 ||
-    mappings.some((mapping) => mapping.writeMode !== writeModes[0]);
+  const showWriteMode =
+    writeModes.length > 1 || mappings.some((mapping) => mapping.writeMode !== writeModes[0]);
   const columns: TableColumns<(typeof rows)[number]> = [
     { key: "index", title: "序号", width: 55, render: (_, row) => row.index + 1 },
     {
@@ -199,54 +202,58 @@ export function ReplicationMappingTable({
           : row.target.database || "—",
     },
     ...(hasSchema
-      ? [{
-          key: "targetSchema",
-          title: "目标 Schema",
-          width: 145,
-          render: (_: unknown, row: (typeof rows)[number]) =>
-            prepareSchema
-              ? editable(row, "目标 Schema", row.target.schema || "", "默认 Schema", (schema) =>
-                  updateRow(row, {
-                    ...row,
-                    target: { ...row.target, schema: schema.trim() || undefined },
-                  }),
-                )
-              : row.target.schema || "—",
-        }]
+      ? [
+          {
+            key: "targetSchema",
+            title: "目标 Schema",
+            width: 145,
+            render: (_: unknown, row: (typeof rows)[number]) =>
+              prepareSchema
+                ? editable(row, "目标 Schema", row.target.schema || "", "默认 Schema", (schema) =>
+                    updateRow(row, {
+                      ...row,
+                      target: { ...row.target, schema: schema.trim() || undefined },
+                    }),
+                  )
+                : row.target.schema || "—",
+          },
+        ]
       : []),
     {
       key: "targetTable",
       title: "目标表名",
       width: 220,
       render: (_, row) =>
-        prepareSchema
-          ? editable(row, "目标表名", row.target.table, "请选择目标表", (table) => {
-              if (!table.trim()) {
-                setEditError("请选择或填写目标表");
-                return "请选择或填写目标表";
-              }
-              return updateRow(row, { ...row, target: { ...row.target, table: table.trim() } });
-            })
-          : (
-            <DataSyncSearchableSelect
-              ariaLabel={"目标表 " + tablePathLabel(row.source)}
-              value={row.target.table ? tableKey(row.target) : null}
-              disabled={disabled}
-              placeholder="请选择已有目标表"
-              options={targetCatalog.tables.map((table) => ({
-                value: tableKey(catalogPath(table)),
-                label: tablePathLabel(catalogPath(table)),
-              }))}
-              onValueChange={(key) => {
-                const selected = targetCatalog.tables.find((table) => tableKey(catalogPath(table)) === key);
-                if (selected)
-                  updateRow(row, {
-                    ...row,
-                    target: { ...catalogPath(selected), primaryKeys: row.target.primaryKeys },
-                  });
-              }}
-            />
-          ),
+        prepareSchema ? (
+          editable(row, "目标表名", row.target.table, "请选择目标表", (table) => {
+            if (!table.trim()) {
+              setEditError("请选择或填写目标表");
+              return "请选择或填写目标表";
+            }
+            return updateRow(row, { ...row, target: { ...row.target, table: table.trim() } });
+          })
+        ) : (
+          <DataSyncSearchableSelect
+            ariaLabel={"目标表 " + tablePathLabel(row.source)}
+            value={row.target.table ? tableKey(row.target) : null}
+            disabled={disabled}
+            placeholder="请选择已有目标表"
+            options={targetCatalog.tables.map((table) => ({
+              value: tableKey(catalogPath(table)),
+              label: tablePathLabel(catalogPath(table)),
+            }))}
+            onValueChange={(key) => {
+              const selected = targetCatalog.tables.find(
+                (table) => tableKey(catalogPath(table)) === key,
+              );
+              if (selected)
+                updateRow(row, {
+                  ...row,
+                  target: { ...catalogPath(selected), primaryKeys: row.target.primaryKeys },
+                });
+            }}
+          />
+        ),
     },
     {
       key: "primaryKeys",
@@ -263,9 +270,7 @@ export function ReplicationMappingTable({
               ...row,
               target: {
                 ...row.target,
-                primaryKeys: keys.trim()
-                  ? keys.split(",").map((key) => key.trim())
-                  : undefined,
+                primaryKeys: keys.trim() ? keys.split(",").map((key) => key.trim()) : undefined,
               },
             }),
           row.writeMode === "RETRACT" || schemaChanges,
@@ -277,8 +282,12 @@ export function ReplicationMappingTable({
       width: 160,
       render: (_, row) =>
         initialLoad
-          ? editable(row, "源端切分列", row.source.snapshot?.chunkKeyColumn || "", "自动", (value) =>
-              snapshot(row, { chunkKeyColumn: value.trim() || undefined }),
+          ? editable(
+              row,
+              "源端切分列",
+              row.source.snapshot?.chunkKeyColumn || "",
+              "自动",
+              (value) => snapshot(row, { chunkKeyColumn: value.trim() || undefined }),
             )
           : "—",
     },
@@ -287,48 +296,50 @@ export function ReplicationMappingTable({
       title: "是否跳过全量同步",
       width: 155,
       render: (_, row) =>
-        initialLoad && capabilities?.snapshotSkip
-          ? (
-            <Checkbox
-              aria-label={"跳过全量同步 " + tablePathLabel(row.source)}
-              checked={Boolean(row.source.snapshot?.skip)}
-              disabled={disabled || Boolean(row.source.snapshot?.where)}
-              title={row.source.snapshot?.where ? "已有全量条件，不能同时跳过全量" : undefined}
-              onCheckedChange={(checked) => snapshot(row, { skip: checked || undefined })}
-            />
-          )
-          : "—",
+        initialLoad && capabilities?.snapshotSkip ? (
+          <Checkbox
+            aria-label={"跳过全量同步 " + tablePathLabel(row.source)}
+            checked={Boolean(row.source.snapshot?.skip)}
+            disabled={disabled || Boolean(row.source.snapshot?.where)}
+            title={row.source.snapshot?.where ? "已有全量条件，不能同时跳过全量" : undefined}
+            onCheckedChange={(checked) => snapshot(row, { skip: checked || undefined })}
+          />
+        ) : (
+          "—"
+        ),
     },
     ...(showWriteMode
-      ? [{
-          key: "writeMode",
-          title: "写入方式",
-          width: 150,
-          render: (_: unknown, row: (typeof rows)[number]) => (
-            <DataSyncSearchableSelect
-              ariaLabel={"写入方式 " + tablePathLabel(row.source)}
-              value={row.writeMode}
-              disabled={disabled || writeModes.length < 2}
-              placeholder="写入方式"
-              options={writeModes.map((mode) => ({
-                value: mode,
-                label:
-                  mode === "UPSERT" ? "按主键更新" : mode === "RETRACT" ? "逐行更新" : "追加写入",
-              }))}
-              onValueChange={(mode) =>
-                updateRow(row, {
-                  ...row,
-                  writeMode: mode as DataSyncWriteMode,
-                  batchSize: mode === "RETRACT" ? undefined : row.batchSize,
-                  target: {
-                    ...row.target,
-                    ...(mode === "RETRACT" ? { primaryKeys: undefined } : {}),
-                  },
-                })
-              }
-            />
-          ),
-        }]
+      ? [
+          {
+            key: "writeMode",
+            title: "写入方式",
+            width: 150,
+            render: (_: unknown, row: (typeof rows)[number]) => (
+              <DataSyncSearchableSelect
+                ariaLabel={"写入方式 " + tablePathLabel(row.source)}
+                value={row.writeMode}
+                disabled={disabled || writeModes.length < 2}
+                placeholder="写入方式"
+                options={writeModes.map((mode) => ({
+                  value: mode,
+                  label:
+                    mode === "UPSERT" ? "按主键更新" : mode === "RETRACT" ? "逐行更新" : "追加写入",
+                }))}
+                onValueChange={(mode) =>
+                  updateRow(row, {
+                    ...row,
+                    writeMode: mode as DataSyncWriteMode,
+                    batchSize: mode === "RETRACT" ? undefined : row.batchSize,
+                    target: {
+                      ...row.target,
+                      ...(mode === "RETRACT" ? { primaryKeys: undefined } : {}),
+                    },
+                  })
+                }
+              />
+            ),
+          },
+        ]
       : []),
     {
       key: "actions",
@@ -446,7 +457,9 @@ export function ReplicationMappingTable({
           部分表保留已保存的全量条件，仍会生效；当前不提供编辑。
         </p>
       ) : null}
-      {mappings.some((mapping) => mapping.source.options !== undefined || mapping.batchSize !== undefined) ? (
+      {mappings.some(
+        (mapping) => mapping.source.options !== undefined || mapping.batchSize !== undefined,
+      ) ? (
         <p className="text-xs text-[var(--yak-components-muted-text)]">
           部分表保留已保存的引擎参数，仍会生效；当前不提供编辑。
         </p>

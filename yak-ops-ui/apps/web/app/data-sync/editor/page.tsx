@@ -6,6 +6,7 @@ import { useWorkspace } from "@/hooks/use-workspace";
 import { readTaskDraft, taskDraftKey } from "@/service/data-sync/draft";
 import { getDataSource } from "@/service/datasource";
 import { getTaskDefinition, type DataSyncDraft } from "@/service/data-sync";
+import { listLatestTaskInstances } from "@/service/task-execution";
 import { toSyncTaskRecord } from "@/service/data-sync/definition";
 import { TaskEditor } from "./index";
 import { ReadonlyTaskEditor } from "./readonly-editor";
@@ -17,6 +18,21 @@ export function DataSyncTaskEditorPage() {
   const { currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const key = taskDraftKey(currentUser!.id, currentWorkspace!.id);
+  const activeQuery = useQuery({
+    queryKey: ["data-sync-editor-active", currentUser?.id, currentWorkspace?.id, id],
+    queryFn: ({ signal }) => listLatestTaskInstances([id!], true, signal),
+    enabled: Boolean(id && currentUser?.id && currentWorkspace?.id),
+    refetchInterval: (result) => (result.state.data?.length ? 2000 : 5000),
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+  const executionLocked =
+    Boolean(id) &&
+    (!activeQuery.isSuccess ||
+      Boolean(activeQuery.data?.some((instance) => instance.definitionId === id)));
+  const executionLockMessage = activeQuery.data?.some((instance) => instance.definitionId === id)
+    ? "任务正在执行，完成或停止后才能修改配置。"
+    : "正在确认任务运行状态，暂不可修改配置。";
   const query = useQuery({
     queryKey: ["data-sync-editor", currentUser?.id, currentWorkspace?.id, id],
     enabled: Boolean(id && currentUser?.id && currentWorkspace?.id),
@@ -89,6 +105,8 @@ export function DataSyncTaskEditorPage() {
       draft={query.data.draft}
       task={query.data.task}
       connections={query.data.connections}
+      executionLocked={executionLocked}
+      executionLockMessage={executionLockMessage}
     />
   );
 }

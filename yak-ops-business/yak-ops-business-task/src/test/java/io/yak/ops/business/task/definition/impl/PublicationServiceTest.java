@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.yak.ops.common.context.WorkspaceContext;
+import io.yak.ops.common.enums.common.CommonErrorCode;
 import io.yak.ops.common.enums.schedule.ScheduleTargetType;
 import io.yak.ops.common.enums.task.DefinitionErrorCode;
 import io.yak.ops.common.enums.task.DefinitionStatus;
@@ -20,9 +21,12 @@ import io.yak.ops.common.exception.BusinessException;
 import io.yak.ops.dao.entity.schedule.ScheduleEntity;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
 import io.yak.ops.dao.entity.task.DefinitionPublicationEntity;
+import io.yak.ops.dao.entity.task.InstanceEntity;
 import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.dao.repository.task.DefinitionPublicationRepository;
 import io.yak.ops.dao.repository.task.DefinitionRepository;
+import io.yak.ops.dao.repository.task.InstanceRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +39,8 @@ class PublicationServiceTest {
     private final DefinitionRepository definitions = mock(DefinitionRepository.class);
     private final DefinitionPublicationRepository publications = mock(DefinitionPublicationRepository.class);
     private final ScheduleRepository schedules = mock(ScheduleRepository.class);
-    private final PublicationServiceImpl service = new PublicationServiceImpl(definitions, publications, schedules);
+    private final InstanceRepository instances = mock(InstanceRepository.class);
+    private final PublicationServiceImpl service = new PublicationServiceImpl(definitions, publications, schedules, instances);
     private final DefinitionEntity definition = new DefinitionEntity();
 
     @BeforeEach
@@ -80,6 +85,17 @@ class PublicationServiceTest {
                 () -> service.publish("def", 3, 6, "request-1", true, true, "publisher")).getErrorCode());
         assertEquals(2, definition.getPublishedVersion());
         assertEquals(7, definition.getRevision());
+        verify(publications, never()).append(any());
+    }
+
+    @Test
+    void activeInstanceRejectsPublicationBeforeWritingAuditOrDefinition() {
+        when(instances.latest("ws", List.of("def"), true)).thenReturn(List.of(new InstanceEntity()));
+        assertEquals(CommonErrorCode.TASK_INSTANCE_ACTIVE, assertThrows(BusinessException.class,
+                () -> service.publish("def", 3, 7, "request-1", true, true, "publisher")).getErrorCode());
+        assertEquals(2, definition.getPublishedVersion());
+        assertEquals(7, definition.getRevision());
+        verify(definitions, never()).update(eq("ws"), any());
         verify(publications, never()).append(any());
     }
 

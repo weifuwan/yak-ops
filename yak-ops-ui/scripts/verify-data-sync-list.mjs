@@ -261,6 +261,81 @@ const { TaskTable } = compile("../apps/web/app/data-sync/list/task-table.tsx", {
   "@/service/data-sync/execution": { canCancelTaskInstance, canManageTaskDefinition },
   "../solution/presentation": { syncSummary },
 });
+// An active Instance or unknown Instance state must block the list's edit action.
+const { DataSyncTaskLifecycleActions } = compile(
+  "../apps/web/app/data-sync/list/task-lifecycle.tsx",
+  {
+    "@yak-ops/yak-ui": { Button: "Button", Badge: "Badge" },
+    react: { Fragment: "Fragment" },
+    "@/service/data-sync/execution": { canManageTaskDefinition },
+  },
+);
+const editorAction = (instanceStateReady, activeInstance) => {
+  const tree = DataSyncTaskLifecycleActions({
+    record: projected.bizData[0],
+    instanceStateReady,
+    activeInstance,
+    onPublish: () => {},
+    onUnpublish: () => {},
+    onEdit: () => {},
+    onDetail: () => {},
+    onDelete: () => {},
+  });
+  const actions = tree.props.children.map((fragment) => fragment.props.children[1]);
+  return actions.find((action) => action.props.children === "编辑");
+};
+assert.equal(editorAction(false, undefined).props.disabled, true);
+for (const status of ["SUBMITTED", "LAUNCHING", "RUNNING", "CANCELLING", "RECONCILING"]) {
+  assert.equal(editorAction(true, { id: "active", status }).props.disabled, true);
+}
+assert.equal(editorAction(true, undefined).props.disabled, false);
+assert.equal(editorAction(true, { id: "done", status: "FINISHED" }).props.disabled, false);
+
+// Direct /edit navigation checks the active Instance independently of the list.
+const editorPage = (active) => {
+  let activeQuery;
+  const { DataSyncTaskEditorPage } = compile("../apps/web/app/data-sync/editor/page.tsx", {
+    "@tanstack/react-query": {
+      useQuery: (options) => {
+        if (options.queryKey[0] === "data-sync-editor-active") {
+          activeQuery = options;
+          return active;
+        }
+        return { data: { kind: "editable", draft: {}, task: {}, connections: [] } };
+      },
+    },
+    "@yak-ops/yak-ui": { Alert: "Alert", Button: "Button" },
+    "react-router-dom": {
+      Navigate: "Navigate",
+      useLocation: () => ({ state: null }),
+      useParams: () => ({ id: "valid" }),
+    },
+    "@/hooks/use-auth": { useAuth: () => ({ currentUser: { id: "user" } }) },
+    "@/hooks/use-workspace": { useWorkspace: () => ({ currentWorkspace: { id: "ws" } }) },
+    "@/service/data-sync/draft": { taskDraftKey: () => "key" },
+    "@/service/datasource": {},
+    "@/service/data-sync": {},
+    "@/service/data-sync/definition": {},
+    "@/service/task-execution": {
+      listLatestTaskInstances: async () => [],
+    },
+    "./index": { TaskEditor: "TaskEditor" },
+    "./readonly-editor": { ReadonlyTaskEditor: "ReadonlyTaskEditor" },
+  });
+  const result = DataSyncTaskEditorPage();
+  assert.equal(result.type, "TaskEditor");
+  assert.equal(activeQuery.refetchInterval({ state: { data: [] } }), 5000);
+  assert.equal(activeQuery.refetchInterval({ state: { data: [{ status: "RUNNING" }] } }), 2000);
+  return result.props;
+};
+assert.equal(editorPage({ isSuccess: false }).executionLocked, true);
+assert.equal(
+  editorPage({ isSuccess: true, data: [{ definitionId: "valid", status: "RUNNING" }] })
+    .executionLocked,
+  true,
+);
+assert.equal(editorPage({ isSuccess: true, data: [] }).executionLocked, false);
+
 const activeByTask = new Map();
 const latestByTask = new Map();
 const table = TaskTable({
