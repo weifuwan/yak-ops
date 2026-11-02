@@ -14,9 +14,6 @@ export function SqlStatements({
   const change = (next: string[]) => onChange(next.every((text) => !text) ? [] : next);
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-[var(--yak-components-muted-text)]">
-        每项填写一条针对当前目标表的 INSERT、UPDATE、DELETE 或 TRUNCATE。
-      </p>
       {entries.map((statement, index) => (
         <FieldItem key={index} className="flex items-start gap-1">
           <Textarea
