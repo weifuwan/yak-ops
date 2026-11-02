@@ -24,7 +24,6 @@ import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshotAdapter;
 import org.apache.flink.cdc.common.annotation.VisibleForTesting;
 import org.apache.flink.cdc.common.memory.DataInputView;
 import org.apache.flink.cdc.common.memory.DataOutputView;
-import org.apache.flink.util.InstantiationUtil;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -211,7 +210,15 @@ public final class EnumSerializer<T extends Enum<T>> extends TypeSerializer<T> {
         @Override
         public void readSnapshot(int readVersion, DataInputView in, ClassLoader userCodeClassLoader)
                 throws IOException {
-            enumClass = InstantiationUtil.resolveClassByName(in, userCodeClassLoader);
+            String className = in.readUTF();
+            try {
+                @SuppressWarnings("unchecked")
+                Class<T> restoredClass =
+                        (Class<T>) Class.forName(className, false, userCodeClassLoader);
+                enumClass = restoredClass;
+            } catch (ClassNotFoundException e) {
+                throw new IOException("Cannot restore enum class: " + className, e);
+            }
 
             int numEnumConstants = in.readInt();
 

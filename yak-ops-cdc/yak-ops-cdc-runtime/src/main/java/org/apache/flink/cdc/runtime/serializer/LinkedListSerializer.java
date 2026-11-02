@@ -20,7 +20,7 @@ package org.apache.flink.cdc.runtime.serializer;
 import org.apache.flink.cdc.common.serialization.CompositeTypeSerializerSnapshot;
 import org.apache.flink.cdc.common.serialization.TypeSerializer;
 import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshot;
-import org.apache.flink.api.java.typeutils.runtime.MaskUtils;
+import org.apache.flink.cdc.common.serialization.MaskUtils;
 import org.apache.flink.cdc.common.annotation.Internal;
 import org.apache.flink.cdc.common.memory.DataInputView;
 import org.apache.flink.cdc.common.memory.DataOutputView;

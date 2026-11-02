@@ -39,7 +39,7 @@ import org.apache.flink.cdc.runtime.operators.schema.common.event.FlushSuccessEv
 import org.apache.flink.cdc.runtime.operators.schema.regular.event.SchemaChangeRequest;
 import org.apache.flink.cdc.runtime.operators.schema.regular.event.SchemaChangeResponse;
 import org.apache.flink.cdc.runtime.serializer.TableIdSerializer;
-import org.apache.flink.core.memory.DataInputViewStreamWrapper;
+import org.apache.flink.cdc.common.memory.DataInputViewStreamWrapper;
 import org.apache.flink.runtime.operators.coordination.CoordinationRequest;
 import org.apache.flink.runtime.operators.coordination.CoordinationResponse;
 import org.apache.flink.runtime.operators.coordination.OperatorCoordinator;
