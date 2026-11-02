@@ -367,7 +367,8 @@ export function TaskEditor({
     setScheduleNeedsReload,
   });
   const { saving } = submission;
-  const locked = executionLocked || saving || Boolean(submission.pendingWrite || submission.retryPublication);
+  const locked =
+    executionLocked || saving || Boolean(submission.pendingWrite || submission.retryPublication);
   useEffect(() => {
     if (!executionLocked) return;
     setDrawer(undefined);
