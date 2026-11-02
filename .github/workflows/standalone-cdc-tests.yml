@@ -32,6 +32,6 @@ jobs:
         run: |
           bash mvnw -B -ntp \
             -pl yak-ops-cdc/yak-ops-cdc-runtime -am \
-            -Dtest=StandalonePipelineTest,MemorySegmentPortTest,NativeSerializerSnapshotTest \
+            -Dtest=StandalonePipelineTest,MemorySegmentPortTest,NativeSerializerSnapshotTest,IntSerializerTest,ListSerializerTest,MapSerializerTest,EnumSerializerTest,EventSerializerTest \
             -Dsurefire.failIfNoSpecifiedTests=false \
             test
