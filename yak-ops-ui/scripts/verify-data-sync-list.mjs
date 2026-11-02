@@ -329,7 +329,11 @@ const editorPage = (active) => {
   return result.props;
 };
 assert.equal(editorPage({ isSuccess: false }).executionLocked, true);
-assert.equal(editorPage({ isSuccess: true, data: [{ definitionId: "valid", status: "RUNNING" }] }).executionLocked, true);
+assert.equal(
+  editorPage({ isSuccess: true, data: [{ definitionId: "valid", status: "RUNNING" }] })
+    .executionLocked,
+  true,
+);
 assert.equal(editorPage({ isSuccess: true, data: [] }).executionLocked, false);
 
 const activeByTask = new Map();
