@@ -1,16 +1,14 @@
 import {
-  Button,
+  Alert,
   Collapsible,
   CollapsiblePanel,
   CollapsibleTrigger,
   Input,
   Textarea,
 } from "@yak-ops/yak-ui";
-import { useState } from "react";
 import type {
   DataSyncCapabilities,
   DataSyncTransform,
-  DataSyncTypeMapping,
   DataSyncWriteMode,
 } from "@/service/data-sync";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
@@ -23,7 +21,6 @@ import { SqlStatements } from "./sql-statements";
 import { selectedTableKey } from "./table-catalog";
 import type { EditorForm, EditorSink, EditorSource } from "./types";
 import { SourceEngineFields, SinkEngineFields } from "./table-option-fields";
-import { TypeMappingDialog } from "./type-mapping-dialog";
 
 interface Props {
   form: EditorForm;
@@ -36,7 +33,6 @@ interface Props {
   patchSource: <K extends keyof EditorSource>(key: K, value: EditorSource[K]) => void;
   patchSink: <K extends keyof EditorSink>(key: K, value: EditorSink[K]) => void;
   onTransformsChange: (transforms: DataSyncTransform[]) => void;
-  onTypeMappingsChange: (rules: DataSyncTypeMapping[]) => void;
 }
 
 export function SingleTableBatchBody({
@@ -50,9 +46,7 @@ export function SingleTableBatchBody({
   patchSource,
   patchSink,
   onTransformsChange,
-  onTypeMappingsChange,
 }: Props) {
-  const [types, setTypes] = useState(false);
   return (
     <>
       <ContentSection id="source" title="数据来源">
@@ -176,6 +170,12 @@ export function SingleTableBatchBody({
           </Collapsible>
         ) : null}
       </ContentSection>
+      {form.typeMappings?.length ? (
+        <Alert>
+          此任务保留 {form.typeMappings.length} 条历史字段类型映射规则，执行时仍会生效。
+          单表离线已不支持编辑，请在版本详情中查看。
+        </Alert>
+      ) : null}
       <FieldMappingSection
         source={form.source}
         target={form.sink}
@@ -189,31 +189,7 @@ export function SingleTableBatchBody({
         )}
         value={form.transforms}
         onChange={onTransformsChange}
-        extra={
-          capabilities?.typeMapping ? (
-            <Button
-              size="small"
-              onClick={(event) => {
-                event.stopPropagation();
-                setTypes(true);
-              }}
-            >
-              编辑字段类型映射
-            </Button>
-          ) : undefined
-        }
       />
-      {types && capabilities ? (
-        <TypeMappingDialog
-          value={form.typeMappings}
-          rules={capabilities.typeMappingRules}
-          onClose={() => setTypes(false)}
-          onApply={(value) => {
-            onTypeMappingsChange(value);
-            setTypes(false);
-          }}
-        />
-      ) : null}
     </>
   );
 }
