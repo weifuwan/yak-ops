@@ -274,6 +274,20 @@ const overridden = {
   source: { ...mapping.source, snapshot: { where: "tenant_id = 9" }, dml: { events: ["UPDATE"] } },
   batchSize: 37,
 };
+// Hiding replication-only controls must not drop previously authored execution settings.
+const preservedPipeline = transport.createDefinitionRequest(
+  params.buildEditorPayload(
+    { ...form, transforms: [{ "source-table": "test.orders", projection: "id" }] },
+    replicationDraft,
+    true,
+    [overridden],
+  ),
+).parameters;
+assert.equal(preservedPipeline.source.tables[0].snapshot.where, "tenant_id = 9");
+assert.deepEqual(plain(preservedPipeline.source.tables[0].dml.events), ["UPDATE"]);
+assert.equal(preservedPipeline.sink.tables[0].write.batchSize, 37);
+assert.equal(preservedPipeline.transform[0].projection, "id");
+
 const selectionDefaults = {
   mode: "REGEX",
   databasePattern: ".*",

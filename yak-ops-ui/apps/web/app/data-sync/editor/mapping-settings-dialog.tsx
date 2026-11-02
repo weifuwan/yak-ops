@@ -16,10 +16,7 @@ import { parameterFingerprint } from "@/service/data-sync/versions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { ContentField } from "./content-layout";
-import {
-  DmlFields,
-  SnapshotFields,
-} from "./table-option-fields";
+import { DmlFields, SnapshotFields } from "./table-option-fields";
 import { catalogPath, tableKey, tablePathLabel } from "./table-catalog";
 
 export type MappingTab = "mapping" | "sync";
