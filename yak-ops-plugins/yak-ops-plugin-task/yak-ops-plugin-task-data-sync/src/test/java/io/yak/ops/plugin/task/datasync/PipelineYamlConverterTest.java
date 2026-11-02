@@ -36,6 +36,76 @@ class PipelineYamlConverterTest {
             }
             """;
 
+
+    @Test
+    void taskLogRendersGeneratedYamlButRedactsFreeFormValues() throws Exception {
+        String yaml = """
+                source:
+                  type: jdbc-mysql
+                  datasource-id: source
+                  tables: app.orders
+                  yak.table.app.orders.read.where: "password = 'where-secret'"
+                  yak.table.app.orders.incremental.initial-value: "cursor-secret"
+                  scan.startup.specific-offset.gtid-set: "gtid-secret"
+                  password: "credential-secret"
+                sink:
+                  type: jdbc-postgres
+                  datasource-id: target
+                  tables: public.orders
+                  yak.table.public.orders.write.pre-sql: "sql-secret"
+                  yak.table.public.orders.write.mode: UPSERT
+                  api-token: "token-secret"
+                route:
+                  - source-table: app.orders
+                    sink-table: public.orders
+                transform:
+                  - source-table: app.orders
+                    projection: "projection-secret"
+                    filter: "filter-secret"
+                pipeline:
+                  execution.runtime-mode: BATCH
+                  name: "pipeline-secret"
+                  parallelism: "2"
+                  future-option: "future-secret"
+                """;
+        String logged = PipelineYamlConverter.forTaskLog(yaml);
+        com.fasterxml.jackson.databind.JsonNode result =
+                new com.fasterxml.jackson.dataformat.yaml.YAMLMapper().readTree(logged);
+        assertEquals("jdbc-mysql", result.path("source").path("type").asText());
+        assertEquals("source", result.path("source").path("datasource-id").asText());
+        assertEquals("app.orders", result.path("source").path("tables").asText());
+        assertEquals("UPSERT", result.path("sink").path("yak.table.public.orders.write.mode").asText());
+        assertEquals("public.orders", result.path("route").get(0).path("sink-table").asText());
+        assertEquals("BATCH", result.path("pipeline").path("execution.runtime-mode").asText());
+        assertEquals("[REDACTED]", result.path("source").path("yak.table.app.orders.read.where").asText());
+        assertEquals("[REDACTED]", result.path("source").path("password").asText());
+        assertEquals("[REDACTED]", result.path("sink").path("yak.table.public.orders.write.pre-sql").asText());
+        assertEquals("[REDACTED]", result.path("transform").get(0).path("projection").asText());
+        assertEquals("[REDACTED]", result.path("pipeline").path("future-option").asText());
+        for (String secret : List.of(
+                "where-secret",
+                "cursor-secret",
+                "gtid-secret",
+                "credential-secret",
+                "sql-secret",
+                "token-secret",
+                "projection-secret",
+                "filter-secret",
+                "pipeline-secret",
+                "future-secret")) {
+            assertFalse(logged.contains(secret), secret);
+        }
+        // Logs are a sanitized view, never a new input to the physical parser.
+        assertTrue(yaml.contains("where-secret"));
+    }
+
+    @Test
+    void taskLogFailsClosedWhenYamlCannotBeRendered() {
+        assertEquals(
+                "# Pipeline YAML unavailable for logging",
+                PipelineYamlConverter.forTaskLog("source: [invalid"));
+    }
+
     @Test
     void convertsBusinessJsonToFlinkCdcPipelineDefinition() {
         ReadonlyConfig json = ConfigParser.parseJson(PIPELINE_JSON);
