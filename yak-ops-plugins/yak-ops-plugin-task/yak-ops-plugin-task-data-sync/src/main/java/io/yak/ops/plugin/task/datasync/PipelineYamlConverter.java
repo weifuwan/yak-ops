@@ -126,7 +126,7 @@ public final class PipelineYamlConverter {
                 if (value.isContainerNode()) {
                     redactForTaskLog(value, section);
                 } else {
-                    array.set(index, "[REDACTED]");
+                    array.set(index, com.fasterxml.jackson.databind.node.TextNode.valueOf("[REDACTED]"));
                 }
             }
         }
