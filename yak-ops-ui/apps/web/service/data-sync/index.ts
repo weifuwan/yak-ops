@@ -44,8 +44,6 @@ import type {
 } from "./types";
 
 export type * from "./types";
-export * from "./name-mapping-rules";
-export * from "./mapping-refresh";
 
 const TASK_DEFINITION_API_PREFIX = "/api/v1/task-definitions";
 

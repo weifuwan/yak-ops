@@ -130,19 +130,6 @@ export function ReplicationMappingTable({
     },
     { key: "sourceTable", title: "来源表", width: 180, render: (_, row) => row.source.table },
     {
-      key: "databaseMapping",
-      title: "目标库名映射自定义",
-      width: 170,
-      render: (_, row) => action(row, "mapping", "编辑"),
-    },
-    {
-      key: "tableMapping",
-      title: "目标表名映射自定义",
-      width: 170,
-      render: (_, row) =>
-        action(row, "mapping", row.target.table === row.source.table ? "同名映射" : "自定义"),
-    },
-    {
       key: "targetDatabase",
       title: "目标库名",
       width: 180,
@@ -328,7 +315,7 @@ export function ReplicationMappingTable({
         rowKey="key"
         size="small"
         rowHeight={40}
-        scroll={{ x: 2800, y: 420 }}
+        scroll={{ x: 2460, y: 420 }}
         pagination={false}
         emptyText="请选择来源库表"
         emptyClassName="!min-h-24 !py-2"

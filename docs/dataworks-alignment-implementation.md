@@ -1,49 +1,20 @@
-# DataWorks 目标表映射功能对齐实现
+# DataWorks 目标表映射设计记录
 
-本文档记录了 Yak Ops 实时同步任务与阿里云 DataWorks 数据集成目标表映射配置的对齐实现。
+> 历史设计材料：本文包含表结构、动态分区和增量流水等原型方案，不代表全部接入当前任务保存或执行协议。实际可用能力以代码、Connector 能力和测试为准；当前已移除未接入的独立名称映射规则编辑器。
+
+本文档记录 Yak Ops 数据同步目标表映射与阿里云 DataWorks 交互设计的探索。
 
 ## 实现概览
 
-根据 [DataWorks 整库实时同步文档](https://help.aliyun.com/zh/dataworks/user-guide/configure-a-data-synchronization-solution-in-data-integration)，我们实现了以下核心功能：
+根据 [DataWorks 整库实时同步文档](https://help.aliyun.com/zh/dataworks/user-guide/configure-a-data-synchronization-solution-in-data-integration)，以下包括已接入的表路由，以及尚需单独验证执行链路的原型：
 
-### ✅ 已完成的功能
+### 映射实现与历史原型
 
-#### 1. 目标库名/Schema/表名映射规则引擎
+#### 1. 显式目标库、Schema、表名映射
 
-**位置**: `yak-ops-ui/apps/web/service/data-sync/name-mapping-rules.ts`
+当前映射直接编辑 `DataSyncTableMapping.target`；`buildSyncParameters()` 保存 `source.tables`、`sink.tables` 和 `route`，Task Plugin 的 `PipelineYamlConverter` 转换为 Pipeline YAML，再由 Engine 解析并执行表路由。无需额外存储映射规则 ID；独立规则编辑器及其规则计算工具未接入任务，已经清理。
 
-实现了与 DataWorks 完全对齐的映射规则引擎，支持：
-
-- **内置变量**:
-  - `SOURCE_DATASOURCE`: 源端数据源名
-  - `SOURCE_DATABASE`: 源端数据库名
-  - `SOURCE_SCHEMA`: 源端 Schema
-  - `SOURCE_TABLE`: 源端表名
-  - `CONSTANT`: 常量值
-
-- **字符串转换**:
-  - `PREFIX`: 添加前缀 (如 `prd_tablename`)
-  - `SUFFIX`: 添加后缀 (如 `tablename_backup`)
-  - `REPLACE`: 字符串替换 (如 `dev_` → `prd_`)
-
-- **使用场景**:
-  - 保持原名映射
-  - 添加前后缀
-  - 字符串统一替换
-  - 多张表写入一张表 (固定常量)
-
-**示例代码**:
-```typescript
-// 创建库名前缀映射规则
-const rule = createPrefixMappingRule("生产环境前缀", "SOURCE_DATABASE", "prd_");
-
-// 应用规则
-const targetPath = applyMappingRules(sourcePath, {
-  sourceDatasourceName: "mysql-prod",
-  databaseRule: rule,
-});
-// 源库 "orders" → 目标库 "prd_orders"
-```
+批量配置仍由 `BatchMappingDialog` 和 `applyTableTemplate()` 实现。REGEX 选表保留 `sink.mapping` 模板与 Engine `DynamicTableSelection`，用于后续发现的新表。
 
 #### 2. 目标表结构编辑器
 
@@ -155,49 +126,18 @@ type DataSyncIncrementalStreamFormat = "FLAT_COLUMNS" | "JSON_COLUMNS";
 - `FLAT_COLUMNS`: 源表字段平铺，元信息作为额外列
 - `JSON_COLUMNS`: 源表字段合并为 JSON，元信息作为额外列
 
-#### 5. 映射刷新与批量修改
+#### 5. 现行映射与批量修改
 
-**位置**: `yak-ops-ui/apps/web/service/data-sync/mapping-refresh.ts`
-
-实现了智能映射刷新和批量修改：
-
-- **刷新映射**: 根据当前规则重新生成所有目标名称
-- **批量修改**: 对选中的表批量应用映射规则
-- **冲突检测**: 自动检测多个源表映射到同一目标表
-- **验证**: 验证所有映射的唯一性和完整性
-
-```typescript
-// 刷新所有映射
-const refreshed = refreshMappingsWithRules(mappings, {
-  sourceDatasourceName: "mysql-prod",
-  databaseRule: dbRule,
-  tableRule: tableRule,
-  preserveExisting: true, // 保留已自定义的映射
-});
-
-// 检测冲突
-const conflicts = detectMappingConflicts(refreshed);
-// Map<targetKey, DataSyncTableMapping[]>
-```
+- **刷新映射状态**：刷新目标端目录元数据，不会运行历史原型中的“重算名称映射规则”。
+- **批量修改**：使用 `BatchMappingDialog` 为选中表设置目标库名、表名模板与写入配置。
+- **映射校验**：显式任务通过 `source.tables`、`sink.tables`、`route` 检查一对一映射和目标冲突。
 
 #### 6. UI 组件
 
-**映射规则编辑对话框**: `name-mapping-rule-dialog.tsx`
-- 快速模板选择
-- 可视化规则配置
-- 变量和转换管理
-- 实时预览效果
-
-**表结构编辑对话框**: `target-structure-editor-dialog.tsx`
-- 字段列表管理
-- 表类型选择
-- 分区字段配置
-- 分区赋值配置子对话框
-
-**批量映射规则对话框**: `batch-mapping-rules-dialog.tsx`
-- 批量应用库名/Schema/表名映射规则
-- 多规则组合
-- 预览应用效果
+**目标表结构编辑原型**：`target-structure-editor-dialog.tsx`
+- 字段和类型配置
+- 分区字段及赋值配置
+- 实际 Task Plugin / Engine 接入程度以相应源码为准
 
 ### 🔄 集成点
 
@@ -213,11 +153,6 @@ interface DataSyncTableMapping {
   writeMode: DataSyncWriteMode;
   // ... 其他字段
   
-  // 新增: 映射规则引用
-  databaseMappingRuleId?: string;
-  tableMappingRuleId?: string;
-  schemaMappingRuleId?: string;
-  
   // 新增: 增量流水格式
   incrementalStreamFormat?: DataSyncIncrementalStreamFormat;
 }
@@ -230,7 +165,6 @@ interface DataSyncCapabilities {
   // ... 现有能力
   
   // 新增能力标识
-  nameMappingRules: boolean;        // 支持名称映射规则
   targetStructureEditor: boolean;   // 支持目标表结构编辑
   partitionFields: boolean;         // 支持分区字段配置
   incrementalStream: boolean;       // 支持增量流水格式
@@ -239,74 +173,28 @@ interface DataSyncCapabilities {
 
 ### 📋 与 DataWorks 的对比
 
-| 功能 | DataWorks | Yak Ops 实现 | 对齐状态 |
-|------|-----------|-------------|----------|
-| 目标表名映射规则 | ✓ 变量+转换 | ✓ 完全实现 | ✅ 对齐 |
-| 目标库名映射规则 | ✓ 变量+转换 | ✓ 完全实现 | ✅ 对齐 |
-| 目标 Schema 映射规则 | ✓ 变量+转换 | ✓ 完全实现 | ✅ 对齐 |
-| 目标表结构编辑 | ✓ 字段/类型/分区 | ✓ 完全实现 | ✅ 对齐 |
-| 分区字段配置 | ✓ 枚举值/事件时间 | ✓ 完全实现 | ✅ 对齐 |
-| 刷新映射重新生成 | ✓ 根据规则重算 | ✓ 完全实现 | ✅ 对齐 |
-| 增量流水表格式 | ✓ 定义明确 | ✓ 类型定义 | ✅ 对齐 |
-| 批量修改规则 | ✓ 批量应用 | ✓ 完全实现 | ✅ 对齐 |
-| 字段类型映射 | ✓ 全局规则 | ✓ 已有实现 | ✅ 对齐 |
-| 字段赋值表达式 | ✓ 常量/变量/函数 | ✓ 已有实现 | ✅ 对齐 |
+| 功能 | 当前 Yak Ops 状态 |
+|------|------------------|
+| 逐表指定目标库/Schema/表 | 已接入 `sink.tables` + `route` |
+| 批量目标表模板 | 已接入 `BatchMappingDialog` |
+| REGEX 新表动态命名 | 已接入 `sink.mapping` / `DynamicTableSelection` |
+| 独立的前后缀/替换名称映射规则编辑器 | 原型未接入，已清理 |
+| 目标表结构编辑、分区赋值与增量流水 | 历史探索，须分别验证实际执行能力 |
+| 字段类型映射、字段赋值表达式 | 使用各自独立的同步配置与执行链路 |
 
 ## 使用示例
 
-### 1. 配置库名映射规则
+### 1. 显式源表到目标表路由
 
-```typescript
-import { createPrefixMappingRule, applyNameMappingRule } from "@/service/data-sync";
-
-// 创建添加前缀的规则
-const rule = createPrefixMappingRule(
-  "生产环境库名前缀",
-  "SOURCE_DATABASE",
-  "prd_"
-);
-
-// 应用规则
-const result = applyNameMappingRule(rule, {
-  sourceDatabase: "orders"
-});
-// 结果: "prd_orders"
+```yaml
+route:
+  - source-table: cdc_lab.orders
+    sink-table: yak_e2e_target.ods_orders
 ```
 
-### 2. 配置表名映射规则
+该路径须符合目标数据源绑定的命名空间。
 
-```typescript
-import { createDefaultTableMappingRule } from "@/service/data-sync";
-
-// 默认规则: ${源库名}_${表名}
-const rule = createDefaultTableMappingRule();
-
-const result = applyNameMappingRule(rule, {
-  sourceDatabase: "crm",
-  sourceTable: "customers"
-});
-// 结果: "crm_customers"
-```
-
-### 3. 配置字符串替换规则
-
-```typescript
-import { createReplaceMappingRule } from "@/service/data-sync";
-
-const rule = createReplaceMappingRule(
-  "开发环境替换为生产",
-  "SOURCE_DATABASE",
-  "dev_",
-  "prd_"
-);
-
-const result = applyNameMappingRule(rule, {
-  sourceDatabase: "dev_analytics"
-});
-// 结果: "prd_analytics"
-```
-
-### 4. 配置目标表结构
+### 2. 配置目标表结构原型
 
 ```typescript
 const structure: DataSyncTargetTableStructure = {
@@ -331,98 +219,19 @@ const structure: DataSyncTargetTableStructure = {
 };
 ```
 
-### 5. 批量刷新映射
+### 3. 批量目标表模板
 
-```typescript
-import { refreshMappingsWithRules } from "@/service/data-sync";
-
-const refreshed = refreshMappingsWithRules(mappings, {
-  sourceDatasourceName: "mysql-prod",
-  databaseRule: databaseRule,
-  tableRule: tableRule,
-  preserveExisting: false, // 重新生成所有映射
-});
-```
-
-### 6. 检测映射冲突
-
-```typescript
-import { detectMappingConflicts } from "@/service/data-sync";
-
-const conflicts = detectMappingConflicts(mappings);
-
-if (conflicts.size > 0) {
-  conflicts.forEach((group, targetKey) => {
-    console.log(`目标 ${targetKey} 存在 ${group.length} 个源表冲突`);
-    group.forEach(mapping => {
-      console.log(`  - ${mapping.source.database}.${mapping.source.table}`);
-    });
-  });
-}
-```
+批量修改可设置 `目标表模板`，支持 `${database}`、`${schema}`、`${table}` 占位符；实际表名按来源表展开后写入目标映射。不再保存独立的规则引用。
 
 ## 后端集成要点
 
-### 1. 持久化映射规则
+### 1. 实际持久化与 Pipeline 转换
 
-映射规则应存储在任务定义的 `parameters` 中：
+当前 Task Definition 持久化 `source.tables`、`sink.tables`、`route`；任务插件通过 `PipelineYamlConverter` 转换至 YAML，Engine 通过 `TableIdRouter` 和 `SchemaTranslator` 执行。
 
-```json
-{
-  "sink": {
-    "mappingRules": {
-      "database": {
-        "id": "rule-db-1",
-        "name": "生产环境前缀",
-        "pattern": "${0}",
-        "variables": [...]
-      },
-      "table": {
-        "id": "rule-table-1",
-        "name": "库名_表名",
-        "pattern": "${0}_${1}",
-        "variables": [...]
-      }
-    },
-    "tables": [
-      {
-        "database": "prd_orders",
-        "table": "orders_detail",
-        "databaseMappingRuleId": "rule-db-1",
-        "tableMappingRuleId": "rule-table-1",
-        "structure": {
-          "columns": [...],
-          "partitions": [...]
-        }
-      }
-    ]
-  }
-}
-```
+正则选表的 `source.selection` 与 `sink.mapping` 是单独的动态命名模板，不等同于前端历史的规则编辑原型。不要引入未发布的 `mappingRules`、`*MappingRuleId` 字段或后端兼容层。
 
-### 2. Pipeline 转换
-
-在 `PipelineYamlConverter` 中处理映射规则：
-
-```java
-// 应用映射规则生成目标路径
-private TablePath applyMappingRule(
-    TablePath source,
-    NameMappingRule rule,
-    Map<String, String> context
-) {
-    // 实现与前端一致的规则应用逻辑
-}
-
-// 生成分区配置
-private List<PartitionField> buildPartitionFields(
-    DataSyncTargetTableStructure structure
-) {
-    // 转换分区赋值配置为运行时分区逻辑
-}
-```
-
-### 3. 目标表创建
+### 2. 目标表创建（设计草案）
 
 在 `SchemaPreparation` 阶段处理表结构定义：
 
@@ -443,7 +252,7 @@ if (mapping.getTarget().getStructure() != null) {
 }
 ```
 
-### 4. 增量流水写入
+### 3. 增量流水写入（设计草案）
 
 在 Sink 实现中支持增量流水格式：
 
@@ -473,12 +282,11 @@ if (mapping.getIncrementalStreamFormat() == FLAT_COLUMNS) {
 - 推荐使用日期级别分区 (`yyyyMMdd`, `yyyyMM`)
 - 枚举值分区建议使用有限枚举的字段
 
-### 2. 映射规则验证
+### 2. 表路由校验
 
-- 确保规则生成的名称符合目标数据库命名规范
-- 检测并提示映射冲突 (多源映射到同一目标)
-- 验证常量值不为空
-- 验证字符串替换模式有效
+- 显式来源和目标表均应唯一，不能将多个源表隐式合并到同一目标。
+- 目标库和 Schema 必须符合数据源绑定范围；目标表按配置验证存在性或建表策略。
+- 动态发现规则需验证目标命名模板，避免目标名冲突与重复捕获。
 
 ### 3. 表结构编辑
 
@@ -487,11 +295,10 @@ if (mapping.getIncrementalStreamFormat() == FLAT_COLUMNS) {
 - 分区字段名不能与普通字段重复
 - 表类型更改可能影响写入模式兼容性
 
-### 4. 向后兼容
+### 4. 已发布配置
 
 - 已有任务的映射配置保持不变
-- `databaseMappingRuleId` 等字段为可选
-- 未配置规则时使用原有的直接映射逻辑
+- 已发布配置继续通过显式 `route` 或 REGEX 目标模板路由，不依赖已移除的 UI 规则 ID。
 
 ## 未来扩展
 
