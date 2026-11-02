@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Alert, Button, Checkbox, Table, type TableColumns } from "@yak-ops/yak-ui";
-import { validateBatchSize, validateSourceOptions, validateTableDml, validateTableSnapshot } from "@/service/data-sync/table-configuration";
+import {
+  validateBatchSize,
+  validateSourceOptions,
+  validateTableDml,
+  validateTableSnapshot,
+} from "@/service/data-sync/table-configuration";
 import type {
   DataSyncCapabilities,
   DataSyncTableMapping,
@@ -123,7 +128,10 @@ export function ReplicationMappingTable({
       return message;
     }
   };
-  const snapshot = (row: DataSyncTableMapping, changes: { chunkKeyColumn?: string; skip?: boolean }) => {
+  const snapshot = (
+    row: DataSyncTableMapping,
+    changes: { chunkKeyColumn?: string; skip?: boolean },
+  ) => {
     const result = { ...row.source.snapshot, ...changes };
     return updateRow(row, {
       ...row,
@@ -343,7 +351,10 @@ export function ReplicationMappingTable({
   const remove = (keys: string[]) =>
     confirm({
       title: keys.length > 1 ? "批量移除库表" : "移除库表",
-      message: "将从当前任务移除 " + keys.length + " 张表及其目标映射和表级配置，不会删除数据库中的物理表。",
+      message:
+        "将从当前任务移除 " +
+        keys.length +
+        " 张表及其目标映射和表级配置，不会删除数据库中的物理表。",
       apply: () => {
         const removeKeys = new Set(keys);
         onChange(mappings.filter((mapping) => !removeKeys.has(tableKey(mapping.source))));
@@ -389,7 +400,7 @@ export function ReplicationMappingTable({
         rowKey="key"
         size="small"
         rowHeight={40}
-        scroll={{ x: 1740 + (hasSchema ? 145 : 0) + (showWriteMode ? 150 : 0), y: 420 }}
+        scroll={{ x: 1500 + (hasSchema ? 145 : 0) + (showWriteMode ? 150 : 0), y: 420 }}
         pagination={false}
         emptyText="请选择来源库表"
         emptyClassName="!min-h-24 !py-2"
@@ -428,6 +439,16 @@ export function ReplicationMappingTable({
       {mappings.some((mapping) => mapping.source.dml && mapping.source.dml.events.length !== 3) ? (
         <p className="text-xs text-[var(--yak-components-muted-text)]">
           部分表保留已保存的 DML 事件过滤，仍会影响同步结果；当前页面不提供编辑。
+        </p>
+      ) : null}
+      {mappings.some((mapping) => mapping.source.snapshot?.where) ? (
+        <p className="text-xs text-[var(--yak-components-muted-text)]">
+          部分表保留已保存的全量条件，仍会生效；当前不提供编辑。
+        </p>
+      ) : null}
+      {mappings.some((mapping) => mapping.source.options !== undefined || mapping.batchSize !== undefined) ? (
+        <p className="text-xs text-[var(--yak-components-muted-text)]">
+          部分表保留已保存的引擎参数，仍会生效；当前不提供编辑。
         </p>
       ) : null}
       {transforms.length > 0 ? (

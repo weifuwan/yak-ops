@@ -1025,6 +1025,8 @@ assert.match(replicationTableUi, /const updateRow/);
 assert.match(replicationTableUi, /validateTableSnapshot\(next.source.snapshot\)/);
 assert.match(replicationTableUi, /validateSourceOptions\(next.source.options\)/);
 assert.match(replicationTableUi, /已保存的 DML 事件过滤/);
+assert.match(replicationTableUi, /保留已保存的全量条件/);
+assert.match(replicationTableUi, /保留已保存的引擎参数/);
 assert.doesNotMatch(replicationTableUi, /MappingSettingsDialog|type: "table"/);
 
 const snapshotUi = readFileSync(
