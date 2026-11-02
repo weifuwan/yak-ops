@@ -76,6 +76,10 @@ export interface DataSyncCapabilities {
   snapshotSkip: boolean;
   dmlEvents: boolean;
   typeMapping: boolean;
+  nameMappingRules: boolean; // Support for database/schema/table name mapping rules
+  targetStructureEditor: boolean; // Support for editing target table structure
+  partitionFields: boolean; // Support for partition field configuration
+  incrementalStream: boolean; // Support for incremental stream format
   writeModes: DataSyncWriteMode[];
   sourceEngineKeys: string[];
   sinkEngineKeys: string[];
@@ -117,6 +121,85 @@ export interface DataSyncTablePath {
   table: string;
 }
 
+/** Mapping rule for transforming source identifiers to target identifiers. */
+export interface DataSyncNameMappingRule {
+  id: string;
+  name: string;
+  pattern: string; // Template pattern with variables
+  variables: Array<{
+    type: "SOURCE_DATASOURCE" | "SOURCE_DATABASE" | "SOURCE_SCHEMA" | "SOURCE_TABLE" | "CONSTANT";
+    value?: string; // For CONSTANT type
+    transforms?: Array<{
+      type: "PREFIX" | "SUFFIX" | "REPLACE";
+      pattern?: string; // For REPLACE type
+      replacement?: string; // For REPLACE type
+      value?: string; // For PREFIX/SUFFIX type
+    }>;
+  }>;
+}
+
+/** Partition field assignment configuration. */
+export type DataSyncPartitionAssignment =
+  | { type: "CONSTANT"; value: string }
+  | { type: "SOURCE_FIELD"; field: string; valueType: "ENUM" }
+  | {
+      type: "SOURCE_FIELD";
+      field: string;
+      valueType: "TIMESTAMP";
+      sourceFormat:
+        | "TIME_STRING"
+        | "TIME_OBJECT"
+        | "UNIX_TIMESTAMP_SECONDS"
+        | "UNIX_TIMESTAMP_MILLIS";
+      sourcePattern?: string; // For TIME_STRING
+      targetFormat: string; // Target partition format like "yyyyMMdd"
+    }
+  | {
+      type: "EVENT_TIME";
+      sourceFormat:
+        | "TIME_STRING"
+        | "TIME_OBJECT"
+        | "UNIX_TIMESTAMP_SECONDS"
+        | "UNIX_TIMESTAMP_MILLIS";
+      targetFormat: string;
+    };
+
+/** Target table structure definition for schema creation. */
+export interface DataSyncTargetColumn {
+  name: string;
+  type: string;
+  nullable?: boolean;
+  defaultValue?: string;
+  comment?: string;
+}
+
+export interface DataSyncTargetPartition {
+  name: string;
+  assignment: DataSyncPartitionAssignment;
+}
+
+export interface DataSyncTargetTableStructure {
+  columns: DataSyncTargetColumn[];
+  partitions?: DataSyncTargetPartition[];
+  tableType?: "NORMAL" | "PK_DELTA" | "APPEND_DELTA"; // For MaxCompute
+  tableProperties?: Record<string, string>;
+}
+
+/** Incremental stream metadata format (增量流水表格式). */
+export interface DataSyncIncrementalStreamMetadata {
+  sequenceId: string; // sequence_id
+  operationType: string; // operation_type: I/D/U or DDL
+  executeTime: string; // execute_time
+  beforeImage: string; // before_image: Y/N
+  afterImage: string; // after_image: Y/N
+  srcDatasource: string; // src_datasource
+  srcDatabase: string; // src_database
+  srcTable: string; // src_table
+  ddlSql?: string; // ddl_sql (for DDL operations)
+}
+
+export type DataSyncIncrementalStreamFormat = "FLAT_COLUMNS" | "JSON_COLUMNS";
+
 export interface DataSyncIncrementalConfig {
   mode: "TIMESTAMP" | "INCREASING";
   column: string;
@@ -132,12 +215,19 @@ export interface DataSyncTableMapping {
     snapshot?: DataSyncTableSnapshot;
     dml?: DataSyncDml;
   };
-  target: DataSyncTablePath & { primaryKeys?: string[] };
+  target: DataSyncTablePath & {
+    primaryKeys?: string[];
+    structure?: DataSyncTargetTableStructure; // For prepareSchema mode
+  };
   writeMode: DataSyncWriteMode;
   preSql?: string[];
   postSql?: string[];
   batchSize?: number;
   incremental?: DataSyncIncrementalConfig;
+  databaseMappingRuleId?: string; // Reference to DataSyncNameMappingRule
+  tableMappingRuleId?: string; // Reference to DataSyncNameMappingRule
+  schemaMappingRuleId?: string; // Reference to DataSyncNameMappingRule
+  incrementalStreamFormat?: DataSyncIncrementalStreamFormat; // For incremental stream mode
 }
 
 export interface DataSyncTableResult {

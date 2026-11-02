@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${YAK_DATABASE_URL:jdbc:mysql://127.0.0.1:3306/yak_ops?useUnicode=true&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai}
     username: ${YAK_DATABASE_USERNAME:root}
-    password: ${YAK_DATABASE_PASSWORD:}
+    password: ${YAK_DATABASE_PASSWORD:123456}
     hikari:
       pool-name: YakOpsDatabasePool
       minimum-idle: ${YAK_DATABASE_MINIMUM_IDLE:1}
@@ -34,9 +34,9 @@ yak:
     authentication:
       idle-timeout: ${YAK_SECURITY_AUTHENTICATION_IDLE_TIMEOUT:30m}
     bootstrap:
-      enabled: ${YAK_SECURITY_BOOTSTRAP_ENABLED:false}
+      enabled: ${YAK_SECURITY_BOOTSTRAP_ENABLED:true}
       username: ${YAK_SECURITY_BOOTSTRAP_USERNAME:root}
-      password: ${YAK_SECURITY_BOOTSTRAP_PASSWORD:}
+      password: ${YAK_SECURITY_BOOTSTRAP_PASSWORD:Root@123456}
       real-name: ${YAK_SECURITY_BOOTSTRAP_REAL_NAME:系统管理员}
 
   task:

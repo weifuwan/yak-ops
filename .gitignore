@@ -6,6 +6,7 @@
 !/yak-ops-dist/src/main/jdbc-drivers-builtin/mysql/8/mysql-connector-j-8.4.0.jar
 *.zip
 *.tar.gz
+data/
 
 # see JDK-8214300
 .attach_pid*
