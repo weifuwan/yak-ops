@@ -19,7 +19,7 @@ package org.apache.flink.cdc.common.data.binary;
 
 import org.apache.flink.cdc.common.annotation.Internal;
 import org.apache.flink.cdc.common.utils.Preconditions;
-import org.apache.flink.core.memory.MemorySegment;
+import org.apache.flink.cdc.common.memory.MemorySegment;
 
 /** A basic implementation of {@link BinaryFormat} which describe a section of memory. */
 @Internal

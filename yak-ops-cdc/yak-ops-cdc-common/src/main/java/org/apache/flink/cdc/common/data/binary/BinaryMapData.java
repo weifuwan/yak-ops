@@ -20,8 +20,8 @@ package org.apache.flink.cdc.common.data.binary;
 import org.apache.flink.cdc.common.annotation.Internal;
 import org.apache.flink.cdc.common.data.MapData;
 import org.apache.flink.cdc.common.types.DataType;
-import org.apache.flink.core.memory.MemorySegment;
-import org.apache.flink.core.memory.MemorySegmentFactory;
+import org.apache.flink.cdc.common.memory.MemorySegment;
+import org.apache.flink.cdc.common.memory.MemorySegmentFactory;
 
 import java.util.HashMap;
 import java.util.Map;

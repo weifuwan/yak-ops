@@ -20,8 +20,8 @@ package org.apache.flink.cdc.runtime.serializer.data.util;
 import org.apache.flink.cdc.common.data.binary.BinaryRecordData;
 import org.apache.flink.cdc.common.data.binary.BinaryStringData;
 import org.apache.flink.cdc.runtime.serializer.data.writer.BinaryRecordDataWriter;
-import org.apache.flink.core.memory.MemorySegment;
-import org.apache.flink.core.memory.MemorySegmentFactory;
+import org.apache.flink.cdc.common.memory.MemorySegment;
+import org.apache.flink.cdc.common.memory.MemorySegmentFactory;
 
 import org.apache.commons.lang3.RandomStringUtils;
 

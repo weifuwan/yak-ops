@@ -19,8 +19,8 @@
 package org.apache.flink.cdc.runtime.serializer.data.binary;
 
 import org.apache.flink.cdc.common.data.binary.BinaryRecordData;
-import org.apache.flink.core.memory.MemorySegmentFactory;
-import org.apache.flink.core.memory.MemoryUtils;
+import org.apache.flink.cdc.common.memory.MemorySegmentFactory;
+import org.apache.flink.cdc.common.memory.MemoryUtils;
 
 /**
  * Utilities for {@link BinaryRecordDataDataUtil}. Many of the methods in this class are used in

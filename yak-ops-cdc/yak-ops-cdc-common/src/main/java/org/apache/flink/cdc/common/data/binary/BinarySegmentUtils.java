@@ -26,8 +26,8 @@ import org.apache.flink.cdc.common.data.RecordData;
 import org.apache.flink.cdc.common.data.StringData;
 import org.apache.flink.cdc.common.data.TimestampData;
 import org.apache.flink.cdc.common.types.variant.BinaryVariant;
-import org.apache.flink.core.memory.DataOutputView;
-import org.apache.flink.core.memory.MemorySegment;
+import org.apache.flink.cdc.common.memory.DataOutputView;
+import org.apache.flink.cdc.common.memory.MemorySegment;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -35,7 +35,7 @@ import java.nio.ByteOrder;
 
 import static org.apache.flink.cdc.common.data.binary.BinaryFormat.HIGHEST_FIRST_BIT;
 import static org.apache.flink.cdc.common.data.binary.BinaryFormat.HIGHEST_SECOND_TO_EIGHTH_BIT;
-import static org.apache.flink.core.memory.MemoryUtils.UNSAFE;
+import static org.apache.flink.cdc.common.memory.MemoryUtils.UNSAFE;
 
 /** Utilities for binary data segments which heavily uses {@link MemorySegment}. */
 @Internal

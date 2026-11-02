@@ -22,8 +22,8 @@ import org.apache.flink.cdc.common.annotation.Internal;
 import org.apache.flink.cdc.common.data.StringData;
 import org.apache.flink.cdc.common.utils.Preconditions;
 import org.apache.flink.cdc.common.utils.StringUtf8Utils;
-import org.apache.flink.core.memory.MemorySegment;
-import org.apache.flink.core.memory.MemorySegmentFactory;
+import org.apache.flink.cdc.common.memory.MemorySegment;
+import org.apache.flink.cdc.common.memory.MemorySegmentFactory;
 
 import javax.annotation.Nonnull;
 

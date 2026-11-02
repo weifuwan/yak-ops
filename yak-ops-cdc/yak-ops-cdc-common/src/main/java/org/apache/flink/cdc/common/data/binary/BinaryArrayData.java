@@ -27,12 +27,12 @@ import org.apache.flink.cdc.common.data.TimestampData;
 import org.apache.flink.cdc.common.data.ZonedTimestampData;
 import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.common.types.utils.DataTypeUtils;
-import org.apache.flink.core.memory.MemorySegment;
-import org.apache.flink.core.memory.MemorySegmentFactory;
+import org.apache.flink.cdc.common.memory.MemorySegment;
+import org.apache.flink.cdc.common.memory.MemorySegmentFactory;
 
 import java.lang.reflect.Array;
 
-import static org.apache.flink.core.memory.MemoryUtils.UNSAFE;
+import static org.apache.flink.cdc.common.memory.MemoryUtils.UNSAFE;
 
 /**
  * A binary implementation of {@link ArrayData} which is backed by {@link MemorySegment}s.

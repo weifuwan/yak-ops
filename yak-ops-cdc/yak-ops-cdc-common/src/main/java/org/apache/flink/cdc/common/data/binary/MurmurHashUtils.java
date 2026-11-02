@@ -18,9 +18,9 @@
 package org.apache.flink.cdc.common.data.binary;
 
 import org.apache.flink.cdc.common.annotation.Internal;
-import org.apache.flink.core.memory.MemorySegment;
+import org.apache.flink.cdc.common.memory.MemorySegment;
 
-import static org.apache.flink.core.memory.MemoryUtils.UNSAFE;
+import static org.apache.flink.cdc.common.memory.MemoryUtils.UNSAFE;
 
 /** Murmur Hash. This is inspired by Guava's Murmur3_32HashFunction. */
 @Internal

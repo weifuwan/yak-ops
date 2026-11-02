@@ -18,7 +18,7 @@
 package org.apache.flink.cdc.common.data.binary;
 
 import org.apache.flink.cdc.common.annotation.Internal;
-import org.apache.flink.core.memory.MemorySegment;
+import org.apache.flink.cdc.common.memory.MemorySegment;
 
 /** Binary format spanning {@link MemorySegment}s. */
 @Internal

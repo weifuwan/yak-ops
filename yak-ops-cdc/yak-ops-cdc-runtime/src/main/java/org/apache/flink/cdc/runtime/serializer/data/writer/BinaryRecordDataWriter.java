@@ -20,7 +20,7 @@ package org.apache.flink.cdc.runtime.serializer.data.writer;
 import org.apache.flink.cdc.common.annotation.Internal;
 import org.apache.flink.cdc.common.data.binary.BinaryRecordData;
 import org.apache.flink.cdc.common.data.binary.BinarySegmentUtils;
-import org.apache.flink.core.memory.MemorySegmentFactory;
+import org.apache.flink.cdc.common.memory.MemorySegmentFactory;
 
 /** Writer for {@link BinaryRecordData}. */
 @Internal
