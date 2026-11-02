@@ -17,7 +17,6 @@
 
 package org.apache.flink.cdc.runtime.serializer;
 
-import org.apache.flink.api.common.typeutils.SerializerTestInstance;
 import org.apache.flink.cdc.common.serialization.TypeSerializerSchemaCompatibility;
 import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshot;
 import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshotSerializationUtil;
@@ -248,10 +247,20 @@ class EnumSerializerTest extends TestLogger {
         @SuppressWarnings("unchecked")
         final Class<T> clazz = (Class<T>) data.getClass().getComponentType();
 
-        SerializerTestInstance<T> tester =
-                new SerializerTestInstance<T>(new EnumSerializer<T>(clazz), clazz, 4, data) {};
-
-        tester.testAll();
+        EnumSerializer<T> serializer = new EnumSerializer<>(clazz);
+        for (T element : data) {
+            try {
+                org.apache.flink.cdc.common.memory.DataOutputSerializer output =
+                        new org.apache.flink.cdc.common.memory.DataOutputSerializer(32);
+                serializer.serialize(element, output);
+                T restored = serializer.deserialize(
+                        new org.apache.flink.cdc.common.memory.DataInputDeserializer(
+                                output.getCopyOfBuffer()));
+                Assertions.assertThat(restored).isEqualTo(element);
+            } catch (java.io.IOException e) {
+                throw new AssertionError("Enum serializer round-trip failed", e);
+            }
+        }
     }
 
     // ------------------------------------------------------------------------

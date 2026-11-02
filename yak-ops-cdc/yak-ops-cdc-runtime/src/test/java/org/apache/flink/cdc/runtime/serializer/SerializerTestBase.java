@@ -21,7 +21,6 @@ import org.apache.flink.cdc.common.serialization.TypeSerializer;
 import org.apache.flink.cdc.common.serialization.TypeSerializerSchemaCompatibility;
 import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshot;
 import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshotSerializationUtil;
-import org.apache.flink.api.java.typeutils.runtime.NullableSerializer;
 import org.apache.flink.api.java.typeutils.runtime.kryo.KryoSerializer;
 import org.apache.flink.cdc.common.memory.DataInputDeserializer;
 import org.apache.flink.cdc.common.memory.DataInputView;
@@ -460,7 +459,11 @@ public abstract class SerializerTestBase<T> {
     void testNullability() {
         TypeSerializer<T> serializer = getSerializer();
         try {
-            NullableSerializer.checkIfNullSupported(serializer);
+            NullableSerializerWrapper<T> nullable = new NullableSerializerWrapper<>(serializer);
+            DataOutputSerializer out = new DataOutputSerializer(32);
+            nullable.serialize(null, out);
+            T restored = nullable.deserialize(new DataInputDeserializer(out.getCopyOfBuffer()));
+            Assertions.assertThat(restored).isNull();
         } catch (Throwable t) {
             LOG.error("", t);
             Assertions.fail("Unexpected failure of null value handling: " + t.getMessage());

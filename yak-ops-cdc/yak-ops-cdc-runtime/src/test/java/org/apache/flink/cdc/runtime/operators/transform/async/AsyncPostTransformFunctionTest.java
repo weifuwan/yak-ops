@@ -32,6 +32,7 @@ import org.apache.flink.cdc.common.types.DataTypes;
 import org.apache.flink.cdc.common.types.RowType;
 import org.apache.flink.cdc.common.udf.UserDefinedFunction;
 import org.apache.flink.cdc.runtime.serializer.event.EventSerializer;
+import org.apache.flink.cdc.runtime.typeutils.FlinkSerializerAdapter;
 import org.apache.flink.cdc.runtime.typeutils.BinaryRecordDataGenerator;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
@@ -78,7 +79,7 @@ class AsyncPostTransformFunctionTest {
         BlockingFunction.reset(true);
         try (OneInputStreamOperatorTestHarness<Event, Event> harness =
                 createHarness(TABLE_ID.identifier(), "*, block(id) AS blocked", 10_000L, 2)) {
-            harness.setup(EventSerializer.INSTANCE);
+            harness.setup(new FlinkSerializerAdapter<>(EventSerializer.INSTANCE));
             harness.open();
             harness.processElement(new StreamRecord<>(new CreateTableEvent(TABLE_ID, SCHEMA)));
             waitUntilOutputSize(harness, 1);
@@ -116,7 +117,7 @@ class AsyncPostTransformFunctionTest {
         BlockingFunction.reset(true);
         try (OneInputStreamOperatorTestHarness<Event, Event> harness =
                 createHarness(TABLE_ID.identifier(), "*, block(id) AS blocked", 10_000L, 2)) {
-            harness.setup(EventSerializer.INSTANCE);
+            harness.setup(new FlinkSerializerAdapter<>(EventSerializer.INSTANCE));
             harness.open();
             harness.processElement(new StreamRecord<>(new CreateTableEvent(TABLE_ID, SCHEMA)));
             waitUntilOutputSize(harness, 1);
@@ -152,7 +153,7 @@ class AsyncPostTransformFunctionTest {
         OperatorSubtaskState snapshot;
         try (OneInputStreamOperatorTestHarness<Event, Event> harness =
                 createHarness(TABLE_ID.identifier(), "*", 10_000L, 1)) {
-            harness.setup(EventSerializer.INSTANCE);
+            harness.setup(new FlinkSerializerAdapter<>(EventSerializer.INSTANCE));
             harness.open();
             harness.processElement(new StreamRecord<>(new CreateTableEvent(TABLE_ID, SCHEMA)));
             waitUntilOutputSize(harness, 1);
@@ -161,7 +162,7 @@ class AsyncPostTransformFunctionTest {
 
         try (OneInputStreamOperatorTestHarness<Event, Event> restoredHarness =
                 createHarness(TABLE_ID.identifier(), "*", 10_000L, 1)) {
-            restoredHarness.setup(EventSerializer.INSTANCE);
+            restoredHarness.setup(new FlinkSerializerAdapter<>(EventSerializer.INSTANCE));
             restoredHarness.initializeState(snapshot);
             restoredHarness.open();
             AddColumnEvent addColumnEvent = addRegionColumnEvent();
@@ -188,7 +189,7 @@ class AsyncPostTransformFunctionTest {
         BlockingFunction.reset(true);
         try (OneInputStreamOperatorTestHarness<Event, Event> harness =
                 createHarness(TABLE_ID.identifier(), "*, block(id) AS blocked", 50L, 1)) {
-            harness.setup(EventSerializer.INSTANCE);
+            harness.setup(new FlinkSerializerAdapter<>(EventSerializer.INSTANCE));
             harness.getEnvironment().setExpectedExternalFailureCause(Throwable.class);
             harness.open();
             harness.processElement(new StreamRecord<>(new CreateTableEvent(TABLE_ID, SCHEMA)));
@@ -209,7 +210,7 @@ class AsyncPostTransformFunctionTest {
     void testTransformExceptionIsPropagated() throws Exception {
         try (OneInputStreamOperatorTestHarness<Event, Event> harness =
                 createHarness(TABLE_ID.identifier(), "*, fail(id) AS failed", 10_000L, 1)) {
-            harness.setup(EventSerializer.INSTANCE);
+            harness.setup(new FlinkSerializerAdapter<>(EventSerializer.INSTANCE));
             harness.getEnvironment().setExpectedExternalFailureCause(Throwable.class);
             harness.open();
             harness.processElement(new StreamRecord<>(new CreateTableEvent(TABLE_ID, SCHEMA)));
@@ -228,7 +229,7 @@ class AsyncPostTransformFunctionTest {
         return new OneInputStreamOperatorTestHarness<>(
                 new AsyncPostTransformOperatorFactory(
                         createFunction(tableInclusion, projection, workerThreads), timeout, 10),
-                EventSerializer.INSTANCE);
+                new FlinkSerializerAdapter<>(EventSerializer.INSTANCE));
     }
 
     private AsyncPostTransformFunction createFunction(

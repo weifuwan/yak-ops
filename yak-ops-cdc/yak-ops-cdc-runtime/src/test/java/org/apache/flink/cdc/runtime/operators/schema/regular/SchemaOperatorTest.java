@@ -27,6 +27,7 @@ import org.apache.flink.cdc.common.schema.Schema;
 import org.apache.flink.cdc.common.types.DataTypes;
 import org.apache.flink.cdc.common.types.RowType;
 import org.apache.flink.cdc.runtime.serializer.event.EventSerializer;
+import org.apache.flink.cdc.runtime.typeutils.FlinkSerializerAdapter;
 import org.apache.flink.cdc.runtime.testutils.operators.RegularEventOperatorTestHarness;
 import org.apache.flink.cdc.runtime.typeutils.BinaryRecordDataGenerator;
 import org.apache.flink.runtime.jobgraph.OperatorID;
@@ -82,7 +83,7 @@ class SchemaOperatorTest {
             OneInputStreamOperatorTestHarness<Event, Event> testHarness =
                     createTestHarness(maxParallelism, parallelism, subtaskIndex, opID, operator);
             testHarnesses.add(testHarness);
-            testHarness.setup(EventSerializer.INSTANCE);
+            testHarness.setup(new FlinkSerializerAdapter<>(EventSerializer.INSTANCE));
             testHarness.open();
             operator.registerInitialSchema(tableId, schema);
 
@@ -168,7 +169,7 @@ class SchemaOperatorTest {
                 maxParallelism,
                 parallelism,
                 subtaskIndex,
-                EventSerializer.INSTANCE,
+                new FlinkSerializerAdapter<>(EventSerializer.INSTANCE),
                 opID);
     }
 }
