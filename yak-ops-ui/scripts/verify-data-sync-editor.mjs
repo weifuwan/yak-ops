@@ -1009,14 +1009,24 @@ for (const label of [
   assert.doesNotMatch(replicationTableUi, new RegExp(label));
 }
 assert.match(replicationTableUi, /已保存的.*字段表达式仍会执行/);
-const mappingDialogUi = readFileSync(
-  new URL("../apps/web/app/data-sync/editor/mapping-settings-dialog.tsx", import.meta.url),
+const inlineCellUi = readFileSync(
+  new URL("../apps/web/app/data-sync/editor/replication-editable-cell.tsx", import.meta.url),
   "utf8",
 );
-assert.doesNotMatch(mappingDialogUi, /value="engine"/);
-assert.match(mappingDialogUi, /value="mapping"/);
-assert.match(mappingDialogUi, /value="sync"/);
-assert.match(mappingDialogUi, /已保存的表级引擎参数仍会生效/);
+assert.match(inlineCellUi, /onBlur=\{commit\}/);
+assert.match(inlineCellUi, /event.key === "Enter"/);
+assert.match(inlineCellUi, /event.key === "Escape"/);
+assert.match(replicationTableUi, /ReplicationEditableCell/);
+assert.match(replicationTableUi, /title: "操作"/);
+assert.match(replicationTableUi, />\s*移除\s*<\/Button>/);
+assert.match(replicationTableUi, /disabled=\{disabled \|\| regex\}/);
+assert.match(replicationTableUi, /"移除库表"/);
+assert.match(replicationTableUi, /const updateRow/);
+assert.match(replicationTableUi, /validateTableSnapshot\(next.source.snapshot\)/);
+assert.match(replicationTableUi, /validateSourceOptions\(next.source.options\)/);
+assert.match(replicationTableUi, /已保存的 DML 事件过滤/);
+assert.doesNotMatch(replicationTableUi, /MappingSettingsDialog|type: "table"/);
+
 const snapshotUi = readFileSync(
   new URL("../apps/web/app/data-sync/editor/table-option-fields.tsx", import.meta.url),
   "utf8",
@@ -1029,7 +1039,7 @@ const batchUi = readFileSync(
 );
 assert.doesNotMatch(batchUi, /value: "where"|value: "batchSize"/);
 assert.match(batchUi, /目标表模板/);
-assert.match(mappingDialogUi, /写入方式/);
+assert.match(replicationTableUi, /title: "写入方式"/);
 
 // Stage-one schema settings expose real engine switches, not eight speculative per-event policies.
 const schemaUi = readFileSync(
@@ -1051,9 +1061,8 @@ assert.match(advancedUi, /value="ddl">表结构同步/);
 assert.doesNotMatch(advancedUi, /DDL 能力配置/);
 assert.doesNotMatch(replicationTableUi, /key: "dml"/);
 assert.match(replicationTableUi, /保留已保存的 DML 事件过滤/);
-assert.doesNotMatch(mappingDialogUi, /DmlFields|label="DML 规则"/);
-assert.match(mappingDialogUi, /validateTableDml\(mapping.source.dml\)/);
-assert.match(mappingDialogUi, /已保存的 DML 事件过滤/);
+assert.match(replicationTableUi, /validateTableDml\(next.source.dml\)/);
+assert.doesNotMatch(replicationTableUi, /key: "dml"/);
 const regexDefaultsUi = readFileSync(
   new URL("../apps/web/app/data-sync/editor/replication-defaults.tsx", import.meta.url),
   "utf8",
@@ -1067,4 +1076,4 @@ const tableOptionUi = readFileSync(
 );
 assert.doesNotMatch(tableOptionUi, /export function DmlFields/);
 
-console.log("History, engine validation, preserved options and schema settings UI contracts passed");
+console.log("History, engine validation, inline mapping, and schema settings UI contracts passed");
