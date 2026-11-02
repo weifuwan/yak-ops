@@ -1031,4 +1031,40 @@ assert.doesNotMatch(batchUi, /value: "where"|value: "batchSize"/);
 assert.match(batchUi, /目标表模板/);
 assert.match(mappingDialogUi, /写入方式/);
 
-console.log("History, engine validation, preserved mapping options and UI simplification contracts passed");
+// Stage-one schema settings expose real engine switches, not eight speculative per-event policies.
+const schemaUi = readFileSync(
+  new URL("../apps/web/app/data-sync/editor/ddl-configuration.tsx", import.meta.url),
+  "utf8",
+);
+for (const label of ["目标表初始化", "运行期间结构变更", "同步结构变更", "允许删除字段"]) {
+  assert.match(schemaUi, new RegExp(label));
+}
+assert.match(schemaUi, /enabled && sink.allowDropColumns/);
+assert.match(schemaUi, /disabled=\{oracle\}/);
+assert.match(schemaUi, /changeSchemaPreparation\(value, next === "CREATE_OR_ALTER", solution\)/);
+assert.doesNotMatch(schemaUi, /CREATE_TABLE.*IGNORE|schemaPolicy\.ddl|truncateTable/);
+const advancedUi = readFileSync(
+  new URL("../apps/web/app/data-sync/editor/advanced-drawer.tsx", import.meta.url),
+  "utf8",
+);
+assert.match(advancedUi, /value="ddl">表结构同步/);
+assert.doesNotMatch(advancedUi, /DDL 能力配置/);
+assert.doesNotMatch(replicationTableUi, /key: "dml"/);
+assert.match(replicationTableUi, /保留已保存的 DML 事件过滤/);
+assert.doesNotMatch(mappingDialogUi, /DmlFields|label="DML 规则"/);
+assert.match(mappingDialogUi, /validateTableDml\(mapping.source.dml\)/);
+assert.match(mappingDialogUi, /已保存的 DML 事件过滤/);
+const regexDefaultsUi = readFileSync(
+  new URL("../apps/web/app/data-sync/editor/replication-defaults.tsx", import.meta.url),
+  "utf8",
+);
+assert.doesNotMatch(regexDefaultsUi, /DmlFields/);
+assert.match(regexDefaultsUi, /selection\.dml/);
+assert.doesNotMatch(batchUi, /DmlFields|fields\.includes\("dml"\)/);
+const tableOptionUi = readFileSync(
+  new URL("../apps/web/app/data-sync/editor/table-option-fields.tsx", import.meta.url),
+  "utf8",
+);
+assert.doesNotMatch(tableOptionUi, /export function DmlFields/);
+
+console.log("History, engine validation, preserved options and schema settings UI contracts passed");
