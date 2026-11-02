@@ -9,6 +9,8 @@ The Task plugin owns the JSON API boundary and converts each validated definitio
 - `PipelineConnectorCatalog` exposes installed Connector capabilities to the editor. Product display categories do not select the execution graph.
 - `PipelineTask` adapts `PipelineExecution` to the Task lifecycle, including cancellation, terminal outcomes, physical job identity, and progress.
 
+At physical Task creation, the validated and composed Pipeline YAML is logged once per execution attempt, including instance and definition version. The downloadable Task log retains connector identifiers, selected tables, routes, and execution mode, while masking free-form SQL, predicates, transform expressions, incremental cursor values, and unrecognized options. Validation and admission do not log YAML; the original, unmodified YAML is used for execution.
+
 The engine module owns Pipeline definitions, resource planning, translators, schema preparation, and composition. YakFlow owns physical execution and checkpoints. A Task Instance must be durably registered before `PipelineExecution.start()`.
 
 Previously persisted parameter versions are explicitly rejected. Existing definitions and checkpoints are never silently reinterpreted. Search projections are rebuilt from validated definitions; client-supplied indexes are ignored.
