@@ -6,32 +6,46 @@ import io.yak.ops.core.configuration.CheckpointingOptions;
 import io.yak.ops.core.configuration.PipelineOptions;
 import io.yak.ops.flow.runtime.checkpoint.LocalCompletedCheckpointStore;
 import io.yak.ops.flow.runtime.jobgraph.JobGraph;
+import io.yak.ops.flow.runtime.state.filesystem.LocalRecoverableWriter;
+import io.yak.ops.flow.runtime.state.filesystem.RecoverableFsDataOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.UUID;
+import java.util.Locale;
 import java.util.concurrent.CancellationException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.CRC32;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Durable bounded-job phases, independent of replayable operator checkpoints. */
 public final class BatchExecutionJournal implements AutoCloseable {
+    private static final Logger LOG = LoggerFactory.getLogger(BatchExecutionJournal.class);
+    private static final String LEGACY_FILE = "batch-execution.bin";
+    private static final String JOURNAL_DIRECTORY = "batch-execution";
+    private static final Pattern VERSION_FILE = Pattern.compile("journal-([0-9]{20})\\.bin");
+    private static final Pattern STAGING_FILE = Pattern.compile(
+            "\\.journal-[0-9]{20}\\.bin\\.inprogress\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+    private static final int MAX_STATE_BYTES = 65_536;
     private static final int MAGIC = 0x59414b42;
     private static final int VERSION = 1;
     private static final byte PENDING = 0;
@@ -39,7 +53,9 @@ public final class BatchExecutionJournal implements AutoCloseable {
     private static final byte COMPLETED = 2;
     private static final byte FAILED = 3;
     private final Path directory;
-    private final Path stateFile;
+    private final Path journalDirectory;
+    private final LocalRecoverableWriter writer = new LocalRecoverableWriter();
+    private long sequence;
     private final String signature;
     private final List<BatchExecutionHook> hooks;
     private final byte[] states;
@@ -56,15 +72,26 @@ public final class BatchExecutionJournal implements AutoCloseable {
      * @throws IOException when the directory cannot be inspected safely
      */
     public static boolean hasExecutionState(Path directory) throws IOException {
-        try {
-            Files.readAttributes(
-                    directory.resolve("batch-execution.bin"),
-                    java.nio.file.attribute.BasicFileAttributes.class,
-                    java.nio.file.LinkOption.NOFOLLOW_LINKS);
+        if (Files.exists(directory.resolve(LEGACY_FILE), LinkOption.NOFOLLOW_LINKS)) {
             return true;
-        } catch (java.nio.file.NoSuchFileException missing) {
+        }
+        Path versions = directory.resolve(JOURNAL_DIRECTORY);
+        if (!Files.exists(versions, LinkOption.NOFOLLOW_LINKS)) {
             return false;
         }
+        // Unexpected entries are treated as state, not as permission to start a new job.
+        if (!Files.isDirectory(versions, LinkOption.NOFOLLOW_LINKS)) {
+            return true;
+        }
+        try (DirectoryStream<Path> entries = Files.newDirectoryStream(versions)) {
+            for (Path entry : entries) {
+                if (!STAGING_FILE.matcher(entry.getFileName().toString()).matches()
+                        || !Files.isRegularFile(entry, LinkOption.NOFOLLOW_LINKS)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     BatchExecutionJournal(JobGraph graph, List<BatchExecutionHook> hooks) throws IOException {
@@ -77,7 +104,7 @@ public final class BatchExecutionJournal implements AutoCloseable {
             throw new IllegalArgumentException("Execution hooks require a durable instance directory and identity");
         }
         this.directory = Path.of(stateDirectory).toAbsolutePath().normalize();
-        this.stateFile = directory.resolve("batch-execution.bin");
+        this.journalDirectory = directory.resolve(JOURNAL_DIRECTORY);
         this.hooks = List.copyOf(hooks);
         if (hooks.size() > 10_000) throw new IllegalArgumentException("Too many batch execution hooks");
         this.states = new byte[hooks.size()];
@@ -97,11 +124,29 @@ public final class BatchExecutionJournal implements AutoCloseable {
         }
         this.lock = acquired;
         try {
-            if (Files.exists(stateFile)) {
+            Path latest = latestStateFile();
+            Path legacy = directory.resolve(LEGACY_FILE);
+            boolean legacyExists = Files.exists(legacy, LinkOption.NOFOLLOW_LINKS);
+            if (latest != null || legacyExists) {
                 if (!graph.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
                     throw new IOException("Batch execution state already exists; explicit recovery is required");
                 }
-                load();
+                // A committed version takes precedence if a crash interrupted legacy cleanup.
+                Path restored = latest == null ? legacy : latest;
+                load(restored);
+                if (latest == null) {
+                    // Migrate an existing instance only after its legacy payload was verified.
+                    persist();
+                } else {
+                    sequence = versionOf(latest);
+                }
+                if (legacyExists) {
+                    try {
+                        Files.delete(legacy);
+                    } catch (IOException cleanupFailure) {
+                        LOG.warn("Could not remove migrated batch journal {}", legacy, cleanupFailure);
+                    }
+                }
             } else {
                 if (graph.configuration().get(CheckpointingOptions.RESTORE_LATEST)) {
                     try (LocalCompletedCheckpointStore checkpoints = new LocalCompletedCheckpointStore(directory)) {
@@ -112,6 +157,13 @@ public final class BatchExecutionJournal implements AutoCloseable {
                     }
                 }
                 persist();
+            }
+            // Orphaned staging files cannot represent a committed state. Only the
+            // exclusive job owner may remove them after verifying the latest version.
+            try {
+                discardStagingFiles();
+            } catch (IOException cleanupFailure) {
+                LOG.warn("Could not remove batch journal staging files in {}", journalDirectory, cleanupFailure);
             }
         } catch (IOException | RuntimeException failure) {
             try {
@@ -176,9 +228,15 @@ public final class BatchExecutionJournal implements AutoCloseable {
         }
     }
 
-    private void load() throws IOException {
-        if (Files.size(stateFile) > 65_536) throw new IOException("Batch journal exceeds its supported size");
-        byte[] contents = Files.readAllBytes(stateFile);
+    private void load(Path stateFile) throws IOException {
+        if (!Files.isRegularFile(stateFile, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("Batch journal is not a regular file: " + stateFile);
+        }
+        byte[] contents;
+        try (InputStream input = Files.newInputStream(stateFile)) {
+            contents = input.readNBytes(MAX_STATE_BYTES + 1);
+        }
+        if (contents.length > MAX_STATE_BYTES) throw new IOException("Batch journal exceeds its supported size");
         if (contents.length < 8) throw new IOException("Batch journal is incomplete");
         CRC32 crc = new CRC32();
         crc.update(contents, 0, contents.length - Long.BYTES);
@@ -227,20 +285,99 @@ public final class BatchExecutionJournal implements AutoCloseable {
             output.flush();
             contents = bytes.toByteArray();
         }
-        Path temporary = directory.resolve(".batch-execution-" + UUID.randomUUID() + ".tmp");
+        if (sequence == Long.MAX_VALUE) {
+            throw new IOException("Batch journal version is exhausted");
+        }
+        long next = sequence + 1;
+        Files.createDirectories(journalDirectory);
+        Path target = journalDirectory.resolve(String.format(Locale.ROOT, "journal-%020d.bin", next));
+        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("Batch journal version already exists: " + target);
+        }
+        // Flink 1.20.3 local RecoverableWriter: stage, flush/sync, then atomic commit.
+        // Each version has a distinct target; commit() must never replace a live journal.
+        try (RecoverableFsDataOutputStream output = writer.open(target)) {
+            output.write(contents);
+            output.closeForCommit().commit();
+        }
+        sequence = next;
+        // Once committed, cleanup failures cannot turn a published phase into a failed one.
         try {
-            try (FileChannel output =
-                    FileChannel.open(temporary, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
-                ByteBuffer buffer = ByteBuffer.wrap(contents);
-                while (buffer.hasRemaining()) output.write(buffer);
-                output.force(true);
+            discardOldVersions();
+            discardStagingFiles();
+        } catch (IOException cleanupFailure) {
+            LOG.warn("Could not clean obsolete batch journal files in {}", journalDirectory, cleanupFailure);
+        }
+    }
+
+    private Path latestStateFile() throws IOException {
+        if (!Files.exists(journalDirectory, LinkOption.NOFOLLOW_LINKS)) {
+            return null;
+        }
+        if (!Files.isDirectory(journalDirectory, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("Batch journal storage is not a directory: " + journalDirectory);
+        }
+        long latest = 0;
+        Path selected = null;
+        try (DirectoryStream<Path> entries = Files.newDirectoryStream(journalDirectory)) {
+            for (Path file : entries) {
+                String name = file.getFileName().toString();
+                if (STAGING_FILE.matcher(name).matches()) {
+                    if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                        throw new IOException("Invalid batch journal staging file: " + file);
+                    }
+                    continue;
+                }
+                long version = versionOf(file);
+                if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                    throw new IOException("Invalid committed batch journal file: " + file);
+                }
+                if (version > latest) {
+                    latest = version;
+                    selected = file;
+                }
             }
-            Files.move(temporary, stateFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            try (FileChannel parent = FileChannel.open(directory, StandardOpenOption.READ)) {
-                parent.force(true);
+        }
+        return selected;
+    }
+
+    private static long versionOf(Path file) throws IOException {
+        Matcher match = VERSION_FILE.matcher(file.getFileName().toString());
+        if (!match.matches()) {
+            throw new IOException("Unexpected file in batch journal storage: " + file);
+        }
+        try {
+            long version = Long.parseLong(match.group(1));
+            if (version <= 0) throw new IOException("Invalid batch journal version: " + file);
+            return version;
+        } catch (NumberFormatException failure) {
+            throw new IOException("Invalid batch journal version: " + file, failure);
+        }
+    }
+
+    private void discardOldVersions() throws IOException {
+        // Keep the current state and one preceding state for diagnostics. Never
+        // fall back to the older version if the latest payload fails validation.
+        try (DirectoryStream<Path> entries = Files.newDirectoryStream(journalDirectory, "journal-*.bin")) {
+            for (Path file : entries) {
+                if (versionOf(file) < sequence - 1) {
+                    Files.delete(file);
+                }
             }
-        } finally {
-            Files.deleteIfExists(temporary);
+        }
+    }
+
+    private void discardStagingFiles() throws IOException {
+        if (!Files.isDirectory(journalDirectory, LinkOption.NOFOLLOW_LINKS)) {
+            return;
+        }
+        try (DirectoryStream<Path> entries = Files.newDirectoryStream(journalDirectory, ".journal-*.inprogress.*")) {
+            for (Path file : entries) {
+                if (STAGING_FILE.matcher(file.getFileName().toString()).matches()
+                        && Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                    Files.delete(file);
+                }
+            }
         }
     }
 
