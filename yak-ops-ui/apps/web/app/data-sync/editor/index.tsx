@@ -540,7 +540,6 @@ export function TaskEditor({
                 patchSource={patchSource}
                 patchSink={patchSink}
                 onTransformsChange={(value) => patch("transforms", value)}
-                onTypeMappingsChange={(value) => patch("typeMappings", value)}
                 source={{
                   side: "source",
                   dataSourceId: form.source.dataSourceId,

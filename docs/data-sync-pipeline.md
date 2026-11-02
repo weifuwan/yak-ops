@@ -11,6 +11,8 @@ The Data Sync application has two products. Their availability depends on the se
 
 Select the source and target datasource types, product, and task name in **New synchronization task**. In the editor, select authorized connections and tables, configure the read strategy and target writes, and save the definition. Saving does not publish or start the task. Publish it before starting an execution; configure scheduling separately when the selected strategy supports it.
 
+Single-table offline uses connector-provided type conversions by default; its editor no longer offers custom global type-mapping rules. Previously saved single-table mappings remain effective and are shown as read-only legacy configuration; creating a new single-table task does not carry them forward. Database realtime retains the optional custom type-mapping editor.
+
 Single-table offline supports full reads and, where the JDBC channel allows them, field-based increments. **Full then incremental** means the first successful execution initializes the target and subsequent executions read bounded field ranges. Each execution finishes. Incremental reads need an appropriate timestamp or increasing-value column; they do not capture physical deletes or updates that leave the selected field unchanged. Full reads do not imply truncating or overwriting the target.
 
 Database realtime offers these strategies:

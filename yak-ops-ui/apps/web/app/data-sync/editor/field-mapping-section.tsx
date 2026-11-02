@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Modal, Table, type TableColumns } from "@yak-ops/yak-ui";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { listDataSourceColumns, type DataSourceCatalogTablePath } from "@/service/datasource";
@@ -30,7 +30,6 @@ interface Props {
   value: DataSyncTransform[];
   onChange: (rules: DataSyncTransform[]) => void;
   disabled?: boolean;
-  extra?: ReactNode;
 }
 
 function useFieldColumns(endpoint: FieldEndpoint, enabled: boolean) {
@@ -65,7 +64,6 @@ export function FieldMappingSection({
   value,
   onChange,
   disabled = false,
-  extra,
 }: Props) {
   const sourceQuery = useFieldColumns(source, true);
   const targetQuery = useFieldColumns(target, targetTableExists);
@@ -113,7 +111,6 @@ export function FieldMappingSection({
   ];
   return (
     <ContentSection id="field-mapping" title="去向字段映射">
-      {extra ? <div className="flex justify-end">{extra}</div> : null}
       {!ready ? (
         <Alert>暂无字段数据，请选择数据来源与数据去向表</Alert>
       ) : (

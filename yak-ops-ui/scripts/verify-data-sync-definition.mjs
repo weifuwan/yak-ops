@@ -434,7 +434,6 @@ const offlineConfiguration = buildSyncParameters({
   preSql: ["DELETE FROM ods.orders_copy WHERE tenant_id = 12"],
   postSql: ["UPDATE ods.orders_copy SET ready = 1 WHERE tenant_id = 12"],
   sinkBatchSize: 128,
-  typeMappings: [{ sourceType: "INT", targetType: "BIGINT" }],
 });
 assert.deepEqual(readSyncParameters(8, offlineConfiguration), offlineConfiguration);
 assert.deepEqual(
@@ -446,6 +445,21 @@ assert.deepEqual(
     ),
   ),
   offlineConfiguration,
+);
+assert.equal(offlineConfiguration.sink.typeMappings, undefined);
+const legacyOfflineConfiguration = {
+  ...offlineConfiguration,
+  sink: {
+    ...offlineConfiguration.sink,
+    typeMappings: [{ sourceType: "INT", targetType: "BIGINT" }],
+  },
+};
+// Legacy single-table definitions must round-trip without dropping their existing behavior.
+assert.deepEqual(
+  buildSyncParameters(
+    toSyncTaskRecord(definition(legacyOfflineConfiguration, { parameterSchemaVersion: 8 })),
+  ),
+  legacyOfflineConfiguration,
 );
 assert.throws(() => readSyncParameters(7, offlineConfiguration));
 const regexConfiguration = buildSyncParameters({
