@@ -168,9 +168,10 @@ public class TypeSerializerSchemaCompatibility<T> {
     public TypeSerializer<T> getReconfiguredSerializer() {
         Preconditions.checkState(
                 isCompatibleWithReconfiguredSerializer(),
-                "It is only possible to get a reconfigured serializer if the compatibility type is %s, but the type is %s",
-                Type.COMPATIBLE_WITH_RECONFIGURED_SERIALIZER,
-                resultType);
+                String.format(
+                        "It is only possible to get a reconfigured serializer if the compatibility type is %s, but the type is %s",
+                        Type.COMPATIBLE_WITH_RECONFIGURED_SERIALIZER,
+                        resultType));
         return reconfiguredNewSerializer;
     }
 
