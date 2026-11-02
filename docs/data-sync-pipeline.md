@@ -47,7 +47,7 @@ The editor header shows **Task list / task name** (`任务列表 / 任务名称`
 | Drawer | Contents |
 | --- | --- |
 | Properties (`属性`) | Task name, synchronization solution, task ID, and description |
-| Advanced configuration (`高级配置`) | Read strategy, write settings, runtime parameters and diagnostics, supported scheduling, DDL policy, and supported engine options |
+| Advanced configuration (`高级配置`) | Read strategy, write settings, runtime parameters and diagnostics, supported scheduling, table structure sync, and supported engine options |
 | Versions (`版本`) | Saved parameter versions, parameter details and comparisons, restoration, and successful publication history |
 
 Per-table write modes and keys remain with target table mappings. Advanced configuration groups initial target-table preparation and continuous schema evolution under **Table structure sync** (`表结构同步`). It retains the existing supported evolution and drop-column controls; it does not expose independent DataWorks-style strategies for every DDL event. Unsupported events may fail the task rather than being safely ignored. The engine controls do not add support for arbitrary engine options. Confirming Properties or Advanced configuration applies its values to the page. Canceling or closing that drawer discards its unapplied edits. Use the fixed **Save** (`保存`) and **Publish** (`发布`) actions at the bottom to persist the page. There is no conversion-to-script action.
