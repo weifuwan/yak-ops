@@ -26,6 +26,18 @@
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-cdc-runtime</artifactId>
         </dependency>
+        <!-- Debezium 1.9.8 is compiled against Kafka Connect 3.2.0; newer
+             Spring Boot managed Connect APIs change OffsetBackingStore. -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-runtime</artifactId>
+            <version>3.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-api</artifactId>
+            <version>3.2.0</version>
+        </dependency>
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-api</artifactId>
