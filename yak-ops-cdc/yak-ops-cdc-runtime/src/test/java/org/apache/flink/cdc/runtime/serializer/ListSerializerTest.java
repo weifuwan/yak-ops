@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.runtime.serializer;
 
-import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -17,18 +17,18 @@
 
 package org.apache.flink.cdc.runtime.serializer.event;
 
-import org.apache.flink.api.common.typeutils.SimpleTypeSerializerSnapshot;
-import org.apache.flink.api.common.typeutils.TypeSerializerSnapshot;
+import org.apache.flink.cdc.common.serialization.SimpleTypeSerializerSnapshot;
+import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshot;
 import org.apache.flink.cdc.common.annotation.Internal;
 import org.apache.flink.cdc.common.event.Event;
 import org.apache.flink.cdc.runtime.partitioning.PartitioningEvent;
 import org.apache.flink.cdc.runtime.serializer.TypeSerializerSingleton;
-import org.apache.flink.core.memory.DataInputView;
-import org.apache.flink.core.memory.DataOutputView;
+import org.apache.flink.cdc.common.memory.DataInputView;
+import org.apache.flink.cdc.common.memory.DataOutputView;
 
 import java.io.IOException;
 
-/** A {@link org.apache.flink.api.common.typeutils.TypeSerializer} for {@link PartitioningEvent}. */
+/** A {@link org.apache.flink.cdc.common.serialization.TypeSerializer} for {@link PartitioningEvent}. */
 @Internal
 public class PartitioningEventSerializer extends TypeSerializerSingleton<PartitioningEvent> {
 

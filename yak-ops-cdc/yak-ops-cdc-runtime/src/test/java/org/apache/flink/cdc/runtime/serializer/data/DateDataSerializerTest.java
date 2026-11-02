@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.runtime.serializer.data;
 
-import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
 import org.apache.flink.cdc.common.data.DateData;
 import org.apache.flink.cdc.runtime.serializer.SerializerTestBase;
 

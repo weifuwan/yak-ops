@@ -17,11 +17,11 @@
 
 package org.apache.flink.cdc.runtime.serializer;
 
-import org.apache.flink.api.common.typeutils.CompositeTypeSerializerSnapshot;
-import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.api.common.typeutils.TypeSerializerSnapshot;
-import org.apache.flink.core.memory.DataInputView;
-import org.apache.flink.core.memory.DataOutputView;
+import org.apache.flink.cdc.common.serialization.CompositeTypeSerializerSnapshot;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
+import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshot;
+import org.apache.flink.cdc.common.memory.DataInputView;
+import org.apache.flink.cdc.common.memory.DataOutputView;
 
 import java.io.IOException;
 import java.util.ArrayList;

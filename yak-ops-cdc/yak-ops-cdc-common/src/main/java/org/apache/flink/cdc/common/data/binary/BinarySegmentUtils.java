@@ -26,7 +26,7 @@ import org.apache.flink.cdc.common.data.RecordData;
 import org.apache.flink.cdc.common.data.StringData;
 import org.apache.flink.cdc.common.data.TimestampData;
 import org.apache.flink.cdc.common.types.variant.BinaryVariant;
-import org.apache.flink.core.memory.DataOutputView;
+import org.apache.flink.cdc.common.memory.DataOutputView;
 import org.apache.flink.cdc.common.memory.MemorySegment;
 
 import java.io.IOException;

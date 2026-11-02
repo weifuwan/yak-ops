@@ -17,18 +17,18 @@
 
 package org.apache.flink.cdc.runtime.serializer;
 
-import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.api.common.typeutils.TypeSerializerSchemaCompatibility;
-import org.apache.flink.api.common.typeutils.TypeSerializerSnapshot;
-import org.apache.flink.api.common.typeutils.TypeSerializerSnapshotSerializationUtil;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
+import org.apache.flink.cdc.common.serialization.TypeSerializerSchemaCompatibility;
+import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshot;
+import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshotSerializationUtil;
 import org.apache.flink.api.java.typeutils.runtime.NullableSerializer;
 import org.apache.flink.api.java.typeutils.runtime.kryo.KryoSerializer;
-import org.apache.flink.core.memory.DataInputDeserializer;
-import org.apache.flink.core.memory.DataInputView;
-import org.apache.flink.core.memory.DataInputViewStreamWrapper;
-import org.apache.flink.core.memory.DataOutputSerializer;
-import org.apache.flink.core.memory.DataOutputView;
-import org.apache.flink.core.memory.DataOutputViewStreamWrapper;
+import org.apache.flink.cdc.common.memory.DataInputDeserializer;
+import org.apache.flink.cdc.common.memory.DataInputView;
+import org.apache.flink.cdc.common.memory.DataInputViewStreamWrapper;
+import org.apache.flink.cdc.common.memory.DataOutputSerializer;
+import org.apache.flink.cdc.common.memory.DataOutputView;
+import org.apache.flink.cdc.common.memory.DataOutputViewStreamWrapper;
 import org.apache.flink.testutils.CustomEqualityMatcher;
 import org.apache.flink.testutils.DeeplyEqualsChecker;
 import org.apache.flink.util.InstantiationUtil;

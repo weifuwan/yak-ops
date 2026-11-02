@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.runtime.serializer.event;
 
-import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
 import org.apache.flink.cdc.common.data.RecordData;
 import org.apache.flink.cdc.common.data.binary.BinaryStringData;
 import org.apache.flink.cdc.common.event.DataChangeEvent;

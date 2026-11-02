@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.common.types.utils.runtime;
 
-import org.apache.flink.core.memory.DataOutputView;
+import org.apache.flink.cdc.common.memory.DataOutputView;
 
 import java.io.IOException;
 import java.io.OutputStream;

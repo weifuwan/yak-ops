@@ -35,8 +35,8 @@ import org.apache.flink.cdc.common.data.binary.BinaryStringData;
 import org.apache.flink.cdc.common.types.variant.BinaryVariant;
 import org.apache.flink.cdc.common.types.variant.Variant;
 import org.apache.flink.cdc.runtime.serializer.data.binary.BinaryRecordDataSerializer;
-import org.apache.flink.core.memory.DataInputView;
-import org.apache.flink.core.memory.DataOutputView;
+import org.apache.flink.cdc.common.memory.DataInputView;
+import org.apache.flink.cdc.common.memory.DataOutputView;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

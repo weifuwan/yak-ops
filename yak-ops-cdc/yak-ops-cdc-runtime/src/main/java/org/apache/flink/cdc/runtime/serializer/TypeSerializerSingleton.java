@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.runtime.serializer;
 
-import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
 
 /** A {@link TypeSerializer} whose method duplicate() return itself. */
 public abstract class TypeSerializerSingleton<T> extends TypeSerializer<T> {

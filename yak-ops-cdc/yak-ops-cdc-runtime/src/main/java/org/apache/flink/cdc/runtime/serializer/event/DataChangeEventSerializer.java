@@ -17,9 +17,9 @@
 
 package org.apache.flink.cdc.runtime.serializer.event;
 
-import org.apache.flink.api.common.typeutils.SimpleTypeSerializerSnapshot;
-import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.api.common.typeutils.TypeSerializerSnapshot;
+import org.apache.flink.cdc.common.serialization.SimpleTypeSerializerSnapshot;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
+import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshot;
 import org.apache.flink.cdc.common.event.DataChangeEvent;
 import org.apache.flink.cdc.common.event.OperationType;
 import org.apache.flink.cdc.common.event.TableId;
@@ -30,8 +30,8 @@ import org.apache.flink.cdc.runtime.serializer.StringSerializer;
 import org.apache.flink.cdc.runtime.serializer.TableIdSerializer;
 import org.apache.flink.cdc.runtime.serializer.TypeSerializerSingleton;
 import org.apache.flink.cdc.runtime.serializer.data.RecordDataSerializer;
-import org.apache.flink.core.memory.DataInputView;
-import org.apache.flink.core.memory.DataOutputView;
+import org.apache.flink.cdc.common.memory.DataInputView;
+import org.apache.flink.cdc.common.memory.DataOutputView;
 
 import java.io.IOException;
 import java.util.Map;

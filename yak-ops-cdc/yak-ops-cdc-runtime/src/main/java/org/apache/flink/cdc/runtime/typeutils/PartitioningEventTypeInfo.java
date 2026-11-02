@@ -62,13 +62,13 @@ public class PartitioningEventTypeInfo extends TypeInformation<PartitioningEvent
     // Flink 1.x abstract method - not abstract in Flink 2.x so @Override omitted for cross-version
     // compatibility
     public TypeSerializer<PartitioningEvent> createSerializer(ExecutionConfig config) {
-        return PartitioningEventSerializer.INSTANCE;
+        return new FlinkSerializerAdapter<>(PartitioningEventSerializer.INSTANCE);
     }
 
     /** For Flink 2.2+ (TypeInformation.createSerializer now takes SerializerConfig). */
     @Override
     public TypeSerializer<PartitioningEvent> createSerializer(SerializerConfig config) {
-        return PartitioningEventSerializer.INSTANCE;
+        return new FlinkSerializerAdapter<>(PartitioningEventSerializer.INSTANCE);
     }
 
     @Override

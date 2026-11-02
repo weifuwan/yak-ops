@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.runtime.serializer.event;
 
-import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
 import org.apache.flink.cdc.common.event.Event;
 import org.apache.flink.cdc.common.event.FlushEvent;
 import org.apache.flink.cdc.common.event.SchemaChangeEventType;

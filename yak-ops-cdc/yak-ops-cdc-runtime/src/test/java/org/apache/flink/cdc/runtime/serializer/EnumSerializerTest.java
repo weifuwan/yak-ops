@@ -18,12 +18,12 @@
 package org.apache.flink.cdc.runtime.serializer;
 
 import org.apache.flink.api.common.typeutils.SerializerTestInstance;
-import org.apache.flink.api.common.typeutils.TypeSerializerSchemaCompatibility;
-import org.apache.flink.api.common.typeutils.TypeSerializerSnapshot;
-import org.apache.flink.api.common.typeutils.TypeSerializerSnapshotSerializationUtil;
+import org.apache.flink.cdc.common.serialization.TypeSerializerSchemaCompatibility;
+import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshot;
+import org.apache.flink.cdc.common.serialization.TypeSerializerSnapshotSerializationUtil;
 import org.apache.flink.cdc.common.utils.InstantiationUtil;
-import org.apache.flink.core.memory.DataInputViewStreamWrapper;
-import org.apache.flink.core.memory.DataOutputViewStreamWrapper;
+import org.apache.flink.cdc.common.memory.DataInputViewStreamWrapper;
+import org.apache.flink.cdc.common.memory.DataOutputViewStreamWrapper;
 import org.apache.flink.util.TestLogger;
 
 import org.assertj.core.api.Assertions;

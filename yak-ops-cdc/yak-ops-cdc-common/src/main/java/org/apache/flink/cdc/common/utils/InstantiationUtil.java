@@ -17,9 +17,9 @@
 
 package org.apache.flink.cdc.common.utils;
 
-import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.core.memory.DataInputViewStreamWrapper;
-import org.apache.flink.core.memory.DataOutputViewStreamWrapper;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
+import org.apache.flink.cdc.common.memory.DataInputViewStreamWrapper;
+import org.apache.flink.cdc.common.memory.DataOutputViewStreamWrapper;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

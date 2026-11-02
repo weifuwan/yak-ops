@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.common.types.utils.runtime;
 
-import org.apache.flink.core.memory.DataInputView;
+import org.apache.flink.cdc.common.memory.DataInputView;
 
 import java.io.EOFException;
 import java.io.IOException;

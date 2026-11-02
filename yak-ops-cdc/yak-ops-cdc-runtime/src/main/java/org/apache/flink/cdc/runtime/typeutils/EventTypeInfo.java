@@ -62,13 +62,13 @@ public class EventTypeInfo extends TypeInformation<Event> {
     // Flink 1.x abstract method - not abstract in Flink 2.x so @Override omitted for cross-version
     // compatibility
     public TypeSerializer<Event> createSerializer(ExecutionConfig config) {
-        return EventSerializer.INSTANCE;
+        return new FlinkSerializerAdapter<>(EventSerializer.INSTANCE);
     }
 
     /** For Flink 2.2+ (TypeInformation.createSerializer now takes SerializerConfig). */
     @Override
     public TypeSerializer<Event> createSerializer(SerializerConfig config) {
-        return EventSerializer.INSTANCE;
+        return new FlinkSerializerAdapter<>(EventSerializer.INSTANCE);
     }
 
     @Override

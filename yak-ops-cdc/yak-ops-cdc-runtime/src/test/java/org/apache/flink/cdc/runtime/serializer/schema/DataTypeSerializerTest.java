@@ -17,15 +17,15 @@
 
 package org.apache.flink.cdc.runtime.serializer.schema;
 
-import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.cdc.common.serialization.TypeSerializer;
 import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.common.types.DataTypes;
 import org.apache.flink.cdc.common.types.RowType;
 import org.apache.flink.cdc.runtime.serializer.SerializerTestBase;
-import org.apache.flink.core.memory.DataInputView;
-import org.apache.flink.core.memory.DataInputViewStreamWrapper;
-import org.apache.flink.core.memory.DataOutputView;
-import org.apache.flink.core.memory.DataOutputViewStreamWrapper;
+import org.apache.flink.cdc.common.memory.DataInputView;
+import org.apache.flink.cdc.common.memory.DataInputViewStreamWrapper;
+import org.apache.flink.cdc.common.memory.DataOutputView;
+import org.apache.flink.cdc.common.memory.DataOutputViewStreamWrapper;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
