@@ -23,5 +23,5 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Compile backend reactor
-        run: bash mvnw -B -ntp -DskipTests compile
+      - name: Package backend reactor, including test compilation
+        run: bash mvnw -B -ntp -DskipTests package
