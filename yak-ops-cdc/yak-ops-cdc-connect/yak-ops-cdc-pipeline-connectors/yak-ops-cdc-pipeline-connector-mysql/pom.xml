@@ -12,7 +12,7 @@
 
     <artifactId>yak-ops-cdc-pipeline-connector-mysql</artifactId>
     <name>Yak Ops CDC Pipeline Connector MySQL</name>
-    <description>MySQL data source and data sink integration for CDC pipelines</description>
+    <description>Flink CDC 3.7 MySQL Pipeline DataSource implementation</description>
 
     <dependencies>
         <dependency>
@@ -26,6 +26,25 @@
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-cdc-runtime-api</artifactId>
+        </dependency>
+        <!-- Temporary upstream Source API compatibility until the Yak Ops standalone runtime bridge is ready. -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-core</artifactId>
+            <version>1.20.3</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-base</artifactId>
+            <version>1.20.3</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-streaming-java</artifactId>
+            <version>1.20.3</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>
