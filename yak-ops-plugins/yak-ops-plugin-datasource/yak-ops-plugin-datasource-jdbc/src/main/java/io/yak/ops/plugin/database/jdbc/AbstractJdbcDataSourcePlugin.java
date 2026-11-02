@@ -35,10 +35,8 @@ import io.yak.ops.configuration.rule.ConfigValidator;
 import io.yak.ops.configuration.rule.Expression;
 import io.yak.ops.configuration.rule.OptionRule;
 import io.yak.ops.configuration.validation.OptionValidationException;
-import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
-import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
-import io.yak.ops.connector.jdbc.database.connection.SshAuthType;
-import io.yak.ops.connector.jdbc.database.connection.SshTunnelConfig;
+import io.yak.ops.plugin.database.jdbc.connection.SshAuthType;
+import io.yak.ops.plugin.database.jdbc.connection.SshTunnelConfig;
 import io.yak.ops.plugin.datasource.api.enums.DataSourceCapability;
 import io.yak.ops.plugin.datasource.api.enums.DataSourcePluginOperation;
 import io.yak.ops.plugin.datasource.api.exception.DataSourcePluginException;
@@ -359,41 +357,47 @@ public abstract class AbstractJdbcDataSourcePlugin implements DataSourcePlugin {
     }
 
     protected Connection openJdbcConnection(JdbcConnectionProperties connection, int timeoutSeconds) throws Exception {
-        return new DefaultJdbcConnectionProvider(
-                        new JdbcConnectionOptions(connectionOptions(connection, timeoutSeconds)))
-                .getConnection();
+        if (connection.sshTunnel().enabled()) {
+            throw new UnsupportedOperationException("SSH tunnel connections require a separate datasource transport");
+        }
+        Class.forName(connection.driverClassName());
+        Properties properties = new Properties();
+        properties.putAll(connection.properties());
+        if (connection.username() != null) properties.setProperty("user", connection.username());
+        if (connection.password() != null) properties.setProperty("password", connection.password());
+        return DriverManager.getConnection(connection.jdbcUrl(), properties);
     }
 
     @Override
     public final ReadonlyConfig connectionOptions(DataSourceConnection connection, int timeoutSeconds) {
         JdbcConnectionProperties jdbc = requireJdbcConnection(connection);
         Map<String, Object> values = new LinkedHashMap<>();
-        values.put(JdbcConnectionOptions.URL.key(), jdbc.jdbcUrl());
-        values.put(JdbcConnectionOptions.DRIVER_CLASS.key(), jdbc.driverClassName());
-        values.put(JdbcConnectionOptions.DRIVER_ID.key(), jdbc.driverId());
-        values.put(JdbcConnectionOptions.DATABASE_TYPE.key(), jdbc.type());
-        values.put(JdbcConnectionOptions.USERNAME.key(), jdbc.username());
-        values.put(JdbcConnectionOptions.PASSWORD.key(), jdbc.password());
-        values.put(JdbcConnectionOptions.HOST.key(), jdbc.host());
-        values.put(JdbcConnectionOptions.PORT.key(), jdbc.port());
-        values.put(JdbcConnectionOptions.PROPERTIES.key(), jdbc.properties());
-        values.put(JdbcConnectionOptions.TIMEOUT.key(), Math.max(1, timeoutSeconds));
+        values.put("connection.url", jdbc.jdbcUrl());
+        values.put("connection.driver-class", jdbc.driverClassName());
+        values.put("connection.driver-id", jdbc.driverId());
+        values.put("connection.database-type", jdbc.type());
+        values.put("connection.username", jdbc.username());
+        values.put("connection.password", jdbc.password());
+        values.put("connection.host", jdbc.host());
+        values.put("connection.port", jdbc.port());
+        values.put("connection.properties", jdbc.properties());
+        values.put("connection.timeout-seconds", Math.max(1, timeoutSeconds));
         SshTunnelConfig ssh = jdbc.sshTunnel();
-        values.put(JdbcConnectionOptions.SSH_ENABLED.key(), ssh.enabled());
+        values.put("connection.ssh.enabled", ssh.enabled());
         if (ssh.enabled()) {
-            values.put(JdbcConnectionOptions.SSH_HOST.key(), ssh.host());
-            values.put(JdbcConnectionOptions.SSH_PORT.key(), ssh.port());
-            values.put(JdbcConnectionOptions.SSH_USERNAME.key(), ssh.username());
-            values.put(JdbcConnectionOptions.SSH_AUTH_TYPE.key(), ssh.authType().name());
-            values.put(JdbcConnectionOptions.SSH_PASSWORD.key(), ssh.password());
-            values.put(JdbcConnectionOptions.SSH_PRIVATE_KEY.key(), ssh.privateKey());
-            values.put(JdbcConnectionOptions.SSH_PASSPHRASE.key(), ssh.passphrase());
-            values.put(JdbcConnectionOptions.SSH_STRICT_HOST_KEYS.key(), ssh.strictHostKeyChecking());
-            values.put(JdbcConnectionOptions.SSH_KNOWN_HOSTS.key(), ssh.knownHosts());
+            values.put("connection.ssh.host", ssh.host());
+            values.put("connection.ssh.port", ssh.port());
+            values.put("connection.ssh.username", ssh.username());
+            values.put("connection.ssh.auth-type", ssh.authType().name());
+            values.put("connection.ssh.password", ssh.password());
+            values.put("connection.ssh.private-key", ssh.privateKey());
+            values.put("connection.ssh.passphrase", ssh.passphrase());
+            values.put("connection.ssh.strict-host-keys", ssh.strictHostKeyChecking());
+            values.put("connection.ssh.known-hosts", ssh.knownHosts());
             String loopbackUrl =
                     buildJdbcUrl("127.0.0.1", 0, jdbc.database(), JSONUtils.readTree(jdbc.normalizedJson()));
             values.put(
-                    JdbcConnectionOptions.SSH_JDBC_URL.key(), loopbackUrl.replace("127.0.0.1:0", "127.0.0.1:{port}"));
+                    "connection.ssh.jdbc-url", loopbackUrl.replace("127.0.0.1:0", "127.0.0.1:{port}"));
         }
         return ReadonlyConfig.fromMap(values);
     }
