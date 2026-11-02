@@ -156,15 +156,6 @@ export function ReplicationMappingTable({
         initialLoad ? action(row, "sync", row.source.snapshot?.chunkKeyColumn || "自动") : "—",
     },
     {
-      key: "dml",
-      title: "DML 规则配置",
-      width: 210,
-      render: (_, row) =>
-        capabilities?.dmlEvents
-          ? action(row, "sync", row.source.dml?.events.join(" / ") || "全部事件")
-          : "—",
-    },
-    {
       key: "skip",
       title: "是否跳过全量同步",
       width: 155,
@@ -243,7 +234,7 @@ export function ReplicationMappingTable({
         rowKey="key"
         size="small"
         rowHeight={40}
-        scroll={{ x: 1810, y: 420 }}
+        scroll={{ x: 1600, y: 420 }}
         pagination={false}
         emptyText="请选择来源库表"
         emptyClassName="!min-h-24 !py-2"
@@ -279,6 +270,11 @@ export function ReplicationMappingTable({
           已选 {selected.length} / {mappings.length}
         </span>
       </div>
+      {mappings.some((mapping) => mapping.source.dml && mapping.source.dml.events.length !== 3) ? (
+        <p className="text-xs text-[var(--yak-components-muted-text)]">
+          部分表保留已保存的 DML 事件过滤，仍会影响同步结果；当前页面不提供编辑。
+        </p>
+      ) : null}
       {transforms.length > 0 ? (
         <p className="text-xs text-[var(--yak-components-muted-text)]">
           已保存的 {transforms.length} 条字段表达式仍会执行，当前页面不提供编辑。
