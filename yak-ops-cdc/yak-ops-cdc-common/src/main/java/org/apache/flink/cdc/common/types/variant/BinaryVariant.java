@@ -20,8 +20,8 @@ package org.apache.flink.cdc.common.types.variant;
 
 import org.apache.flink.cdc.common.annotation.Internal;
 
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonFactory;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.CharArrayWriter;
 import java.io.IOException;

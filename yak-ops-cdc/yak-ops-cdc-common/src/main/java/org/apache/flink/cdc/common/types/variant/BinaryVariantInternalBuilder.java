@@ -20,11 +20,11 @@ package org.apache.flink.cdc.common.types.variant;
 
 import org.apache.flink.cdc.common.annotation.Internal;
 
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonFactory;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonParseException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonParser;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonToken;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.exc.InputCoercionException;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.exc.InputCoercionException;
 
 import java.io.IOException;
 import java.math.BigDecimal;

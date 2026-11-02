@@ -23,9 +23,9 @@ import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.pipeline.RouteMode;
 import org.apache.flink.cdc.common.schema.Selectors;
 
-import org.apache.flink.shaded.guava31.com.google.common.cache.CacheBuilder;
-import org.apache.flink.shaded.guava31.com.google.common.cache.CacheLoader;
-import org.apache.flink.shaded.guava31.com.google.common.cache.LoadingCache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

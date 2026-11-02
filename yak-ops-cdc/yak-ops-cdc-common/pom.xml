@@ -13,33 +13,19 @@
 
     <artifactId>yak-ops-cdc-common</artifactId>
     <name>Yak Ops CDC Common</name>
-    <description>Apache Flink CDC 3.7.0 common APIs and models, imported unchanged</description>
+    <description>Flink CDC 3.7 common APIs and models adapted for Yak Ops</description>
 
     <!-- Temporary compile-time compatibility while the Flink API is replaced by Yak Ops CDC runtime-api. -->
     <properties>
         <flink.version>1.20.3</flink.version>
-        <flink.shaded.guava.version>31.1-jre-17.0</flink.shaded.guava.version>
-        <flink.shaded.version>17.0</flink.shaded.version>
         <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <dependencies>
-        <!-- These compile-time APIs are inherited by the upstream Flink CDC 3.7.0 parent POM. -->
+        <!-- Remaining Flink compile-time APIs are migrated in dedicated follow-up changes. -->
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-table-common</artifactId>
-            <version>${flink.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-connector-base</artifactId>
-            <version>${flink.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-table-api-java-bridge</artifactId>
             <version>${flink.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -56,14 +42,13 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-shaded-guava</artifactId>
-            <version>${flink.shaded.guava.version}</version>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>31.1-jre</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-shaded-force-shading</artifactId>
-            <version>${flink.shaded.version}</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -138,7 +123,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Preserve upstream Java sources byte-for-byte for future source-level comparisons. -->
+            <!-- Formatting remains disabled during the upstream source migration. -->
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
