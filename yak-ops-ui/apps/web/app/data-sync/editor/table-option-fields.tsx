@@ -1,8 +1,6 @@
-import { Checkbox, FieldItem, FieldLabel, Input } from "@yak-ops/yak-ui";
+import { Checkbox, Input } from "@yak-ops/yak-ui";
 import type {
   DataSyncCapabilities,
-  DataSyncDml,
-  DataSyncDmlEvent,
   DataSyncSourceOptions,
   DataSyncTableSnapshot,
 } from "@/service/data-sync";
@@ -55,37 +53,6 @@ export function SnapshotFields({
         </p>
       ) : null}
     </>
-  );
-}
-
-export function DmlFields({
-  value,
-  onChange,
-}: {
-  value?: DataSyncDml;
-  onChange: (value: DataSyncDml) => void;
-}) {
-  const events = value?.events ?? ["INSERT", "UPDATE", "DELETE"];
-  return (
-    <ContentField label="DML 规则">
-      <div className="flex min-h-7 flex-wrap items-center gap-4">
-        {(["INSERT", "UPDATE", "DELETE"] as DataSyncDmlEvent[]).map((event) => (
-          <FieldItem key={event}>
-            <FieldLabel className="flex items-center gap-2 text-xs font-normal">
-              <Checkbox
-                checked={events.includes(event)}
-                onCheckedChange={(checked) =>
-                  onChange({
-                    events: checked ? [...events, event] : events.filter((item) => item !== event),
-                  })
-                }
-              />
-              {event}
-            </FieldLabel>
-          </FieldItem>
-        ))}
-      </div>
-    </ContentField>
   );
 }
 

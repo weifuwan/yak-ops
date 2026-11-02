@@ -148,7 +148,7 @@ export function AdvancedDrawer({
       >
         <TabsList>
           <TabsTab value="parameters">高级参数</TabsTab>
-          <TabsTab value="ddl">DDL 能力配置</TabsTab>
+          <TabsTab value="ddl">表结构同步</TabsTab>
           <TabsTab value="engine">引擎参数配置</TabsTab>
         </TabsList>
         {error ? <Alert className="mt-4">{error}</Alert> : null}

@@ -7,7 +7,7 @@ import type {
 } from "@/service/data-sync";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { ContentField } from "./content-layout";
-import { DmlFields, SnapshotFields } from "./table-option-fields";
+import { SnapshotFields } from "./table-option-fields";
 
 export function ReplicationDefaults({
   selection,
@@ -35,11 +35,10 @@ export function ReplicationDefaults({
         initialLoad={initialLoad}
         onChange={(snapshot) => onChange({ ...selection, snapshot }, template)}
       />
-      {capabilities.dmlEvents ? (
-        <DmlFields
-          value={selection.dml}
-          onChange={(dml) => onChange({ ...selection, dml }, template)}
-        />
+      {selection.dml && selection.dml.events.length !== 3 ? (
+        <p className="text-xs text-[var(--yak-components-muted-text)]">
+          已保存的新表 DML 事件过滤（{selection.dml.events.join(" / ")}）仍会生效，当前不提供编辑。
+        </p>
       ) : null}
       <ContentField label="写入方式">
         <DataSyncSearchableSelect

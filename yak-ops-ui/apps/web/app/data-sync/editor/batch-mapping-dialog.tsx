@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Alert, Button, Checkbox, Input, Modal } from "@yak-ops/yak-ui";
 import type {
   DataSyncCapabilities,
-  DataSyncDml,
   DataSyncTableMapping,
   DataSyncWriteMode,
 } from "@/service/data-sync";
@@ -15,7 +14,6 @@ import {
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { ContentField } from "./content-layout";
-import { DmlFields } from "./table-option-fields";
 import { tableKey } from "./table-catalog";
 
 type BatchField =
@@ -24,8 +22,7 @@ type BatchField =
   | "write"
   | "keys"
   | "chunk"
-  | "skip"
-  | "dml";
+  | "skip";
 
 export function BatchMappingDialog({
   mappings,
@@ -53,7 +50,6 @@ export function BatchMappingDialog({
   const [keys, setKeys] = useState("");
   const [chunk, setChunk] = useState("");
   const [skip, setSkip] = useState(false);
-  const [dml, setDml] = useState<DataSyncDml>({ events: ["INSERT", "UPDATE", "DELETE"] });
   const [error, setError] = useState("");
   useUnsavedChanges(fields.length > 0);
   const options: Array<{ value: BatchField; label: string }> = [
@@ -65,7 +61,6 @@ export function BatchMappingDialog({
     ...(initialLoad && capabilities.snapshotSkip
       ? [{ value: "skip" as const, label: "跳过全量" }]
       : []),
-    ...(capabilities.dmlEvents ? [{ value: "dml" as const, label: "DML 规则" }] : []),
   ];
   const apply = () => {
     try {
@@ -99,7 +94,6 @@ export function BatchMappingDialog({
           };
         if (fields.includes("skip"))
           mapping.source.snapshot = { ...mapping.source.snapshot, skip: skip || undefined };
-        if (fields.includes("dml")) mapping.source.dml = structuredClone(dml);
         validateBatchSize(mapping.batchSize);
         if (
           mapping.writeMode === "RETRACT" &&
@@ -233,7 +227,6 @@ export function BatchMappingDialog({
             <Checkbox aria-label="批量跳过全量" checked={skip} onCheckedChange={setSkip} />
           </ContentField>
         ) : null}
-        {fields.includes("dml") ? <DmlFields value={dml} onChange={setDml} /> : null}
         {error ? <Alert>{error}</Alert> : null}
       </div>
     </Modal>

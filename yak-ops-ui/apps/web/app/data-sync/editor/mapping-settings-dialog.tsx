@@ -16,7 +16,7 @@ import { parameterFingerprint } from "@/service/data-sync/versions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { ContentField } from "./content-layout";
-import { DmlFields, SnapshotFields } from "./table-option-fields";
+import { SnapshotFields } from "./table-option-fields";
 import { catalogPath, tableKey, tablePathLabel } from "./table-catalog";
 
 export type MappingTab = "mapping" | "sync";
@@ -228,11 +228,10 @@ export function MappingSettingsDialog({
               setMapping({ ...mapping, source: { ...mapping.source, snapshot } })
             }
           />
-          {capabilities.dmlEvents ? (
-            <DmlFields
-              value={mapping.source.dml}
-              onChange={(dml) => setMapping({ ...mapping, source: { ...mapping.source, dml } })}
-            />
+          {mapping.source.dml && mapping.source.dml.events.length !== 3 ? (
+            <p className="text-xs text-[var(--yak-components-muted-text)]">
+              已保存的 DML 事件过滤（{mapping.source.dml.events.join(" / ")}）仍会执行，当前不提供编辑。
+            </p>
           ) : null}
         </TabsPanel>
       </Tabs>
