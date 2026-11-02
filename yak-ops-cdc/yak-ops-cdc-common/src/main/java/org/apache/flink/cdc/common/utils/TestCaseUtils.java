@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.common.utils;
 
-import org.apache.flink.util.function.SupplierWithException;
+import org.apache.flink.cdc.common.utils.function.SupplierWithException;
 
 import java.time.Duration;
 import java.util.Collections;

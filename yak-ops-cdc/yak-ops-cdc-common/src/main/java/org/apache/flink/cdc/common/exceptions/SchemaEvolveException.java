@@ -18,12 +18,12 @@
 package org.apache.flink.cdc.common.exceptions;
 
 import org.apache.flink.cdc.common.event.SchemaChangeEvent;
-import org.apache.flink.util.FlinkRuntimeException;
+
 
 import javax.annotation.Nullable;
 
 /** An exception occurred during schema evolution. */
-public class SchemaEvolveException extends FlinkRuntimeException {
+public class SchemaEvolveException extends CdcRuntimeException {
     protected final SchemaChangeEvent applyingEvent;
     protected final String exceptionMessage;
     protected final @Nullable Throwable cause;

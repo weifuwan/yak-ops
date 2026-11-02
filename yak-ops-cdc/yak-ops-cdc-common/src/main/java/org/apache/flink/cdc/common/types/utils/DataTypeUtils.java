@@ -32,7 +32,7 @@ import org.apache.flink.cdc.common.types.DataTypes;
 import org.apache.flink.cdc.common.types.RowType;
 import org.apache.flink.cdc.common.utils.Preconditions;
 import org.apache.flink.table.types.logical.LogicalType;
-import org.apache.flink.util.CollectionUtil;
+
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -193,7 +193,7 @@ public class DataTypeUtils {
                                         toFlinkDataType(children.get(1)))
                                 .notNull();
             case ROW:
-                Preconditions.checkState(!CollectionUtil.isNullOrEmpty(children));
+                Preconditions.checkState(!(children == null || children.isEmpty()));
                 RowType rowType = (RowType) type;
                 List<org.apache.flink.table.api.DataTypes.Field> fields =
                         rowType.getFields().stream()
@@ -279,7 +279,7 @@ public class DataTypeUtils {
                                 fromFlinkDataType(children.get(1)));
                 break;
             case ROW:
-                Preconditions.checkState(!CollectionUtil.isNullOrEmpty(children));
+                Preconditions.checkState(!(children == null || children.isEmpty()));
                 org.apache.flink.table.types.logical.RowType rowType =
                         (org.apache.flink.table.types.logical.RowType) flinkType.getLogicalType();
                 DataField[] fields =

@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.common.route;
 
-import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.cdc.common.utils.tuple.Tuple3;
 import org.apache.flink.cdc.common.annotation.PublicEvolving;
 import org.apache.flink.cdc.common.event.TableId;
 import org.apache.flink.cdc.common.pipeline.RouteMode;

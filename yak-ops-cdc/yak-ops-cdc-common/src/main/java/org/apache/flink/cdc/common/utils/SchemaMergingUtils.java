@@ -17,7 +17,7 @@
 
 package org.apache.flink.cdc.common.utils;
 
-import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.cdc.common.utils.tuple.Tuple2;
 import org.apache.flink.cdc.common.annotation.PublicEvolving;
 import org.apache.flink.cdc.common.annotation.VisibleForTesting;
 import org.apache.flink.cdc.common.converter.JavaObjectConverter;
