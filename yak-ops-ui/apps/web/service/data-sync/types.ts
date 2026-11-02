@@ -76,7 +76,6 @@ export interface DataSyncCapabilities {
   snapshotSkip: boolean;
   dmlEvents: boolean;
   typeMapping: boolean;
-  nameMappingRules: boolean; // Support for database/schema/table name mapping rules
   targetStructureEditor: boolean; // Support for editing target table structure
   partitionFields: boolean; // Support for partition field configuration
   incrementalStream: boolean; // Support for incremental stream format
@@ -119,23 +118,6 @@ export interface DataSyncTablePath {
   database?: string;
   schema?: string;
   table: string;
-}
-
-/** Mapping rule for transforming source identifiers to target identifiers. */
-export interface DataSyncNameMappingRule {
-  id: string;
-  name: string;
-  pattern: string; // Template pattern with variables
-  variables: Array<{
-    type: "SOURCE_DATASOURCE" | "SOURCE_DATABASE" | "SOURCE_SCHEMA" | "SOURCE_TABLE" | "CONSTANT";
-    value?: string; // For CONSTANT type
-    transforms?: Array<{
-      type: "PREFIX" | "SUFFIX" | "REPLACE";
-      pattern?: string; // For REPLACE type
-      replacement?: string; // For REPLACE type
-      value?: string; // For PREFIX/SUFFIX type
-    }>;
-  }>;
 }
 
 /** Partition field assignment configuration. */
@@ -224,9 +206,6 @@ export interface DataSyncTableMapping {
   postSql?: string[];
   batchSize?: number;
   incremental?: DataSyncIncrementalConfig;
-  databaseMappingRuleId?: string; // Reference to DataSyncNameMappingRule
-  tableMappingRuleId?: string; // Reference to DataSyncNameMappingRule
-  schemaMappingRuleId?: string; // Reference to DataSyncNameMappingRule
   incrementalStreamFormat?: DataSyncIncrementalStreamFormat; // For incremental stream mode
 }
 
