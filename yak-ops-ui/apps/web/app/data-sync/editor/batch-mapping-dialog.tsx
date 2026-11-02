@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Button, Checkbox, Input, Modal, Textarea } from "@yak-ops/yak-ui";
+import { Alert, Button, Checkbox, Input, Modal } from "@yak-ops/yak-ui";
 import type {
   DataSyncCapabilities,
   DataSyncDml,
@@ -25,9 +25,7 @@ type BatchField =
   | "keys"
   | "chunk"
   | "skip"
-  | "where"
-  | "dml"
-  | "batchSize";
+  | "dml";
 
 export function BatchMappingDialog({
   mappings,
@@ -55,9 +53,7 @@ export function BatchMappingDialog({
   const [keys, setKeys] = useState("");
   const [chunk, setChunk] = useState("");
   const [skip, setSkip] = useState(false);
-  const [where, setWhere] = useState("");
   const [dml, setDml] = useState<DataSyncDml>({ events: ["INSERT", "UPDATE", "DELETE"] });
-  const [batchSize, setBatchSize] = useState("");
   const [error, setError] = useState("");
   useUnsavedChanges(fields.length > 0);
   const options: Array<{ value: BatchField; label: string }> = [
@@ -69,13 +65,7 @@ export function BatchMappingDialog({
     ...(initialLoad && capabilities.snapshotSkip
       ? [{ value: "skip" as const, label: "跳过全量" }]
       : []),
-    ...(initialLoad && capabilities.snapshotFilter
-      ? [{ value: "where" as const, label: "全量条件" }]
-      : []),
     ...(capabilities.dmlEvents ? [{ value: "dml" as const, label: "DML 规则" }] : []),
-    ...(capabilities.sinkEngineKeys.includes("batchSize")
-      ? [{ value: "batchSize" as const, label: "写入批次大小" }]
-      : []),
   ];
   const apply = () => {
     try {
@@ -109,14 +99,7 @@ export function BatchMappingDialog({
           };
         if (fields.includes("skip"))
           mapping.source.snapshot = { ...mapping.source.snapshot, skip: skip || undefined };
-        if (fields.includes("where"))
-          mapping.source.snapshot = {
-            ...mapping.source.snapshot,
-            where: where.trim() || undefined,
-          };
         if (fields.includes("dml")) mapping.source.dml = structuredClone(dml);
-        if (fields.includes("batchSize"))
-          mapping.batchSize = batchSize ? Number(batchSize) : undefined;
         validateBatchSize(mapping.batchSize);
         if (
           mapping.writeMode === "RETRACT" &&
@@ -250,32 +233,7 @@ export function BatchMappingDialog({
             <Checkbox aria-label="批量跳过全量" checked={skip} onCheckedChange={setSkip} />
           </ContentField>
         ) : null}
-        {fields.includes("where") ? (
-          <ContentField label="全量条件" wide>
-            <Textarea
-              size="small"
-              variant="outlined"
-              aria-label="批量全量条件"
-              value={where}
-              onValueChange={(value) => setWhere(String(value))}
-            />
-          </ContentField>
-        ) : null}
         {fields.includes("dml") ? <DmlFields value={dml} onChange={setDml} /> : null}
-        {fields.includes("batchSize") ? (
-          <ContentField label="写入批次大小">
-            <Input
-              type="number"
-              min={1}
-              max={10000}
-              size="small"
-              variant="outlined"
-              aria-label="批量写入批次大小"
-              value={batchSize}
-              onChange={(event) => setBatchSize(event.target.value)}
-            />
-          </ContentField>
-        ) : null}
         {error ? <Alert>{error}</Alert> : null}
       </div>
     </Modal>
