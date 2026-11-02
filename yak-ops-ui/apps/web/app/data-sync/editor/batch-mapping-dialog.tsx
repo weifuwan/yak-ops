@@ -16,13 +16,7 @@ import { DataSyncSearchableSelect } from "../components/searchable-select";
 import { ContentField } from "./content-layout";
 import { tableKey } from "./table-catalog";
 
-type BatchField =
-  | "database"
-  | "table"
-  | "write"
-  | "keys"
-  | "chunk"
-  | "skip";
+type BatchField = "database" | "table" | "write" | "keys" | "chunk" | "skip";
 
 export function BatchMappingDialog({
   mappings,
