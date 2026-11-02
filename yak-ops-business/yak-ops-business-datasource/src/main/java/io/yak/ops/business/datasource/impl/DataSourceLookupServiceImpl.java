@@ -85,3 +85,4 @@ public class DataSourceLookupServiceImpl implements DataSourceLookupService {
     private int timeoutSeconds() {
         return Math.max(1, properties.getConnectionTestTimeoutSeconds());
     }
+}
