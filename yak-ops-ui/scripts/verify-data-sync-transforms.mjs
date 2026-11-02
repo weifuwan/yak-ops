@@ -6,6 +6,7 @@ import {
   readDirectProjection,
   replaceTableTransforms,
   sameNameFieldMappings,
+  samePositionFieldMappings,
   transformEditingError,
   transformTableSelector,
   updateTransformRule,
@@ -31,9 +32,19 @@ assert.deepEqual(
   sameNameFieldMappings(source, [{ name: "amount" }, { name: "id" }, { name: "NAME" }]),
   [
     { source: "id", target: "id" },
+    { source: "name", target: "NAME" },
     { source: "amount", target: "amount" },
   ],
 );
+assert.deepEqual(
+  sameNameFieldMappings([{ name: " Order_No " }], [{ name: "order_no" }]),
+  [{ source: " Order_No ", target: "order_no" }],
+);
+assert.deepEqual(
+  samePositionFieldMappings(source, [{ name: "order_id" }, { name: "tenant_id" }]),
+  [{ source: "id", target: "order_id" }, { source: "tenant", target: "tenant_id" }],
+);
+assert.deepEqual(samePositionFieldMappings(source, []), []);
 
 const fields = [
   { source: "tenant", target: "tenant" },

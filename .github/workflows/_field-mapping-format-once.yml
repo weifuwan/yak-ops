@@ -1,0 +1,30 @@
+name: Temporary Field Mapping Formatter
+on:
+  push:
+    branches:
+      - refactor/data-sync-restore-v010-field-mapping-canvas
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13'
+          cache: npm
+          cache-dependency-path: yak-ops-ui/package-lock.json
+      - name: Format modified frontend files and print snapshots
+        working-directory: yak-ops-ui
+        shell: bash
+        run: |
+          npm ci --prefer-offline --no-audit --no-fund
+          npx oxfmt apps/web/app/data-sync/editor/field-mapping-canvas.tsx apps/web/app/data-sync/editor/field-mapping-section.tsx apps/web/app/data-sync/editor/manual-field-mapping-dialog.tsx apps/web/app/data-sync/editor/use-field-mapping-drag.ts apps/web/service/data-sync/transforms.ts scripts/verify-data-sync-transforms.mjs
+          for file in apps/web/app/data-sync/editor/field-mapping-canvas.tsx apps/web/app/data-sync/editor/field-mapping-section.tsx apps/web/app/data-sync/editor/manual-field-mapping-dialog.tsx apps/web/app/data-sync/editor/use-field-mapping-drag.ts apps/web/service/data-sync/transforms.ts scripts/verify-data-sync-transforms.mjs; do
+            echo "OAI_FORMAT_START $file"
+            base64 -w0 "$file"
+            echo
+            echo "OAI_FORMAT_END $file"
+          done
+          npm run typecheck
