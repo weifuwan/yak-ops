@@ -87,7 +87,12 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CATALOG_FILTER, null, failure);
         }
         DataSourceInfo info = resources.dataSource(WorkspaceContext.requireWorkspaceId(), datasourceId);
-        DataSourceTablePath scope = info.resolveTable(parameters.getDatabase(), parameters.getSchema(), "_catalog_scope");
+        DataSourceTablePath scope;
+        try {
+            scope = info.resolveTable(parameters.getDatabase(), parameters.getSchema(), "_catalog_scope");
+        } catch (IllegalArgumentException failure) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CATALOG_FILTER, null, failure);
+        }
         return query(datasourceId, DataSourceErrorCode.CATALOG_QUERY_FAILED, connection -> {
             List<DataSourceCatalogTableVO> all = readTables(
                     connection, scope.catalog(), scope.schema(), parameters.getKeyword());
@@ -111,8 +116,12 @@ public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
                     new UnsupportedOperationException("Filtered SQL previews are disabled while the engine is rebuilt"));
         }
         DataSourceInfo info = resources.dataSource(WorkspaceContext.requireWorkspaceId(), datasourceId);
-        DataSourceTablePath path = info.resolveTable(
-                parameters.getDatabase(), parameters.getSchema(), parameters.getTable());
+        DataSourceTablePath path;
+        try {
+            path = info.resolveTable(parameters.getDatabase(), parameters.getSchema(), parameters.getTable());
+        } catch (IllegalArgumentException failure) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_PREVIEW_CONFIGURATION, null, failure);
+        }
         return query(datasourceId, DataSourceErrorCode.PREVIEW_QUERY_FAILED, connection -> {
             DatabaseMetaData meta = connection.getMetaData();
             String sql = "SELECT * FROM " + qualifiedName(meta, path);

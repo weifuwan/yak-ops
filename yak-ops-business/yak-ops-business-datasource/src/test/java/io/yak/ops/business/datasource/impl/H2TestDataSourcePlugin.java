@@ -91,12 +91,12 @@ public final class H2TestDataSourcePlugin implements DataSourcePlugin {
 
     @Override
     public ReadonlyConfig connectionOptions(DataSourceConnection connection, int timeoutSeconds) {
-        return new io.yak.ops.configuration.Configuration()
-                .set(io.yak.ops.connector.jdbc.JdbcConnectionOptions.URL, JDBC_URL)
-                .set(io.yak.ops.connector.jdbc.JdbcConnectionOptions.DRIVER_CLASS, "org.h2.Driver")
-                .set(io.yak.ops.connector.jdbc.JdbcConnectionOptions.USERNAME, "sa")
-                .set(io.yak.ops.connector.jdbc.JdbcConnectionOptions.PASSWORD, "")
-                .set(io.yak.ops.connector.jdbc.JdbcConnectionOptions.TIMEOUT, timeoutSeconds).toReadonlyConfig();
+        return ReadonlyConfig.fromMap(Map.of(
+                "connection.url", JDBC_URL,
+                "connection.driver-class", "org.h2.Driver",
+                "connection.username", "sa",
+                "connection.password", "",
+                "connection.timeout-seconds", timeoutSeconds));
     }
 
     @Override

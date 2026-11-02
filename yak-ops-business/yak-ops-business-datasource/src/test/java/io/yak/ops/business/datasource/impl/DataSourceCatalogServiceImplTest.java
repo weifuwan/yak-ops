@@ -15,7 +15,6 @@ import io.yak.ops.common.bean.dto.datasource.DataSourceTablePageDTO;
 import io.yak.ops.common.bean.dto.datasource.DataSourcePreviewDTO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
-import io.yak.ops.core.data.TableId;
 import io.yak.ops.dao.entity.datasource.DataSourceEntity;
 import io.yak.ops.dao.repository.datasource.DataSourceEntityRepository;
 import java.lang.reflect.Proxy;
@@ -86,10 +85,6 @@ class DataSourceCatalogServiceImplTest {
                 assertEquals(1, columns.get(1).getPrimaryKeyPosition());
                 assertFalse(columns.get(2).getPrimaryKey());
 
-                TableId table = new TableId(null, "APP", "PRODUCTS");
-                var schema = catalog.getTableSchema("h2-source", table);
-                assertEquals(3, schema.columnCount());
-                assertEquals(List.of("ID", "TENANT"), schema.primaryKeys());
                 assertEquals(0, H2TestDataSourcePlugin.CONNECTION_OPENS.get(),
                         "Catalog connections are opened by the shared JDBC implementation");
 
@@ -100,7 +95,6 @@ class DataSourceCatalogServiceImplTest {
                 DataSourcePreviewDTO preview = new DataSourcePreviewDTO();
                 preview.setSchema("APP");
                 preview.setTable("PRODUCTS");
-                preview.setWhere("TENANT = 1");
                 assertEquals("9007199254740993", catalog.preview("h2-source", preview).getRows().getFirst().get(1));
 
                 page.setSchema(null);
@@ -118,7 +112,7 @@ class DataSourceCatalogServiceImplTest {
 
                 WorkspaceContext.bind("another-workspace");
                 DataSourceException exception = assertThrows(
-                        DataSourceException.class, () -> catalog.getTableSchema("h2-source", table));
+                        DataSourceException.class, () -> catalog.listColumns("h2-source", path));
                 assertEquals(DataSourceErrorCode.NOT_FOUND, exception.getErrorCode());
                 assertEquals(DataSourceErrorCode.NOT_FOUND,
                         assertThrows(DataSourceException.class, () -> catalog.listTablePage("h2-source", page))
