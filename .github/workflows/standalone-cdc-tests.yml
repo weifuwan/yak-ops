@@ -1,0 +1,37 @@
+name: Standalone CDC Runtime Tests
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - '.github/workflows/standalone-cdc-tests.yml'
+      - 'yak-ops-cdc/yak-ops-cdc-common/**'
+      - 'yak-ops-cdc/yak-ops-cdc-runtime-api/**'
+      - 'yak-ops-cdc/yak-ops-cdc-runtime/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: standalone-cdc-runtime-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Run standalone runtime contract tests
+        run: |
+          bash mvnw -B -ntp \
+            -pl yak-ops-cdc/yak-ops-cdc-runtime -am \
+            -Dtest=StandalonePipelineTest \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            test
