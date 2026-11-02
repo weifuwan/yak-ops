@@ -10,18 +10,13 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>yak-ops-cdc-connector-mysql</artifactId>
-    <name>Yak Ops CDC Connector MySQL</name>
-    <description>MySQL CDC pipeline connector and source integration</description>
+    <artifactId>yak-ops-cdc-source-connectors</artifactId>
+    <packaging>pom</packaging>
+    <name>Yak Ops CDC Source Connectors</name>
+    <description>CDC source connector module aggregation</description>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-cdc-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-cdc-runtime-api</artifactId>
-        </dependency>
-    </dependencies>
+    <modules>
+        <module>yak-ops-cdc-base</module>
+        <module>yak-ops-connector-mysql-cdc</module>
+    </modules>
 </project>

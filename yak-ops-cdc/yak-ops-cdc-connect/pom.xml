@@ -16,6 +16,7 @@
     <description>CDC connector module aggregation</description>
 
     <modules>
-        <module>yak-ops-cdc-connector-mysql</module>
+        <module>yak-ops-cdc-source-connectors</module>
+        <module>yak-ops-cdc-pipeline-connectors</module>
     </modules>
 </project>
