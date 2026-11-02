@@ -34,8 +34,8 @@ import org.apache.flink.cdc.common.types.DataType;
 import org.apache.flink.cdc.runtime.serializer.InternalSerializers;
 import org.apache.flink.cdc.runtime.serializer.data.writer.BinaryArrayWriter;
 import org.apache.flink.cdc.runtime.serializer.data.writer.BinaryWriter;
-import org.apache.flink.cdc.common.memory.DataInputView;
-import org.apache.flink.cdc.common.memory.DataOutputView;
+import org.apache.flink.core.memory.DataInputView;
+import org.apache.flink.core.memory.DataOutputView;
 import org.apache.flink.cdc.common.memory.MemorySegmentFactory;
 import org.apache.flink.util.InstantiationUtil;
 

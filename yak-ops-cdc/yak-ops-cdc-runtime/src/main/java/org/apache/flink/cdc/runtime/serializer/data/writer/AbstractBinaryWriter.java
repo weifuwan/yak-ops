@@ -39,7 +39,7 @@ import org.apache.flink.cdc.common.types.variant.BinaryVariant;
 import org.apache.flink.cdc.common.types.variant.Variant;
 import org.apache.flink.cdc.runtime.serializer.data.ArrayDataSerializer;
 import org.apache.flink.cdc.runtime.serializer.data.MapDataSerializer;
-import org.apache.flink.cdc.common.memory.DataOutputViewStreamWrapper;
+import org.apache.flink.core.memory.DataOutputViewStreamWrapper;
 import org.apache.flink.cdc.common.memory.MemorySegment;
 import org.apache.flink.cdc.common.memory.MemorySegmentFactory;
 
