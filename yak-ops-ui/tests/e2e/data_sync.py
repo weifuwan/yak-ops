@@ -443,12 +443,7 @@ async def verify_batch_table_options(page):
     await target.get_by_role("textbox", name="导入后完成语句 1", exact=True).fill("DELETE FROM ods_orders WHERE id = 0")
     await target.get_by_role("button", name="去向高级配置", exact=True).click()
     await target.get_by_role("spinbutton", name="写入批次大小", exact=True).fill("64")
-    await page.get_by_role("button", name="编辑字段类型映射", exact=True).click()
-    types = page.get_by_role("dialog", name="编辑字段类型映射", exact=True)
-    await types.get_by_role("button", name="添加类型映射", exact=True).click()
-    await pick_option(page, types.get_by_role("combobox", name="来源类型 1", exact=True), "INT")
-    await pick_option(page, types.get_by_role("combobox", name="目标类型 1", exact=True), "BIGINT")
-    await apply_drawer(types)
+    await expect(page.get_by_role("button", name="编辑字段类型映射", exact=True)).to_have_count(0)
     assert state["created_tasks"] == 0
     await page.reload()
     await expect(source.get_by_role("textbox", name="数据过滤", exact=True)).to_have_value(predicate)
@@ -465,7 +460,7 @@ async def verify_batch_table_options(page):
         "preSql": ["DELETE FROM ods_orders", "INSERT INTO ods_orders (id) VALUES (0)"],
         "postSql": ["DELETE FROM ods_orders WHERE id = 0"],
     }
-    assert saved["sink"]["typeMappings"] == [{"sourceType": "INT", "targetType": "BIGINT"}]
+    assert "typeMappings" not in saved["sink"]
     await page.reload()
     await expect(target.get_by_role("combobox", name="主键冲突", exact=True)).to_contain_text("replace into（替换冲突记录）")
     await source.get_by_role("button", name="来源高级配置", exact=True).click()
@@ -473,6 +468,18 @@ async def verify_batch_table_options(page):
     await expect(source.get_by_role("spinbutton", name="查询超时（秒）", exact=True)).to_have_value("30")
     await capture_editor_widths(page, "batch-table-options")
     assert state["task"]["parameters"] == saved and state["updated_tasks"] == 0
+
+    # Existing single-table definitions may contain authored mappings. Do not hide their
+    # continued effect or discard them when the user edits an unrelated field.
+    legacy = [{"sourceType": "INT", "targetType": "BIGINT"}]
+    state["task"]["parameters"]["sink"]["typeMappings"] = deepcopy(legacy)
+    await page.reload()
+    await expect(page.get_by_text("此任务保留 1 条历史字段类型映射规则", exact=False)).to_be_visible()
+    await expect(page.get_by_role("button", name="编辑字段类型映射", exact=True)).to_have_count(0)
+    await target.get_by_role("button", name="去向高级配置", exact=True).click()
+    await target.get_by_role("spinbutton", name="写入批次大小", exact=True).fill("65")
+    await page.get_by_role("button", name="保存", exact=True).click()
+    assert state["task"]["parameters"]["sink"]["typeMappings"] == legacy
 
 
 async def verify_replication_table_options(page):
