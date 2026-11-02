@@ -20,7 +20,14 @@ export function createEditorForm(draft: DataSyncDraft, task?: DataSyncTaskRecord
     selection: value?.selection ? structuredClone(value.selection) : undefined,
     mappingTemplate: value?.mappingTemplate ? structuredClone(value.mappingTemplate) : undefined,
     selectionResolved: !value?.selection || Boolean(task),
-    typeMappings: value?.typeMappings ? structuredClone(value.typeMappings) : undefined,
+    // New single-table tasks use Connector type conversion. Do not revive a hidden draft rule.
+    // Existing definitions keep their authored rules until explicitly migrated.
+    typeMappings:
+      draft.productType === "SINGLE_TABLE_BATCH" && !task
+        ? undefined
+        : value?.typeMappings
+          ? structuredClone(value.typeMappings)
+          : undefined,
     source: {
       dataSourceId: value?.sourceDataSourceId || "",
       database: value?.sourceDatabase || "",
