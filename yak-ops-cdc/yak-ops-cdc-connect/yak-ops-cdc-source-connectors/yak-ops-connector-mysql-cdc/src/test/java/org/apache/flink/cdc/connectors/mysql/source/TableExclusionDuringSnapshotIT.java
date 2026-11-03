@@ -45,6 +45,7 @@ import org.apache.flink.util.ExceptionUtils;
 import io.debezium.connector.mysql.MySqlConnection;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
@@ -78,6 +79,7 @@ import java.util.concurrent.CountDownLatch;
  * <p>When the fix is applied, the test passes because excluded table splits are cleaned up on
  * restore, allowing the job to transition to streaming mode.
  */
+@Tag("cdc")
 public class TableExclusionDuringSnapshotIT extends MySqlSourceTestBase {
     private static final UniqueDatabase DATABASE =
             new UniqueDatabase(MYSQL_CONTAINER, "table_exclusion_snapshot", "mysqluser", "mysqlpw");

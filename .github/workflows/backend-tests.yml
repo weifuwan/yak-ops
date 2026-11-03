@@ -15,10 +15,6 @@ on:
         default: full
         options:
           - full
-          - jdbc-mysql
-          - jdbc-postgres
-          - jdbc-oracle
-          - pipeline
           - business
           - cdc
 

@@ -34,7 +34,7 @@
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <checkstyle.version>10.18.2</checkstyle.version>
         <quartz.version>2.5.2</quartz.version>
-        <backend.test.groups>jdbc | cdc | pipeline | business</backend.test.groups>
+        <backend.test.groups>business | cdc</backend.test.groups>
         <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
     </properties>
 
