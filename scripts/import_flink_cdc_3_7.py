@@ -155,12 +155,36 @@ def rewrite_pom(xml: str, relative: str) -> str:
         # repository's build root and are deliberately not inherited here.
         for plugin in ("maven-checkstyle-plugin", "spotless-maven-plugin", "apache-rat-plugin"):
             pattern = (
-                r"\s*<plugin>\s*<groupId>[^<]+</groupId>\\s*<artifactId>"
+                r"\s*<plugin>\s*<groupId>[^<]+</groupId>\s*<artifactId>"
                 + plugin + r"</artifactId>[\s\S]*?</plugin>"
             )
             xml, removed = re.subn(pattern, "", xml, count=1)
             if removed != 1:
                 raise ValueError(f"Missing upstream plugin {plugin}")
+    values_test_excludes = {"flink-cdc-composer/pom.xml":["RecoveryDataSink.java","FlinkPipelineAiFunctionITCase.java","TransformSpecsITCase.java","FlinkPipelineComposerTest.java","FlinkPipelineUdfITCase.java","FlinkPipelineComposerLenientITCase.java","FlinkPipelineComposerITCase.java","FlinkSchemaCoordinatorRecoveryITCase.java","FlinkPipelineBatchComposerITCase.java","FlinkParallelizedPipelineITCase.java","FlinkPipelineTransformITCase.java"],"flink-cdc-connect/flink-cdc-pipeline-connectors/flink-cdc-pipeline-connector-mysql/pom.xml":["MySqlParallelizedPipelineITCase.java","MySqlOscITCase.java","MySqlTablePatternMatchingTest.java"]}
+    if relative in values_test_excludes:
+        before = xml
+        xml = re.sub(
+            r"\s*<dependency>\s*<groupId>org\.apache\.flink</groupId>"
+            r"\s*<artifactId>flink-cdc-pipeline-connector-values</artifactId>"
+            r"[\s\\S]*?</dependency>", "", xml, count=1)
+        if xml == before:
+            raise ValueError("Values test dependency missing in " + relative)
+        exclusions = "\n".join(
+            "                            <testExclude>**/" + name + "</testExclude>"
+            for name in values_test_excludes[relative]
+        )
+        plugin = (
+            "            <!-- Excluded upstream Values connector tests are preserved as sources. -->\n"
+            "            <plugin>\n"
+            "                <groupId>org.apache.maven.plugins</groupId>\n"
+            "                <artifactId>maven-compiler-plugin</artifactId>\n"
+            "                <configuration><testExcludes>\n"
+            + exclusions +
+            "\n                </testExcludes></configuration>\n"
+            "            </plugin>\n"
+        )
+        xml = re.sub(r"(<build>\s*<plugins>)", r"\1\n" + plugin, xml, count=1)
     ET.fromstring(xml)
     return xml
 

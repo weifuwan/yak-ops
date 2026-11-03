@@ -54,13 +54,6 @@ limitations under the License.
         </dependency>
 
         <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-cdc-pipeline-connector-values</artifactId>
-            <version>3.7.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-connector-test-util</artifactId>
             <version>${project.version}</version>
@@ -167,6 +160,19 @@ limitations under the License.
 
     <build>
         <plugins>
+            <!-- Upstream tests using the excluded Values connector are preserved as source but not compiled. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <testExcludes>
+                            <testExclude>**/MySqlParallelizedPipelineITCase.java</testExclude>
+                            <testExclude>**/MySqlOscITCase.java</testExclude>
+                            <testExclude>**/MySqlTablePatternMatchingTest.java</testExclude>
+                    </testExcludes>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

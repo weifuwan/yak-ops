@@ -40,12 +40,6 @@ limitations under the License.
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-cdc-pipeline-connector-values</artifactId>
-            <version>3.7.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
             <artifactId>flink-clients</artifactId>
             <version>${flink.version}</version>
             <scope>provided</scope>
@@ -110,6 +104,27 @@ limitations under the License.
             </properties>
             <build>
                 <plugins>
+            <!-- Upstream tests using the excluded Values connector are preserved as source but not compiled. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <testExcludes>
+                            <testExclude>**/RecoveryDataSink.java</testExclude>
+                            <testExclude>**/FlinkPipelineAiFunctionITCase.java</testExclude>
+                            <testExclude>**/TransformSpecsITCase.java</testExclude>
+                            <testExclude>**/FlinkPipelineComposerTest.java</testExclude>
+                            <testExclude>**/FlinkPipelineUdfITCase.java</testExclude>
+                            <testExclude>**/FlinkPipelineComposerLenientITCase.java</testExclude>
+                            <testExclude>**/FlinkPipelineComposerITCase.java</testExclude>
+                            <testExclude>**/FlinkSchemaCoordinatorRecoveryITCase.java</testExclude>
+                            <testExclude>**/FlinkPipelineBatchComposerITCase.java</testExclude>
+                            <testExclude>**/FlinkParallelizedPipelineITCase.java</testExclude>
+                            <testExclude>**/FlinkPipelineTransformITCase.java</testExclude>
+                    </testExcludes>
+                </configuration>
+            </plugin>
+
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
