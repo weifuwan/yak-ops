@@ -1,4 +1,4 @@
-name: CDC Definition Contract Tests
+name: CDC Contract Tests
 
 on:
   push:
@@ -28,5 +28,5 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Run CDC common and composer contract tests
-        run: bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-composer -am test
+      - name: Run CDC common, composer and CLI contract tests
+        run: bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-cli -am test
