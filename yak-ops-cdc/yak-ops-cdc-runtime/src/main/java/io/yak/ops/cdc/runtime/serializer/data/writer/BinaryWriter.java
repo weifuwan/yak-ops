@@ -29,19 +29,16 @@ import io.yak.ops.cdc.common.data.TimeData;
 import io.yak.ops.cdc.common.data.TimestampData;
 import io.yak.ops.cdc.common.data.ZonedTimestampData;
 import io.yak.ops.cdc.common.data.binary.BinaryArrayData;
-import io.yak.ops.cdc.common.data.binary.BinaryRecordData;
 import io.yak.ops.cdc.common.types.ArrayType;
 import io.yak.ops.cdc.common.types.DataType;
-import io.yak.ops.cdc.common.types.MapType;
 import io.yak.ops.cdc.common.types.DecimalType;
 import io.yak.ops.cdc.common.types.LocalZonedTimestampType;
+import io.yak.ops.cdc.common.types.MapType;
 import io.yak.ops.cdc.common.types.RowType;
 import io.yak.ops.cdc.common.types.TimeType;
 import io.yak.ops.cdc.common.types.TimestampType;
 import io.yak.ops.cdc.common.types.ZonedTimestampType;
 import io.yak.ops.cdc.common.types.variant.Variant;
-import io.yak.ops.cdc.runtime.typeutils.BinaryRecordDataGenerator;
-
 
 /**
  * Writer to write a composite data format, like row, array. 1. Invoke {@link #reset()}. 2. Write
