@@ -105,6 +105,7 @@ limitations under the License.
                             <configuration>
                                 <testExcludes>
                                         <testExclude>**/RecoveryDataSink.java</testExclude>
+                                        <testExclude>**/RecoveryDataSinkFactory.java</testExclude>
                                         <testExclude>**/FlinkPipelineAiFunctionITCase.java</testExclude>
                                         <testExclude>**/TransformSpecsITCase.java</testExclude>
                                         <testExclude>**/FlinkPipelineComposerTest.java</testExclude>

@@ -161,7 +161,7 @@ def rewrite_pom(xml: str, relative: str) -> str:
             xml, removed = re.subn(pattern, "", xml, count=1)
             if removed != 1:
                 raise ValueError(f"Missing upstream plugin {plugin}")
-    values_test_excludes = {"flink-cdc-composer/pom.xml":["RecoveryDataSink.java","FlinkPipelineAiFunctionITCase.java","TransformSpecsITCase.java","FlinkPipelineComposerTest.java","FlinkPipelineUdfITCase.java","FlinkPipelineComposerLenientITCase.java","FlinkPipelineComposerITCase.java","FlinkSchemaCoordinatorRecoveryITCase.java","FlinkPipelineBatchComposerITCase.java","FlinkParallelizedPipelineITCase.java","FlinkPipelineTransformITCase.java"],"flink-cdc-connect/flink-cdc-pipeline-connectors/flink-cdc-pipeline-connector-mysql/pom.xml":["MySqlParallelizedPipelineITCase.java","MySqlOscITCase.java","MySqlTablePatternMatchingTest.java"]}
+    values_test_excludes = {"flink-cdc-composer/pom.xml":["RecoveryDataSink.java","RecoveryDataSinkFactory.java","FlinkPipelineAiFunctionITCase.java","TransformSpecsITCase.java","FlinkPipelineComposerTest.java","FlinkPipelineUdfITCase.java","FlinkPipelineComposerLenientITCase.java","FlinkPipelineComposerITCase.java","FlinkSchemaCoordinatorRecoveryITCase.java","FlinkPipelineBatchComposerITCase.java","FlinkParallelizedPipelineITCase.java","FlinkPipelineTransformITCase.java"],"flink-cdc-connect/flink-cdc-pipeline-connectors/flink-cdc-pipeline-connector-mysql/pom.xml":["MySqlParallelizedPipelineITCase.java","MySqlOscITCase.java","MySqlTablePatternMatchingTest.java"]}
     if relative in values_test_excludes:
         before = xml
         xml = re.sub(
@@ -185,9 +185,9 @@ def rewrite_pom(xml: str, relative: str) -> str:
             "            </plugin>\n"
         )
         if relative == "flink-cdc-composer/pom.xml":
-            xml = xml.replace("    <profiles>", "    <build><plugins>\\n" + plugin + "    </plugins></build>\\n    <profiles>", 1)
+            xml = xml.replace("    <profiles>", "    <build><plugins>\n" + plugin + "    </plugins></build>\n    <profiles>", 1)
         else:
-            xml = re.sub(r"(<build>\\s*<plugins>)", r"\\1\\n" + plugin, xml, count=1)
+            xml = re.sub(r"(<build>\s*<plugins>)", r"\1\n" + plugin, xml, count=1)
     ET.fromstring(xml)
     return xml
 
