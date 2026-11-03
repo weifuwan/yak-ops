@@ -21,8 +21,8 @@ class SuiteSelectionTest(unittest.TestCase):
         self.assertEqual(["business", "backend-e2e"], subject.select(["yak-ops-dao/src/main/java/Mapper.java"]))
 
     def test_unit_test_change_does_not_run_real_database(self):
-        self.assertEqual([], subject.select([subject.JDBC + "/src/test/java/JdbcBatchExecutionTest.java"]))
         self.assertEqual([], subject.select([subject.CDC + "/src/test/java/SnapshotChunkBackfillBudgetTest.java"]))
+        self.assertEqual([], subject.select([subject.BUSINESS + "/src/test/java/TaskCursorTest.java"]))
 
     def test_connector_local_cdc_it_runs_real_mysql_suite(self):
         selected = subject.select([subject.CDC + "/src/test/java/MySqlSnapshotBackfillIT.java"])
@@ -34,26 +34,27 @@ class SuiteSelectionTest(unittest.TestCase):
         self.assertIn("backend-e2e", selected)
         self.assertIn("recovery-e2e", selected)
 
-    def test_common_jdbc_includes_oracle(self):
+    def test_removed_jdbc_module_is_treated_as_unknown(self):
+        # The old yak-flow JDBC path no longer belongs to this reactor.
         selected = subject.select([subject.JDBC + "/src/main/java/reader/JdbcReader.java"])
-        self.assertIn("jdbc-oracle", selected)
-        self.assertIn("pipeline", selected)
-        self.assertIn("backend-e2e", selected)
-        self.assertIn("recovery-e2e", selected)
+        self.assertEqual(list(subject.SUITES), selected)
 
-    def test_mysql_change_does_not_select_postgres_leaf_tests(self):
-        selected = subject.select([subject.JDBC + "/src/main/java/dialect/MySqlDialect.java"])
-        self.assertIn("jdbc-mysql", selected)
-        self.assertNotIn("jdbc-postgres", selected)
+    def test_mysql_cdc_change_selects_current_cdc_coverage(self):
+        selected = subject.select([subject.CDC + "/src/main/java/source/MySqlSource.java"])
+        self.assertEqual(["cdc", "backend-e2e", "recovery-e2e"], selected)
 
     def test_rename_includes_old_and_new_owner(self):
-        selected = subject.select([subject.JDBC + "/src/main/java/MySqlDialect.java", subject.CDC + "/src/main/java/X.java"])
-        self.assertIn("jdbc-mysql", selected)
+        selected = subject.select([
+            subject.BUSINESS + "/src/main/java/TaskService.java",
+            subject.CDC + "/src/main/java/source/MySqlSource.java",
+        ])
+        self.assertIn("business", selected)
+        self.assertIn("cdc", selected)
         self.assertIn("backend-e2e", selected)
         self.assertIn("recovery-e2e", selected)
 
     def test_deleted_test_keeps_owner_selected(self):
-        self.assertIn("pipeline", subject.select([subject.JDBC + "/src/test/java/integration/MySqlToMySqlIT.java"]))
+        self.assertIn("cdc", subject.select([subject.CDC + "/src/test/java/integration/MySqlSourceIT.java"]))
 
     def test_non_pr_auto_is_full(self):
         with patch.dict(os.environ, {"CI_EVENT_NAME": "workflow_dispatch"}):
