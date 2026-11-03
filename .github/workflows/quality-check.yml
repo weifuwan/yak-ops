@@ -12,6 +12,7 @@ permissions:
   contents: read
 
 # Change selection remains in scope; PR static checks use a separate fast job.
+# Full main verification can also be requested manually after CI or source changes.
 # Release Gate and main pushes retain their existing full quality requirements.
 env:
   CI_EVENT_NAME: ${{ github.event_name }}
