@@ -123,8 +123,18 @@ public class Configuration implements java.io.Serializable, Cloneable {
                     String.format(
                             "Could not parse value '%s' for key '%s'.",
                             "<redacted>", option.key()),
-                    e);
+                    redactedCause(e));
         }
+    }
+
+    /**
+     * Keeps the original failure location without retaining a potentially sensitive exception
+     * message or cause chain.
+     */
+    private static RuntimeException redactedCause(Exception cause) {
+        RuntimeException redactedCause = new RuntimeException(cause.getClass().getSimpleName());
+        redactedCause.setStackTrace(cause.getStackTrace());
+        return redactedCause;
     }
 
     public <T> Configuration set(ConfigOption<T> option, T value) {
