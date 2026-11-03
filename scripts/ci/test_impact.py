@@ -92,6 +92,24 @@ class ImpactTest(unittest.TestCase):
             for plugin in cdc_pom.findall("./m:build/m:plugins/m:plugin", ns)
         ))
 
+    def test_cdc_mockito_version_does_not_override_spring_boot_bom(self):
+        root = Path(__file__).resolve().parents[2]
+        ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+        modules = (
+            "yak-ops-cdc-base",
+            "yak-ops-connector-mysql-cdc",
+        )
+        source = root / "yak-ops-cdc/yak-ops-cdc-connect/yak-ops-cdc-source-connectors"
+        for module in modules:
+            with self.subTest(module=module):
+                pom = ET.parse(source / module / "pom.xml").getroot()
+                properties = pom.find("m:properties", ns)
+                self.assertIsNone(properties.find("m:mockito.version", ns))
+                self.assertEqual(
+                    "3.12.4",
+                    properties.findtext("m:cdc.mockito.version", namespaces=ns),
+                )
+
     def test_manual_format_full(self):
         fields = ci_scope.selection(None, mode="format", event="workflow_dispatch", branch="main")
         self.assertEqual(impact.ALL_BACKEND, fields["backend_modules"])

@@ -495,27 +495,6 @@ limitations under the License.
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0-M1</version>
-                <executions>
-                    <execution>
-                        <id>dependency-convergence</id>
-                        <!-- disabled by default as it interacts badly with shade-plugin -->
-                        <phase>none</phase>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <dependencyConvergence/>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.9.1</version>
                 <configuration>
@@ -576,6 +555,15 @@ limitations under the License.
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <executions>
+                    <execution>
+                        <id>dependency-convergence</id>
+                        <!-- Disabled because it conflicts with upstream Flink shading. -->
+                        <phase>none</phase>
+                        <goals><goal>enforce</goal></goals>
+                        <configuration>
+                            <rules><dependencyConvergence/></rules>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>enforce-maven</id>
                         <goals>

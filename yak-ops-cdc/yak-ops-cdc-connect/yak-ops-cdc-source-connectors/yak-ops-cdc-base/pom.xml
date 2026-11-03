@@ -28,7 +28,7 @@ limitations under the License.
     <artifactId>yak-ops-cdc-base</artifactId>
 
     <properties>
-        <mockito.version>3.12.4</mockito.version>
+        <cdc.mockito.version>3.12.4</cdc.mockito.version>
     </properties>
 
     <dependencies>
@@ -165,7 +165,7 @@ limitations under the License.
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
+            <version>${cdc.mockito.version}</version>
             <type>jar</type>
             <scope>test</scope>
         </dependency>
