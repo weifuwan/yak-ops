@@ -28,5 +28,5 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Run CDC common, composer and CLI contract tests
-        run: bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-cli -am test
+      - name: Run CDC common, runtime, composer and CLI contract tests
+        run: bash mvnw -B -ntp -pl yak-ops-cdc/yak-ops-cdc-runtime,yak-ops-cdc/yak-ops-cdc-cli -am test
