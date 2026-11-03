@@ -44,6 +44,7 @@ class ConfigurationUtilsTest {
     }
 
     @Test
+    @SuppressWarnings("removal") // The deprecated helper is tested only for legacy parsing parity.
     void flinksOriginalConfigurationExtractionIsReadOnly() throws Exception {
         Map<String, String> options = io.yak.ops.cdc.cli.parser.YamlPipelineDefinitionParser
                 .getFlinkConfigFromPipelineDef(fixture("pipeline-definition-full.yaml"));

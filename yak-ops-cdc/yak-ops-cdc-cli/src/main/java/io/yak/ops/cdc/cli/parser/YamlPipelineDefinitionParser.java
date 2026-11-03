@@ -75,6 +75,8 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
     private static final String TRANSFORM_KEY = "transform";
     private static final String PIPELINE_KEY = "pipeline";
     private static final String MODEL_KEY = "model";
+    // Legacy Flink deployment configuration is recognized only to ignore it during parsing.
+    // Standalone execution does not consume these settings.
     private static final String FLINK_KEY = "flink-conf";
 
     // Source / sink keys
@@ -107,6 +109,8 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
     private static final String UDF_PYTHON_EXECUTABLE_KEY = "python-executable";
     private static final String UDF_PYTHON_FILES_KEY = "python-files";
     private static final String UDF_OPTIONS_KEY = "options";
+    // Compatibility placeholder: the standalone runtime does not yet implement this class.
+    // Successfully parsing a Python UDF does not mean that it can be executed.
     private static final String PYTHON_UDF_CLASSPATH = "io.yak.ops.cdc.python.PythonUdf";
 
     // Model related keys
@@ -124,9 +128,11 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
 
     public static final String TRANSFORM_TABLE_OPTION_DELIMITER_KEY = "table-options.delimiter";
 
-    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION));
+    // Stricter than the upstream Jackson default: reject duplicate YAML mapping keys.
+    private static final ObjectMapper mapper =
+            new ObjectMapper(new YAMLFactory().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION));
 
-    /** Parse the specified pipeline definition file. */
+    /** Parse a local YAML file through JDK NIO, without Flink filesystem providers. */
     @Override
     public PipelineDef parse(Path pipelineDefPath, Configuration globalPipelineConfig)
             throws Exception {
@@ -340,7 +346,7 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
             throw new IllegalArgumentException(
                     String.format(
                             "Option \"%s\" must be one of DISABLED, CHECK, TRY_EXPAND, EXPAND, but was \"%s\".",
-                            EXISTING_TABLE_SCHEMA_EXPANSION_MODE, optionValue));
+                            EXISTING_TABLE_SCHEMA_EXPANSION_MODE, "<redacted>"));
         }
         String value = optionValue.asText();
         for (ExistingTableSchemaExpansionMode mode : ExistingTableSchemaExpansionMode.values()) {
@@ -351,7 +357,7 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
         throw new IllegalArgumentException(
                 String.format(
                         "Option \"%s\" must be one of DISABLED, CHECK, TRY_EXPAND, EXPAND, but was \"%s\".",
-                        EXISTING_TABLE_SCHEMA_EXPANSION_MODE, value));
+                        EXISTING_TABLE_SCHEMA_EXPANSION_MODE, "<redacted>"));
     }
 
     private RouteDef toRouteDef(JsonNode routeNode) {
@@ -580,7 +586,7 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
         Preconditions.checkArgument(
                 modelNode instanceof ObjectNode,
                 "`model` in `pipeline` should be an object, but got %s",
-                modelNode);
+                "<redacted>");
         ObjectNode node = ((ObjectNode) modelNode).deepCopy();
         boolean usesNewFormat = node.has(MODEL_NAME_KEY) || node.has(MODEL_TYPE_KEY);
         boolean usesLegacyFormat =
@@ -632,7 +638,7 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
             Preconditions.checkArgument(
                     optionsNode instanceof ObjectNode,
                     "Model options must be an object, but got %s",
-                    optionsNode);
+                    "<redacted>");
             options.putAll(
                     mapper.convertValue(optionsNode, new TypeReference<Map<String, String>>() {}));
         }
@@ -712,6 +718,15 @@ public class YamlPipelineDefinitionParser implements PipelineDefinitionParser {
         }
     }
 
+    /**
+     * Reads the legacy {@code pipeline.flink-conf} block for upstream compatibility only.
+     *
+     * <p>These values are not included in the returned {@link PipelineDef} and do not configure
+     * standalone execution, deployment, or checkpoint recovery.
+     *
+     * @deprecated Flink deployment settings are not standalone runtime configuration.
+     */
+    @Deprecated(since = "1.4.0", forRemoval = true)
     public static Map<String, String> getFlinkConfigFromPipelineDef(Path pipelineDefPath)
             throws IOException {
         try (InputStream pipelineInStream = Files.newInputStream(pipelineDefPath)) {

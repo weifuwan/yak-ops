@@ -3,6 +3,7 @@ package io.yak.ops.cdc.cli.parser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -14,6 +15,8 @@ import io.yak.ops.cdc.common.pipeline.RouteMode;
 import io.yak.ops.cdc.common.pipeline.RuntimeExecutionMode;
 import io.yak.ops.cdc.composer.definition.PipelineDef;
 import java.net.URISyntaxException;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -143,5 +146,86 @@ class YamlPipelineDefinitionParserTest {
                 + "route:\n  - source-table: a.b\n    sink-table: b.c\n    unexpected: super-secret\n";
         Exception error = assertThrows(Exception.class, () -> parser.parse(yaml, new Configuration()));
         assertFalse(error.getMessage().contains("super-secret"));
+    }
+
+    @Test
+    void jdkNioLocalFileParsingMatchesInlineYaml() throws Exception {
+        String yaml = "source:\n  type: mysql\nsink:\n  type: values\n"
+                + "pipeline:\n  parallelism: 3\n";
+        Path directory = Files.createTempDirectory("yak-cdc-本地 config ");
+        Path definition = directory.resolve("pipeline definition.yaml");
+        try {
+            Files.writeString(definition, yaml);
+            PipelineDef fromFile = parser.parse(definition, new Configuration());
+            PipelineDef fromString = parser.parse(yaml, new Configuration());
+            assertEquals(fromString, fromFile);
+            assertEquals(3, fromFile.getConfig().get(PipelineOptions.PIPELINE_PARALLELISM));
+        } finally {
+            Files.deleteIfExists(definition);
+            Files.deleteIfExists(directory);
+        }
+    }
+
+    @Test
+    void duplicateYamlKeysReportLocationWithoutCredentialValuesOrCauses() {
+        String secret = "should-not-leak-key-value";
+        String yaml = "source:\n  type: mysql\n  type: " + secret
+                + "\nsink:\n  type: values\n";
+        IOException error =
+                assertThrows(IOException.class, () -> parser.parse(yaml, new Configuration()));
+        assertTrue(error.getMessage().matches("Invalid pipeline YAML at line [0-9]+, column [0-9]+"));
+        assertTrue(error.getMessage().contains("line 3"));
+        assertFalse(error.getMessage().contains(secret));
+        assertNull(error.getCause());
+    }
+
+    @Test
+    void malformedYamlRetainsSafeLocationWithoutSourceSnippet() {
+        String secret = "should-not-leak-unclosed-value";
+        String yaml = "source:\n  type: \"" + secret + "\nsink:\n  type: values\n";
+        IOException error =
+                assertThrows(IOException.class, () -> parser.parse(yaml, new Configuration()));
+        assertTrue(error.getMessage().matches("Invalid pipeline YAML at line [0-9]+, column [0-9]+"));
+        assertFalse(error.getMessage().contains(secret));
+        assertNull(error.getCause());
+    }
+
+    @Test
+    void invalidExpansionAndModelOptionsDoNotDiscloseValues() {
+        String secret = "never-print-this-password";
+        String invalidExpansion =
+                "source:\n  type: mysql\nsink:\n  type: values\n"
+                        + "  existing-table.schema-expansion.mode: " + secret + "\n";
+        Exception expansionError = assertThrows(
+                IllegalArgumentException.class,
+                () -> parser.parse(invalidExpansion, new Configuration()));
+        assertFalse(expansionError.getMessage().contains(secret));
+        assertTrue(expansionError.getMessage().contains("existing-table.schema-expansion.mode"));
+
+        String invalidModel =
+                "source:\n  type: mysql\nsink:\n  type: values\npipeline:\n"
+                        + "  model:\n    name: embed\n    type: my-model\n"
+                        + "    options: " + secret + "\n";
+        Exception modelError = assertThrows(
+                IllegalArgumentException.class,
+                () -> parser.parse(invalidModel, new Configuration()));
+        assertFalse(modelError.getMessage().contains(secret));
+    }
+
+    @Test
+    void pythonUdfClasspathIsParserOnlyCompatibilityPlaceholder() throws Exception {
+        PipelineDef python = parser.parse(
+                fixture("pipeline-definition-with-python-udf.yaml"), new Configuration());
+        // Parsing preserves the definition; no standalone PythonUdf runtime has been migrated.
+        assertEquals("io.yak.ops.cdc.python.PythonUdf", python.getUdfs().get(0).getClasspath());
+        assertEquals("py_identity", python.getUdfs().get(0).getName());
+    }
+
+    @Test
+    void legacyFlinkConfIsNotAppliedAsStandalonePipelineSettings() throws Exception {
+        PipelineDef definition = parser.parse(
+                fixture("pipeline-definition-full.yaml"), new Configuration());
+        assertFalse(definition.getConfig().toMap().containsKey("execution.checkpointing.timeout"));
+        assertFalse(definition.getConfig().toMap().containsKey("flink-conf"));
     }
 }
