@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.cdc.common.data.GenericRecordData;
+import io.yak.ops.cdc.common.data.binary.BinaryRecordData;
 import io.yak.ops.cdc.common.data.binary.BinaryStringData;
 import io.yak.ops.cdc.common.event.AddColumnEvent;
 import io.yak.ops.cdc.common.event.CreateTableEvent;
@@ -33,8 +34,10 @@ import io.yak.ops.cdc.common.event.TableId;
 import io.yak.ops.cdc.common.schema.Column;
 import io.yak.ops.cdc.common.schema.Schema;
 import io.yak.ops.cdc.common.types.DataTypes;
+import io.yak.ops.cdc.common.types.RowType;
 import io.yak.ops.cdc.runtime.graph.StreamEdge;
 import io.yak.ops.cdc.runtime.graph.StreamGraph;
+import io.yak.ops.cdc.runtime.typeutils.BinaryRecordDataGenerator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -176,6 +179,50 @@ class CdcEventFlowTest {
         assertEquals("invalid row", error.getMessage());
         assertEquals(1, received.size());
         assertSame(create, received.get(0));
+    }
+
+    @Test
+    void binaryRecordDataPayloadReachesSinkWithoutConversionOrMemoryReuse() throws Exception {
+        TableId tableId = TableId.tableId("cdc_lab", "orders");
+        RowType rowType = DataTypes.ROW(
+                DataTypes.FIELD("id", DataTypes.BIGINT()),
+                DataTypes.FIELD("name", DataTypes.STRING()));
+        BinaryRecordDataGenerator generator = new BinaryRecordDataGenerator(rowType);
+        BinaryRecordData first = generator.generate(new Object[] {
+                1L, BinaryStringData.fromString("first")
+        });
+        BinaryRecordData second = generator.generate(new Object[] {
+                2L, BinaryStringData.fromString("second")
+        });
+        DataChangeEvent firstInsert = DataChangeEvent.insertEvent(tableId, first);
+        DataChangeEvent secondInsert = DataChangeEvent.insertEvent(tableId, second);
+        CreateTableEvent create = new CreateTableEvent(tableId,
+                Schema.newBuilder()
+                        .physicalColumn("id", DataTypes.BIGINT())
+                        .physicalColumn("name", DataTypes.STRING()).build());
+        List<Event> received = new ArrayList<>();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        env.<Event>fromSource("source", () -> output -> {
+                    output.collect(create);
+                    output.collect(firstInsert);
+                    output.collect(secondInsert);
+                })
+                .<Event>transform("identity", () -> (event, output) -> output.collect(event))
+                .addSink("sink", () -> received::add);
+        env.execute("binary-record-events");
+
+        assertEquals(3, received.size());
+        assertSame(create, received.get(0));
+        assertSame(firstInsert, received.get(1));
+        assertSame(secondInsert, received.get(2));
+        assertSame(first, ((DataChangeEvent) received.get(1)).after());
+        assertSame(second, ((DataChangeEvent) received.get(2)).after());
+        assertEquals(1L, ((DataChangeEvent) received.get(1)).after().getLong(0));
+        assertEquals("first",
+                ((DataChangeEvent) received.get(1)).after().getString(1).toString());
+        assertEquals(2L, ((DataChangeEvent) received.get(2)).after().getLong(0));
+        assertEquals("second",
+                ((DataChangeEvent) received.get(2)).after().getString(1).toString());
     }
 
     private static GenericRecordData row(long id, String name) {
