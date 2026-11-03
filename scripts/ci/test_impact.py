@@ -96,17 +96,17 @@ class ImpactTest(unittest.TestCase):
         self.assertNotIn("yak-ops-dist", selected)
         self.assertNotIn("yak-ops-ui", selected)
 
-    def test_vendor_specific_and_shared_jdbc(self):
-        vendor = impact.select_suites(["yak-flow/yak-flow-connector-jdbc/src/main/java/dialect/MySqlDialect.java"])
-        self.assertIn("jdbc-mysql", vendor)
-        self.assertNotIn("jdbc-oracle", vendor)
-        self.assertIn("backend-e2e", vendor)
-        self.assertIn("recovery-e2e", vendor)
-        common = impact.select_suites(["yak-flow/yak-flow-connector-jdbc/src/main/java/internal/JdbcOutputFormat.java"])
-        self.assertEqual(
-            ["jdbc-mysql", "jdbc-postgres", "jdbc-oracle", "pipeline", "backend-e2e", "recovery-e2e"],
-            common,
-        )
+    def test_removed_jdbc_reactor_paths_fail_closed(self):
+        # The old yak-flow JDBC module is not in the current Maven reactor.
+        # Unknown/deleted module paths must not be mistaken for narrow changes.
+        for path in (
+            "yak-flow/yak-flow-connector-jdbc/src/main/java/dialect/MySqlDialect.java",
+            "yak-flow/yak-flow-connector-jdbc/src/main/java/internal/JdbcOutputFormat.java",
+        ):
+            with self.subTest(path=path):
+                result = impact.analyze([path])
+                self.assertTrue(result["full"])
+                self.assertEqual(set(impact.SUITES), result["suites"])
 
     def test_shared_cdc_base_selects_cdc_and_e2e_checks(self):
         path = impact.CDC_BASE + "src/main/java/io/yak/ops/connector/cdc/base/source/assigner/SnapshotSplitAssigner.java"
@@ -130,18 +130,11 @@ class ImpactTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual({"cdc", "backend-e2e", "recovery-e2e"}, set(impact.select_suites([path])))
 
-    def test_jdbc_vendor_changes_keep_end_to_end_acceptance(self):
-        postgres = impact.select_suites([
-            impact.JDBC + "src/main/java/io/yak/ops/connector/jdbc/database/dialect/PostgresDialect.java"
+    def test_current_mysql_cdc_changes_keep_end_to_end_acceptance(self):
+        selected = impact.select_suites([
+            impact.CDC + "src/main/java/io/yak/ops/connector/cdc/mysql/source/MySqlSource.java"
         ])
-        self.assertIn("jdbc-postgres", postgres)
-        self.assertIn("backend-e2e", postgres)
-        self.assertNotIn("recovery-e2e", postgres)
-        mysql = impact.select_suites([
-            impact.JDBC + "src/main/java/io/yak/ops/connector/jdbc/database/dialect/MySqlDialect.java"
-        ])
-        self.assertIn("jdbc-mysql", mysql)
-        self.assertIn("recovery-e2e", mysql)
+        self.assertEqual(["cdc", "backend-e2e", "recovery-e2e"], selected)
 
     def test_unknown_cdc_and_shared_runtime_keep_recovery(self):
         for path in (
@@ -154,9 +147,18 @@ class ImpactTest(unittest.TestCase):
                     set(impact.select_suites([path]))))
 
     def test_test_only_changes_do_not_start_database(self):
-        self.assertEqual([], impact.select_suites(["yak-flow/yak-flow-connector-jdbc/src/test/java/JdbcBatchExecutionTest.java"]))
-        self.assertEqual(["jdbc-mysql"], impact.select_suites(["yak-flow/yak-flow-connector-jdbc/src/test/java/MySqlSourceIT.java"]))
-        self.assertEqual(["recovery-e2e"], impact.select_suites(["yak-ops-e2e/src/test/java/ProcessRecoveryIT.java"]))
+        self.assertEqual([], impact.select_suites([
+            impact.CDC + "src/test/java/reader/BinlogSplitReaderTest.java"
+        ]))
+        self.assertEqual([], impact.select_suites([
+            "yak-ops-business/yak-ops-business-task/src/test/java/TaskCursorTest.java"
+        ]))
+        self.assertEqual(["cdc"], impact.select_suites([
+            impact.CDC + "src/test/java/MySqlSourceIT.java"
+        ]))
+        self.assertEqual(["recovery-e2e"], impact.select_suites([
+            "yak-ops-e2e/src/test/java/ProcessRecoveryIT.java"
+        ]))
 
     def test_rename_union_and_release(self):
         check = impact.analyze(["yak-ops-ui/apps/web/app/data-sync/index.tsx", "yak-ops-dao/src/main/resources/db/migration/V1__init.sql"])
