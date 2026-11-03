@@ -7,8 +7,6 @@ import io.yak.ops.configuration.Option;
 import io.yak.ops.configuration.Options;
 import io.yak.ops.configuration.rule.Conditions;
 import io.yak.ops.configuration.rule.OptionRule;
-import io.yak.ops.connector.jdbc.database.connection.JdbcDriverLoader;
-import io.yak.ops.connector.jdbc.database.connection.MySqlDriverId;
 import io.yak.ops.plugin.database.jdbc.AbstractJdbcDataSourcePlugin;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourceConnection;
 import io.yak.ops.plugin.datasource.api.plugin.DataSourcePlugin;
@@ -74,9 +72,7 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
                 .build();
     }
 
-    private static final JdbcDriverLoader DRIVER_RUNTIME = JdbcDriverLoader.getInstance();
-
-    private static final Map<String, String> PROPERTY_KEYS = Map.ofEntries(
+private static final Map<String, String> PROPERTY_KEYS = Map.ofEntries(
             Map.entry("useunicode", "useUnicode"),
             Map.entry("characterencoding", "characterEncoding"),
             Map.entry("connectiontimezone", "connectionTimeZone"),
@@ -107,7 +103,7 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
     protected String defaultDriverClassName() {
-        return MySqlDriverId.MYSQL_8.driverClassName();
+        return "com.mysql.cj.jdbc.Driver";
     }
 
     @Override
@@ -122,16 +118,19 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
     protected DriverPropertyInfo[] connectionPropertyInfo(String jdbcUrl, Properties properties) throws Exception {
-        MySqlDriverId driverId = MySqlDriverId.MYSQL_8;
-        return DRIVER_RUNTIME.propertyInfo(
-                driverId.runtimeId(), driverId.driverDirectory(), driverId.driverClassName(), jdbcUrl, properties);
+        return connectionPropertyDriver(jdbcUrl).getPropertyInfo(jdbcUrl, properties);
     }
 
     @Override
     protected String resolveDriverId(JsonNode connectionJson) {
         String value = JSONUtils.firstText(connectionJson, "driverId");
         try {
-            return MySqlDriverId.parse(value).name();
+            if (value == null || value.isBlank()) return "AUTO";
+            String id = value.trim().toUpperCase(java.util.Locale.ROOT);
+            if (!java.util.List.of("AUTO", "MYSQL_8", "MYSQL_5").contains(id)) {
+                throw new IllegalArgumentException("Unsupported MySQL driver id");
+            }
+            return id;
         } catch (IllegalArgumentException exception) {
             throw parameterError("MySQL driverId 仅支持 AUTO、MYSQL_8、MYSQL_5", exception);
         }
@@ -139,7 +138,7 @@ public final class MySqlDataSourcePlugin extends AbstractJdbcDataSourcePlugin {
 
     @Override
     protected String resolveDriverClassName(JsonNode connectionJson, String driverId) {
-        return MySqlDriverId.parse(driverId).driverClassName();
+        return "MYSQL_5".equals(driverId) ? "com.mysql.jdbc.Driver" : "com.mysql.cj.jdbc.Driver";
     }
 
     @Override

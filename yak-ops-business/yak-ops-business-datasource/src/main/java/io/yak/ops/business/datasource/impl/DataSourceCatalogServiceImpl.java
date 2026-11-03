@@ -13,188 +13,278 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceTablePageVO;
 import io.yak.ops.common.context.WorkspaceContext;
 import io.yak.ops.common.enums.datasource.DataSourceErrorCode;
 import io.yak.ops.common.util.StringUtils;
-import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
-import io.yak.ops.connector.jdbc.database.catalog.JdbcCatalog;
-import io.yak.ops.connector.jdbc.database.catalog.JdbcColumnInfo;
-import io.yak.ops.connector.jdbc.database.catalog.JdbcDataPreview;
-import io.yak.ops.connector.jdbc.database.catalog.JdbcTableInfo;
-import io.yak.ops.connector.jdbc.database.catalog.JdbcTablePage;
-import io.yak.ops.connector.jdbc.database.catalog.factory.JdbcCatalogFactory;
-import io.yak.ops.connector.jdbc.database.connection.DefaultJdbcConnectionProvider;
-import io.yak.ops.connector.jdbc.database.query.JdbcReadQuery;
-import io.yak.ops.core.data.TableId;
-import io.yak.ops.core.types.TableSchema;
+import io.yak.ops.configuration.ReadonlyConfig;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
 import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
+import io.yak.ops.plugin.datasource.api.lookup.DataSourceTablePath;
 import jakarta.annotation.Resource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
-/**
- * Resolves authorized datasource connections and executes metadata queries through JDBC Catalog.
- *
- * <p>Each query owns one Catalog lifecycle. The shared JDBC provider creates physical
- * connections and releases associated SSH resources when the caller closes them.
- */
+/** JDBC metadata browser independent from the deleted data synchronization runtime. */
 @Service
 public class DataSourceCatalogServiceImpl implements DataSourceCatalogService {
-
-    @Resource
-    private DataSourceLookupService resources;
+    @Resource private DataSourceLookupService resources;
 
     @Override
     public List<String> listDatabases(String datasourceId) {
-        return query(datasourceId, JdbcCatalog::listDatabases);
+        return query(datasourceId, DataSourceErrorCode.CATALOG_QUERY_FAILED, connection -> {
+            List<String> names = new ArrayList<>();
+            try (ResultSet catalogs = connection.getMetaData().getCatalogs()) {
+                while (catalogs.next()) names.add(catalogs.getString("TABLE_CAT"));
+            }
+            if (names.isEmpty()) {
+                try (ResultSet schemas = connection.getMetaData().getSchemas()) {
+                    while (schemas.next()) names.add(schemas.getString("TABLE_SCHEM"));
+                }
+            }
+            return names;
+        });
     }
 
     @Override
     public List<String> listSchemas(String datasourceId, String database) {
-        return query(datasourceId, catalog -> catalog.listSchemas(StringUtils.trimToNull(database)));
+        return query(datasourceId, DataSourceErrorCode.CATALOG_QUERY_FAILED, connection -> {
+            List<String> names = new ArrayList<>();
+            try (ResultSet schemas = connection.getMetaData().getSchemas(StringUtils.trimToNull(database), null)) {
+                while (schemas.next()) names.add(schemas.getString("TABLE_SCHEM"));
+            }
+            return names;
+        });
     }
 
     @Override
     public List<DataSourceCatalogTableVO> listTables(String datasourceId, DataSourceCatalogQueryDTO parameters) {
-        List<JdbcTableInfo> tables = query(
-                datasourceId,
-                catalog -> catalog.listTableInfos(
-                        StringUtils.trimToNull(parameters.getDatabase()),
-                        StringUtils.trimToNull(parameters.getSchema()),
-                        StringUtils.trimToNull(parameters.getKeyword()),
-                        parameters.getLimit()));
-        return tables.stream().map(DataSourceCatalogServiceImpl::tableView).toList();
+        return query(datasourceId, DataSourceErrorCode.CATALOG_QUERY_FAILED, connection -> {
+            List<DataSourceCatalogTableVO> tables = readTables(
+                    connection, parameters.getDatabase(), parameters.getSchema(), parameters.getKeyword());
+            int limit = boundedLimit(parameters.getLimit(), 500);
+            return tables.subList(0, Math.min(limit, tables.size()));
+        });
     }
 
     @Override
     public DataSourceTablePageVO listTablePage(String datasourceId, DataSourceTablePageDTO parameters) {
-        DataSourceInfo authorized = resources.dataSource(WorkspaceContext.requireWorkspaceId(), datasourceId);
-        TableId namespace;
+        final Pattern databasePattern;
+        final Pattern tablePattern;
         try {
-            // Only the namespace is queried; the sentinel never identifies a physical table.
-            namespace = authorized.resolveTable(parameters.getDatabase(), parameters.getSchema(), "_catalog_scope");
-            if (StringUtils.trimToNull(parameters.getDatabasePattern()) != null) {
-                Pattern.compile(parameters.getDatabasePattern());
-            }
-            if (StringUtils.trimToNull(parameters.getTablePattern()) != null) {
-                Pattern.compile(parameters.getTablePattern());
-            }
+            databasePattern = compileOptional(parameters.getDatabasePattern());
+            tablePattern = compileOptional(parameters.getTablePattern());
         } catch (IllegalArgumentException failure) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_CATALOG_FILTER, null, failure);
         }
-        JdbcTablePage page = query(
-                datasourceId,
-                authorized.revision(),
-                DataSourceErrorCode.CATALOG_QUERY_FAILED,
-                catalog -> catalog.listTablePage(
-                        StringUtils.trimToNull(namespace.catalog()),
-                        StringUtils.trimToNull(namespace.schema()),
-                        StringUtils.trimToNull(parameters.getKeyword()),
-                        StringUtils.trimToNull(parameters.getDatabasePattern()),
-                        StringUtils.trimToNull(parameters.getTablePattern()),
-                        parameters.getOffset(),
-                        parameters.getLimit() == null ? 200 : parameters.getLimit()));
-        return new DataSourceTablePageVO(
-                page.items().stream()
-                        .map(DataSourceCatalogServiceImpl::tableView)
-                        .toList(),
-                page.nextOffset());
+        DataSourceInfo info = resources.dataSource(WorkspaceContext.requireWorkspaceId(), datasourceId);
+        DataSourceTablePath scope;
+        try {
+            scope = info.resolveTable(parameters.getDatabase(), parameters.getSchema(), "_catalog_scope");
+        } catch (IllegalArgumentException failure) {
+            throw new DataSourceException(DataSourceErrorCode.INVALID_CATALOG_FILTER, null, failure);
+        }
+        return query(datasourceId, DataSourceErrorCode.CATALOG_QUERY_FAILED, connection -> {
+            List<DataSourceCatalogTableVO> all = readTables(
+                    connection, scope.catalog(), scope.schema(), parameters.getKeyword());
+            List<DataSourceCatalogTableVO> matched = all.stream()
+                    .filter(item -> databasePattern == null || databasePattern.matcher(
+                            item.getDatabase() != null ? item.getDatabase() :
+                                    item.getSchema() == null ? "" : item.getSchema()).matches())
+                    .filter(item -> tablePattern == null || tablePattern.matcher(item.getName()).matches())
+                    .toList();
+            int start = Math.min(Math.max(0, parameters.getOffset()), matched.size());
+            int end = Math.min(start + boundedLimit(parameters.getLimit(), 500), matched.size());
+            return new DataSourceTablePageVO(matched.subList(start, end), end == matched.size() ? null : end);
+        });
     }
 
     @Override
     public DataSourcePreviewVO preview(String datasourceId, DataSourcePreviewDTO parameters) {
-        DataSourceInfo authorized = resources.dataSource(WorkspaceContext.requireWorkspaceId(), datasourceId);
-        String predicate;
-        TableId tableId;
+        if (StringUtils.trimToNull(parameters.getWhere()) != null) {
+            throw new DataSourceException(
+                    DataSourceErrorCode.INVALID_PREVIEW_CONFIGURATION, null,
+                    new UnsupportedOperationException("Filtered SQL previews are disabled while the engine is rebuilt"));
+        }
+        DataSourceInfo info = resources.dataSource(WorkspaceContext.requireWorkspaceId(), datasourceId);
+        DataSourceTablePath path;
         try {
-            predicate = JdbcReadQuery.validateWhere(parameters.getWhere());
-            tableId = authorized.resolveTable(
-                    parameters.getDatabase(),
-                    parameters.getSchema(),
-                    parameters.getTable().trim());
+            path = info.resolveTable(parameters.getDatabase(), parameters.getSchema(), parameters.getTable());
         } catch (IllegalArgumentException failure) {
             throw new DataSourceException(DataSourceErrorCode.INVALID_PREVIEW_CONFIGURATION, null, failure);
         }
-        JdbcDataPreview preview = query(
-                datasourceId,
-                authorized.revision(),
-                DataSourceErrorCode.PREVIEW_QUERY_FAILED,
-                catalog -> catalog.preview(tableId, predicate, parameters.getLimit()));
-        return new DataSourcePreviewVO(
-                preview.columns().stream()
-                        .map(DataSourceCatalogServiceImpl::columnView)
-                        .toList(),
-                preview.rows(),
-                preview.truncated());
+        return query(datasourceId, DataSourceErrorCode.PREVIEW_QUERY_FAILED, connection -> {
+            DatabaseMetaData meta = connection.getMetaData();
+            String sql = "SELECT * FROM " + qualifiedName(meta, path);
+            int limit = Math.min(100, Math.max(1, parameters.getLimit()));
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setMaxRows(limit + 1);
+                statement.setQueryTimeout(30);
+                try (ResultSet rs = statement.executeQuery()) {
+                    ResultSetMetaData columns = rs.getMetaData();
+                    List<DataSourceCatalogColumnVO> columnViews = new ArrayList<>();
+                    for (int i = 1; i <= columns.getColumnCount(); i++) {
+                        DataSourceCatalogColumnVO column = new DataSourceCatalogColumnVO();
+                        column.setName(columns.getColumnLabel(i));
+                        column.setTypeName(columns.getColumnTypeName(i));
+                        column.setJdbcType(columns.getColumnType(i));
+                        column.setSize(columns.getPrecision(i));
+                        column.setScale(columns.getScale(i));
+                        column.setNullable(columns.isNullable(i) != ResultSetMetaData.columnNoNulls);
+                        column.setOrdinalPosition(i);
+                        columnViews.add(column);
+                    }
+                    List<List<Object>> rows = new ArrayList<>();
+                    while (rows.size() <= limit && rs.next()) {
+                        List<Object> row = new ArrayList<>();
+                        for (int i = 1; i <= columns.getColumnCount(); i++) {
+                            Object cell = rs.getObject(i);
+                            if (cell instanceof byte[] bytes) {
+                                row.add(java.util.Base64.getEncoder().encodeToString(bytes));
+                            } else if (cell instanceof Boolean || cell == null) {
+                                row.add(cell);
+                            } else {
+                                row.add(cell.toString());
+                            }
+                        }
+                        rows.add(row);
+                    }
+                    boolean truncated = rows.size() > limit;
+                    if (truncated) rows.remove(rows.size() - 1);
+                    return new DataSourcePreviewVO(columnViews, rows, truncated);
+                }
+            }
+        });
     }
 
     @Override
     public List<DataSourceCatalogColumnVO> listColumns(String datasourceId, DataSourceTablePathDTO path) {
-        TableId tableId = new TableId(
-                StringUtils.trimToNull(path.getDatabase()),
-                StringUtils.trimToNull(path.getSchema()),
-                path.getTable().trim());
-        List<JdbcColumnInfo> columns = query(datasourceId, catalog -> catalog.getColumns(tableId));
-        return columns.stream().map(DataSourceCatalogServiceImpl::columnView).toList();
+        DataSourceInfo info = resources.dataSource(WorkspaceContext.requireWorkspaceId(), datasourceId);
+        DataSourceTablePath table = info.resolveTable(path.getDatabase(), path.getSchema(), path.getTable());
+        return query(datasourceId, DataSourceErrorCode.CATALOG_QUERY_FAILED, connection -> {
+            DatabaseMetaData meta = connection.getMetaData();
+            Map<String, Integer> keyOrder = new HashMap<>();
+            try (ResultSet keys = meta.getPrimaryKeys(table.catalog(), table.schema(), table.table())) {
+                while (keys.next()) keyOrder.put(keys.getString("COLUMN_NAME"), keys.getInt("KEY_SEQ"));
+            }
+            List<DataSourceCatalogColumnVO> columns = new ArrayList<>();
+            try (ResultSet rs = meta.getColumns(table.catalog(), table.schema(), table.table(), null)) {
+                while (rs.next()) {
+                    DataSourceCatalogColumnVO column = new DataSourceCatalogColumnVO();
+                    String name = rs.getString("COLUMN_NAME");
+                    column.setName(name);
+                    column.setTypeName(rs.getString("TYPE_NAME"));
+                    column.setJdbcType(rs.getInt("DATA_TYPE"));
+                    column.setSize(rs.getInt("COLUMN_SIZE"));
+                    column.setScale(rs.getInt("DECIMAL_DIGITS"));
+                    column.setNullable(rs.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls);
+                    column.setOrdinalPosition(rs.getInt("ORDINAL_POSITION"));
+                    column.setPrimaryKey(keyOrder.containsKey(name));
+                    column.setPrimaryKeyPosition(keyOrder.get(name));
+                    column.setRemarks(rs.getString("REMARKS"));
+                    columns.add(column);
+                }
+            }
+            return columns;
+        });
     }
 
-    @Override
-    public TableSchema getTableSchema(String datasourceId, TableId tableId) {
-        return query(datasourceId, catalog -> catalog.getTable(tableId));
+    private static List<DataSourceCatalogTableVO> readTables(
+            Connection connection, String database, String schema, String keyword) throws SQLException {
+        List<DataSourceCatalogTableVO> tables = new ArrayList<>();
+        try (ResultSet rs = connection.getMetaData().getTables(
+                StringUtils.trimToNull(database), StringUtils.trimToNull(schema), "%",
+                new String[] {"TABLE", "VIEW", "BASE TABLE"})) {
+            while (rs.next()) {
+                String name = rs.getString("TABLE_NAME");
+                if (keyword != null && !name.toLowerCase(java.util.Locale.ROOT)
+                        .contains(keyword.toLowerCase(java.util.Locale.ROOT))) continue;
+                DataSourceCatalogTableVO table = new DataSourceCatalogTableVO();
+                table.setDatabase(rs.getString("TABLE_CAT"));
+                table.setSchema(rs.getString("TABLE_SCHEM"));
+                table.setName(name);
+                table.setType(rs.getString("TABLE_TYPE"));
+                table.setRemarks(rs.getString("REMARKS"));
+                tables.add(table);
+            }
+        }
+        tables.sort(Comparator.comparing(DataSourceCatalogTableVO::getDatabase,
+                        Comparator.nullsFirst(String::compareTo))
+                .thenComparing(DataSourceCatalogTableVO::getSchema, Comparator.nullsFirst(String::compareTo))
+                .thenComparing(DataSourceCatalogTableVO::getName));
+        return tables;
     }
 
-    private <T> T query(String datasourceId, CatalogAction<T> action) {
-        return query(datasourceId, DataSourceErrorCode.CATALOG_QUERY_FAILED, action);
+    private static String qualifiedName(DatabaseMetaData meta, DataSourceTablePath path) throws SQLException {
+        String product = meta.getDatabaseProductName();
+        String namespace = product != null && product.toLowerCase(java.util.Locale.ROOT).contains("mysql")
+                ? path.catalog()
+                : path.schema();
+        return (namespace == null ? "" : quote(meta, namespace) + ".") + quote(meta, path.table());
+    }
+
+    private static String quote(DatabaseMetaData meta, String name) throws SQLException {
+        if (name == null || name.isBlank() || name.length() > 128
+                || name.chars().anyMatch(c -> c < 32 || c == 127)) {
+            throw new IllegalArgumentException("Invalid database identifier");
+        }
+        String mark = meta.getIdentifierQuoteString().trim();
+        return mark.isEmpty() ? name : mark + name.replace(mark, mark + mark) + mark;
+    }
+
+    private static Pattern compileOptional(String pattern) {
+        return StringUtils.trimToNull(pattern) == null ? null : Pattern.compile(pattern);
+    }
+
+    private static int boundedLimit(Integer value, int max) {
+        return Math.min(max, Math.max(1, value == null ? 200 : value));
     }
 
     private <T> T query(String datasourceId, DataSourceErrorCode error, CatalogAction<T> action) {
-        JdbcConnectionOptions binding = new JdbcConnectionOptions(
-                resources.connectionOptions(WorkspaceContext.requireWorkspaceId(), datasourceId));
-        return query(binding, error, action);
-    }
-
-    private <T> T query(String datasourceId, long revision, DataSourceErrorCode error, CatalogAction<T> action) {
-        JdbcConnectionOptions binding = new JdbcConnectionOptions(
-                resources.connectionOptions(WorkspaceContext.requireWorkspaceId(), datasourceId, revision));
-        return query(binding, error, action);
-    }
-
-    private <T> T query(JdbcConnectionOptions binding, DataSourceErrorCode error, CatalogAction<T> action) {
-        try (JdbcCatalog catalog =
-                JdbcCatalogFactory.create(binding.url(), new DefaultJdbcConnectionProvider(binding))) {
-            return action.execute(catalog);
-        } catch (SQLException | RuntimeException exception) {
-            throw new DataSourceException(error, null, exception);
+        ReadonlyConfig options = resources.connectionOptions(WorkspaceContext.requireWorkspaceId(), datasourceId);
+        Map<String, Object> settings = options.getSourceMap();
+        if (Boolean.TRUE.equals(settings.get("connection.ssh.enabled"))) {
+            throw new DataSourceException(error, null,
+                    new UnsupportedOperationException("SSH connections are unavailable without the deleted runtime"));
         }
-    }
-
-    private static DataSourceCatalogTableVO tableView(JdbcTableInfo table) {
-        DataSourceCatalogTableVO result = new DataSourceCatalogTableVO();
-        result.setDatabase(table.tableId().catalog());
-        result.setSchema(table.tableId().schema());
-        result.setName(table.tableId().table());
-        result.setType(table.type());
-        result.setRemarks(table.remarks());
-        return result;
-    }
-
-    private static DataSourceCatalogColumnVO columnView(JdbcColumnInfo column) {
-        DataSourceCatalogColumnVO result = new DataSourceCatalogColumnVO();
-        result.setName(column.name());
-        result.setTypeName(column.typeName());
-        result.setJdbcType(column.jdbcType());
-        result.setSize(column.size());
-        result.setScale(column.scale());
-        result.setNullable(column.nullable());
-        result.setOrdinalPosition(column.ordinalPosition());
-        result.setPrimaryKey(column.primaryKey());
-        result.setPrimaryKeyPosition(column.primaryKeyPosition());
-        result.setRemarks(column.remarks());
-        return result;
+        try {
+            String driver = (String) settings.get("connection.driver-class");
+            if (driver != null && !driver.isBlank()) Class.forName(driver);
+            Properties connectionProperties = new Properties();
+            Object extra = settings.get("connection.properties");
+            if (extra instanceof Map<?, ?> entries) {
+                entries.forEach((key, value) -> {
+                    if (key instanceof String k && value != null) {
+                        connectionProperties.setProperty(k, value.toString());
+                    }
+                });
+            }
+            if (settings.get("connection.username") instanceof String name) {
+                connectionProperties.setProperty("user", name);
+            }
+            if (settings.get("connection.password") instanceof String secret) {
+                connectionProperties.setProperty("password", secret);
+            }
+            try (Connection connection = DriverManager.getConnection(
+                    (String) settings.get("connection.url"), connectionProperties)) {
+                return action.execute(connection);
+            }
+        } catch (Exception failure) {
+            throw new DataSourceException(error, null, failure);
+        }
     }
 
     @FunctionalInterface
     private interface CatalogAction<T> {
-        T execute(JdbcCatalog catalog) throws SQLException;
+        T execute(Connection connection) throws SQLException;
     }
 }

@@ -8,8 +8,6 @@ import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogColumnVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceCatalogTableVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourcePreviewVO;
 import io.yak.ops.common.bean.vo.datasource.DataSourceTablePageVO;
-import io.yak.ops.core.data.TableId;
-import io.yak.ops.core.types.TableSchema;
 import java.util.List;
 
 /**
@@ -72,12 +70,4 @@ public interface DataSourceCatalogService {
      */
     List<DataSourceCatalogColumnVO> listColumns(String datasourceId, DataSourceTablePathDTO path);
 
-    /**
-     * Retrieves the dialect-normalized schema of a physical table.
-     *
-     * @param datasourceId identifier of the datasource in the active Workspace
-     * @param tableId physical table identifier containing catalog, schema and table name
-     * @return logical column types and primary-key metadata for the table
-     */
-    TableSchema getTableSchema(String datasourceId, TableId tableId);
 }

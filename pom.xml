@@ -42,17 +42,11 @@
         <module>yak-ops-bom</module>
         <module>yak-ops-test-utils</module>
         <module>yak-ops-common</module>
+        <module>yak-ops-cdc</module>
         <module>yak-ops-platform</module>
         <module>yak-ops-dao</module>
         <module>yak-ops-spi</module>
         <module>yak-ops-configuration</module>
-        <module>yak-ops-core</module>
-        <module>yak-flow/yak-flow-runtime</module>
-        <module>yak-flow/yak-flow-connector-base</module>
-        <module>yak-flow/yak-flow-connector-cdc-base</module>
-        <module>yak-flow/yak-flow-connector-jdbc</module>
-        <module>yak-flow/yak-flow-connector-cdc-mysql</module>
-        <module>yak-ops-engine</module>
         <module>yak-ops-business</module>
         <module>yak-ops-plugins/yak-ops-plugin-datasource</module>
         <module>yak-ops-plugins/yak-ops-plugin-task</module>

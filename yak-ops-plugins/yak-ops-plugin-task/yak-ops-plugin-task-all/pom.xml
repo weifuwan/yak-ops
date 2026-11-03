@@ -17,9 +17,5 @@
     <description>Runtime aggregation of available built-in Task plugins</description>
 
     <dependencies>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-plugin-task-data-sync</artifactId>
-        </dependency>
     </dependencies>
 </project>

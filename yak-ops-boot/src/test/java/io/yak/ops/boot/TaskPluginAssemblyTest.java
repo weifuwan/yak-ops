@@ -1,99 +1,24 @@
 package io.yak.ops.boot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.yak.ops.boot.config.TaskPluginConfiguration;
-import io.yak.ops.configuration.ReadonlyConfig;
-import io.yak.ops.plugin.datasource.api.lookup.DataSourceInfo;
-import io.yak.ops.plugin.datasource.api.lookup.DataSourceLookupService;
-import io.yak.ops.plugin.datasource.api.lookup.DataSourceTable;
-import io.yak.ops.plugin.task.api.TaskChannel;
+import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
-import io.yak.ops.plugin.task.datasync.PipelineConnectorCatalog;
-import io.yak.ops.plugin.task.datasync.PipelineTaskChannel;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
-/** Verifies Boot constructor assembly of one Task registry and DATA_SYNC execution capability. */
+/** The deleted data sync runtime must not register an executable Task plugin. */
 class TaskPluginAssemblyTest {
-
     @Test
-    void loadsTaskPluginThroughBootConfiguration() {
-        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
-                TaskPluginConfiguration.class, TestDatasourceLookup.class)) {
+    void doesNotRegisterRemovedDataSyncPlugin() {
+        try (AnnotationConfigApplicationContext context =
+                new AnnotationConfigApplicationContext(TaskPluginConfiguration.class)) {
             TaskPluginManager registry = context.getBean(TaskPluginManager.class);
-            assertEquals(1, registry.types().size());
-            TaskChannel channel = assertInstanceOf(TaskChannel.class, registry.get(PipelineTaskChannel.TYPE));
-            assertEquals(8, channel.parameterSchemaVersion());
-            PipelineConnectorCatalog catalog = context.getBean(PipelineConnectorCatalog.class);
-            List<PipelineConnectorCatalog.ConnectorPair> pairs = catalog.list("MYSQL", "POSTGRE_SQL");
-            assertEquals(List.of("jdbc-mysql", "mysql"),
-                    pairs.stream().map(PipelineConnectorCatalog.ConnectorPair::sourceConnector).sorted().toList());
-            assertEquals(List.of("jdbc-postgres"),
-                    pairs.stream().map(PipelineConnectorCatalog.ConnectorPair::sinkConnector).distinct().toList());
-            java.util.Map<String, Object> batch = pairs.stream()
-                    .filter(pair -> pair.sourceConnector().equals("jdbc-mysql")).findFirst().orElseThrow().capabilities();
-            java.util.Map<String, Object> cdc = pairs.stream()
-                    .filter(pair -> pair.sourceConnector().equals("mysql")).findFirst().orElseThrow().capabilities();
-            assertEquals(100, batch.get("maxTables"));
-            assertEquals(true, batch.get("sourceRead"));
-            assertEquals(true, batch.get("dataPreview"));
-            assertEquals(true, batch.get("sqlHooks"));
-            assertEquals(false, batch.get("regexSelection"));
-            assertEquals(true, batch.get("typeMapping"));
-            assertFalse(((List<?>) batch.get("typeMappingRules")).isEmpty());
-            assertFalse(((List<?>) batch.get("writeModes")).contains("REPLACE"));
-            assertEquals(false, cdc.get("sourceRead"));
-            assertEquals(false, cdc.get("sqlHooks"));
-            assertEquals(true, cdc.get("regexSelection"));
-            assertEquals(true, cdc.get("dmlEvents"));
-            assertTrue(catalog.list("MYSQL", "MYSQL").stream()
-                    .filter(pair -> pair.sourceConnector().equals("jdbc-mysql"))
-                    .anyMatch(pair -> ((List<?>) pair.capabilities().get("writeModes")).contains("REPLACE")));
-        }
-    }
-
-    @Configuration(proxyBeanMethods = false)
-    static class TestDatasourceLookup {
-        @Bean
-        io.yak.ops.plugin.task.api.execution.TaskCursorStore cursors() {
-            return (identity, batches) -> batches;
-        }
-
-        @Bean
-        DataSourceLookupService datasourceLookup() {
-            return new DataSourceLookupService() {
-                @Override
-                public DataSourceTable table(
-                        String workspaceId,
-                        String datasourceId,
-                        String database,
-                        String schema,
-                        String table) {
-                    throw new UnsupportedOperationException("Connection planning requires authorized product resources");
-                }
-
-                @Override
-                public ReadonlyConfig connectionOptions(String workspaceId, String datasourceId) {
-                    throw new UnsupportedOperationException("Connection resolution requires authorized product resources");
-                }
-
-                @Override
-                public ReadonlyConfig connectionOptions(String workspaceId, String datasourceId, long expectedRevision) {
-                    throw new AssertionError("Connection settings are not used by this test");
-                }
-
-                @Override
-                public DataSourceInfo dataSource(String workspaceId, String datasourceId) {
-                    throw new AssertionError("Datasource lookup is not used by this test");
-                }
-            };
+            assertEquals(List.of(), registry.types());
+            assertThrows(TaskPluginException.class, () -> registry.get("DATA_SYNC"));
         }
     }
 }

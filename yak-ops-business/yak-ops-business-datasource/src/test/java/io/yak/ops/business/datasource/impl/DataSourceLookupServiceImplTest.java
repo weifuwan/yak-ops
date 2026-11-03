@@ -52,7 +52,7 @@ class DataSourceLookupServiceImplTest {
             assertEquals("TEST_H2", service.dataSource("workspace-1", "h2-source").type());
             assertThrows(IllegalStateException.class, () -> service.connectionOptions("workspace-1", "h2-source", 6));
             assertThrows(IllegalStateException.class, () -> service.connectionOptions("workspace-1", "h2-source", 0));
-            assertEquals(H2TestDataSourcePlugin.JDBC_URL, resolved.get(io.yak.ops.connector.jdbc.JdbcConnectionOptions.URL));
+            assertEquals(H2TestDataSourcePlugin.JDBC_URL, resolved.getSourceMap().get("connection.url"));
             assertTrue(!resolved.toString().contains(H2TestDataSourcePlugin.JDBC_URL));
 
             DataSourceException unavailable = assertThrows(

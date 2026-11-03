@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.configuration.ConfigParser;
-import io.yak.ops.connector.jdbc.JdbcConnectionOptions;
 import io.yak.ops.plugin.database.jdbc.mysql.MySqlDataSourcePlugin;
 import io.yak.ops.plugin.database.jdbc.oracle.OracleDataSourcePlugin;
 import io.yak.ops.plugin.database.jdbc.postgresql.PostgreSqlDataSourcePlugin;
@@ -22,10 +21,10 @@ class JdbcConnectionPreparationTest {
                  "driverId":"MYSQL_5","properties":{"connectTimeout":7000}}
                 """));
         var options = plugin.connectionOptions(connection, 11);
-        assertEquals("MYSQL_5", options.get(JdbcConnectionOptions.DRIVER_ID));
-        assertEquals("private-password", options.get(JdbcConnectionOptions.PASSWORD));
-        assertEquals("7000", options.get(JdbcConnectionOptions.PROPERTIES).get("connectTimeout"));
-        assertEquals(11, options.get(JdbcConnectionOptions.TIMEOUT));
+        assertEquals("MYSQL_5", options.getSourceMap().get("connection.driver-id"));
+        assertEquals("private-password", options.getSourceMap().get("connection.password"));
+        assertEquals("7000", ((java.util.Map<?, ?>) options.getSourceMap().get("connection.properties")).get("connectTimeout"));
+        assertEquals(11, options.getSourceMap().get("connection.timeout-seconds"));
         assertFalse(options.toString().contains("private-password"));
         assertFalse(options.toString().contains("jdbc:mysql:"));
         assertTrue(connection.normalizedJson().contains("driverId"));
@@ -41,11 +40,10 @@ class JdbcConnectionPreparationTest {
                                   "passphrase":"phrase-secret","strictHostKeyChecking":false}}
                     """));
             var options = plugin.connectionOptions(connection, 9);
-            assertTrue(options.get(JdbcConnectionOptions.SSH_ENABLED));
-            assertTrue(options.get(JdbcConnectionOptions.SSH_JDBC_URL).contains("127.0.0.1:{port}"));
-            assertEquals("database.internal", options.get(JdbcConnectionOptions.HOST));
-            assertEquals("ssh-secret", options.get(JdbcConnectionOptions.SSH_PASSWORD));
-            new JdbcConnectionOptions(options);
+            assertEquals(Boolean.TRUE, options.getSourceMap().get("connection.ssh.enabled"));
+            assertTrue(((String) options.getSourceMap().get("connection.ssh.jdbc-url")).contains("127.0.0.1:{port}"));
+            assertEquals("database.internal", options.getSourceMap().get("connection.host"));
+            assertEquals("ssh-secret", options.getSourceMap().get("connection.ssh.password"));
             for (String secret : List.of("db-secret", "ssh-secret", "phrase-secret")) { assertFalse(options.toString().contains(secret)); }
         }
     }

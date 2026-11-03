@@ -89,18 +89,6 @@
             <version>1.4.1</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-flow-runtime</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-flow-connector-jdbc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-flow-connector-cdc-mysql</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
