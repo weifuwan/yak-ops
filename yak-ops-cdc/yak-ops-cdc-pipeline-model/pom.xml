@@ -29,9 +29,7 @@ limitations under the License.
     <packaging>pom</packaging>
 
     <modules>
-        <module>yak-ops-cdc-pipeline-model-legacy</module>
         <module>yak-ops-cdc-pipeline-model-dummy</module>
-        <module>yak-ops-cdc-pipeline-model-openai-compatible</module>
     </modules>
 
 </project>

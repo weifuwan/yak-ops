@@ -196,6 +196,14 @@ def analyze(paths: list[str], *, full: bool = False) -> dict:
         if path.startswith("scripts/ci/") or path.startswith("scripts/tests/test_") or path == "scripts/tests/__init__.py":
             # Scope unit tests are always run in the cheap select job.
             continue
+        if path.startswith("yak-ops-configuration/"):
+            # A removed module still impacts its moved consumer contracts.
+            result["backend"] = True
+            selected = affected_modules(["yak-ops-common"])
+            result["modules"].update(selected)
+            result["preflight"] = True
+            result["preflight_modules"].add("yak-ops-common")
+            continue
         if path == "scripts/verify_logging_rules.py":
             # Native backend diagnostics are checked in Backend Quality, not UI or distribution.
             result["backend"] = True

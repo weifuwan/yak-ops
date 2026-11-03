@@ -14,7 +14,7 @@ SOURCE_PREFIXES = (
     "flink-cdc-composer/",
     "flink-cdc-cli/",
     "flink-cdc-flink1-compat/",
-    "flink-cdc-pipeline-model/",
+    "flink-cdc-pipeline-model/flink-cdc-pipeline-model-dummy/",
     "flink-cdc-pipeline-udf-examples/",
     "flink-cdc-connect/flink-cdc-source-connectors/flink-cdc-base/",
     "flink-cdc-connect/flink-cdc-source-connectors/flink-connector-debezium/",
@@ -28,6 +28,7 @@ EXTRA_FILES = {
     "pom.xml",
     "LICENSE",
     "NOTICE",
+    "flink-cdc-pipeline-model/pom.xml",
     "flink-cdc-connect/pom.xml",
     "flink-cdc-connect/flink-cdc-source-connectors/pom.xml",
     "flink-cdc-connect/flink-cdc-pipeline-connectors/pom.xml",
@@ -52,9 +53,7 @@ NAMES = {
     "flink-cdc-pipeline-udf-examples": "yak-ops-cdc-pipeline-udf-examples",
     "flink-cdc-pipeline-model-parent": "yak-ops-cdc-pipeline-model-parent",
     "flink-cdc-pipeline-model": "yak-ops-cdc-pipeline-model",
-    "flink-cdc-pipeline-model-legacy": "yak-ops-cdc-pipeline-model-legacy",
     "flink-cdc-pipeline-model-dummy": "yak-ops-cdc-pipeline-model-dummy",
-    "flink-cdc-pipeline-model-openai-compatible": "yak-ops-cdc-pipeline-model-openai-compatible",
 }
 
 REACTOR = {
@@ -75,8 +74,7 @@ REACTOR = {
         "flink-cdc-pipeline-connector-mysql",
     ),
     "flink-cdc-pipeline-model/pom.xml": (
-        "flink-cdc-pipeline-model-legacy", "flink-cdc-pipeline-model-dummy",
-        "flink-cdc-pipeline-model-openai-compatible",
+        "flink-cdc-pipeline-model-dummy",
     ),
 }
 
@@ -124,6 +122,18 @@ def rewrite_pom(xml: str, relative: str) -> str:
 
     xml = re.sub(r"<(parent|dependency)>([\s\S]*?)</\1>",
                  update_local_coordinate, xml)
+
+    # The upstream pipeline-model aggregator is a POM, not a test JAR.
+    # Remove invalid test dependencies; the Dummy implementation remains a test fixture.
+    if relative in {"flink-cdc-runtime/pom.xml", "flink-cdc-composer/pom.xml"}:
+        xml, removed = re.subn(
+            r"\s*<dependency>\s*<groupId>io\.yak\.ops</groupId>"
+            r"\s*<artifactId>yak-ops-cdc-pipeline-model</artifactId>"
+            r"(?s:.*?)</dependency>",
+            "", xml, count=1,
+        )
+        if removed != 1:
+            raise ValueError(f"Expected invalid model POM test dependency in {relative}")
 
     if relative in REACTOR:
         if "<modules>" not in xml:
@@ -233,7 +243,7 @@ def main() -> None:
         "coordinates and reactor module lists are adapted for Yak Ops.\n\n"
         "Only MySQL CDC connectors and their Debezium/Base dependencies are "
         "included. No other database connectors, Flink 2 compatibility, "
-        "distribution, Python bindings or E2E harness are copied.\n\n"
+        "distribution, optional AI model clients, Python bindings or E2E harness are copied.\n\n"
         "Baseline: Flink 1.20.3, Debezium 1.9.8.Final. "
         "Yak Ops application/task integration intentionally deferred.\n\n"
         "Build from repository root: "

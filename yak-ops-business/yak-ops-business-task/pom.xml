@@ -22,8 +22,6 @@
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-scheduler-quartz</artifactId><scope>test</scope></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-plugin-scheduler-api</artifactId></dependency>
         <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-platform</artifactId></dependency>
-
-        <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-configuration</artifactId></dependency>
         <dependency>
             <groupId>io.yak.ops</groupId>
             <artifactId>yak-ops-common</artifactId>

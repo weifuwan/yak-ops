@@ -12,6 +12,10 @@ ROOT = Path(__file__).resolve().parents[2]
 RECORD_BASELINE_COMMIT = "cbc26fbeace4bd3cb7fa3df57e8250e27f0abe93"
 # Existing var declarations are grandfathered; only additions since the pre-cleanup main are rejected.
 VAR_BASELINE_COMMIT = "36c44d2de643e2edbfaea1b34ef9acf825c87cac"
+# Relocated configuration sources are unchanged; inspect their old paths before enforcing bans.
+CONFIG_RELOCATION_BASELINE_COMMIT = "ce5053903dbf0dd6949817f6a1d44ed9ee2c9784"
+MOVED_CONFIG_PREFIX = "yak-ops-common/src/main/java/io/yak/ops/configuration/"
+ORIGINAL_CONFIG_PREFIX = "yak-ops-configuration/src/main/java/io/yak/ops/configuration/"
 OBSOLETE_DATA_SYNC_PACKAGES = (
     "yak-ops-common/src/main/java/io/yak/ops/common/bean/dto/datasync",
     "yak-ops-common/src/main/java/io/yak/ops/common/bean/vo/datasync",
@@ -128,19 +132,29 @@ def new_var_violations(path: str, source: str, baseline_source: str) -> list[tup
     return errors
 
 
+def baseline_reference(path: str, frozen_commit: str) -> tuple[str, str]:
+    """Resolve an unchanged module relocation against its pre-move Git source."""
+    if path.startswith(MOVED_CONFIG_PREFIX):
+        return (CONFIG_RELOCATION_BASELINE_COMMIT,
+                ORIGINAL_CONFIG_PREFIX + path.removeprefix(MOVED_CONFIG_PREFIX))
+    return frozen_commit, path
+
+
 def baseline_var_source(path: str) -> str:
-    """Read the pre-cleanup Java source to preserve already accepted declarations."""
+    """Read accepted preexisting declarations, including sources moved across modules."""
+    commit, old_path = baseline_reference(path, VAR_BASELINE_COMMIT)
     result = subprocess.run(
-        ["git", "show", f"{VAR_BASELINE_COMMIT}:{path}"],
+        ["git", "show", f"{commit}:{old_path}"],
         cwd=ROOT, text=True, capture_output=True, check=False,
     )
     return result.stdout if result.returncode == 0 else ""
 
 
 def baseline_record_source(path: str) -> str:
-    """Read the frozen record baseline; missing files are new and cannot contain records."""
+    """Keep established records only when they existed before this relocation."""
+    commit, old_path = baseline_reference(path, RECORD_BASELINE_COMMIT)
     result = subprocess.run(
-        ["git", "show", f"{RECORD_BASELINE_COMMIT}:{path}"],
+        ["git", "show", f"{commit}:{old_path}"],
         cwd=ROOT,
         text=True,
         capture_output=True,
@@ -159,6 +173,8 @@ def production_java_files(root: Path = ROOT) -> list[Path]:
 def verify_repository(root: Path = ROOT) -> tuple[int, list[str]]:
     files = production_java_files(root)
     errors = []
+    if (root / "yak-ops-configuration").exists():
+        errors.append("The retired configuration module must not return; use yak-ops-common")
     for folder in OBSOLETE_DATA_SYNC_PACKAGES:
         if (root / folder).exists():
             errors.append(f"Obsolete Data Sync contract package must not return: {folder}")
@@ -172,6 +188,14 @@ def verify_repository(root: Path = ROOT) -> tuple[int, list[str]]:
         )
         if found.returncode != 0:
             errors.append("Java record baseline commit is unavailable; a full git history is required")
+            enforce_records = False
+    if enforce_records:
+        found = subprocess.run(
+            ["git", "cat-file", "-e", f"{CONFIG_RELOCATION_BASELINE_COMMIT}^{{commit}}"],
+            cwd=ROOT, check=False, capture_output=True,
+        )
+        if found.returncode != 0:
+            errors.append("Configuration relocation baseline commit is unavailable")
             enforce_records = False
     if enforce_records:
         found = subprocess.run(

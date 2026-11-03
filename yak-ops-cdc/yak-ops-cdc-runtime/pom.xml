@@ -95,12 +95,6 @@ limitations under the License.
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.yak.ops</groupId>
-            <artifactId>yak-ops-cdc-pipeline-model</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <profiles>

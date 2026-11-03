@@ -4,7 +4,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from check_backend_naming import new_record_violations, new_var_violations, verify_repository, verify_source
+from check_backend_naming import (
+    CONFIG_RELOCATION_BASELINE_COMMIT,
+    MOVED_CONFIG_PREFIX,
+    ORIGINAL_CONFIG_PREFIX,
+    RECORD_BASELINE_COMMIT,
+    baseline_reference,
+    new_record_violations,
+    new_var_violations,
+    verify_repository,
+    verify_source,
+)
 
 CORE = "yak-ops-common/src/main/java/io/yak/ops/common/Foo.java"
 CDC = "yak-ops-cdc/yak-ops-cdc-runtime/src/main/java/io/yak/ops/cdc/runtime/Foo.java"
@@ -105,6 +115,22 @@ class BackendNamingTest(unittest.TestCase):
             "class ExternalCodec {}",
         ))
 
+    def test_configuration_relocation_uses_original_source_for_baselines(self):
+        path = MOVED_CONFIG_PREFIX + "rule/ConditionRule.java"
+        self.assertEqual(
+            (CONFIG_RELOCATION_BASELINE_COMMIT, ORIGINAL_CONFIG_PREFIX + "rule/ConditionRule.java"),
+            baseline_reference(path, RECORD_BASELINE_COMMIT),
+        )
+        self.assertEqual(
+            (RECORD_BASELINE_COMMIT, CORE),
+            baseline_reference(CORE, RECORD_BASELINE_COMMIT),
+        )
+        prior = source("io.yak.ops.configuration.rule", "public record ConditionRule(int id) {}")
+        self.assertEqual([], new_record_violations(path, prior, prior))
+        self.assertEqual(1, len(new_record_violations(
+            path, prior + "\nrecord NewlyAdded(int value) {}", prior,
+        )))
+
     def test_new_record_declarations_are_rejected_without_rewriting_existing_records(self):
         previous = source("io.yak.ops.common", "record Existing(int value) {}")
         current = source(
@@ -137,6 +163,13 @@ class BackendNamingTest(unittest.TestCase):
         self.assertEqual([], self.check(
             "yak-ops-task-execution/src/main/java/io/yak/ops/task/execution/PipelineComposer.java",
             "io.yak.ops.task.execution", "interface PipelineComposer {}"))
+
+    def test_reintroduced_configuration_module_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory) / "yak-ops-configuration"
+            folder.mkdir(parents=True)
+            _, errors = verify_repository(Path(directory))
+            self.assertTrue(any("retired configuration module" in error for error in errors))
 
     def test_obsolete_datasync_packages_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

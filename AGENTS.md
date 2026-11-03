@@ -21,7 +21,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 ## Repository Structure
 
 - `yak-ops-cdc` retains Flink CDC CLI, composer, runtime and MySQL connector source; it is not yet wired to the product Task plugin.
-- `yak-ops-configuration` owns the shared option parsing and validation contracts used by Task and Datasource plugins.
+- `yak-ops-common` now owns shared `io.yak.ops.configuration` option parsing and validation contracts used by Task and Datasource plugins; do not recreate a separate configuration module.
 - `yak-ops-business` owns datasource/task business lifecycle; `yak-ops-task-execution` owns process-level dispatch, observation, cancellation, and embedded Task execution.
 - `yak-ops-plugins` owns plugin APIs and implementations; `yak-ops-dao` owns repositories, persistence, and Flyway; `yak-ops-platform` owns Workspace, security, and preferences.
 - `yak-ops-common` holds genuine shared utilities; `yak-ops-boot` assembles the application and HTTP boundary.

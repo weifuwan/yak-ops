@@ -105,6 +105,15 @@ class ImpactTest(unittest.TestCase):
         self.assertNotIn("yak-ops-dist", selected)
         self.assertNotIn("yak-ops-ui", selected)
 
+    def test_retired_configuration_module_is_owned_by_common(self):
+        impact.reactor_modules.cache_clear()
+        result = impact.analyze(["yak-ops-configuration/pom.xml"])
+        self.assertTrue(result["backend"])
+        self.assertFalse(result["frontend"])
+        self.assertFalse(result["distribution"])
+        self.assertIn("yak-ops-common", result["modules"])
+        self.assertTrue(result["preflight"])
+
     def test_removed_jdbc_reactor_paths_fail_closed(self):
         # The old yak-flow JDBC module is not in the current Maven reactor.
         # Unknown/deleted module paths must not be mistaken for narrow changes.

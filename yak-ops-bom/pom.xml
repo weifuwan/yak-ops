@@ -62,7 +62,6 @@
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-platform</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-dao</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-spi</artifactId><version>${project.version}</version></dependency>
-            <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-configuration</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-boot</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-business-datasource</artifactId><version>${project.version}</version></dependency>
             <dependency><groupId>io.yak.ops</groupId><artifactId>yak-ops-business-task</artifactId><version>${project.version}</version></dependency>
