@@ -38,6 +38,7 @@ import io.yak.ops.cdc.common.sink.EventSinkProvider;
 import io.yak.ops.cdc.common.sink.MetadataApplier;
 import io.yak.ops.cdc.common.source.DataSource;
 import io.yak.ops.cdc.common.source.EventSourceProvider;
+import io.yak.ops.cdc.common.source.MetadataAccessor;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
@@ -95,7 +96,17 @@ class SourceSinkContractTest {
             public DataSource createDataSource(Context context) {
                 assertSame(factoryConfig, context.getFactoryConfiguration());
                 assertSame(pipelineConfig, context.getPipelineConfiguration());
-                return () -> sourceProvider;
+                return new DataSource() {
+                    @Override
+                    public EventSourceProvider getEventSourceProvider() {
+                        return sourceProvider;
+                    }
+
+                    @Override
+                    public MetadataAccessor getMetadataAccessor() {
+                        return null;
+                    }
+                };
             }
         };
         DataSource source = sourceFactory.createDataSource(context);

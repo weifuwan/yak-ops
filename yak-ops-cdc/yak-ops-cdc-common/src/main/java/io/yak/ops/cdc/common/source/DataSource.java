@@ -27,10 +27,16 @@ import io.yak.ops.cdc.common.annotation.PublicEvolving;
 @PublicEvolving
 public interface DataSource {
 
-    // Metadata and supported column contracts are restored after Schema/DataType migration.
-
     /** Get the {@link EventSourceProvider} for reading events from external systems. */
     EventSourceProvider getEventSourceProvider();
+
+    /** Get the {@link MetadataAccessor} for accessing metadata from external systems. */
+    MetadataAccessor getMetadataAccessor();
+
+    /** Get the {@link SupportedMetadataColumn}s of the source. */
+    default SupportedMetadataColumn[] supportedMetadataColumns() {
+        return new SupportedMetadataColumn[0];
+    }
 
     /**
      * Indicating if this source may generate metadata events (SchemaChangeEvents) in parallel for

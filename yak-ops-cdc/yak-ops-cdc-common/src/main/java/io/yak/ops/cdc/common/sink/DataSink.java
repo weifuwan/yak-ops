@@ -18,6 +18,8 @@
 package io.yak.ops.cdc.common.sink;
 
 import io.yak.ops.cdc.common.annotation.PublicEvolving;
+import io.yak.ops.cdc.common.event.DataChangeEvent;
+import io.yak.ops.cdc.common.function.HashFunctionProvider;
 
 /**
  * {@code DataSink} is used to write change data to external system and apply metadata changes to
@@ -32,6 +34,17 @@ public interface DataSink {
     /** Get the {@link MetadataApplier} for applying metadata changes to external systems. */
     MetadataApplier getMetadataApplier();
 
-    // HashFunctionProvider methods require the yet-to-be-migrated DataChangeEvent/RecordData
-    // and Schema type contracts. Restore their upstream signatures in that phase.
+    /**
+     * Get the {@code HashFunctionProvider<DataChangeEvent>} for calculating hash value if you need
+     * to partition by data change event before Sink.
+     */
+    default HashFunctionProvider<DataChangeEvent> getDataChangeEventHashFunctionProvider() {
+        return new DefaultDataChangeEventHashFunctionProvider();
+    }
+
+    default HashFunctionProvider<DataChangeEvent> getDataChangeEventHashFunctionProvider(
+            int parallelism) {
+        return getDataChangeEventHashFunctionProvider(); // fallback to nullary version if it isn't
+        // overridden
+    }
 }
