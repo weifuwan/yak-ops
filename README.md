@@ -45,4 +45,4 @@ docker compose up -d
 - [历史 GitHub Releases](https://github.com/weifuwan/yak-ops/releases)
 - [发布操作](scripts/release/README.md)
 
-发布检查包括 CI、JDBC Source/Sink、CDC、独立 `yak-ops-e2e` 模块的产品/恢复集成测试、Playwright UI、Distribution 与 Docker/Compose 验证。`yak-ops-boot` 模块内旧的 E2E 未作为当前测试入口；各测试是否通过以对应 Release Gate 的实际报告为准。发布证据来自 GitHub Actions、Git Tags 和 Release Assets。
+发布检查包括 CI、JDBC Source/Sink、CDC、Playwright UI、Distribution 与 Docker/Compose 验证。各测试是否通过以对应 Release Gate 的实际报告为准。发布证据来自 GitHub Actions、Git Tags 和 Release Assets。

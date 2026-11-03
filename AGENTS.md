@@ -26,7 +26,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 - `yak-ops-plugins` owns plugin APIs and implementations; `yak-ops-dao` owns repositories, persistence, and Flyway; `yak-ops-platform` owns Workspace, security, and preferences.
 - `yak-ops-common` holds genuine shared utilities; `yak-ops-boot` assembles the application and HTTP boundary.
 - `yak-ops-registry-api` and `yak-ops-registry-jdbc` retain upstream DolphinScheduler 3.4.3 Registry source and API; keep upstream files and source formatting intact, isolate only minimal compatibility adapters and document deviations.
-- `yak-ops-ui` owns the frontend; `yak-ops-test-utils` is test-only; `yak-ops-e2e` owns packaged-process HTTP Task tests.
+- `yak-ops-ui` owns the frontend; `yak-ops-test-utils` is test-only.
 
 ## Architecture Boundaries
 
@@ -64,9 +64,9 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 
 ## Verification Scope and Incremental Review
 
-- Ordinary `verify` must not start Docker. Use `scripts/tests/run.sh` and its suite manifest for real JDBC/CDC IT and packaged-process recovery E2E. Keep registered IT reports complete; missing, skipped, or failed selected tests are failures.
-- Select unit tests for pure logic, real database IT for JDBC/CDC semantics, and process-recovery E2E for durable guarantees. Do not repeat the same scenario for every class/database. Retain unique dialect, XA, security, checkpoint, and crash-recovery coverage; map coverage before removing tests.
-- Isolate data, Workspace, and state per test. Use bounded condition-based waits; do not hide flakes via silent retries or change production checkpoint intervals for tests. Recovery/destructive tests need private environments and captured diagnostics before cleanup.
+- Ordinary `verify` must not start Docker. Use `scripts/tests/run.sh` and its suite manifest for real JDBC/CDC integration tests. Keep registered IT reports complete; missing, skipped, or failed selected tests are failures.
+- Select unit tests for pure logic, real database IT for JDBC/CDC semantics, and targeted CDC recovery integration tests for durable guarantees. Do not repeat the same scenario for every class/database. Retain unique dialect, XA, security, checkpoint, and crash-recovery coverage; map coverage before removing tests.
+- Isolate data, Workspace, and state per test. Use bounded condition-based waits; do not hide flakes via silent retries or change production checkpoint intervals for tests. Destructive integration tests need private environments and captured diagnostics before cleanup.
 - Follow the [Backend Tests and Release Gate](DEVELOPMENT.md#test-types-and-execution) scope. Frontend Playwright checks browser behavior; do not place real CDC/transaction waits in browser tests. Unselected suites are **not selected**, not passed.
 - For reviews, record head, base, tested tree/SHA, changed files, and relevant CI evidence. Read affected callers/tests; after fixes review the delta from the prior reviewed SHA, expanding when shared contracts or base change. Known unresolved failures remain blockers.
 

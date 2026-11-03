@@ -26,7 +26,7 @@ bash mvnw -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.
 bash mvnw -DskipTests -pl '!yak-ops-bom,!yak-ops-ui,!yak-ops-dist' com.diffplug.spotless:spotless-maven-plugin:3.10.2:check
 ```
 
-Run relevant tests before the full reactor. Ordinary Maven `verify` runs unit and architecture tests without Docker. Database tests use the explicit `integration-tests` profile and Failsafe; Backend E2E also uses `backend-e2e` and runs the packaged Boot JAR. An unexecuted test is not a pass.
+Run relevant tests before the full reactor. Ordinary Maven `verify` runs unit and architecture tests without Docker. Database tests use the explicit `integration-tests` profile and Failsafe. An unexecuted test is not a pass.
 
 Frontend commands and quality checks are documented in [frontend tooling](yak-ops-ui/docs/tooling.md).
 
@@ -38,7 +38,6 @@ Frontend commands and quality checks are documented in [frontend tooling](yak-op
 | JDBC IT | JDBC Connector test packages | Selected backend PRs; full release suite |
 | YakFlow integration | Runtime and Connector tests | Selected backend PRs; full release suite |
 | Business database IT | Business modules | Selected backend PRs; full release suite |
-| Backend E2E | `yak-ops-e2e` | Selected backend PRs; full release suite |
 | UI automation / deployment | Playwright / Docker Compose | Release; manual as needed |
 
 ### Backend integration tests
@@ -52,29 +51,27 @@ bash scripts/tests/run.sh jdbc oracle
 bash scripts/tests/run.sh pipeline
 bash scripts/tests/run.sh business
 bash scripts/tests/run.sh cdc
-bash scripts/tests/run.sh backend-e2e
-bash scripts/tests/run.sh recovery-e2e
 bash scripts/tests/run.sh full
 python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 ```
 
 ### Test quality
 
-Cover the smallest stable behavior contract that can catch a real regression. Choose a deterministic unit test for pure logic or serialized state; choose a real database integration test for JDBC/CDC semantics; reserve process E2E for submission, durable recovery and cross-component guarantees. Do not mirror each production class with its own test by default or reproduce the same fixtures across every database. Shared behavior belongs in reusable test bases; vendor-specific behavior stays in the owning tests.
+Cover the smallest stable behavior contract that can catch a real regression. Choose a deterministic unit test for pure logic or serialized state; choose a real database integration test for JDBC/CDC semantics; use the appropriate integration suite for durable CDC and cross-component guarantees. Do not mirror each production class with its own test by default or reproduce the same fixtures across every database. Shared behavior belongs in reusable test bases; vendor-specific behavior stays in the owning tests.
 
-Before adding tests, identify the distinct failure they would detect and check existing unit, IT and E2E scenarios. Prefer outcome assertions over private-field reflection and Mockito invocation checks, except where the interaction is an observable requirement. For failed CDC, checkpoint or XA scenarios, validate the production behavior rather than weakening assertions or simply deleting tests. For test removal, keep an explicit replacement/coverage mapping in the PR.
+Before adding tests, identify the distinct failure they would detect and check existing unit and IT scenarios. Prefer outcome assertions over private-field reflection and Mockito invocation checks, except where the interaction is an observable requirement. For failed CDC, checkpoint or XA scenarios, validate the production behavior rather than weakening assertions or simply deleting tests. For test removal, keep an explicit replacement/coverage mapping in the PR.
 
-Each command is one Maven invocation. Failsafe discovers `*IT` classes by JUnit tags; ordinary tests use `*Test`. Register every concrete IT in `scripts/tests/backend_tests.py`. Selected classes must produce complete XML reports with no failed, skipped or missing cases. IDE execution of one IT class remains available; Backend E2E requires a freshly packaged Boot JAR.
+Each command is one Maven invocation. Failsafe discovers `*IT` classes by JUnit tags; ordinary tests use `*Test`. Register every concrete IT in `scripts/tests/backend_tests.py`. Selected classes must produce complete XML reports with no failed, skipped or missing cases. IDE execution of one IT class remains available.
 
-Common Source/Sink behavior belongs in reusable Connector test bases, database-specific types and DDL in their subclasses. Connector and Runtime tests do not depend on HTTP or Boot. Cross-database cases retain the supported MySQL/PostgreSQL/Oracle routes without multiplying every common scenario by every pair. Transaction and concurrency checks belong in business database tests; only API wiring and process lifecycle require Backend E2E.
+Common Source/Sink behavior belongs in reusable Connector test bases, database-specific types and DDL in their subclasses. Connector and Runtime tests do not depend on HTTP or Boot. Cross-database cases retain the supported MySQL/PostgreSQL/Oracle routes without multiplying every common scenario by every pair. Transaction and concurrency checks belong in business database tests.
 
-JUnit owns shared containers within one module's test execution. Data is isolated per scenario; normal E2E shares the application process, not Workspace or task state. Destructive and process-recovery cases own independent processes. Stop running tasks before deleting their data. Do not mix class-scoped container shutdown with root-store reuse, share resources across CI jobs, or enable parallel methods without proving isolation.
+JUnit owns shared containers within one module's test execution. Data is isolated per scenario; integration cases isolate state and resources. Destructive and recovery cases own independent environments. Stop running tasks before deleting their data. Do not mix class-scoped container shutdown with root-store reuse, share resources across CI jobs, or enable parallel methods without proving isolation.
 
 The [Nightly Backend Acceptance workflow](.github/workflows/nightly-backend-acceptance.yml) runs `suite: full` every day at 18:00 UTC (02:00 Asia/Singapore) on the default branch. It is also manually runnable. Nightly is additional coverage, not a replacement for affected PR checks or the full Release Gate; failure, skip or missing evidence must not be treated as success.
 
-The [Backend Tests workflow](.github/workflows/backend-tests.yml) selects registered JDBC, Pipeline, Business, CDC, Backend E2E and Recovery E2E suites from the complete PR diff. MySQL CDC Source unit tests follow Flink CDC test names. The connector-local `cdc` suite exercises the real MySQL Snapshot/Backfill contracts, while CDC production changes also select Backend E2E and Recovery E2E. The new suite does not replace broader cross-process crash-recovery acceptance; remaining E2E suites do not establish equivalent coverage for every retired scenario. Shared or unrecognized backend changes still select the full registered matrix, and missing, skipped or failed selected reports block the check.
+The [Backend Tests workflow](.github/workflows/backend-tests.yml) selects registered JDBC, Pipeline, Business and CDC suites from the complete PR diff. MySQL CDC Source unit tests follow Flink CDC test names. The connector-local `cdc` suite exercises the real MySQL Snapshot/Backfill contracts, and CDC production changes select the CDC suite. Cross-process crash-recovery acceptance is not covered by the remaining database integration suites. Shared or unrecognized backend changes still select the full registered matrix, and missing, skipped or failed selected reports block the check.
 
-Reports live in each module's `target/failsafe-reports/` and `target/test-artifacts/`; the root `target/test-artifacts/result.json` records the tested SHA, command, selected suites and observed method counts. Diagnostics are captured before cleanup, including Boot/container logs, task state, startup timing and process thread dumps on failure. No credentials or full sensitive task payloads belong in reports. A missing Docker daemon, skipped selected test or empty report fails the run.
+Reports live in each module's `target/failsafe-reports/` and `target/test-artifacts/`; the root `target/test-artifacts/result.json` records the tested SHA, command, selected suites and observed method counts. Diagnostics are captured before cleanup, including container logs and database test diagnostics on failure. No credentials or full sensitive task payloads belong in reports. A missing Docker daemon, skipped selected test or empty report fails the run.
 
 ### Playwright UI Tests
 
