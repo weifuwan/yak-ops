@@ -34,9 +34,9 @@ Frontend commands and quality checks are documented in [frontend tooling](yak-op
 
 | Tests | Ownership | Execution |
 | --- | --- | --- |
-| Unit / frontend contracts | Java modules / `yak-ops-ui` | Affected PR quality checks |
+| Backend unit tests | Java modules | PR and main/dev CI |
 | Business database IT | Business modules | Selected backend PRs; full release suite |
-| Frontend contracts / deployment | TypeScript checks / Docker Compose | Related PRs; release |
+| Frontend / backend formatting | Oxfmt / Spotless | PR and main/dev CI |
 
 ### Backend integration tests
 
@@ -61,17 +61,13 @@ Common Source/Sink behavior belongs in reusable Connector test bases, database-s
 
 JUnit owns shared containers within one module's test execution. Data is isolated per scenario; integration cases isolate state and resources. Destructive and recovery cases own independent environments. Stop running tasks before deleting their data. Do not mix class-scoped container shutdown with root-store reuse, share resources across CI jobs, or enable parallel methods without proving isolation.
 
-The [Nightly Backend Acceptance workflow](.github/workflows/nightly-backend-acceptance.yml) runs `suite: full` every day at 18:00 UTC (02:00 Asia/Singapore) on the default branch. It is also manually runnable. Nightly is additional coverage, not a replacement for affected PR checks or the full Release Gate; failure, skip or missing evidence must not be treated as success.
-
-The [Backend Tests workflow](.github/workflows/backend-tests.yml) selects the registered Business and CDC suites from the complete PR diff. MySQL CDC Source unit tests follow Flink CDC test names; upstream `*ITCase` classes remain outside the current Failsafe `*IT` registry. The connector-local `cdc` suite runs `TableExclusionDuringSnapshotIT` with a real database, and CDC production changes select the CDC suite. Cross-process crash-recovery acceptance is not covered by the remaining database integration suites. Shared or unrecognized backend changes still select the full registered matrix, and missing, skipped or failed selected reports block the check.
+The [Backend Tests workflow](.github/workflows/backend-tests.yml) runs JUnit unit tests for affected Maven modules and registered Business/CDC database integration tests. Main pushes run the full backend matrix; pull requests and dev pushes select affected modules and database suites. Maven or test-infrastructure changes use full scope. CDC Runtime, Composer, CLI and MySQL Source unit tests now share this workflow; there are no specialized CDC or nightly workflows.
 
 Reports live in each module's `target/failsafe-reports/` and `target/test-artifacts/`; the root `target/test-artifacts/result.json` records the tested SHA, command, selected suites and observed method counts. Diagnostics are captured before cleanup, including container logs and database test diagnostics on failure. No credentials or full sensitive task payloads belong in reports. A missing Docker daemon, skipped selected test or empty report fails the run.
 
-### Frontend checks and optional browser verification
+### CI formatting and frontend verification
 
-Normal frontend PRs use Quality Check for formatting, lint, types, architecture, contracts, and production build validation. The formal Release Gate also runs Docker Compose authentication and HTTP smoke checks, but does not run browser automation.
-
-Local Playwright scenarios may still be used on demand for browser interaction checks; see [UI test instructions](yak-ops-ui/tests/e2e/README.md). These local tests are not required CI or release evidence, and do not replace backend database/CDC integration tests.
+[Code Format](.github/workflows/format-check.yml) runs Oxfmt for frontend changes and Spotless for changed Java modules. It does not run frontend tests, lint, typecheck, build, distribution checks or release validation. Frontend typing and builds remain available locally via `yak-ops-ui/package.json`.
 
 ### Test and review evidence
 
@@ -94,7 +90,7 @@ python3 scripts/ci/test_logging_rules.py
 python3 scripts/verify_logging_rules.py
 ```
 
-Keep JavaDoc and implementation comments in English. Checkstyle validates the configured backend source packages; public interfaces and non-obvious lifecycle contracts require useful documentation. Logging validation enforces SLF4J structure, sensitive-data safety and English internal log templates. Core and Runtime diagnostic strings and Connector technical exception messages use English; user-facing ErrorCode and validation messages remain localized. TRACE remains supported. In CI, Checkstyle and Spotless run before `verify`; their repeated Maven executions are skipped only after both checks pass. Plain local `verify` still enforces them.
+Keep JavaDoc and implementation comments in English. Checkstyle validates the configured backend source packages; public interfaces and non-obvious lifecycle contracts require useful documentation. Logging validation enforces SLF4J structure, sensitive-data safety and English internal log templates. Core and Runtime diagnostic strings and Connector technical exception messages use English; user-facing ErrorCode and validation messages remain localized. TRACE remains supported. GitHub CI uses Spotless as the Java formatting gate. Backend test CI skips Spotless/Checkstyle within Maven because formatting is a separate workflow. Other Maven checks remain available locally; plain `verify` still runs configured lifecycle checks.
 
 ## Documentation and Design
 
@@ -104,4 +100,4 @@ Follow the [current-state comment and documentation rules](AGENTS.md#current-sta
 - Ordinary implementation details belong in code, JavaDoc, tests and the GitHub PR; no companion descriptive Markdown is required.
 - Change user documentation for new or changed user-visible functionality, compatibility or operation procedures.
 - Consult current code, JavaDoc, tests and accepted YOIPs for behavior and design decisions.
-- Versioned user-facing release notes live in [docs/releases](docs/releases/README.md), reviewed before the Release Gate. Release decisions and test evidence remain in Gate artifacts; published notes and immutable asset evidence also appear in GitHub Releases.
+- Versioned user-facing release notes live in [docs/releases](docs/releases/README.md). Release preparation and publishing are manual operations; the two CI workflows do not certify release readiness.

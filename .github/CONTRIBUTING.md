@@ -23,12 +23,12 @@ One significant design proposal may guide multiple implementation PRs. Do **not*
 
 Use the [YOIP index](../docs/yoips/README.md) as the proposal register. Historical identifiers YOIP-7 through YOIP-19 are retired and reserved, even after their navigation files are deleted. The duplicate historical CDC YOIP-4 label is not an approved proposal; YOIP-4 belongs to the accepted Quartz design. Historical implementation details remain accessible through Git history and original PRs, not a second engineering-document directory. New proposals must be registered in the index and use the exact six English template sections in order, with substantive content rather than placeholders.
 
-The existing CI scope job runs `scripts/ci/check_yoips.py` for changes to YOIP records. It validates syntax, index registration and decision links; it cannot verify who voted or evaluate design quality. Normal implementation PRs do not need to change a YOIP.
+Maintainers can run `python3 scripts/ci/check_yoips.py` when reviewing YOIP records. It validates syntax, index registration and decision links; it cannot verify who voted or evaluate design quality. Normal implementation PRs do not need to change a YOIP.
 
 ### Propose and Discuss
 
 - Create a **proposal-only** PR containing `docs/yoips/YOIP-N-short-title.md`, based on [YOIP_TEMPLATE.md](YOIP_TEMPLATE.md), and add its entry to the [YOIP index](../docs/yoips/README.md). Check open proposals and reserve an unused number above the historical 7–19 range. A proposed YOIP is not an implemented feature.
-- Start with `Status: Discussion` and `Decision: Pending`. After opening the proposal PR, replace the Discussion placeholder with its actual GitHub PR URL. The initial CI run can fail until the PR URL is recorded.
+- Start with `Status: Discussion` and `Decision: Pending`. After opening the proposal PR, replace the Discussion placeholder with its actual GitHub PR URL. The YOIP validation script can fail until the PR URL is recorded.
 - Title the proposal PR `[DISCUSS][YOIP-XXXX] Description`. Link the proposal to the PR discussion and record the status as `Discussion`.
 - Discuss motivation, public interfaces, compatibility and rejected alternatives **on the proposal PR**, not in implementation commits. Update the proposal to reflect material design changes.
 - When outstanding design questions are resolved, request an explicit maintainer **[VOTE]** / decision in the proposal PR. Record the acceptance or rejection and its rationale there; do not infer acceptance from silence or a green CI status.
@@ -45,7 +45,7 @@ Versioned user-facing release notes follow [docs/releases/README.md](../docs/rel
 
 Code, types and tests describe the implemented behavior. Update JavaDoc for contracts that callers cannot infer; update user guides when visible behavior, compatibility or operations change. Do **not** require updates to Architecture, Capability or module Rules Markdown solely because a class, method or package changed. Do not create new descriptions of existing implementation just to satisfy a PR checklist.
 
-Use code, JavaDoc, TypeScript contracts, tests, persisted data and accepted YOIP decisions for current behavior. The same YOIP threshold applies to frontend and backend public changes; ordinary UI layout, styling and internal component refactors use focused PRs without separate descriptive design documents. Preserve security, CI, migration checks and release validation. Write YOIPs for significant proposed designs, not routine changes.
+Use code, JavaDoc, TypeScript contracts, tests, persisted data and accepted YOIP decisions for current behavior. The same YOIP threshold applies to frontend and backend public changes; ordinary UI layout, styling and internal component refactors use focused PRs without separate descriptive design documents. Preserve security, migration checks and manual release validation. Write YOIPs for significant proposed designs, not routine changes.
 
 ## Pull Requests
 

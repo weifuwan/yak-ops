@@ -57,7 +57,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 
 ## Code Quality and Review
 
-- Use the existing Spotless + Palantir Java Format, Checkstyle, ArchUnit, and logging checks. Never weaken them to make CI green.
+- GitHub CI runs frontend Oxfmt, backend Spotless, and backend unit/integration tests. Other static analysis and build commands remain available locally; never claim an unrun check passed.
 - Test externally observable contracts and invariants, not every new method or class. Do not expose production accessors just for tests. Prefer deterministic assertions to sleeps, reflection into private state, and method-count mocks.
 - Ordinary bug fixes/refactors need focused code/tests/JavaDoc, not parallel Markdown narratives. Use [the YOIP process](.github/CONTRIBUTING.md) before major subsystem or public contract changes; routine CDC stages, CI fixes, and refactors do not need YOIPs.
 - Frontend changes follow [FRONTEND_RULES.md](yak-ops-ui/FRONTEND_RULES.md). Keep one coherent change per PR and report its purpose, public impact, and evidence using [the PR template](.github/PULL_REQUEST_TEMPLATE.md).
@@ -67,7 +67,7 @@ Project rules for humans and coding agents. Follow [Apache Flink's contribution]
 - Ordinary `verify` must not start Docker. Use `scripts/tests/run.sh` and its suite manifest for current Business and MySQL CDC database integration tests. Keep registered IT reports complete; missing, skipped, or failed selected tests are failures.
 - Select unit tests for pure logic, real database IT for current CDC and Task persistence semantics, and targeted CDC recovery integration tests for durable guarantees. Do not repeat the same scenario for every class/database. Retain unique dialect, XA, security, checkpoint, and crash-recovery coverage; map coverage before removing tests.
 - Isolate data, Workspace, and state per test. Use bounded condition-based waits; do not hide flakes via silent retries or change production checkpoint intervals for tests. Destructive integration tests need private environments and captured diagnostics before cleanup.
-- Follow the [Backend Tests and Release Gate](DEVELOPMENT.md#test-types-and-execution) scope. Frontend static checks do not prove browser behavior or database/CDC correctness. Unselected suites are **not selected**, not passed.
+- Follow the [Backend Test Selection](DEVELOPMENT.md#backend-integration-tests) scope. Frontend CI checks formatting only, not rendering, types, builds, or API behavior. Unselected suites are **not selected**, not passed.
 - For reviews, record head, base, tested tree/SHA, changed files, and relevant CI evidence. Read affected callers/tests; after fixes review the delta from the prior reviewed SHA, expanding when shared contracts or base change. Known unresolved failures remain blockers.
 
 ## Persistence and Public Contract Documentation
