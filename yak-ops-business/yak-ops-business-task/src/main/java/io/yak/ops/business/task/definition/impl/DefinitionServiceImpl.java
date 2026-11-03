@@ -37,7 +37,6 @@ import io.yak.ops.plugin.task.api.TaskPluginException;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -219,32 +218,8 @@ public class DefinitionServiceImpl implements DefinitionService {
                 || !dto.getSorts().isEmpty()) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
         }
-        Map<String, String> filters = dto.getParameterFilters();
-        if (filters == null) {
-            filters = Map.of();
-        }
-        if (filters.size() > 16
-                || filters.keySet().stream()
-                        .anyMatch(k -> k == null
-                                || !java.util.Set.of(
-                                                "sourceType",
-                                                "sinkType",
-                                                "runtimeMode",
-                                                "tableScope",
-                                                "sourceDataSourceId",
-                                                "targetDataSourceId",
-                                                "dataSyncProfile")
-                                        .contains(k))) {
+        if (dto.getParameterFilters() != null && !dto.getParameterFilters().isEmpty()) {
             throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
-        }
-        if (filters.containsKey("dataSyncProfile")) {
-            String profile = filters.get("dataSyncProfile");
-            if (!"DATA_SYNC".equals(StringUtils.trimToNull(dto.getTaskType()))
-                    || profile == null
-                    || !java.util.Set.of("SINGLE_TABLE_BATCH", "DATABASE_REPLICATION")
-                            .contains(profile)) {
-                throw new BusinessException(CommonErrorCode.PARAM_NOT_VALID);
-            }
         }
         Integer status = null;
         if (dto.getStatus() != null) {
@@ -256,8 +231,7 @@ public class DefinitionServiceImpl implements DefinitionService {
                 dto.getPageSize(),
                 StringUtils.trimToNull(dto.getKeyword()),
                 StringUtils.trimToNull(dto.getTaskType()),
-                status,
-                filters);
+                status);
         return PagingData.from(definitionRepository.queryPage(filter).map(this::toVO));
     }
 

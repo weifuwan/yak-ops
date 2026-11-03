@@ -7,7 +7,7 @@ import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-/** Task page request with exact indexed parameter filters and an optional Data Sync product filter. */
+/** Task Definition page request with explicit rejection of removed product filters. */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class DefinitionQueryDTO extends PageQueryDTO {
@@ -19,10 +19,6 @@ public class DefinitionQueryDTO extends PageQueryDTO {
     private String taskType;
     /** Optional publication status filter, independent of runtime state. */
     private DefinitionStatus status;
-    /**
-     * Exact filters on server-generated parameter indexes. For {@code taskType=DATA_SYNC},
-     * {@code dataSyncProfile} also accepts {@code SINGLE_TABLE_BATCH} or {@code DATABASE_REPLICATION};
-     * it filters the product view derived from the definition without changing its execution mode.
-     */
+    /** Legacy product parameter filters are rejected rather than silently ignored. */
     private Map<String, String> parameterFilters;
 }

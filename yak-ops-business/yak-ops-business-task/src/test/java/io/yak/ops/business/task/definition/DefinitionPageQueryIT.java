@@ -9,7 +9,6 @@ import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
-import io.yak.ops.common.util.JSONUtils;
 import io.yak.ops.dao.entity.task.DefinitionEntity;
 import io.yak.ops.common.enums.task.DefinitionStatus;
 import io.yak.ops.dao.mapper.task.DefinitionMapper;
@@ -18,10 +17,7 @@ import io.yak.ops.testutils.DatabaseMetadata;
 import io.yak.ops.testutils.MySqlDatabase;
 import io.yak.ops.testutils.TestNames;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import javax.sql.DataSource;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -35,7 +31,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
-/** Real MySQL product filtering and MyBatis pagination over current Task Definition versions. */
+/** Real MySQL Task Definition pagination, Workspace isolation and immutable current-version matching. */
 @Tag("business")
 @Timeout(120)
 class DefinitionPageQueryIT {
@@ -83,75 +79,58 @@ class DefinitionPageQueryIT {
     }
 
     @Test
-    void replicationIncludesSnapshotsAndOmittedStartupBeforeCountingAndPaging() {
-        insert("01-snapshot-single", parameters("mysql", "BATCH", "SINGLE", "SNAPSHOT", 1));
-        insert("02-snapshot-database", parameters("mysql", "BATCH", "DATABASE", "SNAPSHOT", 2));
-        insert("03-initial", parameters("mysql", "STREAMING", "DATABASE", "INITIAL", 2));
-        insert("04-incremental", parameters("mysql", "STREAMING", "SINGLE", "LATEST_OFFSET", 1));
-        insert("05-default-initial", parameters("mysql", "STREAMING", null, null, 1));
-        insert("06-jdbc", parameters("jdbc-mysql", "BATCH", "SINGLE", null, 1));
+    void filtersByWorkspaceStatusAndKeywordBeforePagination() {
+        insert("orders-a", "ws", 1, 1, false, "{\"marker\":\"alpha\"}");
+        insert("orders-b", "ws", 1, 1, false, "{\"marker\":\"beta\"}");
+        insert("orders-unpublished", "ws", 0, 1, false, "{}");
+        insert("orders-deleted", "ws", 1, 1, true, "{}");
+        insert("orders-foreign", "other-workspace", 1, 1, false, "{}");
 
-        Map<String, String> replication = Map.of("dataSyncProfile", "DATABASE_REPLICATION");
-        IPage<DefinitionEntity> first = page(1, 2, replication);
-        assertEquals(5L, first.getTotal());
-        assertEquals(3L, first.getPages());
-        assertEquals(List.of("05-default-initial", "04-incremental"), ids(first));
-        IPage<DefinitionEntity> second = page(2, 2, replication);
-        assertEquals(5L, second.getTotal());
-        assertEquals(List.of("03-initial", "02-snapshot-database"), ids(second));
-        assertEquals(List.of("01-snapshot-single"), ids(page(3, 2, replication)));
-
-        IPage<DefinitionEntity> snapshots = page(1, 20,
-                Map.of("dataSyncProfile", "DATABASE_REPLICATION", "runtimeMode", "BATCH"));
-        assertEquals(2L, snapshots.getTotal());
-        assertEquals(List.of("02-snapshot-database", "01-snapshot-single"), ids(snapshots));
-        assertEquals(3L, page(1, 20, Map.of("runtimeMode", "BATCH")).getTotal());
-        assertEquals(List.of("01-snapshot-single"), ids(page(1, 20, Map.of(
-                "dataSyncProfile", "DATABASE_REPLICATION", "runtimeMode", "BATCH", "tableScope", "SINGLE"))));
+        DefinitionPageQuery first = new DefinitionPageQuery("ws", 1, 1, "orders", "EXAMPLE_TASK", 1);
+        IPage<DefinitionEntity> firstPage = select(first);
+        assertEquals(2L, firstPage.getTotal());
+        assertEquals(2L, firstPage.getPages());
+        assertEquals(List.of("orders-b"), ids(firstPage));
+        DefinitionPageQuery second = new DefinitionPageQuery("ws", 2, 1, "orders", "EXAMPLE_TASK", 1);
+        assertEquals(List.of("orders-a"), ids(select(second)));
     }
 
     @Test
-    void singleBatchUsesEffectiveScopeWithoutConvertingExplicitDatabaseSelections() {
-        insert("01-explicit-single", parameters("jdbc-mysql", "BATCH", "SINGLE", null, 1));
-        insert("02-default-single", parameters("jdbc-postgres", "BATCH", null, null, 1));
-        insert("03-database-one-table", parameters("jdbc-mysql", "BATCH", "DATABASE", null, 1));
-        insert("04-database-two-tables", parameters("jdbc-mysql", "BATCH", "DATABASE", null, 2));
-        insert("05-default-multiple", parameters("jdbc-mysql", "BATCH", null, null, 2));
+    void searchesCurrentVersionWithoutMatchingHistoricalParameterPayloads() {
+        insert("definition-a", "ws", 1, 2, false, "{\"marker\":\"current-only\"}");
+        insertVersion("definition-a", "ws", 1, "{\"marker\":\"historical-only\"}");
+        insert("definition-b", "ws", 1, 1, false, "{\"marker\":\"historical-only\"}");
 
-        IPage<DefinitionEntity> single = page(1, 20, Map.of("dataSyncProfile", "SINGLE_TABLE_BATCH"));
-        assertEquals(2L, single.getTotal());
-        assertEquals(List.of("02-default-single", "01-explicit-single"), ids(single));
-        assertEquals(0L, page(1, 20, Map.of("dataSyncProfile", "DATABASE_REPLICATION")).getTotal());
-        assertEquals(5L, page(1, 20, Map.of()).getTotal());
+        IPage<DefinitionEntity> historical = select(
+                new DefinitionPageQuery("ws", 1, 20, "historical-only", "EXAMPLE_TASK", null));
+        assertEquals(1L, historical.getTotal());
+        assertEquals(List.of("definition-b"), ids(historical));
+        IPage<DefinitionEntity> current = select(
+                new DefinitionPageQuery("ws", 1, 20, "current-only", "EXAMPLE_TASK", null));
+        assertEquals(List.of("definition-a"), ids(current));
+        assertEquals(2, current.getRecords().getFirst().getCurrentVersion());
     }
 
     @Test
-    void countsOnlyCurrentVersionsWithinWorkspaceAndExistingDefinitionFilters() {
-        String snapshot = parameters("mysql", "BATCH", "DATABASE", "SNAPSHOT", 1);
-        String initial = parameters("mysql", "STREAMING", "DATABASE", "INITIAL", 1);
-        insert("orders-current-snapshot", "ws", 1, 2, false, snapshot);
-        insertVersion("orders-current-snapshot", "ws", 1, initial);
-        insert("orders-current-streaming", "ws", 1, 2, false, initial);
-        insertVersion("orders-current-streaming", "ws", 1, snapshot);
-        insert("orders-other-workspace", "another-workspace", 1, 1, false, snapshot);
-        insert("orders-deleted", "ws", 1, 1, true, snapshot);
-        insert("orders-unpublished", "ws", 0, 1, false, snapshot);
-        insert("unrelated-name", "ws", 1, 1, false, snapshot);
+    void taskTypeFilteringIsExactAndKeepsDefaultListingGeneric() {
+        insert("example-a", "{}");
+        insert("example-b", "{}");
+        insert("example-c", "{}");
+        jdbc.update("UPDATE yak_ops_task_definition SET task_type=? WHERE id=?", "OTHER_TASK", "example-a");
 
-        DefinitionPageQuery query = new DefinitionPageQuery(
-                "ws", 1, 1, "orders", "DATA_SYNC", 1,
-                Map.of("dataSyncProfile", "DATABASE_REPLICATION", "runtimeMode", "BATCH",
-                        "sourceType", "mysql", "sourceDataSourceId", "source"));
-        IPage<DefinitionEntity> result = select(query);
-        assertEquals(1L, result.getTotal());
-        assertEquals(1L, result.getPages());
-        assertEquals(List.of("orders-current-snapshot"), ids(result));
-        assertEquals(2, result.getRecords().getFirst().getCurrentVersion());
+        IPage<DefinitionEntity> typed = select(
+                new DefinitionPageQuery("ws", 1, 20, null, "EXAMPLE_TASK", null));
+        assertEquals(2L, typed.getTotal());
+        assertEquals(List.of("example-c", "example-b"), ids(typed));
+        assertEquals(1L, select(
+                new DefinitionPageQuery("ws", 1, 20, null, "OTHER_TASK", null)).getTotal());
+        assertEquals(3L, select(
+                new DefinitionPageQuery("ws", 1, 20, null, null, null)).getTotal());
     }
 
     @Test
     void clearingPublicationPersistsNullsWithoutChangingSavedParameters() {
-        insert("published", parameters("jdbc-mysql", "BATCH", "SINGLE", null, 1));
+        insert("published", "{\"marker\":\"published\"}");
         DefinitionEntity definition = mapper.selectById("published");
         assertEquals(1, definition.getPublishedVersion());
         definition.setStatus(DefinitionStatus.UNPUBLISHED);
@@ -185,7 +164,7 @@ class DefinitionPageQueryIT {
                         INSERT INTO yak_ops_task_definition
                           (id,workspace_id,name,task_type,status,current_version,debug,
                            create_time,update_time,create_by,update_by)
-                        VALUES (?,'ws',?,'DATA_SYNC',?,3,1,?,?,'original-author','original-author')
+                        VALUES (?,'ws',?,'EXAMPLE_TASK',?,3,1,?,?,'original-author','original-author')
                         """, id, id, status, UPDATED, UPDATED);
                 upgrade.update("""
                         INSERT INTO yak_ops_task_definition_version
@@ -216,10 +195,6 @@ class DefinitionPageQueryIT {
         }
     }
 
-    private IPage<DefinitionEntity> page(int pageNo, int pageSize, Map<String, String> filters) {
-        return select(new DefinitionPageQuery("ws", pageNo, pageSize, null, "DATA_SYNC", null, filters));
-    }
-
     private IPage<DefinitionEntity> select(DefinitionPageQuery query) {
         return mapper.selectDefinitionPage(new Page<>(query.pageNo(), query.pageSize()), query);
     }
@@ -237,7 +212,7 @@ class DefinitionPageQueryIT {
                 INSERT INTO yak_ops_task_definition
                     (id, workspace_id, name, task_type, status, current_version, published_version, published_debug, deleted_at,
                      create_time, update_time, create_by, update_by)
-                VALUES (?, ?, ?, 'DATA_SYNC', ?, ?, ?, ?, ?, ?, ?, 'test', 'test')
+                VALUES (?, ?, ?, 'EXAMPLE_TASK', ?, ?, ?, ?, ?, ?, ?, 'test', 'test')
                 """, id, workspace, id, status, version, status == 1 ? version : null, status == 1 ? false : null,
                 deleted ? UPDATED : null, UPDATED, UPDATED);
         insertVersion(id, workspace, version, parameters);
@@ -252,31 +227,4 @@ class DefinitionPageQueryIT {
                 """, id + "-v" + version, workspace, id, version, parameters, UPDATED, UPDATED);
     }
 
-    private static String parameters(String connector, String runtime, String scope, String startup, int tables) {
-        List<Map<String, Object>> sourceTables = new ArrayList<>();
-        List<Map<String, Object>> sinkTables = new ArrayList<>();
-        List<Map<String, String>> routes = new ArrayList<>();
-        for (int i = 0; i < tables; i++) {
-            String table = "table_" + i;
-            sourceTables.add(Map.of("database", "inventory", "table", table));
-            sinkTables.add(Map.of("database", "replica", "table", table, "write", Map.of("mode", "UPSERT")));
-            routes.add(Map.of("source-table", "inventory." + table, "sink-table", "replica." + table));
-        }
-        Map<String, Object> source = new LinkedHashMap<>(Map.of(
-                "type", connector, "datasourceId", "source", "tables", sourceTables));
-        if (startup != null) source.put("startup", Map.of("mode", startup));
-        else if ("BATCH".equals(runtime)) source.put("syncMode", "FULL");
-        Map<String, Object> pipeline = new LinkedHashMap<>(Map.of("execution.runtime-mode", runtime));
-        if (scope != null) pipeline.put("pipeline.table-scope", scope);
-        String effectiveScope = scope == null ? (tables == 1 ? "SINGLE" : "DATABASE") : scope;
-        return JSONUtils.toJson(Map.of(
-                "source", source,
-                "sink", Map.of("type", "jdbc-mysql", "datasourceId", "target", "tables", sinkTables,
-                        "schemaPolicy", Map.of("initial", "VERIFY", "evolution", Map.of("enabled", false, "allowDropColumns", false))),
-                "route", routes,
-                "transform", List.of(),
-                "pipeline", pipeline,
-                "index", Map.of("sourceType", connector, "sinkType", "jdbc-mysql", "runtimeMode", runtime,
-                        "tableScope", effectiveScope, "sourceDataSourceId", "source", "targetDataSourceId", "target")));
-    }
 }

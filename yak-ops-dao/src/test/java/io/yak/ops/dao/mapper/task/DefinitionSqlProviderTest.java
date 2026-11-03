@@ -1,51 +1,46 @@
 package io.yak.ops.dao.mapper.task;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.yak.ops.dao.repository.task.DefinitionPageQuery;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** Stable current Pipeline indexed metadata filter paths must never interpolate user-controlled values into SQL. */
+/** Task Definition queries must bind all caller-controlled filter values. */
 class DefinitionSqlProviderTest {
     @Test
-    void bindsOnlyValidatedPipelineSearchProjection() {
+    void bindsWorkspaceTypeStatusAndKeyword() {
         DefinitionPageQuery filter = new DefinitionPageQuery(
-                "ws", 1, 20, "orders", "DATA_SYNC", 1,
-                Map.of("sourceType", "mysql", "sourceDataSourceId", "source-id",
-                        "targetDataSourceId", "target-id"));
+                "ws", 1, 20, "orders", "EXAMPLE_TASK", 1);
         String sql = DefinitionSqlProvider.selectDefinitionPage(Map.of("filter", filter));
-        assertTrue(sql.contains("$.index.sourceType"));
-        assertTrue(DefinitionSqlProvider.RUNTIME_MODE.contains("$.index.runtimeMode"));
-        assertTrue(sql.contains("v.parameter_schema_version = 7"));
-        assertFalse(sql.contains("v.parameter_schema_version = 2"));
-        assertTrue(sql.contains("$.index.sourceDataSourceId"));
-        assertTrue(sql.contains("$.index.targetDataSourceId"));
-        assertTrue(sql.contains("#{filter.parameterFilters.sourceType}"));
-        assertFalse(sql.contains("source-id"));
+        assertTrue(sql.contains("d.workspace_id = #{filter.workspaceId}"));
+        assertTrue(sql.contains("d.task_type = #{filter.taskType}"));
+        assertTrue(sql.contains("d.status = #{filter.statusValue}"));
+        assertTrue(sql.contains("d.name LIKE CONCAT('%', #{filter.keyword}, '%')"));
+        assertTrue(sql.contains("v.parameters LIKE CONCAT('%', #{filter.keyword}, '%')"));
+        assertTrue(sql.contains("d.deleted_at IS NULL"));
+        assertTrue(sql.contains("ORDER BY d.update_time DESC, d.id DESC"));
     }
 
     @Test
-    void rejectsArbitraryJsonPathsInsteadOfBuildingSqlFromThem() {
+    void doesNotInterpolateUserKeywordIntoSql() {
+        String keyword = "orders' OR 1=1 --";
         DefinitionPageQuery filter = new DefinitionPageQuery(
-                "ws", 1, 20, null, "DATA_SYNC", null, Map.of("credentials.password", "anything"));
-        assertThrows(IllegalArgumentException.class,
-                () -> DefinitionSqlProvider.selectDefinitionPage(Map.of("filter", filter)));
+                "ws", 1, 20, keyword, "EXAMPLE_TASK", null);
+        String sql = DefinitionSqlProvider.selectDefinitionPage(Map.of("filter", filter));
+        assertFalse(sql.contains(keyword));
+        assertTrue(sql.contains("#{filter.keyword}"));
     }
 
     @Test
-    void productFilterBindsItsValueAndCombinesWithPhysicalRuntime() {
+    void retiredProductIndexedPredicatesAreNotCompiled() {
         DefinitionPageQuery filter = new DefinitionPageQuery(
-                "ws", 1, 2, null, "DATA_SYNC", null,
-                Map.of("dataSyncProfile", "DATABASE_REPLICATION", "runtimeMode", "BATCH"));
+                "ws", 1, 20, null, null, null);
         String sql = DefinitionSqlProvider.selectDefinitionPage(Map.of("filter", filter));
-
-        assertTrue(sql.contains("#{filter.parameterFilters.dataSyncProfile}"));
-        assertTrue(sql.contains("#{filter.parameterFilters.runtimeMode}"));
-        assertTrue(sql.contains("$.source.startup"));
-        assertFalse(sql.contains("$.index.dataSyncProfile"));
-        assertFalse(sql.contains(" = 'BATCH'"));
+        assertFalse(sql.contains("dataSyncProfile"));
+        assertFalse(sql.contains("JSON_EXTRACT"));
+        assertFalse(sql.contains("parameter_schema_version"));
+        assertFalse(sql.contains("#{filter.parameterFilters."));
     }
 }

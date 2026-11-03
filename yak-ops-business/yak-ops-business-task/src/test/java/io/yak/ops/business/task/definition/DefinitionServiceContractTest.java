@@ -27,15 +27,11 @@ import io.yak.ops.dao.repository.schedule.ScheduleRepository;
 import io.yak.ops.plugin.task.api.TaskPluginManager;
 import io.yak.ops.plugin.task.api.validation.TaskValidationContext;
 import java.util.List;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
@@ -118,24 +114,21 @@ class DefinitionServiceContractTest {
                 () -> service.queryPublications("task-1", 1, 201)).getErrorCode());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"SINGLE_TABLE_BATCH", "DATABASE_REPLICATION"})
-    void productPagePreservesWorkspaceAndExactExecutionConstraints(String profile) {
+    @Test
+    void definitionPagePreservesWorkspaceAndCoreFilters() {
         WorkspaceContext.bind("current-workspace");
         DefinitionQueryDTO query = new DefinitionQueryDTO();
-        query.setTaskType("DATA_SYNC");
+        query.setTaskType("EXAMPLE_TASK");
         query.setPageNo(2);
         query.setPageSize(7);
         query.setKeyword(" orders ");
         query.setStatus(DefinitionStatus.PUBLISHED);
-        query.setParameterFilters(Map.of("dataSyncProfile", profile, "runtimeMode", "BATCH"));
         when(definitions.queryPage(any())).thenAnswer(invocation -> {
             DefinitionPageQuery selected = invocation.getArgument(0);
             assertEquals("current-workspace", selected.workspaceId());
-            assertEquals("DATA_SYNC", selected.taskType());
+            assertEquals("EXAMPLE_TASK", selected.taskType());
             assertEquals("orders", selected.keyword());
             assertEquals(1, selected.statusValue());
-            assertEquals(Map.of("dataSyncProfile", profile, "runtimeMode", "BATCH"), selected.parameterFilters());
             return PageData.empty(selected.pageNo(), selected.pageSize());
         });
 
@@ -146,28 +139,17 @@ class DefinitionServiceContractTest {
     }
 
     @ParameterizedTest
-    @MethodSource("invalidProductFilters")
-    void rejectsUnsupportedProductProfilesAndNonDataSyncQueries(String taskType, String profile) {
+    @ValueSource(strings = {"dataSyncProfile", "runtimeMode", "sourceType", "targetDataSourceId"})
+    void rejectsRetiredProductParameterFiltersInsteadOfReturningUnfilteredResults(String name) {
         WorkspaceContext.bind("ws");
         DefinitionQueryDTO query = new DefinitionQueryDTO();
-        query.setTaskType(taskType);
-        Map<String, String> filters = new HashMap<>();
-        filters.put("dataSyncProfile", profile);
-        query.setParameterFilters(filters);
+        query.setTaskType("EXAMPLE_TASK");
+        query.setPageNo(1);
+        query.setPageSize(20);
+        query.setParameterFilters(Map.of(name, "old-value"));
 
         BusinessException rejected = assertThrows(BusinessException.class, () -> service.queryPage(query));
         assertEquals(CommonErrorCode.PARAM_NOT_VALID, rejected.getErrorCode());
-    }
-
-    private static Stream<Arguments> invalidProductFilters() {
-        return Stream.of(
-                Arguments.of("DATA_SYNC", "MULTI_TABLE_BATCH"),
-                Arguments.of("DATA_SYNC", "UNKNOWN"),
-                Arguments.of("DATA_SYNC", "DATABASE_REPLICATION' OR 1=1 --"),
-                Arguments.of("DATA_SYNC", ""),
-                Arguments.of("DATA_SYNC", null),
-                Arguments.of("SHELL", "DATABASE_REPLICATION"),
-                Arguments.of(null, "SINGLE_TABLE_BATCH"));
     }
 
 }
