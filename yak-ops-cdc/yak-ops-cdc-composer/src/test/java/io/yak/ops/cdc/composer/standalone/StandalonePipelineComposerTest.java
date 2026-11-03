@@ -35,6 +35,7 @@ import io.yak.ops.cdc.common.sink.MetadataApplier;
 import io.yak.ops.cdc.common.source.DataSource;
 import io.yak.ops.cdc.common.source.EventSourceProvider;
 import io.yak.ops.cdc.common.source.MetadataAccessor;
+import io.yak.ops.cdc.composer.PipelineExecution;
 import io.yak.ops.cdc.composer.definition.PipelineDef;
 import io.yak.ops.cdc.composer.definition.RouteDef;
 import io.yak.ops.cdc.composer.definition.SinkDef;
@@ -44,6 +45,7 @@ import io.yak.ops.cdc.runtime.connectors.RuntimeSinkProvider;
 import io.yak.ops.cdc.runtime.connectors.RuntimeSourceProvider;
 import io.yak.ops.cdc.runtime.datastream.StreamExecutionEnvironment;
 import io.yak.ops.cdc.runtime.graph.OperatorType;
+import io.yak.ops.cdc.runtime.graph.StreamGraph;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,7 +59,30 @@ class StandalonePipelineComposerTest {
 
     private static final List<Event> RECEIVED = new CopyOnWriteArrayList<>();
 
-    private record TestEvent(String value) implements Event {}
+    private static final class TestEvent implements Event {
+        private final String value;
+
+        private TestEvent(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) {
+                return true;
+            }
+            if (!(other instanceof TestEvent)) {
+                return false;
+            }
+            TestEvent that = (TestEvent) other;
+            return java.util.Objects.equals(value, that.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return java.util.Objects.hashCode(value);
+        }
+    }
 
     @BeforeEach
     void clear() {
@@ -83,22 +108,22 @@ class StandalonePipelineComposerTest {
 
     @Test
     void composerBuildsSourceToSinkAndExecutionDelegatesToRuntime() throws Exception {
-        var env = StreamExecutionEnvironment.getLocalEnvironment();
-        var execution = assertInstanceOf(StandalonePipelineExecution.class,
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        StandalonePipelineExecution execution = assertInstanceOf(StandalonePipelineExecution.class,
                 new StandalonePipelineComposer(env).compose(
                         definition(Map.of("tables", "db.orders"),
                                 Map.of("target", "target.orders"),
                                 Map.of("name", "orders", "operator.uid.prefix", "replica"),
                                 List.of(), List.of())));
-        var graph = env.getStreamGraph();
+        StreamGraph graph = env.getStreamGraph();
         assertEquals(List.of(OperatorType.SOURCE, OperatorType.SINK),
-                graph.getOrderedNodes().stream().map(n -> n.type()).toList());
-        assertEquals("replica-source", graph.getOrderedNodes().get(0).uid());
-        assertEquals("replica-sink-writer", graph.getOrderedNodes().get(1).uid());
+                graph.getOrderedNodes().stream().map(n -> n.getType()).toList());
+        assertEquals("replica-source", graph.getOrderedNodes().get(0).getTransformationUID());
+        assertEquals("replica-sink-writer", graph.getOrderedNodes().get(1).getTransformationUID());
         assertEquals(1, graph.getEdges().size());
         assertEquals(0, RECEIVED.size(), "Composer must not execute any Event");
 
-        var info = execution.execute();
+        PipelineExecution.ExecutionInfo info = execution.execute();
         assertEquals("orders", info.getDescription());
         assertEquals(info.getId(), execution.getHandle().getId());
         execution.getHandle().getCompletion().get(5, TimeUnit.SECONDS);
@@ -108,11 +133,11 @@ class StandalonePipelineComposerTest {
 
     @Test
     void transformDefinitionsProduceFlinkCdcPreAndPostStagesWithoutRunningExpressions() {
-        var env = StreamExecutionEnvironment.getLocalEnvironment();
-        var transforms = List.of(
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
+        List<TransformDef> transforms = List.of(
                 new TransformDef("db.orders", "id", null, null, null, null, null, null),
                 new TransformDef("db.users", "id", null, null, null, null, null, null));
-        var execution = assertInstanceOf(StandalonePipelineExecution.class,
+        StandalonePipelineExecution execution = assertInstanceOf(StandalonePipelineExecution.class,
                 new StandalonePipelineComposer(env).compose(
                         definition(Map.of("tables", "db.orders"),
                                 Map.of("target", "target.orders"),
@@ -121,9 +146,9 @@ class StandalonePipelineComposerTest {
         assertEquals(List.of("Yak Ops CDC Event Source: test-source",
                         "Transform:Schema", "Transform:Data",
                         "Yak Ops CDC Event Sink: test-sink"),
-                env.getStreamGraph().getOrderedNodes().stream().map(n -> n.name()).toList());
+                env.getStreamGraph().getOrderedNodes().stream().map(n -> n.getOperatorName()).toList());
         assertEquals(3, env.getStreamGraph().getEdges().size());
-        assertEquals("job-post-transform", env.getStreamGraph().getOrderedNodes().get(2).uid());
+        assertEquals("job-post-transform", env.getStreamGraph().getOrderedNodes().get(2).getTransformationUID());
         execution.execute();
         CompletionException error = assertThrows(CompletionException.class,
                 () -> execution.getHandle().getCompletion().join());
@@ -182,7 +207,7 @@ class StandalonePipelineComposerTest {
 
     @Test
     void supportsExplicitClassLoaderAndInjection() {
-        var env = StreamExecutionEnvironment.getLocalEnvironment();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getLocalEnvironment();
         new StandalonePipelineComposer(env, TestSourceFactory.class.getClassLoader())
                 .compose(definition());
         assertEquals(2, env.getStreamGraph().getNodes().size());
